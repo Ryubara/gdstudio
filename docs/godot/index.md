@@ -51,7 +51,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| WebSocketPeer, TCPServer (own protocol); MultiplayerAPI, netfox | server-authoritative co-op over WebSockets | known for our own protocol: [Multiplayer](multiplayer.md); MultiplayerAPI and netfox being compared (Deadnight #38) |
+| WebSocketPeer, TCPServer (own protocol); MultiplayerAPI, netfox | server-authoritative co-op over WebSockets | known: [Multiplayer](multiplayer.md) (own protocol; MultiplayerAPI and netfox measured against it) |
 | Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer |
 | Headless server export | the game server on Railway | spike with multiplayer |
 | ResourceLoader (threaded loading) | loading screens | learn while building |
