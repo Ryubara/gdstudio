@@ -3,7 +3,9 @@ name = "gds-tools"
 version = "0.1.0"
 description = "GDStudio's shared tooling: workspace bootstrap, pinned tools, checks and pipelines for agents."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pillow>=13.0.0",
+]
 
 [project.scripts]
 gds = "gds_tools.cli:main"

@@ -44,6 +44,7 @@ nav:
   - Home: index.md
   - Godot:
       - godot/index.md
+      - UI controls: godot/ui-controls.md
       - Rig sharing: godot/rig-sharing.md
   - Blender:
       - blender/index.md
@@ -51,3 +52,5 @@ nav:
   - Lessons: lessons.md
   - Workspace: workspace.md
   - References: refs.md
+  - Capture: capture.md
+  - Sync: sync.md

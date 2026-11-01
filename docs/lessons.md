@@ -33,6 +33,42 @@ where it is documented. Before solving something, search this page: it may have 
   `_post_process_key_value`; the library stays one resource.
 - **Docs:** [Rig sharing (Godot)](godot/rig-sharing.md#what-breaks).
 
+## 2026-11-01: a hidden slider grabber drew a magenta square
+
+- **Saw:** a themed HSlider showed a magenta and black square where the grabber was meant to be invisible.
+- **Cause:** the invisible grabber was a PlaceholderTexture2D, which draws its checker pattern in game.
+- **Fix:** a transparent ImageTexture of the same size.
+- **Docs:** [UI controls](godot/ui-controls.md).
+
+## 2026-11-01: the screen stretched after a UI scale round trip
+
+- **Saw:** after 125% and back to 100%, a column was 1425 px tall and off centre.
+- **Cause:** autowrap Labels report a tall minimum size while a container sizes them; a CenterContainer kept it.
+- **Fix:** no autowrap in rows (trim with an ellipsis), and a round-trip test.
+- **Docs:** [UI controls](godot/ui-controls.md).
+
+## 2026-11-01: GdUnit4 refuses to run headless
+
+- **Saw:** "Headless mode is not supported", exit code 103.
+- **Cause:** GdUnit4 blocks headless runs unless told otherwise.
+- **Fix:** pass `--ignoreHeadlessMode`; the port 0 remote-debug error line is harmless. A failing suite stops at its
+  first failure: fix and rerun to see the rest.
+- **Docs:** each game's `AGENTS.md` (Build and test).
+
+## 2026-11-01: a Movie Maker frame shows the state one step late
+
+- **Saw:** the frame numbered N already showed a change made at step N.
+- **Cause:** frame N is written after that step's script code ran.
+- **Fix:** read frame N-1 to see the state before a change; frames are always at the project viewport size.
+- **Docs:** [Capture](capture.md).
+
+## 2026-11-01: Movie Maker ignores `--resolution`
+
+- **Saw:** `--write-movie` with `--resolution 1280x720` (or 960x540) still wrote 1920x1080 frames.
+- **Cause:** the movie is the project's viewport size; the window resolution request does not change it (Godot 4.7.2).
+- **Fix:** scale afterwards, which `gds capture sheet` and `gds capture clip` do.
+- **Docs:** [Capture](capture.md).
+
 ## 2026-11-01: hooks judged text as commands
 
 - **Saw:** the hooks refused harmless commands: a Python heredoc line starting `blender = ...`, and a `grep -E "a|godot"`.
