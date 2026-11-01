@@ -26,6 +26,7 @@ them and turns each into a check to run when a new game or feature starts.
 | Research AI teammate bots in depth: revive, buy, move, all weapons | Our bot was a test tool, not a teammate | Decide early whether the game needs bot teammates; if so, research them before building the systems they use |
 | (From a neighbouring project) 93 Godot processes held the CPU at 100% | Load tests had no limit on a shared machine | At most four parallel suites, no busy loops, stop by PID, a timeout on every long command, a heads-up before long load tests |
 | Host the web build on Railway | Shipping a playable link came late | Stand up a playable web build early and redeploy it on every merge |
+| The deployed build hitches the first time something appears (a shot, a zombie) | We measured frame times on desktop and with a warm browser profile, and nothing drew every effect once before play | Warm up behind a loading screen from the first night; measure in a browser with a fresh profile and count the GL programs linked during play ([First-use hitches](../godot/first-use-hitches.md)) |
 | Add mobile controls for landscape play, intuitive and researched | We planned for desktop and the browser but not for phones, although Discord Activities run on them | Name every input device the game ships on (keyboard and mouse, gamepad, touch); plan touch controls, landscape lock and safe areas with the first playable build |
 | The dead's animation should follow their speed and the round | Speeds were retuned (#260) without the clips that show them; blend points were guesses, so fast zombies slid | Measure each locomotion clip's ground speed; any change to movement speed checks foot slide and gait in the same pull request |
 | Guns must be scaled, angled and placed right on the player | Weapons were attached once and never checked against the hands, the shoulder and the aim ray | Each held item has a grip, support and barrel check in tests and a side, shoulder and aim capture |
@@ -118,6 +119,12 @@ also a check to keep.
 ### Process on a shared machine
 
 - Cap load tests, stop processes by PID, time out long commands, and warn neighbouring projects first.
+
+### First use
+
+- Load and draw every enemy, weapon, effect and light state once behind a loading screen; keep the materials of
+  short-lived effects alive.
+- A browser run with a fresh profile that counts programs linked after the loading screen is the gate (zero).
 
 ### Hosting
 

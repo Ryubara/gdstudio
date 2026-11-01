@@ -28,6 +28,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D, shader quads | blood, sparks, smoke, muzzle flash, camera shake | known: [Shot feedback](shot-feedback.md) (flash quads on the weapon's `Muzzle`, pooled impacts, trauma shake) |
 | Spatial shaders, textures on CSG | the greybox lot's ground, walls and paint | known: [Surface materials](surface-materials.md) (world-projected shader, one read, no specular; headless import leaves mipmaps off) |
+| Shader and program builds, first use | the first shot, enemy or explosion stutters | known: [First-use hitches](first-use-hitches.md) (no baker or ubershaders in Compatibility; warm up behind a loading screen; short-lived materials rebuild their shaders at every use) |
 
 ## Characters and animation
 
@@ -55,7 +56,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | WebSocketPeer, TCPServer (own protocol); MultiplayerAPI, netfox | server-authoritative co-op over WebSockets | known: [Multiplayer](multiplayer.md) (own protocol; MultiplayerAPI and netfox measured against it) |
 | Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer |
 | Headless server export | the game server on Railway | spike with multiplayer |
-| ResourceLoader (threaded loading) | loading screens | learn while building |
+| ResourceLoader (threaded loading) | loading screens | known: [First-use hitches](first-use-hitches.md) (threaded requests polled each frame; hold the references) |
 
 ## Testing and capture
 
