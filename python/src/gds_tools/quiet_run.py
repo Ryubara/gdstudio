@@ -10,7 +10,9 @@ Everywhere else (Linux CI, macOS) there is no focus to protect and the program i
 
 from __future__ import annotations
 
+import contextlib
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -56,15 +58,17 @@ def _run_plain(
 ) -> Outcome:
     proc = subprocess.Popen(
         cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        encoding="utf-8", errors="replace",
+        encoding="utf-8", errors="replace", start_new_session=True,
     )  # fmt: skip
     if on_start:
         on_start(proc.pid)
     timed_out = threading.Event()
 
     def kill() -> None:
+        # The whole process group: a child the program started would otherwise keep the output pipe open.
         timed_out.set()
-        proc.kill()
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)  # type: ignore[attr-defined]  # never reached on Windows
 
     timer = threading.Timer(timeout, kill) if timeout else None
     if timer:
