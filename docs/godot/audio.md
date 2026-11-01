@@ -36,3 +36,47 @@ to a bus at runtime for ducking (leaves the bus volume to the player's settings;
 - The headless GdUnit4 run uses the dummy audio driver: players report `playing`, nothing is heard.
 - The listener is the current `Camera3D` unless an `AudioListener3D` is current; a high capture camera makes distances
   wrong.
+
+## Layered gunshots and event-timed sounds
+
+- **Split a shot across voices.** Play the report (transient and body, 0.05 to 0.35 s), a long blast and a tail as
+  three separate sounds with their own random variants and a few dB of level jitter; the combinations are many even
+  with three files each, and a cooldown on the blast and tail of an automatic gun keeps twelve shots a second from
+  becoming a wall of tails. Start the tail 40 to 70 ms late: the lot answers late.
+- **Time steps to the clip, not the clock.** Read the animation's event frames from its spec (`clips.json`, frames over
+  fps) and schedule each step's sound on a clock the owner steps (`advance(delta)`), tagged per player so putting the
+  weapon away cancels what is left. A test steps 1 ms either side of each frame and needs no wall time.
+- **Stamp a scheduled sound with its due time**, not the step's end: when one big step runs several items, `now()`
+  inside an item must be that item's time, or timing assertions see the step size instead of the frame.
+- **Hitscan impacts without a hit report:** a pellet that ended short of the weapon's range struck something; the
+  zombies' hits arrive in the same batch just after, so queue the world impact for the next step and let each hit
+  claim the pellet end nearest its point.
+- **Generated sounds (ElevenLabs Sound Effects) vary wildly in level and lead-in.** Peaks from -22 to over 0 dBFS,
+  the shot sometimes 0.3 s in, and no seed to repeat one. Trim to where it first rises within 34 dB of its peak,
+  normalise to a fixed peak, fade the end, keep loops untrimmed, and keep the prompt with the file.
+
+## A crowd's voices (the dead)
+
+- **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one
+  idle voice every 0.6 to 1.6 s, from the nearest three that are due) keeps 28 groaning zombies readable; the pool's
+  group limit (six voices) is the second guard. Priority puts the cue that matters first: a snarl (65) or a swing (62)
+  takes a voice from a groan (30), the boss has a group of its own so it is always heard, and feet are a group of
+  their own below the player's steps.
+- **Front from back.** Panning cannot tell them apart on two speakers. A low-pass by how far behind the listener a
+  sound is (5 kHz at the side to 1.8 kHz straight behind) does: measured, the centre of energy of a horde was 1.2 kHz
+  in front and 0.7 kHz behind, with 0 dB of left-right difference either way and about 6 dB at the side.
+- **Time a cue to the blow:** start it `windup - lead` after the swing begins, where `lead` is how far into the file
+  the effort peaks. Feet: advance the clip's phase at its own cadence (a foot per half cycle) from the same per-id
+  phase the view starts the clip at.
+- **`unit_size` is a loudness, not a size.** Inverse attenuation is `unit_size / distance`, above 1 inside
+  `unit_size`, held only by `max_db` (3 dB): see the lesson on the boss roar that clipped the mix.
+- **Analyse a capture per second:** left minus right in dB, centre of energy, peak and clipped samples, against the
+  act on screen; a loud case (the boss close by) shows a clip a whole-file peak hides in a long mix.
+- **`AudioStreamPlayer3D` ignores trims up close.** Its inverse-distance attenuation boosts by `unit_size / distance`
+  (a gun 1.7 m away with `unit_size` 14 is 18 dB up) and the only ceiling is `max_db`, +3 dB over the file by default.
+  So every sound inside a few metres plays at the ceiling whatever its `volume_db`, and three layers of a shot sum past
+  full scale. Set `max_db = volume_db + n` per play (0 for "the trim is the level") and leave far sounds alone. Measured:
+  a shotgun trimmed to -23 dB still peaked at -5 dBFS in the mix until `max_db` was set. A loop whose level you move
+  needs `max_db` moved with it.
+- **A level capture needs a listener.** A Movie Maker recording with no `Camera3D` (or `AudioListener3D`) in the tree is
+  silent: nothing hears the 3D players.
