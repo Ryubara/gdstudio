@@ -3,6 +3,15 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: a lightmap bake did nothing in the Compatibility editor
+
+- **Saw:** "Bake Lightmaps" ended in 0.00 s with no file and no error; scripts cannot call `LightmapGI.bake()`.
+- **Cause:** baking needs a RenderingDevice, which the Compatibility editor lacks; with no `light_data` the button
+  only opens a file dialog.
+- **Fix:** a Vulkan editor (`--editor --rendering-method forward_plus`), a saved `light_data`, and the button pressed
+  from a tool plugin; the game still runs in Compatibility.
+- **Docs:** [Compatibility lighting](godot/compat-lighting.md#lightmapgi).
+
 ## 2026-11-01: a hidden slider grabber drew a magenta square
 
 - **Saw:** a themed HSlider showed a magenta and black square where the grabber was meant to be invisible.

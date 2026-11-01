@@ -45,6 +45,7 @@ nav:
   - Godot:
       - godot/index.md
       - UI controls: godot/ui-controls.md
+      - Compatibility lighting: godot/compat-lighting.md
   - Lessons: lessons.md
   - Workspace: workspace.md
   - References: refs.md
