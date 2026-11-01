@@ -50,6 +50,49 @@ the `#define` list of each program (`DISABLE_LIGHT_OMNI`, `USE_INSTANCING`, `MOD
 second program for the same material was needed. Frame times alone (requestAnimationFrame deltas) show the hitches but
 not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough, a software renderer is not.
 
+## The first draw of a shader builds four programs, two of them huge
+
+Reading the engine (`ShaderGLES3::_version_bind_shader` and `_initialize_version`, 4.7) and measuring in Chrome
+(ANGLE on Direct3D 11, RTX 5080, a small spike with one cube per material and a directional, an omni and a spot light):
+the first time any shader (a `ShaderMaterial`'s, or the one the engine writes for a set of `StandardMaterial3D`
+settings) is bound, the renderer builds **all four of its variants (colour, colour instanced, depth, depth instanced) at
+the default specialisation**, in which nothing is disabled: directional, omni, spot and **area** lights, lightmaps,
+fog. Then it builds the specialisation the draw really asked for. Only the last is ever drawn with, in most games.
+
+| First bind of a shader | The two colour programs (default) | The depth programs | The program drawn with |
+| --- | --- | --- | --- |
+| `StandardMaterial3D`, Burley and GGX (the default) | 915 and 889 ms | 10 and 13 ms | 171 ms |
+| Lambert, specular disabled (`ShaderMaterial` or standard) | 540 to 640 and 490 to 570 ms | 10 and 14 ms | 90 to 140 ms |
+| per-vertex shading | 120 to 150 ms each | 15 and 18 ms | 111 to 128 ms |
+| unshaded | 30 to 45 ms each | 10 ms each | 30 ms |
+
+- So one lit shader's first draw is a frame of **1.1 to 2 s** whatever the mesh is, and no frame can be cut shorter than
+  that: a browser cannot build part of a program. A lot with nine lit shaders drew them all in its first frame, 9 to
+  12 s with nothing moving.
+- `shadows_disabled`, `ambient_light_disabled`, `fog_disabled`, `force_lambert_over_burley`, the shadow filter quality
+  and a lower `max_lights_per_object` / `max_renderable_lights` (4 and 8) change it by 0 to 20 %. Only specular off and
+  Lambert (about 40 % less) or per-vertex shading (about 85 % less, a different look) change it much.
+- What shortens the loading screen is **fewer lit shaders**, not fewer meshes: materials that differ in one setting
+  (specular on or off, `cull_mode` disabled on one gun, an emission flag) are one more pair of huge programs each.
+
+## Drawing the level in pieces
+
+Hold what the level draws out of the picture and bring it back **one new kind of material at a time**, a frame each,
+so the loading bar moves between the long frames and no frame meets two shaders:
+
+- Turn the renderer's instance off, not the node (`RenderingServer.instance_set_visible(node.get_instance(), false)`):
+  the node's own `visible` stays what the game set, and putting it back with `node.is_visible_in_tree()` respects
+  anything the game hid meanwhile. Hide before the camera that draws it is made current.
+- Order the pieces by the material each node draws with (the shader's file, or the settings of a standard material
+  that change its shader): the most used material first; a node comes back at the step where the last of its materials
+  is met first, so a step meets one new material at most.
+- A `SubViewport` with a world of its own (a HUD portrait) draws the same shaders in its own first frame, whenever it
+  likes: stop it with `RenderingServer.viewport_set_active(viewport.get_viewport_rid(), false)` and start it after the
+  pieces are in, when its shaders are built.
+- Draw each kind of effect in its own frame too (one weapon's flash, then the next), not all in one.
+- Test the cut in the browser by counting programs linked in each page frame (a frame that links more than a dozen is
+  too coarse). The count is the same on a software renderer and any GPU, so unlike a frame time it can fail CI.
+
 ## The warm-up
 
 Behind a loading screen, before the game starts:
