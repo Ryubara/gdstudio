@@ -36,3 +36,23 @@ Applying a scale or moving bones gives each variant its own rest pose, and then 
   swatch only where a colour means one part, by bone weight otherwise.
 - **A UV layer with another name is dropped by a join.** Name the accessory's UV layer like the body's
   (`bm.loops.layers.uv.new(body.data.uv_layers.active.name)`), or the joined faces fall on texel (0, 0).
+
+## Modular parts
+
+Learned building Deadnight's modular Soldier (Deadnight issue #100, `tools/blender/build_soldier_parts.py` there):
+swappable parts on one skeleton, a look stored as a part id per slot plus palette indices.
+
+- **One file, every part.** Export the armature, the clips and every part as its own skinned mesh (`<slot>__<part>`);
+  the game shows one mesh per slot. Draw calls are the visible parts (5-7), one material per character.
+- **Parts from the kit body.** Copy the body per part, delete the other regions' faces, move the faces onto atlas
+  swatches. Tag faces by kit material, dominant bone and same-material island: islands find pouches, cuffs and
+  collars, bones split sleeves (a sleeve has one long face from shoulder to elbow, so a split by face centre zigzags).
+  Duplicated seam vertices keep their weights, so the parts never crack apart.
+- **Colours a game can tint.** One atlas with a row of channel swatches (skin, hair, primary, secondary, accent and a
+  shade of each); the game copies the image and fills those swatches per look. No shader needed, works under
+  WebGL2.
+- **Bone-parented meshes become skinned** (vertex group at weight 1 and an Armature modifier, at the rest pose), so
+  every part exports the same way.
+- **New pieces need the armature's parent inverse** (the clean-up keeps its import rotation) and a UV layer named like
+  the body's.
+- **The kit Soldier's eyes and brows live in its helmet mesh**: split them out before offering a look without it.
