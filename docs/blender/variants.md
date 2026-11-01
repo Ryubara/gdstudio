@@ -74,3 +74,10 @@ swappable parts on one skeleton, a look stored as a part id per slot plus palett
 - **New pieces need the armature's parent inverse** (the clean-up keeps its import rotation) and a UV layer named like
   the body's.
 - **The kit Soldier's eyes and brows live in its helmet mesh**: split them out before offering a look without it.
+- **A band painted by face centre zigzags** (Deadnight #140): the kit's long triangles leave sawtooth edges. Cut the
+  band into the mesh with `bmesh.ops.bisect_plane` on the faces it crosses (the cut interpolates the skin weights) and
+  paint between the cuts.
+- **A far level of detail in the same file** (Deadnight #139): a `<slot>__<part>__far` copy of each part, the Decimate
+  moved first in the stack and applied (so the rest mesh is cut, weights interpolated), one ratio solved for the
+  heaviest look. Keep small pieces whole (a 254-triangle cap at a third turned to slivers), and triangulate and drop
+  zero-area faces before counting, or the glTF round trip disagrees with the count by a triangle.
