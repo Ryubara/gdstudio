@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from gds_tools import refs, workspace
+from gds_tools import refs, sync, workspace
 from gds_tools.manifest import ManifestError, load_tools
 
 
@@ -33,6 +33,19 @@ def _cmd_tool_list(args: argparse.Namespace) -> int:
 def _cmd_refs_fetch(args: argparse.Namespace) -> int:
     folder = refs.fetch_link(args.url, workspace.require_workspace() / "refs")
     print(f"written: {folder}")
+    return 0
+
+
+def _cmd_sync(args: argparse.Namespace) -> int:
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
+    game = Path(args.game).resolve()
+    if args.check:
+        problems = sync.drift(kit, game)
+        for problem in problems:
+            print(f"  {problem}", file=sys.stderr)
+        print("in sync with the kit" if not problems else f"{len(problems)} file(s) out of sync", file=sys.stderr)
+        return 1 if problems else 0
+    print(f"{sync.sync(kit, game)} file(s) changed in {game.name}")
     return 0
 
 
@@ -76,6 +89,11 @@ def build_parser() -> argparse.ArgumentParser:
     fetch_ref = ref.add_parser("fetch", help="fetch a poly.pizza model or bundle with its licence metadata")
     fetch_ref.add_argument("url")
     fetch_ref.set_defaults(func=_cmd_refs_fetch)
+
+    syn = sub.add_parser("sync", help="write the kit's agent definitions and hook launcher into a game")
+    syn.add_argument("game", help="the game repository (a checkout or worktree)")
+    syn.add_argument("--check", action="store_true", help="only report files that differ from the kit")
+    syn.set_defaults(func=_cmd_sync)
 
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser
