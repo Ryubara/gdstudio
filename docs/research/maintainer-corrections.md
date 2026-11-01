@@ -49,6 +49,7 @@ checked, so the next game plans the first and tests the second.
 | No camera shake on firing | Feel ("juice") was not a planned pass | Nothing reacted to firing but the sound | Plan a feel pass per verb (shake, kick, flash, hit feedback), every amount exported so it is tuned in the editor |
 | The muzzle flash was a yellow sphere; bullet impacts were far too large | Placeholder effects shipped as final because no task owned them | Sizes were never compared against the character | Every placeholder is listed in an issue when it lands; effects are captured next to the character for scale |
 | The ammo count did not update after buying ammo until a weapon swap | UI driven by one-off events instead of by state | The ammo card re-read only on equip | HUD values are bound to the replicated state and refresh on any change; a test buys ammo and reads the HUD without a swap |
+| The look saved in the wardrobe did not show on the character in the game | Parts built and tested one by one (save, wire format, server, look table, assembler) were counted as a working feature; nobody followed a look from the wardrobe into a game | The player scene held a fixed model, so there was nothing for a look to dress, and no join message carried the look | A feature that crosses screens gets one test on the real path (save through the real file, enter the real level, read what the player sees) before it counts as done |
 
 ## Done wrong first, caught by our own checks
 
