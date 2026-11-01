@@ -8,6 +8,7 @@ every GDStudio game shares. Each game keeps its own docs site for what is partic
 | Section | What it covers |
 | --- | --- |
 | [Workspace](workspace.md) | The folder layout, the bootstrap, and the pinned Godot and Blender. |
+| [References](refs.md) | Fetching third-party models into `refs/` with their licences. |
 
 More sections join as their tooling lands: the style bible, the asset and audio pipelines, the scenario harness,
 the hooks and agent rules, engine and tool guides, and the log of problems solved.
