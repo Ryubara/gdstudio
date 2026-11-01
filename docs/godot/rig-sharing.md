@@ -101,6 +101,15 @@ From the fence boards' clips (Deadnight #221):
   rules' event and scale the clip to one loop per `P`; for the first one, start at frame 0 scaled so the event frame
   lands `P` later.
 
+From the Soldier's aim-move clips (Deadnight #74):
+
+- **Stepping a tree by hand reads stale global poses.** `Skeleton3D.get_bone_global_pose()` is refreshed on the
+  skeleton's deferred update, which a test that calls `AnimationTree.advance()` in a loop never reaches; read
+  `get_bone_pose_position/rotation` and compose with the parent's global pose (a bone under a still `Root`, such as
+  the kit's `Foot` bones, needs nothing else). Deadnight #74.
+- **A state machine without an automatic first transition stays at `Start`.** Deadnight's player body enters
+  locomotion on its first landing; a test with physics off calls `playback.start()` itself.
+
 ## Skeleton modifiers
 
 A `SkeletonModifier3D` (for example arm IK that puts both hands on a held weapon) changes the pose only for the
