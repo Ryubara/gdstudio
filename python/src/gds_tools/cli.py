@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from gds_tools import workspace
+from gds_tools import refs, workspace
 from gds_tools.manifest import ManifestError, load_tools
 
 
@@ -27,6 +27,12 @@ def _cmd_tool_list(args: argparse.Namespace) -> int:
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
     for tool in load_tools(kit / "tools.toml").values():
         print(f"{tool.name:18} {tool.version:10} {'default' if tool.default else 'opt-in'}")
+    return 0
+
+
+def _cmd_refs_fetch(args: argparse.Namespace) -> int:
+    folder = refs.fetch_link(args.url, workspace.require_workspace() / "refs")
+    print(f"written: {folder}")
     return 0
 
 
@@ -64,6 +70,13 @@ def build_parser() -> argparse.ArgumentParser:
     path.set_defaults(func=_cmd_tool_path)
     tools.add_parser("list", help="list the pinned tools").set_defaults(func=_cmd_tool_list)
 
+    ref = sub.add_parser("refs", help="third-party references in <workspace>/refs").add_subparsers(
+        dest="cmd", required=True
+    )
+    fetch_ref = ref.add_parser("fetch", help="fetch a poly.pizza model or bundle with its licence metadata")
+    fetch_ref.add_argument("url")
+    fetch_ref.set_defaults(func=_cmd_refs_fetch)
+
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser
 
@@ -72,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (workspace.WorkspaceError, ManifestError) as error:
+    except (workspace.WorkspaceError, ManifestError, refs.RefsError) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2
 
