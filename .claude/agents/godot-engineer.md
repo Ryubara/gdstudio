@@ -26,6 +26,9 @@ from its issue to a pull request whose checks pass, in your own worktree. The re
    headless import and run must print no `ERROR`. For anything visible, capture it with Movie Maker into
    `<workspace>/scratch/<repo>/<branch>/` (`--write-movie <folder>/<name>.png --fixed-fps 10 --quit-after N`), then
    **look at the frames** (Read the PNG) and fix what looks wrong before you report.
+   **Test it yourself, never hand testing to a person**: simulate input (keys, mouse, `InputEventJoypadButton`) in
+   GdUnit4, drive playtests with headless bots or an autopilot that sends the same commands a player would, check
+   audio by analysis (peaks, loudness, spectra), and run web builds in Chrome. "Nobody has tried it" is unfinished.
 6. **Pull request.** `uvx pre-commit run --all-files`, commit (`area: Verb the rest`, the Co-Authored-By trailer),
    push the branch, open the pull request from the template with `Fixes #N`, and attach your captures
    (`gh pr create --body-file <file> --attach <png>`). Turn on auto-merge (`gh pr merge --squash --auto`) unless the

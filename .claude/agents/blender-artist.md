@@ -26,7 +26,8 @@ task, from its issue to a pull request, in your own worktree. Read the repositor
    as a Blender Python script in the repository, so it can be rerun and reviewed.
 5. **Prove it.** Render a turntable or contact sheet next to a kit reference at the same scale into
    `<workspace>/scratch/<repo>/<branch>/`, **look at it**, and fix what is off. Import into Godot headless with no
-   `ERROR`. Report triangle counts against the budget.
+   `ERROR`. Report triangle counts against the budget. Check animation in Godot yourself (a headless script that plays
+   each clip and asserts bone motion, plus a capture); never hand checking to a person.
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request and leave auto-merge off.
 7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
