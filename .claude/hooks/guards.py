@@ -350,7 +350,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Stop: no visual change ends a session without a capture
+# Stop: no visual change ends a session without a capture; no correction ends it unrecorded
 # --------------------------------------------------------------------------------------------------------------------
 
 
@@ -376,9 +376,16 @@ def scratch_folder(repo: Path) -> Path | None:
 
 
 def stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
-    """The proof gate: a session that changed visual files of a game ends only once a newer capture exists."""
+    """Every reason to hold the session back once (the proof gate, the lessons queue), or None. A session already
+    held by a Stop hook (`stop_hook_active`) is let go, so the gates never loop."""
     if payload.get("stop_hook_active"):
         return None
+    reasons = [r for r in (stop_proof(payload, config), stop_queue(payload, config)) if r]
+    return "\n\n".join(reasons) or None
+
+
+def stop_proof(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
+    """The proof gate: a session that changed visual files of a game ends only once a newer capture exists."""
     cwd = Path(payload.get("cwd") or ".")
     repo = Path(git(cwd, "rev-parse", "--show-toplevel") or cwd)
     if not (repo / "game" / "project.godot").exists():
@@ -431,4 +438,71 @@ def session_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
     if folder:
         lines.append(f"Captures and reports for this branch go in {folder.as_posix()}/ (never in a repository).")
     lines.append("Work on a branch, open a pull request; visual work attaches captures (`gh ... --attach`).")
-    return "\n".join(lines)
+    lines.append(lesson_text("session", config, workspace))
+    return "\n".join(line for line in lines if line)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# The learning loop: what the maintainer corrects is written into the docs in the same session (docs/hooks.md#learning)
+# --------------------------------------------------------------------------------------------------------------------
+
+KIT = Path(__file__).resolve().parents[2]
+
+
+def lesson_text(kind: str, config: dict[str, Any], workspace: Path | None) -> str:
+    """One of the learning-loop texts of hooks.toml (`prompt`, `session`, `subagent`) with its paths filled in."""
+    rules = config.get("lessons", {})
+    text = rules.get(kind, "")
+    if not text:
+        return ""
+    queue = Path(rules.get("queue", "scratch/kit-lessons-queue"))
+    kit = workspace / "repos" / "gdstudio" if workspace and (workspace / "repos" / "gdstudio").is_dir() else KIT
+    return text.format(
+        corrections=(kit / "docs" / "research" / "maintainer-corrections.md").as_posix(),
+        lessons=(kit / "docs" / "lessons" / "index.md").as_posix(),
+        queue=((workspace / queue) if workspace else queue).as_posix(),
+    )
+
+
+def user_prompt_submit(payload: dict[str, Any], config: dict[str, Any]) -> str:
+    """The short reminder added to every message in a GDStudio workspace: a correction becomes a row in this session."""
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    return lesson_text("prompt", config, workspace) if workspace else ""
+
+
+def subagent_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
+    """What a starting agent is told: read the corrections and lessons that touch its task. Read-only helpers (and
+    the forks that carry the parent's context) are left alone."""
+    if payload.get("agent_type") in config.get("agents", {}).get("helpers", []):
+        return ""
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    return lesson_text("subagent", config, workspace) if workspace else ""
+
+
+def pending_lessons(workspace: Path, config: dict[str, Any]) -> list[Path]:
+    """Queued lesson rows that are neither published (moved to `published/`) nor waiting on a cause (`Waiting on:`)."""
+    rules = config.get("lessons", {})
+    folder = workspace / rules.get("queue", "scratch/kit-lessons-queue")
+    if not folder.is_dir():
+        return []
+    waiting = re.compile(rules.get("waiting", r"(?im)^\s*waiting on:\s*\S"))
+    return [
+        path
+        for path in sorted(folder.glob("*.md"))
+        if path.name.lower() != "readme.md" and not waiting.search(path.read_text(encoding="utf-8", errors="replace"))
+    ]
+
+
+def stop_queue(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
+    """The learning gate: rows queued to become corrections or lessons, whose cause is known, are published first."""
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    pending = pending_lessons(workspace, config) if workspace else []
+    if not pending:
+        return None
+    names = ", ".join(p.name for p in pending[:6]) + ("..." if len(pending) > 6 else "")
+    return (
+        f"Lesson rows are queued in {pending[0].parent.as_posix()} and not published: {names}. Publish each as a row "
+        f"on the corrections page (and a lesson when the cause is general) in a kit pull request, then move its file "
+        f"to published/; or, if its cause is not known yet, add a `Waiting on: #N` line naming the issue. Rows that "
+        f"are not yours: say so and finish."
+    )

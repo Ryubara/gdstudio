@@ -38,3 +38,16 @@ names = ["godot", "blender"]
 # capture (an image or a clip) newer than its last change sits in <workspace>/scratch/<repo>/<branch>/.
 visual = ["game/**/*.tscn", "game/**/*.gdshader", "game/ui/**", "game/assets/**", "game/world/**"]
 captures = ["*.png", "*.jpg", "*.gif", "*.mp4", "*.webm"]
+
+[lessons]
+# The learning loop (docs/hooks.md#learning): what the maintainer corrects becomes a row on the corrections page, and a
+# lesson when the cause is general, in the same session. `{queue}`, `{corrections}` and `{lessons}` are filled in with
+# absolute paths (the kit of the workspace); keep the texts short, the prompt one is added to every message.
+# Pending rows wait in this folder (relative to the workspace); published ones move to its `published/` folder.
+queue = "scratch/kit-lessons-queue"
+# A queued file that says this is waiting for a cause or an issue: the Stop gate lets it be.
+waiting = '''(?im)^\s*waiting on:\s*\S'''
+prompt = """GDStudio learning loop: if this message corrects an agent or reports a problem in work agents did earlier, then besides fixing it, in this same session add a row to the kit's docs/research/maintainer-corrections.md (the maintainer's words, concept missed, detail missed, check for next time), plus a lesson in docs/lessons/ if the cause is general, in a kit pull request.
+Cause not known yet: write the row to {queue}/<slug>.md with a `Waiting on: #N` line, and publish it when the cause is found (a session cannot end with a queued row that is not waiting)."""
+session = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} (the index) for what you are about to solve; they hold what the maintainer already had to point out. When the maintainer corrects you or reports a problem in earlier work, add the row and any lesson in this session."""
+subagent = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} for what you are about to solve. If your task came from a maintainer correction, put the row's text (the maintainer's words, concept missed, detail missed, check for next time) in your final report: the coordinator publishes it, so do not edit that table yourself. If you find a general cause on the way, say so in the report too."""

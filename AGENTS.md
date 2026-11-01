@@ -30,6 +30,10 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - **Original work.** GDStudio games are original. Other games are studied for design and used as visual reference;
   their content, layouts, names and assets are never copied.
 - **Proof, not claims.** Work is done when its tests and scenario captures pass, not when it looks done.
+- **Learn in the same session.** When the maintainer corrects an agent or reports a problem in earlier work, the
+  learning is written into the docs in that session: a row on `docs/research/maintainer-corrections.md`, and a lesson
+  (`docs/lessons/`) when the cause is general. Agents read the checks that touch their task before they start. The
+  hooks enforce it (`docs/hooks.md#learning`).
 <!-- conventions:begin maintainer-decisions -->
 - **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make the repository
   public; tag a release; force-push the default branch or someone else's branch; legal or licence questions; change

@@ -28,8 +28,32 @@ names the folder and the Movie Maker command.
 
 ## Session start
 
-Each session is told its workspace, repository and branch, the pinned tool paths, and its branch's scratch folder.
+Each session is told its workspace, repository and branch, the pinned tool paths, and its branch's scratch folder,
+and to read the checks of the corrections page that touch its task (see [Learning](#learning)). It fires on `startup`,
+`resume`, `clear` and `compact`.
+
+## Learning {#learning}
+
+What the maintainer corrects is written into the docs in the same session, so the next agent gets it right the first
+time. Four hooks make it happen, all in the one dispatcher; their texts are the `[lessons]` keys of `hooks.toml`.
+
+| Event | What it does |
+| --- | --- |
+| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](research/maintainer-corrections.md) (the maintainer's words, concept missed, detail missed, check for next time) and a [lesson](lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
+| `SessionStart` | Tells the session to read the checks that touch its task and to search the lessons index before solving. |
+| `SubagentStart` | Tells every project agent the same, and that an agent whose task came from a correction puts the row's text in its final report: the coordinator publishes it, so many agents never edit one table. Read-only helpers (`[agents] helpers`) get nothing. |
+| `Stop` | Holds the session back once while a queued row is unpublished (below). `stop_hook_active` lets the next stop through, so it never loops. |
+
+**The queue.** A row whose cause is not known yet is a Markdown file in `<workspace>/scratch/kit-lessons-queue/`
+(`[lessons] queue`, relative to the workspace): a title, the maintainer's words, and what is known. A file that
+says `Waiting on: #N` (the issue that finds the cause) is left alone. When the cause is found, the row is published
+in a kit pull request and its file moves to `published/`. The Stop gate lists every other file in the queue folder.
+It applies to any session in the workspace; rows that are not yours: say so and finish.
+
+Registered in `.claude/settings.json` and in the game template (`templates/game/.claude/settings.json`, which
+`gds sync` writes into each game): restart sessions to pick the hooks up.
 
 ## Tests
 
-`python/tests/test_hooks.py` covers every guard, the answer protocol and the fail-open path.
+`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path and the learning loop (each
+event's text, the queue gate and its loop guard, and the dispatcher run as a process).

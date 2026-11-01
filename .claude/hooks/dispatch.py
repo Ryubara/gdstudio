@@ -4,9 +4,9 @@
 registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.
 
 Answers follow Claude Code's JSON protocol with exit code 0: `permissionDecision: deny` before a tool runs, `decision:
-block` at Stop, `additionalContext` at SessionStart. Never exit code 2: `uv` and Python also exit 2 when they cannot
-start, and a PreToolUse hook exiting 2 would block every tool call. If the dispatcher itself breaks, it lets the call
-through and says so on stderr: a broken guard must never lock a session out.
+block` at Stop, `additionalContext` at SessionStart, UserPromptSubmit and SubagentStart. Never exit code 2: `uv` and
+Python also exit 2 when they cannot start, and a PreToolUse hook exiting 2 would block every tool call. If the
+dispatcher itself breaks, it lets the call through and says so on stderr: a broken guard must never lock a session out.
 
 Standard library only: hooks run under `uv run --no-project`.
 """
@@ -26,6 +26,12 @@ sys.path.insert(0, str(HERE))
 import guards  # noqa: E402  (after the path insert, so the module beside this file is found)
 
 DEFAULTS = HERE / "hooks.toml"
+# The events that only add context, and the guard that writes it.
+CONTEXT_EVENTS = {
+    "SessionStart": "session_start",
+    "UserPromptSubmit": "user_prompt_submit",
+    "SubagentStart": "subagent_start",
+}
 
 
 def load_config(project_dir: Path | None) -> dict[str, Any]:
@@ -56,15 +62,10 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
         reason = guards.stop(payload, config)
         if reason:
             return {"decision": "block", "reason": reason}
-    elif event == "SessionStart":
-        text = guards.session_start(payload, config)
+    elif event in CONTEXT_EVENTS:
+        text = getattr(guards, CONTEXT_EVENTS[event])(payload, config)
         if text:
-            return {
-                "hookSpecificOutput": {
-                    "hookEventName": "SessionStart",
-                    "additionalContext": text,
-                }
-            }
+            return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}
     return None
 
 
