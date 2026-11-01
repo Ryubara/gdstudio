@@ -34,3 +34,14 @@ blend takes it to zero.
   capsule fits here".
 - Hide the body by the lens-to-head distance (with a hysteresis margin), not by the arm length: a wall at the shoulder
   puts the lens in the head with a full arm.
+
+## Shake and sway
+
+- **Rotation only, on the lens node**, while the rig keeps the unshaken transform that the aim reads, so shots stay on
+  the crosshair (firing shake: [Shot feedback](shot-feedback.md)).
+- **Count a sprint sway in footfalls, not seconds**: phase = distance travelled / step length, the same step the
+  footstep sounds use, so the sway stays on the gait at any speed. Bob once per footfall, roll and yaw once per two.
+  Ease it in and out, and gate it on ground speed and on sprint, not on the input.
+- **Combine the two** by multiplying the turns, and let the sway give way while a shot's shake is up.
+- **"Very subtle" is a number.** Deadnight settled on sway peaks of 0.3 degrees pitch, 0.15 yaw and 0.2 roll, and at
+  most 0.5 degrees for any shot; a test holds each bound, and a player setting scales both to zero.
