@@ -10,5 +10,7 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | Runtime UI scale | `Window.content_scale_factor` resizes CanvasLayer stages and anchored controls; with `canvas_items` stretch the visible area is the base size divided by the scale. Avoid autowrap Labels in rows: they inflate containers. |
 | Resolution scale | `Viewport.scaling_3d_scale` only affects 3D. |
 | Fitting text | A `Label` with `clip_text` or an ellipsis overrun has a minimum width of 0, so a container squeezes it to nothing: give it `custom_minimum_size.x`. Fit text from one measurement (size × room / width), since `get_string_size` shapes the string on every call. Test layouts with the longest values the game allows, and with a wide face: `FontVariation.variation_transform` makes a synthetic wide one, so CI needs no font file. |
+| Baselines and label height | A Label is as tall as the font's line (about 1.4 times its size), not its capitals: size a box from that. `SIZE_SHRINK_END` aligns the bottoms of boxes, not baselines: put two sizes on one baseline with `baseline - font.get_ascent(size)` for each, or lift the smaller by the difference of the descents. |
+| One-shot 3D portrait in a HUD | A `SubViewport` with `own_world_3d`, the model, a camera and lights, `render_target_update_mode = UPDATE_ONCE` two frames after the model enters (its idle clip must pose it), shown by a `TextureRect` on `viewport.get_texture()`; it costs nothing after that frame. |
 
 Game write-ups: Deadnight's `docs/research/ui-foundation.md` and `docs/research/settings.md`.
