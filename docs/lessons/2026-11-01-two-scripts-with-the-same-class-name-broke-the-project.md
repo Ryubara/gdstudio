@@ -8,4 +8,6 @@
   keeps one global class per name and silently picked the other branch's script.
 - **Fix:** rename one (`PlayerMotionState`). Before naming a global class, run `grep -r "class_name <Name>" game`
   on `origin/main` as well as the branch, and prefer a name specific to the subject.
+- **Also:** a duplicate can also show as `Invalid access to property or key` errors in many unrelated scripts at
+  import; when errors appear everywhere at once, check for a duplicate global class first.
 - **Docs:** [GDScript style](../godot/index.md).
