@@ -32,7 +32,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| glTF import, BoneMap, SkeletonProfile | the shared Quaternius rig | **spike**: one animation library on every character |
+| glTF import, BoneMap, SkeletonProfile | the shared Quaternius rig | known: [Rig sharing](rig-sharing.md) |
 | AnimationTree, state machines, blend spaces | player and zombie movement | known: [crowds](crowds.md) (walk/run blend plus punch one-shot; throttle with manual advance) |
 | Skeleton3D cost, MultiMesh | 20 to 40 zombies in a browser | known: [crowds](crowds.md) (40 at most; MultiMesh not tried) |
 | BoneAttachment3D | weapons in hands | learn while building |
