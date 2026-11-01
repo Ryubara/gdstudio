@@ -21,10 +21,10 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| LightmapGI (baking) | most of the lighting: the drive-in at night | **spike**: bake quality and size on the web |
-| Environment: fog, glow, tonemap | mood | **spike**: what the Compatibility renderer supports |
-| Full-screen post shaders | colour grade, outlines, grain | **spike**: cost on the web |
-| OmniLight3D / SpotLight3D | projector beam, lamps, muzzle flash | **spike**: how many dynamic lights the web holds |
+| LightmapGI (baking) | most of the lighting: the drive-in at night | known, with a warning: bakes only from a Vulkan editor and our bake looked wrong ([Compatibility lighting](compat-lighting.md#lightmapgi)) |
+| Environment: fog, glow, tonemap | mood | known ([Compatibility lighting](compat-lighting.md#environment-features)) |
+| Full-screen post shaders | colour grade, outlines, grain | known on desktop; web cost still to measure ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)) |
+| OmniLight3D / SpotLight3D | projector beam, lamps, muzzle flash | known on desktop: 16+ unshadowed fine, 8 per mesh; web still to measure ([Compatibility lighting](compat-lighting.md#dynamic-lights)) |
 | Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D | blood, sparks, smoke | learn while building |
 
