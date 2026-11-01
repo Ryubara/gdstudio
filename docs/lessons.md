@@ -3,6 +3,35 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: a hidden slider grabber drew a magenta square
+
+- **Saw:** a themed HSlider showed a magenta and black square where the grabber was meant to be invisible.
+- **Cause:** the invisible grabber was a PlaceholderTexture2D, which draws its checker pattern in game.
+- **Fix:** a transparent ImageTexture of the same size.
+- **Docs:** [UI controls](godot/ui-controls.md).
+
+## 2026-11-01: the screen stretched after a UI scale round trip
+
+- **Saw:** after 125% and back to 100%, a column was 1425 px tall and off centre.
+- **Cause:** autowrap Labels report a tall minimum size while a container sizes them; a CenterContainer kept it.
+- **Fix:** no autowrap in rows (trim with an ellipsis), and a round-trip test.
+- **Docs:** [UI controls](godot/ui-controls.md).
+
+## 2026-11-01: GdUnit4 refuses to run headless
+
+- **Saw:** "Headless mode is not supported", exit code 103.
+- **Cause:** GdUnit4 blocks headless runs unless told otherwise.
+- **Fix:** pass `--ignoreHeadlessMode`; the port 0 remote-debug error line is harmless. A failing suite stops at its
+  first failure: fix and rerun to see the rest.
+- **Docs:** each game's `AGENTS.md` (Build and test).
+
+## 2026-11-01: a Movie Maker frame shows the state one step late
+
+- **Saw:** the frame numbered N already showed a change made at step N.
+- **Cause:** frame N is written after that step's script code ran.
+- **Fix:** read frame N-1 to see the state before a change; frames are always at the project viewport size.
+- **Docs:** [Capture](capture.md).
+
 ## 2026-11-01: Movie Maker ignores `--resolution`
 
 - **Saw:** `--write-movie` with `--resolution 1280x720` (or 960x540) still wrote 1920x1080 frames.
