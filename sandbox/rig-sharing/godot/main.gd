@@ -6,7 +6,7 @@ extends Node3D
 ## Prints measurements (prefixed RIG:) and writes <dir>/sheet.png: a row per clip, four moments of each, both
 ## characters playing the same clip from the same library. Quits when done.
 
-const CLIPS := [["Walk", "zombie"], ["Run", "soldier"], ["Walk_NoPos", "zombie"], ["Run_NoPos", "soldier"]]
+const CLIPS := [["Walk", "zombie"], ["Run", "soldier"], ["Walk_NoPos", "zombie"], ["Run_NoPos", "soldier"], ["Walk_Rebased", "zombie"], ["Run_Rebased", "soldier"]]
 const SAMPLES := 4
 const CELL := Vector2i(640, 400)
 
@@ -36,7 +36,7 @@ func _ready() -> void:
 	# One library, clips taken from whichever file has them.
 	var lib := AnimationLibrary.new()
 	for c in CLIPS:
-		var src: String = c[0].trim_suffix("_NoPos")
+		var src: String = c[0].trim_suffix("_NoPos").trim_suffix("_Rebased")
 		var anim: Animation = players[c[1]].get_animation(src).duplicate(true)
 		anim.loop_mode = Animation.LOOP_LINEAR
 		if c[0].ends_with("_NoPos"):
@@ -45,9 +45,19 @@ func _ready() -> void:
 			for t in range(anim.get_track_count() - 1, -1, -1):
 				if anim.track_get_type(t) == Animation.TYPE_POSITION_3D:
 					anim.remove_track(t)
+		if c[0].ends_with("_Rebased"):
+			# Remember the source's rest position of every bone the clip moves; retarget_player.gd rebases them.
+			var sk: Skeleton3D = skels[c[1]]
+			var rest := {}
+			for t in anim.get_track_count():
+				if anim.track_get_type(t) == Animation.TYPE_POSITION_3D:
+					var bone := String(anim.track_get_path(t).get_concatenated_subnames())
+					rest[bone] = sk.get_bone_rest(sk.find_bone(bone)).origin
+			anim.set_meta("src_rest", rest)
 		lib.add_animation(c[0], anim)
 		_report_tracks(c[0], c[1], anim, skels)
 	for who in players:
+		players[who].set_script(preload("res://retarget_player.gd"))
 		players[who].add_animation_library("rig", lib)
 	ResourceSaver.save(lib, out_dir.path_join("rig_library.tres"))
 

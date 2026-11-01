@@ -31,6 +31,8 @@ Zombie (`VlXjG0N8Eg`), both CC0 by Quaternius.
 3. **Make the armature the root**: unparent it from `RootNode` (keep its world transform) and delete the empty.
 4. **Apply the 100x scale, and scale the location keys by 100.** `transform_apply(scale=True)` rescales the rest
    pose but not the keys: the zombie's Walk bobs its `Body` 0.001 units in the file, 0.098 m after the fix.
+   **Pin the bone-attached meshes**: record their world matrices at rest pose before the apply and set them back
+   after, or the Soldier's helmet and shoulder pads float far above his head.
 5. **One clip per name**: drop the duplicates, rename to the bare name. Remove the duplicates *before* renaming, or
    the rename collides and Blender makes `Walk.001`.
 6. **Rename meshes that share a bone's name** (`Body` to `Body_Mesh`, `Head` to `Head_Mesh`). Godot keeps node
@@ -46,6 +48,9 @@ After it: Soldier 43 bones, 5828 tris, 14 clips; Zombie 50 bones, 7822 tris, 16 
   with the armature in rest position every exported animation had 150 channels and none moved. Found by bisecting
   the script; leave `POSE` and zero the pose bones instead.
 - **Applied scale without scaling the keys** shrinks every position key 100x (the hips barely move).
+- **Applied scale moves bone-attached meshes.** The Soldier's helmet (`Head`, 1352 tris) and pads went from
+  z 1.69-2.29 to 3.10-3.69 (file units); pinned at rest pose they come back exactly (checked by re-importing the
+  export). Pinned in the *posed* state (the import leaves a clip active) they come back 0.06 off.
 - **Mesh named like a bone** renames the bone in Godot (above).
 
 ## Avoid

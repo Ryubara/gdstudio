@@ -43,17 +43,37 @@ keeps 56, so a clip carries only the bones it moves.
   character's position: the zombie's Walk sinks the Soldier's feet through the floor; the Soldier's Run lifts the
   zombie off it. Stripping every position track (`Walk_NoPos`, `Run_NoPos` on the sheet) fixes the height at rest but
   loses the bob, and the bent legs then push the feet below the floor at the bottom of each step.
+  **Fix that works: rebase the position keys per character** (`Walk_Rebased`, `Run_Rebased` on the sheet, feet on
+  the floor for both): see below.
 - **Raw files.** An uncleaned file imports with its skeleton at `RootNode/CharacterArmature/Skeleton3D`, global scale
   100, and its clips named `CharacterArmature|Walk`: its tracks resolve on no cleaned character.
 - **Bone renamed by the importer** when a mesh shares its name (`Body_2`), so that file's clips miss on every other
   character: fixed in Blender.
 
+## Rebasing position keys (one library, every body)
+
+When a clip goes into the library, store the source skeleton's rest position of every bone it moves as clip
+metadata; each character's AnimationPlayer runs `sandbox/rig-sharing/godot/retarget_player.gd`, which overrides
+`AnimationMixer._post_process_key_value` and returns `value - source rest + own rest` for position keys. The library
+stays one resource; the offset is applied per character at play time.
+
+```gdscript
+func _post_process_key_value(animation, track, value, object_id, object_sub_idx):
+    if animation.track_get_type(track) != Animation.TYPE_POSITION_3D or not animation.has_meta("src_rest"):
+        return value
+    var sk := instance_from_id(object_id) as Skeleton3D
+    var bone := sk.get_bone_name(object_sub_idx)
+    return value - animation.get_meta("src_rest").get(bone, sk.get_bone_rest(object_sub_idx).origin)         + sk.get_bone_rest(object_sub_idx).origin
+```
+
+It runs GDScript for every position key on every character each frame (9 tracks for Walk); measure it in the crowds
+spike before 40 zombies use it. Baking one rebased copy of each clip per body type when the library is built costs
+memory instead of frame time.
+
 ## Next
 
-- Rest-offset retarget: import each character with a BoneMap onto a custom SkeletonProfile of the 43 shared bones and
-  the Rest Fixer (`retarget/rest_fixer/normalize_position_tracks`), or offset position tracks per character
-  (`value - source rest + target rest`) when the library is built. Until then share rotation-heavy clips between
-  characters of the same build, and keep each body type's own clips for locomotion.
+- Cost of the rebasing callback with a crowd (the crowds spike), against baked per-body copies.
+- BoneMap and a SkeletonProfile only when a rig with other bone names joins (Mixamo, other packs).
 
 ## Evidence
 

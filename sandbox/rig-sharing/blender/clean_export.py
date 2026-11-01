@@ -51,10 +51,20 @@ def main():
     # 4. Apply the object scale; scale location keys to match.
     factor = arm.scale[0]
     assert all(abs(s - factor) < 1e-4 for s in arm.scale), f"non-uniform armature scale {tuple(arm.scale)}"
+    # transform_apply moves meshes parented to a bone (the Soldier's helmet and pads floated far above him):
+    # remember their world matrices and put them back after.
+    # Pin them at rest (the import leaves a clip active, and the export writes the rest pose).
+    arm.data.pose_position = "REST"
+    bpy.context.view_layer.update()
+    pinned = {c: c.matrix_world.copy() for c in arm.children if c.parent_type == "BONE"}
     bpy.ops.object.select_all(action="DESELECT")
     arm.select_set(True)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
+    bpy.context.view_layer.update()
+    for c, mw_c in pinned.items():
+        c.matrix_world = mw_c
+    arm.data.pose_position = "POSE"
     # The meshes are children of the armature; their own transforms keep them where they were.
     for c in arm.children:
         if c.type == "MESH":
