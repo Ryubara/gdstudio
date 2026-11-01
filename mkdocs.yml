@@ -43,3 +43,5 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Workspace: workspace.md
+  - Agents: agents.md
+  - Hooks: hooks.md
