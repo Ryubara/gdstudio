@@ -57,3 +57,19 @@ After it: Soldier 43 bones, 5828 tris, 14 clips; Zombie 50 bones, 7822 tris, 16 
 
 - Exporting the raw file: in Godot its skeleton sits at `RootNode/CharacterArmature/Skeleton3D` with a global scale of
   100, so its track paths and position values match no cleaned character.
+
+## Static pose and authored clips
+
+Found building the Soldier's weapon clips (Deadnight #42).
+
+- **Bake the static pose into every clip.** The kit clips key only the bones they move (the Soldier's `Idle` keys 7 of
+  43). Every other bone sits at its glTF node transform (arms down), which is not Blender's rest pose (arms out). Read
+  the pose bones right after the import, before any frame change, then key those values into each clip for every bone
+  it leaves out. Before the export, set the pose bones to the static pose instead of clearing them, and export with
+  `export_reset_pose_bones=False`. Deadnight: `tools/blender/soldier_clips.py` (`capture_static`, `bake_static`).
+- **Bones a clip leaves out export at the rest pose.** With the pose bones cleared, unkeyed bones are sampled at
+  Blender's rest, so the cleaned Soldier idles with his arms out and the zombie's Idle stands in a T-pose.
+- **Quaternion keys of opposite sign swing the bone the long way.** Keep each key's sign continuous with the one
+  before (negate when the dot product is negative).
+- **The boots are weighted to the IK foot bones.** `Foot.L`/`Foot.R` hang from `Root` and carry location keys; key
+  location as well as rotation on every bone in a derived clip.

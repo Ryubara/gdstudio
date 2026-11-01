@@ -80,3 +80,12 @@ memory instead of frame time.
 Contact sheet (attached to the pull request): four moments of each clip, both characters playing the same clip from
 the same library; rows Walk, Run, Walk_NoPos, Run_NoPos. Reproduce with the commands in
 `sandbox/rig-sharing/README.md`.
+
+## Found later
+
+From the Soldier's weapon clips (Deadnight #42):
+
+- The skeleton rest in Godot is still Blender's rest (arms out): something must always play.
+- `remove_immutable_tracks` keeps a constant track whose value differs from the rest, so baked static-pose tracks
+  survive.
+- An AnimationTree built in a SceneTree script's `_init` does not process; build it from a deferred call.

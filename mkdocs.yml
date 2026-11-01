@@ -2,7 +2,9 @@
 site_name: GDStudio
 site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools, pipelines and lessons."
 docs_dir: docs
-# Every warning fails the build: a broken link, a missing anchor, a page left out of the nav.
+# Every warning fails the build: a broken link, a missing anchor.
+# No nav: the navigation is built from the folders (index.md first, titles from headings), so adding a page
+# never edits a shared file.
 strict: true
 validation:
   nav:
@@ -39,18 +41,3 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed: {alternate_style: true}
-
-nav:
-  - Home: index.md
-  - Godot:
-      - godot/index.md
-      - UI controls: godot/ui-controls.md
-      - Rig sharing: godot/rig-sharing.md
-  - Blender:
-      - blender/index.md
-      - Rig sharing: blender/rig-sharing.md
-  - Lessons: lessons.md
-  - Workspace: workspace.md
-  - References: refs.md
-  - Capture: capture.md
-  - Sync: sync.md
