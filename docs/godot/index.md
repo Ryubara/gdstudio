@@ -27,6 +27,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | OmniLight3D / SpotLight3D | projector beam, lamps, muzzle flash | known on desktop: 16+ unshadowed fine, 8 per mesh; web still to measure ([Compatibility lighting](compat-lighting.md#dynamic-lights)) |
 | Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D | blood, sparks, smoke | learn while building |
+| Spatial shaders, textures on CSG | the greybox lot's ground, walls and paint | known: [Surface materials](surface-materials.md) (world-projected shader, one read, no specular; headless import leaves mipmaps off) |
 
 ## Characters and animation
 
