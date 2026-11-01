@@ -11,16 +11,51 @@ body:
     value: 'A task is written so that someone with no other context can do it: start with the problem.
 
       '
+- type: input
+  id: from
+  attributes:
+    label: From
+    description: Who filed it and when, and the pull request or issue it came from (say whether that is merged).
+    placeholder: 'From: the coordinator, 2026-11-01, review of #12 (merged)'
+  validations:
+    required: true
 - type: textarea
   id: summary
   attributes:
     label: Summary
   validations:
     required: true
+- type: dropdown
+  id: area
+  attributes:
+    label: Area
+    description: The part of the project; the matching A- label is applied from it.
+    options:
+    - A-build
+    - A-ci
+    - A-workspace
+    - A-tools
+    - A-hooks
+    - A-agents
+    - A-godot
+    - A-blender
+    - A-audio
+    - A-docs
+    - A-tests
+  validations:
+    required: true
+- type: input
+  id: docs-page
+  attributes:
+    label: Docs page
+    description: The kit page (and section) that covers this, such as docs/godot/... or docs/lessons/..., as a link,
+      or none yet.
+    placeholder: docs/godot/ui.md#focus
 - type: textarea
   id: done
   attributes:
     label: What "done" means
+    description: 'The acceptance test. For a bug fix: a test that fails before the fix and passes after it.'
   validations:
     required: true
 - type: textarea
