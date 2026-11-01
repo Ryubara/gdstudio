@@ -72,3 +72,11 @@ to a bus at runtime for ducking (leaves the bus volume to the player's settings;
   `unit_size`, held only by `max_db` (3 dB): see the lesson on the boss roar that clipped the mix.
 - **Analyse a capture per second:** left minus right in dB, centre of energy, peak and clipped samples, against the
   act on screen; a loud case (the boss close by) shows a clip a whole-file peak hides in a long mix.
+- **`AudioStreamPlayer3D` ignores trims up close.** Its inverse-distance attenuation boosts by `unit_size / distance`
+  (a gun 1.7 m away with `unit_size` 14 is 18 dB up) and the only ceiling is `max_db`, +3 dB over the file by default.
+  So every sound inside a few metres plays at the ceiling whatever its `volume_db`, and three layers of a shot sum past
+  full scale. Set `max_db = volume_db + n` per play (0 for "the trim is the level") and leave far sounds alone. Measured:
+  a shotgun trimmed to -23 dB still peaked at -5 dBFS in the mix until `max_db` was set. A loop whose level you move
+  needs `max_db` moved with it.
+- **A level capture needs a listener.** A Movie Maker recording with no `Camera3D` (or `AudioListener3D`) in the tree is
+  silent: nothing hears the 3D players.
