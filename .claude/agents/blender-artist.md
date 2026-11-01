@@ -31,6 +31,8 @@ task, from its issue to a pull request, in your own worktree. Read the repositor
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request and leave auto-merge off.
 7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
+   **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
+   about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).
 
 ## Pull request rules the checks enforce
 
