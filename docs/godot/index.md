@@ -44,7 +44,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | CharacterBody3D | the first-person player | learn while building |
 | Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building |
 | NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | **spike** with crowds |
-| First-person weapon view | the held weapon over the world | **spike**: a second camera or a SubViewport in Compatibility |
+| SpringArm3D, Camera3D | the over-the-shoulder third-person camera: collision, shoulder swap, aim zoom | learn while building (Deadnight #14) |
 | AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | learn while building |
 
 ## Multiplayer and the web
