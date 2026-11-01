@@ -1,0 +1,85 @@
+# Pinned third-party tools that agents and CI use (docs/workspace.md#tools).
+# `gds workspace init` downloads each one into <workspace>/tools/<name>-<version>/, checks it against the hash below
+# and refuses a mismatch. Steam or system installs are never used by the tooling: a silent update would change test
+# results. Upgrading a tool is a pull request that changes this file (new version, URLs and hashes from the vendor's
+# own checksum file) and passes CI.
+#
+# Platform keys: windows-x64, windows-arm64, linux-x64, linux-arm64, macos-x64, macos-arm64.
+# `exe` is the program the tooling runs, relative to the tool's folder. `kind` picks how it is unpacked.
+
+[tools.godot]
+version = "4.7.2"
+default = true
+kind = "godot"
+# Godot's self-contained mode (a `_sc_` file beside the program) keeps its settings and export templates in
+# `editor_data/` next to it, apart from any other Godot on the machine.
+checksums = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/SHA512-SUMS.txt"
+
+[tools.godot.platforms.windows-x64]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip"
+sha512 = "83decd58fdf67b9d657958a1ae6bf1929c20785315a81effe245874cdc57acb709bf868e00778a96984338c1b29dafdb453c6847747694621c6ecf5da2259993"
+exe = "Godot_v4.7.2-stable_win64_console.exe"
+
+[tools.godot.platforms.linux-x64]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+sha512 = "9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65"
+exe = "Godot_v4.7.2-stable_linux.x86_64"
+
+[tools.godot.platforms.linux-arm64]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.arm64.zip"
+sha512 = "dd59918da086bd49bde2f5450b5e567ff8650cbde9abbd7b8f4ca1197ff8c609baa38834666d032deafb47099078d7822279e2a0e06e5665745468f26533e7e2"
+exe = "Godot_v4.7.2-stable_linux.arm64"
+
+[tools.godot.platforms.macos-arm64]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip"
+sha512 = "38aa16e5bba2083941fc5b3e54be0089bd4cc35e32415f5b9fd9a8a6a7b9818255d44532ea8ef94b5aef56c4b407c2d634fa4f657e4ebe681ebbf59b7bac69ca"
+exe = "Godot.app/Contents/MacOS/Godot"
+
+[tools.godot.platforms.macos-x64]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip"
+sha512 = "38aa16e5bba2083941fc5b3e54be0089bd4cc35e32415f5b9fd9a8a6a7b9818255d44532ea8ef94b5aef56c4b407c2d634fa4f657e4ebe681ebbf59b7bac69ca"
+exe = "Godot.app/Contents/MacOS/Godot"
+
+[tools.godot-templates]
+# Export templates (about 1 GB): needed to export builds, not to edit or test. Fetched with `--fetch godot-templates`
+# or `--fetch all`, and installed into the pinned Godot's own editor_data/.
+version = "4.7.2"
+default = false
+kind = "godot-templates"
+requires = "godot"
+
+[tools.godot-templates.platforms.any]
+url = "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz"
+sha512 = "ca4d71c4d7b81dfc15d1a98baa07534aa95b03fdda78a0075b06672e1648d2e5f40980c9adc28d23e1b92e732ee7bf3461997aa804af74ec2fcd7a93ccb84079"
+
+[tools.blender]
+version = "5.2.3"
+default = true
+kind = "blender"
+# download.blender.org sits behind a browser check that refuses scripts, so the official mirrors are used; their
+# checksum file matches the main site's.
+checksums = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.3.sha256"
+
+[tools.blender.platforms.windows-x64]
+url = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.3-windows-x64.zip"
+mirrors = ["https://mirrors.ocf.berkeley.edu/blender/release/Blender5.2/blender-5.2.3-windows-x64.zip"]
+sha256 = "723f08a4401502561eb763cdeacf8745b31e5f3f154d287d3830d97cf75dc2fb"
+exe = "blender-5.2.3-windows-x64/blender.exe"
+
+[tools.blender.platforms.windows-arm64]
+url = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.3-windows-arm64.zip"
+mirrors = ["https://mirrors.ocf.berkeley.edu/blender/release/Blender5.2/blender-5.2.3-windows-arm64.zip"]
+sha256 = "a539e484b1200e4a2e463560eb1672b60de846850af0e867b52a08607b910698"
+exe = "blender-5.2.3-windows-arm64/blender.exe"
+
+[tools.blender.platforms.linux-x64]
+url = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.3-linux-x64.tar.xz"
+mirrors = ["https://mirrors.ocf.berkeley.edu/blender/release/Blender5.2/blender-5.2.3-linux-x64.tar.xz"]
+sha256 = "78486c018b4443efe5e75ab54c290ed8c15abafd249b862c2c9ce2530a918eec"
+exe = "blender-5.2.3-linux-x64/blender"
+
+[tools.blender.platforms.macos-arm64]
+url = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.3-macos-arm64.dmg"
+mirrors = ["https://mirrors.ocf.berkeley.edu/blender/release/Blender5.2/blender-5.2.3-macos-arm64.dmg"]
+sha256 = "acc05374485a272342d4b323c15ac01953e7f697da2f1bad8af9c3bf087267a4"
+exe = "Blender.app/Contents/MacOS/Blender"

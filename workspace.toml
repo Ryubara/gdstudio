@@ -1,0 +1,16 @@
+# The GDStudio workspace (docs/workspace.md): its folders and the repositories `gds workspace init` clones into
+# <workspace>/repos/<name>/. Add a game here when its repository exists; any game's own bootstrap also adds itself.
+
+# Folders of the workspace root, which is a plain folder and never a repository.
+#   repos/      the checkouts (this kit, the shared asset library, every game)
+#   worktrees/  every git worktree, as worktrees/<repo>/<branch>/, and nowhere else
+#   scratch/    task output, captures, reports and PR text; never committed
+#   cache/      downloads and rebuildable caches shared by all checkouts
+#   tools/      pinned Godot, Blender and other tools (tools.toml)
+#   refs/       reference images and research downloads; never committed (third-party material)
+#   vault/      licensed assets we may use but not redistribute (paid packs); never committed to a public repo
+folders = ["repos", "worktrees", "scratch", "cache", "tools", "refs", "vault"]
+
+[repos.gdstudio]
+url = "https://github.com/Ryubara/gdstudio.git"
+role = "kit"

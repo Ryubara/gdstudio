@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Machine-specific; written by `gds workspace init`
+gdstudio.local.toml
+
+# Godot caches (game repos and the kit's test projects)
+.godot/
+*.translation
+
+# Session state, never committed
+HANDOFF.md
+.tether/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MkDocs build output
+site/

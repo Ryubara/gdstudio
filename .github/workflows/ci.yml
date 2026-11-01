@@ -1,0 +1,51 @@
+# The kit's build and tests on the three platforms the bootstrap supports: ruff, pytest, and a dry run of the
+# bootstrap from the checkout. The final job, `build-ok`, is the one required check, so the matrix can change without
+# editing the ruleset. Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv run --project python --frozen ruff check python
+      - run: uv run --project python --frozen ruff format --check python
+      - run: uv run --project python --frozen pytest python/tests -q
+      # The launchers themselves, from a checkout: every step printed, nothing downloaded or created.
+      - name: Bootstrap dry run (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./bootstrap.ps1 --dry-run --no-clone
+      - name: Bootstrap dry run (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: sh ./bootstrap.sh --dry-run --no-clone
+
+  build-ok:
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          case " $RESULTS " in *" failure "* | *" cancelled "*) exit 1 ;; esac
