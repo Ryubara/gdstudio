@@ -201,6 +201,10 @@ the game's own page is `docs/research/night-environment.md` there.
   own lights may reach a mesh with at most the cap minus 2. A test that greps the project's scripts and scenes for
   light nodes and fails on one not accounted for catches the forgotten source. Known overruns go in a ratchet table:
   the test fails if one grows, or if one no longer needs its entry.
+- **Cut big ground tiles along the lights that reach them.** A lamp reaches a whole mesh when it reaches any corner, so
+  a 16 m tile under two lamp rows counts both. Search the cuts that keep every piece at or under the cap minus 2, and
+  re-run the search when a light lands beside the mesh. Deadnight cut its field into 12 pieces and its stand's floor
+  and roof into four: 12 more draw calls, no measurable cost on the web.
 - **Emissive swatches of a shared palette atlas** are lit by an emission texture of the same layout painted in code
   (black but for the swatches), on a duplicated material set as the surface override: one model, one material, only the
   asked-for colours glow.
