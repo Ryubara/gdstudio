@@ -174,3 +174,30 @@ A setup is `+`-joined tokens: `tm_filmic|aces|agx|reinhard|linear`, `glow`, `fog
 
 - [Compatibility renderer feature list](https://docs.godotengine.org/en/latest/tutorials/rendering/renderers.html)
 - [Using LightmapGI](https://docs.godotengine.org/en/latest/tutorials/3d/global_illumination/using_lightmap_gi.html)
+
+## Lamps in a game: what looks like light and what is light
+
+What a lighting pass on Deadnight's lot (a night with about 30 lamps, a screen, neon and a projector, web build) taught;
+the game's own page is `docs/research/night-environment.md` there.
+
+- **Pools of light are additive quads, not light range.** The 8 lights per mesh cap makes a bigger `omni_range` a
+  worse idea than it looks: 14 m instead of 11 m put 11 lights on one 24 m ground tile. A flat `QuadMesh`
+  (`orientation = FACE_Y`) with an `unshaded`, `blend_add` shader and a radial falloff gives a visible pool on the asphalt
+  for one transparent quad and no light slot. The same shader as a billboard (`MODELVIEW_MATRIX` rebuilt from
+  `INV_VIEW_MATRIX`) is the halo round a bulb, a sign or a breaker lamp, which is what glow post-processing would add
+  for +0.08 ms of full-screen cost.
+- **A projector beam is a cone mesh**, not a light: an elliptical cone with smooth normals, an additive shader, vertex
+  colour for the fade from the lens, and `abs(dot(NORMAL, VIEW))` to fade at the silhouette. Flat faces show their seams.
+  Give it an `extra_cull_margin` if it spans the map.
+- **Make what glows follow the light, not the rules.** A `LightFollower` node reads the lamp's `light_energy` over its
+  scene energy (0 when the light is hidden) and draws that: the circuit, a failing tank and an afterglow reach every
+  glow through the one lamp, with no second path to keep in step. Flicker as a function of an accumulated phase, never
+  `TIME`, so Movie Maker and tests see the same light.
+- **Test the cap.** With every light on, count per mesh the lights whose sphere (omni) or cone box (spot) reaches its
+  AABB; fail above 8. It found a tile that no visual check would.
+- **Emissive swatches of a shared palette atlas** are lit by an emission texture of the same layout painted in code
+  (black but for the swatches), on a duplicated material set as the surface override: one model, one material, only the
+  asked-for colours glow.
+- **A global class name clash is silent until export.** `class_name NeonSign` in the lot hid the UI skin's `NeonSign`;
+  the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
+  Grep `class_name` before naming one.
