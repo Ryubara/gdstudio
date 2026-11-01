@@ -204,6 +204,8 @@ def check_tools(words: list[str], config: dict[str, Any]) -> list[str]:
     """Godot and Blender only from the workspace's pinned copies."""
     names = config.get("tools", {}).get("names", [])
     first = words[0].replace("\\", "/").lower()
+    if "$" in first or "%" in first:  # a variable the guard cannot expand: judge only what it can see
+        return []
     if any(n in first for n in names) and "steamapps" in first:
         return ["Steam's copy updates itself; use the pinned one: `gds tool path godot|blender`"]
     if program(words) in names and "/tools/" not in first:

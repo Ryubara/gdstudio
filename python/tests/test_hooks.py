@@ -76,6 +76,7 @@ def test_pinned_tools_only(tmp_path):
     assert "Steam" in denied(shell('"F:/SteamLibrary/steamapps/common/Godot Engine/godot.exe" -e', tmp_path))
     assert denied(shell('"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe" --headless', tmp_path)) == ""
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
+    assert denied(shell('"$B/blender.exe" -b --version', tmp_path)) == ""
 
 
 def test_secrets_never_printed(tmp_path):
