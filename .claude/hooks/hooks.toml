@@ -1,0 +1,40 @@
+# Settings of GDStudio's Claude Code hook dispatcher (docs/hooks.md). dispatch.py reads this file on every call; a
+# game repository may add `.claude/hooks.local.toml` beside its launcher, whose keys replace these. Standard library
+# only (the hooks run under `uv run --no-project`), so TOML, not YAML.
+
+[agents]
+# Agent types that may be started. `general-purpose` (also what an Agent call with no type starts) has no
+# instructions or enforced rules of its own, so it is refused: use a project agent or a read-only helper.
+refused = ["general-purpose"]
+helpers = ["Explore", "Plan", "fork", "claude-code-guide", "web-fetch", "statusline-setup"]
+
+[git]
+# Branches that take no commits and no pushes from a session: work happens on a branch, merged by pull request.
+protected_branches = ["main", "master"]
+
+[protect]
+# Files no Edit or Write may change (glob patterns, matched against the path with forward slashes).
+paths = [
+  "**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/id_rsa*", "**/id_ed25519*",
+  "**/gdstudio.local.toml", "**/.gdstudio-workspace",
+  "**/.git/**", "**/.godot/**", "**/*.import",
+  "**/tools/godot-*/**", "**/tools/blender-*/**",
+]
+# Files another program writes: edit their source instead (the hint names it).
+generated = [
+  ".github/pull_request_template.md",
+  ".github/ISSUE_TEMPLATE/*.yml",
+]
+generated_hint = "it is generated from .github/conventions.yml: edit that file, then run `uv run --with pyyaml python .github/scripts/groundwork.py render`"
+# Shell commands that would print a secret into the transcript (an environment variable named like one).
+secret_names = '(?i)\$\{?(?:env:)?[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*\}?'
+
+[tools]
+# Godot and Blender run only from the workspace's pinned copies (tools.toml): never Steam's or one on PATH.
+names = ["godot", "blender"]
+
+[proof]
+# The Stop gate (docs/hooks.md#proof): a session that changed visual files in a game repository ends only once a
+# capture (an image or a clip) newer than its last change sits in <workspace>/scratch/<repo>/<branch>/.
+visual = ["game/**/*.tscn", "game/**/*.gdshader", "game/ui/**", "game/assets/**", "game/world/**"]
+captures = ["*.png", "*.jpg", "*.gif", "*.mp4", "*.webm"]

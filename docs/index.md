@@ -11,6 +11,8 @@ every GDStudio game shares. Each game keeps its own docs site for what is partic
 | [Blender](blender/index.md) | Cleaning and exporting assets with the pinned Blender. |
 | [Lessons](lessons/index.md) | Problems we hit and how we solved them: search here first. |
 | [Workspace](workspace.md) | The folder layout, the bootstrap, and the pinned Godot and Blender. |
+| [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
+| [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
 | [References](refs.md) | Fetching third-party models into `refs/` with their licences. |
 
 More sections join as their tooling lands: the style bible, the asset and audio pipelines, the scenario harness,
