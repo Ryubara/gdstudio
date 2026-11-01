@@ -43,6 +43,13 @@ builds a weapon places them in Blender, and gameplay code reads them instead of 
   along the barrel and points along it. Deadnight's is `game/tests/art/test_weapon_muzzle.gd`, built by its
   `build_weapons.py` (`MUZZLES`) and drawn by `render_muzzle.py`.
 
+**Tools swung by a clip.** A tool that only an action clip swings (Deadnight's repair hammer, #326) takes the melee
+hold and then a turn chosen from the clip itself: trace the striking face through one loop for a few turns about the
+handle and tips in the swing plane, and keep the one whose face points along the blow and toward the target at the
+lowest point. For the Soldier's `Repair_Board`, the bat's hold already faced the board; a 20-degree tip in the swing
+plane squared the face to the downward blow. Draw a small tool large (the kit's knife is 1.4 m, longer than its
+shovel): at real size times 1.7 the hammer was hidden by the Soldier's fist; at 2.2 it read.
+
 ## Building by script
 
 | Lesson | Detail |
