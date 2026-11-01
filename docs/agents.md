@@ -23,3 +23,6 @@ covers well.
    `<workspace>/scratch/<repo>/<branch>/`.
 4. It opens the pull request with the captures attached and auto-merge on (off for manual paths).
 5. The `reviewer` posts a verdict; findings become fixes on the branch or new issues.
+6. While the pull request is open, the `pr-status` workflow labels it `S-conflict` when it conflicts with its base and
+   `S-ci-failing` when a required check failed on its latest commit. An agent that sees one fixes it forward on the
+   branch (rebase, or fix the check); the label clears by itself ([Contributing](https://github.com/Ryubara/gdstudio/blob/main/CONTRIBUTING.md#pull-request-labels)).
