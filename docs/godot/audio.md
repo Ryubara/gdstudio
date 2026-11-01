@@ -36,3 +36,21 @@ to a bus at runtime for ducking (leaves the bus volume to the player's settings;
 - The headless GdUnit4 run uses the dummy audio driver: players report `playing`, nothing is heard.
 - The listener is the current `Camera3D` unless an `AudioListener3D` is current; a high capture camera makes distances
   wrong.
+
+## Layered gunshots and event-timed sounds
+
+- **Split a shot across voices.** Play the report (transient and body, 0.05 to 0.35 s), a long blast and a tail as
+  three separate sounds with their own random variants and a few dB of level jitter; the combinations are many even
+  with three files each, and a cooldown on the blast and tail of an automatic gun keeps twelve shots a second from
+  becoming a wall of tails. Start the tail 40 to 70 ms late: the lot answers late.
+- **Time steps to the clip, not the clock.** Read the animation's event frames from its spec (`clips.json`, frames over
+  fps) and schedule each step's sound on a clock the owner steps (`advance(delta)`), tagged per player so putting the
+  weapon away cancels what is left. A test steps 1 ms either side of each frame and needs no wall time.
+- **Stamp a scheduled sound with its due time**, not the step's end: when one big step runs several items, `now()`
+  inside an item must be that item's time, or timing assertions see the step size instead of the frame.
+- **Hitscan impacts without a hit report:** a pellet that ended short of the weapon's range struck something; the
+  zombies' hits arrive in the same batch just after, so queue the world impact for the next step and let each hit
+  claim the pellet end nearest its point.
+- **Generated sounds (ElevenLabs Sound Effects) vary wildly in level and lead-in.** Peaks from -22 to over 0 dBFS,
+  the shot sometimes 0.3 s in, and no seed to repeat one. Trim to where it first rises within 34 dB of its peak,
+  normalise to a fixed peak, fade the end, keep loops untrimmed, and keep the prompt with the file.
