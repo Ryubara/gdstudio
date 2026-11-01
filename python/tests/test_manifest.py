@@ -35,7 +35,14 @@ def test_platform_key_rejects_unknown():
 
 def test_resolve_defaults_all_none_and_dependencies():
     tools = load_tools(KIT / "tools.toml")
-    assert [t.name for t in resolve_fetch(tools, None)] == ["godot", "blender"]
+    assert [t.name for t in resolve_fetch(tools, None)] == [
+        "godot",
+        "blender",
+        "ffmpeg",
+        "godot-mcp-addon",
+        "blender-mcp-addon",
+        "blender-mcp-server",
+    ]
     assert resolve_fetch(tools, ["none"]) == []
     assert [t.name for t in resolve_fetch(tools, ["godot-templates"])] == ["godot", "godot-templates"]
     with pytest.raises(ManifestError):

@@ -83,3 +83,60 @@ url = "https://ftp.nluug.nl/pub/graphics/blender/release/Blender5.2/blender-5.2.
 mirrors = ["https://mirrors.ocf.berkeley.edu/blender/release/Blender5.2/blender-5.2.3-macos-arm64.dmg"]
 sha256 = "acc05374485a272342d4b323c15ac01953e7f697da2f1bad8af9c3bf087267a4"
 exe = "Blender.app/Contents/MacOS/Blender"
+
+[tools.ffmpeg]
+# Encodes Movie Maker captures into clips for pull requests (`gds capture clip`). Gyan's versioned builds keep their
+# release assets (BtbN's dated builds are deleted after a while). Linux and macOS: no pinned build yet; init says to
+# install the system package.
+version = "9.0.2"
+default = true
+kind = "archive"
+checksums = "https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2"
+
+[tools.ffmpeg.platforms.windows-x64]
+url = "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip"
+sha256 = "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba"
+exe = "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe"
+
+[tools.godot-mcp-addon]
+# The editor addon of the Godot MCP server (github.com/hybridindie/godot-mcp, MIT). Third-party code stays out of the
+# public game repositories: init copies it into each game's `game/addons/godot_mcp/` (git-excluded locally) and
+# enables it through an untracked `game/override.cfg`. The server itself runs from uvx (see [mcp] below).
+version = "2026.10.20.1"
+default = true
+kind = "godot-mcp-addon"
+
+[tools.godot-mcp-addon.platforms.any]
+url = "https://github.com/hybridindie/godot-mcp/releases/download/2026.10.20.1/godot_mcp_addon.zip"
+sha256 = "7173bb197eca2a8522b2173342ce474052d7746c3b36a9d404e554ae8cc1fbaf"
+
+[tools.blender-mcp-addon]
+# The official Blender Lab MCP add-on (GPL-3.0-or-later), installed as an extension into the pinned Blender, which
+# runs in portable mode so it shares nothing with another Blender. The vendor publishes no checksum file: this hash
+# was recorded when the version was pinned.
+version = "1.0.3"
+default = true
+kind = "blender-extension"
+requires = "blender"
+
+[tools.blender-mcp-addon.platforms.any]
+url = "https://projects.blender.org/lab/blender_mcp/releases/download/v1.0.3/mcp-1.0.3.zip"
+sha256 = "a7a9da816192502e5a0a202a396444e266b47d8fc4f74ad4698048bd43040707"
+
+[tools.blender-mcp-server]
+# The Blender MCP server (an .mcpb bundle: a uv project), run as `uv run --directory <folder> blender-mcp`.
+version = "1.0.3"
+default = true
+kind = "archive"
+
+[tools.blender-mcp-server.platforms.any]
+url = "https://projects.blender.org/lab/blender_mcp/releases/download/v1.0.3/blender-1.0.3.mcpb"
+sha256 = "d6fe04dd17767f7c7fb452142f1f0e6787db575db49f3976a166142683b5b97e"
+
+# The MCP servers init registers for each checkout (`claude mcp add -s local`), when Claude Code is installed and the
+# server is not registered yet. `{tool:<name>}` is the install folder of a pinned tool.
+[mcp.godot]
+command = ["uvx", "godot-editor-mcp==2026.10.20.1"]
+
+[mcp.blender]
+command = ["uv", "run", "--directory", "{tool:blender-mcp-server}", "blender-mcp"]

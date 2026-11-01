@@ -12,8 +12,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from gds_tools import fetch
-from gds_tools.manifest import ManifestError, Tool, load_tools, load_workspace, platform_key, resolve_fetch
+from gds_tools import fetch, integrations
+from gds_tools.manifest import ManifestError, Tool, load_mcp, load_tools, load_workspace, platform_key, resolve_fetch
 
 #: A file at the workspace root that marks it, so every tool finds the workspace from any folder inside it.
 MARKER = ".gdstudio-workspace"
@@ -129,6 +129,7 @@ def init(
     clone: bool,
     dry_run: bool,
     log=print,
+    mcp: bool = True,
 ) -> int:
     """Set up the workspace at `root`; returns a process exit code."""
     root = root.resolve()
@@ -188,6 +189,18 @@ def init(
 
     if not dry_run:
         log(f"write   {write_local_config(root, tools, key).name}")
+        addon = tools.get("godot-mcp-addon")
+        if addon and (root / "tools" / addon.folder).exists():
+            for project in integrations.game_projects(root / "repos"):
+                integrations.install_godot_addon(root / "tools" / addon.folder, project, log)
+        if mcp:
+            folders = {t.name: t.folder for t in tools.values()}
+            servers = {
+                n: integrations.resolve_command(c, root / "tools", folders)
+                for n, c in load_mcp(kit / "tools.toml").items()
+            }
+            checkouts = sorted(p for p in (root / "repos").iterdir() if (p / ".git").exists())
+            integrations.register_mcp(checkouts, servers, log)
 
     log("prerequisites:")
     for check in check_prerequisites():

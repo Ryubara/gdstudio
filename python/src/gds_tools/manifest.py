@@ -178,3 +178,14 @@ def resolve_fetch(tools: dict[str, Tool], requested: list[str] | None) -> list[T
     for name in names:
         add(name)
     return ordered
+
+
+def load_mcp(path: Path) -> dict[str, list[str]]:
+    """The MCP servers of tools.toml's [mcp] table: name -> command words (`{tool:<name>}` not yet resolved)."""
+    servers = {}
+    for name, body in _read(path).get("mcp", {}).items():
+        command = body.get("command")
+        if not isinstance(command, list) or not command or not all(isinstance(w, str) for w in command):
+            raise ManifestError(f"mcp.{name}.command must be a non-empty list of strings")
+        servers[name] = command
+    return servers
