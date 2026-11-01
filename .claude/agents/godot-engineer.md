@@ -48,8 +48,9 @@ Before you report, leave what the next person needs, short and in the right plac
 - **How Godot (or Blender) actually behaves**, what worked and what did not: the subject's page in the kit's docs hub
   (`<workspace>/repos/gdstudio/docs/godot/<subject>.md`, or `docs/blender/`), one page per subject, updated in place.
   Game-specific findings go in the game's `docs/research/<subject>.md`.
-- **A problem you hit and how you solved it**: one entry in `docs/lessons.md` of the kit (date, symptom, cause, fix,
-  where it is documented). Five lines, not an essay.
+- **A problem you hit and how you solved it**: one file in the kit's `docs/lessons/<yyyy-mm-dd>-<slug>.md` (format in
+  its `index.md`: symptom, cause, fix, where it is documented). Five lines, not an essay. Never edit `mkdocs.yml`'s
+  nav or a page list: the navigation is built from the folders.
 - Put the doc changes in the same pull request as the work (a kit page needs a small kit pull request: say so in your
   report and the coordinator opens it). Your report lists what you recorded.
 
