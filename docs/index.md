@@ -13,6 +13,7 @@ every GDStudio game shares. Each game keeps its own docs site for what is partic
 | [Workspace](workspace.md) | The folder layout, the bootstrap, and the pinned Godot and Blender. |
 | [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
+| [Research](research/index.md) | How we build games with agents, and how to repeat it on another engine. |
 | [References](refs.md) | Fetching third-party models into `refs/` with their licences. |
 
 More sections join as their tooling lands: the style bible, the asset and audio pipelines, the scenario harness,
