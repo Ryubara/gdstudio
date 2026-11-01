@@ -31,6 +31,25 @@ them and turns each into a check to run when a new game or feature starts.
 | Guns must be scaled, angled and placed right on the player | Weapons were attached once and never checked against the hands, the shoulder and the aim ray | Each held item has a grip, support and barrel check in tests and a side, shoulder and aim capture |
 | Keep research pages and this page up to date as work lands | Findings stayed in agent reports and pull request bodies | Each pull request updates the research page it builds on; each correction lands here the same evening |
 
+## Found by playing: concepts and details we missed
+
+The maintainer played the build with a mouse, a gamepad and a browser and found these within minutes. Every system
+had passing tests. Each row names the **concept** nobody planned for and the **detail** that was built without being
+checked, so the next game plans the first and tests the second.
+
+| The maintainer found | Concept missed | Detail missed | Check for next time |
+| --- | --- | --- | --- |
+| The mouse did not turn the camera, in the editor and in the browser | Nobody played with a real mouse; tests called the look handler directly, so the real input path was never exercised | Three full-screen Controls (the game's `Main` root, the router's `Stage`, the night screen) kept Godot's default `mouse_filter` STOP and marked every motion handled; a headless test run skips GUI mouse handling, so it could not see it | Containers that only hold screens or a world are `MOUSE_FILTER_IGNORE`; a test lists every mouse-catching Control over a running level, with the real main scene loaded; the browser smoke moves the mouse and asserts the view turned |
+| The gamepad worked only sometimes | Device identity: pads are numbered as they connect, and a reconnect or a virtual pad changes the number | Every gameplay binding was tied to device 0 | Bind actions to all devices (`-1`) unless the game has local split screen; a test drives play from a pad that is not device 0 |
+| A slightly moved mouse made the pad look undetected | Input mode is a guess from the last event | Any mouse motion, however small, switched the glyphs to keyboard | Ignore pointer noise (a few pixels) when choosing the input mode |
+| Weapons switched in the rules but not on screen; the guns sat wrong in the hands | The view must follow the game state for every item, not one sample item | `equip` was never called outside tests; holds were copied from a one-handed pose and models were at real length while the player scene is scaled | A capture per weapon after each swap; a test that every catalogue weapon shows its own model, grip, support hand and barrel on the aim ray |
+| Firing from the hip did not turn the character or tighten the camera | Genre controller conventions were not listed before building the controller | Shots went down the camera ray while the body kept its old facing | Before a controller is built, list the reference genre's conventions (hip-fire turn, hip-fire zoom, ADS, sprint rules) and check each in a capture |
+| No crosshair | A basic element of the genre's HUD was missing while the HUD was polished | The HUD placed items "beside the crosshair" that did not exist | Inventory the genre's HUD elements (reticle, hit marker, ammo, prompts) against the design before polishing layout |
+| Repair took one press per board | Hold-to-interact is the genre's convention for repeated actions | Interact was a single press for every use | For each interaction decide press or hold against the reference and write it in the design |
+| No camera shake on firing | Feel ("juice") was not a planned pass | Nothing reacted to firing but the sound | Plan a feel pass per verb (shake, kick, flash, hit feedback), every amount exported so it is tuned in the editor |
+| The muzzle flash was a yellow sphere; bullet impacts were far too large | Placeholder effects shipped as final because no task owned them | Sizes were never compared against the character | Every placeholder is listed in an issue when it lands; effects are captured next to the character for scale |
+| The ammo count did not update after buying ammo until a weapon swap | UI driven by one-off events instead of by state | The ammo card re-read only on equip | HUD values are bound to the replicated state and refresh on any change; a test buys ammo and reads the HUD without a swap |
+
 ## Done wrong first, caught by our own checks
 
 Mistakes the maintainer did not have to point out, because a test, a measurement or a review caught them. Each one is
@@ -46,6 +65,7 @@ also a check to keep.
 | Guns were modelled at real length while the player scene scales the Soldier to 0.8 (the rifle was as long as the Soldier is tall), held from a one-handed pose with the barrel 21 degrees up, and every gun showed the rifle because nothing called `equip` | Measuring hands, stock and barrel against the aim ray (Deadnight #288) | Scale held items by one written rule against the character's in-game height; test grip, support hand, stock and barrel per weapon; a capture per weapon proves the right model shows |
 | A balance fix ran only the gate test; four simulator tests around the code it changed failed in CI, so `main` stayed red past the deadline | CI on the fix | Before opening, run the whole suite folder of every file changed, not only the test the change aims at |
 | Main's CI cancelled in-progress runs when the next merge landed, so four of five merges in three minutes were never checked | The evening review (Deadnight #290, fixed in #296) | `cancel-in-progress` only for pull requests; every run on the default branch finishes |
+| The browser smoke read the game's probe through a list of named fields, so a new field (the camera yaw) read as missing and the first look check failed on a working build | Running the check against both a fixed and an unfixed build | Probes pass the whole object through, or a test checks every published field reaches the page |
 | A pull request body wrote `None` without the expected form | The body check in CI | Run `groundwork.py check-body` locally before opening |
 
 ## Start of a new game
@@ -77,6 +97,9 @@ also a check to keep.
 - Held items are checked against the hands, the shoulder and the aim ray.
 
 ### Every input device
+
+- Play every build for ten minutes with a mouse and keyboard and with a gamepad, in the editor and in the browser,
+  before calling a feature done.
 
 - Touch controls (landscape, safe areas, no browser scroll or zoom) planned with the first playable build when the
   game ships in a browser or Discord.
