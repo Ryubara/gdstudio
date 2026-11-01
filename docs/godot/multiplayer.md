@@ -4,9 +4,23 @@ What we learned building the Deadnight net spike (Godot 4.7.2, Compatibility ren
 numbers and the architecture we chose live in that game's `docs/research/multiplayer.md`; this page is what any
 GDStudio game can reuse.
 
-!!! note "Decision pending"
-    Our own protocol over a raw WebSocket is what the spike built. Whether it beats Godot's MultiplayerAPI (set up
-    server-authoritative) or netfox is being measured in Deadnight issue #38; this page changes with that result.
+## Why our own protocol: the comparison
+
+Measured in Deadnight #38 (`docs/research/networking-comparison.md` there): 4 players and 24 zombies at 30 Hz,
+localhost, bytes counted by a proxy in front of each stack.
+
+| Stack | Down per client | Up per client | Server CPU (one core) |
+| --- | --- | --- | --- |
+| Own protocol (delta snapshots) | 2.4-2.9 KB/s | 0.56 KB/s | 2-4 % |
+| MultiplayerAPI, server-owned synchronizers, input RPCs | 20-23 KB/s | 0.78 KB/s | 2.5-5 % |
+| netfox 1.35.3, tuned | 30 KB/s | 12 KB/s | 26-28 % |
+
+- The MultiplayerAPI is not quadratic when the server owns the synchronizers; client-owned synchronizers are, because
+  the server relays each client's data to every other client.
+- Feel at 100 ms and under TCP stalls was alike for our protocol and the MultiplayerAPI; TCP stalls hit both.
+- netfox cost about ten times the server CPU, cause not isolated; it states no Godot 4.7 support.
+- Railway documents TCP and HTTP only, and WebSockets on its HTTPS domain; a web client can only use WebSocket or
+  WebRTC anyway.
 
 ## The constraint that decides everything
 
@@ -37,7 +51,8 @@ late data, send state (snapshots) rather than events that must each arrive, and 
 - Fixed tick (30 Hz). The client sends one **input command per tick with a sequence number**, repeated redundantly (last
   1 to 3) if the link may lose packets; the server applies each input exactly once, in order, with a fixed step per
   input (so a client cannot go faster by lying and replays are exact).
-- The server sends **snapshots** carrying its tick and the last input sequence it applied for that client. Send a **delta
+- The server sends **snapshots** carrying its tick and the last input sequence it applied for that client. Send a
+  **delta
   against the last snapshot that client acknowledged** (the client puts its newest snapshot tick in every input packet);
   fall back to a full snapshot when there is no baseline or a delta cannot express the change. 37 % fewer bytes with 8
   players all moving; far more when most are idle.
@@ -56,7 +71,8 @@ late data, send state (snapshots) rather than events that must each arrive, and 
 with, but, measured in the spike (4 clients, each client-owned input synchronizer at 30 Hz and a server-owned position
 synchronizer at 20 Hz): the server **relays** client-owned synchronizer data to every other client, so traffic grows
 with the square of the player count (per-client upstream 1.8 KB/s with 2 players, 3.7 with 4, 6.1 with 8) unless you
-restrict visibility by hand (`public_visibility = false` and `set_visibility_for`). There is no snapshot acknowledgement,
+restrict visibility by hand (`public_visibility = false` and `set_visibility_for`). There is no snapshot
+acknowledgement,
 no prediction and no interpolation hook; node paths must match between peers; and `WebSocketMultiplayerPeer` ids are
 random 31-bit numbers. Fine for a prototype; for a game with a real tick, own the protocol.
 
