@@ -140,3 +140,11 @@ def test_broken_input_lets_the_call_through(monkeypatch, capsys):
 def test_answer_is_json_protocol(tmp_path):
     out = dispatch.answer(shell("env", tmp_path), CONFIG)
     assert json.loads(json.dumps(out))["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_heredoc_and_herestring_bodies_are_data(tmp_path):
+    body = "python - <<'EOF'\nblender = find()\ngodot --headless\nEOF\necho done"
+    assert denied(shell(body, tmp_path)) == ""
+    assert "pinned" in denied(shell("cat <<EOF\ntext\nEOF\ngodot -e", tmp_path))
+    ps = {**shell("$m = @'\nblender = 1\n'@\n$m | git commit -F -", tmp_path), "tool_name": "PowerShell"}
+    assert "pinned" not in denied(ps)

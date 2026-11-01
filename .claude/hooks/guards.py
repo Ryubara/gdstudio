@@ -20,12 +20,31 @@ MARKER = ".gdstudio-workspace"
 # --------------------------------------------------------------------------------------------------------------------
 
 _SPLIT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
+_HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+_HERESTRING = re.compile(r"@(['\"])\r?\n.*?\r?\n\1@", re.DOTALL)
+
+
+def strip_heredocs(command: str) -> str:
+    """The command without heredoc bodies (bash `<<EOF ... EOF`) or PowerShell here-strings: they are data fed to a
+    program, not commands, and judging their lines as commands refuses harmless text."""
+    command = _HERESTRING.sub("''", command)
+    lines, out, end = command.split("\n"), [], None
+    for line in lines:
+        if end is not None:
+            if line.strip() == end:
+                end = None
+            continue
+        out.append(line)
+        found = _HEREDOC.search(line)
+        if found:
+            end = found.group(2)
+    return "\n".join(out)
 
 
 def segments(command: str) -> list[list[str]]:
     """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole)."""
     out: list[list[str]] = []
-    for part in _SPLIT.split(command):
+    for part in _SPLIT.split(strip_heredocs(command)):
         part = part.strip()
         if not part:
             continue
