@@ -45,6 +45,8 @@ class Tool:
     default: bool
     requires: str | None
     platforms: dict[str, Download] = field(default_factory=dict)
+    #: Keys a kind uses beyond the common ones (a Godot addon's `addon` folder and `source` path in its archive).
+    extra: dict = field(default_factory=dict)
 
     @property
     def folder(self) -> str:
@@ -130,6 +132,7 @@ def load_tools(path: Path) -> dict[str, Tool]:
             default=bool(body.get("default", False)),
             requires=body.get("requires"),
             platforms=platforms,
+            extra={k: v for k, v in body.items() if k in ("addon", "source")},
         )
     for tool in tools.values():
         if tool.requires and tool.requires not in tools:

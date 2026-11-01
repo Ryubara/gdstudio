@@ -40,6 +40,7 @@ def test_resolve_defaults_all_none_and_dependencies():
         "blender",
         "ffmpeg",
         "godot-mcp-addon",
+        "gdunit4",
         "blender-mcp-addon",
         "blender-mcp-server",
     ]

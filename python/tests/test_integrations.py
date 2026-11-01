@@ -29,12 +29,14 @@ def make_addon(tmp_path: Path) -> Path:
 def test_addon_installed_enabled_and_excluded_once(tmp_path):
     project, tool = make_game(tmp_path), make_addon(tmp_path)
     assert integrations.game_projects(tmp_path / "repos") == [project]
-    assert integrations.install_godot_addon(tool, project, lambda _: None)
+    assert integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
     assert (project / "addons" / "godot_mcp" / "plugin.cfg").exists()
-    assert integrations.OVERRIDE_LINE in (project / "override.cfg").read_text()
+    assert '"res://addons/godot_mcp/plugin.cfg"' in (project / "override.cfg").read_text()
     exclude = (project.parent / ".git" / "info" / "exclude").read_text()
     assert "/game/addons/godot_mcp/" in exclude and "/game/override.cfg" in exclude
-    assert not integrations.install_godot_addon(tool, project, lambda _: None)  # second run: nothing to do
+    assert not integrations.install_godot_addon(
+        tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None
+    )  # second run: nothing to do
 
 
 def test_register_mcp_skips_registered_and_adds_missing(tmp_path, monkeypatch):
@@ -60,7 +62,8 @@ def test_resolve_command_names_tool_folders(tmp_path):
 
 def test_kit_lists_the_new_tools_and_servers():
     tools = load_tools(KIT / "tools.toml")
-    assert {"ffmpeg", "godot-mcp-addon", "blender-mcp-addon", "blender-mcp-server"} <= set(tools)
+    assert {"ffmpeg", "godot-mcp-addon", "gdunit4", "blender-mcp-addon", "blender-mcp-server"} <= set(tools)
+    assert tools["gdunit4"].extra == {"addon": "gdUnit4", "source": "gdUnit4-6.2.2/addons/gdUnit4"}
     assert tools["blender-mcp-addon"].requires == "blender"
     assert set(load_mcp(KIT / "tools.toml")) == {"godot", "blender"}
 
@@ -79,3 +82,13 @@ def test_blender_install_makes_it_portable(tmp_path):
     tool = fetch.Tool("blender", "9", "blender", True, None, {"any": item})
     target = fetch.install(tool, item, archive, tmp_path / "tools", {"blender": tool})
     assert (target / "b" / "portable").is_dir()
+
+
+def test_two_plugins_share_one_override(tmp_path):
+    override = tmp_path / "override.cfg"
+    assert integrations.enable_plugin(override, "res://addons/a/plugin.cfg")
+    assert integrations.enable_plugin(override, "res://addons/b/plugin.cfg")
+    assert not integrations.enable_plugin(override, "res://addons/a/plugin.cfg")
+    text = override.read_text()
+    assert text.count("[editor_plugins]") == 1
+    assert '"res://addons/a/plugin.cfg", "res://addons/b/plugin.cfg"' in text

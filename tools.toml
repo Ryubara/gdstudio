@@ -104,11 +104,26 @@ exe = "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe"
 # enables it through an untracked `game/override.cfg`. The server itself runs from uvx (see [mcp] below).
 version = "2026.10.20.1"
 default = true
-kind = "godot-mcp-addon"
+kind = "godot-addon"
+addon = "godot_mcp"
+source = "addons/godot_mcp"
 
 [tools.godot-mcp-addon.platforms.any]
 url = "https://github.com/hybridindie/godot-mcp/releases/download/2026.10.20.1/godot_mcp_addon.zip"
 sha256 = "7173bb197eca2a8522b2173342ce474052d7746c3b36a9d404e554ae8cc1fbaf"
+
+[tools.gdunit4]
+# GdUnit4 (github.com/godot-gdunit-labs/gdUnit4, MIT): Godot unit and scene tests, run by CI and agents. Installed
+# into each game like the MCP addon (untracked), so CI and every machine get the same pinned version.
+version = "6.2.2"
+default = true
+kind = "godot-addon"
+addon = "gdUnit4"
+source = "gdUnit4-6.2.2/addons/gdUnit4"
+
+[tools.gdunit4.platforms.any]
+url = "https://github.com/godot-gdunit-labs/gdUnit4/archive/refs/tags/v6.2.2.zip"
+sha256 = "ddb44730ffb9cd77fd70d283753450759b00c5016143d7572bf63625f64d5433"
 
 [tools.blender-mcp-addon]
 # The official Blender Lab MCP add-on (GPL-3.0-or-later), installed as an extension into the pinned Blender, which
