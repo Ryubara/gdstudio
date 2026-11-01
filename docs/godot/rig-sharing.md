@@ -89,3 +89,14 @@ From the Soldier's weapon clips (Deadnight #42):
 - `remove_immutable_tracks` keeps a constant track whose value differs from the rest, so baked static-pose tracks
   survive.
 - An AnimationTree built in a SceneTree script's `_init` does not process; build it from a deferred call.
+
+From the fence boards' clips (Deadnight #221):
+
+- New clips for a shared rig can live in a file of their own (the rig, a mesh so Godot builds a `Skeleton3D`, and only
+  the new clips) and be added to the shared `AnimationLibrary` at load: the bodies' files are not rebuilt.
+- An `AnimationNodeTimeSeek` request is taken on the tree's next `advance`, and that advance moves no further: with a
+  manually advanced tree (a crowd throttle advancing far zombies every Nth frame) the whole saved-up delta is lost.
+  Call `advance(0.0)` right after setting the request, then play the saved time.
+- To put a clip's event on a moment the rules decide (a board torn every `P` seconds), seek to the event frame on the
+  rules' event and scale the clip to one loop per `P`; for the first one, start at frame 0 scaled so the event frame
+  lands `P` later.
