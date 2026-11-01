@@ -148,3 +148,8 @@ def test_heredoc_and_herestring_bodies_are_data(tmp_path):
     assert "pinned" in denied(shell("cat <<EOF\ntext\nEOF\ngodot -e", tmp_path))
     ps = {**shell("$m = @'\nblender = 1\n'@\n$m | git commit -F -", tmp_path), "tool_name": "PowerShell"}
     assert "pinned" not in denied(ps)
+
+
+def test_quoted_pipes_do_not_split_commands(tmp_path):
+    assert denied(shell('git log | grep -E "gdunit|godot |done"', tmp_path)) == ""
+    assert "pinned" in denied(shell('echo "a|b" && godot -e', tmp_path))

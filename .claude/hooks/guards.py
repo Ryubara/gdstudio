@@ -19,7 +19,6 @@ MARKER = ".gdstudio-workspace"
 # Helpers: shell commands, globs, git, the workspace
 # --------------------------------------------------------------------------------------------------------------------
 
-_SPLIT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 _HERESTRING = re.compile(r"@(['\"])\r?\n.*?\r?\n\1@", re.DOTALL)
 
@@ -41,10 +40,36 @@ def strip_heredocs(command: str) -> str:
     return "\n".join(out)
 
 
+def split_commands(command: str) -> list[str]:
+    """A shell line cut at `&&`, `||`, `;`, `|` and newlines that sit outside quotes."""
+    parts, current, quote, i = [], [], None, 0
+    while i < len(command):
+        ch = command[i]
+        if quote:
+            if ch == quote:
+                quote = None
+            current.append(ch)
+        elif ch in "'\"":
+            quote = ch
+            current.append(ch)
+        elif command.startswith(("&&", "||"), i):
+            parts.append("".join(current))
+            current, i = [], i + 2
+            continue
+        elif ch in ";|\n":
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    parts.append("".join(current))
+    return parts
+
+
 def segments(command: str) -> list[list[str]]:
     """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole)."""
     out: list[list[str]] = []
-    for part in _SPLIT.split(strip_heredocs(command)):
+    for part in split_commands(strip_heredocs(command)):
         part = part.strip()
         if not part:
             continue
