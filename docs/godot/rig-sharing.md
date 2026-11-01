@@ -100,3 +100,10 @@ From the fence boards' clips (Deadnight #221):
 - To put a clip's event on a moment the rules decide (a board torn every `P` seconds), seek to the event frame on the
   rules' event and scale the clip to one loop per `P`; for the first one, start at frame 0 scaled so the event frame
   lands `P` later.
+
+## Skeleton modifiers
+
+A `SkeletonModifier3D` (for example arm IK that puts both hands on a held weapon) changes the pose only for the
+skeleton's update: read and test its result in a `skeleton_updated` handler, since `get_bone_global_pose` after the
+frame returns the clip's pose. Blend the modifier out while a clip owns the arms (reload, swing). Held items are
+scaled by one written rule against the character's in-game height, including any scale on the character's scene.
