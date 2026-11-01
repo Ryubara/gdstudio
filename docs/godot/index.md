@@ -45,7 +45,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building |
 | NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | known: [crowds](crowds.md) (avoidance is cheap; repath on a timer) |
 | SpringArm3D, Camera3D | the over-the-shoulder third-person camera: collision, shoulder swap, aim zoom | learn while building (Deadnight #14) |
-| AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | learn while building |
+| AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | known: [Audio](audio.md) (pooled voices, limits, ducking, sounds made by script) |
 
 ## Multiplayer and the web
 
