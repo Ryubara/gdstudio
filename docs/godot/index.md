@@ -11,7 +11,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| Control, containers, Theme | every menu and the HUD; tokens generate the Theme | learn while building (gds_ui) |
+| Control, containers, Theme | every menu and the HUD; tokens generate the Theme | known: [UI controls](ui-controls.md) |
 | Tween, easing | all UI motion | learn while building (gds_ui) |
 | canvas_item shaders | screen transitions, film grain, vignette | learn while building (gds_ui) |
 | Focus and input map, gamepad | keyboard and gamepad navigation | learn while building |
