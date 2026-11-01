@@ -54,3 +54,21 @@ to a bus at runtime for ducking (leaves the bus volume to the player's settings;
 - **Generated sounds (ElevenLabs Sound Effects) vary wildly in level and lead-in.** Peaks from -22 to over 0 dBFS,
   the shot sometimes 0.3 s in, and no seed to repeat one. Trim to where it first rises within 34 dB of its peak,
   normalise to a fixed peak, fade the end, keep loops untrimmed, and keep the prompt with the file.
+
+## A crowd's voices (the dead)
+
+- **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one
+  idle voice every 0.6 to 1.6 s, from the nearest three that are due) keeps 28 groaning zombies readable; the pool's
+  group limit (six voices) is the second guard. Priority puts the cue that matters first: a snarl (65) or a swing (62)
+  takes a voice from a groan (30), the boss has a group of its own so it is always heard, and feet are a group of
+  their own below the player's steps.
+- **Front from back.** Panning cannot tell them apart on two speakers. A low-pass by how far behind the listener a
+  sound is (5 kHz at the side to 1.8 kHz straight behind) does: measured, the centre of energy of a horde was 1.2 kHz
+  in front and 0.7 kHz behind, with 0 dB of left-right difference either way and about 6 dB at the side.
+- **Time a cue to the blow:** start it `windup - lead` after the swing begins, where `lead` is how far into the file
+  the effort peaks. Feet: advance the clip's phase at its own cadence (a foot per half cycle) from the same per-id
+  phase the view starts the clip at.
+- **`unit_size` is a loudness, not a size.** Inverse attenuation is `unit_size / distance`, above 1 inside
+  `unit_size`, held only by `max_db` (3 dB): see the lesson on the boss roar that clipped the mix.
+- **Analyse a capture per second:** left minus right in dB, centre of energy, peak and clipped samples, against the
+  act on screen; a loud case (the boss close by) shows a clip a whole-file peak hides in a long mix.
