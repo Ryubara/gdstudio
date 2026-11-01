@@ -25,7 +25,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Environment: fog, glow, tonemap | mood | known ([Compatibility lighting](compat-lighting.md#environment-features)) |
 | Full-screen post shaders | colour grade, outlines, grain | known on desktop; web cost still to measure ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)) |
 | OmniLight3D / SpotLight3D | projector beam, lamps, muzzle flash | known on desktop: 16+ unshadowed fine, 8 per mesh; web still to measure ([Compatibility lighting](compat-lighting.md#dynamic-lights)) |
-| Visibility ranges (LOD), occlusion | far zombies and props | spike with crowds |
+| Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D | blood, sparks, smoke | learn while building |
 
 ## Characters and animation
@@ -33,8 +33,8 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | System | Used for | Status |
 | --- | --- | --- |
 | glTF import, BoneMap, SkeletonProfile | the shared Quaternius rig | **spike**: one animation library on every character |
-| AnimationTree, state machines, blend spaces | player and zombie movement | **spike** with crowds |
-| Skeleton3D cost, MultiMesh | 20 to 40 zombies in a browser | **spike**: frame time on the web |
+| AnimationTree, state machines, blend spaces | player and zombie movement | known: [crowds](crowds.md) (walk/run blend plus punch one-shot; throttle with manual advance) |
+| Skeleton3D cost, MultiMesh | 20 to 40 zombies in a browser | known: [crowds](crowds.md) (40 at most; MultiMesh not tried) |
 | BoneAttachment3D | weapons in hands | learn while building |
 
 ## Gameplay
@@ -43,7 +43,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | --- | --- | --- |
 | CharacterBody3D | the first-person player | learn while building |
 | Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building |
-| NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | **spike** with crowds |
+| NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | known: [crowds](crowds.md) (avoidance is cheap; repath on a timer) |
 | SpringArm3D, Camera3D | the over-the-shoulder third-person camera: collision, shoulder swap, aim zoom | learn while building (Deadnight #14) |
 | AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | learn while building |
 
