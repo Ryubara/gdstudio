@@ -42,6 +42,13 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Godot:
+      - godot/index.md
+      - UI controls: godot/ui-controls.md
+  - Lessons: lessons.md
   - Workspace: workspace.md
   - Agents: agents.md
   - Hooks: hooks.md
+  - References: refs.md
+  - Capture: capture.md
+  - Sync: sync.md
