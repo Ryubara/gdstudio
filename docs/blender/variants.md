@@ -2,7 +2,8 @@
 
 How to make many characters from one rigged model in the pinned Blender (5.2.3) so one AnimationLibrary still plays
 on all of them. Learned building Deadnight's zombie variants (Deadnight issue #40, `tools/blender/build_zombies.py`
-there) from the Quaternius Zombie (CC0); the clean-up before it is [rig sharing](rig-sharing.md).
+there) from the Quaternius Zombie (CC0); the clean-up before it is rig sharing
+(`docs/blender/rig-sharing.md`, arriving with kit #17).
 
 ## Keep the skeleton identical
 
@@ -15,7 +16,7 @@ there) from the Quaternius Zombie (CC0); the clean-up before it is [rig sharing]
 | Accessory | a small mesh skinned 100 % to one bone, joined into the body | one mesh per character (draw calls) |
 
 Applying a scale or moving bones gives each variant its own rest pose, and then position keys need rebasing per body
-([Godot side](../godot/rig-sharing.md)).
+(Godot side: `docs/godot/rig-sharing.md`).
 
 ## Measured (Quaternius Zombie, 7,822 tris)
 
