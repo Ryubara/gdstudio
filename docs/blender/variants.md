@@ -37,6 +37,24 @@ Applying a scale or moving bones gives each variant its own rest pose, and then 
 - **A UV layer with another name is dropped by a join.** Name the accessory's UV layer like the body's
   (`bm.loops.layers.uv.new(body.data.uv_layers.active.name)`), or the joined faces fall on texel (0, 0).
 
+## A boss on the shared rig
+
+Learned building Deadnight's boss zombie (Deadnight issue #98, `tools/blender/build_boss.py` there).
+
+- **Scale and push go further than a brute:** armature scale 1.45 and 60-75 mm of push on the trunk and arms still
+  share every clip unchanged (the kit Walk plays on it, checked headless).
+- **Accessories go below the chin.** The kit head is 36 % of the height and hangs over the upper chest: a lamp placed
+  halfway up the `Torso` bone was hidden from every camera. Halfway from `Abdomen` to `Neck`, on the belly, it reads
+  from the front at every distance. Find the surface from the trunk's vertices only (weights to head, tongue and arm
+  bones below 0.5), or the tongue and hands are taken for the chest.
+- **A glow is a second image on the same material:** a black emission map lit only at the glowing swatch, linked to
+  Emission Color with Emission Strength above 1, exports as `emissiveTexture` plus
+  `KHR_materials_emissive_strength`; Godot 4.7.2 imports it with emission on (one material, one surface). Make the
+  Base Color image node active again before Workbench renders, or the sheet comes out black.
+- **A hitbox anchor is an empty parented to a bone.** glTF writes it as a child of the joint, and Godot imports it as
+  a `BoneAttachment3D` with the node under it, following every clip.
+- **Author clips that key every bone** (rotation and location) and the static-pose problems above go away.
+
 ## Modular parts
 
 Learned building Deadnight's modular Soldier (Deadnight issue #100, `tools/blender/build_soldier_parts.py` there):
