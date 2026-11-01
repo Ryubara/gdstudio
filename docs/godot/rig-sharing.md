@@ -101,6 +101,12 @@ From the fence boards' clips (Deadnight #221):
   rules' event and scale the clip to one loop per `P`; for the first one, start at frame 0 scaled so the event frame
   lands `P` later.
 
+From the grenade throw (Deadnight #377):
+
+- To hold a clip's last frame while a button is down (a cooked grenade), play it through an `AnimationNodeAnimation`
+  with `use_custom_timeline = true` and `stretch_time_scale = false`: the node stops on the last frame instead of
+  looping or ending the one-shot.
+
 From the Soldier's aim-move clips (Deadnight #74):
 
 - **Stepping a tree by hand reads stale global poses.** `Skeleton3D.get_bone_global_pose()` is refreshed on the
