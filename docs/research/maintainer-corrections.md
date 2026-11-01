@@ -26,6 +26,24 @@ them and turns each into a check to run when a new game or feature starts.
 | Research AI teammate bots in depth: revive, buy, move, all weapons | Our bot was a test tool, not a teammate | Decide early whether the game needs bot teammates; if so, research them before building the systems they use |
 | (From a neighbouring project) 93 Godot processes held the CPU at 100% | Load tests had no limit on a shared machine | At most four parallel suites, no busy loops, stop by PID, a timeout on every long command, a heads-up before long load tests |
 | Host the web build on Railway | Shipping a playable link came late | Stand up a playable web build early and redeploy it on every merge |
+| Add mobile controls for landscape play, intuitive and researched | We planned for desktop and the browser but not for phones, although Discord Activities run on them | Name every input device the game ships on (keyboard and mouse, gamepad, touch); plan touch controls, landscape lock and safe areas with the first playable build |
+| The dead's animation should follow their speed and the round | Speeds were retuned (#260) without the clips that show them; blend points were guesses, so fast zombies slid | Measure each locomotion clip's ground speed; any change to movement speed checks foot slide and gait in the same pull request |
+| Guns must be scaled, angled and placed right on the player | Weapons were attached once and never checked against the hands, the shoulder and the aim ray | Each held item has a grip, support and barrel check in tests and a side, shoulder and aim capture |
+| Keep research pages and this page up to date as work lands | Findings stayed in agent reports and pull request bodies | Each pull request updates the research page it builds on; each correction lands here the same evening |
+
+## Done wrong first, caught by our own checks
+
+Mistakes the maintainer did not have to point out, because a test, a measurement or a review caught them. Each one is
+also a check to keep.
+
+| What went wrong first | What caught it | Check |
+| --- | --- | --- |
+| Two pull requests each passed the balance gate alone; merged together (#260 speeds, #271 crane price) they broke it on `main` | The gate on the next pull request | Rerun the balance gate on `main` after each merge that touches tuning; one balance owner rebases on the others |
+| A merge of `main` doubled a step in a test, so the branch failed | The night suite after the merge | After a conflicted merge, read the diff of every test file against `main` before rerunning |
+| World triplanar materials slowed the web frame from 79 to 90 ms | A frame-time measurement in the browser | Measure frame time on the web build for every material or lighting change |
+| A headless import left new textures without mipmaps | Looking at the far ground in a capture | Check `.import` settings of new 3D textures in review |
+| Walk and run blend points were guessed (1.0 and 3.0 m/s; the clips measure 0.97 and 4.4) | Measuring the planted foot | Measure clip speeds before setting any blend threshold |
+| A pull request body wrote `None` without the expected form | The body check in CI | Run `groundwork.py check-body` locally before opening |
 
 ## Start of a new game
 
@@ -52,6 +70,13 @@ them and turns each into a check to run when a new game or feature starts.
 ### Animation for every interaction
 
 - Each interaction (repair, buy, revive, tear) ships with its actor clip and object motion.
+- Locomotion rate follows the actor's speed; clip ground speeds are measured, not guessed.
+- Held items are checked against the hands, the shoulder and the aim ray.
+
+### Every input device
+
+- Touch controls (landscape, safe areas, no browser scroll or zoom) planned with the first playable build when the
+  game ships in a browser or Discord.
 
 ### AI teammates
 
