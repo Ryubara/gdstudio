@@ -63,6 +63,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| Movie Maker (`--write-movie`) | captures for every visual change | known (`docs/capture.md` when it lands) |
+| Movie Maker (`--write-movie`) | captures for every visual change | known: [Capture](../capture.md) |
+| Windowed runs (captures, autopilots, GdUnit) | every one that is not `--headless` | known: [Windowed Godot without taking the focus](no-focus.md) (`gds godot` runs it on a private desktop; a plain start takes the keyboard) |
 | GdUnit4 (scene runner, input simulation) | unit and scene tests | known (Deadnight's smoke test) |
 | Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |

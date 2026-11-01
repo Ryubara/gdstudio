@@ -1,9 +1,9 @@
 """`gds capture`: frames, contact sheets and clips as proof for a pull request (docs/capture.md).
 
-`frames` runs the pinned Godot with Movie Maker (a real window, not headless) and writes numbered PNGs into
-`<workspace>/scratch/<repo>/<branch>/<name>/`, with a small `capture.json` recording the frame rate. `sheet` tiles
-those frames into one labelled PNG that can be read in a single look. `clip` encodes them into an MP4 or GIF with the
-pinned ffmpeg, kept under the size GitHub accepts for an attachment.
+`frames` runs the pinned Godot with Movie Maker (a real window on a private desktop, not headless) and writes
+numbered PNGs into `<workspace>/scratch/<repo>/<branch>/<name>/`, with a small `capture.json` recording the frame
+rate. `sheet` tiles those frames into one labelled PNG that can be read in a single look. `clip` encodes them into an
+MP4 or GIF with the pinned ffmpeg, kept under the size GitHub accepts for an attachment.
 
 Programs are started through a `Runner`, so the tests replace Godot and ffmpeg with fakes.
 """
@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+from gds_tools.quiet_run import run_quiet
 
 META_FILE = "capture.json"
 SHEET_FILE = "sheet.png"
@@ -75,6 +77,14 @@ def run_program(cmd: list[str], cwd: Path | None = None) -> Result:
     return Result(done.returncode, done.stdout)
 
 
+def run_godot(cmd: list[str], cwd: Path | None = None) -> Result:
+    """Run the pinned Godot without taking the focus from the person at the machine (docs/godot/no-focus.md)."""
+    outcome = run_quiet(cmd, cwd, timeout=GODOT_TIMEOUT)
+    if outcome.timed_out:
+        raise CaptureError(f"{Path(cmd[0]).name} did not finish within {GODOT_TIMEOUT} s")
+    return Result(outcome.returncode, outcome.output)
+
+
 def _git(folder: Path, *args: str, run: Runner) -> str:
     result = run(["git", "-C", str(folder), *args], None)
     return result.output.strip() if result.returncode == 0 else ""
@@ -123,12 +133,13 @@ def capture_frames(
     scene: str | None,
     seconds: float,
     fps: int,
-    run: Runner = run_program,
+    run: Runner = run_godot,
     log: Callable[[str], None] = print,
 ) -> list[Path]:
     """Run `scene` (default: the main scene) in Movie Maker for `seconds` at `fps`; returns the written frames.
 
-    The window is a real one, because Movie Maker needs a renderer: the capture is not headless. The scene runs on a
+    The window is a real one, because Movie Maker needs a renderer: the capture is not headless. It opens on a private
+    Windows desktop, so it never takes the keyboard or mouse from the person at the machine. The scene runs on a
     fixed timestep, so a seeded scene gives the same frames every time.
     """
     count = math.ceil(seconds * fps)

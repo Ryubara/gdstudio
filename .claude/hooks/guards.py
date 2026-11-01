@@ -260,6 +260,31 @@ def check_tools(words: list[str], config: dict[str, Any]) -> list[str]:
     return []
 
 
+_GODOT_VARIABLE = re.compile(r"\$(?:\{|env:)?\w*godot\w*\}?", re.IGNORECASE)
+_WINDOWLESS = ("--headless", "--version", "--help", "-h")
+
+
+def launches_godot(words: list[str]) -> bool:
+    """True for a command that starts Godot itself: its program, a variable named like it (`$GODOT`) or a
+    `$(... gds tool path godot)` substitution; false for `gds godot`, `gds tool path godot` and the like."""
+    first = words[0]
+    if program(words).startswith("godot") or _GODOT_VARIABLE.fullmatch(first):
+        return True
+    return first.startswith(("$(", "`")) and "tool path godot" in " ".join(words[:14])
+
+
+def check_godot_window(words: list[str], config: dict[str, Any]) -> list[str]:
+    """A windowed Godot started straight from a shell takes the keyboard and cursor from the person at the machine."""
+    flags = tuple(config.get("tools", {}).get("windowless_flags", _WINDOWLESS))
+    if not launches_godot(words) or any(w in flags for w in words[1:]):
+        return []
+    return [
+        "a windowed Godot takes the keyboard focus from the person at the machine; run it with "
+        "`uv run --project <kit>/python gds godot -- <arguments>` (or `gds capture frames`), or add --headless "
+        "when nothing needs to be drawn (docs/godot/no-focus.md)"
+    ]
+
+
 _DUMPS = {"env", "printenv"}
 _PRINTERS = {
     "echo",
@@ -344,6 +369,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
         reasons += check_tools(words, config)
+        reasons += check_godot_window(words, config)
         reasons += check_kill(words, config)
         reasons += check_secrets(words, command, config)
     return list(dict.fromkeys(reasons))

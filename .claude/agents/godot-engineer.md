@@ -29,10 +29,14 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 4. **Build it well.** Small scripts with typed GDScript, one responsibility each; scenes composed from reusable parts;
    no magic numbers where a shared token or setting belongs. Keep the test mode possible: fixed timestep, seeded
    randomness, no reliance on real time or a human.
-5. **Prove it.** Run the pinned Godot (`$(uv run --project <workspace>/repos/gdstudio/python gds tool path godot)`):
-   headless import and run must print no `ERROR`. For anything visible, capture it with Movie Maker into
-   `<workspace>/scratch/<repo>/<branch>/` (`--write-movie <folder>/<name>.png --fixed-fps 10 --quit-after N`), then
-   **look at the frames** (Read the PNG) and fix what looks wrong before you report.
+5. **Prove it.** Run the pinned Godot: headless import and run (`$(uv run --project <workspace>/repos/gdstudio/python
+   gds tool path godot) --headless ...`) must print no `ERROR`. For anything visible, capture it with Movie Maker into
+   `<workspace>/scratch/<repo>/<branch>/` (`gds capture frames`, or `gds godot -- --write-movie <folder>/<name>.png
+   --fixed-fps 10 --quit-after N`), then **look at the frames** (Read the PNG) and fix what looks wrong before you
+   report. **Every Godot that opens a window (captures, autopilots, GdUnit without `--headless`) runs through
+   `uv run --project <workspace>/repos/gdstudio/python gds godot -- <arguments>`**: it starts Godot on a private
+   Windows desktop, so it never takes the keyboard or cursor from the person using the machine (a hook refuses the
+   plain start; `docs/godot/no-focus.md`).
    **Test it yourself, never hand testing to a person**: simulate input (keys, mouse, `InputEventJoypadButton`) in
    GdUnit4, drive playtests with headless bots or an autopilot that sends the same commands a player would, check
    audio by analysis (peaks, loudness, spectra), and run web builds in Chrome. "Nobody has tried it" is unfinished.

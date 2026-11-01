@@ -44,6 +44,9 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 
 - Python: `uv run --project python pytest`; `uv run --project python ruff check python` and `ruff format --check`.
 - Workspace: `uv run --project python gds doctor`.
+- Windowed Godot (captures, autopilots, GdUnit without `--headless`):
+  `uv run --project python gds godot -- <godot arguments>`, never the Godot program directly: a plain window takes the
+  keyboard from the person at the machine (`docs/godot/no-focus.md`).
 - Before committing: `uvx pre-commit run --all-files` (installed once with `uvx pre-commit install`).
 - Docs: `uvx --with-requirements requirements-docs.txt mkdocs build --strict`.
 

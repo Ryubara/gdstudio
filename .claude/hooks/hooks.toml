@@ -32,6 +32,9 @@ secret_names = '(?i)\$\{?(?:env:)?[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9
 [tools]
 # Godot and Blender run only from the workspace's pinned copies (tools.toml): never Steam's or one on PATH.
 names = ["godot", "blender"]
+# A Godot started straight from a shell opens a window that takes the keyboard focus; only these flags mean it does
+# not (otherwise `gds godot` runs it on a private desktop, docs/godot/no-focus.md).
+windowless_flags = ["--headless", "--version", "--help", "-h"]
 
 [proof]
 # The Stop gate (docs/hooks.md#proof): a session that changed visual files in a game repository ends only once a

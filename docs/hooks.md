@@ -13,6 +13,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
+| Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
 | Kills | stopping Godot or Blender by name (`taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name`): every agent's run dies | kill your own process by its PID |
 | Secrets | printing a key-like variable; dumping the environment | test that it is set |
 | Files | editing secrets, caches, git internals, pinned tools; generated files | edit the source (`conventions.yml`, then render) |

@@ -79,6 +79,21 @@ def test_pinned_tools_only(tmp_path):
     assert denied(shell('"$B/blender.exe" -b --version', tmp_path)) == ""
 
 
+def test_a_windowed_godot_goes_through_gds(tmp_path):
+    reason = "takes the keyboard focus"
+    pinned = '"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe"'
+    assert reason in denied(shell(f"{pinned} --path game --write-movie x.png", tmp_path))
+    assert reason in denied(shell('"$GODOT" --path game -- --bench', tmp_path))
+    assert reason in denied(shell("$(uv run --project python gds tool path godot) --path game --import", tmp_path))
+    assert reason in denied({**shell("& $godot --path game", tmp_path), "tool_name": "PowerShell"})
+    assert denied(shell(f"{pinned} --headless --path game --import", tmp_path)) == ""
+    assert denied(shell('"$GODOT" --headless --path game -s res://t.gd', tmp_path)) == ""
+    assert denied(shell("$(uv run --project python gds tool path godot) --version", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds godot --path game --write-movie x.png", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds capture frames --project game --name a", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
+
+
 def test_shared_tools_never_killed_by_name(tmp_path):
     reason = "killing by name"
     assert reason in denied(shell("taskkill /F /IM Godot_v4.7.2-stable_win64_console.exe", tmp_path))

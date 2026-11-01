@@ -15,8 +15,10 @@ Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ..
 ## frames
 
 Runs the pinned Godot with [Movie Maker](https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html)
-in a real window (not `--headless`: Movie Maker needs a renderer). The scene runs on a fixed timestep, so a seeded
-scene gives the same frames every time.
+in a real window (not `--headless`: Movie Maker needs a renderer). The window opens on a private Windows desktop, so
+it never takes the keyboard or cursor from the person at the machine ([why](godot/no-focus.md)). The scene runs on a
+fixed timestep, so a seeded scene gives the same frames every time. To record with your own command line (several
+scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself.
 
 | Option | Meaning |
 | --- | --- |
@@ -54,5 +56,7 @@ gh pr create --body-file <file> --attach <folder>/sheet.png --attach <folder>/<n
 
 ## Tests
 
-`python/tests/test_capture.py` replaces Godot and ffmpeg with fakes that record the command line and write files, so
-the tests run anywhere. The real programs are exercised by hand on a game, as in the pull request that added this.
+`python/tests/test_quiet_run.py` runs the real pinned Godot and Movie Maker on Windows with a test window holding the
+foreground. `python/tests/test_capture.py` replaces Godot and ffmpeg with fakes that record the command line and
+write files, so the tests run anywhere. The real programs are exercised by hand on a game, as in the pull request
+that added this.
