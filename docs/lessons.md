@@ -8,14 +8,14 @@ where it is documented. Before solving something, search this page: it may have 
 - **Saw:** the hooks refused harmless commands: a Python heredoc line starting `blender = ...`, and a `grep -E "a|godot"`.
 - **Cause:** the guard split shell lines on `|` inside quotes and read heredoc bodies as commands.
 - **Fix:** split only outside quotes; drop heredoc and here-string bodies before judging.
-- **Docs:** [Hooks](hooks.md).
+- **Docs:** Hooks (`docs/hooks.md`).
 
 ## 2026-11-01: new agent definitions invisible to a running session
 
 - **Saw:** `.claude/agents/*.md` written mid-session; starting one failed with "agent type not found".
 - **Cause:** Claude Code loads project agents when a session starts.
 - **Fix:** restart with `claude --resume <session id>` (the conversation is kept).
-- **Docs:** [Agents](agents.md).
+- **Docs:** Agents (`docs/agents.md`).
 
 ## 2026-11-01: Blender's download site refuses scripts
 
