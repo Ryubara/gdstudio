@@ -73,3 +73,14 @@ Found building the Soldier's weapon clips (Deadnight #42).
   before (negate when the dot product is negative).
 - **The boots are weighted to the IK foot bones.** `Foot.L`/`Foot.R` hang from `Root` and carry location keys; key
   location as well as rotation on every bone in a derived clip.
+
+## Posing by hand position
+
+Found building the Soldier's grenade clips (Deadnight #102).
+
+- **Measure the axes, do not trust notes.** On the kit spine X pitches forward, Y leans sideways and Z turns the
+  chest (+ to his right); arm axes change meaning with the base pose. Probe each axis 30 degrees and print how far
+  the hand bone moves: numbers settle in one run what renders leave ambiguous.
+- **Solve the arm for a hand target.** Set the spine first, then search the upper and lower arm offsets for a target
+  hand position (a coordinate search with a halving step, a few hundred pose evaluations, about a second) and paste the
+  rounded offsets into the clip script, with the target in a comment. Deadnight's throw keys land within 6 cm.

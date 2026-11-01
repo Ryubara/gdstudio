@@ -21,6 +21,12 @@ Copy the hold from a kit weapon that is unit-scale in the character file: the **
 scale 0.21-0.42), so their transform does not carry over to a weapon at true size. Prove each new weapon with a render
 of the character holding it beside the kit one.
 
+**Thrown weapons.** The kit characters carry no kit grenade, so a grenade has no kit hold to copy. Model it standing up
+along +Z with the origin in the body's centre (the fist), and give each moving part its own node, origin at its
+pivot (Deadnight's `Pin` slides out, its `Spoon` swings off its hinge). In Godot the gun hold turned 90 degrees about
+the weapon's X (`HOLD_GUN * Basis(Vector3.RIGHT, PI / 2)`) stands it fuze up in the fist; the turn that looks right
+in a Blender preview against the kit copy is a different one, so choose the hold from candidates rendered in Godot.
+
 ## Building by script
 
 | Lesson | Detail |
