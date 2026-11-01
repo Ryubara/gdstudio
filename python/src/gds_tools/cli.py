@@ -15,7 +15,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
     fetch = None
     if args.fetch:
         fetch = [name.strip() for part in args.fetch for name in part.split(",") if name.strip()]
-    return workspace.init(root, fetch, clone=not args.no_clone, dry_run=args.dry_run)
+    return workspace.init(root, fetch, clone=not args.no_clone, dry_run=args.dry_run, mcp=not args.no_mcp)
 
 
 def _cmd_tool_path(args: argparse.Namespace) -> int:
@@ -97,6 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--fetch", action="append", help="tools to fetch: names, 'all' or 'none' (default: defaults)")
     init.add_argument("--no-clone", action="store_true", help="do not clone missing repositories")
     init.add_argument("--dry-run", action="store_true", help="print the steps without doing them")
+    init.add_argument("--no-mcp", action="store_true", help="do not register MCP servers with Claude Code")
     init.set_defaults(func=_cmd_init)
 
     tools = sub.add_parser("tool", help="pinned tools").add_subparsers(dest="cmd", required=True)

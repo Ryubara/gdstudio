@@ -25,6 +25,8 @@ USER_AGENT = "gdstudio-bootstrap/0.1 (+https://github.com/Ryubara/gdstudio)"
 STAMP = ".gds-installed"
 #: Godot's self-contained mode marker: settings and templates stay in editor_data/ beside the program.
 SELF_CONTAINED = "_sc_"
+#: Blender's portable-mode folder: settings and extensions live in it, beside the program.
+PORTABLE = "portable"
 
 Log = Callable[[str], None]
 
@@ -156,12 +158,14 @@ def install(tool: Tool, item: Download, archive: Path, tools_root: Path, all_too
     """Unpack a verified archive for `tool` and stamp it; returns the install folder."""
     if tool.kind == "godot-templates":
         return _install_templates(tool, item, archive, tools_root, all_tools)
+    if tool.kind == "blender-extension":
+        return _install_extension(tool, item, archive, tools_root, all_tools)
     target = install_dir(tools_root, tool)
     staging = target.with_name(target.name + ".staging")
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
     name = archive.name
-    if name.endswith(".zip"):
+    if name.endswith((".zip", ".mcpb")):  # an .mcpb (MCP bundle) is a zip
         _unzip(archive, staging)
     elif name.endswith((".tar.xz", ".tar.gz", ".tgz")):
         _untar(archive, staging)
@@ -178,6 +182,8 @@ def install(tool: Tool, item: Download, archive: Path, tools_root: Path, all_too
         _make_executable(exe)
         if tool.kind == "godot":
             (exe.parent / SELF_CONTAINED).write_text("", encoding="utf-8")
+        if tool.kind == "blender":  # portable mode: its settings and add-ons stay beside it, apart from any other
+            (exe.parent / PORTABLE).mkdir(exist_ok=True)
     (staging / STAMP).write_text(f"{item.algorithm}:{item.digest}\n", encoding="utf-8")
     shutil.rmtree(target, ignore_errors=True)
     staging.replace(target)
@@ -202,3 +208,41 @@ def _install_templates(tool: Tool, item: Download, archive: Path, tools_root: Pa
     (marker / STAMP).write_text(f"{item.algorithm}:{item.digest}\n", encoding="utf-8")
     (marker / "LOCATION.txt").write_text(f"{target}\n", encoding="utf-8")
     return target
+
+
+def tool_exe(tools_root: Path, tool: Tool) -> Path | None:
+    """The installed program of `tool` on this machine, or None."""
+    folder = install_dir(tools_root, tool)
+    for item in tool.platforms.values():
+        if item.exe and (folder / item.exe).exists():
+            return folder / item.exe
+    return None
+
+
+def _install_extension(tool: Tool, item: Download, archive: Path, tools_root: Path, all_tools: dict[str, Tool]) -> Path:
+    """Install a Blender extension (a verified zip) into the pinned, portable Blender and stamp it."""
+    if not tool.requires:
+        raise ManifestError(f"{tool.name} must name its Blender with `requires`")
+    exe = tool_exe(tools_root, all_tools[tool.requires])
+    if exe is None:
+        raise FetchError(f"{tool.name}: install {tool.requires} first")
+    (exe.parent / PORTABLE).mkdir(exist_ok=True)
+    cmd = [
+        str(exe),
+        "-b",
+        "--factory-startup",
+        "--command",
+        "extension",
+        "install-file",
+        "-r",
+        "user_default",
+        "-e",
+        str(archive),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise FetchError(f"{tool.name}: the extension install failed: {(result.stderr or result.stdout).strip()}")
+    marker = install_dir(tools_root, tool)
+    marker.mkdir(parents=True, exist_ok=True)
+    (marker / STAMP).write_text(f"{item.algorithm}:{item.digest}\n", encoding="utf-8")
+    return marker
