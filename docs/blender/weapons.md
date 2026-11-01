@@ -27,6 +27,22 @@ pivot (Deadnight's `Pin` slides out, its `Spoon` swings off its hinge). In Godot
 the weapon's X (`HOLD_GUN * Basis(Vector3.RIGHT, PI / 2)`) stands it fuze up in the fist; the turn that looks right
 in a Blender preview against the kit copy is a different one, so choose the hold from candidates rendered in Godot.
 
+## Attachment points
+
+Where an effect or a hand meets a weapon is part of the model, so **attachment points are the modeller's job**: whoever
+builds a weapon places them in Blender, and gameplay code reads them instead of typing offsets from the body.
+
+- **Every firearm carries an empty named `Muzzle`** at the centre of the barrel's open end, parented to the weapon's
+  root, with **-Z pointing out of the barrel** (Godot's forward). In Blender that is the empty's local **+Y**: the glTF
+  export turns Blender +Y into -Z. For a gun along Blender -X, turn the empty 90 degrees about Z
+  (`rotation_euler = (0, 0, pi/2)`); it arrives in Godot turned 90 degrees about Y, -Z along the barrel.
+- **Two barrels side by side get one `Muzzle` centred between them**, at the barrels' end face.
+- **Melee weapons and grenades get none.**
+- **Every level of detail carries it at the same point**, so the flash does not jump when the far level swaps in.
+- **A test proves it:** load each firearm's file, find `Muzzle`, check it sits within 1 cm of the bounds' front face
+  along the barrel and points along it. Deadnight's is `game/tests/art/test_weapon_muzzle.gd`, built by its
+  `build_weapons.py` (`MUZZLES`) and drawn by `render_muzzle.py`.
+
 ## Building by script
 
 | Lesson | Detail |
@@ -38,6 +54,7 @@ in a Blender preview against the kit copy is a different one, so choose the hold
 | Round parts by lathe | One turned profile with the chamfers in it; flat shading keeps the kit's facets |
 | Far level from the same description | No chamfers, half the sides on round parts, small parts left out: 22-32 % of the held count |
 | One material per family | A small palette atlas, every face's UVs collapsed on its colour swatch, roughness 0.415, metallic 0.4 |
+| Compare rebuilds by geometry | The glTF export's triangle order changes from run to run, so a rebuilt file never matches the old one byte for byte: compare nodes, vertex buffers and the triangle set, and commit only the files the change is for |
 | Look at it | A turntable sheet beside two kit weapons at the same scale shows what numbers miss: the first pass had the right lengths and triangle counts, and still read thin |
 
 ## Budgets
