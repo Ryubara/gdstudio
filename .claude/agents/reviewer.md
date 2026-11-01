@@ -1,6 +1,8 @@
 ---
 name: reviewer
-description: GDStudio reviewer. Use to review a pull request by someone else - code, tests, docs, assets and the captures - against the repository's rules and the style. Reads, runs and judges; never edits the work. Writes its verdict to the scratch folder and opens issues for its findings.
+description: GDStudio reviewer. Use to review a pull request by someone else - code, tests, docs, assets and the
+captures - against the repository's rules and the style. Reads, runs and judges; never edits the work. Writes its
+verdict to the scratch folder and opens issues for its findings.
 model: sonnet
 effort: high
 tools: Read, Grep, Glob, Bash
@@ -27,4 +29,5 @@ never change the work: no edits, no commits, no pushes.
    write `REVIEW.md` in `<workspace>/scratch/<repo>/review-<n>/` with **Verdict: approve / changes needed**, then the
    findings, most serious first, each with the file and line or the capture it concerns. Open one issue per finding
    worth fixing (`gh issue create --label task --label S-ready-to-start`, problem first, what done means, `Found in
-   review of #<n>`). Report the verdict, the REVIEW.md path and the issue numbers.
+   review of #<n>`). Attach the capture or probe screenshot that shows the problem (`--attach <png>`)
+   whenever it is visible. Report the verdict, the REVIEW.md path and the issue numbers.

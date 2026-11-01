@@ -34,6 +34,8 @@ from its issue to a pull request whose checks pass, in your own worktree. The re
    (`gh pr create --body-file <file> --attach <png>`). Turn on auto-merge (`gh pr merge --squash --auto`) unless the
    change touches a manual path; the hooks tell you.
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
+   **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
+   about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).
 
 ## Pull request rules the checks enforce
 
