@@ -43,6 +43,8 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Godot: godot/index.md
+  - Blender:
+      - Weapons: blender/weapons.md
   - Lessons: lessons.md
   - Workspace: workspace.md
   - References: refs.md

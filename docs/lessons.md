@@ -3,6 +3,22 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: original weapons read thin beside the kit
+
+- **Saw:** weapons drawn at real proportions had the kit's lengths and triangle counts but looked spindly on a turntable
+  sheet beside the kit's guns.
+- **Cause:** the kit fattens every cross-section; a real rifle's barrel, receiver and stock are far thinner.
+- **Fix:** scale every part 1.4-1.5x across its length before chamfering; check by eye on a sheet, not by the numbers.
+- **Docs:** [Blender weapons](blender/weapons.md).
+
+## 2026-11-01: a kit weapon's hold does not carry over to a new weapon
+
+- **Saw:** copying the kit AK's transform in the Soldier's hand onto a new gun made it tiny.
+- **Cause:** the AK and Sniper copies in the character file carry rescaled mesh data (object scale 0.21-0.42); the
+  Shotgun and Shovel copies are unit-scale.
+- **Fix:** take the hold from the Shotgun (guns) or the Shovel (melee).
+- **Docs:** [Blender weapons](blender/weapons.md#axes-origin-and-the-hold).
+
 ## 2026-11-01: Movie Maker ignores `--resolution`
 
 - **Saw:** `--write-movie` with `--resolution 1280x720` (or 960x540) still wrote 1920x1080 frames.
