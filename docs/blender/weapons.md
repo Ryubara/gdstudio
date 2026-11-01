@@ -48,7 +48,9 @@ hold and then a turn chosen from the clip itself: trace the striking face throug
 handle and tips in the swing plane, and keep the one whose face points along the blow and toward the target at the
 lowest point. For the Soldier's `Repair_Board`, the bat's hold already faced the board; a 20-degree tip in the swing
 plane squared the face to the downward blow. Draw a small tool large (the kit's knife is 1.4 m, longer than its
-shovel): at real size times 1.7 the hammer was hidden by the Soldier's fist; at 2.2 it read.
+shovel), and size it in the hand for the fist: a hammer at the size rule's 0.29 m vanished in the Soldier's chibi
+fist, at 0.45 m only the head showed, at 0.50 m it read. Give the tool its striking point as a node (`Face`, -Z out
+of the face), as a gun carries its `Muzzle`.
 
 ## Building by script
 
