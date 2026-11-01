@@ -26,3 +26,13 @@ is off while they show, or every touch also clicks. Tests inject `InputEventScre
 with `Input.parse_input_event`, in window pixels: multiply canvas positions by the viewport's `get_final_transform()`
 first. On the web, set `viewport-fit=cover` and block page scroll, zoom and the long-press menu. Deadnight's design
 and what its build showed: `docs/research/mobile-controls.md` there.
+
+## Animating a container's children
+
+- **Never read a container child's position in the frame it was shown.** A `Container` sorts its children in a
+  deferred call that runs after `SceneTree.process_frame` is emitted, and input is handled before that signal, so
+  `await process_frame` from a click resumes before the sort (unless a physics step flushed it first). A page never
+  shown has its rows at (0, 0). Read positions two frames after the change, stop the previous tween of the same
+  control, and `queue_sort()` the container when the tween ends.
+- **Reproduce with real input**: `Input.parse_input_event`, not a direct call, and `Engine.physics_ticks_per_second = 1`
+  so no physics step hides the race.
