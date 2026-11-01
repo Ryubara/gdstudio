@@ -8,6 +8,7 @@ has neither (the hooks refuse it). Every agent researches as part of its own wor
 | Coordinator (the main session) | Opus 5.5, medium | plans, writes issues, briefs and starts agents, merges, talks to the maintainer |
 | `godot-engineer` | Sonnet 5.5, high | GDScript, scenes, UI and motion, gameplay, networking, shaders, tests, captures |
 | `blender-artist` | Opus 5.5, high | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
+| `backend-engineer` | Sonnet 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
 | `reviewer` | Sonnet 5.5, high | reviews a pull request it did not write: code, docs, assets, captures; never edits |
 
 Definitions: `.claude/agents/*.md`. A new agent is added only when a kind of work keeps recurring that none of these
