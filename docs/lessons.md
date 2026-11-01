@@ -3,6 +3,26 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: a screen freed mid-transition locked the router for good
+
+- **Saw:** after a screen was freed while a transition ran, `UIRouter.busy` stayed true, every later push was queued
+  forever and input was swallowed; no error was logged.
+- **Cause:** the transition awaited a tween created on that screen (`node.create_tween()`). A tween is killed when its
+  node is freed and its `finished` signal never fires, so the `await` never returns.
+- **Fix:** bind a transition's tweens to a node that outlives the screens (the stage), check `is_instance_valid` after
+  every await, and drop a screen from the stack when it leaves the tree. Anything that awaits a signal from a node it
+  does not own needs the same thought.
+- **Docs:** deadnight `docs/research/ui-foundation.md` (Router).
+
+## 2026-11-01: GdUnit4 with `-d` hangs on the first script error
+
+- **Saw:** a headless GdUnit4 run printed `Debugger Break` over and over and never finished.
+- **Cause:** the documented command line passes `-d`, which attaches Godot's debugger; a script error then stops the
+  engine at a `debug>` prompt that waits for input nobody gives.
+- **Fix:** run `godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -c
+  --ignoreHeadlessMode` without `-d`; script errors are then reported as test failures.
+- **Docs:** deadnight `docs/research/ui-foundation.md` (Tests).
+
 ## 2026-11-01: killing Godot by name stopped other agents' runs
 
 - **Saw:** a benchmark loop looked stuck, with a dozen `Godot_v4.7.2-stable_win64` processes running; killing them all
