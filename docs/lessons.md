@@ -3,6 +3,27 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: killing Godot by name stopped other agents' runs
+
+- **Saw:** a benchmark loop looked stuck, with a dozen `Godot_v4.7.2-stable_win64` processes running; killing them all
+  with `taskkill /IM` also ended other agents' runs on the same machine (their spikes had to be restarted).
+- **Cause:** every agent on the workspace shares the machine and the one pinned Godot executable, so the process
+  name does not say whose process it is. The "stray" processes were other agents' runs, not leaks of mine.
+- **Fix:** stop only processes you started: keep the PID of each background command, or filter by the command line
+  (`Get-CimInstance Win32_Process` with the project path), never by image name. Expect timings on a shared machine
+  to be noisy: repeat a run and report the spread.
+- **Docs:** [Zombie crowds](godot/crowds.md#numbers).
+
+## 2026-11-01: a benchmark printed numbers from a run full of script errors
+
+- **Saw:** two rows of a frame-time table were absurd (23 to 39 ms for 10 zombies, against 2 ms for the rest) and the
+  log held thousands of `SCRIPT ERROR` lines beside the normal result lines.
+- **Cause:** a misspelled property (`visible_range_end` for `visibility_range_end`) on an untyped path is a runtime
+  error, not a parse error: the zombie's setup stopped halfway and the run went on, then printed its result.
+- **Fix:** the runner logs every `ERROR` line next to the results and the log is read for them before any number is
+  trusted; the property name was corrected and the whole matrix rerun.
+- **Docs:** [Zombie crowds](godot/crowds.md#gotchas-found-while-building-it).
+
 ## 2026-11-01: a hidden slider grabber drew a magenta square
 
 - **Saw:** a themed HSlider showed a magenta and black square where the grabber was meant to be invisible.
