@@ -43,6 +43,7 @@ also a check to keep.
 | World triplanar materials slowed the web frame from 79 to 90 ms | A frame-time measurement in the browser | Measure frame time on the web build for every material or lighting change |
 | A headless import left new textures without mipmaps | Looking at the far ground in a capture | Check `.import` settings of new 3D textures in review |
 | Walk and run blend points were guessed (1.0 and 3.0 m/s; the clips measure 0.97 and 4.4) | Measuring the planted foot | Measure clip speeds before setting any blend threshold |
+| Guns were modelled at real length while the player scene scales the Soldier to 0.8 (the rifle was as long as the Soldier is tall), held from a one-handed pose with the barrel 21 degrees up, and every gun showed the rifle because nothing called `equip` | Measuring hands, stock and barrel against the aim ray (Deadnight #288) | Scale held items by one written rule against the character's in-game height; test grip, support hand, stock and barrel per weapon; a capture per weapon proves the right model shows |
 | A pull request body wrote `None` without the expected form | The body check in CI | Run `groundwork.py check-body` locally before opening |
 
 ## Start of a new game
