@@ -14,3 +14,7 @@ folders = ["repos", "worktrees", "scratch", "cache", "tools", "refs", "vault"]
 [repos.gdstudio]
 url = "https://github.com/Ryubara/gdstudio.git"
 role = "kit"
+
+[repos.deadnight]
+url = "https://github.com/Ryubara/deadnight.git"
+role = "game"
