@@ -79,6 +79,19 @@ def test_pinned_tools_only(tmp_path):
     assert denied(shell('"$B/blender.exe" -b --version', tmp_path)) == ""
 
 
+def test_shared_tools_never_killed_by_name(tmp_path):
+    reason = "killing by name"
+    assert reason in denied(shell("taskkill /F /IM Godot_v4.7.2-stable_win64_console.exe", tmp_path))
+    assert reason in denied(shell("pkill -f godot", tmp_path))
+    assert reason in denied(shell("killall blender", tmp_path))
+    ps = {**shell("Stop-Process -Name Godot_v4.7.2-stable_win64_console -Force", tmp_path), "tool_name": "PowerShell"}
+    assert reason in denied(ps)
+    assert denied(shell("taskkill /F /PID 4242", tmp_path)) == ""
+    assert denied(shell("kill 4242", tmp_path)) == ""
+    assert denied({**shell("Stop-Process -Id 4242", tmp_path), "tool_name": "PowerShell"}) == ""
+    assert denied(shell("taskkill /IM notepad.exe", tmp_path)) == ""
+
+
 def test_secrets_never_printed(tmp_path):
     assert "secret" in denied(shell("echo $POLY_PIZZA_API_KEY", tmp_path))
     assert "environment" in denied(shell("env", tmp_path))

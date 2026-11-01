@@ -273,6 +273,23 @@ _PRINTERS = {
 }
 
 
+def check_kill(words: list[str], config: dict[str, Any]) -> list[str]:
+    """No killing a shared tool by name: every agent's Godot or Blender run on the machine dies with it."""
+    names = config.get("tools", {}).get("names", [])
+    name = program(words)
+    args = [w.lower() for w in words[1:]]
+    by_name = False
+    if name == "taskkill":
+        by_name = any(a in ("/im", "-im") for a in args)
+    elif name in ("pkill", "killall"):
+        by_name = True
+    elif name in ("stop-process", "spps", "kill") and any(a.startswith("-n") for a in args):
+        by_name = True  # Stop-Process -Name (and its alias kill/spps); a bare `kill <pid>` has no -Name
+    if by_name and any(n in a for a in args for n in names):
+        return ["killing by name stops every agent's run on this machine; kill your own process by its PID"]
+    return []
+
+
 def check_secrets(words: list[str], command: str, config: dict[str, Any]) -> list[str]:
     """Nothing that prints a secret into the transcript: an echo of a key-like variable, or an environment dump."""
     name = program(words)
@@ -327,6 +344,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
         reasons += check_tools(words, config)
+        reasons += check_kill(words, config)
         reasons += check_secrets(words, command, config)
     return list(dict.fromkeys(reasons))
 
