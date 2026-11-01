@@ -3,6 +3,28 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: Blender exported every clip as the rest pose
+
+- **Saw:** the cleaned zombie's glTF had 16 clips of 150 channels each, none of them moving; Godot imported 4 tracks.
+- **Cause:** the clean-up set `armature.data.pose_position = "REST"` before the export; the exporter samples clips
+  through the pose, so it sampled the rest pose.
+- **Fix:** leave `pose_position` at `POSE` and zero the pose bones instead.
+- **Docs:** [Rig sharing (Blender)](blender/rig-sharing.md#what-broke).
+
+## 2026-11-01: a bone renamed Body_2 in Godot
+
+- **Saw:** the Soldier's Run named a bone `Body_2`, and `find_bone("Body")` returned -1 on him.
+- **Cause:** the Soldier's mesh is called `Body` too; Godot's glTF importer makes node names unique.
+- **Fix:** rename meshes that share a bone's name (`Body_Mesh`) in the Blender clean-up.
+- **Docs:** [Rig sharing (Blender)](blender/rig-sharing.md#the-recipe).
+
+## 2026-11-01: shared clip floats or sinks a character
+
+- **Saw:** the zombie's Walk put the Soldier's feet through the floor; the Soldier's Run lifted the zombie.
+- **Cause:** bone position tracks are absolute and carry the source's rest offsets (`Body` 0.32 m apart).
+- **Fix:** not solved yet: rotations-only clips fit at rest but lose the bob; a rest-offset retarget is next.
+- **Docs:** [Rig sharing (Godot)](godot/rig-sharing.md#what-breaks).
+
 ## 2026-11-01: hooks judged text as commands
 
 - **Saw:** the hooks refused harmless commands: a Python heredoc line starting `blender = ...`, and a `grep -E "a|godot"`.

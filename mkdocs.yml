@@ -42,7 +42,12 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Godot: godot/index.md
+  - Godot:
+      - godot/index.md
+      - Rig sharing: godot/rig-sharing.md
+  - Blender:
+      - blender/index.md
+      - Rig sharing: blender/rig-sharing.md
   - Lessons: lessons.md
   - Workspace: workspace.md
   - References: refs.md
