@@ -29,6 +29,12 @@ takes time as an argument so tests need no clock; a seeded generator for variant
 to a bus at runtime for ducking (leaves the bus volume to the player's settings; remove it in `_exit_tree`); per-player
 `attenuation_filter_cutoff_hz` and `volume_db` for occlusion; a `Callable` probe for what blocks sound.
 
+**A stopped voice lingers until the mixer steps.** `AudioStreamPlayer.stop()` only marks the playback for removal; the
+audio server holds it and its stream until the mixer thread has run a few times. Quitting soon after (a headless test,
+a capture) then reports leaked `AudioStreamPlayback` objects and streams, at random and more often on a busy machine.
+Before `quit()`, wait on the mixer, not on time: poll `AudioServer.get_time_since_last_mix()` once per frame and count
+each fall, until about four mixes have landed (with a poll cap).
+
 ## Capturing sound
 
 - `--write-movie <absolute folder>/name.png --fixed-fps 10` also writes `name.wav`: 32-bit integer PCM, stereo, 48 kHz.
