@@ -198,3 +198,12 @@ godot --headless --path sandbox/crowds --export-release Web out/index.html
 uvx --with playwright python sandbox/crowds/web_bench.py http://127.0.0.1:8931/index.html out/web.log
 python sandbox/crowds/tabulate_results.py <log> [mean_ms|p95_ms|max_ms|draws]
 ```
+
+## Gait follows speed
+
+Measure each locomotion clip's ground speed (the planted foot's backward speed at game scale) and put the blend
+points there; never guess them. Put the move state behind an `AnimationNodeTimeScale` whose scale is ground speed
+over the gait's speed, clamped (Deadnight uses 0.5-1.6), and cross over from walk to run over a short band, solving
+the rate so the blend covers the target speed, because two out-of-phase loops of different length cover less ground
+mid-blend. Beyond the clamp, an authored sprint clip is needed. Deadnight's numbers: `docs/research/zombie-gait.md`
+there (Walk 0.97, Run 4.4, Crawl 1.1, boss walk 1.1 m/s).

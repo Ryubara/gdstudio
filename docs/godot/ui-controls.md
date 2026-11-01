@@ -14,3 +14,11 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | One-shot 3D portrait in a HUD | A `SubViewport` with `own_world_3d`, the model, a camera and lights, `render_target_update_mode = UPDATE_ONCE` two frames after the model enters (its idle clip must pose it), shown by a `TextureRect` on `viewport.get_texture()`; it costs nothing after that frame. |
 
 Game write-ups: Deadnight's `docs/research/ui-foundation.md` and `docs/research/settings.md`.
+
+## Touch controls
+
+Touch controls press the game's existing input actions, so gameplay code does not fork. `Input.emulate_mouse_from_touch`
+is off while they show, or every touch also clicks. Tests inject `InputEventScreenTouch` and `InputEventScreenDrag`
+with `Input.parse_input_event`, in window pixels: multiply canvas positions by the viewport's `get_final_transform()`
+first. On the web, set `viewport-fit=cover` and block page scroll, zoom and the long-press menu. Deadnight's design
+and what its build showed: `docs/research/mobile-controls.md` there.
