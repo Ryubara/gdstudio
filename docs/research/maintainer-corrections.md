@@ -31,6 +31,7 @@ them and turns each into a check to run when a new game or feature starts.
 | The dead's animation should follow their speed and the round | Speeds were retuned (#260) without the clips that show them; blend points were guesses, so fast zombies slid | Measure each locomotion clip's ground speed; any change to movement speed checks foot slide and gait in the same pull request |
 | Guns must be scaled, angled and placed right on the player | Weapons were attached once and never checked against the hands, the shoulder and the aim ray | Each held item has a grip, support and barrel check in tests and a side, shoulder and aim capture |
 | Keep research pages and this page up to date as work lands | Findings stayed in agent reports and pull request bodies | Each pull request updates the research page it builds on; each correction lands here the same evening |
+| Mouse controls work, but moving the mouse doesn't turn the camera (on the web, after the fix in Deadnight #299 merged) | A fix counted as done when it merged, not when it was live where the maintainer plays: a flaky leak check (#317) failed main's CI three times, so the deploy job never ran and the site kept the old build, and nobody looked | After a merge that fixes something the maintainer reported, watch main's deploy, run the same probe against the live URL (for mouse look, the yaw probe), then tell the maintainer it is live |
 
 ## Found by playing: concepts and details we missed
 
