@@ -8,6 +8,7 @@ from pathlib import Path
 
 from gds_tools import capture, refs, sync, workspace
 from gds_tools.manifest import ManifestError, load_tools
+from gds_tools.quiet_run import run_quiet
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
@@ -56,6 +57,48 @@ def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
     print(f"written: {capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif)}")
     return 0
+
+
+GODOT_TIMEOUT = capture.GODOT_TIMEOUT
+
+
+def split_godot_args(argv: list[str]) -> tuple[float, list[str]]:
+    """`gds godot [--timeout SECONDS] [--] <godot arguments>`: the timeout and the arguments that go to Godot.
+
+    Done by hand because argparse rejects Godot's own options (`--path`, `--headless`) in front of a positional.
+    """
+    rest = list(argv)
+    timeout = float(GODOT_TIMEOUT)
+    if rest[:1] == ["--timeout"]:
+        if len(rest) < 2:
+            raise workspace.WorkspaceError("--timeout needs a number of seconds")
+        try:
+            timeout = float(rest[1])
+        except ValueError:
+            raise workspace.WorkspaceError(f"--timeout needs a number of seconds, not {rest[1]!r}") from None
+        rest = rest[2:]
+    if rest[:1] == ["--"]:
+        rest = rest[1:]
+    return timeout, rest
+
+
+def run_godot_command(argv: list[str]) -> int:
+    """Run the pinned Godot with `argv` on a private desktop, without taking the focus (docs/godot/no-focus.md)."""
+    timeout, rest = split_godot_args(argv)
+    root = workspace.require_workspace()
+    godot = workspace.tool_path("godot", root)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
+
+    def show(text: str) -> None:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
+    outcome = run_quiet([str(godot), *rest], timeout=timeout, on_output=show)
+    if outcome.timed_out:
+        print(f"gds: godot did not finish within {timeout:g} s and was stopped", file=sys.stderr)
+        return 124
+    return outcome.returncode
 
 
 def _cmd_sync(args: argparse.Namespace) -> int:
@@ -113,6 +156,11 @@ def build_parser() -> argparse.ArgumentParser:
     fetch_ref.add_argument("url")
     fetch_ref.set_defaults(func=_cmd_refs_fetch)
 
+    sub.add_parser(
+        "godot",
+        help="run the pinned Godot without taking the keyboard focus: gds godot [--timeout S] [--] <godot arguments>",
+    )
+
     cap = sub.add_parser("capture", help="frames, contact sheets and clips as proof").add_subparsers(
         dest="cmd", required=True
     )
@@ -143,8 +191,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    argv = sys.argv[1:] if argv is None else argv
     try:
+        if argv[:1] == ["godot"]:
+            return run_godot_command(argv[1:])
+        args = build_parser().parse_args(argv)
         return args.func(args)
     except (workspace.WorkspaceError, ManifestError, refs.RefsError, capture.CaptureError) as error:
         print(f"gds: {error}", file=sys.stderr)
