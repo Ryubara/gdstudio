@@ -3,6 +3,13 @@
 Problems we hit and how we solved them, newest first. One entry each: what you saw, why it happened, the fix, and
 where it is documented. Before solving something, search this page: it may have happened before.
 
+## 2026-11-01: Movie Maker ignores `--resolution`
+
+- **Saw:** `--write-movie` with `--resolution 1280x720` (or 960x540) still wrote 1920x1080 frames.
+- **Cause:** the movie is the project's viewport size; the window resolution request does not change it (Godot 4.7.2).
+- **Fix:** scale afterwards, which `gds capture sheet` and `gds capture clip` do.
+- **Docs:** [Capture](capture.md).
+
 ## 2026-11-01: hooks judged text as commands
 
 - **Saw:** the hooks refused harmless commands: a Python heredoc line starting `blender = ...`, and a `grep -E "a|godot"`.
