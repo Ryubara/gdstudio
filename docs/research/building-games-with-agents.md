@@ -36,6 +36,8 @@ copy to do the same on another engine.
 - A relative worktree path landed inside a repository; worktrees now always take absolute paths.
 - GitHub stamped records 45 to 60 minutes ahead; times are checked against the local clock.
 - Agent definitions changed in the kit but not in the game; `gds sync` now follows every roster change.
+- The maintainer caught many design gaps first (camera, HUD, art, numbers against the reference); see
+  [What the maintainer caught](maintainer-corrections.md).
 
 ## Reproduce it on another engine
 
