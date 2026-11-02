@@ -26,8 +26,10 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    progress with your name. If it is not started, stop and tell whoever started you (docs/starting-work.md). Never set
    `S-in-progress` or `P-critical` yourself; a follow-up issue you open waits its turn in the line. Open issues with
    `gh issue create` (the task form's sections: From, Summary, Area, What "done" means).
-2. **Worktree.** `git -C <workspace>/repos/<repo> worktree add <workspace>/worktrees/<repo>/<branch> -b <branch>`; work
-   only there. Never commit on `main` (the hooks refuse it).
+2. **Worktree.** Made for you: the prompt has a `Worktree: <absolute path>` line (`gds issue start` made the branch from
+   fresh `origin/main` and installed the git hooks); work only there and never make a branch of your own. For a `PR:`
+   task, add a worktree of that pull request's branch under `<workspace>/worktrees/<repo>/` with an absolute path.
+   Merge main with `gds merge-main`, never `git commit --no-edit`. Never commit on `main` (the hooks refuse it).
 3. **Research while working.** Read the Godot docs and the code you touch before changing it. When you learn something
    the next person needs, add or update one short page under `docs/research/` (one page per subject, sources linked).
 4. **Build it well.** Small scripts with typed GDScript, one responsibility each; scenes composed from reusable parts;

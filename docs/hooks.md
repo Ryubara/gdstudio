@@ -25,6 +25,26 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
 
+## Commit messages before they leave the machine {#pre-push}
+
+The `pre-commit` framework installs three git hooks (`default_install_hook_types` in `.pre-commit-config.yaml`), and
+`gds issue start` checks them ([Starting work](starting-work.md#worktree)):
+
+| Git hook | Runs | Judges |
+| --- | --- | --- |
+| `pre-commit` | formatting, lint, the generated files | the staged files |
+| `commit-msg` | `groundwork.py check-title --commit-msg` and `check-message` | the message file git hands over, before git's cleanup |
+| `pre-push` | `groundwork.py check-push` | every commit being pushed (`PRE_COMMIT_FROM_REF..TO_REF`), merges included, as stored |
+
+One function, `commit_problems`, judges a message in all three places and in CI (`check-commits`). The only input
+handling is `stored_message()`: the help text git adds in the editor (and the `--verbose` diff under the scissors line)
+is not part of the commit, so it is removed; every other line counts, including `#` lines, because `-m`, `-F` and
+`--no-edit` keep them. The `commit-msg` hook cannot see what git will do afterwards (a `--cleanup=strip -F` message with
+`#` lines is judged as kept, the safe side), so `pre-push` is the check that matches CI. It refuses the push with the
+commits and what is wrong, and the fix needs no force push because the commit is still local: `git commit --amend
+--cleanup=strip -F <message file>` for the last commit, `git reset --soft <base>` and a new commit for an older one. A
+branch deletion and an empty push pass. `--no-verify` is refused by the Git guard above.
+
 ## Issue order {#issues}
 
 Issues are started oldest first, only through `gds issue start` ([Starting work](starting-work.md)). Two checks in the
