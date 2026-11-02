@@ -18,3 +18,9 @@ areas: [tools, ci]
 - **General:** when a rule is enforced by a file that a game also carries, the file is on the sync list in the same pull
   request that changes the rule, and a file that is only partly the kit's gets marked blocks, not an exception. When
   you change a kit file, ask where else a copy of it lives: `grep` the games for its name.
+- **Found on the way:** the first proof of the synced `pre-push` hook passed a bad merge commit. The probe pushed to a
+  bare repository by path, so no `refs/remotes/<remote>/*` existed, and pre-commit then treats the push as "the whole
+  tree" (`all_files`) and sets no `PRE_COMMIT_FROM_REF`/`TO_REF`; `check-push` reads that as "git gave no range" and
+  judges nothing. A real remote with tracking refs gives a range. Prove a push hook with the real remote name and its
+  tracking refs (`git -c remote.origin.pushurl=<bare> push origin <branch>` leaves the config alone), and a hook that
+  passes must be shown to have looked at something.
