@@ -49,8 +49,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #495](https://github.com/Ryubara/deadnight/issues/495)).
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
-- Plan: store, key-art and Discord asset sizes listed with the first art pass
-  ([deadnight #492](https://github.com/Ryubara/deadnight/issues/492), [key art](../blender/key-art.md)).
+- Plan: store, key-art and Discord asset sizes listed with the first art pass, portrait crops framed with their own
+  lens ([key art](../blender/key-art.md#title-art-and-store-sizes),
+  [deadnight #492](https://github.com/Ryubara/deadnight/issues/492)).
 - Plan: the Activity stood in locally (mapping prefix, gzip, iframe focus) before the maintainer tries it
   ([web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
@@ -76,10 +77,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 ## Saving
 
-- Plan: hold menu choices and commit once on leaving the menu, never per click (known gap, cause pending,
-  [deadnight #489](https://github.com/Ryubara/deadnight/issues/489)).
-- Plan: a test for every choice against another choice, a tab change and a reload
-  ([deadnight #489](https://github.com/Ryubara/deadnight/issues/489)).
+- Plan: hold menu choices in one draft, preview the draft, and commit once on leaving; no other view rereads saved
+  state while the screen is open ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
+- Plan: a test for every choice against another choice, a tab change and a reload, counting writes
+  ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
 - Plan: tests point the settings and save files away from the player's own `user://`
   ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
 
@@ -97,9 +98,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #461](https://github.com/Ryubara/deadnight/issues/461)).
 - Plan: every catalogue entry played through in the real night with the real input
   ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
-- Plan: weapons sized against the hand that holds them, not only the body
-  ([lesson](../lessons/2026-11-02-hand-guns-disappeared-into-a-chibi-fist.md),
-  [deadnight #460](https://github.com/Ryubara/deadnight/issues/460)).
+- Plan: weapons sized against the hand that holds them, not only the body ([lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)).
+- Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
+  the kit's clips never move the fingers ([Hands on the weapon](../blender/weapons.md#hands-on-the-weapon)).
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air) (known gap,
   [deadnight #459](https://github.com/Ryubara/deadnight/issues/459)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points

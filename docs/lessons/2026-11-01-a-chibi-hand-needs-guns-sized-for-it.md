@@ -8,4 +8,8 @@
   real; the kit draws its guns about 1.33 times real for it.
 - **Fix:** rule factor 1.3, a grip-fit size factor for guns whose grip is short of the fingers, a deeper guard where
   the finger did not fit; measure grip, guard and fore-end against the hand before solving.
+- **Earlier case (Deadnight #376):** the revolver and flare gun at the old size rule (0.88 x real length) vanished
+  into the fist, only the barrel showing. Check every held item in a hold render before writing its hold, allow a
+  size exception for one-handed guns (like the repair hammer, about 1.6x), and compare the catalogue's ids with
+  the weapon model folders at the start of a weapon task (every id has its own model).
 - **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
