@@ -47,6 +47,57 @@ def test_timeout_kills_the_program_and_what_it_started() -> None:
     assert time.time() - started < 20
 
 
+def test_the_program_is_told_it_runs_quiet() -> None:
+    outcome = run_quiet(python("import os; print(os.environ.get('GDS_QUIET'))"))
+    assert outcome.output.strip() == "1"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the cursor clip is a Windows call")
+def test_a_cursor_clip_on_the_hidden_desktop_does_not_hold_the_real_cursor() -> None:
+    import ctypes
+    from ctypes import wintypes as wt
+
+    user32 = ctypes.WinDLL("user32")
+    user32.GetClipCursor.argtypes = [ctypes.POINTER(wt.RECT)]
+
+    def clip() -> tuple[int, int, int, int]:
+        rect = wt.RECT()
+        user32.GetClipCursor(ctypes.byref(rect))
+        return rect.left, rect.top, rect.right, rect.bottom
+
+    free = clip()
+    # A program on the private desktop clips the cursor to 10 x 10 pixels and again every 0.1 s for 1.5 s, like a game
+    # that captures the mouse and re-applies it on focus and resize. Without the guard every sample is held (measured:
+    # 16 of 20 even against a program re-clipping every 5 ms). A game re-clipping every frame must read GDS_QUIET and
+    # not capture at all: the guard is the safety net, not the fix.
+    code = "\n".join(
+        [
+            "import ctypes, time",
+            "from ctypes import wintypes as wt",
+            "r = wt.RECT(0, 0, 10, 10)",
+            "end = time.time() + 1.5",
+            "while time.time() < end:",
+            "    ctypes.windll.user32.ClipCursor(ctypes.byref(r)); time.sleep(0.1)",
+        ]
+    )
+    seen: list[tuple[int, int, int, int]] = []
+
+    def sample(_pid: int) -> None:
+        def run() -> None:
+            for _ in range(20):
+                time.sleep(0.05)
+                seen.append(clip())
+
+        threading.Thread(target=run, daemon=True).start()
+
+    run_quiet(python(code), on_start=sample)
+    held = [rect for rect in seen if rect == (0, 0, 10, 10)]
+    # A sample may land in the few ms between a clip and the guard, longer on a loaded CI runner (6 of 20 seen with a
+    # 20 ms guard): free most of the time, and free at the end.
+    assert len(held) <= len(seen) // 3
+    assert clip() == free
+
+
 def test_godot_arguments_are_split_from_the_timeout() -> None:
     assert cli.split_godot_args(["--path", "game"]) == (cli.GODOT_TIMEOUT, ["--path", "game"])
     assert cli.split_godot_args(["--timeout", "30", "--", "--headless"]) == (30.0, ["--headless"])
