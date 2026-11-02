@@ -35,7 +35,7 @@ The `pre-commit` framework installs three git hooks (`default_install_hook_types
 | --- | --- | --- |
 | `pre-commit` | formatting, lint, the generated files | the staged files |
 | `commit-msg` | `groundwork.py check-title --commit-msg` and `check-message` | the message file git hands over, before git's cleanup |
-| `pre-push` | `groundwork.py check-push` | every commit being pushed (`PRE_COMMIT_FROM_REF..TO_REF`), merges included, as stored |
+| `pre-push` | `groundwork.py check-push` | every commit being pushed (`PRE_COMMIT_FROM_REF..TO_REF`, minus what `origin/main` has), merges included, as stored |
 
 One function, `commit_problems`, judges a message in all three places and in CI (`check-commits`). The only input
 handling is `stored_message()`: the help text git adds in the editor (and the `--verbose` diff under the scissors line)
