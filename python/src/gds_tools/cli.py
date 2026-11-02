@@ -92,12 +92,38 @@ def split_quiet_args(argv: list[str], default_timeout: float = QUIET_TIMEOUT) ->
     return timeout, rest
 
 
+WITH_AUDIO = "--with-audio"  # a `gds godot` option, never passed on: leave Godot's audio driver alone
+AUDIO_DRIVER = "--audio-driver"  # Godot's own option; its value `Dummy` is the driver that plays nothing
+
+
+def parse_godot_args(argv: list[str]) -> tuple[float, bool, list[str]]:
+    """`gds godot [--timeout S] [--with-audio] [--] <godot arguments>` (the two options in either order): the timeout,
+    whether the sound is wanted, and the arguments that go to Godot."""
+    with_audio = argv[:1] == [WITH_AUDIO]
+    timeout, rest = split_godot_args(argv[1:] if with_audio else argv)
+    if rest[:1] == [WITH_AUDIO]:
+        with_audio, rest = True, rest[1:]
+        if rest[:1] == ["--"]:
+            rest = rest[1:]
+    return timeout, with_audio, rest
+
+
+def mute_godot(args: list[str], with_audio: bool = False) -> list[str]:
+    """`args` for Godot with `--audio-driver Dummy` in front unless the audio is wanted: `--with-audio` was given, or
+    the arguments already pick a driver (`--audio-driver WASAPI`, `--audio-driver=Dummy`). Agents never listen: the
+    audio checks read the mixer, which the Dummy driver still runs (docs/godot/no-focus.md#sound)."""
+    if with_audio or any(a == AUDIO_DRIVER or a.startswith(f"{AUDIO_DRIVER}=") for a in args):
+        return args
+    return [AUDIO_DRIVER, "Dummy", *args]
+
+
 def run_godot_command(argv: list[str]) -> int:
-    """Run the pinned Godot with `argv` on a private desktop, without taking the focus (docs/godot/no-focus.md)."""
-    timeout, rest = split_godot_args(argv)
+    """Run the pinned Godot with `argv` on a private desktop, without taking the focus and without sound
+    (docs/godot/no-focus.md); `--with-audio` keeps the sound."""
+    timeout, with_audio, rest = parse_godot_args(argv)
     root = workspace.require_workspace()
     godot = workspace.tool_path("godot", root)
-    return _stream_quiet([str(godot), *rest], timeout, "godot")
+    return _stream_quiet([str(godot), *mute_godot(rest, with_audio)], timeout, "godot")
 
 
 def run_quiet_command(argv: list[str]) -> int:
@@ -247,7 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser(
         "godot",
-        help="run the pinned Godot without taking the keyboard focus: gds godot [--timeout S] [--] <godot arguments>",
+        help="run the pinned Godot with no focus and no sound: gds godot [--timeout S] [--with-audio] [--] <args>",
     )
     sub.add_parser(
         "quiet",

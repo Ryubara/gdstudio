@@ -7,7 +7,7 @@ which uses it); `--headless` is the other way, for runs that draw nothing. Brows
 can take the mouse run through **`gds quiet`**, the same thing for any command ([below](#browser-probes-and-any-other-program-gds-quiet)).
 
 ```text
-uv run --project <kit>/python gds godot [--timeout SECONDS] [--] <godot arguments>
+uv run --project <kit>/python gds godot [--timeout SECONDS] [--with-audio] [--] <godot arguments>
 uv run --project <kit>/python gds godot --path game --write-movie <out>/shot.png --fixed-fps 10 --quit-after 120
 ```
 
@@ -30,9 +30,9 @@ uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 pyth
 
 It is `gds godot` for any command: the command and every program it starts (Playwright's driver, the browser and its
 helpers inherit the desktop like any child) run on the private desktop, the cursor is freed every 5 ms while it runs,
-`GDS_QUIET=1` is set, the output streams, the exit code comes back (124 after `--timeout`, default 900 s, which ends the
-whole tree). A batch-file program (`npx`, `pnpm`) is found on PATH and run through `cmd /c`. The hook refuses a probe
-run without it.
+`GDS_QUIET=1` is set (a probe reads it to mute its browser, [Sound](#sound)), the output streams, the exit code comes
+back (124 after `--timeout`, default 900 s, which ends the whole tree). A batch-file program (`npx`, `pnpm`) is found
+on PATH and run through `cmd /c`. The hook refuses a probe run without it.
 
 Measured on 2026-11-02 (Playwright 1.64.1, a page that calls `requestPointerLock` on a click, Windows 11, a
 5120-pixel-wide desktop):
@@ -95,12 +95,38 @@ key reached the test window, no Godot window is visible on the person's desktop,
 different from each other and not black. Run with the plain start instead (`Failed first`), it fails: Godot took the
 foreground at 0.72 s.
 
+## Sound
+
+Agents never listen: the audio checks read numbers (bus peaks, `AudioEffectCapture`, the WAV Movie Maker writes), never
+the speakers. A windowed Godot on the default driver (`WASAPI` on Windows) plays through the speakers of the person at
+the machine, so everything an agent launches is silent:
+
+| Launch | Audio driver | How |
+| --- | --- | --- |
+| `gds godot -- <arguments>` | `Dummy` | the wrapper puts `--audio-driver Dummy` in front unless the arguments already name a driver; `gds godot --with-audio -- ...` keeps the sound, for a person who asks to hear it |
+| `--headless` | `Dummy` | Godot's own `--headless` is `--display-driver headless --audio-driver Dummy` (`--help`; measured: `AudioServer.get_driver_name()` is `Dummy`) |
+| Movie Maker (`--write-movie`, `gds capture frames`) | `Dummy` | Movie Maker forces it and writes the mix to the `.wav` (measured under `gds godot`) |
+| a browser probe under `gds quiet` | muted | `GDS_QUIET=1` is set; Playwright's headless Chromium starts with `--mute-audio` (read off the process command line, Playwright 1.64.1), and a game's launch helper adds `--mute-audio` (headed Chromium) and Firefox's `media.volume_scale` under `GDS_QUIET` (Deadnight: `smoke.mute_args()`) |
+
+The hook refuses a Godot with another `--audio-driver` and `gds godot --with-audio` from an agent session
+([hooks](../hooks.md)). `--headless` without the flag is allowed, since it is Dummy already.
+
+**The Dummy driver still mixes.** It runs the same mixer thread as a real driver and throws the output away. Measured
+on 2026-11-02 (Godot 4.7.2): a 440 Hz tone played on a bus gives `get_bus_peak_volume_left_db` of -4.3 dB (the exact
+level of a 20000/32768 sine) and the same 0.61 maximum in an `AudioEffectCapture`, headless and through `gds godot`.
+Deadnight's 14 audio suites (123 test cases: bus layout and levels, the audio service, voice budget, gun audio rules,
+footsteps, occlusion, zombie voices) pass headless and windowed under Dummy. Its loudness checks read Movie Maker's WAV
+(already Dummy) and `AudioEffectRecord` stems. Nothing needed the fallback (a `GDSTUDIO_MUTE` environment variable
+muting the Master bus after the tests read it).
+
+Not silenced: a program that starts Godot or a browser from inside `gds quiet -- <script>` (the hook sees only the
+script), and the Godot editor opened by a person or by the MCP add-on.
+
 ## What to know
 
 - **Nothing can type into the window**, so a scene must be driven by script or injected events (`Input.parse_input_event`,
   GdUnit input simulation), as agents already do; `Window.has_focus()` is true inside it.
-- **Sound still plays** through the speakers when the scene is not recorded: add `--audio-driver Dummy` to a run that
-  needs no audio (Movie Maker writes sound to a file and plays none).
+- **No sound**: `gds godot` starts Godot with `--audio-driver Dummy` ([Sound](#sound)).
 - **Not covered:** the Godot *editor* opened for a person or by the MCP add-on (a person's own window, not an agent's
   run), a headed browser (`headless=False`: a person watching it is at the machine anyway), and GPUs other than the
   one measured (a driver that refuses OpenGL on a second desktop would fail at start-up
