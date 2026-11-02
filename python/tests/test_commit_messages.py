@@ -151,3 +151,26 @@ def test_the_push_check_reads_pre_commits_range_and_skips_a_deletion(repo, monke
     assert "whatever I like" in capsys.readouterr().err
     monkeypatch.setenv("PRE_COMMIT_TO_REF", "0" * 40)  # deleting a branch pushes no commits
     assert push_check() == 0
+
+
+def test_the_commits_a_merge_of_main_brings_are_not_judged_again(repo, monkeypatch, capsys):
+    """Main's squash commits end in ` (#N)` and may pass 72 characters; they are main's, not the push's."""
+    git(repo, "checkout", "-q", "-b", "work")
+    (repo / "g").write_text("work\n", encoding="utf-8")
+    git(repo, "add", "g")
+    commit(repo, f"tools: Add a thing\n\n{TRAILER}\n")
+    remote_tip = git(repo, "rev-parse", "HEAD").stdout.strip()
+    git(repo, "checkout", "-q", "main")
+    (repo / "h").write_text("main\n", encoding="utf-8")
+    git(repo, "add", "h")
+    commit(repo, f"hooks: Add a stop check for task agents that end before their report (#155)\n\n{TRAILER}\n")
+    git(repo, "update-ref", "refs/remotes/origin/main", "main")
+    git(repo, "checkout", "-q", "work")
+    git(repo, "merge", "-q", "--no-ff", "-m", f"Merge origin/main into work\n\n{TRAILER}", "main")
+    monkeypatch.setenv("PRE_COMMIT_FROM_REF", remote_tip)
+    monkeypatch.setenv("PRE_COMMIT_TO_REF", git(repo, "rev-parse", "HEAD").stdout.strip())
+    monkeypatch.chdir(repo)
+    assert push_check() == 0, capsys.readouterr().err
+    git(repo, "update-ref", "-d", "refs/remotes/origin/main")  # without origin/main the same push is judged in full
+    assert push_check() == 1
+    assert "at most 72" in capsys.readouterr().err
