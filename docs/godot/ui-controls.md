@@ -53,3 +53,10 @@ and what its build showed: `docs/research/mobile-controls.md` there.
   frames before reading action state ([lesson](../lessons/2026-11-02-a-parsed-input-event-is-buffered.md)).
 - **Counts sit in containers beside their text**, never at a hand-measured offset: the offset breaks with the next
   font, scale or translation (Deadnight #466).
+- **A centred panel is measured in its tallest state at 720 high.** A `CenterContainer` panel grows with its content
+  and runs off a 720-high frame (a Discord Activity, a laptop) when every optional line shows (the Together invite
+  panel, the lobby): put side-by-side buttons in an `HBoxContainer`, ellipsise one-line text, wrap the content in a
+  `ScrollContainer` capped at the viewport height minus the panel's margin with `follow_focus = true`, and call
+  `ensure_control_visible` two frames after showing a field the player must reach. Test the panel's size in a
+  `SubViewport` of 1280 x 720 with every optional line shown
+  ([lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
