@@ -49,6 +49,17 @@ class IssueError(Exception):
     """An issue command that cannot run, or a start the rules refuse."""
 
 
+@dataclass
+class Prepared:
+    """The work made ready for an issue before the agent gets it: a branch in its own worktree (gds_tools.worktrees).
+    `undo` takes it away again when the rest of the start fails."""
+
+    branch: str
+    path: str
+    lines: list[str]
+    undo: Callable[[], None]
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # References, settings, the gh runner
 # --------------------------------------------------------------------------------------------------------------------
@@ -326,9 +337,12 @@ def start(
     branch: str = "",
     now: datetime | None = None,
     areas_for: Callable[[frozenset[str]], list[str]] | None = None,
+    prepare: Callable[[Issue], Prepared] | None = None,
 ) -> list[str]:
-    """Start an issue if it is in the window: label, assign, comment, ledger. Returns the lines to print. `areas_for`
-    maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps for the SubagentStart hook."""
+    """Start an issue if it is in the window: make its branch and worktree, label, assign, comment, ledger. Returns the
+    lines to print. `areas_for` maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps
+    for the SubagentStart hook. `prepare` makes the branch and worktree after the window allows the start and before
+    anything on GitHub changes, so a worktree that cannot be made leaves the issue where it was."""
     issues, prs = fetch(repo, gh)
     window = compute_window(repo, issues, prs, size)
     started = load_ledger(ledger)
@@ -337,28 +351,39 @@ def start(
     if not window.allows(number):
         raise IssueError(refusal(repo, number, window))
     issue = window.by_number[number]
-    edit = ["issue", "edit", str(number), "-R", repo, "--add-label", IN_PROGRESS, "--add-assignee", "@me"]
-    for label in (READY, TRIAGE):
-        if label in issue.labels:
-            edit += ["--remove-label", label]
-    gh(edit)
-    gh(["issue", "comment", str(number), "-R", repo, "--body", f"Started by agent {agent}"])
-    areas = areas_for(issue.labels) if areas_for else []
-    started = load_ledger(ledger)
-    started[ledger_key(repo, number)] = {
-        "repo": repo,
-        "number": number,
-        "issue": f"{repo}#{number}",
-        "agent": agent,
-        "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "branch": branch,
-        "areas": areas,
-    }
-    save_ledger(ledger, started)
+    prepared = prepare(issue) if prepare else None
+    try:
+        edit = ["issue", "edit", str(number), "-R", repo, "--add-label", IN_PROGRESS, "--add-assignee", "@me"]
+        for label in (READY, TRIAGE):
+            if label in issue.labels:
+                edit += ["--remove-label", label]
+        gh(edit)
+        gh(["issue", "comment", str(number), "-R", repo, "--body", f"Started by agent {agent}"])
+        areas = areas_for(issue.labels) if areas_for else []
+        started = load_ledger(ledger)
+        started[ledger_key(repo, number)] = {
+            "repo": repo,
+            "number": number,
+            "issue": f"{repo}#{number}",
+            "agent": agent,
+            "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "branch": prepared.branch if prepared else branch,
+            "areas": areas,
+            **({"worktree": prepared.path} if prepared else {}),
+        }
+        save_ledger(ledger, started)
+    except BaseException:
+        if prepared:
+            prepared.undo()
+        raise
     return [
         f"started {repo}#{number} ({issue.title}) for agent {agent}",
         *([f"areas: {', '.join(areas)} (their checks are put into the agent's context at start)"] if areas else []),
-        "Put this line in the agent's prompt (the hook looks for it):",
+        *(prepared.lines if prepared else []),
+        "Put these lines in the agent's prompt (the hook looks for the first):"
+        if prepared
+        else "Put this line in the agent's prompt (the hook looks for it):",
+        *([f"Worktree: {prepared.path}"] if prepared else []),
         f"Issue: {repo}#{number}",
     ]
 

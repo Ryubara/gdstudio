@@ -25,8 +25,10 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    before anything else: `uv run --project <workspace>/repos/gdstudio/python gds issue list` shows your issue in
    progress with your name. If it is not started, stop and tell whoever started you (docs/starting-work.md). Never set
    `S-in-progress` or `P-critical` yourself; a follow-up issue you open waits its turn in the line.
-   Then, as every GDStudio task, `git worktree add <workspace>/worktrees/<repo>/<branch> -b <branch>`; never commit on
-   `main`.
+   Your branch and worktree are made for you: the prompt has a `Worktree: <absolute path>` line (made by `gds issue
+   start`, from fresh `origin/main`, with the git hooks installed). Work only there and never make a branch of your
+   own. For a `PR:` task, add a worktree of that pull request's branch under `<workspace>/worktrees/<repo>/` with an
+   absolute path. Merge main with `gds merge-main` (never `git commit --no-edit`). Never commit on `main`.
 2. **Start from what exists.** References and bases live in `<workspace>/refs/` (Poly Pizza models with `meta.json`;
    the Quaternius Toon Shooter kit under `refs/polypizza/bundles/qraiSXoAru/`). Measure before you make: proportions,
    bevel sizes, triangle counts, the palette atlas. Write the numbers you rely on into the style bible page so the
