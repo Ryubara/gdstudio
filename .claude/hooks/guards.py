@@ -283,6 +283,115 @@ def check_labels(words: list[str]) -> list[str]:
     return reasons
 
 
+def flag_values(words: list[str], flags: tuple[str, ...]) -> list[str]:
+    """Every value given to any of `flags` (`--flag value` or `--flag=value`)."""
+    found: list[str] = []
+    for i, word in enumerate(words):
+        flag, eq, inline = word.partition("=")
+        if flag in flags:
+            if eq:
+                found.append(inline)
+            elif i + 1 < len(words):
+                found.append(words[i + 1])
+    return found
+
+
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_IMAGE = re.compile(r"!\[[^\]]*\]\(|<img[ >]")
+
+
+def section_text(body: str, name: str) -> str:
+    """The text of the `## name` section of a pull request body, without comments ('' when there is none)."""
+    body = _HTML_COMMENT.sub("", body.replace("\r\n", "\n"))
+    match = re.search(rf"^##[ \t]+{re.escape(name)}[ \t]*$", body, re.MULTILINE)
+    if not match:
+        return ""
+    rest = body[match.end() :]
+    following = re.search(r"^##[ \t]+\S", rest, re.MULTILINE)
+    return rest[: following.start()] if following else rest
+
+
+def label_line(text: str, label: str) -> re.Match[str] | None:
+    """Where a `Label:` (bare, bulleted or in bold) starts a line of `text`."""
+    bare = re.escape(label.rstrip(":"))
+    return re.search(rf"^[ \t]*(?:[-*][ \t]*)?(?:\*\*{bare}:?\*\*:?|{bare}:)", text, re.MULTILINE)
+
+
+def reference_to(name: str, text: str) -> re.Match[str] | None:
+    """A markdown reference `](./name)` (or `](name)`) to an attached file: what `--attach` swaps for the upload."""
+    return re.search(rf"\]\(\s*(?:\./)?{re.escape(name)}\s*\)", text)
+
+
+def body_of(words: list[str], cwd: Path) -> tuple[str | None, str]:
+    """The body a `gh pr create|edit` command sends: (text, "") when it can be read here, else (None, why not)."""
+    sources = flag_values(words, ("--body-file", "-F"))
+    inline = flag_values(words, ("--body", "-b"))
+    if sources:
+        if sources[0] == "-":
+            return None, "the body comes from standard input, which cannot be read here"
+        path = Path(sources[0])
+        path = path if path.is_absolute() else cwd / path
+        if not path.is_file():
+            return None, f"the body file {sources[0]} does not exist yet"
+        return path.read_text(encoding="utf-8", errors="replace"), ""
+    if inline and "$(" not in inline[0] and "`" not in inline[0]:
+        return inline[0], ""
+    return None, "no body file is named (`--body-file <file>`)"
+
+
+def check_attach(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
+    """`gh pr create|edit --attach` appends every image at the end of the body, after `## AI use`, unless the body
+    already refers to it as `![alt](./<file name>)`: then that reference becomes the upload in place. So each attached
+    file needs such a reference inside `## Screenshots`, a before capture between the `Before:` and `After:` lines and
+    an after capture below `After:`. The body is read from `--body-file` (or a literal `--body`) before the command
+    runs, so the refusal comes before a pull request with images in the wrong place exists."""
+    rule = config.get("attach", {})
+    if len(words) < 3 or program(words) != "gh" or words[1] != "pr" or words[2] not in ("create", "edit"):
+        return []
+    if not rule.get("enforce", True):
+        return []
+    files = [PurePosixPath(v.split("#", 1)[0]).name for v in flag_values(words, ("--attach",))]
+    if not files:
+        return []
+    section = rule.get("section", "Screenshots")
+    sample = files[-1]
+    what = f"`gh pr {words[2]} --attach` puts an image the body does not refer to at the end, after `## AI use`"
+    body, why = body_of(words, cwd)
+    if body is None:
+        return [
+            f"{what}, and {why}: write the whole body with the Write tool to a file, with `![after](./{sample})` on "
+            f"the After: line of ## {section} (and `![before](./<file>)` on the Before: line), then run the command "
+            f"with `--body-file <file>` next to `--attach` (an existing body is read with "
+            f"`gh pr view N --json body -q .body`)"
+        ]
+    text = section_text(body, section)
+    missing = [name for name in files if not reference_to(name, text)]
+    if missing:
+        wanted = " and ".join(f"`![{PurePosixPath(n).stem}](./{n})`" for n in missing)
+        return [
+            f"{what}, unless the body already refers to the file inside ## {section}: the body has no reference for "
+            f"{', '.join(missing)}. Write {wanted} in ## {section}: the before capture on the Before: line, the after "
+            f"capture on the After: line, below it. Then run the same command; `--attach` swaps each reference for the "
+            f"upload in place. Read the body back afterwards (`gh pr view N --json body -q .body`)"
+        ]
+    reasons = []
+    before, after = label_line(text, "Before:"), label_line(text, "After:")
+    if before and after and before.start() < after.start():
+        between = text[before.end() : after.start()].strip()
+        if not between.lower().startswith("none") and not _IMAGE.search(between):
+            reasons.append(
+                f"the Before: line of ## {section} has no image between it and the After: line: put the "
+                f"before capture's reference (`![before](./<file>)`) right after `Before:`, above `After:`, or write "
+                f"`Before: none (reason)` for something new"
+            )
+        if not _IMAGE.search(text[after.end() :]):
+            reasons.append(
+                f"no image comes after the After: line of ## {section}: put the after capture's reference "
+                f"(`![after](./<file>)`) on or under it"
+            )
+    return reasons
+
+
 def check_git(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
     """Commits and pushes: never on a protected branch, never forced, never past the hooks."""
     here, rest = git_dir_of(words, cwd)
@@ -565,6 +674,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
             reasons += check_labels(words)
+            reasons += check_attach(words, cwd, config)
         reasons += check_tools(words, config)
         reasons += check_godot_window(words, config)
         reasons += check_godot_audio(words, config)

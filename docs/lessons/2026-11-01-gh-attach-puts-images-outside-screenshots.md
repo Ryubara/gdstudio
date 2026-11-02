@@ -16,4 +16,8 @@ areas: [tests, process]
   by hand. After any `--attach`, read the body back (`gh pr view N --json body -q .body`) and grep that the image
   lines sit under the `After:` bullet in `## Screenshots`, not at the end, then run `groundwork.py check-body` on it
   before saying the captures are attached.
+- **Enforced:** a PreToolUse guard (`check_attach` in `.claude/hooks/guards.py`) refuses `gh pr create|edit --attach`
+  before it runs when the body file has no `![alt](./<file>)` reference for each attached file inside `## Screenshots`
+  (between `Before:` and `After:` for the before capture), and names the missing files and the line to write. Deadnight
+  #448, #450, #463, #506, #536, #546 and #565 all hit this; the lesson alone did not stop it.
 - **Docs:** [Capture](../capture.md#attaching).

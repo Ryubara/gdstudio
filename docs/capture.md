@@ -55,9 +55,16 @@ gh pr create --body-file <file> --attach <folder>/sheet.png --attach <folder>/<n
 ```
 
 `--attach` (on `gh pr create` and `gh pr edit`) appends the images at the end of the body, outside `## Screenshots`,
-and the body check refuses `Before:`/`After:` until they sit there. Write `![after](./sheet.png)` references on those
-lines so `--attach` replaces them in place, then read the body back and check the image lines sit under the bullets
-([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md)).
+and the body check refuses `Before:`/`After:` until they sit there. Write `![before](./before.png)` on the `Before:`
+line and `![after](./sheet.png)` on the `After:` line so `--attach` replaces each reference with the upload in place
+(it matches by file name, so `./sheet.png` or `sheet.png` work, `./sub/sheet.png` does not), then read the body back
+and check the image lines sit under the bullets ([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md)).
+
+The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
+named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
+image between `Before:` and `After:` (or `Before: none (reason)`) and one below `After:`. The refusal names the missing
+files and the line to write. Write the body file first (with the Write tool, not in the same command), and an existing
+body is copied from `gh pr view N --json body -q .body`. Say "attached" in a report only after reading the body back.
 
 ## Tests
 
