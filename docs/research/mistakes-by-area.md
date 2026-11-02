@@ -641,7 +641,7 @@ Tests, bots, captures, probes and benchmarks. (92)
 
 ## ci
 
-GitHub Actions, checks, merging, flaky runs and the pull request queue. (28)
+GitHub Actions, checks, merging, flaky runs and the pull request queue. (29)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -651,6 +651,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (28)
 | Closing and reopening a pull request turned its auto-merge off | after a close and reopen, run `gh pr merge <N> --auto --squash` again in the same command, except on pull requests that are merged by hand; check with `gh pr view <N> --json autoMergeRequest`. | [lesson](../lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md) |
 | An issue stayed open after both halves merged, so it looked like unstarted work | the agent audited `main` first and filled only the gaps (#398). | [lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md) |
 | A pull request ran CI with its branch's old time limit | merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change> <head>`) and push once; that is a reason to push, like a conflict. | [lesson](../lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md) |
+| A pull request description failed pr-rules twice and its images landed outside Screenshots | list every model of the branch's commits on the `Model:` line (`git log --format=%b &#124; grep Co-Authored`), and write `Before: none (new: ...)` with the reason in parentheses. For the images, create the pull request, read its body back (`gh pr view N --json ... | [lesson](../lessons/2026-11-02-a-pr-description-failed-pr-rules-twice-and-its-images-landed-outside-screenshots.md) |
 | A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
 | A job cut at its time limit looked like a hanging test | before suspecting the last test, compare the cancel time with the job's start plus its limit, and look for the longest gap between timestamps (a real hang leaves minutes). Then run the suite alone and its folder. Keep the limit well above the measured time ... | [lesson](../lessons/2026-11-02-a-job-cut-at-its-time-limit-looked-like-a-hang.md) |
 | A hand-written merge title failed the commit title hook | after `git merge --no-commit`, commit with a message file whose title is `Merge remote-tracking branch 'origin/main' into <branch>` and whose last line is the `Co-Authored-By` trailer (`git commit -F <file> --cleanup=strip`), then check `git log -1` shows the ... | [lesson](../lessons/2026-11-02-a-hand-written-merge-title-failed-the-title-check.md) |
@@ -676,7 +677,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (28)
 
 ## tools
 
-The gds CLI, hooks, the workspace, pinned tools and the shared machine. (51)
+The gds CLI, hooks, the workspace, pinned tools and the shared machine. (52)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -688,6 +689,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (51)
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A rule that lives only in an agent's memory is broken under pressure | the order is computed by a tool and checked by a hook. `gds issue start` allows only the 5 oldest ready issues (`P-critical` first), sets the label, assigns and records the start; the Agent hook refuses a task agent whose prompt does not name a started issue ... | [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md) |
 | A Python edit of a GDScript file made Godot refuse the script | open with `encoding="utf-8", newline=""` (read and write), keep tooltip units ASCII (`deg`, `m/s^2`), and run a headless import after any scripted edit: it prints the broken file's name. | [lesson](../lessons/2026-11-02-a-python-edit-of-a-gdscript-file-broke-its-encoding.md) |
+| A pull request description failed pr-rules twice and its images landed outside Screenshots | list every model of the branch's commits on the `Model:` line (`git log --format=%b &#124; grep Co-Authored`), and write `Before: none (new: ...)` with the reason in parentheses. For the images, create the pull request, read its body back (`gh pr view N --json ... | [lesson](../lessons/2026-11-02-a-pr-description-failed-pr-rules-twice-and-its-images-landed-outside-screenshots.md) |
 | A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
 | A hand-written merge title failed the commit title hook | after `git merge --no-commit`, commit with a message file whose title is `Merge remote-tracking branch 'origin/main' into <branch>` and whose last line is the `Co-Authored-By` trailer (`git commit -F <file> --cleanup=strip`), then check `git log -1` shows the ... | [lesson](../lessons/2026-11-02-a-hand-written-merge-title-failed-the-title-check.md) |
 | A correction that moves the body must move the history it is judged against | shift the remembered positions by every correction; snap a body far from the server when there is nothing to judge it by; after a freeze put the body where the server says and skip the catch-up ticks. Test the loop closed, in one dimension, at 50 to 400 ms ... | [lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md) |
@@ -734,7 +736,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (51)
 
 ## process
 
-Agents, coordination, issues, pull requests and documentation. (40)
+Agents, coordination, issues, pull requests and documentation. (41)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -752,6 +754,7 @@ Agents, coordination, issues, pull requests and documentation. (40)
 | A 3x zombie count made rounds longer, and a time limit was added to patch it | count, spawn rate and alive cap scale together; no time limit; a test that each round at 2x and 3x lasts within about 10 percent of 1x. | [lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md) |
 | A rule that lives only in an agent's memory is broken under pressure | the order is computed by a tool and checked by a hook. `gds issue start` allows only the 5 oldest ready issues (`P-critical` first), sets the label, assigns and records the start; the Agent hook refuses a task agent whose prompt does not name a started issue ... | [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md) |
 | A pull request ran CI with its branch's old time limit | merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change> <head>`) and push once; that is a reason to push, like a conflict. | [lesson](../lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md) |
+| A pull request description failed pr-rules twice and its images landed outside Screenshots | list every model of the branch's commits on the `Model:` line (`git log --format=%b &#124; grep Co-Authored`), and write `Before: none (new: ...)` with the reason in parentheses. For the images, create the pull request, read its body back (`gh pr view N --json ... | [lesson](../lessons/2026-11-02-a-pr-description-failed-pr-rules-twice-and-its-images-landed-outside-screenshots.md) |
 | WebFetch could not read PDF sources | download the PDF with `curl` into its own empty directory and extract the text with `uv run --with pypdf python -I` (redirect stderr: the font warnings are huge). In the research page, mark each source read, fetched (a summarising tool) or reported (search ... | [lesson](../lessons/2026-11-01-webfetch-cannot-read-pdfs.md) |
 | Voice lines written as captions sounded robotic | write barks the way a person talks under stress: first person, contractions, a filler or a breath, an exclamation where it fits, uneven length. Put the emotion in the words first and the audio tags second, keep the model's stability low enough for expression ... | [lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md) |
 | The Write tool wrote CRLF line endings on Windows | normalise new files before committing (`sed -i 's/\r$//' <files>`), then run the pre-commit hooks. | [lesson](../lessons/2026-11-01-the-write-tool-wrote-crlf-on-windows.md) |
