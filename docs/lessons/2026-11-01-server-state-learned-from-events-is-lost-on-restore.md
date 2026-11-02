@@ -1,3 +1,6 @@
+---
+areas: [gameplay, net]
+---
 # A server made mid-game ignored every zombie already alive
 
 2026-11-01

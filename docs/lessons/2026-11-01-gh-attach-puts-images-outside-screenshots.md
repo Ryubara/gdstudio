@@ -1,3 +1,6 @@
+---
+areas: [tests, process]
+---
 # `gh ... --attach` put the images at the end of the body, outside Screenshots
 
 2026-11-01

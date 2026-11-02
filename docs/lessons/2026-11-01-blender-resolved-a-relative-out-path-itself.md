@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # Blender resolved a relative output path itself
 
 2026-11-01

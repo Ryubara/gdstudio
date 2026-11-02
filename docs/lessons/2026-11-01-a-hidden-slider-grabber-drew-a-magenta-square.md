@@ -1,3 +1,6 @@
+---
+areas: [process, blender]
+---
 # A hidden slider grabber drew a magenta square
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # GdUnit4 with `-d` hangs on the first script error
 
 2026-11-01

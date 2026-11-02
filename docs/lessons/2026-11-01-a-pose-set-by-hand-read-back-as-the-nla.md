@@ -1,3 +1,6 @@
+---
+areas: [blender, tools]
+---
 # A pose set by hand read back as the NLA track's
 
 2026-11-01

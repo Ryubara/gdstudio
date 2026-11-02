@@ -1,3 +1,6 @@
+---
+areas: [tests, gameplay]
+---
 # Reading a damaged JSON save turned the smoke run red
 
 2026-11-01

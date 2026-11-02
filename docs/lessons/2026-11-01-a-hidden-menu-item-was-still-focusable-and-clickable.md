@@ -1,3 +1,6 @@
+---
+areas: [input, godot-ui]
+---
 # Menu items at zero alpha were still focusable and clickable
 
 2026-11-01

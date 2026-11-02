@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # A bigger lamp range pushed a ground tile over the light cap
 
 2026-11-01

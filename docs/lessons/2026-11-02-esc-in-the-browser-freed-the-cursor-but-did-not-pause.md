@@ -1,3 +1,6 @@
+---
+areas: [input, web]
+---
 # Esc in the browser freed the cursor but did not pause the game
 
 2026-11-02

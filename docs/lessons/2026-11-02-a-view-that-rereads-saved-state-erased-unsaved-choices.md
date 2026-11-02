@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, tools]
+---
 # A view that rereads saved state on "setting changed" erased the unsaved outfit
 
 2026-11-02

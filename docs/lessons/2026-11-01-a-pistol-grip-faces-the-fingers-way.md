@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # A pistol grip faces the fingers' way, not the palm's
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [gameplay, tools]
+---
 # The dead's feet slid because the walk and run blend points were guessed
 
 2026-11-01

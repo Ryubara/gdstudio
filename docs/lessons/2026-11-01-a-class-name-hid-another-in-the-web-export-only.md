@@ -1,3 +1,6 @@
+---
+areas: [web, godot]
+---
 # A class name hid another one, only in the web export
 
 2026-11-01

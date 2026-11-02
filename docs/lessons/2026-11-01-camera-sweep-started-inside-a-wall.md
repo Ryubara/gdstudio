@@ -1,3 +1,6 @@
+---
+areas: [camera, tests]
+---
 # A camera sweep test reported thousands of false failures
 
 2026-11-01

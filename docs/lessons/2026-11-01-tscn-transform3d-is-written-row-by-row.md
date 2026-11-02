@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # A generated scene turned a node the wrong way
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, blender]
+---
 # The editor recompressed the palettes on open
 
 2026-11-01

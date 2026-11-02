@@ -167,6 +167,7 @@ def test_start_labels_assigns_comments_and_writes_the_ledger(tmp_path):
         "agent": "godot-engineer-3",
         "time": "2026-11-02T09:30:00Z",
         "branch": "profile-tick",
+        "areas": [],
     }
     assert lines[-1] == "Issue: Ryubara/deadnight#156"
 
@@ -253,3 +254,19 @@ def test_settings_default_kit_and_game_override(tmp_path):
 def test_the_kits_own_settings_load():
     kit = Path(__file__).resolve().parents[2]
     assert issues.load_settings(kit).window == 5
+
+
+def test_start_records_the_areas_of_the_issues_labels(tmp_path):
+    ledger = tmp_path / "l.json"
+    seen = []
+
+    def areas_for(labels):
+        seen.append(labels)
+        return ["general", "gameplay"]
+
+    lines = issues.start(REPO, 156, "a", gh=FakeGh(), ledger=ledger, areas_for=areas_for)
+    assert "A-gameplay" in seen[0]
+    assert issues.load_ledger(ledger)["ryubara/deadnight#156"]["areas"] == ["general", "gameplay"]
+    assert any(line.startswith("areas: general, gameplay") for line in lines)
+    issues.start(REPO, 52, "a", gh=FakeGh(), ledger=ledger)  # no map: no areas, still a valid entry
+    assert issues.load_ledger(ledger)["ryubara/deadnight#52"]["areas"] == []

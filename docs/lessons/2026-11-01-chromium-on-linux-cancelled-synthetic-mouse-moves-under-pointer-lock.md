@@ -1,3 +1,6 @@
+---
+areas: [input, ci]
+---
 # Chromium on Linux cancelled synthetic mouse moves under pointer lock
 
 2026-11-01

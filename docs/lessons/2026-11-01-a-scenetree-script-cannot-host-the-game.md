@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # A SceneTree script could not host nodes that need the tree
 
 2026-11-01

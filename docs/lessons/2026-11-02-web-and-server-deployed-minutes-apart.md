@@ -1,3 +1,6 @@
+---
+areas: [backend, net]
+---
 # The web build and the game server deployed minutes apart, and players were refused in between
 
 2026-11-02

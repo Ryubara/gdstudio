@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, input]
+---
 # Arrow keys from a tab strip skipped the page's rows
 
 2026-11-01

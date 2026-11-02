@@ -1,3 +1,6 @@
+---
+areas: [tools, blender]
+---
 # Baked clip poses need their own action for a video
 
 2026-11-01

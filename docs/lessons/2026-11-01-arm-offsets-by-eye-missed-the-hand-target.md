@@ -1,3 +1,6 @@
+---
+areas: [blender, tests]
+---
 # Arm offsets by eye missed the hand target
 
 2026-11-01

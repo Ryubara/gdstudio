@@ -1,3 +1,6 @@
+---
+areas: [godot, tools]
+---
 # A static function named `reload` on a script class returned an int
 
 2026-11-01

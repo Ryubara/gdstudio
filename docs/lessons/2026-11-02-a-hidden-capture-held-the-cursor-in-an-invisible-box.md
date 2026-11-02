@@ -1,3 +1,6 @@
+---
+areas: [input, tests]
+---
 # A hidden capture held the cursor in an invisible box
 
 2026-11-02

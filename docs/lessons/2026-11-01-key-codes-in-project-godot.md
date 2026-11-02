@@ -1,3 +1,6 @@
+---
+areas: [godot, input]
+---
 # A hand-typed key code in `project.godot` loaded but never fired
 
 2026-11-01

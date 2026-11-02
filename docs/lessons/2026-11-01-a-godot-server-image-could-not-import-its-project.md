@@ -1,3 +1,6 @@
+---
+areas: [godot, net]
+---
 # A Godot server image could not import its project
 
 2026-11-01

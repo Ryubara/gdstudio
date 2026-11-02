@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # A scheduled sound was stamped with the end of the step that ran it
 
 2026-11-01

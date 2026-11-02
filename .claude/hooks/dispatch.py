@@ -4,10 +4,10 @@
 registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.
 
 Answers follow Claude Code's JSON protocol with exit code 0: `permissionDecision: deny` before a tool runs, `decision:
-block` at Stop, `additionalContext` at SessionStart, UserPromptSubmit, SubagentStart and PostToolUse. Never exit code
-2: `uv` and Python also exit 2 when they cannot start, and a PreToolUse hook exiting 2 would block every tool call. If
-the dispatcher itself breaks, it lets the call through and says so on stderr: a broken guard must never lock a
-session out.
+block` at Stop and SubagentStop, `additionalContext` at SessionStart, UserPromptSubmit, SubagentStart and PostToolUse.
+Never exit code 2: `uv` and Python also exit 2 when they cannot start, and a PreToolUse hook exiting 2 would block
+every tool call. If the dispatcher itself breaks, it lets the call through and says so on stderr: a broken guard
+must never lock a session out.
 
 Standard library only: hooks run under `uv run --no-project`.
 """
@@ -60,8 +60,8 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
                     "permissionDecisionReason": text,
                 }
             }
-    elif event == "Stop":
-        reason = guards.stop(payload, config)
+    elif event in ("Stop", "SubagentStop"):
+        reason = (guards.stop if event == "Stop" else guards.subagent_stop)(payload, config)
         if reason:
             return {"decision": "block", "reason": reason}
     elif event in CONTEXT_EVENTS:

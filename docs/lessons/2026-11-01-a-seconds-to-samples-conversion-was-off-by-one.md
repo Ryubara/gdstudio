@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # Two arrays for the same duration differed by one sample
 
 2026-11-01

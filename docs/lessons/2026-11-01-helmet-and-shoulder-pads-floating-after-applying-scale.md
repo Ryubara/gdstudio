@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # Helmet and shoulder pads floating after applying scale
 
 2026-11-01

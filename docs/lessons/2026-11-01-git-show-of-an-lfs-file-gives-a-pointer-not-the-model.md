@@ -1,3 +1,6 @@
+---
+areas: [godot, tools]
+---
 # A model copied with `git show` imported as nothing
 
 2026-11-01

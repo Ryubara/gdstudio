@@ -1,3 +1,6 @@
+---
+areas: [camera, gameplay]
+---
 # A bot's shots hit the car beside it while the camera saw the zombie
 
 2026-11-01

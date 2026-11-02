@@ -1,3 +1,6 @@
+---
+areas: [godot, blender]
+---
 # A headless import left new textures without mipmaps
 
 2026-11-01

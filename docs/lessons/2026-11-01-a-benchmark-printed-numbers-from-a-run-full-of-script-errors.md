@@ -1,3 +1,6 @@
+---
+areas: [tests, gameplay]
+---
 # A benchmark printed numbers from a run full of script errors
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # Comparing a Node with `== false` raised at run time
 
 2026-11-01

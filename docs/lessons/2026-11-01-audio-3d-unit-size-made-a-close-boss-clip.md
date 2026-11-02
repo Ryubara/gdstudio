@@ -1,3 +1,6 @@
+---
+areas: [audio, tools]
+---
 # A boss with a large unit_size clipped the mix at close range
 
 2026-11-01

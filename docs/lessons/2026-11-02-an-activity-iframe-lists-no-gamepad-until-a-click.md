@@ -1,3 +1,6 @@
+---
+areas: [web, input]
+---
 # The gamepad did nothing in the Discord Activity until the player clicked in it
 
 2026-11-02

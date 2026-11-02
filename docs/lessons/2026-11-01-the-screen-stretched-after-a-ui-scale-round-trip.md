@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, gameplay]
+---
 # The screen stretched after a UI scale round trip
 
 2026-11-01

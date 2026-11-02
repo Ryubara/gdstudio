@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # A smoothness test read the real clock and failed on busy machines
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, blender]
+---
 # Blender 5 moved the compositor to a node group
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [net, tools]
+---
 # Per-client upstream grew with the player count on Godot's high-level multiplayer
 
 2026-11-01

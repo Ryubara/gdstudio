@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # A balance simulator on a stand-in weapon table passed its gate and was wrong
 
 2026-11-01

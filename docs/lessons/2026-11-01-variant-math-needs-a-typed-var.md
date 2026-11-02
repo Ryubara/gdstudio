@@ -1,3 +1,6 @@
+---
+areas: [godot]
+---
 # "Cannot infer the type of variable" on arithmetic with a dictionary value
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tools, godot]
+---
 # Killing Godot by name stopped other agents' runs
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tests, input]
+---
 # A test lost the focus to a screen an earlier suite left behind, only on a loaded machine
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [ci, audio]
+---
 # An override passed to `Dictionary.merged` was ignored
 
 2026-11-01

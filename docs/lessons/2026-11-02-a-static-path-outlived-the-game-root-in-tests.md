@@ -1,3 +1,6 @@
+---
+areas: [tests]
+---
 # A static path set by the game root outlived the root in a test run
 
 2026-11-02

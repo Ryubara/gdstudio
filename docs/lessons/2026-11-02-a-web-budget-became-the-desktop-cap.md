@@ -1,3 +1,6 @@
+---
+areas: [net, web]
+---
 # A crowd cap measured in the browser became the desktop cap
 
 2026-11-02

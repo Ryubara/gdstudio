@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # A test that steps by hand but waits a physics frame per tick runs at wall-clock speed
 
 2026-11-02

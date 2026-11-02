@@ -1,3 +1,6 @@
+---
+areas: [gameplay, net]
+---
 # A bought weapon never reached the player because the shop's id is not the weapon's id
 
 2026-11-01

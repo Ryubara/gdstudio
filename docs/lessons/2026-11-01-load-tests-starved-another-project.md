@@ -1,3 +1,6 @@
+---
+areas: [tests, process]
+---
 # Load tests starved another project on the same machine
 
 2026-11-01

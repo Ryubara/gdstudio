@@ -1,3 +1,6 @@
+---
+areas: [web, net]
+---
 # Behind Discord's proxy the web build read every 200 as "cannot reach the servers"
 
 2026-11-02

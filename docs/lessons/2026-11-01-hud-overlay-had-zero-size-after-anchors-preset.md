@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, godot]
+---
 # A full-screen Control built in code drew at the top-left corner
 
 2026-11-01

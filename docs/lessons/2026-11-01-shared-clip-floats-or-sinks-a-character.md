@@ -1,3 +1,6 @@
+---
+areas: [tools, blender]
+---
 # Shared clip floats or sinks a character
 
 2026-11-01

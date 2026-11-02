@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # A paused SceneTree hung a GdUnit4 test that used `await_millis`
 
 2026-11-01

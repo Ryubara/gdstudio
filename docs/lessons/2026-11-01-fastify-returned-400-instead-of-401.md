@@ -1,3 +1,6 @@
+---
+areas: [tools, backend]
+---
 # Fastify returned 400 instead of 401
 
 2026-11-01

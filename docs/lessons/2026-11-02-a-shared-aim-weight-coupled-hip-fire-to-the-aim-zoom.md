@@ -1,3 +1,6 @@
+---
+areas: [camera, tests]
+---
 # A shared aim weight coupled hip fire to the aim zoom
 
 2026-11-02

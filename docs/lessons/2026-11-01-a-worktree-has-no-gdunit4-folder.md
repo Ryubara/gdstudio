@@ -1,3 +1,6 @@
+---
+areas: [tests, tools]
+---
 # GdUnit4 would not start in a fresh worktree
 
 2026-11-01

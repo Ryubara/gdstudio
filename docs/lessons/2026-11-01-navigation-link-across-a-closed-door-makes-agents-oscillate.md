@@ -1,3 +1,6 @@
+---
+areas: [process, gameplay]
+---
 # A NavigationLink across a door slab left agents walking back and forth on it
 
 2026-11-01

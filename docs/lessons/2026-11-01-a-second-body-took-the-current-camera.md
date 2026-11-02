@@ -1,3 +1,6 @@
+---
+areas: [camera, godot-ui]
+---
 # A second body in the same process took the current camera
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [blender, camera]
+---
 # A portrait Blender camera showed mostly sky
 
 2026-11-01

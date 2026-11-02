@@ -1,3 +1,6 @@
+---
+areas: [process, ci]
+---
 # New pull requests opened while older ones stalled
 
 2026-11-02

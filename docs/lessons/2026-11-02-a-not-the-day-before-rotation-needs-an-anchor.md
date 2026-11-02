@@ -1,3 +1,6 @@
+---
+areas: [general]
+---
 # A "never the same as the day before" rotation needs a chain with a start
 
 2026-11-02

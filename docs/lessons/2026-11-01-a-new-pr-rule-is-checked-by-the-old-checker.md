@@ -1,3 +1,6 @@
+---
+areas: [ci, tools]
+---
 # A pull request that adds a description rule is not checked by it
 
 2026-11-01

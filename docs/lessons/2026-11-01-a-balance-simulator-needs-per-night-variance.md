@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # Simulated players that never vary make every night end in the same round
 
 2026-11-01

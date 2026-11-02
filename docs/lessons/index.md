@@ -8,7 +8,15 @@ One problem per file: `docs/lessons/<yyyy-mm-dd>-<slug>.md`, where the slug is a
 lowercase with hyphens. The navigation lists every file in this folder by itself, so adding a lesson never touches a
 shared file and never conflicts with another pull request.
 
+The `areas:` line is required: pick from [areas.toml](areas.toml) (the names and what each covers). The generated
+[Mistakes by area](../research/mistakes-by-area.md) page is built from it, so run
+`python .github/scripts/mistakes.py render` after adding a lesson; `check` (pre-commit and CI) fails on a lesson with no
+area or a stale page.
+
 ```markdown
+---
+areas: [net, web]
+---
 # Short statement of the problem
 
 2026-11-01

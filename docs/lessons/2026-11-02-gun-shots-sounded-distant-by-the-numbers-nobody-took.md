@@ -1,3 +1,6 @@
+---
+areas: [audio, gameplay]
+---
 # A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak
 
 2026-11-02

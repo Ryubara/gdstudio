@@ -1,3 +1,6 @@
+---
+areas: [tests, blender]
+---
 # A light cap test that saw only boxes
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [input, tools]
+---
 # Injected touch drags turned the view by the wrong amount
 
 2026-11-01

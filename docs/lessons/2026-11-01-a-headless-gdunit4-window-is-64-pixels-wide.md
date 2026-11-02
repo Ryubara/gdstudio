@@ -1,3 +1,6 @@
+---
+areas: [input, tests]
+---
 # A mouse event sent in a headless GdUnit4 run landed outside the window
 
 2026-11-01

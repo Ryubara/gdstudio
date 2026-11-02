@@ -1,3 +1,6 @@
+---
+areas: [net, tools]
+---
 # The client never saw the kill: events from the server's own tick were dropped
 
 2026-11-01

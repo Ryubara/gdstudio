@@ -1,3 +1,6 @@
+---
+areas: [audio, tests]
+---
 # Close 3D sounds all played at the ceiling whatever their trim
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [camera, gameplay]
+---
 # A marker's yaw read from its Euler angle was wrong at a quarter turn
 
 2026-11-01

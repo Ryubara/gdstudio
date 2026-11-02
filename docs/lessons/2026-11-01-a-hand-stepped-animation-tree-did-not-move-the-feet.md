@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A hand-stepped AnimationTree did not move the feet
 
 2026-11-01

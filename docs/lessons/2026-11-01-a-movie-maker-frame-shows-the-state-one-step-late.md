@@ -1,3 +1,6 @@
+---
+areas: [tests]
+---
 # A Movie Maker frame shows the state one step late
 
 2026-11-01

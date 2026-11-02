@@ -1,3 +1,6 @@
+---
+areas: [web, godot]
+---
 # Playwright's headless browser is always software-rendered
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [blender, tests]
+---
 # The same rotation raised one arm and folded the other
 
 2026-11-01

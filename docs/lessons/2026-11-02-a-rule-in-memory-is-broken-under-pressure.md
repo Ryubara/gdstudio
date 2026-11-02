@@ -1,3 +1,6 @@
+---
+areas: [process, tools]
+---
 # A rule that lives only in an agent's memory is broken under pressure
 
 2026-11-02

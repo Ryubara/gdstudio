@@ -1,3 +1,6 @@
+---
+areas: [tools, blender]
+---
 # Hooks judged text as commands
 
 2026-11-01

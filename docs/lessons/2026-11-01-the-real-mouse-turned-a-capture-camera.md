@@ -1,3 +1,6 @@
+---
+areas: [input, tests]
+---
 # The machine's real mouse turned a capture's camera
 
 2026-11-01

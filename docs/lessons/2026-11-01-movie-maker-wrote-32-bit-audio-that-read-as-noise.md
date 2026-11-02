@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # Movie Maker's WAV read as noise at twice the length
 
 2026-11-01

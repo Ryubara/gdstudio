@@ -1,3 +1,6 @@
+---
+areas: [gameplay, tests]
+---
 # A thrown body bounced forever and never came to rest
 
 2026-11-01

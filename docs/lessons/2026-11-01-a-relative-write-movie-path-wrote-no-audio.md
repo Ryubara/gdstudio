@@ -1,3 +1,6 @@
+---
+areas: [audio, tests]
+---
 # A relative --write-movie path recorded frames to the wrong place and no audio
 
 2026-11-01

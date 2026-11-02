@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, tests]
+---
 # A HUD overlapped itself only at one window size and UI scale
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tests]
+---
 # A test that waited for a count that never came hung the whole suite
 
 2026-11-02
