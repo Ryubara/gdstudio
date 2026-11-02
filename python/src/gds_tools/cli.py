@@ -282,7 +282,9 @@ def _cmd_issue_block(args: argparse.Namespace) -> int:
     repo, number = _issue_ref(args)
     args.repo = repo
     _, _, ledger = _issue_context(args)
-    lines = issues.block(repo, number, args.on, args.why, gh=issues.run_gh, ledger=ledger, who=args.by)
+    lines = issues.block(
+        repo, number, args.on, args.why, gh=issues.run_gh, ledger=ledger, who=args.by, conflict=args.conflict or ()
+    )
     print("\n".join(lines))
     return 0
 
@@ -465,7 +467,15 @@ def build_parser() -> argparse.ArgumentParser:
     blk.add_argument(
         "--on",
         required=True,
-        help="#N (or owner/repo#N) of the open issue or pull request it waits on, or 'maintainer'",
+        help="#N (or owner/repo#N) of the open issue or pull request it waits on, or 'maintainer'; #N must be named "
+        "as a dependency in the issue body ('Depends on: #N', 'Carried from #N') unless --conflict names the files",
+    )
+    blk.add_argument(
+        "--conflict",
+        nargs="+",
+        metavar="PATH",
+        help="the files both issues would edit in ways a merge cannot settle (a reason in place of a dependency; "
+        "'same subsystem' or 'same agent' is not one: docs/starting-work.md#parallel)",
     )
     blk.add_argument("--why", required=True, help="the reason, in a sentence (written to the issue body)")
     blk.add_argument("--by", default="coordinator", help="who blocks it, for the body line (default: coordinator)")

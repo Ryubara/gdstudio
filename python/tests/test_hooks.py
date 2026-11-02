@@ -1215,6 +1215,7 @@ def test_a_coordinator_with_idle_issues_is_refused_and_told_both_ways_out(worksp
     assert "gds issue start <repo>#N --agent <name>" in reason
     assert 'gds issue block <repo>#N --on <#N|maintainer> --why "<text>"' in reason
     assert "gds issue unblock <repo>#N" in reason
+    assert "`Depends on:`" in reason and "--conflict <path>..." in reason  # a block needs a dependency or files
     assert "Refusal 1 of 2" in reason
 
 

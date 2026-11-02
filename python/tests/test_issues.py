@@ -370,12 +370,13 @@ def test_block_writes_the_label_and_the_line(tmp_path):
     ledger = tmp_path / "issues-started.json"
     cache = tmp_path / issues.IDLE_CACHE
     cache.write_text("{}", encoding="utf-8")
-    gh = gh_for([raw(7, "S-ready-to-start", body="## Problem\n\nText."), raw(227)])
+    gh = gh_for([raw(7, "S-ready-to-start", body="## Problem\n\nText.\n\nDepends on: #227."), raw(227)])
     lines = issues.block(REPO, 7, "#227", "needs the\nzombie rig", gh=gh, ledger=ledger, now=NOW)
     edit = gh.calls[0]
     assert edit[:5] == ["issue", "edit", "7", "-R", REPO]
     assert edit[edit.index("--body") + 1] == (
-        "## Problem\n\nText.\n\nBlocked (coordinator, 2026-11-03): waits on #227: needs the zombie rig"
+        "## Problem\n\nText.\n\nDepends on: #227.\n\n"
+        "Blocked (coordinator, 2026-11-03): waits on #227: needs the zombie rig"
     )
     assert edit[edit.index("--add-label") + 1] == "S-blocked"
     assert edit[edit.index("--remove-label") + 1] == "S-ready-to-start"
@@ -396,7 +397,7 @@ def test_block_on_the_maintainer_and_replacing_an_old_line(tmp_path):
 
 def test_block_refuses_what_cannot_be_blocked(tmp_path):
     ledger = tmp_path / "l.json"
-    gh = gh_for([raw(7), raw(8, "S-in-progress"), raw(227)])
+    gh = gh_for([raw(7, body="Depends on: #227"), raw(8, "S-in-progress"), raw(227)])
     for number, on, why, text in [
         (7, "#7", "x", "not another open"),
         (7, "#999", "x", "not another open"),  # closed or never existed
@@ -412,9 +413,104 @@ def test_block_refuses_what_cannot_be_blocked(tmp_path):
 
 def test_block_may_wait_on_an_open_pull_request(tmp_path):
     prs = json.dumps([{"number": 90, "title": "p", "body": "", "labels": [], "closingIssuesReferences": []}])
-    gh = gh_for([raw(7)], prs=prs)
+    gh = gh_for([raw(7, body="Depends on: #90 (the check)")], prs=prs)
     issues.block(REPO, 7, "#90", "needs the check", gh=gh, ledger=tmp_path / "l.json", now=NOW)
     assert "waits on #90" in gh.calls[0][gh.calls[0].index("--body") + 1]
+
+
+def blocked_body(tmp_path, body: str, *, on: str = "#564", conflict=()) -> list[str]:
+    """The `gh issue edit` call `block` makes for issue 7 with this body, or raises."""
+    gh = gh_for([raw(7, "S-ready-to-start", body=body), raw(564, "S-in-progress"), raw(570)])
+    issues.block(REPO, 7, on, "why", gh=gh, ledger=tmp_path / "l.json", now=NOW, conflict=conflict)
+    return gh.calls[0]
+
+
+def test_block_accepts_a_dependency_the_body_names(tmp_path):
+    for body in [
+        "Depends on: #564.",
+        "**Depends on:** phases 1 to 3 and #564 (the bot brain)",
+        "- Depends on: #570, #564",
+        "Depends on: #560 to #570",  # a range names each number in it
+        "Carried from #564 (PR #597, coordinator 2026-11-02): the shop soak missed a gate.",
+        "Depends on: Ryubara/deadnight#564",
+    ]:
+        edit = blocked_body(tmp_path, body)
+        assert "waits on #564: why" in edit[edit.index("--body") + 1], body
+        assert "S-blocked" in edit
+
+
+def test_block_refuses_a_chain_with_no_dependency_and_points_at_the_rule(tmp_path):
+    """Deadnight #229, #230 and #231 were chained behind #564 as 'the same bot brain; one agent in order'."""
+    for body in [
+        "",
+        "Depends on: phases 1 to 3.",  # no issue named
+        "Depends on: #570.",  # another issue
+        "Depends on: #5640.",
+        "See #564 for the bot brain.",  # mentioned, not a dependency
+        "Carried from #570 (PR #564): the soak.",  # the pull request after it is not the issue it was carried from
+        "Blocked (coordinator, 2026-11-02): waits on #564: the same bot brain; one agent in order.",
+    ]:
+        gh = gh_for([raw(7, "S-ready-to-start", body=body), raw(564, "S-in-progress")])
+        with pytest.raises(IssueError, match=r"does not name #564 as a dependency") as caught:
+            issues.block(REPO, 7, "#564", "the same bot brain", gh=gh, ledger=tmp_path / "l.json", now=NOW)
+        assert "docs/starting-work.md#parallel" in str(caught.value) and "--conflict" in str(caught.value), body
+        assert gh.calls == [], body  # nothing was changed
+
+
+def test_block_accepts_conflict_files_in_place_of_a_dependency(tmp_path):
+    edit = blocked_body(tmp_path, "No dependency named.", conflict=("src/bots/brain.gd", "tests/bots/brain_test.gd"))
+    body = edit[edit.index("--body") + 1]
+    assert body.endswith("waits on #564: why (conflict in: src/bots/brain.gd, tests/bots/brain_test.gd)")
+    block = issues.parse_block(body)
+    assert block.conflicts == ("src/bots/brain.gd", "tests/bots/brain_test.gd") and block.waits_on == (("", 564),)
+    assert block.kind(set(), REPO) == "conflict"
+
+
+def test_block_conflict_still_needs_an_open_issue_and_a_file_named(tmp_path):
+    gh = gh_for([raw(7), raw(564, "S-in-progress")])
+    with pytest.raises(IssueError, match="not another open"):
+        issues.block(REPO, 7, "#999", "x", gh=gh, ledger=tmp_path / "l.json", now=NOW, conflict=("a.gd",))
+    with pytest.raises(IssueError, match="does not name #564"):  # a blank path names nothing
+        issues.block(REPO, 7, "#564", "x", gh=gh, ledger=tmp_path / "l.json", now=NOW, conflict=("  ",))
+    with pytest.raises(IssueError, match="maintainer has none"):
+        issues.block(REPO, 7, "maintainer", "x", gh=gh, ledger=tmp_path / "l.json", now=NOW, conflict=("a.gd",))
+    assert gh.calls == []
+
+
+def test_block_on_the_maintainer_needs_no_dependency(tmp_path):
+    gh = gh_for([raw(7, body="No dependency named.")])
+    issues.block(REPO, 7, "maintainer", "a person must launch it", gh=gh, ledger=tmp_path / "l.json", now=NOW)
+    assert "waits on the maintainer" in gh.calls[0][gh.calls[0].index("--body") + 1]
+
+
+def test_dependencies_read_the_forms_deadnight_uses():
+    body = (
+        "From: bots-combat agent, 2026-11-02, deadnight #227\n\n"
+        "Depends on: phases 1 to 5, the networked match (#53 to #56), and Ryubara/gdstudio#12.\n"
+        "Builds on the core revive of #224.\n"
+        "Carried from #228 (PR #597, coordinator): it missed a gate.\n"
+        "Blocked (coordinator, 2026-11-02): waits on #564: the same bot brain.\n"
+    )
+    assert issues.dependencies(body) == {("", 53), ("", 54), ("", 55), ("", 56), ("Ryubara/gdstudio", 12), ("", 228)}
+    assert issues.dependencies("") == set()
+
+
+def test_list_shows_the_reason_class_beside_each_block(tmp_path):
+    def row(number: int, title: str, body: str, *labels: str) -> dict:
+        return {"number": number, "title": title, "labels": [{"name": n} for n in labels], "body": body}
+
+    rows = [
+        row(1, "dep", "Depends on: #227\n" + BY_HAND, "S-blocked"),
+        row(2, "chain", "Blocked (coordinator, 2026-11-02): waits on #227: same brain", "S-blocked"),
+        row(3, "files", "Blocked (coordinator, 2026-11-03): waits on #227: edits (conflict in: a.gd)", "S-blocked"),
+        row(4, "person", "Blocked (coordinator, 2026-11-02): waits on the maintainer: x", "S-blocked"),
+        row(227, "open", "", "S-in-progress"),
+    ]
+    gh = FakeGh(issues_json=json.dumps(rows), prs_json="[]")
+    text = "\n".join(issues.list_issues(REPO, gh=gh, ledger=tmp_path / "l.json"))
+    by_number = {int(line.split()[0][1:]): line for line in text.splitlines() if line.startswith("  #")}
+    assert "[dependency]" in by_number[1] and "[none named]" in by_number[2]
+    assert "[conflict]" in by_number[3] and "[maintainer]" in by_number[4]
 
 
 def test_unblock_lifts_the_label_and_the_line_and_keeps_the_reason(tmp_path):

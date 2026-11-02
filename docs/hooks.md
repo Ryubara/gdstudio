@@ -12,7 +12,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
 | Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request, or commits made after its pull request merged; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
 | Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
-| Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..."`) ([below](#idle)) |
+| Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..." [--conflict <path>...]`) ([below](#idle)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
@@ -123,15 +123,21 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
 2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
    agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
-   when it conflicts with an issue an agent has (same files or mechanic: give both to one agent in sequence, so `--on`
-   that issue) or waits on the maintainer; or `gds issue unblock <repo>#N` for an unblocked one.
+   when it waits on the maintainer, or on #N that its body names (`Depends on:`, `Carried from`), or with `--conflict
+   <path>...` naming the files it and an issue an agent has would edit in ways a merge cannot settle (give both to one
+   agent in sequence). Same subsystem, same agent and "in order" are not reasons; the command refuses them
+   ([Starting work](starting-work.md#parallel)); or `gds issue unblock <repo>#N` for an unblocked one.
 3. **Blocks have a reason.** `gds issue block` writes the label `S-blocked` and a `Blocked (<who>, <date>): waits on #N:
    <why>` line (or `waits on the maintainer: <why>`) in the body. The coordinator's hand-written form since 2026-11-02,
    `Blocked (coordinator, 2026-11-02): waits on #227 (...)`, is parsed the same way (the issues named before the first
-   colon, parenthesis or dash are the blockers; an open pull request counts as open). `gds issue list` shows the
-   reason of each blocked issue, and lists under "Unblocked: label to remove" those whose blockers all closed, so a
-   block cannot outlive its cause. A block on the maintainer, on an issue of another repository, or with no
-   recognisable issue is never lifted by itself.
+   colon, parenthesis or dash are the blockers; an open pull request counts as open). The command writes only a block
+   it can back: the blocked issue's body names #N (`Depends on:`, `Carried from`), or `--conflict` names the files
+   (`(conflict in: ...)` after the reason), or it waits on the maintainer (on 2026-11-02 four bot issues were chained
+   behind one running issue as "the same bot brain, in order", none needing what it made, and five issues sat still).
+   `gds issue list` shows the reason and its class (`[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for
+   a hand-written block its issue body does not back) of each blocked issue, and lists under "Unblocked: label to
+   remove" those whose blockers all closed, so a block cannot outlive its cause. A block on the maintainer, on an issue
+   of another repository, or with no recognisable issue is never lifted by itself.
 4. **It cannot hold the coordinator forever.** It counts its own refusals per session (`session_id`) in
    `<workspace>/cache/idle-check-refusals.json` and allows the end after `max_refusals` (2) in a row, like the
    [stall gate](#stall) (`stop_hook_active` cannot count past one, so this check ignores it). The count is forgotten
