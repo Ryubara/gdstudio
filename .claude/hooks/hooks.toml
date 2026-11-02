@@ -79,6 +79,13 @@ ledger = "cache/issues-started.json"
 enforce = true
 exempt = ["reviewer"]
 
+[attach]
+# `gh pr create|edit --attach` (docs/capture.md#attaching) is refused unless the body it sends already refers to every
+# attached file as `![alt](./<file name>)` inside this section, the before capture between the `Before:` and `After:`
+# lines: otherwise the images land at the end of the body, after `## AI use`.
+enforce = true
+section = "Screenshots"
+
 [docs]
 # Docs ship with the change (docs/hooks.md#docs). The glossary is built from the lessons of the kit checkout (it is not a
 # committed file); SubagentStart puts the sections of the issue's areas into the agent's context, at most `inject_limit`
