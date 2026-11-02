@@ -262,6 +262,12 @@ def _cmd_issue_done(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_merge_main(args: argparse.Namespace) -> int:
+    path = Path(args.path).resolve() if args.path else Path.cwd()
+    print("\n".join(worktrees.merge_main(path, co_author=args.co_author or "", resume=args.resume)))
+    return 0
+
+
 def _cmd_lessons(args: argparse.Namespace) -> int:
     """`gds lessons [area ...]`: the checks of the mistakes glossary for some areas, or the list of areas."""
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
@@ -376,6 +382,12 @@ def build_parser() -> argparse.ArgumentParser:
     fin = iss.add_parser("done", help="clear an issue from the ledger (a merged Fixes pull request does it anyway)")
     fin.add_argument("ref", help=ref_help)
     fin.set_defaults(func=_cmd_issue_done)
+
+    mrg = sub.add_parser("merge-main", help="merge origin/main into the branch of a worktree with a clean message")
+    mrg.add_argument("--path", help="the worktree (default: the current folder)")
+    mrg.add_argument("--co-author", help="<model name> <noreply address> (default: the newest trailer on the branch)")
+    mrg.add_argument("--continue", dest="resume", action="store_true", help="commit the merge once conflicts are fixed")
+    mrg.set_defaults(func=_cmd_merge_main)
 
     les = sub.add_parser("lessons", help="the checks of past mistakes by area (built from docs/lessons)")
     les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")

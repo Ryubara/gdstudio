@@ -200,3 +200,76 @@ def test_the_real_pre_commit_installs_all_three_hooks(world):
     made = make(world)
     assert worktrees.missing_hooks(made.path) == []
     assert "installing them" in made.hooks[0]
+
+
+# --- gds merge-main ------------------------------------------------------------------------------------------------
+
+TRAILER = "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+
+
+def work_branch(world, name="work"):
+    """A worktree on a branch with one commit (carrying the trailer), plus a later commit on origin/main."""
+    made = make(world, title=name, number=1, install=fake_install)
+    (made.path / "mine.txt").write_text("mine\n", encoding="utf-8")
+    git(made.path, "add", "-A")
+    git(made.path, "commit", "-q", "--no-verify", "-m", f"net: Add mine\n\n{TRAILER}")
+    return made
+
+
+def push_to_main(world, name: str, text: str) -> None:
+    (world["seed"] / name).write_text(text, encoding="utf-8")
+    git(world["seed"], "add", "-A")
+    git(world["seed"], "commit", "-q", "-m", f"build: Add {name}")
+    git(world["seed"], "push", "-q", "origin", "main")
+
+
+def test_merge_main_commits_a_clean_merge_ending_in_the_one_trailer(world):
+    made = work_branch(world)
+    push_to_main(world, "other.txt", "other\n")
+    lines = worktrees.merge_main(made.path)
+    assert "merged origin/main" in lines[0]
+    message = git(made.path, "log", "-1", "--format=%B")
+    assert message == f"Merge origin/main into work\n\n{TRAILER}"
+    assert len(git(made.path, "log", "-1", "--format=%P").split()) == 2  # a merge commit
+
+
+def test_merge_main_with_nothing_new_changes_nothing(world):
+    made = work_branch(world)
+    head = git(made.path, "rev-parse", "HEAD")
+    assert "nothing to merge" in worktrees.merge_main(made.path)[0]
+    assert git(made.path, "rev-parse", "HEAD") == head
+
+
+def test_merge_main_stops_on_conflicts_lists_the_files_and_continues_clean(world):
+    made = work_branch(world)
+    (made.path / "same.txt").write_text("mine\n", encoding="utf-8")
+    git(made.path, "add", "-A")
+    git(made.path, "commit", "-q", "--no-verify", "-m", f"net: Add same\n\n{TRAILER}")
+    push_to_main(world, "same.txt", "theirs\n")
+    with pytest.raises(worktrees.MergeConflict) as error:
+        worktrees.merge_main(made.path, co_author="Claude Sonnet 5.5 <noreply@anthropic.com>")
+    assert "same.txt" in str(error.value) and "--continue" in str(error.value)
+    with pytest.raises(WorktreeError, match="already in progress"):
+        worktrees.merge_main(made.path)
+    with pytest.raises(worktrees.MergeConflict, match="still unmerged"):
+        worktrees.merge_main(made.path, resume=True)
+    (made.path / "same.txt").write_text("resolved\n", encoding="utf-8")
+    git(made.path, "add", "same.txt")
+    worktrees.merge_main(made.path, resume=True)
+    message = git(made.path, "log", "-1", "--format=%B")
+    assert message == f"Merge origin/main into work\n\n{TRAILER}" and "Conflicts" not in message
+
+
+def test_merge_main_needs_a_trailer_a_clean_tree_and_a_work_branch(world):
+    made = make(world, title="bare", number=2, install=fake_install)
+    push_to_main(world, "other.txt", "other\n")
+    with pytest.raises(WorktreeError, match="no Co-Authored-By trailer"):
+        worktrees.merge_main(made.path)
+    (made.path / "stray.txt").write_text("x\n", encoding="utf-8")
+    git(made.path, "add", "stray.txt")
+    with pytest.raises(WorktreeError, match="uncommitted changes"):
+        worktrees.merge_main(made.path)
+    with pytest.raises(WorktreeError, match="no merge is in progress"):
+        worktrees.merge_main(made.path, resume=True)
+    with pytest.raises(WorktreeError, match="merge main into a work branch"):
+        worktrees.merge_main(world["checkout"])

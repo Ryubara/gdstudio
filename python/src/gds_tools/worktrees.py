@@ -13,6 +13,7 @@ import contextlib
 import re
 import shutil
 import subprocess
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -156,3 +157,95 @@ def remove(checkout: Path, path: Path, branch: str, git: Run = run) -> None:
     for cmd in (["git", "worktree", "remove", "--force", str(path)], ["git", "branch", "-D", branch]):
         with contextlib.suppress(WorktreeError):
             git(cmd, checkout)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Merging main into a branch (`gds merge-main`)
+# --------------------------------------------------------------------------------------------------------------------
+
+_TRAILER_LINE = re.compile(r"^Co-Authored-By: .+ <[^<>\s]+@[^<>\s]+>$", re.MULTILINE)
+
+
+class MergeConflict(WorktreeError):
+    """`origin/<default>` does not merge cleanly; the merge is left in progress for the agent to resolve."""
+
+
+def toplevel(path: Path, git: Run = run) -> Path:
+    """The worktree around `path`, as an absolute path."""
+    return Path(git(["git", "rev-parse", "--show-toplevel"], path.resolve()).strip()).resolve()
+
+
+def last_trailer(tree: Path, default: str, git: Run = run) -> str:
+    """The newest `Co-Authored-By` line of the commits this branch has on top of `origin/<default>`, or ''."""
+    log = git(["git", "log", "--format=%B%x1e", f"origin/{default}..HEAD"], tree)
+    found = _TRAILER_LINE.findall(log)
+    return found[0] if found else ""
+
+
+def merge_message(branch: str, default: str, trailer: str) -> str:
+    """The whole message of the merge commit: a title, a blank line, the one trailer, and nothing after it."""
+    return f"Merge origin/{default} into {branch}\n\n{trailer}\n"
+
+
+def unmerged(tree: Path, git: Run = run) -> list[str]:
+    return git(["git", "diff", "--name-only", "--diff-filter=U"], tree).split()
+
+
+def merge_main(path: Path, *, co_author: str = "", resume: bool = False, git: Run = run) -> list[str]:
+    """Merge `origin/<default>` into the branch of the worktree at `path`, with a clean message.
+
+    The merge is made with `--no-commit` and committed with the whole message from a file (`--cleanup=strip -F`), so
+    nothing git appends (`# Conflicts:`) can follow the trailer. With conflicts it stops, leaves the merge in progress
+    and lists the files; after `git add` of the resolved files, `resume=True` commits it. Returns the lines to print."""
+    tree = toplevel(path, git)
+    default = default_branch(tree, git)
+    branch = git(["git", "rev-parse", "--abbrev-ref", "HEAD"], tree).strip()
+    if branch in (default, "HEAD"):
+        raise WorktreeError(f"{tree} is on {branch}; merge main into a work branch, in its own worktree")
+    in_progress = Path(
+        git(["git", "rev-parse", "--path-format=absolute", "--git-path", "MERGE_HEAD"], tree).strip()
+    ).exists()
+    if resume and not in_progress:
+        raise WorktreeError("no merge is in progress; run `gds merge-main` without --continue")
+    if not resume:
+        if in_progress:
+            raise WorktreeError("a merge is already in progress; resolve it, then `gds merge-main --continue`")
+        if git(["git", "status", "--porcelain", "--untracked-files=no"], tree).strip():
+            raise WorktreeError("the worktree has uncommitted changes; commit them first")
+        git(["git", "fetch", "--quiet", "origin", default], tree)
+        try:
+            git(["git", "merge-base", "--is-ancestor", f"origin/{default}", "HEAD"], tree)
+            return [f"{branch} already contains origin/{default}; nothing to merge"]
+        except WorktreeError:
+            pass
+    trailer = co_author and f"Co-Authored-By: {co_author}" or last_trailer(tree, default, git)
+    if not trailer:
+        raise WorktreeError(
+            'no Co-Authored-By trailer to use: pass --co-author "<model name> <noreply address>" '
+            "(none of the branch's commits has one)"
+        )
+    if not resume:
+        try:
+            git(["git", "merge", "--no-commit", "--no-ff", f"origin/{default}"], tree)
+        except WorktreeError:
+            files = unmerged(tree, git)
+            if not files:
+                raise
+            listing = "\n".join(f"  {name}" for name in files)
+            raise MergeConflict(
+                f"origin/{default} conflicts with {branch} in {len(files)} file(s):\n{listing}\n"
+                "resolve them, `git add` each, then run `gds merge-main --continue` "
+                "(do not `git commit --no-edit`: git would put a '# Conflicts:' paragraph after the trailer)"
+            ) from None
+    elif files := unmerged(tree, git):
+        raise MergeConflict("still unmerged: " + ", ".join(files) + "; `git add` them, then `--continue`")
+    message = Path(tempfile.mkdtemp(prefix="gds-merge-")) / "message.txt"
+    message.write_text(merge_message(branch, default, trailer), encoding="utf-8", newline="\n")
+    try:
+        git(["git", "commit", "--cleanup=strip", "-F", str(message)], tree)
+    finally:
+        shutil.rmtree(message.parent, ignore_errors=True)
+    stored = git(["git", "log", "-1", "--format=%B"], tree).strip().splitlines()
+    if not stored or stored[-1] != trailer:
+        raise WorktreeError(f"the merge commit does not end with its trailer: {stored[-1:]}")
+    return [f"merged origin/{default} into {branch}; the message ends with the trailer", "push once: `git push`"]
