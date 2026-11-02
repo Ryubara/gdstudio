@@ -28,6 +28,9 @@ that game's `game/gameplay/outline/` and `docs/research/outline.md`.
 
 ## Pitfalls
 
+- Make the outline's node and materials with the body, not at the first mark: a pooled-crowd game counts nodes made
+  after the warm-up. See the
+  [lesson](../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
 - A mesh outlined with no stencil-aware ordering shows one body's outline over another's: use `render_priority`.
 - Thickness in raw pixels looks thinner on a big screen: scale by `VIEWPORT_SIZE.y / 1080`.
 - Cost is passes: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls (85 to 136) and no
