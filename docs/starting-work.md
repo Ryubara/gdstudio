@@ -22,16 +22,24 @@ Issues are worked from oldest to newest, at all times, and every start goes thro
 The coordinator keeps an agent on every issue that may start, in every repository of `workspace.toml`. An issue that is
 not started has one of two reasons, and the reason is written down:
 
-- **It conflicts** with an issue an agent has (same mechanic or files): give both to one agent in sequence. The second
-  is blocked on the first.
-- **It is blocked**: it waits on another issue or pull request, or on the maintainer.
+- **It conflicts** with an issue an agent has: both would edit the same files in ways a merge cannot settle, or one
+  measures numbers the other is changing. Name the files. Give both to one agent in sequence; the second is blocked
+  on the first.
+- **It is blocked**: it needs something another issue or pull request makes (its `Depends on:` line names it), or it
+  waits on the maintainer.
+
+Working on the same subsystem is not a conflict, and neither is "the same agent takes them in order". Agents on one
+subsystem run side by side: each keeps its change to its own part, adds new modules where it can, and merges
+`origin/main` before each push. Before blocking one issue on another, read the blocked issue's `Depends on:` line; if
+the blocker is not in it and no file is named, start the issue. A chain of several issues blocked on one running issue
+is the sign of a serial queue that should not exist.
 
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#228 --on "#227" --why "the same bot brain; started one at a time after it merges"
+uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#231 --on "#230" --why "the parity batch measures the slot filling #230 adds"
 uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#52 --on maintainer --why "a person must launch the Activity"
 ```
 
-That sets `S-blocked` and writes `Blocked (coordinator, <date>): waits on #227: <why>` in the issue body. A blocked issue
+That sets `S-blocked` and writes `Blocked (coordinator, <date>): waits on #230: <why>` in the issue body. A blocked issue
 leaves the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
 "Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
 issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
