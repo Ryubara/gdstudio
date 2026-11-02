@@ -11,6 +11,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | --- | --- | --- |
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
 | Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
+| Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
@@ -96,6 +97,39 @@ file that exists but says nothing, and a correction that fails no check and carr
 both. A game takes the `pr-history` command and the three rules when its `.github/scripts/groundwork.py` and
 `conventions.yml` are updated from the kit's, in a pull request of its own.
 
+## Agent stalls {#stall}
+
+A background task agent whose turn ends is finished for good: nothing wakes it, `ListAgents` still says `running`, and
+nothing shows on GitHub. It happened three times on 2026-11-02 (the agents ended on "Now the autopilot." and the like;
+[lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The rule in the agent
+definitions did not stop the third, so `SubagentStop` now refuses such an end. Settings: `[stop_check]` in `hooks.toml`.
+
+1. Only the agent types in `[stop_check] agents` are judged: `godot-engineer`, `backend-engineer`, `blender-artist`.
+   The `reviewer`, the helpers and every other type are never touched.
+2. The agent's last message (`last_assistant_message`, else the end of its transcript) is a **report** when it matches
+   `[stop_check] report`: a pull request link (`github.com/.../pull/N`) or `PR #N` / `pull request #N`; a `Mistakes`
+   heading or label (every report has one, [Docs ship with the change](#docs)); a line that starts `Blocked:` or
+   `Blocker:` (a dash works too, and bold); `stopped because`; `I am blocked`. Anything else, such as "Now the
+   autopilot.", is a stall and gets `decision: block`, whose `reason` Claude Code gives to the agent as its next
+   instruction: do the step now, or wait on a background command, or end with a report or `Blocked: <what stops you>`.
+3. It lets go, and never counts, when: the agent has a background task running (`background_tasks` in the input is
+   not empty: it is waiting for the notification, which does wake it); there is no message to read (a guard that
+   cannot look lets go); or the session is not in a GDStudio workspace.
+4. **It cannot hold an agent forever.** Refusals are counted per agent run (`agent_id`) in
+   `<workspace>/cache/stop-check.json` (entries older than a day are dropped); after `max_refusals` (2) the end is
+   allowed. `stop_hook_active` cannot count past one, so this gate ignores it. The refusal's text says which refusal it
+   is. An agent that really cannot go on has the way out in the reason: a `Blocked:` line passes at once.
+
+The hook uses the message alone. The first design in [#148](https://github.com/Ryubara/gdstudio/issues/148) also asked
+whether the agent's issue already has a pull request, but the ledger (`gds issue start`) is keyed by issue and records
+the agent's *name*, while `SubagentStop` carries only `agent_type` and `agent_id` (not the prompt or the name), so the
+two cannot be joined without parsing the transcript. A stall after the pull request is open is the same stall, and the
+check would need `gh`. What it cannot see: a stall written as a report (a message that names a pull request and
+announces a step is let through), and a stall by an agent whose end is a tool call with no text.
+
+Both registrations already exist (`.claude/settings.json`; the game template's `launch.py` runs the same dispatcher),
+so a game gets the gate with `gds sync`; restart sessions to pick it up.
+
 ## Proof {#proof}
 
 At Stop, a session that changed visual files of a game (scenes, shaders, `game/ui/`, `game/assets/`, `game/world/`)
@@ -140,6 +174,7 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
 
 ## Tests
 
-`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks and the
-learning loop (each event's text, the queue gate and its loop guard, and the dispatcher run as a process).
+`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks, the
+stall gate (reports, blockers, the refusal limit, the reviewer) and the learning loop (each event's text, the queue
+gate and its loop guard, and the dispatcher run as a process).
 `python/tests/test_issues.py` covers the window and `gds issue` against `gh` JSON recorded in `python/tests/fixtures/`.
