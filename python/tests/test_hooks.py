@@ -878,11 +878,29 @@ def test_an_agent_with_a_running_background_task_is_waiting_not_stalled(workspac
 
 
 def test_the_hook_cannot_hold_an_agent_forever(workspace):
-    answers = [stall_answer(workspace, STALLED, stop_hook_active=i > 0) for i in range(4)]
-    assert [bool(a) for a in answers] == [True, True, False, False]  # max_refusals = 2, even with stop_hook_active
+    answers = [stall_answer(workspace, STALLED, stop_hook_active=i > 0) for i in range(3)]
+    assert [bool(a) for a in answers] == [True, True, False]  # max_refusals = 2, even with stop_hook_active
     assert "Refusal 2 of 2" in answers[1]["reason"]
     other = stall_answer(workspace, STALLED, agent_id="a2")  # another agent run has its own count
     assert other["decision"] == "block"
+
+
+def test_a_resumed_agent_that_stalls_again_is_refused_again(workspace):
+    """Kit #156: the count is spent by the first stall; the allowed end must reset it, or the second stall goes free."""
+    first = [stall_answer(workspace, STALLED) for _ in range(3)]
+    assert [bool(a) for a in first] == [True, True, False]  # two refusals, then the end is allowed
+    # the agent is resumed (SendMessage) and stalls again the same day, with the same agent_id
+    second = [stall_answer(workspace, STALLED) for _ in range(3)]
+    assert [bool(a) for a in second] == [True, True, False]
+    assert "Refusal 1 of 2" in second[0]["reason"]
+
+
+def test_a_report_resets_the_count_of_the_agent(workspace):
+    assert stall_answer(workspace, STALLED)["decision"] == "block"
+    assert stall_answer(workspace, REPORT) is None  # the end let through as a report
+    again = [stall_answer(workspace, STALLED) for _ in range(3)]  # resumed, stalls again
+    assert [bool(a) for a in again] == [True, True, False]
+    assert "Refusal 1 of 2" in again[0]["reason"]
 
 
 def test_the_limit_is_a_setting(workspace):
