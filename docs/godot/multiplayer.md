@@ -30,6 +30,23 @@ WebRTC through Discord's proxy. So the shape is: one authoritative server that c
 a missing packet, it shows up as a **stall** (head-of-line blocking) followed by a burst. Design for stalls: tolerate
 late data, send state (snapshots) rather than events that must each arrive, and never let the sim wait for a client.
 
+## A client that freezes, measured on the live server
+
+Deadnight #483 (2026-11-02): a native headless client joined a night on the deployed server (guest sign-in, own lobby,
+`wss`), walked, froze its own thread with `OS.delay_msec` and walked on. Worst gap to the server's position, then the
+gap once it stood still:
+
+| Client and round trip | Freeze 0 / 0.5 / 2 / 5 s |
+| --- | --- |
+| Before the fix, real round trip 66-124 ms | 0.8 to 3.9 m worst, 0.01-0.03 m settled: stable |
+| Before the fix, 100 ms each way added (about 300 ms) | diverged before any freeze: thousands of metres, then 10^13 m and infinite |
+| After the fix, about 300 ms, deployed | 2.2 / 2.3 / 4.3 / 6.0 m worst, 0.01-0.03 m settled |
+
+- A prediction loop that is stable at 100 ms each way can be unstable at 300 ms round trip: test at the worst shipped
+  round trip, with a push, closed (client, link and server), and freeze the client's thread, not only the link.
+- Godot's WebSocket buffers default to 64 KB: a client that does not read for a few seconds makes the server drop the
+  newest ticks. Raise them (1 MB), and send a whole frame, not a delta, after a tick the socket would not take.
+
 ## Godot's raw WebSocket, without the high-level multiplayer
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
