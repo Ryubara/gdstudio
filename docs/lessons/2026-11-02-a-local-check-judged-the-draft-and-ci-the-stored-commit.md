@@ -29,4 +29,9 @@ areas: [ci, tools, process]
 - **Also:** everything an agent needs to work cleanly is set up before it starts, because a mistake after the push costs
   a pull request: `gds issue start` makes the branch and worktree from fresh `origin/main` (absolute paths) and checks
   that the pre-commit, commit-msg and pre-push hooks are installed. An agent never makes its own branch.
+- **Found on the way:** installing the `pre-push` hook broke every push in the kit checkout. Git LFS (our `.gitattributes`
+  use it) had written its own `pre-push`; `pre-commit install` moves a hook that is there to `pre-push.legacy` and runs
+  it itself, and on Windows its lookup of the LFS hook's `#!/bin/sh` fails (`ExecutableNotFoundError: Executable
+  /bin/sh not found`). Installing hooks is not done until a hook has run: `gds issue start` now runs `git hook run
+  pre-push` after installing, and rewrites that shebang to `#!/usr/bin/env sh`.
 - **Docs:** [Starting work](../starting-work.md#worktree), [Hooks](../hooks.md#pre-push).

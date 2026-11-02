@@ -10,6 +10,7 @@ pushed. Every path here is absolute: `git -C <relative path>` resolves inside th
 from __future__ import annotations
 
 import contextlib
+import os
 import re
 import shutil
 import subprocess
@@ -33,7 +34,9 @@ class WorktreeError(Exception):
 def run(cmd: list[str], cwd: Path) -> str:
     """Run a command and return its output; a failure raises WorktreeError with git's own words."""
     try:
-        done = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        done = subprocess.run(
+            cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL
+        )
     except OSError as error:
         raise WorktreeError(f"cannot run {cmd[0]}: {error}") from error
     if done.returncode != 0:
@@ -97,9 +100,36 @@ def install_hooks(worktree: Path, git: Run = run) -> None:
     git([*base, "install", *args], worktree)
 
 
+def repair_legacy_hooks(folder: Path) -> list[str]:
+    """Make the hooks that pre-commit moved aside (`pre-push.legacy`, Git LFS's) runnable on Windows.
+
+    `pre-commit install` renames a hook that was already there to `<hook>.legacy` and runs it itself. Git LFS writes
+    `#!/bin/sh`, which pre-commit looks for as a Windows path (`/bin/sh`) and does not find, so every `git push` died
+    with `ExecutableNotFoundError: Executable /bin/sh not found`. `#!/usr/bin/env sh` is found through the PATH."""
+    fixed = []
+    if os.name != "nt":
+        return fixed
+    for legacy in sorted(folder.glob("*.legacy")):
+        text = legacy.read_text(encoding="utf-8", errors="replace")
+        if text.startswith("#!/bin/sh"):
+            legacy.write_text("#!/usr/bin/env sh" + text.removeprefix("#!/bin/sh"), encoding="utf-8", newline="\n")
+            fixed.append(legacy.name)
+    return fixed
+
+
+def check_pre_push_runs(worktree: Path, git: Run = run) -> None:
+    """Run the installed pre-push hook with nothing to push (`git hook run`), so a hook that dies on this machine is
+    found now and not by the agent's first push."""
+    try:
+        git(["git", "hook", "run", "pre-push", "--", "origin", "https://example.invalid/none.git"], worktree)
+    except WorktreeError as error:
+        raise WorktreeError(f"the pre-push hook does not run on this machine: {error}") from error
+
+
 def ensure_hooks(worktree: Path, *, git: Run = run, install: Callable[[Path], None] | None = None) -> list[str]:
     """Check the hooks are installed for the repository of `worktree`, installing what is missing, and check again.
-    Returns the lines to print; raises WorktreeError when a hook is still missing."""
+    Then run the pre-push hook once. Returns the lines to print; raises WorktreeError when a hook is still missing or
+    does not run."""
     if not (worktree / CONFIG).is_file():
         return [f"hooks: no {CONFIG} in this repository, nothing to install"]
     lines = []
@@ -113,7 +143,10 @@ def ensure_hooks(worktree: Path, *, git: Run = run, install: Callable[[Path], No
         missing = missing_hooks(worktree, git)
     if missing:
         raise WorktreeError(f"the git hooks {', '.join(missing)} are still not installed in {hooks_dir(worktree, git)}")
-    return [*lines, f"hooks: {', '.join(HOOK_TYPES)} installed ({hooks_dir(worktree, git)})"]
+    for name in repair_legacy_hooks(hooks_dir(worktree, git)):
+        lines.append(f"hooks: {name} started with #!/bin/sh, which pre-commit cannot find on Windows; repaired")
+    check_pre_push_runs(worktree, git)
+    return [*lines, f"hooks: {', '.join(HOOK_TYPES)} installed and the pre-push hook runs ({hooks_dir(worktree, git)})"]
 
 
 def create(

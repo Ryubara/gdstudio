@@ -49,8 +49,11 @@ changes:
    --no-track`). The branch is named from the issue title (`tools: Add a thing` is `tools-add-a-thing`; `--branch`
    chooses another). A branch or folder that exists is refused;
 2. checks that the git hooks of the repository (`pre-commit`, `commit-msg`, `pre-push`, written by `pre-commit
-   install`) are installed, installs the ones that are missing, and checks again. A repository with no
-   `.pre-commit-config.yaml` has none to check;
+   install`) are installed, installs the ones that are missing, checks again, and runs the `pre-push` hook once
+   (`git hook run pre-push`) so a hook that dies on this machine is found now. A repository with no
+   `.pre-commit-config.yaml` has none to check. On Windows, Git LFS's own `pre-push` (`#!/bin/sh`) is moved aside by
+   `pre-commit install` and then fails every push with `Executable /bin/sh not found`; the start rewrites its
+   shebang to `#!/usr/bin/env sh`;
 3. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
 
 If the worktree cannot be made, or a hook stays missing, the issue is left as it was and the worktree and branch it
