@@ -47,8 +47,14 @@ A `](./<file>)` reference to a file the same command passes with `--attach` coun
 guard swaps in an upload address before it asks, as `--attach` does), so one body satisfies both guards; a reference to
 a file that is not attached, or the same body without `--attach`, is refused. `gds pr check-body` by hand has no
 `--attach` and still wants uploaded captures
-([lesson](lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). The guard is a
-hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
+([lesson](lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). A relative `--body-file` is read
+from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd /d`, `~` and Git
+Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a glob) leaves a
+relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
+is not judged. The refusal for a missing file names the path it looked in
+([lesson](lessons/2026-11-02-the-body-guard-read-a-relative-file-from-the-wrong-folder.md)). `--attach` paths are never
+opened by the guard, only their names are read. The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges
+changes to it.
 
 ## Commit messages before they leave the machine {#pre-push}
 

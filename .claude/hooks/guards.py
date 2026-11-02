@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -322,17 +323,53 @@ def reference_to(name: str, text: str) -> re.Match[str] | None:
     return re.search(rf"\]\(\s*(?:\./)?{re.escape(name)}\s*\)", text)
 
 
-def body_of(words: list[str], cwd: Path) -> tuple[str | None, str]:
-    """The body a `gh pr create|edit` command sends: (text, "") when it can be read here, else (None, why not)."""
+_CD_PROGRAMS = ("cd", "chdir", "pushd", "set-location", "sl")
+_CD_FLAGS = ("/d", "-p", "-l", "--", "-path", "-literalpath")
+_MSYS_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
+
+
+def change_dir(words: list[str], cwd: Path) -> tuple[bool, Path | None]:
+    """(True, folder) for a plain `cd <dir>` (also `cd /d`, `pushd`, `Set-Location [-Path]`) as it moves `cwd`; (True,
+    None) for a `cd` this cannot follow (`cd`, `cd -`, `cd $DIR`, a glob, more than one folder); (False, None) when the
+    command is not a `cd`. The target is joined to `cwd` when relative, as the shell does."""
+    if words[0].lower() not in _CD_PROGRAMS:
+        return False, None
+    args = [w for w in words[1:] if w.lower() not in _CD_FLAGS]
+    if len(args) != 1 or args[0] == "-" or any(ch in args[0] for ch in "$`*?%(){}"):
+        return True, None
+    target = args[0]
+    if target == "~" or target.startswith("~/"):
+        target = os.path.expanduser(target)
+    elif os.name == "nt" and (drive := _MSYS_DRIVE.match(target)):  # Git Bash's /c/dir is C:/dir
+        target = f"{drive.group(1).upper()}:{target[drive.end() :] or '/'}"
+    try:
+        return True, (cwd / target).resolve()
+    except (OSError, ValueError):
+        return True, None
+
+
+def body_of(words: list[str], cwd: Path, lost: bool = False) -> tuple[str | None, str]:
+    """The body a `gh pr create|edit` command sends: (text, "") when it can be read here, else (None, why not).
+    A relative `--body-file` is read from `cwd`, the folder the command's own `cd` moved to (the way `gh` reads it);
+    `lost` says a `cd` before it could not be followed, so a relative path cannot be placed."""
     sources = flag_values(words, ("--body-file", "-F"))
     inline = flag_values(words, ("--body", "-b"))
     if sources:
         if sources[0] == "-":
             return None, "the body comes from standard input, which cannot be read here"
         path = Path(sources[0])
-        path = path if path.is_absolute() else cwd / path
+        if not path.is_absolute():
+            if lost:
+                return None, (
+                    f"the body file {sources[0]} is relative to a folder this hook cannot follow (the `cd` before "
+                    f"it is not a plain `cd <dir>`): use an absolute path"
+                )
+            path = cwd / path
         if not path.is_file():
-            return None, f"the body file {sources[0]} does not exist yet"
+            return None, (
+                f"the body file {sources[0]} does not exist yet (looked for {path.as_posix()}; a relative path is "
+                f"read from the folder the command is in after its `cd`: an absolute path always works)"
+            )
         return path.read_text(encoding="utf-8", errors="replace"), ""
     if inline and "$(" not in inline[0] and "`" not in inline[0]:
         return inline[0], ""
@@ -346,12 +383,12 @@ def pr_command(words: list[str]) -> str | None:
     return words[2]
 
 
-def check_pr_body(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
+def check_pr_body(words: list[str], cwd: Path, config: dict[str, Any], lost: bool = False) -> list[str]:
     """What a `gh pr create|edit` command sends, judged before it runs: the body is read once (`body_of`) and both
     checks use it, the images of `--attach` (`check_attach`) and the description rules of `pr-rules` (`check_body`)."""
     if pr_command(words) is None:
         return []
-    read = body_of(words, cwd)
+    read = body_of(words, cwd, True) if lost else body_of(words, cwd)
     return check_attach(words, cwd, config, read) + check_body(words, cwd, config, read)
 
 
@@ -773,9 +810,14 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     command = (payload.get("tool_input") or {}).get("command", "")
     cwd = Path(payload.get("cwd") or ".")
     reasons: list[str] = []
+    lost = False  # a `cd` this cannot follow came before: a relative path no longer has a known folder
     for words in segments(command):
-        if words[0] == "cd" and len(words) > 1:
-            cwd = (cwd / words[1]).resolve()
+        moved, folder = change_dir(words, cwd)
+        if moved:
+            if folder is None:
+                lost = True  # and it stays so for the rest of the line, whatever a later `cd` says
+            else:
+                cwd = folder
             continue
         name = program(words)
         if name == "git":
@@ -783,7 +825,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
             reasons += check_labels(words)
-            reasons += check_pr_body(words, cwd, config)
+            reasons += check_pr_body(words, cwd, config, lost)
         reasons += check_tools(words, config)
         reasons += check_godot_window(words, config)
         reasons += check_godot_audio(words, config)

@@ -244,7 +244,7 @@ def test_one_body_read_serves_both_checks(workspace, monkeypatch):
     """`--attach` and the description rules read the body once and both can refuse it in the same answer."""
     reads = []
     real = guards.body_of
-    monkeypatch.setattr(guards, "body_of", lambda words, cwd: reads.append(1) or real(words, cwd))
+    monkeypatch.setattr(guards, "body_of", lambda *args: reads.append(1) or real(*args))
     body = BODIES / "none-without-reason.txt"
     reason = denied(shell(f"gh pr edit 7 --body-file {body} --attach {workspace['root']}/after.png", workspace["kit"]))
     assert REASON_NONE in reason and "has no reference" in reason
@@ -304,3 +304,64 @@ def test_gds_pr_check_body_by_hand_still_wants_uploaded_captures(workspace, tmp_
     title.write_text("godot: Add y\n", encoding="utf-8")
     code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])], capsys)
     assert code == 1 and "'Before:' capture" in err
+
+
+# --- a relative --body-file after a leading cd (kit #213) ------------------------------------------------------------
+
+
+@pytest.fixture()
+def folder(workspace: dict[str, Path]) -> Path:
+    """`notes dir/sub dir` in the kit checkout (the repository that judges the body), holding body.md, a body
+    `pr-rules` refuses (so a body that was read shows as a refusal)."""
+    where = workspace["kit"] / "notes dir" / "sub dir"
+    where.mkdir(parents=True)
+    shutil.copy(BODIES / "none-without-reason.txt", where / "body.md")
+    return where
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        'cd "{dir}" && gh pr edit 7 --body-file body.md',
+        'cd "{dir}"; gh pr edit 7 --body-file ./body.md',
+        "cd '{dir}' && gh pr edit 7 --body-file=body.md",
+    ],
+)
+def test_a_relative_body_file_is_read_from_the_absolute_cd_folder(template, folder, workspace):
+    assert REASON_NONE in denied(shell(template.format(dir=folder.as_posix()), workspace["kit"]))
+
+
+def test_a_relative_body_file_is_read_from_a_relative_cd_folder(folder, workspace):
+    here = folder.parent
+    command = 'cd "sub dir" && gh pr edit 7 --body-file body.md'
+    assert REASON_NONE in denied(shell(command, here))
+    two = 'cd "notes dir" && cd "sub dir" && gh pr edit 7 --body-file body.md'
+    assert REASON_NONE in denied(shell(two, here.parent))
+
+
+def test_the_cd_folder_is_where_the_file_is_looked_for(folder, workspace):
+    """The file is not in the `cd` folder: the reason names the folder it looked in and offers the absolute path."""
+    command = f'cd "{folder.parent.as_posix()}" && gh pr edit 7 --body-file body.md --attach {folder}/a.png'
+    reason = denied(shell(command, workspace["kit"]))
+    assert "does not exist yet" in reason and "notes dir/body.md" in reason and "absolute path" in reason
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Git Bash drive paths are a Windows form")
+def test_a_git_bash_drive_path_and_cd_d_are_followed(folder, workspace):
+    drive = folder.as_posix()
+    msys = f"/{drive[0].lower()}{drive[2:]}"
+    assert REASON_NONE in denied(shell(f'cd "{msys}" && gh pr edit 7 --body-file body.md', workspace["kit"]))
+    assert REASON_NONE in denied(shell(f'cd /d "{drive}" && gh pr edit 7 --body-file body.md', workspace["kit"]))
+
+
+@pytest.mark.parametrize("cd", ["cd $DIR", "cd -", "cd", "cd a b", "cd $(pwd)/x"])
+def test_a_cd_that_cannot_be_followed_asks_for_an_absolute_path(cd, folder, workspace):
+    """A `cd` this hook cannot parse leaves a relative body file unplaced: the reason says so."""
+    reason = denied(shell(f"{cd} && gh pr edit 7 --body-file body.md --attach {folder}/a.png", workspace["kit"]))
+    assert "use an absolute path" in reason and "does not exist yet" not in reason
+    assert denied(shell(f'{cd} && gh pr edit 7 --body-file "{folder.as_posix()}/body.md"', workspace["kit"])) != ""
+
+
+def test_an_unparsable_cd_lets_a_relative_body_through_without_attach(folder, workspace):
+    """Nothing to judge when the body cannot be placed, as with a body that is not written yet."""
+    assert denied(shell("cd $DIR && gh pr edit 7 --body-file body.md", workspace["kit"])) == ""
