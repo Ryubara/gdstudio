@@ -115,6 +115,28 @@ Things that did not matter or cannot be done: a second `SubViewport` of your own
 with a second camera is the same world); the headless renderer compiles nothing, so skip the warm-up there; a
 `ShaderMaterial` shared through a scene file stays alive with the scene.
 
+## A warm-up on the CPU pays for every pixel
+
+A renderer that draws on the CPU (SwiftShader in headless Chromium, a machine with no GPU) costs a warm-up frame in
+proportion to the pixels, whatever the programs. A level drawn at 1280 x 720 for 100 frames took 30.5 s; at 640 x 360
+14.3 s. A program does not depend on the size of the picture, so draw the warm-up into a small `SubViewport`
+(`own_world_3d = false`, 160 x 90) that shares the level's world, turn the window's own 3D off meanwhile
+(`Viewport.disable_3d`), and draw the real frame once at the end so anything only the window's drawing needs (the
+tone-map and sky passes) is built behind the loading screen too. Measure that no program is linked while playing
+(the page hook of `first_use.py`): in Deadnight the same 207 programs were linked as with the window's size.
+
+Other things the load profile found (Deadnight #509, Compatibility, web):
+
+- The engine builds the **default specialisation** of a lit shader at its first draw (colour and instanced colour
+  with every light type, lightmaps and probes on): 0.6 to 1.0 s each with ANGLE on Direct3D 11, and nothing draws with
+  it. So every lit `StandardMaterial3D` that differs in one setting costs 1.2 to 2 s. `specular_mode = DISABLED` is
+  such a setting; `metallic_specular = 0` has the same look in an existing shader. Count the lit settings in a test.
+- `force_lambert_over_burley` did not shorten the load.
+- A loop in GDScript over every sample of every sound (decoding to 16-bit samples) is seconds in a browser: do it
+  while a menu is up, a slice of each frame, not behind the loading bar.
+- Replaying effects once per light condition is worth nothing when their materials are unlit: check the programs each
+  condition links (0 here).
+
 ## Testing it
 
 - **No program linked after the loading screen** in a browser run (the counter above) is the real test.
