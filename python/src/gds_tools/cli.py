@@ -9,7 +9,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from gds_tools import capture, issues, lessons, refs, sync, workspace, worktrees
+from gds_tools import capture, issues, lessons, pr, refs, sync, workspace, worktrees
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -272,6 +272,27 @@ def _cmd_merge_main(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_pr_check_body(args: argparse.Namespace) -> int:
+    """`gds pr check-body <file>`: the description rules of `pr-rules`, run here before `gh pr create|edit`."""
+    here = Path(args.repo).resolve() if args.repo else Path.cwd()
+    repo = pr.repo_root(here)
+    if repo is None:
+        raise pr.PrCheckError(f"{here} is not in a git checkout; pass --repo <checkout>")
+    read = lambda source: sys.stdin.read() if source == "-" else Path(source).read_text(encoding="utf-8-sig")  # noqa: E731
+    title = None
+    if args.title:
+        lines = read(args.title).splitlines()
+        title = lines[0] if lines else ""
+    result = pr.check_body(repo, read(args.body), title, kit=workspace.kit_checkout())
+    if result.ok:
+        print("description: ok")
+        return 0
+    print("description: refused", file=sys.stderr)
+    for reason in result.reasons:
+        print(f"  - {reason}", file=sys.stderr)
+    return 1
+
+
 def _cmd_lessons(args: argparse.Namespace) -> int:
     """`gds lessons [area ...]`: the checks of the mistakes glossary for some areas, or the list of areas."""
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
@@ -395,6 +416,13 @@ def build_parser() -> argparse.ArgumentParser:
     mrg.add_argument("--continue", dest="resume", action="store_true", help="commit the merge once conflicts are fixed")
     mrg.set_defaults(func=_cmd_merge_main)
 
+    prs = sub.add_parser("pr", help="pull request helpers").add_subparsers(dest="pr_command", required=True)
+    chk = prs.add_parser("check-body", help="check a pull request description with the rules of pr-rules")
+    chk.add_argument("body", help="the description: a file, or - for stdin")
+    chk.add_argument("--title", help="the title (a file, first line): also checks the title-based rules")
+    chk.add_argument("--repo", help="a folder in the checkout the pull request is for (default: the current folder)")
+    chk.set_defaults(func=_cmd_pr_check_body)
+
     les = sub.add_parser("lessons", help="the checks of past mistakes by area (built from docs/lessons)")
     les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
     les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
@@ -420,6 +448,7 @@ def main(argv: list[str] | None = None) -> int:
         refs.RefsError,
         capture.CaptureError,
         issues.IssueError,
+        pr.PrCheckError,
     ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2

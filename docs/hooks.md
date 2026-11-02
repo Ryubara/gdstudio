@@ -20,12 +20,29 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
 | Browser probes | a `tools/web_smoke/*.py` script or a Playwright run (`playwright test`, `uv run --with playwright python x.py`) not wrapped in `gds quiet`: headless Chrome under pointer lock clips the person's cursor (docs/godot/no-focus.md) | `gds quiet -- <command>` |
 | Pull request images | `gh pr create\|edit --attach <file>` whose body file (`--body-file`, or a literal `--body`) does not refer to every attached file as `![alt](./<file name>)` inside `## Screenshots`, has no image between `Before:` and `After:` (unless `Before: none (reason)`) or none below `After:`, or cannot be read before the command runs (`[attach]` in `hooks.toml`) | write the body to a file with `![before](./before.png)` / `![after](./after.png)` on those lines, then `--body-file <file> --attach ...`; read the body back |
+| Pull request body | `gh pr create\|edit` with a `--body-file` (or a literal `--body`) that `groundwork.py check-body` refuses: the rules `pr-rules` runs after the push (`[pr_body]` in `hooks.toml`, [below](#pr-body)) | fix the body file, check it with `gds pr check-body <file> [--title <file>]`, then run the command |
 | Kills | stopping Godot or Blender by name (`taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name`): every agent's run dies | kill your own process by its PID |
 | Secrets | printing a key-like variable; dumping the environment | test that it is set |
 | Files | editing secrets, caches, git internals, pinned tools; generated files | edit the source (`conventions.yml`, then render) |
 
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
+
+## Pull request bodies before they are sent {#pr-body}
+
+`pr-rules` judges a description after the push, and an agent whose body failed only found out there (a `None` line
+without its reason, text after it, a missing section). `gds pr check-body <file> [--title <file>] [--repo <folder>]`
+runs the same function, `groundwork.py check-body`, on the machine and exits 1 with the reasons (2 when it cannot run:
+no conventions, not a checkout). It runs in the checkout of the repository the pull request is for and reads that
+repository's `.github/conventions.yml`, with its own `.github/scripts/groundwork.py` when it has one (a game's rules
+differ from the kit's), else the kit's. The Git/GitHub guard does the same before `gh pr create|edit` runs: it reads
+the body once, the same read `--attach` uses, runs the check in the checkout around the current folder (or the
+`<workspace>/repos/<name>` checkout that `-R owner/name` names, when that is another repository) and refuses with the
+reasons and the command to run. `--title` on the command turns on the title rules (screenshots, failed first, lessons).
+Not judged, because they cannot be read first: a body from standard input, a file not written yet, a literal body with a
+backtick or `$(`, a `gh pr edit` without a body, and a repository with no checkout. The pull request's history is not
+asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge. The guard is a
+hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
 
 ## Commit messages before they leave the machine {#pre-push}
 

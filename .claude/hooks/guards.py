@@ -339,14 +339,32 @@ def body_of(words: list[str], cwd: Path) -> tuple[str | None, str]:
     return None, "no body file is named (`--body-file <file>`)"
 
 
-def check_attach(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
+def pr_command(words: list[str]) -> str | None:
+    """`create` or `edit` for a `gh pr create|edit` command, else None."""
+    if len(words) < 3 or program(words) != "gh" or words[1] != "pr" or words[2] not in ("create", "edit"):
+        return None
+    return words[2]
+
+
+def check_pr_body(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
+    """What a `gh pr create|edit` command sends, judged before it runs: the body is read once (`body_of`) and both
+    checks use it, the images of `--attach` (`check_attach`) and the description rules of `pr-rules` (`check_body`)."""
+    if pr_command(words) is None:
+        return []
+    read = body_of(words, cwd)
+    return check_attach(words, cwd, config, read) + check_body(words, cwd, config, read)
+
+
+def check_attach(
+    words: list[str], cwd: Path, config: dict[str, Any], read: tuple[str | None, str] | None = None
+) -> list[str]:
     """`gh pr create|edit --attach` appends every image at the end of the body, after `## AI use`, unless the body
     already refers to it as `![alt](./<file name>)`: then that reference becomes the upload in place. So each attached
     file needs such a reference inside `## Screenshots`, a before capture between the `Before:` and `After:` lines and
     an after capture below `After:`. The body is read from `--body-file` (or a literal `--body`) before the command
     runs, so the refusal comes before a pull request with images in the wrong place exists."""
     rule = config.get("attach", {})
-    if len(words) < 3 or program(words) != "gh" or words[1] != "pr" or words[2] not in ("create", "edit"):
+    if pr_command(words) is None:
         return []
     if not rule.get("enforce", True):
         return []
@@ -356,7 +374,7 @@ def check_attach(words: list[str], cwd: Path, config: dict[str, Any]) -> list[st
     section = rule.get("section", "Screenshots")
     sample = files[-1]
     what = f"`gh pr {words[2]} --attach` puts an image the body does not refer to at the end, after `## AI use`"
-    body, why = body_of(words, cwd)
+    body, why = read or body_of(words, cwd)
     if body is None:
         return [
             f"{what}, and {why}: write the whole body with the Write tool to a file, with `![after](./{sample})` on "
@@ -390,6 +408,78 @@ def check_attach(words: list[str], cwd: Path, config: dict[str, Any]) -> list[st
                 f"(`![after](./<file>)`) on or under it"
             )
     return reasons
+
+
+_PR_MODULE = "_gds_pr_for_hooks"
+
+
+def load_pr_module() -> Any:
+    """`python/src/gds_tools/pr.py` of the kit, loaded by file (the hooks run without the `gds` package); None when it
+    cannot be."""
+    source = KIT / "python" / "src" / "gds_tools" / "pr.py"
+    try:
+        spec = importlib.util.spec_from_file_location(_PR_MODULE, source)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[_PR_MODULE] = module  # a dataclass looks its module up here
+        spec.loader.exec_module(module)
+        return module
+    except Exception:  # a hook never locks a session out
+        sys.modules.pop(_PR_MODULE, None)
+        return None
+
+
+def pr_checkout(words: list[str], cwd: Path) -> Path | None:
+    """The checkout whose `.github/conventions.yml` judges a `gh pr` command: the one around `cwd`, or, when `-R
+    owner/name` names another repository, `<workspace>/repos/<name>`."""
+    top = git(cwd, "rev-parse", "--show-toplevel")
+    here = Path(top) if top else None
+    named = flag_values(words, ("-R", "--repo"))
+    if not named:
+        return here
+    name = named[0].rstrip("/").rsplit("/", 1)[-1].removesuffix(".git")
+    if here and git(here, "remote", "get-url", "origin").removesuffix(".git").endswith(f"/{name}"):
+        return here
+    workspace = workspace_of(cwd)
+    other = workspace / "repos" / name if workspace else None
+    return other if other and other.is_dir() else None
+
+
+def check_body(
+    words: list[str], cwd: Path, config: dict[str, Any], read: tuple[str | None, str] | None = None
+) -> list[str]:
+    """`gh pr create|edit` with a body that `pr-rules` would refuse after the push is refused now, with the command to
+    run (`gds pr check-body`, the same `groundwork.py check-body` function CI uses, in the repository's own checkout so
+    a game's own conventions apply). A body that cannot be read here (standard input, a file not written yet) is not
+    judged; neither is one when the checker cannot run: no checks beat a locked session."""
+    rule = config.get("pr_body", {})
+    if pr_command(words) is None or not rule.get("enforce", True):
+        return []
+    if not flag_values(words, ("--body", "-b", "--body-file", "-F")):
+        return []
+    body, _ = read or body_of(words, cwd)
+    if body is None:
+        return []
+    repo = pr_checkout(words, cwd)
+    module = load_pr_module()
+    if repo is None or module is None:
+        return []
+    titles = flag_values(words, ("--title", "-t"))
+    try:
+        result = module.check_body(repo, body, titles[0] if titles else None, kit=KIT)
+    except Exception:  # the checker is missing, slow or broken: let the command through
+        return []
+    if result.ok:
+        return []
+    source = flag_values(words, ("--body-file", "-F"))
+    named_file = source[0] if source and source[0] != "-" else "<body file>"
+    title = " --title <title file>" if titles else ""
+    run = f"uv run --project {KIT.as_posix()}/python gds pr check-body {named_file}{title}"
+    return [
+        f"`gh pr {words[2]}` sends a description that `pr-rules` refuses ({repo.name}): "
+        + "; ".join(result.reasons)
+        + f". Fix the body file (write it with the Write tool) and check it with `{run}` until it passes, then run "
+        f"the same command"
+    ]
 
 
 def check_git(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
@@ -674,7 +764,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
             reasons += check_labels(words)
-            reasons += check_attach(words, cwd, config)
+            reasons += check_pr_body(words, cwd, config)
         reasons += check_tools(words, config)
         reasons += check_godot_window(words, config)
         reasons += check_godot_audio(words, config)
