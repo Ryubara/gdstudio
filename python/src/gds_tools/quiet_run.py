@@ -7,7 +7,7 @@ of the same window station: it renders as usual (OpenGL and Movie Maker included
 
 One thing does cross desktops: the cursor clip. A game that captures or confines the mouse calls `ClipCursor`, which
 holds the person's cursor inside the hidden window's rectangle. So the program gets `GDS_QUIET=1` in its environment (a
-game reads it and never captures the mouse), and while it runs this process frees the cursor every 20 ms as well.
+game reads it and never captures the mouse), and while it runs this process frees the cursor every 5 ms as well.
 
 Everywhere else (Linux CI, macOS) there is no focus to protect and the program is started normally.
 """
@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 DESKTOP_NAME = "gds-quiet"  # one shared desktop: every quiet program of every agent lands on it
 QUIET_ENV = "GDS_QUIET"  # set to "1" for every program started here: "never capture or confine the mouse"
-UNCLIP_SECONDS = 0.02  # how often the cursor is freed while a quiet program runs
+UNCLIP_SECONDS = 0.005  # how often the cursor is freed while a quiet program runs
 KILL_GRACE = 5  # seconds the output reader waits for the program to end after a timeout kill
 
 
@@ -64,7 +64,7 @@ def _run_plain(
 ) -> Outcome:
     proc = subprocess.Popen(
         cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        encoding="utf-8", errors="replace", start_new_session=True,
+        encoding="utf-8", errors="replace", start_new_session=True, env={**os.environ, QUIET_ENV: "1"},
     )  # fmt: skip
     if on_start:
         on_start(proc.pid)

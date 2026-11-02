@@ -31,7 +31,7 @@ maintainer felt it as an invisible box the cursor could not leave while a captur
 
 - `gds godot` starts the program with **`GDS_QUIET=1`**. A game reads it and never captures or confines the mouse
   (Deadnight: `Player.set_controls_enabled`). Every game made with the kit does this in the one place it captures.
-- While the program runs, `gds godot` frees the cursor every 20 ms (`ClipCursor(NULL)`). That is a safety net for a
+- While the program runs, `gds godot` frees the cursor every 5 ms (`ClipCursor(NULL)`). That is a safety net for a
   game that clips once; a game that re-clips every frame defeats it (`python/tests/test_quiet_run.py` measured 16 of
   20 samples held against a program re-clipping every 5 ms), so the game-side check is the fix.
 
