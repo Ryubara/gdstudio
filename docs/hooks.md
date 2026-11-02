@@ -163,7 +163,9 @@ wrong is written down by the agent that found it, in the same task, and the next
   by patch id, because a squash merge rewrites every hash. The message says to make a new branch from `origin/main`,
   cherry-pick the commit, open a new pull request, and reset the old branch to the merged tip (so it is not named
   again). A commit that already reached `origin/main` through a new pull request has the same patch id and is not
-  named. If the tip is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
+  named; one squashed there with other commits has a new patch id, so each `+` commit is also read by content and is
+  stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
+  is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
   the gap that lost a lesson twice (kit #175 and #176;
   [lesson](lessons/2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its

@@ -797,6 +797,32 @@ def test_a_late_commit_already_on_main_by_patch_id_is_not_named(workspace, monke
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
 
 
+def test_a_late_commit_squashed_with_others_into_main_is_not_named(workspace, monkeypatch):
+    tree, tip = _squash_merged_worktree(workspace, "docs-rescued")
+
+    def run(*a):
+        subprocess.run(
+            ["git", "-C", str(tree), "-c", "user.email=t@t", "-c", "user.name=t", *a], check=True, capture_output=True
+        )
+
+    (tree / "late.md").write_text("late", encoding="utf-8")
+    run("add", "late.md")
+    run("commit", "-m", "late")
+    run("switch", "-q", "main")  # a new pull request squashed the late file with another lesson: a new patch id
+    (tree / "late.md").write_text("late", encoding="utf-8")
+    (tree / "other.md").write_text("another lesson", encoding="utf-8")
+    run("add", "late.md", "other.md")
+    run("commit", "-m", "squash of late and other")
+    run("update-ref", "refs/remotes/origin/main", "HEAD")
+    run("switch", "-q", "docs-rescued")
+    cherry = subprocess.run(
+        ["git", "-C", str(tree), "cherry", "origin/main", "HEAD", tip], capture_output=True, text=True
+    ).stdout
+    assert cherry.startswith("+ ")  # by patch id alone it would still look stranded
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-rescued": tip})
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
 def test_the_pr_heads_map_keeps_the_latest_merged_tip_and_lets_an_open_pull_request_cover(monkeypatch):
     prs = [
         {"headRefName": "a", "state": "MERGED", "headRefOid": "old", "mergedAt": "2026-11-01T00:00:00Z"},

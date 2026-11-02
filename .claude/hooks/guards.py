@@ -1173,18 +1173,36 @@ def kit_pr_heads(repo: str) -> dict[str, str] | None:
         return None
 
 
+def content_on_base(tree: Path, base: str, commit: str) -> bool:
+    """Whether every path `commit` touches has, on `base`, the blob the commit left (or is missing on both sides, for a
+    deletion). A late commit rescued in a pull request that squashed it with other commits has a new patch id but the
+    same blobs, so this reads the content, with no checkout and no worktree side effect."""
+    paths = [p for p in git(tree, "diff-tree", "-r", "-z", "--no-commit-id", "--name-only", commit).split("\x00") if p]
+    return bool(paths) and all(
+        git(tree, "rev-parse", "--verify", "-q", f"{commit}:{p}")
+        == git(tree, "rev-parse", "--verify", "-q", f"{base}:{p}")
+        for p in paths
+    )
+
+
 def stranded_after_merge(tree: Path, base: str, tip: str) -> list[str]:
     """The commits of `tree`'s branch made after its pull request merged at `tip` whose changes are not on `base`.
-    A squash merge rewrites the hashes, so the commits are compared to `base` by patch id (`git cherry`), never by
-    hash. Empty when `tip` is unknown here (the branch was rewritten): the hook cannot tell, so it lets go."""
+    A squash merge rewrites the hashes, so a commit is first compared to `base` by patch id (`git cherry`), then, when
+    it still shows as new, by content: a commit squashed together with others has a new patch id but its files are the
+    same on `base`. Empty when `tip` is unknown here (the branch was rewritten): the hook cannot tell, so it lets go."""
     if not tip or not git(tree, "rev-parse", "--verify", "-q", f"{tip}^{{commit}}"):
         return []
-    if subprocess.run(
-        ["git", "-C", str(tree), "merge-base", "--is-ancestor", tip, "HEAD"], capture_output=True
-    ).returncode:
+    try:
+        ancestor = subprocess.run(
+            ["git", "-C", str(tree), "merge-base", "--is-ancestor", tip, "HEAD"], capture_output=True, timeout=15
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if ancestor.returncode:
         return []
     cherry = git(tree, "cherry", base, "HEAD", tip).splitlines()
-    return [line[2:] for line in cherry if line.startswith("+ ")]
+    new = [line[2:] for line in cherry if line.startswith("+ ")]
+    return [c for c in new if not content_on_base(tree, base, c)]
 
 
 def unpublished_kit_branches(workspace: Path, config: dict[str, Any]) -> dict[str, str]:
