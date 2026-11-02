@@ -6,3 +6,4 @@ repeatable) to clean, make and export assets for Godot. Each topic gets a page o
 | Topic | Page |
 | --- | --- |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
+| Rendering app icons and key art from the game's own models with Cycles | [Key art and icons](key-art.md) |
