@@ -69,4 +69,5 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Local browser probes of the web build (Playwright) | every one, under pointer lock | known: [`gds quiet`](no-focus.md#browser-probes-and-any-other-program-gds-quiet) (headless Chrome clips the real cursor to its hidden window) |
 | The editor's own inspector, photographed | pull requests that move numbers into resources | known: [Screenshots of the editor's inspector](editor-screenshots.md) (a throwaway plugin on `gds godot -- --editor`) |
 | GdUnit4 (scene runner, input simulation) | unit and scene tests | known (Deadnight's smoke test) |
+| Test speed (hand ticks, settles, CI job time) | every suite that steps the game by hand | known: [Test speed](test-speed.md) |
 | Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |
