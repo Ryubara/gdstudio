@@ -86,6 +86,12 @@ exempt = ["reviewer"]
 enforce = true
 section = "Screenshots"
 
+[pr_body]
+# `gh pr create|edit` with a body (`--body-file`, or a literal `--body`) that `groundwork.py check-body` refuses is
+# refused before it runs (docs/hooks.md#pr-body): the same function `pr-rules` runs, in the checkout of the repository
+# the pull request is for. `gds pr check-body <file> [--title <file>]` runs it by hand.
+enforce = true
+
 [docs]
 # Docs ship with the change (docs/hooks.md#docs). The glossary is built from the lessons of the kit checkout (it is not a
 # committed file); SubagentStart puts the sections of the issue's areas into the agent's context, at most `inject_limit`

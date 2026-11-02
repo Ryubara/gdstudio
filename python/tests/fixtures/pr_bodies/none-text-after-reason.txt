@@ -1,0 +1,32 @@
+## Summary
+
+`_reasoned` accepts one full stop after the closing parenthesis of a `none (reason)` line, and still refuses other text after it. The `Screenshots: none` line had its own copy of the test and now calls `_reasoned`, so every none-line of the checker agrees. Docs: a lesson and one sentence in `docs/hooks.md`. Only `_reasoned` and the Screenshots none branch changed in `groundwork.py` (no shared commit-message or trailer code; #107 is untouched). Not a `conventions.yml` change, so this is not a hand-merge path.
+
+Fixes #128
+
+Read first: tools, process
+
+Lessons: docs/lessons/2026-11-02-a-body-check-refused-a-reason-with-a-full-stop.md
+
+## Issues affected
+
+None (only the helper changed) and no other issue
+
+## Checklist
+
+- [x] `_reasoned` accepts `none (why).` and refuses `none (why) extra`
+- [x] tests for both forms on every none-line (Lessons, Kit docs, Failed first, Issues affected, Screenshots)
+
+## Testing
+
+- `uv run --project python pytest python`: 239 passed, 1 skipped; `ruff check python` and `ruff format --check python`: clean; pre-commit on the changed files: all passed.
+- Failed first: `test_a_reason_in_parentheses_may_end_with_one_full_stop` and `test_every_none_line_takes_the_trailing_period_or_not` failed on the old `groundwork.py` (3 failures) and pass after the fix.
+
+## Screenshots
+
+Screenshots: none (checker code and docs only, nothing visible)
+
+## AI use
+
+- **Commits written by:** an AI
+- **Model:** Claude Sonnet 5.5
