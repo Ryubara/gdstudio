@@ -57,6 +57,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --no-project --python \">=3.12\" python \"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch.py\" || exit 0",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   },
   "permissions": {

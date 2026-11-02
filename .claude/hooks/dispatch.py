@@ -4,9 +4,10 @@
 registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.
 
 Answers follow Claude Code's JSON protocol with exit code 0: `permissionDecision: deny` before a tool runs, `decision:
-block` at Stop, `additionalContext` at SessionStart, UserPromptSubmit and SubagentStart. Never exit code 2: `uv` and
-Python also exit 2 when they cannot start, and a PreToolUse hook exiting 2 would block every tool call. If the
-dispatcher itself breaks, it lets the call through and says so on stderr: a broken guard must never lock a session out.
+block` at Stop, `additionalContext` at SessionStart, UserPromptSubmit, SubagentStart and PostToolUse. Never exit code
+2: `uv` and Python also exit 2 when they cannot start, and a PreToolUse hook exiting 2 would block every tool call. If
+the dispatcher itself breaks, it lets the call through and says so on stderr: a broken guard must never lock a
+session out.
 
 Standard library only: hooks run under `uv run --no-project`.
 """
@@ -31,6 +32,7 @@ CONTEXT_EVENTS = {
     "SessionStart": "session_start",
     "UserPromptSubmit": "user_prompt_submit",
     "SubagentStart": "subagent_start",
+    "PostToolUse": "post_tool_use",
 }
 
 
