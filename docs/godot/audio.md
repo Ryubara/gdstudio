@@ -156,3 +156,16 @@ export (#421) with a tap on the browser's audio output:
 - To tap the output, wrap `AudioNode.prototype.connect` so connections to an `AudioDestinationNode` go through a
   `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps
   ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
+
+### What to build instead (Deadnight #423)
+
+- **The duck is bus volume.** Effects and Ambience send to a `Duck` bus (listed before the buses that send to it);
+  the service moves its volume. Measured through the real service in the browser: -11.9 dB for -12 asked, and desktop
+  unchanged. Nothing of the player's sliders is touched.
+- **A low-pass has a volume stand-in** where players are samples: a fully blocked sound took 4 dB more and one straight
+  behind the listener 3 dB, chosen at run time (`players_apply_filters`). Stand-ins are middles, not matches: the
+  low-pass costs a bright loop 13 dB and a rifle shot about 1 dB.
+- **Measure through your own service**, not a bare player: a probe that plays one bright voice through the game's
+  audio service and prints each effect against the open voice found all three effects missing in one run.
+- **A probe's project setting** goes under `[audio]` without its `audio/` prefix, and the playback-type values are
+  0 stream, 1 sample ([lesson](../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md)).

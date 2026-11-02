@@ -18,4 +18,8 @@ areas: [ci, tools]
   line. Check it before pushing with `git log -1 --format=%B`: the trailer is the last line. Rewording a pushed commit
   needs a force push, which is the maintainer's, so the fix then is a new branch and a new pull request carrying the
   clean commit (#503 became #531).
+- **Again:** it happened a second time (Deadnight #539) because the merge was written as
+  `git merge -m "<title> + trailer"` and finished with `git commit --no-edit`; that is the pattern to search your own
+  shell history for. `git merge --no-commit`, then `git commit -F <file>` is the safe order. #539 became #546: a new
+  branch from `main` with `git merge --squash` of the old one and one clean commit.
 - **Docs:** [Merging main into a pull request](../starting-work.md#merging-main-into-a-pull-request).
