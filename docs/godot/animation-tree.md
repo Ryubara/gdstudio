@@ -55,3 +55,11 @@ and the modifier was switched off, the arms jumped 0.25 m in one frame. For a cl
 first frame, set the influence to 0 and the modifier off in the frame the clip starts, and let it rise again from
 zero once the clip is over. Measure it: the weapon's place in the player's frame, every tick of the clip, in a test
 that steps the tree by hand.
+
+## A state machine that starts at Start and has no way out
+
+A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached only by `travel()` from the locomotion
+(Deadnight's crouch) is unreachable from there if `Start` has no automatic transition out. A played body left `Start`
+by falling onto the lot at the spawn; a drawn copy of another player, standing on the floor from its first frame, never
+did, so its crouch never began. Call `playback.start(&"locomotion")` in `_ready`, and test a body that was never
+airborne.
