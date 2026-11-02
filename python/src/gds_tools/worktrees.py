@@ -185,6 +185,72 @@ def create(
     return Worktree(path=path, branch=name, base=base, hooks=hooks)
 
 
+def checked_out(checkout: Path, worktrees: Path, git: Run = run) -> dict[str, Path]:
+    """The branches that have a worktree folder on disk directly under `worktrees` (`git worktree list`), by name."""
+    out = git(["git", "worktree", "list", "--porcelain"], checkout.resolve())
+    found: dict[str, Path] = {}
+    base = worktrees.resolve()
+    for block in out.split("\n\n"):
+        path, branch = "", ""
+        for line in block.splitlines():
+            if line.startswith("worktree "):
+                path = line.removeprefix("worktree ")
+            elif line.startswith("branch refs/heads/"):
+                branch = line.removeprefix("branch refs/heads/")
+        folder = Path(path).resolve() if path else None
+        if branch and folder and folder.is_dir() and folder.parent == base:
+            found[branch] = folder
+    return found
+
+
+def existing(
+    checkout: Path,
+    worktrees: Path,
+    title: str,
+    number: int,
+    *,
+    branch: str = "",
+    known: str = "",
+    others: frozenset[str] = frozenset(),
+    git: Run = run,
+) -> list[tuple[str, Path]]:
+    """The worktrees of an issue that already exist, as (branch, folder). An issue's worktree is the checkout of a
+    branch named for it: the one `--branch` gave (alone, when given), else the one the ledger recorded for it
+    (`known`) or the one `create` names from the title, with or without the issue number. A branch the ledger
+    records for another issue (`others`) is never the issue's, even when the title makes the same name."""
+    slug = branch_name(title, number)
+    names = {branch} if branch else {name for name in (known, slug, f"{slug}-{number}") if name} - others
+    return sorted((name, path) for name, path in checked_out(checkout, worktrees, git).items() if name in names)
+
+
+def reuse(
+    found: list[tuple[str, Path]],
+    *,
+    git: Run = run,
+    install: Callable[[Path], None] | None = None,
+) -> Worktree:
+    """Hand an agent the one worktree an issue already has: its hooks are checked (and installed where missing) and
+    nothing else changes, so the work in it (commits, uncommitted edits) stays. More than one is refused by name."""
+    if len(found) > 1:
+        listing = "\n".join(f"  {name}: {path.as_posix()}" for name, path in found)
+        raise WorktreeError(
+            f"the issue has {len(found)} worktrees and gds cannot tell which to continue:\n{listing}\n"
+            "remove the ones that are not wanted (git worktree remove), or pass --branch <name> for one"
+        )
+    name, path = found[0]
+    hooks = ensure_hooks(path, git=git, install=install)
+    default = default_branch(path, git)
+    dirty = len(git(["git", "status", "--porcelain"], path).splitlines())
+    try:
+        ahead = int(git(["git", "rev-list", "--count", f"origin/{default}..HEAD"], path).strip())
+    except (WorktreeError, ValueError):
+        ahead = 0
+    state = f"{ahead} commit(s) ahead of origin/{default}, {dirty} changed file(s) not committed"
+    return Worktree(
+        path=path, branch=name, base="", hooks=[f"reused the worktree the issue already had: {state}", *hooks]
+    )
+
+
 def remove(checkout: Path, path: Path, branch: str, git: Run = run) -> None:
     """Take a worktree made by `create` away again (a start that failed after it), best effort."""
     for cmd in (["git", "worktree", "remove", "--force", str(path)], ["git", "branch", "-D", branch]):

@@ -81,6 +81,34 @@ issue that needs no code. For a `PR:` task the agent adds a worktree of the pull
 absolute path (`git -C <workspace>/repos/<repo> worktree add <workspace>/worktrees/<repo>/<branch> <branch>`): a
 relative path with `git -C` resolves inside the repository.
 
+### A takeover reuses the worktree {#takeover}
+
+When an agent stalls and another takes the issue (`gds issue release <ref>`, then `gds issue start <ref> --agent <new>`),
+the work is in the old agent's worktree: commits and uncommitted edits. `start` first looks for a worktree the issue
+already has and hands that one over instead of making an empty one. An issue's worktree is a folder directly under
+`<workspace>/worktrees/<repo>/` that is the checkout of a branch named for it, in this order of knowing:
+
+- `--branch <name>`, when given (then only that branch counts);
+- otherwise the branch the ledger recorded for the issue (a start that was not released), the branch that the title
+  gives (`ui: Fix quick join` is `ui-fix-quick-join`) and that name with the issue number (`ui-fix-quick-join-526`).
+  A branch the ledger records for a different issue is not taken, even when the two titles make the same name.
+
+`release` removes the issue from the ledger, so after a release the branch name from the title is what finds the
+worktree. Then:
+
+- **One match:** it is reused as it is (nothing is fetched, merged, reset or cleaned). The git hooks are checked
+  and installed like for a new worktree (step 2 above), and the output says how much work is in it (`N commit(s) ahead
+  of origin/main, M changed file(s) not committed`), prints `Worktree: <path>` and records it in the ledger. If the rest
+  of the start fails, a reused worktree is never removed (it holds work).
+- **More than one match** (for example both `x` and `x-526`): the start is refused and names each branch and folder.
+  Remove the ones that are not wanted with `git worktree remove`, or pass `--branch <name>` for the one to continue.
+- **None:** a new branch and worktree, as above. A branch with no checkout under `worktrees/<repo>/` is not a
+  worktree to reuse; it is refused or renamed as before.
+- **`--fresh`:** skips the search and makes a new branch and worktree even when the issue has one (the old one is left
+  alone; the new branch gets the issue number, `<slug>-<N>`). Use it to restart the issue from `origin/main`.
+
+The agent that continues merges `origin/main` into the reused branch with `gds merge-main` (it may be behind).
+
 ## Starting an agent
 
 The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, any agent that is not a
