@@ -17,6 +17,25 @@ Issues are worked from oldest to newest, at all times, and every start goes thro
 - Out of the line: `S-in-progress`, `S-pending-review`, an issue an open pull request closes, `S-blocked`,
   `S-needs-info`.
 
+## Everything that can run, runs {#parallel}
+
+The coordinator keeps an agent on every issue that may start, in every repository of `workspace.toml`. An issue that is
+not started has one of two reasons, and the reason is written down:
+
+- **It conflicts** with an issue an agent has (same mechanic or files): give both to one agent in sequence. The second
+  is blocked on the first.
+- **It is blocked**: it waits on another issue or pull request, or on the maintainer.
+
+```text
+uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#228 --on "#227" --why "the same bot brain; started one at a time after it merges"
+uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#52 --on maintainer --why "a person must launch the Activity"
+```
+
+That sets `S-blocked` and writes `Blocked (coordinator, <date>): waits on #227: <why>` in the issue body. A blocked issue
+leaves the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
+"Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
+issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+
 ## Starting an issue
 
 ```text
@@ -86,15 +105,20 @@ gds issue list [owner/repo]
 ```
 
 prints the window (what may start now, and how many issues wait behind it), the issues in progress with their owner
-(the agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues, and the
-issues waiting for information. An issue in progress with **no owner** (no ledger entry, no assignee, no pull request)
-is called out: someone set the label by hand or the agent was moved off it; give it an owner or release it. Any open
+(the agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues with the
+reason each gives (one blocked with no `Blocked (...)` line says so), the **unblocked** ones (blocked, but every issue
+they waited on has closed: lift them with `gds issue unblock`), and the issues waiting for information. An issue in
+progress with **no owner** (no ledger entry, no assignee, no pull request) is called out: someone set the label by hand
+or the agent was moved off it; give it an owner or release it. Any open
 pull request carrying `S-in-progress` is listed too, so the label can be taken off.
 
 ## Stopping and finishing
 
 - `gds issue release <ref> [--agent name]`: work stopped. The issue goes back to `S-ready-to-start`, unassigned, out of
   the ledger, with a comment. An open pull request that still closes it keeps it in progress, and the command says so.
+- `gds issue block <ref> --on <#N|maintainer> --why "<text>"` and `gds issue unblock <ref>`: take an issue out of the
+  line with its reason, and put it back ([above](#parallel)). `--on` must be another open issue or pull request of the
+  repository (or `owner/repo#N`); an issue in progress is released first.
 - `gds issue done <ref>`: clears the ledger entry. It is rarely needed: merging a pull request with `Fixes #N` closes
   the issue, and the next `gds issue start` or `gds issue list` drops the ledger entries of closed issues.
 

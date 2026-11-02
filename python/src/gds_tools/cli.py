@@ -258,6 +258,23 @@ def _cmd_issue_release(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_issue_block(args: argparse.Namespace) -> int:
+    repo, number = _issue_ref(args)
+    args.repo = repo
+    _, _, ledger = _issue_context(args)
+    lines = issues.block(repo, number, args.on, args.why, gh=issues.run_gh, ledger=ledger, who=args.by)
+    print("\n".join(lines))
+    return 0
+
+
+def _cmd_issue_unblock(args: argparse.Namespace) -> int:
+    repo, number = _issue_ref(args)
+    args.repo = repo
+    _, _, ledger = _issue_context(args)
+    print("\n".join(issues.unblock(repo, number, gh=issues.run_gh, ledger=ledger)))
+    return 0
+
+
 def _cmd_issue_done(args: argparse.Namespace) -> int:
     repo, number = _issue_ref(args)
     args.repo = repo
@@ -406,6 +423,23 @@ def build_parser() -> argparse.ArgumentParser:
     rel.add_argument("ref", help=ref_help)
     rel.add_argument("--agent", help="who stops, for the comment")
     rel.set_defaults(func=_cmd_issue_release)
+    blk = iss.add_parser(
+        "block", help="take an issue out of the line with a reason: S-blocked and a 'Blocked (...): waits on' line"
+    )
+    blk.add_argument("ref", help=ref_help)
+    blk.add_argument(
+        "--on",
+        required=True,
+        help="#N (or owner/repo#N) of the open issue or pull request it waits on, or 'maintainer'",
+    )
+    blk.add_argument("--why", required=True, help="the reason, in a sentence (written to the issue body)")
+    blk.add_argument("--by", default="coordinator", help="who blocks it, for the body line (default: coordinator)")
+    blk.set_defaults(func=_cmd_issue_block)
+    unb = iss.add_parser(
+        "unblock", help="put a blocked issue back in the line (its blocker closed, or the wait is over)"
+    )
+    unb.add_argument("ref", help=ref_help)
+    unb.set_defaults(func=_cmd_issue_unblock)
     fin = iss.add_parser("done", help="clear an issue from the ledger (a merged Fixes pull request does it anyway)")
     fin.add_argument("ref", help=ref_help)
     fin.set_defaults(func=_cmd_issue_done)

@@ -12,6 +12,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
 | Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
 | Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
+| Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..."`) ([below](#idle)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
@@ -90,6 +91,45 @@ What the hook cannot see: the window itself (that needs the network, so `gds iss
 the ledger, and the ledger is what the hook trusts); an agent that names a started issue but works on something else;
 labels set through a script, the web page or `gh api --input` bodies. The next `gds issue list` shows an issue in
 progress with no owner, and the weekly hygiene sweep reports labels that sit idle.
+
+## Idle issues {#idle}
+
+Run everything that can run in parallel, and enforce it: nothing used to notice when issues that could start sat with
+no agent ([the maintainer's words](research/maintainer-corrections.md); on 2026-11-02 two or three agents ran while four
+kit issues waited, and later 15 Deadnight issues sat behind the window because issues that waited on #227 or on the
+maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main session; task agents send
+`SubagentStop`, which this never touches) now refuses to end a turn while an issue is idle. Settings: `[idle]` in
+`hooks.toml`.
+
+1. **What is idle.** For every repository in the kit's `workspace.toml`, the hook computes the window with the code
+   `gds issue start` uses (`gds_tools/issues.py`, loaded by path) from `gh issue list` and `gh pr list`. The issues under
+   "May start now" are idle: nobody has them (no `S-in-progress`, no open pull request that closes them) and they are not
+   blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
+2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
+   agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
+   when it conflicts with an issue an agent has (same files or mechanic: give both to one agent in sequence, so `--on`
+   that issue) or waits on the maintainer; or `gds issue unblock <repo>#N` for an unblocked one.
+3. **Blocks have a reason.** `gds issue block` writes the label `S-blocked` and a `Blocked (<who>, <date>): waits on #N:
+   <why>` line (or `waits on the maintainer: <why>`) in the body. The coordinator's hand-written form since 2026-11-02,
+   `Blocked (coordinator, 2026-11-02): waits on #227 (...)`, is parsed the same way (the issues named before the first
+   colon, parenthesis or dash are the blockers; an open pull request counts as open). `gds issue list` shows the
+   reason of each blocked issue, and lists under "Unblocked: label to remove" those whose blockers all closed, so a
+   block cannot outlive its cause. A block on the maintainer, on an issue of another repository, or with no
+   recognisable issue is never lifted by itself.
+4. **It cannot hold the coordinator forever.** It counts its own refusals per session (`session_id`) in
+   `<workspace>/cache/idle-check-refusals.json` and allows the end after `max_refusals` (2) in a row, like the
+   [stall gate](#stall) (`stop_hook_active` cannot count past one, so this check ignores it). The count is forgotten
+   when nothing is idle and lapses an hour after the last refusal, so an ignored idle issue is raised again later.
+5. **It only reads, and fails open.** The `gh` reads are cached for `cache_seconds` (60) in
+   `<workspace>/cache/idle-check.json`, so a Stop every few seconds asks GitHub once a minute, within `budget_seconds`
+   (40) in all. Every `gds issue start|block|unblock|release` removes the cache, so the next Stop sees the change at
+   once. A repository GitHub cannot answer for (offline, rate limit, no access) is left out: a check that cannot look
+   finds nothing and the session ends.
+
+What it cannot see: two idle issues that conflict with each other (the coordinator judges that, and blocks one `--on` the
+other), and an agent that holds an issue but has stalled (the [stall gate](#stall) and `gds issue list` show that). The
+hook is registered for `Stop` already; restart the session to pick it up. A game gets nothing of this: the check reads
+the workspace, not a repository, so only the kit's `.claude/settings.json` needs it.
 
 ## Docs ship with the change {#docs}
 
@@ -219,6 +259,8 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
 ## Tests
 
 `python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks, the
-stall gate (reports, blockers, the refusal limit, the reviewer) and the learning loop (each event's text, the queue
-gate and its loop guard, and the dispatcher run as a process).
-`python/tests/test_issues.py` covers the window and `gds issue` against `gh` JSON recorded in `python/tests/fixtures/`.
+stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check (the refusal and both commands,
+a task agent never judged, the refusal limit and its reset, the `gh` cache, failing open) and the learning loop (each
+event's text, the queue gate and its loop guard, and the dispatcher run as a process).
+`python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
+`Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

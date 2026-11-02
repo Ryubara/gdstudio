@@ -114,3 +114,16 @@ max_refusals = 2
 # Where the refusals are counted, relative to the workspace.
 counter = "cache/stop-check.json"
 report = '''(?im)(github\.com/[\w.-]+/[\w.-]+/pull/\d+|\b(?:PR|pull request)\s*#\d+|^[\s>*_#-]*mistakes?\b|^[\s>*_#-]*(?:blocked|blocker)\b[\s*_]*[:–—-]|\bstopped because\b|\b(?:i am|i'm|is) blocked\b)'''
+
+[idle]
+# The coordinator check (docs/hooks.md#idle): the main session's Stop is refused while an issue of any repository in
+# workspace.toml may start now (the window's "May start now", plus blocked issues whose blocker closed) and has no agent. The
+# way out is `gds issue start`, or `gds issue block <ref> --on <#N|maintainer> --why "..."`. Task agents never send Stop.
+# GitHub is asked at most once per `cache_seconds` and for at most `budget_seconds` in all; any failure lets the stop through.
+enforce = true
+cache_seconds = 60
+budget_seconds = 40
+# Refusals in a row before the end is allowed (the count resets when nothing is idle, and lapses after an hour).
+max_refusals = 2
+# Where the refusals are counted, relative to the workspace.
+counter = "cache/idle-check-refusals.json"
