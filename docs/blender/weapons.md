@@ -21,6 +21,12 @@ Copy the hold from a kit weapon that is unit-scale in the character file: the **
 scale 0.21-0.42), so their transform does not carry over to a weapon at true size. Prove each new weapon with a render
 of the character holding it beside the kit one.
 
+**Hand guns and the chibi fist.** The kit characters' hands are two to three times real size on a body at 0.8, so a
+one-handed gun sized against the body vanishes in the fist (only the barrel shows). Measure the weapon against the
+hand that holds it, give one-handed guns a size exception (like the repair hammer, about 1.6x), and use the Shotgun
+hold for every gun: the kit file's Revolver copy is rescaled like the AK's. Sweep a bent bar as one tube; boxes give
+a bend a saw-tooth edge ([lesson](../lessons/2026-11-02-hand-guns-disappeared-into-a-chibi-fist.md)).
+
 **Thrown weapons.** The kit characters carry no kit grenade, so a grenade has no kit hold to copy. Model it standing up
 along +Z with the origin in the body's centre (the fist), and give each moving part its own node, origin at its
 pivot (Deadnight's `Pin` slides out, its `Spoon` swings off its hinge). In Godot the gun hold turned 90 degrees about

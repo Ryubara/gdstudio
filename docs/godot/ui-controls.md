@@ -48,3 +48,8 @@ and what its build showed: `docs/research/mobile-controls.md` there.
   `Input.parse_input_event` ([lesson](../lessons/2026-11-01-a-headless-gdunit4-window-is-64-pixels-wide.md)).
 - **Captures of a tour scene.** Await each step's note before the next: a coroutine called without `await` carries on
   and the PNG is taken a few frames late.
+
+- **Parsed input is buffered.** After `Input.parse_input_event`, call `Input.flush_buffered_events()` and wait two
+  frames before reading action state ([lesson](../lessons/2026-11-02-a-parsed-input-event-is-buffered.md)).
+- **Counts sit in containers beside their text**, never at a hand-measured offset: the offset breaks with the next
+  font, scale or translation (Deadnight #466).
