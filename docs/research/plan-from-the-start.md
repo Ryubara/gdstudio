@@ -81,6 +81,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-01-events-the-server-causes-alone-never-reach-the-client.md)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+- Plan: every player feature is specified and tested from another player's view: a two-client test over the real
+  socket for what the other screen shows, and captures from the second client's screen
+  ([lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md),
+  [deadnight #518](https://github.com/Ryubara/deadnight/issues/518)).
 
 ## Saving
 
