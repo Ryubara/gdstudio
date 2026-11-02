@@ -237,8 +237,10 @@ def body_problems(conv: dict[str, Any], body: str) -> list[str]:
 
 
 def _reasoned(value: str) -> bool:
-    """True when `value` is a non-empty reason in parentheses: `(why)`."""
+    """True when `value` is a non-empty reason in parentheses: `(why)`, with one full stop after it allowed."""
     value = value.strip()
+    if value.endswith(")."):
+        value = value[:-1]
     return value.startswith("(") and value.endswith(")") and len(value.strip("() ")) > 0
 
 
@@ -293,8 +295,7 @@ def screenshot_problems(conv: dict[str, Any], title: str, body: str) -> list[str
     none = rule.get("none", "Screenshots: none")
     for line in text.splitlines():
         if line.strip().startswith(none):
-            reason = line.strip()[len(none):].strip()
-            if reason.startswith("(") and reason.endswith(")") and len(reason) > 2:
+            if _reasoned(line.strip()[len(none):]):
                 return []
             return [f"'{none}' needs a reason in parentheses: '{none} (why nothing visible changed)'"]
     pair = rule.get("before_after")

@@ -111,6 +111,8 @@ wrong is written down by the agent that found it, in the same task, and the next
   areas of the issue's labels (`docs/lessons/areas.toml`). A game's conventions add `Kit docs: <kit pull request>` (or
   `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue (`pull_requests.kit_docs`, same script). If GitHub cannot be
   asked, the title alone is judged.
+  Every `none (reason)` line (`Lessons`, `Kit docs`, `Failed first`, `Issues affected`, `Screenshots`, `Before`) takes the
+  reason in parentheses with one full stop after it, and refuses any other text after the parenthesis.
 
 What it cannot see: that the listed mistakes are all the agent's mistakes (the report is the agent's own), a lesson
 file that exists but says nothing, and a correction that fails no check and carries no `Fix` title; a reviewer reads
