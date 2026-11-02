@@ -54,6 +54,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #492](https://github.com/Ryubara/deadnight/issues/492)).
 - Plan: the Activity stood in locally (mapping prefix, gzip, iframe focus) before the maintainer tries it
   ([web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
+- Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
+  probe each inside the Activity frame with Discord's policy before shipping
+  ([web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
