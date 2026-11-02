@@ -365,3 +365,85 @@ def test_a_cd_that_cannot_be_followed_asks_for_an_absolute_path(cd, folder, work
 def test_an_unparsable_cd_lets_a_relative_body_through_without_attach(folder, workspace):
     """Nothing to judge when the body cannot be placed, as with a body that is not written yet."""
     assert denied(shell("cd $DIR && gh pr edit 7 --body-file body.md", workspace["kit"])) == ""
+
+
+# --- the docs rule against the branch's diff (kit #215) ---------------------------------------------------------------
+
+GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"]
+
+
+def branch_with(repo: Path, files: dict[str, str], branch: str = "feature") -> Path:
+    """Commit the repository's files on main, call that origin/main, then commit `files` on a new branch."""
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "base"], check=True)
+    subprocess.run(["git", "-C", str(repo), "update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
+    subprocess.run(["git", "-C", str(repo), "checkout", "-q", "-b", branch], check=True)
+    for name, text in files.items():
+        target = repo / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8", newline="\n")
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", "change"], check=True)
+    return repo
+
+
+def docs_body(tmp_path: Path, with_docs_line: str = "") -> Path:
+    """good.txt, with a `Docs: none` line when asked (the line is read exactly, as pr-rules reads it)."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    assert "Docs: none" not in text
+    path = tmp_path / "docs-body.md"
+    path.write_text(text + (f"\n{with_docs_line}\n" if with_docs_line else ""), encoding="utf-8", newline="\n")
+    return path
+
+
+def test_code_changed_without_docs_or_a_docs_line_is_refused(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"python/src/gds_tools/new.py": "x = 1\n"})
+    code, err = run_gds(["pr", "check-body", str(docs_body(tmp_path)), "--repo", str(kit)], capsys)
+    assert code == 1 and "docs: refused" in err and "code changed without a docs change" in err
+
+
+def test_a_docs_none_line_passes_the_docs_rule(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"python/src/gds_tools/new.py": "x = 1\n"})
+    body = docs_body(tmp_path, "Docs: none")
+    assert cli.main(["pr", "check-body", str(body), "--repo", str(kit)]) == 0
+    assert "docs: ok" in capsys.readouterr().out
+
+
+def test_a_changed_docs_file_passes_the_docs_rule(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"python/src/gds_tools/new.py": "x = 1\n", "docs/page.md": "# Page\n"})
+    assert cli.main(["pr", "check-body", str(docs_body(tmp_path)), "--repo", str(kit)]) == 0
+    assert "docs: ok" in capsys.readouterr().out
+
+
+def test_a_change_to_neither_code_nor_docs_passes_the_docs_rule(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"notes.txt": "hi\n"})
+    assert cli.main(["pr", "check-body", str(docs_body(tmp_path)), "--repo", str(kit)]) == 0
+    assert "docs: ok" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("state", ["no-commits", "on-main", "detached", "no-origin"])
+def test_without_a_branch_the_docs_rule_says_it_cannot_tell(state, workspace, tmp_path, capsys):
+    kit = workspace["kit"]
+    if state != "no-commits":
+        branch_with(kit, {"python/src/gds_tools/new.py": "x = 1\n"})
+        if state == "on-main":
+            subprocess.run(["git", "-C", str(kit), "checkout", "-q", "main"], check=True)
+        elif state == "detached":
+            subprocess.run(["git", "-C", str(kit), "checkout", "-q", "--detach"], check=True)
+        else:
+            subprocess.run(["git", "-C", str(kit), "update-ref", "-d", "refs/remotes/origin/main"], check=True)
+    assert cli.main(["pr", "check-body", str(docs_body(tmp_path)), "--repo", str(kit)]) == 0
+    out = capsys.readouterr().out
+    assert "docs: cannot tell" in out and "docs: ok" not in out
+
+
+def test_the_guard_refuses_a_code_branch_without_a_docs_line(workspace, tmp_path):
+    kit = branch_with(workspace["kit"], {"python/src/gds_tools/new.py": "x = 1\n"})
+    body = docs_body(tmp_path)
+    assert "code changed without a docs change" in denied(shell(f"gh pr edit 7 --body-file {body}", kit))
+    ok = docs_body(tmp_path, "Docs: none")
+    assert denied(shell(f"gh pr edit 7 --body-file {ok}", kit)) == ""
+
+
+def test_the_guard_does_not_judge_the_docs_rule_without_a_branch(workspace, tmp_path):
+    assert denied(shell(f"gh pr edit 7 --body-file {docs_body(tmp_path)}", workspace["kit"])) == ""

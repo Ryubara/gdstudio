@@ -320,14 +320,24 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
     if args.title:
         lines = read(args.title).splitlines()
         title = lines[0] if lines else ""
-    result = pr.check_body(repo, read(args.body), title, kit=workspace.kit_checkout())
+    body, kit = read(args.body), workspace.kit_checkout()
+    result = pr.check_body(repo, body, title, kit=kit)
+    docs = pr.check_docs(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
-        return 0
-    print("description: refused", file=sys.stderr)
-    for reason in result.reasons:
-        print(f"  - {reason}", file=sys.stderr)
-    return 1
+    else:
+        print("description: refused", file=sys.stderr)
+        for reason in result.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+    if docs.unknown:  # not an "ok": the rule depends on the branch's files
+        print(f"docs: cannot tell, {docs.unknown}; pr-rules will judge it after the push")
+    elif docs.ok:
+        print("docs: ok")
+    else:
+        print("docs: refused", file=sys.stderr)
+        for reason in docs.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+    return 0 if result.ok and docs.ok else 1
 
 
 def _cmd_lessons(args: argparse.Namespace) -> int:
