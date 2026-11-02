@@ -29,10 +29,12 @@ class PrCheckError(Exception):
 
 @dataclass
 class BodyCheck:
-    """The result of one check: `ok`, and the reasons the checker printed when it refused."""
+    """The result of one check: `ok`, and the reasons the checker printed when it refused. `unknown` is why the check
+    could not be made at all (then `ok` is True only in the sense that nothing was refused): it is never an "ok"."""
 
     ok: bool
     reasons: list[str]
+    unknown: str = ""
 
 
 def repo_root(start: Path) -> Path | None:
@@ -72,28 +74,87 @@ def check_body(repo: Path, body: str, title: str | None = None, kit: Path | None
     with tempfile.TemporaryDirectory(prefix="gds-pr-body-") as folder:
         body_file = Path(folder) / "body.md"
         body_file.write_text(body, encoding="utf-8", newline="\n")
-        command = [*_python_command(), str(checker), "--conventions", str(conventions), "check-body"]
-        command += ["--body", str(body_file)]
+        arguments = ["check-body", "--body", str(body_file)]
         if title is not None:
             title_file = Path(folder) / "title.txt"
             title_file.write_text(title, encoding="utf-8", newline="\n")
-            command += ["--title", str(title_file)]
-        try:
-            done = subprocess.run(
-                command,
-                cwd=repo,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=TIMEOUT_SECONDS,
-                stdin=subprocess.DEVNULL,
-            )
-        except (OSError, subprocess.SubprocessError) as error:
-            raise PrCheckError(f"the checker could not run: {error}") from error
+            arguments += ["--title", str(title_file)]
+        return _run_checker(repo, checker, arguments)
+
+
+def _run_checker(repo: Path, checker: Path, arguments: list[str]) -> BodyCheck:
+    """Run one `groundwork.py` sub-command in `repo` with its conventions: 0 is ok, 1 is a refusal with reasons, any
+    other result is an error (`PrCheckError`)."""
+    command = [*_python_command(), str(checker), "--conventions", str(repo / CONVENTIONS), *arguments]
+    try:
+        done = subprocess.run(
+            command,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT_SECONDS,
+            stdin=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise PrCheckError(f"the checker could not run: {error}") from error
     if done.returncode == 0:
         return BodyCheck(True, [])
     if done.returncode != 1:
         raise PrCheckError((done.stderr or done.stdout).strip() or f"the checker exited with {done.returncode}")
     reasons = [line.strip()[2:] for line in done.stderr.splitlines() if line.strip().startswith("- ")]
     return BodyCheck(False, reasons or [done.stderr.strip()])
+
+
+#: What a branch is compared to, as `pr-rules` does (the pull request's files are the branch's changes since it left
+#: the default branch).
+BASE = "origin/main"
+
+
+def _git(repo: Path, *args: str) -> tuple[int, str]:
+    try:
+        done = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as error:
+        return 1, str(error)
+    return done.returncode, done.stdout
+
+
+def branch_changes(repo: Path) -> tuple[list[str], str]:
+    """(the files the branch changed since it left origin/main, "") as `git diff --name-only origin/main...HEAD`, the
+    files of the pull request; ([], why) when that cannot be told: a detached head, the default branch itself, no
+    origin/main, or no commit yet."""
+    code, branch = _git(repo, "symbolic-ref", "--quiet", "--short", "HEAD")
+    branch = branch.strip()
+    if code != 0 or not branch:
+        return [], "the head is detached or has no branch"
+    if branch in ("main", "master"):
+        return [], f"the checkout is on {branch}, not on the pull request's branch"
+    code, _ = _git(repo, "rev-parse", "--verify", "--quiet", BASE)
+    if code != 0:
+        return [], f"{BASE} is not known here (git fetch origin)"
+    code, out = _git(repo, "diff", "--name-only", f"{BASE}...HEAD")
+    if code != 0:
+        return [], f"git diff {BASE}...HEAD failed"
+    return [line.strip() for line in out.splitlines() if line.strip()], ""
+
+
+def check_docs(repo: Path, body: str, kit: Path | None = None) -> BodyCheck:
+    """The docs rule of `pr-rules` (`groundwork.py check-docs`: a change to code needs a change to docs or a
+    `Docs: none` line) against the files the branch of `repo` changed since origin/main. It shares the rule with CI by
+    running the same sub-command on the same kind of file list. When the branch cannot be told, the result says why in
+    `unknown` and is never a pass."""
+    changed, why = branch_changes(repo)
+    if why:
+        return BodyCheck(True, [], unknown=why)
+    if not (repo / CONVENTIONS).is_file():
+        raise PrCheckError(f"{CONVENTIONS.as_posix()} is missing in {repo}")
+    checker = checker_for(repo, kit)
+    with tempfile.TemporaryDirectory(prefix="gds-pr-docs-") as folder:
+        body_file, changed_file = Path(folder) / "body.md", Path(folder) / "changed.txt"
+        body_file.write_text(body, encoding="utf-8", newline="\n")
+        changed_file.write_text("\n".join(changed) + "\n", encoding="utf-8", newline="\n")
+        try:
+            return _run_checker(repo, checker, ["check-docs", "--body", str(body_file), "--changed", str(changed_file)])
+        except PrCheckError as error:  # an older groundwork.py without `check-docs`, or one that cannot run
+            return BodyCheck(True, [], unknown=f"the docs checker failed: {error}")

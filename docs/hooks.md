@@ -53,8 +53,13 @@ Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow
 relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
 is not judged. The refusal for a missing file names the path it looked in
 ([lesson](lessons/2026-11-02-the-body-guard-read-a-relative-file-from-the-wrong-folder.md)). `--attach` paths are never
-opened by the guard, only their names are read. The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges
-changes to it.
+opened by the guard, only their names are read. The docs rule of `pr-rules` (code changed, no docs changed, no
+`Docs: none` line) reads the branch's files: `gds pr check-body` and the guard run the same `groundwork.py check-docs`
+on `git diff --name-only origin/main...HEAD` of the checkout. With no branch to read (no commit, a detached head, the
+checkout on `main`, no `origin/main`) `gds pr check-body` prints `docs: cannot tell` rather than `docs: ok`, and the
+guard lets the command through
+([lesson](lessons/2026-11-02-the-local-body-check-skipped-the-docs-rule.md)). The guard is a hand-merge path
+(`.claude/hooks/`): a maintainer merges changes to it.
 
 ## Commit messages before they leave the machine {#pre-push}
 

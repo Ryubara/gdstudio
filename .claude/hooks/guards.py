@@ -483,6 +483,12 @@ def load_pr_module() -> Any:
         return None
 
 
+def here_checkout(cwd: Path) -> Path | None:
+    """The git checkout around `cwd`."""
+    top = git(cwd, "rev-parse", "--show-toplevel")
+    return Path(top) if top else None
+
+
 def pr_checkout(words: list[str], cwd: Path) -> Path | None:
     """The checkout whose `.github/conventions.yml` judges a `gh pr` command: the one around `cwd`, or, when `-R
     owner/name` names another repository, `<workspace>/repos/<name>`."""
@@ -522,6 +528,8 @@ def check_body(
     titles = flag_values(words, ("--title", "-t"))
     try:
         result = module.check_body(repo, body, titles[0] if titles else None, kit=KIT)
+        if result.ok and repo == here_checkout(cwd):  # the docs rule reads the branch checked out here
+            result = module.check_docs(repo, body, kit=KIT)  # (`unknown` is not a refusal: pr-rules judges it)
     except Exception:  # the checker is missing, slow or broken: let the command through
         return []
     if result.ok:
