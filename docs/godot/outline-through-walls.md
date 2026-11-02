@@ -7,9 +7,9 @@ that game's `game/gameplay/outline/` and `docs/research/outline.md`.
 ## What works
 
 - **`stencil_mode` in a spatial shader works in Compatibility, on desktop and in the web export** (Godot 4.7.2,
-  checked in a spike on desktop OpenGL 3.3, in Chrome with a GPU and in Chromium on SwiftShader; the WebGL2 context
-  has 8 stencil bits). The docs call it experimental and say it is read only in the transparent pass: a pass with
-  `blend_mix` and `ALPHA = 0` still writes the stencil, so a mask that draws nothing is possible.
+  checked in Deadnight's night on desktop OpenGL, in Chrome with a GPU and in Chromium on SwiftShader).
+  The docs call it experimental and say it is read only in the transparent pass: a pass with `blend_mix` and
+  `ALPHA = 0` still writes the stencil, so a mask that draws nothing is possible.
 - **The recipe:** one mesh `material_overlay` chain (`next_pass`):
     1. mask: `render_mode unshaded, depth_test_disabled, cull_disabled, blend_mix; stencil_mode write, compare_always, 1;`
        with `ALPHA = 0`;
