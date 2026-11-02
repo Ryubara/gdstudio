@@ -19,7 +19,8 @@ the same hold:
 Copy the hold from a kit weapon that is unit-scale in the character file: the **Shotgun** for long guns, the
 **Shovel** for melee (offset about 2 mm from the bone). The AK and Sniper copies carry rescaled mesh data (object
 scale 0.21-0.42), so their transform does not carry over to a weapon at true size. Prove each new weapon with a render
-of the character holding it beside the kit one.
+of the character holding it beside the kit one. A kit hold puts the weapon in the hand, but not the fingers on it:
+for that, solve each weapon's grip from its own sockets ([Hands on the weapon](#hands-on-the-weapon)).
 
 **Hand guns and the chibi fist.** The kit characters' hands are two to three times real size on a body at 0.8, so a
 one-handed gun sized against the body vanishes in the fist (only the barrel shows). Measure the weapon against the
@@ -48,6 +49,36 @@ builds a weapon places them in Blender, and gameplay code reads them instead of 
 - **A test proves it:** load each firearm's file, find `Muzzle`, check it sits within 1 cm of the bounds' front face
   along the barrel and points along it. Deadnight's is `game/tests/art/test_weapon_muzzle.gd`, built by its
   `build_weapons.py` (`MUZZLES`) and drawn by `render_muzzle.py`.
+
+## Hands on the weapon
+
+The kit's clips never move the fingers: every clip holds the same fist, made for the kit's own guns, so copying a kit
+hold puts every finger through or off any other weapon (Deadnight measured 8-42 mm into the gun and 20-80 mm off it on
+all of its guns, [Deadnight #460](https://github.com/Ryubara/deadnight/issues/460)). Give each weapon its grip from
+data instead:
+
+- **Hand sockets in the model**, placed like the `Muzzle`: `Grip` (the right hand's handle, at its centre where the
+  middle finger wraps; local +Z up the handle toward the index finger, local +Y the way the straight fingers point,
+  which on a pistol grip is along the barrel), `Trigger` (the middle of the trigger's front face) and `Support` (the
+  left hand's handle: the fore-end's rear, where a chibi arm reaches, or a vertical foregrip).
+- **A solver closes the hand on them** in the hand bone's space, so the grip holds in every clip: lay the socket on
+  the line across the knuckles, slide a gun until the trigger is level with the index knuckle, push it to the palm,
+  turn it up to 30 degrees about the handle and slide it along the fingers until the index finger reaches the trigger,
+  then bend every finger within joint limits to the bend that brings its tip 1 mm from the surface without going in.
+  Measure the skinned mesh against the weapon's triangles, inside counted per closed piece (a kitbashed gun is many
+  overlapping closed parts, so one parity test over the whole mesh is wrong).
+- **The palm is four bones from the wrist** (`Index1`, `Middle1`, `Pinky1`, `Thumb1`). An IK that turns only the bone
+  the weapon rides (`Index1.R`) leaves the other three with the forearm and tears the palm: turn them with it.
+- **Check the arm reaches.** A chibi arm is short (the Soldier's is 0.66 m in the game): a solved left-hand grip is
+  only right if the IK can put the hand there. Put the support at the fore-end's rear and turn the chest 20-30 degrees
+  (left shoulder forward) for two-handed guns; a clamped IK leaves the hand short, inside the stock.
+- **Size against the hand, not only the body.** The kit Soldier's fist is about 2.3 times a real one and his finger 3
+  times, on a body at 0.8: the kit draws its guns about 1.33 times real for that (its AK beside the Soldier). Check a
+  pistol grip against the three fingers under the trigger finger (about 1.0) and the guard's opening against the
+  finger (at least about 0.9) before solving, and scale the weapon, never the hand.
+
+Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
+`HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
 
 ## Building by script
 
