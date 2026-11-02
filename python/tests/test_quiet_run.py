@@ -290,7 +290,7 @@ def test_the_browser_probe_times_a_held_clip_and_a_missing_guard_exceeds_the_bou
 
     free, held = (0, 0, 1024, 768), (17, 68, 864, 541)
 
-    def measure(freed_at: float) -> float:
+    def measure(freed_at: float, before: tuple[int, int, int, int] = free) -> float:
         now = [0.0]
 
         def sleep(seconds: float) -> None:
@@ -299,11 +299,14 @@ def test_the_browser_probe_times_a_held_clip_and_a_missing_guard_exceeds_the_bou
         def read() -> tuple[int, int, int, int]:
             return held if 0.1 <= now[0] < freed_at else free
 
-        return probe.longest_held_ms(free, probe.LOCK_SECONDS, read=read, clock=lambda: now[0], sleep=sleep)
+        samples = probe.poll(probe.LOCK_SECONDS, read=read, clock=lambda: now[0], sleep=sleep)
+        return probe.longest_held_ms(samples, probe.free_clip([before, *(rect for _, rect in samples)]))
 
     assert measure(freed_at=0.105) < FREED_WITHIN_MS  # a guard that frees it within 5 ms
     assert measure(freed_at=0.5) < FREED_WITHIN_MS  # a guard stalled for 0.4 s by a loaded runner still passes
     assert measure(freed_at=1e9) >= FREED_WITHIN_MS  # no guard: held for the rest of the lock
+    # another program's clip (a parallel run of this test) set when the lock starts is not taken for the free one
+    assert measure(freed_at=0.105, before=(30, 40, 500, 400)) < FREED_WITHIN_MS
     assert probe.LOCK_SECONDS * 1000 > FREED_WITHIN_MS * 2  # the lock outlasts the bound
 
 
