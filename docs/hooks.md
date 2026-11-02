@@ -36,7 +36,7 @@ The `pre-commit` framework installs three git hooks (`default_install_hook_types
 | --- | --- | --- |
 | `pre-commit` | formatting, lint, the generated files | the staged files |
 | `commit-msg` | `groundwork.py check-title --commit-msg` and `check-message` | the message file git hands over, before git's cleanup |
-| `pre-push` | `groundwork.py check-push` | every commit being pushed (`PRE_COMMIT_FROM_REF..TO_REF`), merges included, as stored |
+| `pre-push` | `groundwork.py check-push` | every commit being pushed (`PRE_COMMIT_FROM_REF..TO_REF`, minus what `origin/main` has), merges included, as stored |
 
 One function, `commit_problems`, judges a message in all three places and in CI (`check-commits`). The only input
 handling is `stored_message()`: the help text git adds in the editor (and the `--verbose` diff under the scissors line)
@@ -142,6 +142,10 @@ definitions did not stop the third, so `SubagentStop` now refuses such an end. S
    `<workspace>/cache/stop-check.json` (entries older than a day are dropped); after `max_refusals` (2) the end is
    allowed. `stop_hook_active` cannot count past one, so this gate ignores it. The refusal's text says which refusal it
    is. An agent that really cannot go on has the way out in the reason: a `Blocked:` line passes at once.
+5. **A let-through end resets the count.** When the end is allowed because the message reads as a report, or because the
+   limit was reached, the agent's entry is removed from the file. An agent that is resumed (`SendMessage`) and stalls
+   again, even the same day, gets its own `max_refusals` refusals; before this, the spent count of its first stall let
+   the second one through ([#156](https://github.com/Ryubara/gdstudio/issues/156)).
 
 The hook uses the message alone. The first design in [#148](https://github.com/Ryubara/gdstudio/issues/148) also asked
 whether the agent's issue already has a pull request, but the ledger (`gds issue start`) is keyed by issue and records
