@@ -24,7 +24,7 @@ import os
 import re
 import subprocess
 import tomllib
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -185,6 +185,14 @@ _BLOCK_LINE = re.compile(r"(?im)^[ \t>*_-]*Blocked[ \t]*\(([^)\n]*)\)[ \t]*:[ \t
 _WAITS_ON = re.compile(r"(?i)^waits?\s+on\s+(.*)$")
 _CLAUSE_END = re.compile(r"[:;(]| [-–—] |\.\s")
 _BLOCKER = re.compile(r"(?<![\w/])((?:[\w.-]+/[\w.-]+)?)#(\d+)")
+# What a block may wait on besides the maintainer (docs/starting-work.md#parallel): an issue the blocked one's body
+# names as a dependency (`Depends on: #227.`, `**Depends on:** #53 to #57`, `Carried from #228 (PR #597, ...)`), or
+# files both would edit in ways a merge cannot settle (`--conflict`, written `(conflict in: a, b)` after the reason).
+_DEPENDS_LINE = re.compile(r"(?im)^[ \t>*_-]*depends[ \t]+on\b(.*)$")
+_CARRIED_LINE = re.compile(r"(?im)^[ \t>*_-]*carried[ \t]+from\b(.*)$")
+_RANGE = re.compile(r"#(\d+)\s+(?:to|through|-|–|—)\s+#(\d+)", re.IGNORECASE)
+_CONFLICT_IN = re.compile(r"\(conflict in: ([^)\n]*)\)")
+MAX_RANGE = 50
 
 
 @dataclass(frozen=True)
@@ -196,6 +204,18 @@ class Block:
     reason: str  # the text after the colon
     maintainer: bool  # it waits on the maintainer: no closed issue lifts that
     waits_on: tuple[tuple[str, int], ...]  # (repository or "" for the same one, number) of the issues it waits on
+    conflicts: tuple[str, ...] = ()  # the files named by `--conflict` (`(conflict in: a, b)` in the reason)
+
+    def kind(self, dependencies: set[tuple[str, int]], repo: str) -> str:
+        """The reason class `gds issue list` shows: `maintainer`, `conflict` (files named), `dependency` (the issue
+        body names every issue it waits on) or `none named` (a hand-written block the body does not back)."""
+        if self.maintainer:
+            return "maintainer"
+        if self.conflicts:
+            return "conflict"
+        named = {(other.lower() or repo.lower(), number) for other, number in self.waits_on}
+        known = {(other.lower() or repo.lower(), number) for other, number in dependencies}
+        return "dependency" if named and named <= known else "none named"
 
     def lifted(self, repo: str, open_numbers: set[int]) -> bool:
         """True when every issue it waits on is in this repository and closed. A block on the maintainer, on no
@@ -222,7 +242,26 @@ def parse_block(body: str) -> Block | None:
     maintainer = bool(re.match(r"(?i)(the\s+)?maintainers?\b", after))
     clause = after[: m.start()] if (m := _CLAUSE_END.search(after)) else after
     refs = () if maintainer else tuple((repo, int(number)) for repo, number in _BLOCKER.findall(clause))
-    return Block(who=who, date=date, reason=reason.strip(), maintainer=maintainer, waits_on=refs)
+    files = _CONFLICT_IN.search(reason)
+    conflicts = tuple(f.strip() for f in files.group(1).split(",") if f.strip()) if files else ()
+    return Block(who=who, date=date, reason=reason.strip(), maintainer=maintainer, waits_on=refs, conflicts=conflicts)
+
+
+def dependencies(body: str) -> set[tuple[str, int]]:
+    """The issues a body names as dependencies, as (repository or "", number): every reference on a `Depends on:` line
+    (`#53 to #57` counts each number), and the issue on a `Carried from #N` line (not the pull request after it). A
+    `Blocked (...)` line is not a dependency: it is what `gds issue block` checks against this."""
+    found: set[tuple[str, int]] = set()
+    text = without_blocks(body)
+    for line in _DEPENDS_LINE.findall(text):
+        for low, high in _RANGE.findall(line):
+            if 0 <= int(high) - int(low) <= MAX_RANGE:
+                found.update(("", n) for n in range(int(low), int(high) + 1))
+        found.update((repo, int(number)) for repo, number in _BLOCKER.findall(line))
+    for line in _CARRIED_LINE.findall(text):
+        head = line[: m.start()] if (m := re.search(r"[(;]", line)) else line
+        found.update((repo, int(number)) for repo, number in _BLOCKER.findall(head))
+    return found
 
 
 def without_blocks(body: str) -> str:
@@ -493,14 +532,16 @@ def forget_reads(ledger: Path) -> None:
         ledger.with_name(IDLE_CACHE).unlink()
 
 
-def block_line(who: str, on: str, why: str, today: str, repo: str) -> str:
-    """The line `gds issue block` writes: `Blocked (<who>, <date>): waits on #N: <why>` (or on the maintainer)."""
+def block_line(who: str, on: str, why: str, today: str, repo: str, conflict: Sequence[str] = ()) -> str:
+    """The line `gds issue block` writes: `Blocked (<who>, <date>): waits on #N: <why>` (or on the maintainer), with
+    `(conflict in: <files>)` after the reason when `--conflict` names files."""
     if on.strip().lower() == MAINTAINER:
         waits = "the maintainer"
     else:
         other, number = parse_ref(on, repo)
         waits = f"#{number}" if other.lower() == repo.lower() else f"{other}#{number}"
-    return f"Blocked ({who}, {today}): waits on {waits}: {' '.join(why.split())}"
+    files = f" (conflict in: {', '.join(conflict)})" if conflict else ""
+    return f"Blocked ({who}, {today}): waits on {waits}: {' '.join(why.split())}{files}"
 
 
 def block(
@@ -513,11 +554,17 @@ def block(
     ledger: Path,
     who: str = "coordinator",
     now: datetime | None = None,
+    conflict: Sequence[str] = (),
 ) -> list[str]:
     """Take an issue out of the line with a reason: `S-blocked` and a `Blocked (...)` line in the body (one it had is
-    replaced). `on` is `maintainer` or the issue (or pull request) it waits on, which must be open."""
+    replaced). `on` is `maintainer` or the issue (or pull request) it waits on, which must be open, and which the
+    issue's body names as a dependency (`Depends on:`, `Carried from`) unless `conflict` names the files both would
+    edit in ways a merge cannot settle. "Same subsystem", "same agent" and "in order" are not reasons."""
+    conflict = tuple(path.strip() for path in conflict if path.strip())
     if not why.strip():
         raise IssueError("--why needs the reason, in a sentence")
+    if conflict and on.strip().lower() == MAINTAINER:
+        raise IssueError("--conflict names the files two issues share; a block on the maintainer has none")
     issues, prs = fetch(repo, gh)
     window = compute_window(repo, issues, prs)
     issue = window.by_number.get(number)
@@ -528,13 +575,24 @@ def block(
         raise IssueError(
             f"{repo}#{number} {window.why_not(number)}: release it (`gds issue release`) before blocking it"
         )
-    line = block_line(who, on, why, (now or datetime.now(UTC)).strftime("%Y-%m-%d"), repo)
+    line = block_line(who, on, why, (now or datetime.now(UTC)).strftime("%Y-%m-%d"), repo, conflict)
     if on.strip().lower() != MAINTAINER:
         open_numbers = set(window.by_number) | {pr.number for pr in prs}
         other, blocker = parse_ref(on, repo)
         if other.lower() == repo.lower() and (blocker == number or blocker not in open_numbers):
             raise IssueError(
                 f"{repo}#{number} cannot wait on #{blocker}: that is not another open issue or pull request"
+            )
+        if not conflict and not any(
+            (found or repo).lower() == (other or repo).lower() and found_number == blocker
+            for found, found_number in dependencies(issue.body)
+        ):
+            raise IssueError(
+                f"{repo}#{number} does not name #{blocker} as a dependency, so it cannot wait on it. A block needs "
+                f"a `Depends on: #{blocker}` (or `Carried from #{blocker}`) line in the issue body, or "
+                f"`--conflict <path>...` naming the files both would edit in ways a merge cannot settle, or "
+                f"`--on {MAINTAINER}`. 'Same subsystem', 'same agent' and 'in order' are not reasons: start it, and "
+                f"parallel agents merge origin/main before each push (docs/starting-work.md#parallel)."
             )
     body = without_blocks(issue.body)
     edit = ["issue", "edit", str(number), "-R", repo, "--body", (body + "\n\n" if body else "") + line]
@@ -619,7 +677,7 @@ def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[st
         for i in still:
             block = window.blocks.get(i.number)
             why = (
-                f"{block.line()[:160]}"
+                f"[{block.kind(dependencies(i.body), window.repo)}] {block.line()[:160]}"
                 if block
                 else f"no reason recorded: `gds issue block {window.repo}#{i.number} --on <#N|{MAINTAINER}> --why ...`"
             )
@@ -629,7 +687,11 @@ def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[st
             "",
             f"Unblocked: label to remove (what they waited on has closed; `gds issue unblock {window.repo}#N`):",
         ]
-        lines += [f"  #{i.number:<5} {i.title}  -- {window.blocks[i.number].line()[:160]}" for i in window.unblocked]
+        lines += [
+            f"  #{i.number:<5} {i.title}  -- [{window.blocks[i.number].kind(dependencies(i.body), window.repo)}] "
+            f"{window.blocks[i.number].line()[:160]}"
+            for i in window.unblocked
+        ]
     if window.waiting:
         lines += ["", "Waiting for information:"] + [f"  #{i.number:<5} {i.title}" for i in window.waiting]
     labelled = [pr for pr in prs if IN_PROGRESS in pr.labels]
