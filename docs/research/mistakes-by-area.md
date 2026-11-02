@@ -22,7 +22,7 @@ Anything that fits no other area. (4)
 
 ## gameplay
 
-Rounds, zombies, weapons, the economy, power, bots and balance. (71)
+Rounds, zombies, weapons, the economy, power, bots and balance. (72)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -32,6 +32,7 @@ Rounds, zombies, weapons, the economy, power, bots and balance. (71)
 | A hip-fire shot left before the body turned | the one deterministic simulation that both the server and the predicting client run computes `shot_ready`: the trigger or a buffered press, with the body within a tolerance of the view (or the aim button held). The server shoots on it. A tap is a buffered ... | [lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md) |
 | A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak | one close report (click, crack, roar, bark, thump) and a short quiet tail; own shots flat; one pitch rule (0.15 semitones) and one level rule (0.5 dB) for every firearm voice; trims with real headroom (no limiter: the web build ignores bus effects); a test of ... | [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md) |
 | A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
+| Two runs of the same commands gave different nights once a body walked | a determinism test lets nothing walk (the bots stand and fight, `retreat_margin = 0`), compares a coarse state (the rules, positions in quarter metres, health, ammunition, kills) and checks that a fight happened. A golden hash of what the bots send is made of ... | [lesson](../lessons/2026-11-02-a-walking-body-makes-two-runs-of-the-same-commands-differ.md) |
 | A 3x zombie count made rounds longer, and a time limit was added to patch it | count, spawn rate and alive cap scale together; no time limit; a test that each round at 2x and 3x lasts within about 10 percent of 1x. | [lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md) |
 | A rule on the view held a bot that looked where it walked | a bot sends a person's command. It looks where it acts, moves as a stick push under that view, and judges what it can hit from where the body will be when it fires (the barrel along the heading to the target): 395 frames, 14 held. When a rule starts reading a ... | [lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md) |
 | A remote player was a model with nothing to hold a weapon | a remote player is the same scene as a played body (a puppet `Player`: no input, collision, camera or simulation), so the same animation draws it; the frame gains the two small fields the pose needs (`aim`, `pitch`), delta-coded. A test with two clients and a ... | [lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md) |
@@ -434,11 +435,12 @@ Sound, voice lines, mixing and audio analysis. (27)
 
 ## godot
 
-Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (99)
+Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (100)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | F6 on a screen scene shows the screen but never starts what it hosts | a dev entry scene that builds the same parts and starts the night itself (`game/dev/play_night.tscn`, with its options in the inspector); the tuning guide says to use it or go through the menu. | [lesson](../lessons/2026-11-02-f6-on-a-ui-screen-does-not-start-the-night.md) |
+| Two runs of the same commands gave different nights once a body walked | a determinism test lets nothing walk (the bots stand and fight, `retreat_margin = 0`), compares a coarse state (the rules, positions in quarter metres, health, ammunition, kills) and checks that a fight happened. A golden hash of what the bots send is made of ... | [lesson](../lessons/2026-11-02-a-walking-body-makes-two-runs-of-the-same-commands-differ.md) |
 | A replay in an idle frame missed by a few millimetres once in six runs | a test that is not about idle frames records and replays in physics callbacks (delta exactly one tick); the idle-frame case lives in one suite that runs it on purpose (`test_player_reconcile`). | [lesson](../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md) |
 | A Python edit of a GDScript file made Godot refuse the script | open with `encoding="utf-8", newline=""` (read and write), keep tooltip units ASCII (`deg`, `m/s^2`), and run a headless import after any scripted edit: it prints the broken file's name. | [lesson](../lessons/2026-11-02-a-python-edit-of-a-gdscript-file-broke-its-encoding.md) |
 | A test that steps by hand but waits a physics frame per tick runs at wall-clock speed | turn off the player's `_physics_process`, call its `tick(sample_command())` and the hand steps back to back, and wait one `process_frame` per measurement (the skeleton modifiers keep no clock): 1.7 s, same poses and limits. | [lesson](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md) |
@@ -540,13 +542,14 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (91)
+Tests, bots, captures, probes and benchmarks. (92)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | The exit leak check failed a passing test run, at random | at the source, in the audio autoload's `_exit_tree`: wait for the mixer's own steps (poll `AudioServer.get_time_since_last_mix()`, count each fall, about four, with a poll cap), blocking the main thread, which is safe because the mixer runs on its own. Only ... | [lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md) |
 | Tests wrote the player's real settings file | tests and captures use their own settings store, and a test fails if a suite run changes the real file (Deadnight #418, #446). Agents never edit `app_userdata`; they report it. | [lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md) |
 | A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
+| Two runs of the same commands gave different nights once a body walked | a determinism test lets nothing walk (the bots stand and fight, `retreat_margin = 0`), compares a coarse state (the rules, positions in quarter metres, health, ammunition, kills) and checks that a fight happened. A golden hash of what the bots send is made of ... | [lesson](../lessons/2026-11-02-a-walking-body-makes-two-runs-of-the-same-commands-differ.md) |
 | A test that waited for a count that never came hung the whole suite | bound every wait loop (frames or seconds) and assert on what was seen after the bound, so the test fails at once and names itself. | [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md) |
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A static path set by the game root outlived the root in a test run | reset the static in the root's `_exit_tree`. | [lesson](../lessons/2026-11-02-a-static-path-outlived-the-game-root-in-tests.md) |

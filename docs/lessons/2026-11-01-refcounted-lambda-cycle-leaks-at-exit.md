@@ -19,6 +19,12 @@ areas: [godot, tests]
   the object, so neither is freed: "resources still in use at exit" and leaked instances, and CI fails with every
   test green. Disconnect in `after_test` and drop the reference, or capture a `WeakRef`. A `node_added` lambda left
   connected does the same and also breaks later tests (Deadnight challenges, #429).
+- **Third case, a callable handed to an object the same owner holds (Deadnight #225):** a test rig built a bot with
+  `func(action): sent.append(action)` as its sender and a lambda that named a member as its sight; the rig held the
+  bot, the bot held the lambda, the lambda held the rig. 16 resources still in use, every test green. A callable made
+  with `Callable(self, &"method")` (or `.bind(id)`) does not hold a RefCounted object, so a host, a rig or a fixture
+  passes its own methods to what it owns, never lambdas that name its members. Run a new suite alone with `--verbose`
+  before the first push: CI fails on "still in use" with all tests passing.
 - **Find it:** run the suspect test file alone with `--verbose`; the leak count reproduces exactly (121 instances
   and 22 resources on #432).
 - **Docs:** Deadnight `docs/research/weapon-firing.md`.
