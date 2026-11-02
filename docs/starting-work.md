@@ -34,15 +34,25 @@ subsystem run side by side: each keeps its change to its own part, adds new modu
 the blocker is not in it and no file is named, start the issue. A chain of several issues blocked on one running issue
 is the sign of a serial queue that should not exist.
 
+`gds issue block` enforces that, so a block cannot be written on a reason it does not have. `--on "#N"` is accepted
+when the blocked issue's body names #N as a dependency (a `Depends on:` line, with `#53 to #57` counting each number,
+or a `Carried from #N` line), or when `--conflict <path>...` names the files both would edit in ways a merge cannot
+settle. `--on maintainer` needs neither. Anything else is refused with a pointer to this section.
+
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#231 --on "#230" --why "the parity batch measures the slot filling #230 adds"
+uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#568 --on "#227" --why "needs the bot rig #227 adds"
+uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#231 --on "#230" --why "both rewrite the shop table" --conflict src/shop/shop_table.gd
 uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#52 --on maintainer --why "a person must launch the Activity"
 ```
 
-That sets `S-blocked` and writes `Blocked (coordinator, <date>): waits on #230: <why>` in the issue body. A blocked issue
-leaves the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
-"Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
-issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+The first needs `Depends on: #227.` in #568's body, the second names the files, the third needs nothing. Each sets
+`S-blocked` and writes `Blocked (coordinator, <date>): waits on #230: <why>` in the issue body (with
+`(conflict in: <files>)` after the reason for the second). `gds issue list` prints the reason class beside each block:
+`[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for a block written by hand that its issue body does
+not back, so a chain of blocks on one running issue shows at a glance. A blocked issue leaves the line, so it stops
+holding a slot of the window; when what it waits on closes, `gds issue list` shows it under "Unblocked: label to
+remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an issue in "May start
+now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
 
 ## Starting an issue
 
@@ -152,9 +162,10 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
 
 - `gds issue release <ref> [--agent name]`: work stopped. The issue goes back to `S-ready-to-start`, unassigned, out of
   the ledger, with a comment. An open pull request that still closes it keeps it in progress, and the command says so.
-- `gds issue block <ref> --on <#N|maintainer> --why "<text>"` and `gds issue unblock <ref>`: take an issue out of the
-  line with its reason, and put it back ([above](#parallel)). `--on` must be another open issue or pull request of the
-  repository (or `owner/repo#N`); an issue in progress is released first.
+- `gds issue block <ref> --on <#N|maintainer> --why "<text>" [--conflict <path>...]` and `gds issue unblock <ref>`:
+  take an issue out of the line with its reason, and put it back ([above](#parallel)). `--on` must be another open
+  issue or pull request of the repository (or `owner/repo#N`) that the issue's body names as a dependency, unless
+  `--conflict` names the files; an issue in progress is released first.
 - `gds issue done <ref>`: clears the ledger entry. It is rarely needed: merging a pull request with `Fixes #N` closes
   the issue, and the next `gds issue start` or `gds issue list` drops the ledger entries of closed issues.
 
