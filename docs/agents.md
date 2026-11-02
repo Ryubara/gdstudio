@@ -33,3 +33,7 @@ covers well.
 6. While the pull request is open, the `pr-status` workflow labels it `S-conflict` when it conflicts with its base and
    `S-ci-failing` when a required check failed on its latest commit. An agent that sees one fixes it forward on the
    branch (rebase, or fix the check); the label clears by itself ([Contributing](https://github.com/Ryubara/gdstudio/blob/main/CONTRIBUTING.md#pull-request-labels)).
+7. A running agent can be stuck with nothing on GitHub to show it: an agent that ends its turn by announcing its next
+   step stops there. The coordinator checks each running agent's newest worktree and scratch file time; an hour with
+   no change is a stall, and a fresh agent takes over from its notes
+   ([lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)).
