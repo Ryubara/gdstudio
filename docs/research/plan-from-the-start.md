@@ -61,8 +61,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 ## Netcode
 
-- Plan: a client that stalls or freezes (0.5, 2, 5 s) over the real socket, not only steady lag (known gap, cause
-  pending, [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
+- Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
+  more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
+  ([lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md),
+  [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
   ([lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit

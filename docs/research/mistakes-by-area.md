@@ -217,7 +217,7 @@ Menus, the HUD, themes, layout, UI motion and the settings screens. (28)
 
 ## net
 
-The network protocol, replication, prediction, lag and the game server. (26)
+The network protocol, replication, prediction, lag and the game server. (28)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -225,6 +225,7 @@ The network protocol, replication, prediction, lag and the game server. (26)
 | Git Bash rewrote a value that started with a slash | prefix the command with `MSYS_NO_PATHCONV=1`, or run it from PowerShell; read the value back after setting it. | [lesson](../lessons/2026-11-02-git-bash-rewrote-a-slash-value.md) |
 | A crowd cap measured in the browser became the desktop cap | split the cap by platform and measure each budget on its own: client render and animation, server tick per agent, snapshot bytes per player (deadnight #453). A room takes the ceiling of its lowest client platform. | [lesson](../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md) |
 | Behind Discord's proxy the web build read every 200 as "cannot reach the servers" | `HTTPRequest.accept_gzip = false` in the web build (Deadnight #475); trade an OAuth code once. Reproduce with a local HTTPS stand-in that gzips its answers, never only in a plain browser tab. | [lesson](../lessons/2026-11-02-a-godot-web-client-decoded-gzip-twice-behind-a-proxy.md) |
+| A correction that moves the body must move the history it is judged against | shift the remembered positions by every correction; snap a body far from the server when there is nothing to judge it by; after a freeze put the body where the server says and skip the catch-up ticks. Test the loop closed, in one dimension, at 50 to 400 ms ... | [lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md) |
 | Two branches bumped the same snapshot version | when a branch changes a serialized layout, merge `origin/main` right before merging and bump again if the version moved; check the version before any keys; keep a test with a snapshot from each older layout that must answer `bad_version`. | [lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md) |
 | TextServer.name_to_tag is not static | `TextServerManager.get_primary_interface().name_to_tag("wght")`. Also check a specimen font in the real title text: one face's G read as a J in "DEADNIGHT". | [lesson](../lessons/2026-11-01-textserver-name-to-tag-is-not-static.md) |
 | A server made mid-game ignored every zombie already alive | ask the owner of a fact (`GameRules.has_zombie`) instead of mirroring it from events, and give the state a server alone owns `to_dict`/`from_dict`/bytes with its own version, restored after the rules. | [lesson](../lessons/2026-11-01-server-state-learned-from-events-is-lost-on-restore.md) |
@@ -247,6 +248,7 @@ The network protocol, replication, prediction, lag and the game server. (26)
 | Appearance is replicated state with one owner, the server; every view, the player's own body included, dresses from that one table | A test with two clients over the real socket checks that every player shows the same parts and colours on every client and on the server; a `--look` flag gives local windows different looks | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Local and remote bodies are one scene, or share one transform | The same two-client test compares skeleton height, scale and facing per player on every client and on the server | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Players play with friends, not with addresses: the player-facing flow is rooms (Discord instance, invite link, code, quick join), and a server address is a developer tool | Before an online feature is called playable, walk the flow a stranger takes on each platform the game ships on (browser, Discord); no address, port or localhost in any player-facing screen | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| A client whose own loop freezes and then catches up in a burst, at the round trips we ship. The net tests held packets back while the client kept running, or ran at 100 ... | Test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and more) with a push, and freeze the client's own thread (`OS.delay_msec`) over a real socket, not only the link; read a server's `send` errors instead of ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 
 ## web
 
@@ -374,10 +376,11 @@ Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (64)
 
 ## audio
 
-Sound, voice lines, mixing and audio analysis. (22)
+Sound, voice lines, mixing and audio analysis. (23)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| The exit leak check failed a passing test run, at random | at the source, in the audio autoload's `_exit_tree`: wait for the mixer's own steps (poll `AudioServer.get_time_since_last_mix()`, count each fall, about four, with a poll cap), blocking the main thread, which is safe because the mixer runs on its own. Only ... | [lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md) |
 | A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak | one close report (click, crack, roar, bark, thump) and a short quiet tail; own shots flat; one pitch rule (0.15 semitones) and one level rule (0.5 dB) for every firearm voice; trims with real headroom (no limiter: the web build ignores bus effects); a test of ... | [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md) |
 | In the web export, sounds played as samples ignore bus effects | measured both modes with a tap on the browser's audio output; kept samples (streams crackle when the main thread stalls in a build with no threads) and documented what is lost. | [lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md) |
 | Voice lines written as captions sounded robotic | write barks the way a person talks under stress: first person, contractions, a filler or a breath, an exclamation where it fits, uneven length. Put the emotion in the words first and the audio tags second, keep the model's stability low enough for expression ... | [lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md) |
@@ -502,10 +505,11 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (82)
+Tests, bots, captures, probes and benchmarks. (83)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| The exit leak check failed a passing test run, at random | at the source, in the audio autoload's `_exit_tree`: wait for the mixer's own steps (poll `AudioServer.get_time_since_last_mix()`, count each fall, about four, with a poll cap), blocking the main thread, which is safe because the mixer runs on its own. Only ... | [lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md) |
 | Tests wrote the player's real settings file | tests and captures use their own settings store, and a test fails if a suite run changes the real file (Deadnight #418, #446). Agents never edit `app_userdata`; they report it. | [lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md) |
 | A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
 | A test that waited for a count that never came hung the whole suite | bound every wait loop (frames or seconds) and assert on what was seen after the bound, so the test fails at once and names itself. | [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md) |
@@ -622,7 +626,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (24)
 
 ## tools
 
-The gds CLI, hooks, the workspace, pinned tools and the shared machine. (44)
+The gds CLI, hooks, the workspace, pinned tools and the shared machine. (46)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -632,6 +636,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (44)
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A rule that lives only in an agent's memory is broken under pressure | the order is computed by a tool and checked by a hook. `gds issue start` allows only the 5 oldest ready issues (`P-critical` first), sets the label, assigns and records the start; the Agent hook refuses a task agent whose prompt does not name a started issue ... | [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md) |
 | A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
+| A correction that moves the body must move the history it is judged against | shift the remembered positions by every correction; snap a body far from the server when there is nothing to judge it by; after a freeze put the body where the server says and skip the catch-up ticks. Test the loop closed, in one dimension, at 50 to 400 ms ... | [lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md) |
 | The dead's feet slid because the walk and run blend points were guessed | measure each clip's planted-foot speed, put the blend points there, put the move state behind an `AnimationNodeTimeScale` set to ground speed over the gait's own speed (clamped 0.5-1.6), and cross over from walk to run over a short band, solving the rate so ... | [lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md) |
 | The Write tool wrote CRLF line endings on Windows | normalise new files before committing (`sed -i 's/\r$//' <files>`), then run the pre-commit hooks. | [lesson](../lessons/2026-11-01-the-write-tool-wrote-crlf-on-windows.md) |
 | A static function named `reload` on a script class returned an int | name static builders for what they build (`reload_weapon`), never after Object or Script methods. | [lesson](../lessons/2026-11-01-static-function-named-reload-returns-an-int.md) |
@@ -669,6 +674,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (44)
 | Local and remote bodies are one scene, or share one transform | The same two-client test compares skeleton height, scale and facing per player on every client and on the server | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | A screen with several choices needs one place that holds them while it is open, one commit when the player leaves, and one view (the stage) that follows that held state. ... | Any panel with more than one choice has a test: change A, then B, then tab and back, then reload from the file, counting writes (0 while open, 1 on leaving); held choices never go through a setting other views react to (lesson) | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Issues are started oldest first at all times, not only after the pull request queue is empty; the order is a property of the tool that starts work, not of anyone's ... | Work starts only through `gds issue start <owner/repo>#N --agent <name>`, which refuses an issue outside the 5 oldest ready ones (`P-critical` first); a task agent's prompt names `Issue: <owner/repo>#N` or `PR: <owner/repo>#N` or the hook refuses it; a pull ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| A client whose own loop freezes and then catches up in a burst, at the round trips we ship. The net tests held packets back while the client kept running, or ran at 100 ... | Test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and more) with a push, and freeze the client's own thread (`OS.delay_msec`) over a real socket, not only the link; read a server's `send` errors instead of ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Walk and run blend points were guessed (1.0 and 3.0 m/s; the clips measure 0.97 and 4.4) | Measure clip speeds before setting any blend threshold | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
 
 ## process
