@@ -36,4 +36,7 @@
     - Capture scripts drive the game's real path; one that calls an animation or effect by hand proves nothing about
       the game.
     - An origin or range that comes from the camera is tested from the real camera at the shortest range a weapon has.
+- **Follow-up (Deadnight #389):** the sweep moved to the body's head; the test now drives the real human
+  controller with the real camera, since bots send their eye position and skip the camera; and a test checks that
+  every catalogue id resolves to its own model file, so no hold per class can let one model stand in for another.
 - **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
