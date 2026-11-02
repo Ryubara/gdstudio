@@ -1,5 +1,5 @@
 ---
-areas: [tests, ci]
+areas: [tests, ci, tools]
 ---
 # A large heredoc in the Bash tool failed to parse
 
@@ -19,3 +19,9 @@ areas: [tests, ci]
   files in the scratchpad run with `python file.py args`; use the Edit tool for text that holds `\`. Keep heredocs
   for short ASCII with no backslash. Lint generated workflows (actionlint) and test generated regexes.
 - **Docs:** none yet
+- **Seen again (kit #165, 2026-11-02):** an edit script written through a heredoc turned the backslash-b of a regex
+  (`maintainers?` followed by a word boundary) into a backspace character (a unit test of the maintainer form failed;
+  the line showed it under `cat -A`), the backslash-n of two Python strings into real newlines, and a command with
+  quotes in its heredoc body failed to parse twice. All were fixed by writing the script with the Write tool and the
+  source with the Edit tool. After any generated edit, scan the files for control characters (below a space, other than
+  newline, tab and carriage return) before the first test run.
