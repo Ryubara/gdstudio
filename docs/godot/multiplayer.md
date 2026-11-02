@@ -47,6 +47,17 @@ gap once it stood still:
 - Godot's WebSocket buffers default to 64 KB: a client that does not read for a few seconds makes the server drop the
   newest ticks. Raise them (1 MB), and send a whole frame, not a delta, after a tick the socket would not take.
 
+### The same in the browser (Deadnight #502)
+
+The page's main thread is Godot's, so a busy loop run in the page (`page.evaluate`, a `while (performance.now() < end)`)
+is the freeze a player gets, and the browser goes on receiving into the socket's buffer meanwhile. A probe that joins a
+local game server in Chrome, walks, stalls 0.5, 2 and 5 s and compares the body with the server's position (published
+by the game's probe object) found the **same desync in the browser** as the native one, but only with a round trip:
+over loopback the pre-fix client came back to within 1 m of the server every time, and with a TCP relay that holds
+each chunk back 100 ms each way (a round trip of 220 to 240 ms) it flew off to 10^22 m. The browser's own network
+throttling does not touch WebSockets, so the delay is a relay in the probe. A 60 s stall also showed 670
+`Buffer payload full` console errors with the 64 KB buffers and none with 1 MB (Deadnight `tools/web_smoke/freeze.py`).
+
 ## Godot's raw WebSocket, without the high-level multiplayer
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
