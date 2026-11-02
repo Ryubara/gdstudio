@@ -56,6 +56,11 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
   lesson without areas or a stale page.
 - **The checks of your issue's areas are in your context at start** (`gds lessons <area>` prints them again). Apply
   them: they are mistakes already made.
+- **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it
+  closes an issue), `Lessons: docs/lessons/<file>.md` when it is a `Fix` or `Rework`, or a required check failed on an
+  earlier commit of it, or it closes a `bug` issue (`Lessons: none` is refused there), and, in a game, `Kit docs:
+  <the kit pull request>` (or `none (reason)`) when it is a `Fix` or `Rework` or closes a `bug` issue. The checks read
+  the title, the check history and the issue's labels, not your word.
 - **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a
   wrong guess, a rework) and name the lesson file for each (`docs/lessons/<file>.md`); write `Mistakes: none` when
   nothing went wrong. A report with mistakes and no lesson file is held back.

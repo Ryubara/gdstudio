@@ -43,8 +43,16 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s\n' "$PR_TITLE" | uv run --with pyyaml python .github/scripts/groundwork.py check-title -
 
+  # The description is judged with what the API knows of the pull request (checks that failed on its earlier commits, the
+  # issues it closes and their labels): `pr-history` reads it with the read-only token, and falls back to the title alone
+  # when GitHub cannot be asked.
   body:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      issues: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,13 +60,20 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Check the description against the template
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          set -euo pipefail
+          [[ "$NUMBER" =~ ^[0-9]+$ ]] || { echo "unexpected pull request number" >&2; exit 1; }
           printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
           printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
+          uv run --with pyyaml python .github/scripts/groundwork.py pr-history --repo "$GH_REPO" --number "$NUMBER" \
+            > "$RUNNER_TEMP/pr-history.json"
           uv run --with pyyaml python .github/scripts/groundwork.py check-body --body "$RUNNER_TEMP/pr-body.md" \
-            --title "$RUNNER_TEMP/pr-title.txt"
+            --title "$RUNNER_TEMP/pr-title.txt" --history "$RUNNER_TEMP/pr-history.json"
 
   # The changed files come from the API (at most 3000; a bigger pull request is refused rather than half-checked).
   docs:

@@ -17,6 +17,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +34,8 @@ KNOWN: dict[str, set[str]] = {
     "paths": {"code", "docs", "generated", "large_file_kb", "pointer_files", "blocks_in"},
     "commits": {"title", "body", "trailers"},
     "pull_requests": {"template", "sections", "filled", "placeholders", "local_paths", "docs_none", "closing",
-                      "checklist", "ai_use", "guidance", "screenshots", "issues_affected", "failed_first"},
+                      "checklist", "ai_use", "guidance", "screenshots", "issues_affected", "failed_first", "lessons", "kit_docs",
+                      "read_first"},
     "merge": {"methods", "squash_title", "squash_message", "auto_merge", "delete_branch_on_merge",
               "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths"},
     "issues": {"blank_issues", "placeholders", "forms", "labels"},
@@ -350,6 +352,146 @@ def failed_first_problems(conv: dict[str, Any], title: str, body: str) -> list[s
     if value.lower().startswith("none") and not _reasoned(value[4:]):
         return [f"'{label} none' needs a reason in parentheses: '{label} none (why no test can show it)'"]
     return []
+
+
+def _title_verb(title: str) -> str:
+    """The verb of a `area: Verb the rest` title, '' when the title does not follow the form."""
+    match = re.match(r"\s*[a-z0-9-]+: ([A-Z][a-z]+) ", title)
+    return match.group(1) if match else ""
+
+
+def _summary_value(conv: dict[str, Any], body: str, rule: dict[str, Any], default_label: str) -> str | None:
+    """The value of a `Label:` line in the rule's section (Summary), None when there is no such line or it still holds
+    a template placeholder."""
+    label, section = rule.get("label", default_label), rule.get("section", "Summary")
+    text = _COMMENT.sub("", split_sections(body).get(section, ""))
+    found = _label_at(text, label)
+    if not found:
+        return None
+    rest = text[found.end():].splitlines()
+    value = rest[0].strip() if rest else ""
+    placeholders = {p.lower() for p in conv["pull_requests"].get("placeholders", ["..."])}
+    return None if not value or value.lower() in placeholders else value
+
+
+def self_correction_reasons(rule: dict[str, Any], title: str, history: dict[str, Any]) -> list[str]:
+    """Why this pull request counts as an agent correcting its own or earlier work: its title verb (a fix or a
+    rework), a required check that failed on an earlier commit of it, or an issue it closes labelled as a bug. Read
+    from the API's history (`pr-history`), never from what the author says."""
+    reasons = []
+    verb = _title_verb(title)
+    if verb in rule.get("verbs", ["Fix", "Rework", "Revert"]):
+        reasons.append(f"its title says {verb}")
+    failed = history.get("failed_earlier", [])
+    if failed:
+        reasons.append(f"{', '.join(failed[:4])} failed on an earlier commit of it")
+    bug_labels = set(rule.get("bug_labels", ["bug"]))
+    bugs = [c["number"] for c in history.get("closes", []) if bug_labels & set(c.get("labels", []))]
+    if bugs:
+        reasons.append(f"it closes {', '.join(f'#{n}' for n in bugs[:4])}, labelled {'/'.join(sorted(bug_labels))}")
+    return reasons
+
+
+_LESSON_LINK = re.compile(r"lessons/20\d\d-\d\d-\d\d-[\w.-]+\.md|maintainer-corrections")
+
+
+def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[str, Any] | None) -> list[str]:
+    """Docs ship with the change (pull_requests.kit_docs, lessons, read_first), judged from the title, the description
+    and the pull request's history (`pr-history`: failed earlier checks, the issues it closes and their labels)."""
+    history = history or {}
+    rules = conv["pull_requests"]
+    problems: list[str] = []
+    closes = history.get("closes", [])
+    rule = rules.get("lessons")
+    reasons = self_correction_reasons(rule, title, history) if rule else []
+    if rule:
+        label = rule.get("label", "Lessons:")
+        value = _summary_value(conv, body, rule, "Lessons:")
+        is_none = value is not None and value.lower().startswith("none")
+        if value is not None and is_none and not _reasoned(value[4:]):
+            problems.append(f"'{label} none' needs a reason in parentheses: '{label} none (why nothing went wrong)'")
+        elif reasons and (value is None or is_none):
+            problems.append(
+                f"this pull request corrects earlier work ({'; '.join(reasons)}): link the lesson that records what "
+                f"went wrong, in ## {rule.get('section', 'Summary')} as '{label} docs/lessons/<file>.md' (or a row of "
+                f"the corrections page); '{label} none' is refused here")
+        elif value is not None and not is_none and not _LESSON_LINK.search(value):
+            problems.append(f"'{label}' links a lesson (docs/lessons/<yyyy-mm-dd>-<slug>.md) or a row of the "
+                            f"corrections page, or reads '{label} none (reason)': {value!r}")
+    kit = rules.get("kit_docs")
+    if kit:
+        label = kit.get("label", "Kit docs:")
+        bug_labels = set(kit.get("bug_labels", ["bug"]))
+        needed = _title_verb(title) in kit.get("verbs", ["Fix", "Rework"]) or any(
+            bug_labels & set(c.get("labels", [])) for c in closes)
+        value = _summary_value(conv, body, kit, "Kit docs:")
+        repo = re.escape(kit.get("repo", "gdstudio"))
+        link = re.compile(rf"https://github\.com/[\w.-]+/{repo}/pull/\d+|(?:[\w.-]+/)?{repo}#\d+")
+        if value is None and needed:
+            problems.append(f"a fix or rework documents the process in the kit, in the same task: add a line '{label} "
+                            f"<the kit pull request>' to ## {kit.get('section', 'Summary')}, or '{label} none (reason)'")
+        elif value is not None:
+            if value.lower().startswith("none"):
+                if not _reasoned(value[4:]):
+                    problems.append(f"'{label} none' needs a reason in parentheses: '{label} none (why nothing needs "
+                                    f"documenting)'")
+            elif not link.search(value):
+                problems.append(f"'{label}' names the kit pull request ({kit.get('repo', 'gdstudio')}#N or its URL), "
+                                f"or reads '{label} none (reason)': {value!r}")
+    first = rules.get("read_first")
+    if first and closes:
+        label = first.get("label", "Read first:")
+        wanted = _areas_of_labels(first, {name for c in closes for name in c.get("labels", [])})
+        value = _summary_value(conv, body, first, "Read first:")
+        named = {a.lower() for a in re.split(r"[\s,;]+", value or "") if a}
+        if value is None:
+            hint = f" naming {', '.join(wanted)}" if wanted else ""
+            problems.append(f"a pull request that closes an issue says which areas' checks the author read first: add "
+                            f"'{label} <areas>'{hint} to ## {first.get('section', 'Summary')} (`gds lessons <area>`)")
+        elif wanted and not set(wanted) <= named:
+            problems.append(f"'{label}' must name the areas of the issue's labels; missing "
+                            f"{', '.join(sorted(set(wanted) - named))} (the issue has "
+                            f"{', '.join(sorted({n for c in closes for n in c.get('labels', []) if n.startswith('A-')}))})")
+    return problems
+
+
+def _areas_of_labels(rule: dict[str, Any], labels: set[str]) -> list[str]:
+    """The glossary areas of some issue labels (docs/lessons/areas.toml `[labels]`), without `general`; empty when the
+    repository has no areas file."""
+    path = Path(rule.get("areas_file", "docs/lessons/areas.toml"))
+    if not path.is_file():
+        return []
+    mapping = tomllib.loads(path.read_text(encoding="utf-8")).get("labels", {})
+    found: list[str] = []
+    for label in sorted(labels):
+        found += [a for a in mapping.get(label, []) if a not in found and a != "general"]
+    return found
+
+
+def collect_history(conv: dict[str, Any], repo: str, number: int, run: Any = None) -> dict[str, Any]:
+    """What GitHub knows about a pull request that its text does not say: the watched checks that failed on an earlier
+    commit (pull_requests.lessons.history_checks, else merge.required_checks), and the issues it closes with their
+    labels. `run` is `gh` (tests pass a fake)."""
+    run = run or gh
+    rule = conv["pull_requests"].get("lessons", {})
+    watched = set(rule.get("history_checks", conv.get("merge", {}).get("required_checks", [])))
+    shas = run("api", "--paginate", f"repos/{repo}/pulls/{number}/commits", "--jq", ".[].sha").split()
+    failed: set[str] = set()
+    for sha in shas[:-1][-20:]:  # every commit but the last (the one being judged), the newest twenty
+        out = run("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100", "--jq",
+                  r'.check_runs[] | [.name, .conclusion] | @tsv')
+        for line in out.splitlines():
+            name, _, conclusion = line.partition("\t")
+            if name in watched and conclusion in ("failure", "timed_out"):
+                failed.add(name)
+    closes = []
+    out = run("pr", "view", str(number), "-R", repo, "--json", "closingIssuesReferences", "--jq",
+              r'.closingIssuesReferences[] | select(.repository.owner.login + "/" + .repository.name == "' + repo
+              + r'") | .number')
+    for issue in out.split():
+        labels = run("api", f"repos/{repo}/issues/{issue}", "--jq", r'[.labels[].name] | join(",")').strip()
+        closes.append({"number": int(issue), "labels": [x for x in labels.split(",") if x]})
+    return {"failed_earlier": sorted(failed), "closes": closes}
 
 
 def issue_area(conv: dict[str, Any], body: str) -> str:
@@ -902,7 +1044,24 @@ def cmd_check_body(conv: dict[str, Any], args: argparse.Namespace) -> int:
         title = lines[0] if lines else ""
         problems += screenshot_problems(conv, title, body)
         problems += failed_first_problems(conv, title, body)
+        history = json.loads(_read(args.history)) if args.history else {}
+        if history.get("unavailable"):
+            print("note: the pull request's history could not be read; the title alone is judged", file=sys.stderr)
+        problems += lessons_problems(conv, title, body, history)
     return _report(problems, "description")
+
+
+def cmd_pr_history(conv: dict[str, Any], args: argparse.Namespace) -> int:
+    """Print what the API knows of a pull request (failed earlier checks, closed issues and their labels) as JSON, for
+    `check-body --history`. When GitHub cannot be asked it prints {"unavailable": true}: a check that cannot look judges
+    from the title alone instead of failing the pull request."""
+    try:
+        history = collect_history(conv, args.repo, args.number)
+    except RuntimeError as err:
+        print(f"pr-history: {err}", file=sys.stderr)
+        history = {"unavailable": True}
+    print(json.dumps(history))
+    return 0
 
 
 def cmd_issue_area(conv: dict[str, Any], args: argparse.Namespace) -> int:
@@ -1026,8 +1185,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(run=cmd_needs_maintainer)
     p = sub.add_parser("check-body", help="check a pull request description")
     p.add_argument("--body", required=True, help="a file, or - for stdin")
-    p.add_argument("--title", help="the title (a file): enables the screenshots and failed-first rules")
+    p.add_argument("--title", help="the title (a file): enables the screenshots, failed-first and lessons rules")
+    p.add_argument("--history", help="the output of pr-history (a file): lets the lessons rules see failed checks")
     p.set_defaults(run=cmd_check_body)
+    p = sub.add_parser("pr-history", help="print a pull request's failed earlier checks and closed issues as JSON")
+    p.add_argument("--repo", required=True, help="owner/name")
+    p.add_argument("--number", required=True, type=int, help="the pull request number")
+    p.set_defaults(run=cmd_pr_history)
     p = sub.add_parser("issue-area", help="print the area label an issue form's body chose")
     p.add_argument("--body", required=True, help="the issue body: a file, or - for stdin")
     p.set_defaults(run=cmd_issue_area)
