@@ -27,8 +27,14 @@ def git(cwd: Path, *args: str) -> str:
 
 
 @pytest.fixture
-def world(tmp_path: Path) -> dict[str, Path]:
+def world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
     """A remote with one commit (a pre-commit config in it), a checkout under repos/ and an empty worktrees/."""
+    for key, value in (
+        ("NAME", "t"),
+        ("EMAIL", "a@example.org"),
+    ):  # the code under test commits as the user: CI has none
+        monkeypatch.setenv(f"GIT_AUTHOR_{key}", value)
+        monkeypatch.setenv(f"GIT_COMMITTER_{key}", value)
     origin, root = tmp_path / "origin.git", tmp_path / "ws"
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
     seed = tmp_path / "seed"

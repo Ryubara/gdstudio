@@ -34,4 +34,9 @@ areas: [ci, tools, process]
   it itself, and on Windows its lookup of the LFS hook's `#!/bin/sh` fails (`ExecutableNotFoundError: Executable
   /bin/sh not found`). Installing hooks is not done until a hook has run: `gds issue start` now runs `git hook run
   pre-push` after installing, and rewrites that shebang to `#!/usr/bin/env sh`.
+- **Tests that passed here and failed in CI (#152):** the stand-in hooks were written without the executable bit, which
+  git ignores on Linux and macOS (`cannot find a hook named pre-push`), and the merge test relied on the developer's
+  global git identity (`Committer identity unknown` on the runners). Tests that make real commits or hooks set
+  `GIT_AUTHOR_*`/`GIT_COMMITTER_*` and `chmod` their hooks, and are run once with `GIT_CONFIG_GLOBAL=/dev/null` to see
+  what a runner sees.
 - **Docs:** [Starting work](../starting-work.md#worktree), [Hooks](../hooks.md#pre-push).
