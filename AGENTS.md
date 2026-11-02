@@ -47,6 +47,8 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - Windowed Godot (captures, autopilots, GdUnit without `--headless`):
   `uv run --project python gds godot -- <godot arguments>`, never the Godot program directly: a plain window takes the
   keyboard from the person at the machine (`docs/godot/no-focus.md`).
+- Local browser probes (Playwright, a game's `tools/web_smoke/*.py`) and any other program that can take the mouse:
+  `uv run --project python gds quiet -- <command>`: headless Chrome under pointer lock traps the person's cursor.
 - Before committing: `uvx pre-commit run --all-files` (installed once with `uvx pre-commit install`).
 - Docs: `uvx --with-requirements requirements-docs.txt mkdocs build --strict`.
 

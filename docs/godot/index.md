@@ -66,6 +66,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | --- | --- | --- |
 | Movie Maker (`--write-movie`) | captures for every visual change | known: [Capture](../capture.md) |
 | Windowed runs (captures, autopilots, GdUnit) | every one that is not `--headless` | known: [Windowed Godot without taking the focus](no-focus.md) (`gds godot` runs it on a private desktop; a plain start takes the keyboard) |
+| Local browser probes of the web build (Playwright) | every one, under pointer lock | known: [`gds quiet`](no-focus.md#browser-probes-and-any-other-program-gds-quiet) (headless Chrome clips the real cursor to its hidden window) |
 | The editor's own inspector, photographed | pull requests that move numbers into resources | known: [Screenshots of the editor's inspector](editor-screenshots.md) (a throwaway plugin on `gds godot -- --editor`) |
 | GdUnit4 (scene runner, input simulation) | unit and scene tests | known (Deadnight's smoke test) |
 | Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |

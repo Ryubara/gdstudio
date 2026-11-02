@@ -3,7 +3,8 @@
 Agents run windowed Godot all the time (captures, `--write-movie`, autopilot scenes, GdUnit without `--headless`). On
 Windows every such window opens in front, takes the keyboard (and sometimes the cursor) from the person working on
 the same machine, and stays in the way. **Run every windowed Godot through `gds godot`** (or `gds capture frames`,
-which uses it); `--headless` is the other way, for runs that draw nothing.
+which uses it); `--headless` is the other way, for runs that draw nothing. Browser probes and any other program that
+can take the mouse run through **`gds quiet`**, the same thing for any command ([below](#browser-probes-and-any-other-program-gds-quiet)).
 
 ```text
 uv run --project <kit>/python gds godot [--timeout SECONDS] [--] <godot arguments>
@@ -14,6 +15,39 @@ It runs the pinned Godot with the arguments you give, prints its output as it ar
 after `--timeout`, default 900 s, which kills Godot and the program it started). The Claude Code hook refuses a Godot
 started straight from a shell without `--headless`, `--version` or `--help` and names this command
 ([hooks](../hooks.md)). Inside a shell script, call `gds godot` where the script called Godot.
+
+## Browser probes and any other program: `gds quiet`
+
+Godot is not the only program that takes the mouse. A local browser probe (Playwright driving a game's web build,
+Deadnight's `tools/web_smoke/*.py`) clicks the canvas, the page takes **pointer lock**, and headless Chrome confines the
+person's real cursor to its hidden window at the top left of the screen until the lock ends; Esc ends it. **Run every
+local browser probe, and any program that can take the mouse, through `gds quiet`:**
+
+```text
+uv run --project <kit>/python gds quiet [--timeout SECONDS] -- <command> [arguments]
+uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 python tools/web_smoke/hip_fire.py build/web build/hip-fire --gpu
+```
+
+It is `gds godot` for any command: the command and every program it starts (Playwright's driver, the browser and its
+helpers inherit the desktop like any child) run on the private desktop, the cursor is freed every 5 ms while it runs,
+`GDS_QUIET=1` is set, the output streams, the exit code comes back (124 after `--timeout`, default 900 s, which ends the
+whole tree). A batch-file program (`npx`, `pnpm`) is found on PATH and run through `cmd /c`. The hook refuses a probe
+run without it.
+
+Measured on 2026-11-02 (Playwright 1.64.1, a page that calls `requestPointerLock` on a click, Windows 11, a
+5120-pixel-wide desktop):
+
+| Browser and start | Cursor clip while the page held the lock |
+| --- | --- |
+| Playwright's default headless shell (`chromium_headless_shell`), plain start | none: the clip stayed the whole desktop |
+| headless Google Chrome (`channel="chrome"`, the probes' `--gpu` mode), plain start | **`(17, 68, 864, 541)`**, the hidden window's rectangle, held for the whole lock |
+| headless Chrome on the private desktop, without the 5 ms guard | the same rectangle, 37 of 663 samples (about 0.5 s): the desktop alone does not stop it |
+| **headless Chrome under `gds quiet`** | **0 of 777 samples held**; the lock still took; the browser on `gds-quiet` with no window, not even a hidden one, on the person's desktop |
+
+`python/tests/test_quiet_run.py` holds the last row (`test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor`,
+skipped where Chrome is not installed; its probe is `python/tests/browser_lock_probe.py`), and that the grandchildren of
+a command run on the private desktop. Unlike a game, a browser has no `GDS_QUIET` check, so here the 5 ms guard is
+the fix, not the safety net; Chrome does not re-clip every frame the way a capturing game can, and no sample was held.
 
 ## How it works
 
@@ -68,7 +102,8 @@ foreground at 0.72 s.
 - **Sound still plays** through the speakers when the scene is not recorded: add `--audio-driver Dummy` to a run that
   needs no audio (Movie Maker writes sound to a file and plays none).
 - **Not covered:** the Godot *editor* opened for a person or by the MCP add-on (a person's own window, not an agent's
-  run), and GPUs other than the one measured (a driver that refuses OpenGL on a second desktop would fail at start-up
+  run), a headed browser (`headless=False`: a person watching it is at the machine anyway), and GPUs other than the
+  one measured (a driver that refuses OpenGL on a second desktop would fail at start-up
   with a Godot error, not silently).
 - **Testing windows**: a test window that does not pump messages (a bare `STATIC` window nobody dispatches for)
   stalls Godot's start by about 25 s; `focus_holder.py` pumps its own.
