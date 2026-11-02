@@ -24,9 +24,11 @@ style bible; this page is how Godot behaves.
 
 ## Pitfalls
 
-- **A headless import leaves mipmaps off.** `godot --headless --import` writes `mipmaps/generate=false` for a new
-  texture; the editor would switch it on when it first sees the texture used in 3D (`detect_3d`), which a headless run
-  does not do. Set `mipmaps/generate=true` in the `.import` file and commit it, or the far ground aliases.
+- **State every texture import; turn Detect 3D off.** Set `detect_3d/compress_to=0` and spell out
+  `compress/mode` and `mipmaps/generate` in every texture `.import`. With Detect 3D on (the default), the first
+  editor session switches a texture used in 3D to VRAM compression with mipmaps, which a headless import never does,
+  so the `.import` files change on the maintainer's machine and the colours shift. Palettes: lossless, no mipmaps;
+  tiling textures: lossless, mipmaps (or the far ground aliases). Check it in pre-commit and CI.
 - **Two floors at the same height flicker** where they overlap (z-fighting). With flat colours nobody noticed; with
   patterns it shows. Give the overlapping floors the same material (both world-projected, so they agree pixel for
   pixel) or move one.
