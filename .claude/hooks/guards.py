@@ -1150,18 +1150,82 @@ def lesson_files_named(workspace: Path, report: str) -> list[str]:
     return [n for n in names if any((root / "docs" / "lessons" / n).exists() for root in roots)]
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# Agent stalls: a task agent whose turn ends without a report is finished for good (docs/hooks.md#stall)
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def reads_as_report(text: str, config: dict[str, Any]) -> bool:
+    """True when a final message names a pull request, lists mistakes (a report section) or says it is blocked."""
+    return re.search(config.get("stop_check", {}).get("report", r"(?!)"), text) is not None
+
+
+def refusal_key(payload: dict[str, Any]) -> str:
+    """What identifies one agent run across its stop attempts: its id, else its transcript, else its type."""
+    return str(payload.get("agent_id") or payload.get("agent_transcript_path") or payload.get("agent_type") or "?")
+
+
+def count_refusal(workspace: Path, payload: dict[str, Any], config: dict[str, Any]) -> int:
+    """Records one more refusal for this agent run and returns how many there have been (this one included). Runs older
+    than a day are dropped. When the file cannot be written the count is 1 every time, which only means the gate
+    could hold an agent longer on a read-only disk, never that it breaks."""
+    path = workspace / config.get("stop_check", {}).get("counter", "cache/stop-check.json")
+    now = time.time()
+    try:
+        runs = {k: v for k, v in json.loads(path.read_text(encoding="utf-8")).items() if now - v.get("time", 0) < 86400}
+    except (OSError, ValueError, AttributeError):
+        runs = {}
+    key = refusal_key(payload)
+    count = int(runs.get(key, {}).get("count", 0)) + 1
+    runs[key] = {"count": count, "time": now}
+    with contextlib.suppress(OSError):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(runs), encoding="utf-8")
+    return count
+
+
+def stop_stall(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
+    """Refuses the end of a task agent (`[stop_check] agents`) whose final message is not a report: a background agent
+    that ends its turn on "Now the autopilot." is never woken again. Let go when the message names a pull request or a
+    blocker, when a background task of the agent is still running (it is waiting for the notification), when there is
+    no message to judge, and after `max_refusals` refusals, so no agent is held forever. Does not look at
+    `stop_hook_active`: that flag cannot count past one."""
+    rules = config.get("stop_check", {})
+    if payload.get("agent_type") not in rules.get("agents", []) or payload.get("background_tasks"):
+        return None
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    report = report_of(payload).strip()
+    if workspace is None or not report or reads_as_report(report, config):
+        return None
+    limit = int(rules.get("max_refusals", 2))
+    count = count_refusal(workspace, payload, config)
+    if count > limit:
+        return None
+    tail = report.splitlines()[-1][:120]
+    return (
+        f'You ended your turn on "{tail}" without a report. A background agent whose turn ends is finished: nothing '
+        f"wakes it, so whatever you announced never runs, and the pull request never opens. Do the step now, in this "
+        f"turn, with a tool call; or start a background command that notifies you when it ends and wait for it. When "
+        f"the task is done, end with the report: the pull request link (https://github.com/<owner>/<repo>/pull/<n>) "
+        f"and your Mistakes section. When you cannot go on, end with one line `Blocked: <what stops you>`. "
+        f"(Refusal {count} of {limit}; after that the end is allowed.)"
+    )
+
+
 def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     """An agent may not finish while its kit docs are unpublished, or while its report lists mistakes and no lesson
-    file. Held back once (`stop_hook_active` lets the next finish through). Helpers and the reviewer are exempt."""
+    file (held back once: `stop_hook_active` lets the next finish through), or while it ends on a step instead of a
+    report (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
+    stalled = stop_stall(payload, config)
     if payload.get("stop_hook_active"):
-        return None
+        return stalled
     exempt = [*config.get("agents", {}).get("helpers", []), *config.get("issues", {}).get("exempt", [])]
     if payload.get("agent_type") in exempt:
         return None
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if workspace is None:
         return None
-    reasons = [stop_kit_docs(payload, config)]
+    reasons = [stalled, stop_kit_docs(payload, config)]
     report = report_of(payload)
     if mistakes_text(report) and not lesson_files_named(workspace, report):
         reasons.append(

@@ -130,6 +130,41 @@ def test_read_first_with_no_areas_file_only_needs_the_line(tmp_path):
     assert problems(rule, "net: Add a packet", body("Read first: net"), history) == []
 
 
+@pytest.mark.parametrize("value", ["(documentation only)", "(documentation only).", "  (documentation only).  "])
+def test_a_reason_in_parentheses_may_end_with_one_full_stop(value):
+    assert groundwork._reasoned(value)
+
+
+@pytest.mark.parametrize("value", ["", "()", "().", "(why) extra", "(why)..", "(why).)x", "why", "why.", "(why"])
+def test_text_after_the_parenthesis_or_no_reason_is_refused(value):
+    assert not groundwork._reasoned(value)
+
+
+@pytest.mark.parametrize("end", ["", "."])
+def test_every_none_line_takes_the_trailing_period_or_not(end):
+    lessons = body(f"Lessons: none (a pure addition){end}")
+    assert problems({"lessons": LESSONS}, "net: Add a packet", lessons, CLEAN) == []
+    assert problems({"kit_docs": KITDOCS}, "net: Add a packet", body(f"Kit docs: none (a typo){end}"), CLEAN) == []
+    full = conv(failed_first={"label": "Failed first:", "section": "Testing", "verbs": ["Fix"]})
+    text = f"## Testing\n\n- Failed first: none (documentation only){end}\n"
+    assert groundwork.failed_first_problems(full, "docs: Fix a page", text) == []
+    full = conv(issues_affected={"section": "Issues affected", "none": "None"}, sections=["Issues affected"])
+    text = f"## Issues affected\n\nNone (one new lesson page){end}\n"
+    assert groundwork.issues_affected_problems(full, text) == []
+    shots = {"section": "Screenshots", "areas": ["docs"], "none": "Screenshots: none"}
+    text = f"## Screenshots\n\nScreenshots: none (docs only){end}\n"
+    assert groundwork.screenshot_problems(conv(screenshots=shots), "docs: Add a page", text) == []
+
+
+def test_text_after_the_reason_is_still_refused_on_every_none_line():
+    assert problems({"lessons": LESSONS}, "net: Add a packet", body("Lessons: none (a pure addition) extra"), CLEAN)
+    full = conv(failed_first={"label": "Failed first:", "section": "Testing", "verbs": ["Fix"]})
+    text = "## Testing\n\n- Failed first: none (documentation only) extra\n"
+    assert groundwork.failed_first_problems(full, "docs: Fix a page", text)
+    full = conv(issues_affected={"section": "Issues affected", "none": "None"}, sections=["Issues affected"])
+    assert groundwork.issues_affected_problems(full, "## Issues affected\n\nNone (one page) extra\n")
+
+
 class FakeGh:
     """Recorded `gh` answers for pull request 7 of Ryubara/gdstudio: three commits, the first two with check runs."""
 

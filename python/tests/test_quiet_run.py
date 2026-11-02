@@ -14,6 +14,7 @@ from PIL import Image
 from gds_tools import cli, workspace
 from gds_tools.quiet_run import run_quiet
 
+FREED_WITHIN_MS = 1000  # a clip must be freed within this; measured 3 to 16 ms idle and with four runs at once
 SPIKE = Path(__file__).resolve().parents[2] / "sandbox" / "no-focus"
 
 
@@ -54,7 +55,45 @@ def test_the_program_is_told_it_runs_quiet() -> None:
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="the cursor clip is a Windows call")
-def test_a_cursor_clip_on_the_hidden_desktop_does_not_hold_the_real_cursor() -> None:
+def test_the_guard_frees_the_cursor_every_interval_and_once_more_at_the_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The guard's whole job, without the real cursor: it calls `ClipCursor(None)` until told to stop, then once more.
+    A fake `user32` records the calls; nothing here waits on a clock the machine's load can stretch."""
+    from gds_tools import quiet_run
+
+    calls: list[object] = []
+
+    class FakeUser32:
+        @staticmethod
+        def ClipCursor(rect: object) -> None:  # noqa: N802 - the Windows name
+            calls.append(rect)
+
+    monkeypatch.setattr(quiet_run, "_u32", FakeUser32)
+    running = threading.Event()
+    guard = threading.Thread(target=quiet_run._free_cursor_while, args=(running,), daemon=True)
+    guard.start()
+    deadline = time.time() + 30
+    while len(calls) < 3 and time.time() < deadline:
+        time.sleep(0.01)
+    before = len(calls)
+    running.set()
+    guard.join(timeout=30)
+    assert not guard.is_alive()
+    assert before >= 3, "the guard did not free the cursor repeatedly while the program ran"
+    assert len(calls) > before, "the guard did not free the cursor once more when the program ended"
+    assert all(rect is None for rect in calls)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the cursor clip is a Windows call")
+def test_a_cursor_clip_on_the_hidden_desktop_is_freed_and_does_not_hold_the_real_cursor() -> None:
+    """A program on the private desktop clips the cursor to 10 x 10 pixels, like a game that captures the mouse and
+    re-applies it on focus and resize, and times how long each clip lasts by polling the clip from there. Without the
+    guard a clip is never freed (the program gives up after 3 s); with it, each is freed within milliseconds.
+
+    This replaces a count of how many of 20 samples from a thread of this process saw the clip held (at most a third).
+    That count measures the share of time the cursor was held, which depends on how the guard thread, the sampling
+    thread and the program are scheduled against each other: on a loaded `windows-2025` runner 9 of 20 were held
+    (kit #113) while the guard worked as written. The latency of each clip, seen from the program that set it, does not
+    depend on the sampler, and the bound is far above any stall a loaded runner causes and far below "never"."""
     import ctypes
     from ctypes import wintypes as wt
 
@@ -67,35 +106,28 @@ def test_a_cursor_clip_on_the_hidden_desktop_does_not_hold_the_real_cursor() -> 
         return rect.left, rect.top, rect.right, rect.bottom
 
     free = clip()
-    # A program on the private desktop clips the cursor to 10 x 10 pixels and again every 0.1 s for 1.5 s, like a game
-    # that captures the mouse and re-applies it on focus and resize. Without the guard every sample is held (measured:
-    # 16 of 20 even against a program re-clipping every 5 ms). A game re-clipping every frame must read GDS_QUIET and
-    # not capture at all: the guard is the safety net, not the fix.
     code = "\n".join(
         [
-            "import ctypes, time",
+            "import ctypes, json, time",
             "from ctypes import wintypes as wt",
-            "r = wt.RECT(0, 0, 10, 10)",
-            "end = time.time() + 1.5",
-            "while time.time() < end:",
-            "    ctypes.windll.user32.ClipCursor(ctypes.byref(r)); time.sleep(0.1)",
+            "user32 = ctypes.windll.user32",
+            "mine = wt.RECT(0, 0, 10, 10)",
+            "def held():",
+            "    r = wt.RECT(); user32.GetClipCursor(ctypes.byref(r))",
+            "    return (r.left, r.top, r.right, r.bottom) == (0, 0, 10, 10)",
+            "latencies = []",
+            "for _ in range(10):",
+            "    user32.ClipCursor(ctypes.byref(mine)); start = time.perf_counter()",
+            "    while held() and time.perf_counter() - start < 3: time.sleep(0.0005)",
+            "    latencies.append(round((time.perf_counter() - start) * 1000, 1))",
+            "    time.sleep(0.1)",
+            "print(json.dumps(latencies))",
         ]
     )
-    seen: list[tuple[int, int, int, int]] = []
-
-    def sample(_pid: int) -> None:
-        def run() -> None:
-            for _ in range(20):
-                time.sleep(0.05)
-                seen.append(clip())
-
-        threading.Thread(target=run, daemon=True).start()
-
-    run_quiet(python(code), on_start=sample)
-    held = [rect for rect in seen if rect == (0, 0, 10, 10)]
-    # A sample may land in the few ms between a clip and the guard, longer on a loaded CI runner (6 of 20 seen with a
-    # 20 ms guard): free most of the time, and free at the end.
-    assert len(held) <= len(seen) // 3
+    outcome = run_quiet(python(code), timeout=120)
+    latencies = json.loads(outcome.output.strip().splitlines()[-1])
+    assert len(latencies) == 10, outcome.output
+    assert max(latencies) < FREED_WITHIN_MS, f"a clip held the cursor for {max(latencies)} ms: {latencies}"
     assert clip() == free
 
 
