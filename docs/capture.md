@@ -54,6 +54,11 @@ attachments): it is encoded at 1280 px wide and, while too big, again at 960, 72
 gh pr create --body-file <file> --attach <folder>/sheet.png --attach <folder>/<name>.mp4
 ```
 
+`--attach` (on `gh pr create` and `gh pr edit`) appends the images at the end of the body, outside `## Screenshots`,
+and the body check refuses `Before:`/`After:` until they sit there. Write `![after](./sheet.png)` references on those
+lines so `--attach` replaces them in place, then read the body back and check the image lines sit under the bullets
+([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md)).
+
 ## Tests
 
 `python/tests/test_quiet_run.py` runs the real pinned Godot and Movie Maker on Windows with a test window holding the

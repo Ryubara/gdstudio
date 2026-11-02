@@ -42,6 +42,12 @@ each fall, until about four mixes have landed (with a poll cap).
 - The headless GdUnit4 run uses the dummy audio driver: players report `playing`, nothing is heard.
 - The listener is the current `Camera3D` unless an `AudioListener3D` is current; a high capture camera makes distances
   wrong.
+- Movie Maker writes only the mix. For per-bus stems (voice against guns against beds), put an `AudioEffectRecord` on
+  each bus to measure and save its recording at the end; it works under Movie Maker
+  ([lesson](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)).
+- Transcribe generated voice takes with ElevenLabs Scribe to catch audio tags read aloud: performed sounds come back
+  in brackets, spoken tags as words; Scribe bills the speech character quota
+  ([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)).
 
 ## Layered gunshots and event-timed sounds
 
@@ -96,3 +102,25 @@ each fall, until about four mixes have landed (with a poll cap).
   the cycle at the end of the test, stop the audio after each test that builds a night, wait `Audio.wait_for_mixer()`
   once, and have CI grep the test log for `leaked at exit|still in use`
   ([lesson](../lessons/2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md)).
+
+## Web: samples or streams
+
+Godot 4.3+ plays an `AudioStreamPlayer` in a web export as a *sample* by default
+(`audio/general/default_playback_type.web`): the browser's own `AudioBufferSourceNode`s. Measured on Deadnight's
+export (#421) with a tap on the browser's audio output:
+
+| | Samples (default) | Streams |
+| --- | --- | --- |
+| Bus effect (a -12 dB `AudioEffectAmplify`) | ignored (0.1 dB) | applied (-11.8 dB) |
+| Player `attenuation_filter_cutoff_hz` (800 Hz on a bright sound) | ignored (0.0 dB) | applied (-31 dB) |
+| Bus volume | works (-11.9 dB) | works (-11.6 dB) |
+| 32 positional voices | 3.7 dB lower | reference |
+| Main thread stalls 60 ms every 0.5 s, no threads build, 44 voices | no dropped blocks | 4 to 10% of 128-sample blocks dropped (crackle) |
+
+- `audio/driver/output_latency.web` of 100 or 150 ms (default 50) did not stop the streams' crackle. 44 voices cost
+  about 0.5 ms a frame either way.
+- Anything designed with bus effects (a duck, a low-pass for occlusion) has to be heard in the browser before it is
+  called done; with samples it is lost.
+- To tap the output, wrap `AudioNode.prototype.connect` so connections to an `AudioDestinationNode` go through a
+  `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps
+  ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
