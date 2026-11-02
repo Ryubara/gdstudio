@@ -42,7 +42,10 @@ the body once, the same read `--attach` uses, runs the check in the checkout aro
 reasons and the command to run. `--title` on the command turns on the title rules (screenshots, failed first, lessons).
 Not judged, because they cannot be read first: a body from standard input, a file not written yet, a literal body with a
 backtick or `$(`, a `gh pr edit` without a body, and a repository with no checkout. The pull request's history is not
-asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge. The guard is a
+asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge.
+Known conflict: a body that references `--attach` files as `](./<file>)` passes the attach guard and fails the body check
+(which counts only uploaded images): upload the images with `gh issue edit --attach` first and write their URLs in the
+body ([lesson](lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). The guard is a
 hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
 
 ## Commit messages before they leave the machine {#pre-push}
