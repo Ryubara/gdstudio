@@ -22,7 +22,7 @@ Anything that fits no other area. (4)
 
 ## gameplay
 
-Rounds, zombies, weapons, the economy, power, bots and balance. (70)
+Rounds, zombies, weapons, the economy, power, bots and balance. (71)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -90,6 +90,7 @@ Rounds, zombies, weapons, the economy, power, bots and balance. (70)
 | A feature wired only into its test range counted as shipped because the keys, HUD, shop, sounds and clips around it existed | Every feature has a test that presses the real input in the real night; one matrix test presses every gameplay action on every device and fails on an action with no row | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Every catalogue weapon is a feature of its own, played in the night; a known gap is the maintainer's to hear about, not a design-page line | One play-through test per catalogue entry (real input, real night: model, clip, effects, result); never assert a stand-in as correct; a shipped gap is reported to the maintainer; captures drive the real path | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | How close and powerful a sound reads is a property of the recording of the real shot through the real buses (energy at once, low end, level against the bed, likeness of ... | Record a sound that must read close through the real service and measure peak, LUFS against its bed, the first-50 ms share, bands and the spread across a burst; one written pitch and level rule per family, pinned in a test; own sounds flat; never put power in ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| The shot and the body's turn were two features that never met: the hip-fire work made the body, camera and hands follow the trigger, but the server fired on the trigger ... | A feature with a state (turning, reloading, swapping, crouching) and an action (fire) decides in its first design, for each state, whether the action fires, waits or is cancelled and how long a press stays valid, and tests it from the worst starting state on ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | A held weapon is a contact between two meshes: the hand is measured against the weapon and the weapon sized against the hand, not only against the body | Every held model has hand sockets and a solved grip; a test measures skin against weapon in every pose (2 mm in, 5 mm off); grip length, guard opening and reach are checked against the hand before solving (Hands on the weapon, lesson) | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Every player-visible feature is two features: what the player sees of themselves and what every other client sees of them, built from the same state and events. The ... | A two-client test over the real socket asserts what the OTHER client shows for each action (weapon model, swap, aim, fire clip and flash on the muzzle, reload, swing, throw, a late joiner), and captures are taken from the second client's screen; remote bodies ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Two pull requests each passed the balance gate alone; merged together (#260 speeds, #271 crane price) they broke it on `main` | Rerun the balance gate on `main` after each merge that touches tuning; one balance owner rebases on the others | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
@@ -151,7 +152,7 @@ Keyboard, mouse, gamepad and touch controls, pointer lock and focus. (45)
 
 ## camera
 
-The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (34)
+The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (35)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -188,6 +189,7 @@ The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and inter
 | An effect is judged by what it does to the pixels from the player's camera, in the player's renderer, not by its parameters or a close-up capture | Measure a readable effect on the screen before and after (draw the frame again without it), from the real camera, hip and aimed, desktop and browser, and hold the numbers as floors in a test; draw quads near the player's own mesh toward the camera (lesson ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | A shot while aiming is not hip fire; the hold that imitates aim belongs only to shots from the hip | When two states share one output, test every transition between them, not only each state alone (lesson) | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | One output (the aim weight) drove the camera, body and hands for two inputs (aim button and trigger), so every hip-fire tweak changed the aim; each behaviour the ... | A PR for a reported problem names the live web build's commit (Railway `meta.cliMessage` = `main <sha7>`) and runs the browser probe against the live URL after the deploy; say "merged, not yet deployed" until then; one camera input per named behaviour, every ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| The shot and the body's turn were two features that never met: the hip-fire work made the body, camera and hands follow the trigger, but the server fired on the trigger ... | A feature with a state (turning, reloading, swapping, crouching) and an action (fire) decides in its first design, for each state, whether the action fires, waits or is cancelled and how long a press stays valid, and tests it from the worst starting state on ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | The browser smoke read the game's probe through a list of named fields, so a new field (the camera yaw) read as missing and the first look check failed on a working build | Probes pass the whole object through, or a test checks every published field reaches the page | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
 
 ## godot-ui
@@ -227,7 +229,7 @@ Menus, the HUD, themes, layout, UI motion and the settings screens. (28)
 
 ## net
 
-The network protocol, replication, prediction, lag and the game server. (31)
+The network protocol, replication, prediction, lag and the game server. (32)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -260,6 +262,7 @@ The network protocol, replication, prediction, lag and the game server. (31)
 | Appearance is replicated state with one owner, the server; every view, the player's own body included, dresses from that one table | A test with two clients over the real socket checks that every player shows the same parts and colours on every client and on the server; a `--look` flag gives local windows different looks | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Local and remote bodies are one scene, or share one transform | The same two-client test compares skeleton height, scale and facing per player on every client and on the server | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Players play with friends, not with addresses: the player-facing flow is rooms (Discord instance, invite link, code, quick join), and a server address is a developer tool | Before an online feature is called playable, walk the flow a stranger takes on each platform the game ships on (browser, Discord); no address, port or localhost in any player-facing screen | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| The shot and the body's turn were two features that never met: the hip-fire work made the body, camera and hands follow the trigger, but the server fired on the trigger ... | A feature with a state (turning, reloading, swapping, crouching) and an action (fire) decides in its first design, for each state, whether the action fires, waits or is cancelled and how long a press stays valid, and tests it from the worst starting state on ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | A client whose own loop freezes and then catches up in a burst, at the round trips we ship. The net tests held packets back while the client kept running, or ran at 100 ... | Test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and more) with a push, and freeze the client's own thread (`OS.delay_msec`) over a real socket, not only the link; read a server's `send` errors instead of ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | Every player-visible feature is two features: what the player sees of themselves and what every other client sees of them, built from the same state and events. The ... | A two-client test over the real socket asserts what the OTHER client shows for each action (weapon model, swap, aim, fire clip and flash on the muzzle, reload, swing, throw, a late joiner), and captures are taken from the second client's screen; remote bodies ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 
@@ -537,7 +540,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (89)
+Tests, bots, captures, probes and benchmarks. (90)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -623,6 +626,7 @@ Tests, bots, captures, probes and benchmarks. (89)
 | Protecting the person at the machine covers every global input state a program can take, not only the focus: the cursor clip, the clipboard, global hotkeys | The launcher sets `GDS_QUIET=1` and every game skips mouse capture under it; a test clips the cursor from the hidden desktop and asserts the real one stays free (lesson) | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | An effect is judged by what it does to the pixels from the player's camera, in the player's renderer, not by its parameters or a close-up capture | Measure a readable effect on the screen before and after (draw the frame again without it), from the real camera, hip and aimed, desktop and browser, and hold the numbers as floors in a test; draw quads near the player's own mesh toward the camera (lesson ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | One output (the aim weight) drove the camera, body and hands for two inputs (aim button and trigger), so every hip-fire tweak changed the aim; each behaviour the ... | A PR for a reported problem names the live web build's commit (Railway `meta.cliMessage` = `main <sha7>`) and runs the browser probe against the live URL after the deploy; say "merged, not yet deployed" until then; one camera input per named behaviour, every ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
+| The shot and the body's turn were two features that never met: the hip-fire work made the body, camera and hands follow the trigger, but the server fired on the trigger ... | A feature with a state (turning, reloading, swapping, crouching) and an action (fire) decides in its first design, for each state, whether the action fires, waits or is cancelled and how long a press stays valid, and tests it from the worst starting state on ... | [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed) |
 | A merge of `main` doubled a step in a test, so the branch failed | After a conflicted merge, read the diff of every test file against `main` before rerunning | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
 | A balance fix ran only the gate test; four simulator tests around the code it changed failed in CI, so `main` stayed red past the deadline | Before opening, run the whole suite folder of every file changed, not only the test the change aims at | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
 | The browser smoke read the game's probe through a list of named fields, so a new field (the camera yaw) read as missing and the first look check failed on a working build | Probes pass the whole object through, or a test checks every published field reaches the page | [row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks) |
@@ -668,7 +672,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (28)
 
 ## tools
 
-The gds CLI, hooks, the workspace, pinned tools and the shared machine. (50)
+The gds CLI, hooks, the workspace, pinned tools and the shared machine. (51)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
