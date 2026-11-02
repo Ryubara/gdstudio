@@ -281,12 +281,47 @@ CHROME = [
 ]
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="the probe reads the Windows cursor clip")
+def test_the_browser_probe_times_a_held_clip_and_a_missing_guard_exceeds_the_bound() -> None:
+    """The probe's measure on a fake clip and a fake clock, so no real cursor is held and nothing waits: a clip freed
+    after a few milliseconds reads as a few, and a clip that is never freed (the guard removed) reads as the whole lock,
+    which is over `FREED_WITHIN_MS`. This is the test's mutant: the guard off."""
+    import browser_lock_probe as probe
+
+    free, held = (0, 0, 1024, 768), (17, 68, 864, 541)
+
+    def measure(freed_at: float, before: tuple[int, int, int, int] = free) -> float:
+        now = [0.0]
+
+        def sleep(seconds: float) -> None:
+            now[0] += seconds
+
+        def read() -> tuple[int, int, int, int]:
+            return held if 0.1 <= now[0] < freed_at else free
+
+        samples = probe.poll(probe.LOCK_SECONDS, read=read, clock=lambda: now[0], sleep=sleep)
+        return probe.longest_held_ms(samples, probe.free_clip([before, *(rect for _, rect in samples)]))
+
+    assert measure(freed_at=0.105) < FREED_WITHIN_MS  # a guard that frees it within 5 ms
+    assert measure(freed_at=0.5) < FREED_WITHIN_MS  # a guard stalled for 0.4 s by a loaded runner still passes
+    assert measure(freed_at=1e9) >= FREED_WITHIN_MS  # no guard: held for the rest of the lock
+    # another program's clip (a parallel run of this test) set when the lock starts is not taken for the free one
+    assert measure(freed_at=0.105, before=(30, 40, 500, 400)) < FREED_WITHIN_MS
+    assert probe.LOCK_SECONDS * 1000 > FREED_WITHIN_MS * 2  # the lock outlasts the bound
+
+
 @windows_only
 def test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor() -> None:
     """Headless Chrome (Playwright, channel "chrome", as the web smoke probes run with --gpu) clips the person's real
     cursor to its hidden window under pointer lock, at the top left of the screen: measured (17, 68, 864, 541) for the
     whole lock, started plainly or on the private desktop without the guard (2026-11-02). Under `run_quiet` the lock
-    takes, the browser runs on the private desktop with no window on the person's, and the cursor stays free."""
+    takes, the browser runs on the private desktop with no window on the person's, and the clip is freed within
+    `FREED_WITHIN_MS` of being set.
+
+    The probe times the clip from inside the lock (the longest stretch it differed from the free one), as the clip
+    test above does. This replaces "at most 3 of the ~1400 samples from a thread of this process held" (4 of 1416 on a
+    loaded `windows-2025`, kit #166): a share of samples measures how the guard, the sampler and the browser are
+    scheduled, not whether the guard works. Without the guard the clip lasts the whole 2.5 s lock."""
     import shutil
 
     if not any(p.exists() for p in CHROME) or not shutil.which("uv"):
@@ -298,16 +333,14 @@ def test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor() -> None:
     probe = Path(__file__).with_name("browser_lock_probe.py")
     cmd = [shutil.which("uv") or "uv", "run", "--no-project", "--with", "playwright==1.64.1", "python", str(probe)]
     pids: list[int] = []
-    seen: list[tuple[int, int, int, int]] = []
     on_person_desktop: set[str] = set()
     done = threading.Event()
 
     def sample() -> None:
         while not done.is_set():
-            seen.append(clip_of(user32))
-            if pids and len(seen) % 20 == 0:
+            if pids:
                 on_person_desktop.update(windows_of(user32, process_tree(pids[0])))
-            time.sleep(0.005)
+            time.sleep(0.1)
 
     sampler = threading.Thread(target=sample)
     sampler.start()
@@ -319,12 +352,9 @@ def test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor() -> None:
     if outcome.returncode != 0 and "playwright" in outcome.output.lower() and "locked" not in outcome.output:
         pytest.skip(f"Playwright could not start Chrome: {outcome.output[-300:]}")
     result = json.loads(outcome.output.strip().splitlines()[-1])
-    assert result == {"locked": True, "desktop": "gds-quiet"}, outcome.output
+    assert result["locked"] is True and result["desktop"] == "gds-quiet", outcome.output
     assert not on_person_desktop, f"browser windows on the person's desktop: {sorted(on_person_desktop)}"
-    held = [rect for rect in seen if rect != free]
-    # The guard frees the clip within 5 ms; a sample may land in that gap on a loaded machine. Unguarded, about 40 of
-    # the samples (the whole 0.8 s lock) are held.
-    assert len(held) <= 3, f"{len(held)} of {len(seen)} samples held the cursor: {sorted(set(held))}"
+    assert result["held_ms"] < FREED_WITHIN_MS, f"a clip held the cursor for {result['held_ms']} ms: {outcome.output}"
     assert clip_of(user32) == free
 
 
