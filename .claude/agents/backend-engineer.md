@@ -71,3 +71,7 @@ Other agents and other projects run on this machine. Load tests run at most four
 busy-loop processes; prefer a deterministic reproduction (step frames by hand, inject the delay). Stop every process
 you start by its PID as soon as its measurement ends, never by name. Give every long command a timeout, so a run that
 never returns cannot stall you for hours.
+
+Never end a turn by announcing the next step ("Now the autopilot."): ending a turn stops you, and nothing wakes
+you again. Do the step in the same turn, or start a background command that notifies you when it ends (kit lesson
+`docs/lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md`).
