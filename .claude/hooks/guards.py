@@ -1156,47 +1156,125 @@ def kit_remote(kit: Path) -> str:
     return found.group(1) if found else ""
 
 
-def kit_pr_heads(repo: str) -> set[str] | None:
-    """The branches that have an open or a merged pull request in `repo`; None when GitHub cannot be asked."""
+def kit_pr_heads(repo: str) -> dict[str, str] | None:
+    """The branches that have an open or a merged pull request in `repo`, each mapped to the tip commit its last merged
+    pull request landed ('' while a pull request is open, or when the tip is unknown); None when GitHub cannot be
+    asked."""
     try:
         out = subprocess.run(
-            ["gh", "pr", "list", "-R", repo, "--state", "all", "--limit", "300", "--json", "headRefName,state"],
+            [
+                "gh",
+                "pr",
+                "list",
+                "-R",
+                repo,
+                "--state",
+                "all",
+                "--limit",
+                "300",
+                "--json",
+                "headRefName,state,headRefOid,mergedAt",
+            ],
             capture_output=True,
             text=True,
             timeout=30,
         )
         if out.returncode != 0:
             return None
-        return {p["headRefName"] for p in json.loads(out.stdout or "[]") if p.get("state") in ("OPEN", "MERGED")}
+        prs = [p for p in json.loads(out.stdout or "[]") if p.get("state") in ("OPEN", "MERGED")]
+        open_heads = {p["headRefName"] for p in prs if p["state"] == "OPEN"}  # an open pull request covers the branch
+        heads: dict[str, str] = {name: "" for name in open_heads}
+        for pr in sorted(prs, key=lambda p: p.get("mergedAt") or ""):  # the latest merge wins
+            if pr["state"] == "MERGED" and pr["headRefName"] not in open_heads:
+                heads[pr["headRefName"]] = pr.get("headRefOid") or ""
+        return heads
     except (OSError, subprocess.SubprocessError, ValueError, KeyError):
         return None
 
 
-def unpublished_kit_branches(workspace: Path, config: dict[str, Any]) -> list[str]:
+def content_on_base(tree: Path, base: str, commit: str) -> bool:
+    """Whether every path `commit` touches has, on `base`, the blob the commit left (or is missing on both sides, for a
+    deletion). A late commit rescued in a pull request that squashed it with other commits has a new patch id but the
+    same blobs, so this reads the content, with no checkout and no worktree side effect."""
+    paths = [p for p in git(tree, "diff-tree", "-r", "-z", "--no-commit-id", "--name-only", commit).split("\x00") if p]
+    return bool(paths) and all(
+        git(tree, "rev-parse", "--verify", "-q", f"{commit}:{p}")
+        == git(tree, "rev-parse", "--verify", "-q", f"{base}:{p}")
+        for p in paths
+    )
+
+
+def stranded_after_merge(tree: Path, base: str, tip: str) -> list[str]:
+    """The commits of `tree`'s branch made after its pull request merged at `tip` whose changes are not on `base`.
+    A squash merge rewrites the hashes, so a commit is first compared to `base` by patch id (`git cherry`), then, when
+    it still shows as new, by content: a commit squashed together with others has a new patch id but its files are the
+    same on `base`. Empty when `tip` is unknown here (the branch was rewritten): the hook cannot tell, so it lets go."""
+    if not tip or not git(tree, "rev-parse", "--verify", "-q", f"{tip}^{{commit}}"):
+        return []
+    try:
+        ancestor = subprocess.run(
+            ["git", "-C", str(tree), "merge-base", "--is-ancestor", tip, "HEAD"], capture_output=True, timeout=15
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if ancestor.returncode:
+        return []
+    cherry = git(tree, "cherry", base, "HEAD", tip).splitlines()
+    new = [line[2:] for line in cherry if line.startswith("+ ")]
+    return [c for c in new if not content_on_base(tree, base, c)]
+
+
+def unpublished_kit_branches(workspace: Path, config: dict[str, Any]) -> dict[str, str]:
     """Branches of the kit's worktrees (`<workspace>/worktrees/gdstudio/*`) with commits ahead of `origin/main` and no
-    pull request, open or merged: docs written and left for a batch. Empty when GitHub cannot be asked."""
+    pull request, open or merged (docs written and left for a batch), each mapped to '' ; and branches whose pull
+    request merged and which then got a commit that is not on `origin/main` (pushed after the merge, so lost), each
+    mapped to the merged tip. Empty when GitHub cannot be asked."""
     folder = workspace / config.get("docs", {}).get("kit_worktrees", "worktrees/gdstudio")
     protected = config.get("git", {}).get("protected_branches", ["main"])
-    ahead = []
+    ahead = {}
     for tree in sorted(p for p in folder.iterdir() if (p / ".git").exists()) if folder.is_dir() else []:
         branch = git(tree, "rev-parse", "--abbrev-ref", "HEAD")
         base = "origin/main" if git(tree, "rev-parse", "--verify", "-q", "origin/main") else "main"
         count = git(tree, "rev-list", "--count", f"{base}..HEAD")
         if branch and branch != "HEAD" and branch not in protected and count.isdigit() and int(count) > 0:
-            ahead.append(branch)
+            ahead[branch] = (tree, base)
     if not ahead:
-        return []
+        return {}
     heads = kit_pr_heads(kit_remote(kit_root(workspace)))
-    return [b for b in ahead if b not in heads] if heads is not None else []
+    if heads is None:
+        return {}
+    found = {}
+    for branch, (tree, base) in ahead.items():
+        if branch not in heads:
+            found[branch] = ""
+        elif stranded_after_merge(tree, base, heads[branch]):
+            found[branch] = heads[branch]
+    return found
 
 
-def unpublished_message(branches: list[str]) -> str:
-    names = ", ".join(branches[:5]) + ("..." if len(branches) > 5 else "")
-    return (
-        f"Kit branches with commits and no pull request: {names}. Docs left unpublished are lost: push each branch and "
-        f"open its pull request now (`gh pr create`), in the same task that found what it documents, never for a later "
-        f"batch. A branch that is not yours: say so and finish."
-    )
+def unpublished_message(branches: dict[str, str]) -> str:
+    """The gate's text: a branch with no pull request, and a branch with commits made after its pull request merged."""
+    unpublished = [b for b, tip in branches.items() if not tip]
+    stranded = [b for b, tip in branches.items() if tip]
+    parts = []
+    if unpublished:
+        names = ", ".join(unpublished[:5]) + ("..." if len(unpublished) > 5 else "")
+        parts.append(
+            f"Kit branches with commits and no pull request: {names}. Docs left unpublished are lost: push each branch "
+            f"and open its pull request now (`gh pr create`), in the same task that found what it documents, never for "
+            f"a later batch. A branch that is not yours: say so and finish."
+        )
+    if stranded:
+        names = ", ".join(f"{b} (merged at {branches[b][:9]})" for b in stranded[:5]) + (
+            "..." if len(stranded) > 5 else ""
+        )
+        parts.append(
+            f"Kit branches with commits made after their pull request merged: {names}. A commit pushed to a merged "
+            f"branch never reaches main and is lost: make a new branch from `origin/main`, cherry-pick the commit, "
+            f"open a new pull request now, then `git reset --hard <merged tip>` on the old branch so it holds nothing "
+            f"more. A branch that is not yours: say so and finish."
+        )
+    return " ".join(parts)
 
 
 def stop_kit_docs(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
