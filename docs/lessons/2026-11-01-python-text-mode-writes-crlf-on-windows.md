@@ -13,4 +13,8 @@ areas: [tools, input]
 - **Reading too:** a script that reads a CRLF working copy and searches for `\n` strings misses them silently and
   edits nothing (Deadnight challenges, #429): open with `newline=""` and normalise `\r\n` before matching, then
   check the edit landed.
+- **Also gdformat:** pre-commit's gdformat hook rewrites the files it formats with CRLF on Windows (it reports Failed
+  once, then Passed). A scripted edit made after a pre-commit run reads CRLF text, so a replace or a list search finds
+  nothing: strip the carriage returns from the changed files first and assert the replacement happened (Deadnight
+  #415).
 - **Docs:** none yet; a note for agents that edit files with Python on Windows.
