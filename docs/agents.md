@@ -26,7 +26,9 @@ covers well.
    `<workspace>/scratch/<repo>/<branch>/`.
 4. It opens the pull request with the captures attached and auto-merge on (off for manual paths). Closing and
    reopening it (for a fresh CI run) turns auto-merge off: turn it on again in the same command
-   ([lesson](lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md)).
+   ([lesson](lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md)). A workflow change on
+   main (a job's time limit) reaches a pull request only when main is merged into its branch
+   ([lesson](lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md)).
 5. The `reviewer` posts a verdict; findings become fixes on the branch or new issues.
 6. While the pull request is open, the `pr-status` workflow labels it `S-conflict` when it conflicts with its base and
    `S-ci-failing` when a required check failed on its latest commit. An agent that sees one fixes it forward on the
