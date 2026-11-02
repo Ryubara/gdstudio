@@ -6,9 +6,10 @@ import argparse
 import os
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
-from gds_tools import capture, issues, lessons, refs, sync, workspace
+from gds_tools import capture, issues, lessons, refs, sync, workspace, worktrees
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -195,10 +196,32 @@ def _issue_ref(args: argparse.Namespace) -> tuple[str, int]:
         return issues.parse_ref(args.ref, issues.default_repo(issues.run_gh))
 
 
+def _prepare_worktree(root: Path, repo: str, branch: str) -> Callable[[issues.Issue], issues.Prepared]:
+    """What `issues.start` runs once the window allows the start: the branch and worktree of the issue, with the git
+    hooks of the repository verified (docs/starting-work.md#worktree)."""
+    name = repo.split("/")[-1]
+    checkout = root / "repos" / name
+
+    def prepare(issue: issues.Issue) -> issues.Prepared:
+        try:
+            made = worktrees.create(checkout, root / "worktrees" / name, issue.title, issue.number, branch=branch)
+        except worktrees.WorktreeError as error:
+            raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
+        where = made.path.as_posix()
+        return issues.Prepared(
+            branch=made.branch,
+            path=where,
+            lines=[f"branch {made.branch} from origin {made.base[:10]}", f"worktree {where}", *made.hooks],
+            undo=lambda: worktrees.remove(checkout, made.path, made.branch),
+        )
+
+    return prepare
+
+
 def _cmd_issue_start(args: argparse.Namespace) -> int:
     repo, number = _issue_ref(args)
     args.repo = repo
-    _, settings, ledger = _issue_context(args)
+    root, settings, ledger = _issue_context(args)
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
     areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
@@ -210,6 +233,7 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
         size=settings.window,
         branch=args.branch or "",
         areas_for=areas.for_labels if areas else None,
+        prepare=None if args.no_worktree else _prepare_worktree(root, repo, args.branch or ""),
     ):
         print(line)
     return 0
@@ -337,7 +361,8 @@ def build_parser() -> argparse.ArgumentParser:
     start = iss.add_parser("start", help="start an issue if it is in the window: label, assign, comment, ledger")
     start.add_argument("ref", help=ref_help)
     start.add_argument("--agent", required=True, help="the agent (or person) that takes it, for the comment and ledger")
-    start.add_argument("--branch", help="the branch of the work, when it is known (recorded in the ledger)")
+    start.add_argument("--branch", help="the name of the branch to make (default: from the issue title)")
+    start.add_argument("--no-worktree", action="store_true", help="do not make the branch and worktree (no code work)")
     start.add_argument("--window", type=int, help="override the window size for this call (default: hooks.toml)")
     start.set_defaults(func=_cmd_issue_start)
     lst = iss.add_parser("list", help="the window, the issues in progress with their owners, the blocked ones")
@@ -372,6 +397,7 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except (
         workspace.WorkspaceError,
+        worktrees.WorktreeError,
         ManifestError,
         refs.RefsError,
         capture.CaptureError,
