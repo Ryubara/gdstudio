@@ -1,3 +1,6 @@
+---
+areas: [ci, tools]
+---
 # A merge committed after conflicts lost its Co-Authored-By trailer
 
 2026-11-02

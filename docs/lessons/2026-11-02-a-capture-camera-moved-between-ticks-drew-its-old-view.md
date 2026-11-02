@@ -1,3 +1,6 @@
+---
+areas: [camera, godot]
+---
 # A capture camera moved between ticks drew its old view
 
 2026-11-02

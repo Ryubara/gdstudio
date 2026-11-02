@@ -22,11 +22,13 @@ Anything that fits no other area. (4)
 
 ## gameplay
 
-Rounds, zombies, weapons, the economy, power, bots and balance. (62)
+Rounds, zombies, weapons, the economy, power, bots and balance. (64)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| Two chibi heads met in a two-character pose | keep the actor upright with the arms reaching out and down, aim at the belly, and check every two-character clip with both characters in the game capture. | [lesson](../lessons/2026-11-02-two-chibi-heads-met-in-a-two-character-pose.md) |
 | A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak | one close report (click, crack, roar, bark, thump) and a short quiet tail; own shots flat; one pitch rule (0.15 semitones) and one level rule (0.5 dB) for every firearm voice; trims with real headroom (no limiter: the web build ignores bus effects); a test of ... | [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md) |
+| A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
 | A 3x zombie count made rounds longer, and a time limit was added to patch it | count, spawn rate and alive cap scale together; no time limit; a test that each round at 2x and 3x lasts within about 10 percent of 1x. | [lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md) |
 | WebFetch could not read PDF sources | download the PDF with `curl` into its own empty directory and extract the text with `uv run --with pypdf python -I` (redirect stderr: the font warnings are huge). In the research page, mark each source read, fetched (a summarising tool) or reported (search ... | [lesson](../lessons/2026-11-01-webfetch-cannot-read-pdfs.md) |
 | The dead's feet slid because the walk and run blend points were guessed | measure each clip's planted-foot speed, put the blend points there, put the move state behind an `AnimationNodeTimeScale` set to ground speed over the gait's own speed (clamped 0.5-1.6), and cross over from walk to run over a short band, solving the rate so ... | [lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md) |
@@ -141,7 +143,7 @@ Keyboard, mouse, gamepad and touch controls, pointer lock and focus. (43)
 
 ## camera
 
-The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (31)
+The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (32)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -149,6 +151,7 @@ The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and inter
 | Releasing aim after a shot kept the hip-fire zoom | only a shot fired from the hip starts the hold (Deadnight #433); tests walk every transition between the two states (aim, shoot, release; hip fire, aim, release), not each state alone. | [lesson](../lessons/2026-11-02-aim-release-kept-the-hip-fire-zoom.md) |
 | A shared aim weight coupled hip fire to the aim zoom | the camera reads the aim button only; hip fire turns the body and raises the hands without zoom (Deadnight #473). A PR for a reported problem names the live build's commit (Railway deployment `meta.cliMessage` is `main <sha7>`) and runs the browser probe ... | [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md) |
 | A muzzle flash lying in the muzzle's plane was hidden by the gun and hands | measure the flash's own pixels from the real camera (draw the frame again without it and compare), draw the quads toward the camera (scaled by the same ratio), a bigger star in a flat glow disc, 3 frames and 60 ms at least, and floors in a probe and a test. | [lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md) |
+| A capture camera moved between ticks drew its old view | `physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF` on cameras and props a capture places by hand (as the game's remote avatars already do). | [lesson](../lessons/2026-11-02-a-capture-camera-moved-between-ticks-drew-its-old-view.md) |
 | A shake under reduced motion printed "Tween started with no Tweeners" | add `tween.tween_interval(0.0)` before returning, so the tween is valid and does nothing. | [lesson](../lessons/2026-11-01-ui-shake-with-reduced-motion-errors.md) |
 | A bot's shots hit the car beside it while the camera saw the zombie | check the line to the target from both the eye and the barrel before firing. | [lesson](../lessons/2026-11-01-third-person-shots-need-the-barrel-clear-too.md) |
 | The wrong frame of a Movie Maker capture | print `Engine.get_frames_drawn()` for the frame to keep. | [lesson](../lessons/2026-11-01-movie-maker-frame-numbers-are-not-the-script-count.md) |
@@ -247,10 +250,11 @@ The network protocol, replication, prediction, lag and the game server. (26)
 
 ## web
 
-The browser build, the Discord Activity, export, WebGL and the web runtime. (31)
+The browser build, the Discord Activity, export, WebGL and the web runtime. (32)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| Blender's glTF export wrote finger channels a clip never keyed | after the export, remove the unkeyed bones' channels (and unused samplers) from the .glb JSON chunk; test the imported clip has no such track (Deadnight `tools/blender/build_soldier.py`, `strip_channels`). | [lesson](../lessons/2026-11-02-gltf-export-wrote-finger-channels-a-clip-never-keyed.md) |
 | Esc in the browser freed the cursor but did not pause the game | pause on the loss of capture: when capture is expected and the real mouse mode is no longer captured (or the window loses focus), open the pause menu in that frame; no look or fire while unlocked; Resume re-locks from its click. A browser test releases the ... | [lesson](../lessons/2026-11-02-esc-in-the-browser-freed-the-cursor-but-did-not-pause.md) |
 | Discord's URL mapping kept the /api prefix, so every backend route answered 404 | the backend serves its routes with and without the mapping prefix (Deadnight #469). Test the web build behind the real `<id>.discordsays.com` host, or a local stand-in that keeps the prefix, before asking the maintainer to try it. | [lesson](../lessons/2026-11-02-discord-activity-proxy-keeps-the-mapping-prefix.md) |
 | The gamepad did nothing in the Discord Activity until the player clicked in it | Deadnight #482: `window.focus()` and the canvas focus on pointerdown and keydown while the frame lacks the focus, and a probe line on the Play together screen that says which part fails (policy, focus, a press) with the counts the page saw, so a player is ... | [lesson](../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md) |
@@ -299,10 +303,12 @@ The platform backend, Railway, Docker, lobbies and deployment. (7)
 
 ## blender
 
-Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (62)
+Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (64)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| Two chibi heads met in a two-character pose | keep the actor upright with the arms reaching out and down, aim at the belly, and check every two-character clip with both characters in the game capture. | [lesson](../lessons/2026-11-02-two-chibi-heads-met-in-a-two-character-pose.md) |
+| Blender's glTF export wrote finger channels a clip never keyed | after the export, remove the unkeyed bones' channels (and unused samplers) from the .glb JSON chunk; test the imported clip has no such track (Deadnight `tools/blender/build_soldier.py`, `strip_channels`). | [lesson](../lessons/2026-11-02-gltf-export-wrote-finger-channels-a-clip-never-keyed.md) |
 | An action read right after `Input.parse_input_event` was not pressed yet | call `Input.flush_buffered_events()` and wait two frames before reading the action state. | [lesson](../lessons/2026-11-02-a-parsed-input-event-is-buffered.md) |
 | Workbench rendered a model black after adding an emission map | make the node feeding Base Color active before rendering. | [lesson](../lessons/2026-11-01-workbench-rendered-a-model-black-after-adding-an-emission-map.md) |
 | The same rotation raised one arm and folded the other | measure instead of looking: turn each axis 50 degrees and print where the hand bone's tail moved (out, forward, up). Straight overhead is X and +/-Z together. | [lesson](../lessons/2026-11-01-the-same-offset-raised-one-arm-and-folded-the-other.md) |
@@ -397,12 +403,13 @@ Sound, voice lines, mixing and audio analysis. (22)
 
 ## godot
 
-Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (91)
+Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (92)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | F6 on a screen scene shows the screen but never starts what it hosts | a dev entry scene that builds the same parts and starts the night itself (`game/dev/play_night.tscn`, with its options in the inspector); the tuning guide says to use it or go through the menu. | [lesson](../lessons/2026-11-02-f6-on-a-ui-screen-does-not-start-the-night.md) |
 | A test that steps by hand but waits a physics frame per tick runs at wall-clock speed | turn off the player's `_physics_process`, call its `tick(sample_command())` and the hand steps back to back, and wait one `process_frame` per measurement (the skeleton modifiers keep no clock): 1.7 s, same poses and limits. | [lesson](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md) |
+| A capture camera moved between ticks drew its old view | `physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF` on cameras and props a capture places by hand (as the game's remote avatars already do). | [lesson](../lessons/2026-11-02-a-capture-camera-moved-between-ticks-drew-its-old-view.md) |
 | Workbench rendered a model black after adding an emission map | make the node feeding Base Color active before rendering. | [lesson](../lessons/2026-11-01-workbench-rendered-a-model-black-after-adding-an-emission-map.md) |
 | A new navigation region answers path queries only after a few map iterations | wait for an answer: `await physics_frame` until `map_get_closest_point` on one of the mesh's own vertices lands within half a metre, or a path across open ground is not empty, then a few frames more for links. Take the map from `get_world_3d().navigation_map` ... | [lesson](../lessons/2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md) |
 | "Cannot infer the type of variable" on arithmetic with a dictionary value | write the type (`var cooked: float = ...`) or keep the record in a small typed class. | [lesson](../lessons/2026-11-01-variant-math-needs-a-typed-var.md) |
@@ -495,11 +502,12 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (81)
+Tests, bots, captures, probes and benchmarks. (82)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | Tests wrote the player's real settings file | tests and captures use their own settings store, and a test fails if a suite run changes the real file (Deadnight #418, #446). Agents never edit `app_userdata`; they report it. | [lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md) |
+| A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
 | A test that waited for a count that never came hung the whole suite | bound every wait loop (frames or seconds) and assert on what was seen after the bound, so the test fails at once and names itself. | [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md) |
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A static path set by the game root outlived the root in a test run | reset the static in the root's `_exit_tree`. | [lesson](../lessons/2026-11-02-a-static-path-outlived-the-game-root-in-tests.md) |
@@ -583,7 +591,7 @@ Tests, bots, captures, probes and benchmarks. (81)
 
 ## ci
 
-GitHub Actions, checks, merging, flaky runs and the pull request queue. (23)
+GitHub Actions, checks, merging, flaky runs and the pull request queue. (24)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -591,6 +599,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (23)
 | The local main checkouts fell behind the merges | the hooks pull every local main with `--ff-only` after a merge command, at session start and at Stop (at most every two minutes), and name a checkout whose local changes block it instead of discarding them. | [lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md) |
 | Every push restarted CI, and the merge queue backed up behind the runners | push only what a merge needs (the PR is DIRTY, or `main` broke one of its checks); merge `main` locally for tests; watch `gh run list --status queued` and the open-PR count each cycle; when the queue grows, stop new PRs and land the oldest; a flake's fix goes ... | [lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md) |
 | An issue stayed open after both halves merged, so it looked like unstarted work | the agent audited `main` first and filled only the gaps (#398). | [lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md) |
+| A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
 | Two scripts with the same class name broke the project after a merge | rename one (`PlayerMotionState`). Before naming a global class, run `grep -r "class_name <Name>" game` on `origin/main` as well as the branch, and prefer a name specific to the subject. | [lesson](../lessons/2026-11-01-two-scripts-with-the-same-class-name-broke-the-project.md) |
 | Two pull requests that merged together left a feature wired to nothing | an integration pull request that wires the night to the new classes, deletes the night's copy, and tests the join (a night that buys a door, and one that ends during the rebake). When pull requests touch one seam, name the other in Issues affected and merge ... | [lesson](../lessons/2026-11-01-two-merged-prs-built-the-same-seam-and-nothing-called-either.md) |
 | A large heredoc in the Bash tool failed to parse | never write a backslash through a heredoc. Write files with the Write tool, and edit scripts as `.py` files in the scratchpad run with `python file.py args`; use the Edit tool for text that holds `\`. Keep heredocs for short ASCII with no backslash. Lint ... | [lesson](../lessons/2026-11-01-large-bash-heredocs-failed-to-parse.md) |
@@ -613,7 +622,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (23)
 
 ## tools
 
-The gds CLI, hooks, the workspace, pinned tools and the shared machine. (43)
+The gds CLI, hooks, the workspace, pinned tools and the shared machine. (44)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -622,6 +631,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (43)
 | A view that rereads saved state on "setting changed" erased the unsaved outfit | hold the screen's choices in one draft while it is open, preview the draft on the stage, and commit once when the player leaves (Deadnight #493). | [lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md) |
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A rule that lives only in an agent's memory is broken under pressure | the order is computed by a tool and checked by a hook. `gds issue start` allows only the 5 oldest ready issues (`P-critical` first), sets the label, assigns and records the start; the Agent hook refuses a task agent whose prompt does not name a started issue ... | [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md) |
+| A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
 | The dead's feet slid because the walk and run blend points were guessed | measure each clip's planted-foot speed, put the blend points there, put the move state behind an `AnimationNodeTimeScale` set to ground speed over the gait's own speed (clamped 0.5-1.6), and cross over from walk to run over a short band, solving the rate so ... | [lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md) |
 | The Write tool wrote CRLF line endings on Windows | normalise new files before committing (`sed -i 's/\r$//' <files>`), then run the pre-commit hooks. | [lesson](../lessons/2026-11-01-the-write-tool-wrote-crlf-on-windows.md) |
 | A static function named `reload` on a script class returned an int | name static builders for what they build (`reload_weapon`), never after Object or Script methods. | [lesson](../lessons/2026-11-01-static-function-named-reload-returns-an-int.md) |

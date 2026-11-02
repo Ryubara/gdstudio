@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # Two chibi heads met in a two-character pose
 
 2026-11-02
