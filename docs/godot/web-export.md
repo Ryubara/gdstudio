@@ -100,4 +100,10 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
   `permissions-policy: clipboard-read=(), clipboard-write=()` header on the frame (Deadnight
   `tools/web_smoke/activity.py --embed clipboard-denied --clipboard`, under `gds quiet`).
 
+- **A tab has the stale first Ctrl+V too** (Deadnight #534). The `paste` event needs no permission, so the paste half
+  of the layer (the capture-phase Ctrl/Cmd+V that lets the key reach the browser, the `paste` listener) belongs in every
+  web context; only the copy half (hidden text box, native Ctrl+C) is a frame's, a tab's own `clipboard_set` works from
+  the press. Walk a probe to a control by its name, never by counted key presses.
+
 Lesson: [Copy and paste did nothing in the Discord Activity](../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md).
+Lesson: [The first Ctrl+V in a browser tab pasted nothing](../lessons/2026-11-02-the-first-ctrl-v-in-a-browser-tab-pasted-nothing.md).
