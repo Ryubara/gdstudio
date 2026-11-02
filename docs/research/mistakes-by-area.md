@@ -540,7 +540,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (90)
+Tests, bots, captures, probes and benchmarks. (91)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -550,6 +550,7 @@ Tests, bots, captures, probes and benchmarks. (90)
 | A test that waited for a count that never came hung the whole suite | bound every wait loop (frames or seconds) and assert on what was seen after the bound, so the test fails at once and names itself. | [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md) |
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A static path set by the game root outlived the root in a test run | reset the static in the root's `_exit_tree`. | [lesson](../lessons/2026-11-02-a-static-path-outlived-the-game-root-in-tests.md) |
+| actionlint rejected `# shellcheck disable=SC2086 -- reason` in a workflow step | read the words into an array (`read -r -a folders < <(cmd)`) and pass `"${folders[@]}"`: no directive, no word splitting. actionlint only checks `run:` scripts with shellcheck installed, so a Windows machine without it passes what CI rejects: run it where ... | [lesson](../lessons/2026-11-02-a-shellcheck-directive-takes-no-reason-after-it.md) |
 | A shared aim weight coupled hip fire to the aim zoom | the camera reads the aim button only; hip fire turns the body and raises the hands without zoom (Deadnight #473). A PR for a reported problem names the live build's commit (Railway deployment `meta.cliMessage` is `main <sha7>`) and runs the browser probe ... | [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md) |
 | A rule on the view held a bot that looked where it walked | a bot sends a person's command. It looks where it acts, moves as a stick push under that view, and judges what it can hit from where the body will be when it fires (the barrel along the heading to the target): 395 frames, 14 held. When a rule starts reading a ... | [lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md) |
 | A replay in an idle frame missed by a few millimetres once in six runs | a test that is not about idle frames records and replays in physics callbacks (delta exactly one tick); the idle-frame case lives in one suite that runs it on purpose (`test_player_reconcile`). | [lesson](../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md) |
