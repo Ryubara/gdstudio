@@ -33,6 +33,15 @@ Each session is told its workspace, repository and branch, the pinned tool paths
 and to read the checks of the corrections page that touch its task (see [Learning](#learning)). It fires on `startup`,
 `resume`, `clear` and `compact`.
 
+## Local mains {#mains}
+
+Every repository in `<workspace>/repos/` that has `main` checked out follows origin: the maintainer opens those
+checkouts in the editor, so they show what has merged. `git pull --ff-only` runs right after a shell command that
+merges a pull request (`gh pr merge`, `gh api .../pulls/<n>/merge`, a `PostToolUse` hook), at session start, and at
+Stop at most once every two minutes (auto-merges land without a command). It never discards: a checkout whose local
+changes are in the way, or one on another branch, is left alone and named in the session's context. Settings:
+`[mains]` in `hooks.toml`.
+
 ## Learning {#learning}
 
 What the maintainer corrects is written into the docs in the same session, so the next agent gets it right the first

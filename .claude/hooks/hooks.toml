@@ -12,6 +12,14 @@ helpers = ["Explore", "Plan", "fork", "claude-code-guide", "web-fetch", "statusl
 # Branches that take no commits and no pushes from a session: work happens on a branch, merged by pull request.
 protected_branches = ["main", "master"]
 
+[mains]
+# Every main checkout in <workspace>/repos/ follows origin (docs/hooks.md#mains): `git pull --ff-only` right after a
+# command that merges a pull request, at session start, and at Stop at most once every `every_seconds` (auto-merges land
+# without a command). A checkout with local changes in the way is never touched, only named.
+pull = true
+every_seconds = 120
+stamp = "cache/mains-pulled"
+
 [protect]
 # Files no Edit or Write may change (glob patterns, matched against the path with forward slashes).
 paths = [
