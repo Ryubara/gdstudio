@@ -265,7 +265,7 @@ The network protocol, replication, prediction, lag and the game server. (31)
 
 ## web
 
-The browser build, the Discord Activity, export, WebGL and the web runtime. (37)
+The browser build, the Discord Activity, export, WebGL and the web runtime. (38)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -276,6 +276,7 @@ The browser build, the Discord Activity, export, WebGL and the web runtime. (37)
 | Copy and paste did nothing in the Discord Activity, and "Code copied." was shown anyway | Deadnight #533: a page layer that exists only inside a frame. Ctrl/Cmd+V is let through to the browser and the `paste` event's text goes into the focused field; copy runs from the press (hidden textarea and `execCommand("copy")`, then the API) and says ... | [lesson](../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md) |
 | A crowd cap measured in the browser became the desktop cap | split the cap by platform and measure each budget on its own: client render and animation, server tick per agent, snapshot bytes per player (deadnight #453). A room takes the ceiling of its lowest client platform. | [lesson](../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md) |
 | A project setting injected as `audio/...` under `[audio]` did nothing | write the key without its section, compare with the setting's own numbers, and confirm a settings switch with a level measurement in the browser before trusting it. | [lesson](../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md) |
+| A centred panel grew past a 720-high frame | capture and unit-test the tallest state at 1280 x 720 (`SubViewport` in GdUnit4); put buttons in rows, ellipsise one-line text, cap a `ScrollContainer` at the viewport height minus a margin, `follow_focus = true`, and `ensure_control_visible` two frames after ... | [lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md) |
 | A new prompt hung every test and browser smoke that passed through the flow | before adding a prompt or a wait to a flow, search for everything that enters it (`grep` the screen's class name, its route and its URL parameters in `tests/` and `tools/web_smoke/`) and update each one in the same change. A unit test gives the player the ... | [lesson](../lessons/2026-11-02-a-new-prompt-hung-every-test-and-smoke-that-passed-through-it.md) |
 | A headless browser under pointer lock held the cursor in an invisible box | `gds quiet [--timeout S] -- <command>` runs any command and everything it starts on the private desktop with the cursor freed every 5 ms (`gds godot` is now built on it): 0 of 777 samples held, the lock still took. The hook refuses a `tools/web_smoke/*.py` or ... | [lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md) |
 | Behind Discord's proxy the web build read every 200 as "cannot reach the servers" | `HTTPRequest.accept_gzip = false` in the web build (Deadnight #475); trade an OAuth code once. Reproduce with a local HTTPS stand-in that gzips its answers, never only in a plain browser tab. | [lesson](../lessons/2026-11-02-a-godot-web-client-decoded-gzip-twice-behind-a-proxy.md) |
@@ -430,7 +431,7 @@ Sound, voice lines, mixing and audio analysis. (27)
 
 ## godot
 
-Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (98)
+Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (99)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -438,6 +439,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 | A replay in an idle frame missed by a few millimetres once in six runs | a test that is not about idle frames records and replays in physics callbacks (delta exactly one tick); the idle-frame case lives in one suite that runs it on purpose (`test_player_reconcile`). | [lesson](../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md) |
 | A Python edit of a GDScript file made Godot refuse the script | open with `encoding="utf-8", newline=""` (read and write), keep tooltip units ASCII (`deg`, `m/s^2`), and run a headless import after any scripted edit: it prints the broken file's name. | [lesson](../lessons/2026-11-02-a-python-edit-of-a-gdscript-file-broke-its-encoding.md) |
 | A test that steps by hand but waits a physics frame per tick runs at wall-clock speed | turn off the player's `_physics_process`, call its `tick(sample_command())` and the hand steps back to back, and wait one `process_frame` per measurement (the skeleton modifiers keep no clock): 1.7 s, same poses and limits. | [lesson](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md) |
+| A centred panel grew past a 720-high frame | capture and unit-test the tallest state at 1280 x 720 (`SubViewport` in GdUnit4); put buttons in rows, ellipsise one-line text, cap a `ScrollContainer` at the viewport height minus a margin, `follow_focus = true`, and `ensure_control_visible` two frames after ... | [lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md) |
 | A hand-ticked body fell through a floor and walked through a ledge no physics step had seen | take one real `await get_tree().physics_frame` after loading the room and after adding any collider, then tick by hand; that is one frame per setup, not per tick. | [lesson](../lessons/2026-11-02-a-hand-ticked-player-fell-through-a-floor-no-step-had-seen.md) |
 | A capture camera moved between ticks drew its old view | `physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF` on cameras and props a capture places by hand (as the game's remote avatars already do). | [lesson](../lessons/2026-11-02-a-capture-camera-moved-between-ticks-drew-its-old-view.md) |
 | Workbench rendered a model black after adding an emission map | make the node feeding Base Color active before rendering. | [lesson](../lessons/2026-11-01-workbench-rendered-a-model-black-after-adding-an-emission-map.md) |
@@ -665,12 +667,13 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (27)
 
 ## tools
 
-The gds CLI, hooks, the workspace, pinned tools and the shared machine. (49)
+The gds CLI, hooks, the workspace, pinned tools and the shared machine. (50)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | The local main checkouts fell behind the merges | the hooks pull every local main with `--ff-only` after a merge command, at session start and at Stop (at most every two minutes), and name a checkout whose local changes block it instead of discarding them. | [lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md) |
 | Git Bash rewrote a value that started with a slash | prefix the command with `MSYS_NO_PATHCONV=1`, or run it from PowerShell; read the value back after setting it. | [lesson](../lessons/2026-11-02-git-bash-rewrote-a-slash-value.md) |
+| `gh pr view > file` outside a repository wiped a pull request description | run `gh` from the worktree (or pass `-R <owner/repo>`), check the saved file is not empty (`wc -c`) before editing it, and keep a copy of the body before replacing it. A `pr-rules` rerun reads the old event, so edit the description again rather than rerun the ... | [lesson](../lessons/2026-11-02-gh-pr-view-outside-a-repo-wiped-the-description.md) |
 | Agent-launched Godot and browser probes played through the speakers | `gds godot` adds `--audio-driver Dummy` (`--with-audio` opts out), the hook refuses a real driver from a session, `--headless` and Movie Maker already force Dummy, and Deadnight's probes add the mute under `GDS_QUIET=1`. The Dummy driver still mixes: a bus ... | [lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md) |
 | A view that rereads saved state on "setting changed" erased the unsaved outfit | hold the screen's choices in one draft while it is open, preview the draft on the stage, and commit once when the player leaves (Deadnight #493). | [lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md) |
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
@@ -721,7 +724,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (49)
 
 ## process
 
-Agents, coordination, issues, pull requests and documentation. (39)
+Agents, coordination, issues, pull requests and documentation. (40)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -730,6 +733,7 @@ Agents, coordination, issues, pull requests and documentation. (39)
 | The sprint sway kept going in the air | the sway takes the grounded state and fades out on the first airborne tick; a test steps through that tick and the capture includes a sprint-jump with the key held (Deadnight #426). | [lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md) |
 | The same system was built in two branches at once, and one had to be rebuilt after the other merged | before building a core piece of a system, `gh pr list` and search open and in-progress issues for the subsystem's words (here "revive"); if another branch builds it, build only the part that sits on top (the bleed-out clock, dead players, counts) against its ... | [lesson](../lessons/2026-11-02-same-system-built-in-two-branches.md) |
 | New pull requests opened while older ones stalled | the queue view is the PR list, not the agents' notes: report from the oldest PR down (state, owner, what it waits on, when it pushes), open no new PR while an older one has no live owner, and rerun a known flake at once (`gh run rerun <id> --failed`) with an ... | [lesson](../lessons/2026-11-02-new-prs-opened-while-old-ones-stalled.md) |
+| `gh pr view > file` outside a repository wiped a pull request description | run `gh` from the worktree (or pass `-R <owner/repo>`), check the saved file is not empty (`wc -c`) before editing it, and keep a copy of the body before replacing it. A `pr-rules` rerun reads the old event, so edit the description again rather than rerun the ... | [lesson](../lessons/2026-11-02-gh-pr-view-outside-a-repo-wiped-the-description.md) |
 | Every push restarted CI, and the merge queue backed up behind the runners | push only what a merge needs (the PR is DIRTY, or `main` broke one of its checks); merge `main` locally for tests; watch `gh run list --status queued` and the open-PR count each cycle; when the queue grows, stop new PRs and land the oldest; a flake's fix goes ... | [lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md) |
 | Docs written on a kit branch were left for a batch and went unpublished | whoever does the work publishes the docs, in the same task. A Stop and SubagentStop gate holds back a kit branch with commits and no pull request; a report with a `Mistakes` section must name its lesson file; every lesson carries `areas:` and a generated ... | [lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md) |
 | Closing and reopening a pull request turned its auto-merge off | after a close and reopen, run `gh pr merge <N> --auto --squash` again in the same command, except on pull requests that are merged by hand; check with `gh pr view <N> --json autoMergeRequest`. | [lesson](../lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md) |
