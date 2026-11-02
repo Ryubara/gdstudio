@@ -8,7 +8,7 @@ areas: [godot-ui, net, tests]
 - **Saw:** Deadnight's in-game menu (#471) had to open Settings without stopping a night played with others. Pushing
   the settings screen with `UIRouter.push` was the obvious route, and it would have frozen that night: the router
   covers the screen below with `process_mode = PROCESS_MODE_DISABLED`, so the `Night` node under it stops reading the
-  socket and the player is dropped by the server.
+  socket (it stands still and stops answering the server).
 - **Cause:** the router's stack is built for screens that replace each other. "Covered" means "off", for the node
   and everything under it, whatever the screen thinks about pausing.
 - **Fix:** a menu over a live game holds its sub-screens as children of itself (the settings screen has an `embedded`
