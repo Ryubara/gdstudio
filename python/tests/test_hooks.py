@@ -712,7 +712,7 @@ def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace
     _kit_worktree(workspace, "docs-a", 2)
     _kit_worktree(workspace, "docs-b", 1)
     _kit_worktree(workspace, "docs-c", 0)  # nothing ahead: nothing to publish
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-b"})  # b has a pull request
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-b": ""})  # b has a pull request
     out = dispatch.answer(stop_payload(workspace), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"] and "docs-b" not in out["reason"]
     assert "docs-c" not in out["reason"] and "open its pull request now" in out["reason"]
@@ -721,10 +721,93 @@ def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace
 
 def test_stop_lets_go_when_every_branch_has_a_pull_request_or_github_is_unreachable(workspace, monkeypatch):
     _kit_worktree(workspace, "docs-a", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-a"})
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-a": ""})
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: a guard that cannot look lets go
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
+def _squash_merged_worktree(workspace: Path, name: str) -> tuple[Path, str]:
+    """A kit branch with two commits whose pull request squash-merged: origin/main holds one commit with the same
+    changes and a different hash. Returns the worktree and the merged tip."""
+    tree = workspace / "worktrees" / "gdstudio" / name
+    tree.mkdir(parents=True)
+
+    def run(*a):
+        return subprocess.run(
+            ["git", "-C", str(tree), "-c", "user.email=t@t", "-c", "user.name=t", *a],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    def commit(file: str, message: str):
+        (tree / file).write_text(file, encoding="utf-8")
+        run("add", file)
+        run("commit", "-m", message)
+
+    run("init", "-b", "main")
+    commit("base.md", "base")
+    run("switch", "-q", "-c", name)
+    commit("a.md", "a")
+    commit("b.md", "b")
+    tip = run("rev-parse", "HEAD")
+    run("switch", "-q", "main")
+    run("merge", "--squash", name)
+    run("commit", "-m", "squash of a and b")
+    run("update-ref", "refs/remotes/origin/main", "HEAD")
+    run("switch", "-q", name)
+    return tree, tip
+
+
+def test_stop_names_a_commit_pushed_to_a_branch_after_its_pull_request_merged(workspace, monkeypatch):
+    tree, tip = _squash_merged_worktree(workspace, "docs-late")
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": tip})
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None  # only its squashed commits: nothing is lost
+    (tree / "late.md").write_text("a second lesson", encoding="utf-8")
+    for args in (["add", "late.md"], ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "late"]):
+        subprocess.run(["git", "-C", str(tree), *args], check=True, capture_output=True)
+    out = dispatch.answer(stop_payload(workspace), CONFIG)
+    assert out["decision"] == "block" and "docs-late" in out["reason"] and tip[:9] in out["reason"]
+    assert "after their pull request merged" in out["reason"] and "cherry-pick" in out["reason"]
+    assert "no pull request" not in out["reason"]
+    assert dispatch.answer(stop_payload(workspace, stop_hook_active=True), CONFIG) is None
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": ""})  # an open pull request covers it
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: let go
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
+def test_a_late_commit_already_on_main_by_patch_id_is_not_named(workspace, monkeypatch):
+    tree, tip = _squash_merged_worktree(workspace, "docs-moved")
+
+    def run(*a):
+        subprocess.run(
+            ["git", "-C", str(tree), "-c", "user.email=t@t", "-c", "user.name=t", *a], check=True, capture_output=True
+        )
+
+    (tree / "late.md").write_text("late", encoding="utf-8")
+    run("add", "late.md")
+    run("commit", "-m", "late")
+    run("switch", "-q", "main")
+    run("cherry-pick", "docs-moved")  # the same change landed on main through a new pull request
+    run("update-ref", "refs/remotes/origin/main", "HEAD")
+    run("switch", "-q", "docs-moved")
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-moved": tip})
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
+def test_the_pr_heads_map_keeps_the_latest_merged_tip_and_lets_an_open_pull_request_cover(monkeypatch):
+    prs = [
+        {"headRefName": "a", "state": "MERGED", "headRefOid": "old", "mergedAt": "2026-11-01T00:00:00Z"},
+        {"headRefName": "a", "state": "MERGED", "headRefOid": "new", "mergedAt": "2026-11-02T00:00:00Z"},
+        {"headRefName": "b", "state": "MERGED", "headRefOid": "x", "mergedAt": "2026-11-01T00:00:00Z"},
+        {"headRefName": "b", "state": "OPEN", "headRefOid": "y", "mergedAt": None},
+        {"headRefName": "c", "state": "CLOSED", "headRefOid": "z", "mergedAt": None},
+    ]
+    done = subprocess.CompletedProcess([], 0, stdout=json.dumps(prs), stderr="")
+    monkeypatch.setattr(guards.subprocess, "run", lambda *a, **k: done)
+    assert guards.kit_pr_heads("o/r") == {"a": "new", "b": ""}
 
 
 def subagent_stop_payload(workspace: Path, report: str, **extra) -> dict:
@@ -743,7 +826,7 @@ MISTAKES_REPORT = (
 
 
 def test_an_agent_may_not_finish_with_mistakes_and_no_lesson(workspace, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     out = dispatch.answer(subagent_stop_payload(workspace, MISTAKES_REPORT), CONFIG)
     assert out["decision"] == "block" and "Mistakes section but names no lesson file" in out["reason"]
     assert "Mistakes: none" in out["reason"]
@@ -752,7 +835,7 @@ def test_an_agent_may_not_finish_with_mistakes_and_no_lesson(workspace, monkeypa
 
 
 def test_a_named_lesson_file_that_exists_satisfies_the_report(workspace, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     name = "2026-11-02-a-cached-import-hung-the-web-build.md"
     report = MISTAKES_REPORT + f"\n\nLesson: docs/lessons/{name} (kit PR #120)"
     assert "names no lesson file" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
@@ -784,13 +867,13 @@ def test_helpers_and_the_reviewer_may_finish_with_mistakes(workspace):
 
 def test_an_agent_with_unpublished_kit_docs_may_not_finish(workspace, monkeypatch):
     _kit_worktree(workspace, "docs-a", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     out = dispatch.answer(subagent_stop_payload(workspace, "Done. Mistakes: none"), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"]
 
 
 def test_the_report_falls_back_to_the_transcript(workspace, tmp_path, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     transcript = tmp_path / "agent.jsonl"
     lines = [
         {"message": {"role": "user", "content": "go"}},
@@ -955,7 +1038,7 @@ def stall_answer(workspace: Path, report: str, **extra):
 
 
 def test_a_transcript_ending_on_an_announced_step_is_refused(workspace, tmp_path, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     payload = {"hook_event_name": "SubagentStop", "cwd": str(workspace), "agent_type": "godot-engineer"}
     transcript = write_transcript(tmp_path / "agent.jsonl", STALLED)
     out = dispatch.answer({**payload, "agent_id": "a1", "agent_transcript_path": str(transcript)}, CONFIG)
@@ -1044,7 +1127,7 @@ def test_nothing_to_judge_or_no_workspace_lets_the_end_through(workspace, tmp_pa
 
 def test_a_stall_and_unpublished_docs_come_back_together(workspace, monkeypatch):
     _kit_worktree(workspace, "docs-b", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     reason = stall_answer(workspace, STALLED)["reason"]
     assert "without a report" in reason and "docs-b" in reason
     again = stall_answer(
