@@ -20,3 +20,8 @@ areas: [tools, process]
   (`gds pr check-body <body> --title <title file> --repo <checkout>`) and run `gh pr create` with `--body-file` and no
   `--attach`. The real fix is in `check_body`: give it the `--attach` references as uploaded.
 - **Docs:** [Hooks: pull request bodies](../hooks.md#pr-body).
+- **Fixed by:** kit #186: `check_body` in `.claude/hooks/guards.py` rewrites each `](./<file>)` reference to a file
+  passed with `--attach` on the same command into an upload address before it asks the checker, so the body with
+  `./` references and `--attach` passes both guards (tests in `python/tests/test_pr_check_body.py`). Two checks that
+  read one input need one definition of that input: when a command changes the body (`--attach` uploads), every check
+  judges the body as it will be after the command, not as it was written.
