@@ -143,7 +143,7 @@ Keyboard, mouse, gamepad and touch controls, pointer lock and focus. (43)
 
 ## camera
 
-The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (32)
+The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (33)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -151,6 +151,7 @@ The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and inter
 | Releasing aim after a shot kept the hip-fire zoom | only a shot fired from the hip starts the hold (Deadnight #433); tests walk every transition between the two states (aim, shoot, release; hip fire, aim, release), not each state alone. | [lesson](../lessons/2026-11-02-aim-release-kept-the-hip-fire-zoom.md) |
 | A shared aim weight coupled hip fire to the aim zoom | the camera reads the aim button only; hip fire turns the body and raises the hands without zoom (Deadnight #473). A PR for a reported problem names the live build's commit (Railway deployment `meta.cliMessage` is `main <sha7>`) and runs the browser probe ... | [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md) |
 | A muzzle flash lying in the muzzle's plane was hidden by the gun and hands | measure the flash's own pixels from the real camera (draw the frame again without it and compare), draw the quads toward the camera (scaled by the same ratio), a bigger star in a flat glow disc, 3 frames and 60 ms at least, and floors in a probe and a test. | [lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md) |
+| A carry posed from the front was hidden from the game camera | render the sheet from the game camera's side (`render_clips.py --view back`) before posing further, and prove it in a Godot capture through the real camera; the muzzle now points across and up past the helmet. | [lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md) |
 | A capture camera moved between ticks drew its old view | `physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF` on cameras and props a capture places by hand (as the game's remote avatars already do). | [lesson](../lessons/2026-11-02-a-capture-camera-moved-between-ticks-drew-its-old-view.md) |
 | A shake under reduced motion printed "Tween started with no Tweeners" | add `tween.tween_interval(0.0)` before returning, so the tween is valid and does nothing. | [lesson](../lessons/2026-11-01-ui-shake-with-reduced-motion-errors.md) |
 | A bot's shots hit the car beside it while the camera saw the zombie | check the line to the target from both the eye and the barrel before firing. | [lesson](../lessons/2026-11-01-third-person-shots-need-the-barrel-clear-too.md) |
@@ -305,13 +306,14 @@ The platform backend, Railway, Docker, lobbies and deployment. (7)
 
 ## blender
 
-Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (64)
+Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (66)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | Two chibi heads met in a two-character pose | keep the actor upright with the arms reaching out and down, aim at the belly, and check every two-character clip with both characters in the game capture. | [lesson](../lessons/2026-11-02-two-chibi-heads-met-in-a-two-character-pose.md) |
 | Blender's glTF export wrote finger channels a clip never keyed | after the export, remove the unkeyed bones' channels (and unused samplers) from the .glb JSON chunk; test the imported clip has no such track (Deadnight `tools/blender/build_soldier.py`, `strip_channels`). | [lesson](../lessons/2026-11-02-gltf-export-wrote-finger-channels-a-clip-never-keyed.md) |
 | An action read right after `Input.parse_input_event` was not pressed yet | call `Input.flush_buffered_events()` and wait two frames before reading the action state. | [lesson](../lessons/2026-11-02-a-parsed-input-event-is-buffered.md) |
+| A carry posed from the front was hidden from the game camera | render the sheet from the game camera's side (`render_clips.py --view back`) before posing further, and prove it in a Godot capture through the real camera; the muzzle now points across and up past the helmet. | [lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md) |
 | Workbench rendered a model black after adding an emission map | make the node feeding Base Color active before rendering. | [lesson](../lessons/2026-11-01-workbench-rendered-a-model-black-after-adding-an-emission-map.md) |
 | The same rotation raised one arm and folded the other | measure instead of looking: turn each axis 50 degrees and print where the hand bone's tail moved (out, forward, up). Straight overhead is X and +/-Z together. | [lesson](../lessons/2026-11-01-the-same-offset-raised-one-arm-and-folded-the-other.md) |
 | The editor recompressed the palettes on open | Detect 3D off and every setting stated in all texture `.import` files; Blender builds write the `.import` with the PNG; a check runs in pre-commit and CI (Deadnight #441, #454). | [lesson](../lessons/2026-11-01-the-editor-recompressed-palettes-on-open.md) |
@@ -343,6 +345,7 @@ Modelling, rigs, animation, hand grips, weapons and assets out of Blender. (64)
 | Baked clip poses need their own action for a video | make one `Video_<armature>` action, and after each frame's pose (and before any depsgraph update) assign it and its slot, then key the bones; assign it once more at the end. | [lesson](../lessons/2026-11-01-baked-clip-poses-need-their-own-action-for-a-video.md) |
 | Arm offsets by eye missed the hand target | measure the hand's move per bone axis (30-degree probes, numbers not renders), then solve the arm offsets for a target hand position with a small coordinate search in Blender and paste the rounded result into the script. | [lesson](../lessons/2026-11-01-arm-offsets-by-eye-missed-the-hand-target.md) |
 | An IK that turned one palm bone tore the hand | turn the other three by the same rotation off their rest (they share the parent and the pivot), every frame after the IK. | [lesson](../lessons/2026-11-01-an-ik-that-turned-one-palm-bone-tore-the-hand.md) |
+| An IK modifier at influence zero still held the arms | switch the modifier off (`active = false`) whenever its blend is 0; prove arm clips with a capture of a running scene, not only with bone reads. | [lesson](../lessons/2026-11-01-an-ik-modifier-at-influence-zero-still-held-the-arms.md) |
 | An exported zombie Idle stood in a T-pose | give each clip a held channel, from Walk's first frame, for every bone Walk turns and the clip does not (Deadnight `tools/blender/build_zombies.py`, `fill_missing_rotations`). | [lesson](../lessons/2026-11-01-an-exported-zombie-idle-stood-in-a-t-pose.md) |
 | An authored clip swung the gun behind the head | keep each key's sign continuous with the previous one (negate when the dot product is negative); flip the target before a slerp. | [lesson](../lessons/2026-11-01-an-authored-clip-swung-the-gun-behind-the-head.md) |
 | An async navigation bake called back into a freed node | guard the call with `done.is_valid()` (false once the object is freed); keep a test that frees the owner during a bake. | [lesson](../lessons/2026-11-01-an-async-bake-callback-outlived-its-node.md) |
@@ -406,7 +409,7 @@ Sound, voice lines, mixing and audio analysis. (23)
 
 ## godot
 
-Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (92)
+Godot engine behaviour: GDScript, scenes, physics, import, shaders and performance. (94)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -471,6 +474,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 | Blender 5 moved the compositor to a node group | create a compositor node group, assign it to `scene.compositing_node_group`, and set Glare's values on its inputs. Check the pinned version's API (`gds tool path blender`), not memory. | [lesson](../lessons/2026-11-01-blender-5-moved-the-compositor-to-a-node-group.md) |
 | A Movie Maker recording mixes every bus into one track | put an `AudioEffectRecord` on each bus to measure (Voice, Effects, Ambience), record during the capture and save each stem. It works under Movie Maker; Deadnight #442 measured the voice at 4.8 LU under the guns and 10.6 LU over the beds that way. | [lesson](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md) |
 | An input action defined twice in project.godot kept only the later binding | one block per action; gameplay actions listen to their own actions (`pause`, `interact`), not `ui_cancel`; an in-game screen refuses the router's back. A test reads the project file for a repeated action, and the InputMap for two gameplay actions on one pad ... | [lesson](../lessons/2026-11-01-an-input-action-defined-twice-keeps-only-the-later-one.md) |
+| An IK modifier at influence zero still held the arms | switch the modifier off (`active = false`) whenever its blend is 0; prove arm clips with a capture of a running scene, not only with bone reads. | [lesson](../lessons/2026-11-01-an-ik-modifier-at-influence-zero-still-held-the-arms.md) |
 | An async navigation bake called back into a freed node | guard the call with `done.is_valid()` (false once the object is freed); keep a test that frees the owner during a bake. | [lesson](../lessons/2026-11-01-an-async-bake-callback-outlived-its-node.md) |
 | A windowed Godot takes the keyboard from the person at the machine | start Godot on a private Windows desktop with `gds godot ...` (`gds capture frames` does): rendering and Movie Maker work, nothing reaches the person's desktop. A hook refuses a windowed Godot started straight from a shell. | [lesson](../lessons/2026-11-01-a-windowed-godot-takes-the-keyboard-focus.md) |
 | A time seek swallowed the throttled animation delta | call `tree.advance(0.0)` right after setting `seek_request`, then advance the saved time as usual. | [lesson](../lessons/2026-11-01-a-time-seek-swallowed-the-throttled-delta.md) |
@@ -494,6 +498,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 | A class name hid another one, only in the web export | rename the new one (`LotNeonSign`), and grep for `class_name <Name>` before choosing one. | [lesson](../lessons/2026-11-01-a-class-name-hid-another-in-the-web-export-only.md) |
 | A Callable made from a RefCounted's method went invalid | keep the object in a member (`_sight := WorldProbe.new(...)`) and hand out `_sight.callable()`. | [lesson](../lessons/2026-11-01-a-callable-does-not-keep-its-object-alive.md) |
 | A bone renamed Body_2 in Godot | rename meshes that share a bone's name (`Body_Mesh`) in the Blender clean-up. | [lesson](../lessons/2026-11-01-a-bone-renamed-body-2-in-godot.md) |
+| A bone attachment stood still under a hand-stepped animation | read the bone itself, `skeleton.global_transform * skeleton.get_bone_global_pose(bone)`, times the attachment child's own transform. | [lesson](../lessons/2026-11-01-a-bone-attachment-stood-still-under-a-hand-stepped-animation.md) |
 | We copied the base loop and missed the variety that keeps it interesting | List the reference's variety beats (bosses, special rounds, enemy types) and how each is signalled to the player | [row](maintainer-corrections.md#corrections-and-the-checks-they-become) |
 | We measured frame times on desktop and with a warm browser profile, and nothing drew every effect once before play | Warm up behind a loading screen from the first night; measure in a browser with a fresh profile and count the GL programs linked during play (First-use hitches) | [row](maintainer-corrections.md#corrections-and-the-checks-they-become) |
 | Agents share the maintainer's machine while the maintainer works on it: every windowed Godot run (captures, recordings, autopilot) became the active window, and stopping ... | Every windowed tool run starts off the person's desktop (`gds godot`, a private desktop); a hook refuses a bare windowed Godot; the proof is that keystrokes still reach the person's window, not only that the mouse stayed put | [row](maintainer-corrections.md#corrections-and-the-checks-they-become) |
@@ -505,7 +510,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (83)
+Tests, bots, captures, probes and benchmarks. (84)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -566,6 +571,7 @@ Tests, bots, captures, probes and benchmarks. (83)
 | A catalogue weapon was never played in the night: the crowbar was a bat, swung nothing and hurt nothing | Deadnight #285: melee skips the gun effects, the attack plays its clip, the sweep starts at the player's eye, each weapon id has its own hold and model; a test presses the real input for every catalogue id in a real night and checks the model in hand, the ... | [lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md) |
 | A Callable made from a RefCounted's method went invalid | keep the object in a member (`_sight := WorldProbe.new(...)`) and hand out `_sight.callable()`. | [lesson](../lessons/2026-11-01-a-callable-does-not-keep-its-object-alive.md) |
 | A thrown body bounced forever and never came to rest | a floor bounce slower than a threshold along the normal moves the body into a rolling state: gravity along the slope only, friction against the motion, a floor probe each step so a ledge ends the roll, and a stop speed. Test rest, a ledge fall, repeatability ... | [lesson](../lessons/2026-11-01-a-bounced-body-needs-a-rolling-state-to-rest.md) |
+| A bone attachment stood still under a hand-stepped animation | read the bone itself, `skeleton.global_transform * skeleton.get_bone_global_pose(bone)`, times the attachment child's own transform. | [lesson](../lessons/2026-11-01-a-bone-attachment-stood-still-under-a-hand-stepped-animation.md) |
 | A benchmark printed numbers from a run full of script errors | the runner logs every `ERROR` line next to the results and the log is read for them before any number is trusted; the property name was corrected and the whole matrix rerun. | [lesson](../lessons/2026-11-01-a-benchmark-printed-numbers-from-a-run-full-of-script-errors.md) |
 | A bench set a value directly and a settings listener put it back | set the setting through the `Settings` service, as the player does (in a test-owned settings file); the object follows it. A bench or test of anything that listens to `Settings.changed` sets the setting, not the field. | [lesson](../lessons/2026-11-01-a-bench-set-a-value-a-settings-listener-put-back.md) |
 | Work was judged from text, so nobody saw what changed | Every visual change carries uploaded before/after captures; a PR without them fails its checks | [row](maintainer-corrections.md#corrections-and-the-checks-they-become) |
