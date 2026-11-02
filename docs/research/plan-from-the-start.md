@@ -177,6 +177,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
   ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
+- Plan: every kit file a game carries a copy of (the checker, the pre-commit message hooks, the agent definitions) is on
+  the `gds sync` list from the first game, so a rule changed in the kit reaches the games in one sync pull request
+  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](../sync.md)).
 - Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
   ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),

@@ -1,6 +1,9 @@
 """`gds sync`: writing the kit's files into a game, the lock, and catching drift."""
 
 import json
+from pathlib import Path
+
+import pytest
 
 from gds_tools import sync
 
@@ -52,3 +55,121 @@ def test_file_dropped_by_kit_is_reported(tmp_path):
     sync.sync(kit, game, lambda _: None)
     (kit / ".claude" / "agents" / "engineer.md").unlink()
     assert any("no longer owned" in p for p in sync.drift(kit, game))
+
+
+# --- the checker and the message-check hooks of .pre-commit-config.yaml (kit #151) ---
+
+KIT_CONFIG = """\
+default_language_version:
+  node: 24.22.2
+# gds-sync:begin install-hooks (kit-owned)
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+# gds-sync:end install-hooks
+repos:
+  - repo: local
+    hooks:
+      # gds-sync:begin message-checks (kit-owned)
+      - id: commit-trailers
+        entry: python .github/scripts/groundwork.py check-message
+        stages: [commit-msg]
+      - id: push-messages
+        entry: python .github/scripts/groundwork.py check-push
+        stages: [pre-push]
+      # gds-sync:end message-checks
+"""
+
+GAME_CONFIG = """\
+default_language_version:
+  node: 24.22.2
+# gds-sync:begin install-hooks (kit-owned)
+default_install_hook_types: [pre-commit, commit-msg]
+# gds-sync:end install-hooks
+repos:
+  - repo: https://github.com/Scony/godot-gdscript-toolkit
+    rev: 4.5.0
+    hooks:
+      - id: gdformat
+  - repo: local
+    hooks:
+      # gds-sync:begin message-checks (kit-owned)
+      - id: commit-trailers
+        entry: python .github/scripts/groundwork.py check-message
+        stages: [commit-msg]
+      # gds-sync:end message-checks
+      - id: gd-uids
+        entry: python tools/check_gd_uids.py
+"""
+
+
+def kit_with_checks(tmp_path):
+    kit = make_kit(tmp_path)
+    (kit / ".github" / "scripts").mkdir(parents=True)
+    (kit / ".github" / "scripts" / "groundwork.py").write_text("print('check v2')\n")
+    (kit / ".pre-commit-config.yaml").write_text(KIT_CONFIG)
+    return kit
+
+
+def game_with_old_checks(tmp_path):
+    game = tmp_path / "game"
+    (game / ".github" / "scripts").mkdir(parents=True)
+    (game / ".github" / "scripts" / "groundwork.py").write_text("print('check v1')\n")
+    (game / ".pre-commit-config.yaml").write_text(GAME_CONFIG)
+    return game
+
+
+def test_old_checker_and_hooks_in_a_game_are_drift(tmp_path):
+    kit, game = kit_with_checks(tmp_path), game_with_old_checks(tmp_path)
+    problems = sync.drift(kit, game)
+    assert any(".github/scripts/groundwork.py: differs" in p for p in problems)
+    assert any("block install-hooks differs" in p for p in problems)
+    assert any("block message-checks differs" in p for p in problems)
+
+
+def test_sync_writes_the_checker_and_only_the_kit_blocks(tmp_path):
+    kit, game = kit_with_checks(tmp_path), game_with_old_checks(tmp_path)
+    sync.sync(kit, game, lambda _: None)
+    assert (game / ".github" / "scripts" / "groundwork.py").read_text() == "print('check v2')\n"
+    config = (game / ".pre-commit-config.yaml").read_text()
+    assert "default_install_hook_types: [pre-commit, commit-msg, pre-push]" in config
+    assert "id: push-messages" in config and "stages: [pre-push]" in config
+    assert "gdformat" in config and "id: gd-uids" in config  # the game's own hooks are untouched
+    assert sync.drift(kit, game) == []
+    lock = json.loads((game / sync.LOCK).read_text())
+    assert set(lock["blocks"]) == {".pre-commit-config.yaml#install-hooks", ".pre-commit-config.yaml#message-checks"}
+    assert sync.sync(kit, game, lambda _: None) == 0
+
+
+def test_hand_edit_inside_a_block_is_drift(tmp_path):
+    kit, game = kit_with_checks(tmp_path), game_with_old_checks(tmp_path)
+    sync.sync(kit, game, lambda _: None)
+    config = game / ".pre-commit-config.yaml"
+    config.write_text(config.read_text().replace("check-push", "check-pushes"))
+    assert any("block message-checks differs" in p for p in sync.drift(kit, game))
+
+
+def test_game_without_the_markers_is_told_what_to_add(tmp_path):
+    kit, game = kit_with_checks(tmp_path), game_with_old_checks(tmp_path)
+    (game / ".pre-commit-config.yaml").write_text("repos: []\n")
+    assert any("no `# gds-sync:begin message-checks` block" in p for p in sync.drift(kit, game))
+    with pytest.raises(sync.SyncError, match="gds-sync:begin"):
+        sync.sync(kit, game, lambda _: None)
+    assert not (game / ".claude" / "agents" / "engineer.md").exists()  # nothing was written
+
+
+def test_old_hook_left_outside_the_block_is_drift(tmp_path):
+    kit, game = kit_with_checks(tmp_path), game_with_old_checks(tmp_path)
+    config = game / ".pre-commit-config.yaml"
+    config.write_text(config.read_text() + "      - id: push-messages\n        entry: old\n")
+    assert any("push-messages is also defined outside" in p for p in sync.drift(kit, game))
+    with pytest.raises(sync.SyncError, match="push-messages"):
+        sync.sync(kit, game, lambda _: None)
+
+
+def test_the_kits_own_config_defines_the_blocks_games_get():
+    kit = Path(__file__).resolve().parents[2]
+    found = sync.block_entries(kit)
+    assert set(found) == {"install-hooks", "message-checks"}
+    assert "pre-push" in found["install-hooks"]
+    assert "check-push" in found["message-checks"] and "stages: [pre-push]" in found["message-checks"]
+    assert (kit / ".github" / "scripts" / "groundwork.py").is_file()
+    assert any(e.target == ".github/scripts/groundwork.py" for e in sync.entries(kit))

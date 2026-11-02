@@ -4,10 +4,12 @@
 # Never rewritten by a hook: licence texts stay verbatim.
 exclude: ^(LICENSE|CODE_OF_CONDUCT\.md)$
 
+# gds-sync:begin install-hooks (kit-owned: edit it in the kit, then run `gds sync`)
 # `pre-commit install` sets up all three: the file checks on commit, the message checks at the commit-msg stage, and
 # the same message checks again on every commit about to be pushed (merges included), so nothing CI would refuse
 # leaves the machine.
 default_install_hook_types: [pre-commit, commit-msg, pre-push]
+# gds-sync:end install-hooks
 
 # markdownlint's Node, pinned to an LTS release: an unpinned one is whatever is newest in Node's index, pre-releases
 # included, which has broken installs on Windows.
@@ -43,6 +45,7 @@ repos:
         files: ^(python|\.claude/hooks)/
   - repo: local
     hooks:
+      # gds-sync:begin message-checks (kit-owned: edit it in the kit, then run `gds sync`)
       # The rules of .github/conventions.yml, before the commit exists: a title the squash would keep must follow
       # commits.title (tool-written titles such as `fixup!` pass), and the trailers follow commits.trailers.
       - id: commit-title
@@ -67,6 +70,7 @@ repos:
         stages: [pre-push]
         always_run: true
         pass_filenames: false
+      # gds-sync:end message-checks
       # Lessons name their areas and the glossary can be built from them; the page is never committed (docs/hooks.md#docs).
       - id: mistakes-by-area
         name: lessons have areas and the glossary builds

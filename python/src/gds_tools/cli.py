@@ -171,7 +171,11 @@ def _cmd_sync(args: argparse.Namespace) -> int:
             print(f"  {problem}", file=sys.stderr)
         print("in sync with the kit" if not problems else f"{len(problems)} file(s) out of sync", file=sys.stderr)
         return 1 if problems else 0
-    print(f"{sync.sync(kit, game)} file(s) changed in {game.name}")
+    try:
+        print(f"{sync.sync(kit, game)} file(s) changed in {game.name}")
+    except sync.SyncError as error:
+        print(f"gds: {error}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -355,7 +359,9 @@ def build_parser() -> argparse.ArgumentParser:
     clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
     clip.set_defaults(func=_cmd_capture_clip)
 
-    syn = sub.add_parser("sync", help="write the kit's agent definitions and hook launcher into a game")
+    syn = sub.add_parser(
+        "sync", help="write the kit's agent definitions, checker, hook launcher and message-check hooks into a game"
+    )
     syn.add_argument("game", help="the game repository (a checkout or worktree)")
     syn.add_argument("--check", action="store_true", help="only report files that differ from the kit")
     syn.set_defaults(func=_cmd_sync)
