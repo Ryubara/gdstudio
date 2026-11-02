@@ -24,7 +24,9 @@ covers well.
    person needs into the game's `docs/research/`.
 3. It proves the work: headless Godot with no errors, and for anything visible, captures it has looked at, in
    `<workspace>/scratch/<repo>/<branch>/`.
-4. It opens the pull request with the captures attached and auto-merge on (off for manual paths).
+4. It opens the pull request with the captures attached and auto-merge on (off for manual paths). Closing and
+   reopening it (for a fresh CI run) turns auto-merge off: turn it on again in the same command
+   ([lesson](lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md)).
 5. The `reviewer` posts a verdict; findings become fixes on the branch or new issues.
 6. While the pull request is open, the `pr-status` workflow labels it `S-conflict` when it conflicts with its base and
    `S-ci-failing` when a required check failed on its latest commit. An agent that sees one fixes it forward on the
