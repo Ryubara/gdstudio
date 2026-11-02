@@ -24,6 +24,11 @@ draw the blend of the last two ticks.
 - Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation
   was smooth in our measure.
 
+- The mode is inherited down the tree, and a `Control` is not physics-interpolated: a 3D world under a UI screen is
+  drawn at the last tick whatever the project setting says. Set the world's root to `PHYSICS_INTERPOLATION_MODE_ON`
+  (an explicit ON overrides an inherited OFF), and prove it in the tree the game builds
+  (`Node.is_physics_interpolated_and_enabled()` on the body), not in a test room under a plain `Node`.
+
 ## Measuring it
 
 - The node's `global_transform` shows the tick, never the blend: measure where the renderer draws. In a headless test,
@@ -36,3 +41,8 @@ draw the blend of the last two ticks.
   position, or the RMS of the second difference `x[i+1] - 2 x[i] + x[i-1]`, is the judder.
 - A frame that is long (over 1.45 ticks) moves the body by more than a tick at once for the camera and the body alike,
   and a spring camera takes half a second to follow: a test under load must skip such a stretch, not fail on it.
+
+- On the web: expose the body's interpolated screen position per drawn frame to the page and compare a stretch of
+  steady movement against the straight line between neighbouring frames at their own times (unevenness). Chrome with
+  the GPU and `--disable-gpu-vsync --disable-frame-rate-limit` for an unpaced run (Deadnight `tools/web_smoke/judder.py`).
+  Wrap `requestAnimationFrame` to `drawImage` the canvas right after the game's frame for real pixels.
