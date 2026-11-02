@@ -609,7 +609,7 @@ Tests, bots, captures, probes and benchmarks. (84)
 
 ## ci
 
-GitHub Actions, checks, merging, flaky runs and the pull request queue. (25)
+GitHub Actions, checks, merging, flaky runs and the pull request queue. (26)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -618,6 +618,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (25)
 | Every push restarted CI, and the merge queue backed up behind the runners | push only what a merge needs (the PR is DIRTY, or `main` broke one of its checks); merge `main` locally for tests; watch `gh run list --status queued` and the open-PR count each cycle; when the queue grows, stop new PRs and land the oldest; a flake's fix goes ... | [lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md) |
 | Closing and reopening a pull request turned its auto-merge off | after a close and reopen, run `gh pr merge <N> --auto --squash` again in the same command, except on pull requests that are merged by hand; check with `gh pr view <N> --json autoMergeRequest`. | [lesson](../lessons/2026-11-02-closing-and-reopening-a-pull-request-turned-auto-merge-off.md) |
 | An issue stayed open after both halves merged, so it looked like unstarted work | the agent audited `main` first and filled only the gaps (#398). | [lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md) |
+| A pull request ran CI with its branch's old time limit | merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change> <head>`) and push once; that is a reason to push, like a conflict. | [lesson](../lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md) |
 | A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
 | Two scripts with the same class name broke the project after a merge | rename one (`PlayerMotionState`). Before naming a global class, run `grep -r "class_name <Name>" game` on `origin/main` as well as the branch, and prefer a name specific to the subject. | [lesson](../lessons/2026-11-01-two-scripts-with-the-same-class-name-broke-the-project.md) |
 | Two pull requests that merged together left a feature wired to nothing | an integration pull request that wires the night to the new classes, deletes the night's copy, and tests the join (a night that buys a door, and one that ends during the rebake). When pull requests touch one seam, name the other in Issues affected and merge ... | [lesson](../lessons/2026-11-01-two-merged-prs-built-the-same-seam-and-nothing-called-either.md) |
@@ -696,7 +697,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (48)
 
 ## process
 
-Agents, coordination, issues, pull requests and documentation. (38)
+Agents, coordination, issues, pull requests and documentation. (39)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -712,6 +713,7 @@ Agents, coordination, issues, pull requests and documentation. (38)
 | Releasing aim after a shot kept the hip-fire zoom | only a shot fired from the hip starts the hold (Deadnight #433); tests walk every transition between the two states (aim, shoot, release; hip fire, aim, release), not each state alone. | [lesson](../lessons/2026-11-02-aim-release-kept-the-hip-fire-zoom.md) |
 | A 3x zombie count made rounds longer, and a time limit was added to patch it | count, spawn rate and alive cap scale together; no time limit; a test that each round at 2x and 3x lasts within about 10 percent of 1x. | [lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md) |
 | A rule that lives only in an agent's memory is broken under pressure | the order is computed by a tool and checked by a hook. `gds issue start` allows only the 5 oldest ready issues (`P-critical` first), sets the label, assigns and records the start; the Agent hook refuses a task agent whose prompt does not name a started issue ... | [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md) |
+| A pull request ran CI with its branch's old time limit | merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change> <head>`) and push once; that is a reason to push, like a conflict. | [lesson](../lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md) |
 | WebFetch could not read PDF sources | download the PDF with `curl` into its own empty directory and extract the text with `uv run --with pypdf python -I` (redirect stderr: the font warnings are huge). In the research page, mark each source read, fetched (a summarising tool) or reported (search ... | [lesson](../lessons/2026-11-01-webfetch-cannot-read-pdfs.md) |
 | Voice lines written as captions sounded robotic | write barks the way a person talks under stress: first person, contractions, a filler or a breath, an exclamation where it fits, uneven length. Put the emotion in the words first and the audio tags second, keep the model's stability low enough for expression ... | [lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md) |
 | The Write tool wrote CRLF line endings on Windows | normalise new files before committing (`sed -i 's/\r$//' <files>`), then run the pre-commit hooks. | [lesson](../lessons/2026-11-01-the-write-tool-wrote-crlf-on-windows.md) |
