@@ -56,6 +56,16 @@ first frame, set the influence to 0 and the modifier off in the frame the clip s
 zero once the clip is over. Measure it: the weapon's place in the player's frame, every tick of the clip, in a test
 that steps the tree by hand.
 
+The cause (Godot 4.7, measured in Deadnight #619): with a modifier on, the bones it turns do not all follow `influence`.
+The chest and the hand bones blend linearly with it, but the upper and lower arm bones of an IK chain stay in the
+modifier's pose at any influence, 0 included, so switching the modifier off at 0 snaps them to the clip's (27 to 66
+degrees in one tick, a hand 0.7 m). Fading it out for any other reason (a sprint carry that takes the arms back
+over 0.2 s) pops the same way. Leave `influence` at 1 and blend inside `_process_modification`: keep each bone's local
+rotation before solving, then `set_bone_pose_rotation(bone, before.slerp(solved, weight))` for every bone the modifier
+turns. At weight 0 the pose is the clip's, so switching off moves nothing. The modified pose is only readable at
+`skeleton_updated`; record the bones there, every tick, and fail on a per-tick turn or move far above the clip's own
+stride.
+
 ## A state machine that starts at Start and has no way out
 
 A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached only by `travel()` from the locomotion
