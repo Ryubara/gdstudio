@@ -55,7 +55,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | System | Used for | Status |
 | --- | --- | --- |
 | WebSocketPeer, TCPServer (own protocol); MultiplayerAPI, netfox | server-authoritative co-op over WebSockets | known: [Multiplayer](multiplayer.md) (own protocol; MultiplayerAPI and netfox measured against it) |
-| Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer |
+| Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer; testing it in a headless browser: [Web export](web-export.md) (pointer lock on the Linux runner) |
 | Headless server export | the game server on Railway | spike with multiplayer |
 | ResourceLoader (threaded loading) | loading screens | known: [First-use hitches](first-use-hitches.md) (threaded requests polled each frame; hold the references) |
 

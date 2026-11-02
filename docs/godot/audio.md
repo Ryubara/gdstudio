@@ -86,3 +86,13 @@ each fall, until about four mixes have landed (with a poll cap).
   needs `max_db` moved with it.
 - **A level capture needs a listener.** A Movie Maker recording with no `Camera3D` (or `AudioListener3D`) in the tree is
   silent: nothing hears the 3D players.
+
+## Leaks at exit in a test run
+
+- **A passing GdUnit4 run can still print `ObjectDB instances were leaked at exit` and `resources still in use at
+  exit`.** Nothing fails, so nobody looks. The lines belong to whichever suite left something alive: a test lambda that
+  held itself through an array (a cycle that keeps the test script in use), or a night whose ambience beds only fade
+  out when it is freed. Run the test folders one at a time with `--verbose` to see which stream or script it is. Cut
+  the cycle at the end of the test, stop the audio after each test that builds a night, wait `Audio.wait_for_mixer()`
+  once, and have CI grep the test log for `leaked at exit|still in use`
+  ([lesson](../lessons/2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md)).
