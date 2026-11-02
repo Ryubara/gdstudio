@@ -84,3 +84,21 @@ Found building the Soldier's grenade clips (Deadnight #102).
 - **Solve the arm for a hand target.** Set the spine first, then search the upper and lower arm offsets for a target
   hand position (a coordinate search with a halving step, a few hundred pose evaluations, about a second) and paste the
   rounded offsets into the clip script, with the target in a comment. Deadnight's throw keys land within 6 cm.
+
+## Bone axes in Godot, and clips that hold a weapon
+
+Found rebuilding the Soldier's sprint carries on the solved hand grips (Deadnight #527).
+
+- **A Godot bone's frame is the Blender pose bone's.** Measured on the cleaned Soldier (`soldier.glb`): every glTF
+  node's world rotation equals the Blender pose bone's world rotation turned from Z up to Y up, with no per-bone
+  correction (the exporter keeps the bone axes; positions map `(x, y, z)` to `(x, -z, y)`). So a transform the game
+  keeps under a bone (a weapon's grip under the hand bone, a hand's place on a weapon) applies in Blender unchanged:
+  the pose bone's world matrix (rotation orthonormal, head in metres) times the Godot transform is where the game
+  draws it. Godot writes a `Transform3D` in a `.tres` as the basis row by row, then the origin.
+- **The node transforms are the rest pose.** Compare frames at `pose_position = "REST"`; at the static pose the
+  positions differ (arms down against arms out).
+- **Build a two-handed clip as the weapon's pose, not the forearm's.** Say where the grip goes and which way the
+  muzzle and the top point, then turn the right hand bone so the weapon (through the game's grip) points that way,
+  reach the arm to it by two-bone IK, and reach the left hand to the grip's left-hand point and turn it to match. A
+  clip that instead fixes the forearm and lets the weapon follow from where the hand happened to hold it moves the
+  whole carry when the grip changes: the gun ended by the right leg with the left hand 0.2 m off it.
