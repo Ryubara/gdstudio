@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import re
 import subprocess
 import sys
@@ -548,8 +549,36 @@ def trailer_models(conv: dict[str, Any], message: str) -> list[str]:
     return names
 
 
+#: What git writes under the message in the editor (`git commit` without -m/-F/--no-edit): its first line, then the
+#: `--verbose` diff after the scissors line. Everything from there on is never part of the commit.
+_EDITOR_HELP = re.compile(r"^#\s+(?:Please enter the commit message|-{10,} >8 -{10,})", re.MULTILINE)
+_SCISSORS = re.compile(r"^# -{10,} >8 -{10,}")
+_COMMENT_LINE = re.compile(r"^#", re.MULTILINE)
+
+
+def stored_message(raw: str) -> str:
+    """The message a commit will have, from the file a `commit-msg` hook is given (before git's cleanup).
+
+    CI judges the stored message, so this is the only place the two can differ, and it is decided by how git was
+    run. In the editor git adds its help text (`# Please enter the commit message...`) and strips every `#` line, so
+    those lines are not part of the commit. With `-m`, `-F` or `--no-edit` git keeps `#` lines as they are (its
+    cleanup is `whitespace` then, not `strip`), and a `# Conflicts:` paragraph that `git merge` left in MERGE_MSG
+    becomes part of the commit, after the trailer. The old hook dropped every `#` line always, so it passed the
+    message that `pr-rules` then refused (deadnight #503, lesson 2026-11-02-a-merge-committed-after-conflicts).
+    `--cleanup=strip -F` is judged as kept (the safe side): write no `#` lines, or pass `--cleanup=whitespace`."""
+    if not _EDITOR_HELP.search(raw):
+        return raw
+    lines = raw.splitlines()
+    for i, ln in enumerate(lines):
+        if _SCISSORS.match(ln):  # `commit --verbose` puts the diff under the scissors line, not '#'-prefixed
+            lines = lines[:i]
+            break
+    return "\n".join(ln for ln in lines if not ln.startswith("#"))
+
+
 def commit_problems(conv: dict[str, Any], message: str) -> list[str]:
-    """Check one commit message against commits.trailers; return what is wrong."""
+    """Check one commit message, as stored, against commits.trailers; return what is wrong. The one function behind
+    the `commit-msg` hook, the `pre-push` hook and the `commits` check of CI."""
     rule = conv["commits"].get("trailers")
     if not rule:
         return []
@@ -557,6 +586,11 @@ def commit_problems(conv: dict[str, Any], message: str) -> list[str]:
     key = ai.get("key", "Co-Authored-By")
     noreply = {a.lower() for a in ai["noreply"]}
     problems: list[str] = []
+    paragraphs = [p for p in re.split(r"\n\s*\n", message.strip()) if p.strip()]
+    if len(paragraphs) > 1 and all(_COMMENT_LINE.match(ln) for ln in paragraphs[-1].splitlines() if ln.strip()):
+        problems.append("the message ends with a paragraph of '#' lines (git leaves a '# Conflicts:' list there when "
+                        "a merge is committed with --no-edit), so the trailer is not the last paragraph: reword "
+                        "the commit with `git commit --amend --cleanup=strip -F <message file>`")
     allowed_emails: set[str] = set()
     for k, v in split_trailers(message):
         if k.lower() == key.lower():
@@ -593,7 +627,7 @@ def read_commits(source: str) -> list[tuple[str, str]]:
     """(sha, message) pairs from GitHub's pull request commits JSON (a file, or - for stdin), or from `git log` when
     `source` is `git:<range>`."""
     if source.startswith("git:"):
-        out = subprocess.run(["git", "log", "--format=%H%x00%B%x1e", source[4:]], capture_output=True, text=True,
+        out = subprocess.run(["git", "log", "--format=%H%x00%B%x1e", *source[4:].split()], capture_output=True, text=True,
                              encoding="utf-8", check=True).stdout
         pairs = [chunk.strip("\n").split("\x00", 1) for chunk in out.split("\x1e") if chunk.strip()]
         return [(sha, msg) for sha, msg in pairs]
@@ -1019,8 +1053,29 @@ def cmd_check_commits(conv: dict[str, Any], args: argparse.Namespace) -> int:
 
 def cmd_check_message(conv: dict[str, Any], args: argparse.Namespace) -> int:
     """One commit message (a commit-msg hook's file): its trailers and e-mail addresses."""
-    text = "\n".join(ln for ln in _read(args.message).splitlines() if not ln.startswith("#"))
-    return _report(commit_problems(conv, text), "commit message")
+    return _report(commit_problems(conv, stored_message(_read(args.message))), "commit message")
+
+
+def cmd_check_push(conv: dict[str, Any], args: argparse.Namespace) -> int:
+    """The `pre-push` hook: every commit about to leave the machine, merges included, judged as CI will judge it. The
+    range comes from pre-commit's environment (`PRE_COMMIT_FROM_REF..PRE_COMMIT_TO_REF`) or `--range`."""
+    to_ref = os.environ.get("PRE_COMMIT_TO_REF", "")
+    from_ref = os.environ.get("PRE_COMMIT_FROM_REF", "")
+    rng = args.range or (f"{from_ref}..{to_ref}" if from_ref and to_ref else f"{to_ref} --not --remotes")
+    if not args.range and (not to_ref or set(to_ref) == {"0"}):  # a branch deletion, or git gave no range
+        return _report([], "push")
+    problems = []
+    for sha, msg in read_commits(f"git:{rng}"):
+        lines = [ln for ln in msg.splitlines() if ln.strip()]
+        found = commit_problems(conv, msg)
+        if lines and not _TOOL_TITLES.match(lines[0]):
+            found += title_problems(conv, lines[0])
+        problems += [f"{sha[:10]} {lines[0] if lines else ''!r}: {p}" for p in found]
+    if problems:
+        print("these commits stay on this machine, so no force push is needed: reword the last one with "
+              "`git commit --amend --cleanup=strip -F <message file>`; for an older one, `git reset --soft <base>` "
+              "and commit again with a clean message.", file=sys.stderr)
+    return _report(problems, "push")
 
 
 def cmd_check_files(conv: dict[str, Any], args: argparse.Namespace) -> int:
@@ -1178,6 +1233,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check-message", help="check one commit message's trailers (a file, or - for stdin)")
     p.add_argument("message")
     p.set_defaults(run=cmd_check_message)
+    p = sub.add_parser("check-push", help="pre-push hook: check the title and trailers of every commit being pushed")
+    p.add_argument("--range", help="a git revision range (default: pre-commit's PRE_COMMIT_FROM_REF..TO_REF)")
+    p.set_defaults(run=cmd_check_push)
     sub.add_parser("check-files", help="pointer files hold only their pointer (paths.pointer_files)").set_defaults(
         run=cmd_check_files)
     p = sub.add_parser("needs-maintainer", help="exit 1 when a changed path is a manual path (merge.manual_paths)")
