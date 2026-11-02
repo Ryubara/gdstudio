@@ -84,6 +84,12 @@ data instead:
   times, on a body at 0.8: the kit draws its guns about 1.33 times real for that (its AK beside the Soldier). Check a
   pistol grip against the three fingers under the trigger finger (about 1.0) and the guard's opening against the
   finger (at least about 0.9) before solving, and scale the weapon, never the hand.
+- **Every view of the held weapon uses the same builder.** The night and any screen that shows the soldier with a
+  weapon (the menu's stage, a wardrobe, a lobby) put it in the hand through one function (Deadnight's `HeldWeapon`:
+  the weapon's own hold, the grip file's place, the arms' IK, the fingers). A view with its own copy keeps the old
+  fist the day the grips are solved ([Deadnight #621](https://github.com/Ryubara/deadnight/issues/621),
+  [lesson](../lessons/2026-11-02-the-menu-soldier-copied-the-hold-code-and-missed-the-grips.md)); test it by measuring
+  the hands against the weapon on that view with the night's limits.
 
 Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
 `HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
