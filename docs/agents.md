@@ -36,4 +36,5 @@ covers well.
 7. A running agent can be stuck with nothing on GitHub to show it: an agent that ends its turn by announcing its next
    step stops there. The coordinator checks each running agent's newest worktree and scratch file time; an hour with
    no change is a stall, and a fresh agent takes over from its notes
-   ([lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)).
+   ([lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The `SubagentStop` hook also
+   refuses the end of an engineer or artist whose last message is no report ([Agent stalls](hooks.md#stall)).

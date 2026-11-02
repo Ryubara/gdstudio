@@ -89,3 +89,15 @@ pending = "cache/subagent-pending.json"
 # Stop and SubagentStop hold a session back once while a branch of a worktree here has commits ahead of origin/main and
 # no open or merged pull request (relative to the workspace).
 kit_worktrees = "worktrees/gdstudio"
+
+[stop_check]
+# The agent-stall gate (docs/hooks.md#stall): a task agent that ends its turn without a report is finished for good, because
+# nothing wakes a background agent. SubagentStop refuses such an end for these agent types (the reviewer and the helpers
+# are not listed, so they are never touched) up to `max_refusals` times per agent, then lets it go: the gate can never
+# hold an agent forever. A final message is a report when it matches `report` (a pull request link or number, a
+# `Mistakes` line, or a blocker line), and an agent with a background task still running is waiting, not stalled.
+agents = ["godot-engineer", "backend-engineer", "blender-artist"]
+max_refusals = 2
+# Where the refusals are counted, relative to the workspace.
+counter = "cache/stop-check.json"
+report = '''(?im)(github\.com/[\w.-]+/[\w.-]+/pull/\d+|\b(?:PR|pull request)\s*#\d+|^[\s>*_#-]*mistakes?\b|^[\s>*_#-]*(?:blocked|blocker)\b[\s*_]*[:–—-]|\bstopped because\b|\b(?:i am|i'm|is) blocked\b)'''
