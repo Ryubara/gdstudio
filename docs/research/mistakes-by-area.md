@@ -22,16 +22,18 @@ Anything that fits no other area. (4)
 
 ## gameplay
 
-Rounds, zombies, weapons, the economy, power, bots and balance. (66)
+Rounds, zombies, weapons, the economy, power, bots and balance. (68)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | Two chibi heads met in a two-character pose | keep the actor upright with the arms reaching out and down, aim at the belly, and check every two-character clip with both characters in the game capture. | [lesson](../lessons/2026-11-02-two-chibi-heads-met-in-a-two-character-pose.md) |
 | The coordinator gave one mechanic to two agents | the older pull request lands first; the other rebuilds on it and keeps only what is new. | [lesson](../lessons/2026-11-02-the-coordinator-gave-one-mechanic-to-two-agents.md) |
 | The same system was built in two branches at once, and one had to be rebuilt after the other merged | before building a core piece of a system, `gh pr list` and search open and in-progress issues for the subsystem's words (here "revive"); if another branch builds it, build only the part that sits on top (the bleed-out clock, dead players, counts) against its ... | [lesson](../lessons/2026-11-02-same-system-built-in-two-branches.md) |
+| A hip-fire shot left before the body turned | the one deterministic simulation that both the server and the predicting client run computes `shot_ready`: the trigger or a buffered press, with the body within a tolerance of the view (or the aim button held). The server shoots on it. A tap is a buffered ... | [lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md) |
 | A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak | one close report (click, crack, roar, bark, thump) and a short quiet tail; own shots flat; one pitch rule (0.15 semitones) and one level rule (0.5 dB) for every firearm voice; trims with real headroom (no limiter: the web build ignores bus effects); a test of ... | [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md) |
 | A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
 | A 3x zombie count made rounds longer, and a time limit was added to patch it | count, spawn rate and alive cap scale together; no time limit; a test that each round at 2x and 3x lasts within about 10 percent of 1x. | [lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md) |
+| A rule on the view held a bot that looked where it walked | a bot sends a person's command. It looks where it acts, moves as a stick push under that view, and judges what it can hit from where the body will be when it fires (the barrel along the heading to the target): 395 frames, 14 held. When a rule starts reading a ... | [lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md) |
 | WebFetch could not read PDF sources | download the PDF with `curl` into its own empty directory and extract the text with `uv run --with pypdf python -I` (redirect stderr: the font warnings are huge). In the research page, mark each source read, fetched (a summarising tool) or reported (search ... | [lesson](../lessons/2026-11-01-webfetch-cannot-read-pdfs.md) |
 | The dead's feet slid because the walk and run blend points were guessed | measure each clip's planted-foot speed, put the blend points there, put the move state behind an `AnimationNodeTimeScale` set to ground speed over the gait's own speed (clamped 0.5-1.6), and cross over from walk to run over a short band, solving the rate so ... | [lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md) |
 | A new navigation region answers path queries only after a few map iterations | wait for an answer: `await physics_frame` until `map_get_closest_point` on one of the mesh's own vertices lands within half a metre, or a path across open ground is not empty, then a few frames more for links. Take the map from `get_world_3d().navigation_map` ... | [lesson](../lessons/2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md) |
@@ -147,11 +149,12 @@ Keyboard, mouse, gamepad and touch controls, pointer lock and focus. (45)
 
 ## camera
 
-The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (33)
+The shoulder camera, aim and hip-fire zoom, sway, shake, field of view and interpolation. (34)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | The sprint sway kept going in the air | the sway takes the grounded state and fades out on the first airborne tick; a test steps through that tick and the capture includes a sprint-jump with the key held (Deadnight #426). | [lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md) |
+| A hip-fire shot left before the body turned | the one deterministic simulation that both the server and the predicting client run computes `shot_ready`: the trigger or a buffered press, with the body within a tolerance of the view (or the aim button held). The server shoots on it. A tap is a buffered ... | [lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md) |
 | Releasing aim after a shot kept the hip-fire zoom | only a shot fired from the hip starts the hold (Deadnight #433); tests walk every transition between the two states (aim, shoot, release; hip fire, aim, release), not each state alone. | [lesson](../lessons/2026-11-02-aim-release-kept-the-hip-fire-zoom.md) |
 | A shared aim weight coupled hip fire to the aim zoom | the camera reads the aim button only; hip fire turns the body and raises the hands without zoom (Deadnight #473). A PR for a reported problem names the live build's commit (Railway deployment `meta.cliMessage` is `main <sha7>`) and runs the browser probe ... | [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md) |
 | A muzzle flash lying in the muzzle's plane was hidden by the gun and hands | measure the flash's own pixels from the real camera (draw the frame again without it and compare), draw the quads toward the camera (scaled by the same ratio), a bigger star in a flat glow disc, 3 frames and 60 ms at least, and floors in a probe and a test. | [lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md) |
@@ -222,11 +225,12 @@ Menus, the HUD, themes, layout, UI motion and the settings screens. (28)
 
 ## net
 
-The network protocol, replication, prediction, lag and the game server. (28)
+The network protocol, replication, prediction, lag and the game server. (29)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | The web build and the game server deployed minutes apart, and players were refused in between | before any live check, read `railway deployment list --service web --json` and the same for the server, and wait for the same commit with nothing building. A protocol bump lands server first, or the server accepts the previous version for one deploy. | [lesson](../lessons/2026-11-02-web-and-server-deployed-minutes-apart.md) |
+| A hip-fire shot left before the body turned | the one deterministic simulation that both the server and the predicting client run computes `shot_ready`: the trigger or a buffered press, with the body within a tolerance of the view (or the aim button held). The server shoots on it. A tap is a buffered ... | [lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md) |
 | Git Bash rewrote a value that started with a slash | prefix the command with `MSYS_NO_PATHCONV=1`, or run it from PowerShell; read the value back after setting it. | [lesson](../lessons/2026-11-02-git-bash-rewrote-a-slash-value.md) |
 | A crowd cap measured in the browser became the desktop cap | split the cap by platform and measure each budget on its own: client render and animation, server tick per agent, snapshot bytes per player (deadnight #453). A room takes the ceiling of its lowest client platform. | [lesson](../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md) |
 | Behind Discord's proxy the web build read every 200 as "cannot reach the servers" | `HTTPRequest.accept_gzip = false` in the web build (Deadnight #475); trade an OAuth code once. Reproduce with a local HTTPS stand-in that gzips its answers, never only in a plain browser tab. | [lesson](../lessons/2026-11-02-a-godot-web-client-decoded-gzip-twice-behind-a-proxy.md) |
@@ -525,7 +529,7 @@ Godot engine behaviour: GDScript, scenes, physics, import, shaders and performan
 
 ## tests
 
-Tests, bots, captures, probes and benchmarks. (85)
+Tests, bots, captures, probes and benchmarks. (87)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -536,9 +540,11 @@ Tests, bots, captures, probes and benchmarks. (85)
 | Slider and toggle click tests failed only when the whole tests/ui folder ran | the leaking suites end with `RouterFixture.clear`, and click-driven widget suites also clear the router in `before_test` (Deadnight #458). The folder run then passed: 438 cases, 0 failures. | [lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md) |
 | A static path set by the game root outlived the root in a test run | reset the static in the root's `_exit_tree`. | [lesson](../lessons/2026-11-02-a-static-path-outlived-the-game-root-in-tests.md) |
 | A shared aim weight coupled hip fire to the aim zoom | the camera reads the aim button only; hip fire turns the body and raises the hands without zoom (Deadnight #473). A PR for a reported problem names the live build's commit (Railway deployment `meta.cliMessage` is `main <sha7>`) and runs the browser probe ... | [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md) |
+| A rule on the view held a bot that looked where it walked | a bot sends a person's command. It looks where it acts, moves as a stick push under that view, and judges what it can hit from where the body will be when it fires (the barrel along the heading to the target): 395 frames, 14 held. When a rule starts reading a ... | [lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md) |
 | A project setting injected as `audio/...` under `[audio]` did nothing | write the key without its section, compare with the setting's own numbers, and confirm a settings switch with a level measurement in the browser before trusting it. | [lesson](../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md) |
 | A test that steps by hand but waits a physics frame per tick runs at wall-clock speed | turn off the player's `_physics_process`, call its `tick(sample_command())` and the hand steps back to back, and wait one `process_frame` per measurement (the skeleton modifiers keep no clock): 1.7 s, same poses and limits. | [lesson](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md) |
 | A new prompt hung every test and browser smoke that passed through the flow | before adding a prompt or a wait to a flow, search for everything that enters it (`grep` the screen's class name, its route and its URL parameters in `tests/` and `tools/web_smoke/`) and update each one in the same change. A unit test gives the player the ... | [lesson](../lessons/2026-11-02-a-new-prompt-hung-every-test-and-smoke-that-passed-through-it.md) |
+| A job cut at its time limit looked like a hanging test | before suspecting the last test, compare the cancel time with the job's start plus its limit, and look for the longest gap between timestamps (a real hang leaves minutes). Then run the suite alone and its folder. Keep the limit well above the measured time ... | [lesson](../lessons/2026-11-02-a-job-cut-at-its-time-limit-looked-like-a-hang.md) |
 | A hidden capture held the cursor in an invisible box | the launcher sets `GDS_QUIET=1` for the program and frees the cursor every 5 ms while it runs; the game never captures the mouse when `GDS_QUIET` is set. A test clips the cursor from the hidden desktop and samples the real one. | [lesson](../lessons/2026-11-02-a-hidden-capture-held-the-cursor-in-an-invisible-box.md) |
 | A muzzle flash lying in the muzzle's plane was hidden by the gun and hands | measure the flash's own pixels from the real camera (draw the frame again without it and compare), draw the quads toward the camera (scaled by the same ratio), a bigger star in a flat glow disc, 3 frames and 60 ms at least, and floors in a probe and a test. | [lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md) |
 | Coincident bodies were thrown 66 m by a separation push | push along a direction made from the two ids (no random draw), at `speed`, and cap the sum of pushes on one body. Test the degenerate input directly and assert a per-tick bound on movement, not only the end state. | [lesson](../lessons/2026-11-01-unit-vector-divided-by-a-tiny-distance-launched-a-pile.md) |
@@ -617,7 +623,7 @@ Tests, bots, captures, probes and benchmarks. (85)
 
 ## ci
 
-GitHub Actions, checks, merging, flaky runs and the pull request queue. (26)
+GitHub Actions, checks, merging, flaky runs and the pull request queue. (27)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
@@ -628,6 +634,7 @@ GitHub Actions, checks, merging, flaky runs and the pull request queue. (26)
 | An issue stayed open after both halves merged, so it looked like unstarted work | the agent audited `main` first and filled only the gaps (#398). | [lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md) |
 | A pull request ran CI with its branch's old time limit | merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change> <head>`) and push once; that is a reason to push, like a conflict. | [lesson](../lessons/2026-11-02-a-pull-request-ran-ci-with-its-branchs-old-time-limit.md) |
 | A merge committed after conflicts lost its Co-Authored-By trailer | commit the merge with the whole message from a file or heredoc, and nothing after the trailer: `git commit --cleanup=strip -F <message>`, a message that ends with the single `Co-Authored-By: <model> <address>` line. Check it before pushing with `git log -1 ... | [lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md) |
+| A job cut at its time limit looked like a hanging test | before suspecting the last test, compare the cancel time with the job's start plus its limit, and look for the longest gap between timestamps (a real hang leaves minutes). Then run the suite alone and its folder. Keep the limit well above the measured time ... | [lesson](../lessons/2026-11-02-a-job-cut-at-its-time-limit-looked-like-a-hang.md) |
 | Two scripts with the same class name broke the project after a merge | rename one (`PlayerMotionState`). Before naming a global class, run `grep -r "class_name <Name>" game` on `origin/main` as well as the branch, and prefer a name specific to the subject. | [lesson](../lessons/2026-11-01-two-scripts-with-the-same-class-name-broke-the-project.md) |
 | Two pull requests that merged together left a feature wired to nothing | an integration pull request that wires the night to the new classes, deletes the night's copy, and tests the join (a night that buys a door, and one that ends during the rebake). When pull requests touch one seam, name the other in Issues affected and merge ... | [lesson](../lessons/2026-11-01-two-merged-prs-built-the-same-seam-and-nothing-called-either.md) |
 | A large heredoc in the Bash tool failed to parse | never write a backslash through a heredoc. Write files with the Write tool, and edit scripts as `.py` files in the scratchpad run with `python file.py args`; use the Edit tool for text that holds `\`. Keep heredocs for short ASCII with no backslash. Lint ... | [lesson](../lessons/2026-11-01-large-bash-heredocs-failed-to-parse.md) |

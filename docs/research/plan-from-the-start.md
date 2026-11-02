@@ -13,8 +13,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: the genre's controller conventions (hip fire turns the body, sprint any way unless aiming, hold to interact)
   listed before the controller is built ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
-  the shot waits for the body's turn (known gap, fix pending,
-  [deadnight #477](https://github.com/Ryubara/deadnight/issues/477)).
+  the shot waits for the body's turn
+  ([lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md)).
+- Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
+  it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button
   ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md)).
 - Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content
