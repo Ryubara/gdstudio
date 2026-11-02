@@ -2,6 +2,9 @@
 site_name: GDStudio
 site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools, pipelines and lessons."
 docs_dir: docs
+# The mistakes glossary page is built from the lessons here, never committed (docs/hooks.md#docs).
+hooks:
+  - .github/scripts/mkdocs_glossary.py
 # Every warning fails the build: a broken link, a missing anchor.
 # No nav: the navigation is built from the folders (index.md first, titles from headings), so adding a page
 # never edits a shared file.

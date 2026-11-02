@@ -55,13 +55,13 @@ repos:
         additional_dependencies: [pyyaml]
         entry: python .github/scripts/groundwork.py check-message
         stages: [commit-msg]
-      # Lessons name their areas and the glossary built from them is current (docs/hooks.md#docs).
+      # Lessons name their areas and the glossary can be built from them; the page is never committed (docs/hooks.md#docs).
       - id: mistakes-by-area
-        name: lessons have areas and the glossary is current
+        name: lessons have areas and the glossary builds
         language: python
         entry: python .github/scripts/mistakes.py check
         pass_filenames: false
-        files: ^(docs/lessons/|docs/research/(mistakes-by-area|maintainer-corrections)\.md|\.github/scripts/mistakes\.py|python/src/gds_tools/lessons\.py)
+        files: ^(docs/lessons/|docs/research/maintainer-corrections\.md|\.github/scripts/mistakes\.py|python/src/gds_tools/lessons\.py)
       - id: conventions-render
         name: generated files match the conventions
         language: python

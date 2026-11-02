@@ -54,8 +54,9 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - Start work: only `uv run --project python gds issue start <owner/repo>#N --agent <name>` (the oldest ready issues first,
   `P-critical` before them; `gds issue list` shows them); a task agent's prompt carries `Issue: <owner/repo>#N` or
   `PR: <owner/repo>#N` (`docs/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
-- Lessons: a lesson has `areas: [...]` front matter; `python .github/scripts/mistakes.py render` rebuilds
-  `docs/research/mistakes-by-area.md` (`check` fails on a lesson without areas or a stale page). The agent that finds a
+- Lessons: a lesson has `areas: [...]` front matter; `docs/research/mistakes-by-area.md` is built from the lessons by the
+  docs build and `gds lessons <area>`, never committed (`python .github/scripts/mistakes.py check` fails on a lesson
+  without areas). The agent that finds a
   mistake writes the lesson and opens the kit pull request in the same task (`docs/hooks.md#docs`). A `Fix` or `Rework`
   pull request, or one after a failed check or closing a `bug` issue, carries `Lessons: docs/lessons/<file>.md`; one
   that closes an issue carries `Read first: <areas>`.

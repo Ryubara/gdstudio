@@ -1,10 +1,12 @@
-"""The mistakes glossary of the kit (docs/research/mistakes-by-area.md): render it, check it, place lessons in areas.
+"""The mistakes glossary of the kit: build it, check the lessons, place lessons in areas.
 
-    python .github/scripts/mistakes.py render      write the glossary from the lessons and the corrections page
-    python .github/scripts/mistakes.py check       fail when a lesson has no (or an unknown) area or the page is stale
-    python .github/scripts/mistakes.py backfill    add `areas:` front matter, placed by keyword, to lessons without it
+    python .github/scripts/mistakes.py render [PATH]   print the glossary built from the lessons and the corrections page
+                                                       (or write it to PATH); it is never committed
+    python .github/scripts/mistakes.py check           fail when a lesson has no (or an unknown) area, or the page cannot be built
+    python .github/scripts/mistakes.py backfill        add `areas:` front matter, placed by keyword, to lessons without it
 
-Standard library only; the logic is python/src/gds_tools/lessons.py.
+The page `docs/research/mistakes-by-area.md` is built by the MkDocs build (.github/scripts/mkdocs_glossary.py), so two
+lesson pull requests never touch the same file. Standard library only; the logic is python/src/gds_tools/lessons.py.
 """
 
 from __future__ import annotations
@@ -26,17 +28,23 @@ def main(argv: list[str]) -> int:
         print(f"{len(changed)} lesson(s) given areas")
         return 0
     found = lessons.problems(ROOT, areas)
-    page = ROOT / lessons.GLOSSARY
     if command == "render":
         if found:
             print("\n".join(found), file=sys.stderr)
             return 1
-        page.write_text(lessons.build(ROOT), encoding="utf-8", newline="\n")
-        print(f"written: {page.relative_to(ROOT).as_posix()}")
+        text = lessons.build(ROOT)
+        if len(argv) > 1:
+            Path(argv[1]).write_text(text, encoding="utf-8", newline="\n")
+            print(f"written: {argv[1]}")
+        else:
+            sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+            sys.stdout.write(text)
         return 0
     if command == "check":
-        if not found and (not page.exists() or page.read_text(encoding="utf-8") != lessons.build(ROOT)):
-            found.append(f"{lessons.GLOSSARY.as_posix()} is stale: run `python .github/scripts/mistakes.py render`")
+        if not found:
+            lessons.build(
+                ROOT
+            )  # raises when a lesson or the corrections page cannot be read
         print("\n".join(found), file=sys.stderr)
         return 1 if found else 0
     print(__doc__, file=sys.stderr)

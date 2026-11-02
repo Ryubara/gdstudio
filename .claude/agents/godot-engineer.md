@@ -97,9 +97,9 @@ Before you report, leave what the next person needs, short and in the right plac
   `<workspace>/worktrees/gdstudio/` with commits and no pull request holds you back at the end (the hooks). Docs are
   never left "for a batch": the coordinator only merges.
 - **A lesson carries its areas:** `areas: [net, web]` in front matter (the names are in `docs/lessons/areas.toml`).
-  The generated `docs/research/mistakes-by-area.md` is what agents read first; run
-  `python .github/scripts/mistakes.py render` in the kit, and `python .github/scripts/mistakes.py check` fails on a
-  lesson without areas or a stale page.
+  The mistakes glossary is built from the lessons (it is not a committed file, so concurrent lesson pull requests never
+  conflict on it): `gds lessons <area>` prints a section, `python .github/scripts/mistakes.py check` fails on a lesson
+  without areas, and `render` prints the whole page.
 - **The checks of your issue's areas are in your context at start** (`gds lessons <area>` prints them again). Apply
   them: they are mistakes already made.
 - **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it

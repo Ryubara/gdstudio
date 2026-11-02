@@ -249,7 +249,7 @@ def _cmd_lessons(args: argparse.Namespace) -> int:
     unknown = [a for a in args.areas if a not in areas.names]
     if unknown:
         raise workspace.WorkspaceError(f"unknown area {unknown[0]!r}; `gds lessons` lists them")
-    print(lessons.checks_text((kit / lessons.GLOSSARY).read_text(encoding="utf-8"), args.areas, args.limit))
+    print(lessons.checks_text(lessons.build(kit), args.areas, args.limit))
     return 0
 
 
@@ -352,7 +352,7 @@ def build_parser() -> argparse.ArgumentParser:
     fin.add_argument("ref", help=ref_help)
     fin.set_defaults(func=_cmd_issue_done)
 
-    les = sub.add_parser("lessons", help="the checks of past mistakes by area (docs/research/mistakes-by-area.md)")
+    les = sub.add_parser("lessons", help="the checks of past mistakes by area (built from docs/lessons)")
     les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
     les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
     les.set_defaults(func=_cmd_lessons)

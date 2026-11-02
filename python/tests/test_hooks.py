@@ -575,11 +575,35 @@ Sound. (1)
 """
 
 
+AREAS = """
+[areas]
+general = "Anything else."
+net = "The network."
+audio = "Sound."
+"""
+
+KIT_LESSONS = {  # file name: (areas, title, fix); the newest sorts last and is listed first
+    "2026-10-01-memory.md": ("general", "A rule lived in memory", "Put it in a tool and a hook"),
+    "2026-10-02-length.md": ("net", "A length guard dropped valid packets", "Send the largest packet in a test"),
+    "2026-10-03-gzip.md": ("net", "Gzip decoded twice behind a proxy", "Decode once | in one place, use `<a>`"),
+    "2026-10-04-click.md": ("audio", "A click at every stroke", "Fade the loop"),
+}
+
+
 @pytest.fixture()
 def kit_workspace(workspace: Path) -> Path:
-    page = workspace / "repos" / "gdstudio" / "docs" / "research" / "mistakes-by-area.md"
-    page.parent.mkdir(parents=True)
-    page.write_text(GLOSSARY, encoding="utf-8")
+    """A workspace whose kit checkout has the lessons (the glossary is built from them, not a committed page)."""
+    kit = workspace / "repos" / "gdstudio"
+    (kit / "python" / "src" / "gds_tools").mkdir(parents=True)
+    (kit / "python" / "src" / "gds_tools" / "lessons.py").write_text(
+        (HOOKS.parents[1] / "python" / "src" / "gds_tools" / "lessons.py").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (kit / "docs" / "lessons").mkdir(parents=True)
+    (kit / "docs" / "research").mkdir(parents=True)
+    (kit / "docs" / "lessons" / "areas.toml").write_text(AREAS, encoding="utf-8")
+    for name, (area, title, fix) in KIT_LESSONS.items():
+        text = f"---\nareas: [{area}]\n---\n# {title}\n\n- **Saw:** x.\n- **Fix:** {fix}\n"
+        (kit / "docs" / "lessons" / name).write_text(text, encoding="utf-8")
     return workspace
 
 
@@ -624,10 +648,18 @@ def test_a_pull_request_agent_gets_the_general_area_only(kit_workspace, monkeypa
     assert "[general]" in text and "[net]" not in text
 
 
-def test_no_glossary_means_no_area_text(kit_workspace):
-    none = {**CONFIG, "docs": {**CONFIG["docs"], "glossary": "docs/research/not-there.md"}}
-    assert guards.area_checks(kit_workspace, ["general", "net"], none) == ""
+def test_no_lessons_module_means_no_area_text(kit_workspace):
     assert "[general]" in guards.area_checks(kit_workspace, ["general", "net"], CONFIG)
+    (kit_workspace / "repos" / "gdstudio" / "python" / "src" / "gds_tools" / "lessons.py").unlink()
+    assert guards.area_checks(kit_workspace, ["general", "net"], CONFIG) == ""
+
+
+def test_the_glossary_is_built_from_the_lessons_not_read_from_a_file(kit_workspace):
+    kit = kit_workspace / "repos" / "gdstudio"
+    assert not (kit / "docs" / "research" / "mistakes-by-area.md").exists()
+    new = kit / "docs" / "lessons" / "2026-10-09-new.md"
+    new.write_text("---\nareas: [net]\n---\n# A brand new mistake\n\n- **Fix:** Check it\n", encoding="utf-8")
+    assert "- A brand new mistake: Check it" in guards.area_checks(kit_workspace, ["net"], CONFIG)
 
 
 def test_the_glossary_parser_of_the_hook_agrees_with_the_tools():
@@ -635,9 +667,10 @@ def test_the_glossary_parser_of_the_hook_agrees_with_the_tools():
 
     for area in ("general", "net", "audio", "missing"):
         assert guards.glossary_items(GLOSSARY, area) == lessons.section(GLOSSARY, area)
-    real = (HOOKS.parents[1] / "docs" / "research" / "mistakes-by-area.md").read_text(encoding="utf-8")
+    real = lessons.build(HOOKS.parents[1])
     assert guards.glossary_items(real, "net") == lessons.section(real, "net")
     assert len(lessons.section(real, "net")) > 5
+    assert guards.build_glossary(HOOKS.parents[1]) == real  # the hook builds the same page
 
 
 def test_the_injected_text_is_limited(kit_workspace):
