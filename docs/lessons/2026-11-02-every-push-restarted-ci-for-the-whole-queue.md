@@ -1,3 +1,6 @@
+---
+areas: [ci, process]
+---
 # Every push restarted CI, and the merge queue backed up behind the runners
 
 2026-11-02

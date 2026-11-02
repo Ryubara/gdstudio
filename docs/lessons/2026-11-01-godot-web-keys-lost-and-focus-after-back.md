@@ -1,3 +1,6 @@
+---
+areas: [input, godot]
+---
 # Keys sent to a Godot web page do nothing, or are spent on focus
 
 2026-11-01

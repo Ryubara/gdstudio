@@ -1,3 +1,6 @@
+---
+areas: [tools]
+---
 # A worktree path given to `git -C` landed inside the repository
 
 2026-11-01

@@ -54,6 +54,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #492](https://github.com/Ryubara/deadnight/issues/492)).
 - Plan: the Activity stood in locally (mapping prefix, gzip, iframe focus) before the maintainer tries it
   ([web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
+- Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
+  probe each inside the Activity frame with Discord's policy before shipping
+  ([web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
@@ -61,8 +64,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 ## Netcode
 
-- Plan: a client that stalls or freezes (0.5, 2, 5 s) over the real socket, not only steady lag (known gap, cause
-  pending, [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
+- Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
+  more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
+  ([lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md),
+  [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
   ([lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit
@@ -166,3 +171,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [Starting work](../starting-work.md)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+- Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
+  `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
+  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
+  [Mistakes by area](mistakes-by-area.md)).

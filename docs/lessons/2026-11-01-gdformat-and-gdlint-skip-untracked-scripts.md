@@ -1,3 +1,6 @@
+---
+areas: [tools]
+---
 # gdformat and gdlint skip untracked scripts
 
 2026-11-01

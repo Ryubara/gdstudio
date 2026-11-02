@@ -1,3 +1,6 @@
+---
+areas: [gameplay, process]
+---
 # A 3x zombie count made rounds longer, and a time limit was added to patch it
 
 2026-11-02

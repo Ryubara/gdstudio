@@ -1,3 +1,6 @@
+---
+areas: [tools, input]
+---
 # Python `open(path, "w")` rewrites a repository's LF files as CRLF on Windows
 
 - **Saw:** after a scripted edit, `git add` warned `CRLF will be replaced by LF`, `file` showed "with CRLF line

@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # Blender's IK constraint could not solve glTF-imported legs
 
 2026-11-01

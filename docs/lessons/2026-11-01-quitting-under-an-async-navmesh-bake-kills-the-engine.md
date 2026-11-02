@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # A headless night died at exit once a door had been bought
 
 2026-11-01

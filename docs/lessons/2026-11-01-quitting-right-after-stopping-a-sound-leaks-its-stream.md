@@ -1,3 +1,6 @@
+---
+areas: [audio, blender]
+---
 # Quitting right after stopping a sound leaks its stream, more often on a busy machine
 
 2026-11-01

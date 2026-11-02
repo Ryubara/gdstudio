@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # The commits check refused a description naming one model
 
 2026-11-01

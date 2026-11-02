@@ -1,3 +1,6 @@
+---
+areas: [godot, godot-ui]
+---
 # A SceneTree timer fired on a covered screen
 
 2026-11-01

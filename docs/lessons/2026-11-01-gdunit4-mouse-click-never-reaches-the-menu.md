@@ -1,3 +1,6 @@
+---
+areas: [input, tests]
+---
 # A simulated mouse click never reached the menu under test
 
 2026-11-01

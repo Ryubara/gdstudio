@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # One kit fist held no weapon right
 
 2026-11-01

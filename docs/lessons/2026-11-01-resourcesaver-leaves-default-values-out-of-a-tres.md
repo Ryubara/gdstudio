@@ -1,3 +1,6 @@
+---
+areas: [godot]
+---
 # ResourceSaver leaves default values out of a .tres
 
 2026-11-01

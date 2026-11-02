@@ -1,3 +1,6 @@
+---
+areas: [godot, input]
+---
 # Tweening a container child's position collapsed the rows, sometimes
 
 2026-11-01

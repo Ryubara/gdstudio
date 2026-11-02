@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, godot]
+---
 # PackedStringArray appends to a copy
 
 2026-11-01

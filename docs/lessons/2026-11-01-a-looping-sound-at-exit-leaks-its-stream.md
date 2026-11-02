@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # A looping sound still playing at exit leaked its stream
 
 2026-11-01

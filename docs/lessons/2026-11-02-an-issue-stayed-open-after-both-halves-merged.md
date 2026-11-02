@@ -1,3 +1,6 @@
+---
+areas: [process, ci]
+---
 # An issue stayed open after both halves merged, so it looked like unstarted work
 
 2026-11-02

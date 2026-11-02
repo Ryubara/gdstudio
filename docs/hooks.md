@@ -10,6 +10,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Guard | Refuses | Instead |
 | --- | --- | --- |
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
+| Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
@@ -50,6 +51,45 @@ What the hook cannot see: the window itself (that needs the network, so `gds iss
 the ledger, and the ledger is what the hook trusts); an agent that names a started issue but works on something else;
 labels set through a script, the web page or `gh api --input` bodies. The next `gds issue list` shows an issue in
 progress with no owner, and the weekly hygiene sweep reports labels that sit idle.
+
+## Docs ship with the change {#docs}
+
+The learning loop above starts from a maintainer message. This part starts from the agents' own work: what they got
+wrong is written down by the agent that found it, in the same task, and the next agent reads it before it starts.
+
+- **Areas.** Every lesson has `areas: [net, web]` front matter; the names, the issue label to areas map and the
+  placement keywords are in [`docs/lessons/areas.toml`](lessons/areas.toml). `python .github/scripts/mistakes.py render`
+  writes [Mistakes by area](research/mistakes-by-area.md) from the lessons and the corrections rows (a row that links a
+  lesson takes its areas, any other is placed by keyword). A test (and the `mistakes-by-area` pre-commit hook) fails on
+  a lesson with no area or a stale page; `backfill` places the lessons that have none, by keyword, as a script.
+- **Injected, not hoped for.** `gds issue start` maps the issue's labels to areas (`A-net` is net, web and backend; the
+  `general` area is always there) and keeps them in the ledger. When the Agent guard lets a task agent start it leaves a
+  note (`cache/subagent-pending.json`, ten minutes) with the areas of the `Issue:` line; `SubagentStart`, which does not
+  see the prompt, takes the oldest note for that agent type and adds the newest `inject_limit` items of each area, as
+  text, to the agent's context. A `PR:`-only agent gets the `general` area. `gds lessons <area>` prints the same.
+- **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
+  with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
+  session back once, naming the branch. If GitHub cannot be asked, the hook lets go.
+- **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
+  transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
+  `docs/lessons/<file>.md` that exists in the kit checkout or one of its worktrees, or the agent is held back once.
+  Helpers and the `reviewer` are exempt. Settings: `[docs]` in `hooks.toml`.
+
+- **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
+  (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
+  closes with their labels). It counts as an agent correcting earlier work when its title verb is `Fix` or `Rework`,
+  when a check of `pull_requests.lessons.history_checks` failed on an earlier commit of it, or when an issue it closes
+  is labelled `bug` (the nearest signal to "a fix to an agent-caused issue"). Such a pull request needs
+  `Lessons: docs/lessons/<file>.md` (or a corrections row) in Summary, and `Lessons: none (reason)` is refused for it;
+  elsewhere the line is optional. A pull request that closes an issue needs `Read first: <areas>` naming at least the
+  areas of the issue's labels (`docs/lessons/areas.toml`). A game's conventions add `Kit docs: <kit pull request>` (or
+  `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue (`pull_requests.kit_docs`, same script). If GitHub cannot be
+  asked, the title alone is judged.
+
+What it cannot see: that the listed mistakes are all the agent's mistakes (the report is the agent's own), a lesson
+file that exists but says nothing, and a correction that fails no check and carries no `Fix` title; a reviewer reads
+both. A game takes the `pr-history` command and the three rules when its `.github/scripts/groundwork.py` and
+`conventions.yml` are updated from the kit's, in a pull request of its own.
 
 ## Proof {#proof}
 

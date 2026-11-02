@@ -540,3 +540,234 @@ def test_other_label_work_is_allowed(tmp_path):
     assert denied(shell("gh pr list --label P-critical", tmp_path)) == ""
     assert denied(shell("uv run --project python gds issue start Ryubara/deadnight#523 --agent a", tmp_path)) == ""
     assert denied(shell("echo 'gh issue edit 5 --add-label S-in-progress' > note.txt", tmp_path)) == ""
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Docs ship with the change (docs/hooks.md#docs)
+# --------------------------------------------------------------------------------------------------------------------
+
+GLOSSARY = """# Mistakes by area
+
+## general
+
+Anything else. (1)
+
+| Mistake | Check | Source |
+| --- | --- | --- |
+| A rule lived in memory | Put it in a tool and a hook | [lesson](../lessons/x.md) |
+
+## net
+
+The network. (2)
+
+| Mistake | Check | Source |
+| --- | --- | --- |
+| Gzip decoded twice behind a proxy | Decode once &#124; in one place, use `<a>` | [lesson](../lessons/y.md) |
+| A length guard dropped valid packets | Send the largest packet in a test | [lesson](../lessons/z.md) |
+
+## audio
+
+Sound. (1)
+
+| Mistake | Check | Source |
+| --- | --- | --- |
+| A click at every stroke | Fade the loop | [lesson](../lessons/w.md) |
+"""
+
+
+@pytest.fixture()
+def kit_workspace(workspace: Path) -> Path:
+    page = workspace / "repos" / "gdstudio" / "docs" / "research" / "mistakes-by-area.md"
+    page.parent.mkdir(parents=True)
+    page.write_text(GLOSSARY, encoding="utf-8")
+    return workspace
+
+
+def started_with_areas(workspace: Path, ref: str, areas: list[str]) -> None:
+    from gds_tools import issues
+
+    repo, number = issues.parse_ref(ref)
+    ledger = workspace / "cache" / "issues-started.json"
+    started = issues.load_ledger(ledger)
+    started[issues.ledger_key(repo, number)] = {"repo": repo, "number": number, "agent": "t", "areas": areas}
+    issues.save_ledger(ledger, started)
+
+
+def test_the_areas_checks_of_the_issue_reach_the_agent_at_start(kit_workspace):
+    started_with_areas(kit_workspace, "Ryubara/deadnight#523", ["general", "net"])
+    assert denied(agent_call(kit_workspace, "godot-engineer", "Issue: Ryubara/deadnight#523")) == ""
+    text = context("SubagentStart", kit_workspace, agent_type="godot-engineer", agent_id="a1")
+    assert "learning loop" in text  # the old text stays
+    assert "[general]\n- A rule lived in memory: Put it in a tool and a hook" in text
+    assert "[net]\n- Gzip decoded twice behind a proxy: Decode once | in one place, use `<a>`" in text
+    assert "A click at every stroke" not in text  # the audio area is not this issue's
+    # the note is used up: the next agent of that type gets the general area only
+    again = context("SubagentStart", kit_workspace, agent_type="godot-engineer", agent_id="a2")
+    assert "[general]" in again and "[net]" not in again
+
+
+def test_notes_are_matched_by_agent_type_in_order(kit_workspace):
+    started_with_areas(kit_workspace, "Ryubara/deadnight#1", ["general", "net"])
+    started_with_areas(kit_workspace, "Ryubara/deadnight#2", ["general", "audio"])
+    assert denied(agent_call(kit_workspace, "godot-engineer", "Issue: Ryubara/deadnight#1")) == ""
+    assert denied(agent_call(kit_workspace, "blender-artist", "Issue: Ryubara/deadnight#2")) == ""
+    blender = context("SubagentStart", kit_workspace, agent_type="blender-artist")
+    godot = context("SubagentStart", kit_workspace, agent_type="godot-engineer")
+    assert "[audio]" in blender and "[net]" not in blender
+    assert "[net]" in godot and "[audio]" not in godot
+
+
+def test_a_pull_request_agent_gets_the_general_area_only(kit_workspace, monkeypatch):
+    monkeypatch.setattr(guards, "pr_state", lambda repo, number: "OPEN")
+    assert denied(agent_call(kit_workspace, "godot-engineer", "PR: Ryubara/deadnight#7")) == ""
+    text = context("SubagentStart", kit_workspace, agent_type="godot-engineer")
+    assert "[general]" in text and "[net]" not in text
+
+
+def test_no_glossary_means_no_area_text(kit_workspace):
+    none = {**CONFIG, "docs": {**CONFIG["docs"], "glossary": "docs/research/not-there.md"}}
+    assert guards.area_checks(kit_workspace, ["general", "net"], none) == ""
+    assert "[general]" in guards.area_checks(kit_workspace, ["general", "net"], CONFIG)
+
+
+def test_the_glossary_parser_of_the_hook_agrees_with_the_tools():
+    from gds_tools import lessons
+
+    for area in ("general", "net", "audio", "missing"):
+        assert guards.glossary_items(GLOSSARY, area) == lessons.section(GLOSSARY, area)
+    real = (HOOKS.parents[1] / "docs" / "research" / "mistakes-by-area.md").read_text(encoding="utf-8")
+    assert guards.glossary_items(real, "net") == lessons.section(real, "net")
+    assert len(lessons.section(real, "net")) > 5
+
+
+def test_the_injected_text_is_limited(kit_workspace):
+    small = {**CONFIG, "docs": {**CONFIG["docs"], "inject_limit": 1, "inject_chars": 100000}}
+    text = guards.area_checks(kit_workspace, ["net"], small)
+    assert "Gzip" in text and "length guard" not in text
+    tiny = {**CONFIG, "docs": {**CONFIG["docs"], "inject_chars": 40}}
+    assert "(cut; the full list is in the glossary)" in guards.area_checks(kit_workspace, ["general", "net"], tiny)
+
+
+def _kit_worktree(workspace: Path, name: str, commits: int) -> Path:
+    tree = workspace / "worktrees" / "gdstudio" / name
+    tree.mkdir(parents=True)
+
+    def run(*a):
+        subprocess.run(["git", "-C", str(tree), *a], check=True, capture_output=True)
+
+    run("init", "-b", "main")
+    run("-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "base")
+    run("update-ref", "refs/remotes/origin/main", "HEAD")
+    run("switch", "-q", "-c", name)
+    for n in range(commits):
+        run("-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", f"c{n}")
+    return tree
+
+
+def stop_payload(workspace: Path, **extra) -> dict:
+    return {"hook_event_name": "Stop", "cwd": str(workspace), **extra}
+
+
+def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace, monkeypatch):
+    _kit_worktree(workspace, "docs-a", 2)
+    _kit_worktree(workspace, "docs-b", 1)
+    _kit_worktree(workspace, "docs-c", 0)  # nothing ahead: nothing to publish
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-b"})  # b has a pull request
+    out = dispatch.answer(stop_payload(workspace), CONFIG)
+    assert out["decision"] == "block" and "docs-a" in out["reason"] and "docs-b" not in out["reason"]
+    assert "docs-c" not in out["reason"] and "open its pull request now" in out["reason"]
+    assert dispatch.answer(stop_payload(workspace, stop_hook_active=True), CONFIG) is None  # held once only
+
+
+def test_stop_lets_go_when_every_branch_has_a_pull_request_or_github_is_unreachable(workspace, monkeypatch):
+    _kit_worktree(workspace, "docs-a", 1)
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-a"})
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: a guard that cannot look lets go
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
+def subagent_stop_payload(workspace: Path, report: str, **extra) -> dict:
+    return {
+        "hook_event_name": "SubagentStop",
+        "cwd": str(workspace),
+        "agent_type": "godot-engineer",
+        "last_assistant_message": report,
+        **extra,
+    }
+
+
+MISTAKES_REPORT = (
+    "PR opened.\n\n## Mistakes\n\n- I trusted the cached import and the web build hung.\n\n## Next\n\nnothing"
+)
+
+
+def test_an_agent_may_not_finish_with_mistakes_and_no_lesson(workspace, monkeypatch):
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    out = dispatch.answer(subagent_stop_payload(workspace, MISTAKES_REPORT), CONFIG)
+    assert out["decision"] == "block" and "Mistakes section but names no lesson file" in out["reason"]
+    assert "Mistakes: none" in out["reason"]
+    held = subagent_stop_payload(workspace, MISTAKES_REPORT, stop_hook_active=True)
+    assert dispatch.answer(held, CONFIG) is None
+
+
+def test_a_named_lesson_file_that_exists_satisfies_the_report(workspace, monkeypatch):
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    name = "2026-11-02-a-cached-import-hung-the-web-build.md"
+    report = MISTAKES_REPORT + f"\n\nLesson: docs/lessons/{name} (kit PR #120)"
+    assert "names no lesson file" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
+    tree = _kit_worktree(workspace, "lesson-branch", 0)  # the file written on a kit branch counts
+    (tree / "docs" / "lessons").mkdir(parents=True)
+    (tree / "docs" / "lessons" / name).write_text("# x\n", encoding="utf-8")
+    assert dispatch.answer(subagent_stop_payload(workspace, report), CONFIG) is None
+
+
+def test_mistakes_none_and_empty_sections_pass(workspace):
+    for report in (
+        "Done.\n\n## Mistakes\n\nnone\n",
+        "Done.\n\nMistakes: none\n",
+        "Done.\n\n**Mistakes:** None.\n\n**Next:** x",
+        "Done.\n\n## Mistakes\n\n## Next\nx",
+        "Done. Nothing went wrong.",
+    ):
+        assert guards.mistakes_text(report) == "", report
+        assert dispatch.answer(subagent_stop_payload(workspace, report), CONFIG) is None
+    assert "cached import" in guards.mistakes_text(MISTAKES_REPORT)
+    assert guards.mistakes_text("Mistakes: I broke the build").startswith("I broke")
+    assert guards.mistakes_text("Done.\n**Mistakes**\nthe cause was a guess\n**Next**\nx") == "the cause was a guess"
+
+
+def test_helpers_and_the_reviewer_may_finish_with_mistakes(workspace):
+    for kind in ("Explore", "reviewer", "web-fetch"):
+        assert dispatch.answer(subagent_stop_payload(workspace, MISTAKES_REPORT, agent_type=kind), CONFIG) is None
+
+
+def test_an_agent_with_unpublished_kit_docs_may_not_finish(workspace, monkeypatch):
+    _kit_worktree(workspace, "docs-a", 1)
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    out = dispatch.answer(subagent_stop_payload(workspace, "Done. Mistakes: none"), CONFIG)
+    assert out["decision"] == "block" and "docs-a" in out["reason"]
+
+
+def test_the_report_falls_back_to_the_transcript(workspace, tmp_path, monkeypatch):
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: set())
+    transcript = tmp_path / "agent.jsonl"
+    lines = [
+        {"message": {"role": "user", "content": "go"}},
+        {"message": {"role": "assistant", "content": [{"type": "text", "text": MISTAKES_REPORT}]}},
+    ]
+    transcript.write_text("\n".join(json.dumps(line) for line in lines), encoding="utf-8")
+    payload = {"hook_event_name": "SubagentStop", "cwd": str(workspace), "agent_type": "godot-engineer"}
+    out = dispatch.answer({**payload, "agent_transcript_path": str(transcript)}, CONFIG)
+    assert out["decision"] == "block"
+
+
+def test_the_subagent_stop_hook_is_registered_for_the_kit_and_for_games():
+    root = HOOKS.parents[1]
+    files = {
+        root / ".claude" / "settings.json": "dispatch.py",
+        root / "templates/game/.claude/settings.json": "launch.py",
+    }
+    for path, launcher in files.items():
+        hooks = json.loads(path.read_text(encoding="utf-8"))["hooks"]
+        assert launcher in hooks["SubagentStop"][0]["hooks"][0]["command"]

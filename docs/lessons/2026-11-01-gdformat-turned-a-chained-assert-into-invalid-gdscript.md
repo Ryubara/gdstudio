@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # gdformat turned a chained assert into invalid GDScript
 
 2026-11-01

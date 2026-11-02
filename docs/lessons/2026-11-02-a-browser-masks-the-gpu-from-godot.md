@@ -1,3 +1,6 @@
+---
+areas: [web, godot-ui]
+---
 # The menu could not tell a software renderer from a real GPU in the browser
 
 2026-11-02

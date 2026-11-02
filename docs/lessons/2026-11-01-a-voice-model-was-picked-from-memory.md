@@ -1,3 +1,6 @@
+---
+areas: [audio, blender]
+---
 # The voice samples used a model picked from memory
 
 2026-11-01

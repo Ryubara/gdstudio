@@ -1,3 +1,6 @@
+---
+areas: [blender, web]
+---
 # Blender exported every clip as the rest pose
 
 2026-11-01

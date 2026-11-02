@@ -1,3 +1,6 @@
+---
+areas: [audio, blender]
+---
 # Speech-to-text catches audio tags the voice read aloud
 
 2026-11-01

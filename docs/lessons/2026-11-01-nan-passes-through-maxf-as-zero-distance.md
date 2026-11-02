@@ -1,3 +1,6 @@
+---
+areas: [gameplay, net]
+---
 # A NaN position made a blast hit in full
 
 2026-11-01

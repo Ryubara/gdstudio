@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # A MultiplayerSynchronizer with ON_CHANGE properties never emits `synchronized`
 
 2026-11-01

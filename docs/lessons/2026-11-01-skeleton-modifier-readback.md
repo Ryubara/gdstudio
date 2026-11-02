@@ -1,3 +1,6 @@
+---
+areas: [tests, blender]
+---
 # A skeleton modifier's pose was gone when a test read it
 
 2026-11-01

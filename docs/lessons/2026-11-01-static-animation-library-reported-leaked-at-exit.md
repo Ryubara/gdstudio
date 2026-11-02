@@ -1,3 +1,6 @@
+---
+areas: [godot, blender]
+---
 # A static AnimationLibrary was reported as leaked at exit
 
 2026-11-01

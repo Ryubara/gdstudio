@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # A headless Godot script idled at full CPU when its output file could not be opened
 
 2026-11-01

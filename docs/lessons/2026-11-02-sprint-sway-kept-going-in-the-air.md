@@ -1,3 +1,6 @@
+---
+areas: [camera, process]
+---
 # The sprint sway kept going in the air
 
 2026-11-02

@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # Godot clients could only measure latency in 33 ms steps
 
 2026-11-01

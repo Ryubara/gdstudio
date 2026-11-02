@@ -1,3 +1,6 @@
+---
+areas: [gameplay, process]
+---
 # Reference research found no numbers on the open web, while the games' scripts were on GitHub
 
 2026-11-01

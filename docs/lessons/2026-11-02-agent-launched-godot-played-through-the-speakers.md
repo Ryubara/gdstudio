@@ -1,3 +1,6 @@
+---
+areas: [tools, audio]
+---
 # Agent-launched Godot and browser probes played through the speakers
 
 2026-11-02

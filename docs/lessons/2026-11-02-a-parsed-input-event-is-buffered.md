@@ -1,3 +1,6 @@
+---
+areas: [input, blender]
+---
 # An action read right after `Input.parse_input_event` was not pressed yet
 
 2026-11-02

@@ -1,3 +1,6 @@
+---
+areas: [camera, tests]
+---
 # A muzzle flash lying in the muzzle's plane was hidden by the gun and hands
 
 2026-11-02

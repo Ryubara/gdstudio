@@ -1,3 +1,6 @@
+---
+areas: [tests, input]
+---
 # A bench set a value directly and a settings listener put it back
 
 2026-11-01

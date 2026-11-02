@@ -1,3 +1,6 @@
+---
+areas: [tests, tools]
+---
 # Movie Maker ignores `--resolution`
 
 2026-11-01

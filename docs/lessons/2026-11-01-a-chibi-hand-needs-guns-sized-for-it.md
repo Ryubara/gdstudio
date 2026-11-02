@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # A chibi hand needs guns sized for it
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [web, godot]
+---
 # A browser test cannot see inside a Godot canvas
 
 2026-11-01

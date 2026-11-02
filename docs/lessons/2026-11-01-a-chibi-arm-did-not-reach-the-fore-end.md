@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # A chibi arm did not reach the fore-end
 
 2026-11-01

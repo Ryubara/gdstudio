@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # A Movie Maker recording mixes every bus into one track
 
 2026-11-01

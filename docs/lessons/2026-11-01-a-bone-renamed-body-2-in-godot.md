@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A bone renamed Body_2 in Godot
 
 2026-11-01

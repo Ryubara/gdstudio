@@ -44,6 +44,27 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    request adds a `Failed first:` line naming the test that failed before the fix and passes after. Issues you open
    start with a `From:` line and carry the area label (`--label A-<area>`).
 
+## Docs ship with your change (every task)
+
+- **You open the kit docs pull request yourself, in this task.** A page, a lesson or a how-to that your work needs goes
+  into a kit pull request that you push and open before you report: a worktree under
+  `<workspace>/worktrees/gdstudio/` with commits and no pull request holds you back at the end (the hooks). Docs are
+  never left "for a batch": the coordinator only merges.
+- **A lesson carries its areas:** `areas: [net, web]` in front matter (the names are in `docs/lessons/areas.toml`).
+  The generated `docs/research/mistakes-by-area.md` is what agents read first; run
+  `python .github/scripts/mistakes.py render` in the kit, and `python .github/scripts/mistakes.py check` fails on a
+  lesson without areas or a stale page.
+- **The checks of your issue's areas are in your context at start** (`gds lessons <area>` prints them again). Apply
+  them: they are mistakes already made.
+- **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it
+  closes an issue), `Lessons: docs/lessons/<file>.md` when it is a `Fix` or `Rework`, or a required check failed on an
+  earlier commit of it, or it closes a `bug` issue (`Lessons: none` is refused there), and, in a game, `Kit docs:
+  <the kit pull request>` (or `none (reason)`) when it is a `Fix` or `Rework` or closes a `bug` issue. The checks read
+  the title, the check history and the issue's labels, not your word.
+- **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a
+  wrong guess, a rework) and name the lesson file for each (`docs/lessons/<file>.md`); write `Mistakes: none` when
+  nothing went wrong. A report with mistakes and no lesson file is held back.
+
 ## Sharing the machine
 
 Other agents and other projects run on this machine. Load tests run at most four parallel suites and never start

@@ -127,6 +127,13 @@ paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-mill
   the cycle at the end of the test, stop the audio after each test that builds a night, wait `Audio.wait_for_mixer()`
   once, and have CI grep the test log for `leaked at exit|still in use`
   ([lesson](../lessons/2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md)).
+- **The check can fail a passing run at random.** A process that quits at once (a test run: GdUnit exits itself)
+  leaks whatever voice is playing or just stopped, because the audio server frees a playback only after its mixer
+  has stepped a few times. A suite cannot wait after the last test, so wait in the audio autoload's `_exit_tree`:
+  block the main thread, counting `AudioServer.get_time_since_last_mix()` falls (the mixer has its own thread). A
+  child Godot that starts sounds and quits is a deterministic test for it. `--verbose` makes the engine list every
+  leaked instance and resource, and CI keeps those lines as an artifact
+  ([lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md)).
 
 ## Web: samples or streams
 

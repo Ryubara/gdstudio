@@ -1,3 +1,6 @@
+---
+areas: [tests, audio]
+---
 # A GdUnit4 run printed leaks at exit that no test reported
 
 2026-11-01

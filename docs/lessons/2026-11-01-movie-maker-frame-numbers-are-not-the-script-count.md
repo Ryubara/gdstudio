@@ -1,3 +1,6 @@
+---
+areas: [tests, camera]
+---
 # The wrong frame of a Movie Maker capture
 
 2026-11-01

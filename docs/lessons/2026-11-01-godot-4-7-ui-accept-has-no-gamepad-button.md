@@ -1,3 +1,6 @@
+---
+areas: [input, godot-ui]
+---
 # A gamepad could not press a button or go back in the UI
 
 2026-11-01

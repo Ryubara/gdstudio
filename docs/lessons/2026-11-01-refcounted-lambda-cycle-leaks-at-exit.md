@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # "Resources still in use at exit" from a RefCounted that connects lambdas to itself
 
 2026-11-01

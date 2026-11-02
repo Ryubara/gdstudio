@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, godot]
+---
 # A lightmap bake did nothing in the Compatibility editor
 
 2026-11-01

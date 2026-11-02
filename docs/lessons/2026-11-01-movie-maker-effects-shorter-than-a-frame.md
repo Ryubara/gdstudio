@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # Tracers and flashes were missing from a capture
 
 2026-11-01

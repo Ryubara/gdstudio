@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # A muzzle flash that never showed
 
 2026-11-01

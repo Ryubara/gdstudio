@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # TextServer.name_to_tag is not static
 
 2026-11-01

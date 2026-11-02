@@ -1,3 +1,6 @@
+---
+areas: [tools, process]
+---
 # The Write tool wrote CRLF line endings on Windows
 
 2026-11-01

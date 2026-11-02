@@ -48,6 +48,10 @@ read-only helper or the reviewer) has a line of one of these forms:
 
 Both lines can appear; each must hold. An agent whose prompt has neither is refused with how to start the issue.
 
+`gds issue start` also maps the issue's labels to areas of the [mistakes glossary](research/mistakes-by-area.md)
+(`docs/lessons/areas.toml`) and keeps them in the ledger: the checks of those areas are put into the agent's context
+when it starts ([Hooks: docs](hooks.md#docs)). `gds lessons <area>` prints them for a person.
+
 ## Looking
 
 ```text
@@ -66,6 +70,23 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   the ledger, with a comment. An open pull request that still closes it keeps it in progress, and the command says so.
 - `gds issue done <ref>`: clears the ledger entry. It is rarely needed: merging a pull request with `Fixes #N` closes
   the issue, and the next `gds issue start` or `gds issue list` drops the ledger entries of closed issues.
+
+## Merging main into a pull request
+
+Merge `origin/main` into the branch only when the pull request is DIRTY or `main` broke one of its checks: every push
+restarts its CI. Test the merge locally first, and push once. The merge commit's message is checked like any other:
+it ends with the single `Co-Authored-By` trailer and nothing after it.
+
+```bash
+git merge origin/main            # fix any conflicts, then git add them
+git commit --cleanup=strip -F message.txt   # message.txt ends with the one Co-Authored-By line
+git log -1 --format=%B           # the trailer is the last line, with no "# Conflicts:" paragraph
+```
+
+Never `git commit --no-edit` a merge that had conflicts: git adds a `# Conflicts:` paragraph after the message, which
+pushes the trailer out of the last paragraph and fails `pr-rules`
+([lesson](lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md)). A pushed commit cannot be
+reworded without a force push, which is the maintainer's decision: open the same change from a new branch instead.
 
 ## Why a tool and a hook
 

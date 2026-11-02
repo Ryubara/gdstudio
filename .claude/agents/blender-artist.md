@@ -80,8 +80,29 @@ Before you report, leave what the next person needs, short and in the right plac
 - **A problem you hit and how you solved it**: one file in the kit's `docs/lessons/<yyyy-mm-dd>-<slug>.md` (format in
   its `index.md`: symptom, cause, fix, where it is documented). Five lines, not an essay. Never edit `mkdocs.yml`'s
   nav or a page list: the navigation is built from the folders.
-- Put the doc changes in the same pull request as the work (a kit page needs a small kit pull request: say so in your
-  report and the coordinator opens it). Your report lists what you recorded.
+- Put the doc changes in the same pull request as the work; a kit page or lesson goes in a kit pull request that you
+  open yourself (below). Your report lists what you recorded.
+
+## Docs ship with your change (every task)
+
+- **You open the kit docs pull request yourself, in this task.** A page, a lesson or a how-to that your work needs goes
+  into a kit pull request that you push and open before you report: a worktree under
+  `<workspace>/worktrees/gdstudio/` with commits and no pull request holds you back at the end (the hooks). Docs are
+  never left "for a batch": the coordinator only merges.
+- **A lesson carries its areas:** `areas: [net, web]` in front matter (the names are in `docs/lessons/areas.toml`).
+  The generated `docs/research/mistakes-by-area.md` is what agents read first; run
+  `python .github/scripts/mistakes.py render` in the kit, and `python .github/scripts/mistakes.py check` fails on a
+  lesson without areas or a stale page.
+- **The checks of your issue's areas are in your context at start** (`gds lessons <area>` prints them again). Apply
+  them: they are mistakes already made.
+- **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it
+  closes an issue), `Lessons: docs/lessons/<file>.md` when it is a `Fix` or `Rework`, or a required check failed on an
+  earlier commit of it, or it closes a `bug` issue (`Lessons: none` is refused there), and, in a game, `Kit docs:
+  <the kit pull request>` (or `none (reason)`) when it is a `Fix` or `Rework` or closes a `bug` issue. The checks read
+  the title, the check history and the issue's labels, not your word.
+- **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a
+  wrong guess, a rework) and name the lesson file for each (`docs/lessons/<file>.md`); write `Mistakes: none` when
+  nothing went wrong. A report with mistakes and no lesson file is held back.
 
 ## Spikes
 

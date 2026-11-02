@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A time seek swallowed the throttled animation delta
 
 2026-11-01

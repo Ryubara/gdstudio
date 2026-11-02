@@ -66,3 +66,29 @@ another origin, a parent that keeps the focus, a virtual pad (Deadnight `tools/w
 reports the focus as held), and read the backend log of the maintainer's first try. Test runs with fresh instance ids
 hold game-server slots until they are swept, so use few per run. A CI deploy of `main` replaces a hotfix deployed from
 a branch: check `railway deployment list --service web` before the maintainer retries.
+
+## Discord Activity: copy and paste in the frame
+
+Text in and out of the game (a room code, a link) is a permission of the host page, not a given (Deadnight #516):
+
+- **No clipboard API.** In an iframe of another origin `clipboard-read` and `clipboard-write` are Permissions-Policy
+  features that default to `self`: `navigator.clipboard.writeText/readText` throw `NotAllowedError`
+  (`document.permissionsPolicy.allowsFeature` is `false`). Godot's `DisplayServer.clipboard_set/get` are exactly those
+  calls and fail silently, so a "Code copied." message is a claim, not a result. `document.execCommand("copy")` from a
+  user gesture still works (it is not policy-controlled).
+- **Ctrl+V never pastes.** Godot 4.7's web runtime calls `preventDefault()` on every canvas `keydown`, so the browser
+  never fires the `paste` event (the one that needs no permission). Its own paste is async `readText`: denied in the
+  frame, and stale on the first press elsewhere.
+- **Fix shape.** A capture-phase window `keydown` for Ctrl/Cmd+V that calls `stopImmediatePropagation()` (not
+  `preventDefault()`), a `paste` listener that hands `clipboardData` to the game (Chromium fires `paste` on a focused
+  non-editable canvas), copy through a hidden textarea and `execCommand`, and native Ctrl+C through the same textarea
+  focused during the keydown. Show "copied" only when the page confirms, and show the text selected when nothing works.
+- **Share without the clipboard.** The SDK's `commands.shareLink({message, custom_id})` (no scope; returns
+  `success`, `didCopyLink`, `didSendMessage`) sends a link with text through Discord's own window; `openInviteDialog`
+  invites to the channel.
+- **Test it** in Playwright with a cross-origin iframe, in the headless shell (its clipboard is the browser's own,
+  never the person's), `context.grant_permissions` for the parent origin and a
+  `permissions-policy: clipboard-read=(), clipboard-write=()` header on the frame (Deadnight
+  `tools/web_smoke/activity.py --embed clipboard-denied --clipboard`, under `gds quiet`).
+
+Lesson: [Copy and paste did nothing in the Discord Activity](../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md).

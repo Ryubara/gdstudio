@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # Workbench rendered a model black after adding an emission map
 
 2026-11-01

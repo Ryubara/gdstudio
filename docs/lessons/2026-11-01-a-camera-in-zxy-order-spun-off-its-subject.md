@@ -1,3 +1,6 @@
+---
+areas: [camera, blender]
+---
 # A camera in ZXY Euler order spun off its subject
 
 2026-11-01

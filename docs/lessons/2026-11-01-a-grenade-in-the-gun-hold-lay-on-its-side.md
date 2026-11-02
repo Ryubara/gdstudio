@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # A grenade in the gun hold lay on its side
 
 2026-11-01

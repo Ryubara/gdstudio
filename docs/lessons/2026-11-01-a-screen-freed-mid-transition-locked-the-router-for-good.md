@@ -1,3 +1,6 @@
+---
+areas: [godot, input]
+---
 # A screen freed mid-transition locked the router for good
 
 2026-11-01

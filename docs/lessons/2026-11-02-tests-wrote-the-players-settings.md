@@ -1,3 +1,6 @@
+---
+areas: [tests, process]
+---
 # Tests wrote the player's real settings file
 
 2026-11-02

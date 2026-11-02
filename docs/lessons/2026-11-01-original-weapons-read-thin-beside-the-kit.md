@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # Original weapons read thin beside the kit
 
 2026-11-01

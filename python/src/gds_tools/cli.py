@@ -8,7 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from gds_tools import capture, issues, refs, sync, workspace
+from gds_tools import capture, issues, lessons, refs, sync, workspace
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -199,8 +199,17 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
     repo, number = _issue_ref(args)
     args.repo = repo
     _, settings, ledger = _issue_context(args)
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
+    areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
-        repo, number, args.agent, gh=issues.run_gh, ledger=ledger, size=settings.window, branch=args.branch or ""
+        repo,
+        number,
+        args.agent,
+        gh=issues.run_gh,
+        ledger=ledger,
+        size=settings.window,
+        branch=args.branch or "",
+        areas_for=areas.for_labels if areas else None,
     ):
         print(line)
     return 0
@@ -226,6 +235,21 @@ def _cmd_issue_done(args: argparse.Namespace) -> int:
     args.repo = repo
     _, _, ledger = _issue_context(args)
     print("\n".join(issues.done(repo, number, ledger=ledger)))
+    return 0
+
+
+def _cmd_lessons(args: argparse.Namespace) -> int:
+    """`gds lessons [area ...]`: the checks of the mistakes glossary for some areas, or the list of areas."""
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
+    areas = lessons.Areas.load(kit / lessons.AREAS_FILE)
+    if not args.areas:
+        for name, description in areas.names.items():
+            print(f"{name:10} {description}")
+        return 0
+    unknown = [a for a in args.areas if a not in areas.names]
+    if unknown:
+        raise workspace.WorkspaceError(f"unknown area {unknown[0]!r}; `gds lessons` lists them")
+    print(lessons.checks_text((kit / lessons.GLOSSARY).read_text(encoding="utf-8"), args.areas, args.limit))
     return 0
 
 
@@ -327,6 +351,11 @@ def build_parser() -> argparse.ArgumentParser:
     fin = iss.add_parser("done", help="clear an issue from the ledger (a merged Fixes pull request does it anyway)")
     fin.add_argument("ref", help=ref_help)
     fin.set_defaults(func=_cmd_issue_done)
+
+    les = sub.add_parser("lessons", help="the checks of past mistakes by area (docs/research/mistakes-by-area.md)")
+    les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
+    les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
+    les.set_defaults(func=_cmd_lessons)
 
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser

@@ -1,3 +1,6 @@
+---
+areas: [tools, process]
+---
 # A test script kept in the shared temp folder ran another agent's worktree
 
 2026-11-01

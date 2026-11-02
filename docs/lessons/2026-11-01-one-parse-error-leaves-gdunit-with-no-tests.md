@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # The whole GdUnit4 run found no tests
 
 2026-11-01

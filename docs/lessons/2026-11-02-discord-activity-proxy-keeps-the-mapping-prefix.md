@@ -1,3 +1,6 @@
+---
+areas: [web, backend]
+---
 # Discord's URL mapping kept the /api prefix, so every backend route answered 404
 
 2026-11-02

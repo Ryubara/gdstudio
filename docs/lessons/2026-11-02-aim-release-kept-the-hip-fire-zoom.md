@@ -1,3 +1,6 @@
+---
+areas: [camera, process]
+---
 # Releasing aim after a shot kept the hip-fire zoom
 
 2026-11-02

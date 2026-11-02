@@ -1,3 +1,6 @@
+---
+areas: [tests, ci]
+---
 # A large heredoc in the Bash tool failed to parse
 
 2026-11-01

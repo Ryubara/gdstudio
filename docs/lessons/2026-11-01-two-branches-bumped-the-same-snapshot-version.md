@@ -1,3 +1,6 @@
+---
+areas: [net, godot-ui]
+---
 # Two branches bumped the same snapshot version
 
 2026-11-01

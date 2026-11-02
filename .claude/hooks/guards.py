@@ -3,6 +3,7 @@ instead; an empty list lets it through. Standard library only."""
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import shlex
@@ -541,7 +542,10 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     """Every reason to refuse this tool call."""
     tool = payload.get("tool_name", "")
     if tool in AGENT_TOOLS:
-        return check_agents(payload, config) + check_issue(payload, config)
+        reasons = check_agents(payload, config) + check_issue(payload, config)
+        if not reasons:
+            note_agent_start(payload, config)
+        return reasons
     if tool in EDIT_TOOLS:
         return check_edit(payload, config)
     if tool not in SHELL_TOOLS:
@@ -602,7 +606,9 @@ def stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if workspace:
         pull_mains(workspace, config)
-    reasons = [r for r in (stop_proof(payload, config), stop_queue(payload, config)) if r]
+    reasons = [
+        r for r in (stop_proof(payload, config), stop_queue(payload, config), stop_kit_docs(payload, config)) if r
+    ]
     return "\n\n".join(reasons) or None
 
 
@@ -765,7 +771,12 @@ def subagent_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
     if payload.get("agent_type") in config.get("agents", {}).get("helpers", []):
         return ""
     workspace = workspace_of(Path(payload.get("cwd") or "."))
-    return lesson_text("subagent", config, workspace) if workspace else ""
+    if not workspace:
+        return ""
+    areas = take_agent_note(workspace, payload.get("agent_type") or "", config)
+    return "\n\n".join(
+        t for t in (lesson_text("subagent", config, workspace), area_checks(workspace, areas, config)) if t
+    )
 
 
 def pending_lessons(workspace: Path, config: dict[str, Any]) -> list[Path]:
@@ -795,3 +806,240 @@ def stop_queue(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
         f"to published/; or, if its cause is not known yet, add a `Waiting on: #N` line naming the issue. Rows that "
         f"are not yours: say so and finish."
     )
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Docs ship with the change: areas' checks are read first, kit docs are never left unpublished (docs/hooks.md#docs)
+# --------------------------------------------------------------------------------------------------------------------
+
+GENERAL = "general"
+_INLINE_NONE = re.compile(r"(?i)^\W*(none|n/?a|nothing|no mistakes?|-|no)\W*$")
+
+
+def kit_root(workspace: Path | None) -> Path:
+    """The kit checkout of the workspace (its docs are the ones agents read), else the kit this file belongs to."""
+    if workspace and (workspace / "repos" / "gdstudio").is_dir():
+        return workspace / "repos" / "gdstudio"
+    return KIT
+
+
+def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
+    """The (mistake, check) rows of one area's section of the generated glossary (docs/research/mistakes-by-area.md)."""
+    items, on = [], False
+    for line in text.replace("\r\n", "\n").splitlines():
+        if line.startswith("## "):
+            on = line[3:].strip() == area
+        elif on and line.startswith("| ") and not line.startswith(("| Mistake", "| ---")):
+            parts = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+            if len(parts) == 3:
+                items.append(
+                    tuple(p.replace("\\|", "|").replace("&#124;", "|").replace("&lt;", "<") for p in parts[:2])
+                )
+    return items
+
+
+def area_checks(workspace: Path | None, areas: list[str], config: dict[str, Any]) -> str:
+    """The checks of some areas as plain text for an agent's context: the newest `inject_limit` of each, cut at
+    `inject_chars` altogether. Empty when the glossary does not exist."""
+    rules = config.get("docs", {})
+    kit = kit_root(workspace)
+    path = kit / rules.get("glossary", "docs/research/mistakes-by-area.md")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    lines = []
+    for area in areas:
+        items = glossary_items(text, area)[: int(rules.get("inject_limit", 12))]
+        if items:
+            lines.append(f"[{area}]")
+            lines += [f"- {mistake}: {check}" for mistake, check in items]
+    body = "\n".join(lines)
+    limit = int(rules.get("inject_chars", 7000))
+    if len(body) > limit:
+        body = body[:limit].rsplit("\n", 1)[0] + "\n... (cut; the full list is in the glossary)"
+    if not body:
+        return ""
+    return (
+        f"Mistakes already made in your areas ({', '.join(areas)}), each with the check that catches it. Apply them "
+        f"before you start; the full list is {path.as_posix()} (`gds lessons <area>` prints one):\n{body}"
+    )
+
+
+def pending_path(workspace: Path, config: dict[str, Any]) -> Path:
+    return workspace / config.get("docs", {}).get("pending", "cache/subagent-pending.json")
+
+
+def note_agent_start(payload: dict[str, Any], config: dict[str, Any]) -> None:
+    """An Agent call that passed the guards leaves a note of the areas of its issue: SubagentStart (which does not see
+    the prompt) reads it to inject those areas' checks. Notes older than ten minutes are dropped."""
+    inp = payload.get("tool_input") or {}
+    kind = inp.get("subagent_type") or ""
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    exempt = [*config.get("agents", {}).get("helpers", []), *config.get("issues", {}).get("exempt", [])]
+    if workspace is None or not kind or kind in exempt:
+        return
+    ledger = read_ledger(workspace, config)
+    areas = [GENERAL]
+    for label, repo, number in _WORK_LINE.findall(inp.get("prompt") or ""):
+        if label.lower() == "issue":
+            areas += [a for a in ledger.get(ledger_key(repo, number), {}).get("areas", []) if a not in areas]
+    path, now = pending_path(workspace, config), time.time()
+    try:
+        notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
+    except (OSError, ValueError, TypeError):
+        notes = []
+    notes.append({"agent_type": kind, "areas": areas, "time": now})
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(notes), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def take_agent_note(workspace: Path, agent_type: str, config: dict[str, Any]) -> list[str]:
+    """The areas of the oldest unread note for this agent type (and the note is used up); `general` when none."""
+    path, now = pending_path(workspace, config), time.time()
+    try:
+        notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
+    except (OSError, ValueError, TypeError):
+        return [GENERAL]
+    for i, note in enumerate(notes):
+        if note.get("agent_type") == agent_type:
+            del notes[i]
+            with contextlib.suppress(OSError):
+                path.write_text(json.dumps(notes), encoding="utf-8")
+            return note.get("areas") or [GENERAL]
+    return [GENERAL]
+
+
+def kit_remote(kit: Path) -> str:
+    """`owner/repo` of the kit's origin remote, '' when it is not a GitHub one."""
+    found = re.search(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?$", git(kit, "remote", "get-url", "origin"))
+    return found.group(1) if found else ""
+
+
+def kit_pr_heads(repo: str) -> set[str] | None:
+    """The branches that have an open or a merged pull request in `repo`; None when GitHub cannot be asked."""
+    try:
+        out = subprocess.run(
+            ["gh", "pr", "list", "-R", repo, "--state", "all", "--limit", "300", "--json", "headRefName,state"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if out.returncode != 0:
+            return None
+        return {p["headRefName"] for p in json.loads(out.stdout or "[]") if p.get("state") in ("OPEN", "MERGED")}
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError):
+        return None
+
+
+def unpublished_kit_branches(workspace: Path, config: dict[str, Any]) -> list[str]:
+    """Branches of the kit's worktrees (`<workspace>/worktrees/gdstudio/*`) with commits ahead of `origin/main` and no
+    pull request, open or merged: docs written and left for a batch. Empty when GitHub cannot be asked."""
+    folder = workspace / config.get("docs", {}).get("kit_worktrees", "worktrees/gdstudio")
+    protected = config.get("git", {}).get("protected_branches", ["main"])
+    ahead = []
+    for tree in sorted(p for p in folder.iterdir() if (p / ".git").exists()) if folder.is_dir() else []:
+        branch = git(tree, "rev-parse", "--abbrev-ref", "HEAD")
+        base = "origin/main" if git(tree, "rev-parse", "--verify", "-q", "origin/main") else "main"
+        count = git(tree, "rev-list", "--count", f"{base}..HEAD")
+        if branch and branch != "HEAD" and branch not in protected and count.isdigit() and int(count) > 0:
+            ahead.append(branch)
+    if not ahead:
+        return []
+    heads = kit_pr_heads(kit_remote(kit_root(workspace)))
+    return [b for b in ahead if b not in heads] if heads is not None else []
+
+
+def unpublished_message(branches: list[str]) -> str:
+    names = ", ".join(branches[:5]) + ("..." if len(branches) > 5 else "")
+    return (
+        f"Kit branches with commits and no pull request: {names}. Docs left unpublished are lost: push each branch and "
+        f"open its pull request now (`gh pr create`), in the same task that found what it documents, never for a later "
+        f"batch. A branch that is not yours: say so and finish."
+    )
+
+
+def stop_kit_docs(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
+    """The docs gate of Stop: kit branches with commits and no pull request hold the session back once."""
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    branches = unpublished_kit_branches(workspace, config) if workspace else []
+    return unpublished_message(branches) if branches else None
+
+
+def report_of(payload: dict[str, Any]) -> str:
+    """What the agent ended with: `last_assistant_message`, else the last assistant text of its transcript."""
+    text = payload.get("last_assistant_message")
+    if isinstance(text, str) and text:
+        return text
+    path = payload.get("agent_transcript_path") or payload.get("transcript_path")
+    try:
+        lines = Path(path).read_text(encoding="utf-8", errors="replace").splitlines() if path else []
+    except OSError:
+        return ""
+    for line in reversed(lines):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        message = entry.get("message") if isinstance(entry, dict) else None
+        if isinstance(message, dict) and message.get("role") == "assistant":
+            content = message.get("content")
+            if isinstance(content, list):
+                content = "\n".join(c.get("text", "") for c in content if isinstance(c, dict))
+            if isinstance(content, str) and content.strip():
+                return content
+    return ""
+
+
+def mistakes_text(report: str) -> str:
+    """What a report's "Mistakes" section says (a heading or a bold label, up to the next heading), '' when there is
+    none or it says there were none."""
+    lines = report.replace("\r\n", "\n").split("\n")
+    for i, line in enumerate(lines):
+        head = re.match(r"^\s*(?:#{1,6}\s*|\*\*|__)?\s*mistakes?\b[^\n]*", line, re.IGNORECASE)
+        if not head:
+            continue
+        inline = re.sub(r"^\s*(?:#{1,6}\s*|\*\*|__)?\s*mistakes?\b[\s*_:.-]*", "", line, flags=re.IGNORECASE)
+        body = [inline.strip().strip("*_ ")]
+        for after in lines[i + 1 :]:
+            label = re.match(r"^\s*(?:\*\*|__)[^*_\n]{1,40}(?:\*\*|__)", after)
+            if re.match(r"^\s*#{1,6}\s", after) or label or (body[0] and not after.strip()):
+                break  # the next heading or label; a one-line "Mistakes: text" ends at its paragraph
+            body.append(after.strip())
+        text = " ".join(b for b in body if b).strip()
+        return "" if not text or _INLINE_NONE.match(text) else text
+    return ""
+
+
+def lesson_files_named(workspace: Path, report: str) -> list[str]:
+    """The `docs/lessons/<file>.md` paths of a report that exist in the kit checkout or one of its worktrees."""
+    roots = [kit_root(workspace)]
+    folder = workspace / "worktrees" / "gdstudio"
+    roots += [p for p in sorted(folder.iterdir()) if p.is_dir()] if folder.is_dir() else []
+    names = dict.fromkeys(re.findall(r"docs/lessons/(20\d\d-[\w.-]+\.md)", report))
+    return [n for n in names if any((root / "docs" / "lessons" / n).exists() for root in roots)]
+
+
+def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
+    """An agent may not finish while its kit docs are unpublished, or while its report lists mistakes and no lesson
+    file. Held back once (`stop_hook_active` lets the next finish through). Helpers and the reviewer are exempt."""
+    if payload.get("stop_hook_active"):
+        return None
+    exempt = [*config.get("agents", {}).get("helpers", []), *config.get("issues", {}).get("exempt", [])]
+    if payload.get("agent_type") in exempt:
+        return None
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    if workspace is None:
+        return None
+    reasons = [stop_kit_docs(payload, config)]
+    report = report_of(payload)
+    if mistakes_text(report) and not lesson_files_named(workspace, report):
+        reasons.append(
+            "Your report has a Mistakes section but names no lesson file. Write what went wrong, its cause and the fix "
+            "as a lesson (docs/lessons/<yyyy-mm-dd>-<slug>.md with `areas: [...]` front matter, in a kit branch), open "
+            "its pull request, and name the file in your report; or, if nothing went wrong, write `Mistakes: none`."
+        )
+    return "\n\n".join(r for r in reasons if r) or None

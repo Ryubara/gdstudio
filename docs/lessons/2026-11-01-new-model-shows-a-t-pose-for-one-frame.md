@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A rebuilt character showed its T-pose for one frame
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tools, audio]
+---
 # A looped synthesised hum had a click at every stroke
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # `FileAccess.get_as_text()` returned nothing for a /proc file
 
 2026-11-01

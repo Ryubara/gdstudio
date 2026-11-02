@@ -1,3 +1,6 @@
+---
+areas: [godot, tools]
+---
 # Godot rewrites project.godot
 
 2026-11-01
