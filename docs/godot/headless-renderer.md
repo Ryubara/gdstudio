@@ -14,3 +14,11 @@ It shows once in a few dozen runs, only on a loaded machine, and no `Leaked inst
 - To see it, search the whole run's log for `Initializing already initialized RID` (the first sign) before looking at
   what leaked: the line before it names the call that raced
   ([lesson](../lessons/2026-11-02-a-threaded-load-in-the-dummy-renderer-left-a-mesh-leaked-at-exit.md)).
+
+## Headless text has no height, so a layout test there cannot prove a fit
+
+The dummy text server measures a label as almost nothing: a form row that is 97 units high in the window was 52 in a
+GdUnit run, and a Play screen that overflowed a 540 unit phone canvas passed a "fits the canvas" test. Test the rules
+(the compact flag, the hints hidden, the tap-target minimum) headless, and prove the fit with a windowed capture that
+prints every control outside the window (`tests/captures/solo_settings_tour.gd` in Deadnight) and in the web build
+([lesson](../lessons/2026-11-02-a-finished-screen-was-never-routed-from-the-menu.md)).
