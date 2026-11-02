@@ -10,6 +10,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Guard | Refuses | Instead |
 | --- | --- | --- |
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
+| Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
@@ -21,6 +22,33 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
+
+## Issue order {#issues}
+
+Issues are started oldest first, only through `gds issue start` ([Starting work](starting-work.md)). Two checks in the
+dispatcher enforce it; their settings are `[issues]` in `hooks.toml` (a game replaces `window` in
+`.claude/hooks.local.toml`).
+
+**An Agent call.** The prompt of every agent that is not a helper (`[agents] helpers`, plus `[issues] exempt`, which
+holds `reviewer`) needs a line that starts with `Issue: <owner/repo>#N` or `PR: <owner/repo>#N` (a list bullet or
+backticks around the reference are fine; a mention in the middle of a sentence is not a line). The hook decides:
+
+1. Not in a GDStudio workspace, or `[issues] enforce = false`: allowed.
+2. A type in `[agents] refused`: that guard's reason stands alone.
+3. Each `Issue:` line must be a key of the ledger `<workspace>/cache/issues-started.json`, which `gds issue start`
+   wrote after it checked the window. Missing: refused, with the command to run.
+4. Each `PR:` line must be an open pull request: the hook asks `gh pr view`. Merged, closed or not found: refused. If
+   `gh` cannot answer (offline), the line is let through, as a guard that cannot look never locks a session out.
+5. No such line at all: refused, and the reason shows both forms.
+
+**Labels.** A shell command (`gh issue|pr edit|create`, or a `gh api` call that writes) that adds `S-in-progress` is
+refused (an issue: use `gds issue start`; a pull request: it is in progress by existing and never carries the label),
+and so is one that adds `P-critical` (only the maintainer sets it). Removing labels and reading are allowed.
+
+What the hook cannot see: the window itself (that needs the network, so `gds issue start` checks it before it writes
+the ledger, and the ledger is what the hook trusts); an agent that names a started issue but works on something else;
+labels set through a script, the web page or `gh api --input` bodies. The next `gds issue list` shows an issue in
+progress with no owner, and the weekly hygiene sweep reports labels that sit idle.
 
 ## Proof {#proof}
 
@@ -66,5 +94,6 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
 
 ## Tests
 
-`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path and the learning loop (each
-event's text, the queue gate and its loop guard, and the dispatcher run as a process).
+`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks and the
+learning loop (each event's text, the queue gate and its loop guard, and the dispatcher run as a process).
+`python/tests/test_issues.py` covers the window and `gds issue` against `gh` JSON recorded in `python/tests/fixtures/`.

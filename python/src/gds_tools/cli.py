@@ -8,7 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from gds_tools import capture, refs, sync, workspace
+from gds_tools import capture, issues, refs, sync, workspace
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -148,6 +148,61 @@ def _cmd_sync(args: argparse.Namespace) -> int:
     return 0
 
 
+def _issue_context(args: argparse.Namespace) -> tuple[Path, issues.Settings, Path]:
+    """The workspace, the issue settings for the repository (`--repo`, else the one around the current folder) and the
+    ledger file."""
+    root = workspace.require_workspace()
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    repo = getattr(args, "repo", None) or ""
+    game = root / "repos" / repo.split("/")[-1] if repo else None
+    settings = issues.load_settings(kit, game if game and game.is_dir() else None)
+    if getattr(args, "window", None):
+        settings = issues.Settings(window=args.window, ledger=settings.ledger)
+    return root, settings, root / settings.ledger
+
+
+def _issue_ref(args: argparse.Namespace) -> tuple[str, int]:
+    """`owner/repo#N` of the command, with the current folder's repository for a bare `#N`."""
+    try:
+        return issues.parse_ref(args.ref)
+    except issues.IssueError:
+        return issues.parse_ref(args.ref, issues.default_repo(issues.run_gh))
+
+
+def _cmd_issue_start(args: argparse.Namespace) -> int:
+    repo, number = _issue_ref(args)
+    args.repo = repo
+    _, settings, ledger = _issue_context(args)
+    for line in issues.start(
+        repo, number, args.agent, gh=issues.run_gh, ledger=ledger, size=settings.window, branch=args.branch or ""
+    ):
+        print(line)
+    return 0
+
+
+def _cmd_issue_list(args: argparse.Namespace) -> int:
+    args.repo = args.repo or issues.default_repo(issues.run_gh)
+    _, settings, ledger = _issue_context(args)
+    print("\n".join(issues.list_issues(args.repo, gh=issues.run_gh, ledger=ledger, size=settings.window)))
+    return 0
+
+
+def _cmd_issue_release(args: argparse.Namespace) -> int:
+    repo, number = _issue_ref(args)
+    args.repo = repo
+    _, _, ledger = _issue_context(args)
+    print("\n".join(issues.release(repo, number, gh=issues.run_gh, ledger=ledger, agent=args.agent or "")))
+    return 0
+
+
+def _cmd_issue_done(args: argparse.Namespace) -> int:
+    repo, number = _issue_ref(args)
+    args.repo = repo
+    _, _, ledger = _issue_context(args)
+    print("\n".join(issues.done(repo, number, ledger=ledger)))
+    return 0
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     root = workspace.require_workspace()
     print(f"workspace: {root}")
@@ -225,6 +280,28 @@ def build_parser() -> argparse.ArgumentParser:
     syn.add_argument("--check", action="store_true", help="only report files that differ from the kit")
     syn.set_defaults(func=_cmd_sync)
 
+    iss = sub.add_parser("issue", help="start issues oldest first (docs/starting-work.md)").add_subparsers(
+        dest="cmd", required=True
+    )
+    ref_help = "the issue, as owner/repo#N (#N or N for the repository of the current folder)"
+    start = iss.add_parser("start", help="start an issue if it is in the window: label, assign, comment, ledger")
+    start.add_argument("ref", help=ref_help)
+    start.add_argument("--agent", required=True, help="the agent (or person) that takes it, for the comment and ledger")
+    start.add_argument("--branch", help="the branch of the work, when it is known (recorded in the ledger)")
+    start.add_argument("--window", type=int, help="override the window size for this call (default: hooks.toml)")
+    start.set_defaults(func=_cmd_issue_start)
+    lst = iss.add_parser("list", help="the window, the issues in progress with their owners, the blocked ones")
+    lst.add_argument("repo", nargs="?", help="owner/repo (default: the repository of the current folder)")
+    lst.add_argument("--window", type=int, help="override the window size for this call")
+    lst.set_defaults(func=_cmd_issue_list)
+    rel = iss.add_parser("release", help="put a stopped issue back in the line as S-ready-to-start")
+    rel.add_argument("ref", help=ref_help)
+    rel.add_argument("--agent", help="who stops, for the comment")
+    rel.set_defaults(func=_cmd_issue_release)
+    fin = iss.add_parser("done", help="clear an issue from the ledger (a merged Fixes pull request does it anyway)")
+    fin.add_argument("ref", help=ref_help)
+    fin.set_defaults(func=_cmd_issue_done)
+
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser
 
@@ -238,7 +315,13 @@ def main(argv: list[str] | None = None) -> int:
             return run_quiet_command(argv[1:])
         args = build_parser().parse_args(argv)
         return args.func(args)
-    except (workspace.WorkspaceError, ManifestError, refs.RefsError, capture.CaptureError) as error:
+    except (
+        workspace.WorkspaceError,
+        ManifestError,
+        refs.RefsError,
+        capture.CaptureError,
+        issues.IssueError,
+    ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2
 

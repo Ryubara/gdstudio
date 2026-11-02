@@ -66,3 +66,15 @@ prompt = """GDStudio learning loop: if this message corrects an agent or reports
 Cause not known yet: write the row to {queue}/<slug>.md with a `Waiting on: #N` line, and publish it when the cause is found (a session cannot end with a queued row that is not waiting)."""
 session = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} (the index) for what you are about to solve; they hold what the maintainer already had to point out. When the maintainer corrects you or reports a problem in earlier work, add the row and any lesson in this session."""
 subagent = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} for what you are about to solve. If your task came from a maintainer correction, put the row's text (the maintainer's words, concept missed, detail missed, check for next time) in your final report: the coordinator publishes it, so do not edit that table yourself. If you find a general cause on the way, say so in the report too."""
+
+[issues]
+# Issue order (docs/hooks.md#issues, docs/starting-work.md): issues start oldest first, through `gds issue start`. Only the
+# `window` oldest open issues that are not S-in-progress, S-pending-review, S-blocked or S-needs-info (and that no open
+# pull request closes) may start, P-critical ones first. A game replaces `window` in `.claude/hooks.local.toml`.
+window = 5
+# The record of started issues, relative to the workspace: `gds issue start` writes it, the Agent guard reads it.
+ledger = "cache/issues-started.json"
+# A task agent's prompt must name a started issue (`Issue: owner/repo#N`) or an open pull request it continues
+# (`PR: owner/repo#N`). Agent types that take no task are exempt: the `[agents] helpers` and these.
+enforce = true
+exempt = ["reviewer"]

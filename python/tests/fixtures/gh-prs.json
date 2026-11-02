@@ -1,0 +1,92 @@
+[
+ {
+  "body": "## Summary\r\n\r\nThe weapon now moves with a sprint. While the Soldier sprints on the floor with nothing for the arms to do, a `Sprint_<Class>` carry clip (rifle and shotgun in a two-handed port-arms car",
+  "closingIssuesReferences": [
+   {
+    "number": 459,
+    "repository": {
+     "name": "deadnight",
+     "owner": {
+      "login": "Ryubara"
+     }
+    },
+    "url": "https://github.com/Ryubara/deadnight/issues/459"
+   }
+  ],
+  "labels": [
+   {
+    "name": "S-ci-failing",
+    "description": "Status: a required check failed on the latest commit",
+    "color": "e99695"
+   }
+  ],
+  "number": 525,
+  "title": "gameplay: Add a sprint carry so the weapon swings with the run"
+ },
+ {
+  "body": "## Summary\n\nThe server now judges a shot against the world the shooter saw. A command carries `view_step` (the server step, low 16 bits, of the newest frame its client drew from), `NightServer` rewind",
+  "closingIssuesReferences": [
+   {
+    "number": 54,
+    "repository": {
+     "name": "deadnight",
+     "owner": {
+      "login": "Ryubara"
+     }
+    },
+    "url": "https://github.com/Ryubara/deadnight/issues/54"
+   }
+  ],
+  "labels": [],
+  "number": 514,
+  "title": "net: Add lag compensation by the view step of a command"
+ },
+ {
+  "body": "## Summary\n\nThe `godot` job's exit leak check failed whole test runs with every test green (main's ci twice, #402 and #462 once each: 4 objects and 2 resources, 8 and 2, 1 object). The leaked objects ",
+  "closingIssuesReferences": [
+   {
+    "number": 487,
+    "repository": {
+     "name": "deadnight",
+     "owner": {
+      "login": "Ryubara"
+     }
+    },
+    "url": "https://github.com/Ryubara/deadnight/issues/487"
+   }
+  ],
+  "labels": [
+   {
+    "name": "S-in-progress",
+    "description": "Status: someone is working on it",
+    "color": "5319e7"
+   }
+  ],
+  "number": 513,
+  "title": "tests: Fix the exit leak check failing a passing suite"
+ },
+ {
+  "body": "## Summary\n\nA hip shot now waits for the body to face the view: the server shoots on `shot_ready` (the trigger is held or a press is buffered for 0.6 s, and the body is within 10 degrees of the view, ",
+  "closingIssuesReferences": [
+   {
+    "number": 477,
+    "repository": {
+     "name": "deadnight",
+     "owner": {
+      "login": "Ryubara"
+     }
+    },
+    "url": "https://github.com/Ryubara/deadnight/issues/477"
+   }
+  ],
+  "labels": [
+   {
+    "name": "S-ci-failing",
+    "description": "Status: a required check failed on the latest commit",
+    "color": "e99695"
+   }
+  ],
+  "number": 488,
+  "title": "gameplay: Fix hip fire shooting before the body turns to the view"
+ }
+]

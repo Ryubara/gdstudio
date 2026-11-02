@@ -157,3 +157,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
   ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
+- Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
+  (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
+  ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),
+  [Starting work](../starting-work.md)).
+- Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
+  read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).

@@ -20,8 +20,12 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 
 ## How you work
 
-1. **Issue.** Work from the issue you were given, or open one (`gh issue create`, the task form's sections: From,
-   Summary, Area, What "done" means). Label it `S-in-progress`.
+1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`)
+   or the open pull request you continue (`PR: <owner/repo>#N`); the hooks refuse an agent without one. Confirm it
+   before anything else: `uv run --project <workspace>/repos/gdstudio/python gds issue list` shows your issue in
+   progress with your name. If it is not started, stop and tell whoever started you (docs/starting-work.md). Never set
+   `S-in-progress` or `P-critical` yourself; a follow-up issue you open waits its turn in the line. Open issues with
+   `gh issue create` (the task form's sections: From, Summary, Area, What "done" means).
 2. **Worktree.** `git -C <workspace>/repos/<repo> worktree add <workspace>/worktrees/<repo>/<branch> -b <branch>`; work
    only there. Never commit on `main` (the hooks refuse it).
 3. **Research while working.** Read the Godot docs and the code you touch before changing it. When you learn something
