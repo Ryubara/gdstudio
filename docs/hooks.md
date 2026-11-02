@@ -74,8 +74,21 @@ wrong is written down by the agent that found it, in the same task, and the next
   `docs/lessons/<file>.md` that exists in the kit checkout or one of its worktrees, or the agent is held back once.
   Helpers and the `reviewer` are exempt. Settings: `[docs]` in `hooks.toml`.
 
-What it cannot see: that the listed mistakes are all the agent's mistakes (the report is the agent's own), and a lesson
-file that exists but says nothing; a reviewer reads both.
+- **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
+  (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
+  closes with their labels). It counts as an agent correcting earlier work when its title verb is `Fix` or `Rework`,
+  when a check of `pull_requests.lessons.history_checks` failed on an earlier commit of it, or when an issue it closes
+  is labelled `bug` (the nearest signal to "a fix to an agent-caused issue"). Such a pull request needs
+  `Lessons: docs/lessons/<file>.md` (or a corrections row) in Summary, and `Lessons: none (reason)` is refused for it;
+  elsewhere the line is optional. A pull request that closes an issue needs `Read first: <areas>` naming at least the
+  areas of the issue's labels (`docs/lessons/areas.toml`). A game's conventions add `Kit docs: <kit pull request>` (or
+  `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue (`pull_requests.kit_docs`, same script). If GitHub cannot be
+  asked, the title alone is judged.
+
+What it cannot see: that the listed mistakes are all the agent's mistakes (the report is the agent's own), a lesson
+file that exists but says nothing, and a correction that fails no check and carries no `Fix` title; a reviewer reads
+both. A game takes the `pr-history` command and the three rules when its `.github/scripts/groundwork.py` and
+`conventions.yml` are updated from the kit's, in a pull request of its own.
 
 ## Proof {#proof}
 
