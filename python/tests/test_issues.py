@@ -270,3 +270,176 @@ def test_start_records_the_areas_of_the_issues_labels(tmp_path):
     assert any(line.startswith("areas: general, gameplay") for line in lines)
     issues.start(REPO, 52, "a", gh=FakeGh(), ledger=ledger)  # no map: no areas, still a valid entry
     assert issues.load_ledger(ledger)["ryubara/deadnight#52"]["areas"] == []
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Blocks: the reason in the body, the unblocked list, `block` and `unblock`
+# --------------------------------------------------------------------------------------------------------------------
+
+BY_HAND = "Blocked (coordinator, 2026-11-02): waits on #227 (the bot issues need the zombie rig) before it can start."
+
+
+def blocked(number: int, body: str, *extra: str) -> Issue:
+    return Issue(number, f"issue {number}", frozenset({"S-blocked", *extra}), body=body)
+
+
+def test_the_coordinators_hand_written_line_parses():
+    block = issues.parse_block("## Problem\n\nSomething.\n\n" + BY_HAND + "\n")
+    assert (block.who, block.date) == ("coordinator", "2026-11-02")
+    assert block.waits_on == (("", 227),) and not block.maintainer
+    assert block.reason.startswith("waits on #227 (the bot issues")
+
+
+def test_the_maintainer_and_several_issues_and_other_repositories_parse():
+    mine = issues.parse_block("Blocked (coordinator, 2026-11-02): waits on the maintainer: pick the engine, see #12.")
+    assert mine.maintainer and mine.waits_on == ()
+    several = issues.parse_block("Blocked (agent x, 2026-11-02): waits on #227 and #228 (not #12): bots")
+    assert several.waits_on == (("", 227), ("", 228))  # the reference after the parenthesis is not a blocker
+    other = issues.parse_block("Blocked (coordinator, 2026-11-02): waits on Ryubara/gdstudio#150: the check")
+    assert other.waits_on == (("Ryubara/gdstudio", 150),)
+    assert issues.parse_block("nothing here\nBlocked is a word") is None
+    assert issues.parse_block("") is None
+
+
+def test_the_last_block_line_counts():
+    body = "Blocked (coordinator, 2026-11-01): waits on #1: old\n\nBlocked (coordinator, 2026-11-02): waits on #2: new"
+    assert issues.parse_block(body).waits_on == (("", 2),)
+
+
+def test_a_block_whose_issue_closed_is_unblocked_and_the_rest_stay():
+    line = "Blocked (coordinator, 2026-11-02): waits on #227: bots"
+    open_issues = [
+        make(227),  # still open: the issues behind it stay blocked
+        blocked(1, line),
+        blocked(2, "Blocked (coordinator, 2026-11-02): waits on #300: it closed"),
+        blocked(3, "Blocked (coordinator, 2026-11-02): waits on the maintainer: engine"),
+        blocked(4, "no reason written"),
+        blocked(5, "Blocked (coordinator, 2026-11-02): waits on Ryubara/gdstudio#1: another repository"),
+        blocked(6, "Blocked (coordinator, 2026-11-02): waits on #90: a pull request"),
+    ]
+    prs = [PullRequest(90, "pr", frozenset(), frozenset())]
+    window = issues.compute_window(REPO, open_issues, prs, 5)
+    assert numbers(window.blocked) == [1, 2, 3, 4, 5, 6]
+    assert numbers(window.unblocked) == [2]
+    assert set(window.blocks) == {1, 2, 3, 5, 6}  # #4 gives no reason
+
+
+def test_list_shows_the_reasons_and_the_unblocked_ones(tmp_path):
+    rows = [
+        {"number": 1, "title": "waits on a bot", "labels": [{"name": "S-blocked"}], "body": BY_HAND},
+        {
+            "number": 2,
+            "title": "its blocker closed",
+            "labels": [{"name": "S-blocked"}],
+            "body": BY_HAND.replace("227", "9"),
+        },
+        {"number": 3, "title": "no reason", "labels": [{"name": "S-blocked"}], "body": ""},
+        {"number": 227, "title": "bots", "labels": []},
+    ]
+    gh = FakeGh(issues_json=json.dumps(rows), prs_json="[]")
+    text = "\n".join(issues.list_issues(REPO, gh=gh, ledger=tmp_path / "l.json"))
+    blocked_part, _, unblocked_part = text.partition("Unblocked: label to remove")
+    assert "#1" in blocked_part and "waits on #227 (the bot issues" in blocked_part
+    assert "#3" in blocked_part and "no reason recorded" in blocked_part and "gds issue block" in blocked_part
+    assert "#2" in unblocked_part and "gds issue unblock" in unblocked_part and "#2 " not in blocked_part
+
+
+def test_fetch_asks_for_the_body():
+    asked = []
+
+    def gh(args):
+        asked.append(args)
+        return "[]"
+
+    issues.fetch(REPO, gh)
+    assert "number,title,labels,assignees,body" in asked[0]
+
+
+def gh_for(issue_list: list[dict], prs: str = "[]") -> FakeGh:
+    return FakeGh(issues_json=json.dumps(issue_list), prs_json=prs)
+
+
+def raw(number: int, *labels: str, body: str = "") -> dict:
+    return {"number": number, "title": f"issue {number}", "labels": [{"name": n} for n in labels], "body": body}
+
+
+NOW = datetime(2026, 11, 3, 9, 0, tzinfo=UTC)
+
+
+def test_block_writes_the_label_and_the_line(tmp_path):
+    ledger = tmp_path / "issues-started.json"
+    cache = tmp_path / issues.IDLE_CACHE
+    cache.write_text("{}", encoding="utf-8")
+    gh = gh_for([raw(7, "S-ready-to-start", body="## Problem\n\nText."), raw(227)])
+    lines = issues.block(REPO, 7, "#227", "needs the\nzombie rig", gh=gh, ledger=ledger, now=NOW)
+    edit = gh.calls[0]
+    assert edit[:5] == ["issue", "edit", "7", "-R", REPO]
+    assert edit[edit.index("--body") + 1] == (
+        "## Problem\n\nText.\n\nBlocked (coordinator, 2026-11-03): waits on #227: needs the zombie rig"
+    )
+    assert edit[edit.index("--add-label") + 1] == "S-blocked"
+    assert edit[edit.index("--remove-label") + 1] == "S-ready-to-start"
+    assert "waits on #227" in lines[0]
+    assert not cache.exists()  # the hook must look again
+    block = issues.parse_block(edit[edit.index("--body") + 1])
+    assert block.waits_on == (("", 227),)  # what block writes, parse_block reads
+
+
+def test_block_on_the_maintainer_and_replacing_an_old_line(tmp_path):
+    old = "Blocked (coordinator, 2026-11-01): waits on #5: old"
+    gh = gh_for([raw(7, "S-blocked", body="Text\n\n" + old)])
+    issues.block(REPO, 7, "maintainer", "which engine", gh=gh, ledger=tmp_path / "l.json", who="idle-check", now=NOW)
+    body = gh.calls[0][gh.calls[0].index("--body") + 1]
+    assert body == "Text\n\nBlocked (idle-check, 2026-11-03): waits on the maintainer: which engine"
+    assert issues.parse_block(body).maintainer
+
+
+def test_block_refuses_what_cannot_be_blocked(tmp_path):
+    ledger = tmp_path / "l.json"
+    gh = gh_for([raw(7), raw(8, "S-in-progress"), raw(227)])
+    for number, on, why, text in [
+        (7, "#7", "x", "not another open"),
+        (7, "#999", "x", "not another open"),  # closed or never existed
+        (7, "#227", "  ", "--why"),
+        (8, "#227", "x", "release it"),
+        (404, "#227", "x", "not an open issue"),
+        (7, "nonsense", "x", "not an issue"),
+    ]:
+        with pytest.raises(IssueError, match=text):
+            issues.block(REPO, number, on, why, gh=gh, ledger=ledger, now=NOW)
+    assert gh.calls == []  # nothing was changed
+
+
+def test_block_may_wait_on_an_open_pull_request(tmp_path):
+    prs = json.dumps([{"number": 90, "title": "p", "body": "", "labels": [], "closingIssuesReferences": []}])
+    gh = gh_for([raw(7)], prs=prs)
+    issues.block(REPO, 7, "#90", "needs the check", gh=gh, ledger=tmp_path / "l.json", now=NOW)
+    assert "waits on #90" in gh.calls[0][gh.calls[0].index("--body") + 1]
+
+
+def test_unblock_lifts_the_label_and_the_line_and_keeps_the_reason(tmp_path):
+    cache = tmp_path / issues.IDLE_CACHE
+    cache.write_text("{}", encoding="utf-8")
+    gh = gh_for([raw(7, "S-blocked", body="Text\n\n" + BY_HAND)])
+    lines = issues.unblock(REPO, 7, gh=gh, ledger=tmp_path / "issues-started.json", now=NOW)
+    edit, comment = gh.calls
+    assert edit[edit.index("--remove-label") + 1] == "S-blocked"
+    assert edit[edit.index("--add-label") + 1] == "S-ready-to-start"
+    assert edit[edit.index("--body") + 1] == "Text"
+    assert "Unblocked (2026-11-03)" in comment[-1] and "waits on #227" in comment[-1]
+    assert "unblocked" in lines[0] and not cache.exists()
+    with pytest.raises(IssueError, match="not S-blocked"):
+        issues.unblock(REPO, 7, gh=gh_for([raw(7)]), ledger=tmp_path / "l.json")
+    with pytest.raises(IssueError, match="not an open issue"):
+        issues.unblock(REPO, 8, gh=gh_for([raw(7)]), ledger=tmp_path / "l.json")
+
+
+def test_start_and_release_also_make_the_hook_look_again(tmp_path):
+    ledger = tmp_path / "issues-started.json"
+    cache = tmp_path / issues.IDLE_CACHE
+    cache.write_text("{}", encoding="utf-8")
+    issues.start(REPO, 400, "agent", gh=FakeGh(), ledger=ledger, now=NOW)
+    assert not cache.exists()
+    cache.write_text("{}", encoding="utf-8")
+    issues.release(REPO, 400, gh=gh_for([raw(400, "S-in-progress")]), ledger=ledger)
+    assert not cache.exists()
