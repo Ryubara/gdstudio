@@ -355,6 +355,24 @@ def check_pr_body(words: list[str], cwd: Path, config: dict[str, Any]) -> list[s
     return check_attach(words, cwd, config, read) + check_body(words, cwd, config, read)
 
 
+def attached_names(words: list[str]) -> list[str]:
+    """The file names `--attach` uploads (`path#label` loses its label and its folder)."""
+    return [PurePosixPath(v.split("#", 1)[0]).name for v in flag_values(words, ("--attach",))]
+
+
+#: Where `--attach` puts an upload (`github.com/user-attachments/...`); a stand-in for the check below, never sent.
+UPLOAD_STAND_IN = "https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000"
+
+
+def as_uploaded(body: str, files: list[str]) -> str:
+    """The body as it reads after `--attach` has run: each `](./<file>)` reference to an attached file is the upload's
+    address, which is what the description rules (`pr-rules`) count as a capture. A reference to a file that is not
+    attached stays a local path and is still refused there."""
+    for name in files:
+        body = re.sub(rf"\]\(\s*(?:\./)?{re.escape(name)}\s*\)", f"]({UPLOAD_STAND_IN})", body)
+    return body
+
+
 def check_attach(
     words: list[str], cwd: Path, config: dict[str, Any], read: tuple[str | None, str] | None = None
 ) -> list[str]:
@@ -368,7 +386,7 @@ def check_attach(
         return []
     if not rule.get("enforce", True):
         return []
-    files = [PurePosixPath(v.split("#", 1)[0]).name for v in flag_values(words, ("--attach",))]
+    files = attached_names(words)
     if not files:
         return []
     section = rule.get("section", "Screenshots")
@@ -459,6 +477,7 @@ def check_body(
     body, _ = read or body_of(words, cwd)
     if body is None:
         return []
+    body = as_uploaded(body, attached_names(words))
     repo = pr_checkout(words, cwd)
     module = load_pr_module()
     if repo is None or module is None:

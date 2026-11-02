@@ -249,3 +249,58 @@ def test_one_body_read_serves_both_checks(workspace, monkeypatch):
     reason = denied(shell(f"gh pr edit 7 --body-file {body} --attach {workspace['root']}/after.png", workspace["kit"]))
     assert REASON_NONE in reason and "has no reference" in reason
     assert len(reads) == 1
+
+
+# --- --attach and the description rules agree (kit #186) -------------------------------------------------------------
+
+
+def visual_body(tmp_path: Path, before: str = "./before.png", after: str = "./after.png") -> Path:
+    """good.txt with a Before:/After: pair of `./` references in ## Screenshots, as `gh pr create --attach` wants."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    old = "Screenshots: none (checker code and docs only, nothing visible)"
+    new = f"- **Before:** ![before]({before})\n- **After:** ![after]({after})"
+    assert old in text
+    path = tmp_path / "body.md"
+    path.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
+    return path
+
+
+ATTACHED = "--attach {d}/before.png --attach {d}/after.png"
+
+
+def test_local_references_that_attach_uploads_pass_both_guards(workspace, tmp_path):
+    """Failed first: the description rules saw `./before.png`, not an upload, and refused the Before:/After: pair."""
+    body = visual_body(tmp_path)
+    flags = ATTACHED.format(d=tmp_path)
+    for verb in ("create --title 'godot: Add y'", "edit 7"):
+        assert denied(shell(f"gh pr {verb} --body-file {body} {flags}", workspace["kit"])) == ""
+
+
+def test_the_same_body_without_attach_is_refused(workspace, tmp_path):
+    body = visual_body(tmp_path)
+    reason = denied(shell(f"gh pr create --title 'godot: Add y' --body-file {body}", workspace["kit"]))
+    assert "'Before:' capture" in reason and "'After:' capture" in reason
+
+
+def test_only_the_attached_files_count_as_uploaded(workspace, tmp_path):
+    """Attaching the after capture does not make the before reference an upload."""
+    body = visual_body(tmp_path)
+    reason = denied(
+        shell(f"gh pr create --title 'godot: Add y' --body-file {body} --attach {tmp_path}/after.png", workspace["kit"])
+    )
+    assert "the 'Before:' capture is missing" in reason and "the 'After:' capture is missing" not in reason
+
+
+def test_a_reference_by_bare_name_and_a_labelled_attach_count_too(workspace, tmp_path):
+    body = visual_body(tmp_path, before="before.png", after="./after.png")
+    flags = f"--attach '{tmp_path}/before.png#Before' --attach {tmp_path}/after.png"
+    assert denied(shell(f"gh pr create --title 'godot: Add y' --body-file {body} {flags}", workspace["kit"])) == ""
+
+
+def test_gds_pr_check_body_by_hand_still_wants_uploaded_captures(workspace, tmp_path, capsys):
+    """The command has no `--attach`: a `./` reference is not an upload there, so its answer is unchanged."""
+    body = visual_body(tmp_path)
+    title = tmp_path / "title.txt"
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])], capsys)
+    assert code == 1 and "'Before:' capture" in err
