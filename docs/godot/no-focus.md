@@ -47,7 +47,9 @@ Measured on 2026-11-02 (Playwright 1.64.1, a page that calls `requestPointerLock
 `python/tests/test_quiet_run.py` holds the last row (`test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor`,
 skipped where Chrome is not installed; its probe is `python/tests/browser_lock_probe.py`), and that the grandchildren of
 a command run on the private desktop. Unlike a game, a browser has no `GDS_QUIET` check, so here the 5 ms guard is
-the fix, not the safety net; Chrome does not re-clip every frame the way a capturing game can, and no sample was held.
+the fix, not the safety net; Chrome does not re-clip every frame the way a capturing game can. The test asserts the
+longest time the clip lasted, timed by the probe from inside the lock (under 1 s; 6 ms measured; the whole 2.5 s lock
+without the guard), not a share of samples (kit #166).
 
 ## How it works
 
