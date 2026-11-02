@@ -58,3 +58,10 @@ cut-back edge is nearer in 3D, and that can be the shut room behind it (a differ
 Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stands`, 1.5 m out) and make the test ask
 the map where the path ends, within the bots' 2.5 m
 ([lesson](../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
+
+## A night stepped by hand has a stale map
+
+A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server
+take a new mesh in: a door bought in it leaves the map as it was, so the dead (and the bots) path on the old walls.
+Give the engine a physics frame every few ticks (the soak does one every 30) and wait for the map's answer after a
+purchase, as `SeatedNight.settle` does ([lesson](../lessons/2026-11-02-a-night-stepped-by-hand-never-took-a-bought-doors-mesh.md)).
