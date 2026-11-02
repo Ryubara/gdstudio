@@ -45,6 +45,11 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
   set, so unit tests put a stand-in platform under the grip. Playwright cannot press the browser's own Esc: release
   with `document.exitPointerLock()`. Measured in Deadnight #481: the menu was up 0.6 s after the release.
 
+- **A bench that has no mouse withdraws the request, not only the mode.** A browser probe's test scene that sets the
+  mouse mode to visible after the player asked for the lock reads as a lock lost: the night pauses, the touch layer
+  goes dead and a look drag never turns the view (Deadnight #490). The bench drops the player's request
+  (`grip.want(false)`), and the probe reads `paused` from the page, so the cause is in its message.
+
 Lesson: [Esc in the browser freed the cursor but did not pause the game](../lessons/2026-11-02-esc-in-the-browser-freed-the-cursor-but-did-not-pause.md).
 
 ## Discord Activity: the proxy and the iframe
