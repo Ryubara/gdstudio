@@ -40,6 +40,10 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
   never retry in a loop.
 - **Test it in the browser.** A GdUnit test can set the mouse mode out from under the player; the web smoke must also
   release pointer lock in headless Chromium (`document.exitPointerLock()`) and check the pause screen is up.
+- **What the engine reports.** On the web, `Input.mouse_mode` reads the real pointer-lock state (captured while
+  locked, visible once freed), so poll it each frame. A headless Godot reads the mode back as visible whatever was
+  set, so unit tests put a stand-in platform under the grip. Playwright cannot press the browser's own Esc: release
+  with `document.exitPointerLock()`. Measured in Deadnight #481: the menu was up 0.6 s after the release.
 
 Lesson: [Esc in the browser freed the cursor but did not pause the game](../lessons/2026-11-02-esc-in-the-browser-freed-the-cursor-but-did-not-pause.md).
 

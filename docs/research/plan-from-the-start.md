@@ -34,21 +34,21 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   every platform ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
   ([web export](../godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
-- Plan: pause on a pad's Start, in the build players use (known gap, cause pending,
-  [deadnight #494](https://github.com/Ryubara/deadnight/issues/494)).
+- Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
+  is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
   ([lesson](../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md)).
 - Plan: touch proved in a phone-emulated browser; a finger is also a mouse motion in the web runtime
   ([lesson](../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md)).
-- Plan: multi-touch with two thumbs at once, and hold buttons (aim) that also drag to look (known gap, cause pending,
-  [deadnight #497](https://github.com/Ryubara/deadnight/issues/497)).
+- Plan: multi-touch with two thumbs at once, and hold buttons (aim) that also drag to look; per-finger positions,
+  never `relative` ([lesson](../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md)).
 - Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
   ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
 
 ## Platforms
 
-- Plan: one opening screen everywhere, the main menu, the Discord Activity included (known gap, fix pending,
-  [deadnight #495](https://github.com/Ryubara/deadnight/issues/495)).
+- Plan: one opening screen everywhere, the main menu, the Discord Activity included; a platform shortcut is the
+  maintainer's call ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
 - Plan: store, key-art and Discord asset sizes listed with the first art pass, portrait crops framed with their own
@@ -105,15 +105,15 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 ## Content: weapons, art and animation
 
-- Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained (known gap,
-  [deadnight #461](https://github.com/Ryubara/deadnight/issues/461)).
+- Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
+  ([lesson](../lessons/2026-11-02-weapon-models-sat-without-definitions-or-a-source.md)).
 - Plan: every catalogue entry played through in the real night with the real input
   ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
 - Plan: weapons sized against the hand that holds them, not only the body ([lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
   the kit's clips never move the fingers ([Hands on the weapon](../blender/weapons.md#hands-on-the-weapon)).
-- Plan: what each body layer plays in every movement state (walk, sprint, crouch, air) (known gap,
-  [deadnight #459](https://github.com/Ryubara/deadnight/issues/459)).
+- Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
+  ([lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
   ([lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md)).
 - Plan: kit props and materials on the map as soon as the layout holds
@@ -142,8 +142,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
   ([lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)).
-- Plan: one shared start helper for every browser probe, so a menu change cannot break them (known gap,
-  [deadnight #484](https://github.com/Ryubara/deadnight/issues/484)).
+- Plan: one shared start helper for every browser probe, so a menu change cannot break them
+  ([lesson](../lessons/2026-11-02-each-browser-probe-walked-the-menu-its-own-way.md)).
+- Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
+  ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
   ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
 - Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame
@@ -164,6 +166,8 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
   ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md)).
+- Plan: a stopgap comment names its issue ("until #N"), and closing #N greps for it and resolves it
+  ([lesson](../lessons/2026-11-02-an-until-issue-stopgap-outlived-its-issue.md)).
 - Plan: the PR that finishes a split issue carries `Fixes #N`
   ([lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
