@@ -22,11 +22,12 @@ Anything that fits no other area. (4)
 
 ## gameplay
 
-Rounds, zombies, weapons, the economy, power, bots and balance. (65)
+Rounds, zombies, weapons, the economy, power, bots and balance. (66)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
 | Two chibi heads met in a two-character pose | keep the actor upright with the arms reaching out and down, aim at the belly, and check every two-character clip with both characters in the game capture. | [lesson](../lessons/2026-11-02-two-chibi-heads-met-in-a-two-character-pose.md) |
+| The coordinator gave one mechanic to two agents | the older pull request lands first; the other rebuilds on it and keeps only what is new. | [lesson](../lessons/2026-11-02-the-coordinator-gave-one-mechanic-to-two-agents.md) |
 | The same system was built in two branches at once, and one had to be rebuilt after the other merged | before building a core piece of a system, `gh pr list` and search open and in-progress issues for the subsystem's words (here "revive"); if another branch builds it, build only the part that sits on top (the bleed-out clock, dead players, counts) against its ... | [lesson](../lessons/2026-11-02-same-system-built-in-two-branches.md) |
 | A close, powerful sound needs its first 50 ms, its low end and its level measured, not only its peak | one close report (click, crack, roar, bark, thump) and a short quiet tail; own shots flat; one pitch rule (0.15 semitones) and one level rule (0.5 dB) for every firearm voice; trims with real headroom (no limiter: the web build ignores bus effects); a test of ... | [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md) |
 | A carry limit broke the balance simulator and every test that assumed all weapons were held | model the rule in the simulator with a margin (a weapon replaces the weakest only when it is worth 1.5 times more; the crane is played only when a prize would qualify), then retune only what the gate named (the stampede count). Rework the tests to the rule ... | [lesson](../lessons/2026-11-02-carry-limit-broke-the-simulator-and-tests.md) |
@@ -691,10 +692,11 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (46)
 
 ## process
 
-Agents, coordination, issues, pull requests and documentation. (36)
+Agents, coordination, issues, pull requests and documentation. (38)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
+| The coordinator gave one mechanic to two agents | the older pull request lands first; the other rebuilds on it and keeps only what is new. | [lesson](../lessons/2026-11-02-the-coordinator-gave-one-mechanic-to-two-agents.md) |
 | Tests wrote the player's real settings file | tests and captures use their own settings store, and a test fails if a suite run changes the real file (Deadnight #418, #446). Agents never edit `app_userdata`; they report it. | [lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md) |
 | The sprint sway kept going in the air | the sway takes the grounded state and fades out on the first airborne tick; a test steps through that tick and the capture includes a sprint-jump with the key held (Deadnight #426). | [lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md) |
 | The same system was built in two branches at once, and one had to be rebuilt after the other merged | before building a core piece of a system, `gh pr list` and search open and in-progress issues for the subsystem's words (here "revive"); if another branch builds it, build only the part that sits on top (the bleed-out clock, dead players, counts) against its ... | [lesson](../lessons/2026-11-02-same-system-built-in-two-branches.md) |

@@ -16,7 +16,10 @@ covers well.
 
 ## The loop
 
-1. The coordinator writes an issue (problem first, what "done" means) and starts the right agent on it.
+1. The coordinator writes an issue (problem first, what "done" means) and starts the right agent on it. Two issues
+   that need the same mechanic are never given to two agents at once: one owns it, the other waits on it, and each brief
+   names the open pull requests and files to stay out of
+   ([lesson](lessons/2026-11-02-the-coordinator-gave-one-mechanic-to-two-agents.md)).
 2. The agent works in `<workspace>/worktrees/<repo>/<branch>/`, researching as it goes and writing what the next
    person needs into the game's `docs/research/`.
 3. It proves the work: headless Godot with no errors, and for anything visible, captures it has looked at, in
