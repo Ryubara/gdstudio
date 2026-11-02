@@ -47,7 +47,8 @@ each fall, until about four mixes have landed (with a poll cap).
   ([lesson](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)).
 - Transcribe generated voice takes with ElevenLabs Scribe to catch audio tags read aloud: performed sounds come back
   in brackets, spoken tags as words; Scribe bills the speech character quota
-  ([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)).
+  ([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). The whole voice pipeline, from
+  casting to the game: [Voice lines](../audio/voice-lines.md).
 
 ## Layered gunshots and event-timed sounds
 

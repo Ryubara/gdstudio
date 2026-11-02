@@ -9,6 +9,7 @@ every GDStudio game shares. Each game keeps its own docs site for what is partic
 | --- | --- |
 | [Godot](godot/index.md) | The Godot systems we rely on, what we know, and which need a spike first. |
 | [Blender](blender/index.md) | Cleaning and exporting assets with the pinned Blender. |
+| [Audio](audio/index.md) | Making sound assets outside the engine: voice lines with ElevenLabs. |
 | [Lessons](lessons/index.md) | Problems we hit and how we solved them: search here first. |
 | [Workspace](workspace.md) | The folder layout, the bootstrap, and the pinned Godot and Blender. |
 | [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
