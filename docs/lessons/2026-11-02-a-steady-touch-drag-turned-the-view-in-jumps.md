@@ -19,6 +19,10 @@ areas: [input, camera, web]
   to 0.41 at 30 fps. Measure it with per-frame yaw rows read in the browser (`tools/web_smoke/touch_look_smooth.py` in
   Deadnight), with the page's CPU slowed to phone speed (`Emulation.setCPUThrottlingRate`), and keep a test that drives
   a steady drag through the real input path and counts still frames.
+- **Redone once:** the first smoothing used an exponential share (`1 - exp(-dt / tau)`), which turns a long frame less
+  than its length asks and measured worse on the slow page (variation 0.43 to 0.54 against 0.31 to 0.41). The share is
+  now linear in the frame's length, over a window of at least 2.5 frames: pick the filter by measuring the slow page,
+  not the fast one.
 - **General:** a control that arrives at its own rate (a finger, a gamepad poll, a network update) and drives something
   drawn at another rate is smoothed at the frame, with the rate it was sent at kept in the numbers; test the evenness
   of the output per frame, not only its total.
