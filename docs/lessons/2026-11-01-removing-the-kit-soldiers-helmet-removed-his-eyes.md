@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # Removing the kit Soldier's helmet removed his eyes
 
 2026-11-01

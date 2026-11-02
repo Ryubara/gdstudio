@@ -1,3 +1,6 @@
+---
+areas: [ci, tests]
+---
 # Two pull requests that merged together left a feature wired to nothing
 
 2026-11-01

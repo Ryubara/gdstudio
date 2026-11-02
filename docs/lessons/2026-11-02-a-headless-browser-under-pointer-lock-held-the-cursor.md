@@ -1,3 +1,6 @@
+---
+areas: [input, web]
+---
 # A headless browser under pointer lock held the cursor in an invisible box
 
 2026-11-02

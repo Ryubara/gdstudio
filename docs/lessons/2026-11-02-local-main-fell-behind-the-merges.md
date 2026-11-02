@@ -1,3 +1,6 @@
+---
+areas: [ci, tools]
+---
 # The local main checkouts fell behind the merges
 
 2026-11-02

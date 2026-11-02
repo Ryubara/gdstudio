@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # A packed generated image lost its pixels
 
 2026-11-01

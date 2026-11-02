@@ -1,3 +1,6 @@
+---
+areas: [tests, tools]
+---
 # Slider and toggle click tests failed only when the whole tests/ui folder ran
 
 2026-11-02

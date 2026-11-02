@@ -1,3 +1,6 @@
+---
+areas: [input, godot-ui]
+---
 # Simulated d-pad presses worked alone and were lost in the full run
 
 2026-11-01

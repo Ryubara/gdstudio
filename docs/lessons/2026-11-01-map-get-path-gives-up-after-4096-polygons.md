@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # A path query to an unreachable point failed on a fine navmesh
 
 2026-11-01

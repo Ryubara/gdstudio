@@ -1,3 +1,6 @@
+---
+areas: [input, web]
+---
 # A finger turned the view twice on a phone: the web runtime reads touch pointer moves as the mouse
 
 2026-11-02

@@ -1,3 +1,6 @@
+---
+areas: [godot, godot-ui]
+---
 # F6 on a screen scene shows the screen but never starts what it hosts
 
 2026-11-02

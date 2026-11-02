@@ -1,3 +1,6 @@
+---
+areas: [godot, backend]
+---
 # Node 24 type stripping rejects parameter properties
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # A new `class_name` is unknown to headless runs until an import
 
 - **Saw:** a GdUnit4 run (or any headless script run) of code using a freshly added `class_name` printed `Could not find

@@ -1,3 +1,6 @@
+---
+areas: [godot, input]
+---
 # A windowed Godot takes the keyboard from the person at the machine
 
 2026-11-01

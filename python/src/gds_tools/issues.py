@@ -325,8 +325,10 @@ def start(
     size: int = DEFAULT_WINDOW,
     branch: str = "",
     now: datetime | None = None,
+    areas_for: Callable[[frozenset[str]], list[str]] | None = None,
 ) -> list[str]:
-    """Start an issue if it is in the window: label, assign, comment, ledger. Returns the lines to print."""
+    """Start an issue if it is in the window: label, assign, comment, ledger. Returns the lines to print. `areas_for`
+    maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps for the SubagentStart hook."""
     issues, prs = fetch(repo, gh)
     window = compute_window(repo, issues, prs, size)
     started = load_ledger(ledger)
@@ -341,6 +343,7 @@ def start(
             edit += ["--remove-label", label]
     gh(edit)
     gh(["issue", "comment", str(number), "-R", repo, "--body", f"Started by agent {agent}"])
+    areas = areas_for(issue.labels) if areas_for else []
     started = load_ledger(ledger)
     started[ledger_key(repo, number)] = {
         "repo": repo,
@@ -349,10 +352,12 @@ def start(
         "agent": agent,
         "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "branch": branch,
+        "areas": areas,
     }
     save_ledger(ledger, started)
     return [
         f"started {repo}#{number} ({issue.title}) for agent {agent}",
+        *([f"areas: {', '.join(areas)} (their checks are put into the agent's context at start)"] if areas else []),
         "Put this line in the agent's prompt (the hook looks for it):",
         f"Issue: {repo}#{number}",
     ]

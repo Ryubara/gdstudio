@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # A Callable made from a RefCounted's method went invalid
 
 2026-11-01

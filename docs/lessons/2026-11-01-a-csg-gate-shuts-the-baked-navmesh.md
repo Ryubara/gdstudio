@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # The dead had no path through a gap closed with CSG boards
 
 2026-11-01

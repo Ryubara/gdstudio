@@ -1,3 +1,6 @@
+---
+areas: [audio, tests]
+---
 # The exit leak check failed a passing test run, at random
 
 2026-11-02

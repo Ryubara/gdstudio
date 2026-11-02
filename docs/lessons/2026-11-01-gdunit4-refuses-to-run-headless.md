@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # GdUnit4 refuses to run headless
 
 2026-11-01

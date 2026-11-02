@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # A Godot server bound a port another program already held
 
 2026-11-01

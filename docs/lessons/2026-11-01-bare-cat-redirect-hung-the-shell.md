@@ -1,3 +1,6 @@
+---
+areas: [general]
+---
 # Bare `cat > file` in a shell command hung the tool for two minutes
 
 2026-11-01

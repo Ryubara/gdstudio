@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A navmesh baked from CSG boxes was empty, then 0.5 m too high
 
 2026-11-01

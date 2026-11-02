@@ -1,3 +1,6 @@
+---
+areas: [gameplay, tests]
+---
 # An event field named `type` silently replaced the event's own type
 
 2026-11-01

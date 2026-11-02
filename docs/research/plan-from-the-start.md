@@ -165,3 +165,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [Starting work](../starting-work.md)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+- Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
+  `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
+  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
+  [Mistakes by area](mistakes-by-area.md)).

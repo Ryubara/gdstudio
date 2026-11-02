@@ -1,3 +1,6 @@
+---
+areas: [godot]
+---
 # A script that fails to parse hangs headless Godot
 
 2026-11-01

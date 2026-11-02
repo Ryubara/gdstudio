@@ -1,3 +1,6 @@
+---
+areas: [camera, godot-ui]
+---
 # Hip fire was a second, partial aim, and the gun snapped into aim
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # A material made for each shot rebuilt its GL programs at every shot
 
 2026-11-01

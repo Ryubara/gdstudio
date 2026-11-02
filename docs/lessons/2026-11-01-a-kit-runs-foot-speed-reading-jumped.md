@@ -1,3 +1,6 @@
+---
+areas: [gameplay, input]
+---
 # A kit Run's planted-foot speed jumped with small changes
 
 2026-11-01

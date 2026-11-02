@@ -1,3 +1,6 @@
+---
+areas: [backend, tools]
+---
 # Deploying a throwaway Dockerfile service with the Railway CLI
 
 2026-11-01

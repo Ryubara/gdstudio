@@ -1,3 +1,6 @@
+---
+areas: [process, gameplay]
+---
 # WebFetch could not read PDF sources
 
 2026-11-01

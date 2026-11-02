@@ -1,3 +1,6 @@
+---
+areas: [audio, godot]
+---
 # Every shot and kill hitched the web build: each Ogg start cost about a millisecond
 
 2026-11-01

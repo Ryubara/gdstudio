@@ -1,3 +1,6 @@
+---
+areas: [blender, web]
+---
 # Blender's glTF export wrote finger channels a clip never keyed
 
 2026-11-02

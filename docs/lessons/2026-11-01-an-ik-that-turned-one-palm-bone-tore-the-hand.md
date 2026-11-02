@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # An IK that turned one palm bone tore the hand
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [tests, gameplay]
+---
 # A night test failed only after another night test: the last test's level was still standing
 
 2026-11-01

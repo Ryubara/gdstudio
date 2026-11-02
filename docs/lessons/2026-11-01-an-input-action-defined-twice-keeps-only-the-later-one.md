@@ -1,3 +1,6 @@
+---
+areas: [input, godot]
+---
 # An input action defined twice in project.godot kept only the later binding
 
 2026-11-01

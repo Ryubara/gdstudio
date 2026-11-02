@@ -1,3 +1,6 @@
+---
+areas: [blender, tools]
+---
 # Cleaned kit clips idled with the arms out
 
 2026-11-01

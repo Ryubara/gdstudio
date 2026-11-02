@@ -1,3 +1,6 @@
+---
+areas: [process]
+---
 # New agent definitions invisible to a running session
 
 2026-11-01

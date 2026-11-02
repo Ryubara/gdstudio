@@ -1,3 +1,6 @@
+---
+areas: [godot, godot-ui]
+---
 # Shader noise showed diagonal stripes
 
 2026-11-01

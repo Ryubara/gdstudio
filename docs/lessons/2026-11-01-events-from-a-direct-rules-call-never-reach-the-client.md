@@ -1,3 +1,6 @@
+---
+areas: [net, godot-ui]
+---
 # A test that called the rules directly never reached the HUD
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, web]
+---
 # The first draw of the lot was one eleven-second frame
 
 2026-11-01

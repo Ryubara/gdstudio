@@ -1,3 +1,6 @@
+---
+areas: [audio, web]
+---
 # In the web export, sounds played as samples ignore bus effects
 
 2026-11-01

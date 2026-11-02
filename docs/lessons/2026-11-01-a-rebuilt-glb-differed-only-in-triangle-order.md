@@ -1,3 +1,6 @@
+---
+areas: [blender, gameplay]
+---
 # A rebuilt glb differed from the committed one with no change to the model
 
 2026-11-01

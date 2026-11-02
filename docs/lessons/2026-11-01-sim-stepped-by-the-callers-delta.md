@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # A "fixed step" simulation was fixed only by convention
 
 2026-11-01

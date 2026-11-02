@@ -1,3 +1,6 @@
+---
+areas: [tests, gameplay]
+---
 # A Tween never advanced in a test that steps the game by hand
 
 2026-11-01

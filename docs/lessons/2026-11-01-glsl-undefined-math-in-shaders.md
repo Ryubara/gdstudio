@@ -1,3 +1,6 @@
+---
+areas: [godot, web]
+---
 # Shader math that is undefined in GLSL ES 3.0 passed on a desktop GPU
 
 2026-11-01

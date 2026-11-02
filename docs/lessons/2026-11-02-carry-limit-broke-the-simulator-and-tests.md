@@ -1,3 +1,6 @@
+---
+areas: [gameplay, tests]
+---
 # A carry limit broke the balance simulator and every test that assumed all weapons were held
 
 2026-11-02

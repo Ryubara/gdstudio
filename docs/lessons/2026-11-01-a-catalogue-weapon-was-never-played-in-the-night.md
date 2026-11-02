@@ -1,3 +1,6 @@
+---
+areas: [gameplay, tests]
+---
 # A catalogue weapon was never played in the night: the crowbar was a bat, swung nothing and hurt nothing
 
 2026-11-01

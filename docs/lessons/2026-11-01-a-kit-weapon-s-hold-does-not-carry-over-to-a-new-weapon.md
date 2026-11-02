@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # A kit weapon's hold does not carry over to a new weapon
 
 2026-11-01

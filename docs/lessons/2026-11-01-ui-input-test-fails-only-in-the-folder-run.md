@@ -1,3 +1,6 @@
+---
+areas: [input, tests]
+---
 # A UI input test passes alone and fails in the folder run
 
 2026-11-01

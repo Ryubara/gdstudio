@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # Meshes parented to a cleaned armature land at the feet
 
 2026-11-01

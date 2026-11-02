@@ -1,3 +1,6 @@
+---
+areas: [audio, process]
+---
 # Voice lines written as captions sounded robotic
 
 2026-11-01

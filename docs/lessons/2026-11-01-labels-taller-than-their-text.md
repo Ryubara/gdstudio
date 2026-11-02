@@ -1,3 +1,6 @@
+---
+areas: [godot-ui, godot]
+---
 # A label's rectangle is taller than its text, and SHRINK_END aligns boxes, not baselines
 
 2026-11-01

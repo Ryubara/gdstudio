@@ -1,3 +1,6 @@
+---
+areas: [gameplay, blender]
+---
 # An exported zombie Idle stood in a T-pose
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [blender, tools]
+---
 # An authored clip swung the gun behind the head
 
 2026-11-01

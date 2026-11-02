@@ -1,3 +1,6 @@
+---
+areas: [web, godot]
+---
 # `*.json` was said to be missing from a web export; in Godot 4.7.2 it is not
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # Tests that wait physics frames but read process-driven nodes flake under load
 
 2026-11-01

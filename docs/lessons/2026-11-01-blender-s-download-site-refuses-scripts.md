@@ -1,3 +1,6 @@
+---
+areas: [blender, tools]
+---
 # Blender's download site refuses scripts
 
 2026-11-01

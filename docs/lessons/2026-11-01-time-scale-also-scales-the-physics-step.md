@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # `Engine.time_scale` gave a headless bot a coarser fixed step
 
 2026-11-01

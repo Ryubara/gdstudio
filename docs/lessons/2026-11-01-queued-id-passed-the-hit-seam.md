@@ -1,3 +1,6 @@
+---
+areas: [gameplay, process]
+---
 # A hit on a queued zombie killed it and paid the shooter
 
 2026-11-01

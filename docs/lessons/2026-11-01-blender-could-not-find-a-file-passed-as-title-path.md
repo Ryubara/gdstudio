@@ -1,3 +1,6 @@
+---
+areas: [blender, tools]
+---
 # Blender could not find a file passed as Title=path
 
 2026-11-01

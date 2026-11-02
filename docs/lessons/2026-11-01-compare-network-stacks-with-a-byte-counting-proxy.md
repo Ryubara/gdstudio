@@ -1,3 +1,6 @@
+---
+areas: [net, tools]
+---
 # Two network stacks were hard to compare: no shared hook for bytes, latency or loss
 
 2026-11-01

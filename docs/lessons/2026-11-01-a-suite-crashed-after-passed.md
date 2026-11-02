@@ -1,3 +1,6 @@
+---
+areas: [tests, godot]
+---
 # A test suite crashed the engine after printing PASSED
 
 2026-11-01

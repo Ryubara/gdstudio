@@ -1,3 +1,6 @@
+---
+areas: [godot, gameplay]
+---
 # A new navigation region answers path queries only after a few map iterations
 
 2026-11-01

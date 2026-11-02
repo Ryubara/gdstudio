@@ -1,3 +1,6 @@
+---
+areas: [camera, godot]
+---
 # A hand-blended camera left the body stepping at 144 Hz
 
 2026-11-01

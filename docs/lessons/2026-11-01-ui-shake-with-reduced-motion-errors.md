@@ -1,3 +1,6 @@
+---
+areas: [camera, godot]
+---
 # A shake under reduced motion printed "Tween started with no Tweeners"
 
 2026-11-01

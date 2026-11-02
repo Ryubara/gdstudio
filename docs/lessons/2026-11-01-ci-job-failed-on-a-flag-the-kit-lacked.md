@@ -1,3 +1,6 @@
+---
+areas: [ci, net]
+---
 # A CI job passed a kit flag that the checked-out kit did not have yet
 
 2026-11-01

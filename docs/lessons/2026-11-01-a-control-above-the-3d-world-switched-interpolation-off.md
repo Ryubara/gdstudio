@@ -1,3 +1,6 @@
+---
+areas: [camera, tests]
+---
 # A fix proved in a test room never reached the game: a Control above the 3D world switched interpolation off
 
 2026-11-01

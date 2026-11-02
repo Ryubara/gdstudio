@@ -1,3 +1,6 @@
+---
+areas: [tests, web]
+---
 # A new prompt hung every test and browser smoke that passed through the flow
 
 2026-11-02

@@ -1,3 +1,6 @@
+---
+areas: [blender, godot]
+---
 # A weapon held with Godot's hold numbers sat wrong on a glTF bone in Blender
 
 2026-11-01

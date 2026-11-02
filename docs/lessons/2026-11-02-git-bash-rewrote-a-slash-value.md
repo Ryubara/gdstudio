@@ -1,3 +1,6 @@
+---
+areas: [tools, net]
+---
 # Git Bash rewrote a value that started with a slash
 
 2026-11-02

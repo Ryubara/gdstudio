@@ -1,3 +1,6 @@
+---
+areas: [godot, ci]
+---
 # Two scripts with the same class name broke the project after a merge
 
 2026-11-01

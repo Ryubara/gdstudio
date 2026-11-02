@@ -1,3 +1,6 @@
+---
+areas: [net, godot]
+---
 # A length guard silently dropped every valid packet
 
 2026-11-01

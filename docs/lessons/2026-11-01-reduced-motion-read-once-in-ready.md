@@ -1,3 +1,6 @@
+---
+areas: [godot, net]
+---
 # Reduced motion did not reach nodes that were already running
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [godot, blender]
+---
 # An async navigation bake called back into a freed node
 
 2026-11-01

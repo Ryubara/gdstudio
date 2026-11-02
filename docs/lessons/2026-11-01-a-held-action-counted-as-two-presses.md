@@ -1,3 +1,6 @@
+---
+areas: [input, godot]
+---
 # A single key press produced two jump or swap commands
 
 2026-11-01

@@ -1,3 +1,6 @@
+---
+areas: [blender]
+---
 # Editing a running bash script corrupted the run
 
 2026-11-01

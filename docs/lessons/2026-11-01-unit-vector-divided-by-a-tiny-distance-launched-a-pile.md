@@ -1,3 +1,6 @@
+---
+areas: [tests, gameplay]
+---
 # Coincident bodies were thrown 66 m by a separation push
 
 2026-11-01

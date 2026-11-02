@@ -1,3 +1,6 @@
+---
+areas: [godot, tests]
+---
 # A capture scene's waits were ten times too short in Movie Maker
 
 2026-11-01

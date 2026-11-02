@@ -1,3 +1,6 @@
+---
+areas: [web, godot]
+---
 # The browser pass had no browser: drive headless Chrome directly
 
 2026-11-01
