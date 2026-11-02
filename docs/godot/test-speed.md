@@ -32,3 +32,11 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 
 See also [a physics frame per tick](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
 and [Engine.time_scale](../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
+
+## One clock per test
+
+A test that holds packets for real milliseconds (a `LinkConditioner`, a ping) while its loop counts physics frames has
+two clocks, and a slow runner pulls them apart. Give the real-time part an injectable clock driven by the frame count
+(Deadnight's `WebSocketLink.clock`), count every wait in frames, and prove it by slowing each frame with
+`OS.delay_msec`: the numbers of the run must not move
+([lesson](../lessons/2026-11-02-a-bad-network-test-waited-in-wall-seconds-while-the-game-ran-in-frames.md)).
