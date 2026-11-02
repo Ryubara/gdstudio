@@ -50,3 +50,11 @@ is 0.8 m of mesh after the erosion, which the bake's cell rounding closes for mo
 neighbouring cars, four are open to the mesh and the rest are a 12 to 34 m detour. A test that crosses "every car gap"
 must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions
 ([lesson](../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
+
+## A goal in a wall
+
+A point inside a wall, a closed door's slab or a counter is no goal for a path: it snaps to whichever side of the wall's
+cut-back edge is nearer in 3D, and that can be the shut room behind it (a different island), so the path ends far short.
+Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stands`, 1.5 m out) and make the test ask
+the map where the path ends, within the bots' 2.5 m
+([lesson](../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
