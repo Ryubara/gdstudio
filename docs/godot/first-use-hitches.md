@@ -137,6 +137,30 @@ Other things the load profile found (Deadnight #509, Compatibility, web):
 - Replaying effects once per light condition is worth nothing when their materials are unlit: check the programs each
   condition links (0 here).
 
+## Particle systems: two programs of their own, and a sample that expires
+
+A `GPUParticles3D` draws with two programs besides the level's: the one that **moves the particles** (built from its
+`ParticleProcessMaterial`: 845 ms at its first run with ANGLE on Direct3D 11, and a second variant of it about 0.85 s
+later) and the one that **draws each particle** (the draw pass's material: an unshaded standard material costs its four
+variants at the default specialisation, plus the ones it is drawn with, 6 programs of 30 ms). Measured in Deadnight #502,
+the first flare shot of a night in Chrome: 10 programs and a 1.8 s frame, and an 8-program hitch again at a flare thrown
+after the first one's fire had burned out. Two things in a warm-up leave them out:
+
+- **A sample effect that frees itself by the clock expires before it is drawn.** Effects count their life in frame
+  deltas; a warm-up frame that builds a program takes seconds, so a sample made to live 0.2 s is freed on the first
+  frame after it starts, before any frame draws it. Keep the sample alive for the frames you hold, and free it by hand.
+- **Pins that skip particle systems.** Keeping every `MeshInstance3D`'s mesh and materials alive does not keep a
+  `GPUParticles3D`'s `process_material` or its draw passes' meshes and materials: they go with the effect, and the
+  shaders and programs go with them. Pin them (`get_draw_pass_mesh(i)` for `i < draw_passes`; reading `draw_pass_2` of a
+  system with one pass is an engine error). A draw ledger must list particle systems by process material and draw
+  material too, or a test cannot see this (a `GPUParticles3D` is not a `MeshInstance3D`).
+- A system moves its particles in the frame after it starts and draws them in the one after, so hold the sample for
+  three frames.
+
+Test the fix by firing the effect in the browser three times (the first, one soon after, one after its fire is out) and
+counting the programs linked in the seconds after each trigger (Deadnight `tools/web_smoke/flare_first.py`): 10, 0 and 8
+programs before, 0, 0 and 0 after, and the worst frame after the first shot from 1.8 s to 7 to 36 ms.
+
 ## Testing it
 
 - **No program linked after the loading screen** in a browser run (the counter above) is the real test.
