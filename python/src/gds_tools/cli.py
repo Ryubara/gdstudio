@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -62,13 +64,21 @@ def _cmd_capture_clip(args: argparse.Namespace) -> int:
 GODOT_TIMEOUT = capture.GODOT_TIMEOUT
 
 
+QUIET_TIMEOUT = GODOT_TIMEOUT
+
+
 def split_godot_args(argv: list[str]) -> tuple[float, list[str]]:
     """`gds godot [--timeout SECONDS] [--] <godot arguments>`: the timeout and the arguments that go to Godot.
 
     Done by hand because argparse rejects Godot's own options (`--path`, `--headless`) in front of a positional.
     """
+    return split_quiet_args(argv, GODOT_TIMEOUT)
+
+
+def split_quiet_args(argv: list[str], default_timeout: float = QUIET_TIMEOUT) -> tuple[float, list[str]]:
+    """`[--timeout SECONDS] [--] <the rest>`: the timeout and the rest, untouched (the rest is another program's)."""
     rest = list(argv)
-    timeout = float(GODOT_TIMEOUT)
+    timeout = float(default_timeout)
     if rest[:1] == ["--timeout"]:
         if len(rest) < 2:
             raise workspace.WorkspaceError("--timeout needs a number of seconds")
@@ -87,6 +97,30 @@ def run_godot_command(argv: list[str]) -> int:
     timeout, rest = split_godot_args(argv)
     root = workspace.require_workspace()
     godot = workspace.tool_path("godot", root)
+    return _stream_quiet([str(godot), *rest], timeout, "godot")
+
+
+def run_quiet_command(argv: list[str]) -> int:
+    """Run any command (and every program it starts) on the private desktop with the cursor kept free: a browser
+    probe under pointer lock, a test runner, a script that starts Godot (docs/godot/no-focus.md)."""
+    timeout, rest = split_quiet_args(argv)
+    if not rest:
+        raise workspace.WorkspaceError("usage: gds quiet [--timeout SECONDS] -- <command> [arguments]")
+    return _stream_quiet(resolve_program(rest), timeout, rest[0])
+
+
+def resolve_program(cmd: list[str]) -> list[str]:
+    """`cmd` with its program found on PATH: CreateProcess runs only an .exe it is given by name, so a batch file
+    (`npx.cmd`, `pnpm.cmd`) goes through `cmd /c`."""
+    found = shutil.which(cmd[0])
+    if not found:
+        return cmd
+    if found.lower().endswith((".cmd", ".bat")):
+        return [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", found, *cmd[1:]]
+    return [found, *cmd[1:]]
+
+
+def _stream_quiet(cmd: list[str], timeout: float, name: str) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
 
@@ -94,9 +128,9 @@ def run_godot_command(argv: list[str]) -> int:
         sys.stdout.write(text)
         sys.stdout.flush()
 
-    outcome = run_quiet([str(godot), *rest], timeout=timeout, on_output=show)
+    outcome = run_quiet(cmd, timeout=timeout, on_output=show)
     if outcome.timed_out:
-        print(f"gds: godot did not finish within {timeout:g} s and was stopped", file=sys.stderr)
+        print(f"gds: {name} did not finish within {timeout:g} s and was stopped", file=sys.stderr)
         return 124
     return outcome.returncode
 
@@ -160,6 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
         "godot",
         help="run the pinned Godot without taking the keyboard focus: gds godot [--timeout S] [--] <godot arguments>",
     )
+    sub.add_parser(
+        "quiet",
+        help="run any command (a browser probe, a script) on the private desktop with the cursor kept free: "
+        "gds quiet [--timeout S] -- <command>",
+    )
 
     cap = sub.add_parser("capture", help="frames, contact sheets and clips as proof").add_subparsers(
         dest="cmd", required=True
@@ -195,6 +234,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if argv[:1] == ["godot"]:
             return run_godot_command(argv[1:])
+        if argv[:1] == ["quiet"]:
+            return run_quiet_command(argv[1:])
         args = build_parser().parse_args(argv)
         return args.func(args)
     except (workspace.WorkspaceError, ManifestError, refs.RefsError, capture.CaptureError) as error:

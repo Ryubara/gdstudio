@@ -36,7 +36,8 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    report. **Every Godot that opens a window (captures, autopilots, GdUnit without `--headless`) runs through
    `uv run --project <workspace>/repos/gdstudio/python gds godot -- <arguments>`**: it starts Godot on a private
    Windows desktop, so it never takes the keyboard or cursor from the person using the machine (a hook refuses the
-   plain start; `docs/godot/no-focus.md`).
+   plain start; `docs/godot/no-focus.md`). **Every local browser probe (Playwright, `tools/web_smoke/*.py`) runs
+   through `... gds quiet -- <command>`** the same way: headless Chrome under pointer lock clips the real cursor.
    **Test it yourself, never hand testing to a person**: simulate input (keys, mouse, `InputEventJoypadButton`) in
    GdUnit4, drive playtests with headless bots or an autopilot that sends the same commands a player would, check
    audio by analysis (peaks, loudness, spectra), and run web builds in Chrome. "Nobody has tried it" is unfinished.
