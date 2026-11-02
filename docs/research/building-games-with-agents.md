@@ -38,6 +38,8 @@ copy to do the same on another engine.
 - Agent definitions changed in the kit but not in the game; `gds sync` now follows every roster change.
 - The maintainer caught many design gaps first (camera, HUD, art, numbers against the reference); see
   [What the maintainer caught](maintainer-corrections.md).
+- Many gaps were never considered when the game was first built; the checklist for the next game is
+  [What to plan from the start](plan-from-the-start.md).
 
 ## Reproduce it on another engine
 

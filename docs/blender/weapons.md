@@ -22,6 +22,11 @@ scale 0.21-0.42), so their transform does not carry over to a weapon at true siz
 of the character holding it beside the kit one. A kit hold puts the weapon in the hand, but not the fingers on it:
 for that, solve each weapon's grip from its own sockets ([Hands on the weapon](#hands-on-the-weapon)).
 
+**Hand guns.** The kit file's Revolver copy is rescaled like the AK's, so use the Shotgun hold for every gun, and size
+one-handed guns against the hand ([Hands on the weapon](#hands-on-the-weapon),
+[lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)). Sweep a bent bar as one tube; boxes give a
+bend a saw-tooth edge.
+
 **Thrown weapons.** The kit characters carry no kit grenade, so a grenade has no kit hold to copy. Model it standing up
 along +Z with the origin in the body's centre (the fist), and give each moving part its own node, origin at its
 pivot (Deadnight's `Pin` slides out, its `Spoon` swings off its hinge). In Godot the gun hold turned 90 degrees about

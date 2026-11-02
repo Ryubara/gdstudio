@@ -286,6 +286,45 @@ def check_godot_window(words: list[str], config: dict[str, Any]) -> list[str]:
     ]
 
 
+_RUNNERS = {"python", "python3", "py", "node", "npx", "pnpm", "bunx", "playwright"}
+_NOT_A_RUN = {"install", "install-deps", "uninstall", "--version", "-V", "--help", "-h", "show-report"}
+
+
+def wrapped_in_quiet(words: list[str]) -> bool:
+    """True for a command run through `gds quiet` (any `gds` program followed by `quiet`)."""
+    return any(program([w]) == "gds" and nxt == "quiet" for w, nxt in zip(words, words[1:], strict=False))
+
+
+def runs_browser_probe(words: list[str], config: dict[str, Any]) -> bool:
+    """True for a command that runs a local browser probe: a script on a probe path (`tools/web_smoke/*.py`) or a
+    Playwright run (`playwright test`, `npx playwright ...`, `uv run --with playwright ... python x.py`)."""
+    rules = config.get("tools", {})
+    names = [program([w]) for w in words]
+    runner = next((i for i, n in enumerate(names) if n in _RUNNERS), None)
+    if runner is None:
+        return False
+    after = words[runner + 1 :]
+    if any(matches(w, rules.get("browser_probes", ["**/web_smoke/*.py"])) for w in after):
+        return True
+    if not any(m in w.lower() for w in words for m in rules.get("browser_markers", ["playwright"])):
+        return False
+    if any(w in _NOT_A_RUN for w in words[1:]):  # `playwright install chromium`, `pip install playwright`: no browser
+        return False
+    if names[runner] in ("python", "python3", "py"):
+        return "-c" in after or any(w.endswith(".py") for w in after)
+    return True
+
+
+def check_browser_probe(words: list[str], config: dict[str, Any]) -> list[str]:
+    """A local browser probe under pointer lock clips the person's real cursor to its hidden window."""
+    if wrapped_in_quiet(words) or not runs_browser_probe(words, config):
+        return []
+    return [
+        "a headless browser under pointer lock clips the real cursor of the person at the machine to its hidden "
+        "window; run the probe with `uv run --project <kit>/python gds quiet -- <command>` (docs/godot/no-focus.md)"
+    ]
+
+
 _DUMPS = {"env", "printenv"}
 _PRINTERS = {
     "echo",
@@ -371,6 +410,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             reasons += check_merge(words, cwd)
         reasons += check_tools(words, config)
         reasons += check_godot_window(words, config)
+        reasons += check_browser_probe(words, config)
         reasons += check_kill(words, config)
         reasons += check_secrets(words, command, config)
     return list(dict.fromkeys(reasons))

@@ -68,6 +68,30 @@ each fall, until about four mixes have landed (with a poll cap).
   the shot sometimes 0.3 s in, and no seed to repeat one. Trim to where it first rises within 34 dB of its peak,
   normalise to a fixed peak, fade the end, keep loops untrimmed, and keep the prompt with the file.
 
+## Close and powerful sounds
+
+A gun "sounding distant" is measured on a recording of the real shot through the real buses, not read off the files
+(Deadnight #455, [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)):
+
+- Measure per sound: peak, loudness (LUFS) against the bed it plays over, the share of energy in the first 50 ms,
+  band energies, and the spread of pitch and level across a burst. Give every family of sounds one written pitch and
+  level rule and pin it in a test.
+- A centred sound in an `AudioStreamPlayer3D` is 6 dB under the same file in an `AudioStreamPlayer` (the engine's 3D
+  pan law): the player's own gun plays flat.
+- A hard-clipped file decodes from Ogg Vorbis up to +1.5 dB over its PCM peak (ffmpeg `astats` on the decoded float):
+  leave 2 to 3 dB of headroom in the trim.
+- Never put a sound's power in a bus effect: the web build plays samples, which ignore bus effects and the distance
+  filter (see [Web: samples or streams](#web-samples-or-streams)).
+- ffmpeg's `ebur128=framelog=verbose` prints its momentary values only at `-v verbose`.
+
+## Starting sounds
+
+Measured in Deadnight's web build (Chrome, RTX 5080, #402): starting an Ogg Vorbis `AudioStreamPlayer` costs about
+0.8 ms (headers and codebooks are read again on every `play()`), a PCM one about 0.3 ms, and a 40 s Ogg bed 43 ms. A
+frame that starts six sounds pays six times. Decode short sounds (up to 2.5 s) to `AudioStreamWAV` with
+`AudioStreamPlayback.mix_audio` while loading, cap starts per frame and defer the rest, and start beds silent and
+paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+
 ## A crowd's voices (the dead)
 
 - **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one

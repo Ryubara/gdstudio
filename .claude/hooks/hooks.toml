@@ -43,6 +43,10 @@ names = ["godot", "blender"]
 # A Godot started straight from a shell opens a window that takes the keyboard focus; only these flags mean it does
 # not (otherwise `gds godot` runs it on a private desktop, docs/godot/no-focus.md).
 windowless_flags = ["--headless", "--version", "--help", "-h"]
+# A local browser probe (headless Chrome under pointer lock) clips the person's real cursor to its hidden window, so it
+# runs through `gds quiet` too: scripts on these paths, and any Python or Node run whose command names a marker.
+browser_probes = ["**/web_smoke/*.py"]
+browser_markers = ["playwright", "puppeteer"]
 
 [proof]
 # The Stop gate (docs/hooks.md#proof): a session that changed visual files in a game repository ends only once a

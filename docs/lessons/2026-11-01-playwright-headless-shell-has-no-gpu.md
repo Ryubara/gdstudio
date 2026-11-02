@@ -8,4 +8,6 @@
   needs its own browser build (`playwright install chromium-headless-shell`).
 - **Fix:** record software numbers as "it runs without a GPU", never gate on them; for real-GPU numbers launch
   `channel="chrome"`.
+- **Several pages:** a headless smoke with three or four pages at once (players in one room) stalled the third and
+  fourth page on software GL on a shared machine; launch it with the GPU (`--gpu`, `channel="chrome"`).
 - **Docs:** Deadnight `docs/research/web-export.md`.

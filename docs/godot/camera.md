@@ -45,3 +45,18 @@ blend takes it to zero.
 - **Combine the two** by multiplying the turns, and let the sway give way while a shot's shake is up.
 - **"Very subtle" is a number.** Deadnight settled on sway peaks of 0.3 degrees pitch, 0.15 yaw and 0.2 roll, and at
   most 0.5 degrees for any shot; a test holds each bound, and a player setting scales both to zero.
+
+## Projecting world points to the HUD
+
+From Deadnight's world markers and teammate names (#430):
+
+- `Camera3D.unproject_position` returns coordinates in the viewport's visible rect; divide by its size for a share of
+  the screen.
+- Behind the lens it divides by a negative depth, so a point straight behind lands near the middle of the screen. Use
+  `is_position_behind`, and pin an off-screen marker to the edge from camera-space `x` and `|z|` instead.
+- Project the drawn body (`get_global_transform_interpolated()`), and run the projection at a late
+  `process_priority` so it follows a camera that places itself in `_process`.
+- A test that reads what a `_process` pushed awaits two idle frames: `await get_tree().process_frame` returns before
+  that frame's `_process` calls.
+- Another `Camera3D` entering the tree (a second body in the same process) can become current; call `make_current()`
+  after any join ([lesson](../lessons/2026-11-01-a-second-body-took-the-current-camera.md)).

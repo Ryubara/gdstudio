@@ -7,4 +7,7 @@
 - **Fix:** open with `newline=""` (or `newline="\n"`) for writing, or use the Edit tool, or run `sed -i 's/\r$//'` on
   the touched files before committing. `.gitattributes` keeps LF in the repository, but the noisy diffs also make
   later exact-text edits fail to match.
+- **Reading too:** a script that reads a CRLF working copy and searches for `\n` strings misses them silently and
+  edits nothing (Deadnight challenges, #429): open with `newline=""` and normalise `\r\n` before matching, then
+  check the edit landed.
 - **Docs:** none yet; a note for agents that edit files with Python on Windows.

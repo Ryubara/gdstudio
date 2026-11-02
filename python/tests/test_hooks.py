@@ -94,6 +94,27 @@ def test_a_windowed_godot_goes_through_gds(tmp_path):
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
 
 
+def test_a_browser_probe_goes_through_gds_quiet(tmp_path):
+    reason = "clips the real cursor"
+    probe = "uv run --with playwright==1.64.1 python tools/web_smoke/hip_fire.py build/web build/hip-fire --gpu"
+    assert reason in denied(shell(probe, tmp_path))
+    assert reason in denied(shell("cd ../deadnight && python tools\\web_smoke\\pointer_lock.py build/web", tmp_path))
+    assert reason in denied(shell("uv run --with playwright python scratch/lock.py", tmp_path))
+    assert reason in denied(shell("npx playwright test", tmp_path))
+    assert reason in denied(
+        {**shell("& python tools/web_smoke/touch_look.py b o", tmp_path), "tool_name": "PowerShell"}
+    )
+    kit = "uv run --project ../gdstudio/python gds quiet"
+    assert denied(shell(f"{kit} -- {probe}", tmp_path)) == ""
+    assert denied(shell(f"{kit} --timeout 600 -- npx playwright test", tmp_path)) == ""
+    assert denied(shell("uv run --with playwright python -m playwright install chromium", tmp_path)) == ""
+    assert denied(shell("npx playwright install", tmp_path)) == ""
+    assert denied(shell("uv pip install playwright", tmp_path)) == ""
+    assert denied(shell("git add tools/web_smoke/hip_fire.py && cat tools/web_smoke/smoke.py", tmp_path)) == ""
+    assert denied(shell("uv run --project python pytest", tmp_path)) == ""
+    assert denied(shell("ruff check tools/web_smoke/hip_fire.py", tmp_path)) == ""
+
+
 def test_shared_tools_never_killed_by_name(tmp_path):
     reason = "killing by name"
     assert reason in denied(shell("taskkill /F /IM Godot_v4.7.2-stable_win64_console.exe", tmp_path))
