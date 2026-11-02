@@ -51,6 +51,9 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   `uv run --project python gds quiet -- <command>`: headless Chrome under pointer lock traps the person's cursor.
 - Before committing: `uvx pre-commit run --all-files` (installed once with `uvx pre-commit install`).
 - Docs: `uvx --with-requirements requirements-docs.txt mkdocs build --strict`.
+- Start work: only `uv run --project python gds issue start <owner/repo>#N --agent <name>` (the oldest ready issues first,
+  `P-critical` before them; `gds issue list` shows them); a task agent's prompt carries `Issue: <owner/repo>#N` or
+  `PR: <owner/repo>#N` (`docs/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
 
 ## Commits and pull requests
 

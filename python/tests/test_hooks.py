@@ -390,3 +390,134 @@ def test_session_start_pulls_the_local_main(mains, workspace):
     head = _advance(origin, "2\n")
     assert "game: main pulled" in context("SessionStart", workspace)
     assert _git(local, "rev-parse", "HEAD") == head
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Issue order (docs/hooks.md#issues)
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def agent_call(workspace: Path, kind: str | None, prompt: str = "") -> dict:
+    inp = {"prompt": prompt, **({"subagent_type": kind} if kind else {})}
+    return {"hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": inp, "cwd": str(workspace)}
+
+
+def start_in_ledger(workspace: Path, *refs: str) -> None:
+    """Write the ledger the way `gds issue start` does (through its own code, so the two keys cannot drift apart)."""
+    from gds_tools import issues
+
+    ledger = workspace / "cache" / "issues-started.json"
+    started = issues.load_ledger(ledger)
+    for ref in refs:
+        repo, number = issues.parse_ref(ref)
+        started[issues.ledger_key(repo, number)] = {"repo": repo, "number": number, "agent": "t"}
+    issues.save_ledger(ledger, started)
+
+
+def test_a_task_agent_needs_a_started_issue(workspace):
+    reason = denied(agent_call(workspace, "godot-engineer", "Fix the crosshair.\nIssue: Ryubara/deadnight#523"))
+    assert "was not started with `gds issue start`" in reason and "Ryubara/deadnight#523" in reason
+    assert "gds issue start Ryubara/deadnight#523 --agent <name>" in reason
+    none = denied(agent_call(workspace, "backend-engineer", "Build the lobby API."))
+    assert "names none" in none and "`Issue: <owner/repo>#N`" in none and "`PR: <owner/repo>#N`" in none
+    for kind in ("godot-engineer", "backend-engineer", "blender-artist", "claude"):
+        assert denied(agent_call(workspace, kind, "no issue here")) != ""
+
+
+def test_a_started_issue_lets_the_agent_start(workspace):
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    for prompt in (
+        "Issue: Ryubara/deadnight#523\nBuild the outline shader.",
+        "Task text\n- Issue: `Ryubara/deadnight#523`",
+        "issue: ryubara/DEADNIGHT#523 (lower case is fine)",
+    ):
+        assert denied(agent_call(workspace, "godot-engineer", prompt)) == ""
+    assert "was not started" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#524"))
+    assert "was not started" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/gdstudio#523"))
+
+
+def test_the_issue_must_head_a_line_not_sit_in_the_middle_of_prose(workspace):
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    assert "names none" in denied(agent_call(workspace, "godot-engineer", "See Issue: Ryubara/deadnight#523 maybe"))
+
+
+def test_helpers_and_reviewers_need_no_issue(workspace):
+    for kind in ("Explore", "Plan", "fork", "web-fetch", "claude-code-guide", "reviewer"):
+        assert denied(agent_call(workspace, kind, "look at this")) == ""
+
+
+def test_work_on_an_existing_pull_request_names_it(workspace, monkeypatch):
+    states = {"7": "OPEN", "8": "MERGED", "9": "MISSING", "10": None}
+    monkeypatch.setattr(guards, "pr_state", lambda repo, number: states[number])
+    assert denied(agent_call(workspace, "godot-engineer", "Resolve the conflicts.\nPR: Ryubara/deadnight#7")) == ""
+    assert denied(agent_call(workspace, "reviewer", "PR: Ryubara/deadnight#7")) == ""
+    assert "not an open pull request" in denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#8"))
+    assert "not an open pull request" in denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#9"))
+    # gh cannot tell (offline): the guard lets the call through rather than lock the session out
+    assert denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#10")) == ""
+
+
+def test_a_pull_request_line_does_not_stand_in_for_an_unstarted_issue(workspace, monkeypatch):
+    monkeypatch.setattr(guards, "pr_state", lambda repo, number: "OPEN")
+    prompt = "PR: Ryubara/deadnight#7\nIssue: Ryubara/deadnight#523"
+    assert "Ryubara/deadnight#523 was not started" in denied(agent_call(workspace, "godot-engineer", prompt))
+
+
+def test_no_enforcement_outside_a_workspace_or_when_switched_off(tmp_path, workspace):
+    assert denied(agent_call(tmp_path.parent, "godot-engineer", "no issue")) == ""
+    off = {**CONFIG, "issues": {**CONFIG["issues"], "enforce": False}}
+    assert dispatch.answer(agent_call(workspace, "godot-engineer", "no issue"), off) is None
+
+
+def test_refused_agent_types_get_one_reason_not_two(workspace):
+    reason = denied(agent_call(workspace, "general-purpose", "x"))
+    assert "no instructions" in reason and "names none" not in reason
+
+
+def test_a_games_local_config_can_exempt_an_agent(workspace):
+    local = {**CONFIG, "issues": {**CONFIG["issues"], "exempt": ["reviewer", "godot-engineer"]}}
+    assert dispatch.answer(agent_call(workspace, "godot-engineer", "no issue"), local) is None
+
+
+def test_ledger_keys_agree_between_hook_and_tool():
+    from gds_tools import issues
+
+    assert guards.ledger_key("Ryubara/Deadnight", "523") == issues.ledger_key("Ryubara/Deadnight", 523)
+
+
+def test_the_label_of_progress_is_not_set_by_hand(tmp_path):
+    by_hand = "`S-in-progress` is set only by `gds issue start"
+    assert by_hand in denied(shell("gh issue edit 523 --add-label S-in-progress", tmp_path))
+    assert by_hand in denied(shell("gh issue edit 523 -R Ryubara/deadnight --add-label=S-in-progress", tmp_path))
+    assert by_hand in denied(shell('gh issue edit 523 --add-label "bug,S-in-progress"', tmp_path))
+    assert by_hand in denied(shell("gh issue create --title x --body y --label S-in-progress", tmp_path))
+    assert by_hand in denied(shell("gh issue create -l task -l S-in-progress", tmp_path))
+    assert by_hand in denied(shell("cd x && gh issue edit 5 --add-label S-in-progress", tmp_path))
+    assert by_hand in denied(shell("gh api repos/o/r/issues/5/labels -f 'labels[]=S-in-progress'", tmp_path))
+    assert by_hand in denied(
+        {**shell("& gh issue edit 5 --add-label S-in-progress", tmp_path), "tool_name": "PowerShell"}
+    )
+
+
+def test_a_pull_request_never_carries_the_progress_label(tmp_path):
+    reason = "a pull request is in progress by existing"
+    assert reason in denied(shell("gh pr edit 525 --add-label S-in-progress", tmp_path))
+    assert reason in denied(shell("gh pr create --fill --label S-in-progress", tmp_path))
+
+
+def test_only_the_maintainer_sets_p_critical(tmp_path):
+    reason = "only the maintainer sets P-critical"
+    assert reason in denied(shell("gh issue edit 400 --add-label P-critical", tmp_path))
+    assert reason in denied(shell("gh issue create --label task,P-critical --title x", tmp_path))
+    assert reason in denied(shell("gh pr edit 5 --add-label P-critical", tmp_path))
+
+
+def test_other_label_work_is_allowed(tmp_path):
+    assert denied(shell("gh issue edit 5 --add-label S-blocked", tmp_path)) == ""
+    assert denied(shell("gh issue edit 5 --remove-label S-in-progress --add-label S-ready-to-start", tmp_path)) == ""
+    assert denied(shell("gh issue create --label task --label A-hooks --title x", tmp_path)) == ""
+    assert denied(shell("gh issue list --label S-in-progress", tmp_path)) == ""
+    assert denied(shell("gh api 'repos/o/r/issues?labels=S-in-progress' --method GET", tmp_path)) == ""
+    assert denied(shell("gh pr list --label P-critical", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds issue start Ryubara/deadnight#523 --agent a", tmp_path)) == ""
+    assert denied(shell("echo 'gh issue edit 5 --add-label S-in-progress' > note.txt", tmp_path)) == ""

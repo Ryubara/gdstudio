@@ -1,0 +1,195 @@
+[
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   }
+  ],
+  "number": 52,
+  "title": "net: Measure latency over Railway and through Discord's proxy"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   }
+  ],
+  "number": 54,
+  "title": "net: Add lag compensation for hit detection"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   }
+  ],
+  "number": 57,
+  "title": "net: Pack more entity kinds and add interest management"
+ },
+ {
+  "assignees": [],
+  "labels": [],
+  "number": 105,
+  "title": "gameplay: Follow up the zombie crowd (model, browser numbers, interpolation)"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   },
+   {
+    "name": "S-needs-triage",
+    "description": "Status: not yet looked at",
+    "color": "ededed"
+   },
+   {
+    "name": "A-gameplay",
+    "description": "Area: rounds, players, zombies, weapons, the economy, power and light",
+    "color": "c5def5"
+   }
+  ],
+  "number": 156,
+  "title": "gameplay: Profile the night server tick in the late rounds"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   },
+   {
+    "name": "A-gameplay",
+    "description": "Area: rounds, players, zombies, weapons, the economy, power and light",
+    "color": "c5def5"
+   }
+  ],
+  "number": 171,
+  "title": "gameplay: Run the autopilot night from the browser to measure big crowds"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   },
+   {
+    "name": "S-in-progress",
+    "description": "Status: someone is working on it",
+    "color": "5319e7"
+   },
+   {
+    "name": "A-gameplay",
+    "description": "Area: rounds, players, zombies, weapons, the economy, power and light",
+    "color": "c5def5"
+   }
+  ],
+  "number": 285,
+  "title": "gameplay: Show every weapon in hand and hold the rest like the rifle"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   },
+   {
+    "name": "P-critical",
+    "description": "Priority: the default branch is broken; drop everything",
+    "color": "b60205"
+   },
+   {
+    "name": "S-ready-to-start",
+    "description": "Status: triaged and accepted; waiting for someone",
+    "color": "0e8a16"
+   }
+  ],
+  "number": 400,
+  "title": "CI failing on the default branch: ci"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "enhancement",
+    "description": "A new feature or an improvement",
+    "color": "a2eeef"
+   },
+   {
+    "name": "S-in-progress",
+    "description": "Status: someone is working on it",
+    "color": "5319e7"
+   }
+  ],
+  "number": 459,
+  "title": "gameplay: Add a sprint carry so the weapon swings with the run"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "A-gameplay",
+    "description": "Area: rounds, players, zombies, weapons, the economy, power and light",
+    "color": "c5def5"
+   }
+  ],
+  "number": 477,
+  "title": "gameplay: Fix hip fire shooting before the body turns to the aim"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "S-in-progress",
+    "description": "Status: someone is working on it",
+    "color": "5319e7"
+   },
+   {
+    "name": "A-tests",
+    "description": "Area: test-only changes",
+    "color": "c5def5"
+   }
+  ],
+  "number": 487,
+  "title": "tests: Fix the exit leak check failing on a passing suite"
+ },
+ {
+  "assignees": [],
+  "labels": [
+   {
+    "name": "task",
+    "description": "A piece of work for a maintainer or an agent",
+    "color": "0e8a16"
+   },
+   {
+    "name": "S-blocked",
+    "description": "Status: waiting for another issue or a decision",
+    "color": "000000"
+   },
+   {
+    "name": "A-art",
+    "description": "Area: models, textures, materials, shaders and animations",
+    "color": "c5def5"
+   }
+  ],
+  "number": 527,
+  "title": "art: Rebuild the rifle and shotgun sprint carries on the solved hand grips"
+ }
+]

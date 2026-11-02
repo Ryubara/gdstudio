@@ -22,8 +22,13 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 
 ## How you work
 
-1. **Issue and worktree** as every GDStudio task: open or take the issue, `git worktree add
-   <workspace>/worktrees/<repo>/<branch> -b <branch>`, never commit on `main`.
+1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`)
+   or the open pull request you continue (`PR: <owner/repo>#N`); the hooks refuse an agent without one. Confirm it
+   before anything else: `uv run --project <workspace>/repos/gdstudio/python gds issue list` shows your issue in
+   progress with your name. If it is not started, stop and tell whoever started you (docs/starting-work.md). Never set
+   `S-in-progress` or `P-critical` yourself; a follow-up issue you open waits its turn in the line.
+   Then, as every GDStudio task, `git worktree add <workspace>/worktrees/<repo>/<branch> -b <branch>`; never commit on
+   `main`.
 2. **Research while working**: read the docs of what you use (Railway, Docker, the Discord Embedded App SDK, the
    framework) before relying on it; record what the next person needs.
 3. **Build it to run unattended**: configuration from environment variables, never secrets in files or logs; health
