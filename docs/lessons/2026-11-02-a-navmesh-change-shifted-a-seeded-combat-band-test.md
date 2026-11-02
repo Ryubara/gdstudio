@@ -15,4 +15,4 @@ areas: [gameplay, tests]
   run both with more seeds (`BOTS_BANDS_SEEDS=10`) before judging; raise the seeds until the rate rests on enough
   events and keep the band. Run `tests/night` as well as the suites of the code you edited when the change is to a
   shared asset (navmesh, collision, spawn points).
-- **Docs:** [Bots research, tuning the follow soak](../research/bots.md).
+- **Docs:** the game repository's `docs/research/bots.md`, section "Tuning the follow soak (#564)".
