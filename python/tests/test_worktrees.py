@@ -311,3 +311,119 @@ def test_merge_main_needs_a_trailer_a_clean_tree_and_a_work_branch(world):
         worktrees.merge_main(made.path, resume=True)
     with pytest.raises(WorktreeError, match="merge main into a work branch"):
         worktrees.merge_main(world["checkout"])
+
+
+# --- a takeover reuses the worktree the issue already has (kit issue #199) ----------------------------------------
+
+
+def old_worktree(world, branch="ui-fix-quick-join", number_title="ui: Fix quick join"):
+    """A worktree an earlier agent worked in: one commit and one uncommitted file."""
+    path = world["worktrees"] / "deadnight" / branch
+    git(world["checkout"], "worktree", "add", "--no-track", "-b", branch, str(path), "origin/main")
+    (path / "done.txt").write_text("committed work\n", encoding="utf-8")
+    git(path, "add", "-A")
+    git(path, "commit", "-q", "-m", "ui: Fix quick join")
+    (path / "wip.txt").write_text("not committed\n", encoding="utf-8")
+    return path
+
+
+def prepare_for(world, **kwargs):
+    from gds_tools import cli
+
+    return cli._prepare_worktree(world["root"], REPO, "", **kwargs)
+
+
+def issue_526():
+    return issues.Issue(number=526, title="ui: Fix quick join", labels=frozenset())
+
+
+def test_a_takeover_gets_the_worktree_the_issue_already_has(world, monkeypatch):
+    path = old_worktree(world)
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = prepare_for(world)(issue_526())
+    assert Path(done.path) == path.resolve() or Path(done.path).samefile(path)
+    assert done.branch == "ui-fix-quick-join"
+    assert any("1 commit(s) ahead" in line and "1 changed file(s)" in line for line in done.lines)
+    assert any(line.startswith("hooks:") for line in done.lines)
+    assert (path / "done.txt").is_file() and (path / "wip.txt").is_file()
+    assert [p.name for p in (world["worktrees"] / "deadnight").iterdir()] == ["ui-fix-quick-join"]
+    done.undo()  # a failed start never removes an agent's work
+    assert (path / "wip.txt").is_file() and git(world["checkout"], "branch", "--list", "ui-fix-quick-join")
+
+
+def test_the_reused_worktree_has_its_hooks_checked(world, monkeypatch):
+    old_worktree(world)
+    installed = []
+    monkeypatch.setattr(
+        worktrees, "install_hooks", lambda tree, git=worktrees.run: (installed.append(tree), fake_install(tree))
+    )
+    done = prepare_for(world)(issue_526())
+    assert len(installed) == 1 and any("installing them" in line for line in done.lines)
+    assert (worktrees.hooks_dir(Path(done.path)) / "pre-push").is_file()
+
+
+def test_the_branch_with_the_issue_number_is_found_too(world, monkeypatch):
+    old_worktree(world, branch="ui-fix-quick-join-526")
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    assert prepare_for(world)(issue_526()).branch == "ui-fix-quick-join-526"
+
+
+def test_the_ledger_branch_finds_a_worktree_whose_title_changed(world, monkeypatch, tmp_path):
+    old_worktree(world, branch="renamed-title")
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    ledger = tmp_path / "ledger.json"
+    issues.save_ledger(ledger, {"ryubara/deadnight#526": {"branch": "renamed-title"}})
+    assert prepare_for(world, ledger=ledger)(issue_526()).branch == "renamed-title"
+
+
+def test_a_branch_the_ledger_gives_to_another_issue_is_not_taken(world, monkeypatch, tmp_path):
+    old_worktree(world)
+    ledger = tmp_path / "ledger.json"
+    issues.save_ledger(ledger, {"ryubara/deadnight#400": {"branch": "ui-fix-quick-join"}})
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    # the same title as issue 400's: its worktree is left alone and this issue gets its own, named with its number
+    done = prepare_for(world, ledger=ledger)(issue_526())
+    assert done.branch == "ui-fix-quick-join-526"
+
+
+def test_no_earlier_worktree_makes_a_new_one_as_before(world, monkeypatch):
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = prepare_for(world)(issue_526())
+    assert done.branch == "ui-fix-quick-join" and any(
+        line.startswith("branch ui-fix-quick-join from origin") for line in done.lines
+    )
+    done.undo()
+    assert list((world["worktrees"] / "deadnight").iterdir()) == []
+
+
+def test_two_candidates_are_refused_and_named(world):
+    old_worktree(world)
+    old_worktree(world, branch="ui-fix-quick-join-526")
+    with pytest.raises(issues.IssueError, match="2 worktrees") as raised:
+        prepare_for(world)(issue_526())
+    assert "ui-fix-quick-join:" in str(raised.value) and "ui-fix-quick-join-526:" in str(raised.value)
+    assert len(list((world["worktrees"] / "deadnight").iterdir())) == 2
+
+
+def test_branch_chooses_between_two_candidates(world, monkeypatch):
+    from gds_tools import cli
+
+    old_worktree(world)
+    old_worktree(world, branch="ui-fix-quick-join-526")
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = cli._prepare_worktree(world["root"], REPO, "ui-fix-quick-join-526")(issue_526())
+    assert done.branch == "ui-fix-quick-join-526"
+
+
+def test_fresh_makes_a_new_worktree_beside_the_old_one(world, monkeypatch):
+    old = old_worktree(world)
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = prepare_for(world, fresh=True)(issue_526())
+    assert done.branch == "ui-fix-quick-join-526" and Path(done.path) != old
+    assert (old / "wip.txt").is_file() and not (Path(done.path) / "done.txt").exists()
+
+
+def test_a_removed_worktree_folder_is_not_reused(world, monkeypatch):
+    old = old_worktree(world)
+    shutil.rmtree(old, ignore_errors=True)  # git still lists it, as prunable
+    assert worktrees.checked_out(world["checkout"], world["worktrees"] / "deadnight") == {}

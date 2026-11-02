@@ -200,24 +200,42 @@ def _issue_ref(args: argparse.Namespace) -> tuple[str, int]:
         return issues.parse_ref(args.ref, issues.default_repo(issues.run_gh))
 
 
-def _prepare_worktree(root: Path, repo: str, branch: str) -> Callable[[issues.Issue], issues.Prepared]:
+def _prepare_worktree(
+    root: Path, repo: str, branch: str, *, fresh: bool = False, ledger: Path | None = None
+) -> Callable[[issues.Issue], issues.Prepared]:
     """What `issues.start` runs once the window allows the start: the branch and worktree of the issue, with the git
-    hooks of the repository verified (docs/starting-work.md#worktree)."""
+    hooks of the repository verified (docs/starting-work.md#worktree). A worktree the issue already has (a takeover) is
+    reused with its hooks checked, unless `fresh`; two candidates are refused."""
     name = repo.split("/")[-1]
     checkout = root / "repos" / name
+    folder = root / "worktrees" / name
 
     def prepare(issue: issues.Issue) -> issues.Prepared:
         try:
-            made = worktrees.create(checkout, root / "worktrees" / name, issue.title, issue.number, branch=branch)
+            found = []
+            if not fresh and (checkout / ".git").exists():
+                entries = issues.load_ledger(ledger) if ledger else {}
+                mine = issues.ledger_key(repo, issue.number)
+                others = frozenset(e.get("branch", "") for key, e in entries.items() if key != mine) - {""}
+                known = entries.get(mine, {}).get("branch", "")
+                found = worktrees.existing(
+                    checkout, folder, issue.title, issue.number, branch=branch, known=known, others=others
+                )
+            if found:
+                made = worktrees.reuse(found)
+                undo: Callable[[], None] = lambda: None  # noqa: E731  # it holds an agent's work: never removed
+                lines = [f"branch {made.branch} (existing)", f"worktree {made.path.as_posix()}", *made.hooks]
+            else:
+                made = worktrees.create(checkout, folder, issue.title, issue.number, branch=branch)
+                undo = lambda: worktrees.remove(checkout, made.path, made.branch)  # noqa: E731
+                lines = [
+                    f"branch {made.branch} from origin {made.base[:10]}",
+                    f"worktree {made.path.as_posix()}",
+                    *made.hooks,
+                ]
         except worktrees.WorktreeError as error:
             raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
-        where = made.path.as_posix()
-        return issues.Prepared(
-            branch=made.branch,
-            path=where,
-            lines=[f"branch {made.branch} from origin {made.base[:10]}", f"worktree {where}", *made.hooks],
-            undo=lambda: worktrees.remove(checkout, made.path, made.branch),
-        )
+        return issues.Prepared(branch=made.branch, path=made.path.as_posix(), lines=lines, undo=undo)
 
     return prepare
 
@@ -237,7 +255,9 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
         size=settings.window,
         branch=args.branch or "",
         areas_for=areas.for_labels if areas else None,
-        prepare=None if args.no_worktree else _prepare_worktree(root, repo, args.branch or ""),
+        prepare=None
+        if args.no_worktree
+        else _prepare_worktree(root, repo, args.branch or "", fresh=args.fresh, ledger=ledger),
     ):
         print(line)
     return 0
@@ -413,6 +433,11 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--agent", required=True, help="the agent (or person) that takes it, for the comment and ledger")
     start.add_argument("--branch", help="the name of the branch to make (default: from the issue title)")
     start.add_argument("--no-worktree", action="store_true", help="do not make the branch and worktree (no code work)")
+    start.add_argument(
+        "--fresh",
+        action="store_true",
+        help="make a new branch and worktree even when the issue already has one (default: reuse it, a takeover)",
+    )
     start.add_argument("--window", type=int, help="override the window size for this call (default: hooks.toml)")
     start.set_defaults(func=_cmd_issue_start)
     lst = iss.add_parser("list", help="the window, the issues in progress with their owners, the blocked ones")
