@@ -13,7 +13,10 @@ areas: [input, web]
   player's controls stayed on with the mouse no longer captured.
 - **Fix:** pause on the loss of capture: when capture is expected and the real mouse mode is no longer captured (or the
   window loses focus), open the pause menu in that frame; no look or fire while unlocked; Resume re-locks from its
-  click. A browser test releases the lock and checks the pause screen.
+  click. A browser test releases the lock and checks the pause screen. In Deadnight #481 the grip polls
+  `Input.mouse_mode` each frame (the web reports the real lock); unit tests need a stand-in platform, since headless
+  Godot reads the mode back as visible; the browser test calls `document.exitPointerLock()`, as Playwright cannot
+  press the browser's Esc.
 - **General:** any web game with mouse look meets this on its first playable night. Design the pause around the lock,
   not around a key the browser may keep.
 - **Docs:** [Web export](../godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night),
