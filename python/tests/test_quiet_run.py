@@ -99,6 +99,24 @@ def test_a_cursor_clip_on_the_hidden_desktop_does_not_hold_the_real_cursor() -> 
     assert clip() == free
 
 
+def test_gds_godot_plays_no_sound_unless_asked() -> None:
+    dummy = ["--audio-driver", "Dummy"]
+    assert cli.mute_godot(["--path", "game"]) == [*dummy, "--path", "game"]
+    assert cli.mute_godot([]) == dummy
+    assert cli.mute_godot(["--path", "g", "--audio-driver", "WASAPI"]) == ["--path", "g", "--audio-driver", "WASAPI"]
+    assert cli.mute_godot(["--audio-driver=WASAPI"]) == ["--audio-driver=WASAPI"]
+    assert cli.mute_godot(["--path", "game"], with_audio=True) == ["--path", "game"]
+
+
+def test_with_audio_is_an_option_of_gds_godot_in_either_order() -> None:
+    timeout = cli.GODOT_TIMEOUT
+    assert cli.parse_godot_args(["--path", "g"]) == (timeout, False, ["--path", "g"])
+    assert cli.parse_godot_args(["--with-audio", "--path", "g"]) == (timeout, True, ["--path", "g"])
+    assert cli.parse_godot_args(["--with-audio", "--timeout", "5", "--", "--path", "g"]) == (5.0, True, ["--path", "g"])
+    assert cli.parse_godot_args(["--timeout", "5", "--with-audio", "--", "--path", "g"]) == (5.0, True, ["--path", "g"])
+    assert cli.parse_godot_args(["--timeout", "5", "--", "--headless"]) == (5.0, False, ["--headless"])
+
+
 def test_godot_arguments_are_split_from_the_timeout() -> None:
     assert cli.split_godot_args(["--path", "game"]) == (cli.GODOT_TIMEOUT, ["--path", "game"])
     assert cli.split_godot_args(["--timeout", "30", "--", "--headless"]) == (30.0, ["--headless"])

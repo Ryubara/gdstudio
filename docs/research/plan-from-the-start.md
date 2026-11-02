@@ -131,6 +131,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 ## Test infrastructure
 
+- Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
+  `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
+  ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
   ([lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)).
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them (known gap,

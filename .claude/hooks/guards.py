@@ -405,6 +405,38 @@ def check_godot_window(words: list[str], config: dict[str, Any]) -> list[str]:
     ]
 
 
+def runs_gds_godot(words: list[str]) -> bool:
+    """True for a command run through `gds godot` (any `gds` program followed by `godot`)."""
+    return any(program([w]) == "gds" and nxt == "godot" for w, nxt in zip(words, words[1:], strict=False))
+
+
+def audio_driver(words: list[str]) -> str | None:
+    """The value of the `--audio-driver` option in a command, lower-case, or None when it does not set one."""
+    for word, nxt in zip(words, [*words[1:], ""], strict=False):
+        if word == "--audio-driver":
+            return nxt.lower()
+        if word.startswith("--audio-driver="):
+            return word.partition("=")[2].lower()
+    return None
+
+
+def check_godot_audio(words: list[str], config: dict[str, Any]) -> list[str]:
+    """A Godot an agent starts plays through the speakers of the person at the machine unless its audio driver is
+    Dummy. `--headless` and Movie Maker force Dummy and `gds godot` adds it, so only a launch that asks for another
+    driver (or for `gds godot --with-audio`, which a person types in their own shell) is refused."""
+    if not (launches_godot(words) or runs_gds_godot(words)):
+        return []
+    driver = audio_driver(words)
+    wants_sound = (driver is not None and driver != "dummy") or (runs_gds_godot(words) and "--with-audio" in words)
+    if not wants_sound:
+        return []
+    return [
+        "agents never listen, and a Godot with a real audio driver plays through the speakers of the person at the "
+        "machine; drop `--audio-driver` / `--with-audio`: `gds godot`, `--headless` and Movie Maker use "
+        "`--audio-driver Dummy`, which still runs the mixer the audio checks read (docs/godot/no-focus.md#sound)"
+    ]
+
+
 _RUNNERS = {"python", "python3", "py", "node", "npx", "pnpm", "bunx", "playwright"}
 _NOT_A_RUN = {"install", "install-deps", "uninstall", "--version", "-V", "--help", "-h", "show-report"}
 
@@ -533,6 +565,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             reasons += check_labels(words)
         reasons += check_tools(words, config)
         reasons += check_godot_window(words, config)
+        reasons += check_godot_audio(words, config)
         reasons += check_browser_probe(words, config)
         reasons += check_kill(words, config)
         reasons += check_secrets(words, command, config)

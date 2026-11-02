@@ -94,6 +94,25 @@ def test_a_windowed_godot_goes_through_gds(tmp_path):
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
 
 
+def test_a_godot_with_real_audio_is_refused(tmp_path):
+    reason = "agents never listen"
+    pinned = '"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe"'
+    assert reason in denied(shell(f"{pinned} --headless --audio-driver WASAPI --path game", tmp_path))
+    assert reason in denied(shell(f"{pinned} --headless --audio-driver=WASAPI --path game", tmp_path))
+    assert reason in denied(shell("uv run --project python gds godot -- --audio-driver WASAPI --path game", tmp_path))
+    assert reason in denied(shell("uv run --project python gds godot --with-audio -- --path game", tmp_path))
+    assert reason in denied({**shell("& $godot --audio-driver WASAPI", tmp_path), "tool_name": "PowerShell"})
+    # Dummy is the point; --headless, Movie Maker and gds godot use it without the flag; other commands are not Godot.
+    assert denied(shell(f"{pinned} --headless --audio-driver Dummy --path game", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds godot -- --audio-driver Dummy --path game", tmp_path)) == ""
+    assert denied(shell(f"{pinned} --headless --path game --import", tmp_path)) == ""
+    assert denied(shell(f"{pinned} --headless --path game --export-release Web build/index.html", tmp_path)) == ""
+    assert denied(shell("$(uv run --project python gds tool path godot) --version", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds godot --path game --write-movie x.png", tmp_path)) == ""
+    assert denied(shell("uv run --project python gds tool path godot --audio-driver", tmp_path)) == ""
+    assert denied(shell("echo --audio-driver WASAPI", tmp_path)) == ""
+
+
 def test_a_browser_probe_goes_through_gds_quiet(tmp_path):
     reason = "clips the real cursor"
     probe = "uv run --with playwright==1.64.1 python tools/web_smoke/hip_fire.py build/web build/hip-fire --gpu"
