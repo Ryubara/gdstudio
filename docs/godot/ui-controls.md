@@ -60,3 +60,15 @@ and what its build showed: `docs/research/mobile-controls.md` there.
   `ensure_control_visible` two frames after showing a field the player must reach. Test the panel's size in a
   `SubViewport` of 1280 x 720 with every optional line shown
   ([lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
+
+## A menu over a live game
+
+- **Do not push a screen over a game that must keep running.** `UIRouter` disables the screen it covers
+  (`process_mode = DISABLED`), which is right for a solo night and wrong for a multiplayer one (the link is no longer
+  read). Hold the sub-screen (settings) as a child of the menu instead, with a `closed` signal for its Back, and take
+  Esc, B and Start in the owner: the child's own `ui_cancel` must go back one step, not resume
+  ([lesson](../lessons/2026-11-02-a-menu-pushed-on-the-router-froze-the-night-behind-it.md)).
+- **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
+  ("Menu: the night goes on around you", not "Paused").
+- **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
+  replayed to a waiter that comes after it.
