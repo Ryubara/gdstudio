@@ -688,7 +688,7 @@ The gds CLI, hooks, the workspace, pinned tools and the shared machine. (46)
 
 ## process
 
-Agents, coordination, issues, pull requests and documentation. (37)
+Agents, coordination, issues, pull requests and documentation. (38)
 
 | Mistake | Check | Source |
 | --- | --- | --- |
