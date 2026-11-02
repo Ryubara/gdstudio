@@ -44,3 +44,14 @@ cycle: a seek is a cut.
   that did not move at all.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
+
+## A clip on top of a pose a modifier fades out
+
+A `SkeletonModifier3D` that holds the arms (Deadnight's `WeaponHandsIK`, the gun at the shoulder) and fades its
+`influence` out over a few frames when a one-shot clip takes the arms does not give the clip the arms at once: at an
+influence of 0.2 the modifier still pulled the hand 0.2 m off the clip (its pull is not linear in the influence),
+the clip's wind-up was flattened to half its travel for the first fifth of a second, and when the fade reached zero
+and the modifier was switched off, the arms jumped 0.25 m in one frame. For a clip that is the arms' work from its
+first frame, set the influence to 0 and the modifier off in the frame the clip starts, and let it rise again from
+zero once the clip is over. Measure it: the weapon's place in the player's frame, every tick of the clip, in a test
+that steps the tree by hand.
