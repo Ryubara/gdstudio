@@ -36,3 +36,15 @@ and what its build showed: `docs/research/mobile-controls.md` there.
   control, and `queue_sort()` the container when the tween ends.
 - **Reproduce with real input**: `Input.parse_input_event`, not a direct call, and `Engine.physics_ticks_per_second = 1`
   so no physics step hides the race.
+
+## Menus under test
+
+- **Transparent is not unreachable.** A control at `modulate.a = 0` is still focusable and clickable. While a menu's
+  items are hidden or entering, set `mouse_filter` to ignore and `focus_mode` to none, keep the old values, and give
+  them back when the entrance ends
+  ([lesson](../lessons/2026-11-01-a-hidden-menu-item-was-still-focusable-and-clickable.md)).
+- **Headless mouse in GdUnit4.** The window is 64 x 64 pixels, so mouse events sent with `Input.parse_input_event` land
+  outside it. Send them with `get_viewport().push_input(event, true)`; keys still go through
+  `Input.parse_input_event` ([lesson](../lessons/2026-11-01-a-headless-gdunit4-window-is-64-pixels-wide.md)).
+- **Captures of a tour scene.** Await each step's note before the next: a coroutine called without `await` carries on
+  and the PNG is taken a few frames late.
