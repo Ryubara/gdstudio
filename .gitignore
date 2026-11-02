@@ -23,3 +23,6 @@ Thumbs.db
 
 # MkDocs build output
 site/
+
+# Built from docs/lessons by the MkDocs hook; a committed copy goes stale on concurrent lesson PRs
+docs/research/mistakes-by-area.md

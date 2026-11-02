@@ -48,9 +48,10 @@ read-only helper or the reviewer) has a line of one of these forms:
 
 Both lines can appear; each must hold. An agent whose prompt has neither is refused with how to start the issue.
 
-`gds issue start` also maps the issue's labels to areas of the [mistakes glossary](research/mistakes-by-area.md)
-(`docs/lessons/areas.toml`) and keeps them in the ledger: the checks of those areas are put into the agent's context
-when it starts ([Hooks: docs](hooks.md#docs)). `gds lessons <area>` prints them for a person.
+`gds issue start` also maps the issue's labels to areas of the
+[mistakes glossary](research/mistakes-by-area.md) (built from the lessons; `docs/lessons/areas.toml`) and keeps them in
+the ledger: the checks of those areas are put into the agent's context when it starts
+([Hooks: docs](hooks.md#docs)). `gds lessons <area>` prints them for a person.
 
 ## Looking
 

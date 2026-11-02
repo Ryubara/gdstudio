@@ -1,8 +1,11 @@
-"""The mistakes glossary: areas of lessons, the rows of the corrections page, the generated page, and that the real
-lessons and page of the kit agree (a lesson with no area, or a stale page, fails here and in pre-commit)."""
+"""The mistakes glossary: areas of lessons, the rows of the corrections page, the built page, and that the real lessons
+of the kit all have areas (a lesson with no area fails here and in pre-commit). The page itself is never committed, so
+two lesson pull requests cannot conflict on it or leave it stale."""
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -72,11 +75,63 @@ def kit(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def test_the_kits_lessons_all_have_areas_and_the_page_is_current():
+def test_the_kits_lessons_all_have_areas_and_the_page_builds_from_them():
     areas = lessons.Areas.load(KIT / lessons.AREAS_FILE)
     assert lessons.problems(KIT, areas) == []
-    page = (KIT / lessons.GLOSSARY).read_text(encoding="utf-8")
-    assert page == lessons.build(KIT), "run `python .github/scripts/mistakes.py render`"
+    page = lessons.build(KIT)
+    assert [ln for ln in page.splitlines() if ln.startswith("## ")] == [f"## {a}" for a in areas.names]
+    assert len(lessons.section(page, "general")) > 3
+
+
+def test_the_page_is_not_a_committed_file():
+    """A committed copy goes stale when two lesson pull requests are open (#119): it is built where it is read."""
+    assert (KIT / ".gitignore").read_text(encoding="utf-8").count(lessons.GLOSSARY.as_posix()) == 1
+    tracked = subprocess.run(
+        ["git", "-C", str(KIT), "ls-files", "--", lessons.GLOSSARY.as_posix()], capture_output=True, text=True
+    )
+    assert tracked.returncode != 0 or tracked.stdout.strip() == ""
+
+
+def test_the_script_checks_the_lessons_and_prints_the_page():
+    script = KIT / ".github" / "scripts" / "mistakes.py"
+    check = subprocess.run([sys.executable, str(script), "check"], capture_output=True, text=True)
+    assert check.returncode == 0, check.stderr
+    render = subprocess.run([sys.executable, str(script), "render"], capture_output=True, text=True, encoding="utf-8")
+    assert render.returncode == 0 and render.stdout == lessons.build(KIT)
+
+
+def _git(path: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(path), "-c", "user.email=t@t", "-c", "user.name=t", *args], check=True, capture_output=True
+    )
+
+
+@pytest.mark.parametrize("order", [("a", "b"), ("b", "a")])
+def test_two_lesson_branches_from_the_same_main_merge_clean_in_either_order(kit, order):
+    """The failure of #119: each lesson pull request rewrote the committed page, so the second one conflicted or went
+    stale. Now a lesson branch changes its own file only: both merge without a re-render and the tree stays valid."""
+    for path in (kit / "docs" / "lessons").glob("20*.md"):
+        path.unlink()
+    base = LESSON.format(title="A packet filter dropped a valid packet", fix="Count the bytes.")
+    (kit / "docs" / "lessons" / "2026-11-01-base.md").write_text("---\nareas: [net]\n---\n" + base, encoding="utf-8")
+    _git(kit, "init", "-b", "main")
+    _git(kit, "add", "-A")
+    _git(kit, "commit", "-m", "base")
+    for name, area, title in (("a", "net", "The server dropped a packet"), ("b", "web", "The browser decoded twice")):
+        _git(kit, "checkout", "-b", f"lesson-{name}", "main")
+        text = f"---\nareas: [{area}]\n---\n" + LESSON.format(title=title, fix=f"Fix {name}.")
+        (kit / "docs" / "lessons" / f"2026-11-02-{name}.md").write_text(text, encoding="utf-8")
+        _git(kit, "add", "-A")
+        _git(kit, "commit", "-m", f"lesson {name}")
+    _git(kit, "checkout", "main")
+    for name in order:  # the pull request merged first, then the second after a merge of main into it
+        _git(kit, "merge", "--no-ff", "-m", f"merge {name}", f"lesson-{name}")  # no conflict: nothing shared is edited
+        areas = lessons.Areas.load(kit / lessons.AREAS_FILE)
+        assert lessons.problems(kit, areas) == []
+        lessons.build(kit)
+    page = lessons.build(kit)
+    assert lessons.section(page, "net")[0][0] == "The server dropped a packet"
+    assert lessons.section(page, "web")[0][0] == "The browser decoded twice"
 
 
 def test_labels_map_to_areas_and_general_is_always_there(kit):
