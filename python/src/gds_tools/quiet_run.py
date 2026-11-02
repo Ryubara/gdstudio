@@ -5,6 +5,10 @@ foreground when its window opens, and no start-up flag stops that (`docs/godot/n
 Windows desktop cannot take the focus of the one the person works on, so the program is started on a private desktop
 of the same window station: it renders as usual (OpenGL and Movie Maker included) and nobody sees or feels it.
 
+One thing does cross desktops: the cursor clip. A game that captures or confines the mouse calls `ClipCursor`, which
+holds the person's cursor inside the hidden window's rectangle. So the program gets `GDS_QUIET=1` in its environment (a
+game reads it and never captures the mouse), and while it runs this process frees the cursor every 20 ms as well.
+
 Everywhere else (Linux CI, macOS) there is no focus to protect and the program is started normally.
 """
 
@@ -20,6 +24,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 DESKTOP_NAME = "gds-quiet"  # one shared desktop: every quiet program of every agent lands on it
+QUIET_ENV = "GDS_QUIET"  # set to "1" for every program started here: "never capture or confine the mouse"
+UNCLIP_SECONDS = 0.02  # how often the cursor is freed while a quiet program runs
 KILL_GRACE = 5  # seconds the output reader waits for the program to end after a timeout kill
 
 
@@ -171,6 +177,13 @@ if sys.platform == "win32":
     _u32.CreateDesktopW.restype = wt.HANDLE
     _u32.CreateDesktopW.argtypes = [wt.LPCWSTR, wt.LPCWSTR, wt.LPVOID, wt.DWORD, wt.DWORD, wt.LPVOID]
     _u32.CloseDesktop.argtypes = [wt.HANDLE]
+    _u32.ClipCursor.argtypes = [wt.LPVOID]
+
+    def _free_cursor_while(running: threading.Event) -> None:
+        """Release any cursor clip until `running` clears: a clip set on the hidden desktop holds the real cursor."""
+        while not running.wait(UNCLIP_SECONDS):
+            _u32.ClipCursor(None)
+        _u32.ClipCursor(None)
 
     def _check(ok: object, what: str) -> None:
         if not ok:
@@ -209,6 +222,7 @@ if sys.platform == "win32":
             proc = _ProcessInfo()
             flags = _CREATE_SUSPENDED | _CREATE_NO_WINDOW | _CREATE_UNICODE_ENVIRONMENT
             line = ctypes.create_unicode_buffer(subprocess.list2cmdline([str(c) for c in cmd]))
+            os.environ[QUIET_ENV] = "1"  # inherited: CreateProcess gets no environment block of its own
             _check(
                 _k32.CreateProcessW(
                     None,
@@ -240,6 +254,9 @@ if sys.platform == "win32":
             timer = threading.Timer(timeout, kill) if timeout else None
             if timer:
                 timer.start()
+            done = threading.Event()
+            unclip = threading.Thread(target=_free_cursor_while, args=(done,), daemon=True)
+            unclip.start()
             chunks: list[str] = []
             fd = msvcrt.open_osfhandle(read.value, os.O_RDONLY)
             read = wt.HANDLE()  # the file descriptor owns it now
@@ -250,6 +267,8 @@ if sys.platform == "win32":
                     if on_output:
                         on_output(text)
             _k32.WaitForSingleObject(process, _INFINITE)
+            done.set()
+            unclip.join()
             if timer:
                 timer.cancel()
             code = wt.DWORD()

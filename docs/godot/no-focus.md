@@ -23,6 +23,18 @@ is not drawn on their screen, receives none of their keys and is not in their wa
 normal window, OpenGL renders as always, Movie Maker writes its frames. The code is `python/src/gds_tools/quiet_run.py`
 (ctypes only; a job object ends the whole process tree on a timeout; off Windows it starts the program normally).
 
+## The cursor clip crosses desktops
+
+One thing does reach the person's desktop: a game that captures or confines the mouse (`Input.mouse_mode` CAPTURED or
+CONFINED) calls Windows `ClipCursor`, and the clip holds the real cursor inside the hidden window's rectangle. The
+maintainer felt it as an invisible box the cursor could not leave while a capture's sound played (2026-11-01). So:
+
+- `gds godot` starts the program with **`GDS_QUIET=1`**. A game reads it and never captures or confines the mouse
+  (Deadnight: `Player.set_controls_enabled`). Every game made with the kit does this in the one place it captures.
+- While the program runs, `gds godot` frees the cursor every 20 ms (`ClipCursor(NULL)`). That is a safety net for a
+  game that clips once; a game that re-clips every frame defeats it (`python/tests/test_quiet_run.py` measured 16 of
+  20 samples held against a program re-clipping every 5 ms), so the game-side check is the fix.
+
 ## What was measured
 
 A spike project (`sandbox/no-focus/`, a window that changes colour every frame) was started while a test window held
