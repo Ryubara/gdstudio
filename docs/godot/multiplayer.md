@@ -130,3 +130,7 @@ write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the 
 - `var x := array.back()[0]` cannot be inferred; write the type.
 - Several Godot jobs at once on one machine starve each other: software-rendered web tabs and headless servers drop to
   a fraction of their frame rate, which looks like a bug. Measure when the machine is quiet.
+- A puppet body (a player on another machine, drawn by the same scene as a played one) that must not simulate needs
+  its `_physics_process` to return early: `set_physics_process(false)` before the node is ready is undone, because the
+  engine turns physics processing on again for a node with a `_physics_process` when it becomes ready. The puppet then
+  simulated with an idle command, found no floor (its collision mask was 0) and read as always falling.
