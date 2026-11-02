@@ -28,6 +28,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D, shader quads | blood, sparks, smoke, muzzle flash, camera shake | known: [Shot feedback](shot-feedback.md) (flash quads on the weapon's `Muzzle`, pooled impacts, trauma shake) |
 | Spatial shaders, textures on CSG | the greybox lot's ground, walls and paint | known: [Surface materials](surface-materials.md) (world-projected shader, one read, no specular; headless import leaves mipmaps off) |
+| Screen measurement of an effect | is the flash, marker or glint readable | known: [Measuring an effect on the screen](measuring-effects-on-screen.md) (draw the frame again without it and compare; `force_draw` in `frame_post_draw`) |
 | Shader and program builds, first use | the first shot, enemy or explosion stutters | known: [First-use hitches](first-use-hitches.md) (no baker or ubershaders in Compatibility; warm up behind a loading screen; short-lived materials rebuild their shaders at every use) |
 
 ## Characters and animation
