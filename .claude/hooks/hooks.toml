@@ -80,10 +80,9 @@ enforce = true
 exempt = ["reviewer"]
 
 [docs]
-# Docs ship with the change (docs/hooks.md#docs). The glossary (docs/research/mistakes-by-area.md, generated) is read from
-# the kit checkout; SubagentStart puts the sections of the issue's areas into the agent's context, at most `inject_limit`
+# Docs ship with the change (docs/hooks.md#docs). The glossary is built from the lessons of the kit checkout (it is not a
+# committed file); SubagentStart puts the sections of the issue's areas into the agent's context, at most `inject_limit`
 # lines per area and `inject_chars` characters in all. `pending` holds the notes the Agent guard leaves for it.
-glossary = "docs/research/mistakes-by-area.md"
 inject_limit = 12
 inject_chars = 7000
 pending = "cache/subagent-pending.json"

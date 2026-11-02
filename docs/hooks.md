@@ -58,15 +58,20 @@ The learning loop above starts from a maintainer message. This part starts from 
 wrong is written down by the agent that found it, in the same task, and the next agent reads it before it starts.
 
 - **Areas.** Every lesson has `areas: [net, web]` front matter; the names, the issue label to areas map and the
-  placement keywords are in [`docs/lessons/areas.toml`](lessons/areas.toml). `python .github/scripts/mistakes.py render`
-  writes [Mistakes by area](research/mistakes-by-area.md) from the lessons and the corrections rows (a row that links a
-  lesson takes its areas, any other is placed by keyword). A test (and the `mistakes-by-area` pre-commit hook) fails on
-  a lesson with no area or a stale page; `backfill` places the lessons that have none, by keyword, as a script.
+  placement keywords are in [`docs/lessons/areas.toml`](lessons/areas.toml). [Mistakes by area](research/mistakes-by-area.md)
+  is built from the lessons and the corrections rows (a row that links a lesson takes its areas, any other is placed by
+  keyword) and is **not a file in the repository**: the MkDocs build creates it (`.github/scripts/mkdocs_glossary.py`, a
+  `hooks:` entry of `mkdocs.yml`), `gds lessons <area>` and the hook below build it in memory, and
+  `python .github/scripts/mistakes.py render` prints it. It used to be committed, so every lesson pull request rewrote
+  it and the second of two concurrent ones conflicted or went stale (#119); now a lesson pull request touches only its
+  own file. A test (and the `mistakes-by-area` pre-commit hook) fails on a lesson with no area or one that cannot be
+  built; `backfill` places the lessons that have none, by keyword, as a script.
 - **Injected, not hoped for.** `gds issue start` maps the issue's labels to areas (`A-net` is net, web and backend; the
   `general` area is always there) and keeps them in the ledger. When the Agent guard lets a task agent start it leaves a
   note (`cache/subagent-pending.json`, ten minutes) with the areas of the `Issue:` line; `SubagentStart`, which does not
   see the prompt, takes the oldest note for that agent type and adds the newest `inject_limit` items of each area, as
-  text, to the agent's context. A `PR:`-only agent gets the `general` area. `gds lessons <area>` prints the same.
+  text, to the agent's context (built from the lessons when it starts). A `PR:`-only agent gets the `general` area.
+  `gds lessons <area>` prints the same.
 - **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
   with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
   session back once, naming the branch. If GitHub cannot be asked, the hook lets go.

@@ -4,10 +4,12 @@ instead; an empty list lets it through. Standard library only."""
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import json
 import re
 import shlex
 import subprocess
+import sys
 import time
 import tomllib
 from pathlib import Path, PurePosixPath
@@ -824,7 +826,7 @@ def kit_root(workspace: Path | None) -> Path:
 
 
 def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
-    """The (mistake, check) rows of one area's section of the generated glossary (docs/research/mistakes-by-area.md)."""
+    """The (mistake, check) rows of one area's section of the built glossary (docs/research/mistakes-by-area.md)."""
     items, on = [], False
     for line in text.replace("\r\n", "\n").splitlines():
         if line.startswith("## "):
@@ -838,15 +840,29 @@ def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
     return items
 
 
+def build_glossary(kit: Path) -> str:
+    """The glossary built from the lessons and corrections rows of a kit checkout (it is not a committed file: two
+    lesson pull requests would both rewrite it). Loads python/src/gds_tools/lessons.py by path; '' when it cannot."""
+    source = kit / "python" / "src" / "gds_tools" / "lessons.py"
+    name = "_gds_lessons_for_hooks"
+    try:
+        spec = importlib.util.spec_from_file_location(name, source)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module  # a dataclass looks its module up here
+        spec.loader.exec_module(module)
+        return module.build(kit)
+    except Exception:  # a hook never locks a session out: no checks beat a crash
+        sys.modules.pop(name, None)
+        return ""
+
+
 def area_checks(workspace: Path | None, areas: list[str], config: dict[str, Any]) -> str:
     """The checks of some areas as plain text for an agent's context: the newest `inject_limit` of each, cut at
-    `inject_chars` altogether. Empty when the glossary does not exist."""
+    `inject_chars` altogether. Empty when the glossary cannot be built."""
     rules = config.get("docs", {})
     kit = kit_root(workspace)
-    path = kit / rules.get("glossary", "docs/research/mistakes-by-area.md")
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError:
+    text = build_glossary(kit)
+    if not text:
         return ""
     lines = []
     for area in areas:
@@ -862,7 +878,8 @@ def area_checks(workspace: Path | None, areas: list[str], config: dict[str, Any]
         return ""
     return (
         f"Mistakes already made in your areas ({', '.join(areas)}), each with the check that catches it. Apply them "
-        f"before you start; the full list is {path.as_posix()} (`gds lessons <area>` prints one):\n{body}"
+        f"before you start; the full list is built from "
+        f"{(kit / 'docs' / 'lessons').as_posix()} (`gds lessons <area>` prints one):\n{body}"
     )
 
 
