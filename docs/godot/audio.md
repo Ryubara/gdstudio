@@ -114,6 +114,11 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
 - **A sound's variant files differ by 3 to 9 dB in peak** (a zombie voice's loudest and quietest take): to bound the
   worst case point the definition at one file for each play (`path_format = def.path_for(k)`, `variants = 1`) and put
   it back.
+- **Measure on the merged tree, before and after from one base.** Merge `main` before measuring a mix and keep a second
+  worktree on `origin/main` for the "before" runs
+  ([lesson](../lessons/2026-11-03-a-baseline-was-measured-before-main-changed-the-sounds-under-it.md)). Capture in runs
+  of a few minutes of sound and pull the track out of the avi before deleting it
+  ([lesson](../lessons/2026-11-03-a-long-audio-capture-was-lost-to-a-deleted-avi-and-the-900-s-cap.md)).
 - **A gain cut is not a loss of punch.** Lowering a trim moves loudness and peak together, so the crest factor of a
   burst is unchanged; what limits the cut is the loudness rule against the beds (Deadnight: 14 LU for a shot, 17 for a
   burst).
