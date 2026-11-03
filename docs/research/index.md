@@ -8,5 +8,7 @@ Studies of how GDStudio works, written so the method can be repeated elsewhere.
   checks that catch them at the start of a new game.
 - [Mistakes by area](mistakes-by-area.md): every lesson and correction by area, with the check that catches it;
   generated, and put into an agent's context when its issue starts.
+- [Level design](level-design.md): the principles the `level-designer` agent carries, each with its published
+  sources and the check that settles it (a probe, a capture from the player's camera, or a number).
 - [What to plan from the start](plan-from-the-start.md): a day-one checklist for the next game, from every gap
   nobody planned for on Deadnight.

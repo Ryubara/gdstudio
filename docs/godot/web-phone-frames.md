@@ -60,3 +60,18 @@ minutes of shuffled 20 s blocks): of a 47 ms frame, script and physics were 47 a
   [Compatibility lighting](compat-lighting.md)), and a merge must keep each cell under the cap or the picture changes.
 - Shuffle the order of the interleaved arms each round: the night's waves have a beat, and a fixed order falls on it.
 - Chrome's CPU throttle belongs after the page has loaded, and `gds quiet` stops a command at 900 s.
+
+## Counting a scene's draw calls from fixed cameras (Deadnight #849)
+
+To say what new geometry costs, put one camera at each of a few dozen spots, draw, and read the count: an instance
+draws whether or not anything is in front of it (no occlusion culling), so a wall across the map costs a call from every
+spot that faces it, not only from the spots near it.
+
+- Wait about 12 frames after the camera moves and take the median of five reads; the count of the frame right after a
+  move is still partly the old view (one spot read 1117 and 37 in two runs of the same scene with three frames of
+  waiting, [lesson](../lessons/2026-11-03-a-draw-call-count-read-three-frames-after-a-camera-move-was-noise.md)).
+- Draw the before scene and the after scene through the same probe (a copy of the old `.tscn` beside the new one),
+  and run the unchanged one twice.
+- `visibility_range_end` on a `GeometryInstance3D` (a CSG box or a `MeshInstance3D`) culls by distance from the camera
+  and keeps the collision: eight walled aprons, two bays and 50 boards that were +31 draws on average (+10 %) cost
+  +14 (+4 %) with the aprons hidden past 35 m and the boards past 45 m (49 spots, Godot 4.7.2).
