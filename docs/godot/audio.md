@@ -183,6 +183,14 @@ paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-mill
   full scale. Set `max_db = volume_db + n` per play (0 for "the trim is the level") and leave far sounds alone. Measured:
   a shotgun trimmed to -23 dB still peaked at -5 dBFS in the mix until `max_db` was set. A loop whose level you move
   needs `max_db` moved with it.
+- **A negative offset trims the near field only.** `max_db = volume_db - n` holds a close sound `n` dB under its trim
+  and leaves everything beyond where the boost falls under that (about `unit_size * 10^(n/20)` metres) as it was: how a
+  loud file (a scream, a board, a blast) is made to leave room for a gun shot without a quieter trim, which would also
+  quiet it far away (Deadnight #753: 20 sounds, caps -0.5 to -9 dB, every file of them at most -9.8 dBFS up close,
+  from -0.6 to -3). How much of a file's peak reaches the mix is not the file's peak: a voice 1.2 m ahead is 0 to 3 dB
+  under its file (the pan), a 70 ms impact click is 10 to 14 dB under (its peak is high-frequency and the distance
+  low-pass takes it), so a level rule built from file peaks over-cuts clicks. Measure each sound alone, in a window that
+  ends where the next one starts (see the lesson on the window).
 - **A level capture needs a listener.** A Movie Maker recording with no `Camera3D` (or `AudioListener3D`) in the tree is
   silent: nothing hears the 3D players.
 
