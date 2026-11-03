@@ -19,6 +19,26 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 
 Game write-ups: Deadnight's `docs/research/ui-foundation.md` and `docs/research/settings.md`.
 
+## A control that draws outside its rect
+
+A scale, a shadow or a focus ring is drawn outside the control's rectangle, and the rectangle is all a container knows:
+nothing reserves room for it, and a `ScrollContainer` (always) or any control with `clip_contents` cuts it off at its
+own edge. A hover that scales a button 3.5 percent loses 14 units at each side of a full-width 800-unit button. Do not
+fix it screen by screen:
+
+- **The control guards itself.** Before it grows it measures the free room to its nearest clipping ancestor
+  (`clip.get_global_transform().affine_inverse() * parent.get_global_transform() * Rect2(position, size)`, so the
+  scales of the ancestors count) and grows by that much per axis at most.
+- **The theme leaves room.** `ScrollContainer` has a `panel` stylebox whose content margins move the content in; an
+  empty one with the margin at the sides gives every scroll area room without code in the screens. Keep it to the
+  sides: screens compute the height of a scroll area from its content, and a vertical margin breaks that arithmetic.
+- **Test it as a sweep.** Hover every button of every screen at every canvas, scroll the area to its top, end and middle
+  (a button is also clipped at the content's ends), and compare the grown rect with the clipper's rectangle. Add a case
+  that the buttons still grow: a guard that shrinks them to nothing passes the first test for the wrong reason.
+  `Control.size_flags` `EXPAND_FILL` rows are the usual victims.
+
+Deadnight #628: `game/tests/ui/test_hover_room.gd`.
+
 ## Touch controls
 
 Touch controls press the game's existing input actions, so gameplay code does not fork. `Input.emulate_mouse_from_touch`
