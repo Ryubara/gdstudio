@@ -20,6 +20,18 @@ pull = true
 every_seconds = 120
 stamp = "cache/mains-pulled"
 
+[sweep]
+# Finished worktrees are removed in the background (docs/hooks.md#sweep, docs/workspace.md#sweep): `gds worktree sweep`
+# starts at session start, right after a command that merges a pull request, and at Stop at most once every
+# `every_seconds`. It never blocks the hook; its report is appended to `log` (relative to the workspace), which is
+# moved aside to `*.old.log` past `max_log_bytes`. `args` are extra flags for the sweep (for example "--no-idle").
+enabled = true
+every_seconds = 600
+stamp = "cache/worktree-sweep-started"
+log = "scratch/worktree-sweep.log"
+max_log_bytes = 1000000
+args = []
+
 [protect]
 # Files no Edit or Write may change (glob patterns, matched against the path with forward slashes).
 paths = [

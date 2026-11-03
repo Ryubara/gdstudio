@@ -108,6 +108,14 @@ issue that needs no code. For a `PR:` task the agent adds a worktree of the pull
 absolute path (`git -C <workspace>/repos/<repo> worktree add <workspace>/worktrees/<repo>/<branch> <branch>`): a
 relative path with `git -C` resolves inside the repository.
 
+### The worktree is removed when the work is finished {#sweep}
+
+Nobody removes a worktree by hand: `gds worktree sweep` does it once the pull request merged or the issue closed (and
+for detached reviewer and probe worktrees after hours without a touch), keeping loose artwork, notes and probes in
+`scratch/<repo>/<branch>/kept/` ([the rules](workspace.md#sweep)). It never removes a worktree a process uses, one with
+commits on no remote branch, or one touched in the last half hour. Work that must outlive the worktree is committed or
+written to `scratch/`.
+
 ### A takeover reuses the worktree {#takeover}
 
 When an agent stalls and another takes the issue (`gds issue release <ref>`, then `gds issue start <ref> --agent <new>`),
