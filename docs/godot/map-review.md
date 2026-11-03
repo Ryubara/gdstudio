@@ -139,10 +139,21 @@ avoid a finale at full intensity.
 This is the section that cannot be done by eye. A fence that looks 3 m high can be cleared from a car roof; a door that
 looks sealed can be skipped by a crouch under a lintel; a prop with no collider is a hole.
 
-- [ ] **Compute the reach.** Max jump height, plus the height of anything a player can stand on (cars, crates, counters,
-  stairs' rails, a prop's top, a window sill), must be below every perimeter wall, closed door and closed-area wall.
-  *Proof: list every standable platform and the highest wall top within jump distance of it; a margin under the
-  jump height is a defect.*
+- [ ] **Measure the reach, do not read it off the tuning.** The most a body climbs is more than the jump height: the
+  step-up at an edge and the capsule's rounded foot add to it (Deadnight: jump 1.1 m, climbs 1.25 m, so a counter
+  built "a little over a jump" at 1.2 m was climbed). *Proof: run the real body at blocks of each height from level
+  ground, sprinting and walking, from several distances, jumping at several moments; the highest it stands on is the
+  reach, and a test pins it* ([lesson](../lessons/2026-11-03-a-jump-reach-test-used-the-jump-height-and-the-body-climbs-further.md)).
+- [ ] **Compute the reach.** The measured reach, plus the height of anything a player can stand on (cars, crates,
+  counters, stairs' rails, a prop's top, a window sill), must be below every perimeter wall, closed door and
+  closed-area wall. *Proof: list every standable platform and the highest wall top within reach of it; a margin
+  under the reach is a defect.*
+- [ ] **Chains of props are stairs.** A wall is judged against what a body can get onto from what it can get onto: a
+  barrel (0.8 m) beside a dumpster (1.6 m) beside a fence (2.6 m) is a flight. *Proof: a sweep that, from every ground
+  cell near something solid, runs the body at it (sprint and jump at several moments, walk and jump, crouch-walk), takes
+  each place it comes to rest as a new start and repeats a few hops; flag a place beyond the map, inside a closed area or
+  at wall-top height, with the doors in each state a team can have them. Replay every chain hop by hop before filing
+  it.* (Deadnight's `tools/world/map_escape_probe.gd` is a worked example.)
 - [ ] **Run the movement.** For each candidate, run the real player body (the same simulation the game ticks, sprinting,
   jumping, crouching, and with the camera's latest facing) from the middle and edges of the platform toward the wall.
   A scripted path or a test, never "it looks too high". Crouch and jump combined, and the jump from a stair or ramp's
@@ -156,8 +167,10 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   looks solid, no invisible block that stops walking where nothing is. Compare the visible mesh with the collision
   shape for every prop (a collision box 20 cm off its model is both).
 - [ ] **Doors skip nothing.** With each door closed, the walking mesh from the player's spawn must not reach the area
-  beyond, with the jump added to the climb. *Proof: a navigation bake with the jump as its climb, joined to the start,
-  and a check that no point inside a closed area is reached.*
+  beyond, with the jump added to the climb. *Proof: the sweep above, once for each door state; a baked mesh holds the
+  closed rooms' floors as islands, so ground counts as reached only when a path query from the start ends on it, and a
+  hop starts at the solid floor under the mesh (it floats above it), never at the mesh*
+  ([lesson](../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)).
 - [ ] **Fall-through and edges.** Nothing walkable lies past the map's walls (distant scenery is not collision), and a
   kill volume or floor sits under every open edge. A player who somehow leaves is returned, not lost.
 - [ ] **Out of bounds for the dead.** The dead, not only the players, stay inside, and no gap is wide enough for them to
