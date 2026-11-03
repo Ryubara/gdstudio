@@ -221,6 +221,13 @@ the game's own page is `docs/research/night-environment.md` there.
   it, and capture it from the room behind the wall and along the wall with the glow hidden and shown. Compatibility
   has no shadows, so the sign's `OmniLight3D` also lights the room through the same wall: keep its energy in step
   with what the room can take. A halo's `energy` in the scene is only its first value when a script drives it.
+- **A glow or a light has a side: clip the card, face the light.** The depth test is a glow card's only wall and a light's
+  sphere its only limit (Deadnight #832, after #703). Give a card up to two world-space clip planes (a `clip_a` and
+  `clip_b` uniform vec4 in the glow shader, discard where `dot(world, n) > w`) found from the wall boxes beside its lamp,
+  and make a lamp on the outside of a wall a `SpotLight3D` facing out (its cone never passes its apex plane). Test every
+  additive card against the walls (a point behind a wall seen from its lamp; a wall-mounted card hanging past its wall)
+  and every light against the floors, roofs and walls it reaches through a wall. What stays is a room lamp reaching the
+  next room by its range (0.2 to 0.7 energy at 5 to 9 m): only a shadow or a light layer per room stops it.
 - **A lamp placed by hand can push a tile over the cap.** Twenty posts added in the editor (Deadnight #703) put five
   ground and roof meshes at 7 or 8 lights. Search the cuts instead of loosening the cap: dump every light (position and
   range, and the crane's lamp at each of its places) and every mesh box to JSON, then try cut lines on a 0.5 to 1 m grid
