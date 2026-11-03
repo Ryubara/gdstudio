@@ -81,3 +81,39 @@ swappable parts on one skeleton, a look stored as a part id per slot plus palett
   moved first in the stack and applied (so the rest mesh is cut, weights interpolated), one ratio solved for the
   heaviest look. Keep small pieces whole (a 254-triangle cap at a third turned to slivers), and triangulate and drop
   zero-area faces before counting, or the glTF round trip disagrees with the count by a triangle.
+
+## A second body on the same parts
+
+Learned building Deadnight's female Soldier (Deadnight issue #678, `tools/blender/build_soldier_parts.py` there): a
+second character on the modular parts, same skeleton and clips, chosen in the look like any part.
+
+- **The character is a part slot.** A `body` slot (`male`, `female`) appended last, with no mesh of its own: a part
+  with a variant for her (`<slot>__<part>__female`, its far copy `..__female__far`) shows that variant, every other
+  part is shared. The look, the save, the wire and the server need no new path; only the wire version moves.
+- **One warp field for every outfit.** Her torso and legs are his, moved at rest by one smooth function of position
+  (two Gaussian lobes for the chest, pushed forward only on the front; a narrower waist and slightly wider hips), so
+  every top and every pair of trousers changes the same way and still meets at the waist. The arms at rest (z above
+  1.34 kit metres) and the hands never move, so the grips hold.
+- **Move the chest's weights to the trunk.** The kit weights the upper chest to the shoulder bones; a fuller chest
+  weighted that way follows the arms. Moving 60 % of the pushed vertices' weight to `Torso` made her trunk stretch less
+  than his in 52 of 55 clips.
+- **Measure, then look.** `measure_soldier_body.py` (Deadnight) plays every clip, the other clip files' too, on his and
+  her meshes: edge stretch on the trunk (the 99th percentile; the kit's own shoulder edges make the single worst edge
+  meaningless), how deep the forearms go into the chest (the mean of the ten deepest vertices; one stray vertex by an
+  open edge reads 100 mm), and how many vertices of each hair cut sit inside the collar. Then
+  `render_soldier_views.py` shows the flagged clips front, side and back on a 0.5 m grid.
+- **Numbers (kit metres, game is 0.8):** chest lobes at x 0.105, z 1.145, sigma 0.085 by 0.068, 90 mm forward (kept
+  off z 1.28, where the sprint carries lay a forearm across the chest); waist 13 % narrower at z 1.04; hips 3 % wider
+  at z 0.86 (5 % put the swinging hands into them). A bob's ends flare to r 0.40 at z 1.72 to clear the collar's top
+  (r 0.36 at z 1.68). Her face pieces (lashes, a mouth, freckles or rosy cheeks) add 116-188 triangles, kept whole in
+  the far heads; her heaviest look is 5,428 of 6,000, and his Projectionist worn by her is 2,000 of 2,000 far.
+- **What broke:** a rebuild picked up clips shipped elsewhere
+  ([lesson](../lessons/2026-11-02-a-parts-rebuild-picked-up-clips-that-ship-in-their-own-files.md)); her looks moved the
+  far ratio of his parts ([lesson](../lessons/2026-11-02-a-new-variant-moved-the-far-lod-of-the-old-parts.md)); the
+  short-sleeved tops had always pushed the hands off the grips
+  ([lesson](../lessons/2026-11-02-short-sleeved-tops-pushed-the-hands-off-the-grips.md)); and the grip contact test
+  had measured the far level of detail as well as the hand you see
+  ([lesson](../lessons/2026-11-02-the-grip-test-measured-the-far-level-of-detail.md)).
+- **Keep a hand's vertices where they are.** Any per-outfit push or pull (bare arms hugging the limb, cuffs pulled in)
+  skips vertices whose main bone is a finger's, the way the grip test picks them; sparing only the hand's faces still
+  moved its border vertices and sank the palm 3-13 mm into a grip.
