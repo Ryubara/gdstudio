@@ -208,6 +208,12 @@ the game's own page is `docs/research/night-environment.md` there.
 - **Emissive swatches of a shared palette atlas** are lit by an emission texture of the same layout painted in code
   (black but for the swatches), on a duplicated material set as the surface override: one model, one material, only the
   asked-for colours glow.
+- **A flat glow or window quad needs `cull_disabled`.** A `QuadMesh` on a `StandardMaterial3D` culls its back face by
+  default, so a lit window pane glowed from the field and was a hole from the room (Deadnight #701). The lot's glow
+  shader already said `cull_disabled`; only the one standard-material pane did not. An additive pane draws one face per
+  viewer, so two sides do not double the glow, but a two-sided pane that overlaps a wall shines through it: place it in
+  its opening. Test every flat see-through mesh (smaller than a few cm on one axis, transparency or a blend) for
+  `cull_disabled`; a closed vessel such as a soda glass keeps back-face culling.
 - **A global class name clash is silent until export.** `class_name NeonSign` in the lot hid the UI skin's `NeonSign`;
   the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
   Grep `class_name` before naming one.
