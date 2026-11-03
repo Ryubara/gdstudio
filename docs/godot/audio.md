@@ -100,8 +100,9 @@ Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py
   the fire there. At a tommy gun's 0.075 s every such window holds a whole shot, so this is strict; the best 20 ms
   frame (the gaps between shots, where hearing picks a click out) is generous and only worth reporting.
 - **The player's own small sounds play flat**, as their own shots do: Deadnight's reload steps at the player's head,
-  as 3D voices, were 6 dB down and partly lost; flat, all 25 steps of five guns stood out under a teammate's tommy gun
-  3 m away.
+  as 3D voices, were 6 dB down and partly lost; flat, 24 of 25 steps of five guns stood out under a teammate's tommy
+  gun 3 m away (the revolver's empties, falling under a shot, did not). Lifting them 2 dB more made them as loud as
+  the player's own shots: a teammate's steps take the lift instead (+6 dB, 23 of 24 heard through another's fire).
 
 ## Starting sounds
 
