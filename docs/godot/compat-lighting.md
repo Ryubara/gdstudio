@@ -301,3 +301,22 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
   ([lesson](../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
+
+## A lamp near a wall
+
+Compatibility draws no shadows, so a lamp reaches through a wall by its light's range and by the size of its ground pool
+(a flat additive card): a post 2.4 m from a fence lit and glowed the room behind it (Deadnight #851: 28,000 to 330,000
+pixels of the next room, measured with each part hidden and shown from the player's camera on the far side).
+
+- **A spot cannot pass its apex's plane.** Swap the omni for a spot (the same slot in the 8-light cap) aimed down and away
+  from the wall: a cone of half angle `a` tilted `t` from straight down stays off a wall's side when
+  `sin(t) * c >= sin(a)`, `c` being the cosine of the angle between the aim and the wall's normal (1 for one wall,
+  0.71 in a corner). A 30 degree cone needs 32 degrees of tilt by one wall and 47 in a corner; a steeper cone or tilt reaches
+  more meshes and can break the light budget (a 38 degree cone tilted 65 reached one more tile).
+- **Shrink the pool and move it away.** A pool of half-size `h` moved `h/2` away from a wall at distance `d` stops short
+  of it when `h <= d / (1 - c/2)`. The halo stays: it is the bulb's, and the bulb is seen over the wall.
+- **Measure it hidden and shown**, from behind the wall, with a hide the game does not undo (`light_cull_mask = 0`,
+  `layers = 0`, never `visible`;
+  [lesson](../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
+- **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
+  changes a mesh's set of lights.
