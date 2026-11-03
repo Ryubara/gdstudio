@@ -27,6 +27,28 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
   are down.
 - Stairs walk on one hidden ramp: fifteen step-ups bob the view.
 
+## Building the pieces
+
+Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blender/build_smallmap_walls.py` there).
+
+- **A wall with an opening is one outline, not boxes.** Butted boxes each chamfered leave a V-groove at every joint.
+  Fill the face's outline and holes with `bmesh.ops.triangle_fill(edges=<outer loop and hole loops>)` (it honours
+  holes), push it through with `extrude_face_region`, then chamfer only the edges whose faces meet at an angle
+  (`e.calc_face_angle() > 0.05`). The seams inside the face stay flat. A segmental arch is the same outline with its
+  facets in it; a broken wall is a ragged outline and a ragged hole.
+- **Keep the clear opening exact.** Cut the masonry hole as the clear size plus the frame's lining on each side, so a
+  1.4 x 2.4 m doorway measures 1.4 x 2.4 m between the linings, and test it against the fixture's collision.
+- **Colour the broken faces apart.** After the merge, set the swatch of the faces in the wall's plane that are not its
+  module ends (a function of the face's centre and normal): the reveal of a hole reads as the wall's core.
+- **Collision that some things pass.** When the navigation is baked from CSG only, an opening the dead use but
+  players must not (a window with its sill under the jump height) gets a StaticBody3D on a player-only layer; an
+  opening nobody walks but shots cross (bars, a hole) gets CSG on that layer.
+- **Write the palette's sRGB values into the image.** A byte image's `pixels` are what the PNG stores; converting to
+  linear first saves every swatch far too dark ([lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+  Read a cell of the saved PNG back once.
+- **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
+  room built from the fixtures under the game's own night environment, the characters at the game's scales.
+
 ## Staging game characters for scale
 
 The scale sheet and room render put the game's own characters beside the pieces. Two traps in Blender 5:
