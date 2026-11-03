@@ -196,7 +196,9 @@ wrong is written down by the agent that found it, in the same task, and the next
 
 - **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
   (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
-  closes with their labels). It counts as an agent correcting earlier work when its title verb is `Fix` or `Rework`,
+  closes with their labels; a check that failed only because a newer push cancelled its run, which `build-ok`
+  reports as a failure when a job it needs was cancelled, is not counted). It counts as an agent correcting earlier
+  work when its title verb is `Fix` or `Rework`,
   when a check of `pull_requests.lessons.history_checks` failed on an earlier commit of it, or when an issue it closes
   is labelled `bug` (the nearest signal to "a fix to an agent-caused issue"). Such a pull request needs
   `Lessons: docs/lessons/<file>.md` (or a corrections row) in Summary, and `Lessons: none (reason)` is refused for it;
