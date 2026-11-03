@@ -128,6 +128,20 @@ pass). Test it by changing the layout and measuring the rectangles after two idl
   `SubViewport` of 1280 x 720 with every optional line shown
   ([lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
 
+## 3D in a menu
+
+- **A menu's 3D stage is drawn at the window's pixels.** With the canvas stretch a `Control` is 1920 x 1080 whatever the
+  window, and a `SubViewportContainer` makes its viewport that size (stretch on) or grows to the viewport's (off):
+  1920 x 1080 stretched into a 2560 x 1440 window, soft and stair-stepped. Use a `Control`, a `SubViewport` child and a
+  `TextureRect` on its texture, and size the viewport from `get_viewport().get_final_transform().get_scale()` times the
+  control's size (cap it, 1440 high), again on `size_changed` of the root
+  ([lesson](../lessons/2026-11-03-a-menu-stage-viewport-was-sized-in-canvas-units-not-pixels.md)).
+- **A `SubViewport` has its own `msaa_3d`** (the project setting does not reach it): choose it for the look (4x for a
+  portrait or a stage; on a phone the pixels are fewer at the real size, so 4x cost less than the old 2x there).
+- **An adaptive-quality fallback needs a way back.** Judge over more than one window, climb back when frames recover
+  (in seconds, not frames), and back off after a failed climb so it never flickers
+  ([lesson](../lessons/2026-11-03-a-quality-fallback-with-no-way-back-kept-the-menu-soft.md)).
+
 ## A menu over a live game
 
 - **Do not push a screen over a game that must keep running.** `UIRouter` disables the screen it covers
