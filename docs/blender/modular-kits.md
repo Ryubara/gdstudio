@@ -74,6 +74,26 @@ Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.p
 - **A blocker that comes away in pieces** is one node per piece named in the order they go (`Part1_...`), each with
   its origin at its own middle so it can be moved on its own, over one collision box for the whole opening.
 
+## Building props
+
+Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_smallmap_props.py` there).
+
+- **Sandbags are full pillows that sag onto each other.** Make each bag taller than its course (0.22 m on 0.17 m) and
+  gather its ends sideways only. Thin bags pinched in both directions, with a gap between courses, read as stacked
+  logs ([lesson](../lessons/2026-11-02-sandbags-read-as-logs.md)). Alternate header courses (bags across) with
+  stretcher courses, and keep a 2 m line near 1.3k triangles.
+- **Write the fixtures from the build script.** Give each piece a collision spec in Blender metres (its bounding box,
+  boxes, or a cone) and write the `.tscn` with Blender (x, y, z) as Godot (x, z, -y). Walk-over dressing under the
+  step height gets none, as a game's papers and debris. A rerun then keeps model and collision together.
+- **Mark where a game node goes later.** A cabinet that holds a wall buy carries a `Marker3D` turned so the game's
+  existing plaque node, put under it unchanged, stands on end in the recess. Test that the plaque's box sits inside
+  the model.
+- **Check normals in Blender, not from Godot's triangles.** Godot's front faces wind clockwise, so a cross product of
+  an index triangle points inward on a correct mesh. Sum the signed volume per island of the exported file in Blender
+  instead ([lesson](../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
+- **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
+  looking dark ([the palette lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+
 ## Staging game characters for scale
 
 The scale sheet and room render put the game's own characters beside the pieces. Two traps in Blender 5:
