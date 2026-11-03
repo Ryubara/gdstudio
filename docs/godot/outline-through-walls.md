@@ -26,7 +26,7 @@ the component and the numbers are in that game's `game/gameplay/outline/` and `d
   All copies share one shader, so the whole thing is two GL programs (mask and line), built on first use: draw an
   outlined sample once in the night's warm-up.
 
-## Only where it is hidden (depth texture, no glow)
+## Only where it is hidden
 
 The mask has no depth test (a hidden part must count as the body), so the stencil alone also outlines a body in the
 open. Draw the line only on hidden pixels with the **depth texture**, which works in Compatibility and in the web
