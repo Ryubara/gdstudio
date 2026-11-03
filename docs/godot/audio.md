@@ -181,6 +181,11 @@ frame that starts six sounds pays six times. Decode short sounds (up to 2.5 s) t
 `AudioStreamPlayback.mix_audio` while loading, cap starts per frame and defer the rest, and start beds silent and
 paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
 
+A capped start returns no player: Deadnight's `Audio.play` answers null both for a dropped sound (too far, over its
+voice limit) and for one put off to the next frame by the starts-per-frame cap, which then plays. Code that schedules from
+the returned player (a gust that times the next one by its length) takes null as "length unknown", never as "not played"
+([lesson](../lessons/2026-11-03-wind-gusts-leveled-from-the-files-read-low-in-the-night.md)).
+
 ## A crowd's voices (the dead)
 
 - **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one
