@@ -92,6 +92,26 @@ A gun "sounding distant" is measured on a recording of the real shot through the
   filter (see [Web: samples or streams](#web-samples-or-streams)).
 - ffmpeg's `ebur128=framelog=verbose` prints its momentary values only at `-v verbose`.
 
+## Is a sound heard under fire?
+
+Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py`):
+
+- **Render the masker and the sound apart.** With no bus effects (a limiter or a compressor would break it) the mix is
+  the sum of its parts, so two Movie Maker runs of one timeline, one with only the gunfire and one with only the
+  reload, measure each part in the mix the player hears. Give each part its own random numbers (its own sound node and
+  seed), or the second part shifts the first one's variants.
+- **Find the sound in its own track, not at its call.** Under Movie Maker a sound starts 40 to 60 ms after the frame
+  that played it, and its loudest moment may come later in the file (a lever's second clack 0.2 s in): a window at the
+  call missed both ([lesson](../lessons/2026-11-02-a-step-measured-at-its-play-call-missed-its-sound.md)). Bound the
+  search by the next sound's call.
+- **Compare by octave band over 80 ms** around the sound's loudest moment: heard when, in some band, it is louder than
+  the fire there. At a tommy gun's 0.075 s every such window holds a whole shot, so this is strict; the best 20 ms
+  frame (the gaps between shots, where hearing picks a click out) is generous and only worth reporting.
+- **The player's own small sounds play flat**, as their own shots do: Deadnight's reload steps at the player's head,
+  as 3D voices, were 6 dB down and partly lost; flat, 23 of 24 steps of five guns stood out under a teammate's tommy
+  gun 3 m away (the revolver's empties, falling under a shot, did not). Lifting them 2 dB more made them as loud as
+  the player's own shots: a teammate's steps take the lift instead (+6 dB, 23 of 24 heard through another's fire).
+
 ## Warnings that must carry through cover
 
 The service dulls every sound with a wall in the way (9 dB down and a low-pass at 1.1 kHz; the web build, with no

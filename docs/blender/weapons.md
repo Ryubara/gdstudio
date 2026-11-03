@@ -96,6 +96,29 @@ data instead:
 Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
 `HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
 
+## Moving parts and a reload's ammunition
+
+A reload reads when something on the gun moves (a drum comes off, the barrels break open, a cylinder swings out, a
+lever is thrown) and the left hand brings something back from the belt. Both are the modeller's, like the `Muzzle`:
+
+- **The moving part is its own node**, built on its own and joined at its pivot (the hinge pin, the crane, the lever's
+  pin, a drum's centre), parented to the weapon's root so the weapon keeps its origin. The game turns it about an axis
+  of the model or slides it, and nothing else needs to change: the grip sockets, the `Muzzle` and the triangle count
+  stay the same (Deadnight #683 split five guns this way and every count and size came out identical). Move with the
+  part what moves in the real gun: a break-open's forend goes with its barrels, a lever rifle's trigger stays.
+- **The ammunition is a small model of its own** beside the gun's (`<gun>_ammo.glb`: two shells, a round, a
+  speedloader, a flare cartridge), never a hidden node in the gun's file, which every other view of the gun (a wall buy,
+  a prize, the menu) would then show. A drum that is the gun's own part is the same mesh again.
+- **Draw the ammunition for the fist, not the gun.** At the gun's size a shell vanished inside the Soldier's left
+  hand; the game holds it at 1.5 times the gun's size, standing out of the fingertips (the hand bone's +Y runs along the
+  fingers, their tips 0.25 bone units out), as the [held prop lesson](../lessons/2026-11-02-a-held-prop-passed-its-tests-and-showed-nothing-in-the-fist.md)
+  found for the grenade.
+- Godot's axes for a gun drawn along Blender -X: the muzzle is -X, up +Y and **the gun's left is +Z** (Blender -Y). A
+  break-open's muzzle drops with a positive turn about +Z; a cylinder swings out to the left with a positive turn about
+  +X about a crane under its left side.
+
+Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs/design/animation.md` "Reloading".
+
 ## Building by script
 
 | Lesson | Detail |
