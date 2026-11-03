@@ -73,4 +73,5 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Test speed (hand ticks, settles, CI job time) | every suite that steps the game by hand | known: [Test speed](test-speed.md) |
 | The headless (dummy) renderer | every GdUnit run in CI | known: [meshes are not safe to make from two threads](headless-renderer.md) |
 | Navigation in tests (a mesh of your own, errors caught, what the baked mesh closes) | every suite that asks for a path | known: [Navigation in tests](navigation-in-tests.md) |
+| A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [lesson](../lessons/2026-11-03-a-parse-error-in-one-class-showed-up-as-errors-in-its-users.md) (the real message shows only when the script is loaded on its own) |
 | Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |
