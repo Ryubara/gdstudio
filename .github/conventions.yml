@@ -185,7 +185,9 @@ issues:
           required: true
           description: "The acceptance test. For a bug fix: a test that fails before the fix and passes after it."
         steps: ["Fix list or steps", false]
-        blocked-by: ["Blocked by", false]
+        blocked-by:
+          heading: Blocked by
+          description: "The issues or pull requests that must merge first, as #N (one per line is fine). `gds issue block --on #N` accepts a block on any #N written here, or after `Depends on:`, `Starts after` or `Carried from` in the body; a bare mention elsewhere is not a dependency."
         screenshots: ["Screenshots", true]
   # How many of each label family an open issue carries.
   labels:

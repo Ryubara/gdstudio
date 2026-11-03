@@ -468,7 +468,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--on",
         required=True,
         help="#N (or owner/repo#N) of the open issue or pull request it waits on, or 'maintainer'; #N must be named "
-        "as a dependency in the issue body ('Depends on: #N', 'Carried from #N') unless --conflict names the files",
+        "as a dependency in the issue body (in its '### Blocked by' section, or 'Depends on: #N', 'Starts after #N', "
+        "'Carried from #N') unless --conflict names the files",
     )
     blk.add_argument(
         "--conflict",

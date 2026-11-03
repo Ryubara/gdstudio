@@ -186,10 +186,14 @@ _WAITS_ON = re.compile(r"(?i)^waits?\s+on\s+(.*)$")
 _CLAUSE_END = re.compile(r"[:;(]| [-–—] |\.\s")
 _BLOCKER = re.compile(r"(?<![\w/])((?:[\w.-]+/[\w.-]+)?)#(\d+)")
 # What a block may wait on besides the maintainer (docs/starting-work.md#parallel): an issue the blocked one's body
-# names as a dependency (`Depends on: #227.`, `**Depends on:** #53 to #57`, `Carried from #228 (PR #597, ...)`), or
-# files both would edit in ways a merge cannot settle (`--conflict`, written `(conflict in: a, b)` after the reason).
+# names as a dependency (`Depends on: #227.`, `**Depends on:** #53 to #57`, `Carried from #228 (PR #597, ...)`,
+# `Starts after #630 merges`, or any `#N` in the `### Blocked by` section the issue form renders), or files both would
+# edit in ways a merge cannot settle (`--conflict`, written `(conflict in: a, b)` after the reason).
 _DEPENDS_LINE = re.compile(r"(?im)^[ \t>*_-]*depends[ \t]+on\b(.*)$")
 _CARRIED_LINE = re.compile(r"(?im)^[ \t>*_-]*carried[ \t]+from\b(.*)$")
+_STARTS_AFTER_LINE = re.compile(r"(?im)^[ \t>*_-]*starts?[ \t]+after\b(.*)$")
+_BLOCKED_BY_SECTION = re.compile(r"(?im)^#{1,6}[ \t]+blocked[ \t]+by[ \t]*\r?\n(.*?)(?=^#{1,6}[ \t]|\Z)", re.DOTALL)
+_CLAUSE_STOP = re.compile(r"[(;]|\.(?:\s|$)")
 _RANGE = re.compile(r"#(\d+)\s+(?:to|through|-|–|—)\s+#(\d+)", re.IGNORECASE)
 _CONFLICT_IN = re.compile(r"\(conflict in: ([^)\n]*)\)")
 MAX_RANGE = 50
@@ -249,17 +253,23 @@ def parse_block(body: str) -> Block | None:
 
 def dependencies(body: str) -> set[tuple[str, int]]:
     """The issues a body names as dependencies, as (repository or "", number): every reference on a `Depends on:` line
-    (`#53 to #57` counts each number), and the issue on a `Carried from #N` line (not the pull request after it). A
-    `Blocked (...)` line is not a dependency: it is what `gds issue block` checks against this."""
+    or in the `### Blocked by` section of the issue form (`#53 to #57` counts each number), the issue on a `Carried
+    from #N` line (not the pull request after it) and the issues of a `Starts after #N merges` line (up to the first
+    parenthesis, semicolon or end of sentence). A `Blocked (...)` line is not a dependency: it is what `gds issue
+    block` checks against this."""
     found: set[tuple[str, int]] = set()
     text = without_blocks(body)
-    for line in _DEPENDS_LINE.findall(text):
-        for low, high in _RANGE.findall(line):
+    spans = _DEPENDS_LINE.findall(text) + _BLOCKED_BY_SECTION.findall(text)
+    for span in spans:
+        for low, high in _RANGE.findall(span):
             if 0 <= int(high) - int(low) <= MAX_RANGE:
                 found.update(("", n) for n in range(int(low), int(high) + 1))
-        found.update((repo, int(number)) for repo, number in _BLOCKER.findall(line))
+        found.update((repo, int(number)) for repo, number in _BLOCKER.findall(span))
     for line in _CARRIED_LINE.findall(text):
         head = line[: m.start()] if (m := re.search(r"[(;]", line)) else line
+        found.update((repo, int(number)) for repo, number in _BLOCKER.findall(head))
+    for line in _STARTS_AFTER_LINE.findall(text):
+        head = line[: m.start()] if (m := _CLAUSE_STOP.search(line)) else line
         found.update((repo, int(number)) for repo, number in _BLOCKER.findall(head))
     return found
 
@@ -558,8 +568,9 @@ def block(
 ) -> list[str]:
     """Take an issue out of the line with a reason: `S-blocked` and a `Blocked (...)` line in the body (one it had is
     replaced). `on` is `maintainer` or the issue (or pull request) it waits on, which must be open, and which the
-    issue's body names as a dependency (`Depends on:`, `Carried from`) unless `conflict` names the files both would
-    edit in ways a merge cannot settle. "Same subsystem", "same agent" and "in order" are not reasons."""
+    issue's body names as a dependency (its `### Blocked by` section, `Depends on:`, `Starts after`, `Carried from`)
+    unless `conflict` names the files both would edit in ways a merge cannot settle. "Same subsystem", "same agent"
+    and "in order" are not reasons."""
     conflict = tuple(path.strip() for path in conflict if path.strip())
     if not why.strip():
         raise IssueError("--why needs the reason, in a sentence")
@@ -589,7 +600,8 @@ def block(
         ):
             raise IssueError(
                 f"{repo}#{number} does not name #{blocker} as a dependency, so it cannot wait on it. A block needs "
-                f"a `Depends on: #{blocker}` (or `Carried from #{blocker}`) line in the issue body, or "
+                f"#{blocker} in the issue form's `### Blocked by` section, or a `Depends on: #{blocker}`, "
+                f"`Starts after #{blocker}` or `Carried from #{blocker}` line in the issue body, or "
                 f"`--conflict <path>...` naming the files both would edit in ways a merge cannot settle, or "
                 f"`--on {MAINTAINER}`. 'Same subsystem', 'same agent' and 'in order' are not reasons: start it, and "
                 f"parallel agents merge origin/main before each push (docs/starting-work.md#parallel)."

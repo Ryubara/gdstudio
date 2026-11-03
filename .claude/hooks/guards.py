@@ -1599,7 +1599,8 @@ def idle_message(workspace: Path, found: list[tuple[str, int, str, str]], count:
         "Everything that can run in parallel runs (docs/starting-work.md#parallel). Before you end the turn, for each:",
         f"- start it (`{gds} start <repo>#N --agent <name>`, then give an agent the Issue and Worktree lines);",
         f'- or take it out of the line with its reason: `{gds} block <repo>#N --on <#N|maintainer> --why "<text>"` '
-        "(`--on #N` only when its body names #N as a dependency, `Depends on:` or `Carried from`, or add "
+        "(`--on #N` only when its body names #N as a dependency, in `### Blocked by`, `Depends on:`, "
+        "`Starts after` or `Carried from`, or add "
         "`--conflict <path>...` naming the files both would edit in ways a merge cannot settle; or it waits on the "
         "maintainer. Same subsystem, same agent and in order are not reasons: docs/starting-work.md#parallel). "
         "A block writes `S-blocked` and a `Blocked (...)` line;",
