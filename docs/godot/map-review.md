@@ -154,6 +154,11 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   each place it comes to rest as a new start and repeats a few hops; flag a place beyond the map, inside a closed area or
   at wall-top height, with the doors in each state a team can have them. Replay every chain hop by hop before filing
   it.* (Deadnight's `tools/world/map_escape_probe.gd` is a worked example.)
+- [ ] **A roost is measured with dead that move.** A place the body can stand on and the dead cannot reach (the middle of
+  a counter 1.75 m from every edge) is a roost; put the player there with ten dead chasing and count the blows. A probe
+  that spawns the dead must give them a speed and print how near they came: a zero with the dead never closer than their
+  start is a probe fault
+  ([lesson](../lessons/2026-11-03-a-roost-probe-whose-dead-stood-still.md)). Deadnight's `tools/world/roost_probe.gd`.
 - [ ] **Run the movement.** For each candidate, run the real player body (the same simulation the game ticks, sprinting,
   jumping, crouching, and with the camera's latest facing) from the middle and edges of the platform toward the wall.
   A scripted path or a test, never "it looks too high". Crouch and jump combined, and the jump from a stair or ramp's
