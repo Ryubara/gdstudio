@@ -92,6 +92,32 @@ A gun "sounding distant" is measured on a recording of the real shot through the
   filter (see [Web: samples or streams](#web-samples-or-streams)).
 - ffmpeg's `ebur128=framelog=verbose` prints its momentary values only at `-v verbose`.
 
+## Headroom without a limiter
+
+Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and anything landing on a shot clipped:
+
+- **A limiter on Master does not act in the web build.** A probe (a tommy gun fired without a break through the audio
+  service; a hard limiter, ceiling -9 dB, on Master; then Master turned down 9 dB) read -6.0 dBFS plain, -9.0 with the
+  limiter and -15.0 turned down natively, and -6.0, -6.0 and -15.0 in headless Chromium with a tap on the page's
+  output: only the bus volume acts there (`tools/web_smoke/limiter_web.py`, `tools/bench/audio_limiter_probe.tscn`).
+  So the headroom is in the trims. It also keeps the mix a plain sum, which the audibility measurement relies on.
+- **Peaks add.** The loudest continuous source (the player's own gun) peaks at least 4.5 dB under full scale alone, so
+  one more sound at -6 dBFS lands at -2 or lower rather than at full scale. Check the sum: fire that source without a
+  break and play each class of other sound on it (a teammate's reload, a teammate's gun, the dead's voices, doors and
+  boards, a blast), then count the samples over -1 dBFS (`tools/audio/headroom.py`, from the capture
+  `tests/captures/audio_headroom.tscn`).
+- **Measure on a warm pool and on a clean one.** Pooled players keep what the last sound set: Deadnight's
+  `max_db` of a sound with no near cap stayed at the gun trim that last used the slot, so the same zombie voice read
+  4 to 10 dB higher played alone than after the guns, and moved with the gun trims
+  ([lesson](../lessons/2026-11-03-a-pooled-3d-player-kept-the-last-sounds-max-db.md)). Play each cell alone and after
+  the others, and set every pooled property on every play.
+- **A sound's variant files differ by 3 to 9 dB in peak** (a zombie voice's loudest and quietest take): to bound the
+  worst case point the definition at one file for each play (`path_format = def.path_for(k)`, `variants = 1`) and put
+  it back.
+- **A gain cut is not a loss of punch.** Lowering a trim moves loudness and peak together, so the crest factor of a
+  burst is unchanged; what limits the cut is the loudness rule against the beds (Deadnight: 14 LU for a shot, 17 for a
+  burst).
+
 ## Is a sound heard under fire?
 
 Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py`):
@@ -211,6 +237,7 @@ export (#421) with a tap on the browser's audio output:
 | --- | --- | --- |
 | Bus effect (a -12 dB `AudioEffectAmplify`) | ignored (0.1 dB) | applied (-11.8 dB) |
 | Player `attenuation_filter_cutoff_hz` (800 Hz on a bright sound) | ignored (0.0 dB) | applied (-31 dB) |
+| Hard limiter on Master (ceiling -9 dB, tommy gun at -6 dBFS) | ignored (-6.0 dBFS) | not measured (native: -9.0) |
 | Bus volume | works (-11.9 dB) | works (-11.6 dB) |
 | 32 positional voices | 3.7 dB lower | reference |
 | Main thread stalls 60 ms every 0.5 s, no threads build, 44 voices | no dropped blocks | 4 to 10% of 128-sample blocks dropped (crackle) |
