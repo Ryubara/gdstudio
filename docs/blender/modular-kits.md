@@ -91,6 +91,9 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
 - **Write the fixtures from the build script.** Give each piece a collision spec in Blender metres (its bounding box,
   boxes, or a cone) and write the `.tscn` with Blender (x, y, z) as Godot (x, z, -y). Walk-over dressing under the
   step height gets none, as a game's papers and debris. A rerun then keeps model and collision together.
+- **Each group's test reads its own build report.** Kit groups share the asset and fixture folders, so a test lists
+  its pieces from its report's keys, never from the folder's files
+  ([lesson](../lessons/2026-11-03-a-kit-test-claimed-every-file-in-a-shared-folder.md)).
 - **Mark where a game node goes later.** A cabinet that holds a wall buy carries a `Marker3D` turned so the game's
   existing plaque node, put under it unchanged, stands on end in the recess. Test that the plaque's box sits inside
   the model.
