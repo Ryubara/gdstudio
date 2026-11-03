@@ -60,3 +60,4 @@ minutes of shuffled 20 s blocks): of a 47 ms frame, script and physics were 47 a
   [Compatibility lighting](compat-lighting.md)), and a merge must keep each cell under the cap or the picture changes.
 - Shuffle the order of the interleaved arms each round: the night's waves have a beat, and a fixed order falls on it.
 - Chrome's CPU throttle belongs after the page has loaded, and `gds quiet` stops a command at 900 s.
+- A page whose heap grows over a night is a different question from its frame time: see [The web page's heap](web-heap.md).
