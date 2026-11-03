@@ -211,3 +211,29 @@ the game's own page is `docs/research/night-environment.md` there.
 - **A global class name clash is silent until export.** `class_name NeonSign` in the lot hid the UI skin's `NeonSign`;
   the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
   Grep `class_name` before naming one.
+
+## Light cards indoors: moon shafts, door glow, chalk
+
+What the second Deadnight map's lamps taught (Deadnight #636; its page is `docs/research/maps/small-map-art.md` there).
+Indoors the Compatibility renderer's gaps show more than on an open lot: nothing casts a shadow, so the moon lights
+every floor under a roof and a lamp lights the next room through the wall.
+
+- **Keep the directional moon low indoors** (0.1 against the lot's 0.36) and let cards carry the moonlight: with no
+  shadow it washes every floor evenly and the shafts drown.
+- **A moon shaft is the opening projected along the moon's direction**: each point of the opening plus `t` times the
+  direction until it meets the floor (or a wall ahead, whichever is nearer). Built in rows along the opening's height,
+  a patch that runs onto a wall bends at the corner. Two sheets from the opening to the patch are the haze. The bars'
+  shadows are stripes in the card's shader (`fract` of U times the bar count, a soft step), not a texture, and because
+  U and V run across the opening they land where the real shadow would.
+- **Extend a shader with uniforms rather than writing a new one.** A program is per shader file: a `card` mode, bar
+  stripes and a greyscale mask added to the lot's glow shader (defaults leave the old picture) gave the shafts, the
+  door glow and the chalk lettering with no GL program the warm-up did not already build (kit
+  [first-use hitches](first-use-hitches.md)).
+- **Additive chalk shows only where light falls**: a lettering mask drawn additively in the chalk colour reads in a
+  moon patch or under a lamp and fades into the dark wall elsewhere, which is where the writing should be read anyway.
+- **Fade haze near the camera.** Players walk under ceiling lamps; from inside a haze cone every face looks at the
+  camera and the screen washes. `smoothstep(0.2 * near, near, -VERTEX.z)` on the haze removes it within a couple of
+  metres.
+- **A light under a door is two cards**: one filling the opening on the far side, brightest at the floor (it shows
+  through the planks' cracks and over a debris blocker, depth-tested by the door), and a trapezoid on the near floor
+  fading into the room.
