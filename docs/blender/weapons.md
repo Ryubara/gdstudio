@@ -216,12 +216,14 @@ on a line of its own and merge main before pushing.
 
 **A model before its hold.** The model batches land before the build issue adds the weapon to the catalogue and
 writes its hold file, but the model still has to be seen in the hands. Film it through the night's own builder with a
-hold made in the capture (Deadnight's `game/tests/captures/model_hold_sheet.gd`: a `WeaponHold` built from the plan's
+hold made in the capture (Deadnight's `game/tests/captures/model_hands_sheet.gd`: a `WeaponHold` built from the plan's
 numbers, handed to `PlayerAnimation` the way `equip` does, beside catalogue weapons equipped the normal way), never a
 copy of the hold code. Solve the grip at the size the hold will use: the grip test compares each grip's `model_scale`
 with its weapon's hold, so a hold written later at another size needs the grip solved again; say the size in the pull
 request. A plan render that reads the sizes from the hold files takes the new models with their size given
-(`render_weapon_plan.py --add id=scale@row`).
+(`render_weapon_plan.py --add id=row@model_scale`). Two parallel batches each wrote that capture and that flag under
+the same names (Deadnight #816 and #818): before writing a tool a batch needs, look in the open pull requests of the
+other batches for one.
 
 ## Budgets
 
