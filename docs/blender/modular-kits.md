@@ -25,7 +25,7 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
   1.6 m, an arm of 2.3 m and a 0.25 m lens margin, a 2.8 m ceiling starts to cut in at about 24 degrees down.
 - A sill under the jump height needs a player-only blocker in the opening that is always there, even when the boards
   are down.
-- Stairs walk on one hidden ramp: fifteen step-ups bob the view.
+- Stairs walk on one hidden ramp: fifteen step-ups bob the view ([below](#stairs-rails-and-blockers)).
 
 ## Building the pieces
 
@@ -48,6 +48,51 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
   Read a cell of the saved PNG back once.
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
+
+## Stairs, rails and blockers
+
+Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.py` there):
+
+- **One ramp per flight, through the treads' middles.** The top of a hidden box runs at R/2 + u R/T (u from the first
+  riser), from half a tread before the first riser to the top level half a tread past the last, then a flat strip to
+  the top edge. Through the nosings instead, the body floats a riser over the treads' backs; through the backs, its
+  feet sink into the nosings. The 0.1 m either way is under the capsule's round foot.
+- **Seams are where a step hides.** A landing's box starts where the lower ramp reaches its height, and the upper ramp
+  starts half a tread into the landing; a box that starts at the landing's drawn edge is a 0.1 m ledge over the ramp,
+  and the player's step-up fires on it. Walk the corner diagonally in the test as well as the middle.
+- **Write the collision from the build script.** The script that makes the mesh writes the fixture scene's CSG boxes
+  from the same numbers, so a tread change moves the ramp too. Godot's `Transform3D(...)` in a `.tscn` lists the
+  basis by rows; check the convention with a ray down onto each tread.
+- **Test with the real body:** walk up and down, at a run, a sprint and across corners; assert no tick with a step-up
+  and none off the floor, bound the dip at a slope's crest (the capsule settles 4-8 mm there,
+  [lesson](../lessons/2026-11-02-a-stair-walk-test-failed-on-the-ramps-crest.md)), and keep a control flight with
+  its treads as collision that does step.
+- **Rails are player-only collision** (Deadnight's boards' layer): a thin pipe stops a player but not a shot or the
+  shoulder camera. A rail that may sit on either side of a straight flight is two nodes and a switch on the fixture.
+- **A mirrored piece is its own model.** Godot's physics does not take a negative scale, so a right-turning L stair is
+  built mirrored in Blender (the normals recalculated), never placed with scale x = -1.
+- **A blocker that comes away in pieces** is one node per piece named in the order they go (`Part1_...`), each with
+  its origin at its own middle so it can be moved on its own, over one collision box for the whole opening.
+
+## Building props
+
+Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_smallmap_props.py` there).
+
+- **Sandbags are full pillows that sag onto each other.** Make each bag taller than its course (0.22 m on 0.17 m) and
+  gather its ends sideways only. Thin bags pinched in both directions, with a gap between courses, read as stacked
+  logs ([lesson](../lessons/2026-11-02-sandbags-read-as-logs.md)). Alternate header courses (bags across) with
+  stretcher courses, and keep a 2 m line near 1.3k triangles.
+- **Write the fixtures from the build script.** Give each piece a collision spec in Blender metres (its bounding box,
+  boxes, or a cone) and write the `.tscn` with Blender (x, y, z) as Godot (x, z, -y). Walk-over dressing under the
+  step height gets none, as a game's papers and debris. A rerun then keeps model and collision together.
+- **Mark where a game node goes later.** A cabinet that holds a wall buy carries a `Marker3D` turned so the game's
+  existing plaque node, put under it unchanged, stands on end in the recess. Test that the plaque's box sits inside
+  the model.
+- **Check normals in Blender, not from Godot's triangles.** Godot's front faces wind clockwise, so a cross product of
+  an index triangle points inward on a correct mesh. Sum the signed volume per island of the exported file in Blender
+  instead ([lesson](../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
+- **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
+  looking dark ([the palette lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
 
 ## Staging game characters for scale
 
