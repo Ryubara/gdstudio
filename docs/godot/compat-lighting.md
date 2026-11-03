@@ -334,3 +334,15 @@ pixels of the next room, measured with each part hidden and shown from the playe
   [lesson](../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
 - **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
   changes a mesh's set of lights.
+
+## A column of light has a length from what is above it
+
+A beam, a shaft or a pillar of additive haze drawn as a fixed-length mesh shows through every floor and roof over its
+source: the depth test only hides the part of it that lies behind a surface from the camera, never the part past the
+surface on the camera's side, so from the floor above (or a roof) it rises out of the slab (Deadnight #911: the prize
+crane's 36 m beam through the concession's roof and the second map's upper floor). Cut its length where it is placed,
+with one ray up from its foot on the world layer (`PrizeCrane.beam_length_over`): shorten the same cone (same taper, a
+`cut` uniform on the same shader) and fade the last metre or so, with no new mesh, light or program. Outdoors the ray
+meets nothing and the beam keeps its full length. A test casts the same ray from every spot of every map and checks
+nothing solid stands inside the beam, and a capture is taken from the first solid over each spot, looking at where the
+beam rises through it.
