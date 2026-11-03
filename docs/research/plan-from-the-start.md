@@ -125,6 +125,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md)).
 - Plan: kit props and materials on the map as soon as the layout holds
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+- Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
+  player's camera: loops and kiting space, chokepoints, spawns, pacing of the doors, landmarks, lighting, and every
+  out-of-bounds and door-skip candidate proven by movement, not by eye; Deadnight's two maps were first reviewed after
+  more than a hundred pull requests (#833; [checklist](../godot/map-review.md)).
 
 ## Audio
 
