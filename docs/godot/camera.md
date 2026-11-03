@@ -58,5 +58,21 @@ From Deadnight's world markers and teammate names (#430):
   `process_priority` so it follows a camera that places itself in `_process`.
 - A test that reads what a `_process` pushed awaits two idle frames: `await get_tree().process_frame` returns before
   that frame's `_process` calls.
-- Another `Camera3D` entering the tree (a second body in the same process) can become current; call `make_current()`
-  after any join ([lesson](../lessons/2026-11-01-a-second-body-took-the-current-camera.md)).
+- Another `Camera3D` entering the tree (a second body in the same process) can become current
+  ([lesson](../lessons/2026-11-01-a-second-body-took-the-current-camera.md)); see the next section for the fix.
+
+## One current camera per viewport
+
+From Deadnight #702 (a bot's body had the view):
+
+- A `Camera3D` with `current = true` in a scene takes the viewport's view **each time an instance enters the tree**,
+  and a camera with `current = false` takes it too when it is the first camera in the viewport (Godot's
+  `Camera3D` makes the first camera of a viewport current). So N instances of a scene with a current camera
+  leave the view on the last one that joined.
+- Do not fix that in the capture or test code (`make_current()` after the join): the game then still looks through
+  the wrong body. Decide who owns the view where the bodies are made: every body that is not the person's sets
+  `camera.current = false` before `add_child` (Deadnight: `Player.release_view()`).
+- Test it on the engine's answer, `get_viewport().get_camera_3d()`, mapped back to the body that owns it, and on every
+  other body's `camera.current` being false; check after each event that adds a body: the spawn, a late seat, a
+  revive. A test that reads only the person's own camera node passes while the view is elsewhere.
+- `release_view()` leaves the camera node in place, since the rig uses it for aiming; only the `current` flag goes.
