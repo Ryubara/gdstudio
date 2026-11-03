@@ -227,7 +227,21 @@ the game's own page is `docs/research/night-environment.md` there.
   and make a lamp on the outside of a wall a `SpotLight3D` facing out (its cone never passes its apex plane). Test every
   additive card against the walls (a point behind a wall seen from its lamp; a wall-mounted card hanging past its wall)
   and every light against the floors, roofs and walls it reaches through a wall. What stays is a room lamp reaching the
-  next room by its range (0.2 to 0.7 energy at 5 to 9 m): only a shadow or a light layer per room stops it.
+  next room by its range (0.2 to 0.7 energy at 5 to 9 m): a light layer per room stops it (the next bullet).
+- **A light layer per room is the shadow Compatibility does not have, for free.** A light lights only the meshes whose
+  `layers` share a bit with its `light_cull_mask` (checked in a Compatibility scene: a box on layer 2 is lit by a lamp
+  with mask 1|2, a box on layer 4 stays black), so a lamp that names the default layer and its room's lights the dead and
+  the props (on layer 1) and its room's floor, ceiling and walls, and not the next room's. It is two integers in the
+  scene: no draw call, no light, no shader program (Deadnight #841: the stand's, the booth's and the second map's lamps,
+  0.2 to 0.7 energy through walls cut to what is left below, frame cost unchanged within the spread). What to know:
+  `layers` is the camera's too (a box off layer 1 still draws: the camera sees 1 to 20); a lamp must keep bit 1 or it
+  leaves the dead standing in a lit room dark; a mask belongs to a whole mesh, so one box that is a wall of two storeys
+  or a floor and the terrace past a wall takes the light of both sides (splitting it costs a draw call); an opening in
+  the wall no longer passes the lamp's light, so a doorway's spill is the glow card's job. Move only the surfaces that
+  are lit through a wall, not every box, and test both ways: no lamp reaches a surface through a wall beyond a table of
+  reasons, and no lamp loses a surface it could see beyond a second table (the cost shows in that table, not in the
+  leak one). A downward `SpotLight3D` for a ceiling lamp (cone under 90 degrees) cures the wall above it but takes the
+  light off the ceiling over it, which changes how the room looks.
 - **A spot's forward is its -Z, and its reach is the box of its cone.** A builder's `yaw 180` faced a projector's spot at
   the road, not the screen, for the life of a map (Deadnight #840): print `-global_basis.z` of every spot and test where
   it points. Turned right, the cone aimed at the screen's middle dipped under a roof 20 m away and put a seventh light on
