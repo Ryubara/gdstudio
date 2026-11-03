@@ -126,8 +126,11 @@ A predicting client moves its body against its own copy of the map, the server m
 A solid thing that only one holds is a wall the other walks through, and the client's body then drifts metres from the
 server's (Deadnight #748: a prize crane's cabinet, a `StaticBody3D` that the client-only drawing added to itself). Views
 and drawings carry no collision; a solid thing is built into the world both sides build and moved there by the rules
-(server) and the frame (client). Test it with a real client and host: list every `CollisionObject3D` and colliding
-`CSGShape3D` under each side's viewport and compare them (`tests/net/test_world_parity.gd`).
+(server) and the frame (client). The same goes for the bodies: the client draws the other players as puppets with no
+collision, so the server's bodies must not block one another either (Deadnight #760: a body on layer 1 with a mask of 1
+and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
+list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
+(`tests/net/test_world_parity.gd`).
 
 ## Web export
 
