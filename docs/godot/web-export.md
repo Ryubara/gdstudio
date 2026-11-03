@@ -94,7 +94,10 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
   focused during the keydown. Show "copied" only when the page confirms, and show the text selected when nothing works.
 - **Share without the clipboard.** The SDK's `commands.shareLink({message, custom_id})` (no scope; returns
   `success`, `didCopyLink`, `didSendMessage`) sends a link with text through Discord's own window; `openInviteDialog`
-  invites to the channel.
+  invites to the channel. `shareLink` answers when its window is **closed**, not when it opens; it rejects with a plain
+  `{code, message}` object (`String(error)` is "[object Object]"), and a reply the SDK cannot parse is logged
+  (`Failed to parse`) and leaves the promise pending for ever. Show a "pick who to send it to" hint only while the
+  command has not been refused, say so when it was, and keep the raw `message` frame for a probe line (Deadnight #627).
 - **Test it** in Playwright with a cross-origin iframe, in the headless shell (its clipboard is the browser's own,
   never the person's), `context.grant_permissions` for the parent origin and a
   `permissions-policy: clipboard-read=(), clipboard-write=()` header on the frame (Deadnight
@@ -107,3 +110,4 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
 
 Lesson: [Copy and paste did nothing in the Discord Activity](../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md).
 Lesson: [The first Ctrl+V in a browser tab pasted nothing](../lessons/2026-11-02-the-first-ctrl-v-in-a-browser-tab-pasted-nothing.md).
+Lesson: [Share in Discord said "Pick who to send it to" and Discord opened nothing](../lessons/2026-11-02-a-share-button-said-pick-who-to-send-it-to-whatever-discord-answered.md).
