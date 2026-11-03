@@ -3,7 +3,8 @@
 A reusable review for any GDStudio map, run before it ships and again when its layout changes. It was written for
 Deadnight's #833 (a full review of two maps) from published level-design writing, and it is built for the games we
 make: co-op, wave-based, third-person survival with doors that open by purchase. Other games are studied for design
-only; nothing here is copied from them.
+only; nothing here is copied from them. The principles behind each section, their sources and the check each one runs
+are in [Level design](../research/level-design.md), and the `level-designer` agent walks this checklist.
 
 Run it as a person (an agent) who walks the map **from the player's camera**, not from the editor, and **proves every
 claim by movement or by measurement**: "looks sealed" and "looks dark" are guesses. Each section ends with the proof
@@ -200,7 +201,8 @@ corner) are fixed in the review with a test; layout, pacing and balance are issu
 
 ## Sources
 
-Read for design only; nothing here is copied from a game.
+Read for design only; nothing here is copied from a game. The full list, by principle, is in
+[Level design: sources](../research/level-design.md#sources).
 
 | Subject | Source |
 | --- | --- |

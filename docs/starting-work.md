@@ -152,8 +152,8 @@ The agent that continues merges `origin/main` into the reused branch with `gds m
 
 ## Starting an agent
 
-The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, any agent that is not a
-read-only helper or the reviewer) has a line of one of these forms:
+The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`, any agent
+that is not a read-only helper or the reviewer) has a line of one of these forms:
 
 | Line | For | The hook checks |
 | --- | --- | --- |
