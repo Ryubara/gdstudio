@@ -93,7 +93,10 @@ moment they appear.
 **Check (a probe and a capture):** the game's spawn audit lists each spawn point inside a solid, off the floor, in view
 of the players' start, its distance to the nearest opening and to the nearest lamp; a spawn 5 to 15 m behind its
 opening is a walk, not a pop. A capture from each area's entrance shows its openings. Deadnight's review found spawns at
-bare fences with no breach, and six with a lamp 0.5 m away, so the dead never came out of the dark.
+bare fences with no breach, and six with a lamp 0.5 m away, so the dead never came out of the dark. Each opening is a
+way in only if there is floor behind it: the way from its spawn to a point 1.5 m inside it is within 2 m of the straight
+line. Deadnight's second map had a window over a stairwell whose dead walked 10 m outside to the next window; a path to
+a far room passed it.
 
 ### P7. The way the dead come in stays true as the map opens
 

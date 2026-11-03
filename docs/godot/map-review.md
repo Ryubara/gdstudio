@@ -74,6 +74,11 @@ circled is a corridor with a countdown.
   advises hidden spawners for surprise; Left 4 Dead's director spawns only out of sight).
 - [ ] **Every spawn has a path.** *Proof: from each spawn marker, a navigation query to every reachable room, with the
   doors in each possible bought state.*
+- [ ] **Every opening is a way in.** Floor a person can stand on lies behind every window and breach: never a stairwell,
+  a parapet or a prop in the way. *Proof: from each spawn, the way to 1.5 m inside its own opening, no more than 2 m
+  longer than the straight line, and a capture from the player's camera behind it with a dead tearing at it. A path to
+  a far room proves the map is joined, not that this opening is used (Deadnight #824: a window over a stairwell whose
+  dead came in by the next one).*
 - [ ] **A spawn never opens into a closed area.** Closed areas stay closed to the dead too (here, a window opens the dead
   of its own room only). *Proof: the opening-order test.*
 - [ ] **Spawns match pacing.** Early rounds spawn where the player is looking; later rounds spawn from more openings.
