@@ -127,7 +127,7 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | Lesson | Detail |
 | --- | --- |
 | Draw real, then fatten | Drawn at real proportions, a gun looks spindly beside the kit. Scale every part 1.4-1.5x across its length before chamfering to get the kit's chunky cross-sections |
-| Big receiver, shallow stock | The kit's guns read as a large grey block; keep the stock shallow with a slanted butt, or the fattening turns it into a wedge |
+| Big receiver, shallow stock | The kit's guns read as a large grey block; keep the stock shallow with a slanted butt, or the fattening turns it into a wedge (Deadnight's PPSh, MP5 and M4A1 first came out with butts 0.16-0.20 m deep in drawing units and read as wedges; 0.14-0.16 m read, [lesson](../lessons/2026-11-03-new-gun-stocks-came-out-as-wedges.md)) |
 | Chamfer only the big parts | A one-segment chamfer (about 17 mm at kit scale) costs a box 44 tris instead of 12; leave screws, pins, sights and lever segments hard |
 | Kitbash, never weld | Separate closed parts; levers and guards are overlapping boxes along a path |
 | Round parts by lathe | One turned profile with the chamfers in it; flat shading keeps the kit's facets |
@@ -135,6 +135,9 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | One material per family | A small palette atlas, every face's UVs collapsed on its colour swatch, roughness 0.415, metallic 0.4 |
 | Compare rebuilds by geometry | The glTF export's triangle order changes from run to run, so a rebuilt file never matches the old one byte for byte: compare nodes, vertex buffers and the triangle set, and commit only the files the change is for |
 | Look at it | A turntable sheet beside two kit weapons at the same scale shows what numbers miss: the first pass had the right lengths and triangle counts, and still read thin |
+| Chamfers cost on round parts | A 12-sided cylinder is 44 triangles bare and 92 chamfered, a box 12 and 44: chamfer the big parts that face the camera and leave collars, rings and small blocks bare ([lesson](../lessons/2026-11-03-chamfered-round-parts-put-a-carbine-over-its-budget.md)) |
+| Trim is a band, not a cap | A rim drawn as a slightly larger capped cylinder covers the face it trims; draw it as a band round the edge, then read the cells by area ([lesson](../lessons/2026-11-03-a-drum-s-rim-discs-hid-its-face-colour.md)) |
+| A copied guard needs its frame | A trigger guard copied from another gun keeps its opening only if the frame above the trigger sits at the donor's height: 5-7 mm lower took Deadnight's MP5 and M4A1 from 0.95 to 0.83-0.86 of the finger ([lesson](../lessons/2026-11-03-a-copied-trigger-guard-lost-its-opening-under-a-lower-frame.md)) |
 
 ## Palette cells in Godot
 
