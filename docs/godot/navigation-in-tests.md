@@ -68,6 +68,16 @@ area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a
 and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion
 ([lesson](../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
 
+## A thread-synced map drops meshes swapped in one go
+
+With `navigation/world/map_use_async_iterations` on (the default), a loop that swaps several meshes into a region in one
+frame (a test selling every door) can leave the map on an older mesh for good: the iteration id ends lower on those runs
+(7 against 8 or 9), `map_force_update` does not move it, and the dead's paths end short of their targets so they stand
+still (Deadnight #733, #736). Turn it off for a server's map with
+`NavigationServer3D.map_set_use_async_iterations(map, false)`: the physics step takes the mesh in, the same on every
+machine ([lesson](../lessons/2026-11-03-async-navigation-iterations-dropped-the-last-of-several-door-meshes.md)). A
+check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
+
 ## A night stepped by hand has a stale map
 
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server
