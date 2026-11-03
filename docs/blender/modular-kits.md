@@ -13,6 +13,10 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
   parts list to what needs Blender, and a box can be cut per room for the Compatibility renderer's light cap.
 - **Grow the existing atlas, do not start a new one.** Put new swatches in the empty cells of the game's palette grid:
   every older prop's UVs stay valid and one texture serves both.
+- **Check the kit's sizes against the design's targets first.** A map built to a formula page (areas, ceiling,
+  camera passages) can overrule the sizes read off reference images: Deadnight's second map took a 3.4 m storey
+  and 2.0 m doors and stairs from its formula over the kit's 3.0 m and 1.4 m
+  ([lesson](../lessons/2026-11-02-two-sister-pages-gave-one-map-two-ceilings.md)).
 - **List coverage per part**: exists, a material on a box, a model, or an engine job (light cards, shaders). Group
   the models so the groups share only the palette module, and agents can build them in parallel.
 
