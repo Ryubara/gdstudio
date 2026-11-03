@@ -1189,6 +1189,13 @@ def test_the_message_of_the_hook_input_is_judged_too(workspace):
         assert out["decision"] == "block", kind
 
 
+def test_a_level_designer_ending_without_a_report_is_refused(workspace):
+    out = stall_answer(workspace, STALLED, agent_type="level-designer", agent_id="ld1")
+    assert out["decision"] == "block"
+    assert "Now the autopilot." in out["reason"]
+    assert stall_answer(workspace, REPORT, agent_type="level-designer", agent_id="ld2") is None
+
+
 def test_a_report_with_a_pull_request_passes(workspace, tmp_path):
     assert stall_answer(workspace, REPORT) is None
     transcript = write_transcript(tmp_path / "agent.jsonl", REPORT)
