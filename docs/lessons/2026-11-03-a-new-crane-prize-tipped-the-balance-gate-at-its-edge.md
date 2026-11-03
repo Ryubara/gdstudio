@@ -13,10 +13,10 @@ areas: [gameplay, tests]
   takes (it is worth under 1.5 times what it would replace) did it as well as a strong one. The roster research (#785)
   had predicted it, with `health_growth` 1.16 as the lever, which I measured trading the strong cell for the stampede
   (41% against 40%) and the headliner (31.3 s).
-- **Fix:** none by me: a gate range or `health_growth` is the maintainer's to choose, so the pull request states it at
-  the top and ships the numbers as they are. What did help was measuring a baseline from a separate checkout before the
-  first edit and a probe script that prints the six medians for a list of variants (a few minutes under a loaded machine,
-  never a full test run per guess).
+- **Fix:** not mine to choose: a gate range or `health_growth` is the maintainer's. The maintainer had already decided
+  a strong solo median of 19 is fine, so the range became 12 to 19 and `health_growth` stayed (the headliner's limit
+  stayed too). What helped was a baseline from a separate checkout of `origin/main` before the first edit and a probe
+  script printing the six medians for a list of variants, never a full test run per guess.
 - **Check next time:** a change to the crane pool, the shop or the carry runs `test_balance_targets.gd` before anything
   else is built on it, and a gate failure is read as "which cell and by how much" first: if the weight does not move
   it, stop tuning and ask.
