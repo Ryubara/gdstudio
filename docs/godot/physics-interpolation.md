@@ -19,6 +19,9 @@ draw the blend of the last two ticks.
   late and unevenly; set its `physics_interpolation_mode` to `PHYSICS_INTERPOLATION_MODE_OFF` (children inherit).
 - A camera or rig that you blend by hand is OFF as well: the two blends stack and the body still wanders (11 px in our
   measure, against 0.0).
+- A capture camera that cuts between spots is OFF from the moment it is made: with it on, the saved frames show where
+  the last ticks left it, tens of metres from the printed position, and the log has the one line `[Physics
+  interpolation] Interpolated Camera3D triggered from outside physics process`.
 - After you set a new transform on a node that must not slide in (a teleport, a spawn, a pooled node reused), call
   `reset_physics_interpolation()` once the transform is set.
 - Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation
