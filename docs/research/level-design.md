@@ -40,7 +40,8 @@ the hub, more weenies open up", is the same shape from theme parks
 experience design goals" ([The Level Design Book: flow](https://book.leveldesignbook.com/process/layout/flow.md)).
 
 **Check (a number and a probe):** for each loop, its length along the walking mesh with the dead's agent size (about
-40 m or more strings a pack out) and its narrowest width (two bodies abreast); a bot soak records where bodies stop
+40 m or more strings a pack out; the shortest lap, by the funnel path through the outside corners, Deadnight's
+`test_lot_loops.gd`) and its narrowest width (two bodies abreast); a bot soak records where bodies stop
 moving. A purchase that adds no loop, weapon or light is listed as a tax.
 
 ### P3. Not every place is safe to train in
@@ -181,7 +182,9 @@ publish metrics list the crouch-jump apart from the jump for the same reason
 **Check (a probe and a number):** the game's ledge probe runs the real body at blocks of each height, sprinting and
 walking, jumping at several moments; the highest it stands on is the reach, and a test pins it. Every perimeter wall,
 closed door and closed-area wall is above the reach plus the height of anything standable within reach of it, with the
-margin written down.
+margin written down. A top over the reach is out of reach only by the sweep: two such blocks meeting at an inside
+corner were climbed from the floor
+([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)).
 
 ### P14. Escape sweeps for every door state
 
@@ -209,7 +212,11 @@ able to follow where the design says they can: a crowd moved off the physics eng
 
 **Check (a probe and a number):** the game's roost probe puts the player on each standable top the escape sweep found,
 in a real night with ten dead chasing for 40 s, and counts the blows that landed. 0 blows is a roost; each roost is
-listed with its verdict (by design, or a finding). Deadnight's start-room counter: 0 blows on top, 7 on the floor.
+listed with its verdict (by design, or a finding). Deadnight's start-room counter: 0 blows on top, 7 on the floor;
+the lot's plaza container against its end wall, reached from a crate: 0 blows on its back edge (#855). The dead walk
+at a night's pace (2.4 m/s): a probe that put them down with no speed never closed in. The sweep tests fail on any
+standing place over the reach, not only on leaving the map
+([lesson](../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
 
 ### P16. The camera fits where the body goes
 
