@@ -335,3 +335,18 @@ export (#421) with a tap on the browser's audio output:
   audio service and prints each effect against the open voice found all three effects missing in one run.
 - **A probe's project setting** goes under `[audio]` without its `audio/` prefix, and the playback-type values are
   0 stream, 1 sample ([lesson](../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md)).
+
+## Menu sounds
+
+The interface's sounds (which component takes one, weights, repetition, levels, touch, accessibility, how to wire a table
+of roles and cues) are [Menu and interface sounds](../audio/ui-sounds.md). Two facts from making them:
+
+- **A sound's name is not unique across folders.** A generator run with `--only deny` rendered the menu's new `deny`
+  *and* the existing `world/deny_1.ogg`, overwriting the committed file. Give a new sound a name nothing has (grep the
+  registries first) and run `git status` after a render: a file outside the folder you meant is the sign
+  ([lesson](../lessons/2026-11-03-an-only-flag-by-name-rendered-another-folders-sound.md)).
+- **Measure a menu sound on the real service**, one play at a time through the buses (a capture that plays each variant
+  file of each row of the table, 0.7 s apart, 60 frames a second, no picture), and read peak and K-weighted loudness of
+  every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with
+  the recording within 0.1 dB, so the level is pinned in a plain test
+  ([lesson](../lessons/2026-11-03-equal-peaks-made-whooshes-louder-than-clicks.md)).
