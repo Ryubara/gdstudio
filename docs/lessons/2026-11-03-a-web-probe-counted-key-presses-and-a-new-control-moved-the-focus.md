@@ -12,6 +12,6 @@ areas: [tests, web, godot-ui]
   the skill and left the count at 0. Nothing in the probe named the control it expected to be on.
 - **Fix:** one more Up and one more Down (`camera_owner.py`, `solo_settings.py`). Reproduced first: the old script on a
   fresh web export reads 0 bots twelve times, the fixed one reads 3 and the frame lists three bots. A probe that
-  walks the focus reads which control has it (the game's `play_focus` field) before it presses a value key.
+  walks the focus reads which control has it (the game's `focus` field, since #743) before it presses a value key.
 - **Docs:** Deadnight `docs/research/bots.md`. Check: after a pull request that adds a control to a screen, grep
   `tools/web_smoke` for the key walks of that screen (`ArrowUp`, `ArrowDown`) and run the probe before opening.
