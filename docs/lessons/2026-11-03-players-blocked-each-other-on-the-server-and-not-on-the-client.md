@@ -19,6 +19,9 @@ areas: [net, tests]
   slid on.
 - **Note:** [the bots' spreading lesson](2026-11-02-bots-in-a-crowd-block-each-other-because-players-are-solid.md)
   worked around this solidity for bots alone; with bodies passing through each other that jam cannot happen.
+- **Rays:** a ray that has to meet a body (a shot, the dead's swing, a grenade, footsteps, a ping) lists `PhysicsLayers.BODY`
+  in its own mask; moving the layer alone made the dead's swing check stop meeting the bot and broke
+  `test_smallmap_bot_night`, the first thing to fail when a ray is forgotten.
 - **Docs:** [Multiplayer: same solid things](../godot/multiplayer.md#the-two-worlds-must-hold-the-same-solid-things).
   Check: a body the server blocks on something the client does not draw (or does not collide with) is a drift in
   waiting; list every way two server bodies can touch and make the client agree or the server ignore it.
