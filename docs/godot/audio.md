@@ -144,11 +144,12 @@ router (`SmallMapWays`) asks the question the other way round:
 - **Route through the windows of the listener's room.** For each window that the listener can see (a ray from the ear to
   just inside the opening) and whose outside can see the source, the sound's way is *listener to window plus window to
   source*. Take the window with the shortest way and the kinder state (boarded, open). Play the loop **at that window**,
-  so it comes from the window's direction, and set its level to the whole path: the player already takes the engine's
-  fall-off at the window (`unit / (unit + near)`), so add `20 log((unit + near) / (unit + total))` and the window's cost.
-  Rank windows by the whole path's loudness, not by that remainder, which is larger for a window farther away
-  ([lesson](../lessons/2026-11-03-a-sound-came-in-at-the-farther-window.md)). No window: play it where it is, quieter
-  and duller, as through a wall. Outside the building: where it is.
+  so it comes from the window's direction. An `AudioStreamPlayer3D` falls off as `unit_size / distance` (a boost inside
+  `unit_size`, not `unit_size / (unit_size + distance)`, which is only `AudioService`'s voice ranking), so to be as loud
+  as the whole way round, add `20 log(distance to the window / whole way)` and the window's cost. Rank windows by the
+  whole way, not by that remainder, which is larger for a window farther away
+  ([lesson](../lessons/2026-11-03-a-routed-yard-sound-used-the-wrong-fall-off.md)). No window: play it where it is,
+  quieter and duller, as through a wall. Outside the building: where it is.
 - **Fences and the ground are not walls.** The rays read the same layers as the walls; ask again past a hit under the
   outside group by adding its `rid` to `exclude`, and exclude the windows' own blockers
   ([lesson](../lessons/2026-11-03-a-yard-fence-counted-as-a-wall-for-sound.md)).
