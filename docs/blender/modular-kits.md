@@ -102,6 +102,12 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
   instead ([lesson](../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
 - **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
   looking dark ([the palette lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+- **Show an encoding fix before and after from the same cameras.** A fixed atlas changes a look that may have been
+  approved dark: capture the night with the old atlas put back and imported, then the new one, from a seeded tour
+  (old file: `git show <rev>:<path> | git lfs smudge`,
+  [lesson](../lessons/2026-11-01-git-show-of-an-lfs-file-gives-a-pointer-not-the-model.md)). On Deadnight's drive-in
+  (#651) 0-5 % of each lot view changed and up to 24 % of a close prop view; under the night's lights nothing read
+  washed out, so no swatch was tuned.
 
 ## Roof and outside
 
