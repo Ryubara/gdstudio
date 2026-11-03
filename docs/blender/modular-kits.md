@@ -50,6 +50,8 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
 - **Write the palette's sRGB values into the image.** A byte image's `pixels` are what the PNG stores; converting to
   linear first saves every swatch far too dark ([lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
   Read a cell of the saved PNG back once.
+- **Keep `.bin` out of the text hooks.** A small glTF buffer can pass as text, and the end-of-file fixer appends a
+  byte to it ([lesson](../lessons/2026-11-03-the-end-of-file-hook-appended-a-newline-to-a-gltf-buffer.md)).
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
 
@@ -97,6 +99,22 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
   instead ([lesson](../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
 - **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
   looking dark ([the palette lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+
+## Roof and outside
+
+Learned on Deadnight's roof and backdrop (Deadnight #638, `tools/blender/build_smallmap_outside.py` there).
+
+- **A roof in bays along the ridge** sits on the walls as wall modules do: the origin on the wall tops, the rafters'
+  undersides resting on the wall plates (lift the rafters' plane by the plate's height plus the rafter depth over the
+  pitch's cosine). Boards at a bay's end lap 20 mm into the next, or the sky shows through every joint
+  ([lesson](../lessons/2026-11-03-modular-roof-bays-showed-the-sky-through-their-joints.md)).
+- **A broken bay** is the courses with a rectangle left out, short boards of different lengths into the hole, battens
+  across it and a snapped rafter hanging; seen from below it reads at once.
+- **What the backdrop repeats gets a far level of detail** of 300 triangles or fewer (four-sided limbs, no caps, no
+  barbs) and an `.obj` copy for a MultiMesh. A wire is a run of three-sided tubes along a parabola; its span is its own
+  piece, from one pole's insulators to the next's.
+- The backdrop itself (haze, unshaded, multimeshes, cost) is on
+  [Compatibility lighting](../godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
 
 ## Staging game characters for scale
 
