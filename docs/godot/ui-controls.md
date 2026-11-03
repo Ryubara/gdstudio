@@ -84,6 +84,16 @@ phone: the right thumb's corner is full, and rectangle tests between HUD parts d
 tree: `global_transform` of a node not yet inside it is an error and an identity
 ([lesson](../lessons/2026-11-03-a-hud-part-built-a-model-bounds-before-it-was-in-the-tree.md)).
 
+## A part placed from another part's rectangle
+
+A control that must stand beside another (badges by a card) and is placed by code reads the other's `get_global_rect()`.
+Do not place it in the other's `item_rect_changed`: when that control sits in a container (or a column anchored to a
+screen edge) the signal fires before the container has placed it, so the rectangle read is the old one and the part ends
+up a layout step behind (70 units low when the touch layout moved the card). Connect the signal of the control, of its
+parent and of the placed part to one function that queues a single deferred placement (a flag so it runs once per layout
+pass). Test it by changing the layout and measuring the rectangles after two idle frames
+([lesson](../lessons/2026-11-03-a-part-placed-from-a-siblings-rect-read-it-before-the-layout-moved-it.md)).
+
 ## Animating a container's children
 
 - **Never read a container child's position in the frame it was shown.** A `Container` sorts its children in a
