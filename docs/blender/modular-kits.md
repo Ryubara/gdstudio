@@ -25,7 +25,7 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
   1.6 m, an arm of 2.3 m and a 0.25 m lens margin, a 2.8 m ceiling starts to cut in at about 24 degrees down.
 - A sill under the jump height needs a player-only blocker in the opening that is always there, even when the boards
   are down.
-- Stairs walk on one hidden ramp: fifteen step-ups bob the view.
+- Stairs walk on one hidden ramp: fifteen step-ups bob the view ([below](#stairs-rails-and-blockers)).
 
 ## Building the pieces
 
@@ -48,6 +48,31 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
   Read a cell of the saved PNG back once.
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
+
+## Stairs, rails and blockers
+
+Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.py` there):
+
+- **One ramp per flight, through the treads' middles.** The top of a hidden box runs at R/2 + u R/T (u from the first
+  riser), from half a tread before the first riser to the top level half a tread past the last, then a flat strip to
+  the top edge. Through the nosings instead, the body floats a riser over the treads' backs; through the backs, its
+  feet sink into the nosings. The 0.1 m either way is under the capsule's round foot.
+- **Seams are where a step hides.** A landing's box starts where the lower ramp reaches its height, and the upper ramp
+  starts half a tread into the landing; a box that starts at the landing's drawn edge is a 0.1 m ledge over the ramp,
+  and the player's step-up fires on it. Walk the corner diagonally in the test as well as the middle.
+- **Write the collision from the build script.** The script that makes the mesh writes the fixture scene's CSG boxes
+  from the same numbers, so a tread change moves the ramp too. Godot's `Transform3D(...)` in a `.tscn` lists the
+  basis by rows; check the convention with a ray down onto each tread.
+- **Test with the real body:** walk up and down, at a run, a sprint and across corners; assert no tick with a step-up
+  and none off the floor, bound the dip at a slope's crest (the capsule settles 4-8 mm there,
+  [lesson](../lessons/2026-11-02-a-stair-walk-test-failed-on-the-ramps-crest.md)), and keep a control flight with
+  its treads as collision that does step.
+- **Rails are player-only collision** (Deadnight's boards' layer): a thin pipe stops a player but not a shot or the
+  shoulder camera. A rail that may sit on either side of a straight flight is two nodes and a switch on the fixture.
+- **A mirrored piece is its own model.** Godot's physics does not take a negative scale, so a right-turning L stair is
+  built mirrored in Blender (the normals recalculated), never placed with scale x = -1.
+- **A blocker that comes away in pieces** is one node per piece named in the order they go (`Part1_...`), each with
+  its origin at its own middle so it can be moved on its own, over one collision box for the whole opening.
 
 ## Building props
 
