@@ -45,6 +45,25 @@ fix it screen by screen:
 
 Deadnight #628 and #644: `game/tests/ui/test_hover_room.gd`.
 
+## A picker of cards in a form row
+
+A choice that needs a picture and a few facts (Deadnight's map picker, `MapPicker` and `MapCard`) is a column of
+focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOptionSelector`.
+
+- **Draw the card the way the menu draws its tickets** (`MenuLook.draw_ticket`, the amber outline for the focus or the
+  pointer, hover moving the focus) so it reads as part of the menu and nothing new has to be themed. The chosen card
+  is marked in a second colour (red outline and a word) so focus and choice never look the same.
+- **A card that cannot be chosen yet still takes the focus.** A keyboard can read it; its press says `blocked` and
+  changes nothing. A read-only copy (a guest's lobby) sets `focus_mode` to none and `mouse_filter` to ignore.
+- **Budget the phone's height before the desktop's.** A phone held sideways has 540 units, and a form that already
+  fills them takes no new row: a `GridContainer` that goes from one column to two, tighter gaps and a card without a
+  picture kept the Play screen inside the canvas. After the columns change, set the focus neighbours again.
+  Headless tests cannot see this overflow (text measures as nothing): run the capture tour at 844 by 390
+  ([lesson](../lessons/2026-11-03-a-new-row-pushed-a-form-off-a-phone-held-sideways.md)).
+- **Test every input the card takes:** arrow keys and Enter (`get_viewport().push_input` with `InputEventKey`), the
+  d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
+  card chosen and on the card that is locked.
+
 ## Touch controls
 
 Touch controls press the game's existing input actions, so gameplay code does not fork. `Input.emulate_mouse_from_touch`

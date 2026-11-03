@@ -75,6 +75,15 @@ body is copied from `gh pr view N --json body -q .body`. A reference whose path 
 folder the command runs in, is refused with both places named ([Hooks](hooks.md#attach-paths)). Say "attached" in a
 report only after reading the body back.
 
+## Before captures
+
+A `Before:` capture needs the code from before the change, and the task's worktree has no copy of it after the first
+edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
+--detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
+the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
+phone's 844 by 390 and the web export), then `git worktree remove` it
+([lesson](lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
+
 ## Tests
 
 `python/tests/test_quiet_run.py` runs the real pinned Godot and Movie Maker on Windows with a test window holding the
