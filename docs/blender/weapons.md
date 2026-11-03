@@ -96,7 +96,12 @@ data instead:
   the model's task still proves the hold: a capture builds a hold in code (its class's hold file with the model's
   scene, size, muzzle, butt and support) and gives it to the same builder (Deadnight's
   `tests/captures/model_hold_sheet.gd`), and the grips are solved at the size that hold will have, so the weapon's
-  task only points its hold file at the model.
+  task only points its hold file at the model. Such a model is not in the per-pose grip test (it walks the catalogue
+  weapons), so the capture's contact lines are its only check in the game pose: read them, not the solver's table.
+  The solver's seat takes the first surface in the palm's line, which a magazine in front of the fore-end can be
+  ([lesson](../lessons/2026-11-03-a-support-hand-was-seated-on-the-magazine.md)), and it poses the arm unlike the
+  shouldered game pose, so the wrist's skin (`thumb_base`) can go into a stock it measured clear
+  ([lesson](../lessons/2026-11-03-a-wrist-went-into-a-stock-the-solver-measured-clear.md)).
 - **Every view of the held weapon uses the same builder.** The night and any screen that shows the soldier with a
   weapon (the menu's stage, a wardrobe, a lobby) put it in the hand through one function (Deadnight's `HeldWeapon`:
   the weapon's own hold, the grip file's place, the arms' IK, the fingers). A view with its own copy keeps the old
