@@ -27,6 +27,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md)).
 - Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser
   ([lesson](../lessons/2026-11-01-layout-test-found-hud-overlaps-no-eye-would.md)).
+- Plan: the genre's feature list as players know it, checked against the issues before the first playtest: a
+  character choice and its voice, the full set of perks (own names, close in meaning), weapon slot keys and
+  silhouettes, a grenade's fuse beep and weight, a reload you notice, the player count; in Deadnight each arrived
+  as a request after play (#678, #679, #687, #682, #680, #683, #690)
+  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
 ## Input
 
