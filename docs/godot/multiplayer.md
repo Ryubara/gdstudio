@@ -120,6 +120,15 @@ peer may send 90 commands a second: at fixed-fps the wall clock sees several hun
 two autopilot clients and two bots, no engine error in the verbose log. The soak is
 `tests/captures/bots_slots_soak.tscn` in Deadnight, a CI job of its own because it is too long for a test shard.
 
+## The two worlds must hold the same solid things
+
+A predicting client moves its body against its own copy of the map, the server moves the real one against the server's.
+A solid thing that only one holds is a wall the other walks through, and the client's body then drifts metres from the
+server's (Deadnight #748: a prize crane's cabinet, a `StaticBody3D` that the client-only drawing added to itself). Views
+and drawings carry no collision; a solid thing is built into the world both sides build and moved there by the rules
+(server) and the frame (client). Test it with a real client and host: list every `CollisionObject3D` and colliding
+`CSGShape3D` under each side's viewport and compare them (`tests/net/test_world_parity.gd`).
+
 ## Web export
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
