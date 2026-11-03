@@ -16,3 +16,5 @@ areas: [gameplay, tests]
 - **Check next time:** after every merge of main, run `git diff origin/main -- <file>` for each file the branch shares
   with a merged pull request and delete the branch's own placeholders; run `--import` once, then the suites that touch
   those files, before the push; run the balance gate again when the maintainer changes a range.
+- **Also:** a table on a research page is a claim; test it before you copy it (the models page gave the pair a
+  `size_factor` of 1.5, and the size rule in `test_weapon_hold.gd` held only at 1.75).
