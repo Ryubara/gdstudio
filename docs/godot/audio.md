@@ -122,6 +122,16 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
 - **A gain cut is not a loss of punch.** Lowering a trim moves loudness and peak together, so the crest factor of a
   burst is unchanged; what limits the cut is the loudness rule against the beds (Deadnight: 14 LU for a shot, 17 for a
   burst).
+- **A limiter in the recipe lowers the crest, and the close peak moves by more than the crest it took off.** A sharp
+  sound (a board snapping, a door's bolt: 16 to 23 dB between its loudest 400 ms and its peak) held under a peak
+  ceiling is quiet, and the way to a louder body at the same peak is a look-ahead limiter in the synthesising recipe
+  (a web build ignores the bus kind). Use a smooth gain curve (the minimum of the needed gain over a 2 ms window, then
+  its average over the same window: never steps, never rises into a peak, so Vorbis does not overshoot a flat top) and
+  hold the highest sample a number of dB over the loudest 400 ms, so every variant gets the same crest. Then measure the
+  close peak again: the distance low-pass had been taking the crack's peak off, so the limited file's peak (the body's)
+  reaches the mix 0 to 3 dB higher than the old close peak, and the old cap does not carry over. Deadnight #762: crest of
+  a file 15 to 23 dB before, 12.6 to 16.6 after; the loudest 400 ms at 1.2 m up 3.5 to 6.4 LU at the same -9.9 dBFS
+  ([lesson](../lessons/2026-11-03-a-limited-crack-raised-the-close-peak-more-than-the-limiter-took-off.md)).
 
 ## Is a sound heard under fire?
 
