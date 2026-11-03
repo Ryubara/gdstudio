@@ -176,6 +176,19 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
 - [ ] **A sweep test fails on every standing place over the reach,** not only on leaving the map: a top over the reach
   was reached through a step, and against a wall it is a roost one hop short of the way out
   ([lesson](../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
+- [ ] **A thin collider is a wall.** A tree's trunk, a post or a sign stood "above a jump" is a step from a car roof
+  beside it: a 2.4 m trunk 4.6 m from a 1.65 m roof was climbed and was one hop from over a 3.0 m fence. *Proof: every
+  such collider's top against the tallest standable top within a hop (about 5 m at a sprint) plus the reach and a
+  margin, as a test*
+  ([lesson](../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)).
+- [ ] **The sweep is a test that runs in a minute a map.** Start the real body on every top within the reach that lies
+  near a barrier (a perimeter wall, a closed door's slab, a closed area's wall) and on the floor beside tops a little
+  over it; aim at whatever is solid ahead; chain three hops; judge where it settles by the areas as boxes, each with its
+  floor (inner areas first, a ramp or an upper floor a box of its own), for every door state. A hop lands the same for
+  any door state that leaves the same slabs near its start, so cache it by those (Deadnight: 9 door sets of the lot in
+  56 s, 8 of the second map in 35 s). Prove it on the unfixed map: put a merged fix back in a scratch worktree (no
+  commit) and see it fail
+  ([lesson](../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)).
 - [ ] **Run the movement.** For each candidate, run the real player body (the same simulation the game ticks, sprinting,
   jumping, crouching, and with the camera's latest facing) from the middle and edges of the platform toward the wall.
   A scripted path or a test, never "it looks too high". Crouch and jump combined, and the jump from a stair or ramp's

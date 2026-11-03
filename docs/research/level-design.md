@@ -187,7 +187,10 @@ walking, jumping at several moments; the highest it stands on is the reach, and 
 closed door and closed-area wall is above the reach plus the height of anything standable within reach of it, with the
 margin written down. A top over the reach is out of reach only by the sweep: two such blocks meeting at an inside
 corner were climbed from the floor
-([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)).
+([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)). A thin collider is
+judged the same way: a tree's trunk "above a jump" (2.4 m) was a step from a car roof beside it
+([lesson](../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)). The reach is one
+constant every test reads, not a number copied into each.
 
 ### P14. Escape sweeps for every door state
 
@@ -204,7 +207,10 @@ the map, inside a closed area or on a wall top, once for each door state a team 
 floor, not the walking mesh, and ground counts as reached only when a path from the start ends on it
 ([lesson](../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)). Every chain is
 replayed hop by hop and captured before it is filed. The result is a number per door state (hops run, places reached,
-violations), and the target is 0 violations.
+violations), and the target is 0 violations. In the suite the sweep starts on the props near the barriers (no wall a
+player must not cross is within the reach of the floor, so a way out begins on a prop), judges by area boxes, and
+caches each hop across door states by the slabs near it, so a map's every door state runs in under a minute
+(Deadnight #848, whose first run found a way out the review had missed).
 
 ### P15. A roost is a decision, proven against the dead
 
