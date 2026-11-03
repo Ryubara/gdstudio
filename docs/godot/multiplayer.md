@@ -108,6 +108,18 @@ acknowledgement,
 no prediction and no interpolation hook; node paths must match between peers; and `WebSocketMultiplayerPeer` ids are
 random 31-bit numbers. Fine for a prototype; for a game with a real tick, own the protocol.
 
+## A room over a real socket, faster than real time (Deadnight #230)
+
+A soak of a game server's room with real clients (ten game minutes, two people and two bots) runs in about three
+minutes of wall time on one headless Godot process: `--fixed-fps 60` makes each frame exactly one physics tick and
+removes the pacing (no vsync headless), so the server, the clients and the bots step as fast as the machine allows. Two
+things have to run on game time, or the run fails for a reason that is not the code: the server's connection rules (a
+peer may send 90 commands a second: at fixed-fps the wall clock sees several hundred and kicks it), which take a
+`clock` Callable (`NightHost.clock`, `Engine.get_physics_frames() / 60.0`), and the client link's own clock
+(`WebSocketLink.clock`). Everything else already counts frames. The numbers: 36,000 ticks, server step 1.5 ms mean for
+two autopilot clients and two bots, no engine error in the verbose log. The soak is
+`tests/captures/bots_slots_soak.tscn` in Deadnight, a CI job of its own because it is too long for a test shard.
+
 ## Web export
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
