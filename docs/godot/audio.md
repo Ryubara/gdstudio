@@ -144,6 +144,27 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
   centroid in the bench beside the LU; and a table that pins the bench's numbers should pin the files too (a SHA-256 of
   each, checked by the test), or a re-rendered file leaves the table describing other sounds.
 
+## A layer over a sound that already peaks
+
+Deadnight #791: one futuristic layer that plays over the shot of any upgraded weapon, so seventeen weapons need no
+recipe each. Peaks add, so it has to be heard without taking the headroom the shots were given
+([lesson](../lessons/2026-11-03-a-layer-over-a-gun-was-either-inaudible-or-took-its-headroom.md)):
+
+- **Put it where the sound is not.** A gun's energy is front-loaded (0.9 of it in the first 50 ms for a close shot), so
+  start the layer 30 ms late (in the file: a game that schedules it has the same delay on every platform) and give it a
+  ring that lasts half a second in a band the gun is thin in (2 to 8 kHz).
+- **Make its body dense, not its peak high.** `limit_crest` once leaves the crest a few dB over what was asked, since the
+  limit also lowers the loudest 400 ms it is read against: run it three times to hold a crest of 7 dB.
+- **Choose the trim on a model of the bench, then let the bench decide.** Add the rendered layer to the recorded plain
+  shots at a few gains (resample to the recording's 48 kHz, place it at each shot's measured onset) and read three
+  numbers against the plain shot: the peak added (at most 1 dB: nothing may pass the headroom rule), the tail's
+  level (0.08 to 0.5 s after the onset) and the 2 to 8 kHz band's energy there, which say whether it is heard.
+- **A pitch rule still holds for the layer:** variants within 2 percent of one note, one level rule, one voice group of
+  its own with a cooldown, so an automatic weapon plays a ring and not a rattle.
+- **FM zaps alias.** A sweep with an FM index of 2 to 3 whose carrier reaches 3 kHz puts sidebands over Nyquist: the
+  centroid of a "zap" read 10 to 12 kHz and it sounded like hiss. Keep the carrier under 2.5 kHz at an index under 2,
+  and roll off the mix at 7 to 8 kHz.
+
 ## Is a sound heard under fire?
 
 Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py`):
