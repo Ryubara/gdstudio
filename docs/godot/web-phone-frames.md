@@ -46,3 +46,17 @@ Chrome has two knobs and each hides what the other shows:
 - The engine's own counters help find the cost: `RenderingServer.get_rendering_info(RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)`
   and `..._PRIMITIVES_IN_FRAME`, and `viewport_get_measured_render_time_cpu` (after `viewport_set_measure_render_time`;
   the GPU time reads 0 in WebGL). Read them only when a profile asks, so a player's page pays nothing.
+
+## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728)
+
+Folding a lot's 850 mesh surfaces and 295 CSG boxes into per-cell meshes (`SurfaceTool.append_from`, one surface per
+material per cell) cut draw calls by about a quarter and left the CPU x4 median unchanged (46.8 against 48.2 ms over 10
+minutes of shuffled 20 s blocks): of a 47 ms frame, script and physics were 47 and 21 ms and render CPU 10 ms.
+
+- Bound a lever with an ablation that removes the thing outright before building it; split the frame
+  (`TIME_PROCESS`, `TIME_PHYSICS_PROCESS`, measured render CPU) to see where the rest is.
+- A merged mesh is drawn whole, so triangles rise; the Compatibility renderer lights a mesh by its box with at most
+  `max_lights_per_object` lights, so a cell is split until the lights reaching it are few (see
+  [Compatibility lighting](compat-lighting.md)), and a merge must keep each cell under the cap or the picture changes.
+- Shuffle the order of the interleaved arms each round: the night's waves have a beat, and a fixed order falls on it.
+- Chrome's CPU throttle belongs after the page has loaded, and `gds quiet` stops a command at 900 s.
