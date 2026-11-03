@@ -190,3 +190,6 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
   they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
   [Mistakes by area](mistakes-by-area.md)).
+- Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
+  hit markers and sounds, each in the warm-up and measured on the web build
+  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../godot/shot-feedback.md#blood)).
