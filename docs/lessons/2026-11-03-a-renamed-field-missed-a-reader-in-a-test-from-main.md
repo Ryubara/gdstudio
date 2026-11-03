@@ -12,4 +12,7 @@ areas: [tests, gameplay]
 - **Fix:** after every `gds merge-main`, grep the whole project (tests and captures included) for the removed field
   and run the suites that touch its type; give the old reader a helper that answers the same question
   (`UpgradeTuning.catalogue_weapon_ids()`).
+- **Again:** two more readers (`test_night_recut_layer.gd`, `test_recut_layer.gd`) came from a sibling pull request
+  that merged within minutes of mine, so no grep on my branch could see them and main went red. Whoever removes or
+  renames a field greps `origin/main` again right before turning auto-merge on, and after the merge greps main itself.
 - **Docs:** this lesson.
