@@ -207,6 +207,19 @@ voice limit) and for one put off to the next frame by the starts-per-frame cap, 
 the returned player (a gust that times the next one by its length) takes null as "length unknown", never as "not played"
 ([lesson](../lessons/2026-11-03-wind-gusts-leveled-from-the-files-read-low-in-the-night.md)).
 
+## Swelling a bed with an event
+
+`Audio.set_bed_level(id, db)` is dB under the bed's own level and is clamped at 0: a bed cannot be raised over what its
+trim gives it. A bed that an event should lift (a gust of wind over a located wind loop, Deadnight #809) needs
+headroom: raise the sound's trim by the swell's size and rest the bed that much lower (`level = rest - headroom +
+swell * size`), so the heard level at rest is what it was and the peak is `size` over it. A 3D loop has no such clamp
+(its `volume_db` can go over its trim), so add the swell to its target. Read the swell in a tick that already runs (ten
+times a second is smooth for a gust: a bed fades at 20 dB a second) and tell the bed only when the level moves.
+Measure it as the bus's momentary loudness with and without the swell on the same seed, the same listener spot and only
+the beds the place plays (`tools/audio/gust_levels.py` in Deadnight): a 6 dB swell on a loop that sits 10 dB or more under
+the rest of the bus raised the bus by 0.3 to 0.6 LU, and 3 dB on the roof wind, the loudest thing in its room, by 1.3 to
+2.0 LU. Size the swell for how far under the bus the loop sits, not for the dB it is given.
+
 ## A crowd's voices (the dead)
 
 - **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one
