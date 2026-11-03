@@ -78,6 +78,12 @@ with `Input.parse_input_event`, in window pixels: multiply canvas positions by t
 first. On the web, set `viewport-fit=cover` and block page scroll, zoom and the long-press menu. Deadnight's design
 and what its build showed: `docs/research/mobile-controls.md` there.
 
+A new HUD part must be tested against the touch buttons too (a list of kept cards in the layout test) and captured on a
+phone: the right thumb's corner is full, and rectangle tests between HUD parts do not see it
+([lesson](../lessons/2026-11-03-a-new-hud-card-sat-under-the-touch-buttons.md)). A HUD part's `refresh` must not need the
+tree: `global_transform` of a node not yet inside it is an error and an identity
+([lesson](../lessons/2026-11-03-a-hud-part-built-a-model-bounds-before-it-was-in-the-tree.md)).
+
 ## Animating a container's children
 
 - **Never read a container child's position in the frame it was shown.** A `Container` sorts its children in a
