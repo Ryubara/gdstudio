@@ -181,14 +181,19 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   such collider's top against the tallest standable top within a hop (about 5 m at a sprint) plus the reach and a
   margin, as a test*
   ([lesson](../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)).
-- [ ] **The sweep is a test that runs in a minute a map.** Start the real body on every top within the reach that lies
-  near a barrier (a perimeter wall, a closed door's slab, a closed area's wall) and on the floor beside tops a little
-  over it; aim at whatever is solid ahead; chain three hops; judge where it settles by the areas as boxes, each with its
-  floor (inner areas first, a ramp or an upper floor a box of its own), for every door state. A hop lands the same for
-  any door state that leaves the same slabs near its start, so cache it by those (Deadnight: 9 door sets of the lot in
-  56 s, 8 of the second map in 35 s). Prove it on the unfixed map: put a merged fix back in a scratch worktree (no
-  commit) and see it fail
-  ([lesson](../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)).
+- [ ] **The sweep is a test that runs in two minutes a map.** Start the real body on every top within the reach that
+  lies near a barrier (a perimeter wall, a closed door's slab, a closed area's wall) and on the floor beside tops a
+  little over it; aim at whatever is solid ahead; chain three hops; judge where it settles by the areas as boxes, each
+  with its floor (inner areas first, a ramp or an upper floor a box of its own), for every door state. A hop lands the
+  same for any door state that leaves the same slabs near its start, so cache it by those (Deadnight: 9 door sets of
+  the lot in 91 s, 8 of the second map in 68 s). Prove it on the unfixed map: put a merged fix back in a scratch
+  worktree (no commit) and see it fail
+  ([lesson](../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)). A start cell is clear
+  by the boxes' bounds, not by a capsule query: CSG faces are one-sided and a body inside a thin wall touches none
+  ([lesson](../lessons/2026-11-03-a-sweep-started-the-body-inside-a-wall-a-known-trap.md)).
+- [ ] **An interactable is a prop too.** A breaker post, a buy stand or a machine against a wall is a step like a crate:
+  Deadnight's 1.5 m breaker post flush with a 2.4 m fence was climbed from a 1.0 m kerb wall 4 m away and was one hop
+  from a closed area. Place the low cover after the posts, and keep it a sprint-jump (6.4 m) from any of them.
 - [ ] **Run the movement.** For each candidate, run the real player body (the same simulation the game ticks, sprinting,
   jumping, crouching, and with the camera's latest facing) from the middle and edges of the platform toward the wall.
   A scripted path or a test, never "it looks too high". Crouch and jump combined, and the jump from a stair or ramp's

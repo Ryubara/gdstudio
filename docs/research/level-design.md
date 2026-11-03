@@ -209,7 +209,7 @@ floor, not the walking mesh, and ground counts as reached only when a path from 
 replayed hop by hop and captured before it is filed. The result is a number per door state (hops run, places reached,
 violations), and the target is 0 violations. In the suite the sweep starts on the props near the barriers (no wall a
 player must not cross is within the reach of the floor, so a way out begins on a prop), judges by area boxes, and
-caches each hop across door states by the slabs near it, so a map's every door state runs in under a minute
+caches each hop across door states by the slabs near it, so a map's every door state runs in under two minutes
 (Deadnight #848, whose first run found a way out the review had missed).
 
 ### P15. A roost is a decision, proven against the dead
