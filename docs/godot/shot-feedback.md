@@ -33,6 +33,27 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 - **Pool impacts** (a fixed number of slots) and size them against the character in a capture; an untested placeholder
   is easily ten times too big.
 
+## Blood
+
+Found building Deadnight's hit blood (a splash at the wound and marks on the surfaces, Godot 4.7, Compatibility; the
+game's page is `docs/research/hit-blood.md`).
+
+- **A splash can be one billboard quad and a fragment shader**, no particles: drops are positions of `progress` and a
+  seed (hash per drop), drawn as distances to a short segment, so the same splash shows in a test and on every client,
+  and it costs one program instead of the two a `GPUParticles3D` adds on the web.
+- **Take the shot's direction into the camera's plane in `vertex()`**
+  (`(VIEW_MATRIX * vec4(dir, 0.0)).xy`, normalised). A shot straight away from the camera, the usual one from a shoulder
+  camera, has almost no sideways part: open the fan to all round as that part goes to zero (`mix(PI, cone,
+  smoothstep(0.15, 0.7, length(d.xy)))`) or the splash is a flat disc.
+- **A mark on a surface is a quad whose +Z is the normal, lifted in `vertex()` by a base plus a share of the distance to
+  the camera** (1 cm plus 2 mm a metre); a fixed lift flickers far away and floats near. Keep the node's z scale at 1
+  so the lift is in metres. `Decal` is not needed, and nothing is made while playing: pool the quads with a cap per
+  platform and take the oldest.
+- **A held warm-up sample must stand still**: a warm-up frame that builds a program takes seconds and would end a
+  half-second splash before it is drawn (`set_process(false)` while it is held).
+- **A loop variable named like a method** (`mark`, `splash`) shadows it in GDScript: name the loop
+  variable `slot`.
+
 ## Camera shake
 
 - **Trauma style, rotation only, on the lens node.** The rig keeps the unshaken transform, and the aim ray reads that,
