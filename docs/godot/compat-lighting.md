@@ -221,6 +221,13 @@ the game's own page is `docs/research/night-environment.md` there.
   it, and capture it from the room behind the wall and along the wall with the glow hidden and shown. Compatibility
   has no shadows, so the sign's `OmniLight3D` also lights the room through the same wall: keep its energy in step
   with what the room can take. A halo's `energy` in the scene is only its first value when a script drives it.
+- **A lamp placed by hand can push a tile over the cap.** Twenty posts added in the editor (Deadnight #703) put five
+  ground and roof meshes at 7 or 8 lights. Search the cuts instead of loosening the cap: dump every light (position and
+  range, and the crane's lamp at each of its places) and every mesh box to JSON, then try cut lines on a 0.5 to 1 m grid
+  in Python with the test's own reach rule (sphere against the box, cone box for a spot) and keep the fewest tiles with
+  none above the budget. It took one cut moved for the midway, fewer tiles for the back lot (4 to 3) and the yard
+  (4 to 2), and one more roof cut. Put the hand-set numbers into the scene's builder first, or the next run of it
+  writes the old map.
 - **A global class name clash is silent until export.** `class_name NeonSign` in the lot hid the UI skin's `NeonSign`;
   the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
   Grep `class_name` before naming one.
