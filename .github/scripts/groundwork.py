@@ -470,6 +470,28 @@ def _areas_of_labels(rule: dict[str, Any], labels: set[str]) -> list[str]:
     return found
 
 
+def failed_checks(listing: str, watched: set[str]) -> set[str]:
+    """The watched checks that really failed on one commit, from its check runs (`name<TAB>conclusion<TAB>suite`, one
+    per line). A required-check job like `build-ok` runs `if: always()` and fails when a job it needs was cancelled,
+    and a run is cancelled when a newer push starts one (`concurrency: cancel-in-progress`): that is no earlier work
+    gone wrong. A failed check does not count when the other jobs of its own run (the same check suite) include a
+    cancelled one and none that failed; a failure with no cancelled sibling, or beside a failed one, still counts."""
+    rows = []
+    for line in listing.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            rows.append((parts[0], parts[1], parts[2] if len(parts) > 2 else ""))
+    failed: set[str] = set()
+    for name, conclusion, suite in rows:
+        if name not in watched or conclusion not in ("failure", "timed_out"):
+            continue
+        siblings = {c for n, c, s in rows if suite and s == suite and n != name}
+        if "cancelled" in siblings and not siblings & {"failure", "timed_out"}:
+            continue
+        failed.add(name)
+    return failed
+
+
 def collect_history(conv: dict[str, Any], repo: str, number: int, run: Any = None) -> dict[str, Any]:
     """What GitHub knows about a pull request that its text does not say: the watched checks that failed on an earlier
     commit (pull_requests.lessons.history_checks, else merge.required_checks), and the issues it closes with their
@@ -481,11 +503,8 @@ def collect_history(conv: dict[str, Any], repo: str, number: int, run: Any = Non
     failed: set[str] = set()
     for sha in shas[:-1][-20:]:  # every commit but the last (the one being judged), the newest twenty
         out = run("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100", "--jq",
-                  r'.check_runs[] | [.name, .conclusion] | @tsv')
-        for line in out.splitlines():
-            name, _, conclusion = line.partition("\t")
-            if name in watched and conclusion in ("failure", "timed_out"):
-                failed.add(name)
+                  r'.check_runs[] | [.name, .conclusion, (.check_suite.id | tostring)] | @tsv')
+        failed |= failed_checks(out, watched)
     closes = []
     out = run("pr", "view", str(number), "-R", repo, "--json", "closingIssuesReferences", "--jq",
               r'.closingIssuesReferences[] | select(.repository.owner.login + "/" + .repository.name == "' + repo

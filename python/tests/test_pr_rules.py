@@ -177,9 +177,9 @@ class FakeGh:
         if "pulls/7/commits" in text:
             return "aaa\nbbb\nccc\n"
         if "commits/aaa/check-runs" in text:
-            return "build-ok\tfailure\ntitle\tfailure\ntest (ubuntu)\tsuccess\n"
+            return "build-ok\tfailure\t11\ntitle\tfailure\t12\ntest (ubuntu)\tsuccess\t11\n"
         if "commits/bbb/check-runs" in text:
-            return "build-ok\tsuccess\nmkdocs\ttimed_out\n"
+            return "build-ok\tsuccess\t21\nmkdocs\ttimed_out\t22\n"
         if "commits/ccc" in text:
             raise AssertionError("the head commit is the one being judged")
         if "closingIssuesReferences" in text:
@@ -195,6 +195,54 @@ def test_history_lists_watched_checks_that_failed_before_the_head_and_the_closed
     assert got == {"failed_earlier": ["build-ok", "mkdocs"], "closes": [{"number": 99, "labels": ["bug", "A-hooks"]}]}
     default = conv(lessons=LESSONS)  # no history_checks: the required checks (build-ok)
     assert groundwork.collect_history(default, "Ryubara/gdstudio", 7, FakeGh())["failed_earlier"] == ["build-ok"]
+
+
+WATCHED = {"build-ok", "mkdocs"}
+
+
+def test_a_run_cancelled_by_a_newer_push_is_not_a_failed_earlier_commit():
+    # kit #244: build-ok failed only because its `test` jobs were cancelled by the next push (RESULTS: cancelled)
+    listing = "build-ok\tfailure\t11\ntest (ubuntu)\tcancelled\t11\ntest (windows)\tsuccess\t11\n"
+    assert groundwork.failed_checks(listing, WATCHED) == set()
+
+
+def test_a_real_failure_still_counts_even_when_another_job_was_cancelled():
+    listing = "build-ok\tfailure\t11\ntest (ubuntu)\tfailure\t11\ntest (windows)\tcancelled\t11\n"
+    assert groundwork.failed_checks(listing, WATCHED) == {"build-ok"}
+    assert groundwork.failed_checks("build-ok\tfailure\t11\ntest (ubuntu)\tsuccess\t11\n", WATCHED) == {"build-ok"}
+    # nothing cancelled to excuse it
+    assert groundwork.failed_checks("build-ok\tfailure\t11\n", WATCHED) == {"build-ok"}
+
+
+def test_a_cancellation_in_another_run_does_not_excuse_a_failure():
+    listing = "build-ok\tfailure\t11\ntest (ubuntu)\tsuccess\t11\ntest (other)\tcancelled\t12\n"
+    assert groundwork.failed_checks(listing, WATCHED) == {"build-ok"}
+    assert groundwork.failed_checks("build-ok\tfailure\ntest\tcancelled\n", WATCHED) == {"build-ok"}  # no suite id
+
+
+def test_history_skips_the_earlier_commit_whose_run_was_cancelled_and_keeps_a_failed_one():
+    class Gh(FakeGh):
+        real = False
+
+        def __call__(self, *args):
+            text = " ".join(args)
+            if "commits/aaa/check-runs" in text:  # cancelled by the push of bbb
+                return "build-ok\tfailure\t11\ntest (ubuntu)\tcancelled\t11\n"
+            if "commits/bbb/check-runs" in text:
+                if self.real:
+                    return "build-ok\tfailure\t21\ntest (ubuntu)\tfailure\t21\n"
+                return "build-ok\tsuccess\t21\n"
+            return super().__call__(*args)
+
+    full = conv(lessons=LESSONS)
+    gh = Gh()
+    cancelled = groundwork.collect_history(full, "Ryubara/gdstudio", 7, gh)
+    assert cancelled["failed_earlier"] == []
+    assert problems({"lessons": LESSONS}, "ci: Add a job", body(), {**cancelled, "closes": []}) == []
+    gh.real = True
+    failed = groundwork.collect_history(full, "Ryubara/gdstudio", 7, gh)
+    assert failed["failed_earlier"] == ["build-ok"]
+    assert problems({"lessons": LESSONS}, "ci: Add a job", body(), {**failed, "closes": []})
 
 
 def test_check_body_with_a_history_file(tmp_path, capsys):

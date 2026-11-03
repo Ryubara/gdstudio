@@ -93,10 +93,15 @@ exempt = ["reviewer"]
 
 [attach]
 # `gh pr create|edit --attach` (docs/capture.md#attaching) is refused unless the body it sends already refers to every
-# attached file as `![alt](./<file name>)` inside this section, the before capture between the `Before:` and `After:`
-# lines: otherwise the images land at the end of the body, after `## AI use`.
+# attached file inside this section, the before capture between the `Before:` and `After:` lines, by a path that names
+# the same file as the `--attach` path (`gh` compares files, a relative path from the folder it runs in): otherwise the
+# images land at the end of the body, after `## AI use`, and the references stay local (docs/hooks.md#attach-paths).
 enforce = true
 section = "Screenshots"
+# After a command that opened or edited a pull request (or printed its address), the description is read back and a
+# local image reference that was never swapped for an upload is named at once: the second line of defence, for a pull
+# request opened by a path the guard before the command could not read (a script, an alias).
+readback = true
 
 [pr_body]
 # `gh pr create|edit` with a body (`--body-file`, or a literal `--body`) that `groundwork.py check-body` refuses is

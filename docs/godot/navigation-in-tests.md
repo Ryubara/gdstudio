@@ -65,3 +65,24 @@ A loop of `night.tick()` calls with no `await get_tree().physics_frame` between 
 take a new mesh in: a door bought in it leaves the map as it was, so the dead (and the bots) path on the old walls.
 Give the engine a physics frame every few ticks (the soak does one every 30) and wait for the map's answer after a
 purchase, as `SeatedNight.settle` does ([lesson](../lessons/2026-11-02-a-night-stepped-by-hand-never-took-a-bought-doors-mesh.md)).
+
+## Measuring a map on its mesh
+
+How Deadnight's second map is held to its design targets (Deadnight #631, `tests/world/smallmap/` there):
+
+- **Floor area.** Bake a second mesh with `agent_radius = 0` and fine cells (0.05 m) inside the building's box, with a
+  box plugging every opening to the outside, so the mesh is the inside only. Walk the polygons joined to a start
+  polygon (polygons are joined when they share an edge, two vertex indices) and add their areas on the ground plane:
+  furniture tops and the space under a stair are walkable to the bake but never joined, so they drop out. Count a
+  polygon to the room whose rectangle holds its middle on its floor. A 10 x 10 m room measures 94 to 97 m².
+- **Which rooms join.** Bake the zombies' mesh once for each set of sold links (eight for three free links) and ask
+  for a path between room middles. Compare the path's end in 3D, not on the ground plane: a goal upstairs is right
+  above a floor the path does reach.
+- **Laps and loops** are sums of path lengths through markers the generator places on the loop.
+- **Sight lines.** Rays at eye height between standing points (each room's edge every 0.5 m, inside every metre):
+  list the pairs, sort them longest first, and stop at the first clear one. 870 points take under a second.
+- **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
+  own: bodies that collide stand on each other in a stair
+  ([lesson](../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
+- A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`
+  ([lesson](../lessons/2026-11-02-a-scene-tree-script-with-a-parse-error-never-quit.md)).

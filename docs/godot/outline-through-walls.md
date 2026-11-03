@@ -1,8 +1,8 @@
 # Outline through walls (stencil) in Compatibility
 
-A glowing silhouette edge that shows through walls, for any skinned or static mesh, on the Compatibility renderer
-and in the web build (WebGL2). Learned on Deadnight's issue #523; the shader, the component and the numbers are in
-that game's `game/gameplay/outline/` and `docs/research/outline.md`.
+A silhouette edge that shows through walls, and only where the body is hidden, for any skinned or static mesh, on
+the Compatibility renderer and in the web build (WebGL2). Learned on Deadnight's issues #523 and #617; the shader,
+the component and the numbers are in that game's `game/gameplay/outline/` and `docs/research/outline.md`.
 
 ## What works
 
@@ -26,6 +26,35 @@ that game's `game/gameplay/outline/` and `docs/research/outline.md`.
   All copies share one shader, so the whole thing is two GL programs (mask and line), built on first use: draw an
   outlined sample once in the night's warm-up.
 
+## Only where it is hidden
+
+The mask has no depth test (a hidden part must count as the body), so the stencil alone also outlines a body in the
+open. Draw the line only on hidden pixels with the **depth texture**, which works in Compatibility and in the web
+build (WebGL2): `uniform sampler2D scene_depth : hint_depth_texture, repeat_disable, filter_nearest;` in the line
+shader, and `discard` the pixels where the body is not behind the scene.
+
+- Reconstruct the distance with `INV_PROJECTION_MATRIX * vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0)`, then
+  `-view.z / view.w`. Compatibility's depth holds 0 to 1, so the clip depth is `depth * 2.0 - 1.0`.
+- A copy shifted on the screen shows a body point that really lies `shift` away. Pass that point's view depth from the
+  vertex function (`varying`), and test the scene at the point's own pixel (`SCREEN_UV - shift`, y flipped: clip y is
+  up, uv y is down) **and** at the copy's pixel. The first alone leaves the line a line's width past an occluder's
+  edge; the second alone draws it on the ground beside a foot.
+- `cull_back` in the line passes: with `cull_disabled` the copy's back faces are behind the body's own front faces
+  and count as hidden by them, so a zombie in the open grew a line under its soles.
+- Require **five depth samples** (the pixel and four a pixel and a half round it) to all be nearer than the body
+  point, and make the margin `0.12 m + 0.01 m per metre + 4 times the depth step across the surface`: feet sink a few
+  centimetres into the ground, which is metres along the view at a far zombie's grazing angle. A flat per-metre
+  margin either left specks under the feet (0.04) or stopped a car 1.5 m in front of a zombie from hiding it (0.12).
+- `VIEWPORT_SIZE` can be read in `vertex` and `fragment` only, not in a helper function: pass it in.
+- The glow (a second, wider ring) was dropped: it read as an aura. The line alone is the look.
+- Prove it with pixels: render the open, half-behind-a-counter and behind-a-wall cases in a `SubViewport` and count
+  the line's colour above and below the occluder's edge and by distance from the silhouette
+  (Deadnight `tests/outline/test_outline_pixels.gd`; it needs a real renderer, a headless dummy cannot read pixels).
+  Also capture the half case from the player's camera: a zombie half behind a car.
+  A windowed run is minimized and draws nothing by itself: `RenderingServer.force_draw(false)` (a few times), never
+  `await RenderingServer.frame_post_draw`, which hangs. See the
+  [lesson](../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
+
 ## Pitfalls
 
 - Make the outline's node and materials with the body, not at the first mark: a pooled-crowd game counts nodes made
@@ -33,8 +62,12 @@ that game's `game/gameplay/outline/` and `docs/research/outline.md`.
   [lesson](../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
 - A mesh outlined with no stencil-aware ordering shows one body's outline over another's: use `render_priority`.
 - Thickness in raw pixels looks thinner on a big screen: scale by `VIEWPORT_SIZE.y / 1080`.
-- Cost is passes: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls (85 to 136) and no
-  measurable frame time in Chrome with a GPU (2.66 to 2.62 ms), but +20 % on SwiftShader (199 to 239 ms, 8 outlined:
-  293 ms). Measure both; `glow = 0` leaves out half the passes. Leave the overlay off (null) when nothing is
+- Cost is passes, and the depth read: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls
+  (85 to 136) and no measurable frame time in Chrome with a GPU (2.66 to 2.62 ms), but +20 % on SwiftShader (199 to
+  239 ms). The depth-texture version has 9 passes (+12 ms on 243 for 3 zombies on SwiftShader) but **a fixed 3 to 4 ms
+  on the GPU while any mesh wears it** (2.67 to 6.51 ms; a shader that only reads the depth costs the same): the
+  engine copies the depth buffer for the shader (probably the multisample resolve: the project has 2x MSAA; not
+  isolated). Nothing is paid while
+  the overlay is off. Measure both, and with the depth read on and off. Leave the overlay off (null) when nothing is
   outlined: then it costs nothing. See the
   [lesson](../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).
