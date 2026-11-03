@@ -132,6 +132,13 @@ and 2 stopped at a teammate for good; players now sit on a layer of their own). 
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
 (`tests/net/test_world_parity.gd`).
 
+## Events reach a client only through its command loop
+
+A test client that is driven by hand must still send its command every tick (`night.ticked` connected to
+`link.send(command.to_dict())`): the server answers a command with the tick's events, and without one the client is
+sent only the spawn requests. Fire with the same command a player's input makes (`NightCommand.aim_along`, `fire`),
+never with `server._combat(...)` beside the step: the server refuses a shot whose view disagrees.
+
 ## Web export
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
