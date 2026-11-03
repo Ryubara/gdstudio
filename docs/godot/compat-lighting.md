@@ -228,6 +228,12 @@ the game's own page is `docs/research/night-environment.md` there.
   additive card against the walls (a point behind a wall seen from its lamp; a wall-mounted card hanging past its wall)
   and every light against the floors, roofs and walls it reaches through a wall. What stays is a room lamp reaching the
   next room by its range (0.2 to 0.7 energy at 5 to 9 m): only a shadow or a light layer per room stops it.
+- **A spot's forward is its -Z, and its reach is the box of its cone.** A builder's `yaw 180` faced a projector's spot at
+  the road, not the screen, for the life of a map (Deadnight #840): print `-global_basis.z` of every spot and test where
+  it points. Turned right, the cone aimed at the screen's middle dipped under a roof 20 m away and put a seventh light on
+  the stand. Set the pitch equal to the half-angle so the cone's lower edge runs level at the light's own height: nothing
+  lower (roofs, cars, the ground) is in its box. A screen drawn by an unshaded shader takes no light from it: the spot
+  shows on the frame and the posts only.
 - **A lamp placed by hand can push a tile over the cap.** Twenty posts added in the editor (Deadnight #703) put five
   ground and roof meshes at 7 or 8 lights. Search the cuts instead of loosening the cap: dump every light (position and
   range, and the crane's lamp at each of its places) and every mesh box to JSON, then try cut lines on a 0.5 to 1 m grid
