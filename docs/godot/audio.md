@@ -135,6 +135,34 @@ paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-mill
   leaked instance and resource, and CI keeps those lines as an artifact
   ([lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md)).
 
+## Sound through windows, not walls (Deadnight #657)
+
+The second map is a shut-in building with a yard outside, and the yard is heard only through the windows. One ray from
+the listener to a source cannot say that (a wall with a gap in it blocks the ray unless it threads the gap), so the
+router (`SmallMapWays`) asks the question the other way round:
+
+- **Route through the windows of the listener's room.** For each window that the listener can see (a ray from the ear to
+  just inside the opening) and whose outside can see the source, the sound's way is *listener to window plus window to
+  source*. Take the window with the shortest way and the kinder state (boarded, open). Play the loop **at that window**,
+  so it comes from the window's direction, and set its level to the whole path: the player already takes the engine's
+  fall-off at the window (`unit / (unit + near)`), so add `20 log((unit + near) / (unit + total))` and the window's cost.
+  Rank windows by the whole path's loudness, not by that remainder, which is larger for a window farther away
+  ([lesson](../lessons/2026-11-03-a-sound-came-in-at-the-farther-window.md)). No window: play it where it is, quieter
+  and duller, as through a wall. Outside the building: where it is.
+- **Fences and the ground are not walls.** The rays read the same layers as the walls; ask again past a hit under the
+  outside group by adding its `rid` to `exclude`, and exclude the windows' own blockers
+  ([lesson](../lessons/2026-11-03-a-yard-fence-counted-as-a-wall-for-sound.md)).
+- **A bed that follows a room** needs a level, not only start and stop: `Audio.set_bed_level(id, db)` moves a bed's target
+  (dB under its own level) at the bed's fade rates, and silence parks it like `stop_bed`.
+- **Loops out of reach stop** (a 3D loop beyond its `max_distance` costs a voice for nothing) and start again at a stored
+  offset; several copies of one wind loop in different corners start at different offsets and pitches so they are not
+  one sound four times.
+- **Prove it with a walk.** A Movie Maker capture of the player's camera through the rooms, with `STAGE` and `SOUND`
+  lines printed on the movie's clock, and a script that reads the mix's level in each stage
+  (Deadnight's `tools/audio/smallmap_levels.py capture`) shows the room tone, the yard behind boards, with the boards
+  gone and behind a wall, each at its own level, in the real engine. A table from the bank, the files and the engine's
+  fall-off (`... table`) gives how far each carries before the audible floor.
+
 ## Web: samples or streams
 
 Godot 4.3+ plays an `AudioStreamPlayer` in a web export as a *sample* by default
