@@ -34,6 +34,12 @@ subsystem run side by side: each keeps its change to its own part, adds new modu
 dependencies (below); if the blocker is not there and no file is named, start the issue. A chain of several issues
 blocked on one running issue is the sign of a serial queue that should not exist.
 
+Parallel pull requests still conflict when they edit the same lines, whatever order they merge in: merge order only
+decides which one settles the clash, and auto-merge lands the first that goes green, not the oldest. So a fix several
+of them need lands once (in the first, or on its own) and the others merge `main` after it instead of writing it
+again; each adds its own rows to a shared docs table and never rewords another's; and the coordinator names the shared
+files in each agent's prompt ([lesson](lessons/2026-11-03-five-parallel-prs-edited-the-same-files-and-conflicted.md)).
+
 `gds issue block` enforces that, so a block cannot be written on a reason it does not have. `--on "#N"` is accepted
 when the blocked issue's body names #N as a dependency, or when `--conflict <path>...` names the files both would edit
 in ways a merge cannot settle. `--on maintainer` needs neither. Anything else is refused with a pointer to this
