@@ -58,3 +58,25 @@ To hold it in a headless test ([lesson](../lessons/2026-11-03-a-screen-test-pass
   once with the bad layout to see it fail.
 
 Deadnight's checks: `game/tests/night/test_crane_view.gd`; the screenshots, `game/tests/captures/crane_prize_view.tscn`.
+
+## A soft rim, and which node it is
+
+An additive wall (a beam, a cone of haze, a shaft) reads as a solid object when its edge is a hard step. Whether it does
+is measured, not judged by eye (Deadnight #854, [lesson](../lessons/2026-11-03-a-pale-column-was-blamed-on-the-wrong-node.md)):
+
+- Draw the view with the column shown, then hidden, in a frozen frame: `get_tree().paused = true` with the capture node
+  on `PROCESS_MODE_ALWAYS`, the player's body hidden in both (its own edges are not the column's), and read both
+  pictures. Hide the column with `layers = 0`, not `visible`: an owner that sets `visible` itself every frame (the
+  prize crane's beam) puts it back between two reads.
+- On each row the column spans, count the pixels the added brightness takes to rise from 10 % to 90 % of that row's
+  brightest, from each edge, as a share of the row's width; the median over rows is the rim's softness. Deadnight's
+  prize crane beam was 0.00 from 2 to 8 m (a hard step: the pale column), its pendant haze cones 0.08 to 0.39 from 1 to
+  4 m, the beam after a fade by the surface's facing to the eye (`pow(abs(dot(NORMAL, VIEW)), 2)`) and a 2.5 m near
+  fade 0.23 to 0.34 from 2 to 4 m (a hard edge reads under 0.04, a soft fade 0.2 or more). Read bytes (`Image.get_data()`)
+  and sample every fourth row: `get_pixel` over 2 million pixels takes minutes.
+- To learn which node draws a thing in a report's picture, hide the named node in the same view and look at whether the
+  thing goes, or hide every node on the shader one at a time and count the pixels that change in its region. The
+  issue's "haze cones" were warm and soft; the pale shell was another node's.
+
+Deadnight's capture: `game/tests/captures/smallmap_haze_cones.tscn`, its measure and a synthetic test of it:
+`game/tests/world/test_haze_rims.gd`.
