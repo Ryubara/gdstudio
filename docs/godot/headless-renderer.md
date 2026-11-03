@@ -22,3 +22,10 @@ GdUnit run, and a Play screen that overflowed a 540 unit phone canvas passed a "
 (the compact flag, the hints hidden, the tap-target minimum) headless, and prove the fit with a windowed capture that
 prints every control outside the window (`tests/captures/solo_settings_tour.gd` in Deadnight) and in the web build
 ([lesson](../lessons/2026-11-02-a-finished-screen-was-never-routed-from-the-menu.md)).
+
+## MultiMesh copies have no transform headless
+
+The dummy renderer keeps no instance data: `MultiMesh.get_instance_transform(i)` returns the zero transform for every
+copy. A test that checks where copies stand reads the `buffer` property instead (12 floats a copy, each basis row
+followed by its origin's coordinate), which keeps the scene's values
+([lesson](../lessons/2026-11-03-multimesh-transforms-read-as-zero-in-a-headless-test.md)).

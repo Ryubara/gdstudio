@@ -239,3 +239,29 @@ every floor under a roof and a lamp lights the next room through the wall.
 - **A light under a door is two cards**: one filling the opening on the far side, brightest at the floor (it shows
   through the planks' cracks and over a debris blocker, depth-tested by the door), and a trapezoid on the near floor
   fading into the room.
+
+## A backdrop past the playable bounds
+
+What the outside of Deadnight's indoor map taught (Deadnight #638; its page is `docs/research/maps/small-map-art.md`
+there): the drive-in seen through windows and broken walls, 20 to 150 m out, never walked.
+
+- **Dense indoor fog sinks the outside.** A small map's fog (0.035) puts everything past 40 m at the fog colour. The far
+  models write their own haze: the scene's density near, capped (0.5 at 20 m rising to 0.82 at 150 m) and brightening
+  toward the horizon far off, so the layers part. A node copies the environment's fog, ambient and moon into the
+  materials every frame, so a round's darkening reaches them.
+- **Make the far models unshaded and light them in the shader** (ambient plus the moon's `N.L`): no light pass per
+  mesh, no slot in the 8-light cap, and no lamp indoors lights the outside. Writing the `FOG` output of a lit shader
+  gave black and blown-out results in Compatibility.
+- **Pass colours as they are.** Compatibility takes a colour uniform as is (as if it lit in sRGB space): the fog
+  colour through `srgb_to_linear` drew ten times too dark
+  ([lesson](../lessons/2026-11-03-a-backdrop-colour-passed-as-linear-drew-ten-times-too-dark.md)).
+- **One `MultiMeshInstance3D` per model.** A `.tscn` cannot point into an imported glTF scene, so the multimesh names
+  the scene in metadata and a node takes its first mesh at load; models exported as `.obj` are plain meshes. 330
+  copies in 37 drawing nodes, 62k triangles.
+- **Glow by atlas cell**: emission where `floor(UV * 5)` is a bulb or neon cell (Godot's UV starts at the image's top,
+  [lesson](../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)); fires and halos are glow quads, no
+  light.
+- **Cost on the web**: 34 more draw calls and about 0.4 ms a frame in Chrome on an RTX 5080 (1280 x 720, unpaced,
+  alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
+- **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
+  ([lesson](../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
