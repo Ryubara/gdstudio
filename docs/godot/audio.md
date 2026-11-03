@@ -132,6 +132,17 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
   reaches the mix 0 to 3 dB higher than the old close peak, and the old cap does not carry over. Deadnight #762: crest of
   a file 15 to 23 dB before, 12.6 to 16.6 after; the loudest 400 ms at 1.2 m up 3.5 to 6.4 LU at the same -9.9 dBFS
   ([lesson](../lessons/2026-11-03-a-limited-crack-raised-the-close-peak-more-than-the-limiter-took-off.md)).
+- **Tune a reshape on a model of the bench, then let the bench decide** (Deadnight #761, the flare gun: crest 20 dB, so
+  a trim for -5.5 dBFS broke the 17 LU burst rule; limited and given a fuller body it is 17.5 dB, burst 17.9 LU over
+  the beds at a -5.2 dBFS peak). Render the files with the real pipeline, Vorbis-encode and decode them with the pinned
+  ffmpeg, play the bench's burst, and put the shots where the bench's recording has them: the integrated loudness of a
+  sharp sound depends on where the 400 ms blocks fall
+  ([lesson](../lessons/2026-11-03-an-offline-burst-loudness-read-high-until-it-used-the-benchs-block-alignment.md)).
+  Three more traps on the way: a driven, limited file decodes up to 3 dB over its PCM peak (a -2 dBFS file at +1.2), so
+  set the trim from the decoded peak; a low sine is the cheapest way to loudness at a given peak and turned a pop into
+  a boom (91 percent of its energy under 250 Hz against the other guns' 44 to 69), so read `low_end_share` and the
+  centroid in the bench beside the LU; and a table that pins the bench's numbers should pin the files too (a SHA-256 of
+  each, checked by the test), or a re-rendered file leaves the table describing other sounds.
 
 ## Is a sound heard under fire?
 
