@@ -220,6 +220,9 @@ every floor under a roof and a lamp lights the next room through the wall.
 
 - **Keep the directional moon low indoors** (0.1 against the lot's 0.36) and let cards carry the moonlight: with no
   shadow it lifts every floor under the roof evenly and lowers the shafts' contrast.
+- **A new map's scene joins the light cap from its first commit.** A generator borrowed from an outdoor map brings
+  its lamps and its 0.36 moon: list the scene where the project's light check looks (Deadnight's `LIGHT_SCENES`),
+  give it a suite that counts its lamps per mesh against the cap less the fight's two, and set the moon low.
 - **A moon shaft is the opening projected along the moon's direction**: each point of the opening plus `t` times the
   direction until it meets the floor (or a wall ahead, whichever is nearer). Built in rows along the opening's height,
   a patch that runs onto a wall bends at the corner. Two sheets from the opening to the patch are the haze. The bars'
