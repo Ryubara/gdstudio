@@ -147,7 +147,9 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
 - [ ] **Compute the reach.** The measured reach, plus the height of anything a player can stand on (cars, crates,
   counters, stairs' rails, a prop's top, a window sill), must be below every perimeter wall, closed door and
   closed-area wall. *Proof: list every standable platform and the highest wall top within reach of it; a margin
-  under the reach is a defect.*
+  under the reach is a defect. Keep the sum as a test over the shipped scene (wall top minus the tallest standable
+  prop within a few metres of it, against the reach plus a margin), so a prop stacked at the wall later fails it*
+  ([lesson](../lessons/2026-11-03-a-wall-height-worked-out-once-was-never-checked-against-props-added-later.md)).
 - [ ] **Chains of props are stairs.** A wall is judged against what a body can get onto from what it can get onto: a
   barrel (0.8 m) beside a dumpster (1.6 m) beside a fence (2.6 m) is a flight. *Proof: a sweep that, from every ground
   cell near something solid, runs the body at it (sprint and jump at several moments, walk and jump, crouch-walk), takes
