@@ -30,14 +30,20 @@ fix it screen by screen:
   (`clip.get_global_transform().affine_inverse() * parent.get_global_transform() * Rect2(position, size)`, so the
   scales of the ancestors count) and grows by that much per axis at most.
 - **The theme leaves room.** `ScrollContainer` has a `panel` stylebox whose content margins move the content in; an
-  empty one with the margin at the sides gives every scroll area room without code in the screens. Keep it to the
-  sides: screens compute the height of a scroll area from its content, and a vertical margin breaks that arithmetic.
+  empty one with margins on all four sides gives every scroll area room without code in the screens. The sides need
+  `hover_room` (the growth of a wide button and its ring); above and below only the ring and the growth of a row of
+  its height (`scroll_room`, 12 units). The margin is empty space at the ends of the content only, since the area
+  still clips at its own edge. A screen that sizes its scroll area from the content adds the margin
+  (`UIScroll.margins(scroll)`), and one that asks how far it scrolls reads the bar's `page` (the inner height), never
+  `scroll.size.y`. Leaving the vertical margin out "because screens compute the height" kept the ring cut at the first
+  and last row (Deadnight #644): fix the arithmetic of the two screens, not the theme.
 - **Test it as a sweep.** Hover every button of every screen at every canvas, scroll the area to its top, end and middle
   (a button is also clipped at the content's ends), and compare the grown rect with the clipper's rectangle. Add a case
   that the buttons still grow: a guard that shrinks them to nothing passes the first test for the wrong reason.
-  `Control.size_flags` `EXPAND_FILL` rows are the usual victims.
+  `Control.size_flags` `EXPAND_FILL` rows are the usual victims. Measure the ring (`focus_gap + focus_border`) on
+  all four sides, not the sides alone: a sweep that grows the rect one way only passes the other.
 
-Deadnight #628: `game/tests/ui/test_hover_room.gd`.
+Deadnight #628 and #644: `game/tests/ui/test_hover_room.gd`.
 
 ## Touch controls
 
