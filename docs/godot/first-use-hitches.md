@@ -26,6 +26,9 @@ page, with the numbers and the method, is `docs/research/first-use-hitches.md` i
   first.
 - **Resources load on first `load()`.** A resource nothing references is freed, and `load()` reads it again. Hold a
   reference to what the next minute needs.
+  The same cost shows in code that runs every tick, not only at the first use: a `load()` of a `.tres` that nothing holds
+  took 0.8 ms a call (2.7 microseconds held) in a headless server, so a value read from a catalogue resource inside a
+  per-tick function is read once and kept ([lesson](../lessons/2026-11-03-a-resource-nobody-held-was-read-from-disk-every-tick.md)).
 - **Chrome keeps a program cache** in the browser profile, so a second visit on the same profile hides the problem.
   Measure with a fresh profile every run (Playwright's `launch` makes one).
 
