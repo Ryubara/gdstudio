@@ -12,4 +12,6 @@ areas: [audio, tests]
   the quiet start. A search span longer than the gap to the next step then found the next step's peak instead.
 - **Fix:** render the reload alone and find each step in that track, from its call to the next step's call (at most
   0.45 s), and compare it with the gunfire in the 80 ms around its own loudest moment, by octave band.
+- **Also:** count the steps from the data, not from memory: the tommy gun has four steps, so each case had 24, not
+  25, and the first report said 25.
 - **Docs:** [Audio: Is a sound heard under fire?](../godot/audio.md#is-a-sound-heard-under-fire).
