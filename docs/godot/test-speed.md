@@ -33,6 +33,13 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 See also [a physics frame per tick](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
 and [Engine.time_scale](../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
 
+## Seat bots as the host does
+
+A test that makes a `BotClient` by hand copies `BotHost.seat`: the shared `bot_ids` table and team, not only what compiles.
+Without the table each bot takes its neighbour for a person and a team order (Hold, a ring about a spot) collapses; a
+flake of 3 cm over a bound was the symptom
+([lesson](../lessons/2026-11-03-a-bot-test-seated-its-bots-without-the-host-s-table.md)).
+
 ## One clock per test
 
 A test that holds packets for real milliseconds (a `LinkConditioner`, a ping) while its loop counts physics frames has

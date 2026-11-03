@@ -208,6 +208,19 @@ the game's own page is `docs/research/night-environment.md` there.
 - **Emissive swatches of a shared palette atlas** are lit by an emission texture of the same layout painted in code
   (black but for the swatches), on a duplicated material set as the surface override: one model, one material, only the
   asked-for colours glow.
+- **A flat glow or window quad needs `cull_disabled`.** A `QuadMesh` on a `StandardMaterial3D` culls its back face by
+  default, so a lit window pane glowed from the field and was a hole from the room (Deadnight #701). The lot's glow
+  shader already said `cull_disabled`; only the one standard-material pane did not. An additive pane draws one face per
+  viewer, so two sides do not double the glow, but a two-sided pane that overlaps a wall shines through it: place it in
+  its opening. Test every flat see-through mesh (smaller than a few cm on one axis, transparency or a blend) for
+  `cull_disabled`; a closed vessel such as a soda glass keeps back-face culling.
+- **A billboard glow reaches as far as its half-size, in every direction.** A camera-facing additive quad turns about
+  its centre, so a 9 x 4 m halo 0.4 m off a wall lay across the wall's plane seen from the side: 4 m of it behind the
+  wall (a pink bloom in the room) and the rest hanging past the wall's ends (Deadnight #703, the maintainer's hand fix:
+  `billboard = false`, lower energy, higher falloff). Compare a glow's half-size with its distance to each wall near
+  it, and capture it from the room behind the wall and along the wall with the glow hidden and shown. Compatibility
+  has no shadows, so the sign's `OmniLight3D` also lights the room through the same wall: keep its energy in step
+  with what the room can take. A halo's `energy` in the scene is only its first value when a script drives it.
 - **A global class name clash is silent until export.** `class_name NeonSign` in the lot hid the UI skin's `NeonSign`;
   the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
   Grep `class_name` before naming one.

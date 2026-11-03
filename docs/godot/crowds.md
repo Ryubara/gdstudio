@@ -207,3 +207,14 @@ over the gait's speed, clamped (Deadnight uses 0.5-1.6), and cross over from wal
 the rate so the blend covers the target speed, because two out-of-phase loops of different length cover less ground
 mid-blend. Beyond the clamp, an authored sprint clip is needed. Deadnight's numbers: `docs/research/zombie-gait.md`
 there (Walk 0.97, Run 4.4, Crawl 1.1, boss walk 1.1 m/s).
+
+## Height: a crowd off the physics engine must be given its floor
+
+A crowd walked on a navigation path in x and z with no height ("the lot is flat") climbed nothing: on a ramp each
+repath asked the map for the nearest mesh point to a position still at floor height, and a little way up the ramp the
+nearest point was the floor beside or under it, not the ramp, so every path led back to the ramp's foot (0 of 6 and
+0 of 16 reached the top in 40 s; Deadnight #681). Give each walker the floor its path runs on: read the height off the
+path segment it walks, take off the mesh's offset above the floor (the baker rounds up to a whole cell: 0.35 to 0.5 m
+at 0.25 m cells, so 0.4 m is within 0.1 m), and move it there at a climb rate. Separation and swing reach then need the
+height too, or a walker on the ramp pushes one on the floor under it and the dead under a floor hit the person over
+their heads. Prove it with a pack on the real ramp and a control that walks the same mesh with the heights left out.

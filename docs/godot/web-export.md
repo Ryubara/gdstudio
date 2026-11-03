@@ -98,6 +98,12 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
   `{code, message}` object (`String(error)` is "[object Object]"), and a reply the SDK cannot parse is logged
   (`Failed to parse`) and leaves the promise pending for ever. Show a "pick who to send it to" hint only while the
   command has not been refused, say so when it was, and keep the raw `message` frame for a probe line (Deadnight #627).
+- **`shareLink` needs an authenticated Activity.** "No scopes required" is about OAuth scopes: Discord's client
+  refuses `shareLink` and `openInviteDialog` with RPC error 4006 ("Not authenticated or invalid scope") until the
+  Activity has run `authenticate({access_token})`. The flow: `ready`, `authorize` (a code), the backend swaps the code
+  for a token with the client secret, `authenticate` with the token (Deadnight #627, second fix). The harness for
+  such a feature runs the real SDK against a fake client that enforces this order (Deadnight
+  `activity.py --share --real-bridge`).
 - **Test it** in Playwright with a cross-origin iframe, in the headless shell (its clipboard is the browser's own,
   never the person's), `context.grant_permissions` for the parent origin and a
   `permissions-policy: clipboard-read=(), clipboard-write=()` header on the frame (Deadnight
@@ -111,3 +117,4 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
 Lesson: [Copy and paste did nothing in the Discord Activity](../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md).
 Lesson: [The first Ctrl+V in a browser tab pasted nothing](../lessons/2026-11-02-the-first-ctrl-v-in-a-browser-tab-pasted-nothing.md).
 Lesson: [Share in Discord said "Pick who to send it to" and Discord opened nothing](../lessons/2026-11-02-a-share-button-said-pick-who-to-send-it-to-whatever-discord-answered.md).
+Lesson: [A harness that faked the host's answers passed, and the real host refused with 4006](../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md).

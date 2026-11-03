@@ -50,6 +50,14 @@ each fall, until about four mixes have landed (with a poll cap).
   ([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). The whole voice pipeline, from
   casting to the game: [Voice lines](../audio/voice-lines.md).
 
+- **Time a pattern of sounds at 60 fps, with no pictures.** A sound schedule follows the frames, so a recording at 10
+  frames a second puts every start on a 0.1 s grid and stacks the quick ones in a frame. Use `--write-movie
+  <abs>/x.avi --fixed-fps 60` and pull the track with `ffmpeg -i x.avi -vn -c:a pcm_s32le x.wav`; keep the PNG movie for
+  pictures. To find a tone in a busy mix, correlate with a windowed carrier at its frequency (Deadnight's
+  `tools/audio/beep_report.py`): a pure tone reads 0.58 and noise far less, and the tone's amplitude is its level in the
+  mix whatever else sounds
+  ([lesson](../lessons/2026-11-03-a-10-fps-recording-cannot-time-a-sound-that-follows-the-frames.md)).
+
 ## Layered gunshots and event-timed sounds
 
 - **Split a shot across voices.** Play the report (transient and body, 0.05 to 0.35 s), a long blast and a tail as
@@ -83,6 +91,15 @@ A gun "sounding distant" is measured on a recording of the real shot through the
 - Never put a sound's power in a bus effect: the web build plays samples, which ignore bus effects and the distance
   filter (see [Web: samples or streams](#web-samples-or-streams)).
 - ffmpeg's `ebur128=framelog=verbose` prints its momentary values only at `-v verbose`.
+
+## Warnings that must carry through cover
+
+The service dulls every sound with a wall in the way (9 dB down and a low-pass at 1.1 kHz; the web build, with no
+filter, 13 dB down). A cue the player has to act on, such as a grenade's fuse beep, must not disappear behind a wall:
+make it a low tone with some harmonics (a 2.6 kHz beep measured at -40 to -80 dBFS behind a wall) and give its
+`SoundDef` an `occlusion_scale` under 1, so cover takes only that share of the dulling. Prove it from a recording of the
+real service from behind a wall, reading the tone's level in the mix
+([lesson](../lessons/2026-11-03-a-fuse-beep-was-silent-behind-a-wall-because-the-mix-low-passes-it.md)).
 
 ## Starting sounds
 
