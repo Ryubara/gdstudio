@@ -59,6 +59,15 @@ Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stan
 the map where the path ends, within the bots' 2.5 m
 ([lesson](../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
 
+## Never wait a fixed number of frames for a mesh
+
+A door's saved mesh is swapped into the region at once, but the map takes it in over 8 to 12 physics frames (async
+map iterations: the count moves with machine load). A test that waited 12 frames failed one run in three
+(Deadnight #699). Poll until the map answers for what the mesh opens (a path from the start to a point in each open
+area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a large cap that fails with a message,
+and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion
+([lesson](../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
+
 ## A night stepped by hand has a stale map
 
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server

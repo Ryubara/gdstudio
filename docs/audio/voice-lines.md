@@ -212,6 +212,12 @@ untested.) Then `encode` and `check` again.
 
 - **Audio tags are not billed**; the plan counts them anyway, the safe number.
 - **Scribe bills the same character quota as speech.** Budget for the check before generating, or it may not fit.
+- **The counter lags the requests.** A reading right after a batch is too low (Deadnight's female set read 3,419, then
+  6,333, then 6,457 for the same work); read the total once, after a pause, and record that
+  ([lesson](../lessons/2026-11-02-the-elevenlabs-character-counter-lags-the-requests.md)).
+- **A second voice is a second data file.** Deadnight's female soldier (#679) is `soldier_voice_female.json` and
+  `--voice female` on the same recipe: the same moments and takes, another premade voice, the same settings, her own
+  words only where a line names a sex. Compare loudness per moment against the first voice (within 0.1 LU there).
 - The budget (6,500 for this work) is in the recipe's `--budget` and in a test that sums the manifest's
   `text-to-speech` characters, so a later change cannot overspend silently. Read `credits` (`GET /v1/user/subscription`)
   before and after, and put both numbers in the pull request.
