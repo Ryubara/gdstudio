@@ -16,4 +16,4 @@ areas: [gameplay, tests]
   included) for its name (`rg "\.weapons\b|bloom_multiplier"`), read the catalogue-wide tests (`test_weapon_equip`,
   `test_weapon_sounds`, `test_weapon_hold`, the re-cut layer test) for what a new id must add, and run those suites
   before pushing; do not chase a failure that main already has, name it in the pull request instead.
-- **Docs:** [weapon-hold.md](../design/weapon-hold.md) and the weapon list in `docs/design/weapons.md`.
+- **Docs:** Deadnight `docs/design/weapon-hold.md` and the weapon list in its `docs/design/weapons.md`.
