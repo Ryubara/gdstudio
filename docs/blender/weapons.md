@@ -44,6 +44,9 @@ builds a weapon places them in Blender, and gameplay code reads them instead of 
   (`rotation_euler = (0, 0, pi/2)`); it arrives in Godot turned 90 degrees about Y, -Z along the barrel.
 - **Two barrels side by side get one `Muzzle` centred between them**, at the barrels' end face.
 - **Melee weapons and grenades get none.**
+- **A gun with an ejection port carries `Eject`** at the port's centre, keeping the weapon's own axes: its local
+  +Y is the gun's right side in Blender, so its -Z in Godot points out of the port (Deadnight #786, for a case
+  effect).
 - **Every level of detail carries it at the same point**, so the flash does not jump when the far level swaps in.
 - **A test proves it:** load each firearm's file, find `Muzzle`, check it sits within 1 cm of the bounds' front face
   along the barrel and points along it. Deadnight's is `game/tests/art/test_weapon_muzzle.gd`, built by its
@@ -133,7 +136,46 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | Compare rebuilds by geometry | The glTF export's triangle order changes from run to run, so a rebuilt file never matches the old one byte for byte: compare nodes, vertex buffers and the triangle set, and commit only the files the change is for |
 | Look at it | A turntable sheet beside two kit weapons at the same scale shows what numbers miss: the first pass had the right lengths and triangle counts, and still read thin |
 
+## Palette cells in Godot
+
+Every face's UVs sit on the centre of one swatch of a G x G palette, so a shader or an emission texture can tell the
+parts apart by colour cell with no extra texture. In Godot (the glTF flips V) **a face's cell is
+`floor(UV.x * G) + G * floor(UV.y * G)`**, cell 0 the top-left swatch; in Blender it is
+`floor(u * G) + G * floor((1 - v) * G)`. Check the formula on one known swatch: read the mesh's UVs in Godot and
+sample the palette there (Deadnight #786 did it for its 4 x 4 weapon palette, [lesson](../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)).
+A swatch that must glow (an energy cell, a lamp) gets its own cell and is lit by an emission texture of the atlas's
+layout, black but for that cell, on a copy of the material: no second material, no extra draw call. Append new
+swatches at the end of the palette's list, so no older swatch moves and no model has to be rebuilt.
+
+## What reads on a phone
+
+From a shoulder camera in the aim pose every gun is a fist and a barrel tip: a weapon is recognised from the side,
+at the hip, reloading and in other players' hands. A weapon is drawn at about `screen height / (2 d tan(fov / 2))`
+pixels a metre; for a 60 degree vertical field of view and a landscape phone 390 logical pixels tall that is 130 px/m
+for the player's own weapon (2.6 m away) and 42 px/m for a teammate 8 m away. Render the set flat black at those sizes
+and look:
+
+- At 42 px/m a pixel is 2.4 cm: trigger guards, lever loops, sights and screws vanish; drums, magazines, grips and
+  barrel blocks stay. Deadnight's lever rifle and double shotgun were one shape there, and its revolver and flare gun
+  differed only by colour.
+- So give each weapon **one signature mass at least about 7 cm across in the game** (3 px at 42 px/m) that changes its
+  side outline, make no two weapons of one class share an outline, give a colour mass of its own where outlines are
+  close, and never put a weapon's identity in a part the far level drops.
+
+Deadnight's `tools/blender/render_weapon_plan.py --silhouette --px-per-m 42` draws it; the measured set is its
+`docs/research/weapon-models.md`.
+
+## Many weapons in parallel
+
+When several agents build weapons at once, give each weapon its own module (Deadnight's
+`tools/blender/weapon_specs/<id>.py`: its builders and one `SPEC` dict with the node pivots, sockets and ammunition,
+loaded by the one build script) instead of entries in the build script's shared tables, and settle what they must
+agree on before they start: the palette's new cells (added once, by the planner), the size rule, the budgets, each
+weapon's signature and class. The game-side lists of models (tests, the grip solver) still take a line each: add yours
+on a line of its own and merge main before pushing.
+
 ## Budgets
 
 Kit guns are 1.0-1.45k tris and melee 660-760. For a third-person web game, one held and world model at 1.5k and a far
-level at 500 is enough. Deadnight's four came out at 432-1,092 tris and 108-352 for the far level.
+level at 500 is enough. Deadnight's first ten came out at 432-1,172 tris and 108-374 for the far level (24-50 %
+of the near count).
