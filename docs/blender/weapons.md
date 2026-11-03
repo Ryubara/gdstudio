@@ -85,6 +85,14 @@ data instead:
 - **Check the arm reaches.** A chibi arm is short (the Soldier's is 0.66 m in the game): a solved left-hand grip is
   only right if the IK can put the hand there. Put the support at the fore-end's rear and turn the chest 20-30 degrees
   (left shoulder forward) for two-handed guns; a clamped IK leaves the hand short, inside the stock.
+  Put a number on it before placing the `Support`: the shoulder to the support in the game, the grip's distance ahead
+  of the shoulder plus the support's ahead of the grip times the size (`|grip_offset.z| + |support.x| x model_scale x
+  character scale`), and the grip's distance is set by the stock (the butt lands on the shoulder). Deadnight's Soldier
+  held clean at 0.66-0.70 m, stopped 1.7-3.4 cm short at 0.71-0.72 m and put the left hand up to 29 mm into the gun at
+  0.85 m, so measure the gap between the hand bone and the IK's target too: on a gun drawn at real length and held 1.3
+  times, the support goes about 0.30 ahead of the grip (no closer than the hand clears the magazine) and the butt at
+  most about 0.31 behind it, shorter than most real stocks
+  ([lesson](../lessons/2026-11-03-a-support-placed-at-the-real-guns-distance-was-out-of-reach.md)).
 - **Size against the hand, not only the body.** The kit Soldier's fist is about 2.3 times a real one and his finger 3
   times, on a body at 0.8: the kit draws its guns about 1.33 times real for that (its AK beside the Soldier). Check a
   pistol grip against the three fingers under the trigger finger (about 1.0) and the guard's opening against the
@@ -161,6 +169,11 @@ and look:
 - So give each weapon **one signature mass at least about 7 cm across in the game** (3 px at 42 px/m) that changes its
   side outline, make no two weapons of one class share an outline, give a colour mass of its own where outlines are
   close, and never put a weapon's identity in a part the far level drops.
+- **A sleeve round a tube is not a mass.** Deadnight's pump shotgun (#796) first had its pump drawn just round the
+  magazine tube, 6.4 cm deep in the drawing: at 42 px/m it was a bar and a stock, the double shotgun's outline. Deepened
+  to 8.8 cm (8.8 x 1.3 x 0.8 = 9 cm in the game) it hangs below the tube as a block with a gap of bare tube behind it,
+  and the outline is its own. A moving part that is the signature (a pump, a feed cover, a box) is drawn to the mass
+  rule, not to the real part's size.
 
 Deadnight's `tools/blender/render_weapon_plan.py --silhouette --px-per-m 42` draws it; the measured set is its
 `docs/research/weapon-models.md`.
@@ -173,6 +186,15 @@ loaded by the one build script) instead of entries in the build script's shared 
 agree on before they start: the palette's new cells (added once, by the planner), the size rule, the budgets, each
 weapon's signature and class. The game-side lists of models (tests, the grip solver) still take a line each: add yours
 on a line of its own and merge main before pushing.
+
+**A model before its hold.** The model batches land before the build issue adds the weapon to the catalogue and
+writes its hold file, but the model still has to be seen in the hands. Film it through the night's own builder with a
+hold made in the capture (Deadnight's `game/tests/captures/model_hold_sheet.gd`: a `WeaponHold` built from the plan's
+numbers, handed to `PlayerAnimation` the way `equip` does, beside catalogue weapons equipped the normal way), never a
+copy of the hold code. Solve the grip at the size the hold will use: the grip test compares each grip's `model_scale`
+with its weapon's hold, so a hold written later at another size needs the grip solved again; say the size in the pull
+request. A plan render that reads the sizes from the hold files takes the new models with their size given
+(`render_weapon_plan.py --add id=scale@row`).
 
 ## Budgets
 
