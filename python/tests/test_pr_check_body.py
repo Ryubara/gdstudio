@@ -7,6 +7,7 @@ whose conventions differ."""
 from __future__ import annotations
 
 import importlib.util
+import os
 import shutil
 import subprocess
 import sys
@@ -268,12 +269,25 @@ def visual_body(tmp_path: Path, before: str = "./before.png", after: str = "./af
 ATTACHED = "--attach {d}/before.png --attach {d}/after.png"
 
 
-def test_local_references_that_attach_uploads_pass_both_guards(workspace, tmp_path):
+@pytest.fixture()
+def scratch(workspace) -> Path:
+    """<workspace>/scratch/game/task: where captures and the body file live, beside the checkouts, never inside one."""
+    folder = workspace["root"] / "scratch" / "game" / "task"
+    folder.mkdir(parents=True)
+    return folder
+
+
+KIT_PR = "gh pr {verb} -R Ryubara/gdstudio --body-file {body} {flags}"
+
+
+def test_local_references_that_attach_uploads_pass_both_guards(workspace, scratch):
     """Failed first: the description rules saw `./before.png`, not an upload, and refused the Before:/After: pair."""
-    body = visual_body(tmp_path)
-    flags = ATTACHED.format(d=tmp_path)
+    body = visual_body(scratch)
+    flags = ATTACHED.format(d=scratch)
     for verb in ("create --title 'godot: Add y'", "edit 7"):
-        assert denied(shell(f"gh pr {verb} --body-file {body} {flags}", workspace["kit"])) == ""
+        # run from the folder that holds the images: `gh` swaps `./before.png` for the upload only there (kit #242)
+        command = f"cd {scratch} && " + KIT_PR.format(verb=verb, body=body, flags=flags)
+        assert denied(shell(command, workspace["kit"])) == ""
 
 
 def test_the_same_body_without_attach_is_refused(workspace, tmp_path):
@@ -282,19 +296,83 @@ def test_the_same_body_without_attach_is_refused(workspace, tmp_path):
     assert "'Before:' capture" in reason and "'After:' capture" in reason
 
 
-def test_only_the_attached_files_count_as_uploaded(workspace, tmp_path):
+def test_only_the_attached_files_count_as_uploaded(workspace, scratch):
     """Attaching the after capture does not make the before reference an upload."""
-    body = visual_body(tmp_path)
-    reason = denied(
-        shell(f"gh pr create --title 'godot: Add y' --body-file {body} --attach {tmp_path}/after.png", workspace["kit"])
+    body = visual_body(scratch)
+    command = f"cd {scratch} && " + KIT_PR.format(
+        verb="create --title 'godot: Add y'", body=body, flags=f"--attach {scratch}/after.png"
     )
+    reason = denied(shell(command, workspace["kit"]))
     assert "the 'Before:' capture is missing" in reason and "the 'After:' capture is missing" not in reason
 
 
-def test_a_reference_by_bare_name_and_a_labelled_attach_count_too(workspace, tmp_path):
-    body = visual_body(tmp_path, before="before.png", after="./after.png")
-    flags = f"--attach '{tmp_path}/before.png#Before' --attach {tmp_path}/after.png"
-    assert denied(shell(f"gh pr create --title 'godot: Add y' --body-file {body} {flags}", workspace["kit"])) == ""
+def test_a_reference_by_bare_name_and_a_labelled_attach_count_too(workspace, scratch):
+    body = visual_body(scratch, before="before.png", after="./after.png")
+    flags = f"--attach '{scratch}/before.png#Before' --attach {scratch}/after.png"
+    command = f"cd {scratch} && " + KIT_PR.format(verb="create --title 'godot: Add y'", body=body, flags=flags)
+    assert denied(shell(command, workspace["kit"])) == ""
+
+
+# --- --attach rewrites a reference only when it is the same file (kit #242) -------------------------------------------
+# Deadnight #611 and #637 were opened from the worktree with `--attach` paths in the scratch folder and `./before.png`
+# references in the body. `gh` compares the two as files, so it left the references local and appended the uploads
+# after `## AI use`; the guard matched them by file name and let it through.
+
+
+def test_attach_from_another_folder_leaves_the_references_local_and_both_guards_refuse_it(workspace, scratch):
+    """Failed first: the command was let through, and the pull request reached CI with `./before.png` references."""
+    body = visual_body(scratch)
+    command = KIT_PR.format(verb="create --title 'godot: Add y'", body=body, flags=ATTACHED.format(d=scratch))
+    reason = denied(shell(command, workspace["kit"]))
+    assert "does not name the attached file" in reason and "is a different file from `./before.png`" in reason
+    assert f"{workspace['kit'].as_posix()}/before.png" in reason  # where `gh` looks for the reference
+    assert "cd <dir> && gh pr create" in reason  # what to do
+    assert "the 'Before:' capture is missing" in reason  # the body guard agrees: nothing would be uploaded in place
+
+
+def test_powershell_is_guarded_the_same_way(workspace, scratch):
+    body = visual_body(scratch)
+    command = KIT_PR.format(verb="create --title 'godot: Add y'", body=body, flags=ATTACHED.format(d=scratch))
+    payload = {**shell(command, workspace["kit"]), "tool_name": "PowerShell"}
+    assert "does not name the attached file" in denied(payload)
+    moved = {**shell(f"Set-Location '{scratch}'; {command}", workspace["kit"]), "tool_name": "PowerShell"}
+    assert denied(moved) == ""
+
+
+def test_attach_is_allowed_from_the_images_folder(workspace, scratch):
+    """`gh` rewrites `./before.png` when it runs where the images are, whatever form the `--attach` path has."""
+    body = visual_body(scratch)
+    verb = "create --title 'godot: Add y'"
+    relative = f"cd {scratch} && " + KIT_PR.format(
+        verb=verb, body=body, flags="--attach ./before.png --attach ./after.png"
+    )
+    absolute = f"cd {scratch} && " + KIT_PR.format(verb=verb, body=body, flags=ATTACHED.format(d=scratch))
+    assert denied(shell(relative, workspace["kit"])) == ""
+    assert denied(shell(absolute, workspace["kit"])) == ""
+
+
+def test_attach_is_allowed_from_anywhere_when_the_reference_has_the_same_absolute_path(workspace, scratch):
+    body = visual_body(scratch, before=f"{scratch.as_posix()}/before.png", after=f"{scratch.as_posix()}/after.png")
+    command = KIT_PR.format(verb="create --title 'godot: Add y'", body=body, flags=ATTACHED.format(d=scratch))
+    assert denied(shell(command, workspace["kit"])) == ""
+
+
+def test_a_relative_attach_path_and_a_reference_to_the_same_file_match(workspace, scratch):
+    """The paths differ in form, not in file."""
+    kit = workspace["kit"]
+    relative = Path(os.path.relpath(scratch, kit)).as_posix()
+    body = visual_body(scratch, before=f"{relative}/before.png", after=f"{relative}/after.png")
+    command = KIT_PR.format(verb="create --title 'godot: Add y'", body=body, flags=ATTACHED.format(d=scratch))
+    assert denied(shell(command, kit)) == ""
+
+
+def test_a_cd_that_cannot_be_followed_cannot_place_a_relative_reference(workspace, scratch):
+    body = visual_body(scratch)
+    command = "cd $DIR && " + KIT_PR.format(
+        verb="create --title 'godot: Add y'", body=body, flags=ATTACHED.format(d=scratch)
+    )
+    reason = denied(shell(command, workspace["kit"]))
+    assert "does not name the attached file" in reason and "a folder this hook cannot follow" in reason
 
 
 def test_gds_pr_check_body_by_hand_still_wants_uploaded_captures(workspace, tmp_path, capsys):

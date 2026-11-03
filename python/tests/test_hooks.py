@@ -1033,11 +1033,60 @@ def test_the_attach_check_follows_cd_and_can_be_turned_off(tmp_path):
     sub = tmp_path / "sub"
     sub.mkdir()
     (sub / "body.md").write_text(GOOD_BODY, encoding="utf-8")
-    flags = ATTACH.format(d=tmp_path)
+    flags = ATTACH.format(d=sub)  # the images are in the folder the `cd` moves to: `gh` finds `./before.png` there
     assert denied(shell(f"cd sub && gh pr create --body-file body.md {flags}", tmp_path)) == ""
     assert "does not exist yet" in denied(shell(f"gh pr create --body-file body.md {flags}", tmp_path))
     off = {**CONFIG, "attach": {"enforce": False}}
     assert dispatch.answer(shell(f"gh pr create --attach {tmp_path}/after.png", tmp_path), off) is None
+
+
+# --- a pull request that reached GitHub with local image references (kit #242) --------------------------------------
+
+PR_URL = "https://github.com/Ryubara/deadnight/pull/637"
+
+
+def after(command: str, output: str, tool: str = "Bash") -> dict:
+    return {
+        "hook_event_name": "PostToolUse",
+        "tool_name": tool,
+        "tool_input": {"command": command},
+        "tool_response": {"stdout": output, "stderr": ""},
+        "cwd": ".",
+    }
+
+
+def test_local_image_references_are_told_from_uploads():
+    body = "![a](./a.png) ![b](https://github.com/user-attachments/assets/1) <!-- ![c](./c.png) --> ![d](../x/d.JPG)"
+    assert guards.local_images(body) == ["![a](./a.png)", "![d](../x/d.JPG)"]
+    assert guards.local_images("see [the docs](./docs/x.md) and ![u](https://example.com/u.png)") == []
+
+
+def test_a_pull_request_opened_with_local_images_is_named_at_once(monkeypatch):
+    """The path the guard before the command cannot see: the body that reached GitHub is read back."""
+    monkeypatch.setattr(guards, "local_images_in", lambda url: ["![before](./before.png)"])
+    commands = [
+        "gh pr create --repo Ryubara/deadnight --body-file b.md --attach a.png 2>&1 | tail -5",
+        "gh pr edit 637 --body-file b.md",
+        "python open_pr.py",  # a script that runs gh itself: only its output says a pull request was made
+    ]
+    for command in commands:
+        out = dispatch.answer(after(command, f"\n{PR_URL}\n"), CONFIG)
+        text = out["hookSpecificOutput"]["additionalContext"]
+        assert PR_URL in text and "![before](./before.png)" in text and "pr edit N --body-file" in text, command
+    powershell = dispatch.answer(after("gh pr create --attach a.png", PR_URL, tool="PowerShell"), CONFIG)
+    assert "local image references" in powershell["hookSpecificOutput"]["additionalContext"]
+
+
+def test_a_clean_description_or_an_unrelated_command_says_nothing(monkeypatch):
+    asked = []
+    monkeypatch.setattr(guards, "local_images_in", lambda url: asked.append(url) or [])
+    assert dispatch.answer(after("gh pr create --attach a.png", PR_URL), CONFIG) is None
+    assert asked == [PR_URL]
+    monkeypatch.setattr(guards, "local_images_in", lambda url: ["![x](./x.png)"])
+    assert dispatch.answer(after("gh pr view 637", PR_URL), CONFIG) is None  # a read prints the address too
+    assert dispatch.answer(after("gh pr create --attach a.png", "no address printed"), CONFIG) is None
+    off = {**CONFIG, "attach": {"readback": False}}
+    assert dispatch.answer(after("gh pr create --attach a.png", PR_URL), off) is None
 
 
 # --------------------------------------------------------------------------------------------------------------------

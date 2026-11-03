@@ -51,20 +51,29 @@ attachments): it is encoded at 1280 px wide and, while too big, again at 960, 72
 ## Attaching
 
 ```text
-gh pr create --body-file <file> --attach <folder>/sheet.png --attach <folder>/<name>.mp4
+cd <folder> && gh pr create -R <owner>/<repo> --body-file <folder>/body.md --attach ./sheet.png --attach ./<name>.mp4
 ```
 
 `--attach` (on `gh pr create` and `gh pr edit`) appends the images at the end of the body, outside `## Screenshots`,
 and the body check refuses `Before:`/`After:` until they sit there. Write `![before](./before.png)` on the `Before:`
-line and `![after](./sheet.png)` on the `After:` line so `--attach` replaces each reference with the upload in place
-(it matches by file name, so `./sheet.png` or `sheet.png` work, `./sub/sheet.png` does not), then read the body back
-and check the image lines sit under the bullets ([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md)).
+line and `![after](./sheet.png)` on the `After:` line so `--attach` replaces each reference with the upload in place.
+**`gh` swaps a reference only when it names the same file as an `--attach` path**, and it reads a relative path from
+the folder it runs in, not from the body file. Captures live in `<workspace>/scratch/...` and the command usually runs
+in the worktree: `--attach <scratch>/before.png` with a `./before.png` reference is two different files, so the
+reference stays local and the upload is appended after `## AI use` (Deadnight #611, #637 and more reached CI that way).
+So `cd` into the folder that holds the images first and attach `./<file>` (any form of the path works there:
+`./sheet.png`, `sheet.png`, the absolute path), or write the reference with the same absolute path as `--attach`. Then
+read the body back and check the image lines sit under the bullets
+([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md),
+[lesson](lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md)).
 
 The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
 named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
 image between `Before:` and `After:` (or `Before: none (reason)`) and one below `After:`. The refusal names the missing
 files and the line to write. Write the body file first (with the Write tool, not in the same command), and an existing
-body is copied from `gh pr view N --json body -q .body`. Say "attached" in a report only after reading the body back.
+body is copied from `gh pr view N --json body -q .body`. A reference whose path is not the attached file's, from the
+folder the command runs in, is refused with both places named ([Hooks](hooks.md#attach-paths)). Say "attached" in a
+report only after reading the body back.
 
 ## Tests
 
