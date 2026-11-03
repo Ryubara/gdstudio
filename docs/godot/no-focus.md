@@ -51,6 +51,11 @@ the fix, not the safety net; Chrome does not re-clip every frame the way a captu
 longest time the clip lasted, timed by the probe from inside the lock (under 1 s; 6 ms measured; the whole 2.5 s lock
 without the guard), not a share of samples (kit #166).
 
+The test also checks that no window of the program appears on the person's desktop. "The program's windows" are those of
+its process tree, found with `python/tests/process_tree.py`: a process is a child only if it was created after its
+parent, because a parent id alone is reused and an orphan (Explorer, Windows Terminal, the IME host) names a dead
+parent's id that a new program can be given (kit #229, [lesson](../lessons/2026-11-02-a-process-tree-walked-by-parent-id-took-orphans-for-children.md)).
+
 ## How it works
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it

@@ -13,6 +13,8 @@ import threading
 import time
 from ctypes import wintypes as wt
 
+from process_tree import tree_of
+
 VK_F24 = 0x87
 WM_KEYDOWN = 0x0100
 WM_CLOSE = 0x0010
@@ -45,7 +47,6 @@ _user32.PostMessageW.argtypes = [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]
 _user32.GetWindowThreadProcessId.argtypes = [wt.HWND, ctypes.POINTER(wt.DWORD)]
 _user32.IsWindowVisible.argtypes = [wt.HWND]
 _user32.AttachThreadInput.argtypes = [wt.DWORD, wt.DWORD, wt.BOOL]
-_kernel32.CreateToolhelp32Snapshot.restype = wt.HANDLE
 
 
 def visible_windows_of(pids: set[int]) -> list[str]:
@@ -129,25 +130,8 @@ class Holder:
         _user32.PostMessageW(self.handle, WM_CLOSE, 0, 0)
 
 
-def process_tree(root: int) -> set[int]:
-    """`root` and every process started below it (Godot's console program starts the real one)."""
-
-    class Entry(ctypes.Structure):
-        _fields_ = [
-            ("size", wt.DWORD), ("usage", wt.DWORD), ("pid", wt.DWORD), ("heap", ctypes.c_void_p),
-            ("module", wt.DWORD), ("threads", wt.DWORD), ("ppid", wt.DWORD), ("priority", ctypes.c_long),
-            ("flags", wt.DWORD), ("exe", ctypes.c_wchar * 260),
-        ]  # fmt: skip
-
-    snapshot = _kernel32.CreateToolhelp32Snapshot(2, 0)  # TH32CS_SNAPPROCESS
-    pairs, entry = [], Entry()
-    entry.size = ctypes.sizeof(Entry)
-    more = _kernel32.Process32FirstW(snapshot, ctypes.byref(entry))
-    while more:
-        pairs.append((entry.pid, entry.ppid))
-        more = _kernel32.Process32NextW(snapshot, ctypes.byref(entry))
-    _kernel32.CloseHandle(snapshot)
-    found = {root}
-    while grown := {pid for pid, parent in pairs if parent in found} - found:
-        found |= grown
-    return found
+def process_tree(root: int, root_created: int | None = None) -> set[int]:
+    """`root` and every process started below it (Godot's console program starts the real one); see `process_tree.py`
+    for why a process counts only when it was created after its parent. `root_created` is `creation_time(root)` read
+    when the root started: with it the tree is empty once the root exited and its id went to another program."""
+    return tree_of(root, root_created)

@@ -211,7 +211,8 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
     """A test window holds the foreground and is typed into (F24, once every 30 ms) while the pinned Godot opens a real
     window and records a Movie Maker capture. Every key must arrive, the foreground must never belong to Godot, no
     Godot window may exist on the person's desktop, and the frames must be rendered, changing and not black."""
-    from focus_holder import Holder, process_tree, visible_windows_of
+    from focus_holder import Holder, visible_windows_of
+    from process_tree import creation_time, tree_of
 
     godot = pinned_godot()
     holder = Holder()
@@ -223,7 +224,7 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
         assert holder.received == holder.sent == 1, "the test window does not receive keys: the test cannot judge"
         run_quiet([str(godot), "--headless", "--path", str(SPIKE), "--import"], timeout=120)
         movie = tmp_path / "shot.png"
-        pids: list[int] = []
+        started: list[tuple[int, int | None]] = []  # (the program's id, its creation time)
         foreground_taken: list[float] = []
         windows: set[str] = set()
         done = threading.Event()
@@ -231,8 +232,8 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
 
         def watch() -> None:
             while not done.is_set():
-                if pids:
-                    tree = process_tree(pids[0])
+                if started:
+                    tree = tree_of(*started[0])
                     if holder.foreground_owner() in tree:
                         foreground_taken.append(round(time.time() - started, 2))
                     windows.update(visible_windows_of(tree))
@@ -255,7 +256,7 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
                     "30",
                 ],
                 timeout=120,
-                on_start=pids.append,
+                on_start=lambda pid: started.append((pid, creation_time(pid))),
             )
         finally:
             done.set()
@@ -326,26 +327,28 @@ def test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor() -> None:
 
     if not any(p.exists() for p in CHROME) or not shutil.which("uv"):
         pytest.skip("Google Chrome or uv is not installed")
-    from focus_holder import process_tree
+    if os.environ.get("GDS_QUIET") == "1":
+        pytest.skip("this run is already on the private desktop (gds quiet), which is where the browser would run")
+    from process_tree import creation_time, tree_of
 
     user32 = ctypes_user32()
     free = clip_of(user32)
     probe = Path(__file__).with_name("browser_lock_probe.py")
     cmd = [shutil.which("uv") or "uv", "run", "--no-project", "--with", "playwright==1.64.1", "python", str(probe)]
-    pids: list[int] = []
+    started: list[tuple[int, int | None]] = []  # (the program's id, its creation time), read the moment it starts
     on_person_desktop: set[str] = set()
     done = threading.Event()
 
     def sample() -> None:
         while not done.is_set():
-            if pids:
-                on_person_desktop.update(windows_of(user32, process_tree(pids[0])))
+            if started:
+                on_person_desktop.update(windows_of(user32, tree_of(*started[0])))
             time.sleep(0.1)
 
     sampler = threading.Thread(target=sample)
     sampler.start()
     try:
-        outcome = run_quiet(cmd, timeout=300, on_start=pids.append)
+        outcome = run_quiet(cmd, timeout=300, on_start=lambda pid: started.append((pid, creation_time(pid))))
     finally:
         done.set()
         sampler.join()
@@ -396,3 +399,91 @@ def windows_of(user32, pids: set[int]) -> list[str]:  # noqa: ANN001
 
     user32.EnumWindows(each, 0)
     return found
+
+
+# --- which windows belong to the program the run started (kit #229) ---------------------------------------------------
+
+
+def test_a_process_is_a_child_only_if_it_was_created_after_its_parent() -> None:
+    """The rule on a planted process table, on every platform. Windows reuses ids, and an orphan keeps its dead
+    parent's id: Explorer, Windows Terminal and the IME on a runner named an id that a headless browser's launcher was
+    then given, and the old walk "children of the root, by id" took them for the browser's own (kit #229)."""
+    from process_tree import descendants
+
+    #            pid  parent
+    table = [(100, 4), (101, 100), (102, 101), (103, 102), (200, 100), (201, 200), (300, 4), (301, 300), (400, 101)]
+    born = {100: 50, 101: 60, 102: 70, 103: 80, 200: 10, 201: 20, 300: 5, 301: 6, 400: None}
+    # 200 is an orphan older than the root, with the root's id as its stale parent id; 201 is its child; 400 cannot
+    # be opened (its creation time is unknown), so nothing proves it started after its parent
+    assert descendants(table, 100, born.get) == {100, 101, 102, 103}
+    assert descendants(table, 100, born.get, root_created=50) == {100, 101, 102, 103}
+    assert descendants(table, 101, born.get) == {101, 102, 103}  # a subtree
+    # the root exited and its id went to another program (created at 99, not 50): nothing it has is ours
+    assert descendants(table, 100, {**born, 100: 99}.get, root_created=50) == set()
+    # the root exited and nothing took the id yet: its children, created after it, are still found
+    assert descendants(table, 100, {**born, 100: None}.get, root_created=50) == {100, 101, 102, 103}
+    # a root whose time was never read finds nothing but itself
+    assert descendants(table, 100, {**born, 100: None}.get) == {100}
+
+
+def plant_window(user32) -> int:  # noqa: ANN001
+    """A hidden top-level window of this process (the person's desktop gets no visible window and no focus)."""
+    import ctypes
+
+    user32.CreateWindowExW.restype = ctypes.c_void_p
+    handle = user32.CreateWindowExW(0, "STATIC", "gds planted", 0, 0, 0, 10, 10, None, None, None, None)
+    assert handle, "the test could not plant a window"
+    return handle
+
+
+CHILD_WINDOW = (
+    "import ctypes, os, sys\n"
+    "u = ctypes.WinDLL('user32'); u.CreateWindowExW.restype = ctypes.c_void_p\n"
+    "if sys.argv[1] == 'plant':\n"
+    "    assert u.CreateWindowExW(0, 'STATIC', 'gds planted', 0, 0, 0, 10, 10, None, None, None, None)\n"
+    "print(os.getpid(), flush=True)\n"
+    "sys.stdin.read()\n"
+)  # the grandchild: makes a hidden window or not, says its id, lives until its input closes
+LAUNCHER = "import subprocess, sys; subprocess.run([sys.executable, '-c', sys.argv[1], sys.argv[2]])"
+
+
+@windows_only
+def test_only_windows_of_the_started_programs_tree_are_counted() -> None:
+    """The check of the browser test, on planted windows. A window the test process owns (a foreign window: Windows
+    Terminal, the IME and a Firefox task are such on a runner) is never counted; a window of a program the run started,
+    two levels down (a child), is. So a real leak still fails the check and the machine's other windows cannot."""
+    import ctypes
+    import subprocess
+
+    from process_tree import creation_time, tree_of
+
+    user32 = ctypes_user32()
+    foreign = plant_window(user32)
+    try:
+        # the foreign window exists on this desktop (a program with a window also gets an "IME" window from Windows)
+        assert windows_of(user32, {os.getpid()}).count("Static") == 1
+
+        def counted(mode: str) -> tuple[list[str], int, set[int]]:
+            launcher = subprocess.Popen(
+                [sys.executable, "-c", LAUNCHER, CHILD_WINDOW, mode],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, creationflags=0x08000000,
+            )  # fmt: skip
+            try:
+                assert launcher.stdout is not None
+                grandchild = int(launcher.stdout.readline())
+                tree = tree_of(launcher.pid, creation_time(launcher.pid))
+                return windows_of(user32, tree), grandchild, tree
+            finally:
+                assert launcher.stdin is not None
+                launcher.stdin.close()
+                launcher.wait(timeout=30)
+
+        windows, grandchild, tree = counted("plant")
+        assert grandchild in tree and os.getpid() not in tree
+        assert windows.count("Static") == 1  # the child's window, not the foreign one as well
+        windows, grandchild, tree = counted("none")
+        assert grandchild in tree
+        assert windows == []  # the foreign window is still there and is not counted
+        assert windows_of(user32, {os.getpid()}).count("Static") == 1
+    finally:
+        ctypes.WinDLL("user32").DestroyWindow(ctypes.c_void_p(foreign))
