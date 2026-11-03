@@ -37,11 +37,17 @@ fix it screen by screen:
   (`UIScroll.margins(scroll)`), and one that asks how far it scrolls reads the bar's `page` (the inner height), never
   `scroll.size.y`. Leaving the vertical margin out "because screens compute the height" kept the ring cut at the first
   and last row (Deadnight #644): fix the arithmetic of the two screens, not the theme.
+- **The area's own follow stops at the control's edge.** `follow_focus` scrolls the control's rectangle into view, not
+  its ring, so a row reached with the keyboard sits flush and its ring is cut even with the margin. One listener
+  (`gui_focus_changed`, only when a key or a pad moved the focus, deferred past the area's own follow) scrolls the rest
+  of the way; a hovering mouse must not move the area under itself.
 - **Test it as a sweep.** Hover every button of every screen at every canvas, scroll the area to its top, end and middle
   (a button is also clipped at the content's ends), and compare the grown rect with the clipper's rectangle. Add a case
   that the buttons still grow: a guard that shrinks them to nothing passes the first test for the wrong reason.
   `Control.size_flags` `EXPAND_FILL` rows are the usual victims. Measure the ring (`focus_gap + focus_border`) on
   all four sides, not the sides alone: a sweep that grows the rect one way only passes the other.
+  And walk the focus onto every button as a key does, not only scroll to the top, end and middle: the follow stops flush
+  at the edge.
 
 Deadnight #628 and #644: `game/tests/ui/test_hover_room.gd`.
 
