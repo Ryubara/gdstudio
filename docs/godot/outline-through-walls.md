@@ -59,8 +59,12 @@ shader, and `discard` the pixels where the body is not behind the scene.
   [lesson](../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
 - A mesh outlined with no stencil-aware ordering shows one body's outline over another's: use `render_priority`.
 - Thickness in raw pixels looks thinner on a big screen: scale by `VIEWPORT_SIZE.y / 1080`.
-- Cost is passes: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls (85 to 136) and no
-  measurable frame time in Chrome with a GPU (2.66 to 2.62 ms), but +20 % on SwiftShader (199 to 239 ms, 8 outlined:
-  293 ms). Measure both; `glow = 0` leaves out half the passes. Leave the overlay off (null) when nothing is
+- Cost is passes, and the depth read: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls
+  (85 to 136) and no measurable frame time in Chrome with a GPU (2.66 to 2.62 ms), but +20 % on SwiftShader (199 to
+  239 ms). The depth-texture version has 9 passes (+12 ms on 243 for 3 zombies on SwiftShader) but **a fixed 3 to 4 ms
+  on the GPU while any mesh wears it** (2.67 to 6.51 ms; a shader that only reads the depth costs the same): the
+  engine copies the depth buffer for the shader (probably the multisample resolve: the project has 2x MSAA; not
+  isolated). Nothing is paid while
+  the overlay is off. Measure both, and with the depth read on and off. Leave the overlay off (null) when nothing is
   outlined: then it costs nothing. See the
   [lesson](../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).
