@@ -88,7 +88,15 @@ data instead:
 - **Size against the hand, not only the body.** The kit Soldier's fist is about 2.3 times a real one and his finger 3
   times, on a body at 0.8: the kit draws its guns about 1.33 times real for that (its AK beside the Soldier). Check a
   pistol grip against the three fingers under the trigger finger (about 1.0) and the guard's opening against the
-  finger (at least about 0.9) before solving, and scale the weapon, never the hand.
+  finger (at least about 0.9) before solving, and scale the weapon, never the hand. Measure after the first build,
+  not from the plan: Deadnight's 1911-type pistol, drawn with a chunky grip, measured 1.36 of the fingers at the
+  revolver's size factor (1.75), so it is held at 1.5 (grip 1.17, guard 0.96, as the revolver's 1.22 and 0.87;
+  [Deadnight #797](https://github.com/Ryubara/deadnight/issues/797)).
+- **A model can be held before its weapon exists.** When the model and the weapon that carries it are separate tasks,
+  the model's task still proves the hold: a capture builds a hold in code (its class's hold file with the model's
+  scene, size, muzzle, butt and support) and gives it to the same builder (Deadnight's
+  `tests/captures/model_hold_sheet.gd`), and the grips are solved at the size that hold will have, so the weapon's
+  task only points its hold file at the model.
 - **Every view of the held weapon uses the same builder.** The night and any screen that shows the soldier with a
   weapon (the menu's stage, a wardrobe, a lobby) put it in the hand through one function (Deadnight's `HeldWeapon`:
   the weapon's own hold, the grip file's place, the arms' IK, the fingers). A view with its own copy keeps the old
@@ -141,7 +149,8 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | Chamfer only the big parts | A one-segment chamfer (about 17 mm at kit scale) costs a box 44 tris instead of 12; leave screws, pins, sights and lever segments hard |
 | Kitbash, never weld | Separate closed parts; levers and guards are overlapping boxes along a path |
 | Round parts by lathe | One turned profile with the chamfers in it; flat shading keeps the kit's facets |
-| Far level from the same description | No chamfers, half the sides on round parts, small parts left out: 22-32 % of the held count |
+| Turn along the barrel | A tank lying on a gun, a nozzle or a bezel turns about X, not Z; a profile closed into a loop turns into a ring with a hole (a lens set inside a bezel, a nozzle with a glowing disc deep in it), where a capped cylinder would hide what is inside (Deadnight's `weapon_specs/_revolve.py`) |
+| Far level from the same description | No chamfers, half the sides on round parts, small parts left out: 22-32 % of the held count. A turned part with rounded ends gets a far profile of its own: keeping every other point made a tank's two ends unlike ([lesson](../lessons/2026-11-03-a-far-level-that-kept-every-other-profile-point-made-a-lopsided-tank.md)) |
 | One material per family | A small palette atlas, every face's UVs collapsed on its colour swatch, roughness 0.415, metallic 0.4 |
 | Compare rebuilds by geometry | The glTF export's triangle order changes from run to run, so a rebuilt file never matches the old one byte for byte: compare nodes, vertex buffers and the triangle set, and commit only the files the change is for |
 | Look at it | A turntable sheet beside two kit weapons at the same scale shows what numbers miss: the first pass had the right lengths and triangle counts, and still read thin |
