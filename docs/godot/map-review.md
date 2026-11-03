@@ -31,8 +31,10 @@ circled is a corridor with a countdown.
   (the genre's convention; Deadnight's second map was measured against a formula taken from the genre's smallest map).
 - [ ] **Loops are long enough to string a pack out** (about 40 m or more, measured along the walking mesh, not
   guessed) and wide enough that two bodies abreast do not jam. A loop that a single dead end or a slot breaks is not a
-  loop. *Proof: a pathfinding query round the loop with the dead's agent size; a bot soak that records where bodies
-  stop moving.*
+  loop. *Proof: a pathfinding query round the loop with the dead's agent size, through waypoints at the outside corners
+  of what it circles and with the funnel (shortest) path, not edge-centred points, which zigzag and read half again too
+  long ([lesson](../lessons/2026-11-03-a-loop-length-on-edge-centred-paths-was-half-again-too-long.md)); a bot soak
+  that records where bodies stop moving.*
 - [ ] **No trap slots.** A gap wider than a seam and narrower than a body wedges whoever is pushed into it.
   *Proof: scan every pair of facing collider faces for a gap between the seam and the body's width.*
 - [ ] **No area is a dead end by accident.** Dead ends are a pacing tool (tension, an ambush alley) when they are
@@ -162,6 +164,13 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   that spawns the dead must give them a speed and print how near they came: a zero with the dead never closer than their
   start is a probe fault
   ([lesson](../lessons/2026-11-03-a-roost-probe-whose-dead-stood-still.md)). Deadnight's `tools/world/roost_probe.gd`.
+- [ ] **Inside corners are steps.** Two blocks each over the reach, meeting in an L, are climbed at the corner where
+  one alone is not (a 1.3 m wreck turned across another's end, against a 1.25 m reach). Tall pieces stand square, end
+  to end; the sweep, not the height, says a top is out of reach
+  ([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)).
+- [ ] **A sweep test fails on every standing place over the reach,** not only on leaving the map: a top over the reach
+  was reached through a step, and against a wall it is a roost one hop short of the way out
+  ([lesson](../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
 - [ ] **Run the movement.** For each candidate, run the real player body (the same simulation the game ticks, sprinting,
   jumping, crouching, and with the camera's latest facing) from the middle and edges of the platform toward the wall.
   A scripted path or a test, never "it looks too high". Crouch and jump combined, and the jump from a stair or ramp's
