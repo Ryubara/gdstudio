@@ -1,0 +1,48 @@
+# The web build on a phone: frame rate, pixels and how to measure
+
+What a phone-sized Chrome taught about a Godot 4.7 web build (Compatibility renderer), from Deadnight's issue #689.
+The game's own numbers are on `docs/research/phone-frames.md` there.
+
+## There is no frame cap to lift
+
+The web main loop is `requestAnimationFrame`: the game draws once per display refresh, whatever the refresh is (60,
+90, 120 Hz). `application/run/max_fps` is 0 (unlimited) by default and the project setting "vsync" is ignored by the
+browser. If a player says the frame rate is "capped" on a phone, it is that the frame takes too long, and the browser
+shows only the frames that finished. Check `max_fps` and the physics tick in `project.godot`, then measure.
+
+## Pixels are the first lever
+
+- **Godot sizes the canvas by `window.devicePixelRatio`.** A phone reports 3 (a page of 844 x 390 becomes a canvas of
+  2532 x 1170, 2.9 million pixels), and a Compatibility frame is mostly fill. Capping what the page reports
+  (`Object.defineProperty(window, 'devicePixelRatio', {get: () => Math.min(real, 2)})` in `html/head_include`, before
+  the engine script) draws 56 % of the pixels at a ratio of 2. It costs nothing in the picture a phone shows, and touch
+  input is unchanged (Godot reads the canvas rectangle). Do it for a coarse pointer only: a desktop at ratio 1 or 2 is
+  left alone.
+- **`scaling_3d_scale` below 1.0 is slower on the web**, not faster: the 3D view goes to its own render target and is
+  stretched, which cost more than the pixels saved (2.4 times in Chrome at 67 %). Do not offer it as the phone's fix.
+- **MSAA on the 3D view** is the largest single piece of a fill-bound frame; off, at a ratio of 2 or more, the
+  stair-steps it smooths are under a real pixel.
+
+Measured (Deadnight, a fill-bound stand-in): ratio 3 with 2x MSAA 565 ms median, capped at 2 303 ms, capped and no MSAA
+212 ms; 99th percentile 797, 595, 325 ms.
+
+## Measuring a phone without one
+
+Chrome has two knobs and each hides what the other shows:
+
+| Stand-in | Shows | Hides |
+| --- | --- | --- |
+| CPU throttle (`Emulation.setCPUThrottlingRate`) | script, physics, driver, draw-call cost | fill cost (the desktop GPU stays fast) |
+| SwiftShader (`--use-gl=angle --use-angle=swiftshader`) | fill cost, as a weak GPU has | absolute speed (a few frames a second) |
+
+- Emulate the phone fully: `is_mobile`, `has_touch`, the viewport and `device_scale_factor`, or the page does not pick
+  its phone paths.
+- **Compare ways of drawing inside one page, interleaved**, never in separate runs on a shared machine: two runs of one
+  setup differed by 10 times when other programs started. Switch the setting every 30 seconds, drop the first seconds
+  after a switch (the canvas reallocates), and give each arm the same minutes. Ten minutes per arm set is the least that
+  shows throttling; heat itself cannot be emulated.
+- Record every `requestAnimationFrame` delta from a page script (`add_init_script`), not the engine's own frame time:
+  the engine's number leaves out the frames the browser dropped.
+- The engine's own counters help find the cost: `RenderingServer.get_rendering_info(RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)`
+  and `..._PRIMITIVES_IN_FRAME`, and `viewport_get_measured_render_time_cpu` (after `viewport_set_measure_render_time`;
+  the GPU time reads 0 in WebGL). Read them only when a profile asks, so a player's page pays nothing.
