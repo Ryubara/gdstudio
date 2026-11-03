@@ -74,5 +74,6 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | The headless (dummy) renderer | every GdUnit run in CI | known: [meshes are not safe to make from two threads](headless-renderer.md) |
 | Navigation in tests (a mesh of your own, errors caught, what the baked mesh closes) | every suite that asks for a path | known: [Navigation in tests](navigation-in-tests.md) |
 | A tour that exits with 139 after saving its frames | every capture that sets a hook on the game | known: [Exit code 139](exit-code-139.md) (a lambda left in a static variable is freed after its script; clear the hook before `quit()`) |
+| A probe that builds the game (`-s` or a scene, autoloads, fresh worktree) | every throwaway run that prints what it saw | known: [Probes and tools in headless Godot](headless-probes.md) (`-s` has no autoloads: write the probe as a scene) |
 | A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [lesson](../lessons/2026-11-03-a-parse-error-in-one-class-showed-up-as-errors-in-its-users.md) (the real message shows only when the script is loaded on its own) |
 | Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |
