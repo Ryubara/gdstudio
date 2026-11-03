@@ -28,6 +28,10 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 - **Delta-sensitive comparisons stay in one kind of frame.** `move_and_slide` steps an idle frame by its wall-time
   delta; a recording made in a physics callback and replayed in an idle frame can differ by millimetres under load
   ([lesson](../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md)).
+- **A changed tick rate is waited for by its delta, not by a frame count.** After `Engine.physics_ticks_per_second = hz`,
+  await `physics_frame` until `get_physics_process_delta_time()` is `1 / hz`: a loaded machine runs several steps in one
+  iteration with the old step
+  ([lesson](../lessons/2026-11-03-a-tick-rate-test-read-the-old-delta-after-two-physics-frames.md)).
 - **Prove it still tests.** Break the behaviour once, locally, and see each sped-up suite fail.
 
 See also [a physics frame per tick](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
