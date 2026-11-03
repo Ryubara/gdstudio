@@ -7,9 +7,10 @@ import os
 import shutil
 import sys
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
-from gds_tools import capture, issues, lessons, pr, refs, sync, workspace, worktrees
+from gds_tools import capture, issues, lessons, pr, refs, sweep, sync, workspace, worktrees
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -357,6 +358,32 @@ def _cmd_lessons(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_worktree_sweep(args: argparse.Namespace) -> int:
+    root = workspace.require_workspace()
+    settings = sweep.Settings(
+        idle_hours=args.idle_hours,
+        use_idle=not args.no_idle,
+        grace_minutes=args.grace_minutes,
+        max_keep_bytes=int(args.max_keep_mb * 1024 * 1024),
+    )
+    print(f"worktree sweep {'(dry run) ' if args.dry_run else ''}{datetime.now().astimezone():%Y-%m-%d %H:%M}")
+    try:
+        with sweep.lock(root):
+            report = sweep.sweep(
+                root,
+                apply=not args.dry_run,
+                settings=settings,
+                only=args.only or (),
+                repos=args.repo or (),
+                deadline_seconds=args.deadline,
+            )
+    except sweep.Locked as error:
+        print(f"skipped: {error}")
+        return 0
+    print("\n".join(report.lines()))
+    return 0
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     root = workspace.require_workspace()
     print(f"workspace: {root}")
@@ -370,6 +397,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         except workspace.WorkspaceError as error:
             print(f"  MISSING {name}: {error}")
             bad += 1
+    print("\n".join(sweep.disk_lines(root)))  # a warning only: low space is not a missing prerequisite
     return 1 if bad else 0
 
 
@@ -494,6 +522,35 @@ def build_parser() -> argparse.ArgumentParser:
     mrg.add_argument("--co-author", help="<model name> <noreply address> (default: the newest trailer on the branch)")
     mrg.add_argument("--continue", dest="resume", action="store_true", help="commit the merge once conflicts are fixed")
     mrg.set_defaults(func=_cmd_merge_main)
+
+    wt = sub.add_parser("worktree", help="worktree upkeep (docs/workspace.md#sweep)").add_subparsers(
+        dest="cmd", required=True
+    )
+    swp = wt.add_parser(
+        "sweep",
+        help="remove finished worktrees (merged pull request, closed issue, idle) and keep their artwork and notes",
+    )
+    swp.add_argument("--dry-run", action="store_true", help="report what would be removed; change nothing")
+    swp.add_argument(
+        "--idle-hours",
+        type=float,
+        default=6.0,
+        help="hours untouched before a worktree no pull request or issue claims is finished (default: 6)",
+    )
+    swp.add_argument("--no-idle", action="store_true", help="only pull request and issue rules: never the idle rule")
+    swp.add_argument(
+        "--grace-minutes", type=float, default=30.0, help="a worktree touched more recently is left (default: 30)"
+    )
+    swp.add_argument(
+        "--max-keep-mb",
+        type=float,
+        default=1024,
+        help="refuse a worktree with more files to keep than this (default: 1024)",
+    )
+    swp.add_argument("--only", nargs="+", metavar="NAME", help="only the worktree folders with these names")
+    swp.add_argument("--repo", nargs="+", metavar="REPO", help="only the worktrees of these repositories")
+    swp.add_argument("--deadline", type=float, default=1200, help="seconds after which the sweep stops (default: 1200)")
+    swp.set_defaults(func=_cmd_worktree_sweep)
 
     prs = sub.add_parser("pr", help="pull request helpers").add_subparsers(dest="pr_command", required=True)
     chk = prs.add_parser("check-body", help="check a pull request description with the rules of pr-rules")

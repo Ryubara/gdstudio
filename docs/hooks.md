@@ -268,6 +268,17 @@ Stop at most once every two minutes (auto-merges land without a command). It nev
 changes are in the way, or one on another branch, is left alone and named in the session's context. Settings:
 `[mains]` in `hooks.toml`.
 
+## Finished worktrees {#sweep}
+
+`gds worktree sweep` ([the rules](workspace.md#sweep)) is started in the background at session start, right after a
+shell command that merges a pull request, and at Stop, at most once every ten minutes (`[sweep]` in `hooks.toml`). The
+hook only starts the process and returns, so it never blocks or delays a session; the sweep takes a lock file
+(`cache/worktree-sweep.lock`, taken over after half an hour), so sessions that start together run one sweep, and it stops
+by itself after 20 minutes. Its report is appended to `scratch/worktree-sweep.log`. On Windows the process is started
+with `CREATE_NO_WINDOW`, so neither it nor its git children flash a console window
+([lesson](lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md)). `enabled = false` turns it off and
+`args = ["--no-idle"]` limits it to the pull request and issue rules.
+
 ## Learning {#learning}
 
 What the maintainer corrects is written into the docs in the same session, so the next agent gets it right the first
@@ -294,6 +305,8 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
 `python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks, the
 stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check (the refusal and both commands,
 a task agent never judged, the refusal limit and its reset, the `gh` cache, failing open) and the learning loop (each
-event's text, the queue gate and its loop guard, and the dispatcher run as a process).
+event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
+once, throttled, switched off, log moved aside; started by session start, a merge and Stop).
+`python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

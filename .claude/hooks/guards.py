@@ -9,6 +9,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -878,6 +879,7 @@ def stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if workspace:
         pull_mains(workspace, config)
+        start_sweep(workspace, config)
     reasons = [
         r for r in (stop_proof(payload, config), stop_queue(payload, config), stop_kit_docs(payload, config), idle) if r
     ]
@@ -971,14 +973,65 @@ def pull_mains(workspace: Path, config: dict[str, Any], force: bool = False) -> 
     return notes
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# Finished worktrees: swept in the background (docs/hooks.md#sweep)
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def start_sweep(workspace: Path, config: dict[str, Any], force: bool = False) -> bool:
+    """Start `gds worktree sweep` in the background (it never blocks the hook), at most once every `[sweep]
+    every_seconds` unless `force`; its report is appended to `[sweep] log`. The sweep takes its own lock, so two
+    sessions starting at once run one. Returns whether a sweep was started."""
+    rules = config.get("sweep", {})
+    if not rules.get("enabled", True):
+        return False
+    stamp = workspace / rules.get("stamp", "cache/worktree-sweep-started")
+    if not force and stamp.exists() and time.time() - stamp.stat().st_mtime < float(rules.get("every_seconds", 600)):
+        return False
+    uv, kit = shutil.which("uv"), kit_root(workspace)
+    if not uv or not (kit / "python").is_dir():
+        return False
+    log = workspace / rules.get("log", "scratch/worktree-sweep.log")
+    command = [uv, "run", "--project", str(kit / "python"), "gds", "worktree", "sweep", *rules.get("args", [])]
+    try:
+        stamp.parent.mkdir(parents=True, exist_ok=True)
+        stamp.touch()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        if log.exists() and log.stat().st_size > int(rules.get("max_log_bytes", 1_000_000)):
+            os.replace(log, log.with_suffix(".old.log"))
+        with log.open("ab") as out:
+            # Windows: no console window for it or its git children; a job object of the hook runner may forbid
+            # breaking away from it, so that flag is tried first and dropped when refused.
+            flags = [0x08000000 | 0x00000200 | 0x01000000, 0x08000000 | 0x00000200] if os.name == "nt" else [0]
+            for creation in flags:
+                try:
+                    subprocess.Popen(
+                        command,
+                        cwd=str(workspace),
+                        stdin=subprocess.DEVNULL,
+                        stdout=out,
+                        stderr=subprocess.STDOUT,
+                        creationflags=creation,
+                        start_new_session=os.name != "nt",
+                    )
+                    return True
+                except PermissionError:
+                    continue
+    except OSError:
+        pass
+    return False
+
+
 def post_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> str:
-    """After a shell command that merged a pull request: pull every local main at once."""
+    """After a shell command that merged a pull request: pull every local main at once, and sweep the worktrees."""
     if payload.get("tool_name") not in SHELL_TOOLS:
         return ""
     command = (payload.get("tool_input") or {}).get("command", "")
     if not any(is_merge(words) for words in segments(command)):
         return ""
     workspace = workspace_of(Path(payload.get("cwd") or "."))
+    if workspace:
+        start_sweep(workspace, config, force=True)
     notes = pull_mains(workspace, config, force=True) if workspace else []
     return ("Local mains after the merge: " + "; ".join(notes)) if notes else ""
 
@@ -1005,6 +1058,7 @@ def session_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
         lines.append(f"Captures and reports for this branch go in {folder.as_posix()}/ (never in a repository).")
     lines.append("Work on a branch, open a pull request; visual work attaches captures (`gh ... --attach`).")
     lines += pull_mains(workspace, config, force=True)
+    start_sweep(workspace, config)
     lines.append(lesson_text("session", config, workspace))
     return "\n".join(line for line in lines if line)
 

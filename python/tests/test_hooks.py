@@ -27,6 +27,16 @@ def no_github_at_stop(monkeypatch):
     monkeypatch.setattr(guards, "idle_issues", lambda workspace, config, gh=None: [])
 
 
+REAL_START_SWEEP = guards.start_sweep
+
+
+@pytest.fixture(autouse=True)
+def no_sweep(monkeypatch):
+    """No test starts the real `gds worktree sweep` (it would remove worktrees of this machine); the `sweeps` fixture
+    records the starts instead."""
+    monkeypatch.setattr(guards, "start_sweep", lambda workspace, config, force=False: False)
+
+
 def shell(command: str, cwd: Path) -> dict:
     return {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(cwd)}
 
@@ -416,6 +426,58 @@ def test_session_start_pulls_the_local_main(mains, workspace):
     head = _advance(origin, "2\n")
     assert "game: main pulled" in context("SessionStart", workspace)
     assert _git(local, "rev-parse", "HEAD") == head
+
+
+# --- finished worktrees are swept in the background (docs/hooks.md#sweep) -------------------------------------------
+
+
+@pytest.fixture()
+def sweeps(monkeypatch, workspace):
+    """The real `start_sweep` with the process start recorded: (command, keyword arguments) per start."""
+    started: list[tuple[list[str], dict]] = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            started.append((command, kwargs))
+
+    monkeypatch.setattr(guards, "start_sweep", REAL_START_SWEEP)
+    monkeypatch.setattr(guards.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(guards.shutil, "which", lambda name: "/bin/uv")
+    return started
+
+
+def test_the_sweep_starts_in_the_background_and_logs_to_scratch(sweeps, workspace):
+    assert guards.start_sweep(workspace, CONFIG) is True
+    command, kwargs = sweeps[0]
+    assert command[:3] == ["/bin/uv", "run", "--project"] and command[-3:] == ["gds", "worktree", "sweep"]
+    assert kwargs["stdin"] is subprocess.DEVNULL and kwargs["cwd"] == str(workspace)
+    assert (workspace / "scratch" / "worktree-sweep.log").exists()  # opened for the child's output
+    assert guards.start_sweep(workspace, CONFIG) is False  # stamped a moment ago: throttled
+    assert guards.start_sweep(workspace, CONFIG, force=True) is True
+    assert len(sweeps) == 2
+
+
+def test_the_sweep_can_be_turned_off(sweeps, workspace):
+    config = {**CONFIG, "sweep": {**CONFIG["sweep"], "enabled": False}}
+    assert guards.start_sweep(workspace, config, force=True) is False and sweeps == []
+
+
+def test_a_long_log_is_moved_aside(sweeps, workspace):
+    log = workspace / "scratch" / "worktree-sweep.log"
+    log.parent.mkdir()
+    log.write_text("x" * 2_000_000)
+    guards.start_sweep(workspace, CONFIG, force=True)
+    assert log.with_suffix(".old.log").stat().st_size == 2_000_000 and log.stat().st_size == 0
+
+
+def test_session_start_merge_and_stop_start_the_sweep(monkeypatch, workspace):
+    calls = []
+    monkeypatch.setattr(guards, "start_sweep", lambda ws, config, force=False: calls.append(force))
+    context("SessionStart", workspace)
+    context("PostToolUse", workspace, tool_name="Bash", tool_input={"command": "gh pr merge 7 --squash"})
+    context("PostToolUse", workspace, tool_name="Bash", tool_input={"command": "gh pr view 7"})
+    guards.stop({"cwd": str(workspace)}, CONFIG)
+    assert calls == [False, True, False]  # session start, the merge (forced), Stop; viewing a pull request starts none
 
 
 # --------------------------------------------------------------------------------------------------------------------
