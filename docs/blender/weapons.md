@@ -74,7 +74,9 @@ data instead:
   turn it up to 30 degrees about the handle and slide it along the fingers until the index finger reaches the trigger,
   then bend every finger within joint limits to the bend that brings its tip 1 mm from the surface without going in.
   Measure the skinned mesh against the weapon's triangles, inside counted per closed piece (a kitbashed gun is many
-  overlapping closed parts, so one parity test over the whole mesh is wrong).
+  overlapping closed parts, so one parity test over the whole mesh is wrong). Measure the meshes drawn up close only:
+  a far level of detail is hidden by its visibility range, not by `visible`, and its decimated hand's longer fingertip
+  passed a finger 7 mm off the weapon ([lesson](../lessons/2026-11-03-a-grip-measure-counted-the-far-level-of-detail.md)).
 - **The palm is four bones from the wrist** (`Index1`, `Middle1`, `Pinky1`, `Thumb1`). An IK that turns only the bone
   the weapon rides (`Index1.R`) leaves the other three with the forearm and tears the palm: turn them with it.
 - **Check the arm reaches.** A chibi arm is short (the Soldier's is 0.66 m in the game): a solved left-hand grip is
