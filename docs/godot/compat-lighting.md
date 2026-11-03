@@ -219,7 +219,7 @@ Indoors the Compatibility renderer's gaps show more than on an open lot: nothing
 every floor under a roof and a lamp lights the next room through the wall.
 
 - **Keep the directional moon low indoors** (0.1 against the lot's 0.36) and let cards carry the moonlight: with no
-  shadow it washes every floor evenly and the shafts drown.
+  shadow it lifts every floor under the roof evenly and lowers the shafts' contrast.
 - **A moon shaft is the opening projected along the moon's direction**: each point of the opening plus `t` times the
   direction until it meets the floor (or a wall ahead, whichever is nearer). Built in rows along the opening's height,
   a patch that runs onto a wall bends at the corner. Two sheets from the opening to the patch are the haze. The bars'
@@ -231,6 +231,8 @@ every floor under a roof and a lamp lights the next room through the wall.
   [first-use hitches](first-use-hitches.md)).
 - **Additive chalk shows only where light falls**: a lettering mask drawn additively in the chalk colour reads in a
   moon patch or under a lamp and fades into the dark wall elsewhere, which is where the writing should be read anyway.
+- **What they cost:** a room with eleven cards and three cones in view, 0.1 ms in Chrome on an RTX 5080 (2.30 to
+  2.42 ms a frame, unpaced), no GL program linked while playing.
 - **Fade haze near the camera.** Players walk under ceiling lamps; from inside a haze cone every face looks at the
   camera and the screen washes. `smoothstep(0.2 * near, near, -VERTEX.z)` on the haze removes it within a couple of
   metres.
