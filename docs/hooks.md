@@ -11,7 +11,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | --- | --- | --- |
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
 | Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request, or commits made after its pull request merged; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
-| Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
+| Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
 | Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..." [--conflict <path>...]`) ([below](#idle)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
@@ -257,8 +257,8 @@ nothing shows on GitHub. It happened three times on 2026-11-02 (the agents ended
 [lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The rule in the agent
 definitions did not stop the third, so `SubagentStop` now refuses such an end. Settings: `[stop_check]` in `hooks.toml`.
 
-1. Only the agent types in `[stop_check] agents` are judged: `godot-engineer`, `backend-engineer`, `blender-artist`.
-   The `reviewer`, the helpers and every other type are never touched.
+1. Only the agent types in `[stop_check] agents` are judged: `godot-engineer`, `backend-engineer`, `blender-artist`,
+   `level-designer`. The `reviewer`, the helpers and every other type are never touched.
 2. The agent's last message (`last_assistant_message`, else the end of its transcript) is a **report** when it matches
    `[stop_check] report`: a pull request link (`github.com/.../pull/N`) or `PR #N` / `pull request #N`; a `Mistakes`
    heading or label (every report has one, [Docs ship with the change](#docs)); a line that starts `Blocked:` or

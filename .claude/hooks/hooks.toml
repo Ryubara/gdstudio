@@ -126,7 +126,7 @@ kit_worktrees = "worktrees/gdstudio"
 # are not listed, so they are never touched) up to `max_refusals` times per agent, then lets it go: the gate can never
 # hold an agent forever. A final message is a report when it matches `report` (a pull request link or number, a
 # `Mistakes` line, or a blocker line), and an agent with a background task still running is waiting, not stalled.
-agents = ["godot-engineer", "backend-engineer", "blender-artist"]
+agents = ["godot-engineer", "backend-engineer", "blender-artist", "level-designer"]
 max_refusals = 2
 # Where the refusals are counted, relative to the workspace.
 counter = "cache/stop-check.json"

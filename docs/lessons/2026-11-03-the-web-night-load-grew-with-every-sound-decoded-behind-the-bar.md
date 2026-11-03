@@ -18,3 +18,7 @@ areas: [web, audio, ci]
 - **Docs:** Deadnight `docs/research/web-export.md`, "Loading a night". Check: a new family of sounds (a weapon, a
   voice, a map's set) goes in a bank with `deferred = true`; compare web load times as a ratio to the same run's time to
   the menu, or interleaved in one session, never as seconds across runs of a shared runner.
+- **Also missed:** the new exported `deferred` flag failed `test_every_sound_has_the_values_it_had_in_code` on the first
+  push (the tuning table pins every exported property of a sound; I ran the audio and warm-up tests, not `tests/tuning`).
+  Fix: the table's rows carry `"deferred": true` for the deferred banks and default to false. Check: a new exported
+  property on a resource with a pinned table runs that table's test (`grep` the property's class in `tests/tuning`).

@@ -227,7 +227,21 @@ the game's own page is `docs/research/night-environment.md` there.
   and make a lamp on the outside of a wall a `SpotLight3D` facing out (its cone never passes its apex plane). Test every
   additive card against the walls (a point behind a wall seen from its lamp; a wall-mounted card hanging past its wall)
   and every light against the floors, roofs and walls it reaches through a wall. What stays is a room lamp reaching the
-  next room by its range (0.2 to 0.7 energy at 5 to 9 m): only a shadow or a light layer per room stops it.
+  next room by its range (0.2 to 0.7 energy at 5 to 9 m): a light layer per room stops it (the next bullet).
+- **A light layer per room is the shadow Compatibility does not have, for free.** A light lights only the meshes whose
+  `layers` share a bit with its `light_cull_mask` (checked in a Compatibility scene: a box on layer 2 is lit by a lamp
+  with mask 1|2, a box on layer 4 stays black), so a lamp that names the default layer and its room's lights the dead and
+  the props (on layer 1) and its room's floor, ceiling and walls, and not the next room's. It is two integers in the
+  scene: no draw call, no light, no shader program (Deadnight #841: the stand's, the booth's and the second map's lamps,
+  0.2 to 0.7 energy through walls cut to what is left below, frame cost unchanged within the spread). What to know:
+  `layers` is the camera's too (a box off layer 1 still draws: the camera sees 1 to 20); a lamp must keep bit 1 or it
+  leaves the dead standing in a lit room dark; a mask belongs to a whole mesh, so one box that is a wall of two storeys
+  or a floor and the terrace past a wall takes the light of both sides (splitting it costs a draw call); an opening in
+  the wall no longer passes the lamp's light, so a doorway's spill is the glow card's job. Move only the surfaces that
+  are lit through a wall, not every box, and test both ways: no lamp reaches a surface through a wall beyond a table of
+  reasons, and no lamp loses a surface it could see beyond a second table (the cost shows in that table, not in the
+  leak one). A downward `SpotLight3D` for a ceiling lamp (cone under 90 degrees) cures the wall above it but takes the
+  light off the ceiling over it, which changes how the room looks.
 - **A spot's forward is its -Z, and its reach is the box of its cone.** A builder's `yaw 180` faced a projector's spot at
   the road, not the screen, for the life of a map (Deadnight #840): print `-global_basis.z` of every spot and test where
   it points. Turned right, the cone aimed at the screen's middle dipped under a roof 20 m away and put a seventh light on
@@ -301,3 +315,22 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
   ([lesson](../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
+
+## A lamp near a wall
+
+Compatibility draws no shadows, so a lamp reaches through a wall by its light's range and by the size of its ground pool
+(a flat additive card): a post 2.4 m from a fence lit and glowed the room behind it (Deadnight #851: 28,000 to 330,000
+pixels of the next room, measured with each part hidden and shown from the player's camera on the far side).
+
+- **A spot cannot pass its apex's plane.** Swap the omni for a spot (the same slot in the 8-light cap) aimed down and away
+  from the wall: a cone of half angle `a` tilted `t` from straight down stays off a wall's side when
+  `sin(t) * c >= sin(a)`, `c` being the cosine of the angle between the aim and the wall's normal (1 for one wall,
+  0.71 in a corner). A 30 degree cone needs 32 degrees of tilt by one wall and 47 in a corner; a steeper cone or tilt reaches
+  more meshes and can break the light budget (a 38 degree cone tilted 65 reached one more tile).
+- **Shrink the pool and move it away.** A pool of half-size `h` moved `h/2` away from a wall at distance `d` stops short
+  of it when `h <= d / (1 - c/2)`. The halo stays: it is the bulb's, and the bulb is seen over the wall.
+- **Measure it hidden and shown**, from behind the wall, with a hide the game does not undo (`light_cull_mask = 0`,
+  `layers = 0`, never `visible`;
+  [lesson](../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
+- **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
+  changes a mesh's set of lights.
