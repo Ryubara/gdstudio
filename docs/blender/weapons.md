@@ -99,6 +99,16 @@ data instead:
 Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
 `HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
 
+### A weapon in each hand
+
+Test the rig for symmetry before solving a second hand. The kit Soldier is an **exact mirror**: each left bone's rest
+rotation is its right one's with `y` and `z` negated (a probe printing both rests per bone: every pair matched to 1e-5,
+and in Blender the left hand ended 0.0 m from the right's reflection). So a mirrored pose is the right side's local
+quaternions as `(x, -y, -z, w)` (Blender's `(w, x, -y, -z)`), finger poses included, and a weapon on `Index1.L` sits at
+the right one's place with `x` turned about (a node whose basis turns the other way draws the model in a mirror; the
+`Muzzle` empty keeps its barrel direction). No left grip needs solving: Deadnight's dual pistols reuse the right hand's
+grip file mirrored, and the hand contact test measured the left hand within the same 2 mm and 5 mm as the right.
+
 ## Moving parts and a reload's ammunition
 
 A reload reads when something on the gun moves (a drum comes off, the barrels break open, a cylinder swings out, a
