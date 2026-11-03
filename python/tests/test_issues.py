@@ -433,6 +433,12 @@ def test_block_accepts_a_dependency_the_body_names(tmp_path):
         "Depends on: #560 to #570",  # a range names each number in it
         "Carried from #564 (PR #597, coordinator 2026-11-02): the shop soak missed a gate.",
         "Depends on: Ryubara/deadnight#564",
+        "### Summary\n\nText.\n\n### Blocked by\n\nThe greybox (#564) until it merges.\n\n### Screenshots\n\nNone.",
+        "### Blocked by\n\n#570 (the greybox), and the formula page's pull request (#564).\n",  # two, at the end
+        "### Blocked by\n\n#560 to #570\n\n### Screenshots\n\nNone",  # a range names each number in it
+        "Text.\n\nStarts after #564 merges (it adds `kit.py`). About 2 days.",
+        "- **Starts after** #570 and #564 merge; independent of the rest.",
+        "Starts after #564.",
     ]:
         edit = blocked_body(tmp_path, body)
         assert "waits on #564: why" in edit[edit.index("--body") + 1], body
@@ -449,6 +455,11 @@ def test_block_refuses_a_chain_with_no_dependency_and_points_at_the_rule(tmp_pat
         "See #564 for the bot brain.",  # mentioned, not a dependency
         "Carried from #570 (PR #564): the soak.",  # the pull request after it is not the issue it was carried from
         "Blocked (coordinator, 2026-11-02): waits on #564: the same bot brain; one agent in order.",
+        "### Summary\n\nSee #564 for the bot brain.\n\n### Blocked by\n\nNone.",  # only the summary names it
+        "### Summary\n\nSee #564.\n\n### Blocked by\n\n#570\n\n### Screenshots\n\nAfter #564 lands.",
+        "### Blocked by\n\n#570\n\n### Fix list or steps\n\n1. Read #564.",  # a later section is not Blocked by
+        "Starts after #570 merges (it adds #564's file).",  # after the parenthesis it is a mention
+        "It starts after the greybox; see #564.",  # not a line that begins with Starts after
     ]:
         gh = gh_for([raw(7, "S-ready-to-start", body=body), raw(564, "S-in-progress")])
         with pytest.raises(IssueError, match=r"does not name #564 as a dependency") as caught:
@@ -495,12 +506,25 @@ def test_dependencies_read_the_forms_deadnight_uses():
     assert issues.dependencies("") == set()
 
 
+def test_dependencies_read_the_blocked_by_section_and_starts_after():
+    """Deadnight #631 to #633 name theirs in the form's `### Blocked by` section or as `Starts after #N merges`."""
+    body = (
+        "### Summary\n\nSee #1 and #2.\n\n### Blocked by\n\n#631 (the greybox), and the formula page's pull request "
+        "(#622).\n\n### Screenshots\n\nAfter #3.\n"
+    )
+    assert issues.dependencies(body) == {("", 631), ("", 622)}
+    assert issues.dependencies("Starts after #630 merges (it adds `smallmap_kit.py`). About #9.") == {("", 630)}
+    assert issues.dependencies("### Blocked by\n\nNone\n") == set()
+    assert issues.dependencies("### Blocked by\r\n\r\n#631\r\n") == {("", 631)}  # the API may return CRLF
+
+
 def test_list_shows_the_reason_class_beside_each_block(tmp_path):
     def row(number: int, title: str, body: str, *labels: str) -> dict:
         return {"number": number, "title": title, "labels": [{"name": n} for n in labels], "body": body}
 
     rows = [
         row(1, "dep", "Depends on: #227\n" + BY_HAND, "S-blocked"),
+        row(5, "form", "### Blocked by\n\n#227 (the rig)\n\n" + BY_HAND, "S-blocked"),
         row(2, "chain", "Blocked (coordinator, 2026-11-02): waits on #227: same brain", "S-blocked"),
         row(3, "files", "Blocked (coordinator, 2026-11-03): waits on #227: edits (conflict in: a.gd)", "S-blocked"),
         row(4, "person", "Blocked (coordinator, 2026-11-02): waits on the maintainer: x", "S-blocked"),
@@ -511,6 +535,7 @@ def test_list_shows_the_reason_class_beside_each_block(tmp_path):
     by_number = {int(line.split()[0][1:]): line for line in text.splitlines() if line.startswith("  #")}
     assert "[dependency]" in by_number[1] and "[none named]" in by_number[2]
     assert "[conflict]" in by_number[3] and "[maintainer]" in by_number[4]
+    assert "[dependency]" in by_number[5]  # named in the issue form's Blocked by section
 
 
 def test_unblock_lifts_the_label_and_the_line_and_keeps_the_reason(tmp_path):

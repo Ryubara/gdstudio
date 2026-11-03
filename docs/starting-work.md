@@ -25,19 +25,28 @@ not started has one of two reasons, and the reason is written down:
 - **It conflicts** with an issue an agent has: both would edit the same files in ways a merge cannot settle, or one
   measures numbers the other is changing. Name the files. Give both to one agent in sequence; the second is blocked
   on the first.
-- **It is blocked**: it needs something another issue or pull request makes (its `Depends on:` line names it), or it
-  waits on the maintainer.
+- **It is blocked**: it needs something another issue or pull request makes (its `### Blocked by` section, its
+  `Depends on:` or `Starts after` line names it), or it waits on the maintainer.
 
 Working on the same subsystem is not a conflict, and neither is "the same agent takes them in order". Agents on one
 subsystem run side by side: each keeps its change to its own part, adds new modules where it can, and merges
-`origin/main` before each push. Before blocking one issue on another, read the blocked issue's `Depends on:` line; if
-the blocker is not in it and no file is named, start the issue. A chain of several issues blocked on one running issue
-is the sign of a serial queue that should not exist.
+`origin/main` before each push. Before blocking one issue on another, read where the blocked issue names its
+dependencies (below); if the blocker is not there and no file is named, start the issue. A chain of several issues
+blocked on one running issue is the sign of a serial queue that should not exist.
 
 `gds issue block` enforces that, so a block cannot be written on a reason it does not have. `--on "#N"` is accepted
-when the blocked issue's body names #N as a dependency (a `Depends on:` line, with `#53 to #57` counting each number,
-or a `Carried from #N` line), or when `--conflict <path>...` names the files both would edit in ways a merge cannot
-settle. `--on maintainer` needs neither. Anything else is refused with a pointer to this section.
+when the blocked issue's body names #N as a dependency, or when `--conflict <path>...` names the files both would edit
+in ways a merge cannot settle. `--on maintainer` needs neither. Anything else is refused with a pointer to this
+section. The body names a dependency in any of these places:
+
+| Form | Example | Counts |
+| --- | --- | --- |
+| The `### Blocked by` section of the issue form (`.github/ISSUE_TEMPLATE/task.yml`) | `#631 (the greybox), and the formula page's pull request (#622).` | every `#N` in the section, up to the next heading |
+| A `Starts after` line | `Starts after #630 merges (it adds smallmap_kit.py).` | the `#N` before the first parenthesis, semicolon or end of the sentence |
+| A `Depends on:` line | `Depends on: #53 to #57, Ryubara/gdstudio#12` | every reference on the line; `#53 to #57` counts each number |
+| A `Carried from` line | `Carried from #228 (PR #597, ...)` | the issue, not the pull request after it |
+
+A `#N` anywhere else (the summary, the steps, a later section) is a mention, not a dependency, and is refused.
 
 ```text
 uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#568 --on "#227" --why "needs the bot rig #227 adds"
@@ -45,14 +54,14 @@ uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadn
 uv run --project <workspace>/repos/gdstudio/python gds issue block Ryubara/deadnight#52 --on maintainer --why "a person must launch the Activity"
 ```
 
-The first needs `Depends on: #227.` in #568's body, the second names the files, the third needs nothing. Each sets
-`S-blocked` and writes `Blocked (coordinator, <date>): waits on #230: <why>` in the issue body (with
-`(conflict in: <files>)` after the reason for the second). `gds issue list` prints the reason class beside each block:
-`[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for a block written by hand that its issue body does
-not back, so a chain of blocks on one running issue shows at a glance. A blocked issue leaves the line, so it stops
-holding a slot of the window; when what it waits on closes, `gds issue list` shows it under "Unblocked: label to
-remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an issue in "May start
-now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+The first needs #227 in one of the forms above (say `Depends on: #227.`) in #568's body, the second names the files,
+the third needs nothing. Each sets `S-blocked` and writes `Blocked (coordinator, <date>): waits on #230: <why>` in the
+issue body (with `(conflict in: <files>)` after the reason for the second). `gds issue list` prints the reason class
+beside each block: `[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for a block written by hand that
+its issue body does not back, so a chain of blocks on one running issue shows at a glance. A blocked issue leaves
+the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
+"Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
+issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
 
 ## Starting an issue
 

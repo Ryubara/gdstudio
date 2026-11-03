@@ -66,6 +66,9 @@ body:
   id: blocked-by
   attributes:
     label: Blocked by
+    description: 'The issues or pull requests that must merge first, as #N (one per line is fine). `gds issue block
+      --on #N` accepts a block on any #N written here, or after `Depends on:`, `Starts after` or `Carried from`
+      in the body; a bare mention elsewhere is not a dependency.'
 - type: textarea
   id: screenshots
   attributes:

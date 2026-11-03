@@ -123,7 +123,8 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
 2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
    agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
-   when it waits on the maintainer, or on #N that its body names (`Depends on:`, `Carried from`), or with `--conflict
+   when it waits on the maintainer, or on #N that its body names (its `### Blocked by` section, `Depends on:`,
+   `Starts after`, `Carried from`), or with `--conflict
    <path>...` naming the files it and an issue an agent has would edit in ways a merge cannot settle (give both to one
    agent in sequence). Same subsystem, same agent and "in order" are not reasons; the command refuses them
    ([Starting work](starting-work.md#parallel)); or `gds issue unblock <repo>#N` for an unblocked one.
@@ -131,7 +132,8 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    <why>` line (or `waits on the maintainer: <why>`) in the body. The coordinator's hand-written form since 2026-11-02,
    `Blocked (coordinator, 2026-11-02): waits on #227 (...)`, is parsed the same way (the issues named before the first
    colon, parenthesis or dash are the blockers; an open pull request counts as open). The command writes only a block
-   it can back: the blocked issue's body names #N (`Depends on:`, `Carried from`), or `--conflict` names the files
+   it can back: the blocked issue's body names #N (its `### Blocked by` section, `Depends on:`, `Starts after`,
+   `Carried from`), or `--conflict` names the files
    (`(conflict in: ...)` after the reason), or it waits on the maintainer (on 2026-11-02 four bot issues were chained
    behind one running issue as "the same bot brain, in order", none needing what it made, and five issues sat still).
    `gds issue list` shows the reason and its class (`[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for
