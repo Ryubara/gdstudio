@@ -10,7 +10,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from gds_tools import capture, issues, lessons, pr, refs, sweep, sync, workspace, worktrees
+from gds_tools import capture, disk, issues, lessons, pr, refs, sweep, sync, workspace, worktrees
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -246,6 +246,9 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
     args.repo = repo
     root, settings, ledger = _issue_context(args)
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
+    refused = disk.refusal(root, disk.load_limits(kit), f"starting {repo}#{number}")
+    if refused:  # under the hard limit no agent and no worktree starts (docs/workspace.md#disk)
+        raise issues.IssueError(refused)
     areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
         repo,
@@ -382,6 +385,36 @@ def _cmd_worktree_sweep(args: argparse.Namespace) -> int:
         return 0
     print("\n".join(report.lines()))
     return 0
+
+
+def _cmd_disk_guard(args: argparse.Namespace) -> int:
+    root = workspace.require_workspace()
+    limits = disk.load_limits(workspace.kit_checkout() or root / "repos" / workspace.KIT)
+    print(f"disk guard {'(dry run) ' if args.dry_run else ''}{datetime.now().astimezone():%Y-%m-%d %H:%M}")
+    try:
+        with sweep.lock(root, disk.LOCK):
+            report = disk.guard(root, limits, apply=not args.dry_run, force=args.force)
+    except sweep.Locked as error:
+        print(f"skipped: {error}")
+        return 0
+    print("\n".join(report.lines()))
+    return 1 if report.level == "hard" else 0
+
+
+def _cmd_disk_status(args: argparse.Namespace) -> int:
+    root = workspace.require_workspace()
+    limits = disk.load_limits(workspace.kit_checkout() or root / "repos" / workspace.KIT)
+    free = disk.free_bytes(root)
+    status = disk.read_status(root)
+    print(
+        f"disk: {free / disk.GB:.1f} GB free: {disk.level(free, limits)} (soft {limits.soft_gb:g} GB, hard "
+        f"{limits.hard_gb:g} GB)"
+    )
+    if status:
+        print(f"last guard run {status.get('checked', '?')}: {status.get('line', '')}")
+        for row in status.get("biggest", []):
+            print(f"  {row['gb']:8.1f} GB  {row['path']}")
+    return 1 if disk.level(free, limits) == "hard" else 0
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
@@ -552,6 +585,20 @@ def build_parser() -> argparse.ArgumentParser:
     swp.add_argument("--repo", nargs="+", metavar="REPO", help="only the worktrees of these repositories")
     swp.add_argument("--deadline", type=float, default=1200, help="seconds after which the sweep stops (default: 1200)")
     swp.set_defaults(func=_cmd_worktree_sweep)
+
+    dsk = sub.add_parser("disk", help="the disk guard (docs/workspace.md#disk)").add_subparsers(
+        dest="cmd", required=True
+    )
+    grd = dsk.add_parser(
+        "guard",
+        help="below the soft limit: sweep, clear idle import caches and finished scratch downloads; write the status",
+    )
+    grd.add_argument("--dry-run", action="store_true", help="report what would be freed; delete nothing")
+    grd.add_argument("--force", action="store_true", help="free what the rules allow even above the soft limit")
+    grd.set_defaults(func=_cmd_disk_guard)
+    dsk.add_parser("status", help="free space, level and the last guard run's biggest folders").set_defaults(
+        func=_cmd_disk_status
+    )
 
     prs = sub.add_parser("pr", help="pull request helpers").add_subparsers(dest="pr_command", required=True)
     chk = prs.add_parser("check-body", help="check a pull request description with the rules of pr-rules")
