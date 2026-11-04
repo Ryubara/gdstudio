@@ -115,6 +115,9 @@ circled is a corridor with a countdown.
   walks every barricade the scenes have and sends a body in under the sill and through the opening with no boards, and
   a capture from the player's camera of each one (Deadnight #915: "every single barricade should be a window, not a
   door -- it gives the players this false idea that they can walk through it").*
+  *A dead sent at a window starts on something: the walking mesh's nearest point under it, from a deck as wide as it
+  is, and its climb counts only at that window's own sill (Deadnight #994: a start in the air off a 2.5 m deck passed
+  on a window a storey below).*
 - [ ] **A dead that works a barricade stands where a person inside can shoot it.** The zone a dead counts as "at the
   boards" is made for the dead's body (a gap's width and a body's slack), not for the person's line of fire; the clear
   opening between the jambs is narrower. *Proof: a crowd sent at the boards of every window and breach, and on every
