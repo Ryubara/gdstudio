@@ -145,6 +145,13 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([first-use hitches](../godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
   ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+- Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
+  round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
+  file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
+  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a maintainer
+  found the lag first ([performance budgets](../godot/performance-budgets.md),
+  [lesson](../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md),
+  [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
 ## Test infrastructure
 
