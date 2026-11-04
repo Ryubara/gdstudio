@@ -196,7 +196,9 @@ the game's own page is `docs/research/night-environment.md` there.
 - **Test the cap.** With every light on, count per mesh the lights whose sphere (omni) or cone box (spot) reaches its
   AABB; fail above 8. It found a tile that no visual check would. Walk every shaded mesh (each CSG root,
   `MeshInstance3D` and `MultiMeshInstance3D` with a lit surface, props and cars included), not only the level's boxes,
-  and read the cap from the project setting.
+  and read the cap from the project setting. A cone is counted by the box of its widest end (`range * tan(angle)`),
+  so an 85 degree spot of 10 m range is a box 114 m wide: it took a crane spot at the other end of the lot over the
+  cap (Deadnight #852). Keep a spot's cone narrow (60 degrees: 17 m) when its corner is quiet.
 - **Keep room for the lights of a fight.** Muzzle flashes, blasts and grenades are run-time omni lights, so the level's
   own lights may reach a mesh with at most the cap minus 2. A test that greps the project's scripts and scenes for
   light nodes and fails on one not accounted for catches the forgotten source. Known overruns go in a ratchet table:
@@ -334,3 +336,15 @@ pixels of the next room, measured with each part hidden and shown from the playe
   [lesson](../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
 - **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
   changes a mesh's set of lights.
+
+## A column of light has a length from what is above it
+
+A beam, a shaft or a pillar of additive haze drawn as a fixed-length mesh shows through every floor and roof over its
+source: the depth test only hides the part of it that lies behind a surface from the camera, never the part past the
+surface on the camera's side, so from the floor above (or a roof) it rises out of the slab (Deadnight #911: the prize
+crane's 36 m beam through the concession's roof and the second map's upper floor). Cut its length where it is placed,
+with one ray up from its foot on the world layer (`PrizeCrane.beam_length_over`): shorten the same cone (same taper, a
+`cut` uniform on the same shader) and fade the last metre or so, with no new mesh, light or program. Outdoors the ray
+meets nothing and the beam keeps its full length. A test casts the same ray from every spot of every map and checks
+nothing solid stands inside the beam, and a capture is taken from the first solid over each spot, looking at where the
+beam rises through it.

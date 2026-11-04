@@ -70,6 +70,16 @@ focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOpti
   d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
   card chosen and on the card that is locked.
 
+## Two option selectors in one row
+
+A setting that is a choice of two or three words shares a form row with its neighbour instead of taking a row of its
+own (`bots` and `bot_skill`; `count_multiplier` and `perk_limit`): an `HBoxContainer` of two `UIOptionSelector`s, both
+`SIZE_EXPAND_FILL`, linked up and down by `focus_neighbor_*`. A selector cell is about 146 px wide on the desktop
+panel: a one-word label fits (`Unlimited`), two words ("Unlimited perks") are clipped under the arrows. The row's hint
+says what the words mean. A headless test sees none of it (text measures as nothing): look at the 1280x720 and
+1168x540 captures
+([lesson](../lessons/2026-11-03-a-new-match-setting-took-a-sixth-row-and-a-label-too-wide.md)).
+
 ## Touch controls
 
 Touch controls press the game's existing input actions, so gameplay code does not fork. `Input.emulate_mouse_from_touch`
