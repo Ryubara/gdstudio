@@ -201,6 +201,12 @@ line under it.
   player. Link the first row's top neighbour to the tab on show (the rows are only known after the layout, so do it in
   a deferred call from the grid's `sort_children`) and a tab's bottom neighbour to the page's first cell
   ([lesson](../lessons/2026-11-04-a-tab-that-showed-on-focus-switched-under-the-pad.md)).
+- **A cell that is not locked can still do nothing.** Deadnight's "Default colours" cell is dim and says why ("wear a
+  costume to give it its own colours back") instead of showing a padlock and `???`: a lock means "not yours yet", an
+  off cell means "not now". Press, hover and focus read the same words; the screen reader gets the reason too.
+- **A strip that grows a tab must be measured on the phone.** The tenth tab wrapped one tab onto a second row at 844 by
+  390, taking the grid's room. The fix was smaller padding and type in the compact layout, and the layout sweep
+  (`test_ui_fit.gd`) now shows each wardrobe tab, not only the first one it opens on.
 - **Sort by what the player reaches first**, with a stable tie-break (decorate with the index and sort the pairs), so a
   ladder reads from the starting pieces up and a grid with no levels keeps the catalogue's order.
 
