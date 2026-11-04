@@ -58,6 +58,10 @@ class Limits:
     scratch_budget_gb: float = 2.0
     imports_idle_hours: float = 2.0
     scratch_grace_hours: float = 2.0
+    #: How long a scratch topic that names no pull request (no `PR:` line, and no pull request of that branch name) is
+    #: held after its last change; then its downloads go like those of a finished topic. Most topics are named for
+    #: their subject (`grenade-feel`), so without this their captures stayed for ever. 0 keeps them for ever.
+    unknown_topic_days: float = 3.0
     #: Folder names inside a finished scratch topic whose whole content can go (downloaded CI artifacts and the like).
     can_go_dirs: tuple[str, ...] = ("artifacts", "downloads", "ci-artifacts", "dl", ".godot")
     #: File names (globs) inside a finished scratch topic that can go: archives, web exports, raw movie output, and the
@@ -285,7 +289,10 @@ def topic_finished(
     """Whether a scratch topic is past its pull request: (finished, why). A topic is finished when the pull requests
     its `SCRATCH.md` names (`PR: owner/repo#N`) all merged or closed, or, without such a line, when its folder name is
     a branch whose pull requests all merged or closed. It is never finished while a worktree of that name exists, a
-    process names it, a `.keep` protects it, or it changed in the last `scratch_grace_hours`."""
+    process names it, a `.keep` protects it, or it changed in the last `scratch_grace_hours`. A topic that names no
+    pull request and whose name is no branch with one is finished once it has been idle `unknown_topic_days` (3): only
+    its downloads go (`downloads_in`), never a note, `kept/` or `.keep`. A topic whose pull request is open, or whose
+    pull requests could not be read, is never finished this way."""
     if sweep.protected(topic.path):
         return False, "protected by .keep"
     if (root / "worktrees" / topic.repo / topic.path.name).exists():
@@ -300,11 +307,22 @@ def topic_finished(
         why = "pull request " + ", ".join(f"{r}#{n}" for r, n in named) + " finished"
     else:
         states = branch_pulls(topic.repo, topic.path.name)
-        if not states:
-            return False, "no pull request is known for it (name one with a `PR:` line in SCRATCH.md)"
+        if "UNKNOWN" in states:
+            return False, "the pull requests of its branch could not be read"
         if any(s not in ("MERGED", "CLOSED") for s in states):
             return False, "its branch has an open pull request"
         why = "the pull request of its branch finished"
+        if not states:
+            days = limits.unknown_topic_days
+            if days <= 0:
+                return False, "no pull request is known for it (name one with a `PR:` line in SCRATCH.md)"
+            idle = now - newest_change(topic.path, time.time() + 60)
+            if idle < max(days * 86400, limits.scratch_grace_hours * 3600):
+                return False, (
+                    f"no pull request is known for it and it changed {idle / 86400:.1f} days ago "
+                    f"(held {days:g} days; name a pull request with a `PR:` line in SCRATCH.md)"
+                )
+            return True, f"no pull request named, idle {idle / 86400:.1f} days (held {days:g})"
     idle = now - newest_change(topic.path, time.time() + 60)
     if idle < limits.scratch_grace_hours * 3600:
         return False, f"changed {idle / 3600:.1f} h ago (grace {limits.scratch_grace_hours:g} h)"
@@ -408,18 +426,22 @@ class Pulls:
         self.numbers: dict[tuple[str, int], str] = {}
 
     def _repo(self, folder: str) -> dict[str, list[sweep.Pull]] | None:
+        """The pull requests by branch; empty for a group that is no repository; None when GitHub could not be read."""
         if folder not in self.by_repo:
             checkout = self.root / "repos" / folder
             try:
                 slug = sweep.remote_slug(checkout) if (checkout / ".git").exists() else ""
-                self.by_repo[folder] = sweep.pulls_by_branch(slug, self.gh) if slug else None
+                self.by_repo[folder] = sweep.pulls_by_branch(slug, self.gh) if slug else {}
             except (WorktreeError, issues.IssueError, ValueError):
                 self.by_repo[folder] = None
         return self.by_repo[folder]
 
     def branch(self, folder: str, branch: str) -> list[str]:
+        """The states of a branch's pull requests; `UNKNOWN` when they could not be read (never "no pull request")."""
         found = self._repo(folder)
-        return [p.state for p in found.get(branch, [])] if found else []
+        if found is None:
+            return ["UNKNOWN"]
+        return [p.state for p in found.get(branch, [])]
 
     def state(self, slug: str, number: int) -> str:
         key = (slug.lower(), number)
