@@ -185,5 +185,37 @@ hand on a grip, on a chest, on the ground) says nothing about what the forearm a
   right, or the arm reaching across lies in the jacket (0.09 ahead alone pushed the upper arm's armband in).
 - **Sample the key poses.** Four frames at each quarter's middle missed a windup at 0.25 s (83 mm into the head):
   Deadnight samples eight, and the Blender check adds every key frame.
+- **The sampler loads what the game loads.** A clip in its own file is sampled only if the sampler adds that file:
+  a test that finds it only because another suite put it in the shared library passes alone and fails in a run, or
+  the reverse. Add every new clip file to the sampler in the same change (Deadnight `ClipFit.add_player_clips`).
+- **A prop held to the face:** the hand sits along the prop from the point at the mouth, so a bottle tipped up past
+  level from far round to the side puts the fist over the face. Deadnight's drink: 45 degrees round, at most 126 from
+  upright, the elbow pole a little back; 58 and 135 put the fist 60 mm into the head.
 - **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
   pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
+
+## Proportions: measure the arm
+
+Learned when the maintainer saw the female Soldier's arms as too long (Deadnight issue #978,
+`tools/blender/soldier_arms.py` and `tools/blender/measure_arms.py` there). A kit body reused as a base carries its
+limb lengths into every character made from it, and a second body made by warping only the trunk inherits the first
+one's arms.
+
+- **Measure the arm against the height before a body ships:** upper arm (shoulder joint to elbow joint), forearm (to
+  the wrist), hand (wrist to the furthest fingertip of the skin), the sum over the height (sole to the top of the head,
+  hair and hats left out), and where the fingertips hang standing. The Quaternius Soldier, Hazmat and Enemy share one
+  arm: upper arm 0.388, forearm 0.440, hand 0.384 m, 0.53-0.57 of their heights, the forearm longer than the upper
+  arm, the fingertips below the knee. Deadnight's is now 0.507: the forearm at 0.80 of the kit's (0.91 of the upper
+  arm), the fingertips at the knee.
+- **Change the rest on the imported kit body, before any clip is authored.** Move each wrist along the forearm toward
+  the elbow with the hand's bones (head and tail, roll kept) and every vertex by its weights (a finger bone's share
+  moves with the wrist, the forearm's in proportion to its distance from the elbow), in armature space. Clips that key
+  only rotations on the arm (no Soldier clip keys an arm bone's position) play on the shorter arm unchanged; clips
+  solved by reach are solved again on it by the same build. Keep the hand if grips are solved on it.
+- **Places along the arm in the build's rules** (a cuff picked by `|x|`, a wrist seam) are written in the kit's numbers
+  and read through one map of the change, or they miss it
+  ([lesson](../lessons/2026-11-04-places-along-the-arm-in-kit-numbers-missed-the-shorter-arm.md)).
+- **A shorter arm reaches less.** Before building, shorten the skeleton's rest at run time in a probe and read the
+  IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready (which
+  turned the armband deeper into the chest) or a slide of the gun back along its barrel, which it now does, with the
+  two-handed elbows bent further out so the shorter right forearm stays out of the jacket.
