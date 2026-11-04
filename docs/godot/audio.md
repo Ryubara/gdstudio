@@ -360,3 +360,24 @@ of roles and cues) are [Menu and interface sounds](../audio/ui-sounds.md). Two f
   every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with
   the recording within 0.1 dB, so the level is pinned in a plain test
   ([lesson](../lessons/2026-11-03-equal-peaks-made-whooshes-louder-than-clicks.md)).
+
+## Music that holds a long stay
+
+A menu is left open, so the question is repetition, not the first minute (Deadnight #979;
+[the game's page](https://github.com/Ryubara/deadnight/blob/main/docs/research/menu-music.md)). What worked, all
+synthesised so there is no licence to ask about:
+
+- **Three loops of unequal length, not one long one.** A 76 s pad, a 113 s sparse bell loop and a 47 s wind share no
+  factor, so they come back together after about 4.7 days; each plays as its own bed (a looping stream), so a minute
+  of the menu never repeats a minute before it. The method is Eno's *Music for Airports* (loops of differing
+  lengths, no pulse, silence at least as long as the sound).
+- **Every note in one scale over a held root and fifth**, so any meeting of the loops is in key. Tune each voice as a
+  just ratio of the root, or its partials beat against its neighbours'
+  ([lesson](../lessons/2026-11-04-a-pad-in-equal-temperament-pulsed-against-its-own-harmonics.md)).
+- **A seamless loop from sines**: move each frequency to the nearest whole number of cycles in the loop, make every
+  slow control (vibrato, level drift, harmonic opening) a whole number of cycles of it, and build reverb and echo as a
+  circular convolution and a circular shift, so the last sample is followed by the first. Check the step across the seam
+  against the largest step inside, and the level 400 ms either side.
+- **Keep it dark** (nothing over 1.5 kHz to speak of) when interface hints live at 1.5 to 8 kHz; the pad's own
+  loudness curve should move only a few dB over the loop. A phone speaker loses what is under 500 Hz, so a pad of low
+  notes is silent there: give it harmonics and an octave above, and put the wind in the mids.
