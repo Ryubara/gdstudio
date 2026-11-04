@@ -2,7 +2,7 @@
 
 Every visual change needs proof attached to its pull request. `gds capture` does the three steps with the pinned
 tools, so nobody writes Movie Maker command lines by hand: record frames, tile them into a contact sheet that can be
-read in one look, and encode a clip.
+read in one look, and encode a clip. A sound needs a clip you can listen to ([Sound](#sound-a-clip-you-can-listen-to)).
 
 ```text
 gds capture frames --project <game>/game --scene res://x.tscn --seconds 6 --fps 10 --name hud
@@ -74,6 +74,41 @@ files and the line to write. Write the body file first (with the Write tool, not
 body is copied from `gh pr view N --json body -q .body`. A reference whose path is not the attached file's, from the
 folder the command runs in, is refused with both places named ([Hooks](hooks.md#attach-paths)). Say "attached" in a
 report only after reading the body back.
+
+## Sound: a clip you can listen to
+
+Every pull request that adds or changes a sound carries a clip with the sound in it, because a spectrogram and a
+loudness chart prove the numbers and nobody can hear them. `gh --attach` takes images and videos only, so an `.ogg` or
+`.wav` is not attached: the sound goes in as the audio track of an `.mp4`. `gds capture clip` has no audio, so this one
+is made with the pinned ffmpeg (`gds tool path ffmpeg`).
+
+- **Use the game's recording.** Take the sound from a capture of the real audio service at the default settings, as the
+  player hears it, not the asset file. **Never normalise**: a limiter or a loudness filter hides the question the
+  listener is there to answer. Compare the source's peak and the encoded clip's (`-af volumedetect`): they match to
+  about 0.1 dB.
+- **Name what is playing.** One title card a section, a gap of about half a second between sounds, the waveform below
+  the title.
+- **Put it in its context.** A sound heard in a fight is also played beside what it must not hide (a shot, a groan,
+  the night's bed), with the reference alone first. A sum of two recordings is the recording of both when the buses
+  have no effects; a level the game applies at run time (a trim in a fight) is applied to the sound and said on the
+  card.
+
+```text
+ffmpeg -i mix.wav -f concat -safe 0 -i cards.txt \
+  -filter_complex "[0:a]showwaves=s=1280x300:mode=cline:rate=30:scale=sqrt:colors=white[w];[1:v]fps=30,format=yuv420p[b];[b][w]overlay=0:330:shortest=1,format=yuv420p[v]" \
+  -map "[v]" -map 0:a -c:v libx264 -crf 26 -c:a aac -b:a 192k -movflags +faststart <name>.mp4
+```
+
+`mix.wav` is the sounds and gaps in order. `cards.txt` is an ffmpeg concat list, `file 'card_01.png'` and
+`duration <seconds>` for each section (repeat the last `file` line). A 36 s clip of twelve sections is about 5 MB; keep
+it under the 9 MB of [clip](#clip).
+
+Attach it in two steps. `--attach` with `![listen](./<name>.mp4)` under `## Screenshots` uploads the file, but the
+reference becomes a plain link, not a player: **GitHub draws a player only for the bare upload address on its own
+line.** Read the body back, replace the link with the address alone, with a blank line on each side, and `gh pr edit
+--body-file` again. Check it with `gh api
+repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
+`<video` tag.
 
 ## Before captures
 
