@@ -12,3 +12,5 @@ Studies of how GDStudio works, written so the method can be repeated elsewhere.
   sources and the check that settles it (a probe, a capture from the player's camera, or a number).
 - [What to plan from the start](plan-from-the-start.md): a day-one checklist for the next game, from every gap
   nobody planned for on Deadnight.
+- [Deadnight's performance review](deadnight-performance-review.md): the first review made with the performance
+  checklist: the tick measured, nine findings by cost, and what it could not see.
