@@ -87,6 +87,9 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    started you (docs/starting-work.md). Never set `S-in-progress` or `P-critical` yourself.
 2. **Worktree.** Made for you: the prompt's `Worktree: <absolute path>` line. Work only there, never on `main`; merge
    main with `gds merge-main`. A worktree is temporary: keep captures and notes in `scratch/`, the work in commits.
+   The disk is shared (`<workspace>/repos/gdstudio/docs/workspace.md#disk`): a downloaded CI artifact is reduced to its
+   numbers and deleted in the same task, raw Movie Maker frames go once the clip or sheet is made, and the scratch
+   topic's `SCRATCH.md` names its pull request (`PR: owner/repo#N`) and what else can go (`Can go: <globs>`).
 3. **The plan first.** Draw the top-down plan with every door, window, spawn, light, shop spot and landmark, and list
    what the map is meant to do (where to learn, kite, hold, rest) and its opening order. A fault seen on paper is cheap.
 4. **Walk it from the player's camera**, never from the editor: the real night, the real camera, the dimmest state and

@@ -190,6 +190,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
   ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
+- Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
+  downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
+  budget; captures and CI artifacts are reduced to what is kept in the same task
+  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](../workspace.md#disk)).
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
   ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).

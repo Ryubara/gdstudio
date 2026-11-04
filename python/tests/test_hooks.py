@@ -37,6 +37,18 @@ def no_sweep(monkeypatch):
     monkeypatch.setattr(guards, "start_sweep", lambda workspace, config, force=False: False)
 
 
+REAL_START_DISK_GUARD = guards.start_disk_guard
+FREE = {"gb": 500.0}  # the disk every test sees, unless it sets another
+
+
+@pytest.fixture(autouse=True)
+def roomy_disk(monkeypatch):
+    """No test starts the real `gds disk guard`, and every test sees a disk with room, whatever this machine has."""
+    FREE["gb"] = 500.0
+    monkeypatch.setattr(guards, "start_disk_guard", lambda workspace, config, force=False: False)
+    monkeypatch.setattr(guards, "free_bytes", lambda path: int(FREE["gb"] * guards.GB))
+
+
 def shell(command: str, cwd: Path) -> dict:
     return {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(cwd)}
 
@@ -1492,3 +1504,90 @@ def test_a_failing_gh_and_a_used_up_budget_raise_instead_of_hanging(tmp_path, mo
 def test_the_hook_reads_the_kits_own_window_code(workspace):
     module = guards.issues_module(guards.KIT)
     assert module is not None and hasattr(module, "compute_window") and hasattr(module, "parse_block")
+
+
+# --- the disk guard (docs/hooks.md#disk) ----------------------------------------------------------------------------
+
+
+def disk_agent_call(cwd: Path, kind: str = "godot-engineer") -> dict:
+    prompt = "Issue: Ryubara/deadnight#7\nDo it."
+    return {
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Agent",
+        "cwd": str(cwd),
+        "tool_input": {"subagent_type": kind, "prompt": prompt},
+    }
+
+
+def started_ledger(workspace: Path) -> None:
+    (workspace / "cache").mkdir(exist_ok=True)
+    (workspace / "cache" / "issues-started.json").write_text(
+        json.dumps({"started": {"ryubara/deadnight#7": {"branch": "b"}}})
+    )
+
+
+def test_a_task_agent_is_refused_under_the_hard_limit_and_starts_above_it(workspace):
+    started_ledger(workspace)
+    (workspace / "cache" / "disk-guard.json").write_text(
+        json.dumps({"biggest": [{"path": "scratch/deadnight/web-night-load", "gb": 6.1}]})
+    )
+    FREE["gb"] = 4.0
+    reason = denied(disk_agent_call(workspace))
+    assert "starting a godot-engineer agent is refused: the disk has 4.0 GB free, under the hard limit of 10" in reason
+    assert "scratch/deadnight/web-night-load 6.1 GB" in reason
+    FREE["gb"] = 20.0  # soft: agents still start
+    assert denied(disk_agent_call(workspace)) == ""
+
+
+def test_helpers_and_the_reviewer_start_under_the_hard_limit(workspace):
+    FREE["gb"] = 1.0
+    assert denied(disk_agent_call(workspace, "Explore")) == ""
+    assert denied(disk_agent_call(workspace, "reviewer")) == ""
+
+
+def test_git_worktree_add_is_refused_under_the_hard_limit(workspace):
+    repo = workspace / "repos" / "game"
+    repo.mkdir(parents=True)
+    subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
+    command = "git worktree add ../../worktrees/game/x -b x"
+    assert denied(shell(command, repo)) == ""
+    FREE["gb"] = 2.0
+    assert "a new worktree is refused" in denied(shell(command, repo))
+    assert denied(shell("git worktree list", repo)) == ""
+
+
+def test_outside_a_workspace_the_disk_is_not_checked(tmp_path):
+    FREE["gb"] = 1.0
+    assert "disk" not in denied(disk_agent_call(tmp_path, "Explore"))
+    assert denied(shell("git worktree add x", tmp_path)) == ""
+
+
+def test_an_agent_is_told_to_keep_its_output_small_under_the_soft_limit(workspace):
+    FREE["gb"] = 30.0
+    text = context("SubagentStart", workspace, agent_type="godot-engineer")
+    assert "Disk SOFT: 30.0 GB free" in text and "reduce downloaded CI artifacts to their numbers" in text
+    FREE["gb"] = 80.0
+    assert "Disk" not in context("SubagentStart", workspace, agent_type="godot-engineer")
+
+
+def test_the_disk_guard_starts_in_the_background_and_is_throttled(monkeypatch, workspace):
+    started: list[list[str]] = []
+
+    class FakePopen:
+        def __init__(self, command, **kwargs):
+            started.append(command)
+
+    monkeypatch.setattr(guards, "start_disk_guard", REAL_START_DISK_GUARD)
+    monkeypatch.setattr(guards.subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(guards.shutil, "which", lambda name: "/bin/uv")
+    assert guards.start_disk_guard(workspace, CONFIG) is True
+    assert started[0][-3:] == ["gds", "disk", "guard"]
+    assert (workspace / "scratch" / "disk-guard.log").exists()
+    assert guards.start_disk_guard(workspace, CONFIG) is False  # within every_seconds
+    assert guards.start_disk_guard(workspace, CONFIG, force=True) is True
+    off = {**CONFIG, "disk": {**CONFIG["disk"], "enabled": False}}
+    assert guards.start_disk_guard(workspace, off, force=True) is False
+    # every tool call in a workspace may start it (throttled by the stamp)
+    (workspace / "cache" / "disk-guard-started").unlink()
+    dispatch.answer(shell("ls", workspace), CONFIG)
+    assert len(started) == 3

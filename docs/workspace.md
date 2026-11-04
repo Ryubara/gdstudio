@@ -66,11 +66,73 @@ a rule above stopped it) and `left` (not finished), then a summary with the spac
 
 `gds doctor` warns when the workspace's disk has under 20 GB free and names the biggest worktrees and scratch folders.
 
-**Scratch folders are never swept, and `.keep` protects them.** Nothing in the kit deletes from `scratch/`. A folder that
-holds a file named `.keep` (or sits inside one that does) is protected from every clean-up anyone writes, and `gds
-doctor` marks it "protected by .keep" in its list of big folders. The store and branding assets (Steam, itch.io and
+**`.keep` protects a scratch folder.** The sweep never deletes from `scratch/`, and the [disk guard](#disk) deletes only
+the downloads of a scratch topic past its pull request. A folder that holds a file named `.keep` (or sits inside one
+that does) is protected from every clean-up anyone writes, and `gds doctor` marks it "protected by .keep" in its list of
+big folders. The store and branding assets (Steam, itch.io and
 Discord: the app icon and key art) are kept this way: `scratch/deadnight/key-art/.keep` and
 `scratch/deadnight/art-key-art/.keep`. Put a `.keep` in any scratch folder that must outlive a clean-up.
+
+## The disk guard {#disk}
+
+On 2026-11-04 the C: drive reached 120 MB free with some 25 agents at work: Godot imports were truncated, a pre-commit
+hook emptied a source file, test runs failed. The sweep existed, but nothing watched the disk, and nothing ever deleted
+from `scratch/`. Measured then (the workspace was 64 GB of the 923 GB used; the rest was other programs):
+
+| Where | Size | What |
+| --- | --- | --- |
+| `scratch/` | 50.8 GB | 26 GB of numbered Movie Maker frames (86,000 PNGs), 5 GB of WAV, 6 GB of web exports and CI artifacts |
+| `worktrees/` | 7.3 GB | 74 worktrees; 1.2 GB of it `.godot/` import caches |
+| `tools/`, `cache/` | 5.2 GB | pinned tools and downloads |
+| `%LOCALAPPDATA%\Temp` | 31 GB | 15 GB of Claude Code task output, 1.3 GB of pytest folders |
+
+`gds disk guard` watches the disk and frees what is no longer needed. The kit's hooks start it in the background at
+most every five minutes while any session or agent works (a tool call, an agent's start and stop, a session's start
+and stop), so it runs on a schedule as long as anyone is working, and its limits are `[disk]` in
+`.claude/hooks/hooks.toml`:
+
+| Free space | What happens |
+| --- | --- |
+| under `soft_gb` (40) | the guard runs the [worktree sweep](#sweep); deletes `.godot/imported` of every worktree nobody has touched for `imports_idle_hours` (2) and no process names (Godot rebuilds it on the next import, as in a fresh worktree); and deletes the downloads of every scratch topic past its pull request (below). Agents are told at start to keep their output small. |
+| under `hard_gb` (10) | the same, with the sweep's idle rule at two hours; and **no new task agent and no new worktree starts**: the Agent hook, `gds issue start` and `git worktree add` refuse, with the free space and the biggest folders, until space is back. Helpers and the `reviewer` still start. |
+
+A **scratch topic** is `scratch/<group>/<name>/`. It is past its pull request when the pull requests its `SCRATCH.md`
+names (`PR: owner/repo#N` lines) all merged or closed, or, without such a line, when its name is a branch whose pull
+requests all merged or closed. Then its downloads go: folders named `artifacts`, `downloads`, `ci-artifacts`, `dl` or
+`.godot`; archives (`*.zip`, `*.7z`, `*.tar*`); web exports (`*.pck`, `*.wasm`); raw movie output (`*.avi`); numbered
+frames (`*0000.png` and the like); and what the topic's own `Can go: <globs>` line names.
+
+The guard never deletes:
+
+- a worktree the sweep would not remove (a running process, unpublished commits, an open pull request: [the sweep's rules](#sweep));
+- the import cache of a worktree touched in the last two hours or named by a running process; anything in `repos/`;
+- anything in a scratch topic whose pull request is open or unknown, whose worktree still exists, that a process names,
+  that changed in the last `scratch_grace_hours` (2), or that a `.keep` protects;
+- a note (`*.md`), or the sweep's `kept/` folders.
+
+**Budgets.** Each worktree has `worktree_budget_gb` (4) and each scratch topic `scratch_budget_gb` (2). The guard
+measures them on every run and writes `cache/disk-guard.json`: the free space, the level, what it freed, the folders
+over budget and the five biggest. A folder over budget is not deleted for it: it is named, in the status line and in the
+refusals, so its owner trims it.
+
+**The status line.** The GDStudio mod `mods/gdstudio-disk/` shows that file's line in Claude Code's status line (`disk
+7.7G free HARD<10 | over budget: deadnight/web-night-load 6.1G`) and a toast when the disk falls under the hard limit.
+Load it with `claude --plugin-dir <workspace>/repos/gdstudio/mods/gdstudio-disk`, or add that folder to
+`CLAUDE_CODE_PLUGIN_DIRS`.
+
+**What agents do.** A downloaded CI artifact is reduced to its numbers (a table in the report or the topic's notes)
+and deleted in the same task; raw frames go once the clip or contact sheet is made; a scratch topic's `SCRATCH.md`
+names its pull request and what else can go.
+
+```text
+gds disk status                 free space, level, and the last run's biggest folders (exit 1 under the hard limit)
+gds disk guard                  under the soft limit: free what the rules allow; always: measure, write the status
+gds disk guard --dry-run        report what would be freed; delete nothing
+gds disk guard --force          free what the rules allow even above the soft limit
+```
+
+The report is appended to `scratch/disk-guard.log`. What the guard cannot touch (other programs' folders, `Temp`, the
+uv cache) it does not: `gds disk status` and the report name the workspace's folders, and the maintainer decides the rest.
 
 ## Bootstrap {#bootstrap}
 
