@@ -100,3 +100,13 @@ simulation and the view from one place) and the time scale that puts the clip's 
 Measure the result as the highest point of the skinned mesh over the clip against the locomotion's (the standing punch
 on the crawler's mesh: 1.84 m, the crawl: 0.85 m, the new attack: 0.87 m), and in the real night as the highest bone of
 the view's skeleton in the mode against the crawl's.
+
+## Two clips half a turn apart on a bone
+
+The tree blends a bone's rotation between two clips along the shorter arc. Where the two are near half a turn apart
+(a hand rolled over between a gun hold and a carry), the shorter arc swaps sides as either clip moves, and the bone
+spins most of a turn in one tick of the crossfade. Deadnight's sprint carries had the left wrist 175-180 degrees off
+the gun hold's; the build now rolls the forearm about its own axis until every frame is within 150 degrees, and
+prints the worst
+([lesson](../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
+modifier's own slerp on one arc does not help when the flip is in the tree.
