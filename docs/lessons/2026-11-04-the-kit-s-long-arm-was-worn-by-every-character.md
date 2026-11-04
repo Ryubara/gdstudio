@@ -14,7 +14,8 @@ areas: [blender]
   but never the arm against the height, and the guns were then held at that arm's full reach.
 - **Fix:** the forearm shortened at rest on the imported kit body, before any clip is authored (skeleton, skin and
   every reach-solved clip get the one arm): 0.507 of the height, the forearm 0.91 of the upper arm, the hand kept for
-  the grips. The long guns turned 10 degrees more and slide back along the barrel when the fore-end is still out of
-  reach. A test pins each look's arm over its height. Before shortening, try it at run time: set the skeleton rest of
-  the bones below the forearm in a probe and read the IK's reach for every hold.
+  the grips. A two-handed hold bends the elbows further out (the right forearm had folded into the jacket) and slides
+  the gun back along its barrel when the fore-end is out of the left arm's reach; more stance reached too, but turned
+  the armband deeper into the chest. A test pins each look's arm over its height. Before shortening, try it at run
+  time: set the skeleton rest of the bones below the forearm in a probe and read the IK's reach for every hold.
 - **Docs:** [Character variants: proportions](../blender/variants.md#proportions-measure-the-arm).

@@ -210,5 +210,6 @@ one's arms.
   and read through one map of the change, or they miss it
   ([lesson](../lessons/2026-11-04-places-along-the-arm-in-kit-numbers-missed-the-shorter-arm.md)).
 - **A shorter arm reaches less.** Before building, shorten the skeleton's rest at run time in a probe and read the
-  IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready, and
-  looking far down a slide of the gun back along its barrel.
+  IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready (which
+  turned the armband deeper into the chest) or a slide of the gun back along its barrel, which it now does, with the
+  two-handed elbows bent further out so the shorter right forearm stays out of the jacket.
