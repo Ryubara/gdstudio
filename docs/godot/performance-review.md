@@ -105,6 +105,10 @@ the probe output.
   the background), so never take the peak over frames against a start: stand the source still and read at a quiet
   moment before and after (Deadnight `QuietCount.settle`; `AudioSettle.until_idle` also ends the background load)
   ([lesson](../lessons/2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md)).
+  A count that only *falls* by a few objects is the suite before's sounds ending (each frees its playback in a frame
+  of its own): call `QuietCount.settle` as well as `AudioSettle.until_idle`, and find the suite by running the shard's
+  list in CI order and halving it
+  ([lesson](../lessons/2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md)).
   `OBJECT_RESOURCE_COUNT` counts only resources that have a path: what code makes (`StandardMaterial3D.new()`,
   `BoxMesh.new()`) shows in `OBJECT_COUNT` alone.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
