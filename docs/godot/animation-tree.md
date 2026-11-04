@@ -42,6 +42,9 @@ cycle: a seek is a cut.
 - Read bones off the skeleton (`get_bone_global_pose`) after `advance`. A `BoneAttachment3D` on that bone has not
   moved yet in the same step: it follows on the skeleton's next update, so a test reading the attachment saw a hand
   that did not move at all.
+- Keep a clip's time in a `float` from step to step. Passed through a `Vector2` (32-bit components) a time of
+  2.4999999 became 2.5, so the clip's last event fired a step before its end check
+  ([lesson](../lessons/2026-11-03-a-vector2-of-two-clip-times-rounded-the-end-a-step-early.md)).
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
 

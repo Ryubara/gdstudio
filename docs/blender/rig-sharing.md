@@ -102,3 +102,20 @@ Found rebuilding the Soldier's sprint carries on the solved hand grips (Deadnigh
   reach the arm to it by two-bone IK, and reach the left hand to the grip's left-hand point and turn it to match. A
   clip that instead fixes the forearm and lets the weapon follow from where the hand happened to hold it moves the
   whole carry when the grip changes: the gun ended by the right leg with the left hand 0.2 m off it.
+
+## A held prop to the mouth
+
+Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown away.
+
+- **The prop is a held model with a solved grip**, like a weapon: drawn with a `Grip` socket, given a hold file and
+  its grip solved, so the hand closes on it in the game and the clip can be built through the same grip.
+- **Pose the prop, then the arm.** For each key say where the prop's working point goes (the bottle's lip) and which
+  way its axis points; turn the hand the least way from the gun hold so the prop, through its grip, points that way;
+  reach the arm onto it by two-bone IK. A face point (the mouth) is kept in the Head bone's frame (measured once in a
+  rest-like pose), so it follows the head at every key; the build prints each key's miss and the point in the bone's
+  frame, which a game test checks the drawn prop against (the drawn lip was within 3 cm of it over the game's hips).
+- **The kit head is a third of the body.** Tip it back only a few degrees: 20 degrees read as pouring over the head
+  ([lesson](../lessons/2026-11-03-a-drink-clip-tipped-the-chibi-head-back-and-read-as-pouring.md)). Bring the prop to
+  the face from the camera's side (the right, for a camera over the right shoulder), or the head hides it.
+- **Read a Godot value from a `.tres` between its parentheses**, never with a number pattern
+  ([lesson](../lessons/2026-11-03-a-number-regex-read-the-3-of-vector3.md)).
