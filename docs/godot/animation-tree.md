@@ -100,3 +100,9 @@ simulation and the view from one place) and the time scale that puts the clip's 
 Measure the result as the highest point of the skinned mesh over the clip against the locomotion's (the standing punch
 on the crawler's mesh: 1.84 m, the crawl: 0.85 m, the new attack: 0.87 m), and in the real night as the highest bone of
 the view's skeleton in the mode against the crawl's.
+
+Do it for every action in one change, and test the list by looping over the mode enum (`ZombieBody.Mode.values()`) so a
+mode added later is measured too: #971 fixed the attack only, and the stagger (`HitReact`, 1.66 m) and the death
+(`Death`, 1.81 m) kept standing the crawler up until #1000 gave it `Crawl_Stagger` and `Crawl_Death` (0.87 m and
+0.85 m). A flinch is as long as the stagger the simulation holds (0.4 s: the clip is played from its start on every
+entry and is not scaled), and a fall is a clip that holds its last frame while the body lies.
