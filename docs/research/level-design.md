@@ -147,7 +147,9 @@ whose reach took in the window's bought the gun that replaced the one in hand
 
 **Check (a probe):** the game's use-sight test walks a grid of standing points round every interactable, behind the
 walls too, and demands no prompt and no press where a wall is between; a spacing sweep walks the same ground and fails on
-a point inside two use zones, with half a metre between them.
+a point inside two use zones, with half a metre between them. On the plan, before a wall is built, the middles of two
+things on one floor are at least their two reaches and the gap apart: a corner with an opening on each wall has no room
+for a third thing ([lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)).
 
 ### P11. Light guides the route; dark is never black
 
