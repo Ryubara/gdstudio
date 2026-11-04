@@ -77,3 +77,26 @@ Release web exports have no function names (the wasm has no name section, the de
 after a forced collection says anything. Compare arms after the same minutes of the same night, and give the
 statement a rate: MB a minute at the frame rate measured (the cost is per frame, so a phone at 30 frames a second
 grows at a third of a desktop at 100).
+
+## Test hooks cost the player's page: count the bridge's calls
+
+A `JavaScriptBridge` read or write is a call into the page, and a string, an `Array` or a `Dictionary` that crosses it is
+allocated on the page's heap. A hook that only a browser test reads (a probe publishing `window.<game>`) must not run
+in a player's build: add it only when the page asks (`?probe` in the address, or a global the test sets before the
+game starts), publish only the keys that changed, and list devices on their signal (`Input.joy_connection_changed`),
+not by polling `get_connected_joypads()` every frame.
+
+Count the traffic instead of reasoning about it (Deadnight `tools/web_smoke/bridge_calls.py`, an init script):
+
+- replace `window.Object` with a `Proxy` whose `construct` returns a counting `Proxy` of the new object:
+  `JavaScriptBridge.create_object("Object")` looks the constructor up on `window`, so every property get and set the
+  game makes on its published object is one trap;
+- wrap `window.eval` to count `JavaScriptBridge.eval` and keep the first 50 characters of each code to name the
+  caller (a histogram of the code names who evals how often);
+- **do not wrap `Array` the same way**: the engine's glue makes arrays too (its WebGL id tables, `length` and index
+  writes tens of thousands of times), and they read as the game's calls.
+
+Deadnight, plain page (no probe), software GL, 15 s windows: menu 430 calls a second before, 9 after; a night
+141 before, 4 after (#935). The heap is not the cost to expect from these (#834's cause was the touch layer's redraw),
+so a number of calls is the check, and the heap a second look: four minutes of an autopilot night on a desktop page
+grew 4.3 MB a minute with the probes and 4.0 without (23 to 38 MB after a forced collection, both).
