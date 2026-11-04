@@ -118,6 +118,15 @@ avoid a finale at full intensity.
 - [ ] **Prompts and markers respect walls.** A prompt that fires through a wall teaches the player that walls lie.
   *Proof: stand on the far side of each wall that has a shop, door or switch on it, at the nearest legal spot, and read
   the prompt.*
+- [ ] **Use zones never overlap.** A use zone is the floor a body stands on from which the server offers a thing (its
+  reach, floor, line from the hand and side). Two zones share no ground, with half a metre between, so a press meant
+  for one (a held or tapped repair) never lands on the next (a wall weapon that replaces the gun in hand). Reaches are
+  what a hand needs, measured from where the player stands, not a generous number; where two zones still meet (a
+  teammate down beside a door) the one the player looks at wins, never a fixed order of kinds; a press that carries on
+  a repair buys nothing, and a purchase that costs a weapon takes a press made once its card was read. *Proof: a sweep
+  over a grid of standing ground round every interactable, each zone grown by half the gap, that asks the server's own
+  zone functions and fails on a point inside two; a capture from the player's camera at the worst point* (Deadnight
+  #908, [lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)).
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
 

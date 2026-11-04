@@ -140,10 +140,14 @@ game's second pillar, read as a blank wall from the yard's gate: a finding.
 "Signs are easily mistaken for irrelevant set dressing"
 ([The Level Design Book: wayfinding](https://book.leveldesignbook.com/process/blockout/wayfinding.md)): interactive
 things share one visual language and a prompt says what they do. A prompt or a press through a wall teaches that walls
-lie ([lesson](../lessons/2026-11-03-a-use-reach-was-a-distance-and-never-asked-for-a-wall.md)).
+lie ([lesson](../lessons/2026-11-03-a-use-reach-was-a-distance-and-never-asked-for-a-wall.md)). Two things used with one
+button are spaced so their reaches never meet: a person mending a window taps use again and again, and a wall weapon
+whose reach took in the window's bought the gun that replaced the one in hand
+([lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)).
 
 **Check (a probe):** the game's use-sight test walks a grid of standing points round every interactable, behind the
-walls too, and demands no prompt and no press where a wall is between.
+walls too, and demands no prompt and no press where a wall is between; a spacing sweep walks the same ground and fails on
+a point inside two use zones, with half a metre between them.
 
 ### P11. Light guides the route; dark is never black
 
@@ -280,4 +284,4 @@ any change to a wall, a prop or the player's tuning, and states the commit it ra
 | P11 | [The Level Design Book: lighting](https://book.leveldesignbook.com/process/lighting.md), [lighting for darkness](https://book.leveldesignbook.com/process/lighting/darkness.md); [World of Level Design: Left 4 Dead 2 tips](https://worldofleveldesign.com/categories/left4dead2_mapping/l4d2-1-level-design-tips-from-the-sacrifice.php); [Kotaku: Left 4 Dead's lighting](https://kotaku.com/the-secrets-of-left-4-deads-lighting-design-5123625) |
 | P14 | [Bugnet: QA for out of bounds and clipping](https://bugnet.io/blog/qa-testing-for-out-of-bounds-and-clipping); Joakim Bergdahl, Camilo Gordillo, Konrad Tollmar and Linus Gisslén, [Augmenting Automated Game Testing with Deep Reinforcement Learning](https://arxiv.org/abs/2103.15819), IEEE CoG 2020 |
 | P17 | [Apple Human Interface Guidelines: accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility); [GlobalStep: level design in mobile games](https://globalstep.com/blog/level-design-in-mobile-games-adapting-to-smaller-screens-and-touch-controls/) |
-| P10, P12 to P15, P18 | GDStudio's own lessons from Deadnight #703, #831, #832, #833 and #840, linked in each principle |
+| P10, P12 to P15, P18 | GDStudio's own lessons from Deadnight #703, #831, #832, #833, #840 and #908, linked in each principle |
