@@ -166,6 +166,31 @@ pose, with back faces culled as the game draws them.
   her variant of each: eight mouths on three heads of two characters are sixteen meshes, not forty-eight. A piece too
   small to decimate needs no far mesh: with no visibility range set, the one mesh shows at every distance.
 
+## Pieces laid on a body
+
+Learned adding Deadnight's ladder wearables (issue #1078): a bib, straps, a lanyard, buttons and braids laid over a kit
+body that other parts also dress. Measure first what they all share; the numbers go on the game's page.
+
+- **Find the surface every part shares.** Deadnight's tops are one trunk with different collars, and at the collars'
+  foot the tall and the open collar coincide, so one ring round it fits every top. Lie on that surface, not on the
+  thickest top: what stands proud (a vest's pouches) reads as worn over the piece, and a thicker piece takes the arms
+  deeper in the clips that lay a forearm on the chest.
+- **Rest a point on its footprint.** A coarse sheet or a flat strap sinks under the folds beside its points: take the
+  highest of several rays under each point, and stand off a little more than the grid's chords.
+- **Borrow the skin, by place.** Interpolate the weights over the nearest face (`poly_3d_calc`); pick the source faces by
+  where they are, not by the bone that leads them, or the faces that move with the arms are skipped. A small rigid piece
+  takes the weights at its middle, so it stays flat; a piece hanging on a strap takes one bone with the strap's lower end.
+- **Look along the ray.** A ray or nearest-face search from outside finds whatever overhangs (a collar's flare above a
+  shoulder), which then seats and skins the piece on the wrong part.
+- **Her variant is a shear for a flat piece.** The body's warp moved vertex by vertex bends a card; moved whole it leaves
+  its clip. Shear it: as far as the warp moves its top at the top, as far as its most forward point at the bottom.
+- **A one-piece hides a slot** the way a hat hides hair: a flag in the catalog, read where the visible parts are listed,
+  and a sweep of the joins it now owns (its ankles against every shoe), which the other part's sweep no longer sees.
+- **Cut colour lines in; never paint them by face.** A sock's line painted by face centre was a row of teeth.
+- **New looks must not recut old meshes.** A far ratio solved over every new look moved every far mesh; solve over the
+  fixed set, assert the new looks against the budget. Keep a small piece under the keep-whole limit, or the far level
+  cuts it to slivers.
+
 ## Clips that keep the arms out
 
 Learned reworking Deadnight's Soldier clips that put the forearms and hands through the body (Deadnight issue #939,
