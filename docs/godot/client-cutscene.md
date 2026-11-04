@@ -50,9 +50,9 @@ everyone. The game's own page is its `docs/design/arrival.md`; this one is for t
   paint glows a little with its own colour instead of taking a light.
 - **Load only when it plays.** A sound bank marked `on_demand` is skipped by the night's loading bar and the background
   decode; the show loads its three sounds and its model at the black it starts from.
-- **Off unless asked.** The show is a person's (`night.arrival = true` set by the screen), never a test's, a bot's or a
-  headless run's; a browser under automation (`navigator.webdriver`) skips it unless the page asks, so the dozens of web
-  probes that drive a night from its first frame need no edit.
+- **Off unless asked.** The show is a person's (`night.arrival = true` set by the screen), never a test's, a bot's or
+  a headless run's. A page that asks for the probes skips it unless the page asks for the show too (a bridge call the
+  page makes anyway), so the dozens of web probes that drive a night from its first frame need no edit.
 
 ## Measuring it
 
