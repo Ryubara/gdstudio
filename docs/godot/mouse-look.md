@@ -28,6 +28,16 @@ Godot 4.7.2. The game's page, with the numbers and the plots, is `docs/research/
   behaves the same at every window size ([Mouse and input coordinates](https://docs.godotengine.org/en/stable/tutorials/inputs/mouse_and_input_coordinates.html)).
   A test that replays pixels through `Input.parse_input_event` must send them divided by that scale, or the totals
   are a window's guess.
+- **Turn by `screen_relative`, never `relative`** (Deadnight #928): with a stretch the turn per mouse pixel changed with
+  the window (1.5 times as far at 1280 wide as at 1920, 0.75 at 2560). Two traps after the switch. A hand-made
+  `InputEventMouseMotion` in a test or a touch layer has `screen_relative` zero unless it sets it, so the view does not
+  turn (set both). And **on the web the runtime reports a pointer move in device pixels** (`movementX` times
+  `devicePixelRatio`): the stretch used to cancel the ratio, `screen_relative` does not, so a screen with a ratio of 2
+  turns twice as far unless the look divides `DisplayServer.screen_get_scale()` out (web only). Test it by resizing
+  the root `Window` (`size`, `content_scale_mode`, `content_scale_size`: the headless display server keeps them) and
+  sending a path through `Input.parse_input_event` with both fields in window pixels; the viewport maps `relative`,
+  not `screen_relative`. Probe the web build at two viewport sizes and two pixel ratios
+  (`tools/web_smoke/look_size.py` in Deadnight).
 - `Input.use_accumulated_input` (on by default) merges the motions of a frame into one event, delivered at the start of
   the frame; the total is the same, and a long frame gets one big event. Turn it off only to see events one by one in
   a test or a profile.
