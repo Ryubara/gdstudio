@@ -38,6 +38,9 @@ the probe output.
    - Work done **at a higher rate than the data changes** (60 Hz tick, 30 Hz sim)? Work done **once per consumer** that
      could be done once per process (every `ClientState`, every bot decoding the same bytes)?
    - Anything O(n) over the dead per tick per listener, and anything O(n^2): a pair loop needs a grid or a cap.
+   - A list or table built from the dead and **cached on a version number** (a sim revision)? Every writer of what it
+     is built from bumps the number, test rigs that move a body by hand included, and a test compares the cached list
+     with a fresh one on every tick of a seeded run (Deadnight #931).
 2. **Queries**
    - A physics ray, shape cast or `get_rest_info` per dead, per bone or per frame? Budget them per second with a
      staggered timer (the repath of the dead, `QUERY_BUDGET` of the bots, the audio occlusion ray per start).
