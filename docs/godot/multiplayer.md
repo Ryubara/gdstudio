@@ -116,7 +116,9 @@ removes the pacing (no vsync headless), so the server, the clients and the bots 
 things have to run on game time, or the run fails for a reason that is not the code: the server's connection rules (a
 peer may send 90 commands a second: at fixed-fps the wall clock sees several hundred and kicks it), which take a
 `clock` Callable (`NightHost.clock`, `Engine.get_physics_frames() / 60.0`), and the client link's own clock
-(`WebSocketLink.clock`). Everything else already counts frames. The numbers: 36,000 ticks, server step 1.5 ms mean for
+(`WebSocketLink.clock`). A run through a `GameServer` (tickets, rooms) sets `GameServer.clock`, which times the server's
+own hellos and gives every room it opens the same clock (Deadnight #1059: without it the first bench lost its client
+within a few seconds). Everything else already counts frames. The numbers: 36,000 ticks, server step 1.5 ms mean for
 two autopilot clients and two bots, no engine error in the verbose log. The soak is
 `tests/captures/bots_slots_soak.tscn` in Deadnight, a CI job of its own because it is too long for a test shard.
 
@@ -138,6 +140,14 @@ A test client that is driven by hand must still send its command every tick (`ni
 `link.send(command.to_dict())`): the server answers a command with the tick's events, and without one the client is
 sent only the spawn requests. Fire with the same command a player's input makes (`NightCommand.aim_along`, `fire`),
 never with `server._combat(...)` beside the step: the server refuses a shot whose view disagrees.
+
+## Act on a rules event where the rules say it, not in the list a step returns (Deadnight #1059)
+
+`NightServer.step` returns the events of that tick, but a rules event can also be made by an `apply` between steps, by a
+bot's buy, or by a test that calls the rules directly, and those land in the outbox the host has already taken. A host
+that waits for `round_ended` in the step's list to post a report misses the round that ended outside the step, and the
+report never goes. Hook the rules' own signal (`GameRules.event_emitted`, which `NightServer._on_rules_event` already
+listens to) and keep what is owed (`XpAward.take_due`); the host asks after each step and posts what is due.
 
 ## An end the server owns: intermission and return (Deadnight #973)
 
