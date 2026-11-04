@@ -185,3 +185,7 @@ write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the 
   its `_physics_process` to return early: `set_physics_process(false)` before the node is ready is undone, because the
   engine turns physics processing on again for a node with a `_physics_process` when it becomes ready. The puppet then
   simulated with an idle command, found no floor (its collision mask was 0) and read as always falling.
+- A phase that freezes the server (the end of the night, Deadnight #973) skips every per-tick step, so what a tick
+  used to end by itself stays on in the frozen frame: a revive hold is stopped by the downed reviver's own `_act`,
+  and the last player down is both the reviver and the game over. End such state once, on the first frozen tick
+  (`ReviveChannel.end_all`), and read the frozen frame in the test.
