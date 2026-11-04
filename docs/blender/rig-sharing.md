@@ -119,3 +119,14 @@ Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown a
   the face from the camera's side (the right, for a camera over the right shoulder), or the head hides it.
 - **Read a Godot value from a `.tres` between its parentheses**, never with a number pattern
   ([lesson](../lessons/2026-11-03-a-number-regex-read-the-3-of-vector3.md)).
+
+## Clips written in the world's space
+
+A clip whose hands and feet must meet a ledge while the game moves the origin (Deadnight's `Climb_Sill`): keep tables
+of places in game metres in the ledge's space (pelvis, hands, feet), and for every frame put the origin where the
+simulation has it, take it off the targets and solve the limbs. Keying poses and letting them interpolate slides a
+planted hand, because the origin does not move linearly; 45 frames of two-bone solves take seconds. A body drawn at
+another height `h` has each point at `h` times its height plus `(1 - h)` of the lift, so contact on the ledge holds and
+contact on the floor is off a little. In this kit's armature space Y points down and Z back: a knee pole "up" is `-Y`.
+Measure the skinned mesh against the ledge for every frame and name the bone of the deepest vertex: the kit zombie's
+tongue and thumbs went through the wall before any limb did (`tools/blender/render_climb.py`).
