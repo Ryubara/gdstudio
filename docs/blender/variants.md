@@ -156,7 +156,14 @@ pose, with back faces culled as the game draws them.
   ([lesson](../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
 - **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
   `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
-  normal with the way out (`normal_update()` first on a new face) and flip.
+  normal with the way out (`normal_update()` first on a new face) and flip. A closed shell is one test, on one face
+  whose way out is known: face by face from the middle turned the corners of a wide curved shape the wrong way.
+- **A decal follows the surface inside its outline too.** Points on the outline alone leave a flat front that sinks
+  behind a head's bulge on anything wider than about 0.1 m: cut the front's inner edges and lift the new corners onto
+  the surface, and smooth-shade the front ([lesson](../lessons/2026-11-04-a-decal-flat-between-its-outline-sank-behind-the-face.md)).
+- **An expression is a part, not a head.** Deadnight's mouths (#1061) left the head meshes for a slot of their own, with
+  her variant of each: eight mouths on three heads of two characters are sixteen meshes, not forty-eight. A piece too
+  small to decimate needs no far mesh: with no visibility range set, the one mesh shows at every distance.
 
 ## Clips that keep the arms out
 
