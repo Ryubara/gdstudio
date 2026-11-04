@@ -78,6 +78,31 @@ two-line label.
 A child canvas item does not get its parent's `self_modulate` (it gets `modulate`): a fade-in by `self_modulate` must set
 the outline item's `canvas_item_set_self_modulate` too (Deadnight `HudLabel.set_enter_alpha`).
 
+## Icons from one atlas
+
+Deadnight's level icons (#1060), eight 24 px name tags, counted in the web build and on the desktop with the same
+numbers, the frame's own call taken off:
+
+| Eight of them | Calls |
+| --- | ---: |
+| Icons from one atlas (`draw_texture_rect_region`, or eight `TextureRect`s of `AtlasTexture`s) | 1 |
+| Icons from eight textures | 8 |
+| Whole tags: every icon, then every outline, then all the letters | 3 |
+| Whole tags: icon, outline, letters, tag by tag | 24 |
+
+- **The order of the commands is the batch.** One atlas is not enough: a run of glyphs between two icons ends the
+  batch, so draw all the icons of a frame before any words.
+- **`load()` in `_draw` is not enough either.** Draw commands keep a RID, not a reference, so a texture nothing else
+  holds is freed when `_draw` returns and the rect comes out white, with no error
+  ([lesson](../lessons/2026-11-04-a-texture-loaded-in-draw-came-out-white.md)).
+- **An atlas shown far under its size:** import it with mipmaps and set `texture_filter` to
+  `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS`. 64 px cells at 24 px are softer at rest and change 22 to 43 percent less at each
+  quarter-pixel step than with plain linear filtering. Keep the art 3 px of 128 inside the cell so a mipmap does not
+  bleed into the next one.
+- **Rasterise in a headless `-s` script:** `Image.load_svg_from_string` needs no window; it draws shapes, strokes and
+  transforms, and no `<text>`. Compare hashes of the sources in a manifest to catch a stale atlas, not pixels: no
+  raster has to match across machines.
+
 ## Animate alpha with `modulate`, not a redraw
 
 A fade or pulse that only changes a colour's alpha does not need `queue_redraw()`: draw the shapes in a child at full
