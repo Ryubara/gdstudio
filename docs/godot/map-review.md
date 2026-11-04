@@ -286,6 +286,22 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   point). Visible boundaries are better than invisible walls, which are a fail-safe, not a design
   ([invisible walls](https://www.wayline.io/blog/invisible-walls-guiding-freedom-open-world-games)).
 
+## 7a. Objectives on the map
+
+For a map with steps to finish (a chain, a carry, a last stand): the principle is
+[P20](../research/level-design.md#p20-an-objective-is-measured-not-read).
+
+- [ ] The test of "too easy" is written down before the steps, with its numbers.
+- [ ] The floor is run with real bodies and no dead, **from the state the chain will find**: boards down, the tank used,
+      the doors bought. A step that asks for a state a fresh night starts in is done before it begins otherwise.
+- [ ] A step behind a shut door does not count until the door is open.
+- [ ] The stall is run: a real night with one dead kept alive, and the chain cannot be finished in the quiet.
+- [ ] The night is run with real bots at each team size and count modifier: time, rounds crossed, downs, the share of
+      the time with a dead within 10 m. A run that would be cut off stops itself and reports what it reached.
+- [ ] Kills made ahead of the steps bank nothing.
+- [ ] Every place a step stands on passes the use-sight and spacing sweeps, and is captured from the player's camera,
+      dimmest state.
+
 ## 8. Consistency across maps
 
 - [ ] The same kit, scale, door widths, prompt wording, light colours and shop prices mean the same thing on every map,
