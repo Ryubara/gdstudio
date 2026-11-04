@@ -7,7 +7,10 @@ minutes). How it is started decides what it can build.
   any script in the chain that names one (`UIRouter`, `Audio`, a settings singleton) fails to compile, the error is
   `Identifier not found: <Autoload>` and the build dies inside `_init`. Fine for a navigation mesh or a scene that has
   no autoload in it; useless for a night
-  ([lesson](../lessons/2026-11-03-a-probe-run-with-s-had-no-autoloads.md)).
+  ([lesson](../lessons/2026-11-03-a-probe-run-with-s-had-no-autoloads.md)). The other way round: a class that `-s`
+  tools load (a game's player, its animation, holds and grips) must not name an autoload; find the service by its node
+  (`get_tree().root.get_node_or_null(^"Audio")`) and `call` it
+  ([lesson](../lessons/2026-11-03-an-autoload-named-in-a-player-class-broke-every-s-tool.md)).
 - **A scene** (`godot --headless --path <game> res://tests/captures/probe.tscn -- --arg=value`) has them. Read the
   arguments with `OS.get_cmdline_user_args()`, print one line of JSON at the end, end with `get_tree().quit()`, and
   write the output to a file (`> log 2>&1`), then read the file: a pipe into `tail` shows nothing until the run ends.
