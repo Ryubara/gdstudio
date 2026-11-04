@@ -179,6 +179,31 @@ pass). Test it by changing the layout and measuring the rectangles after two idl
   `SubViewport` of 1280 x 720 with every optional line shown
   ([lesson](../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
 
+## A grid of items with locked silhouettes
+
+Deadnight's wardrobe (#1065) is the model: tabs on top, an `HFlowContainer` of cells in a `ScrollContainer`, a detail
+line under it.
+
+- **A cell is one focus stop and one `Button` drawn by hand** (`flat`, everything in `_draw`): plate, icon, name, a
+  check for the chosen one, a padlock for a locked one. Pressing a locked cell refuses (a shake, a refusal sound) and
+  never changes the thing being edited; a test sends a click, Enter, Space and the pad's accept at it and compares
+  the whole look before and after.
+- **Draw the icon from shapes, not a texture** when the set is small and flat: `draw_colored_polygon` for the fills and
+  `draw_polyline` for the outline are sharp at any size and nothing has to be held for the draw (the white-square lesson).
+  A silhouette is every outline first, twice as wide, then every fill in one colour on top: the inner outlines are
+  covered and only the rim stays.
+- **Hover and focus must say the same words.** Both connect to one `shown(on)` signal, the screen reads the cell's
+  `detail()` into one line, and a cell losing the pointer reads whatever else holds the focus. Do not make the pointer
+  grab the focus: `follow_focus` then scrolls the grid under the hand. Test the pointer with `push_input(motion, true)`
+  and the focus with `grab_focus()` on a pad run, and compare the two lines.
+- **A tab strip shows a page on a press, not when the focus passes it.** The engine's walk from the first row of a grid
+  to "the nearest control above" lands on whichever tab is over that cell, which would switch the page under the
+  player. Link the first row's top neighbour to the tab on show (the rows are only known after the layout, so do it in
+  a deferred call from the grid's `sort_children`) and a tab's bottom neighbour to the page's first cell
+  ([lesson](../lessons/2026-11-04-a-tab-that-showed-on-focus-switched-under-the-pad.md)).
+- **Sort by what the player reaches first**, with a stable tie-break (decorate with the index and sort the pairs), so a
+  ladder reads from the starting pieces up and a grid with no levels keeps the catalogue's order.
+
 ## 3D in a menu
 
 - **A menu's 3D stage is drawn at the window's pixels.** With the canvas stretch a `Control` is 1920 x 1080 whatever the
