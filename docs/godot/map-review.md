@@ -168,7 +168,14 @@ avoid a finale at full intensity.
   a repair buys nothing, and a purchase that costs a weapon takes a press made once its card was read. *Proof: a sweep
   over a grid of standing ground round every interactable, each zone grown by half the gap, that asks the server's own
   zone functions and fails on a point inside two; a capture from the player's camera at the worst point* (Deadnight
-  #908, [lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)).
+  #908, [lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)). *On the plan, before building:*
+  the middles of two things on one floor are at least their two reaches and the gap apart. With Deadnight's reaches
+  (2.5 m from a window, a door or a post, 1.5 m from a shop spot, 0.5 m between): two windows, or a window and a door,
+  5.5 m; a window or a door and a spot 4.5 m; two spots 3.5 m. A room's corner with an opening on each wall has no
+  room for anything else used with the button (Deadnight #994,
+  [lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)). A sweep's grid point on a
+  wall's face is not room for a body: its rays start behind the point
+  ([lesson](../lessons/2026-11-04-a-grid-point-on-a-wall-face-counted-as-room-for-a-body.md)).
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
 
