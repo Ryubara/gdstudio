@@ -272,6 +272,11 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   closed rooms' floors as islands, so ground counts as reached only when a path query from the start ends on it, and a
   hop starts at the solid floor under the mesh (it floats above it), never at the mesh*
   ([lesson](../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)).
+- [ ] **No body is stranded on the walking mesh.** A path never leaves the piece it starts on, so a piece a body can
+  walk or climb to and joined to nothing leaves a bot with no way anywhere and no error. *Proof: every piece of the walking
+  mesh, per door state, with its size and place; the real capsule flooded over the floor from each must not reach the
+  ground the players start on within the reach, nor a top reached from it; each piece that stays has its reason written*
+  ([lesson](../lessons/2026-11-04-a-walking-mesh-held-pieces-a-body-could-stand-on-and-never-leave.md)).
 - [ ] **Fall-through and edges.** Nothing walkable lies past the map's walls (distant scenery is not collision), and a
   kill volume or floor sits under every open edge. A player who somehow leaves is returned, not lost.
 - [ ] **Out of bounds for the dead.** The dead, not only the players, stay inside, and no gap is wide enough for them to
