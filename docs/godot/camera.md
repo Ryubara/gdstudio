@@ -76,3 +76,24 @@ From Deadnight #702 (a bot's body had the view):
   other body's `camera.current` being false; check after each event that adds a body: the spawn, a late seat, a
   revive. A test that reads only the person's own camera node passes while the view is elsewhere.
 - `release_view()` leaves the camera node in place, since the rig uses it for aiming; only the `current` flag goes.
+
+## A rig no one looks through
+
+From Deadnight #938. Every body of a night owned a rig that eased its springs and swept the world in every drawn
+frame (16 to 43 us a step), whether anyone looked through it or not: the bots', the puppets', a game server's.
+
+- **Do not run it.** A body no one looks through rests its rig (`rest()`: `_process` off, `_resting` kept in a flag).
+  What reads the rig (the weapon's pose reads `yaw`, `pitch` and `aim_transform()`) is told the look in each physics
+  tick with `aim_along(head, yaw, pitch)`, under a microsecond. A bot's aim never came from its rig: the command
+  carries the origin and the direction. Say which bodies rest where they are made (a bot, a body that draws
+  nothing), not from `local_input`, which is also false for a body driven by hand or filmed.
+- **Switch it off in `_ready()`.** `set_process(false)` before the node is in the tree is undone when it is ready
+  (probe: one call a frame still), so the rig re-asserts its flag in `_ready()`
+  ([lesson](../lessons/2026-11-03-a-process-switch-set-before-the-tree-was-undone-on-ready.md)). Prove it by counting
+  `is_processing()` nodes in the built scene.
+- **The bodies a sweep passes through** are kept in a static list (added on `tree_entered`, removed on
+  `tree_exiting`), not found with `get_nodes_in_group` and a new Array in every step (1.2 to 1.8 us down to 0.2 us
+  with four bodies); the list is shared, so a sweep reads it and never changes it.
+- A rig that ran for no view also read the wrong look: nothing set a bot's `yaw` and `pitch` (a probe printed 0 for a
+  night's worth of turns while the body turned), so its weapon's pose read the spawn heading and the lens the
+  body-hidden check measured sat behind that. The look from the command is what the pose should read.
