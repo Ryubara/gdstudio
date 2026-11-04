@@ -49,7 +49,16 @@ the probe output.
    - Pooled things return to the pool; a pool past its cap takes over the oldest; nothing is made while the night is
      played (prewarm).
    - A signal connected to a lambda or a `Callable` of a longer-lived object is disconnected when the owner goes.
-   - Resources made per spawn (`Mesh`, `Material`, `Shader`) are shared unless each really needs its own.
+   - Resources made per spawn (`Mesh`, `Material`, `Shader`) are shared unless each really needs its own. A
+     `SphereMesh` defaults to 64 x 32 segments (4,224 triangles); a dot or a small orb is 8 to 12 segments.
+   - Many identical short-lived things that fade (a trail of dots, sparks, markers) are **one `MultiMesh`**, not a
+     node each: one shared low-poly mesh, one shared material with `vertex_color_use_as_albedo` and alpha
+     transparency, the fade in each instance's colour alpha, a ring with a cap that takes over the oldest, aged by the
+     simulation's step. Write the instances as one `PackedFloat32Array` (16 floats an instance with colours: the 3 x 4
+     transform rows with the origin as the fourth column, then the colour) and set `multimesh.buffer` once a step; hide
+     the node when none is alive and give it a `custom_aabb`. Measured in Deadnight #936: 166 objects and 27 draw
+     calls at the peak of a 3 s flight became 2 objects (1 per throw) and 1 draw call, flat over 12 throws. The class
+     holds the shared mesh and material and the warm-up draws it once.
 4. **Rendering (Compatibility)**
    - Draw calls the change adds, and whether the batching of the lot still holds. A transparent mesh at alpha 0 still
      costs its draw call.
@@ -76,6 +85,9 @@ the probe output.
   label (`PerfProbe.begin` / `end` / `count`).
 - **Counts over timings** on a shared machine: nodes, objects, resources, orphans, draw calls, decode calls per tick,
   `queue_redraw` calls, rays per second. A time is a ratio between two arms run together.
+- **A test that counts objects** reads `Performance.get_monitor(Performance.OBJECT_COUNT)` (and the node, resource and
+  orphan counts) before and after, and asserts afterwards: a GdUnit assertion is an object of its own, so one inside the
+  counted loop adds to the number it checks.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
