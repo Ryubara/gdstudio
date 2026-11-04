@@ -127,3 +127,13 @@ clip, and the order is output, scale, seek, clip: the seek reaches the clip thro
 The state's transitions from the gait carry `xfade_time` and the view uses `travel`, not `start`, which cuts; a state
 with no path is teleported to, so a stagger into the climb still works. Blender writes such a clip in the obstacle's
 space: [Clips written in the world's space](../blender/rig-sharing.md#clips-written-in-the-worlds-space).
+
+## Build the state machine once, share it between trees
+
+An `AnimationTree` keeps its own playback, parameters and seek requests (`parameters/...`); the `tree_root`
+(`AnimationNodeStateMachine` with its blend spaces, blend trees, clip nodes and transitions) is only the recipe. One
+machine can be the `tree_root` of every body's tree. Deadnight built a machine in `attach` for each zombie: 46 objects
+a body (measured as `Performance.OBJECT_COUNT` before and after `attach`), 3 once the machine was shared, and the two
+climb states added to it were what took the late-round budget over its object limit (20 839 against 20 500 at the
+same run, 15 589 shared). The library (`AnimationLibrary`) was shared already; the machine is the same kind of thing.
+Release the static that holds it with the library.
