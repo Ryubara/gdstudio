@@ -12,10 +12,10 @@ areas: [gameplay, godot]
 - **Cause:** a gate (`ZombieGate`) was written for the flat lot, where every question is "where along the wall and how
   far in" (`depth_of`, `along_of`, `spans`, `is_at`, `climbs`) and a point has no height. A map with floors reuses the
   same code; its ground window's sill, boards and jambs then reach every storey over it.
-- **Fix:** a height band on the gate (`on_storey`, from the sill's foot to a metre over its top) used by `spans`, `climbs`
-  and `keep_in_opening`, and a test that walks a dead on the upper floor over a torn ground window and reads
+- **Fix:** a height band on the gate (`on_storey`, from the sill's foot to a metre over its top) used by `spans`,
+  `climbs` and `keep_in_opening`, and a test that walks a dead on the upper floor over a torn ground window and reads
   `climbing` false and its height unchanged. Check for next time: when a map gains a second floor, every query on
-  something fixed to the ground (a gate, a zone, a trigger) asks for the height as well as the flat position, and the test
-  for it puts a body one storey off.
+  something fixed to the ground (a gate, a zone, a trigger) asks for the height as well as the flat position, and the
+  test for it puts a body one storey off.
 - **Docs:** [Zombies](https://github.com/Ryubara/deadnight/blob/main/docs/research/zombies.md) (a gate acts on its own
   storey).
