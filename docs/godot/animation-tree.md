@@ -73,3 +73,13 @@ A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached on
 by falling onto the lot at the spawn; a drawn copy of another player, standing on the floor from its first frame, never
 did, so its crouch never began. Call `playback.start(&"locomotion")` in `_ready`, and test a body that was never
 airborne.
+
+## A modifier that aims in the world needs the world value written on every turn
+
+`WeaponHandsIK` (Deadnight) poses the arms against a world yaw its view writes (`aim_yaw`); nothing in the modifier
+reads the body's own turn. A view that turns the body and writes the yaw only inside an "animated" step (Deadnight's
+menu stage in a still, or with reduced motion) leaves the weapon fixed in the world while the body turns through it,
+and a modifier built for a new weapon starts at yaw 0. Write the yaw together with the body's turn (one `face(yaw)`),
+at build time, and pose on every step with a delta of 0 when the clock is stopped: `AnimationPlayer.advance(0.0)`
+applies the clip once, so the skeleton is not left in the model's arms-out rest. Test every level the view can run at,
+reading the bones at `skeleton_updated`. Deadnight #940.
