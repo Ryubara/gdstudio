@@ -113,6 +113,9 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   ([lesson](../lessons/2026-11-04-a-headless-layout-test-measured-without-the-stages-theme.md)). The router's stage
   (`UIThemeBuilder.build(UITokens.active())`) is what the player has; a headless run then measures the same numbers as
   a window.
+- **Answer what a fixture starts.** A screen put in a state that ends in `await some_signal` (the name prompt) is
+  answered before it is freed, or the run leaks at exit and CI refuses it
+  ([lesson](../lessons/2026-11-04-a-test-left-a-screen-waiting-for-an-answer-and-leaked-at-exit.md)).
 - **Not every size is a size.** A phone held upright is covered by the "turn your phone" prompt (test that it is); a
   phone at the Large interface size has a 432-unit canvas and is left out of the sweep. The phone sizes swept are
   844 x 390 (a 1169 x 540 canvas), 932 x 430 and 667 x 375 (the narrowest, 960 x 540)
