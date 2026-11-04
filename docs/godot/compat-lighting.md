@@ -196,7 +196,9 @@ the game's own page is `docs/research/night-environment.md` there.
 - **Test the cap.** With every light on, count per mesh the lights whose sphere (omni) or cone box (spot) reaches its
   AABB; fail above 8. It found a tile that no visual check would. Walk every shaded mesh (each CSG root,
   `MeshInstance3D` and `MultiMeshInstance3D` with a lit surface, props and cars included), not only the level's boxes,
-  and read the cap from the project setting.
+  and read the cap from the project setting. A cone is counted by the box of its widest end (`range * tan(angle)`),
+  so an 85 degree spot of 10 m range is a box 114 m wide: it took a crane spot at the other end of the lot over the
+  cap (Deadnight #852). Keep a spot's cone narrow (60 degrees: 17 m) when its corner is quiet.
 - **Keep room for the lights of a fight.** Muzzle flashes, blasts and grenades are run-time omni lights, so the level's
   own lights may reach a mesh with at most the cap minus 2. A test that greps the project's scripts and scenes for
   light nodes and fails on one not accounted for catches the forgotten source. Known overruns go in a ratchet table:
