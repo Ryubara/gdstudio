@@ -51,6 +51,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building |
 | Physics interpolation (3D) | smooth bodies, weapons and enemies on fast screens with a fixed tick | known: [Physics interpolation](physics-interpolation.md) (on from the first build; hand-blended rigs off; measure on screen at 144 fps) |
 | NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | known: [crowds](crowds.md) (avoidance is cheap; repath on a timer) |
+| A cutscene one player sees | an arrival, an intro or a kill cam on one screen while the server's night goes on | known: [A cutscene one client plays](client-cutscene.md) (the server keeps the player safe by the client's word, with a cap; the show is a pure function of time; the camera is placed by rays; the sounds load on demand) |
 | SpringArm3D, Camera3D | the over-the-shoulder third-person camera: collision, shoulder swap, aim zoom | known: [Third-person camera](camera.md) (damped springs, tick interpolation, own sweeps instead of SpringArm3D) |
 | Mouse look, stick look | the view turns one to one with the hand at any frame rate | known: [Mouse look at any frame rate](mouse-look.md) (raw delta once per event, no delta time; set the parent before the child; test the Camera3D's transform) |
 | AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | known: [Audio](audio.md) (pooled voices, limits, ducking, sounds made by script) |
