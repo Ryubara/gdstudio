@@ -22,6 +22,32 @@ that settles it.
 - [ ] Draw the top-down plan with every door, window, spawn, light and shop spot on it. Review the plan first; a
   problem you can see on paper is cheap.
 
+### Does it make sense?
+
+A map can hold every number of its formula and still not be a place a player believes: Deadnight's second map had a
+bank raised to the upper floor's height so that each room's dead had "ground of their own", so the land outside the
+upper windows was flat ground at their sill, the same as outside the ground floor; five windows in one wall line to
+hit a count; and a window over a stairwell (Deadnight #917, #824). The maintainer: "we need to make sure that map
+designers take logical considerations going forward". Ask what a player standing there would ask, on the plan before
+building and again from the player's camera; "the simplest way to engage the player is with plausibility"
+([worldbuilding](https://book.leveldesignbook.com/process/preproduction/worldbuilding.md)).
+
+- [ ] **What is outside each opening, at its sill.** Write it down for every window, breach and door: ground, a deck,
+  a roof, a drop. An opening onto a drop, a stairwell or a wall is a defect; a window above the ground floor opens onto
+  a deck, a balcony or a roof the dead can reach.
+- [ ] **Why the dead come from there.** For every opening, the way from where its dead rise to it: across the yard, up
+  an outside stair, through a shed with its door gone. A spawn on a roof, a deck or inside a sealed room with no way in
+  from the world is a monster closet; the dead rise on the world's ground and walk.
+- [ ] **One world outside.** From every floor, the outside is the same place: the ground at one level (or a slope that
+  reads as one), the same landmark in the same direction. Two grounds at two floors' heights, or a fence that exists
+  only so a count holds, reads as a set, not a place.
+- [ ] **Every room has a reason for its openings.** Who built this place, and why is there a window here? One window
+  a wall reads as a building; a row of five reads as a spawn count. A shop wall has no window; an alcove holds one
+  machine.
+- [ ] *Proof: a table of every opening (what is outside it, its dead's way to it), a capture from behind each opening
+  with its boards torn and from where its dead rise, and a test that fails an opening with no floor inside it or no
+  ground or deck outside it at its own height, and an upper opening whose dead do not rise on the ground and climb.*
+
 ## 1. Flow, loops and kiting space
 
 Survival play is running in a circle until the pack strings out and a turn to shoot is safe. A map that cannot be

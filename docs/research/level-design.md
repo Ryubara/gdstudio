@@ -257,6 +257,23 @@ geometry changes, and the jump is retuned.
 **Check (a probe):** the reach, escape and use-sight checks are tests the suite runs; a review re-runs the sweeps after
 any change to a wall, a prop or the player's tuning, and states the commit it ran on.
 
+### P19. The place makes sense to a player
+
+A layout is a place before it is a set of numbers: the plausibility of a space is what engages a player first, and the
+first questions of a place are "who made this place?" and "how will the player know?"
+([The Level Design Book: worldbuilding](https://book.leveldesignbook.com/process/preproduction/worldbuilding.md)). Lynch's
+imageability (P9) needs a world that holds together from every viewpoint. A formula of counts and distances can be met
+by a layout no one believes: Deadnight's second map gave each room's dead "ground of their own" with a bank at the upper
+floor's height and the hall's roof as ground, so both floors looked out on flat land at their sills, five windows stood
+in one wall to hit a count, and one window opened over a stairwell (Deadnight #917, #824;
+[lesson](../lessons/2026-11-03-a-map-met-its-formula-and-did-not-make-sense.md)).
+
+**Check (a table, a capture and a test):** for every opening, what is outside it at its sill and the way its dead walk
+to it from where they rise on the world's ground; a capture from behind it with its boards torn and from where its dead
+rise; one world outside seen from every floor; a test that fails an opening with no floor inside it or no ground or
+deck outside it at its own height, and an upper opening whose dead do not rise on the ground and walk up. The map
+review's [Does it make sense?](../godot/map-review.md#does-it-make-sense) is the list.
+
 ## What could not be read
 
 - Valve's developer wiki sits behind an anti-bot page; the dimension figures above come from its search excerpts, and
@@ -281,3 +298,4 @@ any change to a wall, a prop or the player's tuning, and states the commit it ra
 | P14 | [Bugnet: QA for out of bounds and clipping](https://bugnet.io/blog/qa-testing-for-out-of-bounds-and-clipping); Joakim Bergdahl, Camilo Gordillo, Konrad Tollmar and Linus Gisslén, [Augmenting Automated Game Testing with Deep Reinforcement Learning](https://arxiv.org/abs/2103.15819), IEEE CoG 2020 |
 | P17 | [Apple Human Interface Guidelines: accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility); [GlobalStep: level design in mobile games](https://globalstep.com/blog/level-design-in-mobile-games-adapting-to-smaller-screens-and-touch-controls/) |
 | P10, P12 to P15, P18 | GDStudio's own lessons from Deadnight #703, #831, #832, #833 and #840, linked in each principle |
+| P19 | [The Level Design Book: worldbuilding](https://book.leveldesignbook.com/process/preproduction/worldbuilding.md); Deadnight #917 |
