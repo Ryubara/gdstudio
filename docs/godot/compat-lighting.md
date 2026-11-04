@@ -348,3 +348,24 @@ with one ray up from its foot on the world layer (`PrizeCrane.beam_length_over`)
 meets nothing and the beam keeps its full length. A test casts the same ray from every spot of every map and checks
 nothing solid stands inside the beam, and a capture is taken from the first solid over each spot, looking at where the
 beam rises through it.
+
+## Glow on the web, and what a wing of fire costs (Deadnight #1053)
+
+A test effect on four Soldiers (a dark feathered wing, an additive flame sheet, 40 sparks, a billboard halo) and the
+engine's glow, in arms that add one part each, measured in Godot 4.7.2 Compatibility on the desktop, in Chrome on WebGL2
+and on SwiftShader (the game's `docs/research/cosmetic-rarity.md` has the table).
+
+- **Glow works on the web build**, on a GPU and on SwiftShader (about 500 000 of 921 600 pixels differ from the same view
+  with glow off, against 22 000 to 38 000 between two glow-off views). Its price is a **fixed screen pass**, whatever is
+  in the frame: the WebGL trace shows one more `blitFramebuffer`, 13 more `bindFramebuffer` (9 to 22) and 8 more draws.
+  On the desktop it is 0.05 to 0.1 ms; on SwiftShader it added 49 percent to a 43 ms frame. A single blur level (the
+  default is three, at 0.8, 0.4 and 0.1) costs the same: the passes that read and write the whole frame are the price.
+- **Cost by part on a weak GPU is pixels, not draws.** Each layer of the effect is one draw call a wearer, 16 for four
+  wearers (2 percent of a 770-call lot), and cost 0.5 (flame sheet), 1.3 (wings), 1.5 (GPU sparks; 0.9 as
+  `CPUParticles3D`) and 7 (a 3.4 m halo quad) ms on SwiftShader. A big additive quad is the expensive way to fake glow.
+- **A fake glow that sits on the character's back veils the head** when the camera is behind: push the quad into the
+  body, so the depth test hides what it would cover.
+- **Bone attachments carry the rig's axes**, not the world's: a mesh built "up and out" came out sideways until its
+  root cancelled the bone's rest basis against the model's own (`skeleton.global_basis * bone rest basis`).
+- **Hash without `sin`** in a shader that must run on a phone (the lot's shock shader does); a hard two-colour look is
+  cheaper than a gradient and is the look the style guide asks for.
