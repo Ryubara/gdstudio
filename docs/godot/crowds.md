@@ -218,3 +218,23 @@ path segment it walks, take off the mesh's offset above the floor (the baker rou
 at 0.25 m cells, so 0.4 m is within 0.1 m), and move it there at a climb rate. Separation and swing reach then need the
 height too, or a walker on the ramp pushes one on the floor under it and the dead under a floor hit the person over
 their heads. Prove it with a pack on the real ramp and a control that walks the same mesh with the heights left out.
+
+## A pooled body costs 1 ms to take if the pool still looks the scene up
+
+Deadnight #932 (a blast that cripples 20 walkers into crawlers: a 45 to 59 ms frame, a steady 1.2 ms). Three costs
+sat on the way from one body to another, measured with a windowed bench that cripples 20 of 30 on a fresh crowd
+twelve times and reads the worst frame:
+
+- **Changing look by `dress`** (free the model, instance the .glb, strip it, build a new `AnimationTree`) is 0.4 to
+  2 ms a zombie. Move the zombie to a parked view of the new look instead, as a spawn does, and park the old body.
+- **`load(path)` of a scene already loaded is about 1 ms** under a loaded machine. A pool that fetched the `PackedScene`
+  before looking for a parked view paid it for every reuse (20 reuses were 21 of the 24 ms). Look the scene up only
+  when a view must be made.
+- **Switching an `AnimationTree` `active` off and on throws away its resolved tracks**; the next `advance` rebuilds
+  them (about 0.1 ms a tree, 2 ms for twenty in one frame). A parked tree that is only ever advanced by hand can stay
+  `active`; advance it once when it is made, so the pooled body has its tracks resolved.
+
+Deadnight, 20 crippled in one tick (two runs of twelve blasts each, the same machine, loaded): the call 40 ms to
+0.6 ms; the worst frame after the blast 44 and 46 ms (median of twelve; 50 to 59 ms worst of all) to 3.4 and 3.5 ms
+(3.8 and 5.5 ms worst), against a 1.2 ms steady frame. Keep a larger pool for a look a blast can make in bulk (crawlers:
+20), and prewarm it behind the loading screen.
