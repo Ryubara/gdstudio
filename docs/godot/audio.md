@@ -345,6 +345,16 @@ of roles and cues) are [Menu and interface sounds](../audio/ui-sounds.md). Two f
   *and* the existing `world/deny_1.ogg`, overwriting the committed file. Give a new sound a name nothing has (grep the
   registries first) and run `git status` after a render: a file outside the folder you meant is the sign
   ([lesson](../lessons/2026-11-03-an-only-flag-by-name-rendered-another-folders-sound.md)).
+- **A bed under the menu plays the night's own files.** A bed is a looping Ogg stream (`start_bed`), never decoded to
+  samples, so the menu's ambience (#926) plays `projector_1.ogg` and `crickets_1.ogg` under new, quieter sounds in the
+  beds bank: no new file, 0 files for the night's warm-up to read (it finds both read), 2.9 and 3.7 ms to open them in
+  the menu, 0.02 ms a frame to mix. Do not put a loop in a `deferred` bank: the bank's queue would decode 36 s of it to
+  samples for nothing. A bed has a pool of players (`AudioService.POOL_BEDS`) and `start_bed` returns null, silently,
+  when none is free: size it for the beds of the scene you leave still fading out plus the beds of the one you enter
+  ([lesson](../lessons/2026-11-04-a-menu-bed-found-no-free-player-after-leaving-a-night.md)).
+- **Check a bed against the hints in the hints' band**, through a laptop and a phone speaker model
+  ([lesson](../lessons/2026-11-04-a-whole-spectrum-margin-failed-hints-a-bed-did-not-bury.md);
+  [the method](../audio/ui-sounds.md#4-level-the-bus-and-the-mix)).
 - **Measure a menu sound on the real service**, one play at a time through the buses (a capture that plays each variant
   file of each row of the table, 0.7 s apart, 60 frames a second, no picture), and read peak and K-weighted loudness of
   every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with

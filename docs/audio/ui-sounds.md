@@ -89,9 +89,19 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   (K-weighted, loudest 400 ms; a sound shorter than the window is read zero-padded to it), at least 3 dB between the
   rungs for each, and keep the loudest menu sound under the quietest gun of the night.
 - **Music and ambience:** if the menu has music, the interface sounds sit above it by their rank, not by loudness:
-  hints 10 dB over the music's momentary loudness is already plain, commits 14 to 18. With no menu music (Deadnight's
-  case) the room is silent, and the same ranks hold against the silence, so a hint at -26 dBFS is still plain on
-  speakers and a commit at -8 is not startling.
+  hints 10 dB over the music's momentary loudness is already plain, commits 14 to 18. With no bed the room is silent,
+  and the same ranks hold against the silence, so a hint at -26 dBFS is still plain on speakers and a commit at -8 is
+  not startling.
+- **A bed under the menu is measured, not guessed.** Record the bed alone and every hint alone on the real service at
+  the default settings, put both through a laptop and a phone speaker model (the mix is linear, so a hint over the bed is
+  the two added; see section 5) and gate two margins: the hint's **peak 10 dB or more over the bed's loudest 400 ms**
+  (LUFS-M), and, **in the hints' own band** (1.5 to 8 kHz), the hint's loudest 50 ms **6 dB or more over the bed's loud
+  50 ms** (its 95th percentile). The second exists because the first cannot tell a low motor from chirping insects: the
+  motor is in no band the hints use and masks nothing there, while crickets sing at 3.7 to 5.3 kHz, where a bulb's tick
+  rings, and decide how loud the whole bed may be. A first margin taken over the whole spectrum counted the motor and
+  failed hints the bed did not bury. Deadnight's bed (a projector's motor and crickets, the night's own two files under
+  quieter trims, no new file) sits at the edge of both gates on a flat speaker: that is the loudest bed the hints allow
+  (`docs/research/menu-sfx.md`, "The ambience bed" in the game).
 
 ## 5. Touch, mouse, keyboard and pad
 
@@ -101,7 +111,13 @@ The test: **every sound a player hears every few seconds must still be pleasant 
 - The hint sound belongs to **moving the focus**, so the keyboard and the pad get the same hover feedback a mouse does.
 - Press on release (the button's `pressed`) is accepted, because a click is 80 to 120 ms. A game that wants the
   latency lower plays the tick on button-down and the body on release.
-- **Test on the worst speaker** the audience has: a laptop and a phone, not studio monitors.
+- **Test on the worst speaker** the audience has: a laptop and a phone, not studio monitors. An agent has no ears, so
+  the first pass is a **speaker model** on the recording: a laptop is two small drivers (a 4th-order high-pass at about
+  280 Hz, a presence bump of 3 dB near 2.5 kHz, a low-pass near 13 kHz), a phone is one tiny driver (the channels
+  summed, a 4th-order high-pass at about 500 Hz, a bump of 4 dB near 2 kHz, a low-pass near 9 kHz). These are **assumed
+  curves, not measurements of a device**, and the true cutoff varies by device; they say whether the hints stay plain
+  next to a bed on a small speaker (a low bed falls 3 to 7 dB on them, the hints do not), not whether the bed is
+  pleasant, and a person's taste is the slider.
 
 ## 6. Accessibility
 
@@ -138,7 +154,8 @@ game's own controls (drawn tickets, a tab bar) did not, and nothing noticed. The
 3. Wire the sounds in **one place** (a service, or the controls' base classes), never per screen.
 4. Test: every control found by walking the screens has a role in the table; the hint cap holds; the slider rate holds.
 5. Record the real service walking the menu and read the **peaks and loudness per sound**, plot them.
-6. Listen on a laptop speaker and, when you can, a phone. Sound design needs a human's ear last.
+6. Put the recording through a laptop and a phone speaker model and read the margins over any bed (section 4); listen
+   on a laptop speaker and, when you can, a phone. Sound design needs a human's ear last.
 
 ## Sources and how far to trust them
 
