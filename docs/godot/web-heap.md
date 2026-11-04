@@ -38,6 +38,10 @@ Rules:
 - The engine redraws a `Control` itself while its `scale` changes (a banner that popped in by scaling drew 20 times in
   60 frames, a test counts the `draw` signal), so an animation of that kind rebuilds the polygons too. Count `draw`
   signals in a test to see what is really redrawn.
+- Redraw by what was **drawn**: record the key in `_draw` (not where the redraw is queued), and compare it to the key
+  of now. A count of the `draw` signal over a few idle seconds shows any other `queue_redraw()` left (a `refresh`, a
+  setter); a label or bar that is a child node moves with its own `modulate` and never needs the parent redrawn
+  (Deadnight #934: 60 draws a second to 3).
 - A hidden item (`visible = false`) is not redrawn, but a parent that sets its own `visible` again every few frames
   (as the touch layer did) brings it back.
 - About 5 fences a frame are the renderer's own (one per canvas or 3D render pass: `bufferData` of a state buffer, then
