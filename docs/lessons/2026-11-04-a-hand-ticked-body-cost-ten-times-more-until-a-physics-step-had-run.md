@@ -11,6 +11,11 @@ areas: [tests, godot]
 - **Cause:** the build awaited one `physics_frame`, which is emitted at the start of an iteration, before that
   iteration's step; the bodies it had just added were still outside the physics server's index, and a body that is not
   indexed is slow to move in and query, not wrong. A second await returns after the step.
+- **Also saw:** with several bodies it is not the same night. The unindexed bodies had passed through each other and
+  through grenade casts; with them indexed the grenade soak failed on CI (a bot took 25.5 % of its health from its own
+  grenade, limit 10 %) and 2 of 20 seeds did locally, where none had. A bot hazard the old fixture hid, fixed by a
+  parallel pull request (bots throwing into posts at their own feet). Run a multi-body suite over twenty seeds before
+  and after the change, not once.
 - **Fix:** `SeatedNight.start` awaits two physics frames. After building a room or adding a body or collider: two frames,
   then tick by hand. Not every suite may take the frame as it is: the midway fence sweep (a body added after the lot
   settled) landed at different places with it (the same search, other floats), so it was left as calibrated and the
