@@ -72,6 +72,9 @@ the probe output.
    - A new shader or material variant needs a draw in the warm-up, so its programs are not linked in the middle of a
      night ([First-use hitches](first-use-hitches.md)).
    - Particles: a program of their own on the web; cap the amount.
+   - UI drawn in `_draw`: count the draw calls (hide a node, count again). Every polygon, polyline, circle and arc is a
+     call and ends the batch around it, and a label with an outline and a shadow is four
+     ([Canvas draw calls](canvas-draw-calls.md)).
 5. **Audio**: new sounds go through the voice budget and `starts_per_frame`; long ones are deferred-decoded, not decoded
    on first play.
 6. **Network**: a message per entity per frame is a message per entity per tick per player; send at the rate the data
