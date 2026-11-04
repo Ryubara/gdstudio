@@ -95,6 +95,9 @@ the probe output.
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
 - **Spikes**: the largest single tick after an event (cripple 20, buy a door, a blast kills 20), not the mean.
+- **Free disk first** (`df -k /c`): an import on a full disk writes truncated files and tracked `.import` files with
+  `valid=false`, and the run then fails with "corrupt" errors far from the cause
+  ([lesson](../lessons/2026-11-04-an-import-on-a-full-disk-left-truncated-files-that-read-as-corrupt.md)).
 - **Stop a run by its own process id, never by program name**, on a shared machine.
 - An editor run is a debug build with the debugger; take the budget from headless runs and from an export.
 

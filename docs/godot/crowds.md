@@ -199,6 +199,24 @@ uvx --with playwright python sandbox/crowds/web_bench.py http://127.0.0.1:8931/i
 python sandbox/crowds/tabulate_results.py <log> [mean_ms|p95_ms|max_ms|draws]
 ```
 
+## What a crowd costs at the ceiling, in the real night
+
+Deadnight #949 ablated the real night at its desktop ceiling (round 12, 99 dead, three bots, windowed, RTX 5080,
+Compatibility), two to six interleaved runs an arm. Read it before cutting "the crowd's engine cost":
+
+- **Most of the crowd is not in front of the camera.** The dead queue at the boards and walk the lot: 64 of 92 stood
+  more than 40 m from the player's camera and 4 to 27 were in the frustum (7 to 20 draw calls, 25 to 40 thousand
+  triangles). Drawing the dead was 1 to 1.5 ms of a 17 ms frame (0.2 ms of the renderer's CPU time).
+- **An animation advance is the cost, and the throttle's far tier was most of them.** One `tree.advance` with its
+  50-bone skeleton update took about 41 microseconds of CPU headless; the throttle still advanced every dead out of
+  view every 12th frame, so 87 of 92 views were "period 12" and made 7 of the 9.4 advances a frame. Leaving the
+  unseen out (no point of the body in the frustum, back at once, with at most a quarter second of catch-up, when
+  seen) cut the advances to 2.8 a frame. A starting phase kept as `accumulated` is not a catch-up to clamp.
+- **Test a frustum with more than one point.** One point at the chest called a half-visible dead at the screen edge
+  unseen; feet, chest and head with its reach (0.2, 1.0 and 2.2 m) does not.
+- **Frame time cannot show a 0.3 ms change on a shared machine** (one arm ran 17 and 29 ms); count the advances and draws
+  and time the advance alone (a script that advances 92 views in a loop).
+
 ## Gait follows speed
 
 Measure each locomotion clip's ground speed (the planted foot's backward speed at game scale) and put the blend
