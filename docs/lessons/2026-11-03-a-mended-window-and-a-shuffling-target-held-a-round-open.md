@@ -15,8 +15,10 @@ areas: [gameplay, tests]
   routes were 10 m and 29 m): every repath turned the dead round.
 - **Fix:** a rule with a restoring side needs a limit (a dead that has pulled at one window for 30 s bursts the boards),
   a route is kept while its end is still near the target (`ZombieSim._keeps_its_route`), and the rules rescue what
-  nothing else catches (the last dead, 45 s with nothing done to them, rise nearer the people). A seated-night test puts
-  the person and the dead where the soak found them (the first version stood the person at the window's middle, shot the
-  dead at once and passed on `main` too: use the log's own coordinates).
+  nothing else catches (the last dead, 30 s with nothing done to them and no way to anyone, rise nearer the people; the
+  first version needed a spawn point 25 m from everyone, which the small map has none of, and moved dead that had a
+  way). A seated-night test puts the person and the dead where the soak found them (the first version stood the person
+  at the window's middle, shot the dead at once and passed on `main` too; after the map was reworked it passed on
+  `main` again: run a stall test on `main` after every merge of the map, and read a rescue's numbers on the small map).
 - **Docs:** Deadnight `docs/research/zombies.md`, "A round that waits on its last dead (#950)"; check: a loop in which one
   actor undoes another's work (mend and tear, heal and hurt, lock and pick) has a time limit and a test that runs past it.
