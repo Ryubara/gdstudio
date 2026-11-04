@@ -55,6 +55,33 @@ Learned building Deadnight's boss zombie (Deadnight issue #98, `tools/blender/bu
   a `BoneAttachment3D` with the node under it, following every clip.
 - **Author clips that key every bone** (rotation and location) and the static-pose problems above go away.
 
+## Clothes that stand off the body
+
+Learned on Deadnight's tall boots, full skirt and rubber mask (Deadnight issue #1078, `tools/blender/soldier_ladder.py`
+there). What lies on the body borrows the body's skin; what stands off it needs a plan of its own.
+
+- **Take away what the piece would have to hold in.** A skirt on a low-poly rig cannot contain a thigh at full stride:
+  85 % of the thigh's turn at the hem let the thigh through the wall, and all of it from the hips down opened the skirt
+  in a V. Cutting the legs just under the skirt and capping them fixed it: what is hidden does not need to exist, and it
+  gave back 180 triangles. The hem then takes 95 % of the thigh's turn, growing from nothing at the hips.
+- **Close a piece, and let the limb come out of it.** A shaft, a mask or a skirt that is a closed shell does not need to
+  reach the limb: a limb that is thinner in one outfit (a bare shin, a neck) shows no gap, and no back face either. A
+  shell seen from within (a skirt's lining and roof) faces in, roof included; a roof left facing up is a back face
+  from under the skirt.
+- **Skin at a joint goes with the limb it covers.** A boot shaft blended to the foot up past the trouser hem left the
+  hem behind when the ankle bent, and the trousers came through. Only what is inside the foot bends with the foot.
+- **Two pieces that meet take the same weights.** A skirt's top ring on one bone parted from its waist, skinned from
+  the body, in every pose.
+- **Raise a shoe by shearing it,** dying out at the ankle: the top stays where every trouser leg meets it, so the sweep
+  of ankles against trousers has nothing new to find.
+- **Stripes on a limb are cut in, not laid on.** A limb is not as round as its shoulder: a ring stood clear of the arm.
+  A cut crosses the long faces of a low-poly sleeve, so price it first (each stripe here cost about 100 triangles).
+- **A curved sheet is wound by its own order.** Turning each rim face away from the rim's middle puts the top of a curved
+  sheet inside out.
+- **One patterned swatch beats faces.** Sprocket holes in faces would have passed a 234-triangle far budget; a 16 px
+  tile in one atlas cell, shown once per quad with the UVs across the whole cell, cost 160 triangles for the whole
+  scarf. Keep it fixed, after the colour swatches, and give the faces the cell's corners instead of its centre.
+
 ## Modular parts
 
 Learned building Deadnight's modular Soldier (Deadnight issue #100, `tools/blender/build_soldier_parts.py` there):
