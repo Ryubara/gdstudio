@@ -201,6 +201,20 @@ same text, settings and seed may well give the same take back, so change somethi
 in the data file, or give the take a new seed and record it. (Deadnight never needed a retake, so this path is
 untested.) Then `encode` and `check` again.
 
+### Adding moments to voices that exist
+
+New moments for a finished cast (Deadnight's eight progression cheers, [#1063](https://github.com/Ryubara/deadnight/issues/1063),
+24 takes a voice) go to the **end** of each voice's data file, so that every earlier take keeps its file name and its
+seed (names and seeds count takes in file order). Then, with `--only <the new moments>` on every command: `plan` (the
+budget is for these takes alone), `generate`, `check`, `encode`. `encode --only` keeps the other takes in the manifest
+and writes only what it encoded, so a partial run no longer loses the rest. `encode --plan free --generated <date>`
+writes the plan and the day into each new manifest entry: when a game cheers on the free tier now and means to
+regenerate under a commercial plan later, that field is the list to regenerate from, and the folder's `LICENSE.md`
+names the same files with their prompts. Read the plan from `GET /v1/user/subscription` (`tier`) before and after the
+requests, not from the account page: the tier is what made the file. A game that has the moments table as a resource
+adds a row per moment, the take count with the files, and the tests that count takes (a total of 278 sounds for two
+voices of 139) move with it.
+
 ### Credits and budget
 
 | Deadnight, 113 requested takes (two were approved samples) | Characters |
