@@ -191,6 +191,12 @@ hand on a grip, on a chest, on the ground) says nothing about what the forearm a
 - **A prop held to the face:** the hand sits along the prop from the point at the mouth, so a bottle tipped up past
   level from far round to the side puts the fist over the face. Deadnight's drink: 45 degrees round, at most 126 from
   upright, the elbow pole a little back; 58 and 135 put the fist 60 mm into the head.
+- **A reach to a point beside the body (Deadnight's reload, #987):** split the check by target first (body, other arm),
+  or one number hides two faults. Move the goal out of an ellipse round the hips rather than trust a straight line
+  between two points; blend the two-bone pole to out and back as the arm hangs, since a pole along the arm says
+  nothing and flips; hang the hand in line with the forearm. Chibi fists are 0.25 kit wide: the left hand takes the far
+  end of a magazine or drum (the SMG's drum: 0.2 ahead of the grip and 0.22 below it, the model's units), never its
+  middle beside the right fist.
 - **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
   pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
 
