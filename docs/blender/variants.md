@@ -65,7 +65,8 @@ swappable parts on one skeleton, a look stored as a part id per slot plus palett
 - **Parts from the kit body.** Copy the body per part, delete the other regions' faces, move the faces onto atlas
   swatches. Tag faces by kit material, dominant bone and same-material island: islands find pouches, cuffs and
   collars, bones split sleeves (a sleeve has one long face from shoulder to elbow, so a split by face centre zigzags).
-  Duplicated seam vertices keep their weights, so the parts never crack apart.
+  Duplicated seam vertices keep their weights, so the parts never crack apart, as long as nothing moves one copy
+  without the others (see the push below).
 - **Colours a game can tint.** One atlas with a row of channel swatches (skin, hair, primary, secondary, accent and a
   shade of each); the game copies the image and fills those swatches per look. No shader needed, works under
   WebGL2.
@@ -117,3 +118,42 @@ second character on the modular parts, same skeleton and clips, chosen in the lo
 - **Keep a hand's vertices where they are.** Any per-outfit push or pull (bare arms hugging the limb, cuffs pulled in)
   skips vertices whose main bone is a finger's, the way the grip test picks them; sparing only the hand's faces still
   moved its border vertices and sank the palm 3-13 mm into a grip.
+
+## Closed, and fitting, in every combination
+
+Learned when the maintainer saw a see-through neck, a mask-like face and arms through each other on Deadnight's modular
+Soldier (Deadnight issue #895). A wardrobe is the product of its parts: check combinations, from every side, in every
+pose, with back faces culled as the game draws them.
+
+- **Find what each part relies on.** The kit Soldier has no neck: its head is a hood open underneath, closed by the
+  vest's tall collar. Split into parts, the head was an open shell that only some tops closed. Give a part its own
+  closure (a closed head with its own neck) instead of relying on the neighbour.
+- **Render with back-face culling.** Workbench draws the inside of an open shell as if it were the outside, so every
+  sheet hid the hole. Set `scene.display.shading.show_backface_culling = True` for any review render of a game mesh
+  (Deadnight's `render_soldier_heads.py`).
+- **Give a garment's opening an inside.** A collar is one sheet: a look down between it and the jaw saw its culled
+  inside and out through it. A reversed copy of the collar's faces in a darker swatch is its lining; lining only half
+  of it opened the rays again.
+- **Move every copy of a vertex alike.** The kit body is split at every material and normal seam; pushing bare skin
+  along each copy's own normal cracked the arms all along. Key the push by position (`round(co * 1e5)`), move every
+  copy by the same offset, and taper it to nothing where the part meets another (wrist, ankle).
+- **Join openings with a band, do not shrink the cover.** The cuff rings hid the sleeve's open end and the hand's open
+  wrist; pulled in to look bare, they bared both. Drop the rings and bridge the two loops (sort each loop by angle
+  round the limb, zip them into triangles, face them outward).
+- **Recolouring keeps the shape.** The kit face is a panel set back inside a raised rim; painting the rim skin left
+  its lit edges as a line from the chin up both cheeks. A face is modelled: here the head became the convex hull of
+  the kit hood (so every hat still fits), a quad sphere pushed onto it, the hairline and beard cut in with
+  `bisect_plane`, and a dark mouth decal.
+- **Test it in the engine, in CI.** Deadnight's `BodyFit` skins the shown meshes on the CPU and casts physics rays
+  against two `ConcavePolygonShape3D`s (both sides, front only): a ray whose first face is a back face with no front
+  face within 6 cm behind it sees through. A sweep over every pair of parts that meet (neck, waist, wrists,
+  shoulders, ankles) on both bodies runs in about 25 s. `ClipFit` samples every clip the player plays and counts limb
+  and garment vertices inside another body part (six axis rays that all meet a back face first); clip faults that are
+  the animation's are recorded per clip and may not get worse. Check the probe on a closed and an opened ball.
+- **Physics probes in a test** need two physics steps after new shapes (one returned the last pose's surface) and
+  bone poses reset before each sample (clips that do not key the fingers kept the last clip's). Step physics fast in
+  the suite (`Engine.physics_ticks_per_second = 480`)
+  ([lesson](../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
+- **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
+  `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
+  normal with the way out (`normal_update()` first on a new face) and flip.

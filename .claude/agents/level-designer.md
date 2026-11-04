@@ -77,6 +77,7 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 | P16 | The camera fits where the body goes | a capture from the player's camera at every door, stair and corner |
 | P17 | It reads on a phone | captures at a phone's landscape size and the web render scale with the touch controls drawn: landmark, openings and a far dead visible and not under a button; prompt text 4.5:1 or more |
 | P18 | Maps agree, and the check stays in the suite | reach, escape and use-sight are tests; sweeps re-run after any wall, prop or tuning change, naming the commit |
+| P19 | The place makes sense to a player | a table of every opening (what is outside it at its sill, its dead's way to it from the world's ground); one world outside from every floor; no opening over a drop or a stairwell; a test that fails one |
 
 ## How you work
 
