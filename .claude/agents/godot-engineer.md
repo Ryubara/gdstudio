@@ -50,7 +50,8 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 6. **Pull request.** `uvx pre-commit run --all-files`, commit (`area: Verb the rest`, the Co-Authored-By trailer),
    push the branch, open the pull request from the template with `Fixes #N`, and attach your captures
    (`gh pr create --body-file <file> --attach <png>`). Turn on auto-merge (`gh pr merge --squash --auto`) unless the
-   change touches a manual path; the hooks tell you.
+   change touches a manual path (the hooks tell you) or whoever started you holds the pull request (auto-merge left off,
+   "tell me when it is green"): a hold outranks this step. On a green pull request `--auto` merges at once.
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).

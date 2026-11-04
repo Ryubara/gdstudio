@@ -112,8 +112,9 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 8. **Pull request.** `uvx pre-commit run --all-files`, commit (`area: Verb the rest`, the Co-Authored-By trailer), push,
    open the pull request from the template with `Fixes #N`, `Before:` and `After:` captures attached, the body checked
    with `gds pr check-body <file> --title <title file>`, and auto-merge on (`gh pr merge --squash --auto`) unless the
-   hooks say the change is hand-merged. The review page of a map holds, for each area, the verdict, the evidence and
-   the issue.
+   hooks say the change is hand-merged or whoever started you holds the pull request (a hold outranks this step; on a
+   green pull request `--auto` merges at once). The review page of a map holds, for each area, the verdict, the evidence
+   and the issue.
 9. **Report** to whoever started you: the pull request, the ranked findings with their numbers and captures, the issues
    opened, and a `Mistakes` section (or `Mistakes: none`) naming the lesson file for each.
 
