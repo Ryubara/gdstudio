@@ -14,6 +14,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Control, containers, Theme | every menu and the HUD; tokens generate the Theme | known: [UI controls](ui-controls.md) |
 | Tween, easing | all UI motion | known: [UI controls](ui-controls.md) (not on disabled or freed nodes; bind transition tweens to the stage) |
 | canvas_item shaders | screen transitions, film grain, vignette | known: [UI controls](ui-controls.md) (procedural, no screen read) and [Compatibility lighting](compat-lighting.md#full-screen-post-shader) |
+| One-shot and pooled effects (blasts, gibs, flashes) | every effect made while a night runs | known: [One-shot effects](one-shot-effects.md) (free the part at its tween end; `_process` is on after ready) |
 | Focus and input map, gamepad | keyboard and gamepad navigation | learn while building |
 | Fonts (FontFile, MSDF) | crisp text at any scale | learn while building |
 
