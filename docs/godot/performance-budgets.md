@@ -50,6 +50,11 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   14 times worse in the worst of three). Run headless at `--fixed-fps 60`, which makes each frame one tick, and read
   the labelled script times, or the process's CPU seconds a tick (polled from outside: `Win32_Process` kernel plus user
   time), which stay near the cost of the work.
+- **To judge a code change, put the old code beside the new in one process.** Copy the old script under another class
+  name (`git show HEAD:path | sed 's/class_name X$/class_name XOld/'`), feed both the same scripted input, alternate
+  which goes first each step, and compare the *median of the per-step times* and the state after every step. Deadnight
+  #947: the same 15 % cut read -11 %, +9 % and -18 % across separate processes and 0.82 to 0.85 in every repeat this
+  way. Nights differ in what the crowd is doing, so a real night gives counts, not a before and after.
 - **Record the load beside the run**: Godot processes at the start and end, machine CPU % every 5 s, GPU %. A number
   without them cannot be compared with another day's.
 - **Interleave before and after** (one, the other, one, the other), so a busy hour falls on both. Report the spread of
