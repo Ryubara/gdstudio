@@ -86,3 +86,23 @@ the probe output.
 ## Standing questions for any review
 
 What does this cost with 120 dead and 7 bots? What frees it? What did the diff not measure?
+
+## Counting allocations in a pass (a bench, not a guess)
+
+A per-step `Array`, `Dictionary` or `values()` copy is invisible in a time on a loaded machine (the saving is a few
+percent) and plain in bytes. In a build that tracks memory (the pinned editor build, a debug template) count the most a
+call holds at once:
+
+1. Allocate a ballast, a `PackedByteArray` of `OS.get_static_memory_peak_usage() - OS.get_static_memory_usage() + 4096`,
+   so the live memory stands at the old peak (the peak only goes up, and never comes down to measure from).
+2. Read the peak, run the call, read the peak again. The difference is what the call held above where it began; free
+   the ballast. A pass that makes nothing prints 0.
+
+Deadnight's `tools/bench/separation_cost.gd` does it (6,224 B before, 0 after for the separation pass of 120 dead) and
+`test_zombie_separation.gd` asserts it, skipping when the peak reads 0 (a build that does not track memory). Run the
+same bench file on a detached checkout of the commit before and on the branch, alternating, and give the medians.
+
+Faster in GDScript: what the engine does natively. A hash table written in GDScript (probing, stamps) lost four to one
+to `Dictionary.get`; a `PackedInt64Array` of `key * 65536 + index` that the engine `sort()`s, with `bsearch()` for the
+run of a cell, beat the dictionary and allocates nothing. A `for id in dict` walks a dictionary without the copy that
+`.values()` and `.keys()` make; a packed array handed round in GDScript is shared, not copied.
