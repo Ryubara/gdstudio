@@ -25,3 +25,7 @@ areas: [tests, ci, tools]
   quotes in its heredoc body failed to parse twice. All were fixed by writing the script with the Write tool and the
   source with the Edit tool. After any generated edit, scan the files for control characters (below a space, other than
   newline, tab and carriage return) before the first test run.
+- **Seen again (Deadnight #1080, 2026-11-04):** a 200 line test file and two `python - <<'PYEOF'` doc-edit scripts, each
+  with quotes and apostrophes in the body, failed with the same `unexpected EOF` and wrote nothing, after the reminder
+  at the start had named this lesson. The short heredocs without quotes in the same task worked. Same fix: the Write tool
+  for any body of more than a few plain lines, then `python file.py`.
