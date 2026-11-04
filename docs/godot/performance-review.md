@@ -109,6 +109,9 @@ the probe output.
   of its own): call `QuietCount.settle` as well as `AudioSettle.until_idle`, and find the suite by running the shard's
   list in CI order and halving it
   ([lesson](../lessons/2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md)).
+  The same fall hides a leak from a test that bounds the count only upwards: settle in every suite that reads the
+  object count across frames (a scan test fails the one that does not), and inject a leak to see a count test fail
+  ([lesson](../lessons/2026-11-04-a-count-bounded-upwards-passed-a-leak-under-the-fall.md)).
   `OBJECT_RESOURCE_COUNT` counts only resources that have a path: what code makes (`StandardMaterial3D.new()`,
   `BoxMesh.new()`) shows in `OBJECT_COUNT` alone.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
