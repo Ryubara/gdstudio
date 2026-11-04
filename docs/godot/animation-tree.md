@@ -116,3 +116,14 @@ the gun hold's; the build now rolls the forearm about its own axis until every f
 prints the worst
 ([lesson](../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
 modifier's own slerp on one arc does not help when the flip is in the tree.
+
+## A clip driven by place
+
+When the simulation carries a body over an obstacle at its own pace (Deadnight's dead over a window's sill, 1.2 to 6 m/s),
+a clip played by time drifts off the ledge. Make its frames places on the way instead: the clip behind an
+`AnimationNodeTimeSeek` and an `AnimationNodeTimeScale`, the scale's parameter set to 0 once on each tree, and a seek
+request written on every snapshot from the body's position. Only the seek moves it, so a body that stops stops the
+clip, and the order is output, scale, seek, clip: the seek reaches the clip through a scale of 0 (a seek is not scaled).
+The state's transitions from the gait carry `xfade_time` and the view uses `travel`, not `start`, which cuts; a state
+with no path is teleported to, so a stagger into the climb still works. Blender writes such a clip in the obstacle's
+space: [Clips written in the world's space](../blender/rig-sharing.md#clips-written-in-the-worlds-space).
