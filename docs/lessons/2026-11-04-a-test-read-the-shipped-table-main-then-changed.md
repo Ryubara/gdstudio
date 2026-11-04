@@ -16,4 +16,4 @@ areas: [tests, ci]
   function on the shipped table, never against numbers read off it; add a field to a tuning resource with its row in
   `tests/tuning/default_values.gd`. Before pushing, run `gds merge-main` and the whole `game/tests` tree (or CI's
   shard command), not the folders of the change.
-- **Docs:** `docs/hooks.md` on running the whole suite; the game's `docs/research/popup-lane.md`.
+- **Docs:** the game's `docs/research/popup-lane.md` (Deadnight, #1064).
