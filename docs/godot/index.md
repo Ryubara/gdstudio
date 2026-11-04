@@ -50,6 +50,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Physics interpolation (3D) | smooth bodies, weapons and enemies on fast screens with a fixed tick | known: [Physics interpolation](physics-interpolation.md) (on from the first build; hand-blended rigs off; measure on screen at 144 fps) |
 | NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | known: [crowds](crowds.md) (avoidance is cheap; repath on a timer) |
 | SpringArm3D, Camera3D | the over-the-shoulder third-person camera: collision, shoulder swap, aim zoom | known: [Third-person camera](camera.md) (damped springs, tick interpolation, own sweeps instead of SpringArm3D) |
+| Mouse look, stick look | the view turns one to one with the hand at any frame rate | known: [Mouse look at any frame rate](mouse-look.md) (raw delta once per event, no delta time; set the parent before the child; test the Camera3D's transform) |
 | AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | known: [Audio](audio.md) (pooled voices, limits, ducking, sounds made by script) |
 | A map, before it ships | judging a layout as a level designer: loops, chokepoints, spawns, pacing, lighting, out-of-bounds and door skips proven by movement | known: [Map review](map-review.md) (a checklist built from published level-design writing, first run on Deadnight's two maps) |
 
