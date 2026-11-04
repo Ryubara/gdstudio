@@ -102,12 +102,21 @@ requests all merged or closed. Then its downloads go: folders named `artifacts`,
 `.godot`; archives (`*.zip`, `*.7z`, `*.tar*`); web exports (`*.pck`, `*.wasm`); raw movie output (`*.avi`); numbered
 frames (`*0000.png` and the like); and what the topic's own `Can go: <globs>` line names.
 
+Most topics are named for their subject (`grenade-feel`, `audio-levels`), have no `SCRATCH.md` and no pull request of
+that name, so they are never known to be finished. A topic like that is held `unknown_topic_days` (3) after its last
+change, then it counts as finished **for its downloads only** (the list above): notes, `*.md`, `kept/` and `.keep`
+stay as they are, and a topic whose branch has an open pull request, whose pull requests could not be read from
+GitHub, or that names an open one is never cleared this way. The default is in the guard's code
+(`Limits.unknown_topic_days`); set it under `[disk]` in `hooks.toml` to change it, `0` to hold such topics for ever.
+Name the pull request in `SCRATCH.md` (`PR: owner/repo#N`) to have a topic judged by it, not by the clock.
+
 The guard never deletes:
 
 - a worktree the sweep would not remove (a running process, unpublished commits, an open pull request: [the sweep's rules](#sweep));
 - the import cache of a worktree touched in the last two hours or named by a running process; anything in `repos/`;
 - anything in a scratch topic whose pull request is open or unknown, whose worktree still exists, that a process names,
-  that changed in the last `scratch_grace_hours` (2), or that a `.keep` protects;
+  that changed in the last `scratch_grace_hours` (2), or that a `.keep` protects (a topic that names no pull request
+  is also held for `unknown_topic_days`, above);
 - a note (`*.md`), or the sweep's `kept/` folders.
 
 **Budgets.** Each worktree has `worktree_budget_gb` (4) and each scratch topic `scratch_budget_gb` (2). The guard
@@ -127,7 +136,7 @@ names its pull request and what else can go.
 ```text
 gds disk status                 free space, level, and the last run's biggest folders (exit 1 under the hard limit)
 gds disk guard                  under the soft limit: free what the rules allow; always: measure, write the status
-gds disk guard --dry-run        report what would be freed; delete nothing
+gds disk guard --dry-run        report what would be freed (one `would free` line per scratch topic); delete nothing
 gds disk guard --force          free what the rules allow even above the soft limit
 ```
 

@@ -241,6 +241,116 @@ def test_a_topic_that_may_still_be_in_use_is_never_cleared(ws, setup, why):
     assert (folder / "web.zip").exists() and (folder / "artifacts").exists()
 
 
+# --- topics that name no pull request --------------------------------------------------------------------------------
+
+
+DAY = 86400.0
+
+
+def no_pulls(repo: str, branch: str) -> list[str]:
+    return []
+
+
+def clear_unknown(ws: Path, *, pulls=no_pulls, limits: disk.Limits = LIMITS, apply: bool = True):
+    return disk.clear_scratch(
+        ws, limits, apply=apply, pr_state=lambda r, n: "MERGED", branch_pulls=pulls, running=[], now=time.time()
+    )
+
+
+def test_a_topic_that_names_no_pull_request_loses_its_downloads_after_three_days(ws):
+    folder = topic(ws, "grenade-feel")
+    age(folder, time.time() - 4 * DAY)
+    (folder / "clip" / "frame_00013.png").write_bytes(b"g" * 100)  # inside the folder: older than the limit as well
+    age(folder, time.time() - 4 * DAY)
+    freed = clear_unknown(ws)
+    assert [f.path for f in freed] == ["scratch/deadnight/grenade-feel"]
+    assert "no pull request named, idle 4.0 days" in freed[0].why
+    for gone in ("artifacts", "clip/frame_00012.png", "night.avi", "web.zip"):
+        assert not (folder / gone).exists()
+    assert (folder / "REPORT.md").exists() and (folder / "after.png").exists()  # notes and plain files stay
+    assert (folder / "kept" / "notes" / "big.zip").exists()
+
+
+def test_a_topic_that_names_no_pull_request_is_held_for_three_days(ws):
+    folder = topic(ws, "audio-levels")
+    age(folder, time.time() - 2 * DAY)
+    done, reason = finished(ws, folder, branch_pulls=no_pulls)
+    assert done is False and "2.0 days ago (held 3 days" in reason
+    assert clear_unknown(ws) == []
+    assert (folder / "web.zip").exists()
+    age(folder, time.time() - 3.1 * DAY)
+    assert finished(ws, folder, branch_pulls=no_pulls)[0] is True
+
+
+def test_the_unknown_topic_hold_comes_from_the_limits_and_zero_keeps_them_for_ever(ws):
+    folder = topic(ws, "old-probe")
+    age(folder, time.time() - 30 * DAY)
+    assert clear_unknown(ws, limits=disk.Limits(unknown_topic_days=0)) == []
+    assert (folder / "web.zip").exists()
+    assert clear_unknown(ws, limits=disk.Limits(unknown_topic_days=60)) == []
+    assert clear_unknown(ws, limits=disk.Limits(unknown_topic_days=29))[0].bytes > 0
+    assert disk.Limits().unknown_topic_days == 3
+
+
+@pytest.mark.parametrize(
+    ("setup", "why"),
+    [
+        ("open", "open pull request"),
+        ("unreadable", "could not be read"),
+        ("keep", "protected by .keep"),
+        ("worktree", "its worktree still exists"),
+        ("process", "a process uses it"),
+        ("note-open", "open or unknown"),
+    ],
+)
+def test_an_old_topic_is_still_kept_while_its_pull_request_may_be_open(ws, setup, why):
+    folder = topic(ws, "probe", "PR: Ryubara/deadnight#1\n" if setup == "note-open" else "")
+    age(folder, time.time() - 30 * DAY)
+    pulls, state, running = no_pulls, (lambda r, n: "MERGED"), []
+    if setup == "open":
+        pulls = lambda r, b: ["OPEN"]  # noqa: E731
+    elif setup == "unreadable":
+        pulls = lambda r, b: ["UNKNOWN"]  # noqa: E731
+    elif setup == "keep":
+        (folder / ".keep").write_text("")
+        age(folder, time.time() - 30 * DAY)
+    elif setup == "worktree":
+        (ws / "worktrees" / "deadnight" / "probe").mkdir(parents=True)
+    elif setup == "process":
+        running = [(7, f"python soak.py --out {folder.as_posix()}/artifacts", "")]
+    elif setup == "note-open":
+        state = lambda r, n: "OPEN"  # noqa: E731
+    done, reason = finished(ws, folder, branch_pulls=pulls, pr_state=state, running=running)
+    assert done is False and why in reason
+    disk.clear_scratch(ws, LIMITS, apply=True, pr_state=state, branch_pulls=pulls, running=running, now=time.time())
+    assert (folder / "web.zip").exists() and (folder / "artifacts").exists()
+
+
+def test_a_dry_run_names_the_unknown_topics_and_deletes_nothing(ws):
+    folder = topic(ws, "grenade-feel")
+    age(folder, time.time() - 5 * DAY)
+    freed = clear_unknown(ws, apply=False)
+    assert freed and freed[0].bytes == 2 + 300 + 700 + 500
+    assert (folder / "web.zip").exists() and (folder / "artifacts").exists()
+    report = disk.Report(1, 1, "ok", LIMITS, freed=freed, dry_run=True)
+    assert any(line.startswith("would free") and "scratch/deadnight/grenade-feel" in line for line in report.lines())
+
+
+def test_a_branch_whose_pull_requests_could_not_be_read_is_unknown_not_absent(ws):
+    def broken(args):
+        raise issues.IssueError("gh is down")
+
+    (ws / "repos" / "deadnight" / ".git").mkdir(parents=True)
+    pulls = disk.Pulls(ws, broken)
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(sweep, "remote_slug", lambda checkout: "Ryubara/deadnight")
+    try:
+        assert pulls.branch("deadnight", "grenade-feel") == ["UNKNOWN"]
+    finally:
+        monkey.undo()
+    assert disk.Pulls(ws, broken).branch("misc", "anything") == []  # a group that is no repository has no pull requests
+
+
 # --- the guard -------------------------------------------------------------------------------------------------------
 
 
