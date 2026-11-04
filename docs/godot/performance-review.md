@@ -96,6 +96,10 @@ the probe output.
   counted loop adds to the number it checks.
   The counts are the whole process's: assert growth (`is_less_equal(before)` or `before + SLACK`), never `is_equal`, or
   an earlier suite's free fails a test that leaked nothing.
+  A count taken across `await process_frame` also starts from a quiet `Audio` service: the deferred sounds an earlier
+  suite queued decode a few milliseconds a frame and each is objects. Deadnight's `AudioSettle.until_idle` waits for
+  the queue, and a warm item (one label, one effect) is made and freed before the first reading
+  ([lesson](../lessons/2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md)).
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
