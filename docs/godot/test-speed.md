@@ -37,6 +37,17 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 See also [a physics frame per tick](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
 and [Engine.time_scale](../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
 
+## Split the suite by seconds, not by folder
+
+When a suite is too long for one CI job, split it over parallel jobs by the measured seconds of each test script, not
+by folder: keep a file of seconds per script (the `Statistics:` line of each suite in the job log carries it), deal the
+scripts longest first to the lightest shard, and let a script with no time yet count a default, so a new test lands in
+a light shard by itself. Size the shard count from the total (`total / 480 s`, rounded up, plus a margin: runners vary
+by 1.5x from job to job), have a self-test compare the shard count with the workflow's matrix, and end every shard with
+a check that warns past 60 % and fails past 80 % of the job's time limit, so drift is red before the limit cancels a
+job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
+[lesson](../lessons/2026-11-04-a-hand-balanced-shard-list-went-stale-within-a-day.md)).
+
 ## Seat bots as the host does
 
 A test that makes a `BotClient` by hand copies `BotHost.seat`: the shared `bot_ids` table and team, not only what compiles.
