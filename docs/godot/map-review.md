@@ -44,6 +44,10 @@ building and again from the player's camera; "the simplest way to engage the pla
 - [ ] **Every room has a reason for its openings.** Who built this place, and why is there a window here? One window
   a wall reads as a building; a row of five reads as a spawn count. A shop wall has no window; an alcove holds one
   machine.
+- [ ] **No two rooms joined outside.** The windows of two areas never open onto one connected deck or yard: the
+  dead's walking mesh (which the bots walk too) must not join two rooms outside by a shorter way than inside, or a
+  bot routes out one window and in another and gives up at the boards. Check the mesh between every pair of rooms
+  (Deadnight #917: one open yard and a shared gallery sent a bot's route upstairs out a hall window).
 - [ ] *Proof: a table of every opening (what is outside it, its dead's way to it), a capture from behind each opening
   with its boards torn and from where its dead rise, and a test that fails an opening with no floor inside it or no
   ground or deck outside it at its own height, and an upper opening whose dead do not rise on the ground and climb.*
