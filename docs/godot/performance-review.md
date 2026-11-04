@@ -100,6 +100,13 @@ the probe output.
   suite queued decode a few milliseconds a frame and each is objects. Deadnight's `AudioSettle.until_idle` waits for
   the queue, and a warm item (one label, one effect) is made and freed before the first reading
   ([lesson](../lessons/2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md)).
+  A live fight or menu holds objects of its own that come and go (a Tween with its tweeners is 3 to 5 objects, a
+  sound that plays 2, the last playback of every voice stays until it is used again, the main menu loads every sound in
+  the background), so never take the peak over frames against a start: stand the source still and read at a quiet
+  moment before and after (Deadnight `QuietCount.settle`; `AudioSettle.until_idle` also ends the background load)
+  ([lesson](../lessons/2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md)).
+  `OBJECT_RESOURCE_COUNT` counts only resources that have a path: what code makes (`StandardMaterial3D.new()`,
+  `BoxMesh.new()`) shows in `OBJECT_COUNT` alone.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
