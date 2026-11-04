@@ -16,5 +16,8 @@ areas: [tests, tools]
   from the logs), read the logs for `ERROR`, and ignore an earlier summary. Before rerunning, list the processes whose
   command line names the worktree, stop the runner script first, then its `timeout` and Godot children, by PID, and check
   that the logs stop growing. A new light, sound, export or tuning field is followed by `tests/world` and `tests/tuning`.
+  Then run the CI shard's own command and its gate (`! grep -E "leaked at exit|still in use" tests.log`): a log that
+  ends with `ObjectDB instances were leaked` exits 0 locally and fails the shard in CI (Deadnight #1100, a test that
+  only named a script whose graph a test without a night leaves in use). Those lines are never "the usual ones".
 - **Docs:** [Lessons](index.md): no page covers it yet; this file is the record (the game side is
   `docs/lessons/2026-11-04-pinning-tests-in-other-folders-failed-for-a-new-light-and-a-new-sound-field.md` in Deadnight).
