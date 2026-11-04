@@ -280,6 +280,24 @@ rise; one world outside seen from every floor; a test that fails an opening with
 deck outside it at its own height, and an upper opening whose dead do not rise on the ground and walk up. The map
 review's [Does it make sense?](../godot/map-review.md#does-it-make-sense) is the list.
 
+### P20. An objective is measured, not read
+
+A task on a map (a step, a carry, a last stand) reads harder on paper than it plays: a list of chores across a map sounds
+like a night's work and can be a minute of walking. The test of "too easy" is written before the steps are, in numbers,
+and the steps are expanded until they pass. Three things have made such a chain read wrong. A fresh night is the one
+state nothing has been used, so a step that asks for a full tank or whole windows is done before it starts: Deadnight's
+extraction chains read 256 s from an empty night and 295 s once the boards were down and the tank half used, and the
+first real nights counted a seal behind a shut door as done (Deadnight #1056;
+[lesson](../lessons/2026-11-04-a-floor-measured-on-a-fresh-night-read-the-work-as-free.md)). The quiet is a tool players
+will use: in this genre a team keeps one dead alive and does its chores in peace, so a chain has to hold up against that
+stall. And kills made ahead of the steps have to bank nothing, or the steps are a chore at the end of a farm.
+
+**Check (a probe):** four runs of the real thing. The floor: real bodies, no dead, from the state the chain will find
+(points, boards and fuel as a team has them by then), in time and in people, for one body and for four. The stall: a
+real night in which the team keeps one dead alive. The night: real bots, with the share of the chain's time spent with a
+dead within 10 m, the downs and the rounds it crosses. The farm: kills past the next tier bank nothing. Each place a
+step stands on passes the use-sight and spacing tests (P10), and a step's new prop is judged by P13 to P15.
+
 ## What could not be read
 
 - Valve's developer wiki sits behind an anti-bot page; the dimension figures above come from its search excerpts, and
@@ -305,3 +323,4 @@ review's [Does it make sense?](../godot/map-review.md#does-it-make-sense) is the
 | P17 | [Apple Human Interface Guidelines: accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility); [GlobalStep: level design in mobile games](https://globalstep.com/blog/level-design-in-mobile-games-adapting-to-smaller-screens-and-touch-controls/) |
 | P10, P12 to P15, P18 | GDStudio's own lessons from Deadnight #703, #831, #832, #833, #840 and #908, linked in each principle |
 | P19 | [The Level Design Book: worldbuilding](https://book.leveldesignbook.com/process/preproduction/worldbuilding.md); Deadnight #917 |
+| P20 | GDStudio's own lesson from Deadnight #1056, linked in the principle |

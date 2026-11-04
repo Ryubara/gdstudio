@@ -78,6 +78,7 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 | P17 | It reads on a phone | captures at a phone's landscape size and the web render scale with the touch controls drawn: landmark, openings and a far dead visible and not under a button; prompt text 4.5:1 or more |
 | P18 | Maps agree, and the check stays in the suite | reach, escape and use-sight are tests; sweeps re-run after any wall, prop or tuning change, naming the commit |
 | P19 | The place makes sense to a player | a table of every opening (what is outside it at its sill, its dead's way to it from the world's ground); one world outside from every floor; no opening over a drop or a stairwell; a test that fails one |
+| P20 | An objective is measured, not read | the floor from the state the chain will find, the stall with one dead kept alive, the night with real bots at each team size and modifier, and kills ahead of the steps banking nothing; "too easy" written in numbers first |
 
 ## How you work
 
