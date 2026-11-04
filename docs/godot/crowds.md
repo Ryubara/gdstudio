@@ -199,6 +199,24 @@ uvx --with playwright python sandbox/crowds/web_bench.py http://127.0.0.1:8931/i
 python sandbox/crowds/tabulate_results.py <log> [mean_ms|p95_ms|max_ms|draws]
 ```
 
+## What a crowd costs at the ceiling, in the real night
+
+Deadnight #949 ablated the real night at its desktop ceiling (round 12, 99 dead, three bots, windowed, RTX 5080,
+Compatibility), two to six interleaved runs an arm. Read it before cutting "the crowd's engine cost":
+
+- **Most of the crowd is not in front of the camera.** The dead queue at the boards and walk the lot: 64 of 92 stood
+  more than 40 m from the player's camera and 4 to 27 were in the frustum (7 to 20 draw calls, 25 to 40 thousand
+  triangles). Drawing the dead was 1 to 1.5 ms of a 17 ms frame (0.2 ms of the renderer's CPU time).
+- **An animation advance is the cost, and the throttle's far tier was most of them.** One `tree.advance` with its
+  50-bone skeleton update took about 41 microseconds of CPU headless; the throttle still advanced every dead out of
+  view every 12th frame, so 87 of 92 views were "period 12" and made 7 of the 9.4 advances a frame. Leaving the
+  unseen out (no point of the body in the frustum, back at once, with at most a quarter second of catch-up, when
+  seen) cut the advances to 2.8 a frame. A starting phase kept as `accumulated` is not a catch-up to clamp.
+- **Test a frustum with more than one point.** One point at the chest called a half-visible dead at the screen edge
+  unseen; feet, chest and head with its reach (0.2, 1.0 and 2.2 m) does not.
+- **Frame time cannot show a 0.3 ms change on a shared machine** (one arm ran 17 and 29 ms); count the advances and draws
+  and time the advance alone (a script that advances 92 views in a loop).
+
 ## Gait follows speed
 
 Measure each locomotion clip's ground speed (the planted foot's backward speed at game scale) and put the blend
@@ -218,3 +236,60 @@ path segment it walks, take off the mesh's offset above the floor (the baker rou
 at 0.25 m cells, so 0.4 m is within 0.1 m), and move it there at a climb rate. Separation and swing reach then need the
 height too, or a walker on the ramp pushes one on the floor under it and the dead under a floor hit the person over
 their heads. Prove it with a pack on the real ramp and a control that walks the same mesh with the heights left out.
+
+## A player's body against a crowd that is not physics bodies
+
+A crowd of plain data (positions and a state machine on the server, drawn from a frame on the client) is not in the
+physics world, so a `CharacterBody3D` walks through it: `move_and_slide` can only meet what has a collision layer
+(Deadnight #914: the dead had no bodies for performance and determinism, and nobody decided that players could run
+through them). Make it solid in the movement function both machines run, not with a physics proxy:
+
+- Each walker is a circle on the ground. After the slide, a body that ended inside one is put back on its edge and loses
+  the speed it had into it (`move_and_collide` for the correction, so a wall still wins). One-way: never nearer than the
+  tick began, never pushed out of an overlap, so a prediction that disagrees by a few centimetres never fights the
+  reconciler.
+- Both machines must use the same positions. A server that blocks by where the crowd stands now, and a client by the
+  frame it drew (a round trip old), disagree by the crowd's speed times the lag; the server keeps the last few ticks of
+  positions (rounded to the frame's centimetres) and blocks each body by the frame its command names (the view step the
+  lag compensation already uses). Measured with 120 ms of round trip and a walker that came to meet the body (8 runs,
+  the median of the largest correction the reconciler asked for): 0.27 m by the frame the client drew, 0.58 m by where
+  the crowd stood now, 0.29 m with no crowd at all.
+- The push that moves a walker is the server's alone (the client sees the walker move in a later frame): a player who
+  presses into one for a moment and then keeps pressing yields it, and it goes across the player's way, not ahead of it.
+  A walker that yields straight away from the body is led along by the player at the yield speed, and a block of a dozen
+  does not give at all (stuck for 20 s); rolling it aside (80 percent across) passes one in half the time and the block
+  in six seconds. A wall behind the walker stops the yield (a ray), and then it rolls to the side.
+- Cost: microseconds per tick per body, only for the walkers within three metres; see Deadnight
+  `docs/research/dead-contact.md` for the numbers.
+
+## A pooled body costs 1 ms to take if the pool still looks the scene up
+
+Deadnight #932 (a blast that cripples 20 walkers into crawlers: a 45 to 59 ms frame, a steady 1.2 ms). Three costs
+sat on the way from one body to another, measured with a windowed bench that cripples 20 of 30 on a fresh crowd
+twelve times and reads the worst frame:
+
+- **Changing look by `dress`** (free the model, instance the .glb, strip it, build a new `AnimationTree`) is 0.4 to
+  2 ms a zombie. Move the zombie to a parked view of the new look instead, as a spawn does, and park the old body.
+- **`load(path)` of a scene already loaded is about 1 ms** under a loaded machine. A pool that fetched the `PackedScene`
+  before looking for a parked view paid it for every reuse (20 reuses were 21 of the 24 ms). Look the scene up only
+  when a view must be made.
+- **Switching an `AnimationTree` `active` off and on throws away its resolved tracks**; the next `advance` rebuilds
+  them (about 0.1 ms a tree, 2 ms for twenty in one frame). A parked tree that is only ever advanced by hand can stay
+  `active`; advance it once when it is made, so the pooled body has its tracks resolved.
+
+Deadnight, 20 crippled in one tick (two runs of twelve blasts each, the same machine, loaded): the call 40 ms to
+0.6 ms; the worst frame after the blast 44 and 46 ms (median of twelve; 50 to 59 ms worst of all) to 3.4 and 3.5 ms
+(3.8 and 5.5 ms worst), against a 1.2 ms steady frame. Keep a larger pool for a look a blast can make in bulk (crawlers:
+20), and prewarm it behind the loading screen.
+
+## A target off the walking mesh turns the crowd round at every repath (Deadnight #950)
+
+`NavigationServer3D.map_get_path(map, from, to, true)` snaps `to` to the nearest point of the mesh when it is off it
+(a player squeezed between two parked cars stands in the band the baker leaves round every obstacle, one agent radius
+wide). The nearest point changes side as the target moves a metre, and the routes to the two sides can be 10 m and 29 m:
+a crowd that asks again every 0.25 s turns round at each answer and walks up and down for ever, 7 m from the player,
+never "stranded" (the path ends within 1 m of the target). Keep the old route while it still ends near the target and
+the new one is much longer (Deadnight `ZombieSim._keeps_its_route`: a new route 6 m longer than what is left of the old,
+an old end within 3.5 m of the target, more than 1 m left to walk). To find it, print a zombie's position every second
+and its path's first points: a position that moves at full speed and goes nowhere, and a path that changes its second
+point from one second to the next.

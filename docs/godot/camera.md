@@ -76,3 +76,47 @@ From Deadnight #702 (a bot's body had the view):
   other body's `camera.current` being false; check after each event that adds a body: the spawn, a late seat, a
   revive. A test that reads only the person's own camera node passes while the view is elsewhere.
 - `release_view()` leaves the camera node in place, since the rig uses it for aiming; only the `current` flag goes.
+
+## A rig no one looks through
+
+From Deadnight #938. Every body of a night owned a rig that eased its springs and swept the world in every drawn
+frame (16 to 43 us a step), whether anyone looked through it or not: the bots', the puppets', a game server's.
+
+- **Do not run it.** A body no one looks through rests its rig (`rest()`: `_process` off, `_resting` kept in a flag).
+  What reads the rig (the weapon's pose reads `yaw`, `pitch` and `aim_transform()`) is told the look in each physics
+  tick with `aim_along(head, yaw, pitch)`, under a microsecond. A bot's aim never came from its rig: the command
+  carries the origin and the direction. Say which bodies rest where they are made (a bot, a body that draws
+  nothing), not from `local_input`, which is also false for a body driven by hand or filmed.
+- **Switch it off in `_ready()`.** `set_process(false)` before the node is in the tree is undone when it is ready
+  (probe: one call a frame still), so the rig re-asserts its flag in `_ready()`
+  ([lesson](../lessons/2026-11-03-a-process-switch-set-before-the-tree-was-undone-on-ready.md)). Prove it by counting
+  `is_processing()` nodes in the built scene.
+- **The bodies a sweep passes through** are kept in a static list (added on `tree_entered`, removed on
+  `tree_exiting`), not found with `get_nodes_in_group` and a new Array in every step (1.2 to 1.8 us down to 0.2 us
+  with four bodies); the list is shared, so a sweep reads it and never changes it.
+- A rig that ran for no view also read the wrong look: nothing set a bot's `yaw` and `pitch` (a probe printed 0 for a
+  night's worth of turns while the body turned), so its weapon's pose read the spawn heading and the lens the
+  body-hidden check measured sat behind that. The look from the command is what the pose should read.
+
+## A fly-over that starts on the player's own lens
+
+From Deadnight #973 (the end of a night: a slow pull-back from each player's camera, then cuts between authored angles
+of the map; the game's page is `docs/research/end-of-night.md`):
+
+- **Start on the lens the player had**: copy its `global_transform` and `fov` when the sequence begins and ease both
+  to the first target (`smoothstep` on progress, a quaternion `slerp` for the turn), so the first frame is the frame
+  the player was looking at and there is no cut at the start. Make the new camera current once; it is the only one
+  that joins afterwards.
+- **A pull-back needs a way that has room, not a fixed one.** Straight back and up is a ceiling in an interior. Try
+  several ways (turns from straight back, at several heights), sweep each as the shoulder camera does (from the player
+  to the wanted place, then from the lens to what that reached), and take the one that gets farthest, preferring the
+  straight one on a tie: open ground gets the full pull, a low room gets a way along it.
+- **Authored angles are data and are tested, not trusted.** A shot is a lens drifting from A to B while it looks at a
+  point; a test steps along every shot and rejects it when a ray burst from the lens meets a solid within the lens's
+  clearance (26 rays: a point inside a **concave** CSG wall is not reported by `intersect_point` or
+  `intersect_shape`, but every ray from inside meets the wall's back face at once), when the view is blocked within
+  1.5 m, or when a sphere sweep along the drift stops. Look at the frames too: the test cannot say a shot is dull.
+- **Time is a number** (`seek(seconds)`): the same pose at any frame rate, and a capture or test places the camera at
+  any moment without waiting.
+- **A plan of a closed building**: put the camera high and set `near` so far out that everything above the cut is
+  clipped (`near` of 56.4 from 60 m up shows what is below 3.6 m).

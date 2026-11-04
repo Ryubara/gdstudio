@@ -666,9 +666,10 @@ class Locked(Exception):
 
 
 @contextlib.contextmanager
-def lock(root: Path):
-    """One sweep at a time: an exclusive lock file, taken over when it is older than half an hour (a killed sweep)."""
-    path = root / LOCK
+def lock(root: Path, name: str = LOCK):
+    """One sweep (or one disk guard: `name`) at a time: an exclusive lock file, taken over when it is older than half
+    an hour (a killed run)."""
+    path = root / name
     path.parent.mkdir(parents=True, exist_ok=True)
     for _ in range(2):
         try:

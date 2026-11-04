@@ -1,0 +1,5 @@
+{
+  "name": "gdstudio-disk",
+  "version": "0.1.0",
+  "description": "GDStudio disk guard in the status line: free space, the soft and hard limits, and the folders over budget (docs/hooks.md#disk)"
+}

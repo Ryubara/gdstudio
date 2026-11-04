@@ -624,6 +624,10 @@ def check_git(words: list[str], cwd: Path, config: dict[str, Any]) -> list[str]:
     verb, args = rest[0], rest[1:]
     protected = config.get("git", {}).get("protected_branches", ["main"])
     reasons: list[str] = []
+    if verb == "worktree" and args[:1] == ["add"]:
+        refused = disk_refusal(here, config, "a new worktree")
+        if refused:
+            reasons.append(refused)
     if verb in ("commit", "push") and ("--no-verify" in args or (verb == "commit" and "-n" in args)):
         reasons.append(f"`git {verb} --no-verify` skips the checks; fix what they report instead")
     if verb == "commit":
@@ -876,8 +880,11 @@ def check_edit(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
 def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     """Every reason to refuse this tool call."""
     tool = payload.get("tool_name", "")
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    if workspace:
+        start_disk_guard(workspace, config)  # throttled: one stat of a stamp file when it is not yet time
     if tool in AGENT_TOOLS:
-        reasons = check_agents(payload, config) + check_issue(payload, config)
+        reasons = check_agents(payload, config) + check_issue(payload, config) + check_disk_agent(payload, config)
         if not reasons:
             note_agent_start(payload, config)
         return reasons
@@ -949,6 +956,7 @@ def stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     if workspace:
         pull_mains(workspace, config)
         start_sweep(workspace, config)
+        start_disk_guard(workspace, config)
     reasons = [
         r for r in (stop_proof(payload, config), stop_queue(payload, config), stop_kit_docs(payload, config), idle) if r
     ]
@@ -1043,6 +1051,98 @@ def pull_mains(workspace: Path, config: dict[str, Any], force: bool = False) -> 
 
 
 # --------------------------------------------------------------------------------------------------------------------
+# The disk guard (docs/hooks.md#disk): a background `gds disk guard`, and no new agent or worktree under the hard limit
+# --------------------------------------------------------------------------------------------------------------------
+
+GB = 1024**3
+
+
+def free_bytes(path: Path) -> int | None:
+    """Free bytes of the disk holding `path`; None when it cannot be read (a guard that cannot look lets it pass)."""
+    try:
+        return shutil.disk_usage(path).free
+    except OSError:
+        return None
+
+
+def disk_status(workspace: Path, config: dict[str, Any]) -> dict[str, Any]:
+    """The last `gds disk guard` run's status file; empty when there is none."""
+    path = workspace / config.get("disk", {}).get("status", "cache/disk-guard.json")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def disk_level(workspace: Path, config: dict[str, Any]) -> tuple[str, float | None]:
+    """(`hard` | `soft` | `ok`, free GB) of the workspace's disk; `ok` when the guard is off or the disk unreadable."""
+    rules = config.get("disk", {})
+    free = free_bytes(workspace)
+    if not rules.get("enabled", True) or free is None:
+        return "ok", None if free is None else free / GB
+    gb = free / GB
+    if gb < float(rules.get("hard_gb", 10)):
+        return "hard", gb
+    if gb < float(rules.get("soft_gb", 40)):
+        return "soft", gb
+    return "ok", gb
+
+
+def disk_refusal(cwd: Path, config: dict[str, Any], what: str) -> str | None:
+    """Why `what` may not start: the workspace's disk is under `[disk] hard_gb`. None outside a workspace or above."""
+    workspace = workspace_of(cwd)
+    if workspace is None:
+        return None
+    state, gb = disk_level(workspace, config)
+    if state != "hard" or gb is None:
+        return None
+    hard = config.get("disk", {}).get("hard_gb", 10)
+    biggest = disk_status(workspace, config).get("biggest", [])[:5]
+    names = "; ".join(f"{b.get('path')} {b.get('gb')} GB" for b in biggest if isinstance(b, dict))
+    return (
+        f"{what} is refused: the disk has {gb:.1f} GB free, under the hard limit of {hard} GB (docs/hooks.md#disk). "
+        f"Nothing new starts until space is back. `gds disk guard` frees what the rules allow (finished worktrees, "
+        f"idle import caches, scratch downloads past their pull request); report what is left to the coordinator and "
+        f"the maintainer." + (f" The biggest folders: {names}." if names else "")
+    )
+
+
+def check_disk_agent(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
+    """A task agent does not start under the hard limit; helpers (read-only) and `[disk] exempt` agents do."""
+    kind = (payload.get("tool_input") or {}).get("subagent_type") or "general-purpose"
+    exempt = [*config.get("agents", {}).get("helpers", []), *config.get("disk", {}).get("exempt", [])]
+    if kind in exempt:
+        return []
+    refused = disk_refusal(Path(payload.get("cwd") or "."), config, f"starting a {kind} agent")
+    return [refused] if refused else []
+
+
+def disk_note(workspace: Path, config: dict[str, Any]) -> str:
+    """The line an agent or a session is told when the disk is under the soft limit."""
+    state, gb = disk_level(workspace, config)
+    if state == "ok" or gb is None:
+        return ""
+    line = disk_status(workspace, config).get("line", "")
+    return (
+        f"Disk {state.upper()}: {gb:.1f} GB free{f' ({line})' if line else ''}. Keep what you write small: reduce "
+        f"downloaded CI artifacts to their numbers and delete them in the same task, delete raw captures once a clip "
+        f"or sheet is made, and name what can go in your scratch topic's SCRATCH.md (docs/workspace.md#disk)."
+    )
+
+
+def start_disk_guard(workspace: Path, config: dict[str, Any], force: bool = False) -> bool:
+    """Start `gds disk guard` in the background at most once every `[disk] every_seconds` (unless `force`); its report
+    is appended to `[disk] log`. The guard takes its own lock. Returns whether it was started."""
+    rules = config.get("disk", {})
+    if not rules.get("enabled", True):
+        return False
+    return start_background(
+        workspace, rules, ["disk", "guard"], "cache/disk-guard-started", "scratch/disk-guard.log", 300, force
+    )
+
+
+# --------------------------------------------------------------------------------------------------------------------
 # Finished worktrees: swept in the background (docs/hooks.md#sweep)
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -1054,14 +1154,40 @@ def start_sweep(workspace: Path, config: dict[str, Any], force: bool = False) ->
     rules = config.get("sweep", {})
     if not rules.get("enabled", True):
         return False
-    stamp = workspace / rules.get("stamp", "cache/worktree-sweep-started")
-    if not force and stamp.exists() and time.time() - stamp.stat().st_mtime < float(rules.get("every_seconds", 600)):
+    return start_background(
+        workspace,
+        rules,
+        ["worktree", "sweep", *rules.get("args", [])],
+        "cache/worktree-sweep-started",
+        "scratch/worktree-sweep.log",
+        600,
+        force,
+    )
+
+
+def start_background(
+    workspace: Path,
+    rules: dict[str, Any],
+    gds_args: list[str],
+    default_stamp: str,
+    default_log: str,
+    default_every: float,
+    force: bool,
+) -> bool:
+    """Start `gds <gds_args>` in the background, at most once every `rules["every_seconds"]` (a stamp file's age)
+    unless `force`, its output appended to `rules["log"]`. Returns whether it was started."""
+    stamp = workspace / rules.get("stamp", default_stamp)
+    try:
+        recent = time.time() - stamp.stat().st_mtime < float(rules.get("every_seconds", default_every))
+    except OSError:
+        recent = False
+    if recent and not force:
         return False
     uv, kit = shutil.which("uv"), kit_root(workspace)
     if not uv or not (kit / "python").is_dir():
         return False
-    log = workspace / rules.get("log", "scratch/worktree-sweep.log")
-    command = [uv, "run", "--project", str(kit / "python"), "gds", "worktree", "sweep", *rules.get("args", [])]
+    log = workspace / rules.get("log", default_log)
+    command = [uv, "run", "--project", str(kit / "python"), "gds", *gds_args]
     try:
         stamp.parent.mkdir(parents=True, exist_ok=True)
         stamp.touch()
@@ -1197,6 +1323,8 @@ def session_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
     lines.append("Work on a branch, open a pull request; visual work attaches captures (`gh ... --attach`).")
     lines += pull_mains(workspace, config, force=True)
     start_sweep(workspace, config)
+    start_disk_guard(workspace, config)
+    lines.append(disk_note(workspace, config))
     lines.append(lesson_text("session", config, workspace))
     return "\n".join(line for line in lines if line)
 
@@ -1238,8 +1366,15 @@ def subagent_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
     if not workspace:
         return ""
     areas = take_agent_note(workspace, payload.get("agent_type") or "", config)
+    start_disk_guard(workspace, config)
     return "\n\n".join(
-        t for t in (lesson_text("subagent", config, workspace), area_checks(workspace, areas, config)) if t
+        t
+        for t in (
+            lesson_text("subagent", config, workspace),
+            area_checks(workspace, areas, config),
+            disk_note(workspace, config),
+        )
+        if t
     )
 
 
@@ -1844,6 +1979,7 @@ def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if workspace is None:
         return None
+    start_disk_guard(workspace, config)
     reasons = [stalled, stop_kit_docs(payload, config)]
     report = report_of(payload)
     if mistakes_text(report) and not lesson_files_named(workspace, report):

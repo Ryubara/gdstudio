@@ -44,6 +44,10 @@ building and again from the player's camera; "the simplest way to engage the pla
 - [ ] **Every room has a reason for its openings.** Who built this place, and why is there a window here? One window
   a wall reads as a building; a row of five reads as a spawn count. A shop wall has no window; an alcove holds one
   machine.
+- [ ] **No two rooms joined outside.** The windows of two areas never open onto one connected deck or yard: the
+  dead's walking mesh (which the bots walk too) must not join two rooms outside by a shorter way than inside, or a
+  bot routes out one window and in another and gives up at the boards. Check the mesh between every pair of rooms
+  (Deadnight #917: one open yard and a shared gallery sent a bot's route upstairs out a hall window).
 - [ ] *Proof: a table of every opening (what is outside it, its dead's way to it), a capture from behind each opening
   with its boards torn and from where its dead rise, and a test that fails an opening with no floor inside it or no
   ground or deck outside it at its own height, and an upper opening whose dead do not rise on the ground and climb.*
@@ -111,6 +115,12 @@ circled is a corridor with a countdown.
   walks every barricade the scenes have and sends a body in under the sill and through the opening with no boards, and
   a capture from the player's camera of each one (Deadnight #915: "every single barricade should be a window, not a
   door -- it gives the players this false idea that they can walk through it").*
+- [ ] **A dead that works a barricade stands where a person inside can shoot it.** The zone a dead counts as "at the
+  boards" is made for the dead's body (a gap's width and a body's slack), not for the person's line of fire; the clear
+  opening between the jambs is narrower. *Proof: a crowd sent at the boards of every window and breach, and on every
+  tick one is tearing, a ray from where a person stands (the repair spot, close, beside, deep) to its chest and head
+  through the world's solids and its hit zones (Deadnight #997: a dead tore from in front of a jamb for 190 s while the
+  round waited).*
 - [ ] **A spawn never opens into a closed area.** Closed areas stay closed to the dead too (here, a window opens the dead
   of its own room only). *Proof: the opening-order test.*
 - [ ] **Spawns match pacing.** Early rounds spawn where the player is looking; later rounds spawn from more openings.
@@ -150,6 +160,15 @@ avoid a finale at full intensity.
 - [ ] **Prompts and markers respect walls.** A prompt that fires through a wall teaches the player that walls lie.
   *Proof: stand on the far side of each wall that has a shop, door or switch on it, at the nearest legal spot, and read
   the prompt.*
+- [ ] **Use zones never overlap.** A use zone is the floor a body stands on from which the server offers a thing (its
+  reach, floor, line from the hand and side). Two zones share no ground, with half a metre between, so a press meant
+  for one (a held or tapped repair) never lands on the next (a wall weapon that replaces the gun in hand). Reaches are
+  what a hand needs, measured from where the player stands, not a generous number; where two zones still meet (a
+  teammate down beside a door) the one the player looks at wins, never a fixed order of kinds; a press that carries on
+  a repair buys nothing, and a purchase that costs a weapon takes a press made once its card was read. *Proof: a sweep
+  over a grid of standing ground round every interactable, each zone grown by half the gap, that asks the server's own
+  zone functions and fails on a point inside two; a capture from the player's camera at the worst point* (Deadnight
+  #908, [lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)).
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
 

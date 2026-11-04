@@ -14,6 +14,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
 | Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..." [--conflict <path>...]`) ([below](#idle)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
+| Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
@@ -296,7 +297,8 @@ names the folder and the Movie Maker command.
 ## Session start
 
 Each session is told its workspace, repository and branch, the pinned tool paths, and its branch's scratch folder,
-and to read the checks of the corrections page that touch its task (see [Learning](#learning)). It fires on `startup`,
+and to read the checks of the corrections page that touch its task (see [Learning](#learning)); under the soft disk
+limit, the free space and the rule to keep its output small ([Disk](#disk)). It fires on `startup`,
 `resume`, `clear` and `compact`.
 
 ## Local mains {#mains}
@@ -318,6 +320,22 @@ by itself after 20 minutes. Its report is appended to `scratch/worktree-sweep.lo
 with `CREATE_NO_WINDOW`, so neither it nor its git children flash a console window
 ([lesson](lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md)). `enabled = false` turns it off and
 `args = ["--no-idle"]` limits it to the pull request and issue rules.
+
+## Disk {#disk}
+
+`gds disk guard` ([the rules](workspace.md#disk)) is started in the background by every hook event in a workspace (a
+tool call, an agent's start and stop, a session's start and stop), at most once every `every_seconds` (300) by the age
+of `cache/disk-guard-started`: while anyone works it runs every five minutes. Like the sweep, the hook only starts it and
+returns; the guard takes its own lock (`cache/disk-guard.lock`), runs the sweep under the sweep's lock (skipped when
+another sweep holds it), appends its report to `scratch/disk-guard.log` and writes `cache/disk-guard.json`.
+
+Under `soft_gb` free, SessionStart and SubagentStart add a line to the context: the free space, the folders over
+budget, and the rule to reduce downloaded CI artifacts to their numbers and delete them in the same task. Under
+`hard_gb` free, the PreToolUse guard refuses an Agent call that starts a task agent (helpers and `[disk] exempt`, the
+`reviewer`, still start) and `git worktree add`; `gds issue start` refuses by itself. The refusal names the free space
+and the five biggest folders of the last guard run. The free space is read with one `shutil.disk_usage` call, so the
+check costs nothing; a disk that cannot be read lets the call through. `enabled = false` turns the guard and the
+refusals off.
 
 ## Learning {#learning}
 

@@ -68,7 +68,7 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 | P7 | The arrival read holds as the map opens | the share of the spawn pool coming through real openings, per door state; it does not fall |
 | P8 | Pacing rises and falls as areas open | a door table (first affordable round for 1, 2, 4 players, what it adds, where the rest is); a capture of each closed door showing what is behind |
 | P9 | Each area has a lit landmark seen from its way in | a capture from each entrance and the area before, dimmest state: the landmark is in frame and lit, and the area is named from one frame |
-| P10 | Usable things read as usable; nothing works through a wall | the use-sight test: a grid of standing points round every interactable, behind walls too: no prompt, no press |
+| P10 | Usable things read as usable; nothing works through a wall; no two reaches meet | the use-sight test: a grid of standing points round every interactable, behind walls too: no prompt, no press; the spacing sweep: no standing point inside two use zones, 0.5 m between |
 | P11 | Light guides the route; dark is never black | dimmest-state captures; the blurred frame's (squint test) brightest region is the way on; lit share per area against its design page |
 | P12 | Light stays on its side of the wall | the room behind each glow captured with the glow freed and present: 0 changed pixels; the game's glow-bleed and light-cap tests after any light moves or turns |
 | P13 | The real body's reach, not the jump height | the ledge probe's number, pinned by a test; every wall top over the reach plus anything standable in reach, margin written |
@@ -87,6 +87,9 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    started you (docs/starting-work.md). Never set `S-in-progress` or `P-critical` yourself.
 2. **Worktree.** Made for you: the prompt's `Worktree: <absolute path>` line. Work only there, never on `main`; merge
    main with `gds merge-main`. A worktree is temporary: keep captures and notes in `scratch/`, the work in commits.
+   The disk is shared (`<workspace>/repos/gdstudio/docs/workspace.md#disk`): a downloaded CI artifact is reduced to its
+   numbers and deleted in the same task, raw Movie Maker frames go once the clip or sheet is made, and the scratch
+   topic's `SCRATCH.md` names its pull request (`PR: owner/repo#N`) and what else can go (`Can go: <globs>`).
 3. **The plan first.** Draw the top-down plan with every door, window, spawn, light, shop spot and landmark, and list
    what the map is meant to do (where to learn, kite, hold, rest) and its opening order. A fault seen on paper is cheap.
 4. **Walk it from the player's camera**, never from the editor: the real night, the real camera, the dimmest state and

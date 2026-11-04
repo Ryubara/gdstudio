@@ -152,4 +152,38 @@ pose, with back faces culled as the game draws them.
   the animation's are recorded per clip and may not get worse. Check the probe on a closed and an opened ball.
 - **Physics probes in a test** need two physics steps after new shapes (one returned the last pose's surface) and
   bone poses reset before each sample (clips that do not key the fingers kept the last clip's). Step physics fast in
-  the suite (`Engine.physics_ticks_per_second = 480`).
+  the suite (`Engine.physics_ticks_per_second = 480`)
+  ([lesson](../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
+- **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
+  `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
+  normal with the way out (`normal_update()` first on a new face) and flip.
+
+## Clips that keep the arms out
+
+Learned reworking Deadnight's Soldier clips that put the forearms and hands through the body (Deadnight issue #939,
+`tools/blender/soldier_clips.py` and `tools/blender/arm_clearance.py` there). A clip authored by where a bone ends (a
+hand on a grip, on a chest, on the ground) says nothing about what the forearm and the big kit hand pass through.
+
+- **Measure while authoring.** `arm_clearance.py` runs the game's inside test on the kit body in Blender: every other
+  part the arm must stay out of as one surface (the trunk, the head, the legs, the other forearm and hand), six axis
+  rays from each forearm and hand vertex, inside when all six first meet a face turned away, at every key frame and
+  eight samples. The build prints one `ARMS` line per clip; a pose search runs in one Blender session (about 1 s a
+  pose). The game's sampler on the dressed parts stays the judge: the kit body has no trousers or jacket, so leave a
+  margin and confirm in Godot.
+- **Test the union, as the game does.** Each part's surface is open where its skin meets the next part's, so a hand in
+  a fold (the lap, an armpit) sees a back face of one part or another down every axis while no part alone holds it
+  deeper than 2 cm. A part-by-part proxy called it clear; the game's test counted 83 mm.
+- **Author from what the game draws.** Where an IK holds the arms in one state, the clips of the states around it
+  (equip, the quick melee) start and end on the IK's pose: Deadnight reads its dual pistols' hold in Godot (each hand
+  at x ∓0.62, y -0.42, z 1.23 kit metres, the elbows out and down) and solves the clip's arms to it. A one-handed pose
+  mirrored to the other arm puts both hands on the body's middle line.
+- **What worked (kit metres):** a chest that pitches forward (19 degrees in a blow) lifts the free hand with it (the
+  upper arm raised 20 degrees and swung 12 forward at the end of the blow) or it hangs into the knee; an arm raised over
+  the head swings out 25 degrees, or the forearm goes through the side of the head; two hands on one target stay 0.52
+  apart (0.18 apart, the hands crossed); a hand cannot rest on the belly of a body sitting up with its knees drawn in
+  (18 places, 49-102 mm), so it rests over the knee; a carried rifle's grip sits 0.14 further ahead and 0.09 to his
+  right, or the arm reaching across lies in the jacket (0.09 ahead alone pushed the upper arm's armband in).
+- **Sample the key poses.** Four frames at each quarter's middle missed a windup at 0.25 s (83 mm into the head):
+  Deadnight samples eight, and the Blender check adds every key frame.
+- **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
+  pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
