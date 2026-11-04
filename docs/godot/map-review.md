@@ -79,6 +79,12 @@ circled is a corridor with a countdown.
   longer than the straight line, and a capture from the player's camera behind it with a dead tearing at it. A path to
   a far room proves the map is joined, not that this opening is used (Deadnight #824: a window over a stairwell whose
   dead came in by the next one).*
+- [ ] **Every barricade is a window, never a door.** An opening that reaches the floor says "walk through here", and a
+  barricade is something to hold, not a way through. Each one has a sill (waist high, under the jump), a header and a
+  frame, the navigation reaching the dead over the sill as a link, and the player blocked by it. *Proof: a test that
+  walks every barricade the scenes have and sends a body in under the sill and through the opening with no boards, and
+  a capture from the player's camera of each one (Deadnight #915: "every single barricade should be a window, not a
+  door -- it gives the players this false idea that they can walk through it").*
 - [ ] **A spawn never opens into a closed area.** Closed areas stay closed to the dead too (here, a window opens the dead
   of its own room only). *Proof: the opening-order test.*
 - [ ] **Spawns match pacing.** Early rounds spawn where the player is looking; later rounds spawn from more openings.
