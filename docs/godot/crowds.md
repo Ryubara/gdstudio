@@ -263,3 +263,15 @@ Deadnight, 20 crippled in one tick (two runs of twelve blasts each, the same mac
 0.6 ms; the worst frame after the blast 44 and 46 ms (median of twelve; 50 to 59 ms worst of all) to 3.4 and 3.5 ms
 (3.8 and 5.5 ms worst), against a 1.2 ms steady frame. Keep a larger pool for a look a blast can make in bulk (crawlers:
 20), and prewarm it behind the loading screen.
+
+## A target off the walking mesh turns the crowd round at every repath (Deadnight #950)
+
+`NavigationServer3D.map_get_path(map, from, to, true)` snaps `to` to the nearest point of the mesh when it is off it
+(a player squeezed between two parked cars stands in the band the baker leaves round every obstacle, one agent radius
+wide). The nearest point changes side as the target moves a metre, and the routes to the two sides can be 10 m and 29 m:
+a crowd that asks again every 0.25 s turns round at each answer and walks up and down for ever, 7 m from the player,
+never "stranded" (the path ends within 1 m of the target). Keep the old route while it still ends near the target and
+the new one is much longer (Deadnight `ZombieSim._keeps_its_route`: a new route 6 m longer than what is left of the old,
+an old end within 3.5 m of the target, more than 1 m left to walk). To find it, print a zombie's position every second
+and its path's first points: a position that moves at full speed and goes nowhere, and a path that changes its second
+point from one second to the next.
