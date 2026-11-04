@@ -83,3 +83,17 @@ and a modifier built for a new weapon starts at yaw 0. Write the yaw together wi
 at build time, and pose on every step with a delta of 0 when the clock is stopped: `AnimationPlayer.advance(0.0)`
 applies the clip once, so the skeleton is not left in the model's arms-out rest. Test every level the view can run at,
 reading the bones at `skeleton_updated`. Deadnight #940.
+
+## One action state for every body
+
+A state machine that picks its states by mode (move, attack, stagger, die) and by body only for the move state plays
+the standing clip in the actions of a body that cannot stand. Deadnight's crippled zombie (a crawler, legless, lying on
+its hands) played the walker's `Punch` when it swung and its `HitReact` when hit: its head went from 0.2 to 0.99 m (kit
+scale) for the blow, 4 times its crawl height (#971). Give the body its own state for each action it can take (a
+`crawl_attack` beside `attack`, chosen by one test of the look in the view), author the clip from the body's own
+locomotion frame so it starts and ends on it, and keep three things that follow the clip in step with it: the hit set
+(fitted to the clip, not to the clip the other body plays), the reach and the telegraph (data on the type, read by the
+simulation and the view from one place) and the time scale that puts the clip's blow frame on the telegraph.
+Measure the result as the highest point of the skinned mesh over the clip against the locomotion's (the standing punch
+on the crawler's mesh: 1.84 m, the crawl: 0.85 m, the new attack: 0.87 m), and in the real night as the highest bone of
+the view's skeleton in the mode against the crawl's.
