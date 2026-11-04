@@ -103,6 +103,18 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   quieter trims, no new file) sits at the edge of both gates on a flat speaker: that is the loudest bed the hints allow
   (`docs/research/menu-sfx.md`, "The ambience bed" in the game).
 
+- **A cue that plays live, in a fight, is measured against what it must not hide.** The ladder above is read against
+  the menu. A celebration (a level up, a challenge done) lands in the middle of gunfire, groans and the soldier's
+  warnings, and equal peaks are not equal loudness or equal masking: a sustained brass note at a click's peak is 6
+  LU louder over 400 ms. Record the cue alone and each sound it must not hide alone, on the real service at the
+  default settings, add them (the mix is linear) and gate, in the *hidden* sound's own band (the band holding 80
+  percent of its energy; read a click over 10 ms and the rest over 50 ms), the sound's loudest moment over the cue's
+  loudest moment by 6 dB at least; also gate that the cue stands out of a burst of automatic fire in a few third-
+  octave bands (a tone is heard in noise where it stands out in its own band), that its loudest 400 ms is under a
+  pistol shot's, and that a run of eight in two seconds stays under the biggest cue. Where they conflict, give the
+  cue a **fight trim** (Deadnight: -10 dB while a night runs) rather than duck the game: a cue that lowers the guns
+  hides what the player needs (`docs/research/menu-sfx.md`, "The progression sounds", in the game).
+
 ## 5. Touch, mouse, keyboard and pad
 
 - **No hover on a touch screen** (the CSS `hover: none` media feature exists for this; it fails on devices with both).
