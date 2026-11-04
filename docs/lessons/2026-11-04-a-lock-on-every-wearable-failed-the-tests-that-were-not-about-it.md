@@ -13,4 +13,7 @@ areas: [tests, godot-ui]
 - **Fix:** each test that is not about the lock says what the player owns (`LookUnlocks.at_level(55)`, a top-level
   profile for the menu shell, a hub that lets everything through by default) and the few that are ask for a level.
   Anything a test hides behind a default is a decision: write it in the test.
+  I ran the folders I thought touched looks, and CI found the one I did not (a night test that compared the
+  person's seat to the first preset): when a default changes, grep every test for the call that reads it
+  (`LookStore.load_look`, `default_look`, `looks.looks[`) before choosing which suites to run.
 - **Docs:** [Deadnight's customization page](https://github.com/Ryubara/deadnight/blob/main/docs/design/customization.md).
