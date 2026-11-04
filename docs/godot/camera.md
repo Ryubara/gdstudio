@@ -97,3 +97,26 @@ frame (16 to 43 us a step), whether anyone looked through it or not: the bots', 
 - A rig that ran for no view also read the wrong look: nothing set a bot's `yaw` and `pitch` (a probe printed 0 for a
   night's worth of turns while the body turned), so its weapon's pose read the spawn heading and the lens the
   body-hidden check measured sat behind that. The look from the command is what the pose should read.
+
+## A fly-over that starts on the player's own lens
+
+From Deadnight #973 (the end of a night: a slow pull-back from each player's camera, then cuts between authored angles
+of the map; the game's page is `docs/research/end-of-night.md`):
+
+- **Start on the lens the player had**: copy its `global_transform` and `fov` when the sequence begins and ease both
+  to the first target (`smoothstep` on progress, a quaternion `slerp` for the turn), so the first frame is the frame
+  the player was looking at and there is no cut at the start. Make the new camera current once; it is the only one
+  that joins afterwards.
+- **A pull-back needs a way that has room, not a fixed one.** Straight back and up is a ceiling in an interior. Try
+  several ways (turns from straight back, at several heights), sweep each as the shoulder camera does (from the player
+  to the wanted place, then from the lens to what that reached), and take the one that gets farthest, preferring the
+  straight one on a tie: open ground gets the full pull, a low room gets a way along it.
+- **Authored angles are data and are tested, not trusted.** A shot is a lens drifting from A to B while it looks at a
+  point; a test steps along every shot and rejects it when a ray burst from the lens meets a solid within the lens's
+  clearance (26 rays: a point inside a **concave** CSG wall is not reported by `intersect_point` or
+  `intersect_shape`, but every ray from inside meets the wall's back face at once), when the view is blocked within
+  1.5 m, or when a sphere sweep along the drift stops. Look at the frames too: the test cannot say a shot is dull.
+- **Time is a number** (`seek(seconds)`): the same pose at any frame rate, and a capture or test places the camera at
+  any moment without waiting.
+- **A plan of a closed building**: put the camera high and set `near` so far out that everything above the cut is
+  clipped (`near` of 56.4 from 60 m up shows what is below 3.6 m).

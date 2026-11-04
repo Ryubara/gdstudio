@@ -139,6 +139,26 @@ A test client that is driven by hand must still send its command every tick (`ni
 sent only the spawn requests. Fire with the same command a player's input makes (`NightCommand.aim_along`, `fire`),
 never with `server._combat(...)` beside the step: the server refuses a shot whose view disagrees.
 
+## An end the server owns: intermission and return (Deadnight #973)
+
+The end of a match is a state of the server, not of each client, or no two screens agree on the second:
+
+- **Freeze, count, say once.** When the rules say the match is over the server stops stepping the world (bodies,
+  enemies, rules) and only counts the intermission, putting the whole seconds left in every frame (`-1` while the match
+  is on, so it costs a match in play nothing) and sending one `night_closed` event at 0. A client counts by that number.
+- **The client stays through it.** Leaving the seat at the game over (to avoid an unread socket) made the screens
+  diverge and left nothing to show; reading the frames costs nothing when the world is still, and a client that is
+  sent no commands cannot move. It closes its link at the event or when its player presses Leave. The room waits a
+  short grace for the rest and hangs up on them.
+- **A frame that says the match is over also covers a late arrival** (a seat taken during the intermission heard no
+  `game_over`).
+- **The return is the backend's to remember.** The game server tells the backend the match *finished* and which users
+  were still present; the backend reopens the same lobby (code, host, settings) for them instead of dropping it. A
+  match that ended any other way (everyone left, a crash) still drops it. A client asks for its lobby until it reads
+  `open`, because it may ask before the game server's call has landed.
+- **Test it over real sockets** with the real backend and a leaver: clocks within a second of each other, the room freed,
+  the lobby open again with the host's rules, a host who left replaced, and a night everyone left not reopened.
+
 ## Web export
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
