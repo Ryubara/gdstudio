@@ -381,3 +381,15 @@ synthesised so there is no licence to ask about:
 - **Keep it dark** (nothing over 1.5 kHz to speak of) when interface hints live at 1.5 to 8 kHz; the pad's own
   loudness curve should move only a few dB over the loop. A phone speaker loses what is under 500 Hz, so a pad of low
   notes is silent there: give it harmonics and an octave above, and put the wind in the mids.
+
+## A queue of lines said one after another
+
+A helper that says "after the line that speaks" (`wait = director.wait()` at the call) is right for one caller and
+wrong for two in the same instant: both read the wait of a free channel, both start together, and the second is refused
+by the busy channel. Several lines due together (two players levelling up in one tick, Deadnight #1063) go through one
+queue: say the front one, schedule the next after the channel's wait when it started, retry after that wait (at least
+0.05 s, so a big test step cannot spin) when the channel held it back, drop it when the channel is free and it was
+still refused (its cooldown, a downed speaker). Lines that arrive within a short window for the same player are
+collapsed to the best one first, so a level, its tier and its item are one cheer. Test two speakers at once with
+small steps, not one big step.
+([lesson](../lessons/2026-11-04-two-lines-queued-in-one-instant-got-the-same-wait.md))
