@@ -64,7 +64,9 @@ focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOpti
 - **Budget the phone's height before the desktop's.** A phone held sideways has 540 units, and a form that already
   fills them takes no new row: a `GridContainer` that goes from one column to two, tighter gaps and a card without a
   picture kept the Play screen inside the canvas. After the columns change, set the focus neighbours again.
-  Headless tests cannot see this overflow (text measures as nothing): run the capture tour at 844 by 390
+  A headless test sees the overflow only when the screen is under the router's themed stage
+  ([lesson](../lessons/2026-11-04-a-headless-layout-test-measured-without-the-stages-theme.md)); the capture tour at
+  844 by 390 shows it as the player has it
   ([lesson](../lessons/2026-11-03-a-new-row-pushed-a-form-off-a-phone-held-sideways.md)).
 - **Test every input the card takes:** arrow keys and Enter (`get_viewport().push_input` with `InputEventKey`), the
   d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
@@ -76,9 +78,45 @@ A setting that is a choice of two or three words shares a form row with its neig
 own (`bots` and `bot_skill`; `count_multiplier` and `perk_limit`): an `HBoxContainer` of two `UIOptionSelector`s, both
 `SIZE_EXPAND_FILL`, linked up and down by `focus_neighbor_*`. A selector cell is about 146 px wide on the desktop
 panel: a one-word label fits (`Unlimited`), two words ("Unlimited perks") are clipped under the arrows. The row's hint
-says what the words mean. A headless test sees none of it (text measures as nothing): look at the 1280x720 and
-1168x540 captures
+says what the words mean. A headless test sees it only under the themed stage (see
+[A card taller than its screen](#a-card-taller-than-its-screen)): look at the 1280x720 and 1168x540 captures
 ([lesson](../lessons/2026-11-03-a-new-match-setting-took-a-sixth-row-and-a-label-too-wide.md)).
+
+## A card taller than its screen
+
+A `Control` with a full-rect `VBoxContainer` in it grows to its content's height, and nothing clips it: a column taller
+than its area runs under whatever is below (Deadnight's Loadout tab ran under the key hints and off the right edge,
+the Settings screen was 1103 units high on a 1080 canvas and 741 to 1103 on a phone's 540, Play together was 897;
+Deadnight issue 980). The canvas is 1080 units high on every desktop window shape (the 1920 x 1080 base stretches with
+`expand`, so a taller window is taller and a wider one wider) and 540 on a phone, 960 to 1170 wide: only the interface
+size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep are few.
+
+- **Bound the area, scroll the rest.** `UIFitScroll` (`gds_ui`) is a `UIScroll` that asks for its content's height and
+  no more than the screen leaves (`limit`, `margin`, `card`, and `steady` to keep a height between short pages); the
+  title and the buttons around it stay on the screen. A tab's column goes in a scroll area the size of its panel
+  (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height its tab leaves
+  (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
+- **A scroll area takes width too.** The theme gives every `ScrollContainer` `hover_room` at each side and the bar a
+  track: content that was exactly the panel's width is 54 units wider than its panel once it sits in one. Extend the
+  area past the panel by that room (`offset_left`, `offset_right`) or build the rows narrower by `UIScroll.side_room`;
+  `SCROLL_MODE_RESERVE` keeps the track in place whether or not the column scrolls.
+- **Cap the width as well as the height.** A fixed `custom_minimum_size.x` (1200, 1280) is wider than a phone's
+  960-unit canvas: set it from the canvas on `resized`. A row that cannot fit beside its title stacks
+  (`UIRow.set_stacked`, `set_widths`); a header (a tab bar and a plate) takes the width in turn.
+- **Test it as a sweep of rectangles, in the tree the player has.** Open every screen and tab at each canvas, and fail
+  when a control's shown rectangle (cut by the clippers above it: what a scroll hides is not on the screen) crosses
+  the screen's edge, its area, the header or the footer, or is wider than a clipper that cannot scroll that way.
+  Report the outermost offender only. Deadnight: `game/tests/ui/ui_fit.gd` and `ui_fit_run.gd`, the suite
+  `test_ui_fit.gd`, and the capture tour `ui_fit_tour.tscn`, which prints the same sentences beside real pictures.
+- **Put the screen under the themed stage.** A screen built under a bare `Control` has no theme: no fonts, no scroll
+  room, no bars, and a title 23 units high instead of 83
+  ([lesson](../lessons/2026-11-04-a-headless-layout-test-measured-without-the-stages-theme.md)). The router's stage
+  (`UIThemeBuilder.build(UITokens.active())`) is what the player has; a headless run then measures the same numbers as
+  a window.
+- **Not every size is a size.** A phone held upright is covered by the "turn your phone" prompt (test that it is); a
+  phone at the Large interface size has a 432-unit canvas and is left out of the sweep. The phone sizes swept are
+  844 x 390 (a 1169 x 540 canvas), 932 x 430 and 667 x 375 (the narrowest, 960 x 540)
+  ([lesson](../lessons/2026-11-04-menu-panels-ran-under-the-footer-because-nothing-bounded-them.md)).
 
 ## Touch controls
 
