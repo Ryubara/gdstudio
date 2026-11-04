@@ -115,6 +115,12 @@ circled is a corridor with a countdown.
   walks every barricade the scenes have and sends a body in under the sill and through the opening with no boards, and
   a capture from the player's camera of each one (Deadnight #915: "every single barricade should be a window, not a
   door -- it gives the players this false idea that they can walk through it").*
+- [ ] **A dead that works a barricade stands where a person inside can shoot it.** The zone a dead counts as "at the
+  boards" is made for the dead's body (a gap's width and a body's slack), not for the person's line of fire; the clear
+  opening between the jambs is narrower. *Proof: a crowd sent at the boards of every window and breach, and on every
+  tick one is tearing, a ray from where a person stands (the repair spot, close, beside, deep) to its chest and head
+  through the world's solids and its hit zones (Deadnight #997: a dead tore from in front of a jamb for 190 s while the
+  round waited).*
 - [ ] **A spawn never opens into a closed area.** Closed areas stay closed to the dead too (here, a window opens the dead
   of its own room only). *Proof: the opening-order test.*
 - [ ] **Spawns match pacing.** Early rounds spawn where the player is looking; later rounds spawn from more openings.
