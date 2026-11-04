@@ -44,8 +44,11 @@ Rules:
   (Deadnight #934: 60 draws a second to 3).
 - A hidden item (`visible = false`) is not redrawn, but a parent that sets its own `visible` again every few frames
   (as the touch layer did) brings it back.
-- About 5 fences a frame are the renderer's own (one per canvas or 3D render pass: `bufferData` of a state buffer, then
-  `fenceSync`, then `deleteSync`); they stay.
+- About 5 fences a frame are the renderer's own (`bufferData` of a state buffer, then `fenceSync`, then `deleteSync`),
+  one per canvas (the root and each `CanvasLayer`, empty or hidden too) and one per 3D pass. They are fewer when the
+  overlays share one layer: Deadnight went from 5 to 2 by moving three layers' worth of overlays into the router's
+  (#883). A pure-polygon item that is only *moved* (a child `Node2D` whose position, scale and alpha are set) makes
+  no new commands; one redrawn does.
 
 ## How to find it (an hour, not a week)
 
