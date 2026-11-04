@@ -94,6 +94,8 @@ the probe output.
 - **A test that counts objects** reads `Performance.get_monitor(Performance.OBJECT_COUNT)` (and the node, resource and
   orphan counts) before and after, and asserts afterwards: a GdUnit assertion is an object of its own, so one inside the
   counted loop adds to the number it checks.
+  The counts are the whole process's: assert growth (`is_less_equal(before)` or `before + SLACK`), never `is_equal`, or
+  an earlier suite's free fails a test that leaked nothing.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
