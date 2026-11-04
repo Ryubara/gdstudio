@@ -106,3 +106,13 @@ mode added later is measured too: #971 fixed the attack only, and the stagger (`
 (`Death`, 1.81 m) kept standing the crawler up until #1000 gave it `Crawl_Stagger` and `Crawl_Death` (0.87 m and
 0.85 m). A flinch is as long as the stagger the simulation holds (0.4 s: the clip is played from its start on every
 entry and is not scaled), and a fall is a clip that holds its last frame while the body lies.
+
+## Two clips half a turn apart on a bone
+
+The tree blends a bone's rotation between two clips along the shorter arc. Where the two are near half a turn apart
+(a hand rolled over between a gun hold and a carry), the shorter arc swaps sides as either clip moves, and the bone
+spins most of a turn in one tick of the crossfade. Deadnight's sprint carries had the left wrist 175-180 degrees off
+the gun hold's; the build now rolls the forearm about its own axis until every frame is within 150 degrees, and
+prints the worst
+([lesson](../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
+modifier's own slerp on one arc does not help when the flip is in the tree.
