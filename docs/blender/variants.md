@@ -185,6 +185,12 @@ hand on a grip, on a chest, on the ground) says nothing about what the forearm a
   right, or the arm reaching across lies in the jacket (0.09 ahead alone pushed the upper arm's armband in).
 - **Sample the key poses.** Four frames at each quarter's middle missed a windup at 0.25 s (83 mm into the head):
   Deadnight samples eight, and the Blender check adds every key frame.
+- **The sampler loads what the game loads.** A clip in its own file is sampled only if the sampler adds that file:
+  a test that finds it only because another suite put it in the shared library passes alone and fails in a run, or
+  the reverse. Add every new clip file to the sampler in the same change (Deadnight `ClipFit.add_player_clips`).
+- **A prop held to the face:** the hand sits along the prop from the point at the mouth, so a bottle tipped up past
+  level from far round to the side puts the fist over the face. Deadnight's drink: 45 degrees round, at most 126 from
+  upright, the elbow pole a little back; 58 and 135 put the fist 60 mm into the head.
 - **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
   pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
 
