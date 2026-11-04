@@ -11,6 +11,11 @@ minutes). How it is started decides what it can build.
   tools load (a game's player, its animation, holds and grips) must not name an autoload; find the service by its node
   (`get_tree().root.get_node_or_null(^"Audio")`) and `call` it
   ([lesson](../lessons/2026-11-03-an-autoload-named-in-a-player-class-broke-every-s-tool.md)).
+- **A `SceneTree` script's root is not in the tree in `_init` or `_initialize`.** `global_position` then reads the
+  origin, and the only trace is `!is_inside_tree()` in the log, so a check that passes when nothing is hit passes from
+  the wrong place. Add with `get_root().add_child.call_deferred(node)`, `await process_frame` twice, fail if
+  `not node.is_inside_tree()`, and give the check a control that must hit
+  ([lesson](../lessons/2026-11-04-a-probe-out-of-the-tree-cast-its-rays-from-the-origin.md)).
 - **A scene** (`godot --headless --path <game> res://tests/captures/probe.tscn -- --arg=value`) has them. Read the
   arguments with `OS.get_cmdline_user_args()`, print one line of JSON at the end, end with `get_tree().quit()`, and
   write the output to a file (`> log 2>&1`), then read the file: a pipe into `tail` shows nothing until the run ends.
