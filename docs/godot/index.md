@@ -12,6 +12,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | System | Used for | Status |
 | --- | --- | --- |
 | Control, containers, Theme | every menu and the HUD; tokens generate the Theme | known: [UI controls](ui-controls.md) |
+| Canvas drawing (`_draw`, labels) | the HUD's cards, bars and text | known: [Canvas draw calls](canvas-draw-calls.md) (polygons and outlined labels are draw calls of their own; one triangle array per card, two calls per label) |
 | Tween, easing | all UI motion | known: [UI controls](ui-controls.md) (not on disabled or freed nodes; bind transition tweens to the stage) |
 | canvas_item shaders | screen transitions, film grain, vignette | known: [UI controls](ui-controls.md) (procedural, no screen read) and [Compatibility lighting](compat-lighting.md#full-screen-post-shader) |
 | Focus and input map, gamepad | keyboard and gamepad navigation | learn while building |
