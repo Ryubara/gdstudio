@@ -143,3 +143,8 @@ script), and the Godot editor opened by a person or by the MCP add-on.
 - Foreground tests are flaky for a reason outside Godot: Windows decides whether a background process may take the
   foreground (`ForegroundLockTimeout`, last input, parent process). That is why the test also checks for windows on
   the person's desktop, which does not depend on that decision.
+- **GdUnit through `gds godot` can hang where CI does not.** A windowed run of a suite that pushes pointer events, followed
+  by a suite that starts a night, stalled the night's `UIRouter.idle`; the same pair headless, as CI runs it, passed. Run
+  suites with `godot --headless ... GdUnitCmdTool.gd ... --ignoreHeadlessMode`, keep `gds godot` for captures, and
+  give a long windowed run `gds godot --timeout 3000 --` (the default stops it at 900 s)
+  ([lesson](../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)).
