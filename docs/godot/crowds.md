@@ -219,6 +219,31 @@ at 0.25 m cells, so 0.4 m is within 0.1 m), and move it there at a climb rate. S
 height too, or a walker on the ramp pushes one on the floor under it and the dead under a floor hit the person over
 their heads. Prove it with a pack on the real ramp and a control that walks the same mesh with the heights left out.
 
+## A player's body against a crowd that is not physics bodies
+
+A crowd of plain data (positions and a state machine on the server, drawn from a frame on the client) is not in the
+physics world, so a `CharacterBody3D` walks through it: `move_and_slide` can only meet what has a collision layer
+(Deadnight #914: the dead had no bodies for performance and determinism, and nobody decided that players could run
+through them). Make it solid in the movement function both machines run, not with a physics proxy:
+
+- Each walker is a circle on the ground. After the slide, a body that ended inside one is put back on its edge and loses
+  the speed it had into it (`move_and_collide` for the correction, so a wall still wins). One-way: never nearer than the
+  tick began, never pushed out of an overlap, so a prediction that disagrees by a few centimetres never fights the
+  reconciler.
+- Both machines must use the same positions. A server that blocks by where the crowd stands now, and a client by the
+  frame it drew (a round trip old), disagree by the crowd's speed times the lag; the server keeps the last few ticks of
+  positions (rounded to the frame's centimetres) and blocks each body by the frame its command names (the view step the
+  lag compensation already uses). Measured with 120 ms of round trip and a walker that came to meet the body (8 runs,
+  the median of the largest correction the reconciler asked for): 0.27 m by the frame the client drew, 0.58 m by where
+  the crowd stood now, 0.29 m with no crowd at all.
+- The push that moves a walker is the server's alone (the client sees the walker move in a later frame): a player who
+  presses into one for a moment and then keeps pressing yields it, and it goes across the player's way, not ahead of it.
+  A walker that yields straight away from the body is led along by the player at the yield speed, and a block of a dozen
+  does not give at all (stuck for 20 s); rolling it aside (80 percent across) passes one in half the time and the block
+  in six seconds. A wall behind the walker stops the yield (a ray), and then it rolls to the side.
+- Cost: microseconds per tick per body, only for the walkers within three metres; see Deadnight
+  `docs/research/dead-contact.md` for the numbers.
+
 ## A pooled body costs 1 ms to take if the pool still looks the scene up
 
 Deadnight #932 (a blast that cripples 20 walkers into crawlers: a 45 to 59 ms frame, a steady 1.2 ms). Three costs

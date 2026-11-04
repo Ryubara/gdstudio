@@ -68,7 +68,7 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 | P7 | The arrival read holds as the map opens | the share of the spawn pool coming through real openings, per door state; it does not fall |
 | P8 | Pacing rises and falls as areas open | a door table (first affordable round for 1, 2, 4 players, what it adds, where the rest is); a capture of each closed door showing what is behind |
 | P9 | Each area has a lit landmark seen from its way in | a capture from each entrance and the area before, dimmest state: the landmark is in frame and lit, and the area is named from one frame |
-| P10 | Usable things read as usable; nothing works through a wall | the use-sight test: a grid of standing points round every interactable, behind walls too: no prompt, no press |
+| P10 | Usable things read as usable; nothing works through a wall; no two reaches meet | the use-sight test: a grid of standing points round every interactable, behind walls too: no prompt, no press; the spacing sweep: no standing point inside two use zones, 0.5 m between |
 | P11 | Light guides the route; dark is never black | dimmest-state captures; the blurred frame's (squint test) brightest region is the way on; lit share per area against its design page |
 | P12 | Light stays on its side of the wall | the room behind each glow captured with the glow freed and present: 0 changed pixels; the game's glow-bleed and light-cap tests after any light moves or turns |
 | P13 | The real body's reach, not the jump height | the ledge probe's number, pinned by a test; every wall top over the reach plus anything standable in reach, margin written |
