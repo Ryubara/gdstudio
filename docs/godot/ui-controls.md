@@ -12,7 +12,7 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | Slider hit area | HSlider hit-tests with the grabber icon's width, so the theme's invisible grabber must be as wide as the drawn thumb. Check with a real InputEventMouseButton: a click at 60% of the travel gave 1.85 of 0.1 to 3.0. |
 | An overlay in a padded container | A `PanelContainer` (any container with content margins) lays out every child inside the margins, an overlay such as a border included, so padding for the words shrinks the border with them. Give the overlay its own room: draw it outside its rectangle by the margin (a `grow` on the control; drawing outside the rect is allowed), and take the room from the content, not from the container, so the row keeps its width ([lesson](../lessons/2026-11-05-a-border-over-a-plate-shrank-with-its-padded-container.md)). |
 | Invisible textures | Never a PlaceholderTexture2D: it draws a magenta checker in game. Use a transparent ImageTexture. |
-| Runtime UI scale | `Window.content_scale_factor` resizes CanvasLayer stages and anchored controls; with `canvas_items` stretch the visible area is the base size divided by the scale. Avoid autowrap Labels in rows: they inflate containers. A phone capture needs the game's own factor (`MenuScale.factor(window.size, 1.0)`), or it shows the design canvas shrunk, not the phone's layout ([lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)). |
+| Runtime UI scale | `Window.content_scale_factor` resizes CanvasLayer stages and anchored controls; with `canvas_items` stretch the visible area is the base size divided by the scale. Avoid autowrap Labels in rows: they inflate containers. A phone capture needs the game's own factor (`MenuScale.factor(window.size, 1.0)`), or it shows the design canvas shrunk, not the phone's layout ([lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)). **On a web page the window is the canvas in device pixels** (the ratio is capped at 2: an 844 x 390 phone page is 1688 x 780), so "a phone" is the page's short side in CSS pixels, not the window's; a test or capture names a page, never a bare 844 x 390 window, which no phone page has ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md)). |
 | Resolution scale | `Viewport.scaling_3d_scale` only affects 3D. |
 | A button that holds a container | A `Button` never asks its children how tall it is (a script `_get_minimum_size` on a native button is not consulted), a container built outside the tree reports a minimum of 0, and an autowrap `Label` reports a height for the width it has now (1,900 units before its first layout). A focusable card with rows inside it (Deadnight's poster set, #1073) was 8 units tall and the cards stood on each other: compute its height by hand from `font.get_height(size)`, break long text with `get_string_size` and a line feed in the text, and set `custom_minimum_size` before it is added ([lesson](../lessons/2026-11-04-a-button-holding-a-container-did-not-size-to-it.md)). |
 | Fitting text | A `Label` with `clip_text` or an ellipsis overrun has a minimum width of 0, so a container squeezes it to nothing: give it `custom_minimum_size.x`. Fit text from one measurement (size × room / width), since `get_string_size` shapes the string on every call. Test layouts with the longest values the game allows, and with a wide face: `FontVariation.variation_transform` makes a synthetic wide one, so CI needs no font file. |
@@ -240,11 +240,17 @@ line under it.
 
 ## Reading a screen under test: the scale it really runs at
 
-- **A phone's scale is the screen's, not the phone's.** The menus and the lobby have `MenuScale.factor(window.size,
-  ui_scale)` (2 on a phone: a 1169 by 540 canvas, 0.72 px to the unit at 844 x 390); a night has the interface size
-  alone (`NightScreen._ready`), about 0.36 px to the unit. A phone capture or pixel reading of a HUD place sets
-  `content_scale_factor = ui_scale`, of a menu place `MenuScale.factor(...)`
-  ([lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
+- **A phone is a page, and its scale is the screen's.** A phone's web page is a canvas of twice its CSS size (the pixel
+  ratio is capped at 2, `PhoneRender`): an 844 x 390 page is a 1688 x 780 window, and `MenuScale.is_phone` reads the
+  page (`PageSize`, a touch device under 500 CSS px) as well as the window. The menus and the lobby then have
+  `MenuScale.factor(window.size, ui_scale)` (2: a 1169 x 540 canvas, 0.72 CSS px to the unit, on any ratio); a night
+  has the interface size alone (`NightScreen._ready`), about 0.36 CSS px to the unit. A capture or reading names the
+  page (`UiFitRun.set_window(size, scale, ratio)`, 1688 x 780 at 2 and 2532 x 1170 at 3 for an 844 x 390 page) and a
+  HUD place sets `content_scale_factor = ui_scale`, a menu place `MenuScale.factor(...)`; `MenuScale.describe` prints
+  which scale a window runs at. The numbers a person measures (smallest text, smallest target, in CSS px) are
+  `UiAudit`, in the web probe and in `test_phone_floor.gd`
+  ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md);
+  [earlier lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
 - **Build a screen under the router's theme.** A test that adds a screen to a bare `Control` has Godot's default font and
   half-height rows; give the host `UIThemeBuilder.build(UITokens.active())` or open the screen through `UIRouter`
   ([lesson](../lessons/2026-11-05-a-screen-built-without-the-routers-theme-measured-a-problem-that-was-not-there.md)).
