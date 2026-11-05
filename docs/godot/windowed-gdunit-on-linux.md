@@ -29,7 +29,10 @@ server; killing only Godot leaves it). A suite that hangs then costs its timeout
 suite, and the kit lesson on the windowed hang
 ([lesson](../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)) cannot take a whole
 folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI suite
-that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`.
+that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
+cause found since is that GdUnit minimizes the window after every suite and a minimized window draws nothing
+([A minimized window draws nothing](minimized-window.md)); an X server with no window manager has no minimize state,
+and one process a suite meets only the first suite's un-minimized window.
 
 GdUnit prints `Overall Summary: N test cases | E errors | F failures | L flaky | S skipped | O orphans |` last; read the
 counts from it rather than the exit code (100 for failures, 101 for warnings, another for a crash), and treat a run
