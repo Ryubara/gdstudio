@@ -18,6 +18,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
+| Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
 | Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
@@ -141,6 +142,44 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
 
 Do not put an `if:` or a `paths:` filter on `hold`: a job skipped by `if:` reports success, so a filter on the label's
 name would let any other label replace a failed run. `python/tests/test_hold.py` has a test for each such reason.
+
+## Comments {#comments}
+
+Nothing an agent runs posts a comment or a review under the maintainer's GitHub account (their decision of 2026-10-12);
+status labels say that work is under way. `check_comments` in `guards.py` judges what `gh` would do, because a rule
+that lists the commands named `comment` let `gh issue close --comment` post on #691
+([lesson](lessons/2026-11-05-a-closing-comment-passed-a-rule-that-listed-commands.md)). The routes come from every page
+of `gh help` in gh 2.102 and the mutations from GitHub's schema, read on 2026-11-05; a later `gh` can add a route, so
+the list is only as current as that walk.
+
+| Route | Refused | Still allowed |
+| --- | --- | --- |
+| `gh issue comment`, `gh pr comment`, `gh discussion comment` | always, `--edit-last`, `--delete-last` and `--help` included | `gh help issue comment` for the manual; `gh issue view --comments` and the like |
+| `gh pr review` | always, with or without text | `gh pr view`, `gh pr edit --add-reviewer` |
+| `gh issue close`, `gh pr close`, `gh issue reopen`, `gh pr reopen` | `--comment`, `-c`, as `--comment=x`, `-c=x`, `-cx`, or in a cluster (`-dc x`) | the same commands without it; `--reason`, `--duplicate-of`, `--delete-branch` |
+| `gh api` | `POST`, `PATCH` or `PUT` to a path with a `comments` or `reviews` part (issues, pull requests, commits, gists, discussions, teams), the method named or implied by `-f`, `-F`, `--field`, `--raw-field`, `--input` | a read of those paths, a `DELETE` of a comment, any other path |
+| `gh api graphql` | `addComment`, `addDiscussionComment`, `addPullRequestReview` and its comment and thread forms, `dismissPullRequestReview`, `submitPullRequestReview`, `updateDiscussionComment`, `updateIssueComment`, `updatePullRequestReview` and its comment form; a query this guard cannot read (from a file, a variable or `--input`) | a query written in the command, any other mutation (`closeIssue`) |
+| `gh alias set` | an alias whose expansion is one of the above | any other alias |
+
+A body is not a comment: `gh issue create|edit --body`, `gh pr create|edit --body` and `gh pr merge --body` (the text of
+the merge commit) are allowed. The one exception is the maintainer's (2026-10-24): `gh issue comment N --body <claim>`,
+whose whole body is one claim command (`/claim`, `/claim renew`, `/claim scope: ...`, `/unclaim`, `/release`, `/progress
+<stage>`).
+
+A command counts wherever a line starts it: after `&&`, `;`, `|`, `then`, `(`, `{`, `$(...)` and backticks, behind
+`env`, `timeout`, `command`, `nohup` and `xargs`, inside `bash -c`, `pwsh -Command`, `cmd /c` and `eval`, over a line
+continuation, as `gh.exe` or a path to it, with `-R` before the command (`gh issue -R o/r close 5`). Text that only
+mentions one passes: an `echo`, a `grep`, a commit message, a single-quoted body, a heredoc.
+
+Not seen, because no shell line says it: a script file, a heredoc fed to a shell, `uv run gh`, `npx`, `Start-Process`,
+an alias made before this guard, a `gh` extension, `curl` with a token, the website, and `gh` called from Python.
+That last one includes `gds` itself: `gds issue start`, `release` and `unblock` post their status comments under the
+running account by design ([Starting work](starting-work.md)).
+
+A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook
+`no-comment-as-user.js`, outside this repository. It refuses any `gh issue comment` or `gh pr review` where a line
+starts it, including `--help`, and reads a heredoc's lines as commands, so a test string that names one has to be
+written with the Write tool. It does not know the closing routes; this guard is what covers them here.
 
 ## Issue order {#issues}
 
@@ -384,7 +423,8 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
 
 ## Tests
 
-`python/tests/test_hooks.py` covers every guard, the answer protocol, the fail-open path, the issue-order checks, the
+`python/tests/test_hooks.py` covers every guard (the comment guard with one case per route, spelling and mutation, and
+one per command that must keep working), the answer protocol, the fail-open path, the issue-order checks, the
 stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check (the refusal and both commands,
 a task agent never judged, the refusal limit and its reset, the `gh` cache, failing open) and the learning loop (each
 event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
