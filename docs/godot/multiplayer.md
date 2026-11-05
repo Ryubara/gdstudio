@@ -151,6 +151,11 @@ A ticket's map is kept only when the host's level opens it, so name a host level
 seat)` opens the back rooms at 10) and assert `room.server.rules.settings.map` first. The count multiplier is also the
 speed of the spawns: below 1 a round is smaller and the dead come that many times as slowly (0.25: four times), above 1
 they come faster. A test about many rounds takes 0.25; a test about seconds takes 2.
+The spawn clock is the real cost of a round, not the play: at the shipped tuning a round of a night at 0.25 waits 13 s
+for each dead. A room test that plays rounds shortens it in its own copy of the tuning
+(`rounds.first_spawn_delay = 0.1`, `spawn_interval_start = 0.1`, `spawn_interval_min = 0.05`); Deadnight #1074's
+online suite of 11 cases went from 270 s to 23 s that way, with the same checks, and a shard fails at 80% of its
+time limit.
 
 ## Act on a rules event where the rules say it, not in the list a step returns (Deadnight #1059)
 
