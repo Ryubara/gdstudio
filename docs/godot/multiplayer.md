@@ -141,6 +141,17 @@ A test client that is driven by hand must still send its command every tick (`ni
 sent only the spawn requests. Fire with the same command a player's input makes (`NightCommand.aim_along`, `fire`),
 never with `server._combat(...)` beside the step: the server refuses a shot whose view disagrees.
 
+A test that is the server (a kill, a purchase, a blow, a repair made with `rules.apply`) is heard by the server's own
+listeners (the tallies) and by no client unless its events are sent on: `room._collect(rules.apply(action))`
+(`NightHost._collect`). Compare a client's count only after the client has heard the event.
+
+## A room test that needs a map or a fast round
+
+A ticket's map is kept only when the host's level opens it, so name a host level (`TicketMaker.make(..., settings, 12,
+seat)` opens the back rooms at 10) and assert `room.server.rules.settings.map` first. The count multiplier is also the
+speed of the spawns: below 1 a round is smaller and the dead come that many times as slowly (0.25: four times), above 1
+they come faster. A test about many rounds takes 0.25; a test about seconds takes 2.
+
 ## Act on a rules event where the rules say it, not in the list a step returns (Deadnight #1059)
 
 `NightServer.step` returns the events of that tick, but a rules event can also be made by an `apply` between steps, by a
