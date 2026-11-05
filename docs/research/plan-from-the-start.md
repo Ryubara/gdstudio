@@ -15,6 +15,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
   the shot waits for the body's turn
   ([lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md)).
+- Plan: a rule that follows from a state (empty, downed) is evaluated from that state on the server each tick, never
+  as a side effect of an action a control can stop sending
+  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
   it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button
