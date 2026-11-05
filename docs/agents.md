@@ -39,3 +39,5 @@ covers well.
    no change is a stall, and a fresh agent takes over from its notes
    ([lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The `SubagentStop` hook also
    refuses the end of an engineer or artist whose last message is no report ([Agent stalls](hooks.md#stall)).
+
+<!-- hold proof t0 -->
