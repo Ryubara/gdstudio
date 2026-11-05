@@ -31,8 +31,8 @@ suite, and the kit lesson on the windowed hang
 folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI suite
 that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
 cause found since is that GdUnit minimizes the window after every suite and a minimized window draws nothing
-([A minimized window draws nothing](minimized-window.md)); an X server with no window manager has no minimize state,
-and one process a suite meets only the first suite's un-minimized window.
+([A minimized window draws nothing](minimized-window.md)); the pair did not hang under xvfb, so the minimize had
+no effect there (not looked into), and one process a suite meets only the first suite's window anyway.
 
 GdUnit prints `Overall Summary: N test cases | E errors | F failures | L flaky | S skipped | O orphans |` last; read the
 counts from it rather than the exit code (100 for failures, 101 for warnings, another for a crash), and treat a run
