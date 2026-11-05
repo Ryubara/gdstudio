@@ -5,10 +5,16 @@ areas: [tests, tools]
 
 2026-11-04
 
-- **Saw:** `gds godot -- ... GdUnitCmdTool.gd -a <a UI suite that pushes mouse events> -a res://tests/ui/test_night_crosshair.gd`
+- **Saw:**
+  `gds godot -- ... GdUnitCmdTool.gd -a <a UI suite that pushes mouse events> -a res://tests/ui/test_night_crosshair.gd`
   never finished: the night's `UIRouter.idle` never fired and each test timed out after 5 minutes (and `gds godot` itself
   stopped the run at its default 900 seconds, which also cut the log short). The crosshair suite alone passed in 14 s.
-- **Cause:** not found in the code. The same pair run **headless**, as CI runs it (`godot --headless ... --ignoreHeadlessMode`),
+- **Cause, found on 2026-11-05 (Deadnight #1207):** it was not the pointer events. GdUnit minimizes the window after
+  every suite, a minimized window draws no frame, and the night's warm-up waits for `RenderingServer.frame_post_draw`;
+  any suite that opens a night after another suite hung, in either order. See
+  [the lesson](2026-11-05-a-minimized-gdunit-window-hung-the-next-suite-s-warm-up.md) and
+  [A minimized window draws nothing](../godot/minimized-window.md). Written first as "not found in the code".
+  The same pair run **headless**, as CI runs it (`godot --headless ... --ignoreHeadlessMode`),
   passed in 11 s; the hang is in the windowed run on the private desktop after the first suite's pushed pointer events.
   Bisecting by hand was misleading for a time: `-a file.gd:test_name` runs nothing of that file when more than one is
   given, so "single tests pass" was the second suite's result alone.
