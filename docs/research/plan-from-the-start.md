@@ -51,6 +51,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md)).
 - Plan: multi-touch with two thumbs at once, and hold buttons (aim) that also drag to look; per-finger positions,
   never `relative` ([lesson](../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md)).
+- Plan: touch designed as its own interface before its first button: every action and every element on the screen for
+  that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
+  expects everywhere (reload at 0) are proved through each device's real input path
+  ([lesson](../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md)).
 - Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
   ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
 

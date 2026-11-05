@@ -1,0 +1,23 @@
+---
+areas: [godot-ui, input]
+---
+# A phone was built as a keyboard on glass, and every button passed its tests
+
+2026-11-05
+
+- **Saw:** the maintainer on Deadnight's phone controls (#1275 to #1280): "we're still treating the users as if they're
+  playing the desktop version but just with touch controls. The entire UI needs to change. Why do we have a "swap"
+  weapons button when we clearly have a UI showing the weapons". And: "right now when aiming and auto firing it doesn't
+  auto reload when it hits 0."
+- **Cause:** touch was built by giving each desktop action a button, because the layer presses the game's input actions
+  (`game/ui/touch/touch_controls.gd`) and "nothing else forks". That kept the code simple and made the phone a keyboard
+  on glass. Each button passed its size, safe-area and floor tests, so no test could say there were too many, or that a
+  HUD element already on screen did the job. The earlier corrections show the same thing: the phone was fixed one
+  complaint at a time (Deadnight #470, #599), never designed.
+- **Fix:** the rework is Deadnight's #1275 to #1280 (still open), with reload at 0 on every device in #1278. Check for
+  next time: before building controls for a device, list every action and every element on the screen for that device
+  and give each a verdict (keep, make the existing element tappable, drop as a duplicate). A control count and a
+  duplicate check are a design review, not a size test; a button that repeats what a visible element shows is a bug.
+  Reload at 0, and any rule the player expects from every device, is proved through each device's real input path.
+- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed);
+  [What to plan from the start](../research/plan-from-the-start.md).
