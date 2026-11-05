@@ -74,6 +74,14 @@ focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOpti
   d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
   card chosen and on the card that is locked.
 
+## A row on a screen that scrolls and focuses its button
+
+A column with `follow_focus` whose screen focuses its button on entry opens scrolled to that button (the lobby: Start,
+at the bottom). A control placed above a long list is off screen at first: put what the player must see next to the
+button, and print the control's global rect in the capture (a negative y or one past the canvas is the proof). A row
+that is pressed on a phone is `MenuLook.TAP_TARGET` units high, the switch inside it too
+([lesson](../lessons/2026-11-05-a-new-lobby-row-sat-above-the-fold-of-a-screen-that-opens-scrolled.md)).
+
 ## Two option selectors in one row
 
 A setting that is a choice of two or three words shares a form row with its neighbour instead of taking a row of its
