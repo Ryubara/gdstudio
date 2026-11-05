@@ -17,5 +17,9 @@ areas: [tests]
   the line that puts the old value back (`= _arrival`), so a suite that never chose passed; the pattern is now
   `= (false|true)`, and the teeth were shown by removing the switch from a suite and by setting it in a suite on the
   allowlist (both fail the scan).
+- **Again, one merge later:** main brought a third scan of the same folder (`test_window_fixture`: any suite whose text
+  names the night scene's file must call the window fixture), and it failed on the same example strings. Here the
+  fix was in the new file, not the scan: it joins the scene's name from two parts, so no other scan finds it. Run
+  the whole folder headless again after every merge of main, not only the new suite.
 - **Docs:** Deadnight `docs/research/windowed-ui-ci.md` (the guard and the scheduled run);
   [Windowed GdUnit on a Linux runner](../godot/windowed-gdunit-on-linux.md) for the run itself.
