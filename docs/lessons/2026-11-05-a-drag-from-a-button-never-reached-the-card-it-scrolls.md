@@ -24,6 +24,14 @@ areas: [godot-ui, input]
   4 for a tap): the end board's Leave, whose ancestors all ignore the pointer, would have given the player the pointer
   lock as it was clicked. The engine's `ScrollContainer` is itself `PASS`, not `STOP`, so a button under a plain one
   leaked too. My tests had only put buttons inside a card.
+- **And a button stayed lit:** the first capture after the fix showed Start in its hover look 1.2 s after the finger
+  lifted. A finger that lifts sends no mouse exit, so the engine keeps the button it lifted over hovered; before, a drag
+  moved the finger off the button, now the card moves with the finger and it lifts over it (a plain tap always left the
+  button lit). The scroll area now takes the hover off its buttons when a touch that scrolled it lifts (the filter set to
+  `IGNORE` and back makes the engine send the exit, hiding the button also drops its focus). Measured in the web export
+  by the colour of the fill after the lift against after a touch elsewhere (95, 68, 81 lit; 23, 2, 7 resting). Look at
+  the capture of the resting state, after the lift, and measure the look: the press that a scroll gave up is not the
+  only state a finger leaves behind.
 - **Check for next time:** a control whose mouse filter you change is tested where it is NOT used as well as where it
   is (alone under a host that ignores the pointer, as a HUD board is), with the real events through the `Input`
   singleton (a click and a touch tap) and a spy on `_unhandled_input`; the game's own end board is the minimal case.
