@@ -172,11 +172,9 @@ def list_processes() -> list[tuple[int, str, str]]:
                 timeout=60,
                 creationflags=NO_WINDOW,
             )
-            rows = json.loads(done.stdout or "[]")
-        except (OSError, subprocess.SubprocessError, ValueError) as error:
+        except (OSError, subprocess.SubprocessError) as error:
             raise WorktreeError(f"cannot list the running processes: {error}") from error
-        rows = [rows] if isinstance(rows, dict) else rows
-        return [(int(r["ProcessId"]), r.get("CommandLine") or "", "") for r in rows if isinstance(r, dict)]
+        return windows_processes(done.returncode, done.stdout)
     proc = Path("/proc")
     if proc.is_dir():
         for entry in proc.iterdir():
@@ -198,6 +196,19 @@ def list_processes() -> list[tuple[int, str, str]]:
         if pid.isdigit():
             found.append((int(pid), command.strip(), ""))
     return found
+
+
+def windows_processes(code: int, output: str) -> list[tuple[int, str, str]]:
+    """The rows of the PowerShell listing. A machine always runs something: an empty answer is a failure of the
+    listing, and read as "nothing runs" it would let every clean-up delete what a running process uses."""
+    try:
+        rows = json.loads(output) if code == 0 and output.strip() else None
+    except ValueError:
+        rows = None
+    rows = [rows] if isinstance(rows, dict) else rows
+    if not rows or not isinstance(rows, list):
+        raise WorktreeError(f"cannot list the running processes: PowerShell exited {code} with no list")
+    return [(int(r["ProcessId"]), r.get("CommandLine") or "", "") for r in rows if isinstance(r, dict)]
 
 
 def _forms(path: Path) -> list[str]:
@@ -368,6 +379,22 @@ def changed_files(path: Path, run: Git = git) -> list[tuple[str, str]]:
             i += 1  # the old name follows
         files.append((code, name))
     return files
+
+
+def loose_work(status: Sequence[tuple[str, str]], names: int = 3) -> str:
+    """The worktree's uncommitted files, for a refusal: "; it also holds 3 untracked file(s) (a, b, c)". A reason that
+    stopped at "1 commit" hid what a person deciding on the worktree has to look at. Empty when there are none."""
+
+    def part(what: str, files: list[str]) -> str:
+        shown = ", ".join(files[:names]) + (f" and {len(files) - names} more" if len(files) > names else "")
+        return f"{len(files)} {what} file(s) ({shown})"
+
+    untracked = [name for code, name in status if code == "??"]
+    staged = [name for code, name in status if code[0] not in " ?!"]
+    modified = [name for code, name in status if code[1] not in " ?!"]
+    kinds = [("untracked", untracked), ("staged", staged), ("modified", modified)]
+    parts = [part(what, files) for what, files in kinds if files]
+    return f"; it also holds {', '.join(parts)}" if parts else ""
 
 
 def last_activity(path: Path, files: Iterable[str], run: Git = git) -> float:
@@ -795,17 +822,20 @@ def _one(
         return Outcome(
             entry, "left", f"{why}, but touched {idle / 60:.0f} min ago (grace {settings.grace_minutes:g} min)"
         )
+    loose = loose_work(status)
     used = users_of(entry.path, running)
     if used:
         pid, command = used[0]
-        return Outcome(entry, "refused", f"{why}, but process {pid} uses it: {command}")
+        return Outcome(entry, "refused", f"{why}, but process {pid} uses it: {command}{loose}")
     try:
         ahead = unpushed(entry, pulls or [], run)
     except (WorktreeError, ValueError) as error:
-        return Outcome(entry, "refused", f"{why}, but its commits cannot be checked ({error})")
+        return Outcome(entry, "refused", f"{why}, but its commits cannot be checked ({error}){loose}")
     if ahead:
         return Outcome(
-            entry, "refused", f"{why}, but {ahead} commit(s) are on no remote branch and in no merged pull request"
+            entry,
+            "refused",
+            f"{why}, but {ahead} commit(s) are on no remote branch and in no merged pull request{loose}",
         )
     keep, skipped, deleted = files_to_keep(entry, status)
     kept_bytes = sum((entry.path / rel).stat().st_size for rel in keep if (entry.path / rel).exists())
@@ -814,7 +844,7 @@ def _one(
             entry,
             "refused",
             f"{why}, but {human(kept_bytes)} of files to keep is over the limit of {human(settings.max_keep_bytes)}: "
-            "copy them by hand, or raise --max-keep-mb",
+            f"copy them by hand, or raise --max-keep-mb{loose}",
         )
     size = size_of(entry.path)
     if not apply:
@@ -825,7 +855,7 @@ def _one(
             kept_dir = copy_kept(root, entry, keep, skipped, deleted, why, run)
         remove_tree(checkout, entry, run)
     except (OSError, WorktreeError) as error:
-        return Outcome(entry, "refused", f"{why}, but it could not be removed ({error})", 0, keep, kept_dir)
+        return Outcome(entry, "refused", f"{why}, but it could not be removed ({error}){loose}", 0, keep, kept_dir)
     return Outcome(entry, "removed", why, size, keep, kept_dir)
 
 

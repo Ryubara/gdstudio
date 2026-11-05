@@ -13,6 +13,9 @@ import pytest
 
 from gds_tools import issues, sweep
 from gds_tools.sweep import Settings
+from gds_tools.worktrees import WorktreeError
+
+pytestmark = pytest.mark.usefixtures("no_real_services")
 
 SLUG = "acme/proj"
 LONG_AGO = 100 * 3600  # added to the clock so every file is "old"
@@ -456,3 +459,82 @@ def test_a_merged_branch_whose_issue_is_still_open_waits_for_the_idle_time(world
     found = outcome(run_sweep(world, settings=settings, late=False), "net-lobby")
     assert found.action == "left" and "issue #5 is still in progress" in found.reason
     assert outcome(run_sweep(world, settings=settings, late=True), "net-lobby").action == "removed"
+
+
+def unpublished(world: dict, name: str) -> Path:
+    """A worktree whose branch merged, with one commit on no remote branch: what the sweep refuses."""
+    path = add_worktree(world, name, commit=True, push=True)
+    pushed = git(path, "rev-parse", "HEAD")
+    (path / "more.txt").write_text("not pushed\n", encoding="utf-8")
+    git(path, "add", "-A")
+    git(path, "commit", "-q", "-m", "docs: Add more")
+    git(world["checkout"], "update-ref", "-d", "refs/remotes/origin/" + name)
+    git(world["origin"], "branch", "-D", name)
+    world["gh"].pull(name, 7, "MERGED", pushed)
+    return path
+
+
+def test_a_refusal_for_a_commit_names_the_untracked_files_beside_it(world):
+    """`net-freeze-desync`: the reason said one local commit, and three untracked files were in no commit."""
+    path = unpublished(world, "net-freeze-desync")
+    (path / "game").mkdir()
+    for name in ("freeze_live.gd", "freeze_live.tscn"):
+        (path / "game" / name).write_text("x\n", encoding="utf-8")
+    found = outcome(run_sweep(world), "net-freeze-desync")
+    assert found.action == "refused" and "1 commit(s) are on no remote branch" in found.reason
+    assert "2 untracked file(s) (game/freeze_live.gd, game/freeze_live.tscn)" in found.reason
+    assert "staged" not in found.reason
+    assert (path / "game" / "freeze_live.gd").is_file()
+
+
+def test_a_refusal_for_a_commit_names_the_staged_files_beside_it(world):
+    """`pad-pause`: 18 staged files behind the same words."""
+    path = unpublished(world, "pad-pause")
+    for number in range(5):
+        (path / f"staged{number}.gd").write_text("x\n", encoding="utf-8")
+    git(path, "add", "-A")
+    found = outcome(run_sweep(world), "pad-pause")
+    assert found.action == "refused"
+    assert "5 staged file(s) (staged0.gd, staged1.gd, staged2.gd and 2 more)" in found.reason
+    assert "untracked" not in found.reason
+
+
+def test_a_refusal_names_untracked_staged_and_modified_files_together(world):
+    path = unpublished(world, "all-three")
+    (path / "loose.txt").write_text("x\n", encoding="utf-8")
+    (path / "added.txt").write_text("x\n", encoding="utf-8")
+    git(path, "add", "added.txt")
+    (path / "README.md").write_text("edited\n", encoding="utf-8")
+    reason = outcome(run_sweep(world), "all-three").reason
+    assert "1 untracked file(s) (loose.txt), 1 staged file(s) (added.txt), 1 modified file(s) (README.md)" in reason
+
+
+def test_a_refusal_for_a_process_names_the_loose_files_too(world):
+    path = add_worktree(world, "net-lobby", commit=True, push=True)
+    world["gh"].pull("net-lobby", 7, "MERGED", git(path, "rev-parse", "HEAD"))
+    (path / "loose.txt").write_text("x\n", encoding="utf-8")
+    found = outcome(run_sweep(world, processes=lambda: [(4, f"godot --path {path.as_posix()}", "")]), "net-lobby")
+    assert (
+        found.action == "refused" and "process 4" in found.reason and "1 untracked file(s) (loose.txt)" in found.reason
+    )
+
+
+def test_a_refusal_with_a_clean_tree_adds_nothing(world):
+    unpublished(world, "clean")
+    assert outcome(run_sweep(world), "clean").reason.endswith("in no merged pull request")
+
+
+@pytest.mark.parametrize(
+    ("code", "output"),
+    [(1, ""), (0, ""), (0, "   \n"), (0, "[]"), (0, "not json"), (1, '[{"ProcessId": 1}]'), (0, "null")],
+)
+def test_a_process_list_with_no_rows_is_a_failure_never_an_empty_machine(code, output):
+    """Read as "nothing runs", a failed PowerShell would let every clean-up delete what a running process uses."""
+    with pytest.raises(WorktreeError, match="cannot list the running processes"):
+        sweep.windows_processes(code, output)
+
+
+def test_the_windows_process_rows_are_read():
+    one = '{"ProcessId": 4, "CommandLine": "godot"}'
+    assert sweep.windows_processes(0, one) == [(4, "godot", "")]
+    assert sweep.windows_processes(0, f'[{one}, {{"ProcessId": 5, "CommandLine": null}}]')[1] == (5, "", "")

@@ -40,7 +40,7 @@ A finished worktree is still not removed when:
 | --- | --- |
 | it was touched in the last `--grace-minutes` (30) | the agent that owns it may be between two commands; "touched" is git's own files, the changed files and the folders two levels down (a Godot editor writes `.godot/`) |
 | a running process names it in its command line or has it as its working directory | on Windows only the command line is known, which is why the grace exists |
-| it has commits on no remote branch and not in the merged pull request | unpublished work |
+| it has commits on no remote branch and not in the merged pull request | unpublished work; a refusal also names the untracked, staged and modified files beside them, so the reason never hides loose work behind "one commit" |
 | it has an open pull request, an open started issue, a lock, or `main` checked out | still in use |
 | the files to keep are over `--max-keep-mb` (1024) | copy them by hand, then run the sweep again |
 | GitHub cannot be asked (a branch worktree) | the pull request state is unknown |
@@ -93,31 +93,56 @@ and stop), so it runs on a schedule as long as anyone is working, and its limits
 
 | Free space | What happens |
 | --- | --- |
-| under `soft_gb` (40) | the guard runs the [worktree sweep](#sweep); deletes `.godot/imported` of every worktree nobody has touched for `imports_idle_hours` (2) and no process names (Godot rebuilds it on the next import, as in a fresh worktree); and deletes the downloads of every scratch topic past its pull request (below). Agents are told at start to keep their output small. |
+| under `soft_gb` (40) | the guard runs the [worktree sweep](#sweep); deletes `.godot/imported` of every worktree nobody has touched for `imports_idle_hours` (2) and no process names (Godot rebuilds it on the next import, as in a fresh worktree); and deletes the downloads and raw captures of every scratch topic past its work (below). Agents are told at start to keep their output small. |
 | under `hard_gb` (10) | the same, with the sweep's idle rule at two hours; and **no new task agent and no new worktree starts**: the Agent hook, `gds issue start` and `git worktree add` refuse, with the free space and the biggest folders, until space is back. Helpers and the `reviewer` still start. |
 
-A **scratch topic** is `scratch/<group>/<name>/`. It is past its pull request when the pull requests its `SCRATCH.md`
-names (`PR: owner/repo#N` lines) all merged or closed, or, without such a line, when its name is a branch whose pull
-requests all merged or closed. Then its downloads go: folders named `artifacts`, `downloads`, `ci-artifacts`, `dl` or
-`.godot`; archives (`*.zip`, `*.7z`, `*.tar*`); web exports (`*.pck`, `*.wasm`); raw movie output (`*.avi`); numbered
-frames (`*0000.png` and the like); and what the topic's own `Can go: <globs>` line names.
+A **scratch topic** is `scratch/<group>/<name>/`. It is past its work when what it says it serves is all merged or
+closed: its `PR:` and `Issue:` lines (in `SCRATCH.md` or `STATUS.md`), and the issues and pull requests the first six
+lines of those notes name (`# Deadnight #850: the apron lamps`). `#7` means the repository of the group, `kit #7` and
+`gdstudio#7` the kit; `owner/repo#7` and a GitHub link say it themselves. A topic that names no work is judged by its
+name: a branch whose pull requests all merged or closed. The first thing a topic is asked is whether it is live, and
+every doubt holds it (the list below). Then these go:
 
-Most topics are named for their subject (`grenade-feel`, `audio-levels`), have no `SCRATCH.md` and no pull request of
-that name, so they are never known to be finished. A topic like that is held `unknown_topic_days` (3) after its last
-change, then it counts as finished **for its downloads only** (the list above): notes, `*.md`, `kept/` and `.keep`
-stay as they are, and a topic whose branch has an open pull request, whose pull requests could not be read from
-GitHub, or that names an open one is never cleared this way. The default is in the guard's code
+- folders named `artifacts`, `downloads`, `ci-artifacts`, `dl` or `.godot`;
+- archives (`*.zip`, `*.7z`, `*.tar`, `*.gz`, `*.tgz`, `*.xz`); web exports (`*.pck`, `*.wasm`, and the `.html` and
+  `.js` beside a `.wasm`); logs (`*.log`, `*.out`, `*.err`, `*.clean`);
+- raw captures (`*.avi`, `*.mkv`, `*.wav`; a WAV stays in a topic with `voice` in its name, where the takes are the
+  work);
+- frames: images numbered in four or more digits, and every image of a folder holding `frame_folder_min` (20) or more,
+  whatever they are called (a capture numbers its frames or names its views);
+- what the topic's own `Can go: <globs>` line names (a word with no wildcard, dot or slash is prose, not a glob).
+
+The list depends on how the topic is known to be over, because the age of a folder says nothing about its work.
+
+These stay in a finished topic: every `*.md`, `kept/`, `.keep`; a folder named `source` or `ref` (inputs, not output)
+and a checkout (a folder with a `.git`); fewer than 20 unnumbered screenshots; images named for a sheet, contact sheet,
+montage or comparison, and images under `sheets*/`, `pr/` or `attach/`; `.mp4` clips. A folder that would go whole but
+holds one of these is emptied around it, not deleted, at any depth, and a link is never followed.
+
+Most old topics are named for their subject (`grenade-feel`, `audio-levels`) and many have no `SCRATCH.md`. A topic
+that names no work and no pull request of that name is held `unknown_topic_days` (3) after its last change, then only
+its downloads, archives, web exports' `.pck` and `.wasm`, `*.avi` and numbered PNG frames go (`Limits.can_go_files`):
+logs, WAVs and unnumbered images need a topic known to be over. The default is in the guard's code
 (`Limits.unknown_topic_days`); set it under `[disk]` in `hooks.toml` to change it, `0` to hold such topics for ever.
-Name the pull request in `SCRATCH.md` (`PR: owner/repo#N`) to have a topic judged by it, not by the clock.
+Name the work in `SCRATCH.md`
+(`Issue: owner/repo#N`, `PR: owner/repo#N`) to have a topic judged by it, not by the clock.
 
 The guard never deletes:
 
 - a worktree the sweep would not remove (a running process, unpublished commits, an open pull request: [the sweep's rules](#sweep));
 - the import cache of a worktree touched in the last two hours or named by a running process; anything in `repos/`;
-- anything in a scratch topic whose pull request is open or unknown, whose worktree still exists, that a process names,
-  that changed in the last `scratch_grace_hours` (2), or that a `.keep` protects (a topic that names no pull request
-  is also held for `unknown_topic_days`, above);
-- a note (`*.md`), or the sweep's `kept/` folders.
+- anything in a scratch topic that is live, by any of these: a `.keep`; a worktree of its name; a process that names
+  it, by its path or its bare name (a relative path, an agent's or a job's name); a change in the last
+  `scratch_grace_hours` (12); any `*.md` of it, at any depth, that names an open issue or pull request of the workspace
+  (`rookie-parity`: the live issue was in the prose of a third file), leaving out what a repository carries
+  (`LICENSE.md`, `README.md` and the like, and the inside of a folder with `project.godot`, `.git` or a `LICENSE.md`:
+  the game's licence file cites a tracking issue and held 127 topics); an open issue or pull request whose text names
+  `scratch/<group>/<name>`; an open pull request of its branch. A topic that names no work is also held for
+  `unknown_topic_days` (above);
+- anything it could not check: GitHub unreadable, a list cut off at its limit, a `PR:` line whose number does not
+  exist, a note it cannot read, a folder it cannot list, a process list it cannot read. The process list is read again
+  after the sweep, which can take 15 minutes;
+- a note (`*.md`), the sweep's `kept/` folders, or what the list above says stays.
 
 **Budgets.** Each worktree has `worktree_budget_gb` (4) and each scratch topic `scratch_budget_gb` (2). The guard
 measures them on every run and writes `cache/disk-guard.json`: the free space, the level, what it freed, the folders

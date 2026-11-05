@@ -36,7 +36,7 @@ args = []
 # The disk guard (docs/hooks.md#disk, docs/workspace.md#disk). Every hook event (a tool call, an agent's start and stop, a
 # session's start and stop) starts `gds disk guard` in the background at most once every `every_seconds`: under
 # `soft_gb` free it runs the worktree sweep, clears the import caches of worktrees idle for `imports_idle_hours`, and
-# deletes the downloads of scratch topics past their pull request; it writes `status`, which the GDStudio mod shows in
+# deletes the downloads and captures of scratch topics past their issue or pull request; it writes `status`, which the mod shows in
 # the status line. Under `hard_gb` free, a task agent's start, `gds issue start` and `git worktree add` are refused
 # (helpers and the agents of `exempt` are not). Budgets name the worktrees and scratch topics that are too big.
 enabled = true
@@ -50,7 +50,7 @@ status = "cache/disk-guard.json"
 worktree_budget_gb = 4
 scratch_budget_gb = 2
 imports_idle_hours = 2
-scratch_grace_hours = 2
+scratch_grace_hours = 12
 exempt = ["reviewer"]
 
 [protect]
