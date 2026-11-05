@@ -150,6 +150,10 @@ worktree. Then:
 
 The agent that continues merges `origin/main` into the reused branch with `gds merge-main` (it may be behind).
 
+An issue with an open pull request has no such takeover: `start` refuses it, and `release` leaves it in progress, because
+the pull request still closes it. Skip both. Give the new agent `PR: <owner/repo>#N` and the `Worktree:` line of the old
+one, whose folder is the pull request's branch.
+
 ## Starting an agent
 
 The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`, any agent
