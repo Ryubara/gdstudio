@@ -73,6 +73,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
   probe each inside the Activity frame with Discord's policy before shipping
   ([web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).
+- Plan: every text field is opened, typed in, closed and submitted with a finger on a phone-shaped page (the export's
+  virtual keyboard option on, the field kept above the keyboard, a keypad for a code) before a flow that needs text
+  is called done ([web export](../godot/web-export.md#a-phones-keyboard-in-the-web-build),
+  [lesson](../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md)).
 - Plan: a visible pre-game lobby (members, host, a start the host controls) and mid-match join, every player state
   designed and tested with real clients ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
