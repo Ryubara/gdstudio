@@ -15,4 +15,9 @@ areas: [tests, gameplay]
 - **Again:** two more readers (`test_night_recut_layer.gd`, `test_recut_layer.gd`) came from a sibling pull request
   that merged within minutes of mine, so no grep on my branch could see them and main went red. Whoever removes or
   renames a field greps `origin/main` again right before turning auto-merge on, and after the merge greps main itself.
+- **Again (a removal, 2026-11-05):** Deadnight #1233 removed two actions and their events; its body said none of the four
+  names was left, and `godot (4)` failed on `test_hidden_moments.gd`, a test (and a comment) that #1190 had put on
+  main after the grep. The grep was of the commit before `gds merge-main`, not of the merged tree. Check for next
+  time: the grep named in a pull request body is the one run after the last merge of main, over the whole of `game/`
+  and `docs/`, and the body says "after the merge of main" so a reader can tell.
 - **Docs:** this lesson.
