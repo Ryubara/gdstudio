@@ -70,6 +70,12 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #492](https://github.com/Ryubara/deadnight/issues/492)).
 - Plan: the Activity stood in locally (mapping prefix, gzip, iframe focus) before the maintainer tries it
   ([web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
+- Plan: a layout rule for a device class (phone, tablet, desktop window) takes its input in what the person holds (CSS
+  pixels on the web, never the canvas's device pixels), has a test for each class, and is run once on the real page (the
+  web export in phone emulation, and in an iframe for Discord) before a phone capture is trusted; a menu's smallest
+  text and tap target are measured in CSS pixels on every screen
+  ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md),
+  [deadnight #1197](https://github.com/Ryubara/deadnight/issues/1197)).
 - Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
   probe each inside the Activity frame with Discord's policy before shipping
   ([web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).

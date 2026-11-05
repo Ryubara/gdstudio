@@ -3,6 +3,10 @@ areas: [tests, godot-ui]
 ---
 # A phone capture without the phone scale showed the wrong layout and read as proof
 
+Note (Deadnight #1197): the 844 x 390 window this lesson reads is a canvas no phone page has; on a web page the window
+is twice the CSS size and the phone layout did not apply at all. See [a phone test read the canvas, not the
+page](2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md).
+
 2026-11-05
 
 - **Saw:** Deadnight #1071's capture of the equip screen at 844 by 390 showed the full-height layout (overline, big
