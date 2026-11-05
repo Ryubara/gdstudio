@@ -234,6 +234,14 @@ line under it.
   (in seconds, not frames), and back off after a failed climb so it never flickers
   ([lesson](../lessons/2026-11-03-a-quality-fallback-with-no-way-back-kept-the-menu-soft.md)).
 
+## A part at a scale of its own inside a screen
+
+A card that opens over a screen whose window factor must not change (a pause card over a night's HUD) is drawn by a
+control with `scale = f` and a size of the holder over `f` (Deadnight `PhoneScale`): its children lay out on the smaller
+canvas, text stays sharp, and a press goes through the scale. What reads the window instead of the control is wrong
+inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by the part's scale), the audit
+(multiply by the control's global scale). See the [lesson](../lessons/2026-11-05-a-card-over-a-night-needed-its-own-scale-and-everything-read-the-window.md).
+
 ## A menu over a live game
 
 - **Do not push a screen over a game that must keep running.** `UIRouter` disables the screen it covers
