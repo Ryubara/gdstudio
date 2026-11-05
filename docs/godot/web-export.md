@@ -157,6 +157,24 @@ phone, in a browser or in the Discord Activity.
   the pull request and give the steps. Deadnight `tools/web_smoke/phone_keyboard.py`.
 - **When the keyboard cannot be proved, give the field a keypad.** A room code is 36 symbols: an on-screen keypad in a
   canvas layer of its own, with keys that take no focus (the field keeps it, so a hardware keyboard and Ctrl+V still
-  work), needs nothing from the browser. Size it in the window's pixels: the phone factor of a screen is not a given on
-  a phone's page (the pixel ratio is capped, so an 844 x 390 page is a 1688 x 780 canvas, which is not "a phone" to a
-  rule that asks for a short side under 500).
+  work), needs nothing from the browser. Size it in CSS pixels (`PageSize.css_per_pixel`, 44 or more for a key), not in
+  units and not in window pixels: a unit is 0.72 CSS px on a phone page since #1197 (it was 0.36, because the phone rule
+  read the canvas), and a window pixel is half a CSS pixel at the capped ratio of 2.
+
+## A phone page's size: the canvas is not the page
+
+The canvas of a web page is its CSS size times the pixel ratio the page reports to the engine, and the game caps that
+ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 page is a 1688 x 780 window, a
+932 x 430 page 1864 x 860 (Deadnight #1197).
+
+- **Ask the page, not the window, what a person holds.** `Window.size` is device pixels. The CSS size is the canvas
+  element's `getBoundingClientRect()` (`PageSize`), which is right inside an iframe too (Discord's Activity reports the
+  frame's size). `matchMedia('(pointer: coarse)')` says a finger (`TouchMode.detect`). A phone is a touch device whose
+  page's short side is under 500 CSS px, or any window whose own short side is under 500 (a native window, a small
+  desktop window at ratio 1: as it always was).
+- **The layout does not depend on the ratio.** The content scale factor multiplies the base stretch, which divides by
+  the same window: an 844 x 390 window, a 1688 x 780 canvas and a 2532 x 1170 one all lay the menu out on 1169 x 540
+  units. Only the pixels in each unit differ (0.72 CSS px per unit on all three).
+- **Probe it on the page.** `tools/web_smoke/phone_layout.py` walks the menu screens in Chromium as a phone (and in
+  an iframe with `--iframe`) and prints the page, canvas, factor, units and the smallest text and tap target in CSS
+  px (`window.deadnight_audit`; `WebProbe`'s `layout`, `phone` and `ui_audit`). Run it through `gds quiet`.
