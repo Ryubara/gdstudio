@@ -49,3 +49,30 @@ assertion with a clean exit (Deadnight #1172). A check that a data line agrees w
 that needs the scene running instances a small one of its own.
 
 See the [lesson](../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
+
+## A suite that only names a class
+
+A GdUnit shard leaked 996 objects and 432 resources at exit with every test green, on pull requests that changed
+nothing related, and a new test file elsewhere made it come and go (Deadnight #1231). The scripts a suite only *names*
+(`HeldWeapon`, a scene's classes) are read as its dependencies; one that is never loaded as itself is still in use at
+exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recut_skin.gd` leaked 243 objects alone,
+`world/test_drive_in_greybox.gd` 257, and the shard's mix 996; other suites that load the same classes first cure it.
+
+- **Find it by running the suite alone** (`-a <one suite>`, `--verbose`), not by reading the shard's log: a suite that
+  leaks alone is the cause, and it reproduced on Windows with the shard's own list. A single test case of it leaks the
+  same count (the suite's script), so do not read its tests.
+- **Probe scripts:** `extends SceneTree`, `load(OS.get_environment("PROBE_PATH"))` in `_init`, `quit()`: a second a
+  script; a sweep of every game script lists the ones that leak alone.
+- **Load every game script first, in name order.** A command line tool that does so before GdUnit's own
+  (`ScriptWarmup`, `tools/ci/warm_GdUnitCmdTool.gd`) took a five-suite list from 911 objects to none (same 55 cases),
+  for a few seconds. Keep `GdUnitCmdTool.gd` at the end of the wrapper's name: GdUnit finds its arguments after the
+  argument that contains it, and a wrapper named otherwise prints the usage and runs nothing.
+- **Why `main` stayed clean:** it did not; its shards held the leaking suites in a mix that cures them. Deadnight's
+  runs 42011482212 and 42016360272 put both leaking suites in shard 3 with 72 others, and it passed the leak check.
+  A leak follows the deal of suites, so a green `main` shard is evidence for that deal only. A red `main` run that
+  failed an earlier step (the late-round budget, runs 42004177635 and 42004654168) skipped the tests step, and says
+  nothing about leaks either way.
+- **A real leak still fails through the wrapper:** a throwaway suite with a two-object `RefCounted` cycle and a `Node`
+  in a static variable printed `3 ObjectDB instances were leaked at exit` and exited 101; a failing assert exits 100.
+
+See the [lesson](../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).
