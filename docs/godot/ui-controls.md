@@ -280,3 +280,7 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
 - **Build a screen under the router's theme.** A test that adds a screen to a bare `Control` has Godot's default font and
   half-height rows; give the host `UIThemeBuilder.build(UITokens.active())` or open the screen through `UIRouter`
   ([lesson](../lessons/2026-11-05-a-screen-built-without-the-routers-theme-measured-a-problem-that-was-not-there.md)).
+- **A container puts its child's scale back to one.** `Container.fit_child_in_rect` resets the child's rotation and
+  scale at every sort, so a `scale` set on a node inside a `CenterContainer` or a box holds until the next layout.
+  Scale or move the node above it instead, about its middle (`pivot_offset`), and read the result from the global
+  transform ([lesson](../lessons/2026-11-05-a-container-put-its-childs-scale-back-to-one.md)).
