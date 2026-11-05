@@ -148,3 +148,9 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   suites with `godot --headless ... GdUnitCmdTool.gd ... --ignoreHeadlessMode`, keep `gds godot` for captures, and
   give a long windowed run `gds godot --timeout 3000 --` (the default stops it at 900 s)
   ([lesson](../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)).
+- **A suite can fail in a window and pass headless for a switch of the game's own.** Headless has a 64 pixel window and
+  no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
+  a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
+  `gds godot --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>` (a baseline worktree needs GdUnit4 copied in first), and
+  make the headless run answer what the window answers
+  ([lesson](../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).
