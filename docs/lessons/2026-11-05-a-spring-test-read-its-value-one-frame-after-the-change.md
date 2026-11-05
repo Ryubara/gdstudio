@@ -15,5 +15,8 @@ areas: [tests, godot-ui]
   strictly between the ends, then settle for the exact end. Check for next time: sweep the suite with
   `--fixed-fps 1000 480 240 60 10` (headless and through `gds godot`); a test that reads a `delta`-driven value after a
   count of frames, even one, fails the sweep at 1000. The same count of 120 frames in three sibling suites failed it
-  too (Ryubara/deadnight#1219).
-- **Docs:** the game's `docs/research/windowed-vs-headless-tests.md`, "One frame is not a length of time either".
+  too (Ryubara/deadnight#1219), and a fourth the issue did not name (`test_ui_button_ring`, 90 frames) turned up by
+  searching the tests for every read of a spring's `value`: fix the siblings by that search, not by the list in the
+  issue.
+- **Docs:** the game's `docs/research/windowed-vs-headless-tests.md`, "One frame is not a length of time either", and
+  `docs/research/spring-test-waits.md` (the recipe and the sweep numbers).
