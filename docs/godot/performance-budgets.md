@@ -91,6 +91,16 @@ the run's report, prints every number it judged and exits 1 with the ones over. 
 plus a margin, say what the margin is, and write the *target* beside it on the limits page when they differ: the
 limit stops a regression, the target is what the game should reach.
 
+**The ruler must follow the thing measured.** A fixed loop of arithmetic follows a frame (many thousands of
+microseconds of mixed work) but not a section of a few microseconds that runs cold once a frame: across 46 CI runs a
+timed section went with the frame at a slope of 1.0 and with the calibration at 0.35, and a limit as a ratio of the
+calibration swung 2.1 times between runners that ran the same code (a false red, and a section twice as slow that
+passed). Hold such a section as a *share of the frame* the same rows took. Pick the divisor by fitting the log of the
+timing on the log of each candidate over the last runs (slope near 1 is a ruler that cancels the host), put the limit
+between the highest share seen and twice the lowest, and keep a test that runs the checker on made-up reports of every
+kind of runner, unchanged (passes) and twice as slow (fails). See the
+[lesson](../lessons/2026-11-05-a-microsecond-section-was-held-to-a-ruler-it-does-not-follow.md).
+
 ## In the editor
 
 The pinned Godot is a debug build, so a game run from the editor costs about what a run with `godot --path` costs (a
