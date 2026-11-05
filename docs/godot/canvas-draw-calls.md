@@ -116,6 +116,16 @@ behind the words made 233 against a limit of 230 when main peaked at 229). Draw 
 item that is already there (`draw_set_transform` moves it to the right place; it may draw outside its own rect) and
 keep the shape's data in a `RefCounted` that emits `changed`. Do not raise the limit for a look.
 
+## A hidden part still counts: build it when it is first needed
+
+The same budget counts a card that is hidden for the whole night, so the room is usually in the parts a night builds
+and never shows. Count by part first (Deadnight: `--canvasparts=1` on the budget's command, then
+`tools/perf/canvas_parts.py`): its end board, challenge prompt, scoreboard, marquee and boss bar were 43 of 215 and
+are one item each until used. Make the words on first need (a property whose getter builds, `_build()` where the part
+is shown) and never park them out of the tree, which makes them orphans, another budgeted count. A test checks both
+ends: nothing under the part while idle, the whole card after use. See the
+[lesson](../lessons/2026-11-05-hidden-hud-cards-held-a-fifth-of-the-canvas-item-budget.md).
+
 ## How to compare two builds
 
 Capture a still scene (the time-driven parts stopped) from the old and the new build and compare pixels. Render both from
