@@ -64,11 +64,15 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 - **Probe scripts:** `extends SceneTree`, `load(OS.get_environment("PROBE_PATH"))` in `_init`, `quit()`: a second a
   script; a sweep of every game script lists the ones that leak alone.
 - **Load every game script first, in name order.** A command line tool that does so before GdUnit's own
-  (`ScriptWarmup`, `tools/ci/warm_GdUnitCmdTool.gd`) took the shard from 996 to none for 7 seconds. Keep
-  `GdUnitCmdTool.gd` at the end of the wrapper's name: GdUnit finds its arguments after the argument that contains it,
-  and a wrapper named otherwise prints the usage and runs nothing.
-- **A shard that fails an earlier step never runs the leak check** (a failing test stops the step on `pipefail`
-  before the grep; a failed budget step skips the tests), so a main run that is red for another reason says nothing
-  about leaks.
+  (`ScriptWarmup`, `tools/ci/warm_GdUnitCmdTool.gd`) took a five-suite list from 911 objects to none (same 55 cases),
+  for a few seconds. Keep `GdUnitCmdTool.gd` at the end of the wrapper's name: GdUnit finds its arguments after the
+  argument that contains it, and a wrapper named otherwise prints the usage and runs nothing.
+- **Why `main` stayed clean:** it did not; its shards held the leaking suites in a mix that cures them. Deadnight's
+  runs 42011482212 and 42016360272 put both leaking suites in shard 3 with 72 others, and it passed the leak check.
+  A leak follows the deal of suites, so a green `main` shard is evidence for that deal only. A red `main` run that
+  failed an earlier step (the late-round budget, runs 42004177635 and 42004654168) skipped the tests step, and says
+  nothing about leaks either way.
+- **A real leak still fails through the wrapper:** a throwaway suite with a two-object `RefCounted` cycle and a `Node`
+  in a static variable printed `3 ObjectDB instances were leaked at exit` and exited 101; a failing assert exits 100.
 
 See the [lesson](../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).
