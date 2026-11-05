@@ -108,6 +108,14 @@ numbers, the frame's own call taken off:
 A fade or pulse that only changes a colour's alpha does not need `queue_redraw()`: draw the shapes in a child at full
 alpha and set its `self_modulate.a` (the same blend, no new vertex arrays; see [the web heap](web-heap.md)).
 
+## A node per box counts against the canvas-item budget
+
+The late-round budget (Deadnight `tools/perf/budget.json`, `canvas_items`) counts every canvas item in the tree, and a
+HUD box is built once per player, so one `Control` added to a box costs the party's size (Deadnight #1199: a strip
+behind the words made 233 against a limit of 230 when main peaked at 229). Draw a second shape in a neighbouring
+item that is already there (`draw_set_transform` moves it to the right place; it may draw outside its own rect) and
+keep the shape's data in a `RefCounted` that emits `changed`. Do not raise the limit for a look.
+
 ## How to compare two builds
 
 Capture a still scene (the time-driven parts stopped) from the old and the new build and compare pixels. Render both from
