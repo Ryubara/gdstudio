@@ -55,6 +55,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
   expects everywhere (reload at 0) are proved through each device's real input path
   ([lesson](../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md)).
+- Plan: a touch action is listed by what it does, derived from one table, not by an allow-list: every button looks while
+  dragged unless its row owns the drag, so a new one cannot opt out unseen
+  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
   ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
 
