@@ -165,6 +165,15 @@ that waits for `round_ended` in the step's list to post a report misses the roun
 report never goes. Hook the rules' own signal (`GameRules.event_emitted`, which `NightServer._on_rules_event` already
 listens to) and keep what is owed (`XpAward.take_due`); the host asks after each step and posts what is due.
 
+## What the last event of a night makes
+
+Once the rules say the match is over, `NightServer.step` runs `_step_over` (a frame and the intermission's clock) and
+nothing else, so whatever the end made has to be handed out there. A stat that is counted at `game_over` or by the
+last down (*Dead on arrival*, *Standing room only*, a night count) finishes challenges in that same event; their events
+(`ChallengeAward.take_events()`) wait for the next `apply`, and a client with its player down sends none (Deadnight
+1172: the board held the number and no client heard it). `_step_over` drains them. Test a night's end as *told*: wait
+for `challenge_done` on a client after `game_over`, not only for the board's number.
+
 ## An end the server owns: intermission and return (Deadnight #973)
 
 The end of a match is a state of the server, not of each client, or no two screens agree on the second:
