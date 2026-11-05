@@ -35,4 +35,23 @@ The real suite showed it too: `test_xp_pace.gd` alone died in 4 of 7 runs before
   by repeating the suite in one: the first use happens once a process. Count completed runs against exits, and give the
   rate before and after.
 
+## The other group tasks (Deadnight #1156)
+
+The balance gate (`test_balance_targets.gd`: the six gate cells and the two-arm climb read) and the touch assist suite
+(`test_balance_touch_assist.gd`) started their own group tasks after `SimWeapons.warm()` alone. Measured in 100 cold
+child processes each (one night of the suite's cells on `WorkerThreadPool`, the suite's warm-up taken as it was against
+`ShippedCells.warm`): the touch assist group died in 2 of 100 and the gate in 3 of 100 before, none of 100 after; the
+two-arm climb read did not die in 100 before or after. The rate is far below the nine pace cells' (39 of 50), and the
+suites themselves completed 30 of 30 (touch assist) and 8 of 8 (gate) runs before: fewer cells in the group is a smaller
+window for the same race. Low is not safe, and the warm-up costs a second. The five deaths were silent (no `FATAL`,
+no `ERROR`), so the `FATAL: Index 2 out of bounds` in `crane_play.gd` and the `/root ... propagate_notification()`
+error from #1149 were not reproduced (not seen in the dead runs of 600 child runs).
+
+- **One warm-up for every group task**: `ShippedCells.warm(specs, assist)` plays each cell once per process (a second
+  call is free), so a suite calls it before every batch it starts. A new group task in `tests/` that does not call it
+  fails `test_shipped_cells_workers.gd` (a text scan for `WorkerThreadPool.add_` without `ShippedCells.warm(`).
+- The touch assist's tuning (`AimAssistTuning.shipped()`) is `load(...).duplicate(true)`, so the original is freed at
+  once and `ResourceLoader.has_cached` never shows it: the probe cannot see that load, and it is warmed by playing an
+  assisted night on the main thread instead.
+
 Lesson: [a worker crashed the engine on first use](../lessons/2026-11-04-workers-first-using-shared-state-crashed-the-engine.md).
