@@ -74,6 +74,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | --- | --- | --- |
 | Movie Maker (`--write-movie`) | captures for every visual change | known: [Capture](../capture.md) |
 | Windowed runs (captures, autopilots, GdUnit) | every one that is not `--headless` | known: [Windowed Godot without taking the focus](no-focus.md) (`gds godot` runs it on a private desktop; a plain start takes the keyboard) |
+| GdUnit in a window on a CI runner (`xvfb-run`, Mesa software GL) | every game that wants its pixel and window-only suites run on a schedule | known: [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md) |
 | A windowed GdUnit session of several suites | every suite that waits for a drawn frame (a night's warm-up) | known: [A minimized window draws nothing](minimized-window.md) (GdUnit minimizes after every suite; restore the window in `before()`) |
 | Local browser probes of the web build (Playwright) | every one, under pointer lock | known: [`gds quiet`](no-focus.md#browser-probes-and-any-other-program-gds-quiet) (headless Chrome clips the real cursor to its hidden window) |
 | The editor's own inspector, photographed | pull requests that move numbers into resources | known: [Screenshots of the editor's inspector](editor-screenshots.md) (a throwaway plugin on `gds godot -- --editor`) |
