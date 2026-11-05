@@ -96,6 +96,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   socket for what the other screen shows, and captures from the second client's screen
   ([lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md),
   [deadnight #518](https://github.com/Ryubara/deadnight/issues/518)).
+- Plan: where a player is (menu, waiting room, night, away, reopened lobby) and what ends each state, written as one
+  table of states and ways out before the lobby is built; a player moves between lobbies by creating or joining
+  (never a refusal for being in another), and a lobby with no person is gone at once, with the game server saying
+  when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
+  [lesson](../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md)).
 
 ## Saving
 
