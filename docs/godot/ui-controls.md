@@ -149,8 +149,9 @@ tree: `global_transform` of a node not yet inside it is an error and an identity
 
 A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
 its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the
-list is the rule (put the narrowest place first). Measure a place's clearance of the stick's resting ring before building
-it: the ring crosses the column of cards, and a fingertip-sized part cannot stand there clear of it
+list is the rule (put the narrowest place first). Measure a place against every neighbour that stands at a share of the
+screen or reads a column's height (the stick's resting ring, the challenge card, the markers) with the touch layout on,
+before building it: a fingertip-high part in a card column makes the column a fingertip taller
 ([lesson](../lessons/2026-11-05-a-tag-asked-for-in-a-card-column-could-not-clear-the-stick-ring.md)). A fit method that
 moves a child of a container does it deferred and only when it must: `move_child` is refused while the container is
 setting up its children
