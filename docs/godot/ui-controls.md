@@ -237,3 +237,14 @@ line under it.
   ("Menu: the night goes on around you", not "Paused").
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
   replayed to a waiter that comes after it.
+
+## Reading a screen under test: the scale it really runs at
+
+- **A phone's scale is the screen's, not the phone's.** The menus and the lobby have `MenuScale.factor(window.size,
+  ui_scale)` (2 on a phone: a 1169 by 540 canvas, 0.72 px to the unit at 844 x 390); a night has the interface size
+  alone (`NightScreen._ready`), about 0.36 px to the unit. A phone capture or pixel reading of a HUD place sets
+  `content_scale_factor = ui_scale`, of a menu place `MenuScale.factor(...)`
+  ([lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
+- **Build a screen under the router's theme.** A test that adds a screen to a bare `Control` has Godot's default font and
+  half-height rows; give the host `UIThemeBuilder.build(UITokens.active())` or open the screen through `UIRouter`
+  ([lesson](../lessons/2026-11-05-a-screen-built-without-the-routers-theme-measured-a-problem-that-was-not-there.md)).
