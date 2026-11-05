@@ -49,3 +49,26 @@ assertion with a clean exit (Deadnight #1172). A check that a data line agrees w
 that needs the scene running instances a small one of its own.
 
 See the [lesson](../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
+
+## A suite that only names a class
+
+A GdUnit shard leaked 996 objects and 432 resources at exit with every test green, on pull requests that changed
+nothing related, and a new test file elsewhere made it come and go (Deadnight #1231). The scripts a suite only *names*
+(`HeldWeapon`, a scene's classes) are read as its dependencies; one that is never loaded as itself is still in use at
+exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recut_skin.gd` leaked 243 objects alone,
+`world/test_drive_in_greybox.gd` 257, and the shard's mix 996; other suites that load the same classes first cure it.
+
+- **Find it by running the suite alone** (`-a <one suite>`, `--verbose`), not by reading the shard's log: a suite that
+  leaks alone is the cause, and it reproduced on Windows with the shard's own list. A single test case of it leaks the
+  same count (the suite's script), so do not read its tests.
+- **Probe scripts:** `extends SceneTree`, `load(OS.get_environment("PROBE_PATH"))` in `_init`, `quit()`: a second a
+  script; a sweep of every game script lists the ones that leak alone.
+- **Load every game script first, in name order.** A command line tool that does so before GdUnit's own
+  (`ScriptWarmup`, `tools/ci/warm_GdUnitCmdTool.gd`) took the shard from 996 to none for 7 seconds. Keep
+  `GdUnitCmdTool.gd` at the end of the wrapper's name: GdUnit finds its arguments after the argument that contains it,
+  and a wrapper named otherwise prints the usage and runs nothing.
+- **A shard that fails an earlier step never runs the leak check** (a failing test stops the step on `pipefail`
+  before the grep; a failed budget step skips the tests), so a main run that is red for another reason says nothing
+  about leaks.
+
+See the [lesson](../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).
