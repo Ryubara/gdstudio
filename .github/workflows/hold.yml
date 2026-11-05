@@ -26,7 +26,7 @@ on:
 permissions:
   contents: read
 
-# The newest event wins: an older run still going is cancelled, and a cancelled run does not satisfy the check.
+# The newest event wins: an older run still going is cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true

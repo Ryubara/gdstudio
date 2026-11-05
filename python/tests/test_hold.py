@@ -392,3 +392,16 @@ def test_the_sweep_reports_the_check_the_ruleset_requires():
 
 def test_a_game_gets_both_workflows():
     assert {".github/workflows/hold.yml", ".github/workflows/hold-sweep.yml"} <= set(sync.SCRIPTS)
+
+
+def test_no_workflow_sets_the_label():
+    """A label set with a workflow's GITHUB_TOKEN starts no workflow, so `hold` would stay green while held."""
+    folders = (KIT / ".github" / "workflows", KIT / ".github" / "scripts")
+    for path in (path for folder in folders for path in folder.iterdir() if path.is_file()):
+        text = path.read_text(encoding="utf-8")
+        if path.name in ("hold.yml", "hold-sweep.yml"):
+            assert "add-label" not in text and "--method POST" not in text.replace(
+                'POST "repos/$GH_REPO/check-runs"', ""
+            )
+        else:
+            assert guards.HOLD not in text, path.name
