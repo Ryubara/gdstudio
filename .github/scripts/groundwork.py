@@ -38,7 +38,7 @@ KNOWN: dict[str, set[str]] = {
                       "checklist", "ai_use", "guidance", "screenshots", "issues_affected", "failed_first", "lessons", "kit_docs",
                       "read_first"},
     "merge": {"methods", "squash_title", "squash_message", "auto_merge", "delete_branch_on_merge",
-              "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths"},
+              "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths", "hold"},
     "issues": {"blank_issues", "placeholders", "forms", "labels"},
     "labels": {"description_max", "families", "list"},
     "hygiene": {"report_issue", "sweep", "thresholds"},
@@ -94,6 +94,15 @@ def validate(data: dict[str, Any]) -> list[str]:
     for check in data.get("merge", {}).get("required_checks", []):
         if not isinstance(check, str):
             problems.append("merge.required_checks must be a list of names")
+    hold = data.get("merge", {}).get("hold")
+    if hold is not None:
+        if not (isinstance(hold, dict) and hold.get("label") and hold.get("check") and isinstance(hold.get("app_id"), int)):
+            problems.append("merge.hold needs label, check and a numeric app_id")
+        else:
+            if labels and hold["label"] not in labels:
+                problems.append(f"merge.hold uses the label {hold['label']!r}, which labels.list lacks")
+            if hold["check"] in data.get("merge", {}).get("required_checks", []):
+                problems.append("merge.hold's check stays out of merge.required_checks: a hold is not a failure")
     trailers = data.get("commits", {}).get("trailers")
     if trailers is not None and not (isinstance(trailers, dict) and isinstance(trailers.get("ai_co_author"), dict)
                                      and trailers["ai_co_author"].get("noreply")):
@@ -905,10 +914,14 @@ def ruleset_wanted(conv: dict[str, Any]) -> dict[str, Any]:
     ]
     if merge.get("linear_history", True):
         rules.append({"type": "required_linear_history"})
-    if merge.get("required_checks"):
+    hold = merge.get("hold")
+    if merge.get("required_checks") or hold:
+        checks: list[dict[str, Any]] = [{"context": c} for c in merge.get("required_checks", [])]
+        if hold:  # from one app only: anyone with write access can post a commit status of any name
+            checks.append({"context": hold["check"], "integration_id": hold["app_id"]})
         rules.append({"type": "required_status_checks", "parameters": {
             "strict_required_status_checks_policy": bool(merge.get("up_to_date_required", False)),
-            "required_status_checks": [{"context": c} for c in merge["required_checks"]]}})
+            "required_status_checks": checks}})
     return {"name": merge.get("ruleset_name", "Main"), "target": "branch", "enforcement": "active",
             "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}}, "rules": rules,
             "bypass_actors": []}
@@ -921,7 +934,8 @@ def normalise_ruleset(rs: dict[str, Any]) -> dict[str, Any]:
         params = rule.get("parameters", {})
         if rule["type"] == "required_status_checks":
             params = {"strict": params.get("strict_required_status_checks_policy", False),
-                      "contexts": sorted(c["context"] for c in params.get("required_status_checks", []))}
+                      "contexts": sorted((c["context"], c.get("integration_id") or 0)
+                                         for c in params.get("required_status_checks", []))}
         elif rule["type"] == "pull_request":
             params = {"methods": sorted(params.get("allowed_merge_methods", []))}
         else:

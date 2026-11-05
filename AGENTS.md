@@ -74,6 +74,9 @@ from it (`uv run --with pyyaml python .github/scripts/groundwork.py render`): ed
   `noreply@google.com`, `noreply@openai.com`) and no other trailer. No other e-mail address appears in a message.
 <!-- conventions:end -->
 
+A pull request the maintainer must see first carries `S-hold` (`gds pr hold <owner/repo>#N`): a required check stops
+every merge while it is on, and only the maintainer takes it off, by hand (`docs/hooks.md#hold`).
+
 Work happens on branches, one pull request per change, squash-merged; `main` takes no direct pushes. A pull request
 description follows `.github/pull_request_template.md`.
 

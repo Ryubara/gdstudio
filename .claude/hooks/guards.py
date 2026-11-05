@@ -16,6 +16,7 @@ import time
 import tomllib
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import unquote
 
 SHELL_TOOLS = ("Bash", "PowerShell")
 EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
@@ -178,6 +179,7 @@ def check_agents(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
 _WORK_LINE = re.compile(r"(?im)^[ \t>*-]*(Issue|PR)[ \t]*:[ \t]*`?([\w.-]+/[\w.-]+)#(\d+)`?")
 IN_PROGRESS = "S-in-progress"
 CRITICAL = "P-critical"
+HOLD = "S-hold"  # merge.hold.label in .github/conventions.yml; a test keeps them equal
 
 
 def ledger_key(repo: str, number: int | str) -> str:
@@ -703,6 +705,96 @@ def check_merge(words: list[str], cwd: Path) -> list[str]:
     return []
 
 
+_API_MERGE = re.compile(r"repos/([\w.-]+/[\w.-]+)/pulls/(\d+)/merge\b")
+_API_ISSUE = re.compile(r"repos/([\w.-]+/[\w.-]+)/issues/(\d+)(/labels)?(?:[/?]|$)")
+_API_LABEL = re.compile(r"/labels/([^/?\s]+)")
+_MERGE_MUTATIONS = re.compile(r"\b(mergePullRequest|enablePullRequestAutoMerge|enqueuePullRequest)\b")
+_LABEL_MUTATIONS = re.compile(r"\b(removeLabelsFromLabelable|clearLabelsFromLabelable|updateLabel|deleteLabel)\b")
+_VALUE_FLAGS = ("-R", "--repo", "-t", "--subject", "-b", "--body", "-F", "--body-file", "-A", "--author-email")
+_HELD = f"a maintainer holds it (`{HOLD}`): stop and report; only the maintainer takes the label off"
+
+
+def held(target: str, repo: str | None, cwd: Path) -> bool | None:
+    """Whether a pull request (its number, URL or branch) carries the hold label; None when GitHub cannot be asked. A
+    guard that cannot look lets the call through: GitHub's required `hold` check is the rule, this explains it."""
+    command = ["gh", "pr", "view", *([target] if target else []), *(["-R", repo] if repo else [])]
+    try:
+        out = subprocess.run(
+            [*command, "--json", "labels", "--jq", ".labels[].name"],
+            cwd=cwd if cwd.is_dir() else None,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return HOLD in out.stdout.split() if out.returncode == 0 else None
+
+
+def api_method(words: list[str]) -> str:
+    """The HTTP method of a `gh api` call: `-X`, or POST when it sends fields, as gh does; upper-case."""
+    named = flag_values(words, ("-X", "--method"))
+    if named:
+        return named[-1].upper()
+    sends = ("-f", "-F", "--field", "--raw-field", "--input")
+    return "POST" if any(w.partition("=")[0] in sends for w in words) else "GET"
+
+
+def check_hold_api(words: list[str], cwd: Path) -> list[str]:
+    """`gh api`: a merge of a held pull request, or any write that would take the label off it or off the repository."""
+    if words[2] == "graphql":
+        text = " ".join(words[3:])
+        if _MERGE_MUTATIONS.search(text) or _LABEL_MUTATIONS.search(text):
+            return [f"a GraphQL mutation cannot be read for `{HOLD}`: use `gh pr merge` or `gh pr edit` instead"]
+        return []
+    method, reasons = api_method(words), []
+    if method == "GET":
+        return []
+    for word in words[2:]:
+        path = unquote(word)
+        merge = _API_MERGE.search(path)
+        if merge and held(merge.group(2), merge.group(1), cwd):
+            reasons.append(f"{merge.group(1)}#{merge.group(2)}: {_HELD}")
+        label = _API_LABEL.search(path)
+        if label:
+            if label.group(1) == HOLD and method in ("DELETE", "PATCH"):
+                reasons.append(f"`{HOLD}` is taken off only by the maintainer, by hand on the pull request's page")
+            continue
+        issue = _API_ISSUE.search(path)
+        if not issue:
+            continue
+        replaces = method in ("DELETE", "PUT") if issue.group(3) else method == "PATCH" and "labels" in " ".join(words)
+        if replaces and held(issue.group(2), issue.group(1), cwd):
+            reasons.append(f"this replaces the labels of {issue.group(1)}#{issue.group(2)}: {_HELD}")
+    return reasons
+
+
+def check_hold(words: list[str], cwd: Path) -> list[str]:
+    """The hook's half of the hold (docs/hooks.md#hold): no merge command on a pull request carrying the label, and no
+    removal of the label by a session. The label is what GitHub enforces; this says why, and it is what stops a session
+    taking the label off, since a token cannot tell an agent from the maintainer."""
+    if len(words) < 3:
+        return []
+    area, verb = words[1], words[2]
+    if area == "api":
+        return check_hold_api(words, cwd)
+    if area == "label" and verb in ("delete", "edit") and HOLD in words[3:]:
+        return [f"`{HOLD}` is the label GitHub's hold reads: it is not deleted or renamed"]
+    if area in ("pr", "issue") and verb == "edit":
+        removed = [name.strip() for value in flag_values(words, ("--remove-label",)) for name in value.split(",")]
+        if HOLD in removed:
+            return [f"`{HOLD}` is taken off only by the maintainer, on the pull request's page: report it instead"]
+    if area == "pr" and verb == "merge" and "--disable-auto" not in words:
+        positional = [
+            word for i, word in enumerate(words[3:], 3) if not word.startswith("-") and words[i - 1] not in _VALUE_FLAGS
+        ]
+        named = flag_values(words, ("-R", "--repo"))
+        target = positional[0] if positional else ""
+        if held(target, named[0] if named else None, cwd):
+            return [f"{target or 'this pull request'}: {_HELD}"]
+    return []
+
+
 def check_tools(words: list[str], config: dict[str, Any]) -> list[str]:
     """Godot and Blender only from the workspace's pinned copies."""
     names = config.get("tools", {}).get("names", [])
@@ -909,6 +1001,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             reasons += check_git(words, cwd, config)
         elif name == "gh":
             reasons += check_merge(words, cwd)
+            reasons += check_hold(words, cwd)
             reasons += check_labels(words)
             reasons += check_pr_body(words, cwd, config, lost)
         reasons += check_tools(words, config)

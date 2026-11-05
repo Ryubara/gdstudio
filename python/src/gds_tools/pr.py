@@ -11,9 +11,12 @@ preferred over the kit's. Used by `gds pr check-body` and, loaded by file, by th
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +24,14 @@ GROUNDWORK = Path(".github") / "scripts" / "groundwork.py"
 CONVENTIONS = Path(".github") / "conventions.yml"
 #: A cold `uv run --with pyyaml` can take a while; a check that cannot finish is not an answer.
 TIMEOUT_SECONDS = 45
+
+
+#: `merge.hold` of the conventions (a test keeps them equal).
+HOLD_LABEL = "S-hold"
+HOLD_CHECK = "hold"
+#: How long `hold` waits for the check to go red: the job takes seconds, unless the runners are all busy.
+HOLD_TIMEOUT_SECONDS = 180
+HOLD_POLL_SECONDS = 3
 
 
 class PrCheckError(Exception):
@@ -158,3 +169,48 @@ def check_docs(repo: Path, body: str, kit: Path | None = None) -> BodyCheck:
             return _run_checker(repo, checker, ["check-docs", "--body", str(body_file), "--changed", str(changed_file)])
         except PrCheckError as error:  # an older groundwork.py without `check-docs`, or one that cannot run
             return BodyCheck(True, [], unknown=f"the docs checker failed: {error}")
+
+
+def hold(
+    repo: str,
+    number: int,
+    *,
+    gh: Callable[[list[str]], str],
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+    timeout: float = HOLD_TIMEOUT_SECONDS,
+) -> list[str]:
+    """Put the hold label on a pull request and wait until GitHub's required `hold` check is red on its head
+    (docs/hooks.md#hold). The label stops nothing by itself: until the check has gone red, the green run before it
+    still counts, so a hold is only reported once it holds. Raises when the pull request is not open, or merged in the
+    wait."""
+
+    def view() -> dict:
+        fields = "state,headRefOid,labels,autoMergeRequest"
+        return json.loads(gh(["pr", "view", str(number), "-R", repo, "--json", fields]))
+
+    def conclusion(sha: str) -> str:
+        path = f"repos/{repo}/commits/{sha}/check-runs?check_name={HOLD_CHECK}&per_page=100"
+        return gh(["api", path, "--jq", '[.check_runs[]] | max_by(.id) | .conclusion // ""']).strip()
+
+    ref, pull = f"{repo}#{number}", view()
+    if pull["state"] != "OPEN":
+        raise PrCheckError(f"{ref} is {pull['state'].lower()}: there is nothing left to hold")
+    if HOLD_LABEL not in [label["name"] for label in pull["labels"]]:
+        gh(["pr", "edit", str(number), "-R", repo, "--add-label", HOLD_LABEL])
+    deadline = clock() + timeout
+    while True:
+        pull = view()
+        if pull["state"] != "OPEN":
+            raise PrCheckError(f"{ref} is {pull['state'].lower()}: it went through before the hold took effect")
+        if conclusion(pull["headRefOid"]) == "failure":
+            break
+        if clock() >= deadline:
+            raise PrCheckError(
+                f"{ref} carries {HOLD_LABEL}, but `{HOLD_CHECK}` is not red after {timeout:.0f} s: it is not held yet"
+            )
+        sleep(HOLD_POLL_SECONDS)
+    lines = [f"{ref} is held: `{HOLD_CHECK}` is red, and no route merges it while {HOLD_LABEL} is on."]
+    if pull.get("autoMergeRequest"):
+        lines.append("Auto-merge is on: it stays on, and the pull request merges the moment the label comes off.")
+    return lines

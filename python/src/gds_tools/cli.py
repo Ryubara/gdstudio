@@ -315,6 +315,13 @@ def _cmd_merge_main(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_pr_hold(args: argparse.Namespace) -> int:
+    """`gds pr hold <owner/repo>#N`: the label, then a wait until GitHub's `hold` check is red."""
+    repo, number = _issue_ref(args)
+    print("\n".join(pr.hold(repo, number, gh=issues.run_gh)))
+    return 0
+
+
 def _cmd_pr_check_body(args: argparse.Namespace) -> int:
     """`gds pr check-body <file>`: the description rules of `pr-rules`, run here before `gh pr create|edit`."""
     here = Path(args.repo).resolve() if args.repo else Path.cwd()
@@ -606,6 +613,9 @@ def build_parser() -> argparse.ArgumentParser:
     chk.add_argument("--title", help="the title (a file, first line): also checks the title-based rules")
     chk.add_argument("--repo", help="a folder in the checkout the pull request is for (default: the current folder)")
     chk.set_defaults(func=_cmd_pr_check_body)
+    hol = prs.add_parser("hold", help="hold a pull request: S-hold on, and wait until the `hold` check is red")
+    hol.add_argument("ref", help="the pull request: owner/repo#N, or #N in its checkout")
+    hol.set_defaults(func=_cmd_pr_hold)
 
     les = sub.add_parser("lessons", help="the checks of past mistakes by area (built from docs/lessons)")
     les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")

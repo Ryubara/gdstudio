@@ -21,7 +21,7 @@ from pathlib import Path
 LOCK = Path(".claude") / "gds-sync.json"
 
 #: The kit files that are copied whole, besides the agent definitions and `templates/game/`.
-SCRIPTS = (".github/scripts/groundwork.py",)
+SCRIPTS = (".github/scripts/groundwork.py", ".github/workflows/hold.yml", ".github/workflows/hold-sweep.yml")
 
 #: The one game file the kit owns only parts of: the hooks that judge commit messages and pushes.
 BLOCK_FILE = ".pre-commit-config.yaml"

@@ -3,7 +3,7 @@
 # check itself, so `gh pr merge`, `gh api`, the web page and auto-merge turned on before or after the label all stop;
 # a hook on this machine could not see most of those.
 #
-# What keeps it reliable. Each of these is tested (python/tests/test_pr_rules.py) and is a reason not to "simplify":
+# What keeps it reliable. Each of these has its test (python/tests/test_hold.py) and is a reason not to "simplify":
 #   - `pull_request_target`, not `pull_request`: it runs on every pull request with no approval and no merge commit, so
 #     one from a fork or one with a conflict still reports. The file that runs is the default branch's, so a pull
 #     request cannot edit its own hold away. There are no `paths:` filters: a required check that does not run stays
