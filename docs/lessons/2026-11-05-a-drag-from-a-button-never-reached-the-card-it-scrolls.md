@@ -32,6 +32,11 @@ areas: [godot-ui, input]
   by the colour of the fill after the lift against after a touch elsewhere (95, 68, 81 lit; 23, 2, 7 resting). Look at
   the capture of the resting state, after the lift, and measure the look: the press that a scroll gave up is not the
   only state a finger leaves behind.
+- **And a plain tap stayed lit too (Deadnight #1268):** the same missing exit, in a card or outside one (Copy the link
+  after a tap: 70 apart from rest, 2 after the fix). It is fixed from the event that lifted, never from the device: a
+  touch release (`InputEventScreenTouch`) takes the hover off after the press spring has settled; a mouse release does
+  not, so a desktop mouse keeps its hover; a real mouse motion or a new touch calls it off; the timer holds the
+  button's instance id, so a press that frees its own button leaves nothing to resume.
 - **Check for next time:** a control whose mouse filter you change is tested where it is NOT used as well as where it
   is (alone under a host that ignores the pointer, as a HUD board is), with the real events through the `Input`
   singleton (a click and a touch tap) and a spy on `_unhandled_input`; the game's own end board is the minimal case.
