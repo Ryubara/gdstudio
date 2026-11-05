@@ -74,6 +74,14 @@ focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOpti
   d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
   card chosen and on the card that is locked.
 
+## A row on a screen that scrolls and focuses its button
+
+A column with `follow_focus` whose screen focuses its button on entry opens scrolled to that button (the lobby: Start,
+at the bottom). A control placed above a long list is off screen at first: put what the player must see next to the
+button, and print the control's global rect in the capture (a negative y or one past the canvas is the proof). A row
+that is pressed on a phone is `MenuLook.TAP_TARGET` units high, the switch inside it too
+([lesson](../lessons/2026-11-05-a-new-lobby-row-sat-above-the-fold-of-a-screen-that-opens-scrolled.md)).
+
 ## Two option selectors in one row
 
 A setting that is a choice of two or three words shares a form row with its neighbour instead of taking a row of its
@@ -251,6 +259,14 @@ line under it.
   `UiAudit`, in the web probe and in `test_phone_floor.gd`
   ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md);
   [earlier lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
+- **Read the night at the canvas, and the menu at the CSS pixel.** A web page of 844 by 390 CSS pixels at a pixel ratio
+  of 2 (the cap) is a canvas of 1688 by 780, 0.72 canvas px to the unit in a night (2532 by 1170, 1.08, at a ratio of
+  3), 0.36 CSS px; a window of 844 by 390 is the ratio-1 worst case. Read a phone at the canvas and report the worst
+  case beside it ([lesson](../lessons/2026-11-05-a-phone-reading-at-the-css-size-overstated-the-fault.md)).
+- **A contrast ratio of two colours is not what a thin stroke shows.** Words that must be read on a phone are read from
+  the pixels (the place drawn with the words, without, and in one flat colour): the strongest pixel and the median
+  letter pixel against its neighbours; a stroke under a pixel has no pixel that is mostly ink
+  ([lesson](../lessons/2026-11-05-a-contrast-ratio-of-two-colours-passed-while-the-pixels-were-a-smear.md)).
 - **Build a screen under the router's theme.** A test that adds a screen to a bare `Control` has Godot's default font and
   half-height rows; give the host `UIThemeBuilder.build(UITokens.active())` or open the screen through `UIRouter`
   ([lesson](../lessons/2026-11-05-a-screen-built-without-the-routers-theme-measured-a-problem-that-was-not-there.md)).
