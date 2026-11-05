@@ -712,6 +712,9 @@ _MERGE_MUTATIONS = re.compile(r"\b(mergePullRequest|enablePullRequestAutoMerge|e
 _LABEL_MUTATIONS = re.compile(r"\b(removeLabelsFromLabelable|clearLabelsFromLabelable|updateLabel|deleteLabel)\b")
 _VALUE_FLAGS = ("-R", "--repo", "-t", "--subject", "-b", "--body", "-F", "--body-file", "-A", "--author-email")
 _HELD = f"a maintainer holds it (`{HOLD}`): stop and report; only the maintainer takes the label off"
+_API_FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
+_API_VALUE_FLAGS = (*_API_FIELD_FLAGS, "-X", "--method", "-H", "--header", "-q", "--jq", "-t", "--template")
+_API_VALUE_FLAGS += ("-p", "--preview", "--hostname", "--cache")
 
 
 def held(target: str, repo: str | None, cwd: Path) -> bool | None:
@@ -731,13 +734,31 @@ def held(target: str, repo: str | None, cwd: Path) -> bool | None:
     return HOLD in out.stdout.split() if out.returncode == 0 else None
 
 
+def api_call(words: list[str]) -> tuple[str, list[str], list[str]]:
+    """A `gh api` call as gh reads it: its upper-case HTTP method (`-X`, or POST when it sends fields or `--input`, else
+    GET), its endpoints and the values of its fields (an `--input` file counts as a field with no text to read)."""
+    method, endpoints, fields, i = "", [], [], 2
+    while i < len(words):
+        word = re.sub(r"^-i+(?=[^-])", "-", words[i])  # `-i` takes no value, so it can lead a cluster: `-iX POST`
+        i += 1
+        if not word.startswith("-") or word == "-":
+            endpoints.append(word)
+            continue
+        flag, has_value, value = word.partition("=") if word.startswith("--") else (word[:2], len(word) > 2, word[2:])
+        value = value.removeprefix("=")
+        if flag in _API_VALUE_FLAGS and not has_value and i < len(words):
+            value = words[i]
+            i += 1
+        if flag in ("-X", "--method"):
+            method = value.upper()
+        elif flag in _API_FIELD_FLAGS:
+            fields.append(value)
+    return method or ("POST" if fields else "GET"), endpoints, fields
+
+
 def api_method(words: list[str]) -> str:
-    """The HTTP method of a `gh api` call: `-X`, or POST when it sends fields, as gh does; upper-case."""
-    named = flag_values(words, ("-X", "--method"))
-    if named:
-        return named[-1].upper()
-    sends = ("-f", "-F", "--field", "--raw-field", "--input")
-    return "POST" if any(w.partition("=")[0] in sends for w in words) else "GET"
+    """The HTTP method of a `gh api` call."""
+    return api_call(words)[0]
 
 
 def check_hold_api(words: list[str], cwd: Path) -> list[str]:
@@ -793,6 +814,147 @@ def check_hold(words: list[str], cwd: Path) -> list[str]:
         if held(target, named[0] if named else None, cwd):
             return [f"{target or 'this pull request'}: {_HELD}"]
     return []
+
+
+# The commands that exist to post (`gh help` of gh 2.102), and those that post when they carry `--comment` or `-c`.
+_COMMENT_COMMANDS = {("issue", "comment"), ("pr", "comment"), ("discussion", "comment"), ("pr", "review")}
+_CLOSING_COMMANDS = {("issue", "close"), ("pr", "close"), ("issue", "reopen"), ("pr", "reopen")}
+# The maintainer's one exception (2026-10-24): an issue comment whose whole body is one claim command.
+_CLAIM_BODY = re.compile(r"/(?:claim(?: renew| scope: [^\"'\n;&|$`]*)?|unclaim|release|progress [a-z][a-z-]*)")
+# The mutations of GitHub's schema that add, edit or submit a comment or a review.
+_COMMENT_MUTATIONS = re.compile(
+    r"\b(addComment|addDiscussionComment|addPullRequestReview\w*|dismissPullRequestReview|submitPullRequestReview"
+    r"|updateDiscussionComment|updateIssueComment|updatePullRequestReview\w*)\b"
+)
+_NO_COMMENTS = (
+    "nothing is posted as a comment or review under the maintainer's GitHub account (their decision of 2026-10-12). "
+    "Run the command without the text (`gh issue close N`) and put the text in your scratch folder and your report, "
+    "for the maintainer to post; a capture goes on a pull request or a new issue with `--attach` "
+    "(docs/hooks.md#comments)"
+)
+# Words that start another program on the same line, and the arguments they take before it.
+_LAUNCHERS = {"then", "do", "else", "elif", "if", "while", "until", "!", "{", "try", "env", "command", "timeout"}
+_LAUNCHERS |= {"nohup", "xargs"}
+_LAUNCHER_ARG = re.compile(r"[-\d{]|\w+=")
+_SHELLS = {"bash", "sh", "zsh", "dash", "pwsh", "powershell", "cmd", "eval"}
+_SHELL_FLAG = re.compile(r"-\w+|/[a-zA-Z]")
+_CONTINUATION = re.compile(r"(?:\\|(?<=\s)`)\r?\n")  # a line continued in bash, or in PowerShell
+_SINGLE_QUOTED = re.compile(r"'[^'\n]*'")
+_INNER_GH = re.compile(r"(?:\$\(|`|\{\s)\s*(?=(?:[^\s'\"(){}]*[/\\])?gh(?:\.exe)?\s)")
+
+
+def launched(words: list[str]) -> list[str]:
+    """The words from the program a simple command runs: past `then`, `(`, `env X=1`, `timeout 30`, `xargs -n1`."""
+    words = [words[0].lstrip("("), *words[1:]]
+    i = 0
+    while i < len(words) and (words[i] in _LAUNCHERS or (i and _LAUNCHER_ARG.match(words[i]))):
+        i += 1
+    return words[i:]
+
+
+def gh_calls(command: str) -> list[list[str]]:
+    """Every `gh` command a shell line runs, also inside `bash -c '...'`, `eval` and `$(...)`, as words. Text that only
+    mentions one is left out: an `echo`, a commit message, a `grep`, a single-quoted body, a heredoc."""
+    text = _CONTINUATION.sub(" ", strip_heredocs(command))
+    found: list[list[str]] = []
+    for simple in segments(text):
+        words = launched(simple)
+        if not words:
+            continue
+        name = program(words)
+        if name == "gh":
+            found.append(words)
+        elif name in _SHELLS:
+            args = words[1:]
+            while args and _SHELL_FLAG.fullmatch(args[0]):
+                args = args[1:]
+            found += gh_calls(" ".join(args))
+    bare = _SINGLE_QUOTED.sub("''", text)
+    for inner in _INNER_GH.finditer(bare):
+        found += gh_calls(re.split(r"[)`}\n]", bare[inner.end() :], maxsplit=1)[0])
+    return found
+
+
+def gh_route(words: list[str]) -> tuple[str, ...]:
+    """The group and the command of a `gh` command. `-R` and a misplaced `--comment` may stand before them: gh takes
+    `gh issue -R o/r close 5`, and cobra hands a flag it finds there to the command."""
+    route: list[str] = []
+    i = 1
+    while i < len(words) and len(route) < 2:
+        word = words[i]
+        i += 1
+        if word in ("-R", "--repo", "--comment", "-c"):
+            i += 1
+        elif not word.startswith("-"):
+            route.append(word.rstrip(")"))
+    return tuple(route)
+
+
+def comment_flag(words: list[str]) -> str | None:
+    """`--comment` or `-c` as gh reads it on a close or reopen (`--comment=x`, `-cx`, `-c=x`, the cluster `-dc x`), or
+    None. The value of an option that takes one is not read as an option: `--reason -c`, `-Rco/r`."""
+    i = 1
+    while i < len(words):
+        word = words[i]
+        i += 1
+        if word == "--":
+            return None
+        if word.startswith("--"):
+            flag, has_value, _ = word.partition("=")
+            if flag == "--comment":
+                return flag
+            i += flag in ("--repo", "--reason", "--duplicate-of") and not has_value
+        elif word.startswith("-"):
+            for position, letter in enumerate(word[1:], 2):
+                if letter == "c":
+                    return "-c"
+                if letter in "Rr":
+                    i += position == len(word)  # the value is the next word, or the rest of this one
+                    break
+    return None
+
+
+def api_comment(words: list[str]) -> str | None:
+    """What is wrong with a `gh api` call that posts a comment or a review: a write to a path with a `comments` or
+    `reviews` part, a mutation that posts one, or a GraphQL query that is not on the command line to be read."""
+    method, endpoints, fields = api_call(words)
+    paths = [unquote(re.split(r"[?#]", endpoint, maxsplit=1)[0]) for endpoint in endpoints]
+    if any(path.rstrip("/").endswith("graphql") for path in paths):
+        found = _COMMENT_MUTATIONS.search(" ".join(fields))
+        if found:
+            return f"the GraphQL mutation `{found.group(1)}` posts one"
+        if not any(field.startswith("query=") and "{" in field.replace("${", "") for field in fields):
+            return "a GraphQL query from a file or a variable cannot be read for a comment: write it in the command"
+        return None
+    if method in ("POST", "PATCH", "PUT") and any({"comments", "reviews"} & set(path.split("/")) for path in paths):
+        return f"`gh api -X {method}` to a comments or reviews path posts one"
+    return None
+
+
+def comment_route(words: list[str]) -> str | None:
+    """How a `gh` command posts a comment or a review, or None when it posts neither."""
+    route = gh_route(words)
+    if route[:1] == ("api",):
+        return api_comment(words)
+    if route in _COMMENT_COMMANDS:
+        claim = len(words) == 6 and words[1:3] == ["issue", "comment"] and words[3].isdigit()
+        if claim and words[4] in ("-b", "--body") and _CLAIM_BODY.fullmatch(words[5]):
+            return None
+        return f"`gh {' '.join(route)}` posts one"
+    if route in _CLOSING_COMMANDS:
+        flag = comment_flag(words)
+        return f"`gh {' '.join(route)} {flag}` posts one" if flag else None
+    if route == ("alias", "set"):  # an alias would hide the route from this guard on every later use
+        calls = [call for text in words[3:] for call in gh_calls(f"gh {text}") + gh_calls(text.lstrip("!"))]
+        return next(filter(None, map(comment_route, calls)), None)
+    return None
+
+
+def check_comments(command: str) -> list[str]:
+    """The rule against comments under the maintainer's account (docs/hooks.md#comments), judged on what `gh` would do,
+    not on a list of the commands named `comment`: `gh issue close --comment` put one on #691."""
+    routes = filter(None, map(comment_route, gh_calls(command)))
+    return [f"{route}: {_NO_COMMENTS}" for route in routes]
 
 
 def check_tools(words: list[str], config: dict[str, Any]) -> list[str]:
@@ -986,7 +1148,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         return []
     command = (payload.get("tool_input") or {}).get("command", "")
     cwd = Path(payload.get("cwd") or ".")
-    reasons: list[str] = []
+    reasons = check_comments(command)
     lost = False  # a `cd` this cannot follow came before: a relative path no longer has a known folder
     for words in segments(command):
         moved, folder = change_dir(words, cwd)

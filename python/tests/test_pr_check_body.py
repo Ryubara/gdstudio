@@ -228,7 +228,7 @@ def test_the_guard_leaves_other_commands_and_a_disabled_rule_alone(workspace):
     kit = workspace["kit"]
     bad = BODIES / "none-without-reason.txt"
     assert denied(shell(f"gh issue create --title x --body-file {bad}", kit)) == ""
-    assert denied(shell(f"gh pr comment 7 --body-file {bad}", kit)) == ""
+    assert "pr-rules" not in denied(shell(f"gh pr comment 7 --body-file {bad}", kit))
     off = {**CONFIG, "pr_body": {"enforce": False}}
     out = dispatch.answer(shell(f"gh pr edit 7 --body-file {bad}", kit), off)
     assert out is None
