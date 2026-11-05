@@ -43,7 +43,8 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    `ERROR`. Report triangle counts against the budget. Check animation in Godot yourself (a headless script that plays
    each clip and asserts bone motion, plus a capture); never hand checking to a person.
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
-   asset is a maintainer decision: say so in the pull request and leave auto-merge off.
+   asset is a maintainer decision: say so in the pull request, leave auto-merge off and hold it
+   (`gds pr hold <owner/repo>#N`); only the maintainer takes `S-hold` off.
 7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).

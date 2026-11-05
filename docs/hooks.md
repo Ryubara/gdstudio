@@ -17,6 +17,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
+| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
 | Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
@@ -117,6 +118,29 @@ is not part of the commit, so it is removed; every other line counts, including 
 commits and what is wrong, and the fix needs no force push because the commit is still local: `git commit --amend
 --cleanup=strip -F <message file>` for the last commit, `git reset --soft <base>` and a new commit for an older one. A
 branch deletion and an empty push pass. `--no-verify` is refused by the Git guard above.
+
+## The hold {#hold}
+
+A pull request the maintainer must see first carries the label `S-hold`. GitHub enforces it, not this hook: the `hold`
+job of `.github/workflows/hold.yml` fails while the label is on, and the `Main` ruleset requires that job, so no route
+merges it. The rule is `merge.hold` in `.github/conventions.yml`. A failed `hold` is a decision, not a broken build: it
+stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-failing`.
+
+- **Set it** with `gds pr hold <owner/repo>#N`: it adds the label and returns once the check is red, because until then
+  the green run before it still counts (on a real pull request: 3 s to pending, 7 to 10 s to red). Better still, open
+  the pull request held: `gh pr create --label S-hold`.
+- **Take it off** only on the maintainer's word, and only by hand on the pull request's page. The check re-runs with no
+  new commit. Auto-merge that is on stays on through the hold, so the pull request merges the moment the label comes
+  off.
+- **The guard** in `guards.py` gives a session the reason, and it is the only thing that stops a session taking the
+  label off: every agent uses the maintainer's token, so GitHub cannot tell them apart. It reads shell commands, so it
+  does not see a script that calls the API itself.
+- **A pull request opened before the check was required** has no run on its head and stays pending: run
+  `gh workflow run hold-sweep.yml` once. It reports the check through the Checks API and does not touch the pull
+  request. A new game runs it once when its ruleset starts requiring `hold`.
+
+Do not put an `if:` or a `paths:` filter on `hold`: a job skipped by `if:` reports success, so a filter on the label's
+name would let any other label replace a failed run. `python/tests/test_hold.py` has a test for each such reason.
 
 ## Issue order {#issues}
 
