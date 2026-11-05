@@ -58,6 +58,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 - Plan: one opening screen everywhere, the main menu, the Discord Activity included; a platform shortcut is the
   maintainer's call ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+- Plan: a platform differs from the website only in sign-in and chrome: list every branch on the platform (an instance
+  id, the Discord host) in the first build and keep none that changes what a press does; players reach each other by
+  a code, a link or a list, never by a platform identity
+  ([lesson](../lessons/2026-11-05-a-platform-shortcut-outlived-the-fix-that-moved-its-first-screen.md),
+  [deadnight #1178](https://github.com/Ryubara/deadnight/issues/1178)).
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
 - Plan: store, key-art and Discord asset sizes listed with the first art pass, portrait crops framed with their own
