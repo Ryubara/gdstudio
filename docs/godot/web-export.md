@@ -123,3 +123,40 @@ Lesson: [Copy and paste did nothing in the Discord Activity](../lessons/2026-11-
 Lesson: [The first Ctrl+V in a browser tab pasted nothing](../lessons/2026-11-02-the-first-ctrl-v-in-a-browser-tab-pasted-nothing.md).
 Lesson: [Share in Discord said "Pick who to send it to" and Discord opened nothing](../lessons/2026-11-02-a-share-button-said-pick-who-to-send-it-to-whatever-discord-answered.md).
 Lesson: [A harness that faked the host's answers passed, and the real host refused with 4006](../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md).
+
+## A phone's keyboard in the web build
+
+A `LineEdit` opens a phone's keyboard through a hidden `<input>` the engine focuses (Godot 4.7.2,
+`platform/web/js/libs/library_godot_display.js`, `GodotDisplayVK`). Deadnight #1183: nobody could type a room code on a
+phone, in a browser or in the Discord Activity.
+
+- **The export option is the switch.** `html/experimental_virtual_keyboard` (default off) is
+  `GodotDisplayVK.available()`; off, `DisplayServer` has no virtual keyboard feature, `LineEdit` never asks for one and
+  the page has no `focus()` call at all. Check it from the page, not from the game: a tap on a field with the option off
+  leaves `document.activeElement` on the canvas.
+- **The option alone is not enough for a phone.** The engine focuses its input from the first touch event
+  (`touchstart`); iOS raises a keyboard only for a focus made in the events that lift the finger (`touchend`, `click`).
+  Hold a focus that `window.event` says came from `touchstart` or a touch `pointerdown` (wrap
+  `HTMLElement.prototype.focus` for the engine's own inputs: the ones with `z-index: -1` beside the canvas) and make it
+  in `touchend` or `pointerup`. The engine's input has no `font-size`: under 16 px iOS zooms the page in and leaves it
+  zoomed, so give inputs `font-size: 16px`. When the keyboard closes (`focusout` of the input) give the canvas the
+  focus back and `scrollTo(0, 0)`.
+- **Nothing moves the field above the keyboard.** A browser covers the bottom of the page and the engine does not know
+  (`visualViewport.height + offsetTop` against `innerHeight`; a webview that resizes for the keyboard resizes the
+  canvas instead, and the whole game then shrinks to the small page). Move the scene, not the layout, and hold it while
+  a finger is down: a press on a button takes the field's focus and so the keyboard, and a scene that slides back at
+  once leaves the lift of the finger beside the button. A `CanvasLayer` (the router's) ignores the root viewport's
+  `canvas_transform`; move its `offset`.
+- **A touch arrives as a mouse first.** In the web runtime the mouse press the engine makes of a touch
+  (`device == InputEvent.DEVICE_ID_EMULATION`) reaches the game before the `InputEventScreenTouch`, so a field that
+  takes the focus on that press sees `UIInputMode.touch` still false. Decide "a finger did this" from the press itself.
+  The engine's own typing (the arrow keys it sends to place the caret) also marks the input mode as a keyboard.
+- **What an emulated browser proves.** Chromium draws no keyboard. Read "up" as an editable `<input>` holding the
+  focus, made inside a tap's event; stand in for the keyboard's height by shrinking `visualViewport` (a `Proxy` over
+  the real one) or the viewport itself. A real keyboard, iOS Safari and Discord's webview need a real phone: say so in
+  the pull request and give the steps. Deadnight `tools/web_smoke/phone_keyboard.py`.
+- **When the keyboard cannot be proved, give the field a keypad.** A room code is 36 symbols: an on-screen keypad in a
+  canvas layer of its own, with keys that take no focus (the field keeps it, so a hardware keyboard and Ctrl+V still
+  work), needs nothing from the browser. Size it in the window's pixels: the phone factor of a screen is not a given on
+  a phone's page (the pixel ratio is capped, so an 844 x 390 page is a 1688 x 780 canvas, which is not "a phone" to a
+  rule that asks for a short side under 500).
