@@ -147,6 +147,17 @@ phone: the right thumb's corner is full, and rectangle tests between HUD parts d
 tree: `global_transform` of a node not yet inside it is an error and an identity
 ([lesson](../lessons/2026-11-03-a-hud-part-built-a-model-bounds-before-it-was-in-the-tree.md)).
 
+A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
+its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the
+list is the rule (put the narrowest place first). Measure a place's clearance of the stick's resting ring before building
+it: the ring crosses the column of cards, and a fingertip-sized part cannot stand there clear of it
+([lesson](../lessons/2026-11-05-a-tag-asked-for-in-a-card-column-could-not-clear-the-stick-ring.md)). A fit method that
+moves a child of a container does it deferred and only when it must: `move_child` is refused while the container is
+setting up its children
+([lesson](../lessons/2026-11-05-a-move-child-in-a-fit-was-refused-while-the-row-was-setting-up.md)). A test that names
+"every first-run hint" as the list's constant breaks when a hint shows only under a condition
+([lesson](../lessons/2026-11-05-a-hint-list-grew-and-two-suites-that-named-the-list-went-red.md)).
+
 ## A part placed from another part's rectangle
 
 A control that must stand beside another (badges by a card) and is placed by code reads the other's `get_global_rect()`.
