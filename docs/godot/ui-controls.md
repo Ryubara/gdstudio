@@ -245,6 +245,14 @@ line under it.
   alone (`NightScreen._ready`), about 0.36 px to the unit. A phone capture or pixel reading of a HUD place sets
   `content_scale_factor = ui_scale`, of a menu place `MenuScale.factor(...)`
   ([lesson](../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
+- **A phone is its canvas, not its CSS size.** A web page of 844 by 390 CSS pixels at a pixel ratio of 2 (the cap) is a
+  canvas of 1688 by 780, 0.72 px to the unit in a night (2532 by 1170, 1.08, at a ratio of 3); a window of 844 by 390
+  is the ratio-1 worst case, 0.36. Read a phone at the canvas and report the worst case beside it
+  ([lesson](../lessons/2026-11-05-a-phone-reading-at-the-css-size-overstated-the-fault.md)).
+- **A contrast ratio of two colours is not what a thin stroke shows.** Words that must be read on a phone are read from
+  the pixels (the place drawn with the words, without, and in one flat colour): the strongest pixel and the median
+  letter pixel against its neighbours; a stroke under a pixel has no pixel that is mostly ink
+  ([lesson](../lessons/2026-11-05-a-contrast-ratio-of-two-colours-passed-while-the-pixels-were-a-smear.md)).
 - **Build a screen under the router's theme.** A test that adds a screen to a bare `Control` has Godot's default font and
   half-height rows; give the host `UIThemeBuilder.build(UITokens.active())` or open the screen through `UIRouter`
   ([lesson](../lessons/2026-11-05-a-screen-built-without-the-routers-theme-measured-a-problem-that-was-not-there.md)).
