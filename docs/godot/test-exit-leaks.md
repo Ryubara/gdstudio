@@ -39,3 +39,13 @@ Windows, nor on a Linux machine with another directory order.
   arguments, with `taskset -c 0-3` for a four-core runner.
 
 See the [lesson](../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
+
+## A test that only needs a number from a scene
+
+A suite that `instantiate()`d the lot's greybox to read the size of one floor passed every case and ended with `2 RID
+allocations ... FontAdvanced were leaked at exit` and GdUnit4's own scripts as `Resource still in use`; reading the
+scene's text (`FileAccess.get_file_as_string` and a `RegEx` over the node's `transform` and `size`) made the same
+assertion with a clean exit (Deadnight #1172). A check that a data line agrees with a scene reads the `.tscn`; a test
+that needs the scene running instances a small one of its own.
+
+See the [lesson](../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
