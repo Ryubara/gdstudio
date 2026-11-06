@@ -137,3 +137,13 @@ goal and no board lies across it, and probe the night's map, not a map made from
 mesh into a walking region and the dead's gaps, so the two answer differently round a window
 ([lesson](../lessons/2026-11-06-a-walk-to-a-goal-the-walking-layer-never-reaches-stood-at-the-locker.md)). A prop only
 the dead can reach is checked on the dead's path (`NavLayers.DEAD`): the least distance of the path from the prop's box.
+
+## The nearest point on the mesh ignores the layers
+
+`NavigationServer3D.map_get_closest_point` and `map_get_closest_point_owner` look at every region of the map, the
+dead's gaps and scraps included. A bot (or a test) that calls the answer "ground" puts a person on a piece only the
+dead walk, and a walking path asked from there starts on the nearest *walking* polygon, which can lie across a wall.
+Ask the owner (`region_get_navigation_layers(owner) & NavLayers.WALK`) before treating a point as walkable, and
+reproduce a body stuck in a margin twice: set down at the spot (the way out) and from the step that brought it there
+(the way in), each failing on `main`
+([lesson](../lessons/2026-11-06-a-bot-stepped-onto-a-piece-of-mesh-only-the-dead-walk-and-stood-in-a-corner.md)).
