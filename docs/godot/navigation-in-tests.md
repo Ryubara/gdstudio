@@ -61,6 +61,17 @@ real walk starts (the approach line, 10 m back), not at the place it ended up, a
 the path (`BotPath.walkable`) at a low height does not see a prop the path passes within a body's radius of
 ([lesson](../lessons/2026-11-06-a-roam-bot-stood-at-a-breaker-post-because-the-ladders-nudge-made-its-goal-unreachable.md)).
 
+The fix is in the baker, not in each prop: a body that is solid and not CSG joins the mesh by being in the group
+`navmesh_obstacle` (its box shapes are baked like a CSG box), the saved meshes are baked again, and a suite finds every
+`StaticBody3D` with only the world's layer on and fails on one outside the group. Show what baking in a prop changed
+with a path check over the roam spots, the markers and the sites on every saved set, before and after (the lot's four
+posts: +16 polygons a set, no pair of points lost). Boards and window frames stay out of it: they open and shut, and the
+dead come through the breach they close
+([lesson](../lessons/2026-11-06-a-solid-prop-outside-the-baked-mesh-stopped-every-walk-past-it.md)). A test that walks
+many paths with a body walks the stretch round the thing under test (6 m before, 4 m after), not the whole path, and
+sizes the night's break for the whole suite
+([lesson](../lessons/2026-11-06-a-walk-suite-outlasted-its-break-and-the-body-died.md)).
+
 ## A goal in a wall
 
 A point inside a wall, a closed door's slab or a counter is no goal for a path: it snaps to whichever side of the wall's
