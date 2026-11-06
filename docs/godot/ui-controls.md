@@ -169,6 +169,29 @@ parent and of the placed part to one function that queues a single deferred plac
 pass). Test it by changing the layout and measuring the rectangles after two idle frames
 ([lesson](../lessons/2026-11-03-a-part-placed-from-a-siblings-rect-read-it-before-the-layout-moved-it.md)).
 
+## A card that looks for free ground
+
+A card that must stand clear of columns that grow (the challenge prompt beside the players' column, Deadnight #1299)
+does not get a share of the screen's height and a hope: `ChallengeFit.place` is pure geometry over the room, the usual
+place and two lists of boxes. `hard` boxes are the cards that stay up, the corner columns whole (so a tag added to a
+column later is in its box), the box round the middle and the touch buttons (`Hud.markers.held`, which `NightScreen`
+sets from the touch layer); `soft` boxes are what comes and goes (feeds, banner, lane, the gains' whole stretch). It
+returns the nearest place to the usual one that misses both lists, then one that misses the hard boxes, then the usual
+place. Three things bit:
+
+- A container's minimum size is not the card's height until the layout runs: measure from the parts (lines times
+  `get_line_height()`) and `reset_size()` on a width change
+  ([lesson](../lessons/2026-11-05-a-card-measured-its-height-before-the-layout-gave-it-its-width.md)).
+- A hidden part's rectangle is not where it draws: work the place out from what places it
+  ([lesson](../lessons/2026-11-05-a-hidden-part-s-rectangle-put-a-card-a-hundred-units-off.md)).
+- The columns, the buttons and the cards settle over several frames, so a placement made once, from signals, is a
+  layout step behind: place it again each frame the card shows, with a key (boxes, words, size) that makes an unchanged
+  frame cost nothing.
+
+Test it with the busiest night on every page: eight people and the bots on top, every perk, a feed, a prompt, a card of
+the lane, both hands and every interface size, reading the boxes of the real touch layer, and with a tag-high block
+added to the column.
+
 ## Animating a container's children
 
 - **Never read a container child's position in the frame it was shown.** A `Container` sorts its children in a
