@@ -126,3 +126,14 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
   ([lesson](../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`
   ([lesson](../lessons/2026-11-02-a-scene-tree-script-with-a-parse-error-never-quit.md)).
+
+## A walk to a goal the layer never reaches
+
+A stand-in that walks (`HumanWalker`) steers to the first path point more than a metre away, and to the goal itself
+when the path ends short. A goal the person's layer does not reach (outside a boarded wall, in a piece only the dead
+walk) makes it walk into whatever lies on the straight line, and a stall test reads that as the prop it stands at.
+Keep a walk only when `NavigationServer3D.map_get_path(map, from, to, true, NavLayers.WALK)` ends within a metre of the
+goal and no board lies across it, and probe the night's map, not a map made from the saved resource: the night cuts the
+mesh into a walking region and the dead's gaps, so the two answer differently round a window
+([lesson](../lessons/2026-11-06-a-walk-to-a-goal-the-walking-layer-never-reaches-stood-at-the-locker.md)). A prop only
+the dead can reach is checked on the dead's path (`NavLayers.DEAD`): the least distance of the path from the prop's box.
