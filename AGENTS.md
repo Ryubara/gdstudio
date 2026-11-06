@@ -34,6 +34,9 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   learning is written into the docs in that session: a row on `docs/research/maintainer-corrections.md`, and a lesson
   (`docs/lessons/`) when the cause is general. Agents read the checks that touch their task before they start. The
   hooks enforce it (`docs/hooks.md#learning`).
+- **No comments under the maintainer's account.** Nothing an agent or a tool runs posts a comment or a review on an
+  issue or a pull request under the maintainer's GitHub account, ever, with no exception: labels say that work is under
+  way, and a report goes in the pull request's body or the scratch folder (`docs/hooks.md#comments`).
 <!-- conventions:begin maintainer-decisions -->
 - **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make the repository
   public; tag a release; force-push the default branch or someone else's branch; legal or licence questions; change
