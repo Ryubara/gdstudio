@@ -180,3 +180,15 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
 - **Probe it on the page.** `tools/web_smoke/phone_layout.py` walks the menu screens in Chromium as a phone (and in
   an iframe with `--iframe`) and prints the page, canvas, factor, units and the smallest text and tap target in CSS
   px (`window.deadnight_audit`; `WebProbe`'s `layout`, `phone` and `ui_audit`). Run it through `gds quiet`.
+
+- **"It looks zoomed in on my phone" is answered on the phone first.** Deadnight #1310: headless Chrome as a phone showed
+  nothing wrong (canvas = page, visual viewport scale 1, a pinch and a double tap change nothing), so a fourth emulation
+  would have said the same. Put the page's own numbers on screen behind a query (`?viewcheck`: `innerWidth`,
+  `visualViewport` scale and offset, the pixel ratio real and reported, the canvas's box and pixels) and ask for a
+  screenshot of it. Facts the emulation did give: the engine polls `innerWidth` and `innerHeight` every frame
+  (`_godot_js_display_size_update`), so a turned page or an address bar changing the height needs no `resize` event to
+  be followed; Chrome honours `user-scalable=no` and `touch-action: none` (each alone holds a pinch at scale 1, checked
+  against a plain page that zooms to 5); iOS Safari ignores `user-scalable=no` and only a device shows the rest.
+  `Input.synthesizePinchGesture` does nothing in headless emulation, even on a plain page: pull two points apart with
+  `Input.dispatchTouchEvent` (`tools/web_smoke/phone_view.py` in Deadnight). Playwright's WebKit has no coarse pointer,
+  so the game runs its desktop path there: it is not a stand-in for iOS Safari.
