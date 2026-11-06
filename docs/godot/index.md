@@ -66,6 +66,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Web page heap (WebGL id tables) | a page whose heap grows while the engine's counters are flat | known: [The web page's heap](web-heap.md) (every `glGen*` costs a slot in each id table for good; a canvas item redrawn every frame makes about 200 objects a frame) |
 | Headless server export | the game server on Railway | spike with multiplayer |
 | Callable, `await` | a send that waits on a request and is handed over as a Callable | known: [Callables and coroutines](callables-and-coroutines.md) (a Callable does not keep a RefCounted object alive; what `await` does with a plain value) |
+| `Performance.OBJECT_RESOURCE_COUNT`, `ResourceLoader.has_cached` | finding what a resource count (a leak budget's peak) is made of | known: [Naming what the resource count is made of](resource-count.md) (`OS.dump_resources_to_file` is not in GDScript; walk the files and ask the cache) |
 | ResourceLoader (threaded loading) | loading screens | known: [First-use hitches](first-use-hitches.md) (threaded requests polled each frame; hold the references) |
 
 ## Testing and capture
