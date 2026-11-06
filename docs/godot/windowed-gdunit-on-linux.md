@@ -52,6 +52,27 @@ llvmpipe draws every pixel on the CPU, so:
   because a value read after N frames depends on how long a frame takes. A virtual display is a window, but not every
   window.
 
+## What a virtual display cannot do, and what a slow frame shows
+
+Measured on the runner (Deadnight issue 1348, 2026-11-06, run 42228307964):
+
+- **No window manager, no minimize.** `xvfb-run` starts only the X server. Setting `WINDOW_MODE_MINIMIZED` is a request
+  to a window manager, so nothing happens: `window_get_mode()` stays
+  `WINDOW_MODE_WINDOWED` and the window keeps drawing (30 frames drawn in 30 watched). A test of what a minimized window
+  does cannot hold there (put it in the game's list of suites the runner cannot judge), and the GdUnit minimize after
+  every suite is a no-op, which is another reason the hang did not appear. Moving or focusing a window is the same.
+- **Windows bigger than the screen open as asked.** Windows of 1688 x 780 up to 2880 x 1620 opened at that size on a
+  1920 x 1080 screen (`window_get_size`, the viewport's size), so a test of a canvas bigger than the monitor works.
+- **A clock that runs in `_process` runs in the renderer's real time.** llvmpipe takes 0.1 to 1 s for a frame of a
+  large window, so a test that lets N frames pass and then reads a card that holds for seconds, or the phase of a chase
+  of bulbs, reads it at a time that depends on the machine. Step such a thing by hand (switch its `_process` off in the
+  test), or hold it still (reduced motion), and write a case that runs the same check at `Engine.max_fps = 5`: it fails
+  in any run, headless too. Do not use `Engine.time_scale` to make frames long: GdUnit's own timeout runs on it (a
+  scale of 1000 turned its 5 minutes into 259 ms).
+- **A result that differs between runs is a time, not a luck.** Run the suite on the runner a few times with the run
+  made slower (saving the pictures is enough) and keep what each run saw: a suite that failed in one reading, then in
+  another, and passed in a third had a bulb row sliding in and out of the area read.
+
 ## Sources
 
 - [Xvfb and `xvfb-run`](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml); Mesa's
