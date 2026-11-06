@@ -819,8 +819,6 @@ def check_hold(words: list[str], cwd: Path) -> list[str]:
 # The commands that exist to post (`gh help` of gh 2.102), and those that post when they carry `--comment` or `-c`.
 _COMMENT_COMMANDS = {("issue", "comment"), ("pr", "comment"), ("discussion", "comment"), ("pr", "review")}
 _CLOSING_COMMANDS = {("issue", "close"), ("pr", "close"), ("issue", "reopen"), ("pr", "reopen")}
-# The maintainer's one exception (2026-10-24): an issue comment whose whole body is one claim command.
-_CLAIM_BODY = re.compile(r"/(?:claim(?: renew| scope: [^\"'\n;&|$`]*)?|unclaim|release|progress [a-z][a-z-]*)")
 # The mutations of GitHub's schema that add, edit or submit a comment or a review.
 _COMMENT_MUTATIONS = re.compile(
     r"\b(addComment|addDiscussionComment|addPullRequestReview\w*|dismissPullRequestReview|submitPullRequestReview"
@@ -937,9 +935,6 @@ def comment_route(words: list[str]) -> str | None:
     if route[:1] == ("api",):
         return api_comment(words)
     if route in _COMMENT_COMMANDS:
-        claim = len(words) == 6 and words[1:3] == ["issue", "comment"] and words[3].isdigit()
-        if claim and words[4] in ("-b", "--body") and _CLAIM_BODY.fullmatch(words[5]):
-            return None
         return f"`gh {' '.join(route)}` posts one"
     if route in _CLOSING_COMMANDS:
         flag = comment_flag(words)

@@ -148,17 +148,17 @@ def test_start_refuses_outside_the_window_and_changes_nothing(tmp_path):
     assert gh.calls == [] and not ledger.exists()
 
 
-def test_start_labels_assigns_comments_and_writes_the_ledger(tmp_path):
+def test_start_labels_assigns_and_writes_the_ledger_and_posts_no_comment(tmp_path):
     gh, ledger = FakeGh(), tmp_path / "cache" / "issues-started.json"
     when = datetime(2026, 11, 2, 9, 30, tzinfo=UTC)
     lines = issues.start(REPO, 156, "godot-engineer-3", gh=gh, ledger=ledger, size=5, branch="profile-tick", now=when)
-    edit, comment = gh.calls
+    edit, *rest = gh.calls
+    assert rest == []
     assert edit[:5] == ["issue", "edit", "156", "-R", REPO]
     assert "--add-label" in edit and "S-in-progress" in edit and "@me" in edit
     assert edit[edit.index("--remove-label") + 1] == "S-needs-triage"  # it had that label, not S-ready-to-start
     assert "S-ready-to-start" not in edit
     assert "P-critical" not in edit
-    assert comment[:2] == ["issue", "comment"] and "Started by agent godot-engineer-3" in comment
     entry = json.loads(ledger.read_text(encoding="utf-8"))["started"]["ryubara/deadnight#156"]
     assert entry == {
         "repo": REPO,
@@ -538,16 +538,16 @@ def test_list_shows_the_reason_class_beside_each_block(tmp_path):
     assert "[dependency]" in by_number[5]  # named in the issue form's Blocked by section
 
 
-def test_unblock_lifts_the_label_and_the_line_and_keeps_the_reason(tmp_path):
+def test_unblock_lifts_the_label_and_the_line_and_posts_no_comment(tmp_path):
     cache = tmp_path / issues.IDLE_CACHE
     cache.write_text("{}", encoding="utf-8")
     gh = gh_for([raw(7, "S-blocked", body="Text\n\n" + BY_HAND)])
     lines = issues.unblock(REPO, 7, gh=gh, ledger=tmp_path / "issues-started.json", now=NOW)
-    edit, comment = gh.calls
+    edit = next(call for call in gh.calls if call[:2] == ["issue", "edit"])
+    assert not any(issues.posts_a_comment(call) for call in gh.calls)
     assert edit[edit.index("--remove-label") + 1] == "S-blocked"
     assert edit[edit.index("--add-label") + 1] == "S-ready-to-start"
     assert edit[edit.index("--body") + 1] == "Text"
-    assert "Unblocked (2026-11-03)" in comment[-1] and "waits on #227" in comment[-1]
     assert "unblocked" in lines[0] and not cache.exists()
     with pytest.raises(IssueError, match="not S-blocked"):
         issues.unblock(REPO, 7, gh=gh_for([raw(7)]), ledger=tmp_path / "l.json")
@@ -564,3 +564,49 @@ def test_start_and_release_also_make_the_hook_look_again(tmp_path):
     cache.write_text("{}", encoding="utf-8")
     issues.release(REPO, 400, gh=gh_for([raw(400, "S-in-progress")]), ledger=ledger)
     assert not cache.exists()
+
+
+POSTING = [
+    ["issue", "comment", "5", "--body", "hi"],
+    ["pr", "comment", "5", "--body", "hi"],
+    ["pr", "review", "5", "--approve"],
+    ["discussion", "comment", "5"],
+    ["issue", "close", "5", "--comment", "hi"],
+    ["issue", "close", "5", "--comment=hi"],
+    ["pr", "close", "5", "-c", "hi"],
+    ["issue", "reopen", "5", "-c=hi"],
+    ["api", "repos/o/r/issues/5/comments", "-f", "body=hi"],
+    ["api", "-X", "POST", "repos/o/r/issues/5/comments"],
+    ["api", "--method", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=hi"],
+    ["api", "repos/o/r/pulls/5/reviews", "-f", "event=COMMENT"],
+    ["api", "graphql", "-f", "query=mutation { addComment(input:{}) { clientMutationId } }"],
+]
+NOT_POSTING = [
+    ["issue", "edit", "5", "--add-label", "x", "--body", "a comment in the body"],
+    ["issue", "list", "-R", REPO, "--json", "number"],
+    ["issue", "close", "5", "--reason", "completed"],
+    ["api", "repos/o/r/issues/5/comments"],
+    ["api", "-X", "GET", "repos/o/r/issues/5/comments", "-f", "per_page=100"],
+    ["api", "-X", "DELETE", "repos/o/r/issues/comments/9"],
+    ["api", "repos/o/r/issues/5/labels", "-f", "labels[]=x"],
+    ["api", "graphql", "-f", "query={ viewer { login } }"],
+]
+
+
+@pytest.mark.parametrize("args", POSTING)
+def test_the_runner_refuses_what_would_post_under_the_maintainers_account(args, monkeypatch):
+    monkeypatch.setattr(issues.subprocess, "run", lambda *a, **k: pytest.fail("gh ran"))
+    with pytest.raises(IssueError, match="refused"):
+        issues.run_gh(args)
+
+
+@pytest.mark.parametrize("args", NOT_POSTING)
+def test_the_runner_lets_everything_else_through(args):
+    assert not issues.posts_a_comment(args)
+
+
+def test_gds_has_one_way_to_run_gh():
+    """A hook cannot see a `gh` run from Python: one more way past `run_gh` is a way past the rule (kit #752)."""
+    source = Path(issues.__file__).parent
+    runs = [p.name for p in source.glob("*.py") if '["gh",' in p.read_text(encoding="utf-8")]
+    assert runs == ["issues.py"]

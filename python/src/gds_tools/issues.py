@@ -10,10 +10,11 @@ A blocked issue says why: `block` writes the label and a `Blocked (<who>, <date>
 coordinator's Stop hook (`.claude/hooks/guards.py`, `stop_idle`) loads this module by path to find the issues that may
 start and have no agent, so it stays standard library only.
 
-`start` checks the window, labels and assigns the issue, comments, and writes the start to a ledger in
+`start` checks the window, labels and assigns the issue, and writes the start to a ledger in
 `<workspace>/cache/issues-started.json`; the hook (`.claude/hooks/guards.py`) refuses to start a task agent whose
 prompt does not name an issue in that ledger. Every `gh` call goes through a runner that tests replace with recorded
-JSON, so nothing here needs the network to be tested.
+JSON, so nothing here needs the network to be tested. Nothing here posts a comment: `gds` runs under the
+maintainer's account, and `run_gh` refuses every route that would post under it (`posts_a_comment`).
 """
 
 from __future__ import annotations
@@ -90,8 +91,36 @@ def ledger_key(repo: str, number: int) -> str:
     return f"{repo}#{number}".lower()
 
 
+# What `gh` posts with, as in `check_comments` of `.claude/hooks/guards.py`, which cannot see a call made from Python.
+_POSTING = {("issue", "comment"), ("pr", "comment"), ("discussion", "comment"), ("pr", "review")}
+_CLOSING = {("issue", "close"), ("pr", "close"), ("issue", "reopen"), ("pr", "reopen")}
+_API_WRITES = ("-f", "-F", "--field", "--raw-field", "--input")
+_API_COMMENT_PATH = re.compile(r"/(comments|reviews)(/|$|\?)")
+_COMMENT_MUTATION = re.compile(r"\b(add|update|submit|dismiss)\w*(Comment|Review)\w*\b")
+
+
+def posts_a_comment(args: list[str]) -> bool:
+    """Whether `gh <args>` would post a comment or a review: `gds` runs as the maintainer, who allows none
+    (their decision of 2026-10-12; docs/hooks.md#comments)."""
+    route = tuple(args[:2])
+    if route in _POSTING:
+        return True
+    if route in _CLOSING:
+        return any(a in ("-c", "--comment") or a.startswith(("--comment=", "-c=")) for a in args[2:])
+    if args[:1] != ["api"]:
+        return False
+    method = next((args[i + 1].upper() for i, a in enumerate(args[:-1]) if a in ("-X", "--method")), "")
+    if method in ("GET", "DELETE"):
+        return False
+    writes = method in ("POST", "PATCH", "PUT") or any(a in _API_WRITES for a in args)
+    path = next((a for a in args[1:] if a.startswith(("repos/", "/repos/", "gists/", "orgs/"))), "")
+    return (writes and _API_COMMENT_PATH.search(path) is not None) or any(_COMMENT_MUTATION.search(a) for a in args)
+
+
 def run_gh(args: list[str]) -> str:
-    """The real runner: `gh <args>`, its output; IssueError when it fails."""
+    """The real runner: `gh <args>`, its output; IssueError when it fails or would post a comment."""
+    if posts_a_comment(args):
+        raise IssueError(f"gh {' '.join(args[:3])} would post under the maintainer's account: refused")
     try:
         done = subprocess.run(["gh", *args], capture_output=True, text=True, encoding="utf-8", timeout=120)
     except (OSError, subprocess.SubprocessError) as error:
@@ -482,7 +511,6 @@ def start(
             if label in issue.labels:
                 edit += ["--remove-label", label]
         gh(edit)
-        gh(["issue", "comment", str(number), "-R", repo, "--body", f"Started by agent {agent}"])
         areas = areas_for(issue.labels) if areas_for else []
         started = load_ledger(ledger)
         started[ledger_key(repo, number)] = {
@@ -523,8 +551,6 @@ def release(repo: str, number: int, *, gh: Gh, ledger: Path, agent: str = "") ->
         ["issue", "edit", str(number), "-R", repo, "--remove-label", IN_PROGRESS, "--add-label", READY]
         + ["--remove-assignee", "@me"]
     )
-    who = f" by agent {agent}" if agent else ""
-    gh(["issue", "comment", str(number), "-R", repo, "--body", f"Released{who}: work stopped, ready to start again"])
     started = load_ledger(ledger)
     started.pop(ledger_key(repo, number), None)
     save_ledger(ledger, started)
@@ -622,7 +648,7 @@ def block(
 
 def unblock(repo: str, number: int, *, gh: Gh, ledger: Path, now: datetime | None = None) -> list[str]:
     """Put a blocked issue back in the line: the label and the `Blocked (...)` line go, `S-ready-to-start` comes back,
-    and a comment keeps the reason that was lifted."""
+    and nothing else records the reason that was lifted."""
     issues, _ = fetch(repo, gh)
     issue = next((i for i in issues if i.number == number), None)
     if issue is None:
@@ -634,18 +660,6 @@ def unblock(repo: str, number: int, *, gh: Gh, ledger: Path, now: datetime | Non
     if old:
         edit += ["--body", without_blocks(issue.body)]
     gh(edit)
-    day = (now or datetime.now(UTC)).strftime("%Y-%m-%d")
-    gh(
-        [
-            "issue",
-            "comment",
-            str(number),
-            "-R",
-            repo,
-            "--body",
-            f"Unblocked ({day})" + (f"; it was: {old.line()}" if old else ""),
-        ]
-    )
     forget_reads(ledger)
     return [f"unblocked {repo}#{number}: back in the line as {READY}"]
 

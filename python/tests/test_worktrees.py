@@ -213,7 +213,7 @@ def test_a_worktree_that_cannot_be_made_leaves_the_issue_untouched(tmp_path):
 def test_a_github_failure_after_the_worktree_takes_the_worktree_away(world, tmp_path):
     class Failing(FakeGh):
         def __call__(self, args):
-            if args[:2] == ["issue", "comment"]:
+            if args[:2] == ["issue", "edit"]:
                 raise issues.IssueError("gh failed")
             return super().__call__(args)
 
