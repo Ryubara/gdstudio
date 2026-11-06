@@ -77,9 +77,9 @@ uv run --project <workspace>/repos/gdstudio/python gds issue start Ryubara/deadn
 
 If `#523` is not among the first five ready issues, nothing changes and the command prints why and lists the issues
 that may start instead. Otherwise it makes the branch and worktree ([below](#worktree)), sets `S-in-progress`, removes
-`S-ready-to-start` and `S-needs-triage`, assigns the issue to the GitHub user running it, comments "Started by agent
-godot-engineer-4" and records the start in `<workspace>/cache/issues-started.json` (issue, agent, time, branch,
-worktree). It ends with the lines to paste into the agent's prompt:
+`S-ready-to-start` and `S-needs-triage`, assigns the issue to the GitHub user running it and records the start in
+`<workspace>/cache/issues-started.json` (issue, agent, time, branch, worktree). It posts no comment: the labels say
+that work is under way ([Hooks](hooks.md#comments)). It ends with the lines to paste into the agent's prompt:
 
 ```text
 Worktree: C:/Repositories/GDStudio/worktrees/deadnight/net-add-the-lobby-list

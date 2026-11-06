@@ -1603,6 +1603,8 @@ CLOSE_691 = (
 )
 COMMENT_COMMANDS = [
     "gh issue comment 5 --body hi",
+    "gh issue comment 5 --body '/claim'",
+    "gh issue comment 5 --body /release",
     "gh issue comment 5 -b hi --attach a.png",
     "gh issue comment 5 -F body.md",
     "gh issue comment 5 --edit-last -b hi",
@@ -1758,12 +1760,6 @@ ALLOWED_COMMANDS = [
     'gh api graphql -f query=\'{ repository(owner:"o", name:"r") { pullRequest(number:1) { id } } }\'',
     "gh api graphql -f query='mutation { closeIssue(input:{issueId:\"I\"}) { clientMutationId } }'",
     "gh api graphql -f query='query($n:Int!){ viewer { login } }' -F n=1",
-    "gh issue comment 5 --body '/claim'",
-    "gh issue comment 5 -b '/claim renew'",
-    "gh issue comment 5 -b '/claim scope: hooks'",
-    "gh issue comment 5 --body /unclaim",
-    "gh issue comment 5 --body /release",
-    "gh issue comment 5 --body '/progress in-review'",
     "uv run --project python gds issue start Ryubara/gdstudio#695 --agent claude",
     "echo gh issue comment 5 --body hi",
     "echo 'gh issue close 5 --comment hi'",

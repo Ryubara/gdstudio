@@ -162,9 +162,8 @@ the list is only as current as that walk.
 | `gh alias set` | an alias whose expansion is one of the above | any other alias |
 
 A body is not a comment: `gh issue create|edit --body`, `gh pr create|edit --body` and `gh pr merge --body` (the text of
-the merge commit) are allowed. The one exception is the maintainer's (2026-10-24): `gh issue comment N --body <claim>`,
-whose whole body is one claim command (`/claim`, `/claim renew`, `/claim scope: ...`, `/unclaim`, `/release`, `/progress
-<stage>`).
+the merge commit) are allowed. There is no exception: the claim commands of 2026-10-24 were taken out on 2026-11-06
+(nothing used them), and a claim is a comment like any other.
 
 A command counts wherever a line starts it: after `&&`, `;`, `|`, `then`, `(`, `{`, `$(...)` and backticks, behind
 `env`, `timeout`, `command`, `nohup` and `xargs`, inside `bash -c`, `pwsh -Command`, `cmd /c` and `eval`, over a line
@@ -173,8 +172,12 @@ mentions one passes: an `echo`, a `grep`, a commit message, a single-quoted body
 
 Not seen, because no shell line says it: a script file, a heredoc fed to a shell, `uv run gh`, `npx`, `Start-Process`,
 an alias made before this guard, a `gh` extension, `curl` with a token, the website, and `gh` called from Python.
-That last one includes `gds` itself: `gds issue start`, `release` and `unblock` post their status comments under the
-running account by design ([Starting work](starting-work.md)).
+`gds` is the last of these and has its own rule, because it runs under the maintainer's account: `run_gh` in
+`python/src/gds_tools/issues.py` is its one way to run `gh`, and refuses what `posts_a_comment` names; a test fails
+if a second way appears. `gds issue start`, `release` and `unblock` change labels and the ledger and post nothing.
+Until 2026-11-06 they did post, and this page called it by design
+([lesson](lessons/2026-11-06-a-guard-on-what-agents-type-missed-what-the-tool-posted.md)).
+Comments a workflow posts with `GITHUB_TOKEN` appear under `github-actions[bot]`, not under the maintainer.
 
 A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook
 `no-comment-as-user.js`, outside this repository. It refuses any `gh issue comment` or `gh pr review` where a line

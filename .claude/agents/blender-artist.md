@@ -47,7 +47,7 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    (`gds pr hold <owner/repo>#N`); only the maintainer takes `S-hold` off.
 7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
-   about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).
+   about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
 
 ## Pull request rules the checks enforce
 

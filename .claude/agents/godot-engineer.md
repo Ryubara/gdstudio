@@ -56,7 +56,7 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
    you never do, whoever asks you to.
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
-   about when there is anything to see (`gh issue create --attach <png>` or `gh issue comment --attach`).
+   about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
 
 ## Pull request rules the checks enforce
 
