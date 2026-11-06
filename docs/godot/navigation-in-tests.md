@@ -51,6 +51,16 @@ neighbouring cars, four are open to the mesh and the rest are a 12 to 34 m detou
 must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions
 ([lesson](../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
 
+## A prop that is not in the bake
+
+Deadnight's baker reads CSG boxes only (`NavmeshBaker.source_data`); a `StaticBody3D` prop (a breaker post, 0.8 by 0.5 m)
+is solid to a body and absent from the mesh. A path hugs the mesh's corners, so a prop standing in a wall's 0.5 m
+margin is on the line a bot walks round that wall's corner, and the bot walks into it and stands: the path is fine, the
+legs report nothing wrong, and the stuck ladder is the only thing that moves it. To test it, start the body where the
+real walk starts (the approach line, 10 m back), not at the place it ended up, and run the real ladder; a ray along
+the path (`BotPath.walkable`) at a low height does not see a prop the path passes within a body's radius of
+([lesson](../lessons/2026-11-06-a-roam-bot-stood-at-a-breaker-post-because-the-ladders-nudge-made-its-goal-unreachable.md)).
+
 ## A goal in a wall
 
 A point inside a wall, a closed door's slab or a counter is no goal for a path: it snaps to whichever side of the wall's
