@@ -190,5 +190,10 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
   be followed; Chrome honours `user-scalable=no` and `touch-action: none` (each alone holds a pinch at scale 1, checked
   against a plain page that zooms to 5); iOS Safari ignores `user-scalable=no` and only a device shows the rest.
   `Input.synthesizePinchGesture` does nothing in headless emulation, even on a plain page: pull two points apart with
-  `Input.dispatchTouchEvent` (`tools/web_smoke/phone_view.py` in Deadnight). Playwright's WebKit has no coarse pointer,
-  so the game runs its desktop path there: it is not a stand-in for iOS Safari.
+  `Input.dispatchTouchEvent` (`tools/web_smoke/phone_view.py` in Deadnight).
+  Playwright's WebKit with an iPhone descriptor (`p.devices['iPhone 14 landscape']`) is the nearest engine to Safari
+  here and is not Safari: `(pointer: coarse)` is true and `devicePixelRatio` is an own, configurable accessor (the
+  ratio cap installs), but `navigator.maxTouchPoints` is 0 where an iPhone's is 5, so a touch test that asks for more
+  than 0 (`TouchMode.detect`) runs the desktop path: add an init script that defines it as 5. There is no CDP session
+  (no raw pinch) and no real toolbars or safe areas, so Safari's own zoom, `visualViewport` and `100dvh` are read on a
+  phone (`?viewcheck`), not here.
