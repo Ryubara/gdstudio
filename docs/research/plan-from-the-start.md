@@ -247,3 +247,5 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../godot/shot-feedback.md#blood)).
+- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
+  in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
