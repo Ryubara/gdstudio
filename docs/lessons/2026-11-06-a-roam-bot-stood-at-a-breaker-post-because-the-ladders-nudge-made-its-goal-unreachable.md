@@ -23,5 +23,8 @@ areas: [gameplay, tests]
 - **Check for next time:** a field of a sample that is an enum prints as a number: look the enum up before reading it as
   a count. A reproduction starts the bot where the sample's bot *came from* (the approach line), not where it stood:
   the spot was the end of a walk that hugged a corner. A recovery that moves a goal must prove the moved goal is still
-  reachable, and any state in which the bot is not commanded to walk is invisible to the stuck detector.
+  reachable, and any state in which the bot is not commanded to walk is invisible to the stuck detector. A test that
+  puts a wall on a line the path crosses must keep it off the mesh's cell lines (a path vertex on the wall, z = 8.0 on
+  2 m cells, made the crossing test `product >= 0` see no crossing and the first unit test pass for the wrong reason):
+  assert that the case it is about happened (`walled_marks > 0`) before asserting the answer.
 - **Docs:** Deadnight's `docs/research/bots.md` ("A Roam bot held at the breaker post (#1325)").
