@@ -152,7 +152,10 @@ its places are (`TouchControls.zones`) and presses the action of the first that 
 list is the rule (put the narrowest place first). Measure a place against every neighbour that stands at a share of the
 screen or reads a column's height (the stick's resting ring, the challenge card, the markers) with the touch layout on,
 before building it: a fingertip-high part in a card column makes the column a fingertip taller
-([lesson](../lessons/2026-11-05-a-tag-asked-for-in-a-card-column-could-not-clear-the-stick-ring.md)). A fit method that
+([lesson](../lessons/2026-11-05-a-tag-asked-for-in-a-card-column-could-not-clear-the-stick-ring.md)). A word in a
+screen corner is darker than its tokens say: the film's vignette takes a corner to about 0.6 of its brightness, so
+measure its contrast on a capture
+([lesson](../lessons/2026-11-05-a-hud-word-in-a-corner-read-dim-under-the-film-vignette.md)). A fit method that
 moves a child of a container does it deferred and only when it must: `move_child` is refused while the container is
 setting up its children
 ([lesson](../lessons/2026-11-05-a-move-child-in-a-fit-was-refused-while-the-row-was-setting-up.md)). A test that names
