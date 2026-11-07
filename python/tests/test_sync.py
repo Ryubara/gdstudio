@@ -173,3 +173,57 @@ def test_the_kits_own_config_defines_the_blocks_games_get():
     assert "check-push" in found["message-checks"] and "stages: [pre-push]" in found["message-checks"]
     assert (kit / ".github" / "scripts" / "groundwork.py").is_file()
     assert any(e.target == ".github/scripts/groundwork.py" for e in sync.entries(kit))
+
+
+# --- the Godot addons the kit owns (kit #772) ---
+
+
+def add_addon(kit):
+    root = kit / "godot" / "addons" / "gds_ui"
+    (root / "components").mkdir(parents=True)
+    (root / "plugin.cfg").write_text('[plugin]\nname="gds_ui"\n')
+    (root / "components" / "ui_button.gd").write_text("class_name UIButton\n")
+    # Installed untracked beside it by `gds workspace init`; never the kit's to give away.
+    (kit / "godot" / "addons" / "gdUnit4").mkdir()
+    (kit / "godot" / "addons" / "gdUnit4" / "plugin.cfg").write_text("[plugin]\n")
+
+
+def test_the_addon_goes_to_the_same_res_path_and_nothing_else_from_the_folder(tmp_path):
+    kit, game = make_kit(tmp_path), tmp_path / "game"
+    add_addon(kit)
+    game.mkdir()
+    sync.sync(kit, game, lambda _: None)
+    assert (game / "game" / "addons" / "gds_ui" / "components" / "ui_button.gd").read_text() == "class_name UIButton\n"
+    assert not (game / "game" / "addons" / "gdUnit4").exists()
+    assert "game/addons/gds_ui/plugin.cfg" in json.loads((game / sync.LOCK).read_text())["files"]
+    assert sync.drift(kit, game) == []
+
+
+def test_a_hand_edit_in_the_addon_copy_is_drift(tmp_path):
+    kit, game = make_kit(tmp_path), tmp_path / "game"
+    add_addon(kit)
+    game.mkdir()
+    sync.sync(kit, game, lambda _: None)
+    (game / "game" / "addons" / "gds_ui" / "components" / "ui_button.gd").write_text("class_name UIButton\nvar x\n")
+    assert any("ui_button.gd: differs from the kit" in p for p in sync.drift(kit, game))
+
+
+def test_a_file_the_kit_dropped_or_a_game_added_to_the_addon_is_drift_and_sync_removes_it(tmp_path):
+    kit, game = make_kit(tmp_path), tmp_path / "game"
+    add_addon(kit)
+    game.mkdir()
+    sync.sync(kit, game, lambda _: None)
+    extra = game / "game" / "addons" / "gds_ui" / "components" / "ui_extra.gd"
+    extra.write_text("extends Node\n")
+    assert any("ui_extra.gd: not in the kit's addon" in p for p in sync.drift(kit, game))
+    (kit / "godot" / "addons" / "gds_ui" / "components" / "ui_button.gd").unlink()
+    assert sync.sync(kit, game, lambda _: None) == 2  # both removed
+    assert not extra.exists()
+    assert sync.drift(kit, game) == []
+
+
+def test_the_real_kit_owns_the_addon_with_its_uids_and_none_of_the_third_party_ones():
+    targets = {e.target for e in sync.entries(Path(__file__).resolve().parents[2])}
+    assert "game/addons/gds_ui/plugin.cfg" in targets
+    assert "game/addons/gds_ui/router/ui_router.gd.uid" in targets
+    assert not [t for t in targets if t.startswith("game/addons/") and "/gds_ui/" not in t]

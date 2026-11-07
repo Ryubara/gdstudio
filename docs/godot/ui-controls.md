@@ -8,7 +8,7 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | Tweens on a disabled or freed node | A node whose `process_mode` is `PROCESS_MODE_DISABLED` (a screen a router covers) never advances a tween created on it, so its animation never runs. A tween on a node that is freed is killed and its `finished` signal never fires, so an `await` on it waits forever. Create transition tweens on a node that stays enabled and outlives the screens (the router's stage), and check `is_instance_valid` after every await ([lesson](../lessons/2026-11-01-a-screen-freed-mid-transition-locked-the-router-for-good.md)). |
 | Screen-reading shaders | `hint_screen_texture` makes the renderer copy the back buffer: +0.18 ms at 1080p and +12 MB for a full-screen grade ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)), and it is the shader feature most likely to differ on a mobile or WebGL2 GPU. A screen transition does not need it: make it procedural (hash noise) over a colour the shader owns, close it over the old screen, swap behind it, then open. |
 | Clear colour | Set `RenderingServer.set_default_clear_color` to the UI's background token. A fade or a screen swap that passes through "nothing" shows the engine's default grey, which no token owns. |
-| A transition checklist | A pop is not a push played backwards: the screen that leaves must be on top, and only the transition may decide layering (never the stage's child order). For each transition capture the push **and** the pop, free the outgoing, the incoming and the popped screen mid-transition and check the router is idle, queue calls during it and check they run in order, and run it with reduced motion on. Deadnight's list: `game/addons/gds_ui/README.md` there. |
+| A transition checklist | A pop is not a push played backwards: the screen that leaves must be on top, and only the transition may decide layering (never the stage's child order). For each transition capture the push **and** the pop, free the outgoing, the incoming and the popped screen mid-transition and check the router is idle, queue calls during it and check they run in order, and run it with reduced motion on. The list is in the addon's README (`godot/addons/gds_ui/README.md` in the kit). |
 | Slider hit area | HSlider hit-tests with the grabber icon's width, so the theme's invisible grabber must be as wide as the drawn thumb. Check with a real InputEventMouseButton: a click at 60% of the travel gave 1.85 of 0.1 to 3.0. |
 | An overlay in a padded container | A `PanelContainer` (any container with content margins) lays out every child inside the margins, an overlay such as a border included, so padding for the words shrinks the border with them. Give the overlay its own room: draw it outside its rectangle by the margin (a `grow` on the control; drawing outside the rect is allowed), and take the room from the content, not from the container, so the row keeps its width ([lesson](../lessons/2026-11-05-a-border-over-a-plate-shrank-with-its-padded-container.md)). |
 | Invisible textures | Never a PlaceholderTexture2D: it draws a magenta checker in game. Use a transparent ImageTexture. |
@@ -22,6 +22,39 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | One-shot 3D portrait in a HUD | A `SubViewport` with `own_world_3d`, the model, a camera and lights, `render_target_update_mode = UPDATE_ONCE` two frames after the model enters (its idle clip must pose it), shown by a `TextureRect` on `viewport.get_texture()`; it costs nothing after that frame. |
 
 Game write-ups: Deadnight's `docs/research/ui-foundation.md` and `docs/research/settings.md`.
+
+## Where `gds_ui` is edited {#where}
+
+The addon has one source: the kit's own Godot project, `godot/addons/gds_ui/`. A game never edits its copy. `gds sync`
+writes the addon into each game's `game/addons/gds_ui/` (the same `res://addons/gds_ui/` path, so nothing in a game
+changes), records every file's hash in the game's `.claude/gds-sync.json`, and `gds sync <game> --check` fails when a
+file differs, is missing, or sits in the addon's folder without being in the kit ([Sync](../sync.md#addons)). It is a
+tracked copy, not an untracked install like GdUnit4: shipped game code depends on it, and a game's CI must not need a
+second fetch to build.
+
+To change it:
+
+1. Edit it in the kit and run the addon's suites (below) in a kit pull request. Name no game in the addon: a
+   game's skin is a `UITokens` resource the game owns, a game's screens extend `UIScreen`.
+2. After it merges, run `uv run --project python gds sync <workspace>/repos/<game>` for each game, and commit the
+   result in a pull request of that game (the game's own suites are its proof that the new version fits).
+
+**Its tests.** `godot/tests/gds_ui/` holds the suites that need nothing but the addon (the router and its robustness,
+the tokens and the restyle, every component, glyphs, the spring and the theme), with the small helpers they share
+(`RouterFixture`, `WidgetEvents`, `InputFixture`), and `godot/tests/captures/` the scripted tours of the controls and
+glyph sheets. They run in the kit's Godot project with the pinned Godot and GdUnit4, which `gds workspace init`
+installs untracked into `godot/` like into a game:
+
+```sh
+godot=$(uv run --project python gds tool path godot)
+"$godot" --headless --path godot --import        # once, and after adding a class_name
+"$godot" --headless --path godot -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -c --ignoreHeadlessMode
+```
+
+The kit's CI runs the same two commands (the `godot` job). A suite that needs a game's own classes (a screen, the page
+size, the settings autoload) stays in that game: Deadnight keeps its menu, touch-slip and sound-role suites. The project
+declares `ui_accept` (Enter, Space, pad A and Start) and `ui_cancel` (Escape, pad B), which the controls act on; the
+tests press those keys and buttons.
 
 ## A control that draws outside its rect
 

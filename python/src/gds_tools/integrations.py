@@ -1,7 +1,8 @@
 """What `gds workspace init` sets up around the checkouts (docs/workspace.md#integrations).
 
-- The Godot MCP addon goes into every game's `game/addons/godot_mcp/`, enabled through an untracked
-  `game/override.cfg` and excluded in the checkout's `.git/info/exclude`: third-party code never enters a public game
+- The pinned Godot addons (the MCP addon, GdUnit4) go into every game's `game/addons/<name>/`, and into the kit's own
+  Godot project (`godot/`, where `gds_ui` is edited and tested), enabled through an untracked `override.cfg` beside
+  its `project.godot` and excluded in the checkout's `.git/info/exclude`: third-party code never enters a public
   repository, yet every machine gets it.
 - The MCP servers of tools.toml's [mcp] table are registered with Claude Code for every checkout
   (`claude mcp add -s local`), unless Claude Code is missing or the server is registered already.
@@ -26,11 +27,18 @@ def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
 
 
+#: The folder of a checkout that holds its Godot project: `game/` in a game, `godot/` in the kit (the addons' project).
+PROJECT_FOLDERS = ("game", "godot")
+
+
 def game_projects(repos: Path) -> list[Path]:
-    """The Godot projects of the workspace's games: `repos/<name>/game/` and every worktree's
-    `worktrees/<name>/<branch>/game/` (agents work there, and the untracked addons are not in a fresh worktree)."""
+    """The Godot projects of the workspace: `repos/<name>/game/` (a game) or `repos/<name>/godot/` (the kit), and the
+    same in every worktree `worktrees/<name>/<branch>/` (agents work there, and the untracked addons are not in a
+    fresh worktree)."""
     worktrees = repos.parent / "worktrees"
-    found = [*repos.glob("*/game/project.godot"), *worktrees.glob("*/*/game/project.godot")]
+    found = []
+    for folder in PROJECT_FOLDERS:
+        found += [*repos.glob(f"*/{folder}/project.godot"), *worktrees.glob(f"*/*/{folder}/project.godot")]
     return sorted(p.parent for p in found)
 
 
@@ -55,13 +63,13 @@ def install_godot_addon(tool_dir: Path, addon: str, source: str, project: Path, 
     exclude = project.parent / ".git" / "info" / "exclude"  # a worktree's .git is a file: its repo's exclude applies
     if exclude.parent.exists():
         lines = exclude.read_text(encoding="utf-8").splitlines() if exclude.exists() else []
-        missing = [e for e in (f"/game/addons/{addon}/", "/game/override.cfg") if e not in lines]
+        missing = [e for e in (f"/{project.name}/addons/{addon}/", f"/{project.name}/override.cfg") if e not in lines]
         if missing:
             note = [EXCLUDE_NOTE] if EXCLUDE_NOTE not in lines else []
             exclude.write_text("\n".join([*lines, *note, *missing]) + "\n", encoding="utf-8")
             changed = True
     if changed:
-        log(f"godot   {addon} in {project.parent.name}/game (untracked)")
+        log(f"godot   {addon} in {project.parent.name}/{project.name} (untracked)")
     return changed
 
 

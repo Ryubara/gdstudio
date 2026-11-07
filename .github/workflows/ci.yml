@@ -1,6 +1,7 @@
 # The kit's build and tests on the three platforms the bootstrap supports: ruff, pytest, and a dry run of the
-# bootstrap from the checkout. The final job, `build-ok`, is the one required check, so the matrix can change without
-# editing the ruleset. Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+# bootstrap from the checkout, and the gds_ui addon's Godot tests (`godot`). The final job, `build-ok`, is the one
+# required check, so the jobs can change without editing the ruleset. Actions are pinned to a full commit SHA; the tag
+# is in the comment beside it.
 name: ci
 
 on:
@@ -39,9 +40,53 @@ jobs:
         if: runner.os != 'Windows'
         run: sh ./bootstrap.sh --dry-run --no-clone
 
+  godot:
+    # The gds_ui addon's own GdUnit4 suites, in the kit's Godot project (`godot/`), with the pinned Godot: the runner's
+    # work folder becomes a GDStudio workspace and `gds workspace init` fetches Godot and GdUnit4 from tools.toml
+    # (hash-checked, cached), as the games' CI does. Godot exits 0 on most script errors, so the import log and the
+    # test log are read for them. The router's robustness suite prints `ERROR: UIRouter: ...` on purpose (the calls it
+    # refuses), so the test log is judged by GdUnit4's exit code and by leaks at exit, not by every ERROR.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/gdstudio
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: cache/downloads
+          key: tools-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
+      - name: Make the workspace and fetch the pinned Godot and GdUnit4
+        run: uv run --project repos/gdstudio/python --frozen gds workspace init --workspace . --no-clone --no-mcp --fetch godot,gdunit4
+      - name: Import the project
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          "$godot" --headless --path repos/gdstudio/godot --import 2>&1 | tee import.log
+          ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: Run the addon's tests (GdUnit4)
+        # No `-d`: with the debugger attached, the first script error stops the engine at a prompt and the job hangs.
+        # `--ignoreHeadlessMode` is needed because GdUnit4 otherwise refuses to run headless.
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          "$godot" --headless --path repos/gdstudio/godot -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -c --ignoreHeadlessMode 2>&1 | tee tests.log
+          ! grep -E "SCRIPT ERROR|Parse Error|leaked at exit|still in use" tests.log
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gdunit4-report
+          path: |
+            repos/gdstudio/godot/reports
+            tests.log
+            import.log
+
   build-ok:
     if: always()
-    needs: [test]
+    needs: [test, godot]
     runs-on: ubuntu-24.04
     steps:
       - name: Every job passed
