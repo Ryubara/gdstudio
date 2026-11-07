@@ -47,12 +47,17 @@ Numbers that gave the template's look, in `world/lighting/`:
 - **Movie Maker is one frame behind `_process`.** The frame written is the state `_process` left on the previous call,
   so a tour that cuts to a new view every N frames sets the first view in `_ready` and chooses each view one frame
   ahead; otherwise frame 0 is the default camera and every cut shows late.
+- **The synced `gds_ui` addon's demo does not export without the `UIRouter` autoload.** Import, a run and the tests
+  are clean, but `--export-release` loads every script and printed 20 lines of parse errors for the five demo scripts
+  ([lesson](../lessons/2026-11-07-a-synced-addons-demo-broke-a-new-games-web-export.md)); the preset excludes
+  `addons/gds_ui/demo/*`.
 - **GdUnit4's `-rd <folder>`** writes the reports outside the project, so CI never generates files under `res://`.
 - **`gdformat` writes CRLF on Windows**; run `sed -i 's/\r$//'` over the scripts it touched
   ([lesson](../lessons/2026-11-02-python-on-windows-writes-crlf-into-edited-files.md)).
 
 ## Measured on the export
 
-The 3D Blank web export (`--export-release Web`, Compatibility, no threads) is a 30 KB `index.pck` and a 39.5 MB
-`index.wasm` (the engine); it holds the level and no file of `tests/` or `tools/`. Opened in headless Chromium with
-SwiftShader it drew the level, shadows and labels with no console error, page error or failed request.
+The 3D Blank web export (`--export-release Web`, Compatibility, no threads) is a 154 KB `index.pck` (the level and
+the synced `gds_ui` addon, no demo) and a 39.5 MB `index.wasm` (the engine); it holds the level and no file of `tests/`
+or `tools/`. Opened in headless Chromium with SwiftShader it drew the level, shadows and labels with no console
+error, page error or failed request.
