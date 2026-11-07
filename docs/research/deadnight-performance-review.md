@@ -1,8 +1,8 @@
 # Deadnight's performance review (#907)
 
 The first review made with the [Performance review](../godot/performance-review.md) checklist: Deadnight `origin/main`
-0fe9a1ff (2026-11-03), after the maintainer asked (Deadnight #906 and #907) for the places that "will definitely lag the
-game". The reviewer opened nine issues; all but #935 are closed. This page keeps the numbers and what the review could
+0fe9a1ff (2026-11-03), after the maintainer asked (Deadnight #906 and #907) for the places that would clearly lag the
+game. The reviewer opened nine issues; all but #935 are closed. This page keeps the numbers and what the review could
 not see, so the next review starts from them.
 
 ## Verdict

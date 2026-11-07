@@ -5,7 +5,7 @@ areas: [audio, gameplay]
 
 2026-11-02
 
-- **Saw:** the maintainer, playing: the tommy gun sounds "distancy", its pitch is inconsistent, every gun should be
+- **Saw:** the maintainer, playing: the tommy gun sounded distant, its pitch was uneven, every gun should be
   louder and more powerful (Deadnight #407). No clipping anywhere, every file normalised.
 - **Cause:** recorded through the real service, the tommy gun had a third of its energy in the first 50 ms (a
   generated blast with a baked-in room and a tail made the rest), nothing under 120 Hz, a -6 dB trim and a -10.6 dBFS

@@ -7,7 +7,7 @@ areas: [godot, web]
 - **Symptom (caught before it shipped):** the first idea for Deadnight's re-cut weapon skin (#787) was a
   `material_overlay` on every mesh, which the old bench glow used. An overlay draws each surface a second time, and the
   phone's budget is draw calls.
-- **Cause:** an overlay looks like "a layer over the palette material", which is what the maintainer asked for, but the
+- **Cause:** an overlay looks like a layer over the palette material, which is what the maintainer asked for, but the
   renderer reads it as a second pass.
 - **Fix:** a shader that stands in the surface's own material (`set_surface_override_material`), copying its palette
   texture, metallic and roughness, so the weapon draws as often as before; a test counts the surfaces with and without

@@ -5,10 +5,9 @@ areas: [godot-ui, input]
 
 2026-11-05
 
-- **Saw:** the maintainer on Deadnight's phone controls (#1275 to #1280): "we're still treating the users as if they're
-  playing the desktop version but just with touch controls. The entire UI needs to change. Why do we have a "swap"
-  weapons button when we clearly have a UI showing the weapons". And: "right now when aiming and auto firing it doesn't
-  auto reload when it hits 0."
+- **Saw:** the maintainer on Deadnight's phone controls (#1275 to #1280): the phone was still the desktop
+  version with touch buttons and the whole interface needed a redesign; a swap button repeated the weapon display a
+  player could tap instead; and aimed auto-fire did not reload at 0.
 - **Cause:** touch was built by giving each desktop action a button, because the layer presses the game's input actions
   (`game/ui/touch/touch_controls.gd`) and "nothing else forks". That kept the code simple and made the phone a keyboard
   on glass. Each button passed its size, safe-area and floor tests, so no test could say there were too many, or that a

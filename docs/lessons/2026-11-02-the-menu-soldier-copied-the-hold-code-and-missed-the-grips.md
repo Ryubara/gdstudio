@@ -5,10 +5,10 @@ areas: [godot-ui, blender]
 
 2026-11-02
 
-- **Saw:** "hand placements on gun is not correct in main menu, why is that separated from the main hand placement
-  logic?" (Deadnight #621): on the main menu the soldier held the lever rifle with the fists off the grip and the
-  fore-end. Measured on main: the right palm 36.8 mm inside the weapon, the thumb tip 67.7 mm off it, the left index
-  tip 63.5 mm off the fore-end.
+- **Saw:** the maintainer found the hands wrong on the guns in the main menu and asked why the menu had its own hand
+  placement apart from the main one (Deadnight #621): on the main menu the soldier held the lever rifle with the fists
+  off the grip and the fore-end. Measured on main: the right palm 36.8 mm inside the weapon, the thumb tip 67.7 mm off
+  it, the left index tip 63.5 mm off the fore-end.
 - **Cause:** the menu's `MenuHero` (#424, #466) had copied the night's weapon setup (a mount on the hand bone, the kit's
   `HOLD_GUN`, a `WeaponHandsIK`) five hours before #507 solved a grip per model (`HandGrip`, `HandGripPose`) and wired
   it into `PlayerAnimation` only. #507's test builds the real player and no other view of the soldier, and the menu's

@@ -1,7 +1,7 @@
 # Performance review
 
-From the review of Deadnight #907, after the maintainer asked (Deadnight #906 and #907) for the places that "will
-definitely lag the game" and said performance "needs to be taken into consideration at all times". The reviewer agent
+From the review of Deadnight #907, after the maintainer asked (Deadnight #906 and #907) for the places that would
+clearly lag the game and for performance to be weighed at all times. The reviewer agent
 reads this page for every pull request; an author reads it before adding work that runs every frame. The review's
 findings are Deadnight #929 to #936 and #938.
 

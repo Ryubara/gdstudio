@@ -6,7 +6,7 @@ areas: [tools, process]
 2026-11-06
 
 - **Saw:** the maintainer found comments under their account on issues and pull requests, against their decision of
-  2026-10-12 ("Never ever comment something on my behalf"). The account held 682 comments in three repositories: 595
+  2026-10-12 that nothing comments on their behalf. The account held 682 comments in three repositories: 595
   were `gds` status lines ("Started by agent", "Unblocked", "Released"), and 87 were agents' notes.
 - **Cause:** two hooks read the commands an agent types, and `gds` calls `gh` from Python, where neither reads. The gap
   was not hidden: `docs/hooks.md` listed it and called it "by design", and a handoff carried it as an open question

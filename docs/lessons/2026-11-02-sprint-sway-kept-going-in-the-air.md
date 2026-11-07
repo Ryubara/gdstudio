@@ -6,7 +6,7 @@ areas: [camera, process]
 2026-11-02
 
 - **Saw:** with Shift held through a sprint-jump, the camera kept its footfall sway (0.425 degrees, the same as on the
-  ground) for the whole jump. The maintainer: "camera shake should stop as soon as player is ever in the air".
+  ground) for the whole jump. The maintainer wanted the shake to stop whenever the player is in the air.
 - **Cause:** `SprintSway.step` took only the sprint state and horizontal speed. In the air the body keeps its
   `sprinting` flag and its speed, so nothing told the sway the feet had left the ground; the motion state had
   `on_floor`, but it was never passed to the camera rig.

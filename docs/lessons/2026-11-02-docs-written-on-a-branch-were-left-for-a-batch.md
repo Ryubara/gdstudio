@@ -5,8 +5,8 @@ areas: [process]
 
 2026-11-02
 
-- **Saw:** the maintainer: "I keep asking to have you update documentation over stuff that wasn't considered when it was
-  first done. This needs to be made into a 'learning workflow' that's enforced." Deadnight #507 fixed the hand grips and
+- **Saw:** the maintainer pointed out that docs for what was not considered at the start kept needing a request, and
+  that this should be an enforced learning workflow (kit #99, 2026-11-02). Deadnight #507 fixed the hand grips and
   its agent wrote the how-to and seven lessons on a kit branch, then left them "for the coordinator's docs batch"; two
   lessons sat unpushed for hours (published in #98).
 - **Cause:** the learning loop fired only on a maintainer message, and "write it up" was advice. Nothing failed when a

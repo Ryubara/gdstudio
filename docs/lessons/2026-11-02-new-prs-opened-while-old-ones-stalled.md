@@ -5,8 +5,8 @@ areas: [process, ci]
 
 2026-11-02
 
-- **Saw:** the maintainer: "I see we're opening new PRs but we still have older PRs taht aren't getting knocked out"
-  (Deadnight #402, #432, #449, #455); later, "What's going on with this? It's been 4 hours" (#402).
+- **Saw:** the maintainer pointed out that new PRs kept opening while older ones stayed unmerged (Deadnight #402,
+  #432, #449, #455), and later that #402 had sat for four hours.
 - **Cause:** the coordinator reported new PRs (#465, kit #91) while five older ones sat DIRTY or failing. The old ones
   were being worked on (local merges under test) but nothing showed it: from GitHub a PR in work looks abandoned. #402
   failed CI three times as `main` moved under it (each re-merge restarted about 40 minutes of CI), then failed only a

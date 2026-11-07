@@ -5,8 +5,8 @@ areas: [process, tools]
 
 2026-11-02
 
-- **Saw:** the maintainer: "we should be executing Issues from oldest to newest at all times -- I see you just made the
-  outline for gameplay and immediately started progress. It seems this isn't enforced anywhere right?" A brand-new
+- **Saw:** the maintainer pointed out that issues are worked oldest to newest at all times, that a new issue had been
+  started the moment it was filed, and that nothing seemed to enforce the order. A brand-new
   request (the outline shader, Deadnight #523) got an agent at once while older issues waited.
 - **Cause:** "oldest first" was a rule in the coordinator's memory (a note about landing the pull request queue first).
   A fresh, interesting request is exactly when attention goes to the newest thing, and a memory note does not refuse

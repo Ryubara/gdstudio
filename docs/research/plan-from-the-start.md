@@ -249,3 +249,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../godot/shot-feedback.md#blood)).
 - Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
   in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+- Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every
+  time; the second kind becomes a default the agent runs (a new game's GitHub repository, Pages, ruleset, hold sweep and
+  an MIT licence, gdstudio #779) ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+- Plan: the docs record what the maintainer decided or pointed out in our words, with the issue or pull request and the
+  date, never the prompt; a check fails a corrections row that starts with a quotation mark (gdstudio #780)
+  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).

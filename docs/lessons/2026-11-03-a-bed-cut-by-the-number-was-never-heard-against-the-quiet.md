@@ -1,12 +1,12 @@
 ---
 areas: [audio]
 ---
-# A bed cut "25% quieter" by the number was still too much
+# A bed cut by 25% on the meter was still too much
 
 2026-11-03
 
-- **Saw:** the maintainer cut the crickets bed once (-2.5 dB, "25% quieter", Deadnight #382) and came back: "lower
-  cricket sounds by 50%, and reduce the rate at which they play by 50% as well" (#781). The proof of the first cut was a
+- **Saw:** the maintainer had the crickets bed cut once (-2.5 dB for a 25% cut, Deadnight #382) and came back asking
+  for them half as loud and half as frequent (#781). The proof of the first cut was a
   loudness table; the crickets already read 2.6 LU under the highway bed, so by the meter they were quiet.
 - **Cause:** a percentage turned into one dB figure and checked against other beds by an integrated loudness meter, never
   against the quiet night they play in. The crickets are a narrow tone at 3.4 to 5.7 kHz and the highway has next to

@@ -5,8 +5,8 @@ areas: [gameplay, process]
 
 2026-11-03
 
-- **Saw:** the maintainer, playing Deadnight's second map: "upstairs you can see flat land and then downstairs it's the
-  same thing"; too many windows on the ground floor; a window above the stairs; perks side by side. The map passed
+- **Saw:** the maintainer, playing Deadnight's second map: both floors looked out on the same flat land; too many
+  windows on the ground floor; a window above the stairs; perks side by side. The map passed
   every formula row and every window test (Deadnight #917).
 - **Cause:** the map was built to a formula of counts and distances (five, three and four windows; spawns 5 to 15 m
   out; each room's dead reaching that room only). To hold the last row, the generator gave every room's windows

@@ -5,8 +5,8 @@ areas: [godot-ui, tests]
 
 2026-11-04
 
-- **Saw:** the maintainer: "containers shouldn't be too tall or bleed below areas where it shouldn't such as the
-  footer area where it says Enter Select Esc Back Q E Tabs". The Loadout tab's wardrobe ended 47 units under the
+- **Saw:** the maintainer pointed out that no container should be too tall or run under the footer's key hints
+  (Deadnight #980). The Loadout tab's wardrobe ended 47 units under the
   hints on a 1080 canvas and past the right edge of the screen; on a phone (a 372-unit panel) it was 757 high and
   1020 wide. The Settings screen was 741 to 1103 units high and 1280 wide, Play together 897 high, Join 599, the
   Quick join card 975 high on a failure, on a canvas of 540 by 960 to 1170.

@@ -6,7 +6,7 @@ areas: [audio, blender]
 2026-11-01
 
 - **Saw:** the first soldier voice samples were made on ElevenLabs `eleven_v3`, while the account offered `eleven_v4`
-  ("most emotive"); the maintainer asked "Are we using the best available model?" (Deadnight #384).
+  ("most emotive"); the maintainer asked whether it was the best model available (Deadnight #384).
 - **Cause:** the model name came from memory of an earlier session, and nobody listed what the vendor offered now.
   Vendors ship new models faster than an agent's notes.
 - **Fix:** before generating with a vendor API, list its current models (`GET /v1/models`), pick from that list, and

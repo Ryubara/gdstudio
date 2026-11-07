@@ -3,7 +3,7 @@
 How to give a game's character a voice with ElevenLabs text to speech, so it sounds like a person in the moment and
 not like a narrator. The worked example is Deadnight's soldier: 115 takes of 21 moments, cast, written, generated,
 checked and wired into the night in one pull request ([Deadnight #442](https://github.com/Ryubara/deadnight/pull/442),
-issue [#384](https://github.com/Ryubara/deadnight/issues/384)). The maintainer's verdict: "generated really well".
+issue [#384](https://github.com/Ryubara/deadnight/issues/384)). The maintainer judged the result well generated.
 
 The source of truth is Deadnight's files; this page explains them and does not copy them whole:
 
@@ -29,11 +29,11 @@ The lessons this page builds on, each read before starting:
 
 ## 1. Casting
 
-**Start from the brief, then list what the account offers now.** The maintainer's brief for Deadnight was "a hardened
-male soldier voice, deep, calm, and steady with a bit of expression depending on the lines being said". Before any
+**Start from the brief, then list what the account offers now.** The maintainer's brief for Deadnight asked for a
+tough male soldier: a deep, calm, steady voice with some expression that changes with the line. Before any
 sample, list the account's voices (`GET /v1/voices`) and models (`GET /v1/models`) and pick from those lists, never
 from memory: the first samples were made on `eleven_v3` from an earlier session's notes while the account already
-offered `eleven_v4`, "most emotive", and the maintainer had to ask "Are we using the best available model?"
+offered `eleven_v4`, "most emotive", and the maintainer had to ask whether it was the best model available
 ([lesson](../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)). Say in the pull request which model and
 why.
 
@@ -61,8 +61,8 @@ settings fails instead of slipping in a second voice.
 ## 2. Writing the lines
 
 **A line is the character reacting, not a caption for the event.** The first sample said "Reload... catch your breath"
-and read like a narrator; the maintainer wanted "Reloading!", "Jeez, gotta catch my breath real quick", "like a real
-person talking with expression, with a lot of variety"
+and read like a narrator; the maintainer wanted a person reacting out loud, in the first person, with expression,
+fillers and plenty of variety (Deadnight #384)
 ([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)). So each line is:
 
 - first person, with contractions (`gotta`, `'em`, `outta`, `I'm`);

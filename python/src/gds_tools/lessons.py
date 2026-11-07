@@ -105,12 +105,15 @@ def lessons_in(root: Path) -> list[Lesson]:
 
 
 def problems(root: Path, areas: Areas) -> list[str]:
-    """Lessons without areas, or naming an area that does not exist."""
+    """Lessons without areas, or naming an area that does not exist, and quoted rows of the corrections page."""
     found = []
     for lesson in lessons_in(root):
         if not lesson.areas:
             found.append(f"{lesson.path.name}: no `areas: [...]` front matter")
         found += [f"{lesson.path.name}: unknown area {a!r}" for a in lesson.areas if a not in areas.names]
+    corrections = root / CORRECTIONS
+    if corrections.exists():
+        found += quoted_rows(corrections.read_text(encoding="utf-8"))
     return found
 
 
@@ -174,6 +177,32 @@ def corrections_rows(text: str) -> list[Row]:
         elif not line.strip():
             header = []
     return rows
+
+
+_QUOTES = "\"'“”‘’«»"  # straight, curly and guillemet quotation marks
+
+
+def quoted_rows(text: str) -> list[str]:
+    """Rows of the corrections page whose first cell starts with a quotation mark. A row says what the maintainer
+    pointed out in our words, with its source; the maintainer's prompts are never quoted in a public repository
+    (gdstudio #780). Header and separator lines are not rows."""
+    found, header = [], False
+    for number, line in enumerate(text.replace("\r\n", "\n").splitlines(), 1):
+        if not line.startswith("|"):
+            header = False
+            continue
+        if line.startswith("| ---"):
+            continue
+        if not header:
+            header = True
+            continue
+        first = cells(line)[0]
+        if first[:1] in _QUOTES:
+            found.append(
+                f"{CORRECTIONS.as_posix()}:{number}: the row quotes the maintainer ({first[:40]}...); "
+                "say what was pointed out in our words, with its source, never the prompt"
+            )
+    return found
 
 
 # --------------------------------------------------------------------------------------------------------------------

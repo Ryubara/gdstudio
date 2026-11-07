@@ -5,11 +5,10 @@ areas: [gameplay, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer, at round 12: "sometimes I'll be boarding something, and then I'll accidentally interact with
-  a weapon on the wall or a perk or something else next to it, the interactions need to be properly spaced with one
-  another to prevent accidental inputs and losing your weapons" (Deadnight #908). From the player's camera at the
-  second map's upper window, looking at the boards, the card offered the baseball bat ("REPLACES REVOLVER"); at the
-  window's own repair spot it offered the locker's rounds, which sat under the window.
+- **Saw:** the maintainer, at round 12: boarding a window sometimes used the wall weapon or perk beside it by accident;
+  interactions need spacing so a press is not taken by the wrong thing and a weapon is not lost (Deadnight #908).
+  From the player's camera at the second map's upper window, looking at the boards, the card offered the baseball bat
+  ("REPLACES REVOLVER"); at the window's own repair spot it offered the locker's rounds, which sat under the window.
 - **Cause:** three things, none of them wrong alone. Every use reached 3.2 m, a number set by the first playable night
   and never revisited, so each zone was a disc 6.4 m across; nothing checked two zones against each other (the one
   spacing test asked for one reach between spots, not two, and left out windows; the second map had none); and where

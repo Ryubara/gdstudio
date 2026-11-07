@@ -5,9 +5,9 @@ areas: [godot, gameplay]
 
 2026-11-03
 
-- **Saw:** the maintainer, playing round 12 (Deadnight #911): "The mystery box's light that shoots up in the sky to
-  indicate where it is bleeding through objects e.g. it ideally should continuously go up until it collides with a floor
-  or object." The prize crane's beam stood out of the concession's roof and showed on the second map's upper floor.
+- **Saw:** the maintainer, playing round 12 (Deadnight #911): the prize crane's beam into the sky
+  showed through objects, and it should rise only until it meets a floor or an object. The prize crane's beam stood
+  out of the concession's roof and showed on the second map's upper floor.
 - **Cause:** the beam was a 36 m additive cone (`BEAM_HEIGHT`) that nothing measured against what is above the crane.
   The depth test (the only wall a glow has in Compatibility) hides the part of the cone behind a surface from the
   camera, not the part beyond it on the camera's side; every capture of the crane was taken from the floor in front

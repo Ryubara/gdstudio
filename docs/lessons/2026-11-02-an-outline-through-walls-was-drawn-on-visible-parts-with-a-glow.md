@@ -5,11 +5,11 @@ areas: [gameplay, godot, web]
 
 2026-11-02
 
-- **Saw:** the maintainer, on Deadnight's last-zombies outline (#580): "an orange haze around the thick outline" and
+- **Saw:** the maintainer, on Deadnight's last-zombies outline (#580): an orange haze around the thick line, and
   the outline showing on parts of a zombie in plain sight. It should only show on the hidden parts, per pixel.
-- **Cause:** two words of the ask read too literally. "A glowing outline" became a second ring of faint passes (a
-  halo, `glow = 0.6`) that nobody had asked to keep once it was on screen. "Visible through walls" and the done line
-  "no depth test" became "draw everywhere": the mask and the line passes both had `depth_test_disabled`, so no pass
+- **Cause:** two words of the ask read too literally. The glow became a second ring of faint passes (a halo,
+  `glow = 0.6`) that nobody had asked to keep once it was on screen. Visible through walls, with a done line asking for
+  no depth test, became drawing everywhere: the mask and the line passes both had `depth_test_disabled`, so no pass
   ever asked whether a pixel was hidden. The captures of a zombie in the open were judged "readable", never "has no
   outline", and a zombie half behind a car was never shot.
 - **Fix:** no glow at all; each line pass reads the depth texture (`hint_depth_texture` works in Compatibility and

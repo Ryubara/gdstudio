@@ -5,8 +5,8 @@ areas: [gameplay, process]
 
 2026-11-03
 
-- **Saw:** the maintainer: "Melee weapons shouldn't be bought from the walls, they're too overpowered" (Deadnight
-  #910). The second map sold a crowbar, a bat and an axe from its walls.
+- **Saw:** the maintainer ruled that melee weapons are too strong to sell on the walls (Deadnight #910).
+  The second map sold a crowbar, a bat and an axe from its walls.
 - **Cause:** the wall-tier rule (#858) ranked weapons on one axis, damage per hit, and `WallTier.TIERS` listed the
   crowbar, bat and axe as tier 1 "hand", the lowest a wall may sell; the second map's generator kept three melee wall
   spots. A melee weapon never runs dry, needs no reload and no locker rounds, so it is strong on the axis the rule

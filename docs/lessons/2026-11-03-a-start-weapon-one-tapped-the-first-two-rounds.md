@@ -5,8 +5,8 @@ areas: [gameplay, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer on Deadnight: "the revolver is way too overpowered in my opinion for round 1 (it's 1 tapping
-  zombies in the head easily for round 1 and 2)", and asked for a lighter starter pistol that takes at least 3 head
+- **Saw:** the maintainer on Deadnight found the revolver far too strong for the first rounds (one head shot killed on
+  rounds 1 and 2), and asked for a lighter starter pistol that takes at least 3 head
   shots and 7 body shots on round 1.
 - **Cause:** the start weapon did 24 with a head multiplier of 2.5 = 60 on a head hit, over a round-1 walker's 50 health
   and round 2's 58 (`RoundTuning.health_for_round`); the head zone had grown to half the figure (#694, #745), so a
