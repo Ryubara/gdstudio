@@ -162,7 +162,10 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: gdformat and gdlint on every script
-        run: uvx "$PRE_COMMIT" run gdformat gdlint --all-files
+        # `pre-commit run` takes one hook id, so one call each (two in one call failed every new game: kit #779).
+        run: |
+          uvx "$PRE_COMMIT" run gdformat --all-files
+          uvx "$PRE_COMMIT" run gdlint --all-files
 
   mkdocs:
     # The documentation site built strictly (a broken link or a page missing from the nav fails). The push to the

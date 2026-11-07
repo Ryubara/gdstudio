@@ -182,9 +182,10 @@ def test_without_a_remote_the_workspace_file_is_left_alone(kit, root):
     assert any("add [repos.my-game] to the kit's workspace.toml" in step for step in made.todo)
 
 
-def test_the_github_repository_is_left_to_the_maintainer(kit, root):
+def test_local_lists_the_github_steps_it_left_out(kit, root):
     todo = make(kit, root).todo
-    assert any("create the GitHub repository" in step and "maintainer decision" in step for step in todo)
+    assert any("create the GitHub repository" in step for step in todo)
+    assert not any("maintainer" in step for step in todo)
 
 
 def test_pinned_addons_that_are_fetched_are_installed_untracked(kit, root):
@@ -255,14 +256,14 @@ def test_the_templates_the_kit_has_are_listed():
     assert new_game.available(KIT) == ["3d-blank"]
 
 
-def test_the_command_prints_what_is_left_for_the_maintainer(kit, root, monkeypatch, capsys):
+def test_the_command_prints_what_is_left(kit, root, monkeypatch, capsys):
     monkeypatch.setattr(cli.workspace, "kit_checkout", lambda: kit)
     monkeypatch.setattr(new_game, "new_game", lambda *a, **k: new_game.Made(root / "repos" / "x", True, ["do this"]))
     (root / ".gdstudio-workspace").write_text("marker\n", encoding="utf-8")
-    code = cli.main(["new", "game", "x", "--template", "3d-blank", "--workspace", str(root)])
+    code = cli.main(["new", "game", "x", "--template", "3d-blank", "--local", "--workspace", str(root)])
     out = capsys.readouterr().out
     assert code == 0
-    assert "left for you:" in out and "- do this" in out
+    assert "left to do:" in out and "- do this" in out
 
 
 def test_the_command_reports_a_refusal_with_exit_code_two(kit, root, monkeypatch, capsys):
@@ -310,3 +311,16 @@ def test_a_template_that_extends_one_the_kit_lacks_names_what_there_is(kit, root
     make_template(kit, "orphan", "missing", {})
     with pytest.raises(new_game.NewGameError, match="no template 'missing'"):
         new_game.new_game(kit, root, "my-game", "orphan", log=lambda _: None, run=quiet_run)
+
+
+def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
+    """`pre-commit run` takes one hook id: `run gdformat gdlint` failed every new game's first CI (kit #779). The
+    kit's template job runs all hooks with --all-files, so only the game's own command line shows it."""
+    import shlex
+
+    for workflow in sorted((KIT / "templates" / "repo" / ".github" / "workflows").glob("*.yml")):
+        for line in workflow.read_text(encoding="utf-8").splitlines():
+            words = shlex.split(line.split("run:", 1)[-1]) if '"$PRE_COMMIT" run' in line else []
+            if words:
+                hooks = [w for w in words[words.index("run") + 1 :] if not w.startswith("-")]
+                assert len(hooks) <= 1, f"{workflow.name}: {line.strip()}"

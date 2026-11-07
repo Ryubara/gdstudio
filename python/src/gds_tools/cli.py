@@ -10,7 +10,21 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from gds_tools import capture, disk, issues, layout, lessons, new_game, pr, refs, sweep, sync, workspace, worktrees
+from gds_tools import (
+    capture,
+    disk,
+    issues,
+    layout,
+    lessons,
+    new_game,
+    new_game_github,
+    pr,
+    refs,
+    sweep,
+    sync,
+    workspace,
+    worktrees,
+)
 from gds_tools.manifest import ManifestError, load_tools
 from gds_tools.quiet_run import run_quiet
 
@@ -181,15 +195,54 @@ def _cmd_sync(args: argparse.Namespace) -> int:
 
 
 def _cmd_new_game(args: argparse.Namespace) -> int:
+    if args.list:
+        kit = workspace.kit_checkout() or Path(__file__).resolve().parents[3]
+        for name in new_game.available(kit):
+            print(f"{name:<20} {new_game.load_template(kit, name).description}")
+        return 0
+    if not args.name or not args.template:
+        raise new_game.NewGameError("give the game's name and --template (`gds new game --list` prints the templates)")
+    if args.remote and not args.local:
+        raise new_game.NewGameError("--remote records an existing repository and goes with --local")
     root = workspace.require_workspace(Path(args.workspace)) if args.workspace else workspace.require_workspace()
     kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    options = None
+    if not args.local:
+        options = new_game_github.Options(
+            private=args.private,
+            wait=not args.no_wait,
+            wait_minutes=args.wait_minutes,
+            co_author=args.co_author or "",
+            kit_pr=not args.no_kit_pr,
+        )
     made = new_game.new_game(
-        kit, root, args.name, args.template, title=args.title, description=args.description, remote=args.remote
+        kit,
+        root,
+        args.name,
+        args.template,
+        title=args.title,
+        description=args.description,
+        remote=args.remote,
+        licence=args.licence,
+        holder=args.copyright,
+        options=options,
     )
     print(f"made {made.repo}")
-    print("left for you:" if made.todo else "nothing left to do")
+    published = made.published
+    if published:
+        print(f"repository  {published.url.removesuffix('.git')}")
+        for result in (published.ci, published.docs):
+            if result:
+                print(f"{result.workflow:<11} {result.conclusion or 'not finished'} {result.url}".rstrip())
+        print(f"pages       {published.pages_url} ({'answers' if published.pages_live else 'not answering'})")
+        if published.kit_pr:
+            print(f"kit PR      {published.kit_pr}")
+    print("left to do:" if made.todo else "nothing left to do")
     for step in made.todo:
         print(f"  - {step}")
+    if published and options and options.wait and not published.green:
+        print("gds: the first CI run or the Pages site is not green", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -532,13 +585,35 @@ def build_parser() -> argparse.ArgumentParser:
         dest="cmd", required=True
     )
     game = new.add_parser(
-        "game", help="make a game repository from a template: files, sync, git, hooks, a first commit"
+        "game",
+        help="make a game repository from a template and publish it on GitHub: files, sync, git, the repository, "
+        "its settings, the first CI run and Pages, the kit pull request",
     )
-    game.add_argument("name", help="the repository's name: lowercase words joined by hyphens, such as `my-game`")
-    game.add_argument("--template", required=True, help="a folder of the kit's templates/ with a template.toml")
+    game.add_argument(
+        "name", nargs="?", help="the repository's name: lowercase words joined by hyphens, such as `my-game`"
+    )
+    game.add_argument("--template", help="a folder of the kit's templates/ with a template.toml (see --list)")
+    game.add_argument("--list", action="store_true", help="print the templates, a line each, and stop")
     game.add_argument("--title", help="the game's name as people read it (default: the name, capitalised)")
     game.add_argument("--description", help="one line for the README, the docs site and the project settings")
-    game.add_argument("--remote", help="an existing GitHub repository's url, recorded as origin and in workspace.toml")
+    game.add_argument("--licence", default="MIT", help="the game's SPDX licence (default: MIT)")
+    game.add_argument("--copyright", help="the licence's copyright holder (default: the kit's GitHub owner)")
+    game.add_argument("--local", action="store_true", help="stop at the local repository: nothing goes to GitHub")
+    game.add_argument("--private", action="store_true", help="make the GitHub repository private (default: public)")
+    game.add_argument("--no-wait", action="store_true", help="do not wait for the first CI run and the Pages deploy")
+    game.add_argument(
+        "--wait-minutes",
+        type=float,
+        default=new_game_github.DEFAULT_WAIT_MINUTES,
+        help="how long to wait for the first CI run and the Pages deploy",
+    )
+    game.add_argument(
+        "--co-author", help="the agent's trailer for the kit commit, such as `Claude Opus 5.5 <noreply@anthropic.com>`"
+    )
+    game.add_argument("--no-kit-pr", action="store_true", help="do not open the kit pull request for workspace.toml")
+    game.add_argument(
+        "--remote", help="with --local: an existing GitHub repository's url, recorded as origin and in workspace.toml"
+    )
     game.add_argument("--workspace", help="the workspace folder (default: the one around the current folder)")
     game.set_defaults(func=_cmd_new_game)
 
@@ -687,6 +762,7 @@ def main(argv: list[str] | None = None) -> int:
         issues.IssueError,
         pr.PrCheckError,
         new_game.NewGameError,
+        new_game_github.GitHubError,
     ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2
