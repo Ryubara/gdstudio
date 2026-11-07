@@ -2,7 +2,8 @@
 
 The kit is the one source of the files every game carries: the agent definitions (`.claude/agents/*.md`), the
 commit and pull request checker (`.github/scripts/groundwork.py`), the hook launcher with its settings
-(`templates/game/`) and the message-check hooks of `.pre-commit-config.yaml`. The last is a file a game also writes
+(`templates/game/`), the Godot addons the kit owns (`godot/addons/gds_ui/`, written to `game/addons/gds_ui/` at the
+same `res://` path) and the message-check hooks of `.pre-commit-config.yaml`. The last is a file a game also writes
 into (its own formatters), so only the blocks between `# gds-sync:begin <name>` and `# gds-sync:end <name>` lines are
 the kit's; the kit's own config is their source. `gds sync <game>` writes all of it into the game and records the
 hashes in `.claude/gds-sync.json`; `gds sync <game> --check` fails when a copy differs from the kit, so a hand edit in
@@ -22,6 +23,13 @@ LOCK = Path(".claude") / "gds-sync.json"
 
 #: The kit files that are copied whole, besides the agent definitions and `templates/game/`.
 SCRIPTS = (".github/scripts/groundwork.py", ".github/workflows/hold.yml", ".github/workflows/hold-sweep.yml")
+
+#: The Godot addons the kit owns: edited in the kit's own Godot project (`godot/addons/<name>/`, beside the tests that
+#: prove them) and copied whole to the same path in a game's project. The folder also holds the third-party addons
+#: `gds workspace init` installs untracked (GdUnit4, the MCP addon), so the owned ones are named, never globbed.
+KIT_ADDONS = ("gds_ui",)
+KIT_PROJECT = "godot"
+GAME_PROJECT = "game"
 
 #: The one game file the kit owns only parts of: the hooks that judge commit messages and pushes.
 BLOCK_FILE = ".pre-commit-config.yaml"
@@ -47,6 +55,26 @@ def entries(kit: Path) -> list[Entry]:
     templates = kit / "templates" / "game"
     found += [Entry(p, p.relative_to(templates).as_posix()) for p in sorted(templates.rglob("*")) if p.is_file()]
     found += [Entry(kit / script, script) for script in SCRIPTS if (kit / script).is_file()]
+    for addon in KIT_ADDONS:
+        root = kit / KIT_PROJECT / "addons" / addon
+        found += [
+            Entry(p, f"{GAME_PROJECT}/addons/{addon}/{p.relative_to(root).as_posix()}")
+            for p in sorted(root.rglob("*"))
+            if p.is_file()
+        ]
+    return found
+
+
+def strays(game: Path, wanted: set[str]) -> list[str]:
+    """The files in a game's copies of the kit's addons that the kit does not have (a hand-added file, or one the kit
+    has since dropped or renamed)."""
+    found = []
+    for addon in KIT_ADDONS:
+        root = game / GAME_PROJECT / "addons" / addon
+        for path in sorted(root.rglob("*")) if root.is_dir() else []:
+            target = path.relative_to(game).as_posix()
+            if path.is_file() and target not in wanted:
+                found.append(target)
     return found
 
 
@@ -126,10 +154,14 @@ def drift(kit: Path, game: Path) -> list[str]:
         elif digest(path.read_bytes()) != want:
             problems.append(f"{target}: differs from the kit (edit it in the kit, then run `gds sync`)")
     problems += block_drift(kit, game)
+    stray = strays(game, set(wanted))
+    problems += [
+        f"{target}: not in the kit's addon (add it to the kit, or run `gds sync` to remove it)" for target in stray
+    ]
     lock = game / LOCK
     if lock.exists():
         for target in json.loads(lock.read_text(encoding="utf-8")).get("files", {}):
-            if target not in wanted and (game / target).exists():
+            if target not in wanted and target not in stray and (game / target).exists():
                 problems.append(f"{target}: no longer owned by the kit (delete it, then run `gds sync`)")
     return problems
 
@@ -165,6 +197,10 @@ def sync(kit: Path, game: Path, log=print) -> int:
             log(f"wrote   {entry.target}")
             changed += 1
         files[entry.target] = digest(data)
+    for target in strays(game, set(files)):
+        (game / target).unlink()
+        log(f"removed {target}")
+        changed += 1
     if config_text is not None:
         have = blocks(config_text)
         new_text = config_text
