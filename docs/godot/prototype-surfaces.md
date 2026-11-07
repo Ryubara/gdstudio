@@ -51,7 +51,11 @@ Numbers that gave the template's look, in `world/lighting/`:
   are clean, but `--export-release` loads every script and printed 20 lines of parse errors for the five demo scripts
   ([lesson](../lessons/2026-11-07-a-synced-addons-demo-broke-a-new-games-web-export.md)); the preset excludes
   `addons/gds_ui/demo/*`.
-- **GdUnit4's `-rd <folder>`** writes the reports outside the project, so CI never generates files under `res://`.
+- **GdUnit4's `-rd <folder>` takes an absolute path on Windows only.** A path that starts with `/` is read as `res://`
+  plus the path (`make_qualified_path`), so on a Linux runner `-rd "$RUNNER_TEMP/reports"` wrote `game/home/runner/...`
+  inside the project. Godot runs in the project folder, so a relative path starts there: `-rd reports` made
+  `game/reports`, and `-rd ../../../reports` (from `repos/<game>/game`) lands in the work folder, outside the
+  repository ([lesson](../lessons/2026-11-07-gdunit4-read-an-absolute-report-path-as-res.md)).
 - **`gdformat` writes CRLF on Windows**; run `sed -i 's/\r$//'` over the scripts it touched
   ([lesson](../lessons/2026-11-02-python-on-windows-writes-crlf-into-edited-files.md)).
 

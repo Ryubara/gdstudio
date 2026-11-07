@@ -19,7 +19,7 @@ sit beside the repositories: `docs/` of the kit.
 - Godot (pinned, never a Steam copy): `$(uv run --project ../gdstudio/python gds tool path godot)`.
 - Import and smoke run: `godot --headless --path game --import`, then `godot --headless --path game --quit-after 30`.
 - Tests (GdUnit4, installed untracked by `gds workspace init`): `godot --headless --path game -s
-  res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd <folder outside the project> -c --ignoreHeadlessMode`.
+  res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd <path outside the project, relative to game/> -c --ignoreHeadlessMode`.
 - Layout check: `uv run --project ../gdstudio/python gds check layout game`.
 - Before committing: `uvx pre-commit run --all-files` (installed once with `uvx pre-commit install`).
 - Docs: `uvx --with-requirements requirements-docs.txt mkdocs build --strict`.

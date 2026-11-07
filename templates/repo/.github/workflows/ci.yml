@@ -89,12 +89,13 @@ jobs:
       - name: Run the tests (GdUnit4)
         # No `-d`: with the debugger attached, the first script error stops the engine at a prompt and the job hangs.
         # `--ignoreHeadlessMode` is needed because GdUnit4 otherwise refuses to run headless. The reports go outside
-        # the project (`-rd`): generated files never live under res://. Godot prints a leak after the run has
-        # finished, so only the log shows it.
+        # the project (`-rd ../../../reports`: Godot runs in the project folder, three levels below the work folder, and
+        # GdUnit4 reads an absolute `/path` as `res://path`): generated files never live under res://. Godot prints a
+        # leak after the run has finished, so only the log shows it.
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python gds tool path godot)
-          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd "$RUNNER_TEMP/reports" -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
+          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Upload the test report
         if: always()
@@ -102,7 +103,7 @@ jobs:
         with:
           name: gdunit4-report
           path: |
-            ${{ runner.temp }}/reports
+            reports
             tests.log
           if-no-files-found: warn
 
