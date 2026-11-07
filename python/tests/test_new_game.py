@@ -33,7 +33,7 @@ def git_identity(monkeypatch, tmp_path):
 def kit(tmp_path) -> Path:
     """A copy of the parts of the kit the command reads, so a test that records a remote writes to the copy."""
     copy = tmp_path / "kit"
-    for rel in ("templates", ".claude/agents", ".github/scripts", ".github/workflows"):
+    for rel in ("templates", "godot/addons", ".claude/agents", ".github/scripts", ".github/workflows"):
         shutil.copytree(KIT / rel, copy / rel, ignore=shutil.ignore_patterns(".godot", "__pycache__"))
     for rel in ("workspace.toml", "tools.toml", ".pre-commit-config.yaml"):
         shutil.copyfile(KIT / rel, copy / rel)
@@ -81,6 +81,7 @@ def test_the_game_has_what_a_game_repository_has(kit, root):
         ".claude/hooks/launch.py",
         ".claude/agents/godot-engineer.md",
         ".claude/gds-sync.json",
+        "game/addons/gds_ui/plugin.cfg",
         ".pre-commit-config.yaml",
         "AGENTS.md",
         "README.md",
