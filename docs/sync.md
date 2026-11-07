@@ -32,6 +32,13 @@ removes it. To take a new version, run `gds sync <game>` in a game worktree and 
 never had the addon gets it, its plugin enabled and the `UIRouter` autoload added by hand once (`[editor_plugins]`
 and `[autoload]` in its `project.godot`: a game's project file is its own).
 
+## Not synced: what a new game is made from {#templates}
+
+`templates/game/` is the only part of `templates/` that `gds sync` writes. `templates/repo/` and each template
+(`templates/3d-blank/`) are copied once by `gds new game` ([A new game from a template](godot/new-game.md)) and are the
+game's own afterwards: changing them in the kit changes no existing game. A file every game must receive goes in
+`templates/game/`.
+
 ## Pre-commit blocks {#pre-commit-blocks}
 
 A game's `.pre-commit-config.yaml` is mostly its own (GDScript formatting, texture checks), so the kit owns only the

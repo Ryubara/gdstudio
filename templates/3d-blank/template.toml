@@ -1,0 +1,6 @@
+# The 3D Blank template: `gds new game <name> --template 3d-blank` (kit docs/godot/new-game.md).
+# What a template holds: `game/` becomes the game's Godot project and `docs/` its docs site's pages; both are copied
+# once, on top of `templates/repo/` (the repository files every game has), and then they are the game's own.
+title = "3D Blank"
+description = "A lit prototype level with the GDStudio folder layout: no entities, no game scripts."
+default_description = "A new GDStudio game built from the 3D Blank template."

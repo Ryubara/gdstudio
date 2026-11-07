@@ -16,4 +16,8 @@ areas: [ci]
   info level) after `pre-commit run --all-files` and a local `actionlint` had both passed. Neither runs `shellcheck` on
   Windows. This runs both anywhere, and fails on the old file: `uvx --from shellcheck-py --with actionlint-py bash -c
   'actionlint .github/workflows/*.yml'`. Run it before the push of any workflow change; use `find ... | wc -l` to count.
+- **Again, 2026-11-07 (kit #778):** the `template` job's step `! grep ... ; ! grep ...` failed it (SC2251 on the first
+  `!`) after a local `actionlint` passed, and the same step sat in the workflow written for every new game, where it
+  would have failed each game's first run. The two `!` lines became one `if grep -e ... -e ...; then exit 1; fi`; a
+  `uv tool install shellcheck-py` made the local run honest, and the generated game's workflows were checked with it.
 - **Docs:** none beyond this lesson; the existing steps use `! grep` only as the last command of a script.

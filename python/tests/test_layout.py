@@ -1,0 +1,180 @@
+"""`gds check layout`: each rule fails on a small project that breaks it, and the 3D Blank template passes them all."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from gds_tools import layout
+
+KIT = Path(__file__).resolve().parents[2]
+TEMPLATE_GAME = KIT / "templates" / "3d-blank" / "game"
+
+
+def make(root: Path, files: dict[str, str]) -> Path:
+    """A project with a `project.godot` and `files` (path -> text); every script gets its uid."""
+    project = root / "game"
+    project.mkdir()
+    (project / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+    for rel, text in files.items():
+        path = project / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        if path.suffix in {".gd", ".gdshader"}:
+            path.with_name(path.name + ".uid").write_text("uid://abc\n", encoding="utf-8")
+    return project
+
+
+def rules(project: Path) -> set[str]:
+    return {problem.rule for problem in layout.check(project)}
+
+
+def test_the_template_follows_every_rule():
+    assert layout.check(TEMPLATE_GAME) == []
+
+
+def test_a_folder_that_is_not_a_project_is_refused(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        layout.check(tmp_path)
+
+
+def test_an_unknown_top_level_folder_is_refused(tmp_path):
+    project = make(tmp_path, {"scripts/a.gd": "extends Node\n"})
+    assert rules(project) == {"top-level"}
+
+
+def test_local_and_generated_folders_are_not_judged(tmp_path):
+    project = make(tmp_path, {".godot/Bad Name.txt": "", "reports/Report 1/index.html": ""})
+    assert layout.check(project) == []
+
+
+def test_names_are_snake_case_for_files_and_folders(tmp_path):
+    project = make(tmp_path, {"gameplay/PlayerStuff/player.gd": "", "gameplay/ok/Bad-Name.tscn": ""})
+    found = {(p.path, p.rule) for p in layout.check(project)}
+    assert ("gameplay/PlayerStuff", "snake-case") in found
+    assert ("gameplay/ok/Bad-Name.tscn", "snake-case") in found
+
+
+def test_dot_files_and_licence_names_keep_their_case(tmp_path):
+    project = make(
+        tmp_path, {"assets/models/crate/LICENSE.md": "", "assets/models/crate/.gdignore": "", "core/README.md": ""}
+    )
+    assert layout.check(project) == []
+
+
+def test_a_folder_named_for_nothing_is_refused(tmp_path):
+    project = make(tmp_path, {"gameplay/common/health.gd": "extends Node\n"})
+    assert rules(project) == {"vague-folder"}
+
+
+def test_a_class_name_is_its_file_in_pascal_case(tmp_path):
+    project = make(
+        tmp_path,
+        {
+            "core/ui_router.gd": "class_name UIRouter\n",
+            "core/settings.gd": "class_name Settings\n",
+            "core/audio_service.gd": "class_name Sounds\n",
+        },
+    )
+    assert [p.path for p in layout.check(project)] == ["core/audio_service.gd"]
+
+
+def test_a_scene_and_the_script_on_its_root_share_a_folder_and_a_name(tmp_path):
+    scene = (
+        '[gd_scene load_steps=2 format=3]\n\n[ext_resource type="Script" path="{path}" id="1_s"]\n\n'
+        '[node name="Player" type="Node3D"]\nscript = ExtResource("1_s")\n'
+    )
+    project = make(
+        tmp_path,
+        {
+            "gameplay/player/player.gd": "extends Node3D\n",
+            "gameplay/player/player.tscn": scene.format(path="res://gameplay/player/player.gd"),
+            "gameplay/crate/crate.gd": "extends Node3D\n",
+            "gameplay/crate/crate.tscn": scene.format(path="res://gameplay/player/player.gd"),
+        },
+    )
+    assert [(p.path, p.rule) for p in layout.check(project)] == [("gameplay/crate/crate.tscn", "scene-script")]
+
+
+def test_a_script_on_a_child_node_is_not_the_scenes_script(tmp_path):
+    scene = (
+        '[gd_scene load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://gameplay/a/other.gd" id="1_s"]\n\n'
+        '[node name="Root" type="Node3D"]\n\n[node name="Child" type="Node" parent="."]\nscript = ExtResource("1_s")\n'
+    )
+    project = make(tmp_path, {"gameplay/a/other.gd": "extends Node\n", "gameplay/a/root.tscn": scene})
+    assert layout.check(project) == []
+
+
+def test_every_script_and_shader_has_its_uid(tmp_path):
+    project = make(tmp_path, {"core/a.gd": "extends Node\n", "assets/shaders/s.gdshader": "shader_type spatial;\n"})
+    (project / "core" / "a.gd.uid").unlink()
+    (project / "assets" / "shaders" / "s.gdshader.uid").unlink()
+    assert {(p.path, p.rule) for p in layout.check(project)} == {
+        ("core/a.gd", "uid"),
+        ("assets/shaders/s.gdshader", "uid"),
+    }
+
+
+@pytest.mark.parametrize(
+    ("folder", "target", "broken"),
+    [
+        ("core", "gameplay", True),
+        ("core", "ui", True),
+        ("gameplay", "ui", True),
+        ("world", "ui", True),
+        ("assets", "core", True),
+        ("gameplay", "core", False),
+        ("gameplay", "world", False),
+        ("ui", "gameplay", False),
+        ("ui", "assets", False),
+        ("core", "addons", False),
+        ("tests", "ui", False),
+        ("tools", "gameplay", False),
+    ],
+)
+def test_a_reference_points_only_down_the_order(tmp_path, folder, target, broken):
+    project = make(tmp_path, {f"{folder}/a.gd": f'extends Node\nconst X := preload("res://{target}/b.gd")\n'})
+    assert (rules(project) == {"dependency"}) is broken
+
+
+def test_the_root_scene_may_use_everything(tmp_path):
+    project = make(tmp_path, {"main.tscn": '[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="1_a"]\n'})
+    assert layout.check(project) == []
+
+
+def test_shipped_code_never_names_tools_or_tests(tmp_path):
+    project = make(
+        tmp_path,
+        {
+            "gameplay/a.gd": 'extends Node\nconst T := preload("res://tools/capture/x.gd")\n',
+            "tools/capture/x.gd": "extends Node\n",
+            "tests/t.gd": 'extends Node\nconst T := preload("res://tools/capture/x.gd")\n',
+        },
+    )
+    assert [(p.path, p.rule) for p in layout.check(project)] == [("gameplay/a.gd", "ships-tools")]
+
+
+def test_every_export_preset_leaves_tests_and_tools_out(tmp_path):
+    project = make(tmp_path, {"export_presets.cfg": '[preset.0]\nexclude_filter="tests/*, reports/*"\n'})
+    problems = layout.check(project)
+    assert [(p.rule, "tools/*" in p.message, "tests/*" in p.message) for p in problems] == [("export", True, False)]
+    (project / "export_presets.cfg").write_text('[preset.0]\nexclude_filter="tools/*,tests/*"\n', encoding="utf-8")
+    assert layout.check(project) == []
+
+
+def test_a_problem_prints_where_what_and_why(tmp_path):
+    project = make(tmp_path, {"scripts/a.gd": ""})
+    assert str(layout.check(project)[0]).startswith("scripts: [top-level] `scripts/` is not one of addons")
+
+
+def test_the_cli_exits_one_for_a_broken_project_and_zero_for_a_good_one(tmp_path, capsys):
+    from gds_tools import cli
+
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    good = make(tmp_path / "a", {"core/a.gd": "extends Node\n"})
+    bad = make(tmp_path / "b", {"scripts/a.gd": "extends Node\n"})
+    assert cli.main(["check", "layout", str(good)]) == 0
+    assert cli.main(["check", "layout", str(bad)]) == 1
+    assert "[top-level]" in capsys.readouterr().err
