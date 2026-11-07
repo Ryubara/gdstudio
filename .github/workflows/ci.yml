@@ -156,8 +156,7 @@ jobs:
         run: |
           pck=repos/template-check/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
-          ! grep -aq "res://tests/" "$pck"
-          ! grep -aq "res://tools/" "$pck"
+          if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
       - name: Nothing the build made is left for git to see
         working-directory: repos/template-check
         run: |

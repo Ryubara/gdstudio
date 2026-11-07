@@ -148,8 +148,7 @@ jobs:
         run: |
           pck=repos/{GAME_SLUG}/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
-          ! grep -aq "res://tests/" "$pck"
-          ! grep -aq "res://tools/" "$pck"
+          if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
 
   gdlint:
     # The commit hook itself, so its version (the `rev` in `.pre-commit-config.yaml`), its files and its settings cannot
