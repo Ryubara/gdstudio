@@ -11,7 +11,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` first; what the command does and what stays with the maintainer; adding a template) |
+| `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` first; the local steps, the GitHub repository with its settings and proof, MIT by default; adding a template) |
 | Folder, naming and dependency rules | every game's project layout, enforced by `gds check layout` | known: [Project conventions](project-conventions.md) (by feature, snake_case, dependencies one way, tools out of the export) |
 
 ## UI and presentation

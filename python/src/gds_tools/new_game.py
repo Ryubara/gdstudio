@@ -6,13 +6,17 @@ has: CI, conventions, hooks configuration, docs site, README), with the placehol
 on they are the game's own, so `gds sync` never touches them. What `gds sync` does own (agent definitions, the hook
 launcher, the commit checker, the message-check hooks) is written by this command too, so a new game starts in sync.
 
-The command works on the local machine only. Creating the GitHub repository, pushing, and the repository's
-settings (labels, the ruleset, Pages) are the maintainer's: a public repository is a maintainer decision, so the
-command can record an existing remote and never makes one.
+Every new game is MIT, with the kit's owner as the copyright holder, unless `licence` names another SPDX licence
+(its text comes from GitHub's licence list). Then the GitHub half (`new_game_github`) creates the repository, public
+unless asked otherwise, pushes `main`, applies the settings, waits for the proof and opens the kit pull request that
+registers the game: a new game repository made this way, under MIT, is the agent's to make (kit #779). `--local` stops
+at the local repository, as the command did before.
 """
 
 from __future__ import annotations
 
+import datetime
+import json
 import re
 import shutil
 import subprocess
@@ -21,7 +25,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from gds_tools import integrations, sync
+from gds_tools import integrations, issues, sync, worktrees
+from gds_tools import new_game_github as github
 from gds_tools.manifest import load_tools, load_workspace
 
 #: Folders of `templates/` that are not templates: the files `gds sync` owns, and the repository files every game has.
@@ -34,6 +39,10 @@ FIRST_COMMIT = "build: Add the {title} starter"
 
 SLUG = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 PLACEHOLDER = re.compile(r"\{(?:GAME_[A-Z]+|KIT_[A-Z]+|TEMPLATE)\}")
+DEFAULT_LICENCE = "MIT"
+#: The placeholders GitHub's licence texts use for the year and the holder.
+LICENCE_YEAR = ("[year]", "[yyyy]")
+LICENCE_HOLDER = ("[fullname]", "[name of copyright owner]")
 Run = Callable[..., subprocess.CompletedProcess]
 
 
@@ -55,11 +64,13 @@ class Template:
 
 @dataclass(frozen=True)
 class Made:
-    """What a finished `new_game` left: the repository, whether it was committed, and the maintainer's steps."""
+    """What a finished `new_game` left: the repository, whether it was committed, what is left, and the GitHub
+    repository with its proof (None with `--local`)."""
 
     repo: Path
     committed: bool
     todo: list[str]
+    published: github.Published | None = None
 
 
 def available(kit: Path) -> list[str]:
@@ -134,10 +145,14 @@ def kit_repo(kit: Path) -> str:
     return found.group(1)
 
 
-def substitutions(kit: Path, name: str, template: Template, title: str, description: str) -> dict[str, str]:
-    """The words the template files carry as `__NAME__`."""
+def substitutions(
+    kit: Path, name: str, template: Template, title: str, description: str, holder: str | None = None
+) -> dict[str, str]:
+    """The words the template files carry as `{NAME}`."""
     owner, repo = kit_repo(kit).split("/")
     return {
+        "{GAME_YEAR}": str(datetime.date.today().year),
+        "{GAME_COPYRIGHT}": holder or owner,
         "{GAME_TITLE}": title,
         "{GAME_SLUG}": name,
         "{GAME_DESCRIPTION}": description,
@@ -189,6 +204,23 @@ def add_workspace_entry(kit: Path, name: str, remote: str) -> bool:
     return True
 
 
+def licence_text(gh: github.Gh, spdx: str, holder: str) -> str | None:
+    """The LICENSE for `spdx`: None for MIT (the template's own file), else GitHub's text with the year and holder."""
+    if spdx.upper() == DEFAULT_LICENCE:
+        return None
+    try:
+        body = json.loads(gh(["api", f"licenses/{spdx.lower()}"]) or "{}").get("body", "")
+    except (issues.IssueError, ValueError) as error:
+        raise NewGameError(f"GitHub has no licence {spdx!r} (an SPDX id such as MIT or Apache-2.0): {error}") from error
+    if not body:
+        raise NewGameError(f"GitHub's licence {spdx!r} has no text")
+    for key in LICENCE_YEAR:
+        body = body.replace(key, str(datetime.date.today().year))
+    for key in LICENCE_HOLDER:
+        body = body.replace(key, holder)
+    return body
+
+
 def _git(run: Run, repo: Path, *args: str) -> subprocess.CompletedProcess:
     return run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=False)
 
@@ -202,14 +234,25 @@ def new_game(
     title: str | None = None,
     description: str | None = None,
     remote: str | None = None,
+    licence: str = DEFAULT_LICENCE,
+    holder: str | None = None,
+    options: github.Options | None = None,
     log: Callable[[str], None] = print,
     run: Run = subprocess.run,
+    gh: github.Gh = issues.run_gh,
+    **publish_with,
 ) -> Made:
-    """Make `<root>/repos/<name>` from the template: files, `gds sync`, git, the untracked addons, a first commit.
+    """Make `<root>/repos/<name>` from the template: files, licence, `gds sync`, git, the untracked addons, a first
+    commit; then, with `options`, everything on GitHub (`new_game_github.publish`).
 
     `root` is the workspace. A step that needs a program that is not there (git-lfs, pre-commit, an installed Godot
-    addon) is skipped with a line saying so, and `Made.todo` carries what is left for the maintainer."""
+    addon) is skipped with a line saying so, and `Made.todo` carries what is left. `publish_with` goes to `publish`
+    (a test's push address, clock and sleep)."""
     check_name(name)
+    if options and remote:
+        raise NewGameError(
+            "--remote records an existing repository and goes with --local; without --local the command creates it"
+        )
     template = load_template(kit, template_name)
     parts = chain(kit, template)
     title = _check_text("the title", title or title_of(name), 40)
@@ -219,7 +262,13 @@ def new_game(
         raise NewGameError(f"{repo} exists already; pick another name or remove it")
     if name in load_workspace(kit / "workspace.toml").repos:
         raise NewGameError(f"workspace.toml already has a repository called {name}")
-    words = substitutions(kit, name, template, title, description)
+    owner = kit_repo(kit).split("/")[0]
+    holder = _check_text("the copyright holder", holder or owner, 100)
+    full_name = f"{owner}/{name}"
+    if options:
+        github.preflight(gh, full_name)
+    own_licence = licence_text(gh, licence, holder)
+    words = substitutions(kit, name, template, title, description, holder)
 
     log(f"make    repos/{name} from the {template.name} template")
     repo.mkdir(parents=True)
@@ -230,7 +279,9 @@ def new_game(
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(kit / rel, repo / rel)
         count += 1
-    log(f"write   {count} files")
+    if own_licence is not None:
+        (repo / "LICENSE").write_text(own_licence.rstrip() + "\n", encoding="utf-8", newline="\n")
+    log(f"write   {count} files, {licence} licence ({holder})")
 
     init = _git(run, repo, "init", "-b", "main")
     if init.returncode != 0:
@@ -263,17 +314,48 @@ def new_game(
         log("hooks   pre-commit, commit-msg and pre-push installed" if installed.returncode == 0 else "skip    hooks")
         if installed.returncode != 0:
             todo.append("run `uvx pre-commit install` in the repository")
+        # Git LFS's pre-push, moved aside by pre-commit, starts `#!/bin/sh`, which pre-commit cannot find on Windows:
+        # every push of the new game died on it until this repair, the one `gds worktree` makes (kit #779).
+        for hook in worktrees.repair_legacy_hooks(repo / ".git" / "hooks"):
+            log(f"hooks   {hook} started with #!/bin/sh, which pre-commit cannot find on Windows; repaired")
     else:
         log("skip    hooks: uvx is not installed")
         todo.append("run `uvx pre-commit install` in the repository")
 
+    if options:
+        if not committed:
+            raise NewGameError(f"the first commit failed, so nothing was pushed; {repo} is staged")
+        kit_full_name = kit_repo(kit)
+        published = github.publish(
+            repo,
+            full_name,
+            description,
+            options,
+            gh=gh,
+            run=run,
+            log=log,
+            kit_pr=lambda done: github.open_kit_pr(
+                run,
+                gh,
+                kit,
+                kit_full_name,
+                root / "worktrees" / kit_full_name.split("/")[1],
+                root / "scratch",
+                name,
+                done,
+                options.co_author,
+                add_workspace_entry,
+            ),
+            **publish_with,
+        )
+        return Made(repo=repo, committed=committed, todo=todo + published.todo, published=published)
     if remote:
         if add_workspace_entry(kit, name, remote):
             log(f"write   workspace.toml: [repos.{name}] in {kit.name} (commit it in a kit pull request)")
             todo.append("commit the new workspace.toml entry in a kit pull request")
     else:
         todo.append(f"once the GitHub repository exists, add [repos.{name}] to the kit's workspace.toml")
-    todo += _maintainer_steps(name)
+    todo += _github_steps(name)
     return Made(repo=repo, committed=committed, todo=todo)
 
 
@@ -288,10 +370,10 @@ def _commit(run: Run, repo: Path, template: Template, title: str, log: Callable[
     return True
 
 
-def _maintainer_steps(name: str) -> list[str]:
-    """What stays with the maintainer: the repository on GitHub is a public-or-private decision, so never made here."""
+def _github_steps(name: str) -> list[str]:
+    """What `--local` leaves out: the steps the command takes on GitHub without it."""
     return [
-        f"create the GitHub repository for {name} (a maintainer decision), add it as `origin` and push `main`",
+        f"create the GitHub repository for {name}, add it as `origin` and push `main`",
         "in its settings: Pages source = GitHub Actions; then `python .github/scripts/groundwork.py labels --apply`, "
         "`settings --apply` and `ruleset --apply` in the repository",
         "`gh workflow run hold-sweep.yml` once the ruleset requires `hold` (docs/hooks.md#hold)",
