@@ -18,3 +18,7 @@ role = "kit"
 [repos.deadnight]
 url = "https://github.com/Ryubara/deadnight.git"
 role = "game"
+
+[repos.pre-push.legacy]
+url = "https://github.com/Ryubara/zz-new-game-probe-2.git"
+role = "game"
