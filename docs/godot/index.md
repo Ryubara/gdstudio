@@ -7,6 +7,13 @@ page here once someone learns something about it; the table links them. Every ga
 **Status:** *known* (used in a merged pull request, page written), *spike* (needs a sandbox experiment before the
 game depends on it), *learn while building* (low risk: the first task that uses it writes the page).
 
+## Starting a game
+
+| System | Used for | Status |
+| --- | --- | --- |
+| `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` first; what the command does and what stays with the maintainer; adding a template) |
+| Folder, naming and dependency rules | every game's project layout, enforced by `gds check layout` | known: [Project conventions](project-conventions.md) (by feature, snake_case, dependencies one way, tools out of the export) |
+
 ## UI and presentation
 
 | System | Used for | Status |
@@ -30,6 +37,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Visibility ranges (LOD), occlusion | far zombies and props | known: [crowds](crowds.md) (no gain when the crowd is close; throttle animation instead) |
 | CPUParticles3D / GPUParticles3D, shader quads | blood, sparks, smoke, muzzle flash, camera shake | known: [Shot feedback](shot-feedback.md) (flash quads on the weapon's `Muzzle`, pooled impacts, trauma shake) |
 | Spatial shaders, textures on CSG | the greybox lot's ground, walls and paint | known: [Surface materials](surface-materials.md) (world-projected shader, one read, no specular; headless import leaves mipmaps off) |
+| A grid with no texture file, a daylight rig | the 3D Blank template's prototype level | known: [Prototype surfaces and daylight](prototype-surfaces.md) (world-space triplanar grid in the fragment shader; colour ambient, one shadowed sun, filmic; measured in Compatibility and in Chromium) |
 | Stencil, outline through walls | a glowing silhouette of marked enemies | known: [Outline through walls](outline-through-walls.md) (stencil works in Compatibility, desktop and web; mask pass plus a ring of shifted copies) |
 | Screen measurement of an effect | is the flash, marker or glint readable | known: [Measuring an effect on the screen](measuring-effects-on-screen.md) (draw the frame again without it and compare; `force_draw` in `frame_post_draw`) |
 | Shader and program builds, first use | the first shot, enemy or explosion stutters | known: [First-use hitches](first-use-hitches.md) (no baker or ubershaders in Compatibility; warm up behind a loading screen; short-lived materials rebuild their shaders at every use) |

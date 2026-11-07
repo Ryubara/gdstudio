@@ -43,6 +43,14 @@ repos:
         files: ^(python|\.claude/hooks)/
       - id: ruff-format
         files: ^(python|\.claude/hooks)/
+  # The GDScript of the templates (what a new game starts with) is held to the formatter and linter a game's CI runs.
+  - repo: https://github.com/Scony/godot-gdscript-toolkit
+    rev: 4.5.0
+    hooks:
+      - id: gdformat
+        files: ^templates/.*\.gd$
+      - id: gdlint
+        files: ^templates/.*\.gd$
   - repo: local
     hooks:
       # gds-sync:begin message-checks (kit-owned: edit it in the kit, then run `gds sync`)

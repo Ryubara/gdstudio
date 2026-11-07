@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Environment" path="res://world/lighting/daylight_environment.tres" id="1_environment"]
+
+[node name="Daylight" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("1_environment")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-56, 32, 0)
+light_color = Color(1, 0.96, 0.88, 1)
+light_energy = 0.6
+shadow_enabled = true
+shadow_blur = 1.4
+directional_shadow_mode = 0
+directional_shadow_max_distance = 60.0

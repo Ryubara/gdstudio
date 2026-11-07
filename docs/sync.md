@@ -19,6 +19,13 @@ uv run --project python gds sync <workspace>/repos/<game> --check    # exit 1 if
 blocks). To change one of these files: edit it in the kit (a kit pull request), then run `gds sync` on each game in a
 pull request of its own. A game's CI or pre-commit can run `--check` to refuse hand edits.
 
+## Not synced: what a new game is made from {#templates}
+
+`templates/game/` is the only part of `templates/` that `gds sync` writes. `templates/repo/` and each template
+(`templates/3d-blank/`) are copied once by `gds new game` ([A new game from a template](godot/new-game.md)) and are the
+game's own afterwards: changing them in the kit changes no existing game. A file every game must receive goes in
+`templates/game/`.
+
 ## Pre-commit blocks {#pre-commit-blocks}
 
 A game's `.pre-commit-config.yaml` is mostly its own (GDScript formatting, texture checks), so the kit owns only the

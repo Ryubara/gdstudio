@@ -1,0 +1,65 @@
+# Project conventions
+
+The folder, naming and dependency rules of every GDStudio game's Godot project. They come from a review of
+Deadnight's `game/` (hundreds of scripts in twelve feature folders): the by-feature layout held up, and drift showed
+in the places where nothing named a rule. The 3D Blank template ([New game](new-game.md)) starts every game with this
+layout, and `gds check layout` is the part of this page a program can judge, so a game's CI fails on an exception
+instead of a review having to notice it.
+
+```text
+game/
+  project.godot  main.tscn  default_bus_layout.tres  export_presets.cfg
+  addons/    gds_* (kit-synced, tracked); gdUnit4 and godot_mcp (installed, untracked)
+  core/      autoloads and foundations: no game words, no imports from features
+  gameplay/<feature>/   script, scene and tuning resource together
+  ui/<area>/  ui/skin/
+  world/<map>/  world/lighting/
+  net/       only if the game is multiplayer
+  assets/<domain>/<subject>/
+  tests/<feature>/test_<source>.gd     suites only; shared helpers in tests/fixtures/
+  tools/     captures, benches, probes: left out of the export
+```
+
+## Rules
+
+| Rule | What it says | Checked as |
+| --- | --- | --- |
+| By feature | A feature's script, scene and tuning live in one folder (`gameplay/player/`), not spread over `scripts/`, `scenes/` and `resources/`. Godot's own [project organization](https://docs.godotengine.org/en/stable/tutorials/best_practices/project_organization.html) page groups assets as close to the scenes that use them as possible. | `top-level`: the project root holds only the folders above |
+| snake_case | Every file and folder is lowercase words joined by `_`. `README.md`, `LICENSE`, `LICENSE.md`, `CREDITS.md`, `NOTICE.md` and dot files keep their names. Third-party code lives in `addons/` and keeps its own. | `snake-case` |
+| Folders named for things | No `common`, `misc`, `vendor`, `utils`, `util`, `helpers`, `stuff`, `temp` or `tmp`: a folder that has to be called one of these has no owner yet. | `vague-folder` |
+| The file is the class | A script's `class_name` is its file name in PascalCase (`ui_router.gd` holds `UIRouter` or `UiRouter`). | `class-name` |
+| A scene beside its script | The script on a scene's root node has the scene's name and folder (`player.tscn`, `player.gd`). | `scene-script` |
+| Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. | `uid` |
+| Dependencies run one way | `addons`, `assets` < `core` < `gameplay`, `world`, `net` < `ui` < the root scene. A file refers only to folders at its own level or below: `core` never names `gameplay`, `gameplay` never names `ui`. `tests/` and `tools/` and the root scenes may use anything. | `dependency` |
+| Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. | `ships-tools`, `export` |
+| Generated files outside `res://` | GdUnit's reports go to a folder outside the project (`-rd <folder>`); none is committed under `game/reports/`. | `generated` |
+| Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
+| Splitting a feature | Past about 30 scripts with clear clusters, a feature folder gets subfolders named for the clusters. | judgment |
+| Suffixes, no type prefixes | Names say what a thing is with a suffix the codebase already uses (`_tuning`, `_def`, `_catalog`, `_state`, `_view`, `_server`, `_screen`, `_panel`), never a type prefix (`scr_`, `tex_`). Assets are `<subject>_<variant>_<n>`. | judgment |
+
+## What the check cannot see
+
+`gds check layout` reads `res://` paths, so a dependency through a `class_name` (code that names `Player` from `core/`)
+is not caught: keep `class_name` for the types a feature owns and let other folders use them only from above. It does
+not judge whether a name means anything, or whether a feature folder has grown past a sensible size.
+
+## Running it
+
+```text
+uv run --project <workspace>/repos/gdstudio/python gds check layout game
+```
+
+It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
+beside `gds sync --check`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
+`python/tests/test_layout.py`: a new rule is a kit pull request, not a game's exception.
+
+## Where the rules came from
+
+| Fact in Deadnight | Rule it made |
+| --- | --- |
+| `tools/ci/warm_GdUnitCmdTool.gd` is the one non-snake first-party file; 8 of 625 class names do not match their file | `snake-case`, `class-name` |
+| 939 of 942 `ext_resource` lines have no UID, so a move needs path rewrites | `uid`, and `class_name` for code references |
+| `core/` is not a foundation: `main.gd` reaches about 29 files elsewhere, and folders depend on each other both ways | `dependency` |
+| `core/settings.gd` reads a `res://tests/` path as the sign of a test run | `ships-tools` |
+| `reports/` is local GdUnit output with 18 pointless `.import` files | `generated`: reports go outside the project |
+| `drivein`/`drive_in`, `smallmap`/`small_indoor`/`SmallMap`, `audio`/`eleven`: one subject under several names | `snake-case` catches `SmallMap`; one vocabulary per subject is judgment |
