@@ -1,0 +1,51 @@
+# A fresh workspace from the bootstrap, on Linux and Windows (docs/workspace.md#bootstrap): the script installs uv
+# itself (it is not set up here), builds the folders, clones the repositories of workspace.toml, downloads and checks
+# the default pinned tools, then `gds doctor` runs in the new workspace. MCP servers are skipped: Claude Code is not on
+# the runner. It runs weekly, by hand, and on a pull request that changes the bootstrap. Not a required check.
+name: bootstrap
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - bootstrap.sh
+      - bootstrap.ps1
+      - workspace.toml
+      - tools.toml
+      - python/src/gds_tools/workspace.py
+      - python/src/gds_tools/fetch.py
+      - python/src/gds_tools/integrations.py
+      - .github/workflows/bootstrap.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fresh:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: kit
+      - name: Bootstrap (Linux)
+        if: runner.os == 'Linux'
+        run: sh kit/bootstrap.sh --workspace "$RUNNER_TEMP/ws" --no-mcp
+      - name: Bootstrap (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File kit/bootstrap.ps1 --workspace "$env:RUNNER_TEMP\ws" --no-mcp
+      - name: Doctor
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          cd "$RUNNER_TEMP/ws"
+          uv run --project "$GITHUB_WORKSPACE/kit/python" gds doctor

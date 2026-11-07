@@ -1,0 +1,15 @@
+{
+  "name": "gdstudio",
+  "owner": {
+    "name": "Ryubara",
+    "url": "https://github.com/Ryubara"
+  },
+  "description": "GDStudio's Claude Code mods, for every session in a GDStudio workspace",
+  "plugins": [
+    {
+      "name": "gdstudio-disk",
+      "source": "./mods/gdstudio-disk",
+      "description": "The disk guard in the status line: free space, limits and the folders over budget (docs/workspace.md#disk)"
+    }
+  ]
+}
