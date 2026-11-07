@@ -101,6 +101,13 @@ between the highest share seen and twice the lowest, and keep a test that runs t
 kind of runner, unchanged (passes) and twice as slow (fails). See the
 [lesson](../lessons/2026-11-05-a-microsecond-section-was-held-to-a-ruler-it-does-not-follow.md).
 
+**A count is only tight when the run fixes every input.** The seed and the step are not enough: anything the measured
+code reads from the machine (the date, the time of day, a random seed from the system) moves the count between days
+and machines, and a limit set on one day fails every pull request on another. Pin such a clock or seed in the bench
+(through the seam a test already uses), set the limit from the pinned run, and before trusting it run the bench with the
+date moved by a day and see that the count does not move. See the
+[lesson](../lessons/2026-11-07-a-count-budget-read-the-date-of-the-machine.md).
+
 ## In the editor
 
 The pinned Godot is a debug build, so a game run from the editor costs about what a run with `godot --path` costs (a
