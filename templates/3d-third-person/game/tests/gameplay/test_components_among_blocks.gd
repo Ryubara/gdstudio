@@ -83,13 +83,13 @@ func test_characters_only_off_lets_a_block_take_the_pickup() -> void:
 func test_a_zone_among_blocks_stays_quiet_and_a_character_or_a_prop_presses_it() -> void:
 	_surround()
 	var zone := _zone()
-	var log := []
-	zone.activated.connect(func(_body: Node3D) -> void: log.append("on"))
-	zone.deactivated.connect(func() -> void: log.append("off"))
+	var events := []
+	zone.activated.connect(func(_who: Node3D) -> void: events.append("on"))
+	zone.deactivated.connect(func() -> void: events.append("off"))
 	await InputSim.ticks(get_tree(), 20)
 	assert_array(zone.get_overlapping_bodies()).has_size(3)
 	assert_bool(zone.is_active()).is_false()
-	assert_array(log).is_empty()
+	assert_array(events).is_empty()
 	var crate := _prop(AT + Vector3(0.0, 0.0, 0.3))
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(zone.is_active()).is_true()
@@ -100,7 +100,7 @@ func test_a_zone_among_blocks_stays_quiet_and_a_character_or_a_prop_presses_it()
 	var walker := _body(CharacterBody3D.new(), AT + Vector3(0.0, 0.0, 0.3))
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(zone.is_active()).is_true()
-	assert_array(log).is_equal(["on", "off", "on"])
+	assert_array(events).is_equal(["on", "off", "on"])
 	walker.free()
 
 
