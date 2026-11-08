@@ -53,3 +53,9 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   12-sided cylinder 92 against 44, so a carbine came out at 1,576 of 1,500 and a helicopter's rails cost more than its
   hull (1,768), and a pitched skid went 11 mm under the ground. **Seen:** Deadnight #795, 2026-11-03; Deadnight #1057,
   2026-11-04 (fix: plain small parts, 1,236 and 1,288 triangles, and the skid lifted by that sum).
+- **Approach:** Make the build check what its kind of asset can get wrong, not only a budget: a re-texture asserts the
+  triangle count and bounds did not change, a clip asserts the lowest vertex of the deformed mesh on every frame and
+  that a foot is on the floor, a rig asserts every vertex is weighted. **Watch out for:** a build that checks only its
+  triangle budget exports a barrel whose geometry moved or a walk whose foot goes through the floor, and the first to
+  see it is a reviewer or the game. **Seen:** gdstudio #774, 2026-11-07 (the baseline runs of the `uv-palette` and
+  `clip-walk` evals added these checks to their own builds).

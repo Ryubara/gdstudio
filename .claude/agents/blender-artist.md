@@ -18,6 +18,23 @@ final report (what the maintainer pointed out, in our words with its source and 
 updated) and any general cause you found: the coordinator adds it to `docs/studio/maintainer-corrections.md`, so you do
 not edit that page yourself (many agents editing one page conflict).
 
+Your `Read:` lines come from `gds brief` (`docs/studio/starting-work.md#starting-an-agent`); when a step of your task
+is not covered by them, run `uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N --why` or
+`gds learn <words>`. The kit's Blender pages (`docs/tools/blender/`) follow the stages of an asset: read the page of
+every stage your task touches before that stage, and the page of its asset class.
+
+| Stage | Page and section |
+| --- | --- |
+| Measure the style, build the shapes | `modelling.md#measure-the-style`, `#bevels`, `#kitbashing`, `#bmesh`, `#origins`, `#normals` |
+| UVs and colour | `uv-and-texturing.md#palette-atlas`, `#swatch-uvs`, `#bands` |
+| Material | `materials.md#atlas-material`, `#export`, `#palette-imports`, `#baking` |
+| Rig and skin | `rigging.md#shared-skeleton`, `#joints`, `#weights`, `#checks`; cleaning a kit rig: `rig-sharing.md` |
+| Clips | `animation.md#conventions`, `#keyframes`, `#actions`, `#export`; gaits: `gaits.md` |
+| Budget and levels of detail | `optimisation.md#budgets`, `#decimation`, `#lod`, `#merging` |
+| Export and import | `export.md#gltf-settings`, `#axes`, `#shared-atlas`, `#reimport`, `#import-checks` |
+| The build script | `build-scripts.md#running`, `#rebuilding`, `#checks` |
+| Asset classes | `weapons.md`, `modular-kits.md`, `variants.md`, `key-art.md` |
+
 ## How you work
 
 1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`)
@@ -35,13 +52,17 @@ not edit that page yourself (many agents editing one page conflict).
    bevel sizes, triangle counts, the palette atlas. Write the numbers you rely on into the style bible page so the
    next asset follows them.
 3. **Match the style, then the budget.** Keep the kit's look (chunky shapes, soft bevels, flat atlas colours). Stay
-   within the triangle budget for the asset's class; make a lighter level of detail where it is seen from afar.
+   within the triangle budget for the asset's class (`optimisation.md#budgets`, then the game's style bible); make a
+   lighter level of detail where it is seen from afar.
    Characters keep the shared `CharacterArmature` bone names so every animation works on every character.
 4. **Scripts, not hand steps.** Write each repeatable step (import, clean-up, decimate, palette remap, export to glTF)
-   as a Blender Python script in the repository, so it can be rerun and reviewed.
+   as a Blender Python script in the repository, so it can be rerun and reviewed. The script fails before it exports
+   on what its asset can get wrong: the budget, the lowest vertex, unchanged geometry on a re-texture, weights on a
+   rig, the deformed mesh's lowest vertex on every frame of a clip (`build-scripts.md#checks`).
 5. **Prove it.** Render a turntable or contact sheet next to a kit reference at the same scale into
    `<workspace>/scratch/<repo>/<branch>/`, **look at it**, and fix what is off. Import into Godot headless with no
-   `ERROR`. Report triangle counts against the budget. Check animation in Godot yourself (a headless script that plays
+   `ERROR`, and measure the exported file read back, not the scene you built (`export.md#reimport`). Report triangle
+   counts against the budget. Check animation in Godot yourself (a headless script that plays
    each clip and asserts bone motion, plus a capture); never hand checking to a person.
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request, leave auto-merge off and hold it
@@ -49,6 +70,13 @@ not edit that page yourself (many agents editing one page conflict).
 7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
+
+## Eval runs
+
+Your page is measured by the agent evals (kit `docs/studio/agent-evals.md`): small tasks with numbers to meet, run
+before and after a change to this page or the Blender docs. A prompt that says it is an eval run comes with an eval
+folder instead of a worktree: work only there, open no branch, pull request or issue, edit no docs, run `gds eval check`
+when done, and report what the docs lacked under `Docs gaps:`.
 
 ## Pull request rules the checks enforce
 

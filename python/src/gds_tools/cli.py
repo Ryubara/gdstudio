@@ -14,6 +14,7 @@ from gds_tools import (
     brief,
     capture,
     disk,
+    evals,
     issues,
     layout,
     lessons,
@@ -479,6 +480,43 @@ def _cmd_brief(args: argparse.Namespace) -> int:
     return 0
 
 
+def _eval_context() -> tuple[Path, Path]:
+    """The kit checkout and the workspace's tools folder."""
+    root = workspace.require_workspace()
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    return kit, root / "tools"
+
+
+def _cmd_eval_list(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    for task in evals.tasks(kit).values():
+        print(f"{task.name:18} {task.agent:16} {task.title}")
+    return 0
+
+
+def _cmd_eval_prepare(args: argparse.Namespace) -> int:
+    kit, tools_dir = _eval_context()
+    task = evals.get(kit, args.name)
+    target = Path(args.folder).resolve()
+    evals.prepare(task, target, kit, tools_dir, workspace.tool_path, print)
+    print(f"ready: {target}")
+    return 0
+
+
+def _cmd_eval_check(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    task = evals.get(kit, args.name)
+    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None)
+    print(evals.table(data))
+    return 0 if all(r["pass"] for r in data["rows"]) else 1
+
+
+def _cmd_eval_prompt(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    print(evals.prompt(evals.get(kit, args.name), Path(args.folder).resolve(), args.issue, args.gds_project))
+    return 0
+
+
 def _cmd_worktree_sweep(args: argparse.Namespace) -> int:
     root = workspace.require_workspace()
     settings = sweep.Settings(
@@ -787,6 +825,25 @@ def build_parser() -> argparse.ArgumentParser:
     brf.add_argument("--kit", help="the kit checkout or worktree whose docs to read (default: the workspace's kit)")
     brf.set_defaults(func=_cmd_brief)
 
+    ev = sub.add_parser("eval", help="measured agent tasks (docs/studio/agent-evals.md)").add_subparsers(
+        dest="cmd", required=True
+    )
+    ev.add_parser("list", help="the tasks, their agent and title").set_defaults(func=_cmd_eval_list)
+    evp = ev.add_parser("prepare", help="make a fresh eval folder: the brief and its inputs")
+    evp.add_argument("name")
+    evp.add_argument("folder")
+    evp.set_defaults(func=_cmd_eval_prepare)
+    evc = ev.add_parser("check", help="measure an eval folder's delivery; exit 0 when every number is met")
+    evc.add_argument("name")
+    evc.add_argument("folder")
+    evc.set_defaults(func=_cmd_eval_check)
+    evq = ev.add_parser("prompt", help="the fixed prompt of a run, for the Agent call")
+    evq.add_argument("name")
+    evq.add_argument("folder")
+    evq.add_argument("--issue", required=True, help="owner/repo#N the run is made under")
+    evq.add_argument("--gds-project", default=evals.GDS_PROJECT, help="the python/ folder whose gds the agent runs")
+    evq.set_defaults(func=_cmd_eval_prompt)
+
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser
 
@@ -812,6 +869,7 @@ def main(argv: list[str] | None = None) -> int:
         new_game_github.GitHubError,
         scripts.ScriptCheckError,
         FileNotFoundError,
+        evals.EvalError,
     ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2
