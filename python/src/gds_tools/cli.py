@@ -442,7 +442,7 @@ def _cmd_learn(args: argparse.Namespace) -> int:
     a new one (docs/studio/rules.md#find)."""
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
     root = Path(args.kit) if args.kit else kit
-    print(lessons.learn_text(root, " ".join(args.words), args.limit, args.old))
+    print(lessons.learn_text(root, " ".join(args.words), args.limit))
     return 0
 
 
@@ -751,7 +751,6 @@ def build_parser() -> argparse.ArgumentParser:
     lrn = sub.add_parser("learn", help="the sections closest to some words, with their rules (update one first)")
     lrn.add_argument("words", nargs="+", help="the topic or words of the mistake")
     lrn.add_argument("--limit", type=int, default=5, help="sections to print (default: 5)")
-    lrn.add_argument("--old", type=int, default=0, help="also print the N closest old lesson files (until #770)")
     lrn.add_argument("--kit", help="the kit checkout or worktree to search (default: the workspace's kit)")
     lrn.set_defaults(func=_cmd_learn)
 

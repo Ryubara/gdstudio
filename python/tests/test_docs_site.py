@@ -10,7 +10,7 @@ import yaml
 
 KIT = Path(__file__).resolve().parents[2]
 DOCS = KIT / "docs"
-TOPICS = ["gamedev", "engines", "tools", "studio", "games", "lessons"]
+TOPICS = ["gamedev", "engines", "tools", "studio", "games"]
 
 
 def load_redirects():
@@ -53,14 +53,15 @@ def test_the_config_has_no_hooks_or_plugins_that_zensical_would_skip():
     assert set(config.get("plugins", [])) <= NATIVE_PLUGINS
 
 
-def test_the_sidebar_folds_by_tab_and_leaves_the_lessons_out():
+def test_the_sidebar_folds_by_tab():
     """Topics are header tabs and a tab's sections fold open and shut (docs/studio/docs-site.md#nav):
     navigation.sections would open every group at once, the way #768 listed 970 lessons in one column."""
     config = site_config()
     features = config["theme"]["features"]
     assert {"navigation.tabs", "navigation.indexes", "navigation.prune"} <= set(features)
     assert "navigation.sections" not in features and "navigation.expand" not in features
-    assert config["not_in_nav"].split() == ["/lessons/"]
+    assert "not_in_nav" not in config  # the old lessons folder is gone (gdstudio #770)
+    assert not (DOCS / "lessons").exists()
 
 
 def nav_entries(folder: Path) -> list[str]:
@@ -70,8 +71,8 @@ def nav_entries(folder: Path) -> list[str]:
 
 def test_the_nav_order_lists_every_topic_and_every_engine_and_tool():
     """A folder a .nav.yml leaves out drops out of the sidebar without a warning; a listed one that is gone fails
-    the build. The top lists every topic but lessons; engines/ and tools/ list each of their folders."""
-    assert nav_entries(DOCS) == ["index.md", *[t for t in TOPICS if t != "lessons"]]
+    the build. The top lists every topic; engines/ and tools/ list each of their folders."""
+    assert nav_entries(DOCS) == ["index.md", *TOPICS]
     for parent in ("engines", "tools"):
         folders = sorted(p.name for p in (DOCS / parent).iterdir() if p.is_dir())
         assert sorted(nav_entries(DOCS / parent)) == folders, f"docs/{parent}/.nav.yml must list every folder"
