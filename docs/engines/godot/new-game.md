@@ -239,7 +239,10 @@ template cheap to change):
 7. **Node references are exported (`@export var x: Node3D`) or unique names (`%Name`)**, never long hard-coded paths.
    *Why:* a component then works when it is moved or reused.
 8. **Each component works alone** when dropped into an empty scene and set up from the inspector, and talks to the others
-   through signals. *Why:* a template that only works whole cannot be taken apart.
+   through signals. An area that senses bodies says which ones count (characters, props, any) in an export, and by
+   default ignores the level and itself. *Why:* a template that only works whole cannot be taken apart, and in a
+   level where every body shares layer 1 an area that counts any body is triggered by the floor beside it (the
+   gate door in #845 and the pressure pad in #848).
 9. **Whatever a person sees or places is real nodes in its scene**, laid out in the editor: UI (the touch stick, look
    zone and buttons as `Control` nodes with anchors), the HUD, markers, spawn points and map pieces. Scripts hold
    behaviour; they do not build or `_draw` visible parts at run time. *Why:* a developer opening the scene sees what is
