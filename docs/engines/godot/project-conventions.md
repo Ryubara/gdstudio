@@ -20,7 +20,7 @@ game/
   tools/     captures, benches, probes: left out of the export
 ```
 
-## Rules
+## Rules {#rules}
 
 | Rule | What it says | Checked as |
 | --- | --- | --- |
@@ -36,6 +36,12 @@ game/
 | Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
 | Splitting a feature | Past about 30 scripts with clear clusters, a feature folder gets subfolders named for the clusters. | judgment |
 | Suffixes, no type prefixes | Names say what a thing is with a suffix the codebase already uses (`_tuning`, `_def`, `_catalog`, `_state`, `_view`, `_server`, `_screen`, `_panel`), never a type prefix (`scr_`, `tex_`). Assets are `<subject>_<variant>_<n>`. | judgment |
+
+- **Approach:** Make every number a designer would tune an `@export` of a `.tres` the game loads (groups, ranges, units,
+  a `##` tooltip), pin each file's defaults in a test, and keep a scene map (which scene loads which, and which one is
+  the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
+  tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
+  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
 
 ## What the check cannot see
 

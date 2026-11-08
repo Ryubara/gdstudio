@@ -261,7 +261,7 @@ the game's own page is `docs/research/night-environment.md` there.
   the editor and a headless run were fine and the web export printed `Class "NeonSign" hides a global script class`.
   Grep `class_name` before naming one.
 
-## Light cards indoors: moon shafts, door glow, chalk
+## Light cards indoors: moon shafts, door glow, chalk {#light-cards-indoors-moon-shafts-door-glow-chalk}
 
 What the second Deadnight map's lamps taught (Deadnight #636; its page is `docs/research/maps/small-map-art.md` there).
 Indoors the Compatibility renderer's gaps show more than on an open lot: nothing casts a shadow, so the moon lights
@@ -292,6 +292,12 @@ every floor under a roof and a lamp lights the next room through the wall.
   through the planks' cracks and over a debris blocker, depth-tested by the door), and a trapezoid on the near floor
   fading into the room.
 
+- **Approach:** Make every see-through flat mesh (glow, window, sign face) double-sided, test that it is, and capture it
+  from behind and from inside. **Watch out for:** `glow_pane.tscn` was a QuadMesh on a StandardMaterial3D with the
+  default back-face culling, built and captured only from the field side, so the windows were holes from the room, while
+  every other glow used the `cull_disabled` glow shader. **Seen:** Deadnight #701, 2026-11-03 (fix: a test that each
+  see-through flat mesh is double-sided ([lesson](../../lessons/2026-11-03-a-lit-window-was-a-hole-from-the-room.md))).
+
 ## A backdrop past the playable bounds
 
 What the outside of Deadnight's indoor map taught (Deadnight #638; its page is `docs/research/maps/small-map-art.md`
@@ -318,7 +324,7 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
   ([lesson](../../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
 
-## A lamp near a wall
+## A lamp near a wall {#a-lamp-near-a-wall}
 
 Compatibility draws no shadows, so a lamp reaches through a wall by its light's range and by the size of its ground pool
 (a flat additive card): a post 2.4 m from a fence lit and glowed the room behind it (Deadnight #851: 28,000 to 330,000
@@ -337,7 +343,16 @@ pixels of the next room, measured with each part hidden and shown from the playe
 - **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
   changes a mesh's set of lights.
 
-## A column of light has a length from what is above it
+- **Approach:** Judge every glow and light from every side of its wall: compare a halo's half-size with its distance to
+  the walls near it, test every light against what its range reaches through a wall, and capture the room behind, along
+  the wall and from above with the glow hidden and shown (0 pixels changed inside). **Watch out for:** Compatibility has
+  no shadows, so a card's only wall is the depth test and a light's only limit is its range; a billboarded 9 x 4 m halo
+  0.4 m off a wall bled into the room behind, and the sign's omni light lit through. **Seen:** Deadnight #703,
+  2026-11-03; Deadnight #832, 2026-11-03 (fix: `test_glow_bleed.gd` ([halo
+  lesson](../../lessons/2026-11-03-a-billboard-halo-wider-than-its-gap-to-the-wall-bled-through-it.md), [sign
+  lesson](../../lessons/2026-11-03-a-sign-was-built-for-the-front-and-its-light-went-through-the-wall.md))).
+
+## A column of light has a length from what is above it {#a-column-of-light-has-a-length-from-what-is-above-it}
 
 A beam, a shaft or a pillar of additive haze drawn as a fixed-length mesh shows through every floor and roof over its
 source: the depth test only hides the part of it that lies behind a surface from the camera, never the part past the
@@ -348,6 +363,13 @@ with one ray up from its foot on the world layer (`PrizeCrane.beam_length_over`)
 meets nothing and the beam keeps its full length. A test casts the same ray from every spot of every map and checks
 nothing solid stands inside the beam, and a capture is taken from the first solid over each spot, looking at where the
 beam rises through it.
+
+- **Approach:** Set the length of a column, shaft or beam of light by a ray cast up from its source, test it from every
+  placement on every map, and capture it from the first solid above each spot. **Watch out for:** the depth test hides
+  the part of a glow behind a surface, not the part beyond it on the camera's side; the crane's beam was a fixed 36 m
+  additive cone that stood out of the roof and showed on the second map's upper floor, and every capture was taken from
+  the floor in front. **Seen:** Deadnight #911, 2026-11-03 (fix: the beam stops at what is above it
+  ([lesson](../../lessons/2026-11-03-a-beam-of-fixed-length-came-out-of-the-floor-above-it.md))).
 
 ## Glow on the web, and what a wing of fire costs (Deadnight #1053)
 

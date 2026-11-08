@@ -26,7 +26,7 @@ the component and the numbers are in that game's `game/gameplay/outline/` and `d
   All copies share one shader, so the whole thing is two GL programs (mask and line), built on first use: draw an
   outlined sample once in the night's warm-up.
 
-## Only where it is hidden
+## Only where it is hidden {#only-where-it-is-hidden}
 
 The mask has no depth test (a hidden part must count as the body), so the stencil alone also outlines a body in the
 open. Draw the line only on hidden pixels with the **depth texture**, which works in Compatibility and in the web
@@ -54,6 +54,13 @@ shader, and `discard` the pixels where the body is not behind the scene.
   A windowed run is minimized and draws nothing by itself: `RenderingServer.force_draw(false)` (a few times), never
   `await RenderingServer.frame_post_draw`, which hangs. See the
   [lesson](../../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
+
+- **Approach:** Turn each adjective of an ask into a capture that can fail (the target in the open, half hidden, fully
+  hidden), ask about any effect the ask did not name, and draw an effect meant for hidden parts from the depth per
+  pixel. **Watch out for:** two words of the ask were read literally: the glow became a faint halo pass, the outline
+  through walls was drawn everywhere, captures in the open were judged readable, never as having no outline, and a
+  half-hidden zombie was never shot. **Seen:** Deadnight #617, 2026-11-02 (fix: the outline reads the depth per pixel,
+  as above ([lesson](../../lessons/2026-11-02-an-outline-through-walls-was-drawn-on-visible-parts-with-a-glow.md))).
 
 ## Pitfalls
 

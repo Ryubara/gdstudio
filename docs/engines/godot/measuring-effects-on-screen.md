@@ -4,7 +4,7 @@ An effect the player must read (a muzzle flash, a hit marker, a pickup glint, a 
 the pixels the player sees, from the player's camera, in the renderer the player plays in: not by its parameters and
 not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
 
-## Method
+## Method {#method}
 
 - To measure what an effect does to the picture, in the renderer in use: after the frame is drawn
   (`RenderingServer.frame_post_draw`), read the viewport (`get_texture().get_image()`), hide the effect, call
@@ -18,6 +18,14 @@ not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../
 - The Compatibility renderer lights a mesh from the first lights it finds up to the cap of 8, and a light below a surface
   lights none of that surface: place a flash light above the floor.
 - Measured in headless Chrome on an RTX 5080 (ANGLE, Direct3D 11), Godot 4.7.2.
+
+- **Approach:** Measure a readable effect on the screen before and after (draw the frame again without it), from the
+  real camera, hip and aimed, desktop and browser, hold the numbers as floors in a test, and turn quads near the
+  player's own mesh toward the camera. **Watch out for:** an effect is judged by its pixels from the player's camera,
+  not its parameters: the muzzle flash covered 0.02 to 0.14 % of the screen for 2 frames, its quads lay in the muzzle's
+  plane so the gun, hand and arm hid 25 to 87 % of them, and its light went under the floor when the gun pointed down.
+  **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448
+  ([lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md))).
 
 ## A held weapon from the shoulder camera
 

@@ -13,12 +13,12 @@ the same simulation code as the client) plus a platform backend on Railway. The 
 kit's (`<workspace>/repos/gdstudio/AGENTS.md`) are your rules; read both first, then the game's
 `docs/research/multiplayer.md` and `docs/research/platform-backend.md`.
 
-Before you start, read what the team already learned: the checks in the kit's
-`docs/studio/maintainer-corrections.md` that touch your task (they are what the maintainer had to point out
-before, by area) and a search of `docs/lessons/index.md` for the problem you are about to solve. A hook reminds you
-at start. If your task came from a maintainer correction, put the row's text in your final report (the maintainer's
-words, the concept missed, the detail missed, the check for next time) and any general cause you found: the
-coordinator publishes it, so you do not edit that table yourself (many agents editing one table conflict).
+Before you start, read what the team already learned: run `gds learn <words of your task>` and read the sections it
+prints (the sections closest to your issue and the rules of its areas are also put into your context at
+start). Each entry is a mistake already made, with what to do instead. If your task came from a maintainer correction,
+put its log line in your final report (what the maintainer pointed out, in our words with its source and never quoted,
+and the topic section it updated) and any general cause you found: the coordinator adds it to
+`docs/studio/maintainer-corrections.md`, so you do not edit that page yourself (many agents editing one page conflict).
 
 ## How you work
 
@@ -52,24 +52,24 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 
 ## Docs ship with your change (every task)
 
-- **You open the kit docs pull request yourself, in this task.** A page, a lesson or a how-to that your work needs goes
+- **You open the kit docs pull request yourself, in this task.** A page, a section or a how-to that your work needs goes
   into a kit pull request that you push and open before you report: a worktree under
   `<workspace>/worktrees/gdstudio/` with commits and no pull request holds you back at the end (the hooks). Docs are
   never left "for a batch": the coordinator only merges.
-- **A lesson carries its areas:** `areas: [net, web]` in front matter (the names are in `docs/lessons/areas.toml`).
-  The mistakes glossary is built from the lessons (it is not a committed file, so concurrent lesson pull requests never
-  conflict on it): `gds lessons <area>` prints a section, `python .github/scripts/mistakes.py check` fails on a lesson
-  without areas, and `render` prints the whole page.
-- **The checks of your issue's areas are in your context at start** (`gds lessons <area>` prints them again). Apply
-  them: they are mistakes already made.
+- **What you learn lives in a topic section.** An entry sits under a `##`/`###` heading with an explicit `{#anchor}` and
+  is named as `page.md#anchor`. `python .github/scripts/mistakes.py check` (pre-commit and CI) refuses a new file in
+  `docs/lessons/`, a page over 50 KB, a new section without its reason line and an entry without its three parts.
+- **The sections closest to your issue are in your context at start** (`gds learn <words>` and `gds lessons <area>` print
+  them again). Apply them: they are mistakes already made.
 - **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it
-  closes an issue), `Lessons: docs/lessons/<file>.md` when it is a `Fix` or `Rework`, or a required check failed on an
-  earlier commit of it, or it closes a `bug` issue (`Lessons: none` is refused there), and, in a game, `Kit docs:
-  <the kit pull request>` (or `none (reason)`) when it is a `Fix` or `Rework` or closes a `bug` issue. The checks read
-  the title, the check history and the issue's labels, not your word.
-- **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a
-  wrong guess, a rework) and name the lesson file for each (`docs/lessons/<file>.md`); write `Mistakes: none` when
-  nothing went wrong. A report with mistakes and no lesson file is held back.
+  closes an issue), `Lessons: <page.md#anchor>` naming the topic section your pull request updates when it is a
+  `Fix` or `Rework`, or a required check failed on an earlier commit of it, or it closes a `bug` issue (`Lessons: none`
+  is refused there), and, in a game, `Kit docs: <the kit pull request>` (or `none (reason)`) when it is a `Fix` or
+  `Rework` or closes a `bug` issue. The checks read the title, the check history, the changed files and the issue's
+  labels, not your word.
+- **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a wrong
+  guess, a rework) and name the topic section you updated for each as `page.md#anchor`; write `Mistakes: none` when
+  nothing went wrong. A report with mistakes that names no section your kit branch edits is held back.
 
 ## Sharing the machine
 

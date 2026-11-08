@@ -26,7 +26,7 @@ shows only the frames that finished. Check `max_fps` and the physics tick in `pr
 Measured (Deadnight, a fill-bound stand-in): ratio 3 with 2x MSAA 565 ms median, capped at 2 303 ms, capped and no MSAA
 212 ms; 99th percentile 797, 595, 325 ms.
 
-## Measuring a phone without one
+## Measuring a phone without one {#measuring-a-phone-without-one}
 
 Chrome has two knobs and each hides what the other shows:
 
@@ -46,6 +46,13 @@ Chrome has two knobs and each hides what the other shows:
 - The engine's own counters help find the cost: `RenderingServer.get_rendering_info(RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)`
   and `..._PRIMITIVES_IN_FRAME`, and `viewport_get_measured_render_time_cpu` (after `viewport_set_measure_render_time`;
   the GPU time reads 0 in WebGL). Read them only when a profile asks, so a player's page pays nothing.
+
+- **Approach:** Measure a phone claim on a phone-shaped page (pixel ratio 3, touch) with a GPU-bound stand-in as well as
+  a CPU throttle, before and after interleaved in one run, and name the limit measured against. **Watch out for:** a
+  phone frame costs fill rate times the pixel ratio; the export sized its canvas by the page's ratio (3 on a phone, 2.9
+  million pixels) with 2x MSAA everywhere, and every check ran on desktop or under a CPU throttle, which hides fill
+  cost. **Seen:** Deadnight #689, 2026-11-03 (fix:
+  [lesson](../../lessons/2026-11-03-two-phone-profile-runs-of-one-setup-differed-ten-times.md)).
 
 ## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728)
 

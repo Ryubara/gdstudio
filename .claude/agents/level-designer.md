@@ -18,13 +18,12 @@ probes and tests that prove a map. Gameplay systems, the zombie simulation and s
 models and props to the `blender-artist`. You may change a map's scene and its generator, its props and lights, and
 write probes and tests.
 
-Before you start, read what the team already learned: the checks in the kit's
-`docs/studio/maintainer-corrections.md` that touch your task, a search of `docs/lessons/index.md` for the problem,
-and `gds lessons gameplay`, `gds lessons tests` and `gds lessons godot` (the map review's lessons are in those areas). A
-hook reminds you at start. If your task came from a maintainer correction, put the row's text in your final report (what
-the maintainer pointed out, in our words with its source and never quoted; the concept missed, the detail missed, the
-check for next time) and any general cause you found: the coordinator publishes it, so you do not edit that table
-yourself.
+Before you start, read what the team already learned: run `gds learn <words of your task>` and read the sections it
+prints (the sections closest to your issue and the rules of its areas are also put into your context at
+start). Each entry is a mistake already made, with what to do instead. If your task came from a maintainer correction,
+put its log line in your final report (what the maintainer pointed out, in our words with its source and never quoted,
+and the topic section it updated) and any general cause you found: the coordinator adds it to
+`docs/studio/maintainer-corrections.md`, so you do not edit that page yourself (many agents editing one page conflict).
 
 Read these two pages before the first walk, every task:
 
@@ -119,12 +118,15 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    maintainer takes `S-hold` off). The review page of a map holds, for each area, the verdict, the evidence
    and the issue.
 9. **Report** to whoever started you: the pull request, the ranked findings with their numbers and captures, the issues
-   opened, and a `Mistakes` section (or `Mistakes: none`) naming the lesson file for each.
+   opened, and a `Mistakes` section (or `Mistakes: none`) naming the topic section (`page.md#anchor`) updated for each.
 
 ## Record what you learned (every task)
 
-- **A problem you hit and how you solved it**: one file in the kit's `docs/lessons/<yyyy-mm-dd>-<slug>.md` with
-  `areas: [...]` front matter, in a kit pull request you open yourself in this task.
+- **A mistake you made or a problem you hit, and how you solved it**: an entry in the kit topic section it belongs to
+  (`- **Approach:** ... **Watch out for:** ... **Seen:** ...`, format in `docs/studio/rules.md`). Run
+  `gds learn <words>` first and sharpen the closest section's entry or add to its `Seen:`; make a new section (with its
+  reason line) only when none fits, in a kit pull request you open yourself in this task. Never a lesson page:
+  the check refuses a file in `docs/lessons/`.
 - **A principle or a check that changed**: the kit's `docs/gamedev/level-design.md` and `docs/engines/godot/map-review.md`,
   updated in place; a game's own findings in its `docs/research/map-review.md`.
 - Never edit `mkdocs.yml`'s nav or a page list built from folders.

@@ -16,7 +16,7 @@ after `--timeout`, default 900 s, which kills Godot and the program it started).
 started straight from a shell without `--headless`, `--version` or `--help` and names this command
 ([hooks](../../studio/hooks.md)). Inside a shell script, call `gds godot` where the script called Godot.
 
-## Browser probes and any other program: `gds quiet`
+## Browser probes and any other program: `gds quiet` {#browser-probes-and-any-other-program-gds-quiet}
 
 Godot is not the only program that takes the mouse. A local browser probe (Playwright driving a game's web build,
 Deadnight's `tools/web_smoke/*.py`) clicks the canvas, the page takes **pointer lock**, and headless Chrome confines the
@@ -56,6 +56,13 @@ its process tree, found with `python/tests/process_tree.py`: a process is a chil
 parent, because a parent id alone is reused and an orphan (Explorer, Windows Terminal, the IME host) names a dead
 parent's id that a new program can be given (kit #229, [lesson](../../lessons/2026-11-02-a-process-tree-walked-by-parent-id-took-orphans-for-children.md)).
 
+- **Approach:** Run every local program that can take the mouse, Godot or browser, through `gds quiet` (or `gds godot`).
+  **Watch out for:** the quiet-run rule covered Godot only, while Deadnight's Playwright probes ran headless Chrome
+  straight from the shell; under pointer lock it clipped the real cursor to its hidden window, measured at `(17, 68,
+  864, 541)`, until Esc ended the lock. **Seen:** Deadnight, 2026-11-01 (fix: `gds quiet`; the hook refuses a web probe
+  or Playwright run without it, and a test measures the clip under a real headless Chrome pointer lock
+  ([lesson](../../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md))).
+
 ## How it works
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it
@@ -64,7 +71,7 @@ is not drawn on their screen, receives none of their keys and is not in their wa
 normal window, OpenGL renders as always, Movie Maker writes its frames. The code is `python/src/gds_tools/quiet_run.py`
 (ctypes only; a job object ends the whole process tree on a timeout; off Windows it starts the program normally).
 
-## The cursor clip crosses desktops
+## The cursor clip crosses desktops {#the-cursor-clip-crosses-desktops}
 
 One thing does reach the person's desktop: a game that captures or confines the mouse (`Input.mouse_mode` CAPTURED or
 CONFINED) calls Windows `ClipCursor`, and the clip holds the real cursor inside the hidden window's rectangle. The
@@ -75,6 +82,13 @@ maintainer felt it as an invisible box the cursor could not leave while a captur
 - While the program runs, `gds godot` frees the cursor every 5 ms (`ClipCursor(NULL)`). That is a safety net for a
   game that clips once; a game that re-clips every frame defeats it (`python/tests/test_quiet_run.py` measured 16 of
   20 samples held against a program re-clipping every 5 ms), so the game-side check is the fix.
+
+- **Approach:** Protect every global input state a launched program can take, not only the focus: the cursor clip, the
+  clipboard, global hotkeys; a game skips mouse capture under `GDS_QUIET=1`. **Watch out for:** the no-focus launcher
+  was measured for focus and keys only, and a game capturing the mouse calls `ClipCursor`, which crosses desktops and
+  held the real cursor inside the hidden window while its sound played. **Seen:** Deadnight, 2026-11-01 (fix: `gds
+  godot` sets `GDS_QUIET=1`, and a test clips the cursor from the hidden desktop and asserts the real one stays free
+  (gdstudio #77, [lesson](../../lessons/2026-11-02-a-hidden-capture-held-the-cursor-in-an-invisible-box.md))).
 
 ## What was measured
 
@@ -102,7 +116,7 @@ key reached the test window, no Godot window is visible on the person's desktop,
 different from each other and not black. Run with the plain start instead (`Failed first`), it fails: Godot took the
 foreground at 0.72 s.
 
-## Sound
+## Sound {#sound}
 
 Agents never listen: the audio checks read numbers (bus peaks, `AudioEffectCapture`, the WAV Movie Maker writes), never
 the speakers. A windowed Godot on the default driver (`WASAPI` on Windows) plays through the speakers of the person at
@@ -129,7 +143,15 @@ muting the Master bus after the tests read it).
 Not silenced: a program that starts Godot or a browser from inside `gds quiet -- <script>` (the hook sees only the
 script), and the Godot editor opened by a person or by the MCP add-on.
 
-## What to know
+- **Approach:** Silence everything an agent launches by default, and keep the sound only when a person asks to hear it.
+  **Watch out for:** anything launched on the shared machine must leave the person's devices alone, sound included, and
+  `gds godot` and `gds quiet` hid the window and freed the cursor but left audio on, so captures, autopilots and browser
+  probes played through the speakers. **Seen:** gdstudio #102, 2026-11-02 (fix: `gds godot` adds `--audio-driver Dummy`,
+  `gds quiet` sets `GDS_QUIET=1` and the probes add `--mute-audio`; the hook refuses a real `--audio-driver` and
+  `--with-audio` from a session (gdstudio #102,
+  [lesson](../../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md))).
+
+## What to know {#what-to-know}
 
 - **Nothing can type into the window**, so a scene must be driven by script or injected events (`Input.parse_input_event`,
   GdUnit input simulation), as agents already do; `Window.has_focus()` is true inside it.
@@ -154,3 +176,13 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   `gds godot --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>` (a baseline worktree needs GdUnit4 copied in first), and
   make the headless run answer what the window answers
   ([lesson](../../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).
+
+- **Approach:** Start every windowed tool run (captures, recordings, autopilots) off the person's desktop with `gds
+  godot`, and prove it by keystrokes still reaching the person's window, not only by the mouse staying put. **Watch out
+  for:** agents share the maintainer's machine; each windowed Godot became the active window, and ending its mouse
+  capture did not stop Windows giving it the keyboard. **Seen:** Deadnight, 2026-11-01 (fix: `gds godot` runs Godot on a
+  private desktop and a hook refuses a bare windowed Godot).
+- **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
+  person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
+  runs of the same capture script differed
+  ([lesson](../../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).

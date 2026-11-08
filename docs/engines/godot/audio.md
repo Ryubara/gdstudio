@@ -76,7 +76,7 @@ each fall, until about four mixes have landed (with a poll cap).
   the shot sometimes 0.3 s in, and no seed to repeat one. Trim to where it first rises within 34 dB of its peak,
   normalise to a fixed peak, fade the end, keep loops untrimmed, and keep the prompt with the file.
 
-## Close and powerful sounds
+## Close and powerful sounds {#close-and-powerful-sounds}
 
 A gun "sounding distant" is measured on a recording of the real shot through the real buses, not read off the files
 (Deadnight #455, [lesson](../../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)):
@@ -91,6 +91,14 @@ A gun "sounding distant" is measured on a recording of the real shot through the
 - Never put a sound's power in a bus effect: the web build plays samples, which ignore bus effects and the distance
   filter (see [Web: samples or streams](#web-samples-or-streams)).
 - ffmpeg's `ebur128=framelog=verbose` prints its momentary values only at `-v verbose`.
+
+- **Approach:** Record a sound that must read close through the real service and measure peak, LUFS against its bed, the
+  first-50 ms share, bands and the spread across a burst; give each family one written pitch and level rule pinned in a
+  test; play own sounds flat; never put power in a bus effect. **Watch out for:** closeness is a property of the
+  recording through the buses, and we had measured only that nothing clipped: the tommy gun had 33 % of its energy in
+  the first 50 ms and nothing under 120 Hz, every gun peaked 5 to 13 dB under full scale, the own gun was a centred 3D
+  voice (6 dB down) and pitch moved up to 3.4 semitones across a burst. **Seen:** Deadnight #407, 2026-11-02 (fix:
+  deadnight #455 ([lesson](../../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md))).
 
 ## Headroom without a limiter
 
@@ -165,7 +173,7 @@ recipe each. Peaks add, so it has to be heard without taking the headroom the sh
   centroid of a "zap" read 10 to 12 kHz and it sounded like hiss. Keep the carrier under 2.5 kHz at an index under 2,
   and roll off the mix at 7 to 8 kHz.
 
-## Is a sound heard under fire?
+## Is a sound heard under fire? {#is-a-sound-heard-under-fire}
 
 Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py`):
 
@@ -184,6 +192,13 @@ Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py
   as 3D voices, were 6 dB down and partly lost; flat, 23 of 24 steps of five guns stood out under a teammate's tommy
   gun 3 m away (the revolver's empties, falling under a shot, did not). Lifting them 2 dB more made them as loud as
   the player's own shots: a teammate's steps take the lift instead (+6 dB, 23 of 24 heard through another's fire).
+
+- **Approach:** Measure an ambient bed in its own band against what shares that band, capture the quiet stretch (beds
+  alone) before and after, and weigh density as well as level; check a percentage asked as heard, not as one dB figure.
+  **Watch out for:** a 25% cut became -2.5 dB checked by integrated loudness, but the crickets are a narrow 3.4 to 5.7
+  kHz tone nothing in the night masks, 2.5 dB is about the smallest step an ear notices, and the chirp rate (25 a
+  second) was never touched. **Seen:** Deadnight #781, 2026-11-03 (fix:
+  [lesson](../../lessons/2026-11-03-a-bed-cut-by-the-number-was-never-heard-against-the-quiet.md)).
 
 ## Warnings that must carry through cover
 

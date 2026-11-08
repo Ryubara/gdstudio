@@ -57,7 +57,7 @@ size, the settings autoload) stays in that game: Deadnight keeps its menu, touch
 declares `ui_accept` (Enter, Space, pad A and Start) and `ui_cancel` (Escape, pad B), which the controls act on; the
 tests press those keys and buttons.
 
-## A control that draws outside its rect
+## A control that draws outside its rect {#a-control-that-draws-outside-its-rect}
 
 A scale, a shadow or a focus ring is drawn outside the control's rectangle, and the rectangle is all a container knows:
 nothing reserves room for it, and a `ScrollContainer` (always) or any control with `clip_contents` cuts it off at its
@@ -88,6 +88,12 @@ fix it screen by screen:
   at the edge.
 
 Deadnight #628 and #644: `game/tests/ui/test_hover_room.gd`.
+
+- **Approach:** Test a control that draws outside its rect in its drawn states (hovered, focused, pressed) against its
+  nearest clipping ancestor, at every canvas size. **Watch out for:** `UIButton` grows 3.5% on hover as paint, not
+  layout, and the lobby put edge-to-edge buttons in a `ScrollContainer`, which clips at its rect; the layout tests read
+  only resting rects. **Seen:** Deadnight #628, 2026-11-02 (fix: deadnight #650 added the drawn-state test
+  ([lesson](../../lessons/2026-11-02-a-hovered-button-grew-past-the-scroll-area-that-clips-it.md))).
 
 ## A picker of cards in a form row
 
@@ -128,7 +134,7 @@ says what the words mean. A headless test sees it only under the themed stage (s
 [A card taller than its screen](#a-card-taller-than-its-screen)): look at the 1280x720 and 1168x540 captures
 ([lesson](../../lessons/2026-11-03-a-new-match-setting-took-a-sixth-row-and-a-label-too-wide.md)).
 
-## A card taller than its screen
+## A card taller than its screen {#a-card-taller-than-its-screen}
 
 A `Control` with a full-rect `VBoxContainer` in it grows to its content's height, and nothing clips it: a column taller
 than its area runs under whatever is below (Deadnight's Loadout tab ran under the key hints and off the right edge,
@@ -167,7 +173,15 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   844 x 390 (a 1169 x 540 canvas), 932 x 430 and 667 x 375 (the narrowest, 960 x 540)
   ([lesson](../../lessons/2026-11-04-menu-panels-ran-under-the-footer-because-nothing-bounded-them.md)).
 
-## Touch controls
+- **Approach:** Run the fit sweep (`test_ui_fit.gd`) on any menu change: every tab and screen at desktop, web and phone
+  sizes and interface scales with the longest content, cards bounded with `UIFitScroll`, tab columns with
+  `MenuPanel.hold`, test screens opened under the themed stage. **Watch out for:** menu panels were full-rect columns or
+  centred cards that grew with their content and nothing bounded or scrolled them (the Loadout ran 47 units under the
+  footer), and layout tests built screens outside the theme, so text measured too small. **Seen:** Deadnight #980,
+  2026-11-04 (fix: the sweep
+  ([lesson](../../lessons/2026-11-04-menu-panels-ran-under-the-footer-because-nothing-bounded-them.md))).
+
+## Touch controls {#touch-controls}
 
 Touch controls press the game's existing input actions, so gameplay code does not fork. `Input.emulate_mouse_from_touch`
 is off while they show, or every touch also clicks. Tests inject `InputEventScreenTouch` and `InputEventScreenDrag`
@@ -197,7 +211,43 @@ setting up its children
 "every first-run hint" as the list's constant breaks when a hint shows only under a condition
 ([lesson](../../lessons/2026-11-05-a-hint-list-grew-and-two-suites-that-named-the-list-went-red.md)).
 
-## A part placed from another part's rectangle
+- **Approach:** Prove phone input in the real web build in a mobile-emulated browser sending `Input.dispatchTouchEvent`:
+  each finger alone does only its own job, and a drag of N px turns by the designed angle; keep a GdUnit test that
+  injects the stray mouse motion as the desktop guard. **Watch out for:** a browser reports a finger as touch and as
+  pointer events, and Godot's web runtime reads every `pointermove` as a mouse motion in device pixels, so the move
+  stick turned the view and a look drag turned 1.43 rad against 0.41; synthetic touch tests in the desktop runner all
+  passed. **Seen:** Deadnight #470, 2026-11-02 (fix: deadnight #480
+  ([lesson](../../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md))).
+- **Approach:** Give every touch control test a second finger on another control at the same time, run a two-finger case
+  in the live probe, and read per-finger positions, never `InputEventScreenDrag.relative`. **Watch out for:** the tests
+  drove one finger at a time; in Chrome with two fingers down a finger's first `relative` is measured from the origin or
+  the other finger's press (1454 px for a 100 px drag) and `velocity` is stale for three drags: a 2.42 rad turn against
+  0.41 designed. **Seen:** Deadnight #497, 2026-11-02 (fix: per-finger positions (Deadnight #506;
+  [lesson](../../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md))).
+- **Approach:** Check a control that arrives at its own rate and drives a drawn view in the browser for the per-frame
+  turn under a steady hold (still frames, back steps, variation), with the page at phone speed, and keep it in a test.
+  **Watch out for:** smoothness belongs to the view per drawn frame: the touch layer turned the view per finger sample,
+  so at 175 fps a steady drag turned one frame in three, and the earlier touch tests checked only the total turn.
+  **Seen:** Deadnight #598, 2026-11-02 (fix: the look waits and turns the view a share per frame
+  ([lesson](../../lessons/2026-11-02-a-steady-touch-drag-turned-the-view-in-jumps.md), [buffer
+  lesson](../../lessons/2026-11-02-godot-adds-a-mouse-motion-in-the-input-buffer-to-the-next-one.md))).
+- **Approach:** Make every touch button under the look thumb also look while dragged: a new row in `TouchLayout.BUTTONS`
+  looks unless it says otherwise (`DRAG_OWNERS`), and a test walks the table and holds each verb (grenade, aim, fire,
+  repair) on every device while turning the view and moving. **Watch out for:** a phone has two thumbs, so a held button
+  takes the only free one; Grenade, held for the whole cook, and later Reload and Jump sat outside a per-button
+  allow-list and turned nothing, and the tests pressed for a tick without turning. **Seen:** Deadnight #599, 2026-11-02;
+  Deadnight #1277, 2026-11-05 (fix: the list is derived from the table ([grenade
+  lesson](../../lessons/2026-11-02-a-held-grenade-button-left-a-phone-no-finger-to-look-with.md), [phone
+  lesson](../../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md))).
+- **Approach:** Design a device's controls from its own inputs and what its screen already shows: before building, list
+  every action and every element and give each a verdict (keep, make the existing element tappable, drop as a
+  duplicate), and prove a rule the player expects everywhere (reload at 0) through each device's real input. **Watch out
+  for:** the phone was the desktop with a button per action, so a swap button repeated the tappable weapon display; each
+  button passed its size and safe-area tests, which cannot see too many or a duplicate, and the phone was fixed one
+  complaint at a time. **Seen:** Deadnight #1275 to #1280, 2026-11-05 (fix: a control count and a duplicate check are a
+  design review ([lesson](../../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md))).
+
+## A part placed from another part's rectangle {#a-part-placed-from-another-parts-rectangle}
 
 A control that must stand beside another (badges by a card) and is placed by code reads the other's `get_global_rect()`.
 Do not place it in the other's `item_rect_changed`: when that control sits in a container (or a column anchored to a
@@ -206,6 +256,13 @@ up a layout step behind (70 units low when the touch layout moved the card). Con
 parent and of the placed part to one function that queues a single deferred placement (a flag so it runs once per layout
 pass). Test it by changing the layout and measuring the rectangles after two idle frames
 ([lesson](../../lessons/2026-11-03-a-part-placed-from-a-siblings-rect-read-it-before-the-layout-moved-it.md)).
+
+- **Approach:** Place a part beside another by where the first is drawn: read the font's glyph outlines
+  (`LevelTag.digit_span`) and the art's own ink, keep the arithmetic in one helper every place calls, and prove it from
+  pixels at the sizes players have (`test_level_ink.gd`). **Watch out for:** digits and icon were placed from their own
+  boxes, but digits sit at cap height above room for a descender and the icon's art fills 0.44 to 0.46 of its cell; each
+  place nudged it its own way, judged by rectangles, so the bottom-left box (icon 7 px high) was found by eye. **Seen:**
+  Deadnight #1161, 2026-11-04 (fix: the helper and the pixel test).
 
 ## A card that looks for free ground
 
@@ -230,7 +287,7 @@ Test it with the busiest night on every page: eight people and the bots on top, 
 the lane, both hands and every interface size, reading the boxes of the real touch layer, and with a tag-high block
 added to the column.
 
-## Animating a container's children
+## Animating a container's children {#animating-a-containers-children}
 
 - **Never read a container child's position in the frame it was shown.** A `Container` sorts its children in a
   deferred call that runs after `SceneTree.process_frame` is emitted, and input is handled before that signal, so
@@ -240,7 +297,14 @@ added to the column.
 - **Reproduce with real input**: `Input.parse_input_event`, not a direct call, and `Engine.physics_ticks_per_second = 1`
   so no physics step hides the race.
 
-## Menus under test
+- **Approach:** Test UI motion through real input events, at low and high physics tick rates, switching every tab in
+  every order mid-transition, and fail on overlapping rows. **Watch out for:** an entrance that moves a container's
+  children depends on when the container lays them out; `UIMotion.stagger_in` read each row's position one frame after
+  the tab showed, before the deferred sort, and it was only ever tested from a script, so the settings rows sometimes
+  collapsed into each other. **Seen:** Deadnight, 2026-11-01 (fix: positions are read after the sort, and the real-input
+  test holds it ([lesson](../../lessons/2026-11-01-container-children-read-before-the-deferred-sort.md))).
+
+## Menus under test {#menus-under-test}
 
 - **Transparent is not unreachable.** A control at `modulate.a = 0` is still focusable and clickable. While a menu's
   items are hidden or entering, set `mouse_filter` to ignore and `focus_mode` to none, keep the old values, and give
@@ -263,6 +327,17 @@ added to the column.
   `ensure_control_visible` two frames after showing a field the player must reach. Test the panel's size in a
   `SubViewport` of 1280 x 720 with every optional line shown
   ([lesson](../../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
+
+- **Approach:** Press every action as the first input on the live screen, on a pad (device 0 and another id) and in the
+  web build with a virtual pad, and test anything bound to a `ui_*` button on a screen with no focused control. **Watch
+  out for:** Start is bound to `pause` and `ui_accept`, and the UI router spends the first focus key on focusing the top
+  screen, so every Start in a running night was eaten; a Start resume then waited for pointer lock, which a browser
+  never grants to a gamepad button. **Seen:** Deadnight #494, 2026-11-02 (fix: only the mouse waits for pointer lock
+  (Deadnight #519; [lesson](../../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md))).
+- **Approach:** Clear the input router before any test that sends mouse or touch input, and run a new input test inside
+  its whole folder. **Watch out for:** UI input tests passed alone and failed in the folder run, because a menu an
+  earlier suite left on the router took the clicks. **Seen:** Deadnight #346, 2026-11-01 (fix: CI, then running the
+  suites in order, found it ([lesson](../../lessons/2026-11-01-ui-input-test-fails-only-in-the-folder-run.md))).
 
 ## A grid of items with locked silhouettes
 
@@ -295,7 +370,7 @@ line under it.
 - **Sort by what the player reaches first**, with a stable tie-break (decorate with the index and sort the pairs), so a
   ladder reads from the starting pieces up and a grid with no levels keeps the catalogue's order.
 
-## 3D in a menu
+## 3D in a menu {#3d-in-a-menu}
 
 - **A menu's 3D stage is drawn at the window's pixels.** With the canvas stretch a `Control` is 1920 x 1080 whatever the
   window, and a `SubViewportContainer` makes its viewport that size (stretch on) or grows to the viewport's (off):
@@ -309,6 +384,13 @@ line under it.
   (in seconds, not frames), and back off after a failed climb so it never flickers
   ([lesson](../../lessons/2026-11-03-a-quality-fallback-with-no-way-back-kept-the-menu-soft.md)).
 
+- **Approach:** Capture a 3D view in a menu in a real window at two resolutions with its viewport size printed, and run
+  an adaptive-quality fallback in a real window with a load that ends: it must climb back, in seconds and with a
+  backoff, before it ships. **Watch out for:** a stretched `SubViewportContainer` drew the stage at the 1920 x 1080
+  canvas, not the window's pixels, its `msaa_3d` was its own, and the governor dropped to half resolution after one slow
+  window for the whole session. **Seen:** Deadnight #893, 2026-11-03 (fix: deadnight #920 and gdstudio #439
+  ([lesson](../../lessons/2026-11-03-a-quality-fallback-with-no-way-back-kept-the-menu-soft.md))).
+
 ## A part at a scale of its own inside a screen
 
 A card that opens over a screen whose window factor must not change (a pause card over a night's HUD) is drawn by a
@@ -317,7 +399,7 @@ canvas, text stays sharp, and a press goes through the scale. What reads the win
 inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by the part's scale), the audit
 (multiply by the control's global scale). See the [lesson](../../lessons/2026-11-05-a-card-over-a-night-needed-its-own-scale-and-everything-read-the-window.md).
 
-## A menu over a live game
+## A menu over a live game {#a-menu-over-a-live-game}
 
 - **Do not push a screen over a game that must keep running.** `UIRouter` disables the screen it covers
   (`process_mode = DISABLED`), which is right for a solo night and wrong for a multiplayer one (the link is no longer
@@ -328,6 +410,13 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   ("Menu: the night goes on around you", not "Paused").
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
   replayed to a waiter that comes after it.
+
+- **Approach:** Give every overlay that hides HUD state one way to undo it, called by every path that closes the
+  overlay, and test a screen's first running frame through every entry route (solo, join, resume, the Activity). **Watch
+  out for:** the Joining card hid the reticle, the scoreboard and the touch layer; a finished online join only hid the
+  card and only Resume restored them, so every online join started with no crosshair. **Seen:** Deadnight #529,
+  2026-11-02 (fix: one restore used by every close
+  ([lesson](../../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md))).
 
 ## Reading a screen under test: the scale it really runs at
 

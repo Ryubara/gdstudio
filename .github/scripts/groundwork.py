@@ -37,6 +37,8 @@ KNOWN: dict[str, set[str]] = {
     "pull_requests": {"template", "sections", "filled", "placeholders", "local_paths", "docs_none", "closing",
                       "checklist", "ai_use", "guidance", "screenshots", "issues_affected", "failed_first", "lessons", "kit_docs",
                       "read_first"},
+    "learning": {"format", "rule_parts", "max_rule_chars", "max_page_kb", "reason_line", "legacy_lessons",
+                 "corrections_log"},
     "merge": {"methods", "squash_title", "squash_message", "auto_merge", "delete_branch_on_merge",
               "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths", "hold"},
     "issues": {"blank_issues", "placeholders", "forms", "labels"},
@@ -404,11 +406,29 @@ def self_correction_reasons(rule: dict[str, Any], title: str, history: dict[str,
 
 
 _LESSON_LINK = re.compile(r"lessons/20\d\d-\d\d-\d\d-[\w.-]+\.md|maintainer-corrections")
+# A section as `page.md#anchor` (docs/studio/rules.md#anchors); python/src/gds_tools/lessons.py reads it the same way
+# (a test keeps them equal). `docs/`, a URL up to it and leading `../` are dropped.
+_SECTION_REF = re.compile(r"((?:[\w.-]+/)*[\w.-]+\.md)#([A-Za-z0-9_-]+)")
 
 
-def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[str, Any] | None) -> list[str]:
-    """Docs ship with the change (pull_requests.kit_docs, lessons, read_first), judged from the title, the description
-    and the pull request's history (`pr-history`: failed earlier checks, the issues it closes and their labels)."""
+def section_refs(text: str) -> list[tuple[str, str]]:
+    """Every `page.md#anchor` of a text as (page under docs/, anchor), in order, without repeats."""
+    out: list[tuple[str, str]] = []
+    for found in _SECTION_REF.finditer(text):
+        page = found.group(1)
+        page = page.split("docs/", 1)[1] if "docs/" in page else page
+        while page.startswith(("../", "./")):
+            page = page.split("/", 1)[1]
+        if (page, found.group(2)) not in out:
+            out.append((page, found.group(2)))
+    return out
+
+
+def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[str, Any] | None,
+                     changed: list[str] | None = None) -> list[str]:
+    """Docs ship with the change (pull_requests.kit_docs, lessons, read_first), judged from the title, the description,
+    the pull request's history (`pr-history`: failed earlier checks, the issues it closes and their labels) and, when
+    given, its changed files (the `Lessons:` section's page must be one of them when `lessons.edited` is on)."""
     history = history or {}
     rules = conv["pull_requests"]
     problems: list[str] = []
@@ -419,16 +439,29 @@ def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[
         label = rule.get("label", "Lessons:")
         value = _summary_value(conv, body, rule, "Lessons:")
         is_none = value is not None and value.lower().startswith("none")
+        sections = rule.get("names", "legacy") == "section"
+        refs = [r for r in section_refs(value or "") if not r[0].endswith("maintainer-corrections.md")]
+        wanted = (f"'{label} <page.md#anchor>' naming the topic section the rule went into (docs/studio/rules.md)"
+                  if sections else f"'{label} docs/lessons/<file>.md' (or a row of the corrections page)")
         if value is not None and is_none and not _reasoned(value[4:]):
             problems.append(f"'{label} none' needs a reason in parentheses: '{label} none (why nothing went wrong)'")
         elif reasons and (value is None or is_none):
             problems.append(
-                f"this pull request corrects earlier work ({'; '.join(reasons)}): link the lesson that records what "
-                f"went wrong, in ## {rule.get('section', 'Summary')} as '{label} docs/lessons/<file>.md' (or a row of "
-                f"the corrections page); '{label} none' is refused here")
-        elif value is not None and not is_none and not _LESSON_LINK.search(value):
+                f"this pull request corrects earlier work ({'; '.join(reasons)}): record what went wrong, in "
+                f"## {rule.get('section', 'Summary')} as {wanted}; '{label} none' is refused here")
+        elif value is not None and not is_none and sections and not refs:
+            problems.append(f"'{label}' names the section of the rule as page.md#anchor (a section of a topic page, "
+                            f"not the corrections log), or reads '{label} none (reason)': {value!r}")
+        elif value is not None and not is_none and not sections and not _LESSON_LINK.search(value):
             problems.append(f"'{label}' links a lesson (docs/lessons/<yyyy-mm-dd>-<slug>.md) or a row of the "
                             f"corrections page, or reads '{label} none (reason)': {value!r}")
+        elif refs and rule.get("edited") and changed is not None:
+            files = set(changed)
+            missing = [f"{p}#{a}" for p, a in refs if f"docs/{p}" not in files and p not in files]
+            if len(missing) == len(refs):
+                problems.append(f"'{label}' names {', '.join(missing)}, but this pull request does not change "
+                                f"{'that page' if len(missing) == 1 else 'those pages'}: the rule is written into the "
+                                f"section in the same pull request")
     kit = rules.get("kit_docs")
     if kit:
         label = kit.get("label", "Kit docs:")
@@ -1143,7 +1176,8 @@ def cmd_check_body(conv: dict[str, Any], args: argparse.Namespace) -> int:
         history = json.loads(_read(args.history)) if args.history else {}
         if history.get("unavailable"):
             print("note: the pull request's history could not be read; the title alone is judged", file=sys.stderr)
-        problems += lessons_problems(conv, title, body, history)
+        changed = _read(args.changed).split() if getattr(args, "changed", None) else None
+        problems += lessons_problems(conv, title, body, history, changed)
     return _report(problems, "description")
 
 
@@ -1286,6 +1320,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--body", required=True, help="a file, or - for stdin")
     p.add_argument("--title", help="the title (a file): enables the screenshots, failed-first and lessons rules")
     p.add_argument("--history", help="the output of pr-history (a file): lets the lessons rules see failed checks")
+    p.add_argument("--changed", help="the changed files, one per line (a file): the Lessons: section's page is one")
     p.set_defaults(run=cmd_check_body)
     p = sub.add_parser("pr-history", help="print a pull request's failed earlier checks and closed issues as JSON")
     p.add_argument("--repo", required=True, help="owner/name")

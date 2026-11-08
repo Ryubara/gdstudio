@@ -600,7 +600,8 @@ def check_body(
         return []
     titles = flag_values(words, ("--title", "-t"))
     try:
-        result = module.check_body(repo, body, titles[0] if titles else None, kit=KIT)
+        changed, why = module.branch_changes(repo) if repo == here_checkout(cwd) else ([], "another checkout")
+        result = module.check_body(repo, body, titles[0] if titles else None, kit=KIT, changed=None if why else changed)
         if result.ok and repo == here_checkout(cwd):  # the docs rule reads the branch checked out here
             result = module.check_docs(repo, body, kit=KIT)  # (`unknown` is not a refusal: pr-rules judges it)
     except Exception:  # the checker is missing, slow or broken: let the command through
@@ -1606,6 +1607,7 @@ def lesson_text(kind: str, config: dict[str, Any], workspace: Path | None) -> st
     return text.format(
         corrections=(kit / "docs" / "studio" / "maintainer-corrections.md").as_posix(),
         lessons=(kit / "docs" / "lessons" / "index.md").as_posix(),
+        rules=(kit / "docs" / "studio" / "rules.md").as_posix(),
         queue=((workspace / queue) if workspace else queue).as_posix(),
     )
 
@@ -1624,13 +1626,14 @@ def subagent_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if not workspace:
         return ""
-    areas = take_agent_note(workspace, payload.get("agent_type") or "", config)
+    note = take_agent_note(workspace, payload.get("agent_type") or "", config)
     start_disk_guard(workspace, config)
     return "\n\n".join(
         t
         for t in (
             lesson_text("subagent", config, workspace),
-            area_checks(workspace, areas, config),
+            closest_sections(workspace, note.get("title", ""), config),
+            area_checks(workspace, note.get("areas") or [GENERAL], config),
             disk_note(workspace, config),
         )
         if t
@@ -1652,17 +1655,17 @@ def pending_lessons(workspace: Path, config: dict[str, Any]) -> list[Path]:
 
 
 def stop_queue(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
-    """The learning gate: rows queued to become corrections or lessons, whose cause is known, are published first."""
+    """The learning gate: queued corrections whose cause is known are published first (a rule and a log line)."""
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     pending = pending_lessons(workspace, config) if workspace else []
     if not pending:
         return None
     names = ", ".join(p.name for p in pending[:6]) + ("..." if len(pending) > 6 else "")
     return (
-        f"Lesson rows are queued in {pending[0].parent.as_posix()} and not published: {names}. Publish each as a row "
-        f"on the corrections page (and a lesson when the cause is general) in a kit pull request, then move its file "
-        f"to published/; or, if its cause is not known yet, add a `Waiting on: #N` line naming the issue. Rows that "
-        f"are not yours: say so and finish."
+        f"Corrections are queued in {pending[0].parent.as_posix()} and not published: {names}. Publish each as an "
+        f"entry in the topic section it belongs to (docs/studio/rules.md) and a line on the corrections log, in a kit "
+        f"pull request, then move its file to published/; or, if its cause is not known yet, add a `Waiting on: #N` "
+        f"line naming the issue. Ones that are not yours: say so and finish."
     )
 
 
@@ -1697,9 +1700,8 @@ def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
     return items
 
 
-def build_glossary(kit: Path) -> str:
-    """The glossary built from the lessons and corrections rows of a kit checkout (it is not a committed file: two
-    lesson pull requests would both rewrite it). Loads python/src/gds_tools/lessons.py by path; '' when it cannot."""
+def lessons_module(kit: Path) -> Any:
+    """python/src/gds_tools/lessons.py of a kit checkout, loaded by path; None when it cannot be loaded."""
     source = kit / "python" / "src" / "gds_tools" / "lessons.py"
     name = "_gds_lessons_for_hooks"
     try:
@@ -1707,10 +1709,41 @@ def build_glossary(kit: Path) -> str:
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module  # a dataclass looks its module up here
         spec.loader.exec_module(module)
-        return module.build(kit)
+        return module
     except Exception:  # a hook never locks a session out: no checks beat a crash
         sys.modules.pop(name, None)
+        return None
+
+
+def build_glossary(kit: Path) -> str:
+    """The glossary built from the entries of the topic sections and the old lesson files of a kit checkout (it is not a
+    committed file). '' when it cannot be built."""
+    module = lessons_module(kit)
+    try:
+        return module.build(kit) if module else ""
+    except Exception:
         return ""
+
+
+def closest_sections(workspace: Path | None, title: str, config: dict[str, Any]) -> str:
+    """The sections of the docs closest to the issue's title, with their rules (`gds learn <title>`), at most
+    `learn_limit` sections and `learn_chars` characters; '' without a title or when they cannot be found."""
+    rules = config.get("docs", {})
+    limit = int(rules.get("learn_limit", 4))
+    if not title.strip() or limit <= 0:
+        return ""
+    kit = kit_root(workspace)
+    module = lessons_module(kit)
+    try:
+        text = module.learn_text(kit, title, limit, legacy=0, rules_per=3) if module else ""
+    except Exception:
+        return ""
+    if not text or text.startswith("No section"):
+        return ""
+    chars = int(rules.get("learn_chars", 2500))
+    if len(text) > chars:
+        text = text[:chars].rsplit("\n", 1)[0] + "\n... (cut; `gds learn <words>` prints more)"
+    return f"Sections of the docs closest to your issue ({title!r}); a mistake you make updates one of them:\n{text}"
 
 
 def area_checks(workspace: Path | None, areas: list[str], config: dict[str, Any]) -> str:
@@ -1763,7 +1796,12 @@ def note_agent_start(payload: dict[str, Any], config: dict[str, Any]) -> None:
         notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
     except (OSError, ValueError, TypeError):
         notes = []
-    notes.append({"agent_type": kind, "areas": areas, "time": now})
+    titles = [
+        ledger.get(ledger_key(repo, number), {}).get("title", "")
+        for label, repo, number in _WORK_LINE.findall(inp.get("prompt") or "")
+        if label.lower() == "issue"
+    ]
+    notes.append({"agent_type": kind, "areas": areas, "title": next((t for t in titles if t), ""), "time": now})
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(notes), encoding="utf-8")
@@ -1771,20 +1809,21 @@ def note_agent_start(payload: dict[str, Any], config: dict[str, Any]) -> None:
         pass
 
 
-def take_agent_note(workspace: Path, agent_type: str, config: dict[str, Any]) -> list[str]:
-    """The areas of the oldest unread note for this agent type (and the note is used up); `general` when none."""
+def take_agent_note(workspace: Path, agent_type: str, config: dict[str, Any]) -> dict[str, Any]:
+    """The oldest unread note for this agent type (and the note is used up): its `areas` and its issue's `title`;
+    `{"areas": ["general"]}` when there is none."""
     path, now = pending_path(workspace, config), time.time()
     try:
         notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
     except (OSError, ValueError, TypeError):
-        return [GENERAL]
+        return {"areas": [GENERAL]}
     for i, note in enumerate(notes):
         if note.get("agent_type") == agent_type:
             del notes[i]
             with contextlib.suppress(OSError):
                 path.write_text(json.dumps(notes), encoding="utf-8")
-            return note.get("areas") or [GENERAL]
-    return [GENERAL]
+            return {**note, "areas": note.get("areas") or [GENERAL]}
+    return {"areas": [GENERAL]}
 
 
 def kit_remote(kit: Path) -> str:
@@ -1966,13 +2005,44 @@ def mistakes_text(report: str) -> str:
     return ""
 
 
-def lesson_files_named(workspace: Path, report: str) -> list[str]:
-    """The `docs/lessons/<file>.md` paths of a report that exist in the kit checkout or one of its worktrees."""
+def sections_named(workspace: Path, report: str) -> list[str]:
+    """The sections a report names (`page.md#anchor`, docs/studio/rules.md#anchors) that a kit worktree has and changes
+    against origin/main: the rule was written into them. The kit's main checkout counts when it has local changes."""
+    module = lessons_module(kit_root(workspace))
+    if module is None:
+        return []
     roots = [kit_root(workspace)]
     folder = workspace / "worktrees" / "gdstudio"
     roots += [p for p in sorted(folder.iterdir()) if p.is_dir()] if folder.is_dir() else []
-    names = dict.fromkeys(re.findall(r"docs/lessons/(20\d\d-[\w.-]+\.md)", report))
-    return [n for n in names if any((root / "docs" / "lessons" / n).exists() for root in roots)]
+    found = []
+    for page, anchor in module.refs_in(report):
+        if page.startswith("lessons/") or page.endswith("maintainer-corrections.md"):
+            continue  # the old folder and the log are not where a rule lives
+        for root in roots:
+            if anchor in module.anchors(root / "docs" / page) and page_changed(root, f"docs/{page}"):
+                found.append(f"{page}#{anchor}")
+                break
+    return found
+
+
+def page_changed(root: Path, page: str) -> bool:
+    """True when `page` differs from origin/main in the checkout `root` (committed on its branch or not, or a new file
+    git does not track yet); True as well when git cannot tell, so a hook never holds an agent on its own failure."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(root), "diff", "--quiet", "origin/main", "--", page], capture_output=True, timeout=15
+        )
+        if done.returncode != 0:
+            return True
+        listed = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "--", page],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return bool(listed.stdout.strip())
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -2232,9 +2302,9 @@ def stop_idle(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
 
 
 def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
-    """An agent may not finish while its kit docs are unpublished, or while its report lists mistakes and no lesson
-    file (held back once: `stop_hook_active` lets the next finish through), or while it ends on a step instead of a
-    report (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
+    """An agent may not finish while its kit docs are unpublished, or while its report lists mistakes and names no
+    section its kit branch edits (held back once: `stop_hook_active` lets the next finish through), or while it ends
+    on a step instead of a report (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
     stalled = stop_stall(payload, config)
     if payload.get("stop_hook_active"):
         return stalled
@@ -2247,10 +2317,13 @@ def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None
     start_disk_guard(workspace, config)
     reasons = [stalled, stop_kit_docs(payload, config)]
     report = report_of(payload)
-    if mistakes_text(report) and not lesson_files_named(workspace, report):
+    if mistakes_text(report) and not sections_named(workspace, report):
         reasons.append(
-            "Your report has a Mistakes section but names no lesson file. Write what went wrong, its cause and the fix "
-            "as a lesson (docs/lessons/<yyyy-mm-dd>-<slug>.md with `areas: [...]` front matter, in a kit branch), open "
-            "its pull request, and name the file in your report; or, if nothing went wrong, write `Mistakes: none`."
+            "Your report has a Mistakes section but names no topic section that your kit branch updates. Update the "
+            "topic section each mistake belongs to with an entry (the approach, what to watch out for, where it was "
+            "seen): `gds learn <words>` finds the closest; make a new section only when none fits, with a reason line "
+            "(docs/studio/rules.md). Open the kit pull request and name the section in your Mistakes section as "
+            "`page.md#anchor`; or, if nothing went wrong, write `Mistakes: none`. Lesson pages are gone: none is "
+            "written."
         )
     return "\n\n".join(r for r in reasons if r) or None

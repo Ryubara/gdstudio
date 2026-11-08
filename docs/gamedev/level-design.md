@@ -16,7 +16,7 @@ the real night run by a tool), a capture from the player's camera (read as a pic
 
 ## The principles
 
-### P1. Judge the map by its own numbers, measured first
+### P1. Judge the map by its own numbers, measured first {#p1-judge-the-map-by-its-own-numbers-measured-first}
 
 Metrics are the first thing a level designer fixes, and they are found by playing, not by reading a table: "you'll only
 know 'it feels right' when you're walking around inside your level and playtesting", and "it can be difficult to
@@ -27,6 +27,13 @@ their own: Valve's mapper references list a crouch-jump as a separate, higher cl
 
 **Check (a number):** before the walk, write down the capsule, the jump height, the step height, the camera's arm and
 shoulder offset, the dead's swing reach and the **measured reach** (P13). The review is judged against these.
+
+- **Approach:** When a map formula's default is only the reference game's absence, ask the maintainer once and write the
+  answer where a test reads it; a pull request that adds what a row forbids fixes the row in the same commit. **Watch
+  out for:** the second map's formula copied the reference map's lack of perks and upgrades as its default; the machines
+  shipped anyway and nothing tied the row to the scene, so the page and the map disagreed until asked. **Seen:**
+  Deadnight #859, 2026-11-03 (fix: `test_map_machines.gd`
+  ([lesson](../lessons/2026-11-03-a-formula-row-copied-the-reference-games-absence-and-no-test-held-it.md))).
 
 ### P2. Every opening adds a loop to run
 
@@ -135,7 +142,7 @@ CRC Press, 2nd edition 2019). Landmarks help a player regain their bearings afte
 landmark is in frame and lit; a person shown one frame says which area it is without a sign. Deadnight's generator, the
 game's second pillar, read as a blank wall from the yard's gate: a finding.
 
-### P10. What can be used reads as usable, and nothing works through a wall
+### P10. Usable, never through walls {#p10-what-can-be-used-reads-as-usable-and-nothing-works-through-a-wall}
 
 "Signs are easily mistaken for irrelevant set dressing"
 ([The Level Design Book: wayfinding](https://book.leveldesignbook.com/process/blockout/wayfinding.md)): interactive
@@ -150,6 +157,24 @@ walls too, and demands no prompt and no press where a wall is between; a spacing
 a point inside two use zones, with half a metre between them. On the plan, before a wall is built, the middles of two
 things on one floor are at least their two reaches and the gap apart: a corner with an opening on each wall has no room
 for a third thing ([lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)).
+
+- **Approach:** Make an interact reach a line of sight from the hand as well as a distance, and give every interactable
+  a test from behind its nearest wall or floor, on the server and on the prompt. **Watch out for:** every kind (wall
+  spots, doors, posts, fuel, boards, revive) had its own flat distance check and each test stood in front, where no wall
+  is, so a player behind a wall saw the card and could buy. **Seen:** Deadnight #831, 2026-11-03 (fix:
+  `test_use_through_walls.gd`
+  ([lesson](../lessons/2026-11-03-a-use-reach-was-a-distance-and-never-asked-for-a-wall.md))).
+- **Approach:** When a look reads as a gameplay cue, find the object that owns it and check it on every instance of that
+  object on every map, with a test that walks all of them. **Watch out for:** the boarded outline the maintainer saw was
+  a moonlight card's shadow bars through an empty window, given by hand to six of the second map's twelve entries, so
+  half the empty windows read as repairable and half did not. **Seen:** Deadnight #902, 2026-11-03 (fix: the cue belongs
+  to the object, on every instance, not to the ones a lighting pass dressed).
+- **Approach:** Draw a barricade as a window (sill, jambs, header, planks), keep the dead's navigation gap apart from
+  the drawn opening, and check every barricade on every map from the player's camera for what its shape affords. **Watch
+  out for:** an opening from floor to lintel reads as a way through whatever the rules say; the breaches were
+  door-shaped because the gap the navigation needed at the ground was also the drawn opening. **Seen:** Deadnight #915,
+  2026-11-03 (fix: the barricades were redrawn as windows
+  ([lesson](../lessons/2026-11-03-a-barricade-shaped-like-a-door-told-players-to-walk-through-it.md))).
 
 ### P11. Light guides the route; dark is never black
 
@@ -264,7 +289,7 @@ geometry changes, and the jump is retuned.
 **Check (a probe):** the reach, escape and use-sight checks are tests the suite runs; a review re-runs the sweeps after
 any change to a wall, a prop or the player's tuning, and states the commit it ran on.
 
-### P19. The place makes sense to a player
+### P19. The place makes sense to a player {#p19-the-place-makes-sense-to-a-player}
 
 A layout is a place before it is a set of numbers: the plausibility of a space is what engages a player first, and the
 first questions of a place are "who made this place?" and "how will the player know?"
@@ -280,6 +305,12 @@ to it from where they rise on the world's ground; a capture from behind it with 
 rise; one world outside seen from every floor; a test that fails an opening with no floor inside it or no ground or
 deck outside it at its own height, and an upper opening whose dead do not rise on the ground and walk up. The map
 review's [Does it make sense?](../engines/godot/map-review.md#does-it-make-sense) is the list.
+
+- **Approach:** Give every placeholder area an issue that finishes or closes it, and before a map ships capture each
+  playable spot looking past its walls. **Watch out for:** the first map's road was a placeholder greybox from the first
+  layout (Deadnight #29) whose purpose stayed undecided; nothing made it a finished place or checked what a player sees
+  past the lot's walls, so it stayed unfinished for a hundred pull requests. **Seen:** Deadnight #686, 2026-11-03 (fix:
+  players found it when the road opened).
 
 ### P20. An objective is measured, not read
 

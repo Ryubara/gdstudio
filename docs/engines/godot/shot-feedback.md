@@ -18,7 +18,7 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 - **A flash light counts against the Compatibility per-object light cap** ([Lighting in Compatibility](compat-lighting.md)):
   allow one at a time on the whole map, and keep it short in range.
 
-## Impacts
+## Impacts {#impacts}
 
 - **Billboard in `vertex()`** for a puff that keeps its node's scale and faces the camera; it works in Compatibility:
 
@@ -33,7 +33,12 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 - **Pool impacts** (a fixed number of slots) and size them against the character in a capture; an untested placeholder
   is easily ten times too big.
 
-## Blood
+- **Approach:** List every placeholder effect in an issue when it lands, and capture effects next to the character for
+  scale. **Watch out for:** no task owned the effects, so placeholders shipped as final: the muzzle flash was a yellow
+  sphere and the impacts far too large, their sizes never compared with the character. **Seen:** Deadnight, 2026-11-01
+  (fix: the flash and the impacts were rebuilt and sized in captures beside the character (this page)).
+
+## Blood {#blood}
 
 Found building Deadnight's hit blood (a splash at the wound and marks on the surfaces, Godot 4.7, Compatibility; the
 game's page is `docs/research/hit-blood.md`).
@@ -53,6 +58,11 @@ game's page is `docs/research/hit-blood.md`).
   half-second splash before it is drawn (`set_process(false)` while it is held).
 - **A loop variable named like a method** (`mark`, `splash`) shadows it in GDScript: name the loop
   variable `slot`.
+
+- **Approach:** With the first weapon, list the reference genre's hit feedback (blood or impact on the body, marks, hit
+  markers, sounds) and give each its warm-up and its web cost. **Watch out for:** hit feedback was never planned as part
+  of the combat loop: shots had numbers, sounds and a reticle but nothing on the body, and no issue listed the genre's
+  feedback. **Seen:** Deadnight #618, 2026-11-02 (fix: deadnight #648 added the blood above).
 
 ## Camera shake
 

@@ -20,7 +20,7 @@ docs/
                    CI, workspace, conventions, templates, this site
   games/<game>/    one game: summary, how we build it, design
                    philosophy, conventions
-  lessons/         the record of problems hit, one file each (below)
+  lessons/         the old record of problems, one file each (below)
 ```
 
 Every folder has an `index.md` that says what belongs in it and what does not, and lists its pages. The navigation is
@@ -41,9 +41,10 @@ A subject with both a principle and an engine side gets a page in each, linked b
 when a subject has more than one page. Another engine or tool gets its folder when a game needs it, never an empty
 stub; a test fails an `engines/<name>/` that holds only its index.
 
-**Lessons.** `docs/lessons/` stays as it is for now: one file per problem, with `areas:` front matter, the input of
-`gds lessons <area>` and the SubagentStart hook. Its paths are part of the pull request rules (`Lessons:` lines), so it
-did not move. #769 turns lessons into rules inside the topic sections; #770 migrates them and Deadnight's general docs.
+**Inside a page.** What is learned updates the section it belongs to, never a page of its own: the format of an entry,
+a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). `docs/lessons/` (one file per
+problem, with `areas:` front matter) takes no new file; its old files stay readable, and feed `gds learn` and
+`gds lessons <area>`, until #770 moves them and Deadnight's general docs into the sections.
 
 ## Building it {#build}
 
@@ -103,9 +104,10 @@ runs elsewhere and nothing is lost:
 
 | Check | Where it runs now |
 | --- | --- |
-| Every lesson has `areas:` front matter naming known areas | `python .github/scripts/mistakes.py check`: pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
-| No corrections row quotes the maintainer (`lessons.quoted_rows()`) | the same check, and `test_the_kits_corrections_page_quotes_no_prompt` |
-| The glossary can be built from the lessons and the corrections page | the same check; `gds lessons <area>` and the SubagentStart hook build it in memory |
+| Every old lesson has `areas:` front matter naming known areas | `python .github/scripts/mistakes.py check`: pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
+| No corrections-log row quotes the maintainer (`lessons.quoted_rows()`) | the same check, and `test_the_kits_corrections_page_quotes_no_prompt` |
+| The glossary can be built from the rules and the old lessons | the same check; `gds lessons <area>` and the SubagentStart hook build it in memory |
+| The rules of the topic sections ([the list](rules.md#checks)) | the same check, with `--base HEAD^1` in CI (gdstudio #769) |
 
 A test fails a `hooks:` or `plugins:` key in `mkdocs.yml`: Zensical would ignore it without a word, and a check put
 there would never run. A new check of the docs goes in pytest, pre-commit or the CI job.

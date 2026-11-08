@@ -73,6 +73,13 @@ big folders. The store and branding assets (Steam, itch.io and
 Discord: the app icon and key art) are kept this way: `scratch/deadnight/key-art/.keep` and
 `scratch/deadnight/art-key-art/.keep`. Put a `.keep` in any scratch folder that must outlive a clean-up.
 
+- **Approach:** Give every resource an agent creates an end-of-life step a program runs, keep anything worth keeping in
+  a commit or in `scratch/`, and judge a sweep by what it refuses: never a worktree a process uses, one touched lately,
+  or one with commits on no remote branch; copy loose files before removal. **Watch out for:** removing a worktree was a
+  manual step after each merge, skipped under load, so 64 Deadnight worktrees with import caches filled the disk to 8 GB
+  free and detached ones had no owner. **Seen:** gdstudio #241, 2026-11-03 (fix: `gds worktree sweep`, started by a hook
+  ([lesson](../lessons/2026-11-03-finished-worktrees-were-never-removed-and-the-disk-filled.md))).
+
 ## The disk guard {#disk}
 
 On 2026-11-04 the C: drive reached 120 MB free with some 25 agents at work: Godot imports were truncated, a pre-commit
@@ -169,6 +176,23 @@ gds disk guard --force          free what the rules allow even above the soft li
 
 The report is appended to `scratch/disk-guard.log`. What the guard cannot touch (other programs' folders, `Temp`, the
 uv cache) it does not: `gds disk status` and the report name the workspace's folders, and the maintainer decides the rest.
+
+- **Approach:** Give anything agents write to a budget and a clean-up rule when it is made, and reduce artifacts to
+  their numbers and delete them in the same task. **Watch out for:** the scratch folder was never cleaned by rule, so
+  captures kept all their frames (25.9 GB) and CI investigations their artifacts; the sweep covered only worktrees (7 of
+  64 GB), free space reached 120 MB, and imports and pre-commit broke. **Seen:** gdstudio #489, 2026-11-04 (fix: `gds
+  disk guard` runs from every hook (40 GB soft limit: sweep; 10 GB hard limit: refuse new agents and worktrees)
+  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md))).
+
+## A shared machine {#shared-machine}
+
+<!-- new section: the disk guard covers the shared disk; nothing covered the CPU and processes the agents share with the
+other projects on the machine -->
+
+- **Approach:** On the shared machine, run at most four test suites at once, write no busy loops, stop a process by its
+  PID, put a timeout on every long command, and warn the neighbouring projects before a long load test. **Watch out
+  for:** load tests had no limit, and 93 Godot processes held the CPU at 100% for a neighbouring project. **Seen:**
+  Deadnight, 2026-11-01 (fix: the caps above ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md))).
 
 ## Bootstrap {#bootstrap}
 

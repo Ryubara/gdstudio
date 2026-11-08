@@ -31,7 +31,7 @@ command is the same there (off Windows it starts the program normally).
 | A last request when the page closes | A `fetch` or beacon sent from `pagehide` is proved by closing a real tab (`page.close()`) in Chromium, Firefox and WebKit, against a deployed backend or a proxy that holds each request 150 ms. `sendBeacon(url, string)` (a `text/plain` request with the token in the body) arrived 5 of 5 in all three at one round trip; a `Blob` body was never sent by Firefox on a close; an `application/json` body (a preflight) by none; a `fetch` with `keepalive` and an `Authorization` header also arrived, in two round trips. Send it only for `pagehide` with `persisted` false: a phone's app switch fires `visibilitychange` and no unload, and the back-forward cache fires `pagehide` with `persisted` true. To emulate a tab that is away, hold its requests (`route.fallback()` later), never abort them. Deadnight `tools/web_smoke/page_closing_transport.py` and `page_closing.py` (#1188) ([lesson](../../lessons/2026-11-05-a-beacon-with-a-blob-body-was-never-sent-by-firefox-on-close.md), [lesson](../../lessons/2026-11-05-a-quiet-tab-emulated-by-refusing-requests-measured-the-refusal.md)). |
 | Which GPU | The browser masks the adapter from Godot; read `UNMASKED_RENDERER_WEBGL` (`WEBGL_debug_renderer_info`) through `JavaScriptBridge` to spot SwiftShader and fall back to a cheaper scene ([lesson](../../lessons/2026-11-02-a-browser-masks-the-gpu-from-godot.md)). |
 
-## Pointer lock and Esc: design it in from the first playable night
+## Pointer lock and Esc, from the first night {#pointer-lock-and-esc-design-it-in-from-the-first-playable-night}
 
 A browser owns the Esc key while the pointer is locked. The first Esc exits pointer lock and never reaches the game;
 Godot gets no `pause` press. A game that pauses only on its `pause` action therefore keeps running with a free cursor:
@@ -59,7 +59,13 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
 
 Lesson: [Esc in the browser freed the cursor but did not pause the game](../../lessons/2026-11-02-esc-in-the-browser-freed-the-cursor-but-did-not-pause.md).
 
-## Discord Activity: the proxy and the iframe
+- **Approach:** In a web game with mouse look, pause on the loss of pointer lock (or focus), not on the key; ignore look
+  and fire while unlocked, re-lock from a button press, and have the web smoke release the lock and check the pause
+  screen. **Watch out for:** in a browser the first Esc only exits pointer lock and never reaches the game, so the
+  game's `pause` key never came and mouse look and fire kept running with a free cursor. **Seen:** Deadnight, 2026-11-02
+  (fix: the pause follows the lock, as above; it belongs in a web game's first design).
+
+## Discord Activity: the proxy and the iframe {#discord-activity-the-proxy-and-the-iframe}
 
 A Discord Activity is the web build in an iframe on `<id>.discordsays.com`, reaching outside hosts only through its
 URL mappings. A build that works in a browser tab can fail there in three silent ways (Deadnight #469, #475, #479):
@@ -83,7 +89,34 @@ reports the focus as held), and read the backend log of the maintainer's first t
 hold game-server slots until they are swept, so use few per run. A CI deploy of `main` replaces a hotfix deployed from
 a branch: check `railway deployment list --service web` before the maintainer retries.
 
-## Discord Activity: copy and paste in the frame
+- **Approach:** Give anything that covers the screen an exit for every way its wait can end, tested with the cover on,
+  and prove a join inside the Activity itself: a native or web probe does not pass through Discord's proxy. **Watch out
+  for:** a failed join was only ever read as a signal in headless tests; on screen the loading overlay stood over the
+  failure card and the join reported no step, so creating a match from the lobby looked like a hang. **Seen:**
+  Deadnight #1366, 2026-11-06 (fix: tracked in Deadnight #1366; no check yet finds a cover without an exit).
+- **Approach:** Before asking the maintainer to try an Activity, run the web build behind the real
+  `<id>.discordsays.com` host or a local HTTPS stand-in that keeps the prefix and gzips, through sign-in, lobby, ticket
+  and WebSocket, and read the backend log of the first try. **Watch out for:** the Activity was declared ready from
+  browser tests only: the URL mapping keeps its prefix (404, #469), and the proxy's gzip was decoded twice by
+  `HTTPRequest`, so every answer read as status 0 while the backend logged 200 (#475) and the game resent the OAuth code
+  (`invalid_grant`). **Seen:** Deadnight, 2026-11-02 (fix: routes served with and without the prefix, `accept_gzip =
+  false` on web, an OAuth code traded once (above)).
+- **Approach:** Test an embedded web build from an unfocused start in a headed browser (headless Chromium fakes the
+  focus), tell the player on screen to click once, prove the pad after a click, and make a failure the engine swallows
+  visible in the probe line. **Watch out for:** the Activity's frame starts without the focus, Chromium lists no pad
+  until the frame has focus and sees an input, and Godot's web runtime catches the error, so the pad worked only after a
+  click and a stick move, and the probe could not tell "never tried" from "tried and failed". **Seen:** Deadnight #479,
+  2026-11-02 (fix: deadnight #482
+  ([lesson](../../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md))).
+- **Approach:** Say something happened only after the host says so; a harness that fakes a host answers as the host can
+  (refused, unauthenticated, missing scope, an error object, silence) and runs the real SDK handshake, and a platform
+  fix is proven in the real client before its issue closes. **Watch out for:** the share button claimed Discord's picker
+  opened whatever Discord answered, while the stub always said yes; the first fix passed, but the bridge never called
+  `authenticate`, so Discord refused `shareLink` with RPC 4006. **Seen:** Deadnight #627, 2026-11-02; Deadnight #627,
+  2026-11-03 (fix: deadnight #649, then the handshake
+  ([lesson](../../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md))).
+
+## Discord Activity: copy and paste in the frame {#discord-activity-copy-and-paste-in-the-frame}
 
 Text in and out of the game (a room code, a link) is a permission of the host page, not a given (Deadnight #516):
 
@@ -126,7 +159,28 @@ Lesson: [The first Ctrl+V in a browser tab pasted nothing](../../lessons/2026-11
 Lesson: [Share in Discord said "Pick who to send it to" and Discord opened nothing](../../lessons/2026-11-02-a-share-button-said-pick-who-to-send-it-to-whatever-discord-answered.md).
 Lesson: [A harness that faked the host's answers passed, and the real host refused with 4006](../../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md).
 
-## A phone's keyboard in the web build
+- **Approach:** Run any feature that moves text in or out of the game (codes, names, links) in the Activity iframe
+  harness with a denying policy, and show a "done" message only after the platform confirms the result. **Watch out
+  for:** the clipboard is a permission of the host: a cross-origin iframe has no clipboard API by default and Godot's
+  web runtime cancels every canvas `keydown`, so Ctrl+V made no `paste` event, and the screen said "Code copied."
+  without checking. **Seen:** Deadnight #516, 2026-11-02 (fix: the paste and copy layer of this section (Deadnight #533,
+  [lesson](../../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md))).
+
+## Discord Activity: the same game as the website {#activity-same-game}
+
+<!-- new section: the Activity sections cover the proxy and the frame; none says the Activity behaves as the
+website does -->
+
+- **Approach:** Give the Discord Activity the website's flow at every step: it opens on the main menu, Play together
+  shows the code field and the create button, and nothing is made until the player presses; search every platform branch
+  (`instance_id`, `in_discord()`) and remove what a press does there and not on the website, unless the maintainer
+  asked. **Watch out for:** a launch went straight to Play together without asking; the fix moved the first screen and
+  kept the shortcut behind it, a lobby per instance id, so a second player got a lobby of their own. **Seen:**
+  Deadnight #495, 2026-11-02; Deadnight #1178, 2026-11-05 (fix: a platform identity is never a room key; a test
+  fails on any lobby request from the Activity's screen
+  ([lesson](../../lessons/2026-11-05-a-platform-shortcut-outlived-the-fix-that-moved-its-first-screen.md))).
+
+## A phone's keyboard in the web build {#a-phones-keyboard-in-the-web-build}
 
 A `LineEdit` opens a phone's keyboard through a hidden `<input>` the engine focuses (Godot 4.7.2,
 `platform/web/js/libs/library_godot_display.js`, `GodotDisplayVK`). Deadnight #1183: nobody could type a room code on a
@@ -163,6 +217,15 @@ phone, in a browser or in the Discord Activity.
   units and not in window pixels: a unit is 0.72 CSS px on a phone page since #1197 (it was 0.36, because the phone rule
   read the canvas), and a window pixel is half a CSS pixel at the capped ratio of 2.
 
+- **Approach:** Run a flow that needs text (a code, a name, an address) with a finger on a phone-shaped page: the
+  keyboard opens within the tap, the field stays above it and it closes cleanly; give a code a keypad that needs nothing
+  from the browser, and say in the pull request what an emulated browser cannot show, with the steps for one real-phone
+  check. **Watch out for:** a text field is an input device whose keyboard is the host's: the export had
+  `html/experimental_virtual_keyboard=false`, the engine focuses from `touchstart`, its input is under 16 px, and every
+  test typed with key events, so no keyboard opened on a phone. **Seen:** Deadnight #1183, 2026-11-05 (fix: the focus,
+  font and keypad work of this section
+  ([lesson](../../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md))).
+
 ## A phone page's size: the canvas is not the page
 
 The canvas of a web page is its CSS size times the pixel ratio the page reports to the engine, and the game caps that
@@ -197,3 +260,32 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
   runs the desktop path: add an init script that defines it as 5. There is no CDP session (no raw pinch) and no real
   toolbars or safe areas, so Safari's own zoom, `visualViewport` and `100dvh` are read on a phone (`?viewcheck`), not
   here.
+
+## The live build {#live-build}
+
+<!-- new section: the page is about testing the browser build; nothing said when a playable build goes live or when a
+fix counts as live -->
+
+- **Approach:** Stand up a playable web build on the first playable night and redeploy it on every merge. **Watch out
+  for:** a playable link came late, so nobody could play the game where its players would. **Seen:** Deadnight,
+  2026-11-01 (fix: deadnight's web build is hosted on Railway and CI redeploys it on each merge to `main`).
+- **Approach:** After merging a fix for something the maintainer reported, watch `main`'s deploy, run the same probe
+  against the live URL (for mouse look, the yaw probe), and only then report it as live. **Watch out for:** a fix
+  counted as done when it merged: a flaky leak check (Deadnight #317) failed `main`'s CI three times, so the deploy job
+  never ran and the site kept the old build. **Seen:** Deadnight #299, 2026-11-01 (fix: the report names the deployed
+  commit and the probe run on the live URL).
+
+## Browser probes {#browser-probes}
+
+<!-- new section: the page's sections are each about one browser behaviour; nothing covered how the probes themselves
+are written -->
+
+- **Approach:** Pass the game's probe object through to a browser probe whole, or test that every published field
+  reaches the page. **Watch out for:** the smoke read the probe through a list of named fields, so a new field (the
+  camera yaw) read as missing and the first look check failed on a working build. **Seen:** Deadnight, 2026-11-01 (fix:
+  running the check against a fixed and an unfixed build showed the fault was in the probe).
+- **Approach:** Start every browser probe through one shared helper (`smoke.start_solo`), and run every probe's start-up
+  in CI. **Watch out for:** each probe walked the menu with its own key sequence, so the menu rework (Deadnight #466)
+  broke two silently (`pointer_lock.py` in #481's CI, `touch_look.py` live). **Seen:** Deadnight #466, 2026-11-02 (fix:
+  deadnight #484 added the helper
+  ([lesson](../../lessons/2026-11-02-each-browser-probe-walked-the-menu-its-own-way.md))).

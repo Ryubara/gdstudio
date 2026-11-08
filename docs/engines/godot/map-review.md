@@ -22,7 +22,7 @@ that settles it.
 - [ ] Draw the top-down plan with every door, window, spawn, light and shop spot on it. Review the plan first; a
   problem you can see on paper is cheap.
 
-### Does it make sense?
+### Does it make sense? {#does-it-make-sense}
 
 A map can hold every number of its formula and still not be a place a player believes: Deadnight's second map had a
 bank raised to the upper floor's height so that each room's dead had "ground of their own", so the land outside the
@@ -51,6 +51,14 @@ building and again from the player's camera; "the simplest way to engage the pla
 - [ ] *Proof: a table of every opening (what is outside it, its dead's way to it), a capture from behind each opening
   with its boards torn and from where its dead rise, and a test that fails an opening with no floor inside it or no
   ground or deck outside it at its own height, and an upper opening whose dead do not rise on the ground and climb.*
+
+- **Approach:** Before building and again from the player's camera, table every opening (what is outside it at its sill,
+  its dead's way to it from where they rise) and see one world outside from every floor, with a test that fails an
+  opening with no floor inside or no ground outside at its height. **Watch out for:** the second map was built to its
+  formula's counts: to keep each room's dead to that room a bank was raised to the upper floor, so both floors looked
+  out on flat land, five windows went in one wall and one opened over a stairwell; every check measured a number.
+  **Seen:** Deadnight #917, 2026-11-03 (fix: this list
+  ([lesson](../../lessons/2026-11-03-a-map-met-its-formula-and-did-not-make-sense.md))).
 
 ## 1. Flow, loops and kiting space
 
@@ -95,7 +103,7 @@ circled is a corridor with a countdown.
   ([encounters](https://book.leveldesignbook.com/process/combat/encounter.md): "create an escape plan in case the
   fight turns against them").
 
-## 3. Spawns and how the dead arrive
+## 3. Spawns and how the dead arrive {#3-spawns-and-how-the-dead-arrive}
 
 - [ ] **The dead appear out of sight, and come in by a believable way.** A window, a breach, a gate, a door the player
   can see torn open: never out of thin air next to a player and never through a wall. Spawn points are 5 to 15 m
@@ -132,6 +140,14 @@ circled is a corridor with a countdown.
   way they need to go ([Unity](https://unity.com/blog/level-design-basics): "starting players facing the right
   direction").
 
+- **Approach:** Walk a capsule of the zombie's width through every barricade of every map along the real navigation mesh
+  at a stroll and a sprint, and fail on any step inside a solid; give the climb a real link and clip. **Watch out for:**
+  a zombie walks the path with no collider, and the windows split the walking mesh (a 2.0 m gap) from the drawing (a 0.9
+  m sill, a 1.2 m opening), so the dead passed through the wall; tests asked only that they got in, and it read as a
+  missing climb clip. **Seen:** Deadnight #915, 2026-11-03 (fix: a climb link and clip, with a change of look kept from
+  changing the pace
+  ([lesson](../../lessons/2026-11-04-the-dead-walked-through-a-sill-because-a-zombie-had-no-body.md))).
+
 ## 4. Pacing and door unlocks
 
 Intensity is "suspense, the player's stake" over time, not difficulty
@@ -148,7 +164,7 @@ avoid a finale at full intensity.
 - [ ] **Shops are where the plan wants the player.** List every shop spot with the reason it stands there. A shop in the
   open invites a fight at the counter; a shop at the far wall pulls the player across the map.
 
-## 5. Landmarks, wayfinding and readability
+## 5. Landmarks, wayfinding and readability {#5-landmarks-wayfinding-and-readability}
 
 - [ ] **A player who loses their bearings in a fight finds them again.** Each area has a landmark visible from
   its entrance and from the area before it ("landmarks help players regain their bearings after distractions like
@@ -181,6 +197,14 @@ avoid a finale at full intensity.
   ([lesson](../../lessons/2026-11-04-a-grid-point-on-a-wall-face-counted-as-room-for-a-body.md)).
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
+
+- **Approach:** Space things used with one button so their use zones never share ground, with a sweep of every map's
+  standing ground that fails on a point inside two zones with 0.5 m between; where two meet the one looked at wins, and
+  a press that carries on a repair or would throw away the weapon in hand is not a purchase. **Watch out for:** every
+  use reached 3.2 m, nothing checked zones against each other and the target order put shop spots before windows, so
+  boarding bought the gun beside it (7 overlaps on one map, 51 on the other). **Seen:** Deadnight #908, 2026-11-03 (fix:
+  `test_use_zone_spacing.gd`, reaches from where a player stands, no purchase within 1.5 s of a repair
+  ([lesson](../../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md))).
 
 ## 6. Lighting
 

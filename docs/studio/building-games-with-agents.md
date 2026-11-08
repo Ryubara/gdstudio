@@ -28,7 +28,10 @@ copy to do the same on another engine.
 - **One issue, one branch, one PR.** Each agent works in its own worktree and squash-merges with auto-merge on.
 - **Rules as code.** Conventions are checked in CI and hooks refuse what must never happen, so a brief can stay short.
 - **A separate reviewer.** It never edits; it reproduces numbers and files what it finds.
-- **Lessons as files.** One file per problem solved, so parallel branches never conflict and agents search first.
+- **Learning in the topic pages.** A mistake sharpens the section an agent reads for that work (the approach, what to
+  watch out for, where it was seen), found first with `gds learn`, so the docs improve instead of filling with one file
+  per problem ([Learning in the topic pages](rules.md)). The first week wrote 963 lesson files, many on the same
+  subject.
 
 ## What went wrong
 

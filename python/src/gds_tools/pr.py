@@ -74,10 +74,13 @@ def _python_command() -> list[str]:
     return ["uv", "run", "--no-project", "--with", "pyyaml", "python"]
 
 
-def check_body(repo: Path, body: str, title: str | None = None, kit: Path | None = None) -> BodyCheck:
+def check_body(
+    repo: Path, body: str, title: str | None = None, kit: Path | None = None, changed: list[str] | None = None
+) -> BodyCheck:
     """Run `groundwork.py check-body` for a description (and a title, which turns on the screenshots, failed-first and
     lessons rules) in the checkout `repo`. The pull request's history is not asked (no network): a pull request that
-    GitHub knows failed an earlier check or closes a bug issue is still judged by `pr-rules` alone on that part."""
+    GitHub knows failed an earlier check or closes a bug issue is still judged by `pr-rules` alone on that part.
+    `changed` (the branch's files, `branch_changes`) lets the `Lessons:` rule see that its section's page changes."""
     conventions = repo / CONVENTIONS
     if not conventions.is_file():
         raise PrCheckError(f"{CONVENTIONS.as_posix()} is missing in {repo}")
@@ -90,7 +93,14 @@ def check_body(repo: Path, body: str, title: str | None = None, kit: Path | None
             title_file = Path(folder) / "title.txt"
             title_file.write_text(title, encoding="utf-8", newline="\n")
             arguments += ["--title", str(title_file)]
-        return _run_checker(repo, checker, arguments)
+        if changed is None:
+            return _run_checker(repo, checker, arguments)
+        changed_file = Path(folder) / "changed.txt"
+        changed_file.write_text("\n".join(changed) + "\n", encoding="utf-8", newline="\n")
+        try:
+            return _run_checker(repo, checker, [*arguments, "--changed", str(changed_file)])
+        except PrCheckError:  # a game's older groundwork.py has no `check-body --changed`
+            return _run_checker(repo, checker, arguments)
 
 
 def _run_checker(repo: Path, checker: Path, arguments: list[str]) -> BodyCheck:

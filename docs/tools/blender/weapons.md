@@ -5,7 +5,7 @@ hands. Learned on Deadnight's first four weapons ([Deadnight #16](https://github
 the scripts are in Deadnight's `tools/blender/` (`build_weapons.py`, `weaponlib.py`, `render_turntable.py`,
 `render_hold.py`), and the game's numbers are in its style bible and `docs/research/weapons.md`.
 
-## Axes, origin and the hold
+## Axes, origin and the hold {#axes-origin-and-the-hold}
 
 The kit characters carry every weapon as a mesh parented to the right hand's `Index1.R` bone, origin on the bone.
 The copy in the hand uses the standalone file's own mesh data, so a weapon that follows the kit file's frame drops into
@@ -33,7 +33,18 @@ pivot (Deadnight's `Pin` slides out, its `Spoon` swings off its hinge). In Godot
 the weapon's X (`HOLD_GUN * Basis(Vector3.RIGHT, PI / 2)`) stands it fuze up in the fist; the turn that looks right
 in a Blender preview against the kit copy is a different one, so choose the hold from candidates rendered in Godot.
 
-## Attachment points
+- **Approach:** Give each held item a grip, support and barrel check in tests and a side, shoulder and aim capture.
+  **Watch out for:** weapons were attached once and never checked against the hands, the shoulder and the aim ray, so
+  guns sat at the wrong scale, angle and place on the player. **Seen:** Deadnight, 2026-11-01 (fix: the checks and
+  captures above for every held weapon ([Hands on the weapon](#hands-on-the-weapon))).
+- **Approach:** Scale every held item by one written rule against the character's in-game height, test grip, support
+  hand, stock and barrel for each weapon, and capture each weapon in the hands. **Watch out for:** the guns were
+  modelled at real length while the player scene scales the Soldier to 0.8 (the rifle was as long as the Soldier is
+  tall), held from a one-handed pose with the barrel 21 degrees up, and every gun showed the rifle because nothing
+  called `equip`. **Seen:** Deadnight #288, 2026-11-01 (fix: measuring hands, stock and barrel against the aim ray found
+  all three).
+
+## Attachment points {#attachment-points}
 
 Where an effect or a hand meets a weapon is part of the model, so **attachment points are the modeller's job**: whoever
 builds a weapon places them in Blender, and gameplay code reads them instead of typing offsets from the body.
@@ -61,7 +72,13 @@ shovel), and size it in the hand for the fist: a hammer at the size rule's 0.29 
 fist, at 0.45 m only the head showed, at 0.50 m it read. Give the tool its striking point as a node (`Face`, -Z out
 of the face), as a gun carries its `Muzzle`.
 
-## Hands on the weapon
+- **Approach:** Place a `Muzzle` empty at the barrel tip of every firearm in Blender (-Z out of the barrel in Godot),
+  and test that it sits at the barrel end and that the flash spawns on it. **Watch out for:** attachment points belong
+  to the model, and the muzzle was a fixed offset from the body, the same for every gun, so the flash sat away from the
+  barrel. **Seen:** Deadnight, 2026-11-01 (fix: every firearm carries `Muzzle`, and `test_weapon_muzzle.gd` checks it
+  (above)).
+
+## Hands on the weapon {#hands-on-the-weapon}
 
 The kit's clips never move the fingers: every clip holds the same fist, made for the kit's own guns, so copying a kit
 hold puts every finger through or off any other weapon (Deadnight measured 8-42 mm into the gun and 20-80 mm off it on
@@ -119,6 +136,20 @@ data instead:
 
 Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
 `HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
+
+- **Approach:** Give every held model hand sockets and a solved grip, check grip length, guard opening and reach against
+  the hand before solving, and test skin against weapon in every pose (2 mm in, 5 mm off). **Watch out for:** a held
+  weapon is a contact of two meshes: the clips never move the fingers, so every weapon got one copied fist; the IK
+  turned one of four palm bones and tore the palm; the left arm could not reach the long fore-ends; and the size rule
+  ignored a chibi hand 2.3 to 3 times real, so trigger guards were thinner than the finger. **Seen:** Deadnight #460,
+  2026-11-02 (fix: the solved grips of this section
+  ([lesson](../../lessons/2026-11-01-one-kit-fist-held-no-weapon-right.md))).
+- **Approach:** Build every view of a held weapon with one builder (`HeldWeapon`); when a change touches how a thing is
+  held or shown, grep every view of it (menu, wardrobe, lobby, night) and give each the night's contact test
+  (`HandContact.failures`). **Watch out for:** the menu soldier mounted weapons with its own copy of the hold code, so
+  the per-model grips of Deadnight #507 reached only `PlayerAnimation`, and the menu kept a fist and a class hold (the
+  SMG showed the rifle). **Seen:** Deadnight #621, 2026-11-02 (fix: one builder, and the contact test in each view
+  ([lesson](../../lessons/2026-11-02-the-menu-soldier-copied-the-hold-code-and-missed-the-grips.md))).
 
 ### A weapon in each hand
 

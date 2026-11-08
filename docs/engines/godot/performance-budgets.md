@@ -8,7 +8,7 @@ and that "performance needs to be taken into consideration at all times ... this
 done during the start". The earlier performance work had measured the web build and a bare crowd, never the whole
 night at its harshest setting, and nothing in CI would have noticed a cost that grew.
 
-## The rule
+## The rule {#the-rule}
 
 From the first playable night a game has three things, and a change that breaks one does not merge:
 
@@ -19,6 +19,19 @@ From the first playable night a game has three things, and a change that breaks 
 3. **A page of limits**: for each system the most it may hold on a desktop and on a phone, what it costs now, and
    what the game does past it (a cap, a pool that recycles, a level of detail). A system without a limit is a
    system whose limit nobody knows until a player finds it.
+
+- **Approach:** Name the platform every performance cap was measured on, measure each shipped platform (desktop client,
+  browser, headless server, network) and give each its own number. **Watch out for:** a crowd ceiling measured on the
+  web build (40) became the one ceiling everywhere, so desktop, which should hold over 100 zombies on a fast machine,
+  never had a budget of its own. **Seen:** Deadnight, 2026-11-01 (fix: a limit per platform on the page of limits
+  ([lesson](../../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md))).
+- **Approach:** From the first playable night, measure, write down and hold in CI a game's limits (dead, lights, sounds,
+  nodes, memory, a frame) at the worst combination of its own settings: one command for the worst case, a sampler of
+  counts and labelled times, a budget file (counts tight, time as a ratio of a calibration loop) and a limits page.
+  **Watch out for:** earlier work measured the web and a bare crowd, never the whole night at round 12, 3x, bots; a
+  hosted bot capped a desktop night at 40 dead against 120 designed, and wall times on the shared machine ran 1 to 14
+  times the code's cost. **Seen:** Deadnight #906, 2026-11-03 (fix: this page
+  ([lesson](../../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md))).
 
 ## What to sample
 

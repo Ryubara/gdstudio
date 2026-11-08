@@ -1,4 +1,4 @@
-# The kit's docs site (docs/studio/docs-site.md). It checks the lessons, builds the site with the pinned Zensical in
+# The kit's docs site (docs/studio/docs-site.md). It checks the rules of the topic sections, builds the site with the pinned Zensical in
 # strict mode (a link to a missing page or anchor fails), writes the redirect pages of moved pages, lints the Markdown
 # and the workflows, and a push to the default branch publishes the site to GitHub Pages. The build job keeps the id
 # `mkdocs` because that is the name of a required check (merge.required_checks). Actions are pinned to a full commit
@@ -21,14 +21,19 @@ jobs:
   mkdocs:
     runs-on: ubuntu-24.04
     steps:
+      # Two commits deep: HEAD^1 is the base the rules check compares with (the merge commit's first parent on a pull
+      # request, the previous commit on main).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       # Every package by exact version and sha256 hash (requirements-docs.in, docs/studio/docs-site.md#pin).
       - run: pip install --require-hashes -r requirements-docs.txt
-      # What the MkDocs build hook used to check: lessons have areas, no corrections row quotes the maintainer.
-      - run: python .github/scripts/mistakes.py check
+      # Rules kept in topic sections (docs/studio/rules.md#checks): no new lesson file, no page over the limit, no new
+      # section without a reason line, no malformed rule, no corrections-log row that quotes the maintainer.
+      - run: python .github/scripts/mistakes.py check --base HEAD^1
       - id: pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

@@ -11,13 +11,12 @@ tools: Read, Grep, Glob, Bash
 You review one pull request you did not write. You read it, run it, look at its captures, and write one verdict. You
 never change the work: no edits, no commits, no pushes.
 
-Before you start, read what the team already learned: the checks in the kit's `docs/studio/maintainer-corrections.md`
-that touch the pull request (they are what the maintainer had to point out before, by area) and a search of
-`docs/lessons/index.md` for the problem it solves. A hook reminds you at start. If the pull request answers a maintainer
-correction, check that its row text (what the maintainer pointed out, in our words with its source and never a quote of
-the prompt; the concept missed, the detail missed, the check for next time) is in the description or queued, and put it
-in your final report with any general cause you found: the coordinator publishes it, so you do not edit that table
-yourself.
+Before you start, read what the team already learned: run `gds learn <words of the pull request>` and read the sections
+it prints (each entry is a mistake already made, with what to do instead). A hook reminds you at start. If the pull
+request answers a maintainer correction, check that its entry is in the topic section it belongs to and its log line
+(what the maintainer pointed out, in our words with its source and never a quote of the prompt, and the section it
+updated) is in the description or queued, and put it in your final report with any general cause you found: the
+coordinator adds it to the corrections log, so you do not edit that page yourself.
 
 ## How you review
 
@@ -33,8 +32,10 @@ yourself.
 5. **Rules:** docs moved with the code, conventions followed, no third-party asset without a licence entry.
    **Description true:** `## Issues affected` misses no open issue the diff touches; the `Before:`/`After:`
    captures show the change; a `Fix` pull request's `Failed first:` test really fails with the fix reverted (run it).
-   **Learning recorded:** the author added what it learned (a docs page, a `docs/lessons/` file for a problem it
-   solved); if not, that is a finding.
+   **Learning recorded:** each mistake updated the topic section it belongs to (`docs/studio/rules.md`), not
+   a new page or a file in `docs/lessons/`, and the `Lessons:` line names that section. Look for the mistake no program
+   sees (`docs/studio/rules.md#unseen`): a fix commit after a red check, a reverted approach, a capture that changed
+   between pushes, with no entry or `Mistakes` line for it. A missing one is a finding.
 6. **Write the verdict, never post it as a comment** (comments under the maintainer's account are refused by a hook):
    write `REVIEW.md` in `<workspace>/scratch/<repo>/review-<n>/` (never inside the worktree) with
    **Verdict: approve / changes needed**, then the

@@ -58,7 +58,7 @@ The approved model, voice and settings are pinned in a test
 ([`test_soldier_voice_catalog.gd`][catalog-test]: every manifest entry must carry them), so a later run with other
 settings fails instead of slipping in a second voice.
 
-## 2. Writing the lines
+## 2. Writing the lines {#2-writing-the-lines}
 
 **A line is the character reacting, not a caption for the event.** The first sample said "Reload... catch your breath"
 and read like a narrator; the maintainer wanted a person reacting out loud, in the first person, with expression,
@@ -106,6 +106,13 @@ line and fails it if what is left has none of `!`, `?`, `...`, `,` or an apostro
 
 **Original lines only.** The brief named another game's soldier as the feel; no line of that game is quoted or
 paraphrased (the kit's "original work" rule in `AGENTS.md`).
+
+- **Approach:** Write each line as the character speaking under stress (first person, contractions, a filler or breath,
+  an exclamation where it fits), read it aloud before generating, and plan many takes per event so nothing repeats.
+  **Watch out for:** a bark is a person reacting in the moment, not a caption: the first line was written as
+  instructions to the player, short and clipped, so the voice read it like a narrator and sounded robotic. **Seen:**
+  Deadnight #384, 2026-11-01 (fix: the caption test fails a line with no performance mark and fewer than four words
+  (Deadnight #442, [lesson](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md))).
 
 ### Deadnight's lines, as the reference
 
@@ -157,7 +164,7 @@ plan ──> generate ──> encode ──> check ──> (flagged?) retake onl
 refuses when that is over `--budget`. Take names are `<moment>_<n>` in the order of the data file, so a file name is
 stable as long as lines are appended, not inserted. `--only reload,kill` limits any command to some moments.
 
-### Generate
+### Generate {#generate}
 
 - **One request per take**, `POST /v1/text-to-speech/{voice_id}` with the text, `model_id`, `voice_settings` and a
   **seed**. The seed is `1958 + n`, `n` counting every take in order (the approved samples hold their numbers), and is
@@ -166,6 +173,12 @@ stable as long as lines are appended, not inserted. `--only reload,kill` limits 
   `generate` only requests takes not in the cache, so a rerun after an error costs nothing. Keep the cache in the
   workspace's `scratch/` (it is not committed), and do not delete it until the pull request is merged.
 - `generate` runs `plan` first, so it too refuses over budget.
+
+- **Approach:** Before generating with a vendor API, list its current models (`GET /v1/models`), pick from that list,
+  and say in the pull request which model and why. **Watch out for:** the first soldier voice samples were made on
+  ElevenLabs `eleven_v3`, chosen from memory, while the account offered `eleven_v4`, listed as the most emotive.
+  **Seen:** Deadnight #384, 2026-11-01 (fix: the maintainer asked whether it was the best model available
+  ([lesson](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md))).
 
 ### Encode
 

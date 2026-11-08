@@ -81,14 +81,15 @@ repos:
         always_run: true
         pass_filenames: false
       # gds-sync:end message-checks
-      # Lessons name their areas, the glossary can be built from them, and no corrections row quotes the maintainer
-      # (docs/studio/hooks.md#docs). The docs job of CI runs the same check.
+      # Rules kept in topic sections (docs/studio/rules.md#checks): no new lesson file, no page over the limit, no new
+      # section without a reason line (against where the branch left origin/main), no malformed rule or anchor, no
+      # corrections-log row that quotes the maintainer. The docs job of CI runs the same check.
       - id: mistakes-by-area
-        name: lessons have areas and the glossary builds
+        name: rules in topic sections and the old lessons pass their checks
         language: python
         entry: python .github/scripts/mistakes.py check
         pass_filenames: false
-        files: ^(docs/lessons/|docs/studio/maintainer-corrections\.md|\.github/scripts/mistakes\.py|python/src/gds_tools/lessons\.py)
+        files: ^(docs/.*\.md|docs/lessons/areas\.toml|\.github/scripts/mistakes\.py|python/src/gds_tools/lessons\.py)$
       - id: conventions-render
         name: generated files match the conventions
         language: python
