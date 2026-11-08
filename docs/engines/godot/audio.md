@@ -53,6 +53,12 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   running game, so a mix could not be tuned through the remote inspector; a setter also runs when the scene loads,
   before the buses may exist, so `_ready` applies them all again. **Seen:** gdstudio #835, 2026-11-08 (the node and a
   GdUnit4 suite that sets each export and reads the bus back).
+- **Approach:** When sounds land before anything plays them, say so wherever the template is described (its design
+  page, the pull request, the report to the maintainer): which files have no player yet and the issue that wires them.
+  Search the template's scenes and scripts for `AudioStreamPlayer` before saying a template plays a sound. **Watch
+  out for:** files under `assets/audio/` and a bus layout read as working audio; a game made from 3D Third Person was
+  silent, and our own handoff said 3D Blank played its wind loop when no node did. **Seen:** gdstudio #835 and #837,
+  2026-11-08 (the wiring is #836).
 
 ## Capturing sound {#capturing-sound}
 
