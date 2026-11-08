@@ -90,7 +90,8 @@ A section that holds an entry has an explicit `{#anchor}`; the check fails one t
 a section that has none yet, give it the anchor its heading already had (the heading's words in lowercase, joined with
 hyphens), so the links to it keep working.
 
-**A new section** has a reason line right under its heading, an HTML comment that says why no existing section fits:
+**A new section** has a reason line right under its heading, an HTML comment that starts with exactly
+`<!-- new section:` and says why no existing section fits (a new page uses the same words, never `new page:`):
 
 ```markdown
 ## Root motion {#root-motion}
@@ -98,8 +99,8 @@ hyphens), so the links to it keep working.
 <!-- new section: the keyframes and retargeting sections are about poses; nothing covered moving the body -->
 ```
 
-The check compares the docs with `origin/main` (CI: the pull request's base): a heading whose anchor the base page does
-not have needs the reason line, unless the heading above it is new as well. Renaming a heading keeps its `{#anchor}`,
+The check compares the docs with `origin/main` (CI: the pull request's base): a heading whose anchor and words the base
+page both lack needs the reason line, unless the heading above it is new as well. Renaming a heading keeps its `{#anchor}`,
 so a rename is not a new section. **A new page** has the same reason line, starting `<!-- new section:`, under its `#`
 title, is listed in its folder's `index.md`, and goes where [Docs site](docs-site.md#folders) says. A `#` title holds
 no entries: on a page with no `##` heading yet, an entry goes under a new `##` section, which takes its reason line.
@@ -118,6 +119,10 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   `docs/engines/godot/ui-controls.md#focus` name the same section.
 - **The anchor** is the explicit `{#anchor}` of the heading: lowercase letters, digits and single hyphens
   (`[a-z0-9]+(-[a-z0-9]+)*`), unique on its page.
+- **Every `##` and `###` heading** of a page under `studio/`, `engines/`, `tools/` and `gamedev/` has one, so a `Read:`
+  line can name any section there. A heading that had none takes the slug the site already gave it (its words in
+  lowercase, joined with hyphens), so the links to it keep working; a slug past the line width, or one with an
+  underscore, gets a short anchor only when nothing links to it.
 - **Anchors are stable.** A heading may be reworded, its anchor stays. A section that moves to another page takes its
   anchor along, and every link to it is changed in the same pull request (the strict docs build fails a link to an
   anchor that does not exist).
@@ -160,6 +165,7 @@ one time a learning makes a new page. The check names the page and its size.
 | An entry without its three parts in order, over 900 characters, or in a section without an explicit anchor | the format above |
 | An entry in the old `**Rule:**` form | the format above |
 | A duplicate or malformed `{#anchor}` on a page | a reference must name one section |
+| A `##`/`###` heading without an explicit `{#anchor}` under `studio/`, `engines/`, `tools/` or `gamedev/` | a `Read:` line can name any section there |
 | A row of the corrections log that quotes the maintainer or links no section | the log says what was pointed out in our words and where its entry lives |
 
 The numbers live in `.github/conventions.yml` under `learning` (a test keeps `lessons.py` equal to them).

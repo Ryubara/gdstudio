@@ -11,7 +11,7 @@ testing) and what it costs. **Not here:** the principle behind it, which holds i
 **Status:** *known* (used in a merged pull request, page written), *spike* (needs a sandbox experiment before the
 game depends on it), *learn while building* (low risk: the first task that uses it writes the page).
 
-## Starting a game
+## Starting a game {#starting-a-game}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Folder, naming and dependency rules | every game's project layout, enforced by `gds check layout` | known: [Project conventions](project-conventions.md) (by feature, snake_case, dependencies one way, tools out of the export) |
 | GDScript and project-file traps | names, lambdas, `project.godot`, `.tscn` and `.tres` files that fail without a message | known: [GDScript and project-file traps](gdscript.md) (a static function named like an Object method, a lambda that works on a copy, a file Godot rewrites) |
 
-## UI and presentation
+## UI and presentation {#ui-and-presentation}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Layout fit, HUD placement, phone pages | proving a screen fits, placing a part that must stay clear, phone sizes in CSS pixels | known: [UI layout](ui-layout.md) |
 | Fonts (FontFile, MSDF) | crisp text at any scale | learn while building |
 
-## Rendering (Compatibility renderer)
+## Rendering (Compatibility renderer) {#rendering-compatibility-renderer}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Screen measurement of an effect | is the flash, marker or glint readable | known: [Measuring an effect on the screen](measuring-effects-on-screen.md) (draw the frame again without it and compare; `force_draw` in `frame_post_draw`) |
 | Shader and program builds, first use | the first shot, enemy or explosion stutters | known: [First-use hitches](first-use-hitches.md) (no baker or ubershaders in Compatibility; warm up behind a loading screen; short-lived materials rebuild their shaders at every use) |
 
-## Characters and animation
+## Characters and animation {#characters-and-animation}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Skeleton3D cost, MultiMesh | 20 to 40 zombies in a browser | known: [crowds](crowds.md) (40 at most; MultiMesh not tried) |
 | BoneAttachment3D | weapons in hands | learn while building |
 
-## Gameplay
+## Gameplay {#gameplay}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | AudioServer buses, AudioStreamPlayer3D | mixing, positional sound | known: [Audio](audio.md) (pooled voices, limits, ducking, sounds made by script) |
 | A map, before it ships | judging a layout as a level designer: loops, chokepoints, spawns, pacing, lighting, out-of-bounds and door skips proven by movement | known: [Map review](map-review.md) (a checklist built from published level-design writing, first run on Deadnight's two maps) |
 
-## Multiplayer and the web
+## Multiplayer and the web {#multiplayer-and-the-web}
 
 | System | Used for | Status |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | `Performance.OBJECT_RESOURCE_COUNT`, `ResourceLoader.has_cached` | finding what a resource count (a leak budget's peak) is made of | known: [Naming what the resource count is made of](resource-count.md) (`OS.dump_resources_to_file` is not in GDScript; walk the files and ask the cache) |
 | ResourceLoader (threaded loading) | loading screens | known: [First-use hitches](first-use-hitches.md) (threaded requests polled each frame; hold the references) |
 
-## Testing and capture
+## Testing and capture {#testing-and-capture}
 
 | System | Used for | Status |
 | --- | --- | --- |

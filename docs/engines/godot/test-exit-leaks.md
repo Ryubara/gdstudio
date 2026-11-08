@@ -4,7 +4,7 @@ A GdUnit run that passes every test can still fail CI's `leaked at exit|still in
 lambda causes ([Audio](audio.md#leaks-at-exit-in-a-test-run)), there is one that depends on **which scripts the
 runner loads, and in what order**.
 
-## A folder scan loads every script in the folder, in the filesystem's order
+## A folder scan loads every script in the folder, in the filesystem's order {#folder-scan}
 
 `GdUnitCmdTool -a res://tests/art` opens every `.gd` file under the folder to ask whether it extends
 `GdUnitTestSuite`. The scanner skips a script only when it has a `class_name` and extends a Godot class (it reads the
@@ -44,7 +44,7 @@ Windows, nor on a Linux machine with another directory order.
   its server and every bot script alive: 207 objects leaked and a shard failed with every test green. **Seen:**
   Deadnight #597, 2026-11-02 (fix: `SeatedNight.dispose()` clears the handler first).
 
-## A test that only needs a number from a scene
+## A test that only needs a number from a scene {#a-test-that-only-needs-a-number-from-a-scene}
 
 A suite that `instantiate()`d the lot's greybox to read the size of one floor passed every case and ended with `2 RID
 allocations ... FontAdvanced were leaked at exit` and GdUnit4's own scripts as `Resource still in use`; reading the

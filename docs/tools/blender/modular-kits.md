@@ -3,7 +3,7 @@
 How to plan and block out a modular building kit (walls, openings, stairs, props) for a third-person GDStudio game,
 learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map-art.md` there).
 
-## Planning the kit
+## Planning the kit {#planning-the-kit}
 
 - **Measure the reference against the player.** In a level first-person screenshot the horizon is the eye's height,
   so a thing on the far wall is (its pixels above the floor line) / (the eye's pixels above it) x the eye height.
@@ -19,7 +19,7 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
 - **List coverage per part**: exists, a material on a box, a model, or an engine job (light cards, shaders). Group
   the models so the groups share only the palette module, and agents can build them in parallel.
 
-## Sizing openings for a shoulder camera
+## Sizing openings for a shoulder camera {#sizing-openings-for-a-shoulder-camera}
 
 - A camera whose shoulder offset is swept sideways (it slides in behind the player at a wall) fits doorways far
   narrower than the "two shoulder offsets plus air" rule that open ground needs. Deadnight's 1.4 m doorway works with
@@ -30,7 +30,7 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
   are down.
 - Stairs walk on one hidden ramp: fifteen step-ups bob the view ([below](#stairs-rails-and-blockers)).
 
-## Building the pieces
+## Building the pieces {#building-the-pieces}
 
 Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blender/build_smallmap_walls.py` there).
 
@@ -54,7 +54,7 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
 
-## Stairs, rails and blockers
+## Stairs, rails and blockers {#stairs-rails-and-blockers}
 
 Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.py` there):
 
@@ -113,7 +113,7 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
   camera 19 m off the line over the wall was at 3.1 m where it stood. **Seen:** Deadnight #853, 2026-11-03 (fix: the
   tank's belly at 3.18 m, the lamp at 4.68 m, the stack's lip at 5.3 m).
 
-## Roof and outside
+## Roof and outside {#roof-and-outside}
 
 Learned on Deadnight's roof and backdrop (Deadnight #638, `tools/blender/build_smallmap_outside.py` there).
 
@@ -128,7 +128,7 @@ Learned on Deadnight's roof and backdrop (Deadnight #638, `tools/blender/build_s
 - The backdrop itself (haze, unshaded, multimeshes, cost) is on
   [Compatibility lighting](../../engines/godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
 
-## Staging game characters for scale
+## Staging game characters for scale {#staging-game-characters-for-scale}
 
 The scale sheet and room render put the game's own characters beside the pieces. Two traps in Blender 5:
 

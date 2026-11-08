@@ -30,7 +30,7 @@ kit #779). Changing an existing repository's visibility or licence is still a ma
 The command exits 0 when the first CI run and the docs deploy passed and the site answers, 1 when the proof is not
 green (it prints which), and 2 when it refused before doing anything.
 
-## What it does
+## What it does {#what-it-does}
 
 1. **Checks GitHub first.** `gh` is signed in and `<owner>/<name>` does not exist yet, before a file is written. The
    owner is the kit's own (`workspace.toml`).
@@ -99,7 +99,7 @@ the web export, `gdformat` and `gdlint`, the docs build, `markdownlint` and `act
   pull request was titled "Add the pre-push.legacy game". **Seen:** gdstudio #779, 2026-11-07 (fix: `new_game` calls
   `repair_legacy_hooks`, a test checks the branch and title).
 
-## With `--local`
+## With `--local` {#with-local}
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
 create the repository and push `main`; Pages' source to GitHub Actions and the three `groundwork.py ... --apply`;
@@ -120,7 +120,7 @@ check this way (`gds new game template-check --template 3d-blank --local`).
   game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
   **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
 
-## Adding a template
+## Adding a template {#adding-a-template}
 
 A template is a folder `templates/<name>/` with:
 

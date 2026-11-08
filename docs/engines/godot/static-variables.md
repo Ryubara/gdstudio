@@ -2,7 +2,7 @@
 
 Found in Deadnight #1323; measured on a Web export of the pinned Godot 4.7.2.
 
-## What the engine does
+## What the engine does {#what-the-engine-does}
 
 A `static var`'s initialiser runs **when its script is loaded**, not when the first caller reaches it. Scripts that
 refer to each other (a type in a signature, a typed member, a call) load one inside the other, so which initialiser runs
@@ -13,7 +13,7 @@ When script A's initialiser calls a static function of script B while B is still
 the type's default**, not their initialiser: an `int` is `0`, a `float` `0.0`, a `bool` `false`, a reference `null`.
 B's initialisers run after. Nothing is printed.
 
-## The case
+## The case {#the-case}
 
 Deadnight `NightScreen.arrival_enabled := ... and not WebProbe.asked()` and `WebProbe` (which names `NightScreen` in
 its snapshot) refer to each other. `WebProbe` kept its answer in `static var _asked := -1` ("-1 not read, 0 no, 1 yes"):
@@ -22,7 +22,7 @@ played on a page that had asked for the probes. `asked()` was true everywhere af
 loaded `WebProbe` first and was right; a bench that typed its members (`var _night: Night`) loaded the night first and
 was wrong.
 
-## The rule
+## The rule {#the-rule}
 
 - A cache or flag that a function reads with "not read yet" as a value says it with **the type's default**: `static
   var _x: int` (0 = unread, 1 = no, 2 = yes), with no initialiser. `:= -1` is read as `0` by an initialiser that runs

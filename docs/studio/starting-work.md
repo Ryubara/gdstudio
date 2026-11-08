@@ -104,7 +104,7 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   **Seen:** Deadnight, 2026-11-01 (fix: the night wired to the new classes, its copy deleted, and tests of a night that
   buys a door and one that ends during the rebake).
 
-## Starting an issue
+## Starting an issue {#starting-an-issue}
 
 ```text
 uv run --project <workspace>/repos/gdstudio/python gds issue start Ryubara/deadnight#523 --agent godot-engineer-4
@@ -315,7 +315,7 @@ SubagentStop holds back once a task agent's report that names a pull request wit
 an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
 closes an issue names the same sections on its `Read first:` line.
 
-## Looking
+## Looking {#looking}
 
 ```text
 gds issue list [owner/repo]
@@ -507,7 +507,7 @@ force push, which is the maintainer's decision: open the same change from a new 
   had landed. **Seen:** Deadnight #678, 2026-11-03 (fix: the branch wired to `main`'s mechanism, the workaround and its
   test dropped).
 
-## Why a tool and a hook
+## Why a tool and a hook {#why-a-tool-and-a-hook}
 
 The rule used to live in the coordinator's memory and was broken the day a new request arrived while older issues
 waited. Now the order is a function of the issue list, not of anyone's attention: the tool computes it, the ledger

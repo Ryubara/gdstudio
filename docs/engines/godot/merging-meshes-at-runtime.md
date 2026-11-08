@@ -4,7 +4,7 @@ Many small props of one material drawn as one mesh, built when the scene is buil
 tiny model of every weapon in its pool (each weapon's far level) into one `ArrayMesh`, and its fixed boxes into one
 mesh per material (Deadnight #830). Godot 4.7.2, Compatibility renderer, measured on a desktop (RTX 5080).
 
-## What works
+## What works {#what-works}
 
 - **Copy the surfaces yourself.** `mesh.surface_get_arrays(i)` gives positions, normals, UVs and indices (or none);
   move positions by the transform and normals by its basis' inverse transposed, offset the indices, and add one
@@ -20,7 +20,7 @@ mesh per material (Deadnight #830). Godot 4.7.2, Compatibility renderer, measure
   animation script and the clips it keeps, and a tool that used it leaked them at exit; name the constant locally and
   keep a test that the two agree.
 
-## What a build costs
+## What a build costs {#what-a-build-costs}
 
 | Step | Cost |
 | --- | --- |

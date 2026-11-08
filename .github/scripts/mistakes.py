@@ -4,8 +4,9 @@
 
 `check` refuses, from the checkout alone: a page over the size limit, an entry without its three parts (Approach,
 Watch out for, Seen) or in the old form or too long or in a section without an explicit anchor, a malformed or repeated
-anchor, a corrections-log row that quotes the maintainer or links no section, and an old lesson file dated after the old
-folder closed. Against a base (`--base REF`; by default where the branch left origin/main and origin/main itself,
+anchor, a ##/### heading without an explicit anchor on a page under studio/, engines/, tools/ or gamedev/, a
+corrections-log row that quotes the maintainer or links no section, and an old lesson file dated after the old folder
+closed. Against a base (`--base REF`; by default where the branch left origin/main and origin/main itself,
 skipped with a note when they are not known) it also refuses a file added to docs/lessons/ and a new heading without a
 reason line. It runs in pre-commit, in pytest and in the docs job of CI (`--base HEAD^1` on the merge commit of a pull
 request). Standard library only; the logic is python/src/gds_tools/lessons.py.

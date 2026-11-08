@@ -70,7 +70,7 @@ parent's id that a new program can be given (kit #229).
   request, the third fix of one test in a day. **Seen:** kit #227, #229, 2026-11-02 (fix: `python/tests/process_tree.py`,
   tested on a planted process table; on a third fix of one test, re-read the evidence before changing the design).
 
-## How it works
+## How it works {#how-it-works}
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it
 (`STARTUPINFO.lpDesktop`). A window on another desktop can never take the focus of the desktop the person works on: it

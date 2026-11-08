@@ -6,7 +6,7 @@ cause is still being found, the line says "known gap, cause pending" with its is
 
 Keep it current: each new row on [What the maintainer caught](maintainer-corrections.md) adds or updates a line here.
 
-## Design, feel and the reference
+## Design, feel and the reference {#design-feel-and-the-reference}
 
 - Plan: the reference game's core loop, variety beats (bosses, special rounds, enemy types) and numbers (movement,
   tiers, economy), collected and cited before tuning ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
@@ -36,7 +36,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   as a request after play (#678, #679, #687, #682, #680, #683, #690)
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
-## Input
+## Input {#input}
 
 - Plan: every device class the game ships on (keyboard and mouse, gamepad on any device id, touch), each played on
   every platform ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
@@ -58,7 +58,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`.
 
-## Platforms
+## Platforms {#platforms}
 
 - Plan: one opening screen everywhere, the main menu, the Discord Activity included; a platform shortcut is the
   maintainer's call ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
@@ -94,7 +94,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
   ([performance budgets](../engines/godot/performance-budgets.md#the-rule)).
 
-## Netcode
+## Netcode {#netcode}
 
 - Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
   more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
@@ -121,7 +121,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
   [multiplayer](../engines/godot/multiplayer.md#player-states), [netcode](../gamedev/netcode.md#leaving)).
 
-## Saving
+## Saving {#saving}
 
 - Plan: hold menu choices in one draft, preview the draft, and commit once on leaving; no other view rereads saved
   state while the screen is open.
@@ -129,7 +129,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: tests point the settings and save files away from the player's own `user://`
   ([Throwaway user folder](../engines/godot/throwaway-user-folder.md#tests)).
 
-## Co-op rules
+## Co-op rules {#co-op-rules}
 
 - Plan: downs, revives and the scoreboard designed together
   ([deadnight #472](https://github.com/Ryubara/deadnight/issues/472),
@@ -137,7 +137,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: whether bots fill player slots, researched before the systems they use
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 
-## Content: weapons, art and animation
+## Content: weapons, art and animation {#content-weapons-art-and-animation}
 
 - Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
   ([A weapon is a model, a definition and a source](../gamedev/balance.md#roster)).
@@ -158,7 +158,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   out-of-bounds and door-skip candidate proven by movement, not by eye; Deadnight's two maps were first reviewed after
   more than a hundred pull requests (#833; [checklist](../engines/godot/map-review.md)).
 
-## Audio
+## Audio {#audio}
 
 - Plan: loudness, first-50 ms energy and pitch spread measured from a recording of the real service
   ([close and powerful sounds](../engines/godot/audio.md#close-and-powerful-sounds)).
@@ -167,7 +167,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: no sound design in bus effects, which the web build ignores
   ([audio](../engines/godot/audio.md#web-samples-or-streams)).
 
-## Performance
+## Performance {#performance}
 
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
   ([first-use hitches](../engines/godot/first-use-hitches.md)).
@@ -181,7 +181,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   found the lag first ([performance budgets](../engines/godot/performance-budgets.md#the-rule),
   [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
-## Test infrastructure
+## Test infrastructure {#test-infrastructure}
 
 - Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
   `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
@@ -199,7 +199,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([Testing a game](../gamedev/testing.md#leftover-state), [waits](../gamedev/testing.md#bounded-waits)).
 - Plan: captures and recordings from the player's camera, with the real devices switched off.
 
-## Process
+## Process {#process}
 
 - Plan: land old PRs before new ones, reporting from the oldest down
   ([Starting work](starting-work.md#landing)).

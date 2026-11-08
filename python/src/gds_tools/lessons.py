@@ -34,6 +34,9 @@ MAX_PAGE_KB = 50
 MAX_RULE_CHARS = 900
 RULE_PARTS = ("Approach:", "Watch out for:", "Seen:")
 REASON_LINE = "<!-- new section:"
+#: The folders under docs/ whose every `##`/`###` heading has an explicit `{#anchor}` (rules.md#anchors), so a
+#: `Read:` line or a link can name any of their sections.
+ANCHORED_FOLDERS = ("studio", "engines", "tools", "gamedev")
 
 _LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
@@ -185,7 +188,8 @@ def sections_in(root: Path) -> list[Section]:
 
 
 def page_problems(page: str, text: str) -> list[str]:
-    """The format problems of one topic page: its size, its anchors and its rules."""
+    """The format problems of one topic page: its size, its anchors (every `##`/`###` heading of a page under
+    ANCHORED_FOLDERS has an explicit one) and its rules."""
     found = []
     size = len(text.encode("utf-8"))
     if size > MAX_PAGE_KB * 1024:
@@ -201,6 +205,11 @@ def page_problems(page: str, text: str) -> list[str]:
         if s.anchor in seen and (s.explicit or any(o.explicit and o.anchor == s.anchor for o in sections)):
             found.append(f"docs/{page}:{s.line}: anchor #{s.anchor} is used twice (also line {seen[s.anchor]})")
         seen.setdefault(s.anchor, s.line)
+        if s.level in (2, 3) and not s.explicit and page.split("/", 1)[0] in ANCHORED_FOLDERS:
+            found.append(
+                f"docs/{page}:{s.line}: the heading '{s.title}' has no explicit {{#anchor}}; add "
+                f"{{#{s.anchor}}}, the anchor it already has ({RULES_DOC.as_posix()}#anchors)"
+            )
         for number, line in _outside_code(s.body):
             if _OLD_RULE.match(line):
                 found.append(
@@ -348,16 +357,19 @@ def base_problems(root: Path, base: str | list[str]) -> list[str]:
 
 def new_section_problems(page: str, old: str | None, new: str) -> list[str]:
     """New headings without a reason line (`<!-- new section: ... -->` as the next line with text). A new page needs
-    it under its `#` title; an existing page under each new `##`/`###` heading whose parent heading is not new too."""
+    it under its `#` title; an existing page under each new `##`/`###` heading whose parent heading is not new too. A
+    heading is new when the old page has neither its anchor nor its words: rewording keeps the anchor, and an anchor
+    given to an old heading keeps the words."""
     lines = new.replace("\r\n", "\n").split("\n")
     sections = parse_sections(page, new)
     if old is None:
         wanted = [s for s in sections if s.level == 1][:1]
     else:
-        known = {s.anchor for s in parse_sections(page, old)}
+        before = parse_sections(page, old)
+        known, titles = {s.anchor for s in before}, {s.title for s in before}
         wanted, parents = [], {}
         for s in sections:
-            is_new = s.anchor not in known
+            is_new = s.anchor not in known and s.title not in titles  # a new anchor on old words is not a new section
             parents = {lv: n for lv, n in parents.items() if lv < s.level}
             parent_new = bool(parents) and parents[max(parents)]
             if s.level in (2, 3) and is_new and not parent_new:

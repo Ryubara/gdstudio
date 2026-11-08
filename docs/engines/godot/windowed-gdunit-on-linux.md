@@ -6,7 +6,7 @@ a schedule can run its GdUnit suites in a window on a stock GitHub runner. Measu
 GdUnit4 6.2.2, `ubuntu-24.04`, 2026-11-05, Deadnight issue 1196); the game's own numbers are in its
 `docs/research/windowed-ui-ci.md`.
 
-## What it takes
+## What it takes {#what-it-takes}
 
 ```text
 sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 libegl1 \
@@ -22,7 +22,7 @@ LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1920x1080x24" godot --path gam
 - The import is a plain `--headless --import` (13 s on the runner); the windowed run needs the same imported project.
 - A pixel-reading suite that skips headless (`DisplayServer.get_name() == "headless"`) runs here, and reads real pixels.
 
-## One process a suite, each with a timeout
+## One process a suite, each with a timeout {#one-process-a-suite-each-with-a-timeout}
 
 Run each suite in its own Godot, in its own process group, and kill the group on a timeout (`xvfb-run` starts the X
 server; killing only Godot leaves it). A suite that hangs then costs its timeout and nothing after it, the log is per
@@ -37,7 +37,7 @@ GdUnit prints `Overall Summary: N test cases | E errors | F failures | L flaky |
 counts from it rather than the exit code (100 for failures, 101 for warnings, another for a crash), and treat a run
 with no summary as a crash and a suite that should read pixels but skipped them as "did not run".
 
-## What a software renderer can and cannot judge
+## What a software renderer can and cannot judge {#what-a-software-renderer-can-and-cannot-judge}
 
 llvmpipe draws every pixel on the CPU, so:
 
@@ -51,7 +51,7 @@ llvmpipe draws every pixel on the CPU, so:
   because a value read after N frames depends on how long a frame takes. A virtual display is a window, but not every
   window.
 
-## What a virtual display cannot do, and what a slow frame shows
+## What a virtual display cannot do, and what a slow frame shows {#virtual-display-limits}
 
 Measured on the runner (Deadnight issue 1348, 2026-11-06, run 42228307964):
 
@@ -92,7 +92,7 @@ turns the other way had no home -->
   and the first scheduled windowed run failed it three times. **Seen:** Deadnight #1348, 2026-11-06 (fix: each suite
   sets `arrival_enabled` and restores it, and the guard also reads `play.start()`).
 
-## Sources
+## Sources {#sources}
 
 - [Xvfb and `xvfb-run`](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml); Mesa's
   [llvmpipe](https://docs.mesa3d.org/drivers/llvmpipe.html) (`LIBGL_ALWAYS_SOFTWARE`).

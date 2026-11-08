@@ -12,7 +12,7 @@ just holds 40 and only on a fast machine. Budget a player machine 2 to 4 times s
 and not the target. In the browser the three techniques that matter are the **animation throttle, one mesh per
 zombie (draw calls) and a 30 Hz physics tick**; trimming bones and repath timers help the desktop only.
 
-## What was built
+## What was built {#what-was-built}
 
 | Part | Setup |
 | --- | --- |
@@ -28,13 +28,13 @@ Each run waits 300 frames, then records 400. "Frame time" is the mean wall-clock
 so it is the cost of one frame of work. **Baseline** is the plain setup: every zombie sets its target every physics tick,
 default avoidance settings, every `AnimationTree` updated every frame, 60 Hz physics, full skeleton, both meshes.
 
-## Numbers
+## Numbers {#numbers}
 
 Machine: Windows 11, RTX 5080, a fast desktop. Other agents were using the same machine while the runs went, so
 single runs are noisy: three repeats of 40 zombies, baseline, gave 6.32, 6.48 and 6.55 ms, but the 80-zombie rows can
 move by 1 ms or more. Read differences under 10 % as noise.
 
-### Desktop, full frame (ms per frame, mean)
+### Desktop, full frame (ms per frame, mean) {#desktop-full-frame-ms-per-frame-mean}
 
 | Setup | 10 | 20 | 40 | 80 |
 | --- | ---: | ---: | ---: | ---: |
@@ -54,7 +54,7 @@ move by 1 ms or more. Read differences under 10 % as noise.
 95th percentile at 80 zombies: baseline 15.3 ms, all techniques 9.0 ms. Draw calls at 80: 164 baseline, 81 with the
 eyelid removed (two meshes per zombie become one). A shadow-casting sun takes 40 zombies from 84 to 338 draw calls.
 
-### Desktop, script and engine work only (headless, no rendering; ms per frame)
+### Desktop, script and engine work only (headless, no rendering; ms per frame) {#desktop-script-cost}
 
 | Setup | 10 | 20 | 40 | 80 |
 | --- | ---: | ---: | ---: | ---: |
@@ -69,7 +69,7 @@ eyelid removed (two meshes per zombie become one). A shadow-casting sun takes 40
 Headless is about two thirds of the full frame: **a zombie costs roughly 0.1 ms of animation, navigation, physics and
 script, and 0.05 ms of rendering** on this machine, so both sides matter. Cost grows linearly with count in every row.
 
-### Browser (the real target: web export, single-threaded, Chrome, same machine)
+### Browser (the real target: web export, single-threaded, Chrome, same machine) {#browser-cost}
 
 Exported with the pinned templates (`variant/thread_support=false`), run by `sandbox/crowds/web_bench.py`. The display
 refreshes at 240 Hz, so **4.17 ms is the floor** of this table: a cell at 4.2 means "at least this fast".
@@ -98,7 +98,7 @@ Single techniques at 80 zombies in the browser (one run each, mean ms):
 The browser is **about 3 times slower than the desktop build** at the same count (80 zombies baseline: 12.3 ms
 desktop, 36 to 44 ms browser). 95th percentile with all techniques at 80: 8.9 to 9.2 ms; at 160: 27 to 30 ms.
 
-## What each technique does
+## What each technique does {#what-each-technique-does}
 
 Desktop and browser disagree on the order, and **the browser is the one that counts**. At 80 zombies, change from
 baseline (desktop full frame / browser):
@@ -146,7 +146,7 @@ The sections below keep the desktop order.
 The cuts overlap (their single gains sum to more than 100 % in the browser, because each removes part of the same
 per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, and on the desktop from 12.3 to 5.3 ms.
 
-## Recommendation
+## Recommendation {#recommendation}
 
 - **Count.** Design for **at most 40 zombies in the world at once, 20 to 30 as the normal wave.** Beyond what the
   player sees, zombies are cheap to keep: despawn or put to sleep (no animation, no avoidance) anything out of
@@ -202,13 +202,13 @@ per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, a
   door was bought printed `Attempt to call function 'null::_on_baked (Callable)' on a null instance`. **Seen:**
   Deadnight, 2026-11-01 (fix: the `done.is_valid()` guard and a test that frees the owner mid-bake).
 
-## Captures
+## Captures {#captures}
 
 Movie Maker frames and clips are attached to the pull request: 40 zombies baseline and 80 zombies with all
 techniques (`crowd-40-baseline`, `crowd-80-all`, PNG and MP4), and the browser run (`web-80-none`, `web-80-all`)
 with its result line printed on the canvas.
 
-## Reproduce
+## Reproduce {#reproduce}
 
 ```text
 godot --headless --path sandbox/crowds --import
@@ -219,7 +219,7 @@ uvx --with playwright python sandbox/crowds/web_bench.py http://127.0.0.1:8931/i
 python sandbox/crowds/tabulate_results.py <log> [mean_ms|p95_ms|max_ms|draws]
 ```
 
-## What a crowd costs at the ceiling, in the real night
+## What a crowd costs at the ceiling, in the real night {#what-a-crowd-costs-at-the-ceiling-in-the-real-night}
 
 Deadnight #949 ablated the real night at its desktop ceiling (round 12, 99 dead, three bots, windowed, RTX 5080,
 Compatibility), two to six interleaved runs an arm. Read it before cutting "the crowd's engine cost":
@@ -316,7 +316,7 @@ through them). Make it solid in the movement function both machines run, not wit
   check, hit a bot for ever. **Seen:** Deadnight #1352, 2026-11-06 (fix: the sim keeps the dead out of the box;
   `test_crane_cabinet_dead.gd` lands it on two).
 
-## A pooled body costs 1 ms to take if the pool still looks the scene up
+## A pooled body costs 1 ms to take if the pool still looks the scene up {#pool-scene-lookup}
 
 Deadnight #932 (a blast that cripples 20 walkers into crawlers: a 45 to 59 ms frame, a steady 1.2 ms). Three costs
 sat on the way from one body to another, measured with a windowed bench that cripples 20 of 30 on a fresh crowd
@@ -336,7 +336,7 @@ Deadnight, 20 crippled in one tick (two runs of twelve blasts each, the same mac
 (3.8 and 5.5 ms worst), against a 1.2 ms steady frame. Keep a larger pool for a look a blast can make in bulk (crawlers:
 20), and prewarm it behind the loading screen.
 
-## A target off the walking mesh turns the crowd round at every repath (Deadnight #950)
+## A target off the walking mesh turns the crowd round at every repath (Deadnight #950) {#target-off-mesh}
 
 `NavigationServer3D.map_get_path(map, from, to, true)` snaps `to` to the nearest point of the mesh when it is off it
 (a player squeezed between two parked cars stands in the band the baker leaves round every obstacle, one agent radius
