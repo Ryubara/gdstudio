@@ -68,6 +68,7 @@ class RepoEntry:
     name: str
     url: str
     role: str
+    paused: str = ""  # why the maintainer paused it (docs/starting-work.md#paused); "" when it is not
 
 
 @dataclass(frozen=True)
@@ -147,7 +148,12 @@ def load_workspace(path: Path) -> WorkspaceSpec:
     if "repos" not in folders:
         raise ManifestError(f"{path}: folders must include 'repos'")
     repos = {
-        name: RepoEntry(name=name, url=body["url"], role=body.get("role", "game"))
+        name: RepoEntry(
+            name=name,
+            url=body["url"],
+            role=body.get("role", "game"),
+            paused="paused" if body.get("paused") is True else str(body.get("paused") or ""),
+        )
         for name, body in data.get("repos", {}).items()
     }
     return WorkspaceSpec(folders=folders, repos=repos)

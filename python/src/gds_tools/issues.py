@@ -10,6 +10,10 @@ A blocked issue says why: `block` writes the label and a `Blocked (<who>, <date>
 coordinator's Stop hook (`.claude/hooks/guards.py`, `stop_idle`) loads this module by path to find the issues that may
 start and have no agent, so it stays standard library only.
 
+A repository can be paused (`paused = "<reason, date>"` on its `[repos.<name>]` entry of the kit's workspace.toml,
+set by the maintainer): its window holds only `P-critical` issues, so `start`, `list` and the Stop hook offer nothing
+else from it (`paused_repositories`). Scheduled CI and nightlies are not read from here and keep running.
+
 `start` checks the window, labels and assigns the issue, and writes the start to a ledger in
 `<workspace>/cache/issues-started.json`; the hook (`.claude/hooks/guards.py`) refuses to start a task agent whose
 prompt does not name an issue in that ledger. Every `gh` call goes through a runner that tests replace with recorded
@@ -150,6 +154,33 @@ def load_settings(kit: Path | None, game: Path | None = None) -> Settings:
     if window < 1:
         raise IssueError(f"[issues] window must be at least 1, not {window}")
     return Settings(window=window, ledger=str(values.get("ledger", DEFAULT_LEDGER)))
+
+
+_GITHUB_URL = re.compile(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$")
+
+
+def paused_repositories(kit: Path | None) -> dict[str, str]:
+    """The paused repositories of the kit's workspace.toml, as {`owner/repo` lowercased: the reason}. A repository is
+    paused by a non-empty `paused = "<reason, date>"` on its `[repos.<name>]` entry (`paused = true` reads as
+    "paused"); a missing or unreadable file pauses nothing."""
+    try:
+        repos = tomllib.loads((kit / "workspace.toml").read_text(encoding="utf-8")).get("repos", {}) if kit else {}
+    except (OSError, ValueError):
+        return {}
+    found: dict[str, str] = {}
+    for entry in repos.values():
+        if not isinstance(entry, dict):
+            continue
+        reason = entry.get("paused")
+        match = _GITHUB_URL.search(str(entry.get("url", "")))
+        if match and reason:
+            found[match.group(1).lower()] = "paused" if reason is True else str(reason).strip()
+    return found
+
+
+def paused_reason(kit: Path | None, repo: str) -> str:
+    """Why `repo` is paused, or "" when it is not."""
+    return paused_repositories(kit).get(repo.lower(), "")
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -330,6 +361,8 @@ class Window:
     unblocked: list[Issue] = field(default_factory=list)  # blocked, but everything it waits on has closed
     waiting: list[Issue] = field(default_factory=list)
     by_number: dict[int, Issue] = field(default_factory=dict)
+    paused: str = ""  # why the repository is paused (workspace.toml); only P-critical issues start while it is
+    held: list[Issue] = field(default_factory=list)  # ready, but the repository is paused and they are not P-critical
 
     def allows(self, number: int) -> bool:
         return any(issue.number == number for issue in self.allowed)
@@ -349,17 +382,25 @@ class Window:
             return f"is {BLOCKED}"
         if any(i.number == number for i in self.waiting):
             return f"is {NEEDS_INFO}"
+        if any(i.number == number for i in self.held):
+            return (
+                f"is in a paused repository ({self.paused}): only a {CRITICAL} issue starts there, and only the "
+                "maintainer sets that label or lifts the pause (`paused` in workspace.toml)"
+            )
         ahead = [i for i in self.allowed + self.later if i.number == number]
         rank = (self.allowed + self.later).index(ahead[0]) + 1
         return f"is number {rank} in the line, and only the first {self.size} may start"
 
 
-def compute_window(repo: str, issues: list[Issue], prs: list[PullRequest], size: int = DEFAULT_WINDOW) -> Window:
+def compute_window(
+    repo: str, issues: list[Issue], prs: list[PullRequest], size: int = DEFAULT_WINDOW, paused: str = ""
+) -> Window:
     """Who may start: the `size` oldest open issues nobody works on, `P-critical` ones first (oldest first among them).
 
     Out of the line: `S-in-progress`, `S-pending-review`, an open pull request that closes the issue, `S-blocked`,
-    `S-needs-info`. A pull request needs no label of its own: it exists, so its issues are in progress."""
-    window = Window(repo=repo, size=size, by_number={i.number: i for i in issues})
+    `S-needs-info`. A pull request needs no label of its own: it exists, so its issues are in progress. In a paused
+    repository (`paused`, the reason) only `P-critical` issues stay in the line; the others are `held`."""
+    window = Window(repo=repo, size=size, by_number={i.number: i for i in issues}, paused=paused)
     open_numbers = set(window.by_number) | {pr.number for pr in prs}  # an issue may wait on a pull request
     closing: dict[int, list[int]] = {}
     for pr in sorted(prs, key=lambda p: p.number):
@@ -382,6 +423,9 @@ def compute_window(repo: str, issues: list[Issue], prs: list[PullRequest], size:
         else:
             line.append(issue)
     line.sort(key=lambda i: (CRITICAL not in i.labels, i.number))
+    if paused:
+        window.held = [i for i in line if CRITICAL not in i.labels]
+        line = [i for i in line if CRITICAL in i.labels]
     window.allowed, window.later = line[:size], line[size:]
     return window
 
@@ -395,6 +439,8 @@ def refusal(repo: str, number: int, window: Window) -> str:
             f"  #{i.number}  {i.title}" + (f"  [{CRITICAL}]" if CRITICAL in i.labels else "") for i in window.allowed
         ]
         lines.append("`gds issue list` shows the whole line. Only the maintainer sets P-critical.")
+    elif window.paused:
+        lines.append(f"{repo} is paused ({window.paused}): no issue of it may start unless it is {CRITICAL}.")
     else:
         lines.append("No issue is ready to start.")
     return "\n".join(lines)
@@ -491,13 +537,15 @@ def start(
     now: datetime | None = None,
     areas_for: Callable[[frozenset[str]], list[str]] | None = None,
     prepare: Callable[[Issue], Prepared] | None = None,
+    paused: str = "",
 ) -> list[str]:
     """Start an issue if it is in the window: make its branch and worktree, label, assign, comment, ledger. Returns the
     lines to print. `areas_for` maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps
     for the SubagentStart hook. `prepare` makes the branch and worktree after the window allows the start and before
-    anything on GitHub changes, so a worktree that cannot be made leaves the issue where it was."""
+    anything on GitHub changes, so a worktree that cannot be made leaves the issue where it was. `paused` is the reason
+    the repository is paused (`paused_reason`): only a `P-critical` issue of it starts."""
     issues, prs = fetch(repo, gh)
-    window = compute_window(repo, issues, prs, size)
+    window = compute_window(repo, issues, prs, size, paused)
     started = load_ledger(ledger)
     if prune_ledger(started, repo, {i.number for i in issues}):
         save_ledger(ledger, started)
@@ -675,13 +723,22 @@ def done(repo: str, number: int, *, ledger: Path) -> list[str]:
 
 def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[str, dict]) -> list[str]:
     """`gds issue list`: the window, what is in progress and who owns it, what is blocked."""
-    lines = [f"{repo}: open issues, oldest first (window of {window.size})", "", "May start now:"]
+    lines = [f"{repo}: open issues, oldest first (window of {window.size})"]
+    if window.paused:
+        lines.append(
+            f"PAUSED: {window.paused}. Only {CRITICAL} issues may start (`paused` in workspace.toml); scheduled CI "
+            "and nightlies still run."
+        )
+    lines += ["", "May start now:"]
     lines += [
         f"  #{i.number:<5} {i.title}" + (f"  [{CRITICAL}]" if CRITICAL in i.labels else "") for i in window.allowed
     ] or ["  none"]
     if window.later:
         shown = ", ".join(f"#{i.number}" for i in window.later[:12]) + (" ..." if len(window.later) > 12 else "")
         lines.append(f"Behind the window ({len(window.later)}): {shown}")
+    if window.held:
+        shown = ", ".join(f"#{i.number}" for i in window.held[:12]) + (" ..." if len(window.held) > 12 else "")
+        lines.append(f"Held by the pause ({len(window.held)}): {shown}")
     lines += ["", "In progress:"]
     for item in window.in_progress:
         entry = started.get(ledger_key(repo, item.issue.number))
@@ -727,12 +784,12 @@ def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[st
     return lines
 
 
-def list_issues(repo: str, *, gh: Gh, ledger: Path, size: int = DEFAULT_WINDOW) -> list[str]:
+def list_issues(repo: str, *, gh: Gh, ledger: Path, size: int = DEFAULT_WINDOW, paused: str = "") -> list[str]:
     issues, prs = fetch(repo, gh)
     started = load_ledger(ledger)
     if prune_ledger(started, repo, {i.number for i in issues}):
         save_ledger(ledger, started)
-    return describe(repo, compute_window(repo, issues, prs, size), prs, started)
+    return describe(repo, compute_window(repo, issues, prs, size, paused), prs, started)
 
 
 def default_repo(gh: Gh) -> str:

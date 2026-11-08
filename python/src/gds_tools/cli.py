@@ -339,6 +339,7 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
         prepare=None
         if args.no_worktree
         else _prepare_worktree(root, repo, args.branch or "", fresh=args.fresh, ledger=ledger),
+        paused=issues.paused_reason(kit, repo),
     ):
         print(line)
     return 0
@@ -346,8 +347,12 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
 
 def _cmd_issue_list(args: argparse.Namespace) -> int:
     args.repo = args.repo or issues.default_repo(issues.run_gh)
-    _, settings, ledger = _issue_context(args)
-    print("\n".join(issues.list_issues(args.repo, gh=issues.run_gh, ledger=ledger, size=settings.window)))
+    root, settings, ledger = _issue_context(args)
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    paused = issues.paused_reason(kit, args.repo)
+    print(
+        "\n".join(issues.list_issues(args.repo, gh=issues.run_gh, ledger=ledger, size=settings.window, paused=paused))
+    )
     return 0
 
 

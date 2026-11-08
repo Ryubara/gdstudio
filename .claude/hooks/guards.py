@@ -2131,7 +2131,8 @@ class IdleCache:
 def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list[tuple[str, int, str, str]]:
     """The issues of every repository in workspace.toml that nobody works on and that may start: the window's "May start
     now", plus blocked ones whose blocker closed, as (repository, number, title, kind) with kind `start` or `unblock`.
-    A repository GitHub cannot answer for is left out: a check that cannot look finds nothing."""
+    A repository GitHub cannot answer for is left out: a check that cannot look finds nothing. A paused repository
+    (`paused` in workspace.toml) offers only its `P-critical` issues, and no unblocked ones."""
     kit = kit_root(workspace)
     issues = issues_module(kit)
     if issues is None:
@@ -2144,16 +2145,19 @@ def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list
             ledger.with_name(IDLE_CACHE), float(rules.get("cache_seconds", 60)), float(rules.get("budget_seconds", 40))
         )
     found: list[tuple[str, int, str, str]] = []
+    paused = getattr(issues, "paused_repositories", lambda kit: {})(kit)  # an older kit checkout has none
     for repo, name in workspace_repositories(kit):
         try:
             game = workspace / "repos" / name
             size = issues.load_settings(kit, game if game.is_dir() else None).window
             open_issues, prs = issues.fetch(repo, gh)
-            window = issues.compute_window(repo, open_issues, prs, size)
+            reason = paused.get(repo.lower(), "")
+            window = issues.compute_window(repo, open_issues, prs, size, *([reason] if reason else []))
         except Exception:  # offline, rate limited, bad JSON, no access to the repository: fail open
             continue
         found += [(repo, i.number, i.title, "start") for i in window.allowed]
-        found += [(repo, i.number, i.title, "unblock") for i in getattr(window, "unblocked", [])]
+        if not getattr(window, "paused", ""):
+            found += [(repo, i.number, i.title, "unblock") for i in getattr(window, "unblocked", [])]
     if cache:
         cache.save()
     return found

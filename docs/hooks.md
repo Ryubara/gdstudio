@@ -224,6 +224,7 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    `gds issue start` uses (`gds_tools/issues.py`, loaded by path) from `gh issue list` and `gh pr list`. The issues under
    "May start now" are idle: nobody has them (no `S-in-progress`, no open pull request that closes them) and they are not
    blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
+   A paused repository offers only its `P-critical` issues ([Starting work: pausing](starting-work.md#paused)).
 2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
    agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
    when it waits on the maintainer, or on #N that its body names (its `### Blocked by` section, `Depends on:`,
