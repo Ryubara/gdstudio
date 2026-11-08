@@ -610,3 +610,60 @@ def test_gds_has_one_way_to_run_gh():
     source = Path(issues.__file__).parent
     runs = [p.name for p in source.glob("*.py") if '["gh",' in p.read_text(encoding="utf-8")]
     assert runs == ["issues.py"]
+
+
+PAUSE = "by the maintainer on 2026-11-07, for kit work first"
+
+
+def test_a_paused_repository_holds_every_issue_but_the_critical_ones():
+    issue_list, prs = recorded()
+    window = issues.compute_window(REPO, issue_list, prs, 5, paused=PAUSE)
+    assert numbers(window.allowed) == [400]  # the P-critical one only
+    assert numbers(window.held) == [52, 57, 105, 156, 171] and window.later == []
+    assert PAUSE in window.why_not(52) and "P-critical" in window.why_not(52)
+
+
+def test_start_refuses_an_issue_of_a_paused_repository_with_the_reason(tmp_path):
+    gh, ledger = FakeGh(), tmp_path / "l.json"
+    with pytest.raises(IssueError) as error:
+        issues.start(REPO, 52, "a", gh=gh, ledger=ledger, paused=PAUSE)
+    assert "paused repository" in str(error.value) and PAUSE in str(error.value)
+    assert gh.calls == [] and not ledger.exists()
+
+
+def test_start_takes_a_critical_issue_of_a_paused_repository(tmp_path):
+    gh = FakeGh()
+    issues.start(REPO, 400, "a", gh=gh, ledger=tmp_path / "l.json", paused=PAUSE)
+    assert gh.calls[0][:3] == ["issue", "edit", "400"]
+
+
+def test_list_of_a_paused_repository_says_so_and_offers_only_the_critical(tmp_path):
+    lines = issues.list_issues(REPO, gh=FakeGh(), ledger=tmp_path / "l.json", paused=PAUSE)
+    text = "\n".join(lines)
+    assert f"PAUSED: {PAUSE}" in text and "Held by the pause (5): #52, #57, #105, #156, #171" in text
+    offered = lines[lines.index("May start now:") + 1 :]
+    offered = [line for line in offered[: offered.index("")] if line.startswith("  ")]
+    assert len(offered) == 1 and offered[0].lstrip().startswith("#400")
+    assert "PAUSED" not in "\n".join(issues.list_issues(REPO, gh=FakeGh(), ledger=tmp_path / "l.json"))
+
+
+def test_paused_repositories_reads_workspace_toml(tmp_path):
+    (tmp_path / "workspace.toml").write_text(
+        'folders = ["repos"]\n'
+        '[repos.kit]\nurl = "https://github.com/Ryubara/gdstudio.git"\n'
+        '[repos.game]\nurl = "https://github.com/Ryubara/Deadnight.git"\npaused = "kit first, 2026-11-07"\n'
+        '[repos.other]\nurl = "https://github.com/Ryubara/other"\npaused = true\n'
+        '[repos.live]\nurl = "https://github.com/Ryubara/live"\npaused = ""\n',
+        encoding="utf-8",
+    )
+    assert issues.paused_repositories(tmp_path) == {
+        "ryubara/deadnight": "kit first, 2026-11-07",
+        "ryubara/other": "paused",
+    }
+    assert issues.paused_reason(tmp_path, "Ryubara/Deadnight") == "kit first, 2026-11-07"
+    assert issues.paused_reason(tmp_path, "Ryubara/live") == "" and issues.paused_repositories(tmp_path / "no") == {}
+
+
+def test_the_kit_pauses_deadnight():
+    kit = Path(__file__).resolve().parents[2]
+    assert issues.paused_reason(kit, REPO) and not issues.paused_reason(kit, "Ryubara/gdstudio")

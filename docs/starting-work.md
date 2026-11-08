@@ -89,6 +89,33 @@ Issue: Ryubara/deadnight#523
 A request that arrives while older issues wait is filed as an issue (`gh issue create`); it joins the end of the
 line and starts when its turn comes, or when the maintainer marks it `P-critical`.
 
+## Pausing a game {#paused}
+
+The maintainer pauses a repository when other work goes first (Deadnight was paused on 2026-11-07 so the kit work
+comes first). The pause lives in the kit's `workspace.toml`, on the repository's entry, with the reason and the date:
+
+```toml
+[repos.deadnight]
+url = "https://github.com/Ryubara/deadnight.git"
+role = "game"
+paused = "by the maintainer on 2026-11-07, for kit work first"
+```
+
+Only the maintainer sets or removes `paused`; an agent that thinks a pause should end says so in its report. While it
+is set, everything that offers work skips the repository's issues unless they carry `P-critical` (which only the
+maintainer sets):
+
+- `gds issue start` refuses the start, nothing changes, and the message gives the reason.
+- `gds issue list` prints `PAUSED: <reason>` at the top, offers only `P-critical` issues under "May start now" and
+  shows the rest as "Held by the pause".
+- The coordinator's `Stop` hook ([Hooks: idle issues](hooks.md#idle)) lists none of its issues, not even blocked ones
+  whose blocker has closed.
+
+What still runs: scheduled CI and the nightlies keep running and keep their issues current. Pull requests already
+open stay open, and no agent merges one while the repository is paused. A pause kept only in someone's memory or in
+a plan's wording does not count, because no tool can read it
+([lesson](lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md)).
+
 ## The branch and worktree {#worktree}
 
 An agent never makes its own branch. A mistake in a hand-made branch or merge is found after the push, where fixing it
