@@ -98,6 +98,10 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
 
 ## Before the push {#before-the-push}
 
+A change to a kit template is pushed only after the template's own proof has run, not just the kit's `pytest`:
+`templates/<t>/game` has no GdUnit4, so its suites run in a game made from it, with the script parse and the editor
+open of [Proving a new game](new-game.md#proof) (gdstudio #830).
+
 - **Approach:** Before pushing, run `gds merge-main`, then every folder of `game/tests` on the merged branch (or CI's
   own shard command), read the logs for `ERROR`, and ignore any earlier summary; before taking over a branch, list the
   processes whose command line names its worktree and stop the runner script first, then its `timeout` and Godot
