@@ -26,7 +26,7 @@ average, what a word about people or defaults covers, and what already owns a jo
   checked against the code with the gap filed. **Watch out for:** a guest was read as having no account and the XP
   issues were filed on that reading, while guests were meant as server accounts that expire after 7 days; the code does
   neither: each guest sign-in makes a new account kept in memory. **Seen:** Deadnight, 2026-11-04 (fix:
-  [lesson](../lessons/2026-11-04-a-decision-about-guests-was-read-without-the-sign-in-code.md)).
+  issues #1058, #1066, #1068, #1075 and #1077 were corrected and #1080 builds the Guest account described).
 - **Approach:** When a decision names a default, ask what the choice is a default among before writing the rule. **Watch
   out for:** a costume's default colours were read as fixed data of the costume, where a Default option in its own
   colours beside colours a player picks was meant: a phrase about the starting state was read as the whole feature.

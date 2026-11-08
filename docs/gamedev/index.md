@@ -14,7 +14,9 @@ studio itself works (`studio/`).
 | [Audio](audio/index.md) | Making sound assets outside the engine: voice lines, menu and interface sounds. |
 | [The player's controller](controller.md) | Genre conventions, devices, aim and hip fire, states and actions, feel. |
 | [UI and HUD](ui.md) | What the HUD holds, a screen of choices, what an online menu offers. |
-| [Testing a game](testing.md) | When a feature counts as tested: the real path, every catalogue entry, scenarios, seeded runs and which suites a change runs. |
+| [Testing a game](testing.md) | When a feature counts as tested: the real path, every catalogue entry, scenarios, chaotic runs, a shared change. |
+| [Netcode](netcode.md) | One owner for each fact, what a client may send, shared limits, room capacity, who is in a room, branches that share the net files. |
+| [Platform backend](backend.md) | The service beside the game server: HTTP and Node traps, data that crosses, tests, probes against a live backend. |
 | [Balance](balance.md) | The numbers a player meets: hits to kill, the weapon roster, comparing weapons, prices, a score's step, the balance gate and its simulator. |
 | [Designing from a reference](design.md) | The reference's loop and numbers, variety beats, settings that scale, bot teammates, content and interactions. |
 | [Bots](bots.md) | Players the game plays itself: what a bot knows, its choices, walking, throws, fitting it to the balance model, soaks. |

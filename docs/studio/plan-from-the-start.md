@@ -14,7 +14,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   listed before the controller is built ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
   the shot waits for the body's turn
-  ([lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md)).
+  ([controller states](../gamedev/controller.md#states)).
 - Plan: a rule that follows from a state (empty, downed) is evaluated from that state on the server each tick, never
   as a side effect of an action a control can stop sending ([States and actions](../gamedev/controller.md#states)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
@@ -98,28 +98,28 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 - Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
   more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
-  ([lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md),
+  ([multiplayer](../engines/godot/multiplayer.md#a-client-that-freezes-measured-on-the-live-server),
   [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
-  ([lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md)).
+  ([netcode](../gamedev/netcode.md#parallel-branches)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit
-  ([lesson](../lessons/2026-11-02-web-and-server-deployed-minutes-apart.md)).
+  ([railway](railway.md#skew)).
 - Plan: never deploy a branch to the shared web service; a CI deploy of main replaces it anyway
   ([deadnight #491](https://github.com/Ryubara/deadnight/issues/491),
   [web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: events the server causes alone reach every client
-  ([lesson](../lessons/2026-11-01-events-the-server-causes-alone-never-reach-the-client.md)).
+  ([multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every player feature is specified and tested from another player's view: a two-client test over the real
   socket for what the other screen shows, and captures from the second client's screen
-  ([lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md),
+  ([multiplayer](../engines/godot/multiplayer.md#appearance),
   [deadnight #518](https://github.com/Ryubara/deadnight/issues/518)).
 - Plan: where a player is (menu, waiting room, night, away, reopened lobby) and what ends each state, written as one
   table of states and ways out before the lobby is built; a player moves between lobbies by creating or joining
   (never a refusal for being in another), and a lobby with no person is gone at once, with the game server saying
   when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
-  [lesson](../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md)).
+  [multiplayer](../engines/godot/multiplayer.md#player-states), [netcode](../gamedev/netcode.md#leaving)).
 
 ## Saving
 
@@ -191,7 +191,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
   ([browser probes](../engines/godot/web-export.md#browser-probes)).
 - Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
-  ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
+  ([ui controls](../engines/godot/ui-controls.md#a-menu-over-a-live-game)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
   ([lesson](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive)).
 - Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.

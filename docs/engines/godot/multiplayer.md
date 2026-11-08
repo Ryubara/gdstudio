@@ -58,8 +58,15 @@ gap once it stood still:
   read a server's `send` errors. **Watch out for:** the reconcile moved the body but not the remembered positions of the
   unanswered commands, so each answer corrected the same error once per frame in flight and a snap grew exponentially; a
   freeze sent eight catch-up ticks at once and the 64 KB socket buffers dropped the newest. **Seen:** Deadnight #483,
-  2026-11-02 (fix: a correction moves the history it is judged against
-  ([lesson](../../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md))).
+  2026-11-02 (fix: the reconcile shifts the remembered positions of the unanswered commands by every correction,
+  snaps a body far from the server, and skips the catch-up ticks after a freeze; the loop is tested closed, in one
+  dimension, at 50 to 400 ms).
+- **Approach:** After moving a predicting client's body by hand in a test, move the server's too, call
+  `reconciler.reset()`, let both settle, and read the camera on the frame after the body moved. **Watch out for:**
+  `Reconciler` judges a frame by where its recorded command left the body, so a hand move reads as an error and snaps
+  the body by it on top of where it stands (87 m out plus the 87 m "correction"); the rig is placed in `_process`, a
+  wait on `RenderingServer.frame_post_draw` hangs headless, and a test spot inside a 3.8 m snow bank was pushed out by
+  the physics. **Seen:** Deadnight #862, 2026-11-03 (fix: reset after the move; the camera read a frame later).
 
 ### The same in the browser (Deadnight #502)
 
@@ -111,7 +118,7 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 - Compact numbers: 5 bytes per player in a full snapshot, 3 in a delta, 12 bytes per input packet; about 0.4 KB/s up and
   0.6 to 1.0 KB/s down per client.
 
-## Godot's high-level multiplayer: what to know before using it
+## Godot's high-level multiplayer: what to know {#godots-high-level-multiplayer-what-to-know-before-using-it}
 
 `MultiplayerSynchronizer` / `MultiplayerSpawner` / RPC work over `WebSocketMultiplayerPeer` and are quick to start
 with, but, measured in the spike (4 clients, each client-owned input synchronizer at 30 Hz and a server-owned position
@@ -121,6 +128,12 @@ restrict visibility by hand (`public_visibility = false` and `set_visibility_for
 acknowledgement,
 no prediction and no interpolation hook; node paths must match between peers; and `WebSocketMultiplayerPeer` ids are
 random 31-bit numbers. Fine for a prototype; for a game with a real tick, own the protocol.
+
+- **Approach:** Connect both `synchronized` and `delta_synchronized` of a `MultiplayerSynchronizer`, and take the first
+  real update as the starting point, not the spawn value. **Watch out for:** properties in `REPLICATION_MODE_ON_CHANGE`
+  arrive as a delta sync, which emits `delta_synchronized`; `synchronized` fires only for full syncs (`ALWAYS` and the
+  spawn state), so values replicated but prediction and reconciliation never started, and a spawn packet can carry a
+  stale value. **Seen:** Deadnight #38, 2026-11-01 (fix: both signals are connected in the networking spike).
 
 ## A room over a real socket, faster than real time (Deadnight #230)
 
@@ -136,7 +149,7 @@ within a few seconds). Everything else already counts frames. The numbers: 36,00
 two autopilot clients and two bots, no engine error in the verbose log. The soak is
 `tests/captures/bots_slots_soak.tscn` in Deadnight, a CI job of its own because it is too long for a test shard.
 
-## The two worlds must hold the same solid things
+## The two worlds must hold the same solid things {#the-two-worlds-must-hold-the-same-solid-things}
 
 A predicting client moves its body against its own copy of the map, the server moves the real one against the server's.
 A solid thing that only one holds is a wall the other walks through, and the client's body then drifts metres from the
@@ -147,6 +160,28 @@ collision, so the server's bodies must not block one another either (Deadnight #
 and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
 (`tests/net/test_world_parity.gd`).
+
+- **Approach:** Build a solid thing into the world both sides build and move it by the rules (server) and the frame
+  (client); a view script adds no collision (a node it makes with `.new()` gets none), and a test joins a real client to
+  a real host and asks that every solid thing in the client's viewport is in the server's at the same place. **Watch
+  out for:** the prize crane's drawing gave itself a `StaticBody3D`, a game server draws nothing, so a sprint past it
+  stopped the client's body and not the server's, and a soak failed under load with "client N is 2.5 m from the
+  server"; a stall guard was blamed first, and a trace of what each world held at the server's spot found it.
+  **Seen:** Deadnight #748, #754, 2026-11-03 (fix: `CraneBlock` lives in `NightWorld`; the test failed on main, 227
+  against 226).
+- **Approach:** Keep played bodies on a layer of their own that no body's mask lists, so bodies never block one another
+  on either side, and list `PhysicsLayers.BODY` in the mask of every ray that must meet a body (a shot, a swing, a
+  grenade, footsteps, a ping). **Watch out for:** bodies on layer 1 with a mask of 1 and 2 stopped at a teammate on
+  the server and not on the client, whose puppets have no collision; the 0.6 to 0.9 m that left grew into metres at
+  the next corner, the gaps sat just over the reconciler's 2.5 m snap, and a correction that cannot move a blocked body
+  hides the rest. **Seen:** Deadnight #760, 2026-11-03 (fix: layer 4; the soak compares both worlds' solid things every
+  300 ticks and names what each body slid on; a missed ray broke `test_smallmap_bot_night`).
+- **Approach:** When a map ships, play it through every path that builds a night (solo, host, a client built from the
+  WELCOME, the balance simulator) and assert that the host's and the client's economy has the map's rules. **Watch out
+  for:** the map's rules overlay (`MapTuning`, laid by `NightWorld.rules_for`) was applied by the solo night and
+  `SeatedNight` only, so `NightHost` and `Night.start_remote` built the map's scene with the shared table and the
+  room's server threw at `use_offers.gd:20` for want of the door items. **Seen:** Deadnight, 2026-11-03 (fix: both lay
+  `world.rules_for(table)`; `test_map_choice_net.gd`).
 
 ## Every client sees the same bodies {#appearance}
 
@@ -165,10 +200,11 @@ client -->
   screen for each action (weapon, swap, aim, fire clip and flash, reload, swing, throw, a late joiner). **Watch out
   for:** online, a remote player was a bare model with no `PlayerAnimation`, so everything that draws a weapon got null
   and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
-  remote bodies are the same scene as local ones and captures are taken from the second client (Deadnight #548;
-  [lesson](../../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md))).
+  remote bodies are the same scene as local ones (a puppet `Player`), the frame gains `aim` and `pitch`, captures come
+  from the second client (Deadnight #548); code that works through a node type (`as Player`) turns "no such body" into
+  a silent skip, so say it loudly).
 
-## Events reach a client only through its command loop
+## Events reach a client only through its command loop {#events-reach-a-client-only-through-its-command-loop}
 
 A test client that is driven by hand must still send its command every tick (`night.ticked` connected to
 `link.send(command.to_dict())`): the server answers a command with the tick's events, and without one the client is
@@ -178,6 +214,29 @@ never with `server._combat(...)` beside the step: the server refuses a shot whos
 A test that is the server (a kill, a purchase, a blow, a repair made with `rules.apply`) is heard by the server's own
 listeners (the tallies) and by no client unless its events are sent on: `room._collect(rules.apply(action))`
 (`NightHost._collect`). Compare a client's count only after the client has heard the event.
+
+- **Approach:** Send every event list the server produces, for a request and for a tick, to the clients, and test a path
+  with no request in it (a reload that finishes on its own). **Watch out for:** only the answers to a client's request
+  were sent back, so points rose but the target stayed standing and no burst showed after a lobbed shot: a projectile
+  bursting, a reload finishing or a round ending happen inside the server's tick. **Seen:** Deadnight, 2026-11-01
+  (fix: both lists are sent; a test of a path that has no request).
+- **Approach:** Drive a test client by its command: connect `ticked` to `link.send(command.to_dict())`, keep one
+  `NightCommand` per client and aim and fire it as the player's input does (`aim_along`, `fire`), never call the combat
+  server by hand. **Watch out for:** the night server waits for each player's command and answers with the tick's
+  events, so a client that sent none heard only `zombie_spawn_requested`, and a shot made beside the step had an origin
+  the server refuses. **Seen:** Deadnight, 2026-11-03 (fix: the two-client test sends a command every tick).
+- **Approach:** Deliver an event a test makes itself as the link would (`night.state.apply_events(rules.apply(action))`
+  in one process, `room._collect(rules.apply(action))` online), run one tick, and wait on the client's state, never on
+  the call. **Watch out for:** the server returns only the events of its own `apply` and `step`, so a call made beside
+  it is in no client's stream: the HUD read "NEED 350 POINTS" with 600, the clients' witness stayed at 0 kills while
+  the server was in round 2, and the loopback link delivers on `pump()`, so `night.state.over` read false until a tick.
+  **Seen:** Deadnight, 2026-11-01 (HUD); Deadnight, 2026-11-04 (loopback); Deadnight #1074, 2026-11-05 (clients).
+- **Approach:** Send an event that names a thing before the event that announces it (`NightHost._name_seat` before the
+  `JOIN`), and when a change adds data to an existing flow list every text built from the earlier event; when a test
+  waits for a string that never appears, print what the notice list did hold. **Watch out for:** `player_added` and
+  `player_named` went in one tick, so the notice read `PLAYER 3 JOINED` and later `CY LEFT`, and a test that waited for
+  `PLAYER 3 LEFT` suggested a lost event where the product was inconsistent. **Seen:** Deadnight #542, 2026-11-02 (fix:
+  the name goes first and the test asserts names).
 
 ## A room test that needs a map or a fast round
 
@@ -238,22 +297,22 @@ through, the ways in and out, or what is kept for a seat -->
   stack, and run a new screen once in the web build against the real backend. **Watch out for:** creating a night was
   create then start, so the waiting room, who is in it and who starts were never designed: no screen showed the members,
   a closed tab never left, and the first lobby screen reused a covered screen's requests, which never answered.
-  **Seen:** Deadnight #515, 2026-11-02 (fix: deadnight #521, #537 and #555
-  ([lesson](../../lessons/2026-11-02-a-request-under-a-covered-screen-never-answered.md))).
+  **Seen:** Deadnight #515, 2026-11-02 (fix: Deadnight #521, #537 and #555: a node's network requests live and die with
+  its parent's `process_mode`, so a screen that keeps asking while on top owns its own request nodes under itself).
 - **Approach:** Erase state kept by player id in a second place where the rules erase the player, and test a seat given
   up and taken again; walk a "did not arrive" report from every source with both lists side by side, and say which
   source the walk could not reach. **Watch out for:** leaving erased the rules' player but not the combat server's
   loadout, and the room gives the lowest free id to the next person, who carried the last one's weapons while the rules
-  said the start weapon only. **Seen:** Deadnight #904, 2026-11-03 (fix: the loadout is erased on leave; the
-  maintainer's solo case was not reproduced
-  ([lesson](../../lessons/2026-11-03-a-seat-kept-the-weapons-of-the-last-player.md))).
+  said the start weapon only. **Seen:** Deadnight #904, 2026-11-03 (fix: the combat server forgets a player on
+  the rules' `player_removed`; `test_weapon_sources.gd` walks every weapon through every carry and a seat given up and
+  taken again, and failed first with `pistol, mp5`; a source the walk cannot reach is named in the report).
 - **Approach:** For any "you are already in X" refusal, list every way the system puts a player into X and every way out
   from the player's view (button, menu, closed tab, dropped connection, night ended, Activity closed), test each over
   the real stack with bots in, and prefer moving the player to refusing them. **Watch out for:** a finished night's
   reopen put its users back in the one-open-lobby index, an entry they never made, so a player at the menu was refused
   by a lobby they could not see for ten minutes. **Seen:** Deadnight #1177, 2026-11-05 (fix: a failing test for every
-  suspect in the issue, keeping the ones that fail; the suspect, bots, was innocent
-  ([lesson](../../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md))).
+  suspect, keeping the ones that fail (bots were innocent); create, join and quick join move a player out of the old
+  lobby, an empty or unread reopened one is dropped, both exits of a night say `leave`; [Netcode](../../gamedev/netcode.md#leaving)).
 
 ## A feature that crosses services {#across-services}
 
@@ -265,8 +324,30 @@ backend deployed -->
   the running night. **Watch out for:** the backend had no deploy job, so the live one predated the lobby rules,
   answered a rules change with a bare 404 and ignored a start's settings; every test ran a backend built from the
   checkout. **Seen:** Deadnight #944, 2026-11-04 (fix: the deploy compares the live service's settings keys with the
-  client's, and an unknown key is refused by name at every border
-  ([lesson](../../lessons/2026-11-04-a-service-nobody-deployed-dropped-every-lobby-setting.md))).
+  client's, and an unknown key is refused by name at every border; `deploy-backend` joined the pipeline and one test per
+  setting reads the value back from the running night).
+
+## Measuring a network {#measuring}
+
+<!-- new section: the comparison section reports numbers; nothing said how to measure bytes, latency or a field's cost -->
+
+- **Approach:** Compare stacks through a small asyncio TCP proxy between the clients and the headless server: it counts
+  bytes (WebSocket framing included), delays each chunk and models TCP loss as a retransmission timeout that stalls
+  every later chunk in that direction; take server CPU from `psutil` over the same window. **Watch out for:** each
+  stack measured itself differently (our protocol counts its payload, the MultiplayerAPI and netfox expose no byte
+  counter, an in-game conditioner wraps only the stack written with one), so the numbers could not sit side by side.
+  **Seen:** Deadnight #38, 2026-11-01 (fix: `spikes/net-compare/tools/run_scenario.py`).
+- **Approach:** Measure the network with a small external probe (Python `websockets`) that joins as a silent player,
+  pings every 50 ms and timestamps every snapshot with `perf_counter`; quote the probe for the network and the clients
+  for what the game feels, with a local server as the baseline. **Watch out for:** `WebSocketPeer` is polled on the
+  30 Hz physics tick, so every arrival rounds to a tick (34 ms round trips and 100 to 235 ms "stalls" against localhost
+  as often as against the hosted server) and a late frame looks like a late packet. **Seen:** Deadnight, 2026-11-01
+  (fix: the probe, quoted beside the clients' numbers).
+- **Approach:** Measure what a field costs on the real object (the room's own `_welcome_snapshot()` with four seats,
+  with and without the key), put the line in the test's log and the numbers in the pull request. **Watch out for:** a
+  hand-made three-key snapshot sat on the other side of `NetWire.COMPRESS_FROM` (256 bytes), so the WELCOME read 22
+  bytes shorter with a new `levels` table (173 to 151): two sizes either side of a threshold are not the field's cost.
+  **Seen:** Deadnight #1077, 2026-11-04 (fix: 1017 to 1052, +35 for the WELCOME, 110 to 154 for the event).
 
 ## Web export
 
@@ -276,12 +357,19 @@ backend deployed -->
   parse it like arguments (`?url=wss://host&bot-seed=3`). Behind an `https` page the socket must be `wss://`.
 - The release `.wasm` is about 39 MB uncompressed; serve it compressed.
 
-## Headless server image
+## Headless server image {#headless-server-image}
 
 `debian:bookworm-slim`, download the Linux Godot binary for the pinned version and verify its SHA-512 (the values are in
 `tools.toml`), copy the project, run `godot --headless --path /app --import` once **at build time**, then
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
+Deploying and testing it on Railway: [Railway](../../studio/railway.md).
+
+- **Approach:** Read a procfs file with `get_line()` (it is one line), treat an empty result as no data, and test
+  Linux-only paths in the Docker image. **Watch out for:** procfs files report a length of 0 and
+  `FileAccess.get_as_text()` reads `get_length()` bytes, so `/proc/self/stat` came back empty and a headless server
+  logged `Out of bounds get index '11'` every 5 s; on Windows the path does not exist, so it showed only in the
+  container. **Seen:** Deadnight, 2026-11-01 (fix: `get_line()` and an empty check).
 
 ## Small things that cost time {#small-things-that-cost-time}
 
@@ -303,5 +391,6 @@ write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the 
   a full account; give a size limit and what fills it one test across both sides, and log why a check drops a message.
   **Watch out for:** the cause was chased in the proxy and the client; the ticket carried finished challenges for a
   player wearing a card, emblem or frame, which put the hello past its 1024-byte limit, the server dropped it unanswered
-  (logged `SILENT`), and every probe was a fresh guest. **Seen:** Deadnight #1366, 2026-11-06 (fix:
-  [lesson](../../lessons/2026-11-06-a-limit-older-than-what-fills-it-dropped-a-hello.md)).
+  (logged `SILENT`), and every probe was a fresh guest. **Seen:** Deadnight #1366, 2026-11-06 (fix: the
+  limit and the socket buffer hold the longest ticket the backend signs, and the refusal is logged; see
+  [Netcode](../../gamedev/netcode.md#client-input)).

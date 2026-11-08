@@ -22,7 +22,25 @@ default branch -->
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
   minutes and merges came every few, so every run skipped and Railway fell 13 merges behind, each skip a green job. The
   guard was tested for an older commit refused, never for any run deploying. **Seen:** Deadnight #732, 2026-11-03 (fix:
-  [lesson](../lessons/2026-11-03-a-deploy-check-skipped-every-run-and-nobody-saw.md)).
+  a run deploys when the live commit (the newest `SUCCESS` deployment's `cliMessage`) is its ancestor and skips when
+  its own commit is the live one's ancestor; `deploy/check_head.sh` and a case where main moved on during the run).
+- **Approach:** For any job that publishes "the latest" of something, ask what happens when a run of an older commit gets
+  there last, give each deploy job its own `concurrency` group, and compare the run's commit with what it replaces at
+  the moment of publishing; test the refusal with the live commit injected so it fails first without GitHub. **Watch out
+  for:** a `concurrency` group serializes deploys and never orders them, so two quick merges finished their tests in
+  either order and an older commit deployed over a newer one; the live game went back before the hand grips. **Seen:**
+  Deadnight #552, 2026-11-02 (fix: the deploy job asks, when it starts, whether its commit is still the head of `main`;
+  #732 above replaced that rule, which skipped every run).
+
+## A game's pull request needs the kit's {#kit-first}
+
+<!-- new section: the runs section covers the default branch; nothing covered a game's CI checking out the kit's main -->
+
+- **Approach:** Merge the kit change first, then rerun or push the game's pull request, and read `gh run view
+  --log-failed` before changing anything (a rerun replays the old event, see [the pull request checks](#pr-checks)).
+  **Watch out for:** a game's CI checks out the kit's `main`, and a game pull request written before the kit pull
+  request that added `--no-mcp` had merged failed in 19 s with `unrecognized arguments`. **Seen:** Deadnight,
+  2026-11-01 (fix: the kit change merged first and the job reran).
 
 ## The pull request checks {#pr-checks}
 
