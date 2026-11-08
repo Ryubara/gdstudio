@@ -18,6 +18,6 @@ areas: [tests, gameplay]
 - **Check for next time:** a handler stored on an object that the handler itself names is a cycle: clear it in the
   object's `dispose()` (or close/free method), not in each test; after adding a suite, run it alone and grep for the leak
   lines before the pull request.
-- **Docs:** related: [a lambda cycle](2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md) and [a run that printed
+- **Docs:** related: [a lambda cycle](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive) and [a run that printed
   leaks no test
   reported](2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md).

@@ -12,8 +12,7 @@ It shows once in a few dozen runs, only on a loaded machine, and no `Leaked inst
   from a thread there: no frame is drawn. Deadnight's `NightWarmup.loads_in_threads()` is the switch.
 - The same holds for any `WorkerThreadPool` job that makes a `Mesh` or a `MeshInstance3D`.
 - To see it, search the whole run's log for `Initializing already initialized RID` (the first sign) before looking at
-  what leaked: the line before it names the call that raced
-  ([lesson](../../lessons/2026-11-02-a-threaded-load-in-the-dummy-renderer-left-a-mesh-leaked-at-exit.md)).
+  what leaked: the line before it names the call that raced.
 
 ## Headless text has no height, so a layout test there cannot prove a fit
 
@@ -27,5 +26,4 @@ prints every control outside the window (`tests/captures/solo_settings_tour.gd` 
 
 The dummy renderer keeps no instance data: `MultiMesh.get_instance_transform(i)` returns the zero transform for every
 copy. A test that checks where copies stand reads the `buffer` property instead (12 floats a copy, each basis row
-followed by its origin's coordinate), which keeps the scene's values
-([lesson](../../lessons/2026-11-03-multimesh-transforms-read-as-zero-in-a-headless-test.md)).
+followed by its origin's coordinate), which keeps the scene's values.

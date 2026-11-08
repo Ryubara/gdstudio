@@ -18,4 +18,4 @@ areas: [tests, input, godot]
   the frame that made it; find the cause (the test or the game) by measuring the game on that clock before touching a
   bound.
 - **Docs:** [Godot testing](../engines/godot/index.md#testing-and-capture); the earlier
-  [smoothness test](2026-11-01-a-smoothness-test-read-the-real-clock.md) is the same family.
+  smoothness test is the same family.

@@ -23,4 +23,4 @@ performance review (#907, #929); the lessons are linked below.
 
 A script that defines `_process` has it turned on when the node is ready, *after* `_init` ran. `set_process(false)` in
 `_init` does nothing; put it in `_ready` (or call it from the code that decides the node has nothing to move). The same
-holds for `_physics_process`. See the [lesson](../../lessons/2026-11-03-set-process-false-in-init-was-turned-back-on-at-ready.md).
+holds for `_physics_process`.

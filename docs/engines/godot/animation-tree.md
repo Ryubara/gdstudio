@@ -34,7 +34,7 @@ rate (measured: within 0.002 s over 40 frames at 1.3 times the clip's pace). Whe
 restarted) or stops (in the air), let the follower hold or catch up over a few frames instead of seeking across the
 cycle: a seek is a cut.
 
-## Stepping a tree by hand in tests
+## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
 `callback_mode_process = ANIMATION_CALLBACK_MODE_PROCESS_MANUAL`, the owner's `_process(delta)` then
 `tree.advance(delta)`, one fixed step at a time: no clock is read.
@@ -43,10 +43,15 @@ cycle: a seek is a cut.
   moved yet in the same step: it follows on the skeleton's next update, so a test reading the attachment saw a hand
   that did not move at all.
 - Keep a clip's time in a `float` from step to step. Passed through a `Vector2` (32-bit components) a time of
-  2.4999999 became 2.5, so the clip's last event fired a step before its end check
-  ([lesson](../../lessons/2026-11-03-a-vector2-of-two-clip-times-rounded-the-end-a-step-early.md)).
+  2.4999999 became 2.5, so the clip's last event fired a step before its end check.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
+
+- **Approach:** Hold the clip (`pause()`, or `speed_scale` 0) after sampling a pose, and repeat a measure that awaits
+  a few times in one process before choosing a limit for it. **Watch out for:** `ClipFit.pose` left the clip playing,
+  so readings made after two awaited physics frames came from a later pose (a knee moved up to 6 cm) and one pose gave
+  0.144, 0.142 and 0.1348; it failed two of three pull requests that touched no character file. **Seen:** Deadnight
+  #1143, 2026-11-04 (fix: `_player.pause()` after the sample; eight repeats gave 0.1348 each).
 
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 

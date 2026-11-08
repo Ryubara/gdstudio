@@ -13,4 +13,4 @@ areas: [blender, godot]
 - **Fix:** restore the import file (`git checkout HEAD -- <file>.glb.import`), delete its
   `.godot/imported/<file>.glb-*`, and import again. Never import a conflicted built file: fix the script, build until it
   exits clean, then import, and read `git diff` of `*.import` before committing.
-- **Docs:** this file; see also [an LFS pointer from git show](2026-11-01-git-show-of-an-lfs-file-gives-a-pointer-not-the-model.md).
+- **Docs:** this file; see also [an LFS pointer from git show](../tools/blender/modular-kits.md#building-props).

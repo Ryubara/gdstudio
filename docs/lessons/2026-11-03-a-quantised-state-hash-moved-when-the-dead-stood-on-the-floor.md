@@ -16,4 +16,4 @@ areas: [tests, gameplay]
   answer instead of a count (poll until a path ends within a metre of the goal and the bake is not busy). Run a
   determinism or climb test five times before trusting a pass.
 - **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md); the same rule as
-  [a fixed frame wait](2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md).
+  [a fixed frame wait](../engines/godot/test-speed.md#night-suites-where-the-seconds-go-and-what-may-be-cut).

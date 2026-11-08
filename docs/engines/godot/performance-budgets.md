@@ -54,7 +54,7 @@ that release (a tree of dictionaries, arrays, vectors) is charged to the label t
 1172: storing the last frame in the challenge tracker raised `server.challenges` by about a quarter and failed the
 late-round budget while the work itself had not grown. Keep no event; read what is needed in the call that is handed
 it, or from state the system already owns. Test a change to a timed system with the budget's own case, three or more runs
-interleaved with the change off ([lesson](../../lessons/2026-11-05-a-held-frame-moved-its-release-into-the-timer.md)).
+interleaved with the change off.
 
 ## Reading a timing on a shared machine
 

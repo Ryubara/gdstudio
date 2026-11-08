@@ -71,7 +71,7 @@ circled is a corridor with a countdown.
   guessed) and wide enough that two bodies abreast do not jam. A loop that a single dead end or a slot breaks is not a
   loop. *Proof: a pathfinding query round the loop with the dead's agent size, through waypoints at the outside corners
   of what it circles and with the funnel (shortest) path, not edge-centred points, which zigzag and read half again too
-  long ([lesson](../../lessons/2026-11-03-a-loop-length-on-edge-centred-paths-was-half-again-too-long.md)); a bot soak
+  long; a bot soak
   that records where bodies stop moving.*
 - [ ] **No trap slots.** A gap wider than a seam and narrower than a body wedges whoever is pushed into it.
   *Proof: scan every pair of facing collider faces for a gap between the seam and the body's width.*
@@ -193,8 +193,7 @@ avoid a finale at full intensity.
   5.5 m; a window or a door and a spot 4.5 m; two spots 3.5 m. A room's corner with an opening on each wall has no
   room for anything else used with the button (Deadnight #994,
   [lesson](../../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)). A sweep's grid point on a
-  wall's face is not room for a body: its rays start behind the point
-  ([lesson](../../lessons/2026-11-04-a-grid-point-on-a-wall-face-counted-as-room-for-a-body.md)).
+  wall's face is not room for a body: its rays start behind the point.
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
 
@@ -274,8 +273,7 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   the lot in 91 s, 8 of the second map in 68 s). Prove it on the unfixed map: put a merged fix back in a scratch
   worktree (no commit) and see it fail
   ([lesson](../../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)). A start cell is clear
-  by the boxes' bounds, not by a capsule query: CSG faces are one-sided and a body inside a thin wall touches none
-  ([lesson](../../lessons/2026-11-03-a-sweep-started-the-body-inside-a-wall-a-known-trap.md)).
+  by the boxes' bounds, not by a capsule query: CSG faces are one-sided and a body inside a thin wall touches none.
 - [ ] **An interactable is a prop too.** A breaker post, a buy stand or a machine against a wall is a step like a crate:
   Deadnight's 1.5 m breaker post flush with a 2.4 m fence was climbed from a 1.0 m kerb wall 4 m away and was one hop
   from a closed area. Place the low cover after the posts, and keep it a sprint-jump (6.4 m) from any of them.
@@ -294,8 +292,7 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
 - [ ] **Doors skip nothing.** With each door closed, the walking mesh from the player's spawn must not reach the area
   beyond, with the jump added to the climb. *Proof: the sweep above, once for each door state; a baked mesh holds the
   closed rooms' floors as islands, so ground counts as reached only when a path query from the start ends on it, and a
-  hop starts at the solid floor under the mesh (it floats above it), never at the mesh*
-  ([lesson](../../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)).
+  hop starts at the solid floor under the mesh (it floats above it), never at the mesh*.
 - [ ] **No body is stranded on the walking mesh.** A path never leaves the piece it starts on, so a piece a body can
   walk or climb to and joined to nothing leaves a bot with no way anywhere and no error. *Proof: every piece of the walking
   mesh, per door state, with its size and place; the real capsule flooded over the floor from each must not reach the

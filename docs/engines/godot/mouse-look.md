@@ -97,5 +97,4 @@ script keeps.
 
 - **Approach:** Measure per-frame motion in a child Godot run at `--fixed-fps`, with control cases that must fail.
   **Watch out for:** a smoothness test measured frames timed by the real clock and failed on busy machines, turning
-  `main` red. **Seen:** Deadnight #362, 2026-11-01 (fix: main's CI and a local run showed it
-  ([lesson](../../lessons/2026-11-01-a-smoothness-test-read-the-real-clock.md))).
+  `main` red. **Seen:** Deadnight #362, 2026-11-01 (fix: main's CI and a local run showed it).

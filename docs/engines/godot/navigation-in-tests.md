@@ -14,12 +14,11 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   "before first map synchronization" error, but the polygons of a region you just added are still not in the map: the
   path comes back empty. Wait with `await get_tree().physics_frame` until `map_get_closest_point` on one of your own
   vertices answers within half a metre (the same rule as
-  [a new region](../../lessons/2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md)).
+  [waiting for a new mesh](#never-wait-a-fixed-number-of-frames-for-a-mesh)).
 - **A door's new mesh is an iteration.** Putting a fresh mesh into the region again and waiting a few physics frames
   moves the iteration id, which is how a test makes "the map took the new mesh in".
 - **A lambda copies a packed array.** Building the vertex list inside a lambda (`var corner := func(...)` appending to a
-  `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty
-  ([lesson](../../lessons/2026-11-02-a-lambda-appended-to-a-copy-of-a-packed-array.md)). Use a method and member variables.
+  `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty. Use a method and member variables.
 
 ## Asserting that nothing was printed
 
@@ -86,8 +85,7 @@ A door's saved mesh is swapped into the region at once, but the map takes it in 
 map iterations: the count moves with machine load). A test that waited 12 frames failed one run in three
 (Deadnight #699). Poll until the map answers for what the mesh opens (a path from the start to a point in each open
 area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a large cap that fails with a message,
-and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion
-([lesson](../../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
+and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion.
 
 ## A thread-synced map drops meshes swapped in one go
 
@@ -96,7 +94,7 @@ frame (a test selling every door) can leave the map on an older mesh for good: t
 (7 against 8 or 9), `map_force_update` does not move it, and the dead's paths end short of their targets so they stand
 still (Deadnight #733, #736). Turn it off for a server's map with
 `NavigationServer3D.map_set_use_async_iterations(map, false)`: the physics step takes the mesh in, the same on every
-machine ([lesson](../../lessons/2026-11-03-async-navigation-iterations-dropped-the-last-of-several-door-meshes.md)). A
+machine. A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
 
 ## A night stepped by hand has a stale map
@@ -124,8 +122,7 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
   own: bodies that collide stand on each other in a stair
   ([lesson](../../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
-- A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`
-  ([lesson](../../lessons/2026-11-02-a-scene-tree-script-with-a-parse-error-never-quit.md)).
+- A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
 
 ## A walk to a goal the layer never reaches
 
@@ -147,3 +144,17 @@ Ask the owner (`region_get_navigation_layers(owner) & NavLayers.WALK`) before tr
 reproduce a body stuck in a margin twice: set down at the spot (the way out) and from the step that brought it there
 (the way in), each failing on `main`
 ([lesson](../../lessons/2026-11-06-a-bot-stepped-onto-a-piece-of-mesh-only-the-dead-walk-and-stood-in-a-corner.md)).
+
+## An async bake outlives its test {#an-async-bake-outlives-its-test}
+
+<!-- new section: the page covers waiting for the map to answer; none covered quitting or freeing under a bake that
+     still runs -->
+
+- **Approach:** Before freeing a scene or calling `get_tree().quit()`, wait until whatever started async work (a
+  navigation bake, a thread, a resource load) says it is idle, a bounded number of `process_frame`s and no busy loop
+  (`DoorNavigation.is_busy()`); give the fixture a `settle` helper that suites call in `after_test`. **Watch out
+  for:** `NavigationServer3D.bake_from_source_geometry_data_async` runs on a worker thread: a GdUnit suite that bought
+  a door printed PASSED and then crashed, and a headless night printed its report and died with `corrupted size vs.
+  prev_size` (exit 139 locally, 134 in CI); a change that shifted when the bot bought its first door only made the
+  race show (bisect by turning one feature off at a time). **Seen:** Deadnight, 2026-11-01 (fix: the `is_busy()` wait
+  before quit; `settle` in `after_test`).

@@ -52,8 +52,7 @@ shader, and `discard` the pixels where the body is not behind the scene.
   (Deadnight `tests/outline/test_outline_pixels.gd`; it needs a real renderer, a headless dummy cannot read pixels).
   Also capture the half case from the player's camera: a zombie half behind a car.
   A windowed run is minimized and draws nothing by itself: `RenderingServer.force_draw(false)` (a few times), never
-  `await RenderingServer.frame_post_draw`, which hangs. See the
-  [lesson](../../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
+  `await RenderingServer.frame_post_draw`, which hangs. See [A minimized window draws nothing](minimized-window.md).
 
 - **Approach:** Turn each adjective of an ask into a capture that can fail (the target in the open, half hidden, fully
   hidden), ask about any effect the ask did not name, and draw an effect meant for hidden parts from the depth per

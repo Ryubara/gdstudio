@@ -26,4 +26,4 @@ areas: [ci, tests, godot]
   the newest suite for a leak that comes and goes between runs, compare the passing and failing logs' runner (`Cloud:`
   in the job's setup log) and the order of their `Run Test Suite` lines.
 - **Docs:** [Leaks at exit in a GdUnit run](../engines/godot/test-exit-leaks.md); related: [a capture script's preload kept
-  the lot scene alive](2026-11-03-a-capture-script-preload-kept-the-lot-scene-alive-at-exit.md).
+  the lot scene alive](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive).

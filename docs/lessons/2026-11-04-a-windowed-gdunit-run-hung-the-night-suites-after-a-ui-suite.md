@@ -12,7 +12,7 @@ areas: [tests, tools]
 - **Cause, found on 2026-11-05 (Deadnight #1207):** it was not the pointer events. GdUnit minimizes the window after
   every suite, a minimized window draws no frame, and the night's warm-up waits for `RenderingServer.frame_post_draw`;
   any suite that opens a night after another suite hung, in either order. See
-  [the lesson](2026-11-05-a-minimized-gdunit-window-hung-the-next-suite-s-warm-up.md) and
+  [the lesson](../engines/godot/minimized-window.md) and
   [A minimized window draws nothing](../engines/godot/minimized-window.md). Written first as "not found in the code".
   The same pair run **headless**, as CI runs it (`godot --headless ... --ignoreHeadlessMode`),
   passed in 11 s; the hang is in the windowed run on the private desktop after the first suite's pushed pointer events.

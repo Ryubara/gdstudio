@@ -15,7 +15,7 @@ areas: [tools, process]
 - **Fix:** start a long Godot through a script that writes its own PID (`echo $! > pid`) or find it by the path of
   the worktree that is yours (`--path C:/.../worktrees/<repo>/<branch>/game`, which no one else has) and by the
   parent chain of the `timeout` you started; print the candidates and check each has your path before the first
-  `Stop-Process`. A parse error under `-d` hangs the run (the lesson on that is
-  `2026-11-06-a-gdunit-run-with-the-debugger-flag-hung-on-a-parse-error-in-the-suite.md`): give every run a short
+  `Stop-Process`. A parse error under `-d` hangs the run (see
+  [GdUnit tests](../engines/godot/gdunit-tests.md#command-line)): give every run a short
   `timeout` and read the log after it, so there is nothing left to hunt for.
 - **Docs:** the shared-machine rules of the agents' brief (kit `docs/studio/starting-work.md`); nothing else changes.

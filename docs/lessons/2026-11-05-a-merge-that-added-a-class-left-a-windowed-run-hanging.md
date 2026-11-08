@@ -10,7 +10,7 @@ areas: [tests, process]
   processes stayed until stopped by PID). Separately, a push right after a green matrix went out just before main moved
   again, so the pull request was DIRTY and needed a second merge and push.
 - **Cause:** the global class cache is not refreshed by a merge: a new `class_name` file needs one `--headless --import`
-  before any run ([the older lesson](2026-11-01-new-class-name-needs-import.md)), and a windowed run with parse errors
+  before any run ([the older lesson](../engines/godot/gdunit-tests.md#command-line)), and a windowed run with parse errors
   waits instead of exiting. The push was not preceded by a fetch.
 - **Fix:** after every merge of main that adds a `.gd` file, run `godot --headless --path game --import` first, then the
   suites; give a windowed run `--timeout` and look for `Parse Error` in its log early; `git fetch` and read

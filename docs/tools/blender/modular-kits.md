@@ -70,9 +70,8 @@ Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.p
   from the same numbers, so a tread change moves the ramp too. Godot's `Transform3D(...)` in a `.tscn` lists the
   basis by rows; check the convention with a ray down onto each tread.
 - **Test with the real body:** walk up and down, at a run, a sprint and across corners; assert no tick with a step-up
-  and none off the floor, bound the dip at a slope's crest (the capsule settles 4-8 mm there,
-  [lesson](../../lessons/2026-11-02-a-stair-walk-test-failed-on-the-ramps-crest.md)), and keep a control flight with
-  its treads as collision that does step.
+  and none off the floor, bound the dip at a slope's crest (the capsule settles 4-8 mm there), and keep a control
+  flight with its treads as collision that does step.
 - **Rails are player-only collision** (Deadnight's boards' layer): a thin pipe stops a player but not a shot or the
   shoulder camera. A rail that may sit on either side of a straight flight is two nodes and a switch on the fixture.
 - **A mirrored piece is its own model.** Godot's physics does not take a negative scale, so a right-turning L stair is
@@ -104,8 +103,7 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
   looking dark ([the palette lesson](../../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
 - **Show an encoding fix before and after from the same cameras.** A fixed atlas changes a look that may have been
   approved dark: capture the night with the old atlas put back and imported, then the new one, from a seeded tour
-  (old file: `git show <rev>:<path> | git lfs smudge`,
-  [lesson](../../lessons/2026-11-01-git-show-of-an-lfs-file-gives-a-pointer-not-the-model.md)). On Deadnight's drive-in
+  (old file: `git show <rev>:<path> | git lfs smudge`). On Deadnight's drive-in
   (#651) 0-5 % of each lot view changed and up to 24 % of a close prop view; under the night's lights nothing read
   washed out, so no swatch was tuned.
 
