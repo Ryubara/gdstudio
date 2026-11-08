@@ -38,8 +38,6 @@ Windows, nor on a Linux machine with another directory order.
   Windows; copy the project (without `.godot`), import twice (the first import can crash on a font), and run the same
   arguments, with `taskset -c 0-3` for a four-core runner.
 
-See the [lesson](../../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
-
 - **Approach:** Clear a handler stored on an object that the handler itself names in that object's dispose method, not
   in each test, and run a new suite alone and grep its log for `leaked at exit|still in use` before the pull request.
   **Watch out for:** a test set `night.on_event` to a lambda that named `night`, a RefCounted cycle that kept the night,

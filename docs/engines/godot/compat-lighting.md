@@ -311,8 +311,7 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   mesh, no slot in the 8-light cap, and no lamp indoors lights the outside. Writing the `FOG` output of a lit shader
   gave black and blown-out results in Compatibility.
 - **Pass colours as they are.** Compatibility takes a colour uniform as is (as if it lit in sRGB space): the fog
-  colour through `srgb_to_linear` drew ten times too dark
-  ([lesson](../../lessons/2026-11-03-a-backdrop-colour-passed-as-linear-drew-ten-times-too-dark.md)).
+  colour through `srgb_to_linear` drew ten times too dark.
 - **One `MultiMeshInstance3D` per model.** A `.tscn` cannot point into an imported glTF scene, so the multimesh names
   the scene in metadata and a node takes its first mesh at load; models exported as `.obj` are plain meshes. 330
   copies in 37 drawing nodes, 62k triangles.

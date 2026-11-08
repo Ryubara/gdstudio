@@ -32,8 +32,7 @@ shoulder offset, the dead's swing reach and the **measured reach** (P13). The re
   answer where a test reads it; a pull request that adds what a row forbids fixes the row in the same commit. **Watch
   out for:** the second map's formula copied the reference map's lack of perks and upgrades as its default; the machines
   shipped anyway and nothing tied the row to the scene, so the page and the map disagreed until asked. **Seen:**
-  Deadnight #859, 2026-11-03 (fix: `test_map_machines.gd`
-  ([lesson](../lessons/2026-11-03-a-formula-row-copied-the-reference-games-absence-and-no-test-held-it.md))).
+  Deadnight #859, 2026-11-03 (fix: `test_map_machines.gd`).
 
 ### P2. Every opening adds a loop to run
 

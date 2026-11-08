@@ -58,7 +58,7 @@ a light shard by itself. Size the shard count from the total (`total / 480 s`, r
 by 1.5x from job to job), have a self-test compare the shard count with the workflow's matrix, and end every shard with
 a check that warns past 60 % and fails past 80 % of the job's time limit, so drift is red before the limit cancels a
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
-[lesson](../../lessons/2026-11-04-a-hand-balanced-shard-list-went-stale-within-a-day.md)).
+[CI and deploys](../../studio/ci.md#shards)).
 
 ## Night suites: where the seconds go, and what may be cut
 
