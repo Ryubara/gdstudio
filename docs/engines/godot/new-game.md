@@ -137,6 +137,13 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   there failed with the plugin enabled. **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted at once; the
   test changed to `ConfigFile`).
 
+- **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
+  (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per
+  suite in the order of the CI log, and keep the new scripts' `.uid` files (copy them back to the template; the layout
+  test fails without them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base
+  suite left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in
+  CI; run the pair that failed in the log's order before pushing again. **Seen:** gdstudio #836, 2026-11-08.
+
 ## With `--local` {#with-local}
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
