@@ -18,12 +18,15 @@ extends Node3D
 ## The orbit angles changed; `yaw` and `pitch` are in degrees.
 signal orbited(yaw: float, pitch: float)
 
-## The Phantom Camera properties this wrapper sets from its own exports.
+## The Phantom Camera properties this wrapper sets from its own exports. This node is the one
+## place to tune the camera: nobody needs to open the Phantom Camera node for these.
 const _FORWARDED: Array[StringName] = [
 	&"spring_length",
 	&"collision_mask",
 	&"margin",
 	&"follow_offset",
+	&"priority",
+	&"shape",
 	&"follow_damping",
 	&"follow_damping_value",
 ]
@@ -50,15 +53,26 @@ const _FORWARDED: Array[StringName] = [
 	set(value):
 		distance = value
 		_forward()
-## How far above the target's point the camera aims.
-@export_range(-1.0, 2.0, 0.01, "suffix:m") var height := 0.1:
+## Where the camera aims, from the target's point: x is the shoulder (positive moves the view to
+## the right of the character), y the height, z the depth.
+@export_custom(PROPERTY_HINT_RANGE, "-3,3,0.01,suffix:m") var offset := Vector3(0.0, 0.1, 0.0):
 	set(value):
-		height = value
+		offset = value
 		_forward()
 ## The lens's field of view.
 @export_range(30.0, 110.0, 0.5, "suffix:deg") var field_of_view := 62.0:
 	set(value):
 		field_of_view = value
+		_forward()
+## The nearest distance the lens draws.
+@export_range(0.01, 5.0, 0.01, "suffix:m") var near_clip := 0.05:
+	set(value):
+		near_clip = value
+		_forward()
+## The farthest distance the lens draws.
+@export_range(10.0, 4000.0, 1.0, "or_greater", "suffix:m") var far_clip := 4000.0:
+	set(value):
+		far_clip = value
 		_forward()
 ## The angle looking down at the start: positive looks down at the character.
 @export_range(-80.0, 80.0, 0.5, "suffix:deg") var start_pitch := 14.0
@@ -93,11 +107,40 @@ const _FORWARDED: Array[StringName] = [
 ## own cursor).
 @export var require_captured_mouse := true
 
+@export_group("Blending")
+## The camera with the highest priority shows. A `CameraZone` raises a second camera above this
+## one and lowers it again, so keep this higher than the zone's outside priority.
+@export_range(0, 100, 1) var priority := 10:
+	set(value):
+		priority = value
+		_forward()
+## Seconds the view takes to blend back to this camera, after a `CameraZone`'s camera had it.
+@export_range(0.0, 10.0, 0.05, "suffix:s") var blend_duration := 1.2:
+	set(value):
+		blend_duration = value
+		_forward()
+## The curve of that blend.
+@export var blend_transition := PhantomCameraTween.TransitionType.SINE:
+	set(value):
+		blend_transition = value
+		_forward()
+## Where on the curve the blend is slow.
+@export var blend_ease := PhantomCameraTween.EaseType.EASE_IN_OUT:
+	set(value):
+		blend_ease = value
+		_forward()
+
 @export_group("Walls")
 ## The physics layers that push the lens in (the spring arm's mask).
 @export_flags_3d_physics var wall_mask := 1:
 	set(value):
 		wall_mask = value
+		_forward()
+## The shape the spring arm sweeps to find a wall. Empty sweeps a ray: a sphere keeps the lens
+## from slipping through a gap.
+@export var wall_shape: Shape3D:
+	set(value):
+		wall_shape = value
 		_forward()
 ## How far the lens stays from a wall it was pushed in by.
 @export_range(0.0, 1.0, 0.01, "suffix:m") var wall_margin := 0.25:
@@ -138,6 +181,10 @@ func _notification(what: int) -> void:
 		for property in _FORWARDED:
 			_pcam.set(property, _pcam.get_script().get_property_default_value(property))
 		_pcam.transform = Transform3D.IDENTITY
+		var plain := PhantomCameraTween.new()
+		_pcam.tween_duration = plain.duration
+		_pcam.tween_transition = plain.transition
+		_pcam.tween_ease = plain.ease
 		_pcam.camera_3d_resource = null
 	elif what == NOTIFICATION_EDITOR_POST_SAVE:
 		_pcam.camera_3d_resource = Camera3DResource.new()
@@ -219,12 +266,22 @@ func _forward() -> void:
 	pcam.spring_length = distance
 	pcam.collision_mask = wall_mask
 	pcam.margin = wall_margin
-	pcam.follow_offset = Vector3(0.0, height, 0.0)
+	pcam.follow_offset = offset
+	pcam.priority = priority
+	if pcam.tween_resource != null:
+		pcam.tween_duration = blend_duration
+		pcam.tween_transition = blend_transition
+		pcam.tween_ease = blend_ease
+	if pcam.shape != wall_shape:
+		pcam.shape = wall_shape
 	pcam.follow_damping = follow_damping
 	pcam.follow_damping_value = Vector3.ONE * follow_damping_amount
 	var lens := pcam.camera_3d_resource
-	if lens != null and not is_equal_approx(lens.fov, field_of_view):
-		lens.fov = field_of_view
+	if lens != null:
+		if not is_equal_approx(lens.fov, field_of_view):
+			lens.fov = field_of_view
+		lens.near = near_clip
+		lens.far = far_clip
 
 
 func _apply() -> void:

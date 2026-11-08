@@ -24,8 +24,10 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"target": null,
 		&"follow_camera": null,
 		&"distance": 4.4,
-		&"height": 0.1,
+		&"offset": Vector3(0.0, 0.1, 0.0),
 		&"field_of_view": 62.0,
+		&"near_clip": 0.05,
+		&"far_clip": 4000.0,
 		&"start_pitch": 14.0,
 		&"follow_damping": true,
 		&"follow_damping_amount": 0.06,
@@ -36,7 +38,12 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"invert_y": false,
 		&"capture_mouse": true,
 		&"require_captured_mouse": true,
+		&"priority": 10,
+		&"blend_duration": 1.2,
+		&"blend_transition": PhantomCameraTween.TransitionType.SINE,
+		&"blend_ease": PhantomCameraTween.EaseType.EASE_IN_OUT,
 		&"wall_mask": 1,
+		&"wall_shape": null,
 		&"wall_margin": 0.25,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
@@ -118,4 +125,46 @@ func test_start_pitch_is_where_a_new_camera_begins() -> void:
 	(fresh.get_node("PlayerCamera") as PlayerCamera).start_pitch = 33.0
 	add_child(fresh)
 	assert_float((fresh.get_node("PlayerCamera") as PlayerCamera).pitch).is_equal(33.0)
+	# The Phantom Camera makes its spring arm a frame later: free the scene after it did.
+	await get_tree().process_frame
+	await get_tree().process_frame
 	fresh.free()
+
+
+func test_the_offset_moves_the_aim_on_every_axis() -> void:
+	var pcam := _rig.phantom_camera()
+	_rig.offset = Vector3(0.7, 0.3, -0.4)
+	assert_vector(pcam.follow_offset).is_equal_approx(Vector3(0.7, 0.3, -0.4), Vector3.ONE * 0.001)
+
+
+func test_the_clip_planes_reach_the_lens_and_the_real_camera() -> void:
+	_rig.near_clip = 0.3
+	_rig.far_clip = 500.0
+	assert_float(_rig.phantom_camera().camera_3d_resource.near).is_equal_approx(0.3, 0.0001)
+	await InputSim.ticks(get_tree(), 3)
+	var camera: Camera3D = _scene.get_node("Camera")
+	assert_float(camera.near).is_equal_approx(0.3, 0.001)
+	assert_float(camera.far).is_equal_approx(500.0, 0.1)
+
+
+func test_the_priority_and_the_blend_reach_the_phantom_camera() -> void:
+	var pcam := _rig.phantom_camera()
+	assert_int(pcam.priority).is_equal(10)
+	assert_float(pcam.tween_duration).is_equal_approx(1.2, 0.001)
+	_rig.priority = 30
+	_rig.blend_duration = 0.4
+	_rig.blend_transition = PhantomCameraTween.TransitionType.CUBIC
+	_rig.blend_ease = PhantomCameraTween.EaseType.EASE_OUT
+	assert_int(pcam.priority).is_equal(30)
+	assert_float(pcam.tween_duration).is_equal_approx(0.4, 0.001)
+	assert_int(pcam.tween_transition).is_equal(PhantomCameraTween.TransitionType.CUBIC)
+	assert_int(pcam.tween_ease).is_equal(PhantomCameraTween.EaseType.EASE_OUT)
+
+
+func test_the_wall_shape_is_the_spring_arms_shape() -> void:
+	var ball := SphereShape3D.new()
+	ball.radius = 0.2
+	_rig.wall_shape = ball
+	assert_object(_rig.phantom_camera().shape).is_same(ball)
+	_rig.wall_shape = null
+	assert_object(_rig.phantom_camera().shape).is_null()

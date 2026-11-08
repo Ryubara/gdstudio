@@ -7,15 +7,8 @@
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="5_host"]
 [ext_resource type="PackedScene" path="res://ui/touch/touch_controls.tscn" id="6_touch"]
 [ext_resource type="PackedScene" path="res://ui/hud/item_counter.tscn" id="8_counter"]
-[ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="9_tween"]
 [ext_resource type="Script" path="res://ui/probe/web_probe.gd" id="10_probe"]
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
-
-[sub_resource type="Resource" id="Resource_follow_tween"]
-script = ExtResource("9_tween")
-duration = 1.2
-transition = 1
-ease = 2
 
 [node name="Main" type="Node"]
 
@@ -33,10 +26,8 @@ follow_camera = NodePath("FollowCamera")
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")
-priority = 10
 follow_mode = 6
 follow_target = NodePath("../../Player/CameraTarget")
-tween_resource = SubResource("Resource_follow_tween")
 tween_on_load = false
 
 [node name="Camera" type="Camera3D" parent="."]

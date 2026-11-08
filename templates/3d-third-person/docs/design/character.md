@@ -57,14 +57,15 @@ far from straight ahead still counts as in front, 75 degrees) is on that node.
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
-The camera's settings are on the `PlayerCamera` node: the nodes it works with (Nodes), distance, height, field of view
-and start pitch (Framing), damping (Follow), mouse, stick and pitch limits (Orbit) and the wall mask and margin (Walls).
-They are applied to the `FollowCamera` Phantom Camera when the game starts and again each time one changes, so they can
-be tuned in the remote inspector while the game runs, and the node is a `@tool` script, so changing the distance or the
-field of view in the editor moves the camera in the viewport. `Camera` renders and `PhantomCameraHost` copies the active
-Phantom Camera onto it, so a change to `Camera` itself (its field of view, say) is overwritten: tune `PlayerCamera`.
-Anything else about it (noise, tweens, dead zones) is that node's own inspector, and the addon's docs are at
-<https://phantom-camera.dev>.
+The camera's settings are all on the `PlayerCamera` node, so you never open the Phantom Camera node: the nodes it
+works with (Nodes), distance, the offset (x shoulder, y height, z depth), field of view, near and far clip and start
+pitch (Framing), damping (Follow), mouse, stick and pitch limits (Orbit), the priority and the blend back from a
+`CameraZone`'s camera (Blending), and the wall mask, shape and margin (Walls). They are applied to the `FollowCamera`
+Phantom Camera when the game starts and again each time one changes, so they can be tuned in the remote inspector
+while the game runs, and the node is a `@tool` script, so changing the distance or the field of view in the editor
+moves the camera in the viewport. `Camera` renders and `PhantomCameraHost` copies the active Phantom Camera onto it,
+so a change to `Camera` itself (its field of view, say) is overwritten: tune `PlayerCamera`. Anything else about it
+(noise, tweens, dead zones) is that node's own inspector, and the addon's docs are at <https://phantom-camera.dev>.
 
 The touch layer is a scene you arrange in the 2D editor (`ui/touch/touch_controls.tscn`): drag the `TouchStick` to
 move where the stick waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new

@@ -10,7 +10,8 @@ Deadnight repository, with the numbers). Godot 4.7.2.
 The kit's templates ship with the Phantom Camera addon (MIT, one pinned release), in the shared `3d-blank` base so
 every template inherits it. A template's cameras are `PhantomCamera3D` nodes under one `PhantomCameraHost`: follow,
 framing and hand-offs by priority come from the addon, and a template's own camera node only groups the settings a
-developer tunes. The springs, interpolation and wall notes below still apply when a game tunes or extends it.
+developer tunes. A template's camera node is the one place to tune its camera: nobody needs to open the Phantom Camera
+node. The springs, interpolation and wall notes below still apply when a game tunes or extends it.
 
 - **Approach:** Build a template's camera on Phantom Camera, with its main settings (follow mode, distance, damping,
   look-at offset, wall collision, orbit input) grouped in the inspector with ranges and tooltips and defaults that play
@@ -31,6 +32,14 @@ developer tunes. The springs, interpolation and wall notes below still apply whe
   `..._POST_SAVE`. **Watch out for:** saving `main.tscn` without that wrote spring length, margin, damping, offset and a
   transform computed from the distance onto the `FollowCamera`. **Seen:** gdstudio #831, 2026-11-08 (proved by saving the
   scene in the editor and reading the file).
+
+- **Approach:** Give the wrapper every Phantom Camera property the template relies on and a developer would tune: the
+  offset as a `Vector3` (x shoulder, y height, z depth), distance, field of view, near and far clip, damping, priority,
+  the blend (duration, transition, ease), and the wall mask, shape and margin. Forward each through a setter, and in
+  `PRE_SAVE` put the addon's defaults back (a fresh `PhantomCameraTween.new()` gives the blend's). **Watch out for:** the
+  Framing group exposed only a `height`, which fed `follow_offset.y`, so a shoulder offset (x) or a depth (z) meant
+  opening the Phantom Camera node, a second place with the same settings. Look-at, dead zones and axis locks are not
+  forwarded: Third Person follow mode does not use them. **Seen:** gdstudio #831, 2026-11-08.
 
 ## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 
