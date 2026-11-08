@@ -5,6 +5,10 @@ extends Area3D
 ## one leaves, so a pressure plate, a checkpoint or a "door ahead" area is one node and a signal
 ## connection. It works on its own: connect `activated` and `deactivated` to anything.
 ##
+## What counts is the `counts` setting (characters and props by default) and the optional
+## `required_group`: the box also overlaps the floor and walls it stands in, and those never count
+## unless `counts` is `ANY`.
+##
 ## The box is the `Shape` node of `trigger_zone.tscn` (the editor draws it) and the optional pad
 ## is the `Plate` node; `size` and the colours follow the inspector live.
 
@@ -13,13 +17,25 @@ signal activated(body: Node3D)
 ## The last body left.
 signal deactivated
 
+## Which kind of body counts.
+enum Counts {
+	## Only a `CharacterBody3D` (the player, an enemy).
+	CHARACTERS,
+	## A `CharacterBody3D` or a `RigidBody3D`: a pressure pad a pushed crate also presses.
+	CHARACTERS_AND_PROPS,
+	## Every body on the layers below, static ones too (the floor under the zone, walls, platforms).
+	ANY,
+}
+
 @export_group("Zone")
 ## The box's width (x), height (y) and depth (z).
 @export_custom(PROPERTY_HINT_NONE, "suffix:m") var size := Vector3(3.0, 1.0, 3.0):
 	set(value):
 		size = value.max(Vector3.ONE * 0.1)
 		_update_shape()
-## Only bodies in this group count. Empty counts every body on the layers below.
+## Which kind of body counts. Static bodies (the floor, walls) and platforms only count as `ANY`.
+@export var counts := Counts.CHARACTERS_AND_PROPS
+## Only bodies in this group count, on top of `counts`. Empty adds no condition.
 @export var required_group: StringName = &""
 ## The area only works once: after `activated` it ignores everything.
 @export var fire_once := false
@@ -81,6 +97,13 @@ func _plate() -> MeshInstance3D:
 
 
 func _counts(body: Node3D) -> bool:
+	match counts:
+		Counts.CHARACTERS:
+			if not body is CharacterBody3D:
+				return false
+		Counts.CHARACTERS_AND_PROPS:
+			if not (body is CharacterBody3D or body is RigidBody3D):
+				return false
 	return required_group == &"" or body.is_in_group(required_group)
 
 

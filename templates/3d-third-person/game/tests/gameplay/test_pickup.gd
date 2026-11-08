@@ -26,6 +26,7 @@ func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
 		&"item_id": &"coin",
 		&"amount": 1,
+		&"characters_only": true,
 		&"tint": Color(1.0, 0.78, 0.2),
 		&"item_size": 0.5,
 		&"spin_speed": 120.0,
@@ -95,14 +96,14 @@ func test_the_item_and_the_amount_are_what_collected_says() -> void:
 	)
 	_pickup.item_id = &"gem"
 	_pickup.amount = 7
-	var taker := Node3D.new()
+	var taker := CharacterBody3D.new()
 	_pickup._on_body_entered(taker)
 	assert_array(got).is_equal([[&"gem", 7]])
 	taker.free()
 
 
 func test_a_respawn_time_brings_it_back_and_zero_removes_it() -> void:
-	var taker := Node3D.new()
+	var taker := CharacterBody3D.new()
 	_pickup.respawn_time = 0.3
 	_pickup._on_body_entered(taker)
 	assert_bool(_pickup.is_available()).is_false()
@@ -114,3 +115,16 @@ func test_a_respawn_time_brings_it_back_and_zero_removes_it() -> void:
 	await get_tree().process_frame
 	assert_bool(is_instance_valid(_pickup)).is_false()
 	taker.free()
+
+
+func test_characters_only_decides_whether_a_plain_body_can_take_it() -> void:
+	var got := []
+	_pickup.collected.connect(func(who: Node3D, _id: StringName, _n: int) -> void: got.append(who))
+	var block := StaticBody3D.new()
+	_pickup._on_body_entered(block)
+	assert_array(got).is_empty()
+	assert_bool(_pickup.is_available()).is_true()
+	_pickup.characters_only = false
+	_pickup._on_body_entered(block)
+	assert_array(got).is_equal([block])
+	block.free()
