@@ -81,8 +81,9 @@ The game then holds: `game/` (the project), `docs/` and `mkdocs.yml` (a docs sit
 workflows `ci`, `pr`, `docs`, `hygiene`, `pr-status`, `ci-failure`, `issue-area`, `issue-status`, the generated
 template and issue forms), `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `README.md`, licence, code of conduct, security
 policy and the lint and format configuration. The game's `ci` runs the same steps a person runs: the conventions and
-`gds sync --check` and [`gds check layout`](project-conventions.md), the import, a run of the main scene, the tests,
-the web export, `gdformat` and `gdlint`, the docs build, `markdownlint` and `actionlint`.
+`gds sync --check` and [`gds check layout`](project-conventions.md), the import, [`gds check scripts`](#proof) (every
+script parses), a run of the main scene, the tests, the web export, `gdformat` and `gdlint`, the docs build,
+`markdownlint` and `actionlint`.
 
 - **Approach:** Ask of every end step a tool leaves for the maintainer whether it is a real choice per game or the same
   every time, and make the second kind a default the agent runs. **Watch out for:** `gds new game` stopped at the local
@@ -98,6 +99,25 @@ the web export, `gdformat` and `gdlint`, the docs build, `markdownlint` and `act
   git's stderr was kept while pre-commit writes to stdout. A loop variable `name` shadowed the game's, so the probe's
   pull request was titled "Add the pre-push.legacy game". **Seen:** gdstudio #779, 2026-11-07 (fix: `new_game` calls
   `repair_legacy_hooks`, a test checks the branch and title).
+
+## Proving a new game {#proof}
+
+<!-- new section: the page says what the template job runs; nothing said what proves a game is clean in the editor -->
+
+A new game is proved by a clean open and a parse of every script, not by an import and a short run, which load only the
+scripts the main scene reaches. `gds check scripts game` runs the pinned Godot headless with
+`godot/tools/check_scripts.gd`, which loads every `.gd` under `res://` fresh (addons included) as the editor does,
+prints each one that does not load with Godot's own reason, and exits 1. The game's `godot` job and the kit's
+`template` job run it after the import. To see what a person sees, open the made game in the editor
+(`gds godot -- --editor --path game --quit-after 200`) and read the Output panel.
+
+- **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
+  open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
+  for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
+  declared`): the template synced the addon but never registered the autoload, and #778 met the same errors in the
+  export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
+  the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
+  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
 
 ## With `--local` {#with-local}
 
@@ -136,6 +156,7 @@ Something every existing game must receive belongs in `templates/game/` (synced)
 `templates/repo/` or a template (copied once).
 
 CI makes a game from every template on each kit change, with the real Godot: it checks the sync, the conventions, the
-layout, imports the project, runs its tests and exports it for the web (the `template` job of the kit's `ci.yml`).
+layout, imports the project, parses every script, runs its tests and exports it for the web (the `template` job of
+the kit's `ci.yml`).
 `python/tests/test_new_game.py` checks the local steps without Godot, and
 `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.

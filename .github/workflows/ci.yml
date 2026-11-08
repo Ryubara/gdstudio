@@ -105,9 +105,9 @@ jobs:
   template:
     # A game made from the 3D Blank template with `gds new game`, as a person makes one, then judged by the steps of
     # the game's own ci.yml (templates/repo/.github/workflows/ci.yml): the files it must hold in sync with the kit, the
-    # conventions and the layout rules, every pre-commit hook, the docs build, the import, a run, its tests and the web
-    # export. It also checks that none of that left a file behind that git does not ignore: the committed uids and
-    # imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
+    # conventions and the layout rules, every pre-commit hook, the docs build, the import, a parse of every script, a
+    # run, its tests and the web export. It also checks that none of that left a file behind that git does not ignore:
+    # the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -149,6 +149,10 @@ jobs:
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           "$godot" --headless --path repos/template-check/game --import 2>&1 | tee import.log
           ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: Every script of the game parses
+        # An import and a run load only the scripts the main scene reaches; the editor and an export load them all
+        # (the gds_ui demo failed to parse in every new game for want of the UIRouter autoload, kit #814).
+        run: uv run --project repos/gdstudio/python --frozen gds check scripts repos/template-check/game
       - name: Run the main scene
         run: |
           set -o pipefail
