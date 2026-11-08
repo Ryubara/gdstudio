@@ -22,5 +22,5 @@ areas: [tests, godot, ci]
   leaks and nothing locally does, list the `preload` lines of the scripts in the folders the shard scans before
   bisecting in CI.
 - **Docs:** related: [a test handler that named its
-  night](2026-11-02-a-test-handler-that-names-its-night-leaked-the-whole-bot-code.md) and [a run that printed leaks no
-  test reported](2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md).
+  night](2026-11-02-a-test-handler-that-names-its-night-leaked-the-whole-bot-code.md) and [leaks at exit in a test
+  run](../engines/godot/audio.md#leaks-at-exit-in-a-test-run).

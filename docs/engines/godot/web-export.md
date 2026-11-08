@@ -1,35 +1,13 @@
-# Web export: testing the browser build
+# Web export: what the browser build does differently
 
-What running the web build of a game in a headless browser taught us. The setup is Deadnight's web smoke
-(`tools/web_smoke/smoke.py` there, Playwright driving the export); the game write-up is its
+What running the web build of a game in a browser taught us: pointer lock and Esc, the Discord Activity, a phone's
+page, keyboard and touch, and what only the export shows. How to drive the build in a headless browser, and gate on
+what it measures, is on [Browser probes](web-probes.md); the setup is Deadnight's web smoke
+(`tools/web_smoke/smoke.py` there, Playwright driving the export), and the game write-up is its
 `docs/research/web-export.md`.
 
-**Run every local browser probe through `gds quiet`** (Windows): under pointer lock headless Chrome confines the real
-cursor of the person at the machine to its hidden window at the top left of the screen, until Esc ([no focus](no-focus.md#browser-probes-and-any-other-program-gds-quiet)):
-
-```text
-uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 python tools/web_smoke/<probe>.py <args>
-```
-
-A hook refuses a `tools/web_smoke/*.py` or Playwright run without it. CI runners have nobody at the machine; the
-command is the same there (off Windows it starts the program normally).
-
-| Topic | What we learned |
-| --- | --- |
-| Pointer lock clips the real cursor | Headless Google Chrome (`channel="chrome"`) under pointer lock clipped the person's cursor to `(17, 68, 864, 541)` for the whole lock; Playwright's default headless shell did not clip. `gds quiet` frees it every 5 ms: 0 of 777 samples held ([lesson](../../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)). |
-| Pointer lock in headless Chromium | It works (`document.pointerLockElement` is the canvas after the click that starts the night), but on Linux, the CI runner, every synthetic `page.mouse.move` under lock arrives as a motion and then the opposite motion (+15 px, -15 px), which cancel. Windows does not do it. A smoke that must turn the view dispatches `new PointerEvent('pointermove', {movementX, bubbles: true})` on the canvas: Godot's web runtime listens for `pointermove` and reads `movementX/Y`. Check mouse look on the CI runner, not only on your own machine. |
-| Key taps | Godot reads input once per frame, so a tap shorter than a frame can be lost: hold keys for about 150 ms. |
-| Focus after Back | After Back from a screen nothing has focus; the router spends the first arrow or accept key giving it focus. |
-| Touch is a mouse too | Godot's web runtime turns every window `pointermove` into a mouse motion in device pixels, and a touch pointer fires `pointermove` as well, so each finger also turns a mouse-look camera (three times too far at a pixel ratio of 3). Stop touch `pointermove` in a capture-phase listener in `html/head_include` and prove phone input in a mobile-emulated Chrome with `Input.dispatchTouchEvent`, not with synthetic `InputEventScreenDrag` on desktop ([lesson](../../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md)). |
-| A new prompt in a flow | A prompt or wait added to a flow (a name asked at the first sign-in) changes every automated path through it: unit tests that call the screen and every web smoke that drives it start from a fresh profile and stop at the prompt, until the 5 minute test timeout or the smoke's wait. Search the screen, its route and its URL parameters in `tests/` and `tools/web_smoke/` and update each in the same change; a smoke answers the real prompt through a probe flag ([lesson](../../lessons/2026-11-02-a-new-prompt-hung-every-test-and-smoke-that-passed-through-it.md)). |
-| A ratio gate and a change that moves its denominator | The night-load gate is the night's load over the same run's load to the menu (limit 5.5x, Deadnight #873). A change that made the menu 7 s quicker (it stopped redrawing the 3D stage while the page came up) failed it three times in a row on nights that were in the usual range for the runner: the quotient rose, the night did not. Before reading a red ratio as a slower night, put both terms beside `main`'s runs and divide the night by something the change is unlikely to move (the idle menu's mean frame, `menu_frames.mean_ms`, tracked the night: 0.4 to 0.8 s per ms on `main`, 0.4 to 0.9 on the failing runs) ([lesson](../../lessons/2026-11-04-a-faster-menu-failed-a-gate-that-divides-by-the-menu-load.md)). |
-| A script's answer is an int | `JavaScriptBridge.eval` hands a script's `true` back as the integer 1. `answer == true` is then an invalid operation, which a release build stops the function at without a word (no error in the console); a value meant to be cached was asked of the page again at every read (about 5 evals a second, Deadnight #983). Read an answer with `bool(answer)` or `int(answer)` ([lesson](../../lessons/2026-11-04-a-cached-answer-was-asked-again-because-eval-returns-an-int.md)). |
-| A frame time on a software renderer, compared | Frame times in SwiftShader moved by half or more (20 to 31 ms for one build) with whatever else the machine ran, so a before and after of two builds says nothing until it is in turns, many times. Count instead what the engine asks of WebGL in each frame (wrap `WebGL2RenderingContext.prototype.drawArrays`, `drawElements`, `clear`, `blitFramebuffer`, `bindFramebuffer`, `texImage2D`... for the seconds measured only and put them back: a wrapper on the whole night slows what a time gate reads): the counts do not move with the machine, so equal counts mean the two builds do the same work. The GPU process's CPU seconds (`SystemInfo.getProcessInfo` on a browser-level CDP session) are SwiftShader's threads spinning: 207 ms a frame whether the frame took 20 ms on 16 cores or 30 ms on 2, so it shows "the same", not "how much". To test a slower machine pin the whole run (`Start-Process -PassThru`, then `.ProcessorAffinity`: the browser inherits it) rather than `Emulation.setCPUThrottlingRate`, which slows only the page's main thread. Deadnight `tools/web_smoke/menu_idle.py`, `docs/research/web-export.md` "The idle menu after #920". |
-| Hosted runners are several CPU models | A CI label (`ubuntu-24.04`) is a pool: the same web build's idle menu frame in SwiftShader was 60 ms on an AMD EPYC 9V45, 73 on an Intel Xeon 6975P-C, 80 on a 9V74, 98 to 100 on an EPYC 7763 and a Xeon 8573C and 119 to 121 on a Xeon 8370C, so a run's frame time says little until its machine is written beside it (the smoke records `machine`: CPU model, usable CPUs, load). To tell a change from the runners, run the builds before and after in turns on the same runners: a throwaway workflow (a push trigger on the branch, `paths` on itself) that downloads each commit's `web-build` artifact by id and runs the measure in a matrix of 20 to 24 jobs with `lscpu` printed; the same build then reads 60 to 120 ms between runners and the same on one, and a change shows within a runner (a 1 % step was seen in 15 of 20). To read many old runs, fetch `smoke/result.json` only (HTTP range requests on the artifact's signed address: 70 KB instead of 34 MB a run; Deadnight `tools/web_smoke/smoke_history.py`) ([lesson](../../lessons/2026-11-04-ci-runners-are-six-cpu-models-and-the-smoke-recorded-none.md)). |
-| A saved file in a browser run | A web export keeps `user://` in the page's IndexedDB: database `/userfs`, object store `FILE_DATA`, one record a file under `/userfs/godot/app_userdata/<project name>/<file>`, its bytes in `contents` (`new TextDecoder().decode(record.contents)`). A run proves that a file survives a reload by reading it there with `page.evaluate` (list the store's keys when the path is wrong: the project name is part of it), reloading the same context (a new context has empty storage) and reading what the game found again through `window.deadnight`; the write is mirrored from the page a moment after the file is closed, so poll for it. Two traps met on the way: Deadnight's `smoke.probe` returns only the keys the older probes read, so a new probe key is read with `Object.assign({}, window.deadnight)` (as `lobby.py` does), and a lobby the first visit made is still held by the backend after the reload (409 `already_in_lobby`: leave it first). Deadnight `tools/web_smoke/guest_account.py` (#1080). |
-| A probe that needs the rules to say yes | A grenade, a purchase or a revive is refused until the first round is on, and a solo night is in its intro for a while after `running` is true ("ROUND 00"): the client goes on drawing a preview of what the server refused. Wait for `round >= 1` and read the server's own word through the probe (`grenade_cooking`: `GrenadeServer.is_cooking`), never the picture ([lesson](../../lessons/2026-11-05-a-browser-probe-held-the-grenade-before-the-first-round.md)). Deadnight `tools/web_smoke/touch_weapon_places.py` (#1280). |
-| A last request when the page closes | A `fetch` or beacon sent from `pagehide` is proved by closing a real tab (`page.close()`) in Chromium, Firefox and WebKit, against a deployed backend or a proxy that holds each request 150 ms. `sendBeacon(url, string)` (a `text/plain` request with the token in the body) arrived 5 of 5 in all three at one round trip; a `Blob` body was never sent by Firefox on a close; an `application/json` body (a preflight) by none; a `fetch` with `keepalive` and an `Authorization` header also arrived, in two round trips. Send it only for `pagehide` with `persisted` false: a phone's app switch fires `visibilitychange` and no unload, and the back-forward cache fires `pagehide` with `persisted` true. To emulate a tab that is away, hold its requests (`route.fallback()` later), never abort them. Deadnight `tools/web_smoke/page_closing_transport.py` and `page_closing.py` (#1188) ([lesson](../../lessons/2026-11-05-a-beacon-with-a-blob-body-was-never-sent-by-firefox-on-close.md), [lesson](../../lessons/2026-11-05-a-quiet-tab-emulated-by-refusing-requests-measured-the-refusal.md)). |
-| Which GPU | The browser masks the adapter from Godot; read `UNMASKED_RENDERER_WEBGL` (`WEBGL_debug_renderer_info`) through `JavaScriptBridge` to spot SwiftShader and fall back to a cheaper scene ([lesson](../../lessons/2026-11-02-a-browser-masks-the-gpu-from-godot.md)). |
+**Run every local browser probe through `gds quiet`** (Windows), as [Browser probes](web-probes.md#running) says: under
+pointer lock headless Chrome confines the real cursor of the person at the machine until Esc.
 
 ## Pointer lock and Esc, from the first night {#pointer-lock-and-esc-design-it-in-from-the-first-playable-night}
 
@@ -57,8 +35,6 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
   goes dead and a look drag never turns the view (Deadnight #490). The bench drops the player's request
   (`grip.want(false)`), and the probe reads `paused` from the page, so the cause is in its message.
 
-Lesson: [Esc in the browser freed the cursor but did not pause the game](../../lessons/2026-11-02-esc-in-the-browser-freed-the-cursor-but-did-not-pause.md).
-
 - **Approach:** In a web game with mouse look, pause on the loss of pointer lock (or focus), not on the key; ignore look
   and fire while unlocked, re-lock from a button press, and have the web smoke release the lock and check the pause
   screen. **Watch out for:** in a browser the first Esc only exits pointer lock and never reaches the game, so the
@@ -71,15 +47,13 @@ A Discord Activity is the web build in an iframe on `<id>.discordsays.com`, reac
 URL mappings. A build that works in a browser tab can fail there in three silent ways (Deadnight #469, #475, #479):
 
 - **The mapping keeps its prefix.** `/api` mapped to the backend forwards `/api/auth/guest` unchanged: serve the routes
-  with and without the prefix ([lesson](../../lessons/2026-11-02-discord-activity-proxy-keeps-the-mapping-prefix.md)).
+  with and without the prefix.
 - **Answers come gzipped and are decoded twice.** The browser decodes them but keeps `Content-Encoding: gzip`, and
   Godot's `HTTPRequest` decodes again and fails with status 0, while the server logged 200. Set
-  `HTTPRequest.accept_gzip = false` in the web build, and trade an OAuth code once
-  ([lesson](../../lessons/2026-11-02-a-godot-web-client-decoded-gzip-twice-behind-a-proxy.md)).
+  `HTTPRequest.accept_gzip = false` in the web build, and trade an OAuth code once.
 - **No focus, no gamepad.** The iframe starts without the focus, and Chromium lists no pad to it until the player
   clicks in it and presses something; Godot swallows the error. Focus the window and canvas on the first pointer or
-  key event, and tell the player on screen to click once
-  ([lesson](../../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md)).
+  key event, and tell the player on screen to click once.
 
 An agent cannot open an Activity, so stand one in before asking the maintainer to try: a local HTTPS host for
 `<id>.discordsays.com` (Chrome `--host-resolver-rules`) that keeps the prefix and gzips its answers, an iframe of
@@ -106,15 +80,13 @@ a branch: check `railway deployment list --service web` before the maintainer re
   visible in the probe line. **Watch out for:** the Activity's frame starts without the focus, Chromium lists no pad
   until the frame has focus and sees an input, and Godot's web runtime catches the error, so the pad worked only after a
   click and a stick move, and the probe could not tell "never tried" from "tried and failed". **Seen:** Deadnight #479,
-  2026-11-02 (fix: deadnight #482
-  ([lesson](../../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md))).
+  2026-11-02 (fix: deadnight #482).
 - **Approach:** Say something happened only after the host says so; a harness that fakes a host answers as the host can
   (refused, unauthenticated, missing scope, an error object, silence) and runs the real SDK handshake, and a platform
   fix is proven in the real client before its issue closes. **Watch out for:** the share button claimed Discord's picker
   opened whatever Discord answered, while the stub always said yes; the first fix passed, but the bridge never called
   `authenticate`, so Discord refused `shareLink` with RPC 4006. **Seen:** Deadnight #627, 2026-11-02; Deadnight #627,
-  2026-11-03 (fix: deadnight #649, then the handshake
-  ([lesson](../../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md))).
+  2026-11-03 (fix: deadnight #649, then the handshake).
 
 ## Discord Activity: copy and paste in the frame {#discord-activity-copy-and-paste-in-the-frame}
 
@@ -154,17 +126,11 @@ Text in and out of the game (a room code, a link) is a permission of the host pa
   web context; only the copy half (hidden text box, native Ctrl+C) is a frame's, a tab's own `clipboard_set` works from
   the press. Walk a probe to a control by its name, never by counted key presses.
 
-Lesson: [Copy and paste did nothing in the Discord Activity](../../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md).
-Lesson: [The first Ctrl+V in a browser tab pasted nothing](../../lessons/2026-11-02-the-first-ctrl-v-in-a-browser-tab-pasted-nothing.md).
-Lesson: [Share in Discord said "Pick who to send it to" and Discord opened nothing](../../lessons/2026-11-02-a-share-button-said-pick-who-to-send-it-to-whatever-discord-answered.md).
-Lesson: [A harness that faked the host's answers passed, and the real host refused with 4006](../../lessons/2026-11-03-a-harness-that-faked-the-hosts-answers-passed-a-refusal-it-never-met.md).
-
 - **Approach:** Run any feature that moves text in or out of the game (codes, names, links) in the Activity iframe
   harness with a denying policy, and show a "done" message only after the platform confirms the result. **Watch out
   for:** the clipboard is a permission of the host: a cross-origin iframe has no clipboard API by default and Godot's
   web runtime cancels every canvas `keydown`, so Ctrl+V made no `paste` event, and the screen said "Code copied."
-  without checking. **Seen:** Deadnight #516, 2026-11-02 (fix: the paste and copy layer of this section (Deadnight #533,
-  [lesson](../../lessons/2026-11-02-an-activity-frame-could-not-copy-or-paste.md))).
+  without checking. **Seen:** Deadnight #516, 2026-11-02 (fix: the paste and copy layer of this section, Deadnight #533).
 
 ## Discord Activity: the same game as the website {#activity-same-game}
 
@@ -177,8 +143,7 @@ website does -->
   asked. **Watch out for:** a launch went straight to Play together without asking; the fix moved the first screen and
   kept the shortcut behind it, a lobby per instance id, so a second player got a lobby of their own. **Seen:**
   Deadnight #495, 2026-11-02; Deadnight #1178, 2026-11-05 (fix: a platform identity is never a room key; a test
-  fails on any lobby request from the Activity's screen
-  ([lesson](../../lessons/2026-11-05-a-platform-shortcut-outlived-the-fix-that-moved-its-first-screen.md))).
+  fails on any lobby request from the Activity's screen).
 
 ## A phone's keyboard in the web build {#a-phones-keyboard-in-the-web-build}
 
@@ -223,10 +188,9 @@ phone, in a browser or in the Discord Activity.
   check. **Watch out for:** a text field is an input device whose keyboard is the host's: the export had
   `html/experimental_virtual_keyboard=false`, the engine focuses from `touchstart`, its input is under 16 px, and every
   test typed with key events, so no keyboard opened on a phone. **Seen:** Deadnight #1183, 2026-11-05 (fix: the focus,
-  font and keypad work of this section
-  ([lesson](../../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md))).
+  font and keypad work of this section).
 
-## A phone page's size: the canvas is not the page
+## A phone page's size: the canvas is not the page {#a-phone-pages-size-the-canvas-is-not-the-page}
 
 The canvas of a web page is its CSS size times the pixel ratio the page reports to the engine, and the game caps that
 ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 page is a 1688 x 780 window, a
@@ -261,6 +225,81 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
   toolbars or safe areas, so Safari's own zoom, `visualViewport` and `100dvh` are read on a phone (`?viewcheck`), not
   here.
 
+## A phone's touch, taps and fit {#phone-touch-and-fit}
+
+<!-- new section: the keyboard and page-size sections say what a phone page is; nothing held how a finger and a phone's
+canvas break what passed on a desktop window -->
+
+- **Approach:** Stop touch `pointermove` in a capture-phase `window` listener in the export's `html/head_include`
+  (`stopImmediatePropagation()` for `pointerType === 'touch'`), ignore in the game a mouse motion that is not the touch
+  layer's own while a finger was the last input, and prove phone input in a mobile-emulated Chrome with
+  `Input.dispatchTouchEvent`. **Watch out for:** Godot's web runtime turns every window `pointermove` into a mouse
+  motion in device pixels, and a touch pointer fires `pointermove` too, so each finger also turned a mouse-look camera,
+  three times too far at a pixel ratio of 3; synthetic `InputEventScreenDrag` in the desktop runner never takes that
+  path and `Input.emulate_mouse_from_touch = false` does not touch it. **Seen:** Deadnight #470, 2026-11-02 (fix:
+  the listener and the game's guard, Deadnight #480).
+- **Approach:** When a layout is off screen at one size, read the canvas the game reports and ask who set the scale
+  before moving a button: a screen that is not the menu sets the scale it is made for when it starts, and the menu
+  re-applies its factor when it shows again, never while hidden. **Watch out for:** the menu doubles the units on a phone
+  (`content_scale_factor` 2, a canvas 540 units high) and gives them back only when it leaves the tree, but a night is
+  pushed over the menu, which stays; the HUD and touch layer made for 1080 ran on half a canvas and a button placed 690
+  up sat at page y -108. The first fix moved one button. **Seen:** Deadnight #588, 2026-11-02 (fix: `NightScreen` puts
+  the player's own UI scale on the window; a test pushes a night over a phone menu, a probe checks every button's
+  circle against an 844 by 390 page).
+- **Approach:** Say which pixel a phone size or a tap target is in (units, window pixels, CSS pixels): a size a finger
+  meets is in CSS pixels, so the least size is the CSS minimum times the page's ratio over the pixels to a unit, the
+  switch is "a finger is the pointer" (`TouchMode.wanted`) and not the window's size, and one case runs at the real
+  page's size (1688 by 780, ratio 2). **Watch out for:** a headless window of 844 by 390 has a ratio of 1, so tests and
+  switch agreed with themselves, while a real phone page of that CSS size is a 1688 by 780 window, which a short-side
+  test calls "not a phone", where 44 window pixels are 22 CSS pixels. **Seen:** Deadnight #1192, 2026-11-05 (fix:
+  `night_taps.py` reads the exported page's buttons, 44.1 CSS px, and presses one with a real touch at its edge).
+- **Approach:** Check a control meant to be on screen beside another on the real phone page (844 x 390 CSS px, ratios 2
+  and 3), by its position in the viewport and by a tap, not by "the row is visible" in a fixture; scroll the test's
+  area to the end as well when a screen scrolls to a focused control, and let a title keep its whole text with the
+  choices two to a row. **Watch out for:** the lobby scrolls to Start (`follow_focus`); a suite stopped with Start at
+  the bottom, while on the page the copy buttons under Start pushed the scroll further and the Private switch sat half
+  out of the top; a trimming `Label` asks a container for no width, so a column's least width won and a title read
+  "Break between ro...". **Seen:** Deadnight #1186, 2026-11-05 (fix: `LobbyPrivateSwitch.reveal` scrolls back; a
+  `test_phone_fold` asserts every control lies in the scroll's view on each real page).
+
+## What only the export shows {#export-only}
+
+<!-- new section: the sections above are each one browser behaviour; nothing held the faults that show only in the
+exported page, not in the editor, a headless import or a desktop run -->
+
+- **Approach:** Grep for `class_name <Name>` before choosing one, and export the web build before calling a new script
+  class done. **Watch out for:** two scripts that say `class_name NeonSign` print `Parse Error: Class "NeonSign" hides
+  a global script class` and the script fails to load only in the web export; the editor, a headless import and the
+  captures showed nothing. **Seen:** Deadnight, 2026-11-01 (fix: the new script was renamed `LotNeonSign`).
+- **Approach:** Write shader math that GLSL ES 3.0 defines: `d * d` for `pow(x, 2.0)`, `smoothstep` edges in order
+  (clamp the width with `max`), one shared sine-free hash in a `.gdshaderinc` included with `#include`; look at it in a
+  real browser export. **Watch out for:** desktop drivers return something sensible for `pow(negative, 2.0)`, reversed
+  `smoothstep` edges and `sin` hashes, while WebGL2 drivers may give NaN or stripes, so nothing showed on the
+  developer's machine. **Seen:** Deadnight, 2026-11-01 (fix: found in a review; the shaders share the hash).
+- **Approach:** Keep `*.json` in the export's include filter as insurance, and prove a plain-file dependency (`.cfg`,
+  `.txt`, `.csv`) by opening the screen that reads it in the browser export. **Watch out for:** old docs said a web
+  export loses a `.json` file without the filter; in Godot 4.7.2 an empty filter gives the identical `.pck` (same
+  md5), because 4.4 and later treat `.json` as a resource type, but other plain files still need it. **Seen:**
+  Deadnight, 2026-11-01 (fix: the claim was measured, not assumed).
+- **Approach:** Put no backslash in an export option such as `html/head_include`: use `String.fromCharCode(10)` for a
+  newline and single quotes only, grep the changed line for `\` and `"` before exporting, then read the script's
+  output on the exported page. **Watch out for:** Godot reads an option value as a quoted string with escapes, so
+  `.join('\n')` became a real line break inside a JS string literal: a syntax error that kills the whole script, while
+  the page looks fine without it. **Seen:** Deadnight, 2026-11-05 (fix: `phone_view.py` reads the readout on the
+  exported page).
+- **Approach:** Read a `JavaScriptBridge.eval` answer with `bool(answer)` (and `answer != null`) or `int(answer)`,
+  never `answer == true`; when a cache on the web does not hold, log after each statement of the filling code (a
+  second `eval` of `console.log`) before guessing at the engine. **Watch out for:** the web runtime hands a script's
+  `true` back as the integer 1, `1 == true` is an invalid operation, and a release build ends the function there
+  without a word: a value cached once was asked of the page about 5 times a second, and "in a frame" was never
+  reported in a Discord Activity. **Seen:** Deadnight #983, 2026-11-04 (fix: a static function turns the answer into
+  a bool; a test feeds it 1, true, 0, false and null).
+- **Approach:** To fall back to a cheaper scene on software rendering, read `UNMASKED_RENDERER_WEBGL`
+  (`WEBGL_debug_renderer_info`) through `JavaScriptBridge` and match SwiftShader or another software renderer.
+  **Watch out for:** browsers mask the GPU adapter from the page, and Godot's web build sees only the masked string,
+  which does not name the renderer. **Seen:** Deadnight #466, 2026-11-02 (fix: the live 3D menu drops to a still stage
+  on a software renderer).
+
 ## The live build {#live-build}
 
 <!-- new section: the page is about testing the browser build; nothing said when a playable build goes live or when a
@@ -280,6 +319,8 @@ fix counts as live -->
 <!-- new section: the page's sections are each about one browser behaviour; nothing covered how the probes themselves
 are written -->
 
+The rest of writing and gating probes is on [Browser probes](web-probes.md).
+
 - **Approach:** Pass the game's probe object through to a browser probe whole, or test that every published field
   reaches the page. **Watch out for:** the smoke read the probe through a list of named fields, so a new field (the
   camera yaw) read as missing and the first look check failed on a working build. **Seen:** Deadnight, 2026-11-01 (fix:
@@ -287,5 +328,4 @@ are written -->
 - **Approach:** Start every browser probe through one shared helper (`smoke.start_solo`), and run every probe's start-up
   in CI. **Watch out for:** each probe walked the menu with its own key sequence, so the menu rework (Deadnight #466)
   broke two silently (`pointer_lock.py` in #481's CI, `touch_look.py` live). **Seen:** Deadnight #466, 2026-11-02 (fix:
-  deadnight #484 added the helper
-  ([lesson](../../lessons/2026-11-02-each-browser-probe-walked-the-menu-its-own-way.md))).
+  deadnight #484 added the helper).

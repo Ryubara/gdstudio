@@ -125,7 +125,16 @@ with a second camera is the same world); the headless renderer compiles nothing,
   above, gated by a fresh-profile browser run that expects no program linked after the loading screen ([Testing
   it](#testing-it))).
 
-## A warm-up on the CPU pays for every pixel
+- **Approach:** Give each new effect shader a warm-up chunk of its own (the splash alone before the events, the events
+  with the numbers, the mark, the blast burst), held still with `set_process(false)`; resume paused viewports one per
+  frame; run the web smoke through `gds quiet` before the push and read its three busiest loading frames
+  (`loading.busiest_frames`). **Watch out for:** a shader's first draw builds four programs and then the one it is drawn
+  with, so two new shaders and a label in one frame linked 15 programs, and a HUD viewport resumed with the weapon
+  silhouettes' in one call linked 16; the unit tests stay green, only the browser run counts programs per frame (at
+  most 12). **Seen:** Deadnight #648, 2026-11-02; Deadnight #713, 2026-11-03 (fix: chunks and resumes of their own, 15
+  to 12 and 16 to 12).
+
+## A warm-up on the CPU pays for every pixel {#a-warm-up-on-the-cpu-pays-for-every-pixel}
 
 A renderer that draws on the CPU (SwiftShader in headless Chromium, a machine with no GPU) costs a warm-up frame in
 proportion to the pixels, whatever the programs. A level drawn at 1280 x 720 for 100 frames took 30.5 s; at 640 x 360
@@ -146,6 +155,14 @@ Other things the load profile found (Deadnight #509, Compatibility, web):
   while a menu is up, a slice of each frame, not behind the loading bar.
 - Replaying effects once per light condition is worth nothing when their materials are unlit: check the programs each
   condition links (0 here).
+
+- **Approach:** Put a new family of sounds (a weapon, a voice, a map's set) in a bank with `deferred = true`: the
+  loading bar only queues its files and the audio service reads and decodes them a few ms a frame while the night
+  runs, a sound played first going to the front; a test caps the seconds decoded behind the bar. **Watch out for:**
+  the bar read every sound file and decoded each short one to samples in a GDScript loop, 166 s of sound and then 297
+  s, played or not, so the web job failed four times in a day (75 to 89 s against 72) on pull requests that loaded
+  nothing new. **Seen:** Deadnight #828, 2026-11-03 (fix: weapons' and voices' banks deferred; a new exported property
+  on a resource with a pinned tuning table needs that table's test run too).
 
 ## Particle systems: two programs of their own, and a sample that expires
 

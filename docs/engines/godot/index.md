@@ -76,6 +76,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | --- | --- | --- |
 | WebSocketPeer, TCPServer (own protocol); MultiplayerAPI, netfox | server-authoritative co-op over WebSockets | known: [Multiplayer](multiplayer.md) (own protocol; MultiplayerAPI and netfox measured against it) |
 | Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer; testing it in a headless browser: [Web export](web-export.md) (pointer lock on the Linux runner) |
+| Browser probes (Playwright, CDP) and the gates that read them | every web build tested in a headless browser | known: [Browser probes](web-probes.md) (run through `gds quiet`; a probe that can fail; a time gate set from many runs, not one) |
 | Web page heap (WebGL id tables) | a page whose heap grows while the engine's counters are flat | known: [The web page's heap](web-heap.md) (every `glGen*` costs a slot in each id table for good; a canvas item redrawn every frame makes about 200 objects a frame) |
 | Headless server export | the game server on Railway | spike with multiplayer |
 | Callable, `await` | a send that waits on a request and is handed over as a Callable | known: [Callables and coroutines](callables-and-coroutines.md) (a Callable does not keep a RefCounted object alive; what `await` does with a plain value) |

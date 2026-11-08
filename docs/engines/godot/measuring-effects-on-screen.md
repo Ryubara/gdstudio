@@ -34,6 +34,14 @@ not by a close-up capture of the effect on its own (Deadnight #408).
   a real fault in some levels only. **Seen:** Deadnight #1161, 2026-11-04 (fix: the flat-colour method in
   `test_level_ink.gd`).
 
+- **Approach:** Measure a faint defect in a series, not in one shot: take 40 screenshots of a screen that holds
+  still, subtract their per-pixel median, and read each column against the columns x-3 and x+3 (the smaller of the
+  two, so a step edge reads 0). A defect at the same place in one capture and elsewhere in the next is in a
+  time-driven layer (a shader's `TIME`, an overlay), so grep the shaders over the screen first. **Watch out for:** a
+  single capture cannot tell a film overlay's 1.6 px scratch from a panel's own hairline border (both are ridges in a
+  column measure), and it was first read as a seam in something sampled in screen space. **Seen:** Deadnight #1249,
+  2026-11-05 (fix: the line showed in 8 of 40 shots on main and in 0 of 40 with the scratch removed).
+
 ## A held weapon from the shoulder camera
 
 The same method answers "does the player see this action at all": hide the weapon (and whatever the hands carry),
