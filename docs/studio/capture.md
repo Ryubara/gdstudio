@@ -40,7 +40,7 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
 - **Approach:** Take captures and recordings through the camera the player has (in Deadnight the over-the-shoulder
   camera), never a spectator camera. **Watch out for:** the bot was filmed through a spectator camera, which shows the
   game as no player sees it. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's recordings come from the player's camera
-  with the real devices switched off ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).
+  with the real devices switched off).
 
 ## sheet
 
@@ -144,8 +144,7 @@ phone's 844 by 390 and the web export), then `git worktree remove` it.
   player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated
   3.25 m up, spun end on for half of each turn in front of the brightest beam, and from the shoulder camera on the use
   marker sat at the top of the frame behind the player's own body; it had been filmed from a spot no player stands on.
-  **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker
-  ([lesson](../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md))).
+  **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker).
 
 - **Approach:** Take every `Before:` capture from `main` checked out beside the change, for every size the pull request
   shows at once (desktop, phone, web), and never put old files back under a running test. **Watch out for:** the first

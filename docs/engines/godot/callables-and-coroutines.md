@@ -1,7 +1,8 @@
 # Callables and coroutines
 
 Found in Deadnight #1106 (a night's XP sent to the backend through a `Callable` that awaits an HTTP request), measured
-in a throwaway project on Godot 4.7.2. Three behaviours that each cost a silent failure.
+in a throwaway project on Godot 4.7.2. Three behaviours that each cost a silent failure, then two more GDScript
+behaviours of the same kind (packed arrays, the order of a signal's handlers).
 
 ## A Callable does not keep a RefCounted object alive
 
@@ -45,3 +46,24 @@ suite needs no `await` to read the result. A real request does suspend, and the 
 Calling a coroutine as a statement (`store.flush(send)`) is fine. Using its **result** without `await` is a parse error
 (`Function "flush()" is a coroutine, so it must be called with "await"`): a function that gains an `await` needs
 `await` at every caller that reads its value, tests included.
+
+## Packed arrays are values {#packed-arrays}
+
+<!-- new section: the page covers Callables and coroutines; another silent GDScript failure (a copy that is changed
+instead of the original) had no home -->
+
+- **Approach:** Append to the property itself (`data.names.append(x)`), or assign the copy back, when the array is a
+  `Packed*Array`. **Watch out for:** packed arrays are value types, so `var list := data.names; list.append(x)` changes
+  a copy and the property stays empty, with no error: a credits list stayed empty although every line was appended.
+  **Seen:** Deadnight, 2026-11-01 (fix: append to the property; a test caught it).
+
+## Handlers of one signal run in the order they connected {#signal-order}
+
+<!-- new section: nothing on the page covered two handlers of one signal that undo each other -->
+
+- **Approach:** Give a late handler that undoes another's work a guard on the state the first one set, never rely on
+  which handler runs first, and end the night under the drop on purpose in a test. **Watch out for:** the night
+  screen's `night_over` handler hid the HUD and put the board up, then the night's own handler closed a drop still
+  playing and its `arrival_ended` showed the HUD again over the board; the screen connects before the night, a headless
+  run has no drop, and the rules never end a night under one, so only a windowed test that forced it failed. **Seen:**
+  Deadnight, 2026-11-05 (fix: `_on_arrival_ended` does nothing when the board is up).
