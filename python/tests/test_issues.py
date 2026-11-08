@@ -168,7 +168,6 @@ def test_start_labels_assigns_and_writes_the_ledger_and_posts_no_comment(tmp_pat
         "agent": "godot-engineer-3",
         "time": "2026-11-02T09:30:00Z",
         "branch": "profile-tick",
-        "areas": [],
     }
     assert lines[-1] == "Issue: Ryubara/deadnight#156"
 
@@ -257,20 +256,34 @@ def test_the_kits_own_settings_load():
     assert issues.load_settings(kit).window == 5
 
 
-def test_start_records_the_areas_of_the_issues_labels(tmp_path):
-    ledger = tmp_path / "l.json"
+def test_start_prints_the_read_lines_of_the_brief(tmp_path):
+    ledger = tmp_path / "ledger.json"
     seen = []
 
-    def areas_for(labels):
-        seen.append(labels)
-        return ["general", "gameplay"]
+    def brief_for(issue):
+        seen.append(issue.number)
+        return ["Read: studio/hooks.md#docs", "Read: studio/starting-work.md#starting-an-agent"]
 
-    lines = issues.start(REPO, 156, "a", gh=FakeGh(), ledger=ledger, areas_for=areas_for)
-    assert "A-gameplay" in seen[0]
-    assert issues.load_ledger(ledger)["ryubara/deadnight#156"]["areas"] == ["general", "gameplay"]
-    assert any(line.startswith("areas: general, gameplay") for line in lines)
-    issues.start(REPO, 52, "a", gh=FakeGh(), ledger=ledger)  # no map: no areas, still a valid entry
-    assert issues.load_ledger(ledger)["ryubara/deadnight#52"]["areas"] == []
+    lines = issues.start(REPO, 156, "a", gh=FakeGh(), ledger=ledger, brief_for=brief_for)
+    assert seen == [156]
+    assert lines[-3:] == [
+        f"Issue: {REPO}#156",
+        "Read: studio/hooks.md#docs",
+        "Read: studio/starting-work.md#starting-an-agent",
+    ]
+    assert "areas" not in issues.load_ledger(ledger)["ryubara/deadnight#156"]
+
+
+def test_a_brief_that_fails_leaves_a_placeholder_and_the_start_stands(tmp_path):
+    ledger = tmp_path / "ledger.json"
+
+    def broken(issue):
+        raise RuntimeError("no network")
+
+    lines = issues.start(REPO, 52, "a", gh=FakeGh(), ledger=ledger, brief_for=broken)
+    assert lines[-1] == f"Read: <page>.md#<anchor> (run `gds brief {REPO}#52`)"
+    assert "ryubara/deadnight#52" in issues.load_ledger(ledger)
+    assert issues.start(REPO, 400, "a", gh=FakeGh(), ledger=ledger)[-1] == f"Issue: {REPO}#400"  # no brief asked
 
 
 # --------------------------------------------------------------------------------------------------------------------

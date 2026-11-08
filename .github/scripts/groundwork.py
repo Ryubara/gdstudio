@@ -18,7 +18,6 @@ import os
 import re
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -426,7 +425,8 @@ def section_refs(text: str) -> list[tuple[str, str]]:
 
 def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[str, Any] | None,
                      changed: list[str] | None = None) -> list[str]:
-    """Docs ship with the change (pull_requests.kit_docs, lessons, read_first), judged from the title, the description,
+    """Docs ship with the change (pull_requests.kit_docs, lessons, read_first: the sections read first, which must
+    exist when `read_first.docs` is a folder here), judged from the title, the description,
     the pull request's history (`pr-history`: failed earlier checks, the issues it closes and their labels) and, when
     given, its changed files (the `Lessons:` section's page must be one of them when `lessons.edited` is on)."""
     history = history or {}
@@ -485,30 +485,47 @@ def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[
     first = rules.get("read_first")
     if first and closes:
         label = first.get("label", "Read first:")
-        wanted = _areas_of_labels(first, {name for c in closes for name in c.get("labels", [])})
         value = _summary_value(conv, body, first, "Read first:")
-        named = {a.lower() for a in re.split(r"[\s,;]+", value or "") if a}
+        refs = section_refs(value or "")
         if value is None:
-            hint = f" naming {', '.join(wanted)}" if wanted else ""
-            problems.append(f"a pull request that closes an issue says which areas' checks the author read first: add "
-                            f"'{label} <areas>'{hint} to ## {first.get('section', 'Summary')} (`gds lessons <area>`)")
-        elif wanted and not set(wanted) <= named:
-            problems.append(f"'{label}' must name the areas of the issue's labels; missing "
-                            f"{', '.join(sorted(set(wanted) - named))} (the issue has "
-                            f"{', '.join(sorted({n for c in closes for n in c.get('labels', []) if n.startswith('A-')}))})")
+            problems.append(f"a pull request that closes an issue names the sections of the docs its author read first: "
+                            f"add '{label} <page.md#anchor>, ...' to ## {first.get('section', 'Summary')} (the `Read:` "
+                            f"lines of `gds brief <owner/repo>#N`)")
+        elif not refs:
+            problems.append(f"'{label}' names sections as page.md#anchor (the `Read:` lines of `gds brief`), not "
+                            f"areas or words: {value!r}")
+        elif first.get("docs") and Path(first["docs"]).is_dir():
+            missing = [f"{p}#{a}" for p, a in refs if a not in page_anchors(Path(first["docs"]) / p)]
+            if missing:
+                problems.append(f"'{label}' names sections that do not exist in {first['docs']}/: "
+                                f"{', '.join(missing)} (docs/studio/rules.md#anchors)")
     return problems
 
 
-def _areas_of_labels(rule: dict[str, Any], labels: set[str]) -> list[str]:
-    """The glossary areas of some issue labels (docs/lessons/areas.toml `[labels]`), without `general`; empty when the
-    repository has no areas file."""
-    path = Path(rule.get("areas_file", "docs/lessons/areas.toml"))
+_HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$")
+_EXPLICIT = re.compile(r"\{:?[^{}]*#([^\s{}]+)[^{}]*\}\s*$")
+
+
+def page_anchors(path: Path) -> set[str]:
+    """The anchors of a docs page's headings: an explicit `{#anchor}`, else the slug of its words (as
+    python/src/gds_tools/lessons.py reads them); empty when the page does not exist."""
     if not path.is_file():
-        return []
-    mapping = tomllib.loads(path.read_text(encoding="utf-8")).get("labels", {})
-    found: list[str] = []
-    for label in sorted(labels):
-        found += [a for a in mapping.get(label, []) if a not in found and a != "general"]
+        return set()
+    found, fenced = set(), False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            fenced = not fenced
+            continue
+        heading = None if fenced else _HEADING.match(line)
+        if not heading:
+            continue
+        explicit = _EXPLICIT.search(heading.group(1))
+        if explicit:
+            found.add(explicit.group(1))
+            continue
+        words = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", heading.group(1)).replace("`", "")
+        words = words.encode("ascii", "ignore").decode("ascii")
+        found.add(re.sub(r"[-\s]+", "-", re.sub(r"[^\w\s-]", "", words).strip().lower()))
     return found
 
 
