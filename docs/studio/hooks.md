@@ -292,12 +292,12 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   named elsewhere as `page.md#anchor`. `gds learn <words>` prints the closest sections and their entries first, so the
   agent sharpens one instead of writing a duplicate; a new section has a reason line, a new page is made only when a
   topic outgrows its 50 KB. `docs/lessons/` (963 files in a week, many on the same subject, where no agent looked
-  while working) takes no new file, and #770 empties it.
+  while working) was emptied into the topic pages by #770 and takes no new file.
 - **The checks.** `python .github/scripts/mistakes.py check` runs in the `topic-sections` pre-commit hook, in pytest
   and in the docs job of CI ([the list](rules.md#checks)). From the checkout it refuses a page over the limit, an entry
   without its three parts or over 900 characters or outside an anchored section or in the old `**Rule:**` form, a
-  malformed or repeated anchor, a corrections-log row that quotes the maintainer or links no section, and an old lesson
-  file dated after the folder closed. Against the base (where the branch left `origin/main`; CI checks
+  malformed or repeated anchor, and a corrections-log row that quotes the maintainer or links no section. Against the
+  base (where the branch left `origin/main`; CI checks
   out two commits and passes `--base HEAD^1`) it refuses a file added to `docs/lessons/` and a new heading without its
   reason line.
 - **No categories.** There are no lesson areas and no glossary (gdstudio #771 removed `docs/lessons/areas.toml`,

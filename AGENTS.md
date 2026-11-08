@@ -69,7 +69,7 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   sets `P-critical`.
 - Open pull requests land before new work starts, oldest stuck one first; a parked one is refreshed before it lands
   (`docs/studio/starting-work.md#landing`).
-- Learning: a mistake updates its topic section (`docs/studio/rules.md`); no file goes in `docs/lessons/` (#770 empties
+- Learning: a mistake updates its topic section (`docs/studio/rules.md`); no file goes in `docs/lessons/` (#770 emptied
   it). `python .github/scripts/mistakes.py check` refuses a new lesson file, a page over 50 KB, a new section without a
   reason line and a malformed entry. The agent that finds a mistake updates the section and opens the kit pull request
   in the same task (`docs/studio/hooks.md#docs`). A `Fix` or `Rework` pull request, or one after a failed check or

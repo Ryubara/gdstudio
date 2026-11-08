@@ -20,7 +20,6 @@ docs/
                    CI, workspace, conventions, templates, this site
   games/<game>/    one game: summary, how we build it, design
                    philosophy, conventions
-  lessons/         the old record of problems, one file each (below)
 ```
 
 Every folder has an `index.md` that says what belongs in it and what does not, and lists its pages. The navigation is
@@ -35,6 +34,8 @@ is ordered and folded is [below](#nav).
 | how an engine does something, what it costs, its traps | `engines/<engine>/` |
 | how to do something in an asset tool, with the script that repeats it | `tools/<tool>/` |
 | how agents, the hooks, CI, the workspace or the kit's tooling work | `studio/` |
+| a service beside the game that any game could have (a platform backend, its rules and traps) | `gamedev/<subject>` |
+| how the studio deploys or runs something with a vendor's tool (Railway's CLI) | `studio/` |
 | what one game is and how it is built, or a review of it the next game learns from | `games/<game>/` |
 
 A subject with both a principle and an engine side gets a page in each, linked both ways (the principle in
@@ -43,9 +44,8 @@ when a subject has more than one page. Another engine or tool gets its folder wh
 stub; a test fails an `engines/<name>/` that holds only its index.
 
 **Inside a page.** What is learned updates the section it belongs to, never a page of its own: the format of an entry,
-a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). `docs/lessons/` (one file per
-problem) takes no new file; its old files stay readable, and feed `gds learn --old`, until #770 moves them and
-Deadnight's general docs into the sections.
+a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). The old `docs/lessons/` (one
+file per problem) was emptied into the sections by gdstudio #770 and takes no new file.
 
 ## The navigation {#nav}
 
@@ -76,9 +76,6 @@ A page or folder listed in a `.nav.yml` that does not exist fails the build. One
 `append_unmatched` drops out of the sidebar silently, so a test fails a topic missing from `docs/.nav.yml` or an engine
 or tool folder missing from its parent's. Sorting by title (`sort: {by: title}`) has no effect on our pages, whose
 titles come from their headings, so Godot and Blender read in file-name order.
-
-**Lessons** build and their links work, but `not_in_nav: /lessons/` keeps them out of the tabs and the sidebar
-until #770 moves them; search still finds them.
 
 - **Approach:** Judge a change to a site, its theme or its nav by captures of the built pages at desktop and phone
   width with the biggest folder in view, and by the number of sidebar links a page carries, not by its build log.
