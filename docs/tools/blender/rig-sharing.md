@@ -42,7 +42,7 @@ Zombie (`VlXjG0N8Eg`), both CC0 by Quaternius.
 
 After it: Soldier 43 bones, 5828 tris, 14 clips; Zombie 50 bones, 7822 tris, 16 clips; both 1.0 object scale.
 
-## What broke
+## What broke {#what-broke}
 
 - **`pose_position = "REST"` before the export freezes every clip.** The exporter samples the clips through the pose;
   with the armature in rest position every exported animation had 150 channels and none moved. Found by bisecting
@@ -52,6 +52,13 @@ After it: Soldier 43 bones, 5828 tris, 14 clips; Zombie 50 bones, 7822 tris, 16 
   z 1.69-2.29 to 3.10-3.69 (file units); pinned at rest pose they come back exactly (checked by re-importing the
   export). Pinned in the *posed* state (the import leaves a clip active) they come back 0.06 off.
 - **Mesh named like a bone** renames the bone in Godot (above).
+
+- **Approach:** After the glTF export, remove from the .glb's JSON chunk the channels (and the samplers nothing uses)
+  of every bone a clip never keyed, and test that the imported clip has no such track. **Watch out for:** with NLA-track
+  export and forced sampling the exporter writes a channel for every bone of every clip, sampled at whatever the pose
+  bone holds, so clips authored to leave the fingers to a runtime grip modifier still carried 22 finger bones (66
+  channels) and Godot kept 14 finger tracks after import, since its immutable-track removal does not drop them all.
+  **Seen:** Deadnight, 2026-11-02 (fix: `strip_channels` in `tools/blender/build_soldier.py`).
 
 ## Avoid
 

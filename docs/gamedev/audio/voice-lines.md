@@ -19,12 +19,6 @@ The source of truth is Deadnight's files; this page explains them and does not c
 | [`tools/audio/voice_report.py`][report], [`voice_sheet.py`][sheet] | the voice's loudness in a night capture; the script as a contact sheet |
 | [`docs/design/audio.md`][design], [`docs/research/audio.md`][research] | the design of the soldiers' voices; settings, characters and measurements |
 
-The lessons this page builds on, each read before starting:
-
-- [Voice lines written as captions sounded robotic](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)
-- [AudioEffectRecord gives per-bus stems](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md) (measuring
-  the voice against the guns)
-
 ## 1. Casting
 
 **Start from the brief, then list what the account offers now.** The maintainer's brief for Deadnight asked for a
@@ -59,8 +53,7 @@ settings fails instead of slipping in a second voice.
 
 **A line is the character reacting, not a caption for the event.** The first sample said "Reload... catch your breath"
 and read like a narrator; the maintainer wanted a person reacting out loud, in the first person, with expression,
-fillers and plenty of variety (Deadnight #384)
-([lesson](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)). So each line is:
+fillers and plenty of variety (Deadnight #384). So each line is:
 
 - first person, with contractions (`gotta`, `'em`, `outta`, `I'm`);
 - a filler, a breath or a repeat where a person under stress would have one ("Come on, come on", "Okay, okay");
@@ -109,7 +102,7 @@ paraphrased (the kit's "original work" rule in `AGENTS.md`).
   **Watch out for:** a bark is a person reacting in the moment, not a caption: the first line was written as
   instructions to the player, short and clipped, so the voice read it like a narrator and sounded robotic. **Seen:**
   Deadnight #384, 2026-11-01 (fix: the caption test fails a line with no performance mark and fewer than four words
-  (Deadnight #442, [lesson](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md))).
+  (Deadnight #442)).
 
 ### Deadnight's lines, as the reference
 
@@ -236,8 +229,9 @@ voices of 139) move with it.
 - **Audio tags are not billed**; the plan counts them anyway, the safe number.
 - **Scribe bills the same character quota as speech.** Budget for the check before generating, or it may not fit.
 - **The counter lags the requests.** A reading right after a batch is too low (Deadnight's female set read 3,419, then
-  6,333, then 6,457 for the same work); read the total once, after a pause, and record that
-  ([lesson](../../lessons/2026-11-02-the-elevenlabs-character-counter-lags-the-requests.md)).
+  6,333, then 6,457 for the same work); read the total once, after a pause, and record that (Deadnight #679: 6,457 of
+  10,000 for 115 lines and their check; estimate a batch from what the last set billed, about 1.08 times the characters
+  without tags for speech and 8.5 a take for Scribe).
 - **A second voice is a second data file.** Deadnight's female soldier (#679) is `soldier_voice_female.json` and
   `--voice female` on the same recipe: the same moments and takes, another premade voice, the same settings, her own
   words only where a line names a sex. Compare loudness per moment against the first voice (within 0.1 LU there).
@@ -251,10 +245,11 @@ voices of 139) move with it.
 
 - [`voice_sheet.py`][sheet] draws the script (moment, line, characters, seconds) as a contact sheet for the pull request,
   so the lines can be read without opening the data.
-- A night capture with the soldier speaking records the Voice, Effects and Ambience buses as stems
-  ([lesson](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)); [`voice_report.py`][report] measures
-  them. Deadnight's: a line -24.0 LUFS while it speaks, a shot -19.2, the beds -34.6, so the voice sat 4.8 LU under the
-  guns and 10.6 LU over the beds. Attach the chart, the sheet and a clip with sound.
+- A night capture with the soldier speaking records the Voice, Effects and Ambience buses as stems (an
+  `AudioEffectRecord` on each bus; [Capturing sound](../../engines/godot/audio.md#capturing-sound));
+  [`voice_report.py`][report] measures them. Deadnight's: a line -24.0 LUFS while it speaks, a shot -19.2, the beds
+  -34.6, so the voice sat 4.8 LU under the guns and 10.6 LU over the beds. Attach the chart, the sheet and a clip with
+  sound.
 
 ## 4. In game
 
