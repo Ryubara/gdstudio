@@ -196,6 +196,15 @@ using the command above, since the script asks questions.
   repository stopped with "Git LFS upload failed: (missing) ...exr". **Seen:** gdstudio #788, 2026-11-08 (the first CI
   run of the lightmap; fixed in `ci.yml`).
 
+- **Approach:** To capture a template change, make the game in a throwaway workspace (`gds new game <n> --template <t>
+  --local --workspace <throwaway>`, set up as in [Proof](#proof)); it is a git repository, so run `gds capture frames
+  --project <throwaway>/repos/<n>/game` from the real workspace. A hand-built probe (base, template over it,
+  `gds_ui`, as in [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone
+  writes into the real `repos/`, and `capture frames` refuses a folder outside a git repository ("is not inside a git
+  repository"), since it names the scratch folder from the git top level (a probe with no commit lands in
+  `scratch/<parent folder>/detached/`). **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by
+  hand; the `git init` route was checked in #849).
+
 ## What every template is built and reviewed against {#template-checklist}
 
 <!-- new section: the page said what a template holds; nothing said what its scripts, scenes and tests must do so that
@@ -294,6 +303,14 @@ Something every existing game must receive belongs in `templates/game/` (synced)
 An extending template replaces a file of the base whole, it does not merge: `3d-third-person` carries its own
 `project.godot` (the base's text plus the input map and the landscape setting; a kit test compares them) and its own
 `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
+
+A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
+autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
+load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one outside a made game, copy it to a
+probe folder in scratch (for an extending template, the base's `game/` first and the template's on top), then copy the
+kit's `godot/addons/gds_ui/` to the probe's `addons/gds_ui/`; the import and a run are then clean (checked on 3D Blank
+with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
+there, so tests need a made game ([Proof](#proof)).
 
 CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
 the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
