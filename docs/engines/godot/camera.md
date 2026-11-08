@@ -23,6 +23,14 @@ developer tunes. The springs, interpolation and wall notes below still apply whe
   on the running scene and reading the Phantom Camera and, frames later, the real `Camera3D`. **Watch out for:** a
   wrapper that copies once in `_enter_tree` ignores a run-time change (the remote inspector), and the host overwrites
   the real `Camera`'s own FOV. **Seen:** gdstudio #830, 2026-11-08 (fix: setters and a test per export).
+- **Approach:** Make the wrapper a `@tool` script too, so a change to distance or field of view moves the Phantom Camera
+  in the editor: `_ready`, `_process` and `_unhandled_input` return at once there, the wrapper exports the camera it
+  drives (`follow_camera`, since the addon moves the node under its spring arm at run time), and in
+  `NOTIFICATION_EDITOR_PRE_SAVE` it puts the addon's defaults back on every property it forwards
+  (`get_script().get_property_default_value`), resets the transform and drops the lens resource, then forwards again in
+  `..._POST_SAVE`. **Watch out for:** saving `main.tscn` without that wrote spring length, margin, damping, offset and a
+  transform computed from the distance onto the `FollowCamera`. **Seen:** gdstudio #831, 2026-11-08 (proved by saving the
+  scene in the editor and reading the file).
 
 ## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 

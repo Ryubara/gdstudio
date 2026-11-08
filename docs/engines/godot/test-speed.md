@@ -31,7 +31,10 @@ same way only when nothing else is loading the machine: a loaded machine doubles
   next step, and the signal fires at the start of an iteration, before that iteration's step. After loading a room and
   after adding a collider or a body, `await get_tree().physics_frame` **twice**; then tick by hand. With none, a
   hand-ticked body falls through the floor; with one, it may stand but `move_and_slide` still costs ten times what it
-  does once indexed.
+  does once indexed. The same order means a value a node sets in its `_physics_process` is read after the **second**
+  await following the cause: after one, the tick that sets it has not run (a jump buffer pressed and read after one
+  await read 0, gdstudio #831). A node that moves an `AnimatableBody3D` with `sync_to_physics` (a door, a platform)
+  also shows the new transform only on the next step, so read it after a `physics_frame` or two.
 - **The same code path.** Call what the engine calls (`_physics_process`, or the node's public `tick`), with the same
   delta, so a faster suite plays the same game. A node whose `_physics_process` is switched off is not ticked twice.
 - **Delta-sensitive comparisons stay in one kind of frame.** `move_and_slide` steps an idle frame by its wall-time

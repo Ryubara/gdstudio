@@ -1,3 +1,4 @@
+@tool
 class_name PlayerCamera
 extends Node3D
 ## The third-person camera: a thin wrapper that sets the high-level tuning on a Phantom Camera
@@ -9,13 +10,41 @@ extends Node3D
 ## Orbit comes from the mouse (while it is captured), the right stick (`look_*` actions) and
 ## touch (`TouchControls.look_turned`, connected in the scene to `orbit()`). The character turns
 ## to its move direction on its own (`Player`), so the camera never drags it.
+##
+## It is a `@tool` script, so the framing, follow and wall settings move the Phantom Camera in the
+## editor too (open `main.tscn` and change `distance` or `field_of_view`). Only that setup runs
+## there, never the orbit or the input.
 
 ## The orbit angles changed; `yaw` and `pitch` are in degrees.
 signal orbited(yaw: float, pitch: float)
 
-@export_group("Framing")
+## The Phantom Camera properties this wrapper sets from its own exports.
+const _FORWARDED: Array[StringName] = [
+	&"spring_length",
+	&"collision_mask",
+	&"margin",
+	&"follow_offset",
+	&"follow_damping",
+	&"follow_damping_value",
+]
+
+@export_group("Nodes")
 ## What the camera follows and looks at: the player's `CameraTarget` (a point at head height).
-@export var target: Node3D
+@export var target: Node3D:
+	set(value):
+		target = value
+		if is_instance_valid(_pcam):
+			_pcam.follow_target = target
+		update_configuration_warnings()
+## The Phantom Camera that does the work: a `PhantomCamera3D` in Third Person follow mode, the
+## wrapper's child. The addon moves it under its own spring arm at run time; this keeps the
+## reference.
+@export var follow_camera: PhantomCamera3D:
+	set(value):
+		follow_camera = value
+		update_configuration_warnings()
+
+@export_group("Framing")
 ## How far behind the target the lens sits.
 @export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 4.4:
 	set(value):
@@ -88,19 +117,36 @@ var _pcam: PhantomCamera3D
 
 func _enter_tree() -> void:
 	# Before the Phantom Camera is ready: it builds its spring arm from these values.
-	# The Phantom Camera moves itself under its spring arm once it is ready, so it is found
-	# here, while it is still the rig's child, and kept.
-	var pcam := get_node_or_null("FollowCamera") as PhantomCamera3D
+	var pcam := follow_camera
 	if pcam == null:
 		return
 	_pcam = pcam
 	pcam.follow_mode = PhantomCamera3D.FollowMode.THIRD_PERSON
 	pcam.follow_target = target
-	pcam.camera_3d_resource = Camera3DResource.new()
+	if pcam.camera_3d_resource == null:
+		pcam.camera_3d_resource = Camera3DResource.new()
 	_forward()
 
 
+func _notification(what: int) -> void:
+	if not Engine.is_editor_hint() or not is_instance_valid(_pcam):
+		return
+	# The settings below are the wrapper's: the scene file must not keep a copy on the Phantom
+	# Camera (nor the view the editor moves it to), so they come off while the scene is written
+	# and go back on after.
+	if what == NOTIFICATION_EDITOR_PRE_SAVE:
+		for property in _FORWARDED:
+			_pcam.set(property, _pcam.get_script().get_property_default_value(property))
+		_pcam.transform = Transform3D.IDENTITY
+		_pcam.camera_3d_resource = null
+	elif what == NOTIFICATION_EDITOR_POST_SAVE:
+		_pcam.camera_3d_resource = Camera3DResource.new()
+		_forward()
+
+
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	pitch = start_pitch
 	if target != null:
 		var heading := target.get_parent() as Node3D
@@ -111,6 +157,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	# The spring arm exists a frame or two after the Phantom Camera is ready.
 	if _arm_waited < 3:
 		_arm_waited += 1
@@ -136,6 +184,8 @@ func phantom_camera() -> PhantomCamera3D:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
 	if event is InputEventMouseMotion and _mouse_orbits():
 		orbit((event as InputEventMouseMotion).relative * mouse_sensitivity)
 	elif event is InputEventMouseButton and capture_mouse:
@@ -144,6 +194,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed(&"ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if target == null:
+		warnings.append("Set `target`: the node the camera follows (the player's `CameraTarget`).")
+	if follow_camera == null:
+		warnings.append("Set `follow_camera`: a PhantomCamera3D in Third Person follow mode.")
+	return warnings
 
 
 func _mouse_orbits() -> bool:

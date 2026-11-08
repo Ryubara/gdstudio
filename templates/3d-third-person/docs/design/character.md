@@ -46,22 +46,31 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Air | air control (0.45) |
 | Slopes and steps | max slope (48 degrees), step height (0.32 m), snap length (0.35 m) |
 | Pushing | push strength (0.85), push mass (40 kg) |
-| Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip |
+| Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip, how long the landing lasts (0.3 s), the speed under which it counts as standing (0.15 m/s) |
 | Body | capsule radius (0.34 m) and height (1.8 m) |
+| Safety | the height below which it starts again at its spawn point (-25 m) |
+
+Every number is read while the game runs, so you can change it in the remote inspector and see it at once; the capsule,
+the steepest slope and the floor snap are applied again whenever the resource changes. The `Interactor`'s half angle (how
+far from straight ahead still counts as in front, 75 degrees) is on that node.
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
-The camera's settings are on the `PlayerCamera` node: distance, height, field of view and start pitch (Framing),
-damping (Follow), mouse, stick and pitch limits (Orbit) and the wall mask and margin (Walls). They are applied to the
-`FollowCamera` Phantom Camera when the game starts and again each time one changes, so they can be tuned in the remote
-inspector while the game runs. `Camera` renders and `PhantomCameraHost` copies the active Phantom Camera onto it, so a
-change to `Camera` itself (its field of view, say) is overwritten: tune `PlayerCamera`. Anything else about it (noise,
-tweens, dead zones) is that node's own inspector, and the addon's docs are at <https://phantom-camera.dev>.
+The camera's settings are on the `PlayerCamera` node: the nodes it works with (Nodes), distance, height, field of view
+and start pitch (Framing), damping (Follow), mouse, stick and pitch limits (Orbit) and the wall mask and margin (Walls).
+They are applied to the `FollowCamera` Phantom Camera when the game starts and again each time one changes, so they can
+be tuned in the remote inspector while the game runs, and the node is a `@tool` script, so changing the distance or the
+field of view in the editor moves the camera in the viewport. `Camera` renders and `PhantomCameraHost` copies the active
+Phantom Camera onto it, so a change to `Camera` itself (its field of view, say) is overwritten: tune `PlayerCamera`.
+Anything else about it (noise, tweens, dead zones) is that node's own inspector, and the addon's docs are at
+<https://phantom-camera.dev>.
 
-The touch layer's settings are on `TouchControls` in `main.tscn`: when it shows, the stick's radius, dead zone and
-sprint ring, the look sensitivity and smoothing, the button size, opacity and margin, and the `buttons` list (an action,
-a word and a slot each).
+The touch layer is a scene you arrange in the 2D editor (`ui/touch/touch_controls.tscn`): drag the `TouchStick` to
+move where the stick waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new
+one and set its action and word), resize the `MoveZone` and `LookZone` panels that decide which finger does what. Its
+numbers are on `TouchControls` in `main.tscn`: when it shows, the stick's radius, dead zone and sprint ring, the look
+sensitivity and smoothing, the opacity and the margin from the screen edge.
 
 ## Events other nodes connect to
 

@@ -1,9 +1,14 @@
+@tool
 class_name PlayerTuning
 extends Resource
 ## Every number a developer tunes on the character, in one resource: the player scene holds one
 ## (`player_tuning.tres`) and the inspector shows it grouped, with ranges and units. Make a copy
 ## of the file for a second character feel (a heavier one, a floaty one) and point the player at
 ## it.
+##
+## A number is read where it is used, every frame, so changing it in the inspector or the remote
+## inspector works while the game runs. The few the body copies once (the capsule, the slope and
+## the floor snap) say `changed`, and `Player` applies them again.
 
 @export_group("Ground")
 ## Speed at a walk (the move stick pushed a little, or the walk key held).
@@ -42,11 +47,17 @@ extends Resource
 
 @export_group("Slopes and steps")
 ## The steepest slope that counts as floor.
-@export_range(10.0, 80.0, 1.0, "suffix:deg") var max_slope := 48.0
+@export_range(10.0, 80.0, 1.0, "suffix:deg") var max_slope := 48.0:
+	set(value):
+		max_slope = value
+		emit_changed()
 ## The highest edge the character steps up without jumping.
 @export_range(0.0, 0.8, 0.01, "suffix:m") var step_height := 0.32
 ## How far the character is held to the ground going down a slope or a stair.
-@export_range(0.0, 1.0, 0.01, "suffix:m") var snap_length := 0.35
+@export_range(0.0, 1.0, 0.01, "suffix:m") var snap_length := 0.35:
+	set(value):
+		snap_length = value
+		emit_changed()
 
 @export_group("Pushing")
 ## The share of its own speed the character gives a light prop it walks into: 1 moves the prop
@@ -66,12 +77,27 @@ extends Resource
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var knockback_speed := 5.0
 ## A landing harder than this plays the landing clip and says `landed` with the speed.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var land_clip_speed := 4.5
+## How long the landing holds the body in its landing state.
+@export_range(0.0, 2.0, 0.05, "suffix:s") var land_time := 0.3
+## A body slower than this on the ground counts as standing still.
+@export_range(0.0, 1.0, 0.01, "suffix:m/s") var stand_speed := 0.15
 
 @export_group("Body")
 ## The capsule's radius.
-@export_range(0.1, 1.0, 0.01, "suffix:m") var radius := 0.34
+@export_range(0.1, 1.0, 0.01, "suffix:m") var radius := 0.34:
+	set(value):
+		radius = value
+		emit_changed()
 ## The capsule's height.
-@export_range(0.8, 3.0, 0.01, "suffix:m") var height := 1.8
+@export_range(0.8, 3.0, 0.01, "suffix:m") var height := 1.8:
+	set(value):
+		height = value
+		emit_changed()
+
+@export_group("Safety")
+## Below this height (y) the character went out of the map and starts again at its spawn point.
+## Set it under the lowest floor.
+@export_range(-1000.0, 0.0, 1.0, "or_greater", "suffix:m") var fall_limit := -25.0
 
 
 ## Gravity pulling up to the jump's top in `jump_rise_time`.

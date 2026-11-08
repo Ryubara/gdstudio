@@ -131,7 +131,7 @@ func test_it_starts_again_at_its_spawn_point_when_it_falls_out_of_the_map() -> v
 	var spawn := SpawnPoint.new()
 	spawn.position = Vector3(4.0, 0.0, 4.0)
 	_arena.add_child(spawn)
-	_player.teleport(Vector3(0.0, Player.FALL_LIMIT - 1.0, 0.0))
+	_player.teleport(Vector3(0.0, _player.tuning.fall_limit - 1.0, 0.0))
 	await InputSim.ticks(get_tree(), 3)
 	assert_vector(_player.global_position).is_equal_approx(
 		Vector3(4.0, 0.0, 4.0), Vector3.ONE * 0.2

@@ -37,3 +37,24 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
 - **Running the editor rewrites some texture `.import` files** (Deadnight #441 tracks the cause and the fix).
   Until it lands, `git checkout -- 'game/assets/**/*.import'` before committing.
 - Revert `project.godot` the same way after the run, and delete the plugin folder from the worktree.
+- The same probe checks a template's scenes as a person meets them (kit docs: [the template
+  checklist](new-game.md#template-checklist)): open each scene, call `_get_configuration_warnings()` on every node that
+  has it (`Node.get_configuration_warnings()` is not in the script API in 4.7; the engine's own warnings, such as a
+  collision body with no shape, are checked by hand), look for a mesh, shape, tree root or animation player left
+  empty, call `EditorInterface.save_scene()` and compare the file with what it was (uids and `unique_id`s are added the
+  first time; anything else is generated state). Set the editor's 3D camera for a shot with
+  `EditorInterface.get_editor_viewport_3d(0).get_camera_3d().look_at_from_position(...)` after selecting the node, and
+  again after about 20 frames. Gdstudio #831, Godot 4.7.2.
+
+## Changing values like the remote inspector {#remote-inspector}
+
+<!-- new section: nothing said how to check that a setter really takes the edit that the Remote tab sends -->
+
+- **Approach:** Prove that a value changed in the Remote tab takes effect by sending the tab's own message from an editor
+  plugin: an `EditorDebuggerPlugin` (`add_debugger_plugin`) that captures a prefix of its own, a throwaway autoload that
+  registers `EngineDebugger.register_message_capture`, sends the live objects' `get_instance_id()` and answers "report"
+  with the values it reads, and `EditorInterface.play_main_scene()`. The plugin sends
+  `session.send_message("scene:set_object_property", [id, "property", value])`. **Watch out for:** the editor consumes
+  `scene:` messages, so the plugin needs a prefix of its own for the ids, and a helper named `_set` clashes with
+  `Object._set`. With setters, the field of view (62 to 95), spring length, run speed, capsule radius, platform speed
+  and a door's panel size all changed in the running game. **Seen:** gdstudio #831, 2026-11-08.

@@ -6,6 +6,9 @@ extends Area3D
 ## does nothing else: the game decides what an item means (a body with a `collect(item_id,
 ## amount)` method, like `Player`, is also told). It works on its own and can come back after a
 ## while.
+##
+## Its look is two nodes of `pickup.tscn`, `Visual` (the mesh) and `Shape` (what a body touches),
+## so open the scene to restyle it. `tint` and `item_size` follow the inspector live.
 
 ## A body took the pickup. `item_id` and `amount` are the inspector's values.
 signal collected(collector: Node3D, item_id: StringName, amount: int)
@@ -42,30 +45,21 @@ signal respawned
 
 var _phase := 0.0
 var _hidden_for := -1.0
-var _visual: MeshInstance3D
-var _shape: CollisionShape3D
-
-
-func _init() -> void:
-	_visual = MeshInstance3D.new()
-	_visual.name = "Visual"
-	add_child(_visual)
-	_shape = CollisionShape3D.new()
-	_shape.name = "Shape"
-	_shape.shape = SphereShape3D.new()
-	add_child(_shape)
 
 
 func _ready() -> void:
 	_update_look()
-	if not Engine.is_editor_hint():
-		body_entered.connect(_on_body_entered)
+	if Engine.is_editor_hint():
+		set_process(false)
+		return
+	body_entered.connect(_on_body_entered)
 
 
 func _process(delta: float) -> void:
 	_phase += delta
-	_visual.rotation.y = deg_to_rad(spin_speed) * _phase
-	_visual.position.y = sin(TAU * _phase / bob_period) * bob_height
+	var visual := _visual()
+	visual.rotation.y = deg_to_rad(spin_speed) * _phase
+	visual.position.y = sin(TAU * _phase / bob_period) * bob_height
 	if _hidden_for >= 0.0:
 		_hidden_for += delta
 		if respawn_time > 0.0 and _hidden_for >= respawn_time:
@@ -74,7 +68,24 @@ func _process(delta: float) -> void:
 
 ## True while the item can be taken.
 func is_available() -> bool:
-	return monitoring and _visual.visible
+	return monitoring and _visual().visible
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _visual() == null or _shape() == null:
+		warnings.append(
+			"The scene needs a `Visual` (MeshInstance3D) and a `Shape` (CollisionShape3D)."
+		)
+	return warnings
+
+
+func _visual() -> MeshInstance3D:
+	return get_node_or_null("%Visual") as MeshInstance3D
+
+
+func _shape() -> CollisionShape3D:
+	return get_node_or_null("%Shape") as CollisionShape3D
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -90,31 +101,29 @@ func _on_body_entered(body: Node3D) -> void:
 
 
 func _hide_now() -> void:
-	_visual.visible = false
+	_visual().visible = false
 	set_deferred("monitoring", false)
 	_hidden_for = 0.0
 
 
 func _show_again() -> void:
-	_visual.visible = true
+	_visual().visible = true
 	monitoring = true
 	_hidden_for = -1.0
 	respawned.emit()
 
 
+# Puts `tint` and `item_size` on the nodes' own resources (each pickup has its own copies:
+# they are local to the scene).
 func _update_look() -> void:
-	if _visual == null:
+	var visual := _visual()
+	var shape := _shape()
+	if visual == null or shape == null:
 		return
-	var gem := SphereMesh.new()
+	var gem := visual.mesh as SphereMesh
 	gem.radius = item_size / 2.0
 	gem.height = item_size
-	gem.radial_segments = 6
-	gem.rings = 3
-	_visual.mesh = gem
-	var paint := StandardMaterial3D.new()
+	var paint := visual.material_override as StandardMaterial3D
 	paint.albedo_color = tint
-	paint.emission_enabled = true
 	paint.emission = tint
-	paint.emission_energy_multiplier = 0.5
-	_visual.material_override = paint
-	(_shape.shape as SphereShape3D).radius = maxf(item_size, 0.5) * 0.75
+	(shape.shape as SphereShape3D).radius = maxf(item_size, 0.5) * 0.75

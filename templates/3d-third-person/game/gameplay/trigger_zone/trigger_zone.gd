@@ -4,6 +4,9 @@ extends Area3D
 ## An invisible box that notices bodies. It says when the first one comes in and when the last
 ## one leaves, so a pressure plate, a checkpoint or a "door ahead" area is one node and a signal
 ## connection. It works on its own: connect `activated` and `deactivated` to anything.
+##
+## The box is the `Shape` node of `trigger_zone.tscn` (the editor draws it) and the optional pad
+## is the `Plate` node; `size` and the colours follow the inspector live.
 
 ## The first body came in (or, with `fire_once`, the only time).
 signal activated(body: Node3D)
@@ -20,27 +23,26 @@ signal deactivated
 @export var required_group: StringName = &""
 ## The area only works once: after `activated` it ignores everything.
 @export var fire_once := false
+
+@export_group("Plate")
 ## Shows a flat plate in the game, so a pressure pad can be seen. Off keeps the zone invisible.
 @export var show_plate := false:
 	set(value):
 		show_plate = value
 		_update_plate()
 ## The plate's colour while nothing stands on it.
-@export var plate_idle_color := Color(0.75, 0.2, 0.15)
+@export var plate_idle_color := Color(0.75, 0.2, 0.15):
+	set(value):
+		plate_idle_color = value
+		_update_plate()
 ## The plate's colour while something stands on it.
-@export var plate_active_color := Color(0.3, 0.75, 0.3)
+@export var plate_active_color := Color(0.3, 0.75, 0.3):
+	set(value):
+		plate_active_color = value
+		_update_plate()
 
 var _inside: Array[Node3D] = []
 var _spent := false
-var _shape: CollisionShape3D
-var _plate: MeshInstance3D
-
-
-func _init() -> void:
-	_shape = CollisionShape3D.new()
-	_shape.name = "Shape"
-	_shape.shape = BoxShape3D.new()
-	add_child(_shape)
 
 
 func _ready() -> void:
@@ -61,6 +63,23 @@ func occupant_count() -> int:
 	return _inside.size()
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _shape() == null or _plate() == null:
+		warnings.append(
+			"The scene needs a `Shape` (CollisionShape3D) and a `Plate` (MeshInstance3D)."
+		)
+	return warnings
+
+
+func _shape() -> CollisionShape3D:
+	return get_node_or_null("%Shape") as CollisionShape3D
+
+
+func _plate() -> MeshInstance3D:
+	return get_node_or_null("%Plate") as MeshInstance3D
+
+
 func _counts(body: Node3D) -> bool:
 	return required_group == &"" or body.is_in_group(required_group)
 
@@ -70,7 +89,7 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	_inside.append(body)
 	if _inside.size() == 1:
-		_set_plate(true)
+		_update_plate()
 		activated.emit(body)
 		if fire_once:
 			_spent = true
@@ -81,39 +100,26 @@ func _on_body_exited(body: Node3D) -> void:
 		return
 	_inside.erase(body)
 	if _inside.is_empty():
-		_set_plate(false)
+		_update_plate()
 		deactivated.emit()
 
 
+# Sizes the box and the plate from `size`.
 func _update_shape() -> void:
-	if _shape == null:
+	var shape := _shape()
+	if shape == null:
 		return
-	(_shape.shape as BoxShape3D).size = size
+	(shape.shape as BoxShape3D).size = size
 	_update_plate()
 
 
+# Shows or hides the plate, puts it under the box's floor and paints it for who stands on it.
 func _update_plate() -> void:
-	if _shape == null:
+	var plate := _plate()
+	if plate == null:
 		return
-	if not show_plate:
-		if _plate != null:
-			_plate.queue_free()
-			_plate = null
-		return
-	if _plate == null:
-		_plate = MeshInstance3D.new()
-		_plate.name = "Plate"
-		_plate.material_override = StandardMaterial3D.new()
-		add_child(_plate)
-	var slab := BoxMesh.new()
-	slab.size = Vector3(size.x, 0.1, size.z)
-	_plate.mesh = slab
-	_plate.position = Vector3(0.0, -size.y / 2.0 + 0.05, 0.0)
-	_set_plate(is_active())
-
-
-func _set_plate(active: bool) -> void:
-	if _plate != null:
-		(_plate.material_override as StandardMaterial3D).albedo_color = (
-			plate_active_color if active else plate_idle_color
-		)
+	plate.visible = show_plate
+	(plate.mesh as BoxMesh).size = Vector3(size.x, 0.1, size.z)
+	plate.position = Vector3(0.0, -size.y / 2.0 + 0.05, 0.0)
+	var paint := plate.material_override as StandardMaterial3D
+	paint.albedo_color = plate_active_color if is_active() else plate_idle_color

@@ -1,9 +1,16 @@
+@tool
 class_name TouchControls
 extends CanvasLayer
 ## Phone controls that press the game's own input actions, so gameplay code does not fork: a
 ## floating stick on the left (it appears where the thumb lands) that presses the four move
 ## actions, a drag zone on the right that turns the view (`look_turned`), and round buttons that
 ## press an action each. Pushing the stick out to its ring presses the sprint action.
+##
+## Everything you see is a node of `touch_controls.tscn`, so open the scene and arrange it in the
+## 2D editor: move `TouchStick` to change where the stick waits, drag the `TouchButton` nodes (add
+## one by instancing `touch_button.tscn` under `Buttons`), resize the two zones that decide which
+## finger does what, restyle any part. The script reads their places and never draws. The editor
+## shows the controls even when `show_mode` hides them in the game.
 ##
 ## It shows only on a touch screen: when the device has one, or at the first touch. A key or a
 ## pad button hides it again, and a mouse never does (a browser sends a finger as mouse motion
@@ -25,14 +32,15 @@ enum ShowMode {
 	NEVER,  ## Never.
 }
 
-const _SLOT_ANGLES := [180.0, 197.0, 238.0, 279.0]
-const _ARC_RADIUS := 1.28
-const _STICK_HOME := Vector2(0.17, 0.72)
-const _WHITE := Color(1.0, 1.0, 1.0)
-
 @export_group("When it shows")
 ## Auto shows it on a touch screen only; the other two force it.
 @export var show_mode: ShowMode = ShowMode.AUTO
+## Also shows the two zones (where a finger moves the character and where it turns the view) in
+## the game. The editor always shows them.
+@export var show_zones := false:
+	set(value):
+		show_zones = value
+		_show_zones()
 
 @export_group("Stick")
 ## The action the left stick presses pushed left.
@@ -44,13 +52,22 @@ const _WHITE := Color(1.0, 1.0, 1.0)
 ## The action the left stick presses pushed down.
 @export var move_back: StringName = &"move_back"
 ## Pressed while the stick is out at its ring. Empty keeps the ring off.
-@export var sprint_action: StringName = &"sprint"
+@export var sprint_action: StringName = &"sprint":
+	set(value):
+		sprint_action = value
+		_size_stick()
 ## How far the thumb goes for a full push.
-@export_range(60.0, 320.0, 1.0, "suffix:px") var stick_radius := 150.0
+@export_range(60.0, 320.0, 1.0, "suffix:px") var stick_radius := 150.0:
+	set(value):
+		stick_radius = value
+		_size_stick()
 ## The share of the radius that is ignored around the middle.
 @export_range(0.0, 0.8, 0.01) var deadzone := 0.15
 ## Past this share of the radius the sprint action is pressed.
-@export_range(0.5, 1.0, 0.01) var sprint_ring := 0.92
+@export_range(0.5, 1.0, 0.01) var sprint_ring := 0.92:
+	set(value):
+		sprint_ring = value
+		_size_stick()
 
 @export_group("Look")
 ## Degrees the view turns for a drag of one pixel (a pixel of the 1080-high canvas).
@@ -61,22 +78,50 @@ const _WHITE := Color(1.0, 1.0, 1.0)
 ## look.
 @export var buttons_also_look := true
 
-@export_group("Buttons")
-## The buttons on the right.
-@export var buttons: Array[TouchButton] = []
-## How wide a button is.
-@export_range(80.0, 320.0, 1.0, "suffix:px") var button_size := 170.0
+@export_group("Look of the controls")
 ## How solid the controls are drawn.
-@export_range(0.1, 1.0, 0.01) var opacity := 0.5
+@export_range(0.1, 1.0, 0.01) var opacity := 0.5:
+	set(value):
+		opacity = value
+		_show_opacity()
 ## The room kept between the controls and the screen edge, on top of the device's safe area.
-@export_range(0.0, 240.0, 1.0, "suffix:px") var margin := 70.0
+@export_range(0.0, 240.0, 1.0, "suffix:px") var margin := 70.0:
+	set(value):
+		margin = value
+		_fit_to_screen()
+
+@export_group("Parts")
+## The box the stick and the buttons sit in: the screen less the device's safe area and `margin`.
+@export var safe_area: Control:
+	set(value):
+		safe_area = value
+		update_configuration_warnings()
+## The stick: the node is where it waits, its children are the rings and the knob.
+@export var stick: TouchStick:
+	set(value):
+		stick = value
+		update_configuration_warnings()
+## The node whose `TouchButton` children are the buttons.
+@export var buttons_root: Control:
+	set(value):
+		buttons_root = value
+		update_configuration_warnings()
+## A finger that lands inside this box and not on a button works the stick.
+@export var move_zone: Control:
+	set(value):
+		move_zone = value
+		update_configuration_warnings()
+## A finger that lands inside this box and not on a button turns the view.
+@export var look_zone: Control:
+	set(value):
+		look_zone = value
+		update_configuration_warnings()
 
 var _shown := false
-var _canvas: Control
 var _stick_finger := -1
 var _stick_origin := Vector2.ZERO
 var _stick_at := Vector2.ZERO
-var _stick := Vector2.ZERO
+var _stick_push := Vector2.ZERO
 var _look_fingers: Dictionary[int, Vector2] = {}
 var _button_fingers: Dictionary[int, int] = {}
 var _pending_look := Vector2.ZERO
@@ -84,32 +129,34 @@ var _pressed: Dictionary[StringName, float] = {}
 
 
 func _ready() -> void:
-	layer = 100
-	_canvas = Control.new()
-	_canvas.name = "Canvas"
-	_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_canvas.draw.connect(_draw_controls)
-	add_child(_canvas)
+	_fit_to_screen()
+	_size_stick()
+	_show_opacity()
+	_show_zones()
+	if Engine.is_editor_hint():
+		return
+	get_viewport().size_changed.connect(_fit_to_screen)
 	var first := show_mode == ShowMode.ALWAYS
 	first = first or (show_mode == ShowMode.AUTO and DisplayServer.is_touchscreen_available())
 	_set_shown(first, true)
 
 
 func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
 	_release_all()
 	if _shown:
 		Input.emulate_mouse_from_touch = true
 
 
 func _process(delta: float) -> void:
-	if not _shown:
-		return
-	_turn_view(delta)
-	_canvas.queue_redraw()
+	if _shown and not Engine.is_editor_hint():
+		_turn_view(delta)
 
 
 func _input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if show_mode == ShowMode.AUTO and touch.pressed and not _shown:
@@ -126,6 +173,21 @@ func _input(event: InputEvent) -> void:
 		_set_shown(false)
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	var parts := {
+		"safe_area": safe_area,
+		"stick": stick,
+		"buttons_root": buttons_root,
+		"move_zone": move_zone,
+		"look_zone": look_zone,
+	}
+	for part_name: String in parts:
+		if parts[part_name] == null:
+			warnings.append("Set `%s` in the Parts group: the controls need that node." % part_name)
+	return warnings
+
+
 ## True while the controls are on screen.
 func is_shown() -> bool:
 	return _shown
@@ -133,28 +195,31 @@ func is_shown() -> bool:
 
 ## The stick's push, each axis from -1 to 1 (x right, y down), deadzone taken out.
 func stick_vector() -> Vector2:
-	return _stick
+	return _stick_push
+
+
+## How many buttons there are: the `TouchButton` children of `buttons_root`.
+func button_count() -> int:
+	return _buttons().size()
 
 
 ## Where button `index` is, in canvas pixels: its centre.
 func button_center(index: int) -> Vector2:
-	var area := _safe_rect().grow(-margin)
-	var corner := Vector2(area.end.x - button_size / 2.0, area.end.y - button_size / 2.0)
-	var slot := clampi(buttons[index].slot, 0, _SLOT_ANGLES.size() - 1)
-	if slot == 0:
-		return corner
-	var angle := deg_to_rad(_SLOT_ANGLES[slot])
-	return corner + Vector2(cos(angle), sin(angle)) * button_size * _ARC_RADIUS
+	return _buttons()[index].center()
+
+
+## How wide button `index` is, in canvas pixels.
+func button_size_of(index: int) -> float:
+	return maxf(_buttons()[index].size.x, _buttons()[index].size.y)
 
 
 ## Where a stick rests, drawn faintly, until a thumb lands: canvas pixels.
 func stick_home() -> Vector2:
-	var area := _safe_rect().grow(-margin)
-	return area.position + area.size * _STICK_HOME
+	return stick.home() if stick != null else Vector2.ZERO
 
 
 ## The part of the canvas the controls keep to: the whole canvas less the device's safe area.
-func _safe_rect() -> Rect2:
+func safe_rect() -> Rect2:
 	var view := get_viewport().get_visible_rect()
 	var screen := Vector2(DisplayServer.screen_get_size())
 	var window := Vector2(DisplayServer.window_get_size())
@@ -171,6 +236,44 @@ func _safe_rect() -> Rect2:
 	return Rect2(
 		view.position + Vector2(left, top), view.size - Vector2(left + right, top + bottom)
 	)
+
+
+func _buttons() -> Array[TouchButton]:
+	var found: Array[TouchButton] = []
+	if buttons_root != null:
+		for child in buttons_root.get_children():
+			if child is TouchButton:
+				found.append(child as TouchButton)
+	return found
+
+
+# Puts the safe area's edges inside the device's safe area, `margin` in from it.
+func _fit_to_screen() -> void:
+	if safe_area == null or not is_inside_tree():
+		return
+	var view := get_viewport().get_visible_rect()
+	var inner := safe_rect() if not Engine.is_editor_hint() else view
+	safe_area.offset_left = inner.position.x - view.position.x + margin
+	safe_area.offset_top = inner.position.y - view.position.y + margin
+	safe_area.offset_right = inner.end.x - view.end.x - margin
+	safe_area.offset_bottom = inner.end.y - view.end.y - margin
+
+
+func _size_stick() -> void:
+	if stick != null:
+		stick.configure(stick_radius, sprint_ring if sprint_action != &"" else 0.0)
+
+
+func _show_opacity() -> void:
+	if safe_area != null:
+		safe_area.modulate.a = opacity
+
+
+func _show_zones() -> void:
+	var visible_zones := Engine.is_editor_hint() or show_zones
+	for zone in [move_zone, look_zone]:
+		if zone != null:
+			(zone as Control).visible = visible_zones
 
 
 func _is_other_device(event: InputEvent) -> bool:
@@ -196,19 +299,29 @@ func _finger_down(index: int, at: Vector2) -> void:
 	var button := _button_at(at)
 	if button >= 0:
 		_button_fingers[index] = button
-		_press(buttons[button].action, 1.0)
+		_buttons()[button].held = true
+		_press(_buttons()[button].action, 1.0)
 		if buttons_also_look:
 			_look_fingers[index] = at
 		return
-	var view := get_viewport().get_visible_rect()
-	if at.x < view.position.x + view.size.x * 0.5:
+	if _in_zone(move_zone, at, true):
 		if _stick_finger < 0:
 			_stick_finger = index
 			_stick_origin = at
 			_stick_at = at
 			_apply_stick()
-	else:
+	elif _in_zone(look_zone, at, false):
 		_look_fingers[index] = at
+
+
+# True when `at` is inside `zone`. A scene with no zone falls back to the left half of the
+# screen for the stick and the right half for the look.
+func _in_zone(zone: Control, at: Vector2, left_half: bool) -> bool:
+	if zone != null:
+		return zone.get_global_rect().has_point(at)
+	var view := get_viewport().get_visible_rect()
+	var on_left := at.x < view.position.x + view.size.x * 0.5
+	return on_left == left_half
 
 
 func _finger_moved(index: int, at: Vector2) -> void:
@@ -225,14 +338,17 @@ func _finger_up(index: int) -> void:
 		_stick_finger = -1
 		_apply_stick()
 	if _button_fingers.has(index):
-		_press(buttons[_button_fingers[index]].action, 0.0)
+		var button := _buttons()[_button_fingers[index]]
+		button.held = false
+		_press(button.action, 0.0)
 		_button_fingers.erase(index)
 	_look_fingers.erase(index)
 
 
 func _button_at(at: Vector2) -> int:
+	var buttons := _buttons()
 	for index in buttons.size():
-		if at.distance_to(button_center(index)) <= button_size * 0.58:
+		if at.distance_to(buttons[index].center()) <= buttons[index].reach():
 			return index
 	return -1
 
@@ -246,13 +362,23 @@ func _apply_stick() -> void:
 		sprint = length >= sprint_ring
 		if length > deadzone:
 			push = offset.normalized() * ((length - deadzone) / (1.0 - deadzone))
-	_stick = push
+	_stick_push = push
 	_press(move_right, maxf(push.x, 0.0))
 	_press(move_left, maxf(-push.x, 0.0))
 	_press(move_back, maxf(push.y, 0.0))
 	_press(move_forward, maxf(-push.y, 0.0))
 	if sprint_action != &"":
 		_press(sprint_action, 1.0 if sprint else 0.0)
+	_show_stick()
+
+
+func _show_stick() -> void:
+	if stick == null:
+		return
+	if _stick_finger >= 0:
+		stick.touch(_stick_origin, _stick_at)
+	else:
+		stick.rest()
 
 
 func _press(action: StringName, strength: float) -> void:
@@ -271,10 +397,13 @@ func _release_all() -> void:
 		Input.action_release(action)
 	_pressed.clear()
 	_stick_finger = -1
-	_stick = Vector2.ZERO
+	_stick_push = Vector2.ZERO
 	_look_fingers.clear()
 	_button_fingers.clear()
 	_pending_look = Vector2.ZERO
+	for button in _buttons():
+		button.held = false
+	_show_stick()
 
 
 func _turn_view(delta: float) -> void:
@@ -287,36 +416,3 @@ func _turn_view(delta: float) -> void:
 		turn += _pending_look
 		_pending_look = Vector2.ZERO
 	look_turned.emit(turn)
-
-
-func _draw_controls() -> void:
-	if not _shown:
-		return
-	var tint := Color(_WHITE, opacity)
-	var faint := Color(_WHITE, opacity * 0.45)
-	var touching := _stick_finger >= 0
-	var centre := _stick_origin if touching else stick_home()
-	_canvas.draw_arc(centre, stick_radius, 0.0, TAU, 48, tint if touching else faint, 4.0, true)
-	if sprint_action != &"":
-		_canvas.draw_arc(centre, stick_radius * sprint_ring, 0.0, TAU, 48, faint, 2.0, true)
-	var knob := centre
-	if touching:
-		knob = centre + (_stick_at - centre).limit_length(stick_radius)
-	var knob_alpha := opacity * (0.8 if touching else 0.35)
-	_canvas.draw_circle(knob, stick_radius * 0.36, Color(_WHITE, knob_alpha))
-	var held_buttons := _button_fingers.values()
-	for index in buttons.size():
-		var spot := button_center(index)
-		var held := held_buttons.has(index)
-		_canvas.draw_circle(
-			spot, button_size / 2.0, Color(_WHITE, opacity * (0.9 if held else 0.35))
-		)
-		_canvas.draw_arc(spot, button_size / 2.0, 0.0, TAU, 40, tint, 4.0, true)
-		var font := ThemeDB.fallback_font
-		var size := int(button_size * 0.22)
-		var label := buttons[index].label
-		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-		var origin := spot + Vector2(-width / 2.0, size * 0.35)
-		_canvas.draw_string(
-			font, origin, label, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0.08, 0.1, 0.14, 0.95)
-		)

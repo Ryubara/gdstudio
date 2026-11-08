@@ -4,6 +4,10 @@ extends RigidBody3D
 ## A crate, barrel or ball that falls, rolls and gets pushed. One shape, one size and one weight
 ## in the inspector; the mesh and the collision follow. A prop that ends up below `fall_limit`
 ## (it was pushed off the map) goes back to where it started, so a level never loses one.
+##
+## `physics_prop.tscn` holds all three shapes as nodes (`CrateMesh` and `CrateShape`, `BarrelMesh`
+## and `BarrelShape`, `BallMesh` and `BallShape`) and `shape` shows one of them, so each can be
+## restyled in the scene. Everything below follows the inspector live.
 
 ## The prop went back to its start after falling out of the map.
 signal returned
@@ -39,25 +43,26 @@ enum Shape {
 		weight = value
 		mass = value
 ## How much it slides: 0 is ice, 1 is rubber.
-@export_range(0.0, 1.0, 0.01) var grip := 0.6
+@export_range(0.0, 1.0, 0.01) var grip := 0.6:
+	set(value):
+		grip = value
+		_update_surface()
 ## How much it bounces.
-@export_range(0.0, 1.0, 0.01) var bounciness := 0.1
+@export_range(0.0, 1.0, 0.01) var bounciness := 0.1:
+	set(value):
+		bounciness = value
+		_update_surface()
 
 @export_group("Safety")
 ## Below this height (y) the prop returns to its start. Set it under the lowest floor.
 @export_range(-1000.0, 0.0, 1.0, "or_greater", "suffix:m") var fall_limit := -20.0
 
 var _start := Transform3D.IDENTITY
-var _mesh: MeshInstance3D
-var _collision: CollisionShape3D
 
 
 func _ready() -> void:
 	mass = weight
-	var surface := PhysicsMaterial.new()
-	surface.friction = grip
-	surface.bounce = bounciness
-	physics_material_override = surface
+	_update_surface()
 	_rebuild()
 	_start = transform
 
@@ -79,42 +84,57 @@ func _physics_process(_delta: float) -> void:
 		returned.emit()
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	for part_name in [
+		"CrateMesh", "CrateShape", "BarrelMesh", "BarrelShape", "BallMesh", "BallShape"
+	]:
+		if get_node_or_null("%" + part_name) == null:
+			warnings.append("The scene needs a node named `%s`." % part_name)
+	return warnings
+
+
+# Puts `grip` and `bounciness` on the body's surface (made once, kept by the engine).
+func _update_surface() -> void:
+	if physics_material_override == null:
+		physics_material_override = PhysicsMaterial.new()
+	physics_material_override.friction = grip
+	physics_material_override.bounce = bounciness
+
+
+# Shows the chosen shape, sizes the three shapes and their meshes from `size`, and paints them
+# with `material`. Each prop has its own mesh and shape resources (they are local to the scene).
 func _rebuild() -> void:
-	if _mesh == null:
-		_mesh = MeshInstance3D.new()
-		_mesh.name = "Mesh"
-		add_child(_mesh)
-		_collision = CollisionShape3D.new()
-		_collision.name = "Shape"
-		add_child(_collision)
-	match shape:
-		Shape.BOX:
-			var box := BoxMesh.new()
-			box.size = size
-			_mesh.mesh = box
-			var collider := BoxShape3D.new()
-			collider.size = size
-			_collision.shape = collider
-		Shape.BARREL:
-			var cylinder := CylinderMesh.new()
-			cylinder.top_radius = size.x / 2.0
-			cylinder.bottom_radius = size.x / 2.0
-			cylinder.height = size.y
-			cylinder.radial_segments = 20
-			cylinder.rings = 1
-			_mesh.mesh = cylinder
-			var collider := CylinderShape3D.new()
-			collider.radius = size.x / 2.0
-			collider.height = size.y
-			_collision.shape = collider
-		Shape.BALL:
-			var sphere := SphereMesh.new()
-			sphere.radius = size.x / 2.0
-			sphere.height = size.x
-			sphere.radial_segments = 24
-			sphere.rings = 12
-			_mesh.mesh = sphere
-			var collider := SphereShape3D.new()
-			collider.radius = size.x / 2.0
-			_collision.shape = collider
-	_mesh.material_override = material
+	var crate := _mesh("Crate")
+	var barrel := _mesh("Barrel")
+	var ball := _mesh("Ball")
+	if crate == null or barrel == null or ball == null:
+		return
+	if _collider("Crate") == null or _collider("Barrel") == null or _collider("Ball") == null:
+		return
+	(crate.mesh as BoxMesh).size = size
+	(_collider("Crate").shape as BoxShape3D).size = size
+	var cylinder := barrel.mesh as CylinderMesh
+	cylinder.top_radius = size.x / 2.0
+	cylinder.bottom_radius = size.x / 2.0
+	cylinder.height = size.y
+	var barrel_shape := _collider("Barrel").shape as CylinderShape3D
+	barrel_shape.radius = size.x / 2.0
+	barrel_shape.height = size.y
+	var sphere := ball.mesh as SphereMesh
+	sphere.radius = size.x / 2.0
+	sphere.height = size.x
+	(_collider("Ball").shape as SphereShape3D).radius = size.x / 2.0
+	for index in 3:
+		var part_name: String = ["Crate", "Barrel", "Ball"][index]
+		_mesh(part_name).visible = index == shape
+		_mesh(part_name).material_override = material
+		_collider(part_name).disabled = index != shape
+
+
+func _mesh(part_name: String) -> MeshInstance3D:
+	return get_node_or_null("%" + part_name + "Mesh") as MeshInstance3D
+
+
+func _collider(part_name: String) -> CollisionShape3D:
+	return get_node_or_null("%" + part_name + "Shape") as CollisionShape3D
