@@ -65,6 +65,11 @@ One sound a prompt, the room left out ("dry, close, no echo, no voice, no music"
   over 0.25 s (held to 14 dB either way), after which half-second readings stay within 2 dB. **Seen:** gdstudio #835,
   2026-11-08 (the first encode of the take measured 9.9 LU of spread; after flattening 2.8 LU; `check` fails a bed
   over 3 LU).
+- **Approach:** Write the prompt as what the sound is (a soft, even hush of air over open grass, steady from start to
+  end), not what it is not, ask for two or more takes, and keep the one whose measured spread is smallest. **Watch out
+  for:** a negative does not steer the model and can name the very thing, so "no gusts, no howling" gave a take with
+  gusts in it; only measuring the takes shows what came back. **Seen:** gdstudio #835, 2026-11-08 (one take was asked
+  for, so the recipe had to flatten its swells).
 
 ## 3. The recipe {#the-recipe}
 

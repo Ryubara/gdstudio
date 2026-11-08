@@ -77,9 +77,9 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   `Input.is_action_pressed` and `get_vector`, but the mouse cannot be captured (`Input.mouse_mode` stays visible), so
   the camera has `require_captured_mouse` and the test turns it off. **Seen:** gdstudio #821, 2026-11-08.
 - A prop is pushed by giving it the share of the player's speed its mass allows, as an impulse along the contact normal;
-  a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` with no
-  `required_group` counts every body, a block of the map included (the camera zone took the view at the start for a
-  static block in it): a camera zone must say `player`.
+  a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` counts
+  characters and props by default (`counts`) and a `Pickup` only characters (`characters_only`); a camera zone still
+  says `player` in `required_group` so that a pushed crate does not take the view.
 
 ## Phantom Camera in a third-person follow {#phantom-camera}
 
@@ -221,6 +221,13 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
   longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
   set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
+- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a
+  `CharacterBody3D` (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a
+  pushed crate presses a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an
+  `AnimatableBody3D` beside the area must not trigger it, a character must. **Watch out for:** the map's pressure
+  pad was pressed at the start by the floor and the landing under it, so the room door opened at once and the pad
+  never released; the coins were clean only because no block touched them. A frozen `RigidBody3D` did not press
+  the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
 
 ## Touch controls {#touch-controls}
 

@@ -28,6 +28,7 @@ func _paint() -> Color:
 func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
 		&"size": Vector3(3.0, 1.0, 3.0),
+		&"counts": TriggerZone.Counts.CHARACTERS_AND_PROPS,
 		&"required_group": &"",
 		&"fire_once": false,
 		&"show_plate": false,
@@ -74,7 +75,7 @@ func test_the_plate_colours_follow_who_stands_on_it() -> void:
 	_zone.plate_idle_color = Color(0.1, 0.1, 0.9)
 	_zone.plate_active_color = Color(0.9, 0.9, 0.1)
 	assert_object(_paint()).is_equal(Color(0.1, 0.1, 0.9))
-	var body := Node3D.new()
+	var body := CharacterBody3D.new()
 	_zone._on_body_entered(body)
 	assert_object(_paint()).is_equal(Color(0.9, 0.9, 0.1))
 	_zone.plate_active_color = Color(0.5, 0.5, 0.5)
@@ -85,9 +86,9 @@ func test_the_plate_colours_follow_who_stands_on_it() -> void:
 
 
 func test_the_required_group_decides_which_bodies_count() -> void:
-	var player := Node3D.new()
+	var player := CharacterBody3D.new()
 	player.add_to_group(&"player")
-	var crate := Node3D.new()
+	var crate := CharacterBody3D.new()
 	_zone.required_group = &"player"
 	_zone._on_body_entered(crate)
 	assert_bool(_zone.is_active()).is_false()
@@ -104,11 +105,34 @@ func test_fire_once_ignores_everything_after_the_first_time() -> void:
 	var times := []
 	_zone.activated.connect(func(_body: Node3D) -> void: times.append(true))
 	_zone.fire_once = true
-	var one := Node3D.new()
-	var two := Node3D.new()
+	var one := CharacterBody3D.new()
+	var two := CharacterBody3D.new()
 	_zone._on_body_entered(one)
 	_zone._on_body_exited(one)
 	_zone._on_body_entered(two)
 	assert_array(times).has_size(1)
 	one.free()
 	two.free()
+
+
+func test_counts_decides_which_kinds_of_body_count() -> void:
+	var walker := CharacterBody3D.new()
+	var crate := RigidBody3D.new()
+	var wall := StaticBody3D.new()
+	var lift := AnimatableBody3D.new()
+	_zone.counts = TriggerZone.Counts.CHARACTERS
+	for body in [crate, wall, lift]:
+		_zone._on_body_entered(body)
+	assert_bool(_zone.is_active()).is_false()
+	_zone._on_body_entered(walker)
+	assert_int(_zone.occupant_count()).is_equal(1)
+	_zone.counts = TriggerZone.Counts.CHARACTERS_AND_PROPS
+	for body in [crate, wall, lift]:
+		_zone._on_body_entered(body)
+	assert_int(_zone.occupant_count()).is_equal(2)
+	_zone.counts = TriggerZone.Counts.ANY
+	for body in [wall, lift]:
+		_zone._on_body_entered(body)
+	assert_int(_zone.occupant_count()).is_equal(4)
+	for body in [walker, crate, wall, lift]:
+		body.free()

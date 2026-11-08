@@ -28,7 +28,7 @@ func test_a_pickup_says_who_took_what_and_goes() -> void:
 	var pickup := _add(load("res://gameplay/pickup/pickup.tscn").instantiate()) as Pickup
 	pickup.item_id = &"key"
 	pickup.amount = 3
-	var taker := Node3D.new()
+	var taker := CharacterBody3D.new()
 	auto_free(taker)
 	var got := []
 	pickup.collected.connect(
@@ -47,8 +47,8 @@ func test_a_trigger_zone_reports_the_first_in_and_the_last_out() -> void:
 	var events := []
 	zone.activated.connect(func(_body: Node3D) -> void: events.append("on"))
 	zone.deactivated.connect(func() -> void: events.append("off"))
-	var one := Node3D.new()
-	var two := Node3D.new()
+	var one := CharacterBody3D.new()
+	var two := CharacterBody3D.new()
 	auto_free(one)
 	auto_free(two)
 	zone._on_body_entered(one)

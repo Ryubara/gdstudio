@@ -48,7 +48,7 @@ func test_the_two_priorities_are_read_when_the_view_changes() -> void:
 	_link.priority_inside = 55
 	_link.priority_outside = 3
 	assert_int(_camera.priority).is_equal(3)
-	var body := Node3D.new()
+	var body := CharacterBody3D.new()
 	_zone._on_body_entered(body)
 	assert_int(_camera.priority).is_equal(55)
 	_link.priority_inside = 60
