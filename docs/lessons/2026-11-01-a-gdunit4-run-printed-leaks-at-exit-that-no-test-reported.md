@@ -15,5 +15,5 @@ areas: [tests, audio]
   `Audio.wait_for_mixer()` once; CI greps the test log for `leaked at exit|still in use` like the night step
   (Deadnight #378).
 - **Docs:** [Audio](../engines/godot/audio.md#leaks-at-exit-in-a-test-run); related: [a lambda
-  cycle](2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md) and [quitting right after stopping a
-  sound](2026-11-01-quitting-right-after-stopping-a-sound-leaks-its-stream.md).
+  cycle](2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md) and [a stopped voice that lingers until the
+  mixer steps](../engines/godot/audio.md).

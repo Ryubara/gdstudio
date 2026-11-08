@@ -22,8 +22,6 @@ The source of truth is Deadnight's files; this page explains them and does not c
 The lessons this page builds on, each read before starting:
 
 - [Voice lines written as captions sounded robotic](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)
-- [The voice samples used a model picked from memory](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)
-- [Speech-to-text catches audio tags the voice read aloud](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)
 - [AudioEffectRecord gives per-bus stems](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md) (measuring
   the voice against the guns)
 
@@ -33,9 +31,8 @@ The lessons this page builds on, each read before starting:
 tough male soldier: a deep, calm, steady voice with some expression that changes with the line. Before any
 sample, list the account's voices (`GET /v1/voices`) and models (`GET /v1/models`) and pick from those lists, never
 from memory: the first samples were made on `eleven_v3` from an earlier session's notes while the account already
-offered `eleven_v4`, "most emotive", and the maintainer had to ask whether it was the best model available
-([lesson](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)). Say in the pull request which model and
-why.
+offered `eleven_v4`, "most emotive", and the maintainer had to ask whether it was the best model available.
+Say in the pull request which model and why.
 
 **Send two or three voices, one line each, and let the maintainer choose.** Deadnight sent two premade voices (Adam and
 Brian) reading the same line; the maintainer chose Brian and no custom or cloned voice. The voice is a maintainer
@@ -177,8 +174,7 @@ stable as long as lines are appended, not inserted. `--only reload,kill` limits 
 - **Approach:** Before generating with a vendor API, list its current models (`GET /v1/models`), pick from that list,
   and say in the pull request which model and why. **Watch out for:** the first soldier voice samples were made on
   ElevenLabs `eleven_v3`, chosen from memory, while the account offered `eleven_v4`, listed as the most emotive.
-  **Seen:** Deadnight #384, 2026-11-01 (fix: the maintainer asked whether it was the best model available
-  ([lesson](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md))).
+  **Seen:** Deadnight #384, 2026-11-01 (fix: the maintainer asked whether it was the best model available).
 
 ### Encode
 
@@ -198,8 +194,8 @@ From the cached mp3 to the committed Ogg, with the pinned ffmpeg (`gds tool path
 
 A tag the model reads aloud ("laughs" spoken as a word) is easy to miss across a hundred takes. `check` transcribes
 each take with ElevenLabs Scribe (`POST /v1/speech-to-text`, `scribe_v1`), which writes the sounds it hears in
-brackets: a performed tag comes back as `[laughs]`, a spoken one as plain words
-([lesson](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). A take is flagged when a tag's word
+brackets: a performed tag comes back as `[laughs]`, a spoken one as plain words (Deadnight #442: 0 of 115 flagged).
+A take is flagged when a tag's word
 appears in the transcript outside brackets (and is not also a word of the line), or when more than a quarter of the
 line's words (at least three) are missing. Transcripts are cached (`<take>.stt.json`) and never fetched twice.
 

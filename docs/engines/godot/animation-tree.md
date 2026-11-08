@@ -126,14 +126,15 @@ entry and is not scaled), and a fall is a clip that holds its last frame while t
   it from the player's camera; a layered rig never leaves a layer in a pose meant for another state. **Watch out for:**
   a sprint is a whole-body action, but the legs played `Run` while the upper layer kept looping `Aim_<Class>`, so arms
   and gun froze and the kit's `Run_Gun` clip sat unused; only the camera sway had been tuned. **Seen:** Deadnight #459,
-  2026-11-02 (fix: deadnight #525 added the sprint carry
-  ([lesson](../../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md))).
+  2026-11-02 (fix: deadnight #525 added the sprint carry, posed from the shoulder camera's side
+  ([Blender](../../tools/blender/rig-sharing.md#bone-axes-in-godot-and-clips-that-hold-a-weapon))).
 - **Approach:** For every body state (standing, crawling, downed, climbing), list each action's clip, hit set and reach,
   and test through the real night that the body's highest bone in each action stays within that state's height. **Watch
   out for:** the view picked its state by mode and only the move state had a crawl branch, so every crawler rose into
   the standing `Punch` (the mesh from 0.85 to 1.84 m), with one reach and windup for every zombie. **Seen:**
   Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above
-  ([lesson](../../lessons/2026-11-04-a-crawler-played-the-standing-punch-because-the-attack-state-had-one-clip.md))).
+  ([lesson](../../lessons/2026-11-04-a-crawler-played-the-standing-punch-because-the-attack-state-had-one-clip.md)));
+  Deadnight #1000, 2026-11-04 (fix: `Crawl_Stagger` and `Crawl_Death` too, and a test that loops over the mode enum).
 
 ## Two clips half a turn apart on a bone
 
@@ -141,11 +142,11 @@ The tree blends a bone's rotation between two clips along the shorter arc. Where
 (a hand rolled over between a gun hold and a carry), the shorter arc swaps sides as either clip moves, and the bone
 spins most of a turn in one tick of the crossfade. Deadnight's sprint carries had the left wrist 175-180 degrees off
 the gun hold's; the build now rolls the forearm about its own axis until every frame is within 150 degrees, and
-prints the worst
-([lesson](../../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
-modifier's own slerp on one arc does not help when the flip is in the tree.
+prints the worst (`CARRY_WRIST_MAX`). Keeping a modifier's own slerp on one arc does not help when the flip is in
+the tree. Any clip the tree blends against another keeps each bone's local turn well under half a turn from the
+other's: print it at build time.
 
-## A clip driven by place
+## A clip driven by place {#a-clip-driven-by-place}
 
 When the simulation carries a body over an obstacle at its own pace (Deadnight's dead over a window's sill, 1.2 to 6 m/s),
 a clip played by time drifts off the ledge. Make its frames places on the way instead: the clip behind an
@@ -155,6 +156,13 @@ clip, and the order is output, scale, seek, clip: the seek reaches the clip thro
 The state's transitions from the gait carry `xfade_time` and the view uses `travel`, not `start`, which cuts; a state
 with no path is teleported to, so a stagger into the climb still works. Blender writes such a clip in the obstacle's
 space: [Clips written in the world's space](../../tools/blender/rig-sharing.md#clips-written-in-the-worlds-space).
+
+- **Approach:** When a clip moves a body far from its origin (a climb over a sill), grep for the hit sets and every aim
+  offset in the same change: give the clip its own hit set, chosen by the snapshot's bit, and read every aim point
+  (bots, the autopilot, touch aim assist) from that set. **Watch out for:** shots and aim points are placed over the
+  origin and never look at the clip, so a head over a window's sill was drawn 0.9 m under the standing head zone at the
+  lifted origin, and the bots aimed 1.1 m over it, at nothing. **Seen:** Deadnight #991, 2026-11-04 (fix: a hit set of
+  its own for the climb, twice the shapes, and the aim read from it).
 
 ## Build the state machine once, share it between trees
 

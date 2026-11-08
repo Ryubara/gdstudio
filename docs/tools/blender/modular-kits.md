@@ -48,10 +48,10 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
   players must not (a window with its sill under the jump height) gets a StaticBody3D on a player-only layer; an
   opening nobody walks but shots cross (bars, a hole) gets CSG on that layer.
 - **Write the palette's sRGB values into the image.** A byte image's `pixels` are what the PNG stores; converting to
-  linear first saves every swatch far too dark ([lesson](../../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+  linear first saves every swatch far too dark (Deadnight #651).
   Read a cell of the saved PNG back once.
 - **Keep `.bin` out of the text hooks.** A small glTF buffer can pass as text, and the end-of-file fixer appends a
-  byte to it ([lesson](../../lessons/2026-11-03-the-end-of-file-hook-appended-a-newline-to-a-gltf-buffer.md)).
+  byte to it: exclude `\.bin$` from every hook at the top of `.pre-commit-config.yaml`.
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
 
@@ -80,28 +80,28 @@ Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.p
 - **A blocker that comes away in pieces** is one node per piece named in the order they go (`Part1_...`), each with
   its origin at its own middle so it can be moved on its own, over one collision box for the whole opening.
 
-## Building props
+## Building props {#building-props}
 
 Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_smallmap_props.py` there).
 
 - **Sandbags are full pillows that sag onto each other.** Make each bag taller than its course (0.22 m on 0.17 m) and
   gather its ends sideways only. Thin bags pinched in both directions, with a gap between courses, read as stacked
-  logs ([lesson](../../lessons/2026-11-02-sandbags-read-as-logs.md)). Alternate header courses (bags across) with
+  logs. Alternate header courses (bags across) with
   stretcher courses, and keep a 2 m line near 1.3k triangles.
 - **Write the fixtures from the build script.** Give each piece a collision spec in Blender metres (its bounding box,
   boxes, or a cone) and write the `.tscn` with Blender (x, y, z) as Godot (x, z, -y). Walk-over dressing under the
   step height gets none, as a game's papers and debris. A rerun then keeps model and collision together.
 - **Each group's test reads its own build report.** Kit groups share the asset and fixture folders, so a test lists
-  its pieces from its report's keys, never from the folder's files
-  ([lesson](../../lessons/2026-11-03-a-kit-test-claimed-every-file-in-a-shared-folder.md)).
+  its pieces from its report's keys, never from the folder's files: a walls test that listed the shared folder
+  broke each time another group merged its pieces (Deadnight #636, #656).
 - **Mark where a game node goes later.** A cabinet that holds a wall buy carries a `Marker3D` turned so the game's
   existing plaque node, put under it unchanged, stands on end in the recess. Test that the plaque's box sits inside
   the model.
 - **Check normals in Blender, not from Godot's triangles.** Godot's front faces wind clockwise, so a cross product of
   an index triangle points inward on a correct mesh. Sum the signed volume per island of the exported file in Blender
-  instead ([lesson](../../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
+  instead, and judge lighting with one light straight over the piece beside a known-good prop.
 - **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
-  looking dark ([the palette lesson](../../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+  looking dark ([above](#building-the-pieces)).
 - **Show an encoding fix before and after from the same cameras.** A fixed atlas changes a look that may have been
   approved dark: capture the night with the old atlas put back and imported, then the new one, from a seeded tour
   (old file: `git show <rev>:<path> | git lfs smudge`,
@@ -109,14 +109,20 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
   (#651) 0-5 % of each lot view changed and up to 24 % of a close prop view; under the night's lights nothing read
   washed out, so no swatch was tuned.
 
+- **Approach:** For a part that must read over a wall, work out the sight line first (the player camera's height, the
+  wall's height and both distances) and put the whole part above it with a margin, then check it in a capture from the
+  player's camera at the spot the issue names. **Watch out for:** heights picked by eye in a model sheet, where nothing
+  hides anything: a generator's tank set at 3.45 m showed as a red sliver over a 3.0 m wall, since from the shoulder
+  camera 19 m off the line over the wall was at 3.1 m where it stood. **Seen:** Deadnight #853, 2026-11-03 (fix: the
+  tank's belly at 3.18 m, the lamp at 4.68 m, the stack's lip at 5.3 m).
+
 ## Roof and outside
 
 Learned on Deadnight's roof and backdrop (Deadnight #638, `tools/blender/build_smallmap_outside.py` there).
 
 - **A roof in bays along the ridge** sits on the walls as wall modules do: the origin on the wall tops, the rafters'
   undersides resting on the wall plates (lift the rafters' plane by the plate's height plus the rafter depth over the
-  pitch's cosine). Boards at a bay's end lap 20 mm into the next, or the sky shows through every joint
-  ([lesson](../../lessons/2026-11-03-modular-roof-bays-showed-the-sky-through-their-joints.md)).
+  pitch's cosine). Boards at a bay's end lap 20 mm into the next, or the sky shows through every joint.
 - **A broken bay** is the courses with a rectangle left out, short boards of different lengths into the hole, battens
   across it and a snapped rafter hanging; seen from below it reads at once.
 - **What the backdrop repeats gets a far level of detail** of 300 triangles or fewer (four-sided limbs, no caps, no
@@ -136,4 +142,4 @@ The scale sheet and room render put the game's own characters beside the pieces.
   `matrix_world = Translation @ Rotation @ matrix_world`, or set `rotation_mode = "XYZ"` first.
 
 Look at every render before believing it: both traps produced a plausible image with the wrong pose or facing
-([lesson](../../lessons/2026-11-02-an-imported-character-kept-its-import-pose-and-facing.md)).
+(Deadnight #623: a zombie scaled while lying in its Crawl stood 3 m tall).

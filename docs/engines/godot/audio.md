@@ -46,8 +46,7 @@ each fall, until about four mixes have landed (with a poll cap).
   each bus to measure and save its recording at the end; it works under Movie Maker
   ([lesson](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)).
 - Transcribe generated voice takes with ElevenLabs Scribe to catch audio tags read aloud: performed sounds come back
-  in brackets, spoken tags as words; Scribe bills the speech character quota
-  ([lesson](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). The whole voice pipeline, from
+  in brackets, spoken tags as words; Scribe bills the speech character quota. The whole voice pipeline, from
   casting to the game: [Voice lines](../../gamedev/audio/voice-lines.md).
 
 - **Time a pattern of sounds at 60 fps, with no pictures.** A sound schedule follows the frames, so a recording at 10

@@ -233,6 +233,8 @@ memory, so every clone and every agent gets them.
 `tools.toml` pins each tool's version, per-platform download and hash, copied from the vendor's own checksum file.
 Godot runs in self-contained mode (a `_sc_` file beside it), so its settings and export templates stay in its own
 `editor_data/` and never mix with another Godot on the machine. Scripts find a tool with `gds tool path <name>`.
+Blender comes from the official mirrors, with the same checksum file: download.blender.org sits behind a browser check
+that refuses scripts.
 
 Steam or system installs are never used by the tooling: an automatic update would silently change test results.
 

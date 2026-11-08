@@ -17,3 +17,4 @@ starts a replacement effort unasked.
 | --- | --- |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
 | Rendering app icons and key art from the game's own models with Cycles | [Key art and icons](key-art.md) |
+| Running build scripts from an agent's shell, rebuilding committed files, the checks a build makes | [Build scripts](build-scripts.md) |
