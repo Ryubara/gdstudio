@@ -64,7 +64,7 @@ def text_files(repo: Path):
         if (
             path.is_file()
             and ".git" not in path.relative_to(repo).parts
-            and path.suffix not in {".png", ".svg", ".exr", ".lmbake", ".ttf", ".glb"}
+            and path.suffix not in {".png", ".svg", ".exr", ".lmbake", ".ttf", ".glb", ".ogg"}
         ):
             yield path
 

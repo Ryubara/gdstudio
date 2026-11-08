@@ -35,6 +35,25 @@ a capture) then reports leaked `AudioStreamPlayback` objects and streams, at ran
 Before `quit()`, wait on the mixer, not on time: poll `AudioServer.get_time_since_last_mix()` once per frame and count
 each fall, until about four mixes have landed (with a poll cap).
 
+## The templates' buses and AudioSettings {#template-buses}
+
+<!-- new section: the sections above are Deadnight's own buses and service; nothing said what a game made
+     from a template starts with -->
+
+3D Blank (and so 3D Third Person) ships `default_bus_layout.tres` with `Master` and three buses sending to it: `SFX`
+(steps, pickups, hits), `Ambient` (beds such as the wind) and `UI` (menus, -3 dB: interface sounds sit under the
+game's). A sound's player sets `bus` to one of them. The `AudioSettings` node in `main.tscn` (`core/audio_settings/`)
+holds one `@export_range` volume in dB a bus; each setter calls `AudioServer.set_bus_volume_db` at once, so the remote
+inspector tunes the mix while the game runs, a settings screen sets the same properties, and `@tool` makes the editor's
+own mixer follow. A bus the project lacks is skipped (`AudioSettings.bus_volume_db` returns `NAN` for it), so renaming
+one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio/sound-effects.md).
+
+- **Approach:** Put the volume of a bus in a node's exported property with a setter that writes `AudioServer`, not
+  only in the Audio panel. **Watch out for:** the Audio panel edits the layout file in the editor and nothing in a
+  running game, so a mix could not be tuned through the remote inspector; a setter also runs when the scene loads,
+  before the buses may exist, so `_ready` applies them all again. **Seen:** gdstudio #835, 2026-11-08 (the node and a
+  GdUnit4 suite that sets each export and reads the bus back).
+
 ## Capturing sound {#capturing-sound}
 
 - `--write-movie <absolute folder>/name.png --fixed-fps 10` also writes `name.wav`: 32-bit integer PCM, stereo, 48 kHz.
