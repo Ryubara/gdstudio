@@ -54,7 +54,8 @@ Numbers that gave the template's look, in `world/lighting/`:
   plus the path (`make_qualified_path`), so on a Linux runner `-rd "$RUNNER_TEMP/reports"` wrote `game/home/runner/...`
   inside the project. Godot runs in the project folder, so a relative path starts there: `-rd reports` made
   `game/reports`, and `-rd ../../../reports` (from `repos/<game>/game`) lands in the work folder, outside the
-  repository ([lesson](../../lessons/2026-11-07-gdunit4-read-an-absolute-report-path-as-res.md)).
+  repository; keep a final `git status --porcelain` step after the tests, which caught this and an import that left
+  uids behind (Deadnight, 2026-11-07).
 - **`gdformat` writes CRLF on Windows**; run `sed -i 's/\r$//'` over the scripts it touched
   ([The shell](../../studio/shell.md#line-endings)).
 

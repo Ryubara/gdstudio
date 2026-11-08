@@ -54,7 +54,7 @@ that needs the scene running instances a small one of its own.
 
 See the [lesson](../../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
 
-## A suite that only names a class
+## A suite that only names a class {#a-suite-that-only-names-a-class}
 
 A GdUnit shard leaked 996 objects and 432 resources at exit with every test green, on pull requests that changed
 nothing related, and a new test file elsewhere made it come and go (Deadnight #1231). The scripts a suite only *names*
@@ -79,4 +79,23 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 - **A real leak still fails through the wrapper:** a throwaway suite with a two-object `RefCounted` cycle and a `Node`
   in a static variable printed `3 ObjectDB instances were leaked at exit` and exited 101; a failing assert exits 100.
 
-See the [lesson](../../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).
+- **Approach:** Find a leak that follows the shard and not the pull request by running each suite alone, then a
+  ten-line `-s` probe per script; fix it by loading every game script first, in name order, through a wrapper of GdUnit's
+  command line tool, and keep `GdUnitCmdTool.gd` at the end of the wrapper's file name. **Watch out for:** a suite that
+  only names a class makes Godot read its scripts as dependencies, and a script never loaded as itself stays in use at
+  exit with all it reaches: 996 objects with every test green, cured by other suites that load the classes
+  properly, so a green `main` shard proves only its own deal; a wrapper named otherwise prints the usage and runs
+  nothing. **Seen:** Deadnight #1231, 2026-11-05 (fix: `tools/ci/warm_GdUnitCmdTool.gd` took 911 objects to none on the
+  same 55 cases; a test runs two suites through it in a child Godot and fails on a leak line).
+- **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
+  edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
+  probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled
+  for 25 minutes (alone: 8) behind a `| sed | grep` summary that hid whether anything ran. **Seen:** Deadnight #1231,
+  2026-11-05 (fix: the edit was reverted when the counts did not move).
+- **Approach:** Before pushing a new test, run the shard's own command and then CI's gate, `! grep -E "leaked at
+  exit|still in use" tests.log`, whatever the exit code; a test that needs only a script's text reads its source rather
+  than loading it. **Watch out for:** the shard's last line fails on those lines, not Godot's exit code, so a log ending
+  in `ObjectDB instances were leaked` exits 0 locally and fails in CI; a test that only named `WarmupManifest` (which
+  loads `PlayerAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
+  log and called usual. **Seen:** Deadnight #1100, 2026-11-04 (fix: bisect with a prefix of the test file, then one line
+  at a time; the test reads the source).

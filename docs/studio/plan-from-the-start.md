@@ -127,7 +127,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   state while the screen is open.
 - Plan: a test for every choice against another choice, a tab change and a reload, counting writes.
 - Plan: tests point the settings and save files away from the player's own `user://`
-  ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
+  ([Throwaway user folder](../engines/godot/throwaway-user-folder.md#tests)).
 
 ## Co-op rules
 
@@ -196,8 +196,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
 - Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
-  ([lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
-  [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md)).
+  ([Testing a game](../gamedev/testing.md#leftover-state), [waits](../gamedev/testing.md#bounded-waits)).
 - Plan: captures and recordings from the player's camera, with the real devices switched off.
 
 ## Process
@@ -215,7 +214,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: the PR that finishes a split issue carries `Fixes #N`
   ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
-  ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
+  ([A shared machine](workspace.md#shared-machine)).
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task

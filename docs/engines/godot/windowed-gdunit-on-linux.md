@@ -26,10 +26,9 @@ LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1920x1080x24" godot --path gam
 
 Run each suite in its own Godot, in its own process group, and kill the group on a timeout (`xvfb-run` starts the X
 server; killing only Godot leaves it). A suite that hangs then costs its timeout and nothing after it, the log is per
-suite, and the kit lesson on the windowed hang
-([lesson](../../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)) cannot take a whole
-folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI suite
-that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
+suite, and the windowed hang of a private Windows desktop (see [No focus](no-focus.md#what-to-know)) cannot take a
+whole folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI
+suite that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
 cause found since is that GdUnit minimizes the window after every suite and a minimized window draws nothing
 ([A minimized window draws nothing](minimized-window.md)); the pair did not hang under xvfb, so the minimize had
 no effect there (not looked into), and one process a suite meets only the first suite's window anyway.
