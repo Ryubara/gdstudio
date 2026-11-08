@@ -100,6 +100,12 @@ script parses), a run of the main scene, the tests, the web export, `gdformat` a
   pull request was titled "Add the pre-push.legacy game". **Seen:** gdstudio #779, 2026-11-07 (fix: `new_game` calls
   `repair_legacy_hooks`, a test checks the branch and title).
 
+- **Approach:** Run the kit's own `git` calls on a template tree with `-c core.longpaths=true` (the kit pull request's
+  worktree), and keep a committed addon's longest path in mind when a test makes a game under a long temporary name.
+  **Watch out for:** the Windows `test` job failed 20 tests with "Filename too long" making the kit worktree: Phantom
+  Camera's `phantom_camera_noise_emitter_gizmo_plugin_3d.gd.uid` under a pytest folder named for a test passed 260
+  characters. **Seen:** gdstudio #821, 2026-11-08 (fix: the flag in `open_kit_pr`'s `git`).
+
 ## Proving a new game {#proof}
 
 <!-- new section: the page says what the template job runs; nothing said what proves a game is clean in the editor -->
