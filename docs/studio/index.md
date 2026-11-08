@@ -26,4 +26,5 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [What the maintainer caught](maintainer-corrections.md) | A log of the corrections the agents did not propose first, each linking the topic section it updated. |
 | [What to plan from the start](plan-from-the-start.md) | A day-one checklist for the next game, from every gap nobody planned for on Deadnight. |
 | [Reading an ask](asks.md) | Numbers, defaults and words about people in an ask; who owns a job already. |
+| [Railway](railway.md) | Deploying and testing a service with the CLI: which project a command acts on, service settings, services that deploy apart. |
 | [CI and deploys](ci.md) | How runs on the default branch finish and how a merge reaches the live deploy. |

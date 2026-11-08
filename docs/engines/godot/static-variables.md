@@ -34,3 +34,15 @@ was wrong.
   up is listed there with why.
 - Find the cause on the web with a log of the variable at the head of the function (`JavaScriptBridge.eval` to push
   `typeof(_x):_x` into a page array): the first call read `2:0` (an int, zero) where the initialiser said `-1`.
+
+## A flag that nodes read once {#static-flag-changes}
+
+<!-- new section: the rest of the page is about a static var's first value; nothing covered a static flag that changes
+while nodes already hold it -->
+
+- **Approach:** Give a static flag that can change while the game runs a setter that emits through a small `RefCounted`
+  bus (`UIMotion.changed()`), have every node connect in `_ready` and apply the value at once, and test by flipping the
+  flag while the main scene runs. **Watch out for:** a `static var` cannot declare a signal, and nodes that read
+  `UIMotion.reduced` once in `_ready` kept their old value, so a film-grain overlay that lives for the whole session
+  went on flickering after Reduced motion was switched on. **Seen:** Deadnight, 2026-11-01 (fix: the setter and bus; a
+  test flips the flag with the main scene running).

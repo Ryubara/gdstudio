@@ -113,8 +113,15 @@ flake of 3 cm over a bound was the symptom
 A test that holds packets for real milliseconds (a `LinkConditioner`, a ping) while its loop counts physics frames has
 two clocks, and a slow runner pulls them apart. Give the real-time part an injectable clock driven by the frame count
 (Deadnight's `WebSocketLink.clock`), count every wait in frames, and prove it by slowing each frame with
-`OS.delay_msec`: the numbers of the run must not move
-([lesson](../../lessons/2026-11-02-a-bad-network-test-waited-in-wall-seconds-while-the-game-ran-in-frames.md)).
+`OS.delay_msec`: the numbers of the run must not move.
+
+- **Approach:** Give the real-time part of a network test an injectable clock (`WebSocketLink.clock`, `NightHost.clock`,
+  `GameServer.clock`) driven by the physics frame count over the tick rate, count every wait in physics frames, and slow
+  each frame by 0, 40 and 100 ms to show the numbers do not move. **Watch out for:** a bad-network test held packets for
+  real milliseconds and waited 8 wall seconds while the game ran in frames, so a loaded runner played fewer frames of
+  the same network (484 corrections where a quiet one prints 50) and failed once; a `--fixed-fps 60` run with no game
+  clock on a `GameServer` lost its client in seconds. **Seen:** Deadnight, 2026-11-02 (fix: one clock; the worst gap
+  stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`).
 
 - **Approach:** Switch off a node that eases or animates in `_process` (`set_process(false)`,
   `AnimationTree.callback_mode_process = MANUAL`) and step it by hand with a fixed delta in the test's tick helper;
