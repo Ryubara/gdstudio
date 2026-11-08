@@ -59,3 +59,9 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   triangle budget exports a barrel whose geometry moved or a walk whose foot goes through the floor, and the first to
   see it is a reviewer or the game. **Seen:** gdstudio #774, 2026-11-07 (the baseline runs of the `uv-palette` and
   `clip-walk` evals added these checks to their own builds).
+- **Approach:** Call `bpy.context.view_layer.update()` before a check reads `matrix_world` of objects the script has
+  just parented or moved, and compare the build's printed size with the exported file read back. **Watch out for:** a
+  child's `matrix_world` keeps its old value until the update, so the pistol's check measured its slide and magazine
+  where they were made and printed a size 1 cm short (0.186 m against the file's 0.196 m), and a budget or lowest-vertex
+  check would read the same stale place. **Seen:** gdstudio #834, 2026-11-08 (fix: the update in `build_pistol.py`'s
+  check).
