@@ -378,6 +378,12 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   means` list is shorter than the Summary, so a finished poster set in the night report was built nowhere while the
   tests and captures were green; the walk also found a set told twice and a finish invisible to the solo report.
   **Seen:** Deadnight #1073 and #1164, 2026-11-04.
+- **Approach:** Report an open pull request's state to the maintainer only from a fresh read of it (`gh pr view` or
+  `gh pr checks`), and check that the agent that owns it is still running; a pull request whose agent has stopped and
+  whose checks failed is the coordinator's to fix or hand on at once. **Watch out for:** the coordinator repeated an
+  agent's last word, "waiting on its checks", in several updates while #808's Windows job had failed and its agent had
+  stopped, until the maintainer found the failure. **Seen:** gdstudio #797, 2026-11-08 (fix: the coordinator found the
+  cause, a leaked `GDS_QUIET`, fixed it in #808 and landed it).
 
 ## Landing pull requests {#landing}
 

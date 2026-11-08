@@ -54,6 +54,15 @@ def test_the_program_is_told_it_runs_quiet() -> None:
     assert outcome.output.strip() == "1"
 
 
+def test_the_caller_is_not_marked_quiet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only the program gets the flag: before kit #797 `run_quiet` set it in the caller's own environment, so every
+    later test in the same pytest process skipped as if it ran on the private desktop."""
+    monkeypatch.delenv("GDS_QUIET", raising=False)
+    outcome = run_quiet(python("import os; print(os.environ.get('PATH') is not None)"))
+    assert outcome.output.strip() == "True"  # the rest of the environment still reaches the program
+    assert "GDS_QUIET" not in os.environ
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="the cursor clip is a Windows call")
 def test_the_guard_frees_the_cursor_every_interval_and_once_more_at_the_end(monkeypatch: pytest.MonkeyPatch) -> None:
     """The guard's whole job, without the real cursor: it calls `ClipCursor(None)` until told to stop, then once more.
