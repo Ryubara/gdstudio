@@ -160,11 +160,11 @@ func test_two_fingers_each_do_only_their_own_job() -> void:
 	assert_vector(_touch.stick_vector()).is_equal(Vector2.ZERO)
 	assert_float(_total_look().x).is_equal_approx(50.0 * _touch.look_sensitivity, 0.001)
 	# The stick finger moves: the character moves, the view does not turn more.
-	var before := _total_look()
+	var earlier := _total_look()
 	_drag(0, _left_thumb() + Vector2(0.0, 120.0), Vector2(0.0, 1454.0))
 	await get_tree().process_frame
 	assert_bool(Input.is_action_pressed(&"move_back")).is_true()
-	assert_vector(_total_look()).is_equal(before)
+	assert_vector(_total_look()).is_equal(earlier)
 	# Letting go of one leaves the other working.
 	_up(1, _right_thumb())
 	assert_bool(Input.is_action_pressed(&"move_back")).is_true()

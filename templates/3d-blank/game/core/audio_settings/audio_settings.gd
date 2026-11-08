@@ -21,6 +21,11 @@ const UI := &"UI"
 const MIN_DB := -60.0
 const MAX_DB := 6.0
 
+## How many times the audio thread must have mixed before a stopped voice is let go of.
+const DRAIN_MIX_STEPS := 3
+## The most checks, 5 ms apart, that `drain_mixer()` makes.
+const DRAIN_MAX_POLLS := 200
+
 @export_group("Volume")
 ## Everything, last.
 @export_range(MIN_DB, MAX_DB, 0.1, "suffix:dB") var master_db := 0.0:
@@ -48,12 +53,45 @@ func _ready() -> void:
 	apply_all()
 
 
+func _exit_tree() -> void:
+	# A voice still playing when the engine quits is reported as `ObjectDB instances were leaked`
+	# and `resources still in use` (the audio thread frees it a few mixes after it was stopped).
+	if not Engine.is_editor_hint() and get_parent() != null:
+		stop_players(get_parent())
+		drain_mixer()
+
+
 ## Sends every volume to `AudioServer` again (the buses may have been loaded after this node was).
 func apply_all() -> void:
 	_apply(MASTER, master_db)
 	_apply(SFX, sfx_db)
 	_apply(AMBIENT, ambient_db)
 	_apply(UI, ui_db)
+
+
+## Stops every audio player under `root`, so no voice is left playing (see `drain_mixer()`).
+static func stop_players(root: Node) -> void:
+	for node in root.find_children("*", "AudioStreamPlayer", true, false):
+		(node as AudioStreamPlayer).stop()
+	for node in root.find_children("*", "AudioStreamPlayer3D", true, false):
+		(node as AudioStreamPlayer3D).stop()
+
+
+## Waits, blocking this thread, until the audio thread has mixed a few times, so every voice that
+## was stopped has been let go of (`stop_players()` first). Returns false when the thread did not
+## mix in time (or there is no audio thread to wait for).
+static func drain_mixer() -> bool:
+	var steps := 0
+	var last := AudioServer.get_time_since_last_mix()
+	for _poll in DRAIN_MAX_POLLS:
+		if steps >= DRAIN_MIX_STEPS:
+			return true
+		OS.delay_msec(5)
+		var now := AudioServer.get_time_since_last_mix()
+		if now < last:
+			steps += 1
+		last = now
+	return false
 
 
 ## The volume `AudioServer` has for a bus, or `NAN` when the project has no such bus.

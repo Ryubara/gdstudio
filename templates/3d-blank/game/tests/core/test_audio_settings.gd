@@ -63,8 +63,30 @@ func test_a_bus_the_project_lacks_is_skipped_and_the_others_still_apply() -> voi
 	assert_float(AudioSettings.bus_volume_db(&"SFX")).is_equal_approx(settings.sfx_db, 0.001)
 
 
+func _wind() -> AudioStreamOggVorbis:
+	return load("res://assets/audio/wind/wind_soft_1.ogg")
+
+
 func test_the_wind_is_a_seamless_loop_between_ten_and_twelve_seconds() -> void:
-	var wind: AudioStreamOggVorbis = load("res://assets/audio/wind/wind_soft_1.ogg")
+	var wind := _wind()
 	assert_object(wind).is_not_null()
 	assert_float(wind.get_length()).is_between(10.0, 12.0)
 	assert_bool(wind.loop).is_true()
+
+
+func test_leaving_the_tree_stops_the_voices_and_waits_for_the_audio_thread() -> void:
+	var holder: Node = auto_free(Node.new())
+	var player := AudioStreamPlayer.new()
+	player.stream = _wind()
+	player.bus = &"Ambient"
+	holder.add_child(player)
+	var settings := AudioSettings.new()
+	holder.add_child(settings)
+	add_child(holder)
+	player.play()
+	assert_bool(player.playing).is_true()
+	holder.remove_child(settings)
+	settings.free()
+	assert_bool(player.playing).is_false()
+	AudioSettings.stop_players(holder)
+	assert_bool(AudioSettings.drain_mixer()).is_true()

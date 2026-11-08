@@ -44,9 +44,9 @@ func test_a_trigger_zone_reports_the_first_in_and_the_last_out() -> void:
 	var zone := (
 		_add(load("res://gameplay/trigger_zone/trigger_zone.tscn").instantiate()) as TriggerZone
 	)
-	var log := []
-	zone.activated.connect(func(_body: Node3D) -> void: log.append("on"))
-	zone.deactivated.connect(func() -> void: log.append("off"))
+	var events := []
+	zone.activated.connect(func(_body: Node3D) -> void: events.append("on"))
+	zone.deactivated.connect(func() -> void: events.append("off"))
 	var one := CharacterBody3D.new()
 	var two := CharacterBody3D.new()
 	auto_free(one)
@@ -56,7 +56,7 @@ func test_a_trigger_zone_reports_the_first_in_and_the_last_out() -> void:
 	zone._on_body_exited(one)
 	assert_bool(zone.is_active()).is_true()
 	zone._on_body_exited(two)
-	assert_array(log).is_equal(["on", "off"])
+	assert_array(events).is_equal(["on", "off"])
 
 
 func test_a_moving_platform_goes_to_the_far_end_and_says_so() -> void:

@@ -60,6 +60,14 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   silent, and our own handoff said 3D Blank played its wind loop when no node did. **Seen:** gdstudio #835 and #837,
   2026-11-08 (the wiring is #836).
 
+- **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `main.tscn`,
+  `Sound` in `pickup.tscn`, `Step`, `CrouchStep` at -9 dB and `LandStep` at +3 dB in `footsteps.tscn`), and test that
+  every player is on a template bus and every file in `assets/audio/` is named by a scene. **Watch out for:** an
+  autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every GdUnit
+  run that frees the main scene), which CI's grep fails: `AudioSettings._exit_tree` stops the players under its parent
+  and waits three mixes (`drain_mixer()`), and a suite that plays a sound calls `AudioDrain.stop_all()`. **Seen:**
+  gdstudio #836, 2026-11-08 (one voice: 4 instances, 2 resources).
+
 ## Capturing sound {#capturing-sound}
 
 - `--write-movie <absolute folder>/name.png --fixed-fps 10` also writes `name.wav`: 32-bit integer PCM, stereo, 48 kHz.

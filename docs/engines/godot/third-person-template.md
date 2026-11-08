@@ -12,10 +12,12 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 
 | Part | Where (in `templates/3d-third-person/game/`, the base in `templates/3d-blank/game/`) | Notes |
 | --- | --- | --- |
-| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`. |
+| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
 | Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
-| Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode; a zone that raises a second camera's priority. |
-| Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. |
+| Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake and an aim view blended on its framing; a zone that raises a second camera's priority. |
+| Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet, a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
+| Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
@@ -41,9 +43,9 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   are `Armature/Skeleton3D:<bone>`, which match the mannequin's scene (`mannequin/Armature/Skeleton3D`) with no
   retargeting, since the libraries and the mannequin share the Quaternius universal rig. A test walks every track of all
   86 clips and finds its bone. **Seen:** gdstudio #821, 2026-11-08.
-- **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and travel
-  a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No name
-  provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and
+  travel a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No
+  name provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
 - The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
   all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
@@ -116,9 +118,9 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
 `Door`, `MovingPlatform`, `PhysicsProp`, `Pickup`, `TriggerZone` and `SpawnPoint` each hold their visible parts as nodes
 of their own scene (the door's `Panel`, `Shape` and `Sensor`; the platform's `Mesh`, `Shape` and `EndPreview`; the
 pickup's `Visual` and `Shape`; the trigger's `Shape` and `Plate`; the spawn point's `Marker`; a prop's crate, barrel and
-ball), as `@tool` scripts that size them from the inspector. The platform's `EndPreview` is a translucent copy of the slab
-at the far end (hidden in the game) and the door's sensor sphere is `auto_open_range`, so the editor shows the travel
-and the reach; the spawn point's blue arrow is its `-Z`.
+ball), as `@tool` scripts that size them from the inspector. The platform's `EndPreview` is a translucent copy of the
+slab at the far end (hidden in the game) and the door's sensor sphere is `auto_open_range`, so the editor shows the
+travel and the reach; the spawn point's blue arrow is its `-Z`.
 
 - **Approach:** Give each node's mesh, shape and material `resource_local_to_scene = true` in the component's scene, set
   the sizes from setters (looking nodes up with `get_node_or_null("%Panel")`, which works from an instance's own root
@@ -130,6 +132,81 @@ and the reach; the spawn point's blue arrow is its `-Z`.
   before it enters the tree. **Watch out for:** with `sync_to_physics` on, `global_position = x` read straight back gave
   the old position until the next step, so a door's `slide_distance` change and a test that moved a door and asked the
   interactor for it both saw the old place. **Seen:** gdstudio #831, 2026-11-08.
+
+## Crouch, aim and shoot {#crouch-aim-shoot}
+
+<!-- new section: #836 added crouch, a pistol, a crosshair, sprint and aim views and the first sounds to the character
+-->
+
+Crouch lowers the capsule from the top (the feet stay on the ground) over `crouch_time` and the camera's target with it;
+`Player.has_room_to_stand()` asks the physics space whether a capsule slightly smaller than the standing one fits
+above, and a character that lets go under a ceiling stays crouched until it does. Aim (right mouse, left trigger, the
+Aim button) turns the body to the camera's heading and raises the pistol; fire (left mouse, right trigger, the Fire
+button) aims too and shoots once the arm is half up. The numbers are in the Crouch and Aim groups of the tuning and in
+the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
+
+- **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
+  little narrower than the capsule and starting a hand above the floor, and prove it with a ceiling slab that ends 2 m
+  ahead (let go under it, stay crouched, walk out, stand) and a tunnel 1.25 m high the standing character cannot enter.
+  **Watch out for:** a probe as wide as the capsule that starts at the floor touches the floor and the walls at the
+  sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
+  to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
+  `filter_enabled` and a filter path for `spine_01` and every bone under it (read from the skeleton,
+  `Armature/Skeleton3D:<bone>`), the holding pose first, the aim pose over it by the camera's pitch in a blend space
+  (`Pistol_Aim_Down` -45, `Pistol_Aim_Neutral` 0, `Pistol_Aim_Up` 45) and the recoil last. **Watch out for:** the aim
+  clips are 0.17 s long and do not loop, so they hold their last pose, which is what an aim should do; the pistol clips
+  are whole-body poses, so without the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Time footsteps to the skeleton, not to a clock or a distance: a foot lands when its bone, moving toward
+  the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it, after a swing of at
+  least `min_stride`), read from `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and
+  no step off the floor or under `min_speed`. **Watch out for:** the clips play at their own cadence, so a fixed
+  stride length drifts from the feet, and foot height alone fails (the planted ankle is at 0.10 m in the walk and
+  0.12 to 0.17 m in the jog); a jitter of the blended pose gave a second step 124 ms after the first with the same
+  foot until `min_stride`. Landings: walk 0.0 and 0.67 s of 1.33 s, jog
+  0.47 s of 0.93 s, sprint 0.28 s of 0.67 s, crouch walk 1.0 s of 2.0 s. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Give a body its shapes as direct children, and move only a mesh with an animated pivot: a `Target`'s
+  `Shape` is a child of the body and `Pivot` (which tips back) holds only the board. **Watch out for:** a
+  `CollisionShape3D` under a plain `Node3D` that sits under the body is not a shape of the body, so the first target
+  was solid to nothing: the aim ray passed through it and the shot flew by (no error). **Seen:** gdstudio #836,
+  2026-11-08.
+- **Approach:** Start the aim ray at the shooter's depth (the camera position moved along the ray to the plane of the
+  character) with the character excluded, send the projectile from the muzzle toward that point, and shoot along the
+  view when the point is behind the muzzle; make the projectile a `CharacterBody3D` that `move_and_collide`s, so it
+  has a swept hit and a collision exception for the shooter. **Watch out for:** the pistol's muzzle is in
+  `PistolHeld/Pistol/Pistol/Muzzle` (the glb's root and its mesh are both called `Pistol`), and a wrong path in a
+  `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
+  2026-11-08.
+- **Approach:** When a scene hangs a node on a part inside an instanced scene (the pistol on the mannequin's
+  `Skeleton3D`), mark that instance editable (`[editable path="Model"]` at the end of the `.tscn`, which the editor
+  writes when you tick "Editable Children"), and prove the web export, not only the tests. **Watch out for:** without
+  the line the pistol was there in the editor, in every GdUnit test and in a windowed capture, and missing from the web
+  export: `Weapon.muzzle` was null, the fire button did nothing and no error was printed; the touch smoke found it
+  ("the fire button shoots", shots 0 to 0) by reading `player.weapon`'s muzzle in the page. **Seen:** gdstudio #836,
+  2026-11-08 (fix: the line, a test that reads the scene's text, and the smoke's three new checks).
+- **Approach:** Size a `Control` that sits by its anchors (the `Crosshair`, at the middle of the screen) by setting its
+  four offsets from the exports (`-half`, `half`), not `custom_minimum_size`. **Watch out for:** a minimum size only
+  makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size
+  and middle failed for a smaller circle. The weapon aims through the middle of the viewport, which is the middle of
+  this control, so a test compares the two. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Start every suite that reads the pistol's buttons (`fire`, `aim`, `crouch`) by letting go of them with
+  `Input.action_release`, and run the suites in the CI's order before pushing (`-a` once per suite, as the log lists
+  them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base touch suite leaves the
+  left mouse button and `fire` down (a mouse release event does not clear the action): the crosshair and touch suites
+  passed in every local order and failed 8 tests on the runner, where one of them ran straight after it. **Seen:**
+  gdstudio #836, 2026-11-08 (`InputSim.release_all()` lets go of the actions too).
+- **Approach:** Add a template's own buttons to the base's touch layer with an inherited scene
+  (`third_person_touch_controls.tscn`, root `instance=` the base's, new buttons under `SafeArea/Buttons`) and not by
+  copying the base file. **Watch out for:** an extending template replaces a file of the base whole, so a copy of
+  `touch_controls.tscn` with three more buttons made the base's own suite (two buttons) fail in the made game. **Seen:**
+  gdstudio #836, 2026-11-08.
+- **Approach:** Slow a push by what is pushed: a `PhysicsProp` has a `push_speed`, the character walks no faster than
+  the slowest prop it pushes and gives the prop that speed, and a heavy, grippy cube (60 kg, friction 0.5) stops in a
+  few centimetres when the character does, and is given the push speed while the character walks 15 percent faster, so
+  the character stays against it and pushes it every tick (equal speeds let a gap open and the friction slow the cube
+  between pushes: the push clip flickered in and out). **Watch out for:** the old push gave a prop 85 percent of the
+  character's own run speed, so a cube left at 3.4 m/s and the push clip lasted a moment; a prop with a `push_speed` of
+  0 is pushed as before (the spheres). **Seen:** gdstudio #836, 2026-11-08.
 
 - **Approach:** Make an area that senses "something is near" count only what should trigger it: the door's `Sensor`
   counts a `CharacterBody3D` on `auto_open_mask`, never a wall, floor, prop or the door's own body. A type test, not

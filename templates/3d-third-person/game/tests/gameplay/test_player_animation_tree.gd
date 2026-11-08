@@ -39,3 +39,11 @@ func test_no_scene_file_holds_the_generated_tree() -> void:
 				)
 				. is_false()
 			)
+
+
+func test_the_player_scene_marks_the_model_editable_so_the_export_keeps_what_hangs_on_it() -> void:
+	# The pistol hangs on the mannequin's skeleton: a node added inside an instanced scene that is
+	# not marked editable is there in the editor and in a test, and missing from the web export.
+	var text := FileAccess.get_file_as_string(PLAYER_SCENE)
+	assert_bool(text.contains('[editable path="Model"]')).is_true()
+	assert_bool(text.contains('parent="Model/Armature/Skeleton3D"')).is_true()

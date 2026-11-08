@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/player/footsteps.gd" id="1_steps"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_1.ogg" id="s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_2.ogg" id="s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_3.ogg" id="s3"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_4.ogg" id="s4"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_5.ogg" id="s5"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_6.ogg" id="s6"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_7.ogg" id="s7"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_8.ogg" id="s8"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_9.ogg" id="s9"]
+[ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_hard_10.ogg" id="s10"]
+
+[node name="Footsteps" type="Node3D"]
+script = ExtResource("1_steps")
+steps = Array[AudioStream]([ExtResource("s1"), ExtResource("s2"), ExtResource("s3"), ExtResource("s4"), ExtResource("s5"), ExtResource("s6"), ExtResource("s7"), ExtResource("s8"), ExtResource("s9"), ExtResource("s10")])
+
+[node name="Step" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+bus = &"SFX"
+
+[node name="CrouchStep" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = -9.0
+bus = &"SFX"
+
+[node name="LandStep" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = 3.0
+bus = &"SFX"

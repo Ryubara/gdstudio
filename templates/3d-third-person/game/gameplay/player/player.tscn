@@ -7,17 +7,21 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
 [ext_resource type="Script" path="res://gameplay/player/player_animation.gd" id="7_animation"]
+[ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="8_pistol"]
+[ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="9_weapon"]
+[ext_resource type="PackedScene" path="res://gameplay/player/footsteps.tscn" id="10_footsteps"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("weapon")]
 floor_stop_on_slope = true
 floor_max_angle = 0.837758
 script = ExtResource("1_player")
 tuning = ExtResource("2_tuning")
+weapon = NodePath("Weapon")
 
 [node name="Body" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true
@@ -27,7 +31,10 @@ shape = SubResource("CapsuleShape3D_body")
 [node name="Model" parent="." instance=ExtResource("3_model")]
 unique_name_in_owner = true
 
+[node name="PistolHeld" parent="Model/Armature/Skeleton3D" instance=ExtResource("8_pistol")]
+
 [node name="CameraTarget" type="Node3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
 
 [node name="Interactor" type="Node3D" parent="."]
@@ -49,3 +56,14 @@ script = ExtResource("7_animation")
 player = NodePath("..")
 animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
+
+[node name="Weapon" parent="." node_paths=PackedStringArray("muzzle", "shooter") instance=ExtResource("9_weapon")]
+muzzle = NodePath("../Model/Armature/Skeleton3D/PistolHeld/Pistol/Pistol/Muzzle")
+shooter = NodePath("..")
+
+[node name="Footsteps" parent="." node_paths=PackedStringArray("player", "skeleton", "model") instance=ExtResource("10_footsteps")]
+player = NodePath("..")
+skeleton = NodePath("../Model/Armature/Skeleton3D")
+model = NodePath("../Model")
+
+[editable path="Model"]

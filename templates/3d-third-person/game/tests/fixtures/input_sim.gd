@@ -32,12 +32,37 @@ static func pad_axis(axis: JoyAxis, value: float) -> void:
 	Input.flush_buffered_events()
 
 
+static func mouse_button(index: MouseButton, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = index
+	event.pressed = pressed
+	event.button_mask = (1 << (index - 1)) if pressed else 0
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+
+
 ## Lets go of everything a test pressed.
 static func release_all() -> void:
-	for code: Key in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_SPACE, KEY_SHIFT, KEY_X, KEY_E]:
+	for code: Key in [
+		KEY_W, KEY_A, KEY_S, KEY_D, KEY_SPACE, KEY_SHIFT, KEY_X, KEY_E, KEY_C, KEY_CTRL
+	]:
 		key(code, false)
-	for axis: JoyAxis in [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y, JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]:
+	for axis: JoyAxis in [
+		JOY_AXIS_LEFT_X,
+		JOY_AXIS_LEFT_Y,
+		JOY_AXIS_RIGHT_X,
+		JOY_AXIS_RIGHT_Y,
+		JOY_AXIS_TRIGGER_LEFT,
+		JOY_AXIS_TRIGGER_RIGHT
+	]:
 		pad_axis(axis, 0.0)
+	pad_button(JOY_BUTTON_B, false)
+	mouse_button(MOUSE_BUTTON_LEFT, false)
+	mouse_button(MOUSE_BUTTON_RIGHT, false)
+	# A base suite that sends a click leaves the left button and `fire` down, and a mouse release
+	# does not clear the action: let go of the actions of the pistol directly.
+	for action: StringName in [&"fire", &"aim", &"crouch"]:
+		Input.action_release(action)
 	Input.flush_buffered_events()
 
 

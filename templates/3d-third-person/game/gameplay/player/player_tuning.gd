@@ -59,6 +59,40 @@ extends Resource
 		snap_length = value
 		emit_changed()
 
+@export_group("Crouch")
+## The capsule's height while crouched (the character fits under a ceiling this low).
+@export_range(0.7, 1.6, 0.01, "suffix:m") var crouch_height := 1.1:
+	set(value):
+		crouch_height = value
+		emit_changed()
+## Speed at a crouch walk with the stick fully pushed.
+@export_range(0.3, 4.0, 0.05, "suffix:m/s") var crouch_speed := 1.5
+## Seconds to go from standing to crouched and back.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var crouch_time := 0.2
+## On: the crouch button switches crouching on and off. Off: the character is crouched only while
+## the button is held.
+@export var crouch_toggle := false
+## Height of the camera's target (the point the camera follows) when standing.
+@export_range(0.5, 2.5, 0.01, "suffix:m") var camera_height := 1.55:
+	set(value):
+		camera_height = value
+		emit_changed()
+## Height of the camera's target when crouched.
+@export_range(0.3, 2.0, 0.01, "suffix:m") var crouch_camera_height := 0.9:
+	set(value):
+		crouch_camera_height = value
+		emit_changed()
+
+@export_group("Aim")
+## The share of the walking speed the character keeps while aiming (1 is the full speed).
+@export_range(0.1, 1.0, 0.05) var aim_move_scale := 0.6
+## How fast the body turns to the camera's heading while aiming.
+@export_range(1.0, 60.0, 0.5, "suffix:rad/s") var aim_turn_speed := 18.0
+## Seconds the arm takes to come up to aim and to go down again.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var aim_pose_time := 0.15
+## Seconds that firing keeps the character aiming after the fire button is let go.
+@export_range(0.0, 5.0, 0.05, "suffix:s") var aim_hold_time := 0.8
+
 @export_group("Pushing")
 ## The share of its own speed the character gives a light prop it walks into: 1 moves the prop
 ## as fast as the character walks, 0 does not move it.

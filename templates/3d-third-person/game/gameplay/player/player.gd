@@ -1,17 +1,18 @@
 @tool
 class_name Player
 extends CharacterBody3D
-## The third-person character: walks, runs and sprints toward where the camera looks, jumps
-## (with coyote time and a jump buffer), steers in the air, climbs low steps, rides a
-## `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door` and collects a `Pickup`. Everything
-## a developer tunes is in the `PlayerTuning` resource. Other nodes connect to the signals;
-## `PlayerAnimation` follows `state`.
+## The third-person character: walks, runs and sprints toward where the camera looks, crouches
+## (and stays crouched under a low ceiling), jumps (with coyote time and a jump buffer), steers
+## in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`,
+## collects a `Pickup`, and aims and shoots its `Weapon`. Everything a developer tunes is in the
+## `PlayerTuning` resource. Other nodes connect to the signals; `PlayerAnimation` follows `state`.
 ##
-## It is a `@tool` script so the editor shows the capsule follow the tuning (radius and height);
-## only the setup runs there, never the movement.
+## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
+## (radius, height, eye height); only the setup runs there, never the movement.
 ##
 ## It reads these input actions (all devices): `move_left`, `move_right`, `move_forward`,
-## `move_back`, `jump`, `sprint`, `walk` (slows to a walk) and `interact`.
+## `move_back`, `jump`, `sprint`, `walk` (slows to a walk), `interact`, `crouch`, `aim` and
+## `fire`.
 
 ## The body left the ground by jumping.
 signal jumped
@@ -28,6 +29,10 @@ signal state_changed(state: State)
 ## The body was put somewhere else (`teleport()`, `respawn()`): a camera cuts to it instead of
 ## flying there.
 signal teleported
+## The character began or stopped aiming (the aim button, or firing): the crosshair follows it.
+signal aim_changed(aiming: bool)
+## The character crouched or stood up (it stands only when it has room).
+signal crouch_changed(crouching: bool)
 
 enum State {
 	IDLE,
@@ -39,10 +44,18 @@ enum State {
 	PUSH,
 	INTERACT,
 	HIT,
+	CROUCH,  ## Crouched, standing still or walking.
 }
 
 ## The group the player joins, so a HUD or a camera finds it.
 const GROUP := &"player"
+## How much faster than a prop's `push_speed` the character walks while it pushes the prop: the
+## prop is given the push speed, and the character stays against it and pushes it every tick
+## (equal speeds would let a gap open and the friction slow the prop between pushes).
+const PUSH_CONTACT := 1.15
+## Seconds a slow push goes on counting after the last touch: pushing a heavy prop is a series of
+## touches with a small gap between them, and the push clip and the speed limit should not flicker.
+const PUSH_HOLD := 0.25
 
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
@@ -57,6 +70,10 @@ const GROUP := &"player"
 			_apply_tuning()
 ## Starts at a `SpawnPoint` of the group `player` when the scene has one.
 @export var start_at_spawn := true
+
+@export_group("Weapon")
+## What the character shoots with. Empty: it cannot aim or shoot.
+@export var weapon: Weapon
 
 @export_group("Input")
 ## Turns the keys, pad and touch stick off (a cutscene, a menu).
@@ -73,6 +90,12 @@ var state := State.IDLE:
 var facing := 0.0
 ## The items it holds, by `Pickup.item_id`.
 var items: Dictionary[StringName, int] = {}
+## True while the character is crouched, or kept crouched by a ceiling it cannot stand under.
+var crouching := false
+## True while it aims: the aim button is held, or it fired a moment ago.
+var aiming := false
+## How far the arm is up, 0 (down) to 1 (aiming); `PlayerAnimation` blends the pose by it.
+var aim_amount := 0.0
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -81,12 +104,21 @@ var _land_timer := 0.0
 var _fall_speed := 0.0
 var _was_airborne := false
 var _pushing := false
+var _push_cap := 0.0
+var _push_hold := 0.0
 var _jump_held := false
+var _sprinting := false
+var _wants_crouch := false
+var _crouch_amount := 0.0
+var _fire_hold := 0.0
+var _fire_buffer := 0.0
+var _stand_probe := CapsuleShape3D.new()
 var _spawn_rng := RandomNumberGenerator.new()
 
 @onready var _model: Node3D = %Model
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
+@onready var _camera_target: Node3D = %CameraTarget
 
 
 func _ready() -> void:
@@ -109,15 +141,17 @@ func _physics_process(delta: float) -> void:
 		respawn()
 		return
 	_tick_timers(delta)
+	_update_crouch(delta)
+	_update_aim(delta)
 	var wish := _wish_direction() if input_enabled and _action_lock <= 0.0 else Vector3.ZERO
 	_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
 	move_and_slide()
-	_pushing = _push_props(before)
+	_pushing = _push_props(before, delta)
 	_after_move(wish, delta)
-	_use_input()
+	_use_input(delta)
 
 
 ## Puts the character at a spawn point of the group `player` (the first free one), or leaves it.
@@ -185,19 +219,109 @@ func ground_speed() -> float:
 	return Vector2(velocity.x, velocity.z).length()
 
 
-# Fits the capsule, the steepest floor and the floor snap to the tuning (they are copied into
-# the body, so a change to them is applied here, from the tuning's `changed`).
+## True while the sprint button is held and the character runs faster than a run on the ground
+## (the camera zooms and shakes by it).
+func is_sprinting() -> bool:
+	return _sprinting
+
+
+## The height of the capsule now, in metres: the standing height, or less while it crouches.
+func body_height() -> float:
+	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
+	return lerpf(tuning.height, _crouch_height(), shrink)
+
+
+## True when nothing is above the character that would stop it from standing up.
+func has_room_to_stand() -> bool:
+	_stand_probe.radius = maxf(tuning.radius - 0.02, 0.05)
+	_stand_probe.height = tuning.height - 0.12
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _stand_probe
+	var middle := global_position + Vector3.UP * (tuning.height / 2.0 + 0.06)
+	query.transform = Transform3D(Basis.IDENTITY, middle)
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+# Fits the capsule, the camera's target, the steepest floor and the floor snap to the tuning (they
+# are copied into the body, so a change to them is applied here, from the tuning's `changed`).
 func _apply_tuning() -> void:
 	if not is_node_ready() or tuning == null:
 		return
-	var capsule := _body.shape as CapsuleShape3D
-	capsule.radius = tuning.radius
-	capsule.height = tuning.height
-	_body.position.y = tuning.height / 2.0
+	_fit_body()
 	if Engine.is_editor_hint():
 		return
 	floor_max_angle = deg_to_rad(tuning.max_slope)
 	floor_snap_length = tuning.snap_length
+
+
+# Sizes the capsule and the camera's target for the crouch: the capsule keeps its feet on the
+# ground and loses height from the top.
+func _fit_body() -> void:
+	var capsule := _body.shape as CapsuleShape3D
+	var height := body_height()
+	capsule.radius = tuning.radius
+	capsule.height = height
+	_body.position.y = height / 2.0
+	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
+	_camera_target.position.y = lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink)
+
+
+# The shortest the capsule can be: a capsule is at least two radii tall.
+func _crouch_height() -> float:
+	return clampf(tuning.crouch_height, tuning.radius * 2.0 + 0.01, tuning.height)
+
+
+func _update_crouch(delta: float) -> void:
+	if tuning.crouch_toggle:
+		if input_enabled and Input.is_action_just_pressed(&"crouch"):
+			_wants_crouch = not _wants_crouch
+	else:
+		_wants_crouch = input_enabled and Input.is_action_pressed(&"crouch")
+	var should := _wants_crouch
+	# Letting go under a low ceiling keeps the character crouched until there is room.
+	if not should and crouching and not has_room_to_stand():
+		should = true
+	if should != crouching:
+		crouching = should
+		crouch_changed.emit(crouching)
+	var before := _crouch_amount
+	_crouch_amount = move_toward(
+		_crouch_amount, 1.0 if crouching else 0.0, delta / maxf(tuning.crouch_time, 0.001)
+	)
+	if _crouch_amount != before:
+		_fit_body()
+
+
+func _update_aim(delta: float) -> void:
+	var wants := false
+	if weapon != null and input_enabled and _action_lock <= 0.0:
+		if Input.is_action_pressed(&"fire"):
+			_fire_hold = tuning.aim_hold_time
+		else:
+			_fire_hold = maxf(_fire_hold - delta, 0.0)
+		wants = Input.is_action_pressed(&"aim") or _fire_hold > 0.0
+	else:
+		_fire_hold = 0.0
+	if wants != aiming:
+		aiming = wants
+		aim_changed.emit(aiming)
+	aim_amount = move_toward(
+		aim_amount, 1.0 if aiming else 0.0, delta / maxf(tuning.aim_pose_time, 0.001)
+	)
+
+
+# The camera's heading as a facing angle, or NAN when no camera draws the scene.
+func _camera_heading() -> float:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return NAN
+	var forward := -camera.global_basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 0.0001:
+		return NAN
+	return atan2(forward.x, forward.z)
 
 
 func _tick_timers(delta: float) -> void:
@@ -237,11 +361,18 @@ func _view_basis() -> Basis:
 
 
 func _target_speed(strength: float) -> float:
-	if Input.is_action_pressed(&"sprint"):
-		return tuning.sprint_speed
-	if Input.is_action_pressed(&"walk") or strength < 0.45:
-		return tuning.walk_speed * maxf(strength, 0.5)
-	return tuning.run_speed * strength
+	var speed := tuning.run_speed * strength
+	if crouching:
+		speed = tuning.crouch_speed * maxf(strength, 0.5)
+	elif Input.is_action_pressed(&"sprint") and not aiming:
+		speed = tuning.sprint_speed
+	elif Input.is_action_pressed(&"walk") or strength < 0.45:
+		speed = tuning.walk_speed * maxf(strength, 0.5)
+	if aiming:
+		speed = minf(speed, tuning.walk_speed * 1.5) * tuning.aim_move_scale
+	if _push_cap > 0.0:
+		speed = minf(speed, _push_cap)
+	return speed
 
 
 func _steer(wish: Vector3, delta: float) -> void:
@@ -256,7 +387,12 @@ func _steer(wish: Vector3, delta: float) -> void:
 	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
-	if strength > 0.0 and _action_lock <= 0.0:
+	var heading := _camera_heading()
+	if aiming and _action_lock <= 0.0 and not is_nan(heading):
+		# Aiming turns the body to the camera's heading, however it walks.
+		facing = lerp_angle(facing, heading, clampf(tuning.aim_turn_speed * delta, 0.0, 1.0))
+		_model.rotation.y = facing
+	elif strength > 0.0 and _action_lock <= 0.0:
 		facing = lerp_angle(
 			facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
 		)
@@ -266,12 +402,14 @@ func _steer(wish: Vector3, delta: float) -> void:
 func _vertical(delta: float) -> void:
 	var airborne := not is_on_floor()
 	if airborne:
-		var scale := tuning.fall_gravity_scale if velocity.y < 0.0 else 1.0
-		velocity.y = maxf(velocity.y - tuning.gravity() * scale * delta, -tuning.terminal_speed)
+		var gravity_scale := tuning.fall_gravity_scale if velocity.y < 0.0 else 1.0
+		velocity.y = maxf(
+			velocity.y - tuning.gravity() * gravity_scale * delta, -tuning.terminal_speed
+		)
 		_fall_speed = maxf(_fall_speed, -velocity.y)
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
-	if _jump_buffer > 0.0 and _coyote > 0.0 and _action_lock <= 0.0:
+	if _jump_buffer > 0.0 and _coyote > 0.0 and _action_lock <= 0.0 and not crouching:
 		velocity.y = tuning.jump_speed()
 		_jump_buffer = 0.0
 		_coyote = 0.0
@@ -293,31 +431,48 @@ func _climb(delta: float) -> void:
 	StepClimber.climb(self, motion, tuning.step_height, tuning.max_slope, tuning.radius + 0.06)
 
 
-## Pushes the props the body slid into this tick. True when it is pushing one it walks at.
-func _push_props(before: Vector3) -> bool:
+## Pushes the props the body slid into this tick. True when it is pushing one it walks at. A prop
+## with a `push_speed` is pushed at that speed and the character walks a little faster than it
+## (`PUSH_CONTACT`), and it keeps counting as pushed for `PUSH_HOLD` after the last touch.
+func _push_props(before: Vector3, delta: float) -> bool:
 	var pushing := false
+	var slow_push := false
 	var flat := Vector3(before.x, 0.0, before.z)
-	if flat.length() < tuning.stand_speed:
-		return false
-	for index in get_slide_collision_count():
-		var collision := get_slide_collision(index)
-		var prop := collision.get_collider() as RigidBody3D
-		if prop == null:
-			continue
-		var along := -collision.get_normal()
-		along.y = 0.0
-		if along.length_squared() < 0.0001:
-			continue
-		along = along.normalized()
-		if along.dot(flat.normalized()) < 0.5:
-			continue
-		var share := tuning.push_strength * clampf(tuning.push_mass / prop.mass, 0.15, 1.0) * 1.5
-		var want := flat.length() * clampf(share, 0.0, 1.0)
-		var gain := want - prop.linear_velocity.dot(along)
-		if gain > 0.0:
-			prop.apply_central_impulse(along * gain * prop.mass)
-		pushing = true
-	return pushing
+	var cap := 0.0
+	if flat.length() >= tuning.stand_speed:
+		for index in get_slide_collision_count():
+			var collision := get_slide_collision(index)
+			var prop := collision.get_collider() as RigidBody3D
+			if prop == null:
+				continue
+			var along := -collision.get_normal()
+			along.y = 0.0
+			if along.length_squared() < 0.0001:
+				continue
+			along = along.normalized()
+			if along.dot(flat.normalized()) < 0.5:
+				continue
+			var share := (
+				tuning.push_strength * clampf(tuning.push_mass / prop.mass, 0.15, 1.0) * 1.5
+			)
+			var want := flat.length() * clampf(share, 0.0, 1.0)
+			var slow: float = prop.get(&"push_speed") if &"push_speed" in prop else 0.0
+			if slow > 0.0:
+				want = slow
+				cap = slow * PUSH_CONTACT if cap == 0.0 else minf(cap, slow * PUSH_CONTACT)
+				slow_push = true
+			var gain := want - prop.linear_velocity.dot(along)
+			if gain > 0.0:
+				prop.apply_central_impulse(along * gain * prop.mass)
+			pushing = true
+	if slow_push:
+		_push_hold = PUSH_HOLD
+		_push_cap = cap
+	else:
+		_push_hold = maxf(_push_hold - delta, 0.0)
+		if _push_hold <= 0.0:
+			_push_cap = 0.0
+	return pushing or _push_hold > 0.0
 
 
 func _after_move(wish: Vector3, _delta: float) -> void:
@@ -328,6 +483,14 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 			_land_timer = tuning.land_time
 		_fall_speed = 0.0
 	_was_airborne = not grounded
+	_sprinting = (
+		grounded
+		and input_enabled
+		and not crouching
+		and not aiming
+		and Input.is_action_pressed(&"sprint")
+		and ground_speed() > tuning.run_speed
+	)
 	state = _pick_state(grounded, wish)
 
 
@@ -339,6 +502,8 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 		picked = State.JUMP if velocity.y > 0.0 else State.FALL
 	elif _land_timer > 0.0:
 		picked = State.LAND
+	elif crouching:
+		picked = State.CROUCH
 	elif _pushing and not wish.is_zero_approx():
 		picked = State.PUSH
 	elif ground_speed() >= tuning.stand_speed:
@@ -346,6 +511,22 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 	return picked
 
 
-func _use_input() -> void:
+func _use_input(delta: float) -> void:
 	if input_enabled and Input.is_action_just_pressed(&"interact"):
 		interact()
+	_use_weapon(delta)
+
+
+# A press of the fire button waits a moment for the arm to come up, then shoots.
+func _use_weapon(delta: float) -> void:
+	_fire_buffer = maxf(_fire_buffer - delta, 0.0)
+	if weapon == null or not input_enabled:
+		return
+	var pulled := Input.is_action_just_pressed(&"fire")
+	if weapon.automatic and Input.is_action_pressed(&"fire"):
+		pulled = true
+	if pulled:
+		_fire_buffer = 0.3
+	if _fire_buffer > 0.0 and aiming and aim_amount >= 0.5:
+		if weapon.fire() != null:
+			_fire_buffer = 0.0

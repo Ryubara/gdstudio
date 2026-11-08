@@ -53,6 +53,12 @@ enum Shape {
 		bounciness = value
 		_update_surface()
 
+@export_group("Pushing")
+## The speed the character gives this prop when it pushes it (the character walks a little
+## faster, so it stays against it). A low number (a heavy cube pushed at 1.2 m/s) keeps the push
+## animation readable. Zero leaves it to the character's own pushing (`PlayerTuning.push_strength`).
+@export_range(0.0, 6.0, 0.05, "suffix:m/s") var push_speed := 0.0
+
 @export_group("Safety")
 ## Below this height (y) the prop returns to its start. Set it under the lowest floor.
 @export_range(-1000.0, 0.0, 1.0, "or_greater", "suffix:m") var fall_limit := -20.0

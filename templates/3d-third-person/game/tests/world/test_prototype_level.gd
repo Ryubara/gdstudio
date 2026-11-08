@@ -58,12 +58,12 @@ func test_the_graphics_profile_does_nothing_on_the_compatibility_renderer() -> v
 	var level := _level()
 	var profile: GraphicsProfile = level.find_children("*", "GraphicsProfile", true, false)[0]
 	var world: WorldEnvironment = level.find_children("*", "WorldEnvironment", true, false)[0]
-	var before := world.environment
+	var earlier := world.environment
 	profile.apply()
 	if GraphicsProfile.is_supported():
 		assert_bool(world.environment.ssao_enabled).is_equal(profile.ambient_occlusion)
 	else:
-		assert_object(world.environment).is_same(before)
+		assert_object(world.environment).is_same(earlier)
 
 
 func test_the_level_has_a_sun_with_shadows_and_a_sky() -> void:

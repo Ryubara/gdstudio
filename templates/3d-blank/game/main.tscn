@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="3_pcam"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/camera_3d_resource.gd" id="4_lens"]
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="5_audio"]
+[ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="6_wind"]
 
 [sub_resource type="Resource" id="Resource_lens"]
 script = ExtResource("4_lens")
@@ -14,6 +15,11 @@ fov = 60.0
 
 [node name="AudioSettings" type="Node" parent="."]
 script = ExtResource("5_audio")
+
+[node name="Wind" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_wind")
+autoplay = true
+bus = &"Ambient"
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
 

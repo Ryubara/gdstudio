@@ -9,6 +9,18 @@ for menus (3 dB under the rest). An `AudioSettings` node in `main.tscn` holds ea
 in dB; changing one applies to the audio server at once, in the editor and in a running game (the remote inspector),
 and a settings screen sets the same properties. Give every sound player a `bus`.
 
+## Where they play
+
+The wind is the `Wind` player of `main.tscn` (autoplay, `Ambient`). The coin is the `Sound` node of `pickup.tscn`: one
+of the four files each time a pickup is taken, then the pickup goes once it has played. The steps are `Footsteps`
+(`gameplay/player/footsteps.tscn`, a child of `Player`): a step sounds each time a foot of the animated skeleton
+lands, so it follows the walk, run, sprint and crouch-walk clips at any blend, and never when the character stands
+still or is in the air. It has three `AudioStreamPlayer3D` nodes on `SFX`, each with its own volume and bus: `Step`,
+`CrouchStep` (9 dB quieter) and `LandStep` (3 dB louder, played when the character lands). The pistol has a slot for a
+shot sound (the `ShotSound` node of `weapon.tscn`) and nothing in it: the template ships no pistol sound, and
+Deadnight's are not committed here because no licence entry shows that GDStudio made them. Put a file there and a shot
+plays it at the muzzle.
+
 ## The sounds
 
 | Sound | Files | Bus | Notes |

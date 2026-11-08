@@ -15,6 +15,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	if is_instance_valid(_pickup):
+		AudioDrain.stop_all(_pickup)
 		_pickup.free()
 
 
@@ -32,6 +33,8 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"spin_speed": 120.0,
 		&"bob_height": 0.12,
 		&"bob_period": 1.6,
+		&"sounds": _pickup.sounds,
+		&"pitch_variation": 0.04,
 		&"respawn_time": 0.0,
 	}
 	assert_array(ExportPins.differences(_pickup, pins)).is_empty()
@@ -110,10 +113,63 @@ func test_a_respawn_time_brings_it_back_and_zero_removes_it() -> void:
 	await get_tree().create_timer(0.5).timeout
 	assert_bool(_pickup.is_available()).is_true()
 	_pickup.respawn_time = 0.0
+	_pickup.sounds = []
 	_pickup._on_body_entered(taker)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_bool(is_instance_valid(_pickup)).is_false()
+	taker.free()
+
+
+func test_collecting_plays_one_of_the_coin_sounds_on_the_sfx_bus_and_it_finishes_first() -> void:
+	var sound := _pickup.get_node("%Sound") as AudioStreamPlayer3D
+	assert_str(String(sound.bus)).is_equal("SFX")
+	assert_int(_pickup.sounds.size()).is_equal(4)
+	var taker := CharacterBody3D.new()
+	_pickup.respawn_time = 0.0
+	_pickup._on_body_entered(taker)
+	assert_bool(sound.playing).is_true()
+	assert_bool(_pickup.sounds.has(sound.stream)).is_true()
+	# It hides at once but stays until the sound has played (about 0.4 s), then goes.
+	await get_tree().process_frame
+	assert_bool(is_instance_valid(_pickup)).is_true()
+	assert_bool(_pickup.is_available()).is_false()
+	await get_tree().create_timer(0.7).timeout
+	assert_bool(is_instance_valid(_pickup)).is_false()
+	taker.free()
+
+
+func test_two_pickups_in_a_row_do_not_play_the_same_file_and_the_pitch_varies() -> void:
+	var sound := _pickup.get_node("%Sound") as AudioStreamPlayer3D
+	var taker := CharacterBody3D.new()
+	_pickup.respawn_time = 0.2
+	var seen := {}
+	var last: AudioStream = null
+	for _round in 8:
+		_pickup._on_body_entered(taker)
+		assert_object(sound.stream).is_not_same(last)
+		last = sound.stream
+		seen[sound.pitch_scale] = true
+		_pickup._show_again()
+	assert_int(seen.size()).is_greater(3)
+	taker.free()
+
+
+func test_a_pickup_with_no_sounds_plays_nothing_and_goes_at_once() -> void:
+	_pickup.sounds = []
+	var taker := CharacterBody3D.new()
+	_pickup._on_body_entered(taker)
+	assert_bool((_pickup.get_node("%Sound") as AudioStreamPlayer3D).playing).is_false()
+	taker.free()
+
+
+func test_the_pitch_variation_is_live() -> void:
+	var sound := _pickup.get_node("%Sound") as AudioStreamPlayer3D
+	var taker := CharacterBody3D.new()
+	_pickup.respawn_time = 0.2
+	_pickup.pitch_variation = 0.0
+	_pickup._on_body_entered(taker)
+	assert_float(sound.pitch_scale).is_equal(1.0)
 	taker.free()
 
 
