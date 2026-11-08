@@ -23,9 +23,8 @@ of the character holding it beside the kit one. A kit hold puts the weapon in th
 for that, solve each weapon's grip from its own sockets ([Hands on the weapon](#hands-on-the-weapon)).
 
 **Hand guns.** The kit file's Revolver copy is rescaled like the AK's, so use the Shotgun hold for every gun, and size
-one-handed guns against the hand ([Hands on the weapon](#hands-on-the-weapon),
-[lesson](../../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)). Sweep a bent bar as one tube; boxes give a
-bend a saw-tooth edge.
+one-handed guns against the hand ([Hands on the weapon](#hands-on-the-weapon)). Sweep a bent bar as one tube;
+boxes give a bend a saw-tooth edge.
 
 **Thrown weapons.** The kit characters carry no kit grenade, so a grenade has no kit hold to copy. Model it standing up
 along +Z with the origin in the body's centre (the fist), and give each moving part its own node, origin at its
@@ -96,7 +95,8 @@ data instead:
   Measure the skinned mesh against the weapon's triangles, inside counted per closed piece (a kitbashed gun is many
   overlapping closed parts, so one parity test over the whole mesh is wrong). Measure the meshes drawn up close only:
   a far level of detail is hidden by its visibility range, not by `visible`, and its decimated hand's longer fingertip
-  passed a finger 7 mm off the weapon ([lesson](../../lessons/2026-11-03-a-grip-measure-counted-the-far-level-of-detail.md)).
+  passed a finger 7 mm off the weapon, and the solver, on the raw model, had curled that finger on the far hand too
+  (Deadnight #678, #716).
 - **The palm is four bones from the wrist** (`Index1`, `Middle1`, `Pinky1`, `Thumb1`). An IK that turns only the bone
   the weapon rides (`Index1.R`) leaves the other three with the forearm and tears the palm: turn them with it.
 - **Check the arm reaches.** A chibi arm is short (the Soldier's is 0.66 m in the game): a solved left-hand grip is
@@ -108,8 +108,7 @@ data instead:
   held clean at 0.66-0.70 m, stopped 1.7-3.4 cm short at 0.71-0.72 m and put the left hand up to 29 mm into the gun at
   0.85 m, so measure the gap between the hand bone and the IK's target too: on a gun drawn at real length and held 1.3
   times, the support goes about 0.30 ahead of the grip (no closer than the hand clears the magazine) and the butt at
-  most about 0.31 behind it, shorter than most real stocks
-  ([lesson](../../lessons/2026-11-03-a-support-placed-at-the-real-guns-distance-was-out-of-reach.md)).
+  most about 0.31 behind it, shorter than most real stocks (Deadnight #796).
 - **Size against the hand, not only the body.** The kit Soldier's fist is about 2.3 times a real one and his finger 3
   times, on a body at 0.8: the kit draws its guns about 1.33 times real for that (its AK beside the Soldier). Check a
   pistol grip against the three fingers under the trigger finger (about 1.0) and the guard's opening against the
@@ -124,15 +123,15 @@ data instead:
   task only points its hold file at the model. Such a model is not in the per-pose grip test (it walks the catalogue
   weapons), so the capture's contact lines are its only check in the game pose: read them, not the solver's table.
   The solver's seat takes the first surface in the palm's line, which a magazine in front of the fore-end can be
-  ([lesson](../../lessons/2026-11-03-a-support-hand-was-seated-on-the-magazine.md)), and it poses the arm unlike the
-  shouldered game pose, so the wrist's skin (`thumb_base`) can go into a stock it measured clear
-  ([lesson](../../lessons/2026-11-03-a-wrist-went-into-a-stock-the-solver-measured-clear.md)).
+  (Deadnight's MP5 left hand sat 17 cm under its hand guard: move `Support` forward clear of the magazine, and
+  compare the solved `left_hand` origin with the support point, 12-14 cm under it on a gun that works), and it
+  poses the arm unlike the shouldered game pose, so the wrist's skin (`thumb_base`) can go into a stock it measured
+  clear (9.1 mm on the M4A1): keep a stock's underside clear of the wrist for about 20 cm behind the grip.
 - **Every view of the held weapon uses the same builder.** The night and any screen that shows the soldier with a
   weapon (the menu's stage, a wardrobe, a lobby) put it in the hand through one function (Deadnight's `HeldWeapon`:
   the weapon's own hold, the grip file's place, the arms' IK, the fingers). A view with its own copy keeps the old
-  fist the day the grips are solved ([Deadnight #621](https://github.com/Ryubara/deadnight/issues/621),
-  [lesson](../../lessons/2026-11-02-the-menu-soldier-copied-the-hold-code-and-missed-the-grips.md)); test it by measuring
-  the hands against the weapon on that view with the night's limits.
+  fist the day the grips are solved ([Deadnight #621](https://github.com/Ryubara/deadnight/issues/621)); test it
+  by measuring the hands against the weapon on that view with the night's limits.
 
 Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/tests/art/solve_grips.gd`,
 `HandContact`, `WeaponFit`, and the runtime `HandGripPose`; the design is its `docs/design/animation.md` "Grips".
@@ -142,14 +141,14 @@ Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/t
   weapon is a contact of two meshes: the clips never move the fingers, so every weapon got one copied fist; the IK
   turned one of four palm bones and tore the palm; the left arm could not reach the long fore-ends; and the size rule
   ignored a chibi hand 2.3 to 3 times real, so trigger guards were thinner than the finger. **Seen:** Deadnight #460,
-  2026-11-02 (fix: the solved grips of this section
-  ([lesson](../../lessons/2026-11-01-one-kit-fist-held-no-weapon-right.md))).
+  2026-11-02 (fix: the solved grips of this section).
 - **Approach:** Build every view of a held weapon with one builder (`HeldWeapon`); when a change touches how a thing is
-  held or shown, grep every view of it (menu, wardrobe, lobby, night) and give each the night's contact test
-  (`HandContact.failures`). **Watch out for:** the menu soldier mounted weapons with its own copy of the hold code, so
-  the per-model grips of Deadnight #507 reached only `PlayerAnimation`, and the menu kept a fist and a class hold (the
-  SMG showed the rifle). **Seen:** Deadnight #621, 2026-11-02 (fix: one builder, and the contact test in each view
-  ([lesson](../../lessons/2026-11-02-the-menu-soldier-copied-the-hold-code-and-missed-the-grips.md))).
+  held or shown, grep every view of it (menu, wardrobe, lobby, night), give each the night's contact test
+  (`HandContact.failures`), and run the suite folder of every view for a new held model. **Watch out for:** the menu
+  soldier mounted weapons with its own copy of the hold code, so the per-model grips of Deadnight #507 reached only
+  `PlayerAnimation` and the menu kept a fist (the SMG showed the rifle); later three new guns passed the night's grip
+  test and floated 0.1 mm past the menu's limit, in a folder not run. **Seen:** Deadnight #621, 2026-11-02; Deadnight
+  #793, 2026-11-03 (fix: one builder, the contact test in each view, both grip suites run for a new model).
 
 ### A weapon in each hand
 
@@ -189,18 +188,18 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | Lesson | Detail |
 | --- | --- |
 | Draw real, then fatten | Drawn at real proportions, a gun looks spindly beside the kit. Scale every part 1.4-1.5x across its length before chamfering to get the kit's chunky cross-sections |
-| Big receiver, shallow stock | The kit's guns read as a large grey block; keep the stock shallow with a slanted butt, or the fattening turns it into a wedge (Deadnight's PPSh, MP5 and M4A1 first came out with butts 0.16-0.20 m deep in drawing units and read as wedges; 0.14-0.16 m read, [lesson](../../lessons/2026-11-03-new-gun-stocks-came-out-as-wedges.md)) |
+| Big receiver, shallow stock | The kit's guns read as a large grey block; keep the stock shallow with a slanted butt, or the fattening turns it into a wedge (Deadnight's PPSh, MP5 and M4A1 first came out with butts 0.16-0.20 m deep in drawing units and read as wedges; 0.14-0.16 m read). Render a turntable beside a kit-style gun after the first build, before solving anything against it |
 | Chamfer only the big parts | A one-segment chamfer (about 17 mm at kit scale) costs a box 44 tris instead of 12; leave screws, pins, sights and lever segments hard |
 | Kitbash, never weld | Separate closed parts; levers and guards are overlapping boxes along a path |
 | Round parts by lathe | One turned profile with the chamfers in it; flat shading keeps the kit's facets |
 | Turn along the barrel | A tank lying on a gun, a nozzle or a bezel turns about X, not Z; a profile closed into a loop turns into a ring with a hole (a lens set inside a bezel, a nozzle with a glowing disc deep in it), where a capped cylinder would hide what is inside (Deadnight's `weapon_specs/_revolve.py`) |
-| Far level from the same description | No chamfers, half the sides on round parts, small parts left out: 22-32 % of the held count. A turned part with rounded ends gets a far profile of its own: keeping every other point made a tank's two ends unlike ([lesson](../../lessons/2026-11-03-a-far-level-that-kept-every-other-profile-point-made-a-lopsided-tank.md)) |
+| Far level from the same description | No chamfers, half the sides on round parts, small parts left out: 22-32 % of the held count. A turned part with rounded ends gets a far profile of its own: keeping every other point made a tank's two ends unlike. Look at the far level in a turntable beside the near one |
 | One material per family | A small palette atlas, every face's UVs collapsed on its colour swatch, roughness 0.415, metallic 0.4 |
 | Compare rebuilds by geometry | The glTF export's triangle order changes from run to run, so a rebuilt file never matches the old one byte for byte: compare nodes, vertex buffers and the triangle set, and commit only the files the change is for |
 | Look at it | A turntable sheet beside two kit weapons at the same scale shows what numbers miss: the first pass had the right lengths and triangle counts, and still read thin |
-| Chamfers cost on round parts | A 12-sided cylinder is 44 triangles bare and 92 chamfered, a box 12 and 44: chamfer the big parts that face the camera and leave collars, rings and small blocks bare ([lesson](../../lessons/2026-11-03-chamfered-round-parts-put-a-carbine-over-its-budget.md)) |
-| Trim is a band, not a cap | A rim drawn as a slightly larger capped cylinder covers the face it trims; draw it as a band round the edge, then read the cells by area ([lesson](../../lessons/2026-11-03-a-drum-s-rim-discs-hid-its-face-colour.md)) |
-| A copied guard needs its frame | A trigger guard copied from another gun keeps its opening only if the frame above the trigger sits at the donor's height: 5-7 mm lower took Deadnight's MP5 and M4A1 from 0.95 to 0.83-0.86 of the finger ([lesson](../../lessons/2026-11-03-a-copied-trigger-guard-lost-its-opening-under-a-lower-frame.md)) |
+| Chamfers cost on round parts | A 12-sided cylinder is 44 triangles bare and 92 chamfered, a box 12 and 44: chamfer the big parts that face the camera and leave collars, rings and small blocks bare; count on the first build ([Build scripts](build-scripts.md#checks)) |
+| Trim is a band, not a cap | A rim drawn as a slightly larger capped cylinder covers the face it trims; draw it as a band round the edge, then read the cells by area |
+| A copied guard needs its frame | A trigger guard copied from another gun keeps its opening only if the frame above the trigger sits at the donor's height: 5-7 mm lower took Deadnight's MP5 and M4A1 from 0.95 to 0.83-0.86 of the finger; measure the fit after the first build |
 
 ## Palette cells in Godot
 
@@ -208,7 +207,8 @@ Every face's UVs sit on the centre of one swatch of a G x G palette, so a shader
 parts apart by colour cell with no extra texture. In Godot (the glTF flips V) **a face's cell is
 `floor(UV.x * G) + G * floor(UV.y * G)`**, cell 0 the top-left swatch; in Blender it is
 `floor(u * G) + G * floor((1 - v) * G)`. Check the formula on one known swatch: read the mesh's UVs in Godot and
-sample the palette there (Deadnight #786 did it for its 4 x 4 weapon palette, [lesson](../../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)).
+sample the palette there (Deadnight #786 did it for its 4 x 4 weapon palette; a row taken from Blender's bottom-up
+V lit nothing).
 A swatch that must glow (an energy cell, a lamp) gets its own cell and is lit by an emission texture of the atlas's
 layout, black but for that cell, on a copy of the material: no second material, no extra draw call. Append new
 swatches at the end of the palette's list, so no older swatch moves and no model has to be rebuilt.
