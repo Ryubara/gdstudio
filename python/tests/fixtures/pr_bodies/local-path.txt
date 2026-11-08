@@ -6,7 +6,7 @@ Fixes #128
 
 See C:\Users\Noah\notes.txt for the run.
 
-Read first: tools, process
+Read first: studio/hooks.md#docs
 
 Lessons: docs/studio/hooks.md#pr-body
 

@@ -242,8 +242,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
-  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
-  the mistakes glossary (`gds lessons <area>`)).
+  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md)).
+- Plan: the coordinator names the doc sections each task agent reads in its prompt when it dispatches it (`gds brief`,
+  `Read:` lines the Agent guard checks), and the agent's report says what it read and what was missing; no category
+  of lessons is pushed at every agent of an area ([Starting an agent](starting-work.md#starting-an-agent)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).

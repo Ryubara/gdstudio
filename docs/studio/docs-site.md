@@ -44,8 +44,8 @@ stub; a test fails an `engines/<name>/` that holds only its index.
 
 **Inside a page.** What is learned updates the section it belongs to, never a page of its own: the format of an entry,
 a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). `docs/lessons/` (one file per
-problem, with `areas:` front matter) takes no new file; its old files stay readable, and feed `gds learn` and
-`gds lessons <area>`, until #770 moves them and Deadnight's general docs into the sections.
+problem) takes no new file; its old files stay readable, and feed `gds learn --old`, until #770 moves them and
+Deadnight's general docs into the sections.
 
 ## The navigation {#nav}
 
@@ -147,9 +147,9 @@ runs elsewhere and nothing is lost:
 
 | Check | Where it runs now |
 | --- | --- |
-| Every old lesson has `areas:` front matter naming known areas | `python .github/scripts/mistakes.py check`: pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
+| Every old lesson had `areas:` front matter naming known areas | dropped with the areas (gdstudio #771); the rest of `python .github/scripts/mistakes.py check` runs in pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
 | No corrections-log row quotes the maintainer (`lessons.quoted_rows()`) | the same check, and `test_the_kits_corrections_page_quotes_no_prompt` |
-| The glossary can be built from the rules and the old lessons | the same check; `gds lessons <area>` and the SubagentStart hook build it in memory |
+| The glossary can be built from the rules and the old lessons | dropped: the glossary is gone (gdstudio #771); a task agent's `Read:` lines name sections, which the Agent guard checks exist |
 | The rules of the topic sections ([the list](rules.md#checks)) | the same check, with `--base HEAD^1` in CI (gdstudio #769) |
 
 A test fails a `hooks:` key in `mkdocs.yml`, and a plugin Zensical does not implement itself (today only `awesome-nav`
@@ -177,4 +177,4 @@ merging main), fix the links in the next commit, and add a line to the map.
 | `research/level-design.md` | `gamedev/level-design.md` |
 | `research/deadnight-performance-review.md` | `games/deadnight/performance-review.md` |
 | `research/index.md` | removed; its pages are listed on [Studio](index.md) |
-| `research/mistakes-by-area.md` (generated) | removed; `gds lessons <area>` prints it |
+| `research/mistakes-by-area.md` (generated) | removed; the areas went too (gdstudio #771): `gds brief` names sections |

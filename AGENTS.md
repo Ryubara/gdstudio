@@ -64,7 +64,9 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   topic folders and where a page goes: `docs/studio/docs-site.md`).
 - Start work: only `uv run --project python gds issue start <owner/repo>#N --agent <name>` (the oldest ready issues first,
   `P-critical` before them; `gds issue list` shows them); a task agent's prompt carries `Issue: <owner/repo>#N` or
-  `PR: <owner/repo>#N` (`docs/studio/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
+  `PR: <owner/repo>#N` and the `Read: <page>.md#<anchor>` lines of `gds brief <owner/repo>#N`, run before every Agent
+  call (`docs/studio/starting-work.md#starting-an-agent`). Nobody sets `S-in-progress` by hand; only the maintainer
+  sets `P-critical`.
 - Open pull requests land before new work starts, oldest stuck one first; a parked one is refreshed before it lands
   (`docs/studio/starting-work.md#landing`).
 - Learning: a mistake updates its topic section (`docs/studio/rules.md`); no file goes in `docs/lessons/` (#770 empties
@@ -72,7 +74,7 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   reason line and a malformed entry. The agent that finds a mistake updates the section and opens the kit pull request
   in the same task (`docs/studio/hooks.md#docs`). A `Fix` or `Rework` pull request, or one after a failed check or
   closing a `bug` issue, carries `Lessons: <page.md#anchor>` naming the topic section it updates; one that closes an
-  issue carries `Read first: <areas>`.
+  issue carries `Read first: <page.md#anchor>, ...`, the sections its author read.
 
 ## Commits and pull requests
 
