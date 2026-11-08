@@ -17,4 +17,4 @@ areas: [godot-ui, net, tests]
   still climbs. The same suite hung once on `await UIRouter.idle` after a click: `idle` is emitted once, when the
   queue empties, and a click that already finished the pop never emits it again. Wait for it only while
   `UIRouter.busy`.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-menu-over-a-live-game).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-menu-over-a-live-game).

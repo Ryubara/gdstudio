@@ -13,4 +13,4 @@ areas: [input, tools]
 - **Fix:** multiply canvas positions by the viewport's `get_final_transform()` before injecting; turn
   `Input.emulate_mouse_from_touch` off while touch controls are shown. In a web check, read a JavaScript `eval`
   answer with `int()`: it may come back as a bool or a number.
-- **Docs:** [UI controls](../godot/ui-controls.md#touch-controls).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#touch-controls).

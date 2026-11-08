@@ -15,4 +15,4 @@ areas: [process, tests]
   (`godot --headless --path game --import`), and run the same capture scripts there with `--label=before` (the
   desktop, the phone window and the web export alike); remove it with `git worktree remove` when the pull request is
   open. The capture scripts that exist on `main` (the tours) run unchanged; a new tour is for the "after" side.
-- **Docs:** [Capture: before captures](../capture.md#before-captures).
+- **Docs:** [Capture: before captures](../studio/capture.md#before-captures).

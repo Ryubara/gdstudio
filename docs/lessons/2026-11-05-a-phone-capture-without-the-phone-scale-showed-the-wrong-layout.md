@@ -22,4 +22,4 @@ page](2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-
   (Deadnight #1181 read the HUD at the menu's factor first). Check for next time: after a phone capture, read the layout
   (is the short variant on show?), not only the pixels, and compare the canvas size in the capture with the one the fit
   test, or the screen's own `content_scale_factor`, names.
-- **Docs:** [UI controls](../godot/ui-controls.md), Deadnight #1175.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md), Deadnight #1175.

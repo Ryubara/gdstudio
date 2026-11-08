@@ -11,4 +11,4 @@ areas: [blender, tests]
   up and out on the left and -Z on the right. A rendered probe hides depth.
 - **Fix:** measure instead of looking: turn each axis 50 degrees and print where the hand bone's tail moved (out,
   forward, up). Straight overhead is X and +/-Z together.
-- **Docs:** [Rig sharing](../blender/rig-sharing.md#posing-by-hand-position).
+- **Docs:** [Rig sharing](../tools/blender/rig-sharing.md#posing-by-hand-position).

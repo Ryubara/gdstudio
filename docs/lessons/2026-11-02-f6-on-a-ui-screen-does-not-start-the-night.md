@@ -10,5 +10,5 @@ areas: [godot, godot-ui]
   screen; F6 only instances the scene, so `_ready` ran and `screen_enter` never did.
 - **Fix:** a dev entry scene that builds the same parts and starts the night itself (`game/dev/play_night.tscn`, with
   its options in the inspector); the tuning guide says to use it or go through the menu.
-- **Docs:** [Screenshots of the editor's inspector](../godot/editor-screenshots.md) (how the guide's pictures were
+- **Docs:** [Screenshots of the editor's inspector](../engines/godot/editor-screenshots.md) (how the guide's pictures were
   made); Deadnight `docs/design/tuning.md`.

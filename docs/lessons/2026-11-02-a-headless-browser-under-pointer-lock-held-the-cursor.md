@@ -19,5 +19,5 @@ areas: [input, web]
 - **General:** protect the person at the machine from *every* local program that can take the mouse or keyboard, not
   the one that was reported. When a rule names one program (Godot), ask which others do the same thing (browsers,
   Electron apps, game clients) and cover them by behaviour, not by name.
-- **Docs:** [Browser probes and any other program](../godot/no-focus.md#browser-probes-and-any-other-program-gds-quiet),
-  [web export](../godot/web-export.md).
+- **Docs:** [Browser probes and any other program](../engines/godot/no-focus.md#browser-probes-and-any-other-program-gds-quiet),
+  [web export](../engines/godot/web-export.md).

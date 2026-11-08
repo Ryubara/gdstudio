@@ -18,4 +18,4 @@ areas: [tests, gameplay]
   counts only props a body can stand on (top within two climbs); the first version counted the canopy and a marquee
   and failed on a wall that was fine. A moved wall also changes the baked navigation key: re-bake
   (`tools/world/bake_lot_navmeshes.gd`) or `test_lot_navmeshes.gd` fails.
-- **Docs:** [Map review: collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review: collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

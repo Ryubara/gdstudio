@@ -22,5 +22,5 @@ areas: [net, web, process]
   together opens; the harness shows the Activity's screen beside the website's.
 - **Check for next time:** grep for every branch on the platform and justify each one against the website; a fix for
   "the platform skips X" removes what X needed too.
-- **Docs:** [the corrections row](../research/maintainer-corrections.md) and
-  [what to plan from the start](../research/plan-from-the-start.md#platforms).
+- **Docs:** [the corrections row](../studio/maintainer-corrections.md) and
+  [what to plan from the start](../studio/plan-from-the-start.md#platforms).

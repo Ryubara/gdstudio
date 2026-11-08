@@ -13,4 +13,4 @@ areas: [audio, tests]
 - **Fix:** a per-sound `near_cap_db` sets the player's `max_db` to its own `volume_db + near_cap_db` (0): up close the
   sound is as loud as its trim says, far away the attenuation is unchanged. Loops that move their level move `max_db`
   with it. Checked with a capture that plays each gun by itself at 1.7 m at several offsets.
-- **Docs:** [Audio](../godot/audio.md).
+- **Docs:** [Audio](../engines/godot/audio.md).

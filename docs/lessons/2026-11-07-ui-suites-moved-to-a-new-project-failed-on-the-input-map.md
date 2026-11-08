@@ -14,4 +14,4 @@ areas: [tests, godot-ui]
 - **Fix:** the kit's project declares the same two actions, and its CI job and the docs run `--import` before the
   GdUnit run. When suites move to a new project, list what they read from the old one (input map, autoloads, project
   settings, helper classes) and run them once with nothing else around them: what fails names what is missing.
-- **Docs:** [UI controls](../godot/ui-controls.md#where).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#where).

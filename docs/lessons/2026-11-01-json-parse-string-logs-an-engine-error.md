@@ -10,4 +10,4 @@ areas: [tests, gameplay]
 - **Cause:** `JSON.parse_string` reports a syntax error through the engine's error log, not only by returning null.
 - **Fix:** use an instance: `var json := JSON.new()` then `json.parse(text) != OK` handles bad text silently, and
   `json.data` is the result. Do this for every file that came from a player's disk or from the network.
-- **Docs:** [Godot](../godot/index.md).
+- **Docs:** [Godot](../engines/godot/index.md).

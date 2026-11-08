@@ -1,4 +1,4 @@
-"""`gds worktree sweep`: remove finished worktrees and keep what is worth keeping (docs/workspace.md#sweep).
+"""`gds worktree sweep`: remove finished worktrees and keep what is worth keeping (docs/studio/workspace.md#sweep).
 
 Worktrees were removed by hand after a merge, and under load that step was skipped: reviewers' and probes' detached
 worktrees had no owner at all, and each one held a Godot import cache of tens to hundreds of MB, until the disk was
@@ -888,7 +888,7 @@ def disk_lines(root: Path, *, warn_gb: float = LOW_DISK_GB, top: int = 5, second
         return [f"  ok      disk: {gb:.1f} GB free"]
     lines = [
         f"  WARNING disk: {gb:.1f} GB free, under {warn_gb:g} GB. Finished worktrees are removed by "
-        "`gds worktree sweep` (docs/workspace.md#sweep); the biggest folders:"
+        "`gds worktree sweep` (docs/studio/workspace.md#sweep); the biggest folders:"
     ]
     deadline = time.time() + seconds
     sizes: list[tuple[int, Path]] = []

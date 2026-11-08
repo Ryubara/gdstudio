@@ -18,5 +18,5 @@ areas: [godot-ui, tests]
   above and below to 8. Re-count focus neighbours after the columns change (Up from either card of the first row
   leaves the form, Left and Right walk a row). Run the capture tour at `--resolution 844x390` before reporting, and
   keep its fit check: it prints what lies outside the window.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-picker-of-cards-in-a-form-row); Deadnight
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-picker-of-cards-in-a-form-row); Deadnight
   `game/tests/captures/map_picker_tour.gd` and `docs/design/maps.md`.

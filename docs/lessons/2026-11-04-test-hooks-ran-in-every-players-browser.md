@@ -15,4 +15,4 @@ areas: [web, godot, tests]
   task: a local named `delta` inside `_process(delta)` was a parse error that made the whole class unresolvable, and a
   GdUnit run started with `-d` sat at the debugger prompt (see the `-d` lesson of 2026-11-01): run
   `-s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a <test> -c --ignoreHeadlessMode` without `-d`.
-- **Docs:** `docs/godot/web-heap.md` (test hooks cost the player's page).
+- **Docs:** `docs/engines/godot/web-heap.md` (test hooks cost the player's page).

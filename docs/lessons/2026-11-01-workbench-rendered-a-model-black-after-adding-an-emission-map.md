@@ -10,4 +10,4 @@ areas: [blender, godot]
 - **Cause:** Workbench's texture colour shows the material's active image node, and the emission map's node, added last,
   became active; the glTF importer can make it active again on re-import.
 - **Fix:** make the node feeding Base Color active before rendering.
-- **Docs:** [Character variants](../blender/variants.md#a-boss-on-the-shared-rig).
+- **Docs:** [Character variants](../tools/blender/variants.md#a-boss-on-the-shared-rig).

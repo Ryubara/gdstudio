@@ -14,4 +14,4 @@ areas: [process, general]
   pull request (`git diff origin/main -- <file>`) and delete the branch's copy; wire the new thing to main's
   mechanism (here a `voice` in the frame entry, set from the chosen character) and drop the workaround and its test.
   Check a workaround's blocking issue before keeping it.
-- **Docs:** this page; [starting work](../starting-work.md).
+- **Docs:** this page; [starting work](../studio/starting-work.md).

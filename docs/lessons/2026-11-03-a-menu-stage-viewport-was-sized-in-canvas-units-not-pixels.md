@@ -16,4 +16,4 @@ areas: [godot, godot-ui, web]
   `size_changed` (the same aspect changes the pixels without resizing the control). Check it in a real window at two
   resolutions, not headless (the root is 1920 x 1080 there): the capture probe prints the window, the control and the
   viewport sizes.
-- **Docs:** [UI controls](../godot/ui-controls.md#3d-in-a-menu).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#3d-in-a-menu).

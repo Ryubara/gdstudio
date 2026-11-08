@@ -15,5 +15,5 @@ areas: [tests, input]
   per tick, and that one is sent. A matrix row for an action with a cooldown (the same quick melee) also needs ticks
   between its bindings, or the second binding's one-tick press falls inside the cooldown and is refused: let the
   cooldown pass after each binding.
-- **Docs:** Deadnight `docs/research/input-tests.md` (the matrix), [Godot animation tree](../godot/animation-tree.md)
+- **Docs:** Deadnight `docs/research/input-tests.md` (the matrix), [Godot animation tree](../engines/godot/animation-tree.md)
   for the clip half of the same task.

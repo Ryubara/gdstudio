@@ -17,4 +17,4 @@ areas: [audio, godot]
   players) before profiling the GPU: a GdUnit test that counts nodes and objects over a run
   (`Performance.OBJECT_COUNT`, `OBJECT_NODE_COUNT`) fails on an allocation per kill. Measure a hitch by frame kind (a
   shot, a kill) with a probe around each handler.
-- **Docs:** [Audio](../godot/audio.md#starting-sounds); Deadnight `docs/research/kill-spike.md`.
+- **Docs:** [Audio](../engines/godot/audio.md#starting-sounds); Deadnight `docs/research/kill-spike.md`.

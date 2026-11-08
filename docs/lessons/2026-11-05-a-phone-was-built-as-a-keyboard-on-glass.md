@@ -18,5 +18,5 @@ areas: [godot-ui, input]
   and give each a verdict (keep, make the existing element tappable, drop as a duplicate). A control count and a
   duplicate check are a design review, not a size test; a button that repeats what a visible element shows is a bug.
   Reload at 0, and any rule the player expects from every device, is proved through each device's real input path.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed);
-  [What to plan from the start](../research/plan-from-the-start.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed);
+  [What to plan from the start](../studio/plan-from-the-start.md).

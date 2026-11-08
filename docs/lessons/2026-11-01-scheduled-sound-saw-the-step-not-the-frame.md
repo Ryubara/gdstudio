@@ -10,4 +10,4 @@ areas: [audio, godot]
 - **Cause:** the schedule moved its clock to the end of the step before running the items that fell due inside it, so
   anything that asked `now()` while running saw the end of the step.
 - **Fix:** while an item runs, `now()` (and a chained `add`) count from that item's own due time.
-- **Docs:** [Layered gunshots and event-timed sounds](../godot/audio.md).
+- **Docs:** [Layered gunshots and event-timed sounds](../engines/godot/audio.md).

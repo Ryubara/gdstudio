@@ -13,4 +13,4 @@ areas: [audio]
 - **Fix:** the ladder is read on the median of each weight in peak **and** in LUFS-M (3 dB or more between the rungs
   for each), whooshes sit 12 dB under the presses, the commit 3 LU under a pistol shot; `tools/audio/menu_levels.py
   levels` fails on a flat ladder in either, and a test predicts the peak from the files.
-- **Docs:** [Menu and interface sounds](../audio/ui-sounds.md#4-level-the-bus-and-the-mix).
+- **Docs:** [Menu and interface sounds](../gamedev/audio/ui-sounds.md#4-level-the-bus-and-the-mix).

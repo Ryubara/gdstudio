@@ -13,4 +13,4 @@ areas: [godot, ci]
   on `origin/main` as well as the branch, and prefer a name specific to the subject.
 - **Also:** a duplicate can also show as `Invalid access to property or key` errors in many unrelated scripts at
   import; when errors appear everywhere at once, check for a duplicate global class first.
-- **Docs:** [GDScript style](../godot/index.md).
+- **Docs:** [GDScript style](../engines/godot/index.md).

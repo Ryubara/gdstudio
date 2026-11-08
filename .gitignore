@@ -21,11 +21,9 @@ HANDOFF.md
 .DS_Store
 Thumbs.db
 
-# MkDocs build output
+# The docs site's build output and Zensical's build cache (docs/studio/docs-site.md)
 site/
-
-# Built from docs/lessons by the MkDocs hook; a committed copy goes stale on concurrent lesson PRs
-docs/research/mistakes-by-area.md
+.cache/
 
 # Third-party Godot addons that `gds workspace init` installs into the kit's own Godot project (untracked)
 /godot/addons/gdUnit4/

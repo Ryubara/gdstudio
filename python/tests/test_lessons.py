@@ -65,7 +65,7 @@ CORRECTIONS = """# Page
 @pytest.fixture()
 def kit(tmp_path: Path) -> Path:
     (tmp_path / "docs" / "lessons").mkdir(parents=True)
-    (tmp_path / "docs" / "research").mkdir(parents=True)
+    (tmp_path / "docs" / "studio").mkdir(parents=True)
     (tmp_path / lessons.AREAS_FILE).write_text(AREAS, encoding="utf-8")
     (tmp_path / lessons.CORRECTIONS).write_text(CORRECTIONS, encoding="utf-8")
     a = LESSON.format(title="A packet filter dropped a valid packet", fix="Count the bytes.")
@@ -85,11 +85,8 @@ def test_the_kits_lessons_all_have_areas_and_the_page_builds_from_them():
 
 def test_the_page_is_not_a_committed_file():
     """A committed copy goes stale when two lesson pull requests are open (#119): it is built where it is read."""
-    assert (KIT / ".gitignore").read_text(encoding="utf-8").count(lessons.GLOSSARY.as_posix()) == 1
-    tracked = subprocess.run(
-        ["git", "-C", str(KIT), "ls-files", "--", lessons.GLOSSARY.as_posix()], capture_output=True, text=True
-    )
-    assert tracked.returncode != 0 or tracked.stdout.strip() == ""
+    tracked = subprocess.run(["git", "-C", str(KIT), "ls-files", "--", "docs"], capture_output=True, text=True)
+    assert tracked.returncode == 0 and "mistakes-by-area.md" not in tracked.stdout
 
 
 def test_the_script_checks_the_lessons_and_prints_the_page():

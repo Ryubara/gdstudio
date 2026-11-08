@@ -17,4 +17,4 @@ areas: [web, input]
   panel and a row of two copy buttons, and the counts pointed at the wrong button.
 - **Check:** a fix scoped to one host (an iframe, a platform) says in its note what the other hosts do and why; a web
   input fix is run in a tab and in the frame; a probe never counts key presses to reach a control.
-- **Docs:** [Web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame).
+- **Docs:** [Web export](../engines/godot/web-export.md#discord-activity-copy-and-paste-in-the-frame).

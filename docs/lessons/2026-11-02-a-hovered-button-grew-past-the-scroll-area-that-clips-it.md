@@ -16,4 +16,4 @@ areas: [godot-ui]
   every button of every menu screen at 720p, 1080p and the phone canvas, scrolled to the top, end and middle, and
   fails when the grown rect leaves its clipper; it also asserts the buttons still grow, or a guard that shrinks them to
   nothing would pass.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-control-that-draws-outside-its-rect).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-control-that-draws-outside-its-rect).

@@ -18,6 +18,6 @@ areas: [gameplay, godot, web]
   face counted as hidden by its front), test five samples (the ground beside a foot), and a margin that grows with the surface's
   slope (feet sink a few centimetres into the ground, metres along the view at a grazing angle).
   A pixel test renders the open, half-behind and behind-a-wall cases and fails on the old shader.
-- **Docs:** [Outline through walls](../godot/outline-through-walls.md#only-where-it-is-hidden). Next time: for any
+- **Docs:** [Outline through walls](../engines/godot/outline-through-walls.md#only-where-it-is-hidden). Next time: for any
   effect described by a place (through walls, only where hidden), capture the case where it must NOT show, and a
   case half in and half out, before calling it done.

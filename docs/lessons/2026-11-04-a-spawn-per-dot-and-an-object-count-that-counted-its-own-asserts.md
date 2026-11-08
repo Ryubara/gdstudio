@@ -18,7 +18,8 @@ areas: [godot, gameplay, tests]
   oldest, aged by the simulation's step, written as one `PackedFloat32Array` (16 floats an instance with colours); the
   class holds the shared resources and the warm-up draws it once. A test that counts objects reads
   `Performance.get_monitor` before and after and asserts afterwards, never inside the counted loop.
-- **Docs:** [Performance review](../godot/performance-review.md), checklist 3 (spawns and lifetime) and "How to measure
+- **Docs:** [Performance review](../engines/godot/performance-review.md), checklist 3 (spawns and lifetime) and "How to
+  measure
   it".
 - **Also:** `pre-commit run --all-files` ran before `git add`, so it never saw the new files: the commit then failed on
   a line over 100 characters and a missing `.gd.uid`. `git add -A` first (and open the project once for the uid), then

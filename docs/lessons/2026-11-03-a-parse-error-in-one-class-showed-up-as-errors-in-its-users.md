@@ -15,4 +15,4 @@ areas: [godot, tests]
   (and exits at once); the method got another name.
 - **Check for next time:** on a "could not parse global class" error, run the check on the script it names before
   reading the files it points at; grep a class for the name before adding a function or a variable to it.
-- **Docs:** [the Godot hub](../godot/index.md), testing and capture table.
+- **Docs:** [the Godot hub](../engines/godot/index.md), testing and capture table.

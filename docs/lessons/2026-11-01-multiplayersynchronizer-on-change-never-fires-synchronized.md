@@ -11,4 +11,4 @@ areas: [net, godot]
   `synchronized` is only emitted for full syncs (`ALWAYS`, and the spawn state).
 - **Fix:** connect both signals. A spawn packet can also carry a stale value, so take the first real update as the
   starting point instead of the spawn value.
-- **Docs:** Deadnight `docs/research/networking-comparison.md`; belongs on a kit page `docs/godot/multiplayer.md`.
+- **Docs:** Deadnight `docs/research/networking-comparison.md`; belongs on a kit page `docs/engines/godot/multiplayer.md`.

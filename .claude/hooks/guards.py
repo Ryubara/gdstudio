@@ -1,4 +1,5 @@
-"""The guards behind dispatch.py (docs/hooks.md). Each check returns the reasons it refuses a call, with what to do
+"""The guards behind dispatch.py (docs/studio/hooks.md). Each check returns the reasons it refuses a call, with what to
+do
 instead; an empty list lets it through. Standard library only."""
 
 from __future__ import annotations
@@ -171,7 +172,7 @@ def check_agents(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
 
 # --------------------------------------------------------------------------------------------------------------------
 # Issue order: a task agent works on a started issue (or an open pull request), and the labels that say so are not set
-# by hand (docs/hooks.md#issues)
+# by hand (docs/studio/hooks.md#issues)
 # --------------------------------------------------------------------------------------------------------------------
 
 # `Issue: owner/repo#N` or `PR: owner/repo#N` at the start of a line of an agent's prompt (a list bullet, a quote mark
@@ -329,7 +330,7 @@ def file_key(path: str, cwd: Path, lost: bool = False) -> str | None:
     """Which file `path` names when `gh` is run in `cwd`: its absolute, normalised path with forward slashes, or None
     when it cannot be told (a relative path after a `cd` the hook could not follow, or a web address). `gh --attach`
     rewrites a `](path)` reference in the body only when it names the same file as an `--attach` path
-    (docs/hooks.md#attach-paths), so both are placed this way before they are compared with `same_file`."""
+    (docs/studio/hooks.md#attach-paths), so both are placed this way before they are compared with `same_file`."""
     path = path.replace("\\", "/")
     if "://" in path:
         return None
@@ -791,7 +792,8 @@ def check_hold_api(words: list[str], cwd: Path) -> list[str]:
 
 
 def check_hold(words: list[str], cwd: Path) -> list[str]:
-    """The hook's half of the hold (docs/hooks.md#hold): no merge command on a pull request carrying the label, and no
+    """The hook's half of the hold (docs/studio/hooks.md#hold): no merge command on a pull request carrying the label,
+    and no
     removal of the label by a session. The label is what GitHub enforces; this says why, and it is what stops a session
     taking the label off, since a token cannot tell an agent from the maintainer."""
     if len(words) < 3:
@@ -828,7 +830,7 @@ _NO_COMMENTS = (
     "nothing is posted as a comment or review under the maintainer's GitHub account (their decision of 2026-10-12). "
     "Run the command without the text (`gh issue close N`) and put the text in your scratch folder and your report, "
     "for the maintainer to post; a capture goes on a pull request or a new issue with `--attach` "
-    "(docs/hooks.md#comments)"
+    "(docs/studio/hooks.md#comments)"
 )
 # Words that start another program on the same line, and the arguments they take before it.
 _LAUNCHERS = {"then", "do", "else", "elif", "if", "while", "until", "!", "{", "try", "env", "command", "timeout"}
@@ -946,7 +948,8 @@ def comment_route(words: list[str]) -> str | None:
 
 
 def check_comments(command: str) -> list[str]:
-    """The rule against comments under the maintainer's account (docs/hooks.md#comments), judged on what `gh` would do,
+    """The rule against comments under the maintainer's account (docs/studio/hooks.md#comments), judged on what `gh`
+    would do,
     not on a list of the commands named `comment`: `gh issue close --comment` put one on #691."""
     routes = filter(None, map(comment_route, gh_calls(command)))
     return [f"{route}: {_NO_COMMENTS}" for route in routes]
@@ -989,7 +992,7 @@ def check_godot_window(words: list[str], config: dict[str, Any]) -> list[str]:
     return [
         "a windowed Godot takes the keyboard focus from the person at the machine; run it with "
         "`uv run --project <kit>/python gds godot -- <arguments>` (or `gds capture frames`), or add --headless "
-        "when nothing needs to be drawn (docs/godot/no-focus.md)"
+        "when nothing needs to be drawn (docs/engines/godot/no-focus.md)"
     ]
 
 
@@ -1021,7 +1024,8 @@ def check_godot_audio(words: list[str], config: dict[str, Any]) -> list[str]:
     return [
         "agents never listen, and a Godot with a real audio driver plays through the speakers of the person at the "
         "machine; drop `--audio-driver` / `--with-audio`: `gds godot`, `--headless` and Movie Maker use "
-        "`--audio-driver Dummy`, which still runs the mixer the audio checks read (docs/godot/no-focus.md#sound)"
+        "`--audio-driver Dummy`, which still runs the mixer the audio checks read "
+        "(docs/engines/godot/no-focus.md#sound)"
     ]
 
 
@@ -1060,7 +1064,8 @@ def check_browser_probe(words: list[str], config: dict[str, Any]) -> list[str]:
         return []
     return [
         "a headless browser under pointer lock clips the real cursor of the person at the machine to its hidden "
-        "window; run the probe with `uv run --project <kit>/python gds quiet -- <command>` (docs/godot/no-focus.md)"
+        "window; run the probe with `uv run --project <kit>/python gds quiet -- <command>` "
+        "(docs/engines/godot/no-focus.md)"
     ]
 
 
@@ -1247,7 +1252,7 @@ def stop_proof(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Local mains: every main checkout in <workspace>/repos/ follows origin after a merge (docs/hooks.md#mains)
+# Local mains: every main checkout in <workspace>/repos/ follows origin after a merge (docs/studio/hooks.md#mains)
 # --------------------------------------------------------------------------------------------------------------------
 
 _MERGE_API = re.compile(r"/pulls/\d+/merge\b")
@@ -1301,7 +1306,8 @@ def pull_mains(workspace: Path, config: dict[str, Any], force: bool = False) -> 
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# The disk guard (docs/hooks.md#disk): a background `gds disk guard`, and no new agent or worktree under the hard limit
+# The disk guard (docs/studio/hooks.md#disk): a background `gds disk guard`, and no new agent or worktree under the
+# hard limit
 # --------------------------------------------------------------------------------------------------------------------
 
 GB = 1024**3
@@ -1351,7 +1357,8 @@ def disk_refusal(cwd: Path, config: dict[str, Any], what: str) -> str | None:
     biggest = disk_status(workspace, config).get("biggest", [])[:5]
     names = "; ".join(f"{b.get('path')} {b.get('gb')} GB" for b in biggest if isinstance(b, dict))
     return (
-        f"{what} is refused: the disk has {gb:.1f} GB free, under the hard limit of {hard} GB (docs/hooks.md#disk). "
+        f"{what} is refused: the disk has {gb:.1f} GB free, under the hard limit of {hard} GB "
+        f"(docs/studio/hooks.md#disk). "
         f"Nothing new starts until space is back. `gds disk guard` frees what the rules allow (finished worktrees, "
         f"idle import caches, scratch downloads past their pull request); report what is left to the coordinator and "
         f"the maintainer." + (f" The biggest folders: {names}." if names else "")
@@ -1377,7 +1384,7 @@ def disk_note(workspace: Path, config: dict[str, Any]) -> str:
     return (
         f"Disk {state.upper()}: {gb:.1f} GB free{f' ({line})' if line else ''}. Keep what you write small: reduce "
         f"downloaded CI artifacts to their numbers and delete them in the same task, delete raw captures once a clip "
-        f"or sheet is made, and name what can go in your scratch topic's SCRATCH.md (docs/workspace.md#disk)."
+        f"or sheet is made, and name what can go in your scratch topic's SCRATCH.md (docs/studio/workspace.md#disk)."
     )
 
 
@@ -1393,7 +1400,7 @@ def start_disk_guard(workspace: Path, config: dict[str, Any], force: bool = Fals
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Finished worktrees: swept in the background (docs/hooks.md#sweep)
+# Finished worktrees: swept in the background (docs/studio/hooks.md#sweep)
 # --------------------------------------------------------------------------------------------------------------------
 
 
@@ -1505,7 +1512,8 @@ def local_images_in(url: str) -> list[str]:
 
 
 def check_opened_body(payload: dict[str, Any], config: dict[str, Any]) -> str:
-    """The second line of defence for `--attach` (docs/hooks.md#attach-paths): the guard before `gh pr create|edit` can
+    """The second line of defence for `--attach` (docs/studio/hooks.md#attach-paths): the guard before `gh pr
+    create|edit` can
     only read the command it is shown, so a pull request opened through a script, an alias or a path the guard did not
     place reaches GitHub with whatever body it had. After any shell command that created or edited a pull request (or
     printed a pull request's address as its last word), the description is read back, and a local `![x](./x.png)`
@@ -1529,7 +1537,7 @@ def check_opened_body(payload: dict[str, Any], config: dict[str, Any]) -> str:
         "from the folder `gh` runs in); otherwise it appends the upload after `## AI use` and leaves the reference "
         "local, and `pr-rules` fails on a missing Before:/After: capture. Fix it now: read the body back "
         "(`gh pr view N --json body -q .body`), then `cd <the images' folder> && gh pr edit N --body-file <body> "
-        "--attach ./<file>` for each image (docs/hooks.md#attach-paths) and delete the appended copies."
+        "--attach ./<file>` for each image (docs/studio/hooks.md#attach-paths) and delete the appended copies."
     )
 
 
@@ -1580,7 +1588,8 @@ def session_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# The learning loop: what the maintainer corrects is written into the docs in the same session (docs/hooks.md#learning)
+# The learning loop: what the maintainer corrects is written into the docs in the same session
+# (docs/studio/hooks.md#learning)
 # --------------------------------------------------------------------------------------------------------------------
 
 KIT = Path(__file__).resolve().parents[2]
@@ -1595,7 +1604,7 @@ def lesson_text(kind: str, config: dict[str, Any], workspace: Path | None) -> st
     queue = Path(rules.get("queue", "scratch/kit-lessons-queue"))
     kit = workspace / "repos" / "gdstudio" if workspace and (workspace / "repos" / "gdstudio").is_dir() else KIT
     return text.format(
-        corrections=(kit / "docs" / "research" / "maintainer-corrections.md").as_posix(),
+        corrections=(kit / "docs" / "studio" / "maintainer-corrections.md").as_posix(),
         lessons=(kit / "docs" / "lessons" / "index.md").as_posix(),
         queue=((workspace / queue) if workspace else queue).as_posix(),
     )
@@ -1658,7 +1667,8 @@ def stop_queue(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Docs ship with the change: areas' checks are read first, kit docs are never left unpublished (docs/hooks.md#docs)
+# Docs ship with the change: areas' checks are read first, kit docs are never left unpublished
+# (docs/studio/hooks.md#docs)
 # --------------------------------------------------------------------------------------------------------------------
 
 GENERAL = "general"
@@ -1673,7 +1683,7 @@ def kit_root(workspace: Path | None) -> Path:
 
 
 def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
-    """The (mistake, check) rows of one area's section of the built glossary (docs/research/mistakes-by-area.md)."""
+    """The (mistake, check) rows of one area's section of the glossary built from the lessons (never a file)."""
     items, on = [], False
     for line in text.replace("\r\n", "\n").splitlines():
         if line.startswith("## "):
@@ -1966,7 +1976,7 @@ def lesson_files_named(workspace: Path, report: str) -> list[str]:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Agent stalls: a task agent whose turn ends without a report is finished for good (docs/hooks.md#stall)
+# Agent stalls: a task agent whose turn ends without a report is finished for good (docs/studio/hooks.md#stall)
 # --------------------------------------------------------------------------------------------------------------------
 
 
@@ -2051,7 +2061,7 @@ def stop_stall(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Idle issues: the coordinator does not stop while an issue that can start has no agent (docs/hooks.md#idle)
+# Idle issues: the coordinator does not stop while an issue that can start has no agent (docs/studio/hooks.md#idle)
 # --------------------------------------------------------------------------------------------------------------------
 
 IDLE_CACHE = "idle-check.json"  # beside the ledger; `gds issue` commands remove it (gds_tools.issues.IDLE_CACHE)
@@ -2177,13 +2187,14 @@ def idle_message(workspace: Path, found: list[tuple[str, int, str, str]], count:
     if lines("unblock"):
         text += ["These issues are still blocked, but what they waited on has closed:", *lines("unblock")]
     text += [
-        "Everything that can run in parallel runs (docs/starting-work.md#parallel). Before you end the turn, for each:",
+        "Everything that can run in parallel runs (docs/studio/starting-work.md#parallel). Before you end the turn, "
+        "for each:",
         f"- start it (`{gds} start <repo>#N --agent <name>`, then give an agent the Issue and Worktree lines);",
         f'- or take it out of the line with its reason: `{gds} block <repo>#N --on <#N|maintainer> --why "<text>"` '
         "(`--on #N` only when its body names #N as a dependency, in `### Blocked by`, `Depends on:`, "
         "`Starts after` or `Carried from`, or add "
         "`--conflict <path>...` naming the files both would edit in ways a merge cannot settle; or it waits on the "
-        "maintainer. Same subsystem, same agent and in order are not reasons: docs/starting-work.md#parallel). "
+        "maintainer. Same subsystem, same agent and in order are not reasons: docs/studio/starting-work.md#parallel). "
         "A block writes `S-blocked` and a `Blocked (...)` line;",
         f"- an unblocked one: `{gds} unblock <repo>#N`, then start it.",
         f"(Refusal {count} of {limit} in a row; after that the end is allowed until nothing is idle, or for an hour.)",

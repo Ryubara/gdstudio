@@ -12,4 +12,4 @@ areas: [web, tools]
   string literal: a syntax error that kills the whole script, and the page looks fine without it.
 - **Fix:** no backslash in `head_include`: `String.fromCharCode(10)` for a newline, single quotes only; grep the changed
   line for `\` and `"` before exporting, then read the readout on the exported page (Deadnight `phone_view.py`).
-- **Docs:** `docs/godot/web-export.md` (phone page size section).
+- **Docs:** `docs/engines/godot/web-export.md` (phone page size section).

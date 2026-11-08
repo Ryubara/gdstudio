@@ -11,4 +11,4 @@ areas: [ci]
   with the old body. Editing the description already starts a fresh run (`types: [edited]`).
 - **Fix:** after `gh pr edit`, wait for the run the edit started; never rerun an older `pr-rules` run. If you did,
   rerun the newest one so it finishes last.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

@@ -15,4 +15,4 @@ areas: [gameplay, tests]
   the wall to the front and queues (`ZombieSim._slide_to_the_opening`). A test sends a crowd at every window and
   breach of both maps and shoots every tearing dead from five places inside at chest and head, through the world's
   solids and the fitted hit zones: 7 of 7 windows failed before the fix.
-- **Docs:** [map review checklist, section 3](../godot/map-review.md#3-spawns-and-how-the-dead-arrive).
+- **Docs:** [map review checklist, section 3](../engines/godot/map-review.md#3-spawns-and-how-the-dead-arrive).

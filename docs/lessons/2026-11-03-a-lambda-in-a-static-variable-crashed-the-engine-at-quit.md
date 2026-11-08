@@ -17,4 +17,4 @@ areas: [tests, godot]
 - **Check for next time:** a capture or tour that sets a static hook or any callback on the game clears it before it
   quits; read the exit code of every windowed run (it is not noise), and bisect a crash by quitting early, not by
   guessing a cause.
-- **Docs:** [A tour that exits with 139](../godot/exit-code-139.md).
+- **Docs:** [A tour that exits with 139](../engines/godot/exit-code-139.md).

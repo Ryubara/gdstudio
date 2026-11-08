@@ -15,4 +15,4 @@ areas: [camera, godot]
   the engine blends it a second time and the body still wanders 11 px); `reset_physics_interpolation()` after a
   teleport or a first placement; OFF on anything a tween or `_process` moves. Prove it by the position on the
   screen at 144 fps over 60 ticks, never by the node's `global_transform`, which never shows the blend.
-- **Docs:** [Physics interpolation](../godot/physics-interpolation.md).
+- **Docs:** [Physics interpolation](../engines/godot/physics-interpolation.md).

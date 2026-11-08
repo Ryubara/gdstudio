@@ -13,4 +13,4 @@ areas: [blender]
 - **Fix:** the places stay in the kit's numbers and are read through one map of the change
   (`soldier_arms.along(x)`: the upper arm's unchanged, the forearm's scaled from the elbow, the hand's moved with the
   wrist). When a rest pose changes, grep the build for constants that name a place on what moved.
-- **Docs:** [Character variants: proportions](../blender/variants.md#proportions-measure-the-arm).
+- **Docs:** [Character variants: proportions](../tools/blender/variants.md#proportions-measure-the-arm).

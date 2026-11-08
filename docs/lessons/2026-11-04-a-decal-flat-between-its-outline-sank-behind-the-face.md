@@ -16,4 +16,4 @@ areas: [blender]
   outward once, from one face whose way out is known; smooth-shade the front, or a lamp picks out each dark triangle. A
   Godot test holds every mouth's corners and triangle middles out of every head; corners alone passed with skin
   showing. Look at the Godot capture zoomed in: the Workbench sheet hid what the game's lamp showed.
-- **Docs:** [Character variants](../blender/variants.md#closed-and-fitting-in-every-combination).
+- **Docs:** [Character variants](../tools/blender/variants.md#closed-and-fitting-in-every-combination).

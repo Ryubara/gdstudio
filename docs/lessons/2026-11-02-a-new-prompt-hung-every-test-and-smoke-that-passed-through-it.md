@@ -17,4 +17,4 @@ areas: [tests, web]
   A unit test gives the player the state that skips the prompt (a saved name) and restores the old profile; one new
   test answers the prompt. A browser smoke answers the real prompt, which also proves it in a browser: the probe
   publishes a flag for it (`naming`) and the smoke types into the field when the flag is up.
-- **Docs:** [Web export](../godot/web-export.md).
+- **Docs:** [Web export](../engines/godot/web-export.md).

@@ -11,4 +11,4 @@ areas: [tools, blender]
   passes as text, and `.bin` is not in Git LFS.
 - **Fix:** exclude `\.bin$` from every hook (`exclude:` at the top of `.pre-commit-config.yaml`), rebuild the buffers
   from the build script, and stage again.
-- **Docs:** [Modular kits: building the pieces](../blender/modular-kits.md#building-the-pieces).
+- **Docs:** [Modular kits: building the pieces](../tools/blender/modular-kits.md#building-the-pieces).

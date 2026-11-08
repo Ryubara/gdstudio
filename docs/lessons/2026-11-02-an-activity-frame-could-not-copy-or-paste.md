@@ -19,4 +19,4 @@ areas: [web, input]
 - **Check:** any feature that moves text in or out of the game (codes, names, links) is run in the Activity iframe
   harness with a denying policy (`permissions-policy: clipboard-read=(), clipboard-write=()`), and a "done" message is
   shown only after the platform confirms the result.
-- **Docs:** [Web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame).
+- **Docs:** [Web export](../engines/godot/web-export.md#discord-activity-copy-and-paste-in-the-frame).

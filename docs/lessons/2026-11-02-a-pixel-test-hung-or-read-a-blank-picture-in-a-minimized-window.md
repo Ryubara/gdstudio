@@ -14,5 +14,5 @@ areas: [tests, godot]
 - **Fix:** draw by hand: after one `process_frame`, call `RenderingServer.force_draw(false)` three times (the first
   builds the shaders) and read the texture; never wait for `frame_post_draw` in a test that may run minimized. Run the
   test alone and in its folder, in both orders.
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md) and
-  [Outline through walls](../godot/outline-through-walls.md#only-where-it-is-hidden).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md) and
+  [Outline through walls](../engines/godot/outline-through-walls.md#only-where-it-is-hidden).

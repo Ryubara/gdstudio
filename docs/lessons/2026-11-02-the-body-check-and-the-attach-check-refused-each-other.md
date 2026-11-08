@@ -16,6 +16,6 @@ areas: [tools, process]
   appended upload links onto the `Before:` and `After:` bullets, check it with `gds pr check-body`, and `gh pr edit
   --body-file`. The real fix is in the kit: `check_body` in `.claude/hooks/guards.py` should treat a `./<file>`
   reference to a file named by `--attach` as an upload.
-- **Docs:** [Capture](../capture.md#attaching).
+- **Docs:** [Capture](../studio/capture.md#attaching).
 - **Fixed by:** kit #186: `check_body` reads a `./<file>` reference to a file named by `--attach` as an upload, so the
   workaround is no longer needed (see the lesson `2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md`).

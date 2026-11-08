@@ -1,4 +1,4 @@
-"""`gds new game <name> --template <template>`: make a game repository from a template (docs/godot/new-game.md).
+"""`gds new game <name> --template <template>`: make a game repository from a template (docs/engines/godot/new-game.md).
 
 A template is a folder of `templates/` with a `template.toml`: its `game/` becomes the game's Godot project and its
 `docs/` the game's docs pages. They are copied once, on top of `templates/repo/` (the repository files every game
@@ -376,5 +376,5 @@ def _github_steps(name: str) -> list[str]:
         f"create the GitHub repository for {name}, add it as `origin` and push `main`",
         "in its settings: Pages source = GitHub Actions; then `python .github/scripts/groundwork.py labels --apply`, "
         "`settings --apply` and `ruleset --apply` in the repository",
-        "`gh workflow run hold-sweep.yml` once the ruleset requires `hold` (docs/hooks.md#hold)",
+        "`gh workflow run hold-sweep.yml` once the ruleset requires `hold` (docs/studio/hooks.md#hold)",
     ]

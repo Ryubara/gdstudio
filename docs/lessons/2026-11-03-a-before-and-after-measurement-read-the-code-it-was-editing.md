@@ -13,5 +13,6 @@ areas: [tests, process]
 - **Fix:** the capture sets the ray itself in both arms (`--ray=body` or `--ray=walls`), so the code under test no
   longer decides what is measured; the half-started batch was killed by PID and rerun after the merge with main, and
   the lot's two arms now match exactly, which is the control that shows the arms are the only difference.
-- **Docs:** [Test speed and measuring](../godot/test-speed.md). Check: a comparison of two behaviours names both in
+- **Docs:** [Test speed and measuring](../engines/godot/test-speed.md). Check: a comparison of two behaviours names
+  both in
   its arguments, and carries a control whose two arms must come out equal.

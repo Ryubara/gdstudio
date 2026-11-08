@@ -20,4 +20,4 @@ areas: [process, general]
   feature has a second place it must show up (a menu card and the night report, the lobby and the scoreboard, online and
   solo), name each place in that walk. The walk found two real bugs here as well: a set finished by two feats in one
   event was told twice, and the finish was invisible to the solo night's report.
-- **Docs:** [the starting-work page](../starting-work.md) names the issue form; this file is the record.
+- **Docs:** [the starting-work page](../studio/starting-work.md) names the issue form; this file is the record.

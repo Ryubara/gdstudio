@@ -12,4 +12,4 @@ areas: [backend, tools]
   edge, so clients use `wss://`), `railway logs -s <name>`. The region is in `railway status --json` under
   `multiRegionConfig`; the edge that answered is the `x-railway-edge` response header. `railway down -s <name> -y` stops
   it and keeps the project. Railway documents HTTP, WebSocket and a TCP proxy only: assume no inbound UDP.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#headless-server-image).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#headless-server-image).

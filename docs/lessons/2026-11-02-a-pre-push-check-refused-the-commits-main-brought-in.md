@@ -18,4 +18,4 @@ areas: [tools, process]
   and pushes it.
 - **Check for next time:** a check on the commits of a push is tested with a merge of `main` in the range, not only
   with the branch's own commits.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

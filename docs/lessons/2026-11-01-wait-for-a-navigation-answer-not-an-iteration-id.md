@@ -16,4 +16,4 @@ areas: [godot, gameplay]
   from `get_world_3d().navigation_map` (`region.get_navigation_map()` is null before the region is in the tree).
 - **Also:** after a re-bake, the new mesh reached the map 3 to 12 physics ticks after `baked` under load while the old
   mesh kept answering; poll until the points the new mesh opens are reachable, not a fixed number of frames.
-- **Docs:** [Zombie crowds](../godot/crowds.md); Deadnight `docs/research/zombies.md`.
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md); Deadnight `docs/research/zombies.md`.

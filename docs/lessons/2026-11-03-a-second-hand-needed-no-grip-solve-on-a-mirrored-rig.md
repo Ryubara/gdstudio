@@ -16,4 +16,4 @@ areas: [blender, gameplay]
   the flip for a plain copy failed it by 35 mm, so the test does measure the mirror.
 - **Check next time:** before solving anything per side, compare the two sides' rest poses; and make the test fail once
   with the flip removed.
-- **Docs:** [A weapon in each hand](../blender/weapons.md#a-weapon-in-each-hand).
+- **Docs:** [A weapon in each hand](../tools/blender/weapons.md#a-weapon-in-each-hand).

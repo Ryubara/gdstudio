@@ -24,4 +24,4 @@ areas: [godot-ui, godot]
   child item does not get its parent's `self_modulate` (a row stack that fades rows in by it left the outline at full
   strength: give the child the alpha too); the shadow of the outline is a rim hidden under the outline, and drawing it
   at the outline's size made the label darker.
-- **Docs:** [Canvas draw calls](../godot/canvas-draw-calls.md), [Performance review](../godot/performance-review.md).
+- **Docs:** [Canvas draw calls](../engines/godot/canvas-draw-calls.md), [Performance review](../engines/godot/performance-review.md).

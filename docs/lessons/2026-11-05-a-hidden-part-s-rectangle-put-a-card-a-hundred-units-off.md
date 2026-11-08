@@ -13,4 +13,4 @@ areas: [godot-ui]
 - **Fix:** the place a part will draw in is worked out from what places it (`HudGains.room` centred on the offset from
   the screen's middle), and what comes and goes is a `soft` box the search may meet when no place misses it, not a
   rectangle read at that moment.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-card-that-looks-for-free-ground).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-card-that-looks-for-free-ground).

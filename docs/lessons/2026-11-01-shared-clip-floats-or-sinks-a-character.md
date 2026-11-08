@@ -9,4 +9,4 @@ areas: [tools, blender]
 - **Cause:** bone position tracks are absolute and carry the source's rest offsets (`Body` 0.32 m apart).
 - **Fix:** rebase position keys per character at play time (`value - source rest + own rest`) in
   `_post_process_key_value`; the library stays one resource.
-- **Docs:** [Rig sharing (Godot)](../godot/rig-sharing.md#what-breaks).
+- **Docs:** [Rig sharing (Godot)](../engines/godot/rig-sharing.md#what-breaks).

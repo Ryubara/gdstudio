@@ -11,4 +11,4 @@ areas: [tests, godot]
   the new map's own test folder was run locally; the light-cap suite walks every scene in the project.
 - **Fix:** list the scene in `LIGHT_SCENES` with a suite of its own that counts its lamps per mesh against the cap
   less the fight's headroom, set the indoor moon to 0.1, and run the whole `tests/world` folder before pushing.
-- **Docs:** [Lighting in Compatibility](../godot/compat-lighting.md#light-cards-indoors-moon-shafts-door-glow-chalk).
+- **Docs:** [Lighting in Compatibility](../engines/godot/compat-lighting.md#light-cards-indoors-moon-shafts-door-glow-chalk).

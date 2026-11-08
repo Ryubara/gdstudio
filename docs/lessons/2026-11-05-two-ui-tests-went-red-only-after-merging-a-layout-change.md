@@ -15,4 +15,4 @@ areas: [godot-ui, tests]
   capacity is a named constant with the reason written next to it (`CROWDED_HOLDS`). Run every suite of the folder the
   change touches (all of `tests/ui` in parts) after a merge, not only the suites of the change: the red one was found
   by the full run.
-- **Docs:** [Mistakes by area](../research/mistakes-by-area.md), area `tests`.
+- **Docs:** the mistakes glossary (`gds lessons <area>`), area `tests`.

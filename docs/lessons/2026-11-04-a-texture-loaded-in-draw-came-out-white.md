@@ -13,4 +13,4 @@ areas: [godot, godot-ui]
 - **Fix:** whatever hands out a texture for drawing holds it (Deadnight `LevelIcons._atlases`, cleared by `release()`
   at the end of a test run). The test takes the instance id, lets a frame pass, and asserts `is_instance_id_valid`.
   Look at the capture: a white square raises nothing, and the suite passed.
-- **Docs:** [Canvas draw calls](../godot/canvas-draw-calls.md#icons-from-one-atlas).
+- **Docs:** [Canvas draw calls](../engines/godot/canvas-draw-calls.md#icons-from-one-atlas).

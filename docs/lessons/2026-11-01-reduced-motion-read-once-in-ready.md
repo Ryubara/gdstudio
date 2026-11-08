@@ -10,4 +10,4 @@ areas: [godot, net]
   session; a `static var` cannot declare a signal.
 - **Fix:** give the static var a setter that emits through a small `RefCounted` bus (`UIMotion.changed()`); every node
   connects in `_ready` and applies the value at once. Test by flipping the flag while the main scene runs.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

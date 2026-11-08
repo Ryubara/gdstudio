@@ -20,4 +20,4 @@ areas: [godot, gameplay, tests]
 - **Check:** before reporting a change to a timed system, run the budget's own case (`tools/perf/check_budget.py`
   over an `--autopilot --sample=1` run, the CI command) at least three times interleaved with the change switched
   off, not a micro-benchmark; never hold an event or a frame between calls of a timed function.
-- **Docs:** [Performance budgets](../godot/performance-budgets.md#a-timed-function-must-not-hold-what-it-is-handed).
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md#a-timed-function-must-not-hold-what-it-is-handed).

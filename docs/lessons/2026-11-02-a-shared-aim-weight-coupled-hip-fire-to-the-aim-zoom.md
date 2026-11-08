@@ -17,4 +17,4 @@ areas: [camera, tests]
 - **Check:** one camera input per behaviour the maintainer names; test every release transition. A GdUnit `_ticks()`
   helper that ends in `await process_frame` spans several physics steps under load: bound motion per physics tick.
 - **Docs:** [Releasing aim after a shot kept the hip-fire zoom](2026-11-02-aim-release-kept-the-hip-fire-zoom.md),
-  [What the maintainer caught](../research/maintainer-corrections.md).
+  [What the maintainer caught](../studio/maintainer-corrections.md).

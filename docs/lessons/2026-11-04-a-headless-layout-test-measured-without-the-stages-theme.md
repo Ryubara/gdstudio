@@ -17,4 +17,4 @@ areas: [godot-ui, tests]
   `UIThemeBuilder.build(UITokens.active())`, and a headless GdUnit test is a real layout test: Deadnight's
   `UiFitRun` does, and `UiFit` asks every control whether it crosses its area, the footer, the header or the screen.
   Keep a capture for the eyes, not for the numbers.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-card-taller-than-its-screen).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-card-taller-than-its-screen).

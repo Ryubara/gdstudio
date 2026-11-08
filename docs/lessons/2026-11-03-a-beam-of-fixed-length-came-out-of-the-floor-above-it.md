@@ -17,4 +17,4 @@ areas: [godot, gameplay]
   ceiling, the full 36 m in the open). A test casts the ray from every crane spot of both maps and checks nothing
   solid stands inside the beam; the capture stands on the first solid over each spot. For any column, shaft or
   beam of light: set its length from what is above its source and shoot it from above.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#a-column-of-light-has-a-length-from-what-is-above-it).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#a-column-of-light-has-a-length-from-what-is-above-it).

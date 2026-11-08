@@ -26,5 +26,5 @@ areas: [godot, gameplay, tests]
   facing away from it, while freeing the spot changed 2. Not traced to its cause; the nearest known one is
   [the renderer choosing other lights](2026-11-03-a-before-after-capture-differed-because-the-renderer-drops-lights.md).
   The screen's own grain also moves between two runs: count pixels away from the screen face.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light),
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light),
   Deadnight `docs/research/night-environment.md` (the booth's spot).

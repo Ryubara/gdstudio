@@ -21,5 +21,5 @@ areas: [tests, gameplay, godot]
   apart and checks every place to the last bit. Do not conclude "physics bodies are not repeatable" from a difference
   between two worlds until the two worlds are the same age at the first tick (the lesson of 2026-11-02 saw the hair and
   the tied routes; both may be this).
-- **Docs:** [Fixed-step repeatability](../godot/fixed-step-repeatability.md); Deadnight `docs/research/performance.md`,
+- **Docs:** [Fixed-step repeatability](../engines/godot/fixed-step-repeatability.md); Deadnight `docs/research/performance.md`,
   "Why two runs of one night differ (#1350)".

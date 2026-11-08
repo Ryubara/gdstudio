@@ -10,4 +10,4 @@ areas: [camera, gameplay]
 - **Cause:** Euler angles in YXZ order are ambiguous near a quarter turn about Y; the engine may return the same
   rotation as another triple, so `rotation.y` is not the turn you set.
 - **Fix:** read the turn from where an axis points: `atan2(basis.z.x, basis.z.z)` gives the yaw about the up axis.
-- **Docs:** [camera](../godot/camera.md) holds the other rotation notes.
+- **Docs:** [camera](../engines/godot/camera.md) holds the other rotation notes.

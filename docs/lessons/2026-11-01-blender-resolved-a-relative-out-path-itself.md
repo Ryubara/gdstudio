@@ -9,4 +9,4 @@ areas: [blender]
   was in (Deadnight #438).
 - **Cause:** the path is resolved by Blender, not by the shell that started it.
 - **Fix:** pass absolute paths to Blender scripts, or make them absolute in the shell (`"$(pwd)/out"`) before the call.
-- **Docs:** [Key art](../blender/key-art.md).
+- **Docs:** [Key art](../tools/blender/key-art.md).

@@ -12,4 +12,4 @@ areas: [godot-ui, input]
 - **Fix:** set `focus_neighbor_*` by hand on the ends of the column (strip, first row, ..., last row, footer), refresh
   them on every tab switch, and grab focus on the new tab's button. Test with `find_valid_focus_neighbor` after two idle
   frames (it needs a layout).
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/research/settings.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/research/settings.md`.

@@ -14,4 +14,4 @@ areas: [tools, process]
 - **Fix:** chain with `&&` after the `cd` (or use `git -C <worktree>`), look at `git branch --show-current` before a
   commit, and make a new worktree for a follow-up to a merged pull request. The stray commit was moved to a branch and
   `main` reset to `origin/main` before anything was pushed.
-- **Docs:** [starting work](../starting-work.md).
+- **Docs:** [starting work](../studio/starting-work.md).

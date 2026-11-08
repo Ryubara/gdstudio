@@ -19,4 +19,4 @@ areas: [godot-ui, tests]
   reduced motion), sweeping the turn (every 15 degrees) and every weapon, and read at `skeleton_updated`: hands and
   muzzle in front of the chest plane, outside the body. Run it on the old code first: it must fail in the levels
   that do not step.
-- **Docs:** [AnimationTree](../godot/animation-tree.md).
+- **Docs:** [AnimationTree](../engines/godot/animation-tree.md).

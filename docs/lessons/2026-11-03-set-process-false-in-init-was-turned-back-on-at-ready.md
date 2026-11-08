@@ -13,4 +13,4 @@ areas: [godot]
 - **Fix:** turn it off in `_ready` (after Godot has turned it on), and let only the code that needs it turn it on. A test
   that holds a part to its full length (the scorch outlives the light) catches it; a test that only counts nodes at the
   end does not.
-- **Docs:** [Pooled and one-shot effects](../godot/one-shot-effects.md#_process-is-on-after-ready).
+- **Docs:** [Pooled and one-shot effects](../engines/godot/one-shot-effects.md#_process-is-on-after-ready).

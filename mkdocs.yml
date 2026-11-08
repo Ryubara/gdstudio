@@ -1,10 +1,8 @@
-# Optional: the documentation site (copy to the repository root with docs.yml and requirements-docs.txt).
+# The kit's docs site, built by Zensical (requirements-docs.txt pins it; docs/studio/docs-site.md). Zensical reads
+# this MkDocs file as it is. It runs no MkDocs hooks or plugins: a check belongs in pytest, pre-commit or CI.
 site_name: GDStudio
 site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools, pipelines and lessons."
 docs_dir: docs
-# The mistakes glossary page is built from the lessons here, never committed (docs/hooks.md#docs).
-hooks:
-  - .github/scripts/mkdocs_glossary.py
 # Every warning fails the build: a broken link, a missing anchor.
 # No nav: the navigation is built from the folders (index.md first, titles from headings), so adding a page
 # never edits a shared file.
@@ -23,6 +21,7 @@ theme:
   name: material
   features:
     - navigation.sections
+    - navigation.indexes
     - navigation.top
     - search.highlight
     - content.code.copy

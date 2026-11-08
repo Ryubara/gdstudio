@@ -9,4 +9,4 @@ areas: [gameplay, blender]
   sheet beside the kit's guns.
 - **Cause:** the kit fattens every cross-section; a real rifle's barrel, receiver and stock are far thinner.
 - **Fix:** scale every part 1.4-1.5x across its length before chamfering; check by eye on a sheet, not by the numbers.
-- **Docs:** [Blender weapons](../blender/weapons.md).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md).

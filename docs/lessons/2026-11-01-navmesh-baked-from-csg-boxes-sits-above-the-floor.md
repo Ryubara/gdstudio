@@ -12,4 +12,4 @@ areas: [blender, godot]
   Godot's winding, and the baker lifts the surface by twice the cell height.
 - **Fix:** add faces built from each box's size with `NavigationMeshSourceGeometryData3D.add_faces(faces,
   shape.global_transform)`; on a flat floor keep the spawn height instead of the path's.
-- **Docs:** [Zombie crowds](../godot/crowds.md); Deadnight `docs/research/zombies.md`.
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md); Deadnight `docs/research/zombies.md`.

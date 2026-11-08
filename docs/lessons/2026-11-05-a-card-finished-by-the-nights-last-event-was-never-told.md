@@ -15,4 +15,4 @@ areas: [net, gameplay, tests]
 - **Fix:** `_step_over` drains `challenges.take_events()` too. Check for next time: a stat that is counted at or after
   `game_over` (a night's end, a death) is tested as *told to every client* (`challenge_done` heard), not only as a
   number on the board; the number was right while the client heard nothing.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#what-the-last-event-of-a-night-makes).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#what-the-last-event-of-a-night-makes).

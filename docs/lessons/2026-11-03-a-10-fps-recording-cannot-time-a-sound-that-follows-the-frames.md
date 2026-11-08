@@ -17,4 +17,4 @@ areas: [audio, tests]
   x.wav`; the capture prints the movie frames of the moments to look between, and the analysis reads inside them. Keep
   the 10 or 30 fps PNG movie for the pictures only. A pre-roll that waits for the dead to arrive runs at
   `Engine.time_scale = 10` and is set back to 1 before the part that is measured.
-- **Docs:** [Audio: capturing sound](../godot/audio.md#capturing-sound).
+- **Docs:** [Audio: capturing sound](../engines/godot/audio.md#capturing-sound).

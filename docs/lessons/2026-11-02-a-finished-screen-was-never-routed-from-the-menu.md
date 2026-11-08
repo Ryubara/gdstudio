@@ -17,4 +17,4 @@ areas: [godot-ui, tests]
   in the same pull request, and the screen's test starts from the menu's button, never from the scene path. A
   headless run measures text as nothing, so a fit test there passes on a layout a phone cuts off: check the fit in a
   windowed capture (real fonts) and in the web build.
-- **Docs:** [Headless renderer](../godot/headless-renderer.md), [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [Headless renderer](../engines/godot/headless-renderer.md), [What the maintainer caught](../studio/maintainer-corrections.md).

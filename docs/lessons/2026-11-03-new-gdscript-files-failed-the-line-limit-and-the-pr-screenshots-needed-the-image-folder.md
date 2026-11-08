@@ -14,5 +14,6 @@ areas: [tools, process]
   `uvx pre-commit run --all-files` before the commit, not after. For the screenshots: `cd` into the folder that holds
   the images, write `![alt](./name.png)` in the body, and run `gh pr create -R <owner/repo> --head <branch> --attach
   ./name.png` there, after the branch is pushed; read the body back with `gh pr view N --json body`.
-- **Documented:** [Surface materials](../godot/surface-materials.md#re-skinning-a-model-that-is-already-painted) for the
+- **Documented:** [Surface
+  materials](../engines/godot/surface-materials.md#re-skinning-a-model-that-is-already-painted) for the
   skin work itself; this lesson holds the two process traps.

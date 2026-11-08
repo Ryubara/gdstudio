@@ -21,5 +21,5 @@ areas: [godot-ui, tests]
   `test_ui_fit.gd`); it failed 167 and 64 times on `main`. Then the parts: `UIFitScroll` bounds a card, `MenuPanel.hold`
   scrolls a tab's column, the wardrobe's list flexes in the height it is given and its rows stack on a narrow tab, the
   Settings card caps its width and scrolls its rows, the name plate takes what the tab bar leaves.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-card-taller-than-its-screen); Deadnight
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-card-taller-than-its-screen); Deadnight
   `docs/research/menu-shell.md`.

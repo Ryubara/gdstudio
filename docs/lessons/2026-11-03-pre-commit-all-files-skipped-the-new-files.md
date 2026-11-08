@@ -11,4 +11,4 @@ areas: [process, tools]
   scripts, tests and capture scenes (most of the task's code) were skipped until the commit hook ran on them.
 - **Fix:** `git add -A` first (or `git add -N .`), then run the full hook once: it checks the new files, and a project
   import writes the missing `.gd.uid` files before the add. Do this before the first commit, not after it fails.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

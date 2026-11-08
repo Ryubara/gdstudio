@@ -16,4 +16,4 @@ areas: [blender]
   give a small rigid piece the weights at its middle; rest a sheet's point on the highest surface under its whole
   footprint; start a seating ray under anything that overhangs. Print where a piece is at rest before blaming the skin,
   and look at each piece in at least two poses that move the arms.
-- **Docs:** [Pieces laid on a body](../blender/variants.md#pieces-laid-on-a-body).
+- **Docs:** [Pieces laid on a body](../tools/blender/variants.md#pieces-laid-on-a-body).

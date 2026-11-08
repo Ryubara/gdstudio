@@ -13,4 +13,4 @@ areas: [blender, tests]
 - **Fix:** the stock's underside keeps its front high (z 0.035 at x 0.15, 0.02 at x 0.22) before it drops to the butt.
   Trust the game-pose capture over the solver's table for the palm and the thumb's root, and keep a stock's underside
   clear of the wrist for about 20 cm behind the grip.
-- **Docs:** [Weapons, hands on the weapon](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Weapons, hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon).

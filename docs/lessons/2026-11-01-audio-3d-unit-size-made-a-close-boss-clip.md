@@ -12,4 +12,4 @@ areas: [audio, tools]
   makes it loud up close, not "large".
 - **Fix:** `unit_size` 7 and the roar and growl trimmed 6 to 7 dB in the catalog; the capture then peaked at -0.4 dBFS
   with no clipped sample. Find it with a per-second peak and clip count of the mix, not the file's peak.
-- **Docs:** [A crowd's voices](../godot/audio.md#a-crowds-voices-the-dead).
+- **Docs:** [A crowd's voices](../engines/godot/audio.md#a-crowds-voices-the-dead).

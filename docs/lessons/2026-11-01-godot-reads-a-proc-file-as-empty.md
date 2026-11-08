@@ -11,4 +11,4 @@ areas: [net, godot]
   not exist, so it only showed in the container.
 - **Fix:** read it with `get_line()` (the file is one line) and treat an empty result as no data; test Linux-only paths
   in the Docker image.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#headless-server-image).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#headless-server-image).

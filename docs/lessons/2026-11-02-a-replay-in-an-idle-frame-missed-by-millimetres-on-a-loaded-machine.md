@@ -12,4 +12,4 @@ areas: [godot, tests]
   the load. A recording made in one physics callback and a replay in an idle frame are two different deltas.
 - **Fix:** a test that is not about idle frames records and replays in physics callbacks (delta exactly one tick);
   the idle-frame case lives in one suite that runs it on purpose (`test_player_reconcile`).
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

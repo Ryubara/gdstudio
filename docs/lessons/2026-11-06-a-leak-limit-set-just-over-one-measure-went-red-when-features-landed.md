@@ -26,5 +26,5 @@ areas: [tests, godot]
 - **Check next time:** when a nightly count goes red, find the first-second value and the rise to the peak before touching
   a limit (if only the first-second value moved, a feature did it); dump the cache by path to see what the rise is; and
   run one night twice as long to see whether the count flattens.
-- **Docs:** [naming what the resource count is made of](../godot/resource-count.md); Deadnight's
+- **Docs:** [naming what the resource count is made of](../engines/godot/resource-count.md); Deadnight's
   `docs/research/performance.md#the-two-red-leak-nights-of-2026-11-04-and-2026-11-05-1319`.

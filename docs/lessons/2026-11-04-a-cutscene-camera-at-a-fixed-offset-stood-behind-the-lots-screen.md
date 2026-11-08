@@ -18,5 +18,6 @@ areas: [camera, gameplay, godot]
   the preferred camera would stand and fails if the heading does not turn.
 - **Check next time:** a camera that is not the player's own goes through a capture on every map the game ships
   before it is called done, and is placed by what is between it and its subject, not by an offset.
-- **Docs:** [A cutscene one client plays](../godot/client-cutscene.md), "Stand the camera where nothing solid is between
+- **Docs:** [A cutscene one client plays](../engines/godot/client-cutscene.md), "Stand the camera where nothing solid
+  is between
   it and the spot".

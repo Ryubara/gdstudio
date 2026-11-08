@@ -12,4 +12,4 @@ areas: [tests]
 - **Fix:** read the words into an array (`read -r -a folders < <(cmd)`) and pass `"${folders[@]}"`: no directive, no
   word splitting. actionlint only checks `run:` scripts with shellcheck installed, so a Windows machine without it
   passes what CI rejects: run it where `shellcheck` exists, or keep scripts simple enough not to need a directive.
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

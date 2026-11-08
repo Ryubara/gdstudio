@@ -1,4 +1,4 @@
-"""`gds sync`: keep the game-side copies of kit-owned files identical to the kit (docs/sync.md).
+"""`gds sync`: keep the game-side copies of kit-owned files identical to the kit (docs/studio/sync.md).
 
 The kit is the one source of the files every game carries: the agent definitions (`.claude/agents/*.md`), the
 commit and pull request checker (`.github/scripts/groundwork.py`), the hook launcher with its settings
@@ -182,7 +182,8 @@ def sync(kit: Path, game: Path, log=print) -> int:
         if missing:
             raise SyncError(
                 f"{BLOCK_FILE} of {game.name} has no block {', '.join(missing)}: once, wrap the game's own copy of "
-                f"those hooks in `# gds-sync:begin <name>` / `# gds-sync:end <name>` lines (docs/sync.md), then run "
+                f"those hooks in `# gds-sync:begin <name>` / `# gds-sync:end <name>` lines (docs/studio/sync.md), then "
+                f"run "
                 f"`gds sync` again"
             )
         duplicated = [p for p in block_drift(kit, game) if "outside the kit's block" in p]

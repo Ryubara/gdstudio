@@ -9,4 +9,4 @@ areas: [tools, blender]
   "a|godot"`.
 - **Cause:** the guard split shell lines on `|` inside quotes and read heredoc bodies as commands.
 - **Fix:** split only outside quotes; drop heredoc and here-string bodies before judging.
-- **Docs:** Hooks (`docs/hooks.md`).
+- **Docs:** Hooks (`docs/studio/hooks.md`).

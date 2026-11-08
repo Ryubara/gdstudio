@@ -14,5 +14,5 @@ areas: [camera, gameplay, tests]
 - **Fix:** a motion per mechanism that carries the weapon out to the right of the head and up, turns the chest the
   left shoulder forward so the left hand reaches, and moves a part of the gun; proved by drawing the frame again without
   the weapon (6,700 to 8,700 pixels for the long guns mid-reload) and by sheets from the player's camera.
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md#a-held-weapon-from-the-shoulder-camera),
-  [Moving parts and a reload's ammunition](../blender/weapons.md#moving-parts-and-a-reloads-ammunition).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md#a-held-weapon-from-the-shoulder-camera),
+  [Moving parts and a reload's ammunition](../tools/blender/weapons.md#moving-parts-and-a-reloads-ammunition).

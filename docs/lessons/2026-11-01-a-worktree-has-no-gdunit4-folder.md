@@ -11,4 +11,4 @@ areas: [tests, tools]
 - **Fix:** copy it once (`cp -r <workspace>/repos/<game>/game/addons/gdUnit4 <worktree>/game/addons/`), then run `godot
   --headless --path game --import` before the first test run (a new `class_name` is also unknown until that import). It
   stays untracked.
-- **Docs:** [Godot testing](../godot/index.md#testing-and-capture).
+- **Docs:** [Godot testing](../engines/godot/index.md#testing-and-capture).

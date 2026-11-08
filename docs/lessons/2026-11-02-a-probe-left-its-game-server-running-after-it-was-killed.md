@@ -14,4 +14,4 @@ areas: [tests, tools]
   of its own (`timeout`, `gds quiet --timeout`) shorter than the tool's, and when a run was killed find what it left
   by command line (`Get-CimInstance Win32_Process`, filtered on the scratch folder in its arguments), never by image
   name, and stop those by PID.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#the-same-in-the-browser-deadnight-502).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#the-same-in-the-browser-deadnight-502).

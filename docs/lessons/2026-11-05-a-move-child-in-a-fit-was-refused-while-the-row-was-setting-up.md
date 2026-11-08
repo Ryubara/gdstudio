@@ -11,4 +11,4 @@ areas: [godot-ui, godot]
   the container is inside a child-setup pass, and `move_child` is refused then.
 - **Fix:** move only when the child is not at its place, and with `move_child.call_deferred(child, index)`. Run the
   suites of the other screens that build the part (the night's tap-target suite found it, not the touch suites).
-- **Docs:** [Touch controls](../godot/ui-controls.md#touch-controls).
+- **Docs:** [Touch controls](../engines/godot/ui-controls.md#touch-controls).

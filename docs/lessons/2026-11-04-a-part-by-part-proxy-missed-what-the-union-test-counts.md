@@ -13,4 +13,4 @@ areas: [blender, tests]
 - **Fix:** the proxy builds one surface of every part the arm must stay out of, as the game does; it then followed
   Godot (63-86 mm against 78-83) and the pose search ran in Blender. Copy the game check's exact rule before tuning
   against a proxy, and confirm its numbers on one known fault before trusting it.
-- **Docs:** [Clips that keep the arms out](../blender/variants.md#clips-that-keep-the-arms-out).
+- **Docs:** [Clips that keep the arms out](../tools/blender/variants.md#clips-that-keep-the-arms-out).

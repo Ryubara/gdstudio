@@ -1,4 +1,4 @@
-"""`gds capture`: frames, contact sheets and clips as proof for a pull request (docs/capture.md).
+"""`gds capture`: frames, contact sheets and clips as proof for a pull request (docs/studio/capture.md).
 
 `frames` runs the pinned Godot with Movie Maker (a real window on a private desktop, not headless) and writes
 numbered PNGs into `<workspace>/scratch/<repo>/<branch>/<name>/`, with a small `capture.json` recording the frame
@@ -78,7 +78,7 @@ def run_program(cmd: list[str], cwd: Path | None = None) -> Result:
 
 
 def run_godot(cmd: list[str], cwd: Path | None = None) -> Result:
-    """Run the pinned Godot without taking the focus from the person at the machine (docs/godot/no-focus.md)."""
+    """Run the pinned Godot without taking the focus from the person at the machine (docs/engines/godot/no-focus.md)."""
     outcome = run_quiet(cmd, cwd, timeout=GODOT_TIMEOUT)
     if outcome.timed_out:
         raise CaptureError(f"{Path(cmd[0]).name} did not finish within {GODOT_TIMEOUT} s")

@@ -12,4 +12,4 @@ areas: [gameplay, blender]
 - **Fix:** hand sockets in each model (`Grip`, `Trigger`, `Support`), a solver that closes each finger to 1 mm from
   the surface, a modifier that applies the solved finger pose, and a test that measures the skin in every pose (no
   part over 2 mm in, every contact within 5 mm).
-- **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#hands-on-the-weapon).

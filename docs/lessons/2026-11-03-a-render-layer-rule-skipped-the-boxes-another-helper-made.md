@@ -15,4 +15,4 @@ areas: [godot, tests]
   regenerating) is the proof, not the diff of the scene (the scene diff looked complete: it had `layers` lines).
   Count the lines a rule wrote against the boxes it should touch, and run the check that reads the scene after every
   regeneration.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).

@@ -18,5 +18,6 @@ areas: [gameplay, camera, godot]
   to the solved one, `influence` stays 1, and the player's weight follows the same smoothstep as the carry clip.
   `test_sprint_start_blend.gd` records the bones at `skeleton_updated` for every start and fails on a per-tick turn,
   move or change of turn (it failed first: 72 degrees, 0.71 m).
-- **Docs:** [AnimationTree](../godot/animation-tree.md#a-clip-on-top-of-a-pose-a-modifier-fades-out). A fix that works
+- **Docs:** [AnimationTree](../engines/godot/animation-tree.md#a-clip-on-top-of-a-pose-a-modifier-fades-out). A fix
+  that works
   around an engine behaviour for one clip also goes on the kit page as the behaviour, not only as the workaround.

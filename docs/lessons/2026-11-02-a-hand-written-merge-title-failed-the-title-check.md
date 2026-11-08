@@ -15,4 +15,4 @@ areas: [ci, tools]
   `Merge remote-tracking branch 'origin/main' into <branch>` and whose last line is the `Co-Authored-By` trailer
   (`git commit -F <file> --cleanup=strip`), then check `git log -1` shows the merge before pushing. A merge that brings
   in a commit by another model also needs that model in the pull request's `Model:` line.
-- **Docs:** [Merging main into a pull request](../starting-work.md#merging-main-into-a-pull-request).
+- **Docs:** [Merging main into a pull request](../studio/starting-work.md#merging-main-into-a-pull-request).

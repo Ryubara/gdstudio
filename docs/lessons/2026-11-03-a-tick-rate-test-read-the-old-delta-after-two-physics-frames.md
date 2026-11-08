@@ -13,4 +13,4 @@ areas: [godot, tests]
   was not an idle frame (the steps were already in physics callbacks), so the idle-frame lesson did not apply.
 - **Fix:** after setting the rate, await `physics_frame` until `get_physics_process_delta_time()` equals `1 / hz`
   (bounded at 60 frames), then assert it and measure as before. Never count frames to mean "the new rate is in".
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

@@ -12,4 +12,4 @@ areas: [process, godot-ui]
 - **Fix:** Deadnight #526 routes Quick join straight into the first open night.
 - **General:** before closing an issue, grep the code and docs for its number and resolve every "until #N" note in the
   same pull request. Two buttons with different labels do different things, and a test per route proves it.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

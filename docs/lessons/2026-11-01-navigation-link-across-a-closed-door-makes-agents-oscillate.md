@@ -12,4 +12,4 @@ areas: [process, gameplay]
 - **Fix:** do not bridge a baked wall with a link for agents that repath often: rebake when the door opens
   (`bake_from_source_geometry_data_async`, about a second for a 124 x 116 m lot) and swap the mesh in, or do not repath
   while an agent is on a link.
-- **Docs:** [Zombie crowds](../godot/crowds.md); Deadnight `docs/research/zombies.md` (Doors).
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md); Deadnight `docs/research/zombies.md` (Doors).

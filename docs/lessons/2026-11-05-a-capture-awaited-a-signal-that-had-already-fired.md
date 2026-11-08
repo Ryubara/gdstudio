@@ -14,4 +14,4 @@ areas: [tests, godot, tools]
   call); every capture script has its own hard stop in frames (a counter in `_process` that quits) besides
   `--quit-after`, and every wait loop a bound. Run a new capture with a small `--quit-after` first, and delete the
   frames as soon as the sheet or clip is made.
-- **Docs:** [Mistakes by area](../research/mistakes-by-area.md), areas `tests`, `godot`.
+- **Docs:** the mistakes glossary (`gds lessons <area>`), areas `tests`, `godot`.

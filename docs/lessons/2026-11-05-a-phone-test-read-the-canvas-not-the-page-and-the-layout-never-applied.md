@@ -31,4 +31,4 @@ areas: [godot-ui, web, tests]
   about a device class, run the real device once (the web export in phone emulation, and in an iframe for Discord) and
   read the numbers there before trusting a fixture; say in a capture's name which page it is (`MenuScale.describe`
   prints it); a fixture of a size no real page has is allowed only where a test says so.
-- **Docs:** [UI controls](../godot/ui-controls.md), [web export](../godot/web-export.md), Deadnight #1197.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md), [web export](../engines/godot/web-export.md), Deadnight #1197.

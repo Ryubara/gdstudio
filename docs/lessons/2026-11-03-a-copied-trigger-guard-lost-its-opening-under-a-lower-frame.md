@@ -11,4 +11,4 @@ areas: [blender]
   guard; their lower receivers hung 5-7 mm below the Tommy's receiver (-0.025 and -0.027 against -0.02).
 - **Fix:** raise the lower receiver's bottom to the donor's -0.02: both came to 0.95. A copied guard keeps its fit
   only with the frame above it at the donor's height; measure the fit after the first build, before solving grips.
-- **Docs:** [Weapons, hands on the weapon](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Weapons, hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon).

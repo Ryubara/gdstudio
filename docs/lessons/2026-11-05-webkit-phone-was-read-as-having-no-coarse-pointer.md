@@ -13,5 +13,5 @@ areas: [web, tests]
 - **Fix:** read the cause of a "not a phone" result off the page before writing it down (`matchMedia`, the
   `devicePixelRatio` descriptor, `maxTouchPoints`, one `evaluate`), and give the page what the device has (an init
   script that defines `maxTouchPoints` as 5); then the WebKit stand-in runs the whole probe.
-- **Docs:** `docs/godot/web-export.md` (phone page size section); Deadnight `tools/web_smoke/phone_view.py --engine
+- **Docs:** `docs/engines/godot/web-export.md` (phone page size section); Deadnight `tools/web_smoke/phone_view.py --engine
   webkit`.

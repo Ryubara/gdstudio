@@ -11,4 +11,4 @@ areas: [tests]
   teammate's argument was a literal.
 - **Fix:** loop over full triples (name, player look, teammate look), print each run's looks in its log
   (`[female] loadout character: ...`), and read one picture of each run before comparing.
-- **Docs:** [Testing and capture](../godot/index.md#testing-and-capture).
+- **Docs:** [Testing and capture](../engines/godot/index.md#testing-and-capture).

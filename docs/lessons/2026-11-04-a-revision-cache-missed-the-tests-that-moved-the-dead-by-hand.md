@@ -16,5 +16,5 @@ areas: [gameplay, tests, godot]
   `SeatedNight` and `ShotRig`, and the four suites). Before caching anything on a version number, grep every writer
   of what the cache is built from (`rg "\.(position|yaw|mode)\s*=[^=]"` over `game/`, tests and tools included),
   give each one the bump, and run the suites that pin things in place (`tests/night`) as well as the new ones.
-- **Docs:** [Performance review](../godot/performance-review.md) (the checklist line on caches) and the game's
+- **Docs:** [Performance review](../engines/godot/performance-review.md) (the checklist line on caches) and the game's
   `docs/research/crowd-budget.md`, "The server's crowd lists, once a step".

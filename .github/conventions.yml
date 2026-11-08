@@ -90,7 +90,7 @@ pull_requests:
   # A pull request whose title verb is listed (a fix) shows a test failing before the change and passing after it: a
   # `Failed first:` line in Testing, or `Failed first: none (reason)` when no test can show it. Needs `check-body --title`.
   failed_first: {verbs: [Fix], section: Testing, label: "Failed first:"}
-  # Docs ship with the change (docs/hooks.md#docs). A pull request is judged an agent correcting earlier work from what
+  # Docs ship with the change (docs/studio/hooks.md#docs). A pull request is judged an agent correcting earlier work from what
   # GitHub knows, not from what its author says: its title verb, a watched check that failed on an earlier commit of
   # it, or a closed issue labelled `bug` (`groundwork.py pr-history`, then `check-body --history`). Such a pull request
   # needs a `Lessons:` line in Summary linking the lesson (or a corrections row) that records what went wrong;
@@ -132,7 +132,7 @@ merge:
   delete_branch_on_merge: true
   linear_history: true
   required_checks: [title, body, docs, commits, conventions, build-ok, mkdocs, markdownlint, actionlint]
-  # The hold (docs/hooks.md#hold): `check` fails while a pull request carries `label`, and the ruleset requires it from
+  # The hold (docs/studio/hooks.md#hold): `check` fails while a pull request carries `label`, and the ruleset requires it from
   # the app `app_id` (15368 is GitHub Actions), so a commit status with the same name does not count. It stays out of
   # required_checks: a hold is a decision, not a failure, so `pr-status` does not call it `S-ci-failing`.
   hold: {label: S-hold, check: hold, app_id: 15368}
@@ -182,8 +182,8 @@ issues:
         docs-page:
           heading: Docs page
           type: input
-          description: "The kit page (and section) that covers this, such as docs/godot/... or docs/lessons/..., as a link, or none yet."
-          placeholder: "docs/godot/ui.md#focus"
+          description: "The kit page (and section) that covers this, such as docs/engines/godot/... or docs/lessons/..., as a link, or none yet."
+          placeholder: "docs/engines/godot/ui.md#focus"
         done:
           heading: What "done" means
           required: true

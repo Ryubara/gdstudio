@@ -9,4 +9,4 @@ areas: [godot, web]
 - **Cause:** desktop drivers happen to return something sensible; WebGL2 drivers may give NaN or stripes.
 - **Fix:** write `d * d` instead of `pow(x, 2.0)`, keep `smoothstep` edges ordered (clamp the width with `max`), and use
   one shared sine-free hash in a `.gdshaderinc` included with `#include`. Check in a real browser export.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md); Deadnight `docs/research/main-menu.md`.
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md); Deadnight `docs/research/main-menu.md`.

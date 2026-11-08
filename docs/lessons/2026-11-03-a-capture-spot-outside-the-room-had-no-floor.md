@@ -9,4 +9,4 @@ areas: [tests]
 - **Cause:** the blockout room's floor covered the room only, and the backdrop's ground has no collision (nothing
   walks it).
 - **Fix:** a hidden floor under every spot the capture uses; look at every spot's frame before believing the tour.
-- **Docs:** [A backdrop past the playable bounds](../godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
+- **Docs:** [A backdrop past the playable bounds](../engines/godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).

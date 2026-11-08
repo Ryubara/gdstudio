@@ -20,4 +20,4 @@ areas: [web, input, godot-ui]
   steps.
 - **Check for next time:** a feature that takes text is run with a finger on a phone-shaped page before it is called
   done, and a platform's text path (open, type, close, submit) is a line of the plan, like its clipboard.
-- **Docs:** [web export](../godot/web-export.md#a-phones-keyboard-in-the-web-build).
+- **Docs:** [web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build).

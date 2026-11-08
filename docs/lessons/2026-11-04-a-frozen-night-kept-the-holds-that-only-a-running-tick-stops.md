@@ -15,4 +15,4 @@ areas: [net, tests]
   the test also reads the frozen frame (nobody reviving). Not a test change: the game over must still come when
   everyone is down. When a phase freezes the simulation, list what each tick used to end by itself and end it once at
   the freeze.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#small-things-that-cost-time).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#small-things-that-cost-time).

@@ -16,4 +16,4 @@ areas: [net, godot-ui]
   settings moved it to 9, Deadnight #449). The same rule holds for the network protocol version (`VERSION` and
   `MIN_VERSION`): several branches bump it at once (the scoreboard #472, the lag work #54, the delta work #57), so
   merge `origin/main` right before the final push and bump past main's number.
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/rules-engine.md`.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/rules-engine.md`.

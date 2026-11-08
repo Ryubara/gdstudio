@@ -13,4 +13,4 @@ areas: [godot-ui]
 - **Fix:** connect the card's, the column's and the badges' own `item_rect_changed` to a function that queues one
   deferred placement (a flag so it runs once per layout pass), and place from the rectangles then. Test it by flipping
   the layout and measuring the rectangles after two idle frames.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-part-placed-from-another-parts-rectangle).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-part-placed-from-another-parts-rectangle).

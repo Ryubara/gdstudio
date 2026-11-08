@@ -12,4 +12,4 @@ areas: [web, tests]
   running night, which is earlier than an active round.
 - **Fix:** wait for `round >= 1` before a probe that needs the rules to say yes (a grenade, a purchase, a revive), and
   read the server's own word (`grenade_cooking`: `GrenadeServer.is_cooking`), not the preview on screen.
-- **Docs:** [Web export](../godot/web-export.md) (probes read the server, not the picture).
+- **Docs:** [Web export](../engines/godot/web-export.md) (probes read the server, not the picture).

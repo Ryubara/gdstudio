@@ -13,4 +13,4 @@ areas: [blender, godot]
   fault (Deadnight #651).
 - **Fix:** write the sRGB swatch as it is (`px = [*rgb, 1.0]`); then read one cell of the saved PNG back and compare it
   with the hex value in the build log or a test.
-- **Docs:** [Modular kits: building the pieces](../blender/modular-kits.md#building-the-pieces).
+- **Docs:** [Modular kits: building the pieces](../tools/blender/modular-kits.md#building-the-pieces).

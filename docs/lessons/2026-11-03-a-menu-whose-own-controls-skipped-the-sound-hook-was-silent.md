@@ -15,4 +15,4 @@ areas: [audio, godot-ui]
   and cue to sound, trim, weight or a written silence; one service with the rules; a test that walks every screen and
   fails on a control with no role or a role with no row, one that sends each control its events, and one that reads
   the code for a cue with no source.
-- **Docs:** [Menu and interface sounds](../audio/ui-sounds.md#7-how-to-wire-it-roles-cues-and-one-table).
+- **Docs:** [Menu and interface sounds](../gamedev/audio/ui-sounds.md#7-how-to-wire-it-roles-cues-and-one-table).

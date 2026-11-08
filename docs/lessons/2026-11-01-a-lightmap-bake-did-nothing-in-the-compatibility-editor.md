@@ -10,4 +10,4 @@ areas: [godot-ui, godot]
   only opens a file dialog.
 - **Fix:** a Vulkan editor (`--editor --rendering-method forward_plus`), a saved `light_data`, and the button pressed
   from a tool plugin; the game still runs in Compatibility.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lightmapgi).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lightmapgi).

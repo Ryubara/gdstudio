@@ -1,7 +1,7 @@
 # Rig-sharing spike
 
-One AnimationLibrary on every Quaternius character. Findings: `docs/blender/rig-sharing.md` and
-`docs/godot/rig-sharing.md`.
+One AnimationLibrary on every Quaternius character. Findings: `docs/tools/blender/rig-sharing.md` and
+`docs/engines/godot/rig-sharing.md`.
 
 ```sh
 blender -b --factory-startup -P blender/inspect_rig.py -- <model.glb>            # what a file holds

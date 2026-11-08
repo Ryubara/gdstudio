@@ -1,4 +1,5 @@
-"""The hold on a pull request (docs/hooks.md#hold): the guard, `gds pr hold`, the conventions, and the properties of
+"""The hold on a pull request (docs/studio/hooks.md#hold): the guard, `gds pr hold`, the conventions, and the
+properties of
 `hold.yml` that keep a required check honest. What GitHub does with them is shown on real pull requests, not here."""
 
 from __future__ import annotations

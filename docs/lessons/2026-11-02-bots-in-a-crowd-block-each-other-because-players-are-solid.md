@@ -15,4 +15,4 @@ areas: [gameplay, tests]
   a person never gives way and, of two bots, the higher seat does, to the right, slowing near; (3) a standing bot steps
   out of the way of a player who walks at it. Stuck time fell from 6 to 16% to about 1 to 3%. Classify each stuck
   episode by what the body ran into (the soak report has `stuck_causes`) before tuning.
-- **Docs:** Deadnight `docs/research/bots.md` (Built in phase 2); [Navigation in tests](../godot/navigation-in-tests.md).
+- **Docs:** Deadnight `docs/research/bots.md` (Built in phase 2); [Navigation in tests](../engines/godot/navigation-in-tests.md).

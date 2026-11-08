@@ -10,4 +10,4 @@ areas: [godot, tests]
   behind the helmet; the depth test hid it.
 - **Fix:** hang the effect on the weapon model's own `Muzzle` node; a weapon with no model flashes 0.6 m down the
   barrel.
-- **Docs:** [Shot feedback](../godot/shot-feedback.md).
+- **Docs:** [Shot feedback](../engines/godot/shot-feedback.md).

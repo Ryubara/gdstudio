@@ -12,4 +12,4 @@ areas: [input, tests]
   1080 design size, so a control laid out for the design size can lie outside it.
 - **Fix:** add the screen to a `CanvasLayer` (layer 100) and set `get_window().size` to the design size before
   instancing it; then clicks land. Click at `control.get_global_transform_with_canvas() * local_point`.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

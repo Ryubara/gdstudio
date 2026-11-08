@@ -11,7 +11,7 @@ kit's `{TEMPLATE}` template (`gds new game`).
 `world/` maps, levels and lighting, `net/` only when the game is multiplayer, `assets/<domain>/<subject>/`, `tests/`
 and `tools/` (captures and probes, left out of the export). `docs/` this game's docs site (`design/` what the game
 is, `research/` what we learned building it). The folder, naming and dependency rules, and the check that enforces
-them, are the kit's `docs/godot/project-conventions.md`. Workspace folders (`scratch/`, `refs/`, `vault/`, `tools/`)
+them, are the kit's `docs/engines/godot/project-conventions.md`. Workspace folders (`scratch/`, `refs/`, `vault/`, `tools/`)
 sit beside the repositories: `docs/` of the kit.
 
 ## Build and test

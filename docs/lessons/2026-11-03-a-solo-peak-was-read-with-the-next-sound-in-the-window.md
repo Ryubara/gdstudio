@@ -15,6 +15,7 @@ areas: [audio, tests]
   window exactly at the next play. Measured again, a sound dead ahead is 2.5 to 3 dB under its file's peak and a click
   is 10 to 14 dB under it. The pinned table (`tests/core/close_sound_levels.json`) comes from that clean run, with the
   caps it was measured at, so a cap moved without measuring again fails a test.
-- **Docs:** [Audio: a negative near cap](../godot/audio.md). Check: when a recording is cut into one window per sound,
+- **Docs:** [Audio: a negative near cap](../engines/godot/audio.md). Check: when a recording is cut into one window per
+  sound,
   the windows cannot overlap another sound: print each window's start and end, and make the gap the length of the
   longest file, not a constant; read one sound twice (alone, then with the others) before trusting a table of them.

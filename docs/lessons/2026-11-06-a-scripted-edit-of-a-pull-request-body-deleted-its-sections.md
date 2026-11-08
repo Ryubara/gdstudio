@@ -13,4 +13,4 @@ areas: [process]
 - **Fix:** restore from GitHub's history (`userContentEdits` on the pull request, in GraphQL: the `diff` of the edit before
   yours is the whole old body). Normalise `\r\n` first, replace exact strings with an `assert` that each is there, and run
   `gds pr check-body` before `gh pr edit`, never after.
-- **Docs:** [Starting work](../starting-work.md).
+- **Docs:** [Starting work](../studio/starting-work.md).

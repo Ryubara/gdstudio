@@ -14,4 +14,4 @@ areas: [blender]
 - **Fix:** solve the ratio over the looks that shipped, and assert every look, old and new, against the far budget.
   Decimate her head and its features only, then join the small pieces whole into the far mesh (they are a few dozen
   triangles, and the lashes keep their shape at range).
-- **Docs:** [Character variants](../blender/variants.md#a-second-body-on-the-same-parts).
+- **Docs:** [Character variants](../tools/blender/variants.md#a-second-body-on-the-same-parts).

@@ -14,4 +14,4 @@ areas: [tests, gameplay]
 - **Fix:** run every new sweep test on the unfixed map first and tune it (a 1.0 m grid, the jump ticks the chain used)
   until it fails there with the chain; keep the recorded hops of the known escape as a second test that replays them
   (each hop from where the last landed) and fails on the old map, so the sweep's coverage is not the only guard.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

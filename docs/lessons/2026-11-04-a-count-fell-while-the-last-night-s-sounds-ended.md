@@ -22,6 +22,6 @@ areas: [tests, audio, ci]
   `QuietCount.settle` (voices, tweens, the mixer), and brings its own leftover sounds when it claims to be immune to the
   suite before; to find which suite makes a count move, run the shard's suites in CI order (the job log's `shard N:`
   line) and cut the list in halves.
-- **Docs:** [Performance review](../godot/performance-review.md), "How to measure it"; earlier lessons:
+- **Docs:** [Performance review](../engines/godot/performance-review.md), "How to measure it"; earlier lessons:
   [a count test read a peak](2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md),
   [a count test that skipped the Audio queue](2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md).

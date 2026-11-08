@@ -16,4 +16,4 @@ areas: [camera, godot-ui]
   the camera, the body and the hands; the aim button only skips the entry because the weight is already full. Pose
   inputs are blended by the weight. Tests: hip fire reaches the same placement and pose as aiming and releases in the
   same time; the hand target's per-frame change stays under a bound (Deadnight #300).
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

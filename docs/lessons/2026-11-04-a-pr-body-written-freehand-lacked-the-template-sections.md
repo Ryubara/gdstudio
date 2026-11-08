@@ -14,4 +14,4 @@ areas: [process, ci]
   valid answers), run `gds pr check-body <file> --title <title file>` until it prints ok, then `gh pr edit -F`.
 - **Check for next time:** every pull request, a one-line lesson included, starts from the template file and passes
   `gds pr check-body` before it is created.
-- **Docs:** [Hooks](../hooks.md#pr-body).
+- **Docs:** [Hooks](../studio/hooks.md#pr-body).

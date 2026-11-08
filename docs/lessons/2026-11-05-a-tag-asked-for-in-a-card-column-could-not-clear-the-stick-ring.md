@@ -19,4 +19,4 @@ areas: [godot-ui, input]
   and measure every neighbour that stands at a share of the screen or reads the column's height (the ring, the
   challenge card, the markers) with the touch layout on, before building the rest; and re-measure a number that
   another pull request can move before it goes into the argument.
-- **Docs:** [Touch controls](../godot/ui-controls.md#touch-controls).
+- **Docs:** [Touch controls](../engines/godot/ui-controls.md#touch-controls).

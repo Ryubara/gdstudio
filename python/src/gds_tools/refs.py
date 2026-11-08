@@ -1,4 +1,4 @@
-"""`gds refs fetch <url>`: bring a third-party reference into <workspace>/refs/ with its licence (docs/refs.md).
+"""`gds refs fetch <url>`: bring a third-party reference into <workspace>/refs/ with its licence (docs/studio/refs.md).
 
 Poly Pizza model and bundle links are understood (`/m/<id>`, `/bundle/<name>-<id>`). Each model lands in
 `refs/polypizza/<id>/` (or a bundle's `refs/polypizza/bundles/<id>/models/`) with `meta.json` (the API's answer:

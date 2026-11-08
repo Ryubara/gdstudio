@@ -13,4 +13,4 @@ areas: [camera, tests]
 - **Fix:** measure the flash's own pixels from the real camera (draw the frame again without it and compare), draw the
   quads toward the camera (scaled by the same ratio), a bigger star in a flat glow disc, 3 frames and 60 ms at least, and
   floors in a probe and a test.
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md) (a kit page, drafted below).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md) (a kit page, drafted below).

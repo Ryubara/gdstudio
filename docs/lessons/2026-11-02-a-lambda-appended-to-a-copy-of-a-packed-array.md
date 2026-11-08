@@ -11,4 +11,4 @@ areas: [godot, tests]
 - **Cause:** a lambda captures a packed array by value, so the `append` went to a copy.
 - **Fix:** a method on the object with member variables (`_vertices`, `_index`). The same goes for any packed array a
   lambda is meant to fill; a plain `Array` or `Dictionary` is captured by reference and works.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md).

@@ -10,4 +10,4 @@ areas: [gameplay, blender]
 - **Cause:** `tick(delta)` used the caller's delta, while the tuning assumed 1/30 s.
 - **Fix:** keep a pending time and run whole fixed steps, ignore a delta that is not a positive number, cap catch-up
   after a stall. Test determinism by hashing every tick on a real navmesh and slicing the same time into 2 and 4 deltas.
-- **Docs:** [Zombie crowds](../godot/crowds.md); Deadnight `docs/research/zombies.md`.
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md); Deadnight `docs/research/zombies.md`.

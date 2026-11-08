@@ -14,5 +14,5 @@ areas: [tests, ci, godot]
 - **Fix:** `-rd ../../../reports` from `repos/<game>/game`, which is the runner's work folder (outside the game's
   repository), and the artifact upload names `reports`. Keep a final `git status --porcelain` step after the
   tests: it caught this, and an import that left uids or imports behind.
-- **Docs:** [Prototype surfaces and daylight](../godot/prototype-surfaces.md#smaller-findings),
-  [Project conventions](../godot/project-conventions.md#rules).
+- **Docs:** [Prototype surfaces and daylight](../engines/godot/prototype-surfaces.md#smaller-findings),
+  [Project conventions](../engines/godot/project-conventions.md#rules).

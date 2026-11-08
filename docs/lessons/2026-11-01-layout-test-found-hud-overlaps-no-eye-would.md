@@ -11,4 +11,4 @@ areas: [godot-ui, tests]
   the centre parts. Short test values hide it too: test with the longest names and numbers and the widest font.
 - **Fix:** fix widths for text rows (wrap or trim), cap list lengths, and keep the test: every visible part's
   `get_global_rect()` is inside the canvas and disjoint from the others.
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/design/hud.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/design/hud.md`.

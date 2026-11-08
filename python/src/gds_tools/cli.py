@@ -127,7 +127,7 @@ def parse_godot_args(argv: list[str]) -> tuple[float, bool, list[str]]:
 def mute_godot(args: list[str], with_audio: bool = False) -> list[str]:
     """`args` for Godot with `--audio-driver Dummy` in front unless the audio is wanted: `--with-audio` was given, or
     the arguments already pick a driver (`--audio-driver WASAPI`, `--audio-driver=Dummy`). Agents never listen: the
-    audio checks read the mixer, which the Dummy driver still runs (docs/godot/no-focus.md#sound)."""
+    audio checks read the mixer, which the Dummy driver still runs (docs/engines/godot/no-focus.md#sound)."""
     if with_audio or any(a == AUDIO_DRIVER or a.startswith(f"{AUDIO_DRIVER}=") for a in args):
         return args
     return [AUDIO_DRIVER, "Dummy", *args]
@@ -135,7 +135,7 @@ def mute_godot(args: list[str], with_audio: bool = False) -> list[str]:
 
 def run_godot_command(argv: list[str]) -> int:
     """Run the pinned Godot with `argv` on a private desktop, without taking the focus and without sound
-    (docs/godot/no-focus.md); `--with-audio` keeps the sound."""
+    (docs/engines/godot/no-focus.md); `--with-audio` keeps the sound."""
     timeout, with_audio, rest = parse_godot_args(argv)
     root = workspace.require_workspace()
     godot = workspace.tool_path("godot", root)
@@ -144,7 +144,7 @@ def run_godot_command(argv: list[str]) -> int:
 
 def run_quiet_command(argv: list[str]) -> int:
     """Run any command (and every program it starts) on the private desktop with the cursor kept free: a browser
-    probe under pointer lock, a test runner, a script that starts Godot (docs/godot/no-focus.md)."""
+    probe under pointer lock, a test runner, a script that starts Godot (docs/engines/godot/no-focus.md)."""
     timeout, rest = split_quiet_args(argv)
     if not rest:
         raise workspace.WorkspaceError("usage: gds quiet [--timeout SECONDS] -- <command> [arguments]")
@@ -282,7 +282,8 @@ def _prepare_worktree(
     root: Path, repo: str, branch: str, *, fresh: bool = False, ledger: Path | None = None
 ) -> Callable[[issues.Issue], issues.Prepared]:
     """What `issues.start` runs once the window allows the start: the branch and worktree of the issue, with the git
-    hooks of the repository verified (docs/starting-work.md#worktree). A worktree the issue already has (a takeover) is
+    hooks of the repository verified (docs/studio/starting-work.md#worktree). A worktree the issue already has (a
+    takeover) is
     reused with its hooks checked, unless `fresh`; two candidates are refused."""
     name = repo.split("/")[-1]
     checkout = root / "repos" / name
@@ -324,7 +325,7 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
     root, settings, ledger = _issue_context(args)
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
     refused = disk.refusal(root, disk.load_limits(kit), f"starting {repo}#{number}")
-    if refused:  # under the hard limit no agent and no worktree starts (docs/workspace.md#disk)
+    if refused:  # under the hard limit no agent and no worktree starts (docs/studio/workspace.md#disk)
         raise issues.IssueError(refused)
     areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
@@ -588,9 +589,9 @@ def build_parser() -> argparse.ArgumentParser:
     syn.add_argument("--check", action="store_true", help="only report files that differ from the kit")
     syn.set_defaults(func=_cmd_sync)
 
-    new = sub.add_parser("new", help="make something new from a template (docs/godot/new-game.md)").add_subparsers(
-        dest="cmd", required=True
-    )
+    new = sub.add_parser(
+        "new", help="make something new from a template (docs/engines/godot/new-game.md)"
+    ).add_subparsers(dest="cmd", required=True)
     game = new.add_parser(
         "game",
         help="make a game repository from a template and publish it on GitHub: files, sync, git, the repository, "
@@ -629,7 +630,7 @@ def build_parser() -> argparse.ArgumentParser:
     lay.add_argument("project", nargs="?", default="game", help="the folder holding project.godot (default: game)")
     lay.set_defaults(func=_cmd_check_layout)
 
-    iss = sub.add_parser("issue", help="start issues oldest first (docs/starting-work.md)").add_subparsers(
+    iss = sub.add_parser("issue", help="start issues oldest first (docs/studio/starting-work.md)").add_subparsers(
         dest="cmd", required=True
     )
     ref_help = "the issue, as owner/repo#N (#N or N for the repository of the current folder)"
@@ -669,7 +670,7 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="+",
         metavar="PATH",
         help="the files both issues would edit in ways a merge cannot settle (a reason in place of a dependency; "
-        "'same subsystem' or 'same agent' is not one: docs/starting-work.md#parallel)",
+        "'same subsystem' or 'same agent' is not one: docs/studio/starting-work.md#parallel)",
     )
     blk.add_argument("--why", required=True, help="the reason, in a sentence (written to the issue body)")
     blk.add_argument("--by", default="coordinator", help="who blocks it, for the body line (default: coordinator)")
@@ -689,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
     mrg.add_argument("--continue", dest="resume", action="store_true", help="commit the merge once conflicts are fixed")
     mrg.set_defaults(func=_cmd_merge_main)
 
-    wt = sub.add_parser("worktree", help="worktree upkeep (docs/workspace.md#sweep)").add_subparsers(
+    wt = sub.add_parser("worktree", help="worktree upkeep (docs/studio/workspace.md#sweep)").add_subparsers(
         dest="cmd", required=True
     )
     swp = wt.add_parser(
@@ -718,7 +719,7 @@ def build_parser() -> argparse.ArgumentParser:
     swp.add_argument("--deadline", type=float, default=1200, help="seconds after which the sweep stops (default: 1200)")
     swp.set_defaults(func=_cmd_worktree_sweep)
 
-    dsk = sub.add_parser("disk", help="the disk guard (docs/workspace.md#disk)").add_subparsers(
+    dsk = sub.add_parser("disk", help="the disk guard (docs/studio/workspace.md#disk)").add_subparsers(
         dest="cmd", required=True
     )
     grd = dsk.add_parser(

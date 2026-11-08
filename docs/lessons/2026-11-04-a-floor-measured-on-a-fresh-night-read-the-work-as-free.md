@@ -29,4 +29,4 @@ areas: [gameplay, tests]
   they are read.
 - **Also:** a reflow script merged two lists of the proposal into one paragraph, the same mistake as the lesson on a
   script that swallowed a constant. Wrap by hand, and read the page after any scripted edit.
-- **Docs:** [Level design: P20](../research/level-design.md#p20-an-objective-is-measured-not-read).
+- **Docs:** [Level design: P20](../gamedev/level-design.md#p20-an-objective-is-measured-not-read).

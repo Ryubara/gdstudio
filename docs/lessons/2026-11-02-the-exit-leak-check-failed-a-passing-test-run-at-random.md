@@ -25,4 +25,4 @@ areas: [audio, tests]
   wait to every test). A test runs a child Godot that starts sounds and quits at once and fails on any leak line: it
   failed before the fix every time and passes after. The grep stays as it was: it is right, and loosening it hides
   the next real leak. A rarer leak of one `RefCounted` (count 0) remained after this fix, open as Deadnight #538.
-- **Docs:** [Audio](../godot/audio.md#leaks-at-exit-in-a-test-run); Deadnight `docs/research/audio.md` (#487, #513).
+- **Docs:** [Audio](../engines/godot/audio.md#leaks-at-exit-in-a-test-run); Deadnight `docs/research/audio.md` (#487, #513).

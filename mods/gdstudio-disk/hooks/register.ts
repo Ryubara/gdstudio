@@ -1,6 +1,6 @@
 import type { Register } from 'claude-code'
 
-// The GDStudio disk guard in the status line (docs/hooks.md#disk). The kit's hooks run `gds disk guard` in the
+// The GDStudio disk guard in the status line (docs/studio/hooks.md#disk). The kit's hooks run `gds disk guard` in the
 // background, at most every five minutes while any agent works, and it writes <workspace>/cache/disk-guard.json; this
 // mod shows that file's line, and a toast once when the disk falls under the hard limit (no new agent or worktree
 // starts then). It reads one small file a minute and runs nothing.
@@ -62,7 +62,7 @@ export const register: Register = on => {
         level = undefined
       }
       if (level === 'hard' && lastLevel !== 'hard') {
-        $.ui.toast('GDStudio disk under the hard limit: no new agent or worktree starts (docs/hooks.md#disk)')
+        $.ui.toast('GDStudio disk under the hard limit: no new agent or worktree starts (docs/studio/hooks.md#disk)')
       }
       lastLevel = level
     }

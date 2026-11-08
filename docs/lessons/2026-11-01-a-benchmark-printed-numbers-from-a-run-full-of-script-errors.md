@@ -11,4 +11,4 @@ areas: [tests, gameplay]
   error, not a parse error: the zombie's setup stopped halfway and the run went on, then printed its result.
 - **Fix:** the runner logs every `ERROR` line next to the results and the log is read for them before any number is
   trusted; the property name was corrected and the whole matrix rerun.
-- **Docs:** [Zombie crowds](../godot/crowds.md#gotchas-found-while-building-it).
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md#gotchas-found-while-building-it).

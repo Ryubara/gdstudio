@@ -11,4 +11,4 @@ areas: [godot, godot-ui]
   outlives it.
 - **Fix:** wait with a child `Timer` node (it stops with a disabled parent and is freed with it), take focus only while
   the screen is the router's top, and make the delay settable so tests need no wall time.
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/research/ui-foundation.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/research/ui-foundation.md`.

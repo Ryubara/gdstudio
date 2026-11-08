@@ -10,4 +10,4 @@ areas: [input, godot-ui]
   directions have joypad events. A test that calls `pressed.emit()` or sends keys never notices.
 - **Fix:** add an `[input]` section to `project.godot` that repeats the defaults plus joypad A and Start (accept) and B
   (cancel), device -1 (any pad); test with real `InputEventJoypadButton` through `Input.parse_input_event`.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

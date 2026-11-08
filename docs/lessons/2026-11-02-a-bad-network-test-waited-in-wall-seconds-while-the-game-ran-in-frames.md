@@ -21,4 +21,4 @@ areas: [tests, net]
   tests on one clock too many; give the real-time part an injectable clock and drive it from the frame count, then
   slow every frame (`OS.delay_msec`) to prove the numbers do not move. A wait that counts seconds for something that
   happens in frames is a flake waiting for a slow runner.
-- **Docs:** [Test speed](../godot/test-speed.md), and the game's `docs/research/testing-multiplayer.md`.
+- **Docs:** [Test speed](../engines/godot/test-speed.md), and the game's `docs/research/testing-multiplayer.md`.

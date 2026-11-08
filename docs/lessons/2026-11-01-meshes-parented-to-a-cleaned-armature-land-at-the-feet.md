@@ -10,4 +10,4 @@ areas: [blender, godot]
 - **Cause:** the clean-up applies only the armature's scale; it keeps the glTF import's 90 degree X rotation, and a new
   child with no parent inverse is transformed by it.
 - **Fix:** set `child.matrix_parent_inverse = arm.matrix_world.inverted()` when parenting.
-- **Docs:** [Character variants from one rig](../blender/variants.md#modular-parts).
+- **Docs:** [Character variants from one rig](../tools/blender/variants.md#modular-parts).

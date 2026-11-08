@@ -18,6 +18,6 @@ areas: [tests, audio]
 - **Rule:** a green count test that has never failed has not shown it can; before calling one safe, inject a leak
   of 2 to 3 times its slack with sounds left playing, and see it fail. An upward bound needs the settle as much as a
   two-sided one: the fall is the opposite of the flake and costs the test its teeth.
-- **Docs:** [Performance review](../godot/performance-review.md), "How to measure it"; the lessons before it:
+- **Docs:** [Performance review](../engines/godot/performance-review.md), "How to measure it"; the lessons before it:
   [a count fell while the sounds ended](2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md),
   [a count test read a peak](2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md).

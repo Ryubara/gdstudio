@@ -19,4 +19,4 @@ areas: [tests, web, net]
   game's recovery from that as a separate case. A probe that also polls a rate-limited route (the list: 20 a 10 s per
   account) polls it every 0.8 s, not 0.5 (the first run read `429` as an assertion failure). Deadnight
   `tools/web_smoke/page_closing.py`.
-- **Docs:** [Web export](../godot/web-export.md) (a last request when the page closes).
+- **Docs:** [Web export](../engines/godot/web-export.md) (a last request when the page closes).

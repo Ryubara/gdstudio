@@ -13,4 +13,4 @@ areas: [net, web]
   network at larger crowds, so the browser's limit silently became the game's.
 - **Fix:** split the cap by platform and measure each budget on its own: client render and animation, server tick per
   agent, snapshot bytes per player (deadnight #453). A room takes the ceiling of its lowest client platform.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

@@ -13,4 +13,4 @@ areas: [input, tests]
 - **Fix:** the launcher sets `GDS_QUIET=1` for the program and frees the cursor every 5 ms while it runs; the game
   never captures the mouse when `GDS_QUIET` is set. A test clips the cursor from the hidden desktop and samples the
   real one.
-- **Docs:** [Windowed Godot without taking the focus](../godot/no-focus.md#the-cursor-clip-crosses-desktops).
+- **Docs:** [Windowed Godot without taking the focus](../engines/godot/no-focus.md#the-cursor-clip-crosses-desktops).

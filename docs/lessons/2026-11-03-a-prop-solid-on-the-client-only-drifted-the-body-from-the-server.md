@@ -16,5 +16,5 @@ areas: [net, tests]
   the server and by the frame on a client); the drawing has no collision. `test_world_parity.gd` joins a real client to
   a real host and asks that every solid thing in the client's viewport is in the server's at the same place (it failed
   on `main`: 227 against 226).
-- **Docs:** [Multiplayer: same physics world](../godot/multiplayer.md#the-two-worlds-must-hold-the-same-solid-things).
+- **Docs:** [Multiplayer: same physics world](../engines/godot/multiplayer.md#the-two-worlds-must-hold-the-same-solid-things).
   Check: a node a view script adds with `.new()` gets no collision; a solid thing is built where the server builds it.

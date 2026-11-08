@@ -11,4 +11,4 @@ areas: [tools, audio]
   the seam of a 2 s loop is one of those steps.
 - **Fix:** Add a 2 ms attack to the stroke envelope. Make every component a whole number of cycles in the loop length
   (and filter noise in the frequency domain) so the loop is periodic by construction.
-- **Docs:** [Audio](../godot/audio.md#making-sounds-with-code)
+- **Docs:** [Audio](../engines/godot/audio.md#making-sounds-with-code)

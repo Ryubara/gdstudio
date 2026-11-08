@@ -11,4 +11,4 @@ areas: [tests, blender]
   looked each up in its own build report; five groups of the kit write fixtures into that folder.
 - **Fix:** a suite checks the pieces its own build reports (the report's keys) and that each has its fixture, never
   "every file in the folder". Merge main and run the neighbouring groups' suites before each push.
-- **Docs:** [modular kits](../blender/modular-kits.md).
+- **Docs:** [modular kits](../tools/blender/modular-kits.md).

@@ -1,4 +1,4 @@
-"""`gds workspace init`: build the GDStudio workspace on any machine (docs/workspace.md#bootstrap).
+"""`gds workspace init`: build the GDStudio workspace on any machine (docs/studio/workspace.md#bootstrap).
 
 It creates the workspace folders, clones the kit and any registered repositories, downloads the pinned tools,
 writes `gdstudio.local.toml` (the tool paths every script reads) and checks the prerequisites. Each step is skipped
@@ -53,7 +53,7 @@ def require_workspace(start: Path | None = None) -> Path:
     """The workspace around `start` (default: the current folder); WorkspaceError outside one."""
     found = find_workspace(start or Path.cwd())
     if found is None:
-        raise WorkspaceError("not inside a GDStudio workspace; run the bootstrap script (docs/workspace.md)")
+        raise WorkspaceError("not inside a GDStudio workspace; run the bootstrap script (docs/studio/workspace.md)")
     return found
 
 
@@ -196,7 +196,7 @@ def init(
     if not (root / MARKER).exists():
         log(f"create  {MARKER}")
         if not dry_run:
-            (root / MARKER).write_text("GDStudio workspace root (docs/workspace.md)\n", encoding="utf-8")
+            (root / MARKER).write_text("GDStudio workspace root (docs/studio/workspace.md)\n", encoding="utf-8")
 
     failures = 0
     if clone:

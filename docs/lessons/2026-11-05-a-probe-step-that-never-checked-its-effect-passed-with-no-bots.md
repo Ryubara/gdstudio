@@ -17,4 +17,4 @@ areas: [tests, web]
   must seat the bots asked for: `bots`, `players`), and a control that a tap cannot reach is walked to with the keys
   the page also takes (`smoke.focus_control` and `smoke.step_value` on the Bots row). Check for next time: open the
   `result.json` of a first run and read the numbers that define the case before reading the checks.
-- **Docs:** [Web export](../godot/web-export.md).
+- **Docs:** [Web export](../engines/godot/web-export.md).

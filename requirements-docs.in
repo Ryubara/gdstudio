@@ -1,0 +1,4 @@
+# The docs site's one direct dependency, by exact version. requirements-docs.txt is compiled from it with every
+# file's hash (docs/studio/docs-site.md#pin):
+#   uv pip compile --generate-hashes --universal --python-version 3.12 requirements-docs.in -o requirements-docs.txt
+zensical==0.1.0

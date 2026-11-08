@@ -11,4 +11,4 @@ areas: [godot, blender]
   Glare take their settings as input sockets, not properties.
 - **Fix:** create a compositor node group, assign it to `scene.compositing_node_group`, and set Glare's values on
   its inputs. Check the pinned version's API (`gds tool path blender`), not memory.
-- **Docs:** [Key art](../blender/key-art.md).
+- **Docs:** [Key art](../tools/blender/key-art.md).

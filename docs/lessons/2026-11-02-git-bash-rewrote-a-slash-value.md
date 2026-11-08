@@ -11,4 +11,4 @@ areas: [tools, net]
   program.
 - **Fix:** prefix the command with `MSYS_NO_PATHCONV=1`, or run it from PowerShell; read the value back after setting
   it.
-- **Docs:** [Workspace](../workspace.md).
+- **Docs:** [Workspace](../studio/workspace.md).

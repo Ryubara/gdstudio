@@ -14,4 +14,4 @@ areas: [tests, tools]
 - **Fix:** time a headless run at `--fixed-fps 60` (a frame is a tick) and read labelled script times and the
   process's CPU seconds a tick; hold a frame to a multiple of a calibration loop timed in the same process; record
   machine load beside each run; interleave before and after; report every repeat.
-- **Docs:** [Performance budgets](../godot/performance-budgets.md#reading-a-timing-on-a-shared-machine).
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md#reading-a-timing-on-a-shared-machine).

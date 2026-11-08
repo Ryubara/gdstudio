@@ -15,4 +15,4 @@ areas: [blender, gameplay]
   into the fist, only the barrel showing. Check every held item in a hold render before writing its hold, allow a
   size exception for one-handed guns (like the repair hammer, about 1.6x), and compare the catalogue's ids with
   the weapon model folders at the start of a weapon task (every id has its own model).
-- **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#hands-on-the-weapon).

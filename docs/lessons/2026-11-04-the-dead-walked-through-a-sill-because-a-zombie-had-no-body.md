@@ -16,4 +16,4 @@ areas: [gameplay, tests]
   walks a capsule of the zombie's width through every barricade of both maps along the real navigation mesh at a stroll
   and a sprint, asking at each step whether it stands in a solid. A climb slowed to 0.6 of the dead's pace moved a bot
   night (the weapon bought a break later in 2 seeds of 4): keep a change of look from being a change of pace.
-- **Docs:** [map review checklist, section 3](../godot/map-review.md#3-spawns-and-how-the-dead-arrive).
+- **Docs:** [map review checklist, section 3](../engines/godot/map-review.md#3-spawns-and-how-the-dead-arrive).

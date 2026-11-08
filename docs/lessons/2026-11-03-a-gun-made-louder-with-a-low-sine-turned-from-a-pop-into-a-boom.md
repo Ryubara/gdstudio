@@ -13,4 +13,4 @@ areas: [audio]
 - **Fix:** the search also printed the low-end share and the centroid, and the final recipe raises the puff and the bark
   (the mids) with the thump unchanged: 63 percent, 3043 Hz. The gun bench's `low_end_share` and centroid are read beside
   the LU for any reshape.
-- **Docs:** [Audio: headroom without a limiter](../godot/audio.md#headroom-without-a-limiter).
+- **Docs:** [Audio: headroom without a limiter](../engines/godot/audio.md#headroom-without-a-limiter).

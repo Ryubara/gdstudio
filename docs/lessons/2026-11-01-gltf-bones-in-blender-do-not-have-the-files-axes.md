@@ -12,4 +12,4 @@ areas: [blender, godot]
 - **Fix:** compute the rest correction from the `.glb`'s own node tree,
   `C = bone.matrix_local^-1 @ (M_gl @ node_rest)`, and place the weapon at
   `arm.matrix_world @ pose_bone.matrix @ C @ HOLD @ M_gl^-1`.
-- **Docs:** [Key art](../blender/key-art.md).
+- **Docs:** [Key art](../tools/blender/key-art.md).

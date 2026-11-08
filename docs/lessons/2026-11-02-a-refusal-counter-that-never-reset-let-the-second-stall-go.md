@@ -14,4 +14,4 @@ areas: [tools, process]
   each stall gets its own refusals. The test runs stall, two refusals, an allowed end, a resume and a second stall.
 - **Check:** a counter that bounds a gate needs a reset at the event that ends the thing it counts; test the counter
   across the whole life of the key (end, resume, end again), not one pass.
-- **Docs:** [Hooks](../hooks.md#stall).
+- **Docs:** [Hooks](../studio/hooks.md#stall).

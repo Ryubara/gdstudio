@@ -12,4 +12,4 @@ areas: [input, godot-ui]
 - **Fix:** while items are hidden or entering, set `mouse_filter` to ignore and `focus_mode` to none, remember the old
   values and give them back when the entrance ends; do not grab focus before then. Tests send real key, click and hover
   events during the entrance and assert nothing changes (Deadnight #380).
-- **Docs:** [UI controls](../godot/ui-controls.md#menus-under-test).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#menus-under-test).

@@ -15,4 +15,4 @@ areas: [tests, godot]
 - **Fix:** whatever a fixture starts that awaits an answer, it answers before it frees the screen (here the fixture
   emits `name_decided` in `close()`). Run the new suite alone, without `--verbose`, and look for `leaked at exit` before
   pushing: a passing summary does not show it.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-card-taller-than-its-screen).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-card-taller-than-its-screen).

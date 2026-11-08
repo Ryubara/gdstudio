@@ -13,4 +13,4 @@ areas: [input, godot]
 - **Fix:** one block per action; gameplay actions listen to their own actions (`pause`, `interact`), not `ui_cancel`;
   an in-game screen refuses the router's back. A test reads the project file for a repeated action, and the InputMap
   for two gameplay actions on one pad button or stick direction.
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/design/slice.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/design/slice.md`.

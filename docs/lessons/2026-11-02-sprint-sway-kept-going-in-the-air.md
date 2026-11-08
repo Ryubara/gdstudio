@@ -12,4 +12,4 @@ areas: [camera, process]
   `on_floor`, but it was never passed to the camera rig.
 - **Fix:** the sway takes the grounded state and fades out on the first airborne tick; a test steps through that tick
   and the capture includes a sprint-jump with the key held (Deadnight #426).
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

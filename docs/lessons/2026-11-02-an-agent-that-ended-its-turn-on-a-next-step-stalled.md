@@ -15,4 +15,4 @@ areas: [process]
   turn, or start a background command that notifies you. The coordinator, on each PR-monitor expiry, checks the newest
   file time in each running agent's worktree and scratch folder; an hour with no change means a stall. A stalled agent
   with a large context is retired and a fresh one started from its `STATUS.md` (waking it re-writes its whole cache).
-- **Docs:** [Agents](../agents.md).
+- **Docs:** [Agents](../studio/agents.md).

@@ -12,4 +12,4 @@ areas: [gameplay, godot, tests]
   shaders' materials when `ZombieMarks` is set up; marking only flips a flag. I only ran the outline's own suites
   before pushing: run the neighbours that watch allocations (`tests/night`, `tests/zombies`) when a change touches the
   view pool.
-- **Docs:** [Outline through walls](../godot/outline-through-walls.md#pitfalls).
+- **Docs:** [Outline through walls](../engines/godot/outline-through-walls.md#pitfalls).

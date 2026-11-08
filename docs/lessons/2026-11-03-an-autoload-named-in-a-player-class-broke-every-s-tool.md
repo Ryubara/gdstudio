@@ -17,4 +17,4 @@ areas: [godot, tests]
   and call it: `get_tree().root.get_node_or_null(^"Audio")` and `audio.call(&"play", id, position)`, which compiles
   anywhere and does nothing where there is no service. Run one `-s` tool (the grip solver with `--dry`, or a capture)
   after adding a class to the player.
-- **Docs:** [Probes and tools in headless Godot](../godot/headless-probes.md).
+- **Docs:** [Probes and tools in headless Godot](../engines/godot/headless-probes.md).

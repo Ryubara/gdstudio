@@ -23,4 +23,4 @@ areas: [godot-ui, camera, input, tests]
   to a container that is inset, scaled or mirrored. Test aim end to end (where the shot lands against where the reticle
   is drawn), not each half against its own source, and with the odd inputs a real device has: uneven insets, the phone
   canvas, a finger. Every earlier aim test compared the shot with the camera and ran with zero insets.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

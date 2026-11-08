@@ -12,4 +12,4 @@ areas: [tests, tools]
   (a UI test at 720p), write an uncommitted `game/override.cfg` with `window/size/window_width_override` and
   `window_height_override`; the stretch base stays 1920 x 1080, so the UI scales as it does for a 720p player. Delete
   it afterwards.
-- **Docs:** [Capture](../capture.md).
+- **Docs:** [Capture](../studio/capture.md).

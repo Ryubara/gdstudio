@@ -12,4 +12,4 @@ areas: [blender, gameplay]
 - **Fix:** a shooter's stance: turn the chest 20-30 degrees so the left shoulder comes forward (the weapon's place is
   then taken from the right shoulder after the turn), move the gun 5 cm toward the chest and the support to the
   fore-end's rear; measure the reach the IK needs for every weapon before trusting a solved grip.
-- **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#hands-on-the-weapon).

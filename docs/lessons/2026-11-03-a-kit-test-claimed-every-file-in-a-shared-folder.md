@@ -13,4 +13,4 @@ areas: [tests, blender]
   walls were the only group merged.
 - **Fix:** a group's test reads its own pieces from its own build report (the report's keys) and checks that each has
   a fixture; each group has its own test. Never enumerate a shared folder to find "my" files.
-- **Docs:** [Modular kits: building props](../blender/modular-kits.md#building-props).
+- **Docs:** [Modular kits: building props](../tools/blender/modular-kits.md#building-props).

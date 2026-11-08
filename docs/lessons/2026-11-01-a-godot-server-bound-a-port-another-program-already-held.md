@@ -9,4 +9,4 @@ areas: [net, godot]
 - **Cause:** port 9080 was held by another WebSocket server (the Godot editor MCP bridge). Windows let the game server
   bind the same port too, so connections went to the other listener.
 - **Fix:** pick another port (the spike uses 8910) and check before choosing: `netstat -ano | grep :<port>`.
-- **Docs:** [Multiplayer](../godot/multiplayer.md).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md).

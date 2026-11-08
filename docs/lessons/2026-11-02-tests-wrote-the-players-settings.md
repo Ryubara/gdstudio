@@ -13,4 +13,4 @@ areas: [tests, process]
   before the fix kept writing it until they merged main.
 - **Fix:** tests and captures use their own settings store, and a test fails if a suite run changes the real file
   (Deadnight #418, #446). Agents never edit `app_userdata`; they report it.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

@@ -16,5 +16,6 @@ areas: [gameplay, godot]
   the effect goes with the last part; gibs are freed at their age instead of hidden, and `_process` is off unless gibs
   fly. A test draws 20 blasts and 100 blast kills in the real night, waits the longest effect out and expects the same
   `BlastEffect`, light, mesh and node counts as before (it fails on `main`: 120 effects, +800 nodes).
-- **Docs:** [Pooled and one-shot effects](../godot/one-shot-effects.md). Check: every `*.new()` + `add_child` of an
+- **Docs:** [Pooled and one-shot effects](../engines/godot/one-shot-effects.md). Check: every `*.new()` + `add_child`
+  of an
   effect in a long-lived scene has a line that says when it leaves, and a test that counts nodes before and after.

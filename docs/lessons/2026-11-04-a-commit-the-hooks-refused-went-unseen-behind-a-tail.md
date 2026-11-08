@@ -12,4 +12,4 @@ areas: [process, tools]
   `gh pr create` followed in the same command. The issue's own title used a verb the commit rules do not allow.
 - **Fix:** run a commit alone and read all of it (`git log --oneline -1` after), push only when it shows the new commit;
   `gh pr diff N --name-only` after opening a pull request names what it holds; turn auto-merge on after that.
-- **Docs:** [hooks](../hooks.md).
+- **Docs:** [hooks](../studio/hooks.md).

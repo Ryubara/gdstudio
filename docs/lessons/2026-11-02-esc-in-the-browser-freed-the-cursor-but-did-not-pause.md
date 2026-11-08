@@ -19,5 +19,5 @@ areas: [input, web]
   press the browser's Esc.
 - **General:** any web game with mouse look meets this on its first playable night. Design the pause around the lock,
   not around a key the browser may keep.
-- **Docs:** [Web export](../godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night),
-  [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [Web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night),
+  [What the maintainer caught](../studio/maintainer-corrections.md).

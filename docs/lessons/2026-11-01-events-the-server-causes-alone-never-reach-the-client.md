@@ -10,4 +10,4 @@ areas: [net, tools]
   ending happen inside the server's tick, and nobody forwarded those events.
 - **Fix:** send every event list the server produces, for a request or for a tick, to the clients; test a path with no
   request in it (a reload that finishes on its own).
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/weapon-firing.md`.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/weapon-firing.md`.

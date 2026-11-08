@@ -1,11 +1,12 @@
-"""The mistakes glossary: lessons and corrections rows by area (docs/research/mistakes-by-area.md).
+"""The mistakes glossary: lessons and corrections rows by area, built in memory (never a file).
 
 Every lesson (`docs/lessons/<date>-<slug>.md`) names its areas in a front-matter line, `areas: [net, web]`. This module
 reads the lessons and the rows of the corrections page, and writes one page with a section per area: the mistake, the
 check, the link. The page is never committed: two lesson pull requests would both rewrite it and the second would
-conflict or go stale. It is built from the lessons wherever it is read (the MkDocs build through
-`.github/scripts/mkdocs_glossary.py`, `gds lessons <area>`, the SubagentStart hook), and a test (and a pre-commit hook)
-fails when a lesson has no area. Standard library only.
+conflict or go stale. It is built from the lessons wherever it is read (`gds lessons <area>`, the SubagentStart
+hook); the docs site no longer shows it (Zensical runs no build hooks, gdstudio #768). A test, a pre-commit hook and
+the docs job of CI (`.github/scripts/mistakes.py check`) fail when a lesson has no area or a corrections row quotes
+the maintainer. Standard library only.
 """
 
 from __future__ import annotations
@@ -16,9 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 GENERAL = "general"
-GLOSSARY = Path("docs") / "research" / "mistakes-by-area.md"  # where the site shows the built page; never a file
 AREAS_FILE = Path("docs") / "lessons" / "areas.toml"
-CORRECTIONS = Path("docs") / "research" / "maintainer-corrections.md"
+CORRECTIONS = Path("docs") / "studio" / "maintainer-corrections.md"
 LESSONS = Path("docs") / "lessons"
 
 _FRONT = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)

@@ -9,4 +9,4 @@ areas: [gameplay, blender]
 - **Cause:** the AK and Sniper copies in the character file carry rescaled mesh data (object scale 0.21-0.42); the
   Shotgun and Shovel copies are unit-scale.
 - **Fix:** take the hold from the Shotgun (guns) or the Shovel (melee).
-- **Docs:** [Blender weapons](../blender/weapons.md#axes-origin-and-the-hold).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#axes-origin-and-the-hold).

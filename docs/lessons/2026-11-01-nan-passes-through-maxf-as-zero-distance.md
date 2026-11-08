@@ -10,4 +10,4 @@ areas: [gameplay, net]
   comparison with NaN is false, so `if distance >= radius` guards fall through too.
 - **Fix:** refuse non-finite input where it enters (`Vector3.is_finite()`), and make pure functions that take a distance
   answer "no effect" for `not is_finite(distance)` before any `maxf`/`minf`.
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/grenades.md`.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/grenades.md`.

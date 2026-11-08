@@ -18,4 +18,4 @@ areas: [tests, ci, process]
   `Can go:` only after), and compare two runs by their case lists, not their counts.
 - **Check for next time:** a sentence about "main" or "CI" in a page names the run ids it rests on; a count of two
   runs is quoted only when both lists are kept.
-- **Docs:** [Leaks at exit in a GdUnit run](../godot/test-exit-leaks.md#a-suite-that-only-names-a-class).
+- **Docs:** [Leaks at exit in a GdUnit run](../engines/godot/test-exit-leaks.md#a-suite-that-only-names-a-class).

@@ -14,4 +14,4 @@ areas: [godot-ui]
   its middle (`pivot_offset`); the ticket in the middle of it follows. `Hud._fit_board`, Deadnight.
 - **Check for next time:** to scale or move something a container holds, change the node above it or give the
   container an offset; read the result back from the global transform in the test, not from the property.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

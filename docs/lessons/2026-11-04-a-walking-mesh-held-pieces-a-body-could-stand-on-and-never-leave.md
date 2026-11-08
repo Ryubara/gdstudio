@@ -27,5 +27,5 @@ areas: [gameplay, tests, godot]
   A guard for the same fault landing first (Deadnight #1050, a walk back in one mode) had a test that asserted the
   piece was cut off, so the merge turned that test red: merge the other pull request before calling the fix done, and
   read any test whose premise is the fault.
-- **Docs:** [one navigation map for two kinds of walkers](../godot/navigation-layers.md), Deadnight
+- **Docs:** [one navigation map for two kinds of walkers](../engines/godot/navigation-layers.md), Deadnight
   `docs/research/map-review.md#the-pieces-of-the-walking-mesh-1051`.

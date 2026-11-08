@@ -1,6 +1,6 @@
 ## Summary
 
-`_reasoned` accepts one full stop after the closing parenthesis of a `none (reason)` line, and still refuses other text after it. The `Screenshots: none` line had its own copy of the test and now calls `_reasoned`, so every none-line of the checker agrees. Docs: a lesson and one sentence in `docs/hooks.md`. Only `_reasoned` and the Screenshots none branch changed in `groundwork.py` (no shared commit-message or trailer code; #107 is untouched). Not a `conventions.yml` change, so this is not a hand-merge path.
+`_reasoned` accepts one full stop after the closing parenthesis of a `none (reason)` line, and still refuses other text after it. The `Screenshots: none` line had its own copy of the test and now calls `_reasoned`, so every none-line of the checker agrees. Docs: a lesson and one sentence in `docs/studio/hooks.md`. Only `_reasoned` and the Screenshots none branch changed in `groundwork.py` (no shared commit-message or trailer code; #107 is untouched). Not a `conventions.yml` change, so this is not a hand-merge path.
 
 Fixes #128
 

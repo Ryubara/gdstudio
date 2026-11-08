@@ -17,5 +17,5 @@ areas: [input, web]
   layer's own (tagged with its own `device`) while a finger was the last input (Deadnight #480). Proved in a
   phone-emulated Chrome with `Input.dispatchTouchEvent`, reading the yaw off the web probe: each finger alone does
   only its own job, and a drag of N px turns by the designed angle.
-- **Docs:** [Web export](../godot/web-export.md); Deadnight `docs/research/web-export.md`,
+- **Docs:** [Web export](../engines/godot/web-export.md); Deadnight `docs/research/web-export.md`,
   `docs/design/touch-controls.md`.

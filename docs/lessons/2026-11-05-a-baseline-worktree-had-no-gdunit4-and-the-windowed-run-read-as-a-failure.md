@@ -12,4 +12,4 @@ areas: [tests, tools]
   worktree by `gds issue start`; a worktree made by hand has none.
 - **Fix:** copy `game/addons/gdUnit4` from a started worktree, import once (`--headless --import`), run again. Read the
   log for `Overall Summary` before comparing numbers; "exit 1, no summary" is a run that never started.
-- **Docs:** [No focus](../godot/no-focus.md).
+- **Docs:** [No focus](../engines/godot/no-focus.md).

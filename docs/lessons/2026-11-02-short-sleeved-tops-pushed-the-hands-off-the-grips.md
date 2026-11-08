@@ -17,4 +17,4 @@ areas: [blender, tests]
   faces still moved its border vertices). `test_menu_grips.gd` holds every weapon in every top, for him and her (it
   failed first on exactly the three short-sleeved tops, 47 contacts each). When a failure moves with the preset, diff
   the presets part by part before suspecting the test.
-- **Docs:** [Character variants](../blender/variants.md#a-second-body-on-the-same-parts).
+- **Docs:** [Character variants](../tools/blender/variants.md#a-second-body-on-the-same-parts).

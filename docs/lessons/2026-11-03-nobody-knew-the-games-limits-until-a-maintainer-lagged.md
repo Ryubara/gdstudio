@@ -15,6 +15,6 @@ areas: [general, godot, tests]
 - **Fix:** a sampler (a row a second of engine counts and labelled script times), arguments that start the autopilot at
   round R with N bots at Kx, a budget file with counts held tight and time held as a ratio of a calibration loop, a CI
   step that fails when either is over, and a limits page per game.
-- **Docs:** [Performance budgets](../godot/performance-budgets.md); the line on
-  [what to plan from the start](../research/plan-from-the-start.md#performance). Check: name the worst-case combination
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md); the line on
+  [what to plan from the start](../studio/plan-from-the-start.md#performance). Check: name the worst-case combination
   of settings in the first playable night, run it from one command, and read its limits off a page.

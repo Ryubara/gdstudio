@@ -18,4 +18,4 @@ areas: [audio]
   model: add the rendered layer to the recorded plain shots of the gun bench at a few gains and read the peak, the tail
   and the 2 to 8 kHz band against the plain shot. At -16 dB the peak added was 0.0 to 0.1 dB and the layer stood
   14 to 26 dB over the shot's own tail in the bright band. The bench confirms it.
-- **Docs:** [Audio: a layer over a peaking sound](../godot/audio.md#a-layer-over-a-sound-that-already-peaks).
+- **Docs:** [Audio: a layer over a peaking sound](../engines/godot/audio.md#a-layer-over-a-sound-that-already-peaks).

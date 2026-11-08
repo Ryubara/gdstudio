@@ -17,4 +17,4 @@ areas: [process, tools]
   prompt does not name a started issue (or an open pull request it continues); setting `S-in-progress` or `P-critical`
   by hand is refused. A pull request is in progress by existing, so it needs no label and the issues it closes leave the
   line. When a rule keeps being broken under pressure, do not write it down again: put it in a tool and a hook.
-- **Docs:** [Starting work](../starting-work.md), [Hooks: issue order](../hooks.md#issues).
+- **Docs:** [Starting work](../studio/starting-work.md), [Hooks: issue order](../studio/hooks.md#issues).

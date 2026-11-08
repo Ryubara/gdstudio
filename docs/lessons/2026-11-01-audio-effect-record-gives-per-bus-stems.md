@@ -11,4 +11,4 @@ areas: [audio, godot]
 - **Fix:** put an `AudioEffectRecord` on each bus to measure (Voice, Effects, Ambience), record during the capture and
   save each stem. It works under Movie Maker; Deadnight #442 measured the voice at 4.8 LU under the guns and 10.6 LU
   over the beds that way.
-- **Docs:** [Audio](../godot/audio.md#capturing-sound).
+- **Docs:** [Audio](../engines/godot/audio.md#capturing-sound).

@@ -11,4 +11,4 @@ areas: [godot, blender]
   dark for two other reasons: the palette was stored linear, and the camera saw the faces turned from the lamp.
 - **Fix:** check normals in Blender on the exported file (signed volume per island: positive is outward), and judge
   lighting with one light straight over the piece beside a known-good prop.
-- **Docs:** [Modular kits: building props](../blender/modular-kits.md#building-props).
+- **Docs:** [Modular kits: building props](../tools/blender/modular-kits.md#building-props).

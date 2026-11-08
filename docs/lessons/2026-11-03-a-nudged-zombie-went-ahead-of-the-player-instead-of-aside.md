@@ -12,4 +12,4 @@ areas: [gameplay]
 - **Fix:** the yield goes across the player's way (80 percent sideways, to the side the zombie already leans to, by its
   id when it is dead ahead): 1.6 s for one, 5.9 s for the block of twelve, 1.9 s out of a ring of eight. The numbers of
   every variant come from a scenario table (one, two, a crowd, a ring; run and sprint) before a rule is picked.
-- **Docs:** [Crowds: a player's body against a crowd](../godot/crowds.md#a-players-body-against-a-crowd-that-is-not-physics-bodies).
+- **Docs:** [Crowds: a player's body against a crowd](../engines/godot/crowds.md#a-players-body-against-a-crowd-that-is-not-physics-bodies).

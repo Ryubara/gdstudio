@@ -12,4 +12,4 @@ areas: [tests, godot]
   (12 parked bodies a look), not a leak.
 - **Fix:** a run option that keeps no per-frame rows (`frames=0`), small sampler rows, and a leak read as nodes, objects
   and resources **at the same number of dead**, round by round, after the pools are full.
-- **Docs:** [Performance budgets](../godot/performance-budgets.md#a-leak-is-read-as-a-count-at-the-same-crowd-round-after-round).
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md#a-leak-is-read-as-a-count-at-the-same-crowd-round-after-round).

@@ -12,4 +12,4 @@ areas: [blender, process]
 - **Fix:** the shaft stays on the shin down past the hem and only the ring in the foot bends; the three ray changes were
   reverted. When a change does nothing, the next step is a look at another pose, not a finer version of the same
   change: a side view had shown the kink all along.
-- **Docs:** [Character variants, clothes that stand off the body](../blender/variants.md).
+- **Docs:** [Character variants, clothes that stand off the body](../tools/blender/variants.md).

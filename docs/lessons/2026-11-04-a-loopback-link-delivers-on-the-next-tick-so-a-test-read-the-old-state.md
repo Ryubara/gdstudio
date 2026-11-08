@@ -12,4 +12,4 @@ areas: [tests, net]
 - **Fix:** `broadcast` the events and run one tick (`NightFixture.run(night, 1)`) before asserting what the client
   knows; a capture script awaits a frame the same way. Over a real socket the same holds, so wait on the client's state
   (`_until`), never on the call.
-- **Docs:** [Multiplayer: events reach a client only through its command loop](../godot/multiplayer.md).
+- **Docs:** [Multiplayer: events reach a client only through its command loop](../engines/godot/multiplayer.md).

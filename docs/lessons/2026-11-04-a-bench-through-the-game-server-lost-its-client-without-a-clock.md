@@ -12,4 +12,4 @@ areas: [net, tests]
   rules saw hundreds of commands a wall-clock second and hung up on the peer.
 - **Fix:** `GameServer.clock` (the game's frames over the tick rate), passed to every room it opens, and `link.clock`
   on the client; the bench then ran its minutes. Set all three whenever a run goes faster than real time.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#a-room-over-a-real-socket-faster-than-real-time-deadnight-230).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#a-room-over-a-real-socket-faster-than-real-time-deadnight-230).

@@ -15,5 +15,5 @@ areas: [tests, godot-ui, web]
   case. Measured both ways: at 1688 by 780 the red seat's strongest pixel was 1.81 at its worst (1.31 at 844 by 390)
   and 105 of 408 words were under 4.5 (254): smaller, and still a fault. A fix is judged at the real canvas and the
   worst case is only reported; the heavier type chosen for 0.36 px per unit is off at 0.72.
-- **Docs:** [UI controls](../godot/ui-controls.md#reading-a-screen-under-test-the-scale-it-really-runs-at); Deadnight
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#reading-a-screen-under-test-the-scale-it-really-runs-at); Deadnight
   `docs/research/plate-words-contrast.md`.

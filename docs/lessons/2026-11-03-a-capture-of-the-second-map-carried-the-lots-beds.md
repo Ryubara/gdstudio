@@ -17,4 +17,4 @@ areas: [audio]
 - **Check:** before measuring a thing in a place, list what plays in that place from the place's own design page, and
   start exactly that; a bed judged against the quiet it plays in (the cricket corrections of 2026-11-03) is judged
   against that place's quiet, not the first map's.
-- **Docs:** [Swelling a bed with an event](../godot/audio.md#swelling-a-bed-with-an-event).
+- **Docs:** [Swelling a bed with an event](../engines/godot/audio.md#swelling-a-bed-with-an-event).

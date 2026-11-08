@@ -15,4 +15,4 @@ areas: [tests, process]
   `git commit` with `git push` and `gh pr create` without reading the commit's output.
 - **Check:** a title taken from an issue is checked against the verb list first; read the commit hook's result before
   pushing.
-- **Docs:** the commit title rules in `AGENTS.md` ("Commits and pull requests") and [the hooks](../hooks.md).
+- **Docs:** the commit title rules in `AGENTS.md` ("Commits and pull requests") and [the hooks](../studio/hooks.md).

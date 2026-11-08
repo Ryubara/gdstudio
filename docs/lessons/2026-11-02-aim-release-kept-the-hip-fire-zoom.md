@@ -11,4 +11,4 @@ areas: [camera, process]
   and every shot reset `fire_age`, whether it was fired from the hip or while aiming.
 - **Fix:** only a shot fired from the hip starts the hold (Deadnight #433); tests walk every transition between the two
   states (aim, shoot, release; hip fire, aim, release), not each state alone.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

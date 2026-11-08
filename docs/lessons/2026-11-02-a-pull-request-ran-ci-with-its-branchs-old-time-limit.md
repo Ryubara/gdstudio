@@ -12,4 +12,4 @@ areas: [ci, process]
   close and reopen does not change the branch.
 - **Fix:** merge main into each branch whose head lacks the workflow change (`git merge-base --is-ancestor <change>
   <head>`) and push once; that is a reason to push, like a conflict.
-- **Docs:** [Agents: the loop](../agents.md#the-loop).
+- **Docs:** [Agents: the loop](../studio/agents.md#the-loop).

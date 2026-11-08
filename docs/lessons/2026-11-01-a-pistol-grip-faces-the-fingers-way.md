@@ -11,4 +11,4 @@ areas: [blender, gameplay]
   runs the way the straight fingers point and the palm's normal crosses the grip.
 - **Fix:** map the socket's up to the knuckle line and its front to the fingers' direction; the trigger came within
   reach and the fingers wrap the front strap.
-- **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#hands-on-the-weapon).

@@ -16,4 +16,4 @@ areas: [input, godot-ui]
 - **General:** press every action as the first input on the live screen, on a pad (device 0 and another id) and in the
   web build with a virtual pad. Anything bound to the same button as a `ui_*` action is tested on a screen with no
   focused control.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

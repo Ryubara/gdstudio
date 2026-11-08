@@ -33,5 +33,6 @@ areas: [ci, tests, process]
       shard's folders from `tools/ci_test_shards.py`), which told a Windows-only pass from a real fix.
     - Test one thing at a time: the bisect of a red test is `git checkout` of the merges between the last green run and
       the first red one, one `--import` and one test each.
-- **Docs:** [Starting work](../starting-work.md); the game's `docs/research/use-reach.md` for the rule that broke the
+- **Docs:** [Starting work](../studio/starting-work.md); the game's `docs/research/use-reach.md` for the rule that
+  broke the
   weapon-source tests.

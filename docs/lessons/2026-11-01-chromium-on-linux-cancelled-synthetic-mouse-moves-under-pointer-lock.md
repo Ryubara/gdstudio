@@ -11,4 +11,4 @@ areas: [input, ci]
   then the opposite motion (+15 px, -15 px), so they cancel. Windows does not do it. Pointer lock itself works.
 - **Fix:** when the real moves did not turn the view, the smoke dispatches `PointerEvent('pointermove', {movementX})`
   on the canvas, which Godot's web runtime listens for (Deadnight #299, #390).
-- **Docs:** [Web export](../godot/web-export.md).
+- **Docs:** [Web export](../engines/godot/web-export.md).

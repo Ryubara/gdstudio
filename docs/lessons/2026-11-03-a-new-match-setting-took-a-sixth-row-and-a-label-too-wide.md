@@ -16,4 +16,4 @@ areas: [godot-ui, tests]
   `count_multiplier` and `perk_limit`), with one-word labels (`Default`, `Unlimited`) and the row's hint saying what
   they are; look at the 1280x720 and 1168x540 captures before the first push. Read `gds lessons godot-ui` before
   adding a control to a settings form.
-- **Docs:** [two option selectors in one row](../godot/ui-controls.md#two-option-selectors-in-one-row).
+- **Docs:** [two option selectors in one row](../engines/godot/ui-controls.md#two-option-selectors-in-one-row).

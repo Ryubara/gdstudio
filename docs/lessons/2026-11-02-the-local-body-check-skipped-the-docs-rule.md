@@ -19,4 +19,4 @@ areas: [tools, ci]
 - **Check for next time:** when a local check stands in for a CI check, list every job of the CI check and what input
   each reads (text, diff, history, API); a job whose input the local check lacks is either added or reported as "cannot
   tell", never as ok.
-- **Docs:** [Hooks](../hooks.md#pr-body).
+- **Docs:** [Hooks](../studio/hooks.md#pr-body).

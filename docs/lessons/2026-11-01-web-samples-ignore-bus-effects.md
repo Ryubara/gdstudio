@@ -13,4 +13,4 @@ areas: [audio, web]
   player filters. Bus volume still works.
 - **Fix:** measured both modes with a tap on the browser's audio output; kept samples (streams crackle when the main
   thread stalls in a build with no threads) and documented what is lost.
-- **Docs:** [Audio](../godot/audio.md#web-samples-or-streams).
+- **Docs:** [Audio](../engines/godot/audio.md#web-samples-or-streams).

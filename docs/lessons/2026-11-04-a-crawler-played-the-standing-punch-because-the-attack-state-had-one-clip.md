@@ -19,4 +19,4 @@ areas: [gameplay, godot]
   can take (attack, stagger, die, tear, emerge) and which clip, hit set and reach each one uses; an action that is one
   clip for all bodies is a bug waiting for the first body that cannot stand. The test measures the body's height
   through the real path while the action plays, not the clip alone.
-- **Where:** [AnimationTree](../godot/animation-tree.md#one-action-state-for-every-body).
+- **Where:** [AnimationTree](../engines/godot/animation-tree.md#one-action-state-for-every-body).

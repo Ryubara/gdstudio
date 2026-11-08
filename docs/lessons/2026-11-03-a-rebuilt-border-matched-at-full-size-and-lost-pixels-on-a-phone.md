@@ -16,4 +16,4 @@ areas: [godot-ui, tests]
   start) differ by at most one level of 255.
 - **Check next time:** a rebuilt shape is compared at the smallest scale the game runs at, not only at 1:1: capture
   both builds at the phone's window, mask what is not deterministic (3D portraits), and read the differing pixels.
-- **Docs:** [Canvas draw calls](../godot/canvas-draw-calls.md#draw-many-shapes-as-one-command).
+- **Docs:** [Canvas draw calls](../engines/godot/canvas-draw-calls.md#draw-many-shapes-as-one-command).

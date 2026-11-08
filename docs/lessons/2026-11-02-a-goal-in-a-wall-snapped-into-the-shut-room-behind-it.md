@@ -16,4 +16,4 @@ areas: [gameplay, godot]
   writes a `Stand*` marker 1.5 m in front of each door slab (`NightWorld.door_stands`), and a test buys every door in the
   shop's order from its stands (path ends within 2.5 m, a body there is offered the door). The use point stays where the
   hand reaches from.
-- **Docs:** [A goal in a wall](../godot/navigation-in-tests.md#a-goal-in-a-wall).
+- **Docs:** [A goal in a wall](../engines/godot/navigation-in-tests.md#a-goal-in-a-wall).

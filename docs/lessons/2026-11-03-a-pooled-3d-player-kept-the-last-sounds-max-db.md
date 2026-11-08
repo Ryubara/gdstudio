@@ -19,4 +19,4 @@ areas: [audio, godot]
   dead's loudness (their warm-pool level was the quiet one), so it is a mix decision and its own issue (Deadnight
   #752), not part of the headroom change. Found by comparing a cell played alone with the same cell played after
   others, which is the check for any pooled node.
-- **Docs:** [Audio](../godot/audio.md#headroom-without-a-limiter).
+- **Docs:** [Audio](../engines/godot/audio.md#headroom-without-a-limiter).

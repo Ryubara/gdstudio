@@ -70,7 +70,7 @@ def test_a_lessons_line_must_link_a_lesson_or_a_correction_row():
     assert bad and "links a lesson" in bad[0]
     for ok in (
         "Lessons: https://github.com/Ryubara/gdstudio/blob/main/docs/lessons/2026-11-02-a-b.md",
-        "Lessons: [row](docs/research/maintainer-corrections.md#found-by-playing)",
+        "Lessons: [row](docs/studio/maintainer-corrections.md#found-by-playing)",
     ):
         assert problems({"lessons": LESSONS}, "net: Add a packet", body(ok), CLEAN) == []
 

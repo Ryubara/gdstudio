@@ -1,4 +1,4 @@
-# Pinned third-party tools that agents and CI use (docs/workspace.md#tools).
+# Pinned third-party tools that agents and CI use (docs/studio/workspace.md#tools).
 # `gds workspace init` downloads each one into <workspace>/tools/<name>-<version>/, checks it against the hash below
 # and refuses a mismatch. Steam or system installs are never used by the tooling: a silent update would change test
 # results. Upgrading a tool is a pull request that changes this file (new version, URLs and hashes from the vendor's

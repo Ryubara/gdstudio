@@ -14,4 +14,4 @@ areas: [godot, tests]
 - **Fix:** keep times in `float`s: the step returns where the clip was before and the caller reads the new time from
   the layer. Any value compared against another must not pass through a `Vector2`, `Vector3`, `Color` or a packed
   float array on the way (all 32-bit in a standard build).
-- **Docs:** [Animation trees](../godot/animation-tree.md#stepping-a-tree-by-hand-in-tests).
+- **Docs:** [Animation trees](../engines/godot/animation-tree.md#stepping-a-tree-by-hand-in-tests).

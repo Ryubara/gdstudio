@@ -18,4 +18,4 @@ areas: [godot-ui, godot, ci]
   minus main's peak, from the last green `godot (1)` job summary); run the CI command locally
   (`--autopilot --rounds=12 --startround=12 ... --sample=1 --out=<json>`, then `tools/perf/check_budget.py`). Prefer
   a second `_draw` shape in a neighbour over a new node.
-- **Docs:** [Canvas draw calls](../godot/canvas-draw-calls.md#a-node-per-box-counts-against-the-canvas-item-budget).
+- **Docs:** [Canvas draw calls](../engines/godot/canvas-draw-calls.md#a-node-per-box-counts-against-the-canvas-item-budget).

@@ -11,5 +11,5 @@ areas: [tests, godot]
   after it) and a later test that skipped the backdrop passed the stale reference on.
 - **Fix:** reset every per-test member in `before_test` (`_backdrop = null`), never rely on "not set" meaning "not set by
   an earlier test".
-- **Docs:** none needed beyond this lesson (the rule is general to GdUnit4: `docs/godot/test-speed.md` has the suite
+- **Docs:** none needed beyond this lesson (the rule is general to GdUnit4: `docs/engines/godot/test-speed.md` has the suite
   shape).

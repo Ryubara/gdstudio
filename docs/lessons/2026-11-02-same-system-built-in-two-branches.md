@@ -14,4 +14,4 @@ areas: [process, gameplay]
   subsystem's words (here "revive"); if another branch builds it, build only the part that sits on top (the bleed-out
   clock, dead players, counts) against its interface, or wait for it to merge. Merge main early and often on a long
   branch so the overlap shows while it is small.
-- **Docs:** [Starting work](../starting-work.md).
+- **Docs:** [Starting work](../studio/starting-work.md).

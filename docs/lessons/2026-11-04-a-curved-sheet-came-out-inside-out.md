@@ -10,4 +10,4 @@ areas: [blender]
   middle of the top edge lies under the rim's middle. The same fault as a prism inside out: the eye looks through it.
 - **Fix:** wind each rim face by the rim's own order, with no reference point. `gds godot` on the turntable's `--probe`
   puts a red dot on each ray: it found these in one look where the failure line gave only a place.
-- **Docs:** [Character variants, clothes that stand off the body](../blender/variants.md).
+- **Docs:** [Character variants, clothes that stand off the body](../tools/blender/variants.md).

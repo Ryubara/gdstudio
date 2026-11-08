@@ -12,4 +12,4 @@ areas: [godot, web]
   converted to linear first is treated as a much darker sRGB value.
 - **Fix:** pass the environment's and lights' colours unconverted, times their energies, as plain `vec3` uniforms,
   and make the far models unshaded with their own lighting and haze; then compare one pixel with the renderer's own fog.
-- **Docs:** [A backdrop past the playable bounds](../godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
+- **Docs:** [A backdrop past the playable bounds](../engines/godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).

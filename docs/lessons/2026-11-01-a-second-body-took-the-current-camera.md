@@ -12,4 +12,4 @@ areas: [camera, godot-ui]
   through `get_viewport().get_camera_3d()` agreed with what was drawn, so nothing looked broken in the HUD.
 - **Fix:** `make_current()` on the player's camera after any join; a capture prints the current camera's path once a
   second while the view is checked (Deadnight #430).
-- **Docs:** [Camera](../godot/camera.md#projecting-world-points-to-the-hud); Deadnight `docs/research/hud.md`.
+- **Docs:** [Camera](../engines/godot/camera.md#projecting-world-points-to-the-hud); Deadnight `docs/research/hud.md`.

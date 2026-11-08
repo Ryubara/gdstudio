@@ -12,4 +12,4 @@ areas: [camera, tests]
 - **Fix:** the prize slides out on a lit board at the camera's eye height (its bottom over the hair), side on; a test
   projects every prize and the Soldier into a 1920 x 1080 view of the resting camera on the marker (whole on screen,
   10 % of the width at least, 10 % behind the body at most), and fails with the board at grab height (79-98 % hidden).
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands).

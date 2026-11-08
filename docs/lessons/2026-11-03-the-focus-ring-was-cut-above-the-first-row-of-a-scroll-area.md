@@ -18,4 +18,4 @@ areas: [godot-ui]
   on the focus scrolls the rest of the way and a walk of the focus over every button (failed first) measures it.
   A shortcut taken in a shared rule ("the sides only") is a line in the
   issue list the same day.
-- **Docs:** [UI controls](../godot/ui-controls.md#a-control-that-draws-outside-its-rect).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-control-that-draws-outside-its-rect).

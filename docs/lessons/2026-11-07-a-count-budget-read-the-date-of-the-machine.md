@@ -16,4 +16,4 @@ areas: [tests]
   three different machine dates and expects the same dailies (and, unpinned, different ones). Before trusting a count
   limit, run the bench with the date moved by a day (or the seed by one) and see that the count does not move; do not
   raise the limit to hide a number that moves.
-- **Docs:** [Budgets: counts tight, time loose](../godot/performance-budgets.md#budgets-counts-tight-time-loose).
+- **Docs:** [Budgets: counts tight, time loose](../engines/godot/performance-budgets.md#budgets-counts-tight-time-loose).

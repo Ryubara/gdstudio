@@ -22,6 +22,6 @@ areas: [gameplay, process]
 - **Check:** before building, and again from the player's camera, write for every opening what is outside it at its
   sill and the dead's way to it from the world's ground; the outside is one place from every floor; a structure built
   only so a count holds is a sign the count is wrong for this map, not that the map should bend.
-- **Docs:** [Map review: does it make sense?](../godot/map-review.md#does-it-make-sense),
-  [Level design P19](../research/level-design.md#p19-the-place-makes-sense-to-a-player); Deadnight
+- **Docs:** [Map review: does it make sense?](../engines/godot/map-review.md#does-it-make-sense),
+  [Level design P19](../gamedev/level-design.md#p19-the-place-makes-sense-to-a-player); Deadnight
   `docs/design/smallmap.md`, "Outside and windows".

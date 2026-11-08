@@ -11,4 +11,4 @@ areas: [tests, gameplay]
   offsets bodies never reaches a branch that only runs at distance zero.
 - **Fix:** push along a direction made from the two ids (no random draw), at `speed`, and cap the sum of pushes on one
   body. Test the degenerate input directly and assert a per-tick bound on movement, not only the end state.
-- **Docs:** [Zombie crowds](../godot/crowds.md).
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md).

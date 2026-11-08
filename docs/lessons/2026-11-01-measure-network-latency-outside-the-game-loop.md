@@ -12,4 +12,4 @@ areas: [net, godot]
 - **Fix:** add a tiny external probe (Python `websockets`) that joins as a silent player, pings every 50 ms and
   timestamps every snapshot with `perf_counter`. Quote the probe for the network and the clients for what the game
   feels, with a local server as the baseline.
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/multiplayer.md` (Measured on Railway).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/multiplayer.md` (Measured on Railway).

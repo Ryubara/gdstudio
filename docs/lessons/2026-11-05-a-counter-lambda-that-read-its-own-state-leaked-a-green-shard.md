@@ -17,5 +17,5 @@ areas: [tests, godot]
   exit lines are clean. Check for next time: after any test that connects a lambda to an object it also reads, run the
   suite by itself and grep the whole log for `leaked at exit|still in use` before the first push; the summary line
   does not carry it.
-- **Docs:** [Test exit leaks](../godot/test-exit-leaks.md) and the
+- **Docs:** [Test exit leaks](../engines/godot/test-exit-leaks.md) and the
   [lambda cycle](2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md) lesson.

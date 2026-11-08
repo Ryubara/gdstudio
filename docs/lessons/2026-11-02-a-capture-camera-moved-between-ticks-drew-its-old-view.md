@@ -16,4 +16,4 @@ areas: [camera, godot]
   `unproject_position()` of the aim point put it off screen. It cost an hour of guessing at stands and layers. First
   check of any capture that cuts between spots: the camera's `physics_interpolation_mode` is OFF, set once when it is
   made; the first frames of the old fix are not enough when the camera jumps tens of metres.
-- **Docs:** [Physics interpolation](../godot/physics-interpolation.md).
+- **Docs:** [Physics interpolation](../engines/godot/physics-interpolation.md).

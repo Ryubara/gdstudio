@@ -20,4 +20,4 @@ areas: [tests, input, web]
   prints the yaw and the distance at every drag step.
 - **General:** a probe's pass must need the thing it tests (a drag that has distance to cover), and it reads and
   reports the game's own pause state before it blames the feature.
-- **Docs:** [Web export](../godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night).
+- **Docs:** [Web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night).

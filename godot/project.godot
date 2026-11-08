@@ -1,4 +1,4 @@
-; The kit's own Godot project: the one place the shared addons are edited and tested (docs/godot/ui-controls.md).
+; The kit's own Godot project: the one place the shared addons are edited and tested (docs/engines/godot/ui-controls.md).
 ; It is not a game. `addons/gds_ui` is what `gds sync` writes into every game at the same path; `tests/` holds the
 ; addon's GdUnit4 suites, which a game does not receive. GdUnit4 itself is installed untracked by `gds workspace init`.
 

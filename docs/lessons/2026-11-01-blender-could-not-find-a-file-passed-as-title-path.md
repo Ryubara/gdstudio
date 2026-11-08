@@ -11,4 +11,4 @@ areas: [blender, tools]
   not to be relied on: on Deadnight #797 (2026-11-03) one run passed `Ray=/c/...` converted and
   `"Ray gun=/c/..."` unconverted, so the same command shape worked for one model and failed for the next.
 - **Fix:** pass Windows-style paths with forward slashes (`C:/Repositories/...`) to Blender and Godot from Git Bash.
-- **Docs:** [character variants](../blender/variants.md).
+- **Docs:** [character variants](../tools/blender/variants.md).

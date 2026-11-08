@@ -12,4 +12,4 @@ areas: [godot, blender]
   `get_bone_global_pose` outside a rendered frame see the pose before the modifiers.
 - **Fix:** switch the modifier off (`active = false`) whenever its blend is 0; prove arm clips with a capture of a
   running scene, not only with bone reads.
-- **Docs:** [Weapons in the Toon Shooter style](../blender/weapons.md#axes-origin-and-the-hold).
+- **Docs:** [Weapons in the Toon Shooter style](../tools/blender/weapons.md#axes-origin-and-the-hold).

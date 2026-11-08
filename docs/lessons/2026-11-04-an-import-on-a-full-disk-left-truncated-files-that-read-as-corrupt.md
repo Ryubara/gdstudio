@@ -18,5 +18,5 @@ areas: [tools, tests, general]
   `.godot/editor/filesystem_cache*`, import again once there is room, and check
   `find .godot/imported -type f -size -5c` is empty and `git status` shows no `.import` file changed. Never delete
   another agent's scratch folder to make room: report it.
-- **Docs:** [Performance review](../godot/performance-review.md#how-to-measure-it-counts-first) (check the disk
+- **Docs:** [Performance review](../engines/godot/performance-review.md#how-to-measure-it-counts-first) (check the disk
   before a measuring session).

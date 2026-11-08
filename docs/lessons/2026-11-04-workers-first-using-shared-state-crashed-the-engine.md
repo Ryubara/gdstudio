@@ -18,6 +18,6 @@ areas: [tests, godot]
 - **Fix:** play one night of every cell on the calling thread before the workers start (`ShippedCells.warm`, 0.7 s of 29);
   a test runs the cells in a cold child Godot and fails when a worker is first to load any project file (it fails with the
   warm-up taken out). Completed runs: 40 of 40 child runs and 8 of 8 suite runs after, against 11 of 50 and 3 of 7 before.
-- **Docs:** [Worker threads](../godot/worker-threads.md). Check for next time: before a job goes to `WorkerThreadPool`,
+- **Docs:** [Worker threads](../engines/godot/worker-threads.md). Check for next time: before a job goes to `WorkerThreadPool`,
   list what its first run loads or fills (`ResourceLoader.has_cached` before and after one run, `static var`s with an
   `is_empty()` guard) and do that on the main thread.

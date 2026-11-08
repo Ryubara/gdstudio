@@ -19,4 +19,4 @@ areas: [process, tools]
 - **Check:** before starting an issue, check that its repository is not paused (`paused` in `workspace.toml`). When the
   maintainer gives a standing rule (a pause, an order, a limit), move it into a file that a tool reads and enforces in
   the same session; until a tool enforces it, every tool that offers work will contradict it.
-- **Docs:** [Starting work: pausing a game](../starting-work.md#paused).
+- **Docs:** [Starting work: pausing a game](../studio/starting-work.md#paused).

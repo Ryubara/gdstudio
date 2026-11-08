@@ -19,5 +19,5 @@ areas: [audio]
   `(1.0, 2.1)`) draws another set of insects (57% fewer chirps, not 50%), so keep the draw and drop every other chirp
   (the scale at 1.0 must render the old file bit for bit); and a loop normalised to its peak gets louder per chirp when
   fewer chirps overlap (2 dB here), so set the entry's peak to keep each chirp as it was and let `volume_db` be the cut.
-- **Docs:** Deadnight `docs/research/audio.md#the-crickets-cut-again-781`; the check is in `docs/research/maintainer-corrections.md`
+- **Docs:** Deadnight `docs/research/audio.md#the-crickets-cut-again-781`; the check is in `docs/studio/maintainer-corrections.md`
   once the coordinator publishes the row.

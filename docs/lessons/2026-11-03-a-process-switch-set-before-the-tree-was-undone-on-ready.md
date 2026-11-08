@@ -15,4 +15,4 @@ areas: [godot, camera, gameplay]
 - **Fix:** the rig keeps its own flag (`rest()` / `resume()`) and re-asserts it in `_ready()`
   (`set_process(not _resting)`). A test counts the nodes with `is_processing()` in a built night (1 in a night of a
   person and three bots), never trusts the call that was made.
-- **Docs:** [Third-person camera](../godot/camera.md#a-rig-no-one-looks-through).
+- **Docs:** [Third-person camera](../engines/godot/camera.md#a-rig-no-one-looks-through).

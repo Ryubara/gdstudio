@@ -11,4 +11,4 @@ areas: [godot, tests]
   in one frame moves the bones but not the attachment.
 - **Fix:** read the bone itself, `skeleton.global_transform * skeleton.get_bone_global_pose(bone)`, times the
   attachment child's own transform.
-- **Docs:** [Weapons in the Toon Shooter style](../blender/weapons.md#axes-origin-and-the-hold).
+- **Docs:** [Weapons in the Toon Shooter style](../tools/blender/weapons.md#axes-origin-and-the-hold).

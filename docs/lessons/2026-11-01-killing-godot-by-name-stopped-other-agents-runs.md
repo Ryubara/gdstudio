@@ -12,6 +12,6 @@ areas: [tools, godot]
   name does not say whose process it is. The "stray" processes were other agents' runs, not leaks of mine.
 - **Fix:** stop only processes you started: keep the PID of each background command, or filter by the command line
   (`Get-CimInstance Win32_Process` with the project path), never by image name. The kit's hooks now refuse a kill by
-  name of a pinned tool ([Hooks](../hooks.md)). Expect timings on a shared machine to be noisy: repeat a run and
+  name of a pinned tool ([Hooks](../studio/hooks.md)). Expect timings on a shared machine to be noisy: repeat a run and
   report the spread.
-- **Docs:** [Hooks](../hooks.md); [Zombie crowds](../godot/crowds.md#numbers).
+- **Docs:** [Hooks](../studio/hooks.md); [Zombie crowds](../engines/godot/crowds.md#numbers).

@@ -19,4 +19,4 @@ areas: [gameplay, godot, tests]
 - **Check for next time:** to show a cost cut, copy the old class under a new name in the probe and time both in one
   process; report the ratio of per-step medians; compare their state in the same loop. Use a real night only for counts
   and for the shape of the crowd (how many dead are far, swinging, walking).
-- **Docs:** [Performance budgets](../godot/performance-budgets.md), reading a timing on a shared machine.
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md), reading a timing on a shared machine.

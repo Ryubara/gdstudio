@@ -19,4 +19,4 @@ areas: [tests, godot]
 - **Check for next time:** a GdUnit command with no output for more than a minute is a stuck debugger, not a slow suite:
   read the tail of its log. A test of a script that may lack a symbol (a "fails first" run against old code) reads the
   symbol dynamically so it fails with a value and does not stop the parse.
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

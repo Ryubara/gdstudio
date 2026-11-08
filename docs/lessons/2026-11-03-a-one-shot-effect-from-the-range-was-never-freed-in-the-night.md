@@ -16,7 +16,8 @@ areas: [godot, gameplay, process]
   and the client draw with no bots, no HUD and no client script, so the per-tick GDScript of the clients was never in
   the budget, and no pull request said what its per-frame work cost or how it scaled.
 - **Fix:** each finding is its own issue (Deadnight #929 to #936, #938). The kit's
-  [Performance review](../godot/performance-review.md) page: a pull request that adds per-frame work, a spawn, a light,
+  [Performance review](../engines/godot/performance-review.md) page: a pull request that adds per-frame work, a spawn,
+  a light,
   a shader or a message states its cost (what runs, how often, what it scales with, the number at the ceiling, what
   frees it); every run-time `.new()` / `instantiate()` has a free or a capped pool and a test that the node count is flat
   after N events; the budget is one tick of the real night with the bots on at the platform ceiling, counts first.

@@ -24,6 +24,6 @@ areas: [godot, tests]
   halo, flare or additive card, before calling it done: compare its half-size with its distance to every wall near it
   (a billboard turns about its centre, so the half-size is the reach), and capture it from the room behind the wall,
   along the wall at eye height and from above, with the glow hidden and shown, counting the pixels that change.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
   A hand edit in the editor of the lot scene is lost the next time `tools/world/build_greybox.py` runs, so a hand edit
   of a generated scene goes into its generator in the same pull request.

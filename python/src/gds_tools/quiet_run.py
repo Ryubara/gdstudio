@@ -1,7 +1,8 @@
 """Start a program so that its windows never take the keyboard or mouse from the person at the machine.
 
 On Windows every windowed Godot (a capture, an autopilot scene, a GdUnit run without `--headless`) grabs the
-foreground when its window opens, and no start-up flag stops that (`docs/godot/no-focus.md`). A window on a different
+foreground when its window opens, and no start-up flag stops that (`docs/engines/godot/no-focus.md`). A window on a
+different
 Windows desktop cannot take the focus of the one the person works on, so the program is started on a private desktop
 of the same window station: it renders as usual (OpenGL and Movie Maker included) and nobody sees or feels it.
 

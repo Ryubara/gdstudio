@@ -19,4 +19,4 @@ areas: [audio]
   every part. Also: `Audio.play` returns null in a frame that used its sound starts (the sound plays a frame later), so
   a
   scheduler that reads the length from the returned player must not treat null as dropped and play another.
-- **Docs:** Deadnight `docs/research/wind.md#levels`; [Starting sounds](../godot/audio.md#starting-sounds).
+- **Docs:** Deadnight `docs/research/wind.md#levels`; [Starting sounds](../engines/godot/audio.md#starting-sounds).

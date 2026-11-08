@@ -14,4 +14,4 @@ areas: [audio, process]
   exclamation where it fits, uneven length. Put the emotion in the words first and the audio tags second, keep the
   model's stability low enough for expression, and write several variants per event so the game never repeats one
   back to back (Deadnight #384).
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

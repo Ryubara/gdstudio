@@ -12,4 +12,4 @@ areas: [ci, tests]
 - **Fix:** an integration pull request that wires the night to the new classes, deletes the night's copy, and tests the
   join (a night that buys a door, and one that ends during the rebake). When pull requests touch one seam, name the
   other in Issues affected and merge origin/main before the last push.
-- **Docs:** [Agents](../agents.md); Deadnight `docs/research/zombies.md`.
+- **Docs:** [Agents](../studio/agents.md); Deadnight `docs/research/zombies.md`.

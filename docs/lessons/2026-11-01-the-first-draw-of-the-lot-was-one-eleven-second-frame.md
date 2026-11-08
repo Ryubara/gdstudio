@@ -14,4 +14,4 @@ areas: [godot, web]
   new kind of material per frame, stop the HUD's portrait viewport until they are in, and draw effects one at a time:
   the longest loading frame went from 9 to 11 s to 2 s and the bar moves; the total did not shrink, it is
   the sum of the lit shaders. A browser run fails when a frame links more than 12 programs.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md).

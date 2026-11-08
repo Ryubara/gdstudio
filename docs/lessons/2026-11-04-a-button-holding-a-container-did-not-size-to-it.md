@@ -17,5 +17,5 @@ areas: [godot-ui, tests]
 - **Fix:** lay the height out by hand from the fonts (`font.get_height(size)` times the lines, the rows, the poster),
   a few units over and never under, set before the node is added; break a title into lines with `get_string_size` and
   put `\n` in the text instead of autowrap. A test reads each view's `size` and that the next view starts below it.
-- **Docs:** [UI controls](../godot/ui-controls.md) (a button holding a container) and Deadnight's
+- **Docs:** [UI controls](../engines/godot/ui-controls.md) (a button holding a container) and Deadnight's
   `docs/research/calling-cards.md#poster-sets-1073`.

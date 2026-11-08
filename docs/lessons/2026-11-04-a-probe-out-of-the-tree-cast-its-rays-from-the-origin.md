@@ -17,4 +17,4 @@ areas: [godot, tests]
   `not root.is_inside_tree()`. Give every "nothing is in the way" check a control that must hit: the sweep from the
   anchor went from clear at 10 cm to hit at 13 cm, which is where the sill frame is, and only that made "clear" mean
   anything. Read a probe's whole log, or grep for `^ERROR` along with its own lines.
-- **Docs:** [headless probes](../godot/headless-probes.md).
+- **Docs:** [headless probes](../engines/godot/headless-probes.md).

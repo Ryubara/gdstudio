@@ -16,4 +16,4 @@ areas: [ci, tools]
   SubagentStart hook, all from `docs/lessons/`. `mistakes.py check` validates the lessons' front matter only, and
   `test_two_lesson_branches_from_the_same_main_merge_clean_in_either_order` merges two lesson branches in both orders in
   a temporary repository. Before adding a generated, committed file, ask what two concurrent pull requests do to it.
-- **Docs:** [Hooks: docs](../hooks.md#docs), [Lessons](index.md).
+- **Docs:** [Hooks: docs](../studio/hooks.md#docs), [Lessons](index.md).

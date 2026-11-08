@@ -11,4 +11,4 @@ areas: [web, godot]
   GPU through ANGLE), and talk to it with Node's built-in `WebSocket` over the DevTools protocol:
   `Page.captureScreenshot`, `Page.startScreencast` for a transition (about 30 frames a second), `Input.dispatchKeyEvent`
   for keys, `Runtime.evaluate` for frame times. No package is downloaded; a gamepad cannot be injected this way.
-- **Docs:** [Capture](../capture.md).
+- **Docs:** [Capture](../studio/capture.md).

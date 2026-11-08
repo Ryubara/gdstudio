@@ -23,4 +23,4 @@ areas: [tests, gameplay]
   night uses goes through the night's map (`night.world.map()`), not a map made from the saved resource; and a test
   that "fails on main" is run on main with every prop, because a walk that passes there tests nothing (here the
   roam-spot pairs: 0 stops before and after).
-- **Docs:** `docs/godot/navigation-in-tests.md` ("A walk to a goal the layer never reaches").
+- **Docs:** `docs/engines/godot/navigation-in-tests.md` ("A walk to a goal the layer never reaches").

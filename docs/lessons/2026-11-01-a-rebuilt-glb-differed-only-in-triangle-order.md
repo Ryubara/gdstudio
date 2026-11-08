@@ -11,4 +11,4 @@ areas: [blender, gameplay]
   identical, and so is the set of triangles.
 - **Fix:** compare a rebuilt file by its nodes, mesh count, vertex buffers and sorted triangle set, not by its bytes.
   Commit only the files the change is meant to touch.
-- **Docs:** [Weapons](../blender/weapons.md#building-by-script).
+- **Docs:** [Weapons](../tools/blender/weapons.md#building-by-script).

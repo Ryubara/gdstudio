@@ -20,6 +20,7 @@ areas: [web, godot, tests]
 - **Found by** a forced collection, V8's sampling heap profile (eight stacks of 25 MB, all `glGen*` through
   `getNewId`), a count of the WebGL creations a frame, a trace of the GL calls of a few frames and ablation by freeing
   nodes at the page's address, not by reading code or switching the publishers off.
-- **Docs:** [The web page's heap](../godot/web-heap.md); Deadnight `docs/research/web-heap.md`. Check: a canvas item
+- **Docs:** [The web page's heap](../engines/godot/web-heap.md); Deadnight `docs/research/web-heap.md`. Check: a canvas
+  item
   that draws circles, arcs or polygons never calls `queue_redraw()` every frame; a test counts its `draw` signals over
   a few idle frames.

@@ -11,4 +11,4 @@ areas: [blender, godot]
   solver works with the wrong thigh and shin.
 - **Fix:** a two-bone solve in script, with the thigh and the ankle (the `Foot` bone's head in the lower leg's frame)
   measured from a kit clip.
-- **Docs:** [Gaits from kit clips](../blender/gaits.md).
+- **Docs:** [Gaits from kit clips](../tools/blender/gaits.md).

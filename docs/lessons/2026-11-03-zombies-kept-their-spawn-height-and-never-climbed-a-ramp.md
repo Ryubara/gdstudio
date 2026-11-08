@@ -14,6 +14,6 @@ areas: [gameplay, tests]
 - **Fix:** the sim reads the floor off the path (the segment ending at its waypoint, minus the baker's 0.4 m offset) and
   moves the zombie there; separation and swing reach look at height too. A pack test sends six and sixteen up the ramp
   and both small-map stairs, with a control that walks the same mesh with the heights left out (it fails on `main`).
-- **Docs:** [Zombie crowds: height](../godot/crowds.md#height-a-crowd-off-the-physics-engine-must-be-given-its-floor);
+- **Docs:** [Zombie crowds: height](../engines/godot/crowds.md#height-a-crowd-off-the-physics-engine-must-be-given-its-floor);
   Deadnight `docs/research/zombies.md`, "Climbing". Check: a feature that moves things by hand (no physics body) is
   tested on every slope of the map with the real mover, not with the player's body.

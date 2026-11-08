@@ -13,4 +13,4 @@ areas: [godot, blender]
 - **Fix:** cancel the attachment's rest axes (`root.basis = (skeleton.global_basis * bone rest basis).inverse() *
   model.global_basis`), build the fan in the plane that faces the camera, look at a still from behind and from the
   side before measuring, and push a halo into the chest so the body hides it.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#glow-on-the-web-and-what-a-wing-of-fire-costs-deadnight-1053).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#glow-on-the-web-and-what-a-wing-of-fire-costs-deadnight-1053).

@@ -1,4 +1,4 @@
-; Throwaway spike project (see docs/godot/crowds.md). Not a game.
+; Throwaway spike project (see docs/engines/godot/crowds.md). Not a game.
 config_version=5
 
 [application]

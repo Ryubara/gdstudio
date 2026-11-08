@@ -15,4 +15,4 @@ areas: [blender, tests]
   every copy of a seam vertex alike); a sweep test over every pair of parts that meet, on both bodies, ray-tests for a
   back face seen first; a clip sampler counts limb and garment vertices inside the body in every clip; review renders
   cull back faces.
-- **Docs:** [Closed, and fitting, in every combination](../blender/variants.md#closed-and-fitting-in-every-combination).
+- **Docs:** [Closed, and fitting, in every combination](../tools/blender/variants.md#closed-and-fitting-in-every-combination).

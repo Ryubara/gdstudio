@@ -15,4 +15,4 @@ areas: [gameplay, blender]
   numbers); a test that fails when a definition has no start, wall or crane source or a source names an unknown id; a
   seeded test that the crane's pool is drawn whole; one test that takes each source's weapon in hand with the real
   command. A model whose role is unclear is a question to the maintainer, not a definition by guess.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

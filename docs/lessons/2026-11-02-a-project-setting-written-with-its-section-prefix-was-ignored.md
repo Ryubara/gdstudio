@@ -13,4 +13,4 @@ areas: [web, tests, audio]
   `AudioServer.PlaybackType`'s (1 stream, 2 sample), so a code check against the enum read the wrong thing.
 - **Fix:** write the key without its section, compare with the setting's own numbers, and confirm a settings switch
   with a level measurement in the browser before trusting it.
-- **Docs:** [Audio](../godot/audio.md#web-samples-or-streams).
+- **Docs:** [Audio](../engines/godot/audio.md#web-samples-or-streams).

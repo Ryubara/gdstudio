@@ -21,4 +21,4 @@ areas: [tools, general]
   `ensure_hooks`) and call it, or its repairs, rather than calling `pre-commit install` again. Find a hidden hook
   failure without pushing by running `.git/hooks/pre-push origin <url>` with the ref line on stdin. In a long
   function, a loop variable gets a name that function does not already use (ruff does not catch this shadowing).
-- **Docs:** [A new game from a template](../godot/new-game.md).
+- **Docs:** [A new game from a template](../engines/godot/new-game.md).

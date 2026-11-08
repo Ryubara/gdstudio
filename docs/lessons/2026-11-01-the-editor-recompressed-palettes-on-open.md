@@ -12,4 +12,4 @@ areas: [godot, blender]
   session dirtied the checkout.
 - **Fix:** Detect 3D off and every setting stated in all texture `.import` files; Blender builds write the `.import`
   with the PNG; a check runs in pre-commit and CI (Deadnight #441, #454).
-- **Docs:** [Surface materials in Compatibility](../godot/surface-materials.md#pitfalls).
+- **Docs:** [Surface materials in Compatibility](../engines/godot/surface-materials.md#pitfalls).

@@ -13,4 +13,4 @@ areas: [tests, general]
 - **Fix:** wait for the ceiling (`hudalive=40`), and give every wait in a probe an end (a night's seconds or a frame
   count), so a number that cannot be reached ends the run with a line saying so. Stopped the stray Godot by its process
   id, not by name.
-- **Docs:** [Performance review](../godot/performance-review.md#how-to-measure-it-counts-first).
+- **Docs:** [Performance review](../engines/godot/performance-review.md#how-to-measure-it-counts-first).

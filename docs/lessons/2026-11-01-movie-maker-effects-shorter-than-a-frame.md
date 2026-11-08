@@ -9,4 +9,4 @@ areas: [tests, godot]
 - **Cause:** Movie Maker at 10 fps steps 0.1 s a frame, so an effect that lives 0.1 s is gone before the next frame.
 - **Fix:** make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to the shot (not only a
   sheet), and cross-check frames with a headless log of the events.
-- **Docs:** [Capture](../capture.md).
+- **Docs:** [Capture](../studio/capture.md).

@@ -13,4 +13,4 @@ areas: [godot, tests]
 - **Fix:** `cull_mode` Disabled on the pane's material, plus a test that finds every flat see-through mesh of the maps
   and demands both faces (it fails with the fix off), and one that keeps a pane inside its opening so two faces cannot
   show through a wall. Capture any flat glow, window or sign from behind before calling it done.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).

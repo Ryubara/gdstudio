@@ -16,4 +16,4 @@ areas: [godot-ui, tests]
   differs, and `MenuShell.set_profile` re-locks the wardrobe (`CustomizeScreen.set_unlocks`). A test fails without it. Check
   for next time: a suspected fault seen in a capture that assembles its own parts is first run in the real scene, with a
   throwaway user folder.
-- **Docs:** [A throwaway user folder for the real game](../godot/throwaway-user-folder.md).
+- **Docs:** [A throwaway user folder for the real game](../engines/godot/throwaway-user-folder.md).

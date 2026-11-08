@@ -17,4 +17,4 @@ areas: [gameplay, general]
   never reads, a players-only blocker in the opening, and the dead lifted over the sill by the simulation (the link
   across it) and drawn scrambling in. `test_barricade_windows.gd` walks every barricade of both maps, so a breach added
   later is held to it.
-- **Docs:** [map review checklist, section 3](../godot/map-review.md#3-spawns-and-how-the-dead-arrive).
+- **Docs:** [map review checklist, section 3](../engines/godot/map-review.md#3-spawns-and-how-the-dead-arrive).

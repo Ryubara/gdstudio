@@ -13,4 +13,4 @@ areas: [tests, process]
   and the restore as separate commands with the test under its own `timeout`, and check `git status` after any killed
   command. A "failed first" run on main's files can be done in a separate worktree of main with the new test copied in,
   which cannot lose the branch.
-- **Docs:** [Hooks](../hooks.md), and [a test run killed by an outer timeout](2026-11-04-a-test-run-killed-by-an-outer-timeout-left-an-empty-log.md).
+- **Docs:** [Hooks](../studio/hooks.md), and [a test run killed by an outer timeout](2026-11-04-a-test-run-killed-by-an-outer-timeout-left-an-empty-log.md).

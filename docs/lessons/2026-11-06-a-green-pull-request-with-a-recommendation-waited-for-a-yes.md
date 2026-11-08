@@ -13,4 +13,4 @@ areas: [process]
 - **Fix:** a pull request that the coordinator would merge is merged. Refresh it from main, let CI pass, land it, and
   report the trade-off afterwards so the maintainer can reverse it. Ask only for the listed maintainer decisions, for
   `S-hold`, or when there is no recommendation to give.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).
