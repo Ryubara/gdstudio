@@ -22,8 +22,37 @@ minutes). How it is started decides what it can build.
 - **Every run gets a `timeout`**, and the first seconds of its log are searched for `SCRIPT ERROR`: a script that fails
   to compile, or fails in `_init` before `quit()`, never ends
   ([lesson](../../lessons/2026-11-01-a-script-that-fails-to-parse-hangs-headless-godot.md)).
-- **A fresh worktree has no test addon and no import cache.** Copy the GdUnit4 addon from the main checkout (it is
-  git-excluded there for every worktree; [lesson](../../lessons/2026-11-01-a-worktree-has-no-gdunit4-folder.md)) and run
-  `--import` once before the first run; the first `--import` of a worktree takes about a minute.
-- **Write the probe with the file tool, not a heredoc**: a shell heredoc with quotes in it failed to parse in the
-  agent's shell ([lesson](../../lessons/2026-11-01-large-bash-heredocs-failed-to-parse.md)).
+- **A fresh worktree has no test addon and no import cache**: copy the GdUnit4 addon and run `--import` once before the
+  first run (about a minute), as [a fresh checkout](running-gdunit.md#fresh-checkout) says.
+- **Write the probe with the file tool, not a heredoc** ([Writing a probe](#writing-a-probe)).
+
+## Writing a probe {#writing-a-probe}
+
+<!-- new section: the page said how a probe is started; nothing said how to write or edit its script safely -->
+
+- **Approach:** Write a probe, a test or an edit script with the Write tool and run an edit script as a `.py` file
+  (`python file.py args`); use the Edit tool for text that holds a backslash; keep a shell heredoc for a few plain ASCII
+  lines; scan generated files for control characters, lint generated workflows (actionlint) and test generated
+  regexes. **Watch out for:** the command text goes through the tool's escape step before the shell: a 200-line file
+  with quotes failed with `unexpected EOF` and wrote nothing, a regex word boundary became a backspace (a hook silently
+  never matched), a backslash-n became a real newline, and a backslash line continuation in a workflow collapsed.
+  **Seen:** Deadnight #457, 2026-11-01; kit #165, 2026-11-02; Deadnight #1080, 2026-11-04 (fix: Write for any body of
+  more than a few plain lines; a unit test and actionlint caught the regex and the workflow).
+- **Approach:** After a scripted edit of a `.gd` file run `gdformat` on it (it parses) before starting a run that takes
+  minutes, build a splice from markers that occur once (assert the order and the count), and read a long run's log
+  after ten seconds, not at its end. **Watch out for:** a one-off cut a function between two `index()` calls on
+  markers, the first also occurred earlier, so `s[:a] + new + s[b:]` with `b < a` copied half the file twice; two
+  ten-minute soaks printed `Could not resolve class "SoakWatch"` and were read only when they ended. **Seen:**
+  Deadnight, 2026-11-03 (fix: the splice was rewritten from the intact copy).
+
+## Processes a probe starts {#processes}
+
+<!-- new section: nothing said how a probe cleans up the programs it starts when it is killed -->
+
+- **Approach:** Stop a server a probe starts with `taskkill /T /F /PID <pid>` (the tree) in a `finally`, give the probe
+  a hard time limit of its own (`timeout`, `gds quiet --timeout`) shorter than the tool's, and after a killed run find
+  what it left by command line (`Get-CimInstance Win32_Process`, filtered on the scratch folder), never by image name,
+  and stop those by PID. **Watch out for:** on Windows the console build of Godot is a wrapper that starts the real
+  program, so `Popen.kill()` and `OS.kill` end only the wrapper, and nothing runs when the parent is killed: the next
+  run failed with `PermissionError: [WinError 32]` on the server's log with two Godot processes and about 600 MB held.
+  **Seen:** Deadnight #502, 2026-11-02 (fix: the probe's `finally` and its own time limit).

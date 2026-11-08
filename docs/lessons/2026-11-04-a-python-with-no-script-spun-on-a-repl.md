@@ -12,5 +12,5 @@ areas: [tools]
   real line breaks in a script, so a failure sat in front of the hang as well.
 - **Fix:** stop the task, then run each Python step with a script file, `timeout` and `</dev/null`, so that a prompt
   ends at once. Change a scripted edit by rewriting its file with the Write tool, not with `sed` on escapes. Write long
-  files with the Write tool too ([large heredocs](2026-11-01-large-bash-heredocs-failed-to-parse.md)).
+  files with the Write tool too ([large heredocs](../engines/godot/headless-probes.md#writing-a-probe)).
 - **Docs:** this page.

@@ -12,4 +12,4 @@ areas: [tools, tests]
 - **Fix:** after a stop, list what is left (`Get-CimInstance Win32_Process`, the command line and start time) and end your
   own by process tree (`taskkill /PID <pid> /T /F`), never by name: other agents' Godots look alike until you read their
   arguments. Give each run a log of its own, so a survivor cannot pass for the new result.
-- **Docs:** this file; see also [two runs in one log](2026-11-04-two-test-runs-shared-one-log.md).
+- **Docs:** this file; see also [two runs in one log](../engines/godot/running-gdunit.md#logs).

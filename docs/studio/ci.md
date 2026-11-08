@@ -21,3 +21,14 @@ default branch -->
   minutes and merges came every few, so every run skipped and Railway fell 13 merges behind, each skip a green job. The
   guard was tested for an older commit refused, never for any run deploying. **Seen:** Deadnight #732, 2026-11-03 (fix:
   [lesson](../lessons/2026-11-03-a-deploy-check-skipped-every-run-and-nobody-saw.md)).
+
+## Scripts in a workflow {#workflow-scripts}
+
+<!-- new section: the page covers when CI runs; nothing covered how a workflow's shell steps are written and linted -->
+
+- **Approach:** Write a `run:` step so that shellcheck needs no directive: read words into an array (`read -r -a folders
+  < <(cmd)`) and pass `"${folders[@]}"`; a directive is `key=value` and nothing else on its line. Run actionlint where
+  `shellcheck` is installed. **Watch out for:** `# shellcheck disable=SC2086 -- reason` reads the reason as another key
+  (`SC1072`, `SC1073`) and fails the `actionlint` job; actionlint checks `run:` scripts only with shellcheck installed,
+  so a Windows machine without it passes what CI rejects. **Seen:** Deadnight, 2026-11-02 (fix: the unquoted `$folders`
+  became an array and the directive was removed).

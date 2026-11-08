@@ -18,4 +18,4 @@ areas: [tools, process]
 - **Check:** any script given to Monitor, `run_in_background` or a scheduled task ends on its own, by a deadline and
   when its parent goes. After re-arming, count the copies (`Get-CimInstance Win32_Process` filtered on the script
   name): one, never more.
-- **Docs:** [Load tests starved another project](2026-11-01-load-tests-starved-another-project.md).
+- **Docs:** [A shared machine](../studio/workspace.md#shared-machine).

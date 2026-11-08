@@ -1,0 +1,100 @@
+# Running GdUnit4 and long test runs
+
+<!-- new section: the testing pages cover how fast a suite is and what leaks at exit; nothing held how to run a whole
+GdUnit suite on a shared machine (fresh checkouts, time limits, logs, what to run before a push) -->
+
+A whole Deadnight suite is about 3,400 cases and runs for most of an hour, on a machine that other agents share. CI
+runs it headless, in shards (`godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a <suite> -c
+--ignoreHeadlessMode`); a run that needs a window goes through `gds godot` ([No focus](no-focus.md)). What a leak at
+exit means is in [Leaks at exit](test-exit-leaks.md), how to make a suite fast in [Test speed](test-speed.md), what a
+window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md).
+
+## A fresh checkout {#fresh-checkout}
+
+- **Approach:** Before the first GdUnit run in a checkout made by hand (a worktree, a baseline of `main`), copy
+  `game/addons/gdUnit4` (and `godot_mcp`) from a started worktree, then run `godot --headless --path game --import` to
+  the end, logged to a file with its exit code read. **Watch out for:** the addons are git-excluded and `gds issue
+  start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
+  1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
+  Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
+  is a run that never started).
+- **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
+  game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog
+  timer) and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt
+  only by an import, so scripts naming the new class fail to compile; headless `-s` tools still work (they load by
+  path), a windowed run waits instead of exiting (20 minutes, no PNG, the next command behind it), and a soak counted
+  its chunks that failed to compile as nights of round 1. **Seen:** Deadnight, 2026-11-03 (stale cache; soak after
+  `gds merge-main`); Deadnight, 2026-11-05 (`TouchStick`) (fix: import after the merge; a median of 1 is a crashed
+  run; a windowed run with no `SHOT` line after a minute is stuck, not slow).
+
+## Time limits, logs and summaries {#logs}
+
+- **Approach:** Give a long run `gds godot --timeout 3500 -- ...` with a shell timeout above it, in the background, or
+  split the suites into chunks that each fit; read the log for `did not finish within` before its summary. **Watch
+  out for:** `gds godot` stops Godot after 900 s by default, apart from the shell's `timeout`; a helper that keeps
+  only `PASSED` and `FAILED` lines cannot tell "all passed" from "stopped half way" (150 suites had not run).
+  **Seen:** Deadnight #683, #690, 2026-11-03 (fix: `--timeout`; the helper prints the stop line and compares the
+  `Run Test Suite` count with the `test_*.gd` files asked for).
+- **Approach:** Give each run its own raw log at an absolute path in the scratch folder, end it with a `FINISHED`
+  line, wait on that same path, and read `Overall Summary` from the raw log after the run (exactly one); keep any outer
+  `timeout` longer than the run. **Watch out for:** two overlapping runs wrote one fixed log (a pass and a failure, no
+  way to tell which code); an outer `timeout 590` killed Godot while `| grep | head` still exited 0 and left an empty
+  log; a relative log name landed in the worktree; `| tail` and `| sed` hide the exit code and buffer. **Seen:**
+  Deadnight #991, 2026-11-04; Deadnight, 2026-11-04 (fix: `grep -c "Overall Summary"` must print 1, else the run is
+  repeated alone; `git status` after a killed command).
+- **Approach:** Read the log above the exit line before judging a GdUnit run: 100 is failed tests, 101 warnings, 103
+  headless not supported, 104 Godot version not supported, 105 a script error while discovering the tests (a test or a
+  script it loads does not parse). **Watch out for:** exit 105 was filed as "a crash or a stop, not measured further"
+  though nothing had run; the errors are in the log above `Abnormal exit with 105`. **Seen:** Deadnight, 2026-11-05
+  (fix: the script was repaired and the suite rerun; on `main` the suite exited 100 with the real failures).
+- **Approach:** Quote each suite's own `Statistics` line (`2/10/5 test cases, 0 failures`), say what a number counted
+  (`287 fault lines`, not `287 faults`), keep the logs, case lists and `results.xml` of a measurement until the pull
+  request has merged, and have a sentence about "main" or "CI" name the run ids it rests on (`gh run view <id> --json
+  jobs`). **Watch out for:** a runner cut with `head -8` showed one suite's summary for three, and the raw logs were
+  deleted for disk before CI passed; a page said main's shard failed a step it had passed, from two red runs and none of
+  the green, and the list behind two case counts (596 against 595) was gone. **Seen:** Deadnight #987, 2026-11-04;
+  Deadnight #1231, 2026-11-05 (fix: compare runs by their case lists; `SCRATCH.md` `Can go:` names a log after the
+  merge).
+
+## Before the push {#before-the-push}
+
+- **Approach:** Before pushing, run `gds merge-main`, then every folder of `game/tests` on the merged branch (or CI's
+  own shard command), read the logs for `ERROR`, and ignore any earlier summary; before taking over a branch, list the
+  processes whose command line names its worktree and stop the runner script first, then its `timeout` and Godot
+  children, by PID. **Watch out for:** a hand-over said "tests passing" and was green only on the folders its author
+  guessed: `tests/world` (light cap) and `tests/tuning` (sound tables) read the whole project and failed on a new light
+  and sound field, and the old runner script kept moving to the next shard and overwrote the summary. **Seen:**
+  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run).
+- **Approach:** To see a new test fail first, save the diff (`git diff origin/main -- <paths> > file.patch`), run the
+  revert, the test and the restore as separate commands with the test under its own `timeout` (or run it in a worktree
+  of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,
+  run and restore in one command: the timeout killed it between the first and the last and the worktree held main's
+  files with the fix gone. **Seen:** Deadnight #987, 2026-11-04 (fix: the saved patch restored the work).
+
+## Change nothing a run reads {#inputs-of-a-run}
+
+- **Approach:** Commit first, then start the long suites, soaks and measuring arms, and change nothing they read while
+  they run (a generator's output, baked meshes, the tests, a merge of main); to go on working, run them in a detached
+  worktree of the commit (`git worktree add --detach <dir> <sha>`, one `--import`). **Watch out for:** suites read the
+  scene and baked meshes as each suite starts, so a run begun on one scene finished on another ("the way ends 8.6 m from
+  the hall"); `gds merge-main` during a soak brought a new `class_name` and every later chunk failed to compile; a
+  "before" arm started after the edit measured the new code. **Seen:** Deadnight #994, #917, 2026-11-04; Deadnight #764,
+  2026-11-03; Deadnight, 2026-11-03 (soak) (fix: the runs were stopped by PID and rerun on the commit).
+- **Approach:** To compare two trees, name both behaviours in the run's arguments (`--ray=body`, `--ray=walls`) so the
+  code under test no longer decides what is measured, add a control that must come out equal in both arms (a place the
+  change cannot reach), run each arm once by hand and see its success line before looping, and print the first error
+  line of every dead run. **Watch out for:** one probe run against both trees called a function the old tree lacked and
+  a loop that counts "no done line" as a death read "died 30 of 30" before the change as a perfect-looking result (the
+  real before rates were 2, 3 and 0 of 100). **Seen:** Deadnight #764, 2026-11-03; Deadnight, 2026-11-04 (cold loop)
+  (fix: a separate probe for the old tree; the lot, where the ray is never asked, matched in both arms).
+
+## Running more than one {#parallel}
+
+- **Approach:** Before filing a flake, reproduce it with nothing else of the same project running and ask whether the
+  failing test touches a path, port or temp file another run shares; name test files by process id
+  (`QuietSettings.test_path`), give servers port 0, and run one net shard at a time, its log in a file. **Watch out
+  for:** every run of a project shares `user://`, and a suite's setup and cleanup delete its fixed file name: one run
+  removed it between another run's write and read (3 of 6 concurrent pairs failed, alone never) and a flake issue was
+  filed; two parallel full-shard runs of net suites with fixed ports
+  printed nothing for 25 minutes (alone: 8). **Seen:** Deadnight #594, 2026-11-02; Deadnight #1231, 2026-11-05 (fix:
+  6 of 6 concurrent pairs passed; eleven suites still use a fixed `user://` name, harmless with one run per machine).

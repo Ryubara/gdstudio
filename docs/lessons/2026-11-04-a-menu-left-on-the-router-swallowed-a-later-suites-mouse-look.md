@@ -23,5 +23,5 @@ areas: [tests, input]
 - **Check:** a red suite that reads "no input" only in a shard: reproduce with that shard's order (the job log prints
   it after `shard N:`), then print `UIRouter.depth()`, `get_viewport().gui_get_focus_owner()` and `UIRouter.busy`
   before the first event. A suite that shows a screen clears the router when it ends.
-- **Docs:** [a suite that ends on a router screen eats later clicks](2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
+- **Docs:** [a suite that ends on a router screen eats later clicks](../gamedev/testing.md#leftover-state),
   [a touch suite left the emulated mouse button down](2026-11-02-a-touch-suite-left-the-emulated-mouse-button-down-for-the-next-suite.md).

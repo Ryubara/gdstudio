@@ -322,7 +322,7 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
 - **Cost on the web**: 34 more draw calls and about 0.4 ms a frame in Chrome on an RTX 5080 (1280 x 720, unpaced,
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
-  ([lesson](../../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
+  ([Capture](../../studio/capture.md#frames)).
 
 ## A lamp near a wall {#a-lamp-near-a-wall}
 
