@@ -1,6 +1,61 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/physics_prop/physics_prop.gd" id="1_prop"]
 
+[sub_resource type="BoxMesh" id="BoxMesh_crate"]
+resource_local_to_scene = true
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_crate"]
+resource_local_to_scene = true
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_barrel"]
+resource_local_to_scene = true
+top_radius = 0.5
+bottom_radius = 0.5
+radial_segments = 20
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_barrel"]
+resource_local_to_scene = true
+height = 1.0
+radius = 0.5
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+resource_local_to_scene = true
+radial_segments = 24
+rings = 12
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_ball"]
+resource_local_to_scene = true
+radius = 0.5
+
 [node name="PhysicsProp" type="RigidBody3D"]
 script = ExtResource("1_prop")
+
+[node name="CrateMesh" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+mesh = SubResource("BoxMesh_crate")
+
+[node name="CrateShape" type="CollisionShape3D" parent="."]
+unique_name_in_owner = true
+shape = SubResource("BoxShape3D_crate")
+
+[node name="BarrelMesh" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+visible = false
+mesh = SubResource("CylinderMesh_barrel")
+
+[node name="BarrelShape" type="CollisionShape3D" parent="."]
+unique_name_in_owner = true
+shape = SubResource("CylinderShape3D_barrel")
+disabled = true
+
+[node name="BallMesh" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+visible = false
+mesh = SubResource("SphereMesh_ball")
+
+[node name="BallShape" type="CollisionShape3D" parent="."]
+unique_name_in_owner = true
+shape = SubResource("SphereShape3D_ball")
+disabled = true

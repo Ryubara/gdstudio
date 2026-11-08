@@ -19,15 +19,6 @@ func before_test() -> void:
 			InputMap.add_action(action)
 			_added.append(action)
 	_touch = load("res://ui/touch/touch_controls.tscn").instantiate()
-	var jump := TouchButton.new()
-	jump.action = &"jump"
-	jump.label = "Jump"
-	jump.slot = 0
-	var use := TouchButton.new()
-	use.action = &"interact"
-	use.label = "Use"
-	use.slot = 1
-	_touch.buttons = [jump, use] as Array[TouchButton]
 	_touch.look_smoothing = 0.0
 	add_child(_touch)
 	_touch.look_turned.connect(func(degrees: Vector2) -> void: _looks.append(degrees))
@@ -294,7 +285,7 @@ func test_the_controls_stay_inside_the_screen_and_the_buttons_do_not_overlap() -
 	var view := _touch.get_viewport().get_visible_rect()
 	for index in 2:
 		var spot := _touch.button_center(index)
-		var reach := _touch.button_size / 2.0
+		var reach := _touch.button_size_of(index) / 2.0
 		(
 			assert_bool(view.grow(-_touch.margin + 1.0).has_point(spot + Vector2(reach, reach)))
 			. is_true()
@@ -304,7 +295,7 @@ func test_the_controls_stay_inside_the_screen_and_the_buttons_do_not_overlap() -
 			. is_true()
 		)
 	var apart := _touch.button_center(0).distance_to(_touch.button_center(1))
-	assert_float(apart).is_greater(_touch.button_size * 1.1)
+	assert_float(apart).is_greater(_touch.button_size_of(0) * 1.1)
 	var home := _touch.stick_home()
 	assert_bool(view.has_point(home)).is_true()
 	assert_float(home.x).is_less(view.size.x * 0.5)
@@ -313,7 +304,8 @@ func test_the_controls_stay_inside_the_screen_and_the_buttons_do_not_overlap() -
 func test_the_buttons_are_large_enough_for_a_thumb_on_a_phone() -> void:
 	# A phone in landscape is about 390 points high for the 1080-high canvas: 44 points (Apple's
 	# default size for a control) is 122 canvas pixels.
-	assert_float(_touch.button_size).is_greater_equal(44.0 * 1080.0 / 390.0)
+	for index in _touch.button_count():
+		assert_float(_touch.button_size_of(index)).is_greater_equal(44.0 * 1080.0 / 390.0)
 
 
 func test_a_touch_sent_through_the_engine_reaches_the_layer() -> void:

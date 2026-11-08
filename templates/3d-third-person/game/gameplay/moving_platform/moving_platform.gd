@@ -4,6 +4,10 @@ extends AnimatableBody3D
 ## A platform that carries whatever stands on it between two points. Set the travel in the
 ## inspector, or call `start()`, `stop()` and `send_to_end()` from a trigger. It moves in the
 ## physics step at a fixed speed, so a rider and a test see the same ride every time.
+##
+## Its parts are nodes of `moving_platform.tscn`: `Mesh` and `Shape` are the slab, and `EndPreview`
+## is a ghost of the platform at the far end (shown in the editor only), so changing `size` or
+## `travel` in the inspector moves what you see at once.
 
 ## The platform reached its far end.
 signal reached_end
@@ -30,7 +34,10 @@ enum Mode {
 
 @export_group("Travel")
 ## Where the far end is, from the start, in the platform's own axes.
-@export_custom(PROPERTY_HINT_NONE, "suffix:m") var travel := Vector3(0.0, 0.0, 4.0)
+@export_custom(PROPERTY_HINT_NONE, "suffix:m") var travel := Vector3(0.0, 0.0, 4.0):
+	set(value):
+		travel = value
+		_update_preview()
 ## How fast it moves.
 @export_range(0.1, 20.0, 0.1, "or_greater", "suffix:m/s") var speed := 2.0
 ## How long it waits at each end.
@@ -45,14 +52,15 @@ var _direction := 1.0
 var _waiting := 0.0
 var _running := false
 var _home := Transform3D.IDENTITY
-var _mesh: MeshInstance3D
-var _shape: CollisionShape3D
 
 
 func _ready() -> void:
 	_rebuild()
 	if Engine.is_editor_hint():
 		return
+	var ghost := _preview()
+	if ghost != null:
+		ghost.visible = false
 	sync_to_physics = true
 	_home = transform
 	_running = autostart and mode != Mode.ON_CALL
@@ -124,18 +132,41 @@ func _place() -> void:
 	transform = _home.translated_local(along)
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _mesh() == null or _shape() == null or _preview() == null:
+		warnings.append("The scene needs `Mesh`, `Shape` and `EndPreview` nodes.")
+	return warnings
+
+
+func _mesh() -> MeshInstance3D:
+	return get_node_or_null("%Mesh") as MeshInstance3D
+
+
+func _shape() -> CollisionShape3D:
+	return get_node_or_null("%Shape") as CollisionShape3D
+
+
+func _preview() -> MeshInstance3D:
+	return get_node_or_null("%EndPreview") as MeshInstance3D
+
+
+# Puts `size` and `material` on the slab's own mesh and shape (each platform has its own copies:
+# they are local to the scene), then moves the ghost.
 func _rebuild() -> void:
-	if _mesh == null:
-		_mesh = MeshInstance3D.new()
-		_mesh.name = "Mesh"
-		add_child(_mesh)
-		_shape = CollisionShape3D.new()
-		_shape.name = "Shape"
-		add_child(_shape)
-	var slab := BoxMesh.new()
-	slab.size = size
-	_mesh.mesh = slab
-	_mesh.material_override = material
-	var collider := BoxShape3D.new()
-	collider.size = size
-	_shape.shape = collider
+	var mesh := _mesh()
+	var shape := _shape()
+	var ghost := _preview()
+	if mesh == null or shape == null or ghost == null:
+		return
+	(mesh.mesh as BoxMesh).size = size
+	mesh.material_override = material
+	(shape.shape as BoxShape3D).size = size
+	(ghost.mesh as BoxMesh).size = size
+	_update_preview()
+
+
+func _update_preview() -> void:
+	var ghost := _preview()
+	if ghost != null:
+		ghost.position = travel

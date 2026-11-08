@@ -4,7 +4,8 @@ extends Marker3D
 ## Where something starts: a player, a team, a wave of enemies. The node's forward direction
 ## (its -Z, the blue arrow in the editor) is the way the spawned thing faces. Put several in one
 ## group and ask `SpawnPoint.pick()` for one, or read `spawn_transform()` from one you chose
-## yourself. In the game the marker is invisible unless `show_in_game`.
+## yourself. The blue arrow is the `Marker` node of `spawn_point.tscn`: the editor shows it, and in
+## the game it is hidden unless `show_in_game`.
 
 @export_group("Spawn")
 ## Points with the same group name belong together (`player`, `red_team`, `wave_1`).
@@ -26,8 +27,6 @@ extends Marker3D
 	set(value):
 		show_in_game = value
 		_update_marker()
-
-var _marker: MeshInstance3D
 
 
 func _ready() -> void:
@@ -63,24 +62,21 @@ func spawn_transform(rng: RandomNumberGenerator) -> Transform3D:
 	return result
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _marker() == null:
+		warnings.append(
+			"The scene needs a `Marker` (MeshInstance3D): the arrow that shows the facing."
+		)
+	return warnings
+
+
+func _marker() -> MeshInstance3D:
+	return get_node_or_null("%Marker") as MeshInstance3D
+
+
+# The arrow is always there in the editor and shows in the game only on request.
 func _update_marker() -> void:
-	var wanted := Engine.is_editor_hint() or show_in_game
-	if not wanted:
-		if _marker != null:
-			_marker.queue_free()
-			_marker = null
-		return
-	if _marker != null:
-		return
-	_marker = MeshInstance3D.new()
-	_marker.name = "Marker"
-	var arrow := PrismMesh.new()
-	arrow.size = Vector3(0.6, 0.6, 0.1)
-	_marker.mesh = arrow
-	_marker.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
-	_marker.position = Vector3(0.0, 0.05, -0.3)
-	var paint := StandardMaterial3D.new()
-	paint.albedo_color = Color(0.2, 0.55, 1.0)
-	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_marker.material_override = paint
-	add_child(_marker)
+	var marker := _marker()
+	if marker != null:
+		marker.visible = Engine.is_editor_hint() or show_in_game

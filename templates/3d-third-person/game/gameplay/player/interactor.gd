@@ -6,8 +6,9 @@ extends Node3D
 
 ## The group a usable node joins.
 const GROUP := &"interactable"
-## Targets more than this far from straight ahead are ignored, in degrees.
-const HALF_ANGLE := 75.0
+
+## Targets more than this far from straight ahead are ignored.
+@export_range(10.0, 180.0, 1.0, "suffix:deg") var half_angle := 75.0
 
 
 ## The usable node in front, or null. `reach` is in metres from this node, along `forward`.
@@ -24,7 +25,7 @@ func find_target(forward: Vector3, reach: float) -> Node3D:
 		if distance > best_distance:
 			continue
 		var heading := Vector3(offset.x, 0.0, offset.z).normalized()
-		if distance > 0.05 and flat.angle_to(heading) > deg_to_rad(HALF_ANGLE):
+		if distance > 0.05 and flat.angle_to(heading) > deg_to_rad(half_angle):
 			continue
 		best = candidate
 		best_distance = distance

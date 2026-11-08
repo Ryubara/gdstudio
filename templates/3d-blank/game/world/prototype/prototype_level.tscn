@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://world/lighting/daylight.tscn" id="1_daylight"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_floor.tres" id="2_pdr7n"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_wall.tres" id="3_pgsj7"]
+[ext_resource type="PackedScene" path="res://world/blocks/proto_block.tscn" id="blk"]
 [ext_resource type="Script" uid="uid://484hd7kq1u6j" path="res://world/lighting/graphics_profile.gd" id="4_sn1qn"]
 [ext_resource type="LightmapGIData" uid="uid://bjptrw6vwm6by" path="res://world/prototype/prototype_level.lmbake" id="5_txf3j"]
 
@@ -20,9 +21,6 @@ _surfaces = [{
 "vertex_data": PackedByteArray("AADIwQAAAD8AAMhBAADIQQAAAD8AAMhBAADIwQAAAL8AAMhBAADIQQAAAL8AAMhBAADIQQAAAD8AAMjBAADIwQAAAD8AAMjBAADIQQAAAL8AAMjBAADIwQAAAL8AAMjBAADIQQAAAD8AAMhBAADIQQAAAD8AAMjBAADIQQAAAL8AAMhBAADIQQAAAL8AAMjBAADIwQAAAD8AAMjBAADIwQAAAD8AAMhBAADIwQAAAL8AAMjBAADIwQAAAL8AAMhBAADIQQAAAD8AAMhBAADIwQAAAD8AAMhBAADIQQAAAD8AAMjBAADIwQAAAD8AAMjBAADIwQAAAL8AAMhBAADIQQAAAL8AAMhBAADIwQAAAL8AAMjBAADIQQAAAL8AAMjB/3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_pgsj7"]
-size = Vector3(50, 1, 50)
-
 [sub_resource type="ArrayMesh" id="ArrayMesh_sn1qn"]
 lightmap_size_hint = Vector2i(46, 102)
 _surfaces = [{
@@ -36,9 +34,6 @@ _surfaces = [{
 "vertex_count": 24,
 "vertex_data": PackedByteArray("AADIwQAAAEAAAAA/AADIQQAAAEAAAAA/AADIwQAAAMAAAAA/AADIQQAAAMAAAAA/AADIQQAAAEAAAAC/AADIwQAAAEAAAAC/AADIQQAAAMAAAAC/AADIwQAAAMAAAAC/AADIQQAAAEAAAAA/AADIQQAAAEAAAAC/AADIQQAAAMAAAAA/AADIQQAAAMAAAAC/AADIwQAAAEAAAAC/AADIwQAAAEAAAAA/AADIwQAAAMAAAAC/AADIwQAAAMAAAAA/AADIQQAAAEAAAAA/AADIwQAAAEAAAAA/AADIQQAAAEAAAAC/AADIwQAAAEAAAAC/AADIwQAAAMAAAAA/AADIQQAAAMAAAAA/AADIwQAAAMAAAAC/AADIQQAAAMAAAAC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_txf3j"]
-size = Vector3(50, 4, 1)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_bcbkj"]
 lightmap_size_hint = Vector2i(46, 102)
@@ -54,9 +49,6 @@ _surfaces = [{
 "vertex_data": PackedByteArray("AADIwQAAAEAAAAA/AADIQQAAAEAAAAA/AADIwQAAAMAAAAA/AADIQQAAAMAAAAA/AADIQQAAAEAAAAC/AADIwQAAAEAAAAC/AADIQQAAAMAAAAC/AADIwQAAAMAAAAC/AADIQQAAAEAAAAA/AADIQQAAAEAAAAC/AADIQQAAAMAAAAA/AADIQQAAAMAAAAC/AADIwQAAAEAAAAC/AADIwQAAAEAAAAA/AADIwQAAAMAAAAC/AADIwQAAAMAAAAA/AADIQQAAAEAAAAA/AADIwQAAAEAAAAA/AADIQQAAAEAAAAC/AADIwQAAAEAAAAC/AADIwQAAAMAAAAA/AADIQQAAAMAAAAA/AADIwQAAAMAAAAC/AADIQQAAAMAAAAC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_mspsb"]
-size = Vector3(50, 4, 1)
-
 [sub_resource type="ArrayMesh" id="ArrayMesh_qawsf"]
 lightmap_size_hint = Vector2i(46, 98)
 _surfaces = [{
@@ -70,9 +62,6 @@ _surfaces = [{
 "vertex_count": 24,
 "vertex_data": PackedByteArray("AAAAvwAAAEAAAMBBAAAAPwAAAEAAAMBBAAAAvwAAAMAAAMBBAAAAPwAAAMAAAMBBAAAAPwAAAEAAAMDBAAAAvwAAAEAAAMDBAAAAPwAAAMAAAMDBAAAAvwAAAMAAAMDBAAAAPwAAAEAAAMBBAAAAPwAAAEAAAMDBAAAAPwAAAMAAAMBBAAAAPwAAAMAAAMDBAAAAvwAAAEAAAMDBAAAAvwAAAEAAAMBBAAAAvwAAAMAAAMDBAAAAvwAAAMAAAMBBAAAAPwAAAEAAAMBBAAAAvwAAAEAAAMBBAAAAPwAAAEAAAMDBAAAAvwAAAEAAAMDBAAAAvwAAAMAAAMBBAAAAPwAAAMAAAMBBAAAAvwAAAMAAAMDBAAAAPwAAAMAAAMDB/3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_3ficm"]
-size = Vector3(1, 4, 48)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_nmf6x"]
 lightmap_size_hint = Vector2i(46, 98)
@@ -88,64 +77,41 @@ _surfaces = [{
 "vertex_data": PackedByteArray("AAAAvwAAAEAAAMBBAAAAPwAAAEAAAMBBAAAAvwAAAMAAAMBBAAAAPwAAAMAAAMBBAAAAPwAAAEAAAMDBAAAAvwAAAEAAAMDBAAAAPwAAAMAAAMDBAAAAvwAAAMAAAMDBAAAAPwAAAEAAAMBBAAAAPwAAAEAAAMDBAAAAPwAAAMAAAMBBAAAAPwAAAMAAAMDBAAAAvwAAAEAAAMDBAAAAvwAAAEAAAMBBAAAAvwAAAMAAAMDBAAAAvwAAAMAAAMBBAAAAPwAAAEAAAMBBAAAAvwAAAEAAAMBBAAAAPwAAAEAAAMDBAAAAvwAAAEAAAMDBAAAAvwAAAMAAAMBBAAAAPwAAAMAAAMBBAAAAvwAAAMAAAMDBAAAAPwAAAMAAAMDB/3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_2hoda"]
-size = Vector3(1, 4, 48)
-
 [node name="PrototypeLevel" type="Node3D" unique_id=1626006782]
 
 [node name="Daylight" parent="." unique_id=777220209 instance=ExtResource("1_daylight")]
 
 [node name="Boundary" type="Node3D" parent="." unique_id=2000809025]
 
-[node name="Floor" type="MeshInstance3D" parent="Boundary" unique_id=66410148]
+[node name="Floor" parent="Boundary" unique_id=66410148 instance=ExtResource("blk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-material_override = ExtResource("2_pdr7n")
 mesh = SubResource("ArrayMesh_pdr7n")
+size = Vector3(50, 1, 50)
+material = ExtResource("2_pdr7n")
 
-[node name="Body" type="StaticBody3D" parent="Boundary/Floor" unique_id=2001695805]
-
-[node name="Shape" type="CollisionShape3D" parent="Boundary/Floor/Body" unique_id=1553440540]
-shape = SubResource("BoxShape3D_pgsj7")
-
-[node name="WallNorth" type="MeshInstance3D" parent="Boundary" unique_id=1696143281]
+[node name="WallNorth" parent="Boundary" unique_id=1696143281 instance=ExtResource("blk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -24.5)
-material_override = ExtResource("3_pgsj7")
 mesh = SubResource("ArrayMesh_sn1qn")
+size = Vector3(50, 4, 1)
+material = ExtResource("3_pgsj7")
 
-[node name="Body" type="StaticBody3D" parent="Boundary/WallNorth" unique_id=846891346]
-
-[node name="Shape" type="CollisionShape3D" parent="Boundary/WallNorth/Body" unique_id=336146767]
-shape = SubResource("BoxShape3D_txf3j")
-
-[node name="WallSouth" type="MeshInstance3D" parent="Boundary" unique_id=1910915054]
+[node name="WallSouth" parent="Boundary" unique_id=1910915054 instance=ExtResource("blk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 24.5)
-material_override = ExtResource("3_pgsj7")
 mesh = SubResource("ArrayMesh_bcbkj")
+size = Vector3(50, 4, 1)
+material = ExtResource("3_pgsj7")
 
-[node name="Body" type="StaticBody3D" parent="Boundary/WallSouth" unique_id=492350296]
-
-[node name="Shape" type="CollisionShape3D" parent="Boundary/WallSouth/Body" unique_id=1281099044]
-shape = SubResource("BoxShape3D_mspsb")
-
-[node name="WallWest" type="MeshInstance3D" parent="Boundary" unique_id=162361454]
+[node name="WallWest" parent="Boundary" unique_id=162361454 instance=ExtResource("blk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.5, 2, 0)
-material_override = ExtResource("3_pgsj7")
 mesh = SubResource("ArrayMesh_qawsf")
+size = Vector3(1, 4, 48)
+material = ExtResource("3_pgsj7")
 
-[node name="Body" type="StaticBody3D" parent="Boundary/WallWest" unique_id=608583053]
-
-[node name="Shape" type="CollisionShape3D" parent="Boundary/WallWest/Body" unique_id=2072072764]
-shape = SubResource("BoxShape3D_3ficm")
-
-[node name="WallEast" type="MeshInstance3D" parent="Boundary" unique_id=738980213]
+[node name="WallEast" parent="Boundary" unique_id=738980213 instance=ExtResource("blk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 2, 0)
-material_override = ExtResource("3_pgsj7")
 mesh = SubResource("ArrayMesh_nmf6x")
-
-[node name="Body" type="StaticBody3D" parent="Boundary/WallEast" unique_id=1190153261]
-
-[node name="Shape" type="CollisionShape3D" parent="Boundary/WallEast/Body" unique_id=1287552827]
-shape = SubResource("BoxShape3D_2hoda")
+size = Vector3(1, 4, 48)
+material = ExtResource("3_pgsj7")
 
 [node name="GraphicsProfile" type="Node" parent="." unique_id=702227257 node_paths=PackedStringArray("world_environment", "sun", "lightmap")]
 script = ExtResource("4_sn1qn")

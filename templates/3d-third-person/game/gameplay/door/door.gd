@@ -5,6 +5,10 @@ extends AnimatableBody3D
 ## from a trigger, or let it open when a body comes near (`auto_open_range`). The panel moves in
 ## the physics step with the same fixed timestep every run, so a test sees the same door a
 ## player does.
+##
+## Its parts are nodes of `door.tscn`: `Panel` (the mesh), `Shape` (what blocks the way) and
+## `Sensor` (an area, its sphere is `auto_open_range`, drawn by the editor), so open the scene to
+## restyle the door. `panel_size` and `auto_open_range` follow the inspector live.
 
 ## The door finished opening.
 signal opened
@@ -25,6 +29,7 @@ enum Style {
 	set(value):
 		panel_size = value.max(Vector3.ONE * 0.05)
 		_rebuild_panel()
+		_apply_live()
 ## The panel's material. Empty uses a plain grey.
 @export var panel_material: Material:
 	set(value):
@@ -33,12 +38,21 @@ enum Style {
 
 @export_group("Motion")
 ## How the door opens.
-@export var style: Style = Style.SLIDE_UP
+@export var style: Style = Style.SLIDE_UP:
+	set(value):
+		style = value
+		_apply_live()
 ## How far a sliding panel travels. Zero slides it by its own height or width, whichever the
 ## style moves.
-@export_range(0.0, 10.0, 0.05, "or_greater", "suffix:m") var slide_distance := 0.0
+@export_range(0.0, 10.0, 0.05, "or_greater", "suffix:m") var slide_distance := 0.0:
+	set(value):
+		slide_distance = value
+		_apply_live()
 ## How far a swinging panel turns.
-@export_range(10.0, 170.0, 1.0, "suffix:deg") var swing_angle := 100.0
+@export_range(10.0, 170.0, 1.0, "suffix:deg") var swing_angle := 100.0:
+	set(value):
+		swing_angle = value
+		_apply_live()
 ## Seconds to go from closed to open.
 @export_range(0.05, 10.0, 0.05, "or_greater", "suffix:s") var open_time := 0.8
 
@@ -51,31 +65,36 @@ enum Style {
 @export_range(0.0, 60.0, 0.1, "or_greater", "suffix:s") var close_after := 0.0
 ## Opens when a body on the layers below comes within this distance of the door. Zero turns it
 ## off.
-@export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m") var auto_open_range := 0.0
+@export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m") var auto_open_range := 0.0:
+	set(value):
+		auto_open_range = value
+		_update_sensor()
 ## Which physics layers count as something that opens the door.
-@export_flags_3d_physics var auto_open_mask := 1
+@export_flags_3d_physics var auto_open_mask := 1:
+	set(value):
+		auto_open_mask = value
+		_update_sensor()
 ## Lets a character open and close the door with its interact button (`Player` finds nodes of
 ## the group `interactable`).
-@export var player_can_use := true
+@export var player_can_use := true:
+	set(value):
+		player_can_use = value
+		_update_usable()
 
 var _openness := 0.0
 var _target := 0.0
 var _open_for := 0.0
 var _home := Transform3D.IDENTITY
-var _panel: MeshInstance3D
-var _shape: CollisionShape3D
-var _sensor: Area3D
 
 
 func _ready() -> void:
 	_rebuild_panel()
+	_update_sensor()
 	if Engine.is_editor_hint():
 		return
 	sync_to_physics = true
 	_home = transform
-	if player_can_use:
-		add_to_group(&"interactable")
-	_build_sensor()
+	_update_usable()
 	_openness = 1.0 if start_open else 0.0
 	_target = _openness
 	_apply()
@@ -85,7 +104,7 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	if auto_open_range > 0.0 and not locked:
-		if _sensor.has_overlapping_bodies():
+		if _sensor().has_overlapping_bodies():
 			open()
 	if _target > _openness:
 		_openness = minf(_openness + delta / open_time, _target)
@@ -151,7 +170,13 @@ func unlock() -> void:
 
 
 func _sensor_holds_open() -> bool:
-	return auto_open_range > 0.0 and _sensor.has_overlapping_bodies()
+	return auto_open_range > 0.0 and _sensor().has_overlapping_bodies()
+
+
+# Moves the panel to where the new motion settings put it, while the game runs.
+func _apply_live() -> void:
+	if is_node_ready() and not Engine.is_editor_hint():
+		_apply()
 
 
 func _apply() -> void:
@@ -170,35 +195,64 @@ func _apply() -> void:
 	transform = _home * offset
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _panel() == null or _shape() == null or _sensor() == null:
+		(
+			warnings
+			. append(
+				"The scene needs `Panel` (MeshInstance3D), `Shape` (CollisionShape3D) and `Sensor` (Area3D)."
+			)
+		)
+	return warnings
+
+
+func _panel() -> MeshInstance3D:
+	return get_node_or_null("%Panel") as MeshInstance3D
+
+
+func _shape() -> CollisionShape3D:
+	return get_node_or_null("%Shape") as CollisionShape3D
+
+
+func _sensor() -> Area3D:
+	return get_node_or_null("%Sensor") as Area3D
+
+
+# Puts `panel_size` and `panel_material` on the panel's own mesh and shape (each door has its own
+# copies: they are local to the scene).
 func _rebuild_panel() -> void:
-	if _panel == null:
-		_panel = MeshInstance3D.new()
-		_panel.name = "Panel"
-		add_child(_panel)
-		_shape = CollisionShape3D.new()
-		_shape.name = "Shape"
-		add_child(_shape)
-	var box := BoxMesh.new()
-	box.size = panel_size
-	_panel.mesh = box
-	_panel.material_override = panel_material
-	var collider := BoxShape3D.new()
-	collider.size = panel_size
-	_shape.shape = collider
-	_panel.position = Vector3(0.0, panel_size.y / 2.0, 0.0)
-	_shape.position = _panel.position
+	var panel := _panel()
+	var shape := _shape()
+	if panel == null or shape == null:
+		return
+	(panel.mesh as BoxMesh).size = panel_size
+	panel.material_override = panel_material
+	(shape.shape as BoxShape3D).size = panel_size
+	panel.position = Vector3(0.0, panel_size.y / 2.0, 0.0)
+	shape.position = panel.position
+	var sensor := _sensor()
+	if sensor != null:
+		sensor.position = panel.position
 
 
-func _build_sensor() -> void:
-	_sensor = Area3D.new()
-	_sensor.name = "Sensor"
-	_sensor.collision_layer = 0
-	_sensor.collision_mask = auto_open_mask
-	_sensor.monitoring = auto_open_range > 0.0
-	var ball := CollisionShape3D.new()
-	var sphere := SphereShape3D.new()
-	sphere.radius = maxf(auto_open_range, 0.01)
-	ball.shape = sphere
-	_sensor.add_child(ball)
-	add_child(_sensor)
-	_sensor.position = Vector3(0.0, panel_size.y / 2.0, 0.0)
+# Puts the range and the mask on the sensor, which watches only when there is a range.
+func _update_sensor() -> void:
+	var sensor := _sensor()
+	if sensor == null:
+		return
+	sensor.collision_mask = auto_open_mask
+	sensor.monitoring = auto_open_range > 0.0 and not Engine.is_editor_hint()
+	var ball := sensor.get_node_or_null("%SensorShape") as CollisionShape3D
+	if ball != null:
+		(ball.shape as SphereShape3D).radius = maxf(auto_open_range, 0.01)
+
+
+# A usable door is in the group a character looks in.
+func _update_usable() -> void:
+	if Engine.is_editor_hint() or not is_inside_tree():
+		return
+	if player_can_use:
+		add_to_group(&"interactable")
+	else:
+		remove_from_group(&"interactable")
