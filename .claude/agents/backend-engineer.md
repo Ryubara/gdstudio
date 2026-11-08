@@ -97,4 +97,4 @@ in it can go (`Can go: <globs>`), so the guard clears it after the merge.
 
 Never end a turn by announcing the next step ("Now the autopilot."): ending a turn stops you, and nothing wakes
 you again. Do the step in the same turn, or start a background command that notifies you when it ends (kit lesson
-`docs/lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md`).
+`docs/studio/agents.md#the-loop`).

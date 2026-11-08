@@ -96,11 +96,11 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    what the map is meant to do (where to learn, kite, hold, rest) and its opening order. A fault seen on paper is cheap.
 4. **Walk it from the player's camera**, never from the editor: the real night, the real camera, the dimmest state and
    the lit one. The editor and a probe of the scene tree do not show what a level hides on purpose or what the camera
-   sees (kit lesson `docs/lessons/2026-11-03-a-capture-tool-showed-the-parts-a-level-hides-on-purpose.md`).
+   sees (`docs/engines/godot/measuring-effects-on-screen.md#method`).
 5. **Prove by movement, not by reading the tuning.** The reach is measured, the ways out are swept, every chain is
    replayed from the real floor before it is filed, every roost is tested with the dead. A capture spot must be one a
    player can stand on, with the player's body in frame
-   (kit lesson `docs/lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md`).
+   (`docs/engines/godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands`).
 6. **Judge, rank, act.** For each area a verdict (keep, rework, remove) with its evidence. Rank: out of bounds and door
    skips first (they end the design), then stuck or unreachable bodies and unreadable prompts, then pacing and layout,
    then lighting and dressing. Small, certain faults (a missing collider, a stair of props, one mis-lit corner) you fix

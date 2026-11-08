@@ -115,7 +115,7 @@ def test_the_conventions_hold_the_same_numbers_as_the_checker():
     assert learning["max_page_kb"] == lessons.MAX_PAGE_KB
     assert tuple(learning["rule_parts"]) == lessons.RULE_PARTS
     assert learning["reason_line"] == lessons.REASON_LINE
-    assert learning["legacy_lessons"] == {"folder": "docs/lessons/", "last_date": lessons.LEGACY_LAST_DATE}
+    assert learning["legacy_lessons"] == {"folder": lessons.LESSONS.as_posix() + "/"}
     assert learning["format"] == lessons.RULES_DOC.as_posix()
     assert learning["corrections_log"] == lessons.CORRECTIONS.as_posix()
 
@@ -218,20 +218,6 @@ def test_the_fixture_kit_passes(kit):
     assert lessons.problems(kit) == []
 
 
-def test_an_old_lesson_without_areas_is_no_problem(kit):
-    path = kit / "docs" / "lessons" / "2026-11-01-a.md"
-    path.write_text(path.read_text(encoding="utf-8").replace("---\nareas: [net]\n---\n", ""), encoding="utf-8")
-    assert lessons.problems(kit) == []
-    assert lessons.parse_lesson(path).title == "A packet filter dropped a valid packet"
-
-
-def test_a_lesson_dated_after_the_old_folder_closed_is_refused_without_git(kit):
-    text = "---\nareas: [net]\n---\n" + LESSON.format(title="New", fix="x")
-    (kit / "docs" / "lessons" / "2026-11-08-new.md").write_text(text, encoding="utf-8")
-    found = lessons.problems(kit)
-    assert len(found) == 1 and "no new file goes in the old lessons folder" in found[0] and "gds learn" in found[0]
-
-
 @pytest.mark.parametrize("mark", ['"', "'", "“", "‘", "«"])
 def test_a_log_row_that_quotes_the_maintainer_is_a_problem(kit, mark):
     """The maintainer's prompts are never quoted in a public repository (gdstudio #780): a row with a cell that starts
@@ -309,21 +295,20 @@ def test_an_unknown_base_is_an_error(kit):
 # --- gds learn --------------------------------------------------------------------------------------------------------
 
 
-def test_learn_prints_the_closest_section_with_its_rules_then_old_lessons(kit):
-    matches = lessons.learn(kit, "browser decoded the gzip response twice", legacy=3)
+def test_learn_prints_the_closest_section_with_its_rules(kit):
+    matches = lessons.learn(kit, "browser decoded the gzip response twice")
     assert matches[0].section.ref == "engines/godot/web.md#compression"
-    assert [m.lesson.path.name for m in matches if m.lesson][0] == "2026-11-02-b.md"
-    assert all(m.section for m in lessons.learn(kit, "browser decoded the gzip response twice"))  # pages only
-    text = lessons.learn_text(kit, "decode a compressed response", legacy=3)
+    assert all(m.section for m in matches)  # pages only: the old lesson files are gone (gdstudio #770)
+    text = lessons.learn_text(kit, "decode a compressed response")
     assert text.splitlines()[2].startswith("1. engines/godot/web.md#compression  Compression")
     assert "   - Decode a response once, in one place." in text
-    assert "Old lesson files on the same subject" in text
+    assert "Old lesson files" not in text
     assert lessons.learn_text(kit, "zzz qqq").startswith("No section mentions")
 
 
 def test_learn_skips_the_corrections_log_and_the_format_page(kit):
     (kit / lessons.RULES_DOC).write_text("# Rules\n\n## Compression rules {#x}\n\ncompression compression\n", "utf-8")
-    refs = [m.section.ref for m in lessons.learn(kit, "compression", legacy=0)]
+    refs = [m.section.ref for m in lessons.learn(kit, "compression")]
     assert refs and not any(r.startswith("studio/") for r in refs)
 
 
