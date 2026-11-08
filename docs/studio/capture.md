@@ -57,6 +57,14 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   both runs showed two Carhops. **Seen:** Deadnight, 2026-11-03 (backdrop tour); Deadnight, 2026-11-02 (shoulder views)
   (fix: `[female] loadout character: ...` is printed by each run).
 
+- **Approach:** Count a capture scene's waits in physics ticks and size `--quit-after` (which counts rendered frames)
+  as ticks / 6 at `--fixed-fps 10`; make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to
+  a shot (not only a sheet), and cross-check them against a headless log of the events. **Watch out for:** Movie Maker
+  renders one image per 1 / fixed-fps seconds while the physics step stays 60 a second, so six physics frames pass
+  between two images: 150 `physics_frame` waits for a 2.5 s action ended after 25 frames, and a tracer or flash that
+  lives 0.1 s fell between two frames and was in none. **Seen:** Deadnight, 2026-11-01 (fix: waits in ticks, effects
+  that live 2 to 3 frames).
+
 ## sheet
 
 Tiles every `--every`-th frame (default 1) in `--columns` columns (default 4) into `sheet.png` in the folder. Tiles

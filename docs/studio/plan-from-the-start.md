@@ -194,7 +194,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
   ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
-  ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
+  ([lesson](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive)).
 - Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
   ([Testing a game](../gamedev/testing.md#leftover-state), [waits](../gamedev/testing.md#bounded-waits)).

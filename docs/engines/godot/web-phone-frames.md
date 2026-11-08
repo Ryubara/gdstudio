@@ -84,7 +84,7 @@ spot that faces it, not only from the spots near it.
 
 - Wait about 12 frames after the camera moves and take the median of five reads; the count of the frame right after a
   move is still partly the old view (one spot read 1117 and 37 in two runs of the same scene with three frames of
-  waiting, [lesson](../../lessons/2026-11-03-a-draw-call-count-read-three-frames-after-a-camera-move-was-noise.md)).
+  waiting).
 - Draw the before scene and the after scene through the same probe (a copy of the old `.tscn` beside the new one),
   and run the unchanged one twice.
 - `visibility_range_end` on a `GeometryInstance3D` (a CSG box or a `MeshInstance3D`) culls by distance from the camera
