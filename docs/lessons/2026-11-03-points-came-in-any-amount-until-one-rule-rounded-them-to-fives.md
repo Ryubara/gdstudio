@@ -5,8 +5,8 @@ areas: [gameplay, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer's score read 31, 32, 33, 34 ("always 5s for consistency", Deadnight #916). A scripted night
-  showed pays of 4, 8, 12, 72, 156 and prices of 3, 8, 18, 33, 103.
+- **Saw:** the maintainer's score read 31, 32, 33, 34 (points should always come in fives, Deadnight #916). A scripted
+  night showed pays of 4, 8, 12, 72, 156 and prices of 3, 8, 18, 33, 103.
 - **Cause:** the score had no unit step. The tuning stepped by 1 (hit 4 and 8, repair 12), a zombie type's
   `points_multiplier` (1.2, 2.5, 6.0) scaled every pay and rounded it to a whole point, and part purchases, the
   crane refund and the down penalty each rounded to 1 in their own way. The HUD then merged hit rows into sums.

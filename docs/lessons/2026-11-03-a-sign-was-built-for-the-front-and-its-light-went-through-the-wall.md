@@ -5,8 +5,8 @@ areas: [godot, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer, a second time after #703: "light doesn't bleed through walls (this is also an issue with one
-  of the signs with glow halo, wasn't considered before making it)" (Deadnight #832). The SNACKS sign's omni light (energy
+- **Saw:** the maintainer, a second time after #703: light must not bleed through walls, and a sign's
+  glow halo still did because nobody considered it when it was made (Deadnight #832). The SNACKS sign's omni light (energy
   9.6, range 10, 1.2 m outside the wall) lit the stand's floor and roof pink from behind the wall (up to 3 energy; 140 000
   to 270 000 pixels of every room view with the light hidden and shown), and its flat halo, 4 m tall on a 4 m wall, stood
   in the air over the roof from behind.

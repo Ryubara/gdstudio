@@ -5,9 +5,9 @@ areas: [net, backend]
 
 2026-11-05
 
-- **Saw:** the maintainer left a match and tried to join another: "it says they're already in an existing night". Then:
-  "Why aren't lobbies immediately disbanded and we clear player state whenever the lobby is empty? The lobby I left had
-  bots in it" (Deadnight #1177). The words are the backend's `already_in_lobby`.
+- **Saw:** the maintainer left a match and tried to join another, and was refused as already in a night; an empty lobby
+  should disband at once and clear player state, and the one left had bots in it (Deadnight #1177). The refusal is the
+  backend's `already_in_lobby`.
 - **Cause:** three, found by writing the failing tests first over a real game server and the real backend, and none of
   them the issue's guess. (1) A finished night reopened its lobby and put every present user back in the "one open
   lobby per user" index, an entry the player never made. A player who went to the menu, or whose screen gave up

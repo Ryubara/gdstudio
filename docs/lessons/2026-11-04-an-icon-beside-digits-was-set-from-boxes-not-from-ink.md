@@ -5,7 +5,7 @@ areas: [godot-ui]
 
 2026-11-04
 
-- **Saw:** the maintainer: "the level number and the icons aren't really aligned vertically". Measured from pixels
+- **Saw:** the maintainer saw the level number and the icons misaligned vertically. Measured from pixels
   (Deadnight #1161): the icon's body sat 7 px above the digits in the bottom-left box (9.5 in the local one, 3 in the
   compact one), 1 to 1.4 px in the lobby, and under half a pixel in the scoreboard, the tag and the report.
 - **Cause:** the digits are placed from a baseline and the icon from a box (the box's middle, a `0.3 * font size`

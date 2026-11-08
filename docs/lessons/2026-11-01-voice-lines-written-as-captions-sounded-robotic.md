@@ -6,8 +6,8 @@ areas: [audio, process]
 2026-11-01
 
 - **Saw:** the maintainer heard the first soldier sample (ElevenLabs v3, a stock deep voice, audio tags) and found it
-  "a bit robotic and like an AI": "Reload... catch your breath" where a person would say "Reloading!" or "Jeez, gotta
-  catch my breath real quick".
+  robotic and synthetic: the line "Reload... catch your breath" was a caption of the event, where a real person would
+  shout and react in the first person.
 - **Cause:** the line was written as an instruction describing the event, not as the character reacting to it. Text to
   speech reads clipped imperative text like a narrator, whatever the voice and the tags.
 - **Fix:** write barks the way a person talks under stress: first person, contractions, a filler or a breath, an

@@ -213,9 +213,9 @@ progress with no owner, and the weekly hygiene sweep reports labels that sit idl
 
 ## Idle issues {#idle}
 
-Run everything that can run in parallel, and enforce it: nothing used to notice when issues that could start sat with
-no agent ([the maintainer's words](research/maintainer-corrections.md); on 2026-11-02 two or three agents ran while four
-kit issues waited, and later 15 Deadnight issues sat behind the window because issues that waited on #227 or on the
+Run everything that can run in parallel, and enforce it: nothing used to notice when issues that could start sat with no
+agent ([the maintainer's correction](research/maintainer-corrections.md); on 2026-11-02 two or three agents ran while
+four kit issues waited, and later 15 Deadnight issues sat behind the window because issues that waited on #227 or on the
 maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main session; task agents send
 `SubagentStop`, which this never touches) now refuses to end a turn while an issue is idle. Settings: `[idle]` in
 `hooks.toml`.
@@ -409,18 +409,23 @@ refusals off.
 What the maintainer corrects is written into the docs in the same session, so the next agent gets it right the first
 time. Four hooks make it happen, all in the one dispatcher; their texts are the `[lessons]` keys of `hooks.toml`.
 
+A row, a lesson or a queued file says what the maintainer decided or pointed out in our words, with the issue or pull
+request and the date as its source. The maintainer's prompts are never quoted, word for word or nearly, in a committed
+file or in an issue or pull request body an agent writes; the docs build and the tests fail a corrections row whose
+first cell starts with a quotation mark (gdstudio #780).
+
 | Event | What it does |
 | --- | --- |
-| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](research/maintainer-corrections.md) (the maintainer's words, concept missed, detail missed, check for next time) and a [lesson](lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
+| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](research/maintainer-corrections.md) (what the maintainer pointed out in our words, with its issue or pull request and date and never a quote of the prompt; concept missed, detail missed, check for next time) and a [lesson](lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
 | `SessionStart` | Tells the session to read the checks that touch its task and to search the lessons index before solving. |
 | `SubagentStart` | Tells every project agent the same, and that an agent whose task came from a correction puts the row's text in its final report: the coordinator publishes it, so many agents never edit one table. Read-only helpers (`[agents] helpers`) get nothing. |
 | `Stop` | Holds the session back once while a queued row is unpublished (below). `stop_hook_active` lets the next stop through, so it never loops. |
 
 **The queue.** A row whose cause is not known yet is a Markdown file in `<workspace>/scratch/kit-lessons-queue/`
-(`[lessons] queue`, relative to the workspace): a title, the maintainer's words, and what is known. A file that
-says `Waiting on: #N` (the issue that finds the cause) is left alone. When the cause is found, the row is published
-in a kit pull request and its file moves to `published/`. The Stop gate lists every other file in the queue folder.
-It applies to any session in the workspace; rows that are not yours: say so and finish.
+(`[lessons] queue`, relative to the workspace): a title, what the maintainer pointed out (in our words, with its
+source), and what is known. A file that says `Waiting on: #N` (the issue that finds the cause) is left alone. When the
+cause is found, the row is published in a kit pull request and its file moves to `published/`. The Stop gate lists every
+other file in the queue folder. It applies to any session in the workspace; rows that are not yours: say so and finish.
 
 Registered in `.claude/settings.json` and in the game template (`templates/game/.claude/settings.json`, which
 `gds sync` writes into each game): restart sessions to pick the hooks up.

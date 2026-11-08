@@ -27,8 +27,8 @@ that settles it.
 A map can hold every number of its formula and still not be a place a player believes: Deadnight's second map had a
 bank raised to the upper floor's height so that each room's dead had "ground of their own", so the land outside the
 upper windows was flat ground at their sill, the same as outside the ground floor; five windows in one wall line to
-hit a count; and a window over a stairwell (Deadnight #917, #824). The maintainer: "we need to make sure that map
-designers take logical considerations going forward". Ask what a player standing there would ask, on the plan before
+hit a count; and a window over a stairwell (Deadnight #917, #824). The maintainer asked that map designers reason
+about whether a layout makes sense from now on. Ask what a player standing there would ask, on the plan before
 building and again from the player's camera; "the simplest way to engage the player is with plausibility"
 ([worldbuilding](https://book.leveldesignbook.com/process/preproduction/worldbuilding.md)).
 

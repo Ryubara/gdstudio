@@ -5,9 +5,9 @@ areas: [net, web, process]
 
 2026-11-05
 
-- **Saw:** "once a player clicks play together it instantly makes a lobby" and "another player did the same but it
-  didn't send them to my lobby, it had them create their own" (Deadnight #1178). The Discord Activity skipped the
-  Play together screen (no code field, no create button) and made the lobby of its instance.
+- **Saw:** the maintainer found that Play together in the Activity made a lobby on the first press, and that a second
+  player doing the same got a lobby of their own instead of joining the maintainer's (Deadnight #1178).
+  The Discord Activity skipped the Play together screen (no code field, no create button) and made the lobby of its instance.
 - **Cause:** Deadnight #495 said "a platform entry point is still the same game", and its fix (#531) made the Activity
   open on the main menu. The check it left read "name the screen the platform opens on", so it passed: the Activity did
   open on the menu. The shortcut stayed one press later, in `_use_activity_room` and the backend's `byInstance`, and a

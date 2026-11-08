@@ -5,8 +5,8 @@ areas: [gameplay, tests]
 
 2026-11-06
 
-- **Saw:** the maintainer, playing: "the bots will use the prize pick (mystery box), but they'll never actually pick up
-  the weapon. They'll just keep rolling it until eventually leaving" (Deadnight #1322). In 46 hosted-bot offers over
+- **Saw:** the maintainer, playing: bots used the prize crane but never took the weapon, rolling again and again until
+  they left (Deadnight #1322). In 46 hosted-bot offers over
   16 bot-nights, 12 were taken: a Rookie with the pistol only took 2 of 14 and rolled 16 times.
 - **Cause:** two questions that should be one. The bot paid for a play when *any one* of the seventeen prizes was
   worth taking (`BotEconomy._crane`), then took only the prize it was dealt, and only when that one beat its hands by

@@ -83,6 +83,51 @@ def check_prerequisites() -> list[Check]:
     return checks
 
 
+def check_services(root: Path) -> list[Check]:
+    """What agents need besides the tools, as warnings: a signed-in `gh` (every `gds issue` and `gds pr` command asks
+    GitHub), the Railway CLI when a game deploys (it has a `deploy/` folder), and the pinned Godot's export templates
+    when a game exports (it has `game/export_presets.cfg`). A bootstrap cannot sign in for anyone, so none is required.
+    """
+    checks: list[Check] = []
+    gh = shutil.which("gh")
+    if gh is None:
+        checks.append(
+            Check("gh", False, "not on PATH: install the GitHub CLI (cli.github.com), then `gh auth login`", False)
+        )
+    else:
+        signed_in = run([gh, "auth", "status"]).returncode == 0
+        detail = "signed in" if signed_in else "not signed in: run `gh auth login` (gds issue and gds pr need it)"
+        checks.append(Check("gh", signed_in, detail, False))
+    repos = root / "repos"
+    games = sorted(p for p in repos.iterdir() if (p / "game" / "project.godot").is_file()) if repos.is_dir() else []
+    deploying = [g.name for g in games if (g / "deploy").is_dir()]
+    if deploying:
+        railway = shutil.which("railway")
+        if railway is None:
+            names = ", ".join(deploying)
+            detail = f"not on PATH, and {names} deploys: install it (docs.railway.com/cli), then `railway login`"
+            checks.append(Check("railway", False, detail, False))
+        else:
+            signed_in = run([railway, "whoami"]).returncode == 0
+            detail = "signed in" if signed_in else "not signed in: run `railway login`"
+            checks.append(Check("railway", signed_in, detail, False))
+    exporting = [g.name for g in games if (g / "game" / "export_presets.cfg").is_file()]
+    if exporting:
+        try:
+            godot: Path | None = tool_path("godot", root)
+        except WorkspaceError:
+            godot = None  # the tool check already reports a missing Godot
+        if godot is not None:
+            installed = any((godot.parent / "editor_data" / "export_templates").glob("*.stable"))
+            detail = (
+                "installed"
+                if installed
+                else f"missing, and {', '.join(exporting)} exports: `gds workspace init --fetch godot-templates` (1 GB)"
+            )
+            checks.append(Check("godot export templates", installed, detail, False))
+    return checks
+
+
 def write_local_config(root: Path, tools: dict[str, Tool], key: str) -> Path:
     """Write gdstudio.local.toml with the path of every installed tool's program; returns its path."""
     lines = [

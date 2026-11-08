@@ -5,7 +5,7 @@ areas: [web, input]
 
 2026-11-02
 
-- **Saw:** "gamepad support is not working on discord activity" (Deadnight #479), while the same pad worked in the
+- **Saw:** the gamepad did not work in the Discord Activity (Deadnight #479), while the same pad worked in the
   browser build. The maintainer later found it working after launching the game, clicking in the window and moving
   the left stick.
 - **Cause:** the Activity is an iframe in Discord's client and starts without the keyboard focus

@@ -223,10 +223,30 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
 - `gds issue done <ref>`: clears the ledger entry. It is rarely needed: merging a pull request with `Fixes #N` closes
   the issue, and the next `gds issue start` or `gds issue list` drops the ledger entries of closed issues.
 
+## Landing pull requests {#landing}
+
+Open pull requests come before new work: each one left open goes stale against `main` and makes the next harder.
+
+- **Land, then start.** Each time the queue is read, a red `main` is fixed first, then every conflicting or failing
+  pull request gets an owner, oldest first, before new feature work starts. On 2026-11-01 pull requests stacked up red
+  and conflicting for hours while new ones kept landing, and each merge made the old ones worse; on 2026-11-02, 21 were
+  open with 33 jobs queued.
+- **Land what you would recommend.** A pull request the coordinator would recommend is refreshed and landed, and its
+  trade-off reported afterwards, so the maintainer can reverse it. It is not parked behind "merge? recommended". Only
+  `S-hold` ([Hooks: the hold](hooks.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
+  for the maintainer.
+- **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
+  its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
+  passed. Several land one at a time. On 2026-11-06 three parked pull requests landed unrefreshed and `main` went red: a
+  shorter reload met a test added after its last run.
+- **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
+  by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
+
 ## Merging main into a pull request
 
 Merge `origin/main` into the branch only when the pull request is DIRTY or `main` broke one of its checks: every push
-restarts its CI. Test the merge locally first, and push once. The merge commit's message is checked like any other: it
+restarts its CI. A pull request parked for a while is refreshed before it lands ([above](#landing)). Test the merge
+locally first, and push once. The merge commit's message is checked like any other: it
 ends with the single `Co-Authored-By` trailer and nothing after it. `gds merge-main` makes that commit:
 
 ```bash

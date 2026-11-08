@@ -5,8 +5,8 @@ areas: [blender]
 
 2026-11-04
 
-- **Saw:** the maintainer: "the arms on female characters are longer than they should be (maybe need to double check
-  it for males as well)" (Deadnight #978).
+- **Saw:** the maintainer pointed out that the female characters' arms looked too long, and that the male ones
+  needed checking too (Deadnight #978).
 - **Cause:** nothing stretched them and hers equalled his: every look of both characters wore the kit Soldier's arm
   unchanged, 0.547 of the height (span 1.23 times it), the forearm longer than the upper arm, the fingertips hanging
   below the knee. Her body was his with only the trunk warped (a narrower waist, his shoulders, arms and hands), and

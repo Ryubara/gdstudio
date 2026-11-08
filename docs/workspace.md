@@ -7,7 +7,7 @@ never a repository itself, so the kit's bootstrap rebuilds it on any machine.
 
 | Folder | What lives there |
 | --- | --- |
-| `repos/` | Checkouts: `gdstudio` (this kit), `gdstudio-assets` (shared asset library), one per game. |
+| `repos/` | Checkouts: `gdstudio` (this kit, which also holds the assets every game shares, each with a licence entry), one per game. |
 | `worktrees/<repo>/<branch>/` | Every git worktree, so agents work in parallel without sharing a checkout. |
 | `scratch/` | Task output, captures, contact sheets, reports, PR text. Never committed. |
 | `cache/` | Downloads (`cache/downloads/`) and rebuildable caches shared by all checkouts. |
@@ -151,8 +151,10 @@ refusals, so its owner trims it.
 
 **The status line.** The GDStudio mod `mods/gdstudio-disk/` shows that file's line in Claude Code's status line (`disk
 7.7G free HARD<10 | over budget: deadnight/web-night-load 6.1G`) and a toast when the disk falls under the hard limit.
-Load it with `claude --plugin-dir <workspace>/repos/gdstudio/mods/gdstudio-disk`, or add that folder to
-`CLAUDE_CODE_PLUGIN_DIRS`.
+It comes from the kit's plugin marketplace (`.claude-plugin/marketplace.json`), which the kit's and every game's
+`.claude/settings.json` name: Claude Code offers to install it when it first opens a GDStudio checkout
+([Bootstrap](#bootstrap)). While changing it, load the folder directly:
+`claude --plugin-dir <workspace>/repos/gdstudio/mods/gdstudio-disk`.
 
 **What agents do.** A downloaded CI artifact is reduced to its numbers (a table in the report or the topic's notes)
 and deleted in the same task; raw frames go once the clip or contact sheet is made; a scratch topic's `SCRATCH.md`
@@ -181,7 +183,26 @@ which:
 5. sets up the [integrations](#integrations);
 6. checks Git, Git LFS and uv.
 
-Every step is skipped when already done, so it is safe to rerun; `--dry-run` prints the steps.
+Every step is skipped when already done, so it is safe to rerun; `--dry-run` prints the steps. On 2026-11-07 the
+public `bootstrap.sh`, run in an empty folder on Windows, built the whole workspace in 1 min 19 s (2.3 GB), and a CI
+job (`bootstrap.yml`) does the same on Linux and Windows every week and when the bootstrap changes.
+
+**The mods.** The kit's and every game's `.claude/settings.json` name two plugin marketplaces and enable their mods:
+`gdstudio-disk` from this repository (the disk guard's status line) and Tether (`Ryubara/tether`: the agents pane,
+watchers and handoffs). Claude Code asks once, when it first opens a checkout, to trust and install them. Each person's
+Tether options stay in their own user settings.
+
+**What stays manual.** A bootstrap cannot sign in for anyone, so `gds doctor` warns until each is done:
+
+| Step | Needed for | How |
+| --- | --- | --- |
+| Sign in to GitHub | every `gds issue` and `gds pr` command, pull requests | install the GitHub CLI, then `gh auth login` |
+| Sign in to Railway | a game with a `deploy/` folder | install the Railway CLI, then `railway login` |
+| Export templates (1 GB) | exporting a game (web, desktop) | `gds workspace init --fetch godot-templates` |
+| Discord application | a game shipped as a Discord Activity | the maintainer, in Discord's developer portal |
+
+Rules the maintainer set for how agents work live in `AGENTS.md` and these docs, never only in one machine's Claude
+memory, so every clone and every agent gets them.
 
 ## Tools {#tools}
 

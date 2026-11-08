@@ -6,7 +6,7 @@ areas: [web, input, godot-ui]
 2026-11-05
 
 - **Saw:** the maintainer could not enter a room code on a phone in the Discord Activity (and maybe a phone browser):
-  "the mobile keyboard wouldn't pop up". Every `LineEdit` of Deadnight was dead on a phone.
+  no keyboard opened (Deadnight #1183, 2026-11-05). Every `LineEdit` of Deadnight was dead on a phone.
 - **Cause:** the web export had `html/experimental_virtual_keyboard=false`, the switch for the hidden `<input>` the
   engine focuses to raise a phone's keyboard; the page had no input and no `focus()` call. No test could see it: the
   game's tests type with key events, and the browser probes drove the menu with a keyboard. Beyond the switch, the

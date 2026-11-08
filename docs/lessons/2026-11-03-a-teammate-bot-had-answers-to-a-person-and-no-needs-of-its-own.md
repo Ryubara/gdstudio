@@ -5,8 +5,8 @@ areas: [gameplay, process]
 
 2026-11-03
 
-- **Saw:** the maintainer: "Bots should be smart enough to get their own ammo ... but this needs a consideration on how
-  it will conflict when player requests to 'follow' etc." (Deadnight #692). A bot with an empty gun and nobody pinging
+- **Saw:** the maintainer asked that bots fetch their own ammo, weighed against the player's orders such as Follow
+  (Deadnight #692). A bot with an empty gun and nobody pinging
   kept fighting empty under Hold; under Follow it would have walked off to any locker; the "nearest" locker was the
   nearest by the straight line, through a fence.
 - **Cause:** #647/#670 were specified from what a person can send (one more row of the ping table), so the work was

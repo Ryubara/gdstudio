@@ -21,9 +21,10 @@ write probes and tests.
 Before you start, read what the team already learned: the checks in the kit's
 `docs/research/maintainer-corrections.md` that touch your task, a search of `docs/lessons/index.md` for the problem,
 and `gds lessons gameplay`, `gds lessons tests` and `gds lessons godot` (the map review's lessons are in those areas). A
-hook reminds you at start. If your task came from a maintainer correction, put the row's text in your final report (the
-maintainer's words, the concept missed, the detail missed, the check for next time) and any general cause you found:
-the coordinator publishes it, so you do not edit that table yourself.
+hook reminds you at start. If your task came from a maintainer correction, put the row's text in your final report (what
+the maintainer pointed out, in our words with its source and never quoted; the concept missed, the detail missed, the
+check for next time) and any general cause you found: the coordinator publishes it, so you do not edit that table
+yourself.
 
 Read these two pages before the first walk, every task:
 
