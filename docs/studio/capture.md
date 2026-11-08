@@ -85,9 +85,8 @@ reference stays local and the upload is appended after `## AI use` (Deadnight #6
 So `cd` into the folder that holds the images first and attach `./<file>` (any form of the path works there:
 `./sheet.png`, `sheet.png`, the absolute path), or write the reference with the same absolute path as `--attach`. Then
 read the body back and check the image lines sit under the bullets
-([lesson](../lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md),
-[Writing checks](writing-checks.md#same-input)). Seven Deadnight pull requests hit the appended images before the guard
-below existed (#448 to #565); the written lesson alone did not stop it.
+([Writing checks](writing-checks.md#same-input)). Seven Deadnight pull requests hit the appended images before the
+guard below existed (#448 to #565); the written lesson alone did not stop it.
 
 The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
 named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
