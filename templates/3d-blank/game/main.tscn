@@ -1,13 +1,28 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://world/prototype/prototype_level.tscn" id="1_level"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="3_pcam"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/camera_3d_resource.gd" id="4_lens"]
+
+[sub_resource type="Resource" id="Resource_lens"]
+script = ExtResource("4_lens")
+fov = 60.0
 
 [node name="Main" type="Node"]
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
 
-[node name="OverviewCamera" type="Camera3D" parent="."]
-position = Vector3(21, 12, 21)
-rotation_degrees = Vector3(-18.3, 43.8, 0)
+[node name="Camera" type="Camera3D" parent="."]
 current = true
 fov = 60.0
+
+[node name="PhantomCameraHost" type="Node" parent="Camera"]
+script = ExtResource("2_host")
+
+[node name="ViewCamera" type="Node3D" parent="."]
+position = Vector3(21, 12, 21)
+rotation_degrees = Vector3(-18.3, 43.8, 0)
+script = ExtResource("3_pcam")
+camera_3d_resource = SubResource("Resource_lens")
+tween_on_load = false

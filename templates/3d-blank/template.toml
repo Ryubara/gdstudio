@@ -2,5 +2,5 @@
 # What a template holds: `game/` becomes the game's Godot project and `docs/` its docs site's pages; both are copied
 # once, on top of `templates/repo/` (the repository files every game has), and then they are the game's own.
 title = "3D Blank"
-description = "A web-first prototype map with baked light, a Forward+ graphics profile and six map components, in the GDStudio folder layout."
+description = "A bounded floor and walls on the prototype grid, with sky, sun, baked light, a graphics profile, Phantom Camera and the web export, in the GDStudio folder layout."
 default_description = "A new GDStudio game built from the 3D Blank template."

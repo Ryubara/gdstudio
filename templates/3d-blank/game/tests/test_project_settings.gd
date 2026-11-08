@@ -1,5 +1,5 @@
-# The settings every GDStudio game keeps: the web build is WebGL2, so the web and phone builds use
-# Compatibility and the desktop build uses Forward+ on top of the same level.
+# The settings every GDStudio game keeps: the web build is WebGL2, so the web and phone builds
+# use Compatibility and the desktop build uses Forward+ on top of the same level.
 extends GdUnitTestSuite
 
 
@@ -33,8 +33,8 @@ func test_the_web_preset_leaves_tests_and_tools_out_of_the_export() -> void:
 
 
 func test_the_kit_ui_addon_is_registered_the_way_its_plugin_registers_itself() -> void:
-	# A synced addon is not enabled for the game: without these two lines its scripts that
-	# name `UIRouter` fail to parse (the demo, the focus ring) and the editor shows errors.
+	# A synced addon is not enabled for the game: without these two lines its scripts that name
+	# `UIRouter` fail to parse (the demo, the focus ring) and the editor shows errors.
 	assert_bool(ProjectSettings.has_setting("autoload/UIRouter")).is_true()
 	assert_str(str(ProjectSettings.get_setting("autoload/UIRouter"))).is_equal(
 		"*res://addons/gds_ui/router/ui_router.gd"
@@ -46,3 +46,19 @@ func test_the_kit_ui_addon_is_registered_the_way_its_plugin_registers_itself() -
 		project.get_value("editor_plugins", "enabled", PackedStringArray())
 	)
 	assert_bool(enabled.has("res://addons/gds_ui/plugin.cfg")).is_true()
+
+
+func test_phantom_camera_is_registered_and_does_not_look_for_updates() -> void:
+	assert_str(str(ProjectSettings.get_setting("autoload/PhantomCameraManager"))).is_equal(
+		"*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
+	)
+	var project := ConfigFile.new()
+	assert_int(project.load("res://project.godot")).is_equal(OK)
+	var enabled := PackedStringArray(
+		project.get_value("editor_plugins", "enabled", PackedStringArray())
+	)
+	assert_bool(enabled.has("res://addons/phantom_camera/plugin.cfg")).is_true()
+	# The addon is pinned: its updater window and its network request stay off.
+	assert_int(int(ProjectSettings.get_setting("phantom_camera/updater/updater_mode", 2))).is_equal(
+		0
+	)

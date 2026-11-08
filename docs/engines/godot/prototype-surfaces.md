@@ -1,9 +1,12 @@
 # Prototype surfaces and daylight
 
-How the 3D Blank template's level is painted and lit with no texture or sky file, and what Godot did while we tuned
-it (kit issue #773). The level is described in the game's own docs (`docs/design/prototype-level.md` in a game made
-from the template); this page is how the engine behaves. Everything here was measured in the Compatibility renderer,
-on the desktop and in headless Chromium (SwiftShader) with the web export, and looked the same in both.
+How the 3D Blank template's level is painted and lit with no texture or sky file, and what Godot did while we tuned it
+(kit issue #773). The level is described in the game's own docs (`docs/design/prototype-level.md` in a game made from
+the template); this page is how the engine behaves. Since #821 3D Blank holds only the floor and walls on this
+surface; the prototype map, `ProtoBlock` and the six components described below are in 3D Third Person ([The 3D Third
+Person template](third-person-template.md)), and the sections here still describe both. Everything here was measured
+in the Compatibility renderer, on the desktop and in headless Chromium (SwiftShader) with the web export, and looked
+the same in both.
 
 ## A grid with no texture {#a-grid-with-no-texture}
 

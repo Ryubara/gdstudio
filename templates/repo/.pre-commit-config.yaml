@@ -1,8 +1,9 @@
 # Formatting and hygiene on every commit, before CI sees it. Install once with `uvx pre-commit install`; run on
 # everything with `uvx pre-commit run --all-files`.
 
-# Never rewritten by a hook: licence texts stay verbatim.
-exclude: ^(LICENSE|CODE_OF_CONDUCT\.md)$
+# Never rewritten or judged by a hook: licence texts stay verbatim, and so does a committed third-party addon
+# (Phantom Camera, with its own style and its own line endings).
+exclude: ^(LICENSE|CODE_OF_CONDUCT\.md|game/addons/phantom_camera/.*)$
 
 # gds-sync:begin install-hooks (kit-owned: edit it in the kit, then run `gds sync`)
 # `pre-commit install` sets up all three: the file checks on commit, the message checks at the commit-msg stage, and

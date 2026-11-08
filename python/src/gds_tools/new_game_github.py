@@ -313,7 +313,11 @@ def open_kit_pr(
     path = worktrees / branch
 
     def git(*args: str, where: Path = kit) -> subprocess.CompletedProcess:
-        done = run(["git", "-C", str(where), *args], capture_output=True, text=True, check=False)
+        # core.longpaths: a Windows checkout of the kit holds paths past 260 characters (the committed Phantom Camera
+        # addon's longest, in a worktree under a long game name or a test's temporary folder).
+        done = run(
+            ["git", "-c", "core.longpaths=true", "-C", str(where), *args], capture_output=True, text=True, check=False
+        )
         if done.returncode != 0:
             raise GitHubError(f"git {' '.join(args[:2])} in the kit failed: {(done.stderr or done.stdout).strip()}")
         return done

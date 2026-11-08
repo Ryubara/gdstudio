@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,7 @@ def text_files(repo: Path):
         if (
             path.is_file()
             and ".git" not in path.relative_to(repo).parts
-            and path.suffix not in {".png", ".svg", ".exr", ".lmbake"}
+            and path.suffix not in {".png", ".svg", ".exr", ".lmbake", ".ttf", ".glb"}
         ):
             yield path
 
@@ -257,7 +258,7 @@ def test_the_kit_repository_comes_from_its_workspace_entry(kit):
 
 
 def test_the_templates_the_kit_has_are_listed():
-    assert new_game.available(KIT) == ["3d-blank"]
+    assert new_game.available(KIT) == ["3d-blank", "3d-third-person"]
 
 
 def test_the_command_prints_what_is_left(kit, root, monkeypatch, capsys):
@@ -291,16 +292,16 @@ def make_template(kit: Path, name: str, extends: str | None, files: dict[str, st
 def test_a_template_that_extends_another_adds_its_files_on_top_of_the_base(kit, root):
     make_template(
         kit,
-        "3d-third-person",
+        "third-demo",
         "3d-blank",
         {"game/gameplay/player/player.gd": "extends Node\n", "docs/design/index.md": "# Third person\n"},
     )
-    repo = new_game.new_game(kit, root, "my-game", "3d-third-person", log=lambda _: None, run=quiet_run).repo
+    repo = new_game.new_game(kit, root, "my-game", "third-demo", log=lambda _: None, run=quiet_run).repo
     assert (repo / "game" / "world" / "prototype" / "prototype_level.tscn").is_file()  # the base's level
     assert (repo / "game" / "gameplay" / "player" / "player.gd").is_file()  # the template's own file
     assert (repo / "docs" / "design" / "index.md").read_text(encoding="utf-8") == "# Third person\n"
     assert not (repo / "template.toml").exists()
-    assert "A game from 3d-third-person." in (repo / "README.md").read_text(encoding="utf-8")
+    assert "A game from third-demo." in (repo / "README.md").read_text(encoding="utf-8")
 
 
 def test_templates_that_extend_each_other_are_refused(kit, root):
@@ -328,3 +329,26 @@ def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
             if words:
                 hooks = [w for w in words[words.index("run") + 1 :] if not w.startswith("-")]
                 assert len(hooks) <= 1, f"{workflow.name}: {line.strip()}"
+
+
+def test_the_third_person_project_file_is_the_blank_one_plus_its_input_and_orientation():
+    """An extending template replaces a file whole, so 3D Third Person carries its own `project.godot`. It must not
+    drift from 3D Blank's: the same text, but for the input map and the landscape setting (kit #821)."""
+    blank = (KIT / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8")
+    third = (KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text(encoding="utf-8")
+    without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
+    without_input = without_input.replace("window/handheld/orientation=0\n", "")
+    assert without_input.strip() == blank.strip()
+    assert "[input]" in third and "window/handheld/orientation=0" in third
+
+
+def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(kit, root):
+    """The base's files go in first and the template's on top: the made game holds both."""
+    made = new_game.new_game(kit, root, "my-game", "3d-third-person", log=lambda _: None, run=quiet_run)
+    game = made.repo / "game"
+    assert (game / "world" / "prototype" / "prototype_level.tscn").is_file()
+    assert (game / "ui" / "touch" / "touch_controls.gd").is_file()  # the base's
+    assert (game / "gameplay" / "player" / "player.gd").is_file()  # the template's
+    assert (game / "assets" / "animation" / "universal" / "LICENSE.md").is_file()
+    assert (game / "addons" / "phantom_camera" / "LICENSE.md").is_file()
+    assert layout.check(game) == []

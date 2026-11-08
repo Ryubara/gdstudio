@@ -34,6 +34,18 @@ rate (measured: within 0.002 s over 40 frames at 1.3 times the clip's pace). Whe
 restarted) or stops (in the air), let the follower hold or catch up over a few frames instead of seeking across the
 cycle: a seek is a cut.
 
+## A tree built in code for a player {#a-tree-built-in-code}
+
+<!-- new section: the page had Deadnight's layered clips; nothing said how a small controller's tree is made and read -->
+
+- **Approach:** Build a character's tree in code from its clip names (a state machine whose `ground` state is a blend
+  space on ground speed, plus a one-shot layer for any other clip), expose `body_state()` and `is_acting()` for tests and
+  `play_clip(clip, duration)` for games, and read the state from `parameters/<machine>/playback`. **Watch out for:**
+  `AnimationNodeBlendSpace1D.add_blend_point` wants a name in 4.7 (a warning per point otherwise), and a one-shot clip
+  node is set to the new clip by writing its `animation` before the request, with an `AnimationNodeTimeScale` in front
+  to fit the clip to the time the game holds the body (the 2 s Interact clip into 0.7 s). **Seen:** gdstudio #821,
+  2026-11-08 ([The 3D Third Person template](third-person-template.md#animation-libraries)).
+
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
 `callback_mode_process = ANIMATION_CALLBACK_MODE_PROCESS_MANUAL`, the owner's `_process(delta)` then

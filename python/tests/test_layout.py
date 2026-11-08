@@ -35,6 +35,14 @@ def test_the_template_follows_every_rule():
     assert layout.check(TEMPLATE_GAME) == []
 
 
+def test_the_third_person_template_on_top_of_its_base_follows_every_rule(tmp_path):
+    """3D Third Person extends 3D Blank: the base's files first, its own on top (kit #821)."""
+    game = tmp_path / "game"
+    shutil.copytree(TEMPLATE_GAME, game)
+    shutil.copytree(KIT / "templates" / "3d-third-person" / "game", game, dirs_exist_ok=True)
+    assert layout.check(game) == []
+
+
 def test_a_folder_that_is_not_a_project_is_refused(tmp_path):
     with pytest.raises(FileNotFoundError):
         layout.check(tmp_path)
@@ -213,6 +221,13 @@ def test_each_registration_is_judged_alone(tmp_path):
     assert rules(with_synced_addon(other, no_plugin)) == {"addon-plugin"}
 
 
+def test_a_committed_addon_without_its_registration_is_refused(tmp_path):
+    project = make(tmp_path, {"addons/phantom_camera/plugin.cfg": "[plugin]\n"})
+    (project / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+    assert rules(project) == {"addon-plugin", "addon-autoload"}
+    assert "PhantomCameraManager" in str(next(p for p in layout.check(project) if p.rule == "addon-autoload"))
+
+
 def test_a_project_without_the_addon_needs_no_registration(tmp_path):
     assert layout.check(make(tmp_path, {"core/a.gd": "extends Node\n"})) == []
 
@@ -221,8 +236,20 @@ def test_the_registrations_are_what_the_kits_own_project_has():
     """The table is a copy of what enabling the plugin does; the kit's `godot/project.godot` is the original."""
     settings = layout._settings(KIT / "godot")
     for name, (plugin, autoloads) in layout.ADDON_REGISTRATIONS.items():
+        if not (KIT / "godot" / "addons" / name).is_dir():
+            continue
         assert f'"{plugin}"' in settings["editor_plugins"]["enabled"], name
-        assert {k: v.strip('"') for k, v in settings["autoload"].items()} == autoloads
+        for autoload, path in autoloads.items():
+            assert settings["autoload"][autoload].strip('"') == path
+
+
+def test_the_templates_register_the_addons_they_commit():
+    """Phantom Camera is committed in 3D Blank (kit #821): its plugin and its autoload are what the table says."""
+    settings = layout._settings(TEMPLATE_GAME)
+    plugin, autoloads = layout.ADDON_REGISTRATIONS["phantom_camera"]
+    assert f'"{plugin}"' in settings["editor_plugins"]["enabled"]
+    for autoload, path in autoloads.items():
+        assert settings["autoload"][autoload].strip('"') == path
 
 
 def test_the_template_with_the_synced_addon_passes_every_rule(tmp_path):

@@ -100,6 +100,12 @@ script parses), a run of the main scene, the tests, the web export, `gdformat` a
   pull request was titled "Add the pre-push.legacy game". **Seen:** gdstudio #779, 2026-11-07 (fix: `new_game` calls
   `repair_legacy_hooks`, a test checks the branch and title).
 
+- **Approach:** Run the kit's own `git` calls on a template tree with `-c core.longpaths=true` (the kit pull request's
+  worktree), and keep a committed addon's longest path in mind when a test makes a game under a long temporary name.
+  **Watch out for:** the Windows `test` job failed 20 tests with "Filename too long" making the kit worktree: Phantom
+  Camera's `phantom_camera_noise_emitter_gizmo_plugin_3d.gd.uid` under a pytest folder named for a test passed 260
+  characters. **Seen:** gdstudio #821, 2026-11-08 (fix: the flag in `open_kit_pr`'s `git`).
+
 ## Proving a new game {#proof}
 
 <!-- new section: the page says what the template job runs; nothing said what proves a game is clean in the editor -->
@@ -137,8 +143,9 @@ check this way (`gds new game template-check --template 3d-blank --local`).
 
 | Template | What it is | Status |
 | --- | --- | --- |
-| `3d-blank` | A web-first prototype map (baked light, a Forward+ graphics profile, a grid surface) with six map components, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)). | made, reworked in #788 |
-| `3d-third-person`, `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
+| `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), Phantom Camera with a static view camera, the touch controls component, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)). | made; trimmed to this in #821 |
+| `3d-third-person` | `3d-blank` plus a character controller, a Phantom Camera third-person view, touch controls bound to it, the Quaternius mannequin with the Universal Animation Library 1 and 2, and the #788 prototype map with its six components ([The 3D Third Person template](third-person-template.md)). | made in #821 |
+| `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
   `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`
@@ -146,6 +153,14 @@ check this way (`gds new game template-check --template 3d-blank --local`).
   `pre-commit run gdformat gdlint --all-files`, but `pre-commit run` takes one hook id; the kit's `template` job makes a
   game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
   **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
+
+- **Approach:** Give a template that commits a third-party addon an exclusion in its own and the kit's
+  `.pre-commit-config.yaml` (the top-level `exclude:`), and a `LICENSE.md` beside the addon; make the throwaway game
+  with `gds new game --local`, `git add -A` and run `uvx pre-commit run --all-files` in it, then copy the files the
+  hooks changed back to the template. **Watch out for:** the game's `gdformat`, `gdlint`, `trailing-whitespace` and
+  `end-of-file-fixer` rewrote and failed on Phantom Camera's files (419 lint problems, svg files with no final newline),
+  and gdlint's 100-column limit counts comments, so every `##` line written at 120 failed. **Seen:** gdstudio
+  #821, 2026-11-08 (fix: the exclusion; the comments reflowed to 96 columns).
 
 - **Approach:** Keep `3d-blank` to the base every game shares: a bounded floor and walls on the grid surface, the
   sky and sun, the renderer per platform and the graphics profile. A prototype map with props and map components
@@ -174,8 +189,11 @@ what changes in `main.tscn`, not a copy of the level. The folders `game` and `re
 Something every existing game must receive belongs in `templates/game/` (synced), something only a new game needs in
 `templates/repo/` or a template (copied once).
 
-CI makes a game from every template on each kit change, with the real Godot: it checks the sync, the conventions, the
-layout, imports the project, parses every script, runs its tests and exports it for the web (the `template` job of
-the kit's `ci.yml`).
-`python/tests/test_new_game.py` checks the local steps without Godot, and
-`python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.
+An extending template replaces a file of the base whole, it does not merge: `3d-third-person` carries its own
+`project.godot` (the base's text plus the input map and the landscape setting; a kit test compares them) and its own
+`main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
+
+CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
+the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
+web (the `template` job of the kit's `ci.yml`). `python/tests/test_new_game.py` checks the local steps without Godot,
+and `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.

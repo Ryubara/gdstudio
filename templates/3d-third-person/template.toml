@@ -1,0 +1,6 @@
+# The 3D Third Person template: `gds new game <name> --template 3d-third-person` (kit docs/engines/godot/new-game.md).
+# It is 3D Blank with a character on top: `extends` puts the base's files in first, then these.
+title = "3D Third Person"
+extends = "3d-blank"
+description = "A character with a Phantom Camera third-person view, touch controls and a prototype map of doors, coins, a moving platform and props, on 3D Blank."
+default_description = "A new GDStudio game built from the 3D Third Person template."
