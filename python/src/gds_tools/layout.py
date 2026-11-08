@@ -37,6 +37,14 @@ SKIPPED = frozenset({".godot", ".git", "reports"})
 #: Folders a export must leave out, as the export preset writes them.
 EXPORT_EXCLUDES = ("tests/*", "tools/*")
 
+#: What each kit-owned addon needs in a game's `project.godot`, as its plugin registers it when it is enabled: the
+#: plugin's `plugin.cfg` under `[editor_plugins]` and each autoload under `[autoload]`. `gds sync` copies the addon into
+#: every game but enables nothing, and a script that names the autoload (the `gds_ui` demo, its focus ring) fails to
+#: parse without it (kit #814). A test compares this with the kit's own `godot/project.godot`.
+ADDON_REGISTRATIONS: dict[str, tuple[str, dict[str, str]]] = {
+    "gds_ui": ("res://addons/gds_ui/plugin.cfg", {"UIRouter": "*res://addons/gds_ui/router/ui_router.gd"}),
+}
+
 TEXT_SUFFIXES = frozenset({".gd", ".tscn", ".tres", ".gdshader", ".cfg", ".godot"})
 
 _FOLDER = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
@@ -44,6 +52,7 @@ _STEM = re.compile(r"^[a-z0-9]+(_[a-z0-9]+)*$")
 _CLASS_NAME = re.compile(r"^class_name\s+(\w+)", re.MULTILINE)
 _RES_PATH = re.compile(r"res://([A-Za-z0-9_.\-]+)/")
 _EXT_RESOURCE = re.compile(r'^\[ext_resource\b[^\]]*?\bpath="([^"]+)"[^\]]*?\bid="([^"]+)"', re.MULTILINE)
+_SECTION = re.compile(r"^\[([^\]]+)\]\s*$")
 _EXCLUDE_FILTER = re.compile(r'^exclude_filter="([^"]*)"', re.MULTILINE)
 
 
@@ -231,6 +240,49 @@ def _export(project: Path) -> list[Problem]:
     return problems
 
 
+def _settings(project: Path) -> dict[str, dict[str, str]]:
+    """The `key=value` lines of each section of `project.godot` (values as written; a multi-line value keeps its
+    first line, which is enough to find a name in it)."""
+    sections: dict[str, dict[str, str]] = {}
+    current: dict[str, str] = {}
+    for line in _text(project / "project.godot").splitlines():
+        header = _SECTION.match(line)
+        if header:
+            current = sections.setdefault(header.group(1), {})
+        elif "=" in line and not line.startswith((";", " ")):
+            key, _, value = line.partition("=")
+            current[key.strip()] = value.strip()
+    return sections
+
+
+def addon_problems(project: Path) -> list[Problem]:
+    """A kit addon that is in `addons/` but whose plugin or autoload `project.godot` does not register."""
+    settings = _settings(project)
+    problems = []
+    for name, (plugin, autoloads) in ADDON_REGISTRATIONS.items():
+        if not (project / "addons" / name / "plugin.cfg").is_file():
+            continue
+        if f'"{plugin}"' not in settings.get("editor_plugins", {}).get("enabled", ""):
+            problems.append(
+                Problem(
+                    "project.godot",
+                    "addon-plugin",
+                    f"addons/{name}/ is synced but its plugin is not enabled: add {plugin} to [editor_plugins] enabled",
+                )
+            )
+        for autoload, path in autoloads.items():
+            if settings.get("autoload", {}).get(autoload, "").strip('"') != path:
+                problems.append(
+                    Problem(
+                        "project.godot",
+                        "addon-autoload",
+                        f'addons/{name}/ is synced but the autoload {autoload} is missing: add {autoload}="{path}" '
+                        "to [autoload]; scripts that name it do not parse without it",
+                    )
+                )
+    return problems
+
+
 def _reports(project: Path) -> list[Problem]:
     """Test reports are generated files: written outside the project (`-rd`), never committed under it."""
     run = subprocess.run(
@@ -255,5 +307,6 @@ def check(project: Path) -> list[Problem]:
         *_uids(project, entries),
         *_dependencies(project, entries),
         *_export(project),
+        *addon_problems(project),
         *_reports(project),
     ]

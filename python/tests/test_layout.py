@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -178,3 +179,55 @@ def test_the_cli_exits_one_for_a_broken_project_and_zero_for_a_good_one(tmp_path
     assert cli.main(["check", "layout", str(good)]) == 0
     assert cli.main(["check", "layout", str(bad)]) == 1
     assert "[top-level]" in capsys.readouterr().err
+
+
+GDS_UI_PROJECT = (
+    'config_version=5\n\n[autoload]\n\nUIRouter="*res://addons/gds_ui/router/ui_router.gd"\n\n'
+    '[editor_plugins]\n\nenabled=PackedStringArray("res://addons/gds_ui/plugin.cfg")\n'
+)
+
+
+def with_synced_addon(root: Path, project_godot: str) -> Path:
+    """A project holding the kit's `gds_ui` plugin file and the given `project.godot`."""
+    project = make(root, {"addons/gds_ui/plugin.cfg": "[plugin]\n"})
+    (project / "project.godot").write_text(project_godot, encoding="utf-8")
+    return project
+
+
+def test_a_synced_addon_that_is_registered_passes(tmp_path):
+    assert layout.check(with_synced_addon(tmp_path, GDS_UI_PROJECT)) == []
+
+
+def test_a_synced_addon_without_its_autoload_or_plugin_is_refused(tmp_path):
+    project = with_synced_addon(tmp_path, "config_version=5\n")
+    assert rules(project) == {"addon-plugin", "addon-autoload"}
+    assert "UIRouter" in str(next(p for p in layout.check(project) if p.rule == "addon-autoload"))
+
+
+def test_each_registration_is_judged_alone(tmp_path):
+    no_autoload = GDS_UI_PROJECT.replace('UIRouter="*res://addons/gds_ui/router/ui_router.gd"\n', "")
+    assert rules(with_synced_addon(tmp_path, no_autoload)) == {"addon-autoload"}
+    other = tmp_path / "other"
+    other.mkdir()
+    no_plugin = GDS_UI_PROJECT.replace('"res://addons/gds_ui/plugin.cfg"', '"res://addons/other/plugin.cfg"')
+    assert rules(with_synced_addon(other, no_plugin)) == {"addon-plugin"}
+
+
+def test_a_project_without_the_addon_needs_no_registration(tmp_path):
+    assert layout.check(make(tmp_path, {"core/a.gd": "extends Node\n"})) == []
+
+
+def test_the_registrations_are_what_the_kits_own_project_has():
+    """The table is a copy of what enabling the plugin does; the kit's `godot/project.godot` is the original."""
+    settings = layout._settings(KIT / "godot")
+    for name, (plugin, autoloads) in layout.ADDON_REGISTRATIONS.items():
+        assert f'"{plugin}"' in settings["editor_plugins"]["enabled"], name
+        assert {k: v.strip('"') for k, v in settings["autoload"].items()} == autoloads
+
+
+def test_the_template_with_the_synced_addon_passes_every_rule(tmp_path):
+    """What `gds new game` makes: the template's project plus the addon `gds sync` copies into it."""
+    game = tmp_path / "game"
+    shutil.copytree(TEMPLATE_GAME, game)
+    shutil.copytree(KIT / "godot" / "addons" / "gds_ui", game / "addons" / "gds_ui")
+    assert layout.check(game) == []

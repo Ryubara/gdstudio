@@ -32,6 +32,7 @@ game/
 | Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. | `uid` |
 | Dependencies run one way | `addons`, `assets` < `core` < `gameplay`, `world`, `net` < `ui` < the root scene. A file refers only to folders at its own level or below: `core` never names `gameplay`, `gameplay` never names `ui`. `tests/` and `tools/` and the root scenes may use anything. | `dependency` |
 | Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. | `ships-tools`, `export` |
+| A synced addon is registered | `gds sync` copies `gds_ui` into `addons/` and enables nothing: the game's `project.godot` enables `res://addons/gds_ui/plugin.cfg` under `[editor_plugins]` and has `UIRouter="*res://addons/gds_ui/router/ui_router.gd"` under `[autoload]`, as the plugin does when it is enabled. Without the autoload the addon's demo and focus ring do not parse. | `addon-plugin`, `addon-autoload` (`gds sync` also warns) |
 | Generated files outside `res://` | GdUnit's reports go to a folder outside the project (`-rd ../../reports`, relative to `game/`, never an absolute `/path`: GdUnit4 reads it as `res://`); none is committed under `game/reports/`. | `generated` |
 | Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
 | Splitting a feature | Past about 30 scripts with clear clusters, a feature folder gets subfolders named for the clusters. | judgment |
@@ -68,8 +69,10 @@ uv run --project <workspace>/repos/gdstudio/python gds check layout game
 ```
 
 It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
-beside `gds sync --check`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
-`python/tests/test_layout.py`: a new rule is a kit pull request, not a game's exception.
+beside `gds sync --check`. It reads files only. What it cannot judge, whether every script parses, is
+`gds check scripts game` ([New game](new-game.md#proof)). The rules and the order are in
+`python/src/gds_tools/layout.py`, with a test for each in `python/tests/test_layout.py`: a new rule is a kit pull
+request, not a game's exception.
 
 ## Editing a file by script {#scripted-edits}
 

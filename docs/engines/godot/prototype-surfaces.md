@@ -47,9 +47,10 @@ Numbers that gave the template's look, in `world/lighting/`:
 - **Movie Maker is one frame behind `_process`.** The frame written is the state `_process` left on the previous call,
   so a tour that cuts to a new view every N frames sets the first view in `_ready` and chooses each view one frame
   ahead; otherwise frame 0 is the default camera and every cut shows late.
-- **The synced `gds_ui` addon's demo does not export without the `UIRouter` autoload.** Import, a run and the tests
-  are clean, but `--export-release` loads every script and printed 20 lines of parse errors for the five demo
-  scripts; the preset excludes `addons/gds_ui/demo/*`.
+- **The synced `gds_ui` addon's demo does not parse without the `UIRouter` autoload.** Import, a run and the tests
+  are clean, but the editor and `--export-release` load every script and printed parse errors for the five demo
+  scripts. Registering the autoload and the plugin in the template's `project.godot` fixed it (gdstudio #814); the
+  first answer, excluding `addons/gds_ui/demo/*` from the export, hid the cause and left the editor errors.
 - **GdUnit4's `-rd <folder>` takes an absolute path on Windows only.** A path that starts with `/` is read as `res://`
   plus the path (`make_qualified_path`), so on a Linux runner `-rd "$RUNNER_TEMP/reports"` wrote `game/home/runner/...`
   inside the project. Godot runs in the project folder, so a relative path starts there: `-rd reports` made

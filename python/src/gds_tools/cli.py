@@ -21,6 +21,7 @@ from gds_tools import (
     new_game_github,
     pr,
     refs,
+    scripts,
     sweep,
     sync,
     workspace,
@@ -192,6 +193,10 @@ def _cmd_sync(args: argparse.Namespace) -> int:
     except sync.SyncError as error:
         print(f"gds: {error}", file=sys.stderr)
         return 1
+    # The addon is copied, never enabled: say what the game's project.godot still needs (kit #814).
+    if (game / sync.GAME_PROJECT / "project.godot").is_file():
+        for problem in layout.addon_problems(game / sync.GAME_PROJECT):
+            print(f"warning: {problem}", file=sys.stderr)
     return 0
 
 
@@ -256,6 +261,21 @@ def _cmd_check_layout(args: argparse.Namespace) -> int:
         file=sys.stderr if problems else sys.stdout,
     )
     return 1 if problems else 0
+
+
+def _cmd_check_scripts(args: argparse.Namespace) -> int:
+    root = workspace.require_workspace()
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    report = scripts.check(workspace.tool_path("godot", root), Path(args.project), kit)
+    for path in report.failed:
+        print(f"  {path}: does not parse", file=sys.stderr)
+    for line in report.details:
+        print(f"    {line}", file=sys.stderr)
+    if report.ok:
+        print(f"scripts: {report.parsed} parse")
+        return 0
+    print(f"scripts: {len(report.failed)} of {report.parsed} do not parse", file=sys.stderr)
+    return 1
 
 
 def _issue_context(args: argparse.Namespace) -> tuple[Path, issues.Settings, Path]:
@@ -637,6 +657,9 @@ def build_parser() -> argparse.ArgumentParser:
     lay = chk_group.add_parser("layout", help="the folder, naming and dependency rules of a Godot project")
     lay.add_argument("project", nargs="?", default="game", help="the folder holding project.godot (default: game)")
     lay.set_defaults(func=_cmd_check_layout)
+    scr = chk_group.add_parser("scripts", help="every GDScript of a Godot project parses (the pinned Godot, headless)")
+    scr.add_argument("project", nargs="?", default="game", help="the folder holding project.godot (default: game)")
+    scr.set_defaults(func=_cmd_check_scripts)
 
     iss = sub.add_parser("issue", help="start issues oldest first (docs/studio/starting-work.md)").add_subparsers(
         dest="cmd", required=True
@@ -787,6 +810,8 @@ def main(argv: list[str] | None = None) -> int:
         pr.PrCheckError,
         new_game.NewGameError,
         new_game_github.GitHubError,
+        scripts.ScriptCheckError,
+        FileNotFoundError,
     ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2
