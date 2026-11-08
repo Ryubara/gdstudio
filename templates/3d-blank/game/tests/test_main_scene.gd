@@ -15,14 +15,15 @@ func test_main_scene_shows_the_prototype_level_through_a_current_camera() -> voi
 
 func test_the_view_camera_is_a_phantom_camera_the_host_follows() -> void:
 	var runner := scene_runner("res://main.tscn")
-	await await_idle_frame()
-	await await_idle_frame()
+	for _frame in 8:
+		await await_idle_frame()
 	var scene := runner.scene()
 	var host: PhantomCameraHost = scene.get_node("Camera/PhantomCameraHost")
 	var view: PhantomCamera3D = scene.get_node("ViewCamera")
 	assert_bool(view.is_active()).is_true()
 	assert_object(host.get_active_pcam()).is_same(view)
 	var camera: Camera3D = scene.get_node("Camera")
+	# It does not tween in from the origin when the game starts (`tween_on_load` is off).
 	assert_vector(camera.global_position).is_equal_approx(view.global_position, Vector3.ONE * 0.05)
 
 

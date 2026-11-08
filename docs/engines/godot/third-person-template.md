@@ -82,14 +82,14 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
 
 <!-- new section: camera.md covers the hand-built camera; this is what the addon did in the template -->
 
-- **Approach:** Make the player's camera a `PhantomCamera3D` in Third Person follow mode with a wrapper node that sets
-  its follow target, `spring_length`, `collision_mask`, `margin` and offsets in its own `_enter_tree` (before the
-  addon's `_ready` builds the spring arm), and turn it with `set_third_person_rotation_degrees(Vector3(-pitch, yaw, 0))`
-  from the third `_process` on. **Watch out for:** the addon puts a `SpringArm3D` in its parent and moves itself under
-  it, so the node is at `PlayerCamera/@SpringArm3D@N/FollowCamera` at run time: ask the wrapper for it. The arm exists
-  a frame or two after `_ready`, and rotating the camera before then errors.
-  A camera with a `tween_resource` also tweens to its first view (1.2 s from the Camera3D's own transform) unless
-  `tween_on_load` is off. **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Make the player's camera a `PhantomCamera3D` in Third Person follow mode, with a wrapper that sets its
+  follow target, `spring_length`, `collision_mask`, `margin` and offsets in its own `_enter_tree` (before the addon's
+  `_ready` builds the spring arm), and turn it with `set_third_person_rotation_degrees(Vector3(-pitch, yaw, 0))` from
+  the third `_process` on. **Watch out for:** the addon moves the camera under a `SpringArm3D` it makes, so its path at
+  run time is `PlayerCamera/@SpringArm3D@N/FollowCamera` (ask the wrapper); the arm exists a frame or two after
+  `_ready`; and a camera with a `tween_resource` tweens to its first view from the Camera3D's own transform unless
+  `tween_on_load` is off (3D Blank's view camera had it on: a test read the lens too early and failed on the CI
+  runner). **Seen:** gdstudio #821, 2026-11-08.
 - **Approach:** A second view is a `PhantomCamera3D` with a lower priority that a trigger raises (`CameraZone`); the
   blend is the lower camera's `tween_resource` (duration, transition, ease). **Watch out for:** the camera is
   only raised and lowered by the zone's two signals, so a zone that never reports the player leaves the view where it

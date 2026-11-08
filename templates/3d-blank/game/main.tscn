@@ -25,3 +25,4 @@ position = Vector3(21, 12, 21)
 rotation_degrees = Vector3(-18.3, 43.8, 0)
 script = ExtResource("3_pcam")
 camera_3d_resource = SubResource("Resource_lens")
+tween_on_load = false
