@@ -76,6 +76,10 @@ beside `gds sync --check`. The rules and the order are in `python/src/gds_tools/
 <!-- new section: the page lists the layout rules; the line-length limits of the commit hooks, which a scripted edit
 breaks without anyone reading the line, had no home -->
 
+The general rules of an edit made by a script (escapes, working from the end, reflowing only your own text) are in
+[The shell and scripted edits](../../studio/shell.md#scripted-edits); this section is the line limits a Godot
+project's hooks hold.
+
 - **Approach:** After a scripted word or number change, measure the lines it touched in every file type it touched
   (`awk 'length>100'` on `.gd`, `length>120` on `.md`), or run `uvx pre-commit run --all-files` once and fix all of its
   output in one pass, and rewrap by hand. **Watch out for:** a script replaced `62` with `64` and added words inside

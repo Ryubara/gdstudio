@@ -34,9 +34,7 @@ MAX_PAGE_KB = 50
 MAX_RULE_CHARS = 900
 RULE_PARTS = ("Approach:", "Watch out for:", "Seen:")
 REASON_LINE = "<!-- new section:"
-LEGACY_LAST_DATE = "2026-11-07"
 
-_FRONT = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 _ATTRS = re.compile(r"\s*\{:?([^{}]*)\}\s*$")
@@ -46,7 +44,6 @@ _RULE_START = re.compile(r"^- \*\*Approach:\*\*")
 _OLD_RULE = re.compile(r"^- \*\*Rule:\*\*")
 _REF = re.compile(r"((?:[\w.-]+/)*[\w.-]+\.md)#([A-Za-z0-9_-]+)")
 _SEEN_SOURCE = re.compile(r"#\d+|20\d\d-\d\d-\d\d|github\.com/")
-_LESSON_DATE = re.compile(r"^(20\d\d-\d\d-\d\d)-")
 
 
 class LessonsError(Exception):
@@ -229,57 +226,10 @@ def page_problems(page: str, text: str) -> list[str]:
 # --------------------------------------------------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class Lesson:
-    path: Path
-    title: str
-    fix: str
-    cause: str = ""
-
-
-def split_front_matter(text: str) -> tuple[str, str]:
-    """(front matter, body) of a Markdown file; the front matter is '' when the file has none."""
-    found = _FRONT.match(text.replace("\r\n", "\n"))
-    return (found.group(1), text.replace("\r\n", "\n")[found.end() :]) if found else ("", text.replace("\r\n", "\n"))
-
-
-def parse_lesson(path: Path) -> Lesson:
-    _, body = split_front_matter(path.read_text(encoding="utf-8"))
-    title = next((ln[2:].strip() for ln in body.splitlines() if ln.startswith("# ")), path.stem)
-    return Lesson(path, title, _bullet(body, "Fix"), _bullet(body, "Cause"))
-
-
-def _bullet(body: str, name: str) -> str:
-    """The text of a lesson's `- **<name>...:**` bullet (`**Fix:**`, `**Fix (Deadnight #364):**`), its wrapped lines
-    joined."""
-    head = re.compile(r"^- \*\*" + name + r"[^:*]*:\*\*\s*(.*)")
-    out, on = [], False
-    for line in body.splitlines():
-        found = head.match(line)
-        if found:
-            on = True
-            out.append(found.group(1).strip())
-        elif on and (line.startswith("- **") or not line.strip()):
-            break
-        elif on:
-            out.append(line.strip())
-    return " ".join(out)
-
-
-def lessons_in(root: Path) -> list[Lesson]:
-    """Every old lesson file of a kit checkout, oldest first by file name."""
-    return [parse_lesson(p) for p in sorted((root / LESSONS).glob("20*.md"))]
-
-
 def problems(root: Path) -> list[str]:
-    """Everything a checkout alone can show is wrong: old lesson files dated after the old folder closed; topic pages
-    past their size or with a malformed anchor or rule; and corrections-log rows that quote the maintainer or link no
-    section."""
+    """Everything a checkout alone can show is wrong: topic pages past their size or with a malformed anchor or rule,
+    and corrections-log rows that quote the maintainer or link no section."""
     found = []
-    for lesson in lessons_in(root):
-        date = _LESSON_DATE.match(lesson.path.name)
-        if date and date.group(1) > LEGACY_LAST_DATE:
-            found.append(_new_lesson_message(lesson.path.name))
     for path in topic_pages(root):
         found += page_problems(path.relative_to(root / DOCS).as_posix(), path.read_text(encoding="utf-8"))
     corrections = root / CORRECTIONS
@@ -291,8 +241,8 @@ def problems(root: Path) -> list[str]:
 
 def _new_lesson_message(name: str) -> str:
     return (
-        f"docs/lessons/{name}: no new file goes in the old lessons folder; write the rule into the topic section it "
-        f"belongs to (`gds learn <words>` finds it; {RULES_DOC.as_posix()})"
+        f"docs/lessons/{name}: no new file goes in the old lessons folder (emptied by gdstudio #770); write the rule "
+        f"into the topic section it belongs to (`gds learn <words>` finds it; {RULES_DOC.as_posix()})"
     )
 
 
@@ -520,7 +470,6 @@ def terms(text: str) -> list[str]:
 class Match:
     score: float
     section: Section | None = None
-    lesson: Lesson | None = None
 
 
 def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[str]]]) -> list[tuple[float, object]]:
@@ -552,20 +501,13 @@ def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[
     return sorted(out, key=lambda pair: -pair[0])
 
 
-def learn(root: Path, words: str, limit: int = 5, legacy: int = 0) -> list[Match]:
-    """The `limit` sections of the topic pages closest to `words`, best first; then, when asked (`legacy`), the closest
-    old lesson files, which #770 empties."""
+def learn(root: Path, words: str, limit: int = 5) -> list[Match]:
+    """The `limit` sections of the topic pages closest to `words`, best first."""
     query = terms(words)
     skip = {CORRECTIONS.relative_to(DOCS).as_posix(), RULES_DOC.relative_to(DOCS).as_posix()}  # a log, the format
     sections = [s for s in sections_in(root) if s.page not in skip]
     ranked = _rank(query, [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections])
-    out = [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
-    if legacy:
-        files = lessons_in(root)
-        texts = [(lesson, lesson.path.read_text(encoding="utf-8")) for lesson in files]
-        ranked = _rank(query, [(les, terms(les.title), [], terms(text)) for les, text in texts])
-        out += [Match(score, lesson=les) for score, les in ranked[:legacy]]  # type: ignore[arg-type]
-    return out
+    return [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
 
 
 def _first_words(text: str, limit: int) -> str:
@@ -573,13 +515,11 @@ def _first_words(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " ..."
 
 
-def learn_text(root: Path, words: str, limit: int = 5, legacy: int = 0, rules_per: int = 4) -> str:
+def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> str:
     """What `gds learn` prints: each close section as `page.md#anchor` with its rules (or its first words when it has
-    none), then the close old lesson files."""
-    matches = learn(root, words, limit, legacy)
-    sections = [m.section for m in matches if m.section]
-    old = [m.lesson for m in matches if m.lesson]
-    if not sections and not old:
+    none)."""
+    sections = [m.section for m in learn(root, words, limit) if m.section]
+    if not sections:
         return f"No section mentions {words!r}. Make a new one where it belongs ({RULES_DOC.as_posix()}#section)."
     lines = [
         f"The sections closest to {words!r}, best first. Update one of them (add to an entry's Seen, sharpen it, or "
@@ -599,9 +539,6 @@ def learn_text(root: Path, words: str, limit: int = 5, legacy: int = 0, rules_pe
             prose = "\n".join(ln for ln in body.split("\n") if ln.strip() and not ln.startswith("|"))
             if prose:
                 lines.append(f"   {_first_words(prose, 220)}")
-    if old:
-        lines += ["", "Old lesson files on the same subject (#770 moves them into sections; fold their point in):"]
-        lines += [f"- {les.path.relative_to(root).as_posix()}  {les.title}" for les in old]
     return "\n".join(lines)
 
 

@@ -20,7 +20,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
   change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
   (`--continue` hid a 155-character licence line); gdstudio, 2026-11-02 (a lint failure filtered through `grep`, then
-  committed).
+  committed); Deadnight #1374, 2026-11-07 (MD013 and a title verb hid, so no commit).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command
@@ -46,7 +46,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   the Python literal, so `\n` became a real line break inside a GDScript string (which still parsed), `\b` and `\t`
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
-  straight after the edit, not at the end).
+  straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool).
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out

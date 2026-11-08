@@ -71,4 +71,4 @@
 "blender/variants.md" = "tools/blender/variants.md"
 "blender/weapons.md" = "tools/blender/weapons.md"
 "research/index.md" = "studio/index.md"
-"research/mistakes-by-area.md" = "lessons/index.md"  # removed (gdstudio #768); the rules that replace it come with #769
+"research/mistakes-by-area.md" = "studio/rules.md"  # removed (gdstudio #768); entries live in topic sections (#769, #770)
