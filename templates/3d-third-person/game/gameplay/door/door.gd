@@ -63,13 +63,16 @@ enum Style {
 @export var locked := false
 ## Closes by itself this long after it opened. Zero keeps it open.
 @export_range(0.0, 60.0, 0.1, "or_greater", "suffix:s") var close_after := 0.0
-## Opens when a body on the layers below comes within this distance of the door. Zero turns it
-## off.
+## Opens when a character (a `CharacterBody3D` on the layers below) comes within this distance
+## of the door, and closes `close_after` seconds after the last one left. Walls, floors, props and
+## the door itself never count. Closing the door by hand while a character stands in range keeps
+## it shut until that character leaves and comes back. Zero turns it off.
 @export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m") var auto_open_range := 0.0:
 	set(value):
 		auto_open_range = value
 		_update_sensor()
-## Which physics layers count as something that opens the door.
+## Which physics layers a character must be on to open the door. A body that is not a
+## `CharacterBody3D` never opens it, whatever its layer.
 @export_flags_3d_physics var auto_open_mask := 1:
 	set(value):
 		auto_open_mask = value
@@ -85,6 +88,8 @@ var _openness := 0.0
 var _target := 0.0
 var _open_for := 0.0
 var _home := Transform3D.IDENTITY
+# Set when the door is closed with a character in range: auto-open waits for the range to empty.
+var _held_shut := false
 
 
 func _ready() -> void:
@@ -103,8 +108,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
-	if auto_open_range > 0.0 and not locked:
-		if _sensor().has_overlapping_bodies():
+	if auto_open_range > 0.0:
+		if not _character_near():
+			_held_shut = false
+		elif not locked and not _held_shut:
 			open()
 	if _target > _openness:
 		_openness = minf(_openness + delta / open_time, _target)
@@ -117,8 +124,8 @@ func _physics_process(delta: float) -> void:
 		if _openness == 0.0:
 			closed.emit()
 	elif _openness == 1.0 and close_after > 0.0:
-		_open_for += delta
-		if _open_for >= close_after and not _sensor_holds_open():
+		_open_for = 0.0 if _character_near() else _open_for + delta
+		if _open_for >= close_after:
 			close()
 
 
@@ -142,16 +149,27 @@ func open() -> void:
 		blocked.emit()
 		return
 	_open_for = 0.0
+	_held_shut = false
 	_target = 1.0
 
 
+## Closes the door. With a character in the auto-open range it stays shut until the range empties.
 func close() -> void:
 	_target = 0.0
+	_held_shut = _character_near()
 
 
 ## What a character's interact button calls: opens a closed door, closes an open one.
 func interact(_by: Node3D = null) -> void:
 	toggle()
+
+
+## Where the character measures its reach from: the closed door's place, so a gate that swings
+## away from its hinge can still be closed by the one who stands in front of it.
+func interact_point() -> Vector3:
+	var parent := get_parent() as Node3D
+	var home := parent.global_transform * _home if parent != null else _home
+	return home.origin
 
 
 func toggle() -> void:
@@ -169,8 +187,16 @@ func unlock() -> void:
 	locked = false
 
 
-func _sensor_holds_open() -> bool:
-	return auto_open_range > 0.0 and _sensor().has_overlapping_bodies()
+# True while a character is inside the auto-open range. Only a `CharacterBody3D` counts, because
+# the sensor also overlaps the level's walls and floor and this door's own body.
+func _character_near() -> bool:
+	var sensor := _sensor()
+	if auto_open_range <= 0.0 or sensor == null:
+		return false
+	for body in sensor.get_overlapping_bodies():
+		if body is CharacterBody3D:
+			return true
+	return false
 
 
 # Moves the panel to where the new motion settings put it, while the game runs.
@@ -193,6 +219,11 @@ func _apply() -> void:
 			var turn := Basis(Vector3.UP, deg_to_rad(-swing_angle) * _openness)
 			offset = Transform3D(turn, hinge - turn * hinge)
 	transform = _home * offset
+	# The sensor measures from where the closed door stands, so it does not ride up with the panel.
+	var sensor := _sensor()
+	var panel := _panel()
+	if sensor != null and panel != null:
+		sensor.transform = offset.affine_inverse() * Transform3D(Basis.IDENTITY, panel.position)
 
 
 func _get_configuration_warnings() -> PackedStringArray:
