@@ -2,7 +2,9 @@ class_name Interactor
 extends Node3D
 ## Finds what the character can use: the nearest node of the group `interactable` that is within
 ## `reach` in front of this node. Anything with an `interact(by: Node3D)` method can join the
-## group (a `Door` does when its `player_can_use` is on).
+## group (a `Door` does when its `player_can_use` is on). A node that moves when used (a swinging
+## door) can also have `interact_point() -> Vector3`, a world position that stays put to measure
+## from.
 
 ## The group a usable node joins.
 const GROUP := &"interactable"
@@ -20,7 +22,10 @@ func find_target(forward: Vector3, reach: float) -> Node3D:
 		var candidate := node as Node3D
 		if candidate == null or not candidate.is_inside_tree():
 			continue
-		var offset := candidate.global_position - global_position
+		var spot := candidate.global_position
+		if candidate.has_method(&"interact_point"):
+			spot = candidate.call(&"interact_point")
+		var offset := spot - global_position
 		var distance := Vector2(offset.x, offset.z).length()
 		if distance > best_distance:
 			continue

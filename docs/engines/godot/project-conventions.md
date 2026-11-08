@@ -49,6 +49,10 @@ game/
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
   own).
+- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless --import`)
+  and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had the uid and
+  the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and `template` CI
+  jobs; copy the uid files back, not only the scripts. **Seen:** gdstudio #845, 2026-11-08.
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

@@ -142,27 +142,130 @@ func test_start_open_decides_where_a_new_door_begins() -> void:
 	open_door.free()
 
 
-func test_the_auto_open_range_and_mask_decide_what_opens_it() -> void:
-	var body := StaticBody3D.new()
+func _body(kind: Node3D, at: Vector3, layer := 1) -> Node3D:
 	var shape := CollisionShape3D.new()
 	shape.shape = BoxShape3D.new()
-	body.add_child(shape)
-	body.collision_layer = 1
-	add_child(body)
-	body.global_position = Vector3(0.0, 1.5, 2.0)
+	kind.add_child(shape)
+	(kind as CollisionObject3D).collision_layer = layer
+	kind.position = at  # Before it enters the tree: one built at the origin is sensed there.
+	add_child(kind)
+	return kind
+
+
+# A door with a 3 m reach and a 0.5 s close_after, surrounded by what the prototype level puts
+# around its gate: a floor under it, posts beside it and a low wall within the reach.
+func _door_among_blocks() -> Array[Node3D]:
 	_door.open_time = 0.1
-	await _ticks(4)
-	assert_bool(_door.is_moving() or _door.is_open()).is_false()
+	_door.close_after = 0.5
 	_door.auto_open_range = 3.0
-	await _ticks(6)
-	assert_bool(_door.is_moving() or _door.is_open()).is_true()
-	_door.auto_open_mask = 2
-	await _ticks(3)
-	_door.close()
+	var blocks: Array[Node3D] = []
+	for at in [Vector3(0.0, -0.5, 0.0), Vector3(-1.5, 0.5, 0.0), Vector3(2.0, 0.5, 1.0)]:
+		blocks.append(_body(StaticBody3D.new(), at))
+	blocks.append(_body(RigidBody3D.new(), Vector3(0.0, 1.5, 2.0)))
+	return blocks
+
+
+func test_a_door_with_a_reach_stays_closed_among_static_blocks_and_props() -> void:
+	var blocks := _door_among_blocks()
+	await _ticks(30)
+	var sensor := _door.get_node("%Sensor") as Area3D
+	assert_int(sensor.get_overlapping_bodies().size()).is_greater_equal(3)
+	assert_bool(_door.is_moving() or _door.is_open()).is_false()
+	assert_float(_door.openness()).is_equal(0.0)
+	for block in blocks:
+		block.free()
+
+
+func test_a_character_in_reach_opens_it_and_it_closes_close_after_they_leave() -> void:
+	var blocks := _door_among_blocks()
+	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 8.0)) as CharacterBody3D
+	await _ticks(10)
+	assert_float(_door.openness()).is_equal(0.0)
+	walker.global_position = Vector3(0.0, 1.0, 2.0)
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	# Standing there longer than close_after keeps it open.
+	await _ticks(60)
+	assert_bool(_door.is_open()).is_true()
+	walker.global_position = Vector3(0.0, 1.0, 8.0)
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	await _ticks(50)
+	assert_float(_door.openness()).is_equal(0.0)
+	walker.free()
+	for block in blocks:
+		block.free()
+
+
+func test_interact_closes_a_door_that_opened_for_you_and_it_waits_until_you_come_back() -> void:
+	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 2.0)) as CharacterBody3D
+	_door.open_time = 0.1
+	_door.close_after = 0.5
+	_door.auto_open_range = 3.0
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	_door.interact(walker)
 	await _ticks(30)
 	assert_float(_door.openness()).is_equal(0.0)
+	assert_bool(_door.is_moving()).is_false()
+	walker.global_position = Vector3(0.0, 1.0, 8.0)
+	await _ticks(10)
+	assert_float(_door.openness()).is_equal(0.0)
+	walker.global_position = Vector3(0.0, 1.0, 2.0)
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	walker.free()
+
+
+func test_interact_opens_a_door_it_closed_while_you_stand_in_reach() -> void:
+	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 2.0)) as CharacterBody3D
+	_door.open_time = 0.1
+	_door.auto_open_range = 3.0
+	await _ticks(10)
+	_door.interact(walker)
+	await _ticks(10)
+	assert_float(_door.openness()).is_equal(0.0)
+	_door.interact(walker)
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	await _ticks(30)
+	assert_bool(_door.is_open()).is_true()
+	walker.free()
+
+
+func test_the_reach_is_measured_from_the_closed_door_even_when_a_swing_moves_it() -> void:
+	var gate := load(SCENE).instantiate() as Door
+	gate.style = Door.Style.SWING
+	gate.open_time = 0.1
+	gate.position = Vector3(5.0, 0.0, 4.0)
+	add_child(gate)
+	await _ticks(2)
+	gate.open()
+	await _ticks(20)
+	assert_float(gate.global_position.distance_to(Vector3(5.0, 0.0, 4.0))).is_greater(0.5)
+	assert_vector(gate.interact_point()).is_equal_approx(
+		Vector3(5.0, 0.0, 4.0), Vector3.ONE * 0.001
+	)
+	var interactor := Interactor.new()
+	add_child(interactor)
+	interactor.global_position = Vector3(5.0, 0.0, 2.8)
+	assert_object(interactor.find_target(Vector3.BACK, 1.6)).is_same(gate)
+	interactor.free()
+	gate.free()
+
+
+func test_the_auto_open_mask_decides_which_characters_open_it() -> void:
+	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 2.0), 1) as CharacterBody3D
+	_door.open_time = 0.1
+	_door.auto_open_mask = 2
+	_door.auto_open_range = 3.0
+	await _ticks(10)
+	assert_float(_door.openness()).is_equal(0.0)
 	assert_int((_door.get_node("%Sensor") as Area3D).collision_mask).is_equal(2)
-	body.free()
+	_door.auto_open_mask = 1
+	await _ticks(10)
+	assert_bool(_door.is_open()).is_true()
+	walker.free()
 
 
 func test_player_can_use_puts_the_door_in_the_group_a_character_looks_in() -> void:

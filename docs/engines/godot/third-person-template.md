@@ -197,6 +197,20 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   character's own run speed, so a cube left at 3.4 m/s and the push clip lasted a moment; a prop with a `push_speed` of
   0 is pushed as before (the spheres). **Seen:** gdstudio #836, 2026-11-08.
 
+- **Approach:** Make an area that senses "something is near" count only what should trigger it: the door's `Sensor`
+  counts a `CharacterBody3D` on `auto_open_mask`, never a wall, floor, prop or the door's own body. A type test, not
+  named layers, so the player and a game's own layers stay as they are and the mask stays tunable. Closing the door
+  with a character in range keeps it shut until they leave and come back. **Watch out for:** an `Area3D` reports
+  every overlapping body, static ones too: the gate door opened at the start and again after each press of the
+  interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
+  **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
+- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor back
+  against the panel's motion, `close_after` counts from when the last character left, and `interact_point()` tells
+  the `Interactor` where to measure from. **Watch out for:** a sensor that is a child of a sliding door rises with it
+  and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
+  longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
+  set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
+
 ## Touch controls {#touch-controls}
 
 <!-- new section: ui-controls.md has the Deadnight lessons; this is the reusable component and how it was proved -->

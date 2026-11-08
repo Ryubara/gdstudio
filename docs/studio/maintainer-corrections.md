@@ -59,6 +59,7 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-08 | gdstudio #819 | 3D Blank should be only a bounded floor and walls; the prototype map built in #788 suits the templates with a character controller | [engines/godot/new-game.md#the-templates](../engines/godot/new-game.md#the-templates) |
 | 2026-11-08 | gdstudio #821 | Every template should ship with the Phantom Camera addon, customised at a high level in the inspector, instead of a hand-built camera | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 | 2026-11-08 | gdstudio #821 | Every template with a character controller should ship simple, intuitive touch controls | [gamedev/controller.md#devices](../gamedev/controller.md#devices) |
+| 2026-11-08 | gdstudio #837 | A game made from 3D Third Person was silent: #837 committed the sounds and buses but no node plays them, and our reports had not said so | [engines/godot/audio.md#template-buses](../engines/godot/audio.md#template-buses) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 
@@ -226,6 +227,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-08 | gdstudio #831 | The touch controls were drawn in code with nothing to see in their scene; visible parts of a template belong in its scenes, which agents read as well as code | [engines/godot/new-game.md#template-checklist](../engines/godot/new-game.md#template-checklist) |
 | 2026-11-08 | gdstudio #831 | The camera's framing exposed only a height, while the sideways and depth offsets had to be set on the Phantom Camera node; everything about the camera should be tuned on `PlayerCamera` | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 | 2026-11-08 | gdstudio #836 | Template scripts used local names (`scale`, `offset`) that shadow properties of the node class, which the editor reports as warnings; names must not collide with the node class's own members, and the template projects now treat shadowing as an error | [engines/godot/gdscript.md#names-and-types](../engines/godot/gdscript.md#names-and-types) |
+| 2026-11-08 | gdstudio #845 | In a game made from 3D Third Person the prototype level's gate door started open, stayed open and ignored the interact button; the area that senses a character near a door must count only characters, never the level or the door itself | [engines/godot/third-person-template.md#map-components](../engines/godot/third-person-template.md#map-components) |
 
 ## Start of a new game {#start-of-a-new-game}
 
