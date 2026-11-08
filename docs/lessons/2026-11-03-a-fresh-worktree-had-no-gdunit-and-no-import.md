@@ -11,5 +11,5 @@ areas: [tests, tools]
   main clone only), and `.godot/` was empty, so nothing was imported. A `--import` cut short by `| tail` looked done.
 - **Fix:** copy both addon folders from the main clone, run `godot --headless --path game --import` to the end (log it
   to a file, check the exit code), then run the suite. A commit piped to `tail` also hid a failed `markdownlint` hook
-  again ([earlier lesson](2026-11-02-a-commit-piped-to-tail-hid-a-failed-hook.md)): read `git log` after it.
+  again ([earlier lesson](../studio/shell.md#pipes)): read `git log` after it.
 - **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md) for the map side of the same task.
