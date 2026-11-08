@@ -37,12 +37,18 @@ SKIPPED = frozenset({".godot", ".git", "reports"})
 #: Folders a export must leave out, as the export preset writes them.
 EXPORT_EXCLUDES = ("tests/*", "tools/*")
 
-#: What each kit-owned addon needs in a game's `project.godot`, as its plugin registers it when it is enabled: the
-#: plugin's `plugin.cfg` under `[editor_plugins]` and each autoload under `[autoload]`. `gds sync` copies the addon into
-#: every game but enables nothing, and a script that names the autoload (the `gds_ui` demo, its focus ring) fails to
-#: parse without it (kit #814). A test compares this with the kit's own `godot/project.godot`.
+#: What each addon the kit puts in a game needs in its `project.godot`, as the plugin registers itself when it is
+#: enabled: the plugin's `plugin.cfg` under `[editor_plugins]` and each autoload under `[autoload]`. `gds sync` copies
+#: a kit addon into every game and a template commits the others, but neither enables anything, and a script that names
+#: the autoload (the `gds_ui` demo, its focus ring) fails to parse without it (kit #814). A test compares the kit's own
+#: addons with `godot/project.godot` and the template's with its `project.godot`.
 ADDON_REGISTRATIONS: dict[str, tuple[str, dict[str, str]]] = {
     "gds_ui": ("res://addons/gds_ui/plugin.cfg", {"UIRouter": "*res://addons/gds_ui/router/ui_router.gd"}),
+    # Not a kit addon: the templates commit it (kit #821), so the kit's own project does not hold it.
+    "phantom_camera": (
+        "res://addons/phantom_camera/plugin.cfg",
+        {"PhantomCameraManager": "*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"},
+    ),
 }
 
 TEXT_SUFFIXES = frozenset({".gd", ".tscn", ".tres", ".gdshader", ".cfg", ".godot"})
@@ -267,7 +273,7 @@ def addon_problems(project: Path) -> list[Problem]:
                 Problem(
                     "project.godot",
                     "addon-plugin",
-                    f"addons/{name}/ is synced but its plugin is not enabled: add {plugin} to [editor_plugins] enabled",
+                    f"addons/{name}/ is here but its plugin is not enabled: add {plugin} to [editor_plugins] enabled",
                 )
             )
         for autoload, path in autoloads.items():
@@ -276,7 +282,7 @@ def addon_problems(project: Path) -> list[Problem]:
                     Problem(
                         "project.godot",
                         "addon-autoload",
-                        f'addons/{name}/ is synced but the autoload {autoload} is missing: add {autoload}="{path}" '
+                        f'addons/{name}/ is here but the autoload {autoload} is missing: add {autoload}="{path}" '
                         "to [autoload]; scripts that name it do not parse without it",
                     )
                 )

@@ -19,6 +19,7 @@ config/icon="res://assets/branding/icon.svg"
 [autoload]
 
 UIRouter="*res://addons/gds_ui/router/ui_router.gd"
+PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 
 [display]
 
@@ -29,7 +30,11 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gds_ui/plugin.cfg", "res://addons/prototype_grid/plugin.cfg")
+enabled=PackedStringArray("res://addons/gds_ui/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/prototype_grid/plugin.cfg")
+
+[phantom_camera]
+
+updater/updater_mode=0
 
 [physics]
 

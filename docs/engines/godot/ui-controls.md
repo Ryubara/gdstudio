@@ -203,6 +203,14 @@ setting up its children. A test that names
   pointer events, and Godot's web runtime reads every `pointermove` as a mouse motion in device pixels, so the move
   stick turned the view and a look drag turned 1.43 rad against 0.41; synthetic touch tests in the desktop runner all
   passed. **Seen:** Deadnight #470, 2026-11-02 (fix: deadnight #480).
+- **Approach:** Start a new device's controls from the reusable `TouchControls` of the 3D Blank template (a floating
+  stick, a look drag, buttons that press the game's actions; the settings are exports) and prove it as the template did:
+  GdUnit4 with two fingers, a drag whose `relative` is wrong and mouse motion, then the web export in a phone-sized
+  browser through `Input.dispatchTouchEvent`. **Watch out for:** in a CDP `touchEnd` the points listed are the ones that
+  lift, so the harness lifted the stick with the look finger until it listed only the finger that went up; and a layer
+  that reads `InputEventScreenDrag.position` and never `relative` turned the view by exactly the designed 33.2 degrees
+  with a second finger down. **Seen:** gdstudio #821, 2026-11-08
+  ([The 3D Third Person template](third-person-template.md#touch-controls)).
 - **Approach:** Give every touch control test a second finger on another control at the same time, run a two-finger case
   in the live probe, and read per-finger positions, never `InputEventScreenDrag.relative`. **Watch out for:** the tests
   drove one finger at a time; in Chrome with two fingers down a finger's first `relative` is measured from the origin or

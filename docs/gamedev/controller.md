@@ -102,6 +102,13 @@ each one, rather than finding them one by one in play.
   **Watch out for:** shake was built for the verb in front of us (firing), so sprinting had none, and subtle had no
   number, so the shotgun reached 0.63 degrees. **Seen:** Deadnight, 2026-11-01 (fix: peaks are numbers in the design and
   a test holds each bound ([Camera: shake and sway](../engines/godot/camera.md#shake-and-sway))).
+- **Approach:** Keep a controller's tuned numbers in one resource with groups, ranges and units, derive gravity and jump
+  speed from a jump's height and rise time, pin the defaults in a test, and size the sample map from them (blocks a jump
+  apart, steps under the step height, a ramp under the slope limit) with a test that fails when one no longer holds.
+  **Watch out for:** a speed that feels right at a run still slides on a walk clip; the template blends idle, walk, run
+  and sprint on ground speed and treats a half push of a stick as a walk, so the pad and the phone get a gait the keys
+  would need a held key for. **Seen:** gdstudio #821, 2026-11-08
+  ([The 3D Third Person template](../engines/godot/third-person-template.md#controller)).
 - **Approach:** Pick a reference camera at the start and tune its framing, damping and interpolation before content.
   **Watch out for:** camera feel came after the systems, and the shoulder camera sat too far back and moved stiffly.
   **Seen:** Deadnight, 2026-11-01 (fix: deadnight's shoulder camera was brought closer and made fluid against a

@@ -1,4 +1,5 @@
-# The prototype level is solid, lit and made of the shared prototype materials.
+# The prototype level of 3D Blank: a bounded floor and four walls, lit, on the shared prototype
+# materials.
 extends GdUnitTestSuite
 
 const LEVEL := "res://world/prototype/prototype_level.tscn"
@@ -11,39 +12,65 @@ func _level() -> Node3D:
 	return level
 
 
-func _blocks(level: Node) -> Array[ProtoBlock]:
-	var found: Array[ProtoBlock] = []
-	for node in level.find_children("*", "ProtoBlock", true, false):
+func _pieces(level: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	for node in level.get_node("Boundary").get_children():
 		found.append(node)
 	return found
 
 
-func test_every_block_has_collision_and_a_prototype_material() -> void:
-	var level := _level()
-	var blocks := _blocks(level)
-	assert_array(blocks).is_not_empty()
-	for block in blocks:
-		assert_object(block.material).override_failure_message(block.name).is_not_null()
-		assert_str(block.material.resource_path).starts_with(MATERIAL_FOLDER)
-		var body := block.get_node("Body") as StaticBody3D
-		assert_int(body.get_child_count()).override_failure_message(block.name).is_greater(0)
+func test_the_level_is_a_floor_and_four_walls() -> void:
+	var names := []
+	for piece in _pieces(_level()):
+		names.append(str(piece.name))
+	assert_array(names).contains_exactly(
+		["Floor", "WallNorth", "WallSouth", "WallWest", "WallEast"]
+	)
 
 
-func test_every_block_mesh_has_the_second_uv_set_a_lightmap_needs() -> void:
-	for block in _blocks(_level()):
-		var mesh := block.mesh as ArrayMesh
-		assert_object(mesh).override_failure_message(block.name).is_not_null()
+func test_every_piece_has_collision_and_a_prototype_material() -> void:
+	for piece in _pieces(_level()):
+		assert_object(piece.material_override).override_failure_message(piece.name).is_not_null()
+		assert_str(piece.material_override.resource_path).starts_with(MATERIAL_FOLDER)
+		var body := piece.get_node("Body") as StaticBody3D
+		assert_int(body.get_child_count()).override_failure_message(piece.name).is_greater(0)
+
+
+func test_every_piece_mesh_has_the_second_uv_set_a_lightmap_needs() -> void:
+	for piece in _pieces(_level()):
+		var mesh := piece.mesh as ArrayMesh
+		assert_object(mesh).override_failure_message(piece.name).is_not_null()
 		var format := mesh.surface_get_format(0)
 		(
 			assert_bool((format & Mesh.ARRAY_FORMAT_TEX_UV2) != 0)
-			. override_failure_message(block.name)
+			. override_failure_message(piece.name)
 			. is_true()
 		)
 
 
 func test_the_floor_top_is_at_ground_level() -> void:
-	var floor_block: ProtoBlock = _level().get_node("Boundary/Floor")
-	assert_float(floor_block.position.y + floor_block.size.y / 2.0).is_equal_approx(0.0, 0.001)
+	var floor_piece: MeshInstance3D = _level().get_node("Boundary/Floor")
+	var size: Vector3 = floor_piece.mesh.get_aabb().size
+	assert_float(floor_piece.position.y + size.y / 2.0).is_equal_approx(0.0, 0.001)
+
+
+func test_the_pieces_sit_on_whole_grid_cells() -> void:
+	# A piece moved with the editor's snap on lands on the grid lines: the faces of every piece
+	# do.
+	var cell: float = ProjectSettings.get_setting("shader_globals/prototype_cell_size")["value"]
+	for piece in _pieces(_level()):
+		var box := piece.mesh.get_aabb()
+		var faces := [
+			piece.position.x + box.position.x,
+			piece.position.x + box.end.x,
+			piece.position.y + box.position.y,
+			piece.position.y + box.end.y,
+			piece.position.z + box.position.z,
+			piece.position.z + box.end.z,
+		]
+		for face: float in faces:
+			var offset := absf(face / cell - roundf(face / cell))
+			assert_float(offset).override_failure_message(piece.name).is_less(0.001)
 
 
 func test_the_level_carries_baked_bounce_light_and_a_dynamic_sun() -> void:
@@ -73,6 +100,23 @@ func test_the_level_has_a_sun_with_shadows_and_a_sky() -> void:
 	var world: WorldEnvironment = level.find_children("*", "WorldEnvironment", true, false)[0]
 	assert_int(world.environment.background_mode).is_equal(Environment.BG_SKY)
 	assert_object(world.environment.sky).is_not_null()
+
+
+func test_a_body_cannot_leave_the_floor_through_a_wall() -> void:
+	var level := _level()
+	var ball := RigidBody3D.new()
+	var shape := CollisionShape3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.5
+	shape.shape = sphere
+	ball.add_child(shape)
+	ball.position = Vector3(0.0, 0.5, 0.0)
+	level.add_child(ball)
+	await get_tree().physics_frame
+	ball.linear_velocity = Vector3(40.0, 0.0, 0.0)
+	for _frame in 120:
+		await get_tree().physics_frame
+	assert_float(ball.global_position.x).is_less(24.0)
 
 
 func test_a_dropped_crate_comes_to_rest_on_the_floor() -> void:

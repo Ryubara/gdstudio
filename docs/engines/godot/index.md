@@ -15,7 +15,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` first; the local steps, the GitHub repository with its settings and proof, MIT by default; adding a template) |
+| `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` and `3d-third-person`; the local steps, the GitHub repository with its settings and proof, MIT by default; adding a template); [The 3D Third Person template](third-person-template.md) (the controller, the Phantom Camera view, touch controls, the Universal Animation Library, a route for a clip) |
 | Folder, naming and dependency rules | every game's project layout, enforced by `gds check layout` | known: [Project conventions](project-conventions.md) (by feature, snake_case, dependencies one way, tools out of the export) |
 | GDScript and project-file traps | names, lambdas, `project.godot`, `.tscn` and `.tres` files that fail without a message | known: [GDScript and project-file traps](gdscript.md) (a static function named like an Object method, a lambda that works on a copy, a file Godot rewrites) |
 

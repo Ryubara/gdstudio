@@ -35,6 +35,11 @@ and `[autoload]` in its `project.godot`: a game's project file is its own); the 
 (`addon-plugin`, `addon-autoload`), because a script that names `UIRouter` (the demo, the focus ring) does not parse
 without the autoload.
 
+A template can also commit a third-party addon (3D Blank commits Phantom Camera, with a `LICENSE.md` entry beside it); it
+is not synced, and `ADDON_REGISTRATIONS` lists its plugin and its `PhantomCameraManager` autoload the same way, so
+`gds check layout` fails when a game drops either. A test compares the kit's own addons with `godot/project.godot` and
+the committed ones with the 3D Blank template's.
+
 - **Approach:** When the kit syncs an addon into games that enable nothing, put the addon's registrations
   (`[editor_plugins]`, `[autoload]`) in the template's `project.godot` and in the layout check's table
   (`ADDON_REGISTRATIONS`, compared with the kit's own `godot/project.godot` by a test), so a game cannot hold the code

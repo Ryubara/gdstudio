@@ -9,11 +9,8 @@ const FRAMES_PER_VIEW := 5
 ## Each view is where the camera stands and the point it looks at, in metres.
 const VIEWS: Array[Array] = [
 	[Vector3(21.0, 12.0, 21.0), Vector3(-2.0, 1.0, -3.0)],
-	[Vector3(4.0, 1.7, 21.0), Vector3(-6.0, 1.2, 3.0)],
-	[Vector3(0.0, 1.7, -2.0), Vector3(-14.0, 3.0, -17.0)],
-	[Vector3(14.0, 1.7, -12.0), Vector3(14.0, 1.5, -18.0)],
-	[Vector3(-4.0, 6.0, 4.0), Vector3(16.0, 1.0, 12.0)],
-	[Vector3(-20.0, 11.0, 20.0), Vector3(8.0, 1.5, -8.0)],
+	[Vector3(0.0, 1.7, 20.0), Vector3(0.0, 1.5, -20.0)],
+	[Vector3(-22.0, 2.0, 22.0), Vector3(20.0, 1.0, -20.0)],
 ]
 
 var _frame := 0

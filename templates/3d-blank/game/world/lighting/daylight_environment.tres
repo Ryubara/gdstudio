@@ -1,4 +1,4 @@
-[gd_resource type="Environment" load_steps=3 format=3]
+[gd_resource type="Environment" format=3 uid="uid://cps0ne82amhp"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_day"]
 sky_top_color = Color(0.26, 0.5, 0.86, 1)
@@ -7,9 +7,7 @@ sky_curve = 0.18
 ground_bottom_color = Color(0.56, 0.63, 0.72, 1)
 ground_horizon_color = Color(0.68, 0.76, 0.84, 1)
 ground_curve = 0.03
-sun_angle_max = 30.0
 sun_curve = 0.12
-use_debanding = true
 
 [sub_resource type="Sky" id="Sky_day"]
 sky_material = SubResource("ProceduralSkyMaterial_day")
@@ -23,7 +21,6 @@ ambient_light_sky_contribution = 0.15
 ambient_light_energy = 0.8
 reflected_light_source = 2
 tonemap_mode = 2
-tonemap_exposure = 1.0
 fog_enabled = true
 fog_light_color = Color(0.7, 0.8, 0.92, 1)
 fog_density = 0.004
