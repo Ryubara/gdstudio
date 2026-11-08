@@ -147,6 +147,12 @@ check this way (`gds new game template-check --template 3d-blank --local`).
   game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
   **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
 
+- **Approach:** When a template holds a Git LFS file (a lightmap's `.exr`), check out the kit with `lfs: true` in every
+  kit CI job that copies the template, and skip the file in text checks. **Watch out for:** without it the template
+  holds a pointer file: the `template` job imported it and failed, and every test that pushes a made game to a bare
+  repository stopped with "Git LFS upload failed: (missing) ...exr". **Seen:** gdstudio #788, 2026-11-08 (the first CI
+  run of the lightmap; fixed in `ci.yml`).
+
 ## Adding a template {#adding-a-template}
 
 A template is a folder `templates/<name>/` with:
