@@ -35,8 +35,6 @@ was wrong.
 - Find the cause on the web with a log of the variable at the head of the function (`JavaScriptBridge.eval` to push
   `typeof(_x):_x` into a page array): the first call read `2:0` (an int, zero) where the initialiser said `-1`.
 
-See [the lesson](../../lessons/2026-11-06-a-static-cache-read-from-an-initialiser-held-its-default-and-the-page-played-the-drop.md).
-
 ## A flag that nodes read once {#static-flag-changes}
 
 <!-- new section: the rest of the page is about a static var's first value; nothing covered a static flag that changes

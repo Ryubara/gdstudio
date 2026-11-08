@@ -12,12 +12,12 @@ How custom-drawn controls behave in Godot 4.7, learned building GDStudio's UI ad
 | Slider hit area | HSlider hit-tests with the grabber icon's width, so the theme's invisible grabber must be as wide as the drawn thumb. Check with a real InputEventMouseButton: a click at 60% of the travel gave 1.85 of 0.1 to 3.0. |
 | An overlay in a padded container | A `PanelContainer` (any container with content margins) lays out every child inside the margins, an overlay such as a border included, so padding for the words shrinks the border with them. Give the overlay its own room: draw it outside its rectangle by the margin (a `grow` on the control; drawing outside the rect is allowed), and take the room from the content, not from the container, so the row keeps its width ([lesson](../../lessons/2026-11-05-a-border-over-a-plate-shrank-with-its-padded-container.md)). |
 | Invisible textures | Never a PlaceholderTexture2D: it draws a magenta checker in game. Use a transparent ImageTexture. |
-| Runtime UI scale | `Window.content_scale_factor` resizes CanvasLayer stages and anchored controls; with `canvas_items` stretch the visible area is the base size divided by the scale. Avoid autowrap Labels in rows: they inflate containers. A phone capture needs the game's own factor (`MenuScale.factor(window.size, 1.0)`), or it shows the design canvas shrunk, not the phone's layout ([lesson](../../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)). **On a web page the window is the canvas in device pixels** (the ratio is capped at 2: an 844 x 390 phone page is 1688 x 780), so "a phone" is the page's short side in CSS pixels, not the window's; a test or capture names a page, never a bare 844 x 390 window, which no phone page has ([lesson](../../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md)). |
+| Runtime UI scale | `Window.content_scale_factor` resizes CanvasLayer stages and anchored controls; with `canvas_items` stretch the visible area is the base size divided by the scale. Avoid autowrap Labels in rows: they inflate containers. A phone capture needs the game's own factor (`MenuScale.factor(window.size, 1.0)`), or it shows the design canvas shrunk, not the phone's layout ([lesson](../../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)). **On a web page the window is the canvas in device pixels** (the ratio is capped at 2: an 844 x 390 phone page is 1688 x 780), so "a phone" is the page's short side in CSS pixels, not the window's; a test or capture names a page, never a bare 844 x 390 window, which no phone page has. |
 | A drag that starts on a button | `Button` stops the pointer (`MOUSE_FILTER_STOP`), so a touch that lands on it, with its drag steps and the emulated mouse, never reaches the `ScrollContainer` around it: the card scrolls from its words and margin only. A button that passes the pointer (`PASS`) lets the card scroll, but with nothing above it that stops the pointer the click goes on to `_unhandled_input` (a HUD board's button whose ancestors all ignore the pointer would give the player the pointer lock), and the engine's `ScrollContainer` is itself `PASS`. So a button passes only while a `ScrollContainer` set to `STOP` is above it (decided on `tree_entered`), the card gets a `scroll_deadzone` for a touch that starts on a button (the engine's is 0: the first hair of movement scrolls and takes the press; Deadnight uses 10 CSS px), and the test clicks and taps the button outside a card too and spies on `_unhandled_input`. Headless cannot scroll by touch (`DisplayServer.is_touchscreen_available()` is false): test what the card receives and measure the scroll in a web probe with `Input.dispatchTouchEvent` ([lesson](../../lessons/2026-11-05-a-drag-from-a-button-never-reached-the-card-it-scrolls.md)). |
 | A button a finger lifted from stays lit | A finger that lifts sends no mouse exit, so the engine keeps the button it lifted over hovered (pale, grown by the hover spring) until the next touch, in a card or not (a tap on Copy the link: 70 apart from rest by the colour of its fill, 2 after the fix). Decide it from the event that lifted, never from "is this a phone": an `InputEventScreenTouch` release starts a timer, and when it is due (after the press spring has settled, 0.3 s) the button, if it still exists and is hovered, has its `mouse_filter` set to `IGNORE` and back, which makes the engine send the exit; a mouse release does nothing, so a desktop mouse keeps its hover, and a real mouse motion or a new touch calls the timer off. Hold the button by `get_instance_id()` in the timer, never an `await` on a button a press may free (it prints an error). Measure it with the colour of the fill in a web export through real touches, in a card and outside one; a headless run is not a touch screen ([lesson](../../lessons/2026-11-05-a-drag-from-a-button-never-reached-the-card-it-scrolls.md)). |
 | Resolution scale | `Viewport.scaling_3d_scale` only affects 3D. |
 | A button that holds a container | A `Button` never asks its children how tall it is (a script `_get_minimum_size` on a native button is not consulted), a container built outside the tree reports a minimum of 0, and an autowrap `Label` reports a height for the width it has now (1,900 units before its first layout). A focusable card with rows inside it (Deadnight's poster set, #1073) was 8 units tall and the cards stood on each other: compute its height by hand from `font.get_height(size)`, break long text with `get_string_size` and a line feed in the text, and set `custom_minimum_size` before it is added ([lesson](../../lessons/2026-11-04-a-button-holding-a-container-did-not-size-to-it.md)). |
-| Fitting text | A `Label` with `clip_text` or an ellipsis overrun has a minimum width of 0, so a container squeezes it to nothing: give it `custom_minimum_size.x`; a form row's title column keeps its token minimum for the same reason, so a long title reads "Break between ro..." in a card with no slack (set the overrun to no trimming, and test the cut with the font's own width against the label's, [lesson](../../lessons/2026-11-05-a-trimmed-row-title-and-a-form-taller-than-a-phone-card.md)). Fit text from one measurement (size × room / width), since `get_string_size` shapes the string on every call. Test layouts with the longest values the game allows, and with a wide face: `FontVariation.variation_transform` makes a synthetic wide one, so CI needs no font file. |
+| Fitting text | A `Label` with `clip_text` or an ellipsis overrun has a minimum width of 0, so a container squeezes it to nothing: give it `custom_minimum_size.x`; a form row's title column keeps its token minimum for the same reason, so a long title reads "Break between ro..." in a card with no slack (set the overrun to no trimming, and test the cut with the font's own width against the label's). Fit text from one measurement (size × room / width), since `get_string_size` shapes the string on every call. Test layouts with the longest values the game allows, and with a wide face: `FontVariation.variation_transform` makes a synthetic wide one, so CI needs no font file. |
 | Baselines and label height | A Label is as tall as the font's line (about 1.4 times its size), not its capitals: size a box from that. `SIZE_SHRINK_END` aligns the bottoms of boxes, not baselines: put two sizes on one baseline with `baseline - font.get_ascent(size)` for each, or lift the smaller by the difference of the descents. |
 | One-shot 3D portrait in a HUD | A `SubViewport` with `own_world_3d`, the model, a camera and lights, `render_target_update_mode = UPDATE_ONCE` two frames after the model enters (its idle clip must pose it), shown by a `TextureRect` on `viewport.get_texture()`; it costs nothing after that frame. |
 
@@ -216,20 +216,18 @@ setting up its children
   injects the stray mouse motion as the desktop guard. **Watch out for:** a browser reports a finger as touch and as
   pointer events, and Godot's web runtime reads every `pointermove` as a mouse motion in device pixels, so the move
   stick turned the view and a look drag turned 1.43 rad against 0.41; synthetic touch tests in the desktop runner all
-  passed. **Seen:** Deadnight #470, 2026-11-02 (fix: deadnight #480
-  ([lesson](../../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md))).
+  passed. **Seen:** Deadnight #470, 2026-11-02 (fix: deadnight #480).
 - **Approach:** Give every touch control test a second finger on another control at the same time, run a two-finger case
   in the live probe, and read per-finger positions, never `InputEventScreenDrag.relative`. **Watch out for:** the tests
   drove one finger at a time; in Chrome with two fingers down a finger's first `relative` is measured from the origin or
   the other finger's press (1454 px for a 100 px drag) and `velocity` is stale for three drags: a 2.42 rad turn against
-  0.41 designed. **Seen:** Deadnight #497, 2026-11-02 (fix: per-finger positions (Deadnight #506;
-  [lesson](../../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md))).
+  0.41 designed. **Seen:** Deadnight #497, 2026-11-02 (fix: per-finger positions (Deadnight #506)).
 - **Approach:** Check a control that arrives at its own rate and drives a drawn view in the browser for the per-frame
   turn under a steady hold (still frames, back steps, variation), with the page at phone speed, and keep it in a test.
   **Watch out for:** smoothness belongs to the view per drawn frame: the touch layer turned the view per finger sample,
   so at 175 fps a steady drag turned one frame in three, and the earlier touch tests checked only the total turn.
   **Seen:** Deadnight #598, 2026-11-02 (fix: the look waits and turns the view a share per frame
-  ([lesson](../../lessons/2026-11-02-a-steady-touch-drag-turned-the-view-in-jumps.md), [buffer
+  ([buffer
   lesson](../../lessons/2026-11-02-godot-adds-a-mouse-motion-in-the-input-buffer-to-the-next-one.md))).
 - **Approach:** Make every touch button under the look thumb also look while dragged: a new row in `TouchLayout.BUTTONS`
   looks unless it says otherwise (`DRAG_OWNERS`), and a test walks the table and holds each verb (grenade, aim, fire,
@@ -325,8 +323,7 @@ added to the column.
   panel, the lobby): put side-by-side buttons in an `HBoxContainer`, ellipsise one-line text, wrap the content in a
   `ScrollContainer` capped at the viewport height minus the panel's margin with `follow_focus = true`, and call
   `ensure_control_visible` two frames after showing a field the player must reach. Test the panel's size in a
-  `SubViewport` of 1280 x 720 with every optional line shown
-  ([lesson](../../lessons/2026-11-02-a-panel-grew-past-a-720-high-frame.md)).
+  `SubViewport` of 1280 x 720 with every optional line shown.
 
 - **Approach:** Press every action as the first input on the live screen, on a pad (device 0 and another id) and in the
   web build with a virtual pad, and test anything bound to a `ui_*` button on a screen with no focused control. **Watch
@@ -376,8 +373,7 @@ line under it.
   window, and a `SubViewportContainer` makes its viewport that size (stretch on) or grows to the viewport's (off):
   1920 x 1080 stretched into a 2560 x 1440 window, soft and stair-stepped. Use a `Control`, a `SubViewport` child and a
   `TextureRect` on its texture, and size the viewport from `get_viewport().get_final_transform().get_scale()` times the
-  control's size (cap it, 1440 high), again on `size_changed` of the root
-  ([lesson](../../lessons/2026-11-03-a-menu-stage-viewport-was-sized-in-canvas-units-not-pixels.md)).
+  control's size (cap it, 1440 high), again on `size_changed` of the root.
 - **A `SubViewport` has its own `msaa_3d`** (the project setting does not reach it): choose it for the look (4x for a
   portrait or a stage; on a phone the pixels are fewer at the real size, so 4x cost less than the old 2x there).
 - **An adaptive-quality fallback needs a way back.** Judge over more than one window, climb back when frames recover
@@ -430,12 +426,11 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   HUD place sets `content_scale_factor = ui_scale`, a menu place `MenuScale.factor(...)`; `MenuScale.describe` prints
   which scale a window runs at. The numbers a person measures (smallest text, smallest target, in CSS px) are
   `UiAudit`, in the web probe and in `test_phone_floor.gd`
-  ([lesson](../../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md);
-  [earlier lesson](../../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
+  ([earlier lesson](../../lessons/2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md)).
 - **Read the night at the canvas, and the menu at the CSS pixel.** A web page of 844 by 390 CSS pixels at a pixel ratio
   of 2 (the cap) is a canvas of 1688 by 780, 0.72 canvas px to the unit in a night (2532 by 1170, 1.08, at a ratio of
   3), 0.36 CSS px; a window of 844 by 390 is the ratio-1 worst case. Read a phone at the canvas and report the worst
-  case beside it ([lesson](../../lessons/2026-11-05-a-phone-reading-at-the-css-size-overstated-the-fault.md)).
+  case beside it.
 - **A contrast ratio of two colours is not what a thin stroke shows.** Words that must be read on a phone are read from
   the pixels (the place drawn with the words, without, and in one flat colour): the strongest pixel and the median
   letter pixel against its neighbours; a stroke under a pixel has no pixel that is mostly ink
