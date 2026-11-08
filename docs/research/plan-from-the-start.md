@@ -257,5 +257,6 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
-  offering its issues ([lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
+  offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
+  [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
   [Starting work: pausing a game](../starting-work.md#paused)).
