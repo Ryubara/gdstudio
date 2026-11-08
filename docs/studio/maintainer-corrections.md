@@ -59,6 +59,7 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-08 | gdstudio #819 | 3D Blank should be only a bounded floor and walls; the prototype map built in #788 suits the templates with a character controller | [engines/godot/new-game.md#the-templates](../engines/godot/new-game.md#the-templates) |
 | 2026-11-08 | gdstudio #821 | Every template should ship with the Phantom Camera addon, customised at a high level in the inspector, instead of a hand-built camera | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 | 2026-11-08 | gdstudio #821 | Every template with a character controller should ship simple, intuitive touch controls | [gamedev/controller.md#devices](../gamedev/controller.md#devices) |
+| 2026-11-08 | gdstudio #837 | A game made from 3D Third Person was silent: #837 committed the sounds and buses but no node plays them, and our reports had not said so | [engines/godot/audio.md#template-buses](../engines/godot/audio.md#template-buses) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 
