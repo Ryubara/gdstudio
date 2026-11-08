@@ -194,10 +194,10 @@ game's lit threshold) matches what its design page says (Deadnight's back lot wa
 
 A glow is judged from every side, not the side its picture is for: billboard halos swing through walls, unshadowed
 lamps reach the next room by their range, one-sided panes are holes from behind, and a spot's aim decides which boxes it
-lights ([halo](../lessons/2026-11-03-a-billboard-halo-wider-than-its-gap-to-the-wall-bled-through-it.md),
-[sign](../lessons/2026-11-03-a-sign-was-built-for-the-front-and-its-light-went-through-the-wall.md),
-[pane](../lessons/2026-11-03-a-lit-window-was-a-hole-from-the-room.md),
-[spot](../lessons/2026-11-03-a-spot-written-with-a-yaw-of-180-faced-the-road.md);
+lights ([halo](../engines/godot/compat-lighting.md#a-lamp-near-a-wall),
+[sign](../engines/godot/compat-lighting.md#a-lamp-near-a-wall),
+[pane](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light),
+[spot](../engines/godot/compat-lighting.md#dynamic-lights);
 [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light)).
 
 **Check (a number):** capture the room behind each wall-mounted glow, along the wall and from above, with the glow freed
@@ -235,7 +235,7 @@ A chain of props is a staircase: a barrel beside a dumpster beside a fence is a 
 (sprint and jump at several moments, crouch-walk), takes each resting place as a new start, and flags a place beyond
 the map, inside a closed area or on a wall top, once for each door state a team can have. Each hop starts at the solid
 floor, not the walking mesh, and ground counts as reached only when a path from the start ends on it
-([lesson](../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)). Every chain is
+([lesson](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors)). Every chain is
 replayed hop by hop and captured before it is filed. The result is a number per door state (hops run, places reached,
 violations), and the target is 0 violations. In the suite the sweep starts on the props near the barriers (no wall a
 player must not cross is within the reach of the floor, so a way out begins on a prop), judges by area boxes, and

@@ -157,3 +157,9 @@ they are rerun, replayed or read from another branch -->
   modification time). **Watch out for:** the `ubuntu-24.04` pool serves more than one image version, so an exact image
   key missed on the very next run; `Need to get 0 B/21.1 MB of archives` is the proof of a warm run. **Seen:**
   Deadnight #1112, 2026-11-04.
+- **Approach:** Write a `run:` step so that shellcheck needs no directive: read words into an array (`read -r -a folders
+  < <(cmd)`) and pass `"${folders[@]}"`; a directive is `key=value` and nothing else on its line. Run actionlint where
+  `shellcheck` is installed. **Watch out for:** `# shellcheck disable=SC2086 -- reason` reads the reason as another key
+  (`SC1072`, `SC1073`) and fails the `actionlint` job; actionlint checks `run:` scripts only with shellcheck installed,
+  so a Windows machine without it passes what CI rejects. **Seen:** Deadnight, 2026-11-02 (fix: the unquoted `$folders`
+  became an array and the directive was removed).

@@ -19,6 +19,13 @@ not by a close-up capture of the effect on its own (Deadnight #408).
   lights none of that surface: place a flash light above the floor.
 - Measured in headless Chrome on an RTX 5080 (ANGLE, Direct3D 11), Godot 4.7.2.
 
+- **Approach:** A capture or plan view restores only the nodes it hid itself (it keeps the list), and a scene that
+  hides parts on purpose is checked in the player's view, not by a probe of the tree alone. **Watch out for:** a
+  plan-view script set every `VisualInstance3D` and CSG shape visible again when it was done, undoing what the level
+  hides on purpose: a hidden collision box drew over the kit's pillar and stair rails the scene had switched off came
+  back, while `is_visible_in_tree()` said false. **Seen:** Deadnight, 2026-11-03 (fix: restore only what the capture
+  hid; the second map's views were taken again).
+
 - **Approach:** Measure a readable effect on the screen before and after (draw the frame again without it), from the
   real camera, hip and aimed, desktop and browser, hold the numbers as floors in a test, and turn quads near the
   player's own mesh toward the camera. **Watch out for:** an effect is judged by its pixels from the player's camera,
@@ -70,7 +77,7 @@ while the Soldier's head covers the machine's middle below about 1.65 m. The pri
 side on: whole on screen, 14 to 24 % of a 1920-pixel width, 0 % behind the body; at grab height (1.35 m) 79 to 98 % of
 it was behind the head.
 
-To hold it in a headless test ([lesson](../../lessons/2026-11-03-a-screen-test-passed-the-layout-it-was-written-to-catch.md)):
+To hold it in a headless test:
 
 - project into a `SubViewport` sized like the screen (a headless root viewport is 1920 x 1920) with a `Camera3D` that
   copies the player camera's global transform and FOV; `unproject_position` needs no drawing;
@@ -84,7 +91,7 @@ Deadnight's checks: `game/tests/night/test_crane_view.gd`; the screenshots, `gam
 ## A soft rim, and which node it is
 
 An additive wall (a beam, a cone of haze, a shaft) reads as a solid object when its edge is a hard step. Whether it does
-is measured, not judged by eye (Deadnight #854, [lesson](../../lessons/2026-11-03-a-pale-column-was-blamed-on-the-wrong-node.md)):
+is measured, not judged by eye (Deadnight #854):
 
 - Draw the view with the column shown, then hidden, in a frozen frame: `get_tree().paused = true` with the capture node
   on `PROCESS_MODE_ALWAYS`, the player's body hidden in both (its own edges are not the column's), and read both

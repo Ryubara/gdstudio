@@ -93,8 +93,7 @@ numbers, the frame's own call taken off:
 - **The order of the commands is the batch.** One atlas is not enough: a run of glyphs between two icons ends the
   batch, so draw all the icons of a frame before any words.
 - **`load()` in `_draw` is not enough either.** Draw commands keep a RID, not a reference, so a texture nothing else
-  holds is freed when `_draw` returns and the rect comes out white, with no error
-  ([lesson](../../lessons/2026-11-04-a-texture-loaded-in-draw-came-out-white.md)).
+  holds is freed when `_draw` returns and the rect comes out white, with no error.
 - **An atlas shown far under its size:** import it with mipmaps and set `texture_filter` to
   `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS`. 64 px cells at 24 px are softer at rest and change 22 to 43 percent less at each
   quarter-pixel step than with plain linear filtering. Keep the art 3 px of 128 inside the cell so a mipmap does not
