@@ -75,10 +75,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The download script comes from the same commit as the release it fetches (v1.7.12).
+      # The release archive itself, checked against the release's own checksum file, with retries: GitHub's release
+      # downloads answered 504 for a while on 2026-11-08 and the old download script had no retry (gdstudio #823).
       - name: Download actionlint 1.7.12
-        run: >-
-          bash <(curl -sSfL
-          https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash)
-          1.7.12
+        env:
+          URL: https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          curl -sSfL --retry 8 --retry-all-errors --retry-delay 10 -o actionlint.tar.gz "$URL"
+          echo "$SHA256  actionlint.tar.gz" | sha256sum -c -
+          tar -xzf actionlint.tar.gz actionlint
       - run: ./actionlint -color .github/workflows/*.yml
