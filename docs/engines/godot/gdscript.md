@@ -24,7 +24,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing an already-declared property in the base class"), which
   a headless run never shows; as errors, `gds check scripts` fails the script (a throwaway `var scale` gave "1 of 429 do
-  not parse"). **Seen:** gdstudio #836, 2026-11-08.
+  not parse"). **Seen:** gdstudio #836, 2026-11-08 (also a test helper `_body` shadowed by a lambda's `_body`).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
@@ -55,7 +55,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
   outer variable inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (fix: Array holders and members
   in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`);
-  gdstudio #836, 2026-11-08 (`hits += 1` read 0).
+  gdstudio #836, 2026-11-08 (`hits += 1` read 0; the fix is `var hits: Array[Node]` and `hits.append(c)`).
 
 ## Project and scene files {#project-and-scene-files}
 

@@ -184,6 +184,7 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   export: `Weapon.muzzle` was null, the fire button did nothing and no error was printed; the touch smoke found it
   ("the fire button shoots", shots 0 to 0) by reading `player.weapon`'s muzzle in the page. **Seen:** gdstudio #836,
   2026-11-08 (fix: the line, a test that reads the scene's text, and the smoke's three new checks).
+  The pistol's muzzle and the footsteps' skeleton are `NodePath` exports into the instance, so a null there is the sign.
 - **Approach:** Size a `Control` that sits by its anchors (the `Crosshair`, at the middle of the screen) by setting its
   four offsets from the exports (`-half`, `half`), not `custom_minimum_size`. **Watch out for:** a minimum size only
   makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size

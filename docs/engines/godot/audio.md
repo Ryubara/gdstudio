@@ -66,7 +66,8 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every GdUnit
   run that frees the main scene), which CI's grep fails: `AudioSettings._exit_tree` stops the players under its parent
   and waits three mixes (`drain_mixer()`), and a suite that plays a sound calls `AudioDrain.stop_all()`. **Seen:**
-  gdstudio #836, 2026-11-08 (one voice: 4 instances, 2 resources).
+  gdstudio #836, 2026-11-08 (one voice: 4 instances, 2 resources; the drain
+  takes about 0.23 s for each main scene freed in a headless run).
 
 ## Capturing sound {#capturing-sound}
 
@@ -89,6 +90,11 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   `tools/audio/beep_report.py`): a pure tone reads 0.58 and noise far less, and the tone's amplitude is its level in the
   mix whatever else sounds (Deadnight #680).
 
+- **Approach:** End a capture scene by stopping every audio player and waiting a few frames before `quit()`
+  (`AudioSettings.stop_players(get_tree().root)`, eight `process_frame`s), and read the log for `still in use`.
+  **Watch out for:** under Movie Maker the mixer runs on the frames, not on its own thread, so
+  `AudioSettings.drain_mixer()` waits its whole second for nothing, and a tour that quit with the wind playing printed
+  `2 resources still in use at exit` and made the capture unusable as proof. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Capture to an absolute path of a folder that exists, smoke the run with `--quit-after 25` first, and for
   a long run write `x.avi`, pull the track with `ffmpeg -i x.avi -vn -c:a pcm_s32le x.wav` at once and delete the avi
   only after the wav exists; split a long capture into runs of a few minutes of sound. **Watch out for:** a relative
