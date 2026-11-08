@@ -280,8 +280,7 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   deployed". **Watch out for:** fixes verified in tests were judged on a build behind the merge (CI queued, the deploy
   lagging, nobody noting the live commit), and a web measure split into a follow-up was never started. **Seen:**
   Deadnight #344, #353, 2026-11-01; Deadnight #464, #478, 2026-11-02 (fix: the live commit and the probe against the
-  live URL in the pull request
-  ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md))).
+  live URL in the pull request).
 - **Approach:** Before closing an issue, grep the code for its number and resolve every "until #N" note in the same pull
   request; two buttons with different labels do different things, with a test for each route. **Watch out for:** a
   stopgap sent Quick join to the Play together screen until the rooms flow replaced it; that issue closed and the route
@@ -294,9 +293,13 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   affected, and test that every menu entry reaches the screen it promises. **Watch out for:** Deadnight #449 built the
   Play screen with the host's match settings and left its menu route as a one-line change with no issue; the menu rework
   routed Solo straight into a night, so Solo never offered the settings. **Seen:** Deadnight #620, 2026-11-02 (fix:
-  deadnight #637 routed it and walks every menu entry
-  ([lesson](../lessons/2026-11-02-a-finished-screen-was-never-routed-from-the-menu.md))).
+  deadnight #637 routed it and walks every menu entry).
 
+- **Approach:** In a pull request that only works on an issue (one bucket of a split task), name the issue as "#N stays
+  open" and put it under Issues affected, never in a sentence with "close" or "closes" before it. **Watch out for:** the
+  CI body check reads "does not close #770" as a pull request that closes an issue, so it asked for `Read first:`
+  areas, the local `gds pr check-body` passed (it has no labels) and the body check failed on the first push. **Seen:**
+  gdstudio #799, 2026-11-08 (fix: the sentence was reworded and the body edited; the check passed on the next run).
 - **Approach:** Before starting an issue, search the merged pull requests for its number (`gh pr list --state merged
   --search "#N"`); the pull request that finishes the last part of a split issue carries `Fixes #N`, and the coordinator
   closes an issue whose parts have all merged. **Watch out for:** the prize crane's rules and visuals merged as two pull

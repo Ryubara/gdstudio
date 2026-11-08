@@ -123,8 +123,7 @@ and never shows. Count by part first (Deadnight: `--canvasparts=1` on the budget
 `tools/perf/canvas_parts.py`): its end board, challenge prompt, scoreboard, marquee and boss bar were 43 of 215 and
 are one item each until used. Make the words on first need (a property whose getter builds, `_build()` where the part
 is shown) and never park them out of the tree, which makes them orphans, another budgeted count. A test checks both
-ends: nothing under the part while idle, the whole card after use. See the
-[lesson](../../lessons/2026-11-05-hidden-hud-cards-held-a-fifth-of-the-canvas-item-budget.md).
+ends: nothing under the part while idle, the whole card after use.
 
 - **Approach:** Build what only a bigger case needs when the night reaches it and free it on the way down (a test checks
   both ends), and before pushing count the nodes a feature for the larger case leaves in the small one: a probe over

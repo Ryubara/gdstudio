@@ -51,7 +51,7 @@ neighbouring cars, four are open to the mesh and the rest are a 12 to 34 m detou
 must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions
 ([lesson](../../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
 
-## A prop that is not in the bake
+## A prop that is not in the bake {#a-prop-that-is-not-in-the-bake}
 
 Deadnight's baker reads CSG boxes only (`NavmeshBaker.source_data`); a `StaticBody3D` prop (a breaker post, 0.8 by 0.5 m)
 is solid to a body and absent from the mesh. A path hugs the mesh's corners, so a prop standing in a wall's 0.5 m
@@ -71,6 +71,12 @@ dead come through the breach they close
 many paths with a body walks the stretch round the thing under test (6 m before, 4 m after), not the whole path, and
 sizes the night's break for the whole suite
 ([lesson](../../lessons/2026-11-06-a-walk-suite-outlasted-its-break-and-the-body-died.md)).
+
+- **Approach:** Make anything that opens and closes at run time (boards, a gate, anything a rule removes) a
+  `StaticBody3D` with a box shape, never a CSG box with collision, and hold the walkers at it in the simulation, not
+  with physics. **Watch out for:** a bake that reads CSG boxes with collision counts every one as a wall, so a fence gap
+  closed with CSG boards was shut in the mesh and the dead outside found no path in, whatever the game later did with
+  the boards. **Seen:** Deadnight, 2026-11-01 (fix: the boards became static bodies the baker never reads).
 
 ## A goal in a wall
 

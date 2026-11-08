@@ -22,8 +22,7 @@ screen that holds several choices, and the flow an online menu offers. How Godot
 - **Approach:** Capture the HUD at 720p, 1080p and 1440p and in the web build, and measure alignment and overflow in
   tests. **Watch out for:** the HUD was judged on its own at one size, so its text sat out of line and the whole HUD was
   too big at the sizes players run. **Seen:** Deadnight, 2026-11-01 (fix: HUD changes carry captures at the three sizes
-  and the browser, and a layout test finds overlaps no eye would
-  ([lesson](../lessons/2026-11-01-layout-test-found-hud-overlaps-no-eye-would.md))).
+  and the browser, and a layout test finds overlaps no eye would).
 - **Approach:** For each HUD element, ask what the player reads in half a second during a fight and design that: a
   portrait beside the points in the player's colour, not a PLAYER 1 POINTS label. **Watch out for:** the data was
   labelled instead of designed for a glance. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's points became the
@@ -32,6 +31,12 @@ screen that holds several choices, and the flow an online menu offers. How Godot
   then let it leave. **Watch out for:** each system got an always-on panel, some numbers twice: the generator panel
   stayed up when nothing happened and ammo also sat under the health bar. **Seen:** Deadnight, 2026-11-01 (fix: the
   generator panel shows only while progress is made and ammo has one place).
+- **Approach:** When text goes over a picture, look at one capture of the worst art before writing the contrast test,
+  and give the words their own ground (a tab of the seat's colour under the biggest numerals, an outline in that colour
+  under the small words) rather than a veil over the picture. **Watch out for:** a veil that pulled any part darker than
+  4.5:1 toward its colour passed the contrast test for every card and seat colour, and the capture showed flat brown
+  boxes: the card was gone, and so was the armband's colour. **Seen:** Deadnight #1070, 2026-11-04 (fix: a tab under the
+  points and `HudLabel.halo_colour` under the small words).
 
 ## A screen of choices {#choices}
 
@@ -42,8 +47,7 @@ screen that holds several choices, and the flow an online menu offers. How Godot
   reload from the file, and count writes (0 while open, 1 on leaving). Never route held choices through a setting other
   views react to. **Watch out for:** a showcase-weapon click wrote a setting, a view reread the saved look on that
   change and erased the unsaved outfit, and leaving wrote nothing; the tests called `apply_preset` and `save()`
-  directly. **Seen:** Deadnight #489, 2026-11-02 (fix: deadnight #493
-  ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md))).
+  directly. **Seen:** Deadnight #489, 2026-11-02 (fix: deadnight #493).
 
 ## Playing online {#online}
 
@@ -70,3 +74,10 @@ place -->
   shows were never listed, so the most-looked-at one, the player's own box at the bottom left, got no level or calling
   card (Deadnight #1077 listed tags, scoreboard, report and lobby). **Seen:** Deadnight #1077, 2026-11-04 (fix: the list
   goes in the issue).
+- **Approach:** When a second content set arrives (a map, a mode), search the HUD for the first set's nouns (lot, field,
+  yard, fence), give every default a per-set override before the content lands (door names, a card's detail line, feed
+  item names, marker names), test that each set's scene has words for every door and that no card of the second names
+  the first, and capture one card per set. **Watch out for:** the HUD's words were written when one map existed and were
+  the default for every id, so the second map's paid link card read "opens the next part of the lot", its feed line said
+  "bought something" and its marker had no name. **Seen:** Deadnight #697, 2026-11-03 (fix: a map holds its own words
+  and the first keeps the defaults).
