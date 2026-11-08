@@ -2,7 +2,7 @@
 
 An effect the player must read (a muzzle flash, a hit marker, a pickup glint, a warning) is judged by what it does to
 the pixels the player sees, from the player's camera, in the renderer the player plays in: not by its parameters and
-not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+not by a close-up capture of the effect on its own (Deadnight #408).
 
 ## Method {#method}
 
@@ -24,8 +24,15 @@ not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../
   player's own mesh toward the camera. **Watch out for:** an effect is judged by its pixels from the player's camera,
   not its parameters: the muzzle flash covered 0.02 to 0.14 % of the screen for 2 frames, its quads lay in the muzzle's
   plane so the gun, hand and arm hid 25 to 87 % of them, and its light went under the floor when the gun pointed down.
-  **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448
-  ([lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md))).
+  **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448).
+- **Approach:** Read where a thing's ink sits by drawing it in a flat colour no other thing uses and counting that
+  colour's share of each pixel over the ground (digits: the label's colour with outline and shadow set clear; an icon:
+  the atlas with its colours replaced and its alpha kept), and check the method against a case you know before trusting
+  it. **Watch out for:** a difference between "with the icon" and "icon made clear" put the scoreboard's icon 1.2 px
+  off, but its outline is nearly black on a nearly black card, so those rows differ by less than the threshold and the
+  icon looked shorter; the flat-colour reading put it within 0.4 px, and the error followed the art, so it looked like
+  a real fault in some levels only. **Seen:** Deadnight #1161, 2026-11-04 (fix: the flat-colour method in
+  `test_level_ink.gd`).
 
 - **Approach:** Measure a faint defect in a series, not in one shot: take 40 screenshots of a screen that holds
   still, subtract their per-pixel median, and read each column against the columns x-3 and x+3 (the smaller of the
@@ -42,8 +49,7 @@ draw again, and count the pixels that change (above 0.08 in any channel, every o
 four). From a shoulder camera 0.6 m right and 2.3 m behind a chibi Soldier, a gun held at the hip is behind his head:
 Deadnight's tommy gun showed 284 pixels of 2.07 million at rest and **0** during the reload that tilted it 35 degrees
 down (#383), the rifle about 300 throughout. A reload carried out to the right of the head and up showed 6,700 to
-8,700 for the long guns and 2,700 to 3,700 for the pistols (Deadnight #683,
-[lesson](../../lessons/2026-11-02-a-reload-tilt-was-hidden-behind-the-head.md)). So for any action on a held item:
+8,700 for the long guns and 2,700 to 3,700 for the pistols (Deadnight #683). So for any action on a held item:
 
 - measure it from the camera the player has, at rest and in the middle of the action, and keep the numbers as floors;
 - expect the space in front of the chest to be the head's, and move what must read to the right of the head (the
@@ -57,7 +63,7 @@ Deadnight's capture: `game/tests/captures/reload_sheet.tscn --measure`.
 
 A prop that shows the player something (a prize, a pickup, a sign that changes) is read from the spot where its use
 prompt appears, through the player's resting camera with the player's own body in the frame, not from a capture placed
-to show the whole prop (Deadnight #830, [lesson](../../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md)).
+to show the whole prop (Deadnight #830).
 Deadnight's prize crane floated its prize 3.25 m up, turning: from the marker (0.8 m from the glass, camera 2.3 m
 behind and 0.6 m right of a 1.4 m Soldier, level, FOV 60) it was at the frame's top edge and end on half the time,
 while the Soldier's head covers the machine's middle below about 1.65 m. The prize now slides out at 1.72 to 2.18 m,
