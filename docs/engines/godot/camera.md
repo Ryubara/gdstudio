@@ -3,6 +3,21 @@
 What building Deadnight's shoulder camera taught us (the game's page is `docs/research/shoulder-camera.md` in the
 Deadnight repository, with the numbers). Godot 4.7.2.
 
+## Templates use Phantom Camera {#phantom-camera}
+
+<!-- new section: the page covered a hand-built camera; nothing said which camera the kit's templates ship with -->
+
+The kit's templates ship with the Phantom Camera addon (MIT, one pinned release), in the shared `3d-blank` base so
+every template inherits it. A template's cameras are `PhantomCamera3D` nodes under one `PhantomCameraHost`: follow,
+framing and hand-offs by priority come from the addon, and a template's own camera node only groups the settings a
+developer tunes. The springs, interpolation and wall notes below still apply when a game tunes or extends it.
+
+- **Approach:** Build a template's camera on Phantom Camera, with its main settings (follow mode, distance, damping,
+  look-at offset, wall collision, orbit input) grouped in the inspector with ranges and tooltips and defaults that play
+  well, and show one priority hand-off between two cameras in the sample map. **Watch out for:** a hand-rolled spring
+  arm was planned for 3D Third Person until the maintainer asked for Phantom Camera with inspector-level settings in
+  every template. **Seen:** gdstudio #821, 2026-11-08.
+
 ## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 
 - `lerp(a, b, k)` with a constant `k` per frame, and an Euler spring, both feel different at 30, 60 and 144 frames a
