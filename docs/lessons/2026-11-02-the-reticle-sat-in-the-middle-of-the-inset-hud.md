@@ -5,8 +5,8 @@ areas: [godot-ui, camera, input, tests]
 
 2026-11-02
 
-- **Saw:** "Played it on website on iOS. Whenever I was shooting the bullets we're not landing where my crosshair was.
-  A recent update we made might've broken it." The suspects (#572 hip aim, #582, #562, #470) were all clean: a test
+- **Saw:** the maintainer, playing the web build on iOS, found that shots did not land where the crosshair was, and
+  suspected a recent change (Deadnight #601). The suspects (#572 hip aim, #582, #562, #470) were all clean: a test
   that fires the real shot at a wall across the reticle passed on `main` for the mouse and for touch, hip and aimed,
   close and far, until the phone's safe area was given.
 - **Cause:** the night screen insets the whole HUD to the safe area (notch, rounded corners, home bar), and the

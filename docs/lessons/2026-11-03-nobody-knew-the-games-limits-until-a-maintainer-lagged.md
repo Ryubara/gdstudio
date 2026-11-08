@@ -5,8 +5,8 @@ areas: [general, godot, tests]
 
 2026-11-03
 
-- **Saw:** a maintainer at round 12, triple intensity, three bots, said the game lags and that it "should've been done
-  during the start" (Deadnight #906). The game had a web crowd study and a phone profile, but no run of its own worst
+- **Saw:** a maintainer at round 12, triple intensity, three bots, said the game lagged and that its limits belonged in
+  the first plan (Deadnight #906). The game had a web crowd study and a phone profile, but no run of its own worst
   night, no per-system limits and no check that a count or a cost had not grown.
 - **Cause:** performance was measured per question (a phone, a bare crowd of 40 to 120) and never as a standing
   worst case. Nobody asked what the shipped settings together allow: with a bot in the room the crowd ceiling counted the

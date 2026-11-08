@@ -7,8 +7,8 @@ areas: [ci, tools, process]
 
 - **Saw:** Deadnight #503's merge commit `e184e9eb` passed the local `commit-msg` hook and failed `pr-rules`. The fix was
   a force push, which the hooks refuse, so the pull request was replaced (#531); the same happened to #539 (#546). The
-  maintainer asked: "Why do agents need to force push their branches? Wouldn't it be better for you to set all that up
-  before you assign an agent to it?"
+  maintainer asked why agents had to force-push at all, and pointed out that their branches should be set up before
+  an agent is assigned
 - **Cause:** two checks of one rule judged two different texts. The `commit-msg` hook is given the message file before
   git's cleanup, and `groundwork.py check-message` dropped every line that starts with `#` before checking, to ignore
   the help text git writes in the editor. But git only strips `#` lines when it opens the editor (cleanup `strip`);

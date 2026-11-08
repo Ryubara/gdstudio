@@ -6,8 +6,8 @@ areas: [gameplay, process]
 2026-11-02
 
 - **Saw:** the match settings' 3x count only multiplied the count, so rounds lasted longer; a round time limit was
-  added to cover it. The maintainer: "there really shouldn't be round times at all... by 3x count I was also wanting
-  3x spawn rate too." (Deadnight #449.)
+  added to cover it. The maintainer pointed out that rounds should have no time limit at all, and that a 3x count
+  means a 3x spawn rate as well (Deadnight #449).
 - **Cause:** one scaled quantity, with the spawn interval and the alive cap left as they were. Even with the rate
   scaled, the alive cap held 3x back (rounds 15 to 26 percent longer). The unscaled interval went into the docs as an
   open question instead of being treated as the bug.

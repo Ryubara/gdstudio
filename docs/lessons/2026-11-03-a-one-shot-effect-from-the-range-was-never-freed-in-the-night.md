@@ -5,8 +5,8 @@ areas: [godot, gameplay, process]
 
 2026-11-03
 
-- **Saw:** the maintainer asked for the places that "will definitely lag the game" and said performance "needs to be
-  taken into consideration at all times. Maybe we're just not cleaning up objects properly" (Deadnight #906, #907).
+- **Saw:** the maintainer asked for the places that would clearly lag the game, said performance has to be weighed at
+  all times, and suspected objects that were never cleaned up (Deadnight #906, #907).
   The review found `BlastEffect` never freed: 14 nodes alive 30 s after 5 blasts, each blast keeping 3 alpha-0 draw
   calls and an energy-0 light (a slot in the 8-per-mesh light cap) for the rest of the night, and 7 gib nodes left by
   every blast kill (Deadnight #929). The client decoded the whole crowd five times a tick (#930), and the server built

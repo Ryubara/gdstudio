@@ -5,8 +5,8 @@ areas: [ci, backend]
 
 2026-11-03
 
-- **Saw:** the maintainer asked "any reason why railway isn't triggering deployments whenever we merge these PRs?"
-  (Deadnight #732). Railway ran `main c41e30f` while main had gone on by more than ten merges; every run since
+- **Saw:** the maintainer asked why Railway was not deploying when pull requests merged (Deadnight #732).
+  Railway ran `main c41e30f` while main had gone on by more than ten merges; every run since
   logged "66ec313 is not the head of main (cb2431b): skipped" in a green `deploy` job.
 - **Cause:** the check that fixed #552 asked "is my commit the head of main?" when the deploy job started. A run takes
   10 to 25 minutes (godot shards, then web) and merges land every few minutes, so main had always moved on by the time

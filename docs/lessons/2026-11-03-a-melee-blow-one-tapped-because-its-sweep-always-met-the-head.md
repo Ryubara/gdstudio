@@ -5,7 +5,8 @@ areas: [gameplay, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer: V "should not be one tapping zombies after round 1". The tables said the blow was 40 against
+- **Saw:** the maintainer found that the quick melee on V killed zombies in one blow after round 1.
+  The tables said the blow was 40 against
   50 health (two blows on round 1), the unit test agreed (two blows), and the balance simulator valued it at 40
   (Deadnight #897).
 - **Cause:** the real blow was 60 on every hit. A melee sweep leaves the eye (1.55 m) with a 0.4 m thickness and a

@@ -5,8 +5,8 @@ areas: [gameplay, blender]
 
 2026-11-02
 
-- **Saw:** "We also need to make sure all weapons are properly in the game and can be properly accessed from the mystery
-  box." The game had 10 weapon models and 6 definitions; the baseball bat and the fire axe had models and class holds
+- **Saw:** the maintainer asked that every weapon be in the game and reachable from the prize crane (Deadnight #461).
+  The game had 10 weapon models and 6 definitions; the baseball bat and the fire axe had models and class holds
   but no id, no numbers and no source, and the crane's pool was a hand-written list of four.
 - **Cause:** the art, the definitions, the shop and the crane were each added by their own task and nothing connected
   them: no table said which models are weapons, and no test asked "where does a player get this?". The earlier lesson

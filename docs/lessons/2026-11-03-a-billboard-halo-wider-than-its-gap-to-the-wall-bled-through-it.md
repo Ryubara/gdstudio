@@ -5,8 +5,8 @@ areas: [godot, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer fixed it by hand in the editor (Deadnight #703): "the neon glow halo was bleeding through the
-  wall. We need to make sure that in the future agents take that into consideration." The concession's SNACKS sign
+- **Saw:** the maintainer fixed it by hand in the editor (Deadnight #703): a neon sign's glow halo bled through the
+  wall, and agents must check for this from now on. The concession's SNACKS sign
   showed a pink bloom in the room behind its wall and a pink cloud hanging in the air past the wall's end.
 - **Cause:** the sign's halo was a 9 x 4 m additive quad with `billboard = true`, 0.3 m in front of a sign that sits
   0.1 m off the wall. A billboard turns to face the camera about its own centre, so seen from the side its 4.5 m

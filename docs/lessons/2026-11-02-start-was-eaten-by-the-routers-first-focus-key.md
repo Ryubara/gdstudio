@@ -5,7 +5,7 @@ areas: [input, godot-ui]
 
 2026-11-02
 
-- **Saw:** "User can't pause game with controller, start button not working".
+- **Saw:** a controller's Start button did not pause the game (Deadnight #494).
 - **Cause:** `project.godot` binds Start (button 6) to both `pause` and `ui_accept`. When no control has the focus, the
   UI router spends the first focus key on focusing the top screen and marks the event handled, so every Start in a
   running night was eaten before `pause` saw it. The pause matrix test pressed Esc first, which focused Resume, so its

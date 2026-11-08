@@ -5,9 +5,8 @@ areas: [blender, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer, in the menu: "you can see through their neck if they don't have the right clothes
-  selected", a mouth line "all the way up to the side of their face ... like a face mask", and limbs and clothes
-  "overlapping through each other" (Deadnight #895).
+- **Saw:** the maintainer, in the menu: the neck was see-through with some clothes, the mouth was a line running up
+  the side of the face so the face read as a mask, and limbs and clothes passed through each other (Deadnight #895).
 - **Cause:** the parts were cut from a kit body whose head is an open hood closed only by the vest's collar; open
   collars left it open, and every review render (Workbench, no back-face culling) drew the inside of the head as if it
   were outside. The face was the kit's balaclava rim painted skin. Pose checks were relative (her against him, the

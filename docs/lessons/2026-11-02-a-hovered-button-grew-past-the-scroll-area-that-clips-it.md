@@ -6,7 +6,7 @@ areas: [godot-ui]
 2026-11-02
 
 - **Saw:** In the lobby the hovered "Copy the link" grew and its left edge was cut off by the panel's side
-  (Deadnight #628). The maintainer: it "never took into consideration that scaling up would hide it slightly".
+  (Deadnight #628). The maintainer pointed out that nobody had considered the clipping a scale-up causes.
 - **Cause:** A scale is paint, not layout: `UIButton` grew 3.5 percent on hover and no container reserved room for it,
   while the lobby's rows sat in a `ScrollContainer` (which clips at its own rectangle) with every button filling the
   width edge to edge. Layout tests read resting rects, so nothing measured a hovered control against the control that

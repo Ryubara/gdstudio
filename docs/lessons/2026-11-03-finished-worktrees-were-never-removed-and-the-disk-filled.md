@@ -5,10 +5,9 @@ areas: [tools, process]
 
 2026-11-03
 
-- **Saw:** the maintainer: "My disk space is 8.05 GB, we need to clear out anything related to GDStudio and Dead Night
-  that's taking up all this storage that's not being used anymore", and "Our GDStudio workflow needs to automatically
-  clear out work trees as soon as they're rendered obsolete. The issue is that there might be some stuff intended to be
-  kept for later such as the artwork we made and maybe others." The coordinator removed 64 Deadnight worktrees by hand
+- **Saw:** the maintainer's disk was down to 8 GB free; unused GDStudio and Deadnight files had to go, and the workflow
+  was to remove worktrees automatically once obsolete while keeping what is meant to stay, such as artwork (GDStudio
+  #241, 2026-11-03). The coordinator removed 64 Deadnight worktrees by hand
   (8 GB free became 14 GB); some were two days old, and each held a Godot import cache of tens to hundreds of MB.
   Reviewers' and probes' detached worktrees (`review-*`, `*-before`, `baseline-*`, `exp-*`) had no owner and were never
   removed. Of the 23 worktrees archived first, the loose files worth keeping (`REVIEW.md`, probes, captures, a `.blend`)

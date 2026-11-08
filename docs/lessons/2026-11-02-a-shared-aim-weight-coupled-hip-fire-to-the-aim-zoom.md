@@ -5,8 +5,8 @@ areas: [camera, tests]
 
 2026-11-02
 
-- **Saw:** in the Discord Activity, aim, shoot, let go of aim: the zoom held a moment longer. The maintainer: "When a
-  player hip fires let's remove the zoom effect at all. We'll just reserve the aim zoom just for aim as intended."
+- **Saw:** in the Discord Activity, aim, shoot, let go of aim: the zoom held a moment longer. The maintainer decided that
+  hip fire loses its zoom entirely and the zoom belongs to aiming alone.
   (Deadnight #464.)
 - **Cause:** one output, the aim weight, drove the camera, the body and the hands for two inputs (the aim button and
   the trigger), so every hip-fire tweak changed the aim too. The earlier fix (#433) was proved in tests but not in

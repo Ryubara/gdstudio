@@ -1,12 +1,12 @@
 ---
 areas: [gameplay, net, tests]
 ---
-# A seat kept the weapons of the last player, and weapons "did not end up" in the next one's hands
+# A seat kept the weapons of the last player, and weapons never reached the next one's hands
 
 2026-11-03
 
-- **Saw:** the maintainer, in round 12 with three bots, "some weapons that when grabbing outside of the mystery box
-  they don't end up in players inventory (these are the new weapons I believe)" (Deadnight #904). Every solo flow
+- **Saw:** the maintainer, in round 12 with three bots, found that some weapons taken from the prize crane never
+  reached the player's inventory, likely the new ones (Deadnight #904). Every solo flow
   worked when walked: each of the 15 weapons from each wall and from the crane on both maps, with a free hand, full
   hands, the third-weapon perk, everything re-cut, and after a down that took the perk (rules, combat server, frame and
   HUD slots all agreed). Not one new weapon was missing from a table.

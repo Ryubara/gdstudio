@@ -7,8 +7,8 @@ areas: [net, web, backend, tests]
 
 - **Saw:** after the first fix of Share in Discord (Deadnight #627) the maintainer pressed it in the real Activity and
   the new probe line read `refused after 17 ms; error rpc 4006: Not authenticated or invalid scope`, and the invite
-  window failed with the same words. "Discord invites not working, needs research into how discord invites work, we
-  might be missing some sort of scope." The first fix had passed every mode of its browser harness.
+  window failed with the same words. The maintainer reported that invites still did not work and asked for research
+  into how they work, suspecting a missing scope. The first fix had passed every mode of its browser harness.
 - **Cause:** the bridge called `authorize` (the sign-in code) and never `authenticate` (the access token that makes the
   Activity's session authenticated); Discord's client refuses `shareLink` and `openInviteDialog` with 4006 until it has.
   The first fix missed it for three reasons. Its harness replaced `discord-bridge.js` with a stub and answered

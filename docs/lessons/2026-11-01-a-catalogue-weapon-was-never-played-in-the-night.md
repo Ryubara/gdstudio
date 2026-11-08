@@ -5,10 +5,9 @@ areas: [gameplay, tests]
 
 2026-11-01
 
-- **Saw:** the maintainer, playing the web build: "The crowbar is a baseball bat model ... no swinging animations ...
-  it instantiates a muzzle flash on attack ... attacks don't work when swinging ... The revolver does not pop up when
-  holding it." The revolver is the starting weapon, so every night began with an empty hand. Every PR involved had
-  passing tests and captures.
+- **Saw:** the maintainer, playing the web build, found that the crowbar used a baseball bat model, had no swing, made
+  a muzzle flash on attack and its blows did nothing, and that the revolver did not show in the hand. The revolver is
+  the starting weapon, so every night began with an empty hand. Every PR involved had passing tests and captures.
 - **Cause, five layers, each built and tested alone (Deadnight #285):**
     - *Flash:* `ShotEffects.shot()` drew the muzzle flash before looking at the weapon kind, so a melee blow flashed
       (#111; #249 trimmed the tracer and impact for melee but left the flash).

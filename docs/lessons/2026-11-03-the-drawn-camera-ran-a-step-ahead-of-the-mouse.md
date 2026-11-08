@@ -5,8 +5,8 @@ areas: [input, camera, godot, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer, playing a night with bots: the mouse look "gets a bit weird when it lags, no other games do
-  this" (Deadnight #905). Every look test passed: the rig's yaw was exactly the hand's at every frame rate.
+- **Saw:** the maintainer, playing a night with bots: the mouse look went odd whenever the game lagged, which other games
+  do not do (Deadnight #905). Every look test passed: the rig's yaw was exactly the hand's at every frame rate.
 - **Cause:** `ThirdPersonCamera._place` set the child `Camera3D`'s `global_transform` and then moved its parent (the
   `top_level` rig, new yaw and pivot). The child keeps its local transform, so the lens was drawn at the view plus one
   more step of the rig's last turn: a frame with no mouse turned the view back, a long frame overshot by its whole

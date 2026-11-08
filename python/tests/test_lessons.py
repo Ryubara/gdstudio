@@ -44,15 +44,15 @@ CORRECTIONS = """# Page
 
 ## Corrections and the checks they become
 
-| The maintainer said | Blind spot | Check for next time |
+| What the maintainer pointed out | Blind spot | Check for next time |
 | --- | --- | --- |
-| "Add mobile controls" | We planned desktop only | Name every device |
+| The game needed mobile controls (#1, 2026-11-01) | We planned desktop only | Name every device |
 
 ## Found by playing: concepts and details we missed
 
-| The maintainer said | Concept | Detail | Check |
+| What the maintainer pointed out | Concept | Detail | Check |
 | --- | --- | --- | --- |
-| "Join is wrong" | Players play with friends | A raw address | Walk the flow ([lesson](../lessons/2026-11-02-b.md)) |
+| Join (#2) | Players play with friends | A raw address | Walk the flow ([lesson](../lessons/2026-11-02-b.md)) |
 
 ## Done wrong first, caught by our own checks
 
@@ -154,6 +154,25 @@ def test_problems_name_a_lesson_without_areas_and_an_unknown_area(kit):
     path = kit / "docs" / "lessons" / "2026-11-02-b.md"
     path.write_text(path.read_text(encoding="utf-8").replace("web, net", "web, nope"), encoding="utf-8")
     assert "unknown area 'nope'" in lessons.problems(kit, areas)[-1]
+
+
+@pytest.mark.parametrize("mark", ['"', "'", "“", "‘", "«"])
+def test_a_corrections_row_that_quotes_the_maintainer_is_a_problem(kit, mark):
+    """The maintainer's prompts are never quoted in a public repository (gdstudio #780): a row whose first cell starts
+    with a quotation mark fails `problems` (pre-commit, CI) and the docs build."""
+    path = kit / lessons.CORRECTIONS
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("| Join (#2) |", f"| {mark}Join is wrong{mark} (#2) |"), "utf-8")
+    areas = lessons.Areas.load(kit / lessons.AREAS_FILE)
+    found = lessons.problems(kit, areas)
+    assert len(found) == 2 and "maintainer-corrections.md:13: the row quotes the maintainer" in found[-1]
+    # Headers, separators and quotation marks later in a row are not quotes of a prompt.
+    assert lessons.quoted_rows(text) == []
+    assert lessons.quoted_rows('| A |\n| --- |\n| A label read "PLAYER 1" |\n') == []
+
+
+def test_the_kits_corrections_page_quotes_no_prompt():
+    assert lessons.quoted_rows((KIT / lessons.CORRECTIONS).read_text(encoding="utf-8")) == []
 
 
 def test_backfill_adds_areas_by_keyword_and_leaves_the_rest(kit):

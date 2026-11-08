@@ -10,6 +10,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from mkdocs.exceptions import PluginError
 from mkdocs.structure.files import File
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,7 +20,11 @@ from gds_tools import lessons  # noqa: E402
 
 
 def on_files(files, config):
-    """Replace (or add) the glossary page with the one built from the lessons."""
+    """Replace (or add) the glossary page with the one built from the lessons. A corrections row that quotes the
+    maintainer fails the build (gdstudio #780)."""
+    quoted = lessons.quoted_rows((ROOT / lessons.CORRECTIONS).read_text(encoding="utf-8"))
+    if quoted:
+        raise PluginError("\n".join(quoted))
     src_uri = lessons.GLOSSARY.relative_to("docs").as_posix()  # relative to docs_dir
     old = files.get_file_from_path(src_uri)
     if old is not None:

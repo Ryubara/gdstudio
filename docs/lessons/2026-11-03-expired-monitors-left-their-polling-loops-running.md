@@ -5,7 +5,7 @@ areas: [tools, process]
 
 2026-11-03
 
-- **Saw:** the maintainer: "whic hagent keeps opening up bash.exe?" Console windows kept flashing on the desktop. A
+- **Saw:** the maintainer asked which agent kept opening `bash.exe`. Console windows kept flashing on the desktop. A
   10-minute log of new `bash.exe` processes showed about 700, nearly all from the coordinator's PR monitor
   (`scratch/gdstudio/main/monitor/pr-monitor.sh`), and 35 copies of that script were running, the oldest from
   01:53 the day before.

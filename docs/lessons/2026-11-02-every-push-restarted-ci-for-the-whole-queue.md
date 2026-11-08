@@ -5,8 +5,8 @@ areas: [ci, process]
 
 2026-11-02
 
-- **Saw:** 21 open PRs, 20 jobs running (the concurrency limit) and 33 queued; the maintainer: "We have PRs that our
-  backing us up.. why aren't these merged over yet?" (Deadnight #447).
+- **Saw:** 21 open PRs, 20 jobs running (the concurrency limit) and 33 queued; the maintainer pointed out that open
+  pull requests were backing up and had to be landed (Deadnight #447).
 - **Cause:** agents were told to merge `main` into open PRs although the ruleset does not require up-to-date
   branches; each push cancelled and restarted that PR's 15-minute game and web run and started about ten workflows.
   A known web flake failed several PRs, and its fix (#431) was not at the front.

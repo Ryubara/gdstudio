@@ -5,8 +5,8 @@ areas: [gameplay, tests]
 
 2026-11-03
 
-- **Saw:** the maintainer: "double check collision detectors e.g. that we don't get prompted to interact with an object
-  through walls (this is already an issue)" (Deadnight #831). A walk of every interactable on both maps found 910
+- **Saw:** the maintainer asked for a second look at the collision checks, since interact prompts already showed
+  through walls (Deadnight #831). A walk of every interactable on both maps found 910
   prompts through walls on `main` (the wall weapons, re-cut bench, soda fountain, lockers, crane, breaker posts, boards)
   and 41 presses that bought or changed something from the far side; a downed teammate was raised through a wall too.
 - **Cause:** "in reach" was written as a flat distance (`use_reach`, `fuel_reach`, `revive_reach`), plus a floor on the
