@@ -87,7 +87,7 @@ maintainer felt it as an invisible box the cursor could not leave while a captur
   was measured for focus and keys only, and a game capturing the mouse calls `ClipCursor`, which crosses desktops and
   held the real cursor inside the hidden window while its sound played. **Seen:** Deadnight, 2026-11-01 (fix: `gds
   godot` sets `GDS_QUIET=1`, and a test clips the cursor from the hidden desktop and asserts the real one stays free
-  (gdstudio #77, [lesson](../../lessons/2026-11-02-a-hidden-capture-held-the-cursor-in-an-invisible-box.md))).
+  (gdstudio #77)).
 
 ## What was measured {#what-was-measured}
 
@@ -181,8 +181,7 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
   a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
   `gds godot --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>` (a baseline worktree needs GdUnit4 copied in first), and
-  make the headless run answer what the window answers
-  ([lesson](../../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).
+  make the headless run answer what the window answers.
 
 - **Approach:** Start every windowed tool run (captures, recordings, autopilots) off the person's desktop with `gds
   godot`, and prove it by keystrokes still reaching the person's window, not only by the mouse staying put. **Watch out
@@ -191,5 +190,4 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   private desktop and a hook refuses a bare windowed Godot).
 - **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
   person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
-  runs of the same capture script differed
-  ([lesson](../../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).
+  runs of the same capture script differed).

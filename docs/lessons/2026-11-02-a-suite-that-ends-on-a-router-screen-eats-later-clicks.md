@@ -18,4 +18,4 @@ areas: [tests, tools]
 - **Another case:** a menu left on the shared router answered the bumpers in later
   tests (Deadnight #466): it takes keys and buttons, not only clicks.
 - **Docs:** the earlier, receiving-side version of this lesson:
-  [UI input test fails only in the folder run](2026-11-01-ui-input-test-fails-only-in-the-folder-run.md).
+  UI input test fails only in the folder run.

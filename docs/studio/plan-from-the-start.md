@@ -20,16 +20,13 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
   it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
-- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button
-  ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md)).
-- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content
-  ([lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md)).
+- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
+- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
-  camera ([lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+  camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
   ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md)).
-- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser
-  ([lesson](../lessons/2026-11-01-layout-test-found-hud-overlaps-no-eye-would.md)).
+- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
   and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
 - Plan: for an identity feature, every place a name is drawn, found by searching the code and listed in the issue, the
@@ -47,7 +44,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
   ([web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
-  is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
+  is tested on a screen with no focus.
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
   ([web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: touch proved in a phone-emulated browser; a finger is also a mouse motion in the web runtime
@@ -56,13 +53,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   never `relative` ([touch controls](../engines/godot/ui-controls.md#touch-controls)).
 - Plan: touch designed as its own interface before its first button: every action and every element on the screen for
   that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
-  expects everywhere (reload at 0) are proved through each device's real input path
-  ([lesson](../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md)).
+  expects everywhere (reload at 0) are proved through each device's real input path.
 - Plan: a touch action is listed by what it does, derived from one table, not by an allow-list: every button looks while
   dragged unless its row owns the drag, so a new one cannot opt out unseen
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
-- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`.
 
 ## Platforms
 
@@ -130,9 +125,8 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Saving
 
 - Plan: hold menu choices in one draft, preview the draft, and commit once on leaving; no other view rereads saved
-  state while the screen is open ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
-- Plan: a test for every choice against another choice, a tab change and a reload, counting writes
-  ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
+  state while the screen is open.
+- Plan: a test for every choice against another choice, a tab change and a reload, counting writes.
 - Plan: tests point the settings and save files away from the player's own `user://`
   ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
 
@@ -182,9 +176,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
-  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a maintainer
-  found the lag first ([performance budgets](../engines/godot/performance-budgets.md),
-  [lesson](../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md),
+  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a
+  maintainer
+  found the lag first ([performance budgets](../engines/godot/performance-budgets.md#the-rule),
   [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
 ## Test infrastructure
@@ -200,54 +194,52 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
   ([lesson](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive)).
-- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
   ([lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
   [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md)).
-- Plan: captures and recordings from the player's camera, with the real devices switched off
-  ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md)).
+- Plan: captures and recordings from the player's camera, with the real devices switched off.
 
 ## Process
 
 - Plan: land old PRs before new ones, reporting from the oldest down
-  ([lesson](../lessons/2026-11-02-new-prs-opened-while-old-ones-stalled.md)).
+  ([Starting work](starting-work.md#landing)).
 - Plan: rerun known flakes at once and push only what a merge needs
-  ([lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md)).
+  ([Starting work](starting-work.md#merging-main-into-a-pull-request)).
 - Plan: a fix is done when it is live where the maintainer plays (deployed commit named, probe run on the live URL)
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
-  ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md)).
+  ([Hooks](hooks.md#mains)).
 - Plan: a stopgap comment names its issue ("until #N"), and closing #N greps for it and resolves it
-  ([lesson](../lessons/2026-11-02-an-until-issue-stopgap-outlived-its-issue.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: the PR that finishes a split issue carries `Fixes #N`
-  ([lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
   ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task
-  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](workspace.md#disk)).
+  ([The disk guard](workspace.md#disk)).
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
-  ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
+  ([The shell](shell.md#paths),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
 - Plan: every kit file a game carries a copy of (the checker, the pre-commit message hooks, the agent definitions) is on
   the `gds sync` list from the first game, so a rule changed in the kit reaches the games in one sync pull request
-  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](sync.md)).
+  ([Sync](sync.md#pre-commit-blocks)).
 - Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
-  ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),
-  [Starting work](starting-work.md)).
+  ([Starting work](starting-work.md#the-rule)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
-  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
+  they start ([Hooks](hooks.md#docs),
   the mistakes glossary (`gds lessons <area>`)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
-- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
+- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer
+  decisions
   in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every
   time; the second kind becomes a default the agent runs (a new game's GitHub repository, Pages, ruleset, hold sweep and
@@ -258,7 +250,6 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
   offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
-  [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
   [Starting work: pausing a game](starting-work.md#paused)).
 - Plan: a docs site's navigation is designed for the page count it will reach (a tab per topic, sections that fold
   and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at

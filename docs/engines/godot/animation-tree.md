@@ -104,8 +104,7 @@ reading the bones at `skeleton_updated`. Deadnight #940.
   weapon, hands and muzzle in front of the chest. **Watch out for:** the arms were posed in world space along an
   `aim_yaw` written only in the animated step, so in a still or with reduced motion the idle clip never applied and the
   weapon pointed backwards through a turned body. **Seen:** Deadnight #940, 2026-11-03 (fix: the yaw is written with the
-  body's turn, as above
-  ([lesson](../../lessons/2026-11-03-a-held-weapon-aimed-in-the-world-was-left-behind-by-a-turn.md))).
+  body's turn, as above).
 
 ## One action state for every body {#one-action-state-for-every-body}
 

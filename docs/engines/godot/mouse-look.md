@@ -40,20 +40,22 @@ Godot 4.7.2. The game's page, with the numbers and the plots, is `docs/research/
   (`tools/web_smoke/look_size.py` in Deadnight).
 - `Input.use_accumulated_input` (on by default) merges the motions of a frame into one event, delivered at the start of
   the frame; the total is the same, and a long frame gets one big event. Turn it off only to see events one by one in
-  a test or a profile.
+  a test or a profile. A test that sends a tagged motion beside a stray one flushes around it
+  ([Input in UI tests](ui-input-tests.md#sending)).
 - **An event that arrived during frame k turns the view at the start of frame k+1**, which draws it. A probe that posts
   events at the end of `_process` and calls `Input.flush_buffered_events()` sees them in the next frame, the way the
   system's are.
 - A rig that is placed every drawn frame is set to `PHYSICS_INTERPOLATION_MODE_OFF`
   ([Physics interpolation](physics-interpolation.md)), so the engine does not blend it a second time.
 
-- **Approach:** Give every Control that only holds screens or a world `MOUSE_FILTER_IGNORE`, and prove mouse look
-  through the real input path: a test lists every mouse-catching Control over a running level with the real main scene
-  loaded, and the browser smoke moves the mouse and asserts the view turned. **Watch out for:** three full-screen
-  Controls (the game's `Main` root, the router's `Stage`, the night screen) kept the default STOP and marked every
-  motion handled; tests called the look handler directly, and a headless run skips GUI mouse handling, so nothing saw
-  it. **Seen:** Deadnight, 2026-11-01 (fix: the containers ignore the mouse, and the listing test and the browser check
-  hold it).
+- **Approach:** Give every Control that only holds screens, a world or a fading overlay `MOUSE_FILTER_IGNORE`, root and
+  children, and prove mouse look through the real input path: a test lists every mouse-catching Control over a running
+  level with the real main scene loaded, and the browser smoke moves the mouse and asserts the view turned. **Watch out
+  for:** three full-screen Controls (the `Main` root, the router's `Stage`, the night screen) kept the default STOP; a
+  loading overlay set only its own root to IGNORE while its box (PASS) and bar (STOP) caught clicks for the 0.35 s of
+  its fade, and a headless run has no loading screen. **Seen:** Deadnight, 2026-11-01; Deadnight, 2026-11-05 (fix: all
+  the controls ignore the mouse; list the visible controls whose rect holds the point, then read
+  `gui_get_hovered_control()`).
 
 ## The fault: set the child, then the parent {#the-fault-set-the-child-then-the-parent}
 
@@ -76,8 +78,7 @@ script keeps.
   through the real input over 1/144 to 1/15 s and uneven frames, and set the parent before the child for anything placed
   by hand in `_process`. **Watch out for:** every look test read the rig's yaw, which matched the hand; the camera set
   its child's global transform and then moved its `top_level` parent, so the lens drew one step of the last turn ahead
-  (33 to 133 degrees off at the worst frame). **Seen:** Deadnight #905, 2026-11-03 (fix: the parent is placed first
-  ([lesson](../../lessons/2026-11-03-the-drawn-camera-ran-a-step-ahead-of-the-mouse.md))).
+  (33 to 133 degrees off at the worst frame). **Seen:** Deadnight #905, 2026-11-03 (fix: the parent is placed first).
 
 ## How to measure it {#how-to-measure-it}
 
@@ -98,3 +99,12 @@ script keeps.
 - **Approach:** Measure per-frame motion in a child Godot run at `--fixed-fps`, with control cases that must fail.
   **Watch out for:** a smoothness test measured frames timed by the real clock and failed on busy machines, turning
   `main` red. **Seen:** Deadnight #362, 2026-11-01 (fix: main's CI and a local run showed it).
+
+- **Approach:** Test a look rate, or a bound on one frame's turn, on a clock the test owns: switch the layer's
+  `_process` off, send each sample with `Input.flush_buffered_events()`, call `_process(length)` by hand with a chosen
+  frame length (a seeded uneven run too), divide each frame's turn by that same frame's length, and give a hitch longer
+  than the smoothing window a case of its own that asserts the total. **Watch out for:** a drag test fed by
+  `Time.get_ticks_usec()` on real frames measured 0.38 to 1.13 against a 0.35 bound on a loaded machine, because it
+  read the clock before `await process_frame` and the yaw after, and a "small steps" check failed when one frame
+  outlasted the 40 ms window and `LookSmoother` let out the whole backlog (the game was right both times). **Seen:**
+  Deadnight #664, #889, 2026-11-03 (fix: hand-stepped clocks; 20 loaded runs pass).

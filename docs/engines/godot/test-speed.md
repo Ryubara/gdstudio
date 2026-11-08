@@ -58,7 +58,7 @@ a light shard by itself. Size the shard count from the total (`total / 480 s`, r
 by 1.5x from job to job), have a self-test compare the shard count with the workflow's matrix, and end every shard with
 a check that warns past 60 % and fails past 80 % of the job's time limit, so drift is red before the limit cancels a
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
-[lesson](../../lessons/2026-11-04-a-hand-balanced-shard-list-went-stale-within-a-day.md)).
+[CI and deploys](../../studio/ci.md#shards)).
 
 ## Night suites: where the seconds go, and what may be cut
 
@@ -125,3 +125,40 @@ two clocks, and a slow runner pulls them apart. Give the real-time part an injec
   1.0 on a desktop; never count frames, or read `get_process_delta_time()`, for something that runs on a delta.
   **Seen:** Deadnight, 2026-11-01 (player suite; reproduced with busy-loop headless Godots, killed by PID); Deadnight
   #802, 2026-11-03.
+
+## Reading a value that time drives {#time-driven-values}
+
+<!-- new section: One clock per test covers a network test; the springs, eases, gates and waits of UI and input tests
+failed the same way and had no home -->
+
+A value stepped by `delta` (a spring, an ease, a pulse, a smoothing window) has no fixed answer after N frames: the
+answer depends on how long a frame took, which is the machine, the window and the renderer.
+
+- **Approach:** Read such a value after it has run its course, in time and not in frames: wait for
+  `UISpring.is_settled()` (with a cap in seconds), or sum `get_process_delta_time()` over one full period, then assert
+  the exact end value, and sweep the suite with `--fixed-fps 1000 480 240 60 10` (headless and through `gds godot`).
+  Fix the siblings by searching every read of the value, not by the list in the issue. **Watch out for:** `UISpring.step`
+  integrates one step per whole 1/240 s, so a frame under 4.17 ms moves nothing and a test that asserted a movement one
+  frame after the change failed; a pulse read after 60 frames was a quarter of its turn in a window with no frame cap;
+  all passed headless and at 60 Hz. **Seen:** Deadnight #1202, #1219, 2026-11-05 (fix: waits in time; the sweep at
+  1000 fps fails any frame-count read).
+- **Approach:** Assert a range the tuning allows, or a relation between two measures taken at the same moment, not one
+  value at a place the clock chose; before blaming timing, list every time-stepped value between the input and the
+  asserted number and read the first failing number back through them, then prove the test with a mutant that turns
+  nothing. **Watch out for:** a drag test expected 0.148 and got 0.112 to 0.125 because the aim button eases the look
+  scale between 0.7 and 1 with a damped spring, and a slide test looked three frames into a tween driven by real frame
+  time (4.7% of the way at 145 fps, 75% with 100 ms frames). Reproduce a load flake with `OS.delay_msec(100)` after
+  each `await process_frame`. **Seen:** Deadnight #576, #582, 2026-11-02 (fix: the range `hip_turn *
+  aim_sensitivity_scale` to `hip_turn`; the position and the colour ride one tween, so assert they match).
+- **Approach:** Give a rule that reads time an injectable clock (a `Callable`, real `Time` in the game), hand every
+  suite the layer's own stepped time plus an offset, use a pure test clock only for the boundary cases, and run each
+  suite that plays a drag with the rule on. **Watch out for:** a double-tap gate (under 250 ms, inside 10 CSS px) read
+  `Time` while three look tests played time by hand with `_process(1/60)`, so a real 250 ms never passed and the drag
+  sat in the gate for its whole run; a test wanting millisecond edges has the opposite need. **Seen:** Deadnight #1288,
+  2026-11-05 (fix: `TouchControls.clock` and `TouchFixture.pass_time`).
+- **Approach:** Wait for the state a test asserts inside a bound (a tick a frame, at most 30, then the same assertion),
+  never for a count of frames, and when a suite a pull request did not touch goes red, run it six to eight times alone
+  on the branch and on main before deciding whose fault it is; a new suite that reads the client runs ten times alone
+  before it is called green. **Watch out for:** the test moved the dead away, ran two ticks and waited two frames, but
+  the client's frame and the layer's read of it each land a frame later, so it failed 4 of 8 runs on main and landed
+  green by chance. **Seen:** Deadnight #1296, 2026-11-05 (fix: Deadnight #1302, 0 of 12 runs failed).
