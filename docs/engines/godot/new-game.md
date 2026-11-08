@@ -137,7 +137,7 @@ check this way (`gds new game template-check --template 3d-blank --local`).
 
 | Template | What it is | Status |
 | --- | --- | --- |
-| `3d-blank` | A lit prototype level, the folder layout and the web export, with no entities and no game scripts ([Prototype surfaces and daylight](prototype-surfaces.md)). | made |
+| `3d-blank` | A web-first prototype map (baked light, a Forward+ graphics profile, a grid surface) with six map components, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)). | made, reworked in #788 |
 | `3d-third-person`, `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
@@ -146,6 +146,12 @@ check this way (`gds new game template-check --template 3d-blank --local`).
   `pre-commit run gdformat gdlint --all-files`, but `pre-commit run` takes one hook id; the kit's `template` job makes a
   game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
   **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
+
+- **Approach:** When a template holds a Git LFS file (a lightmap's `.exr`), check out the kit with `lfs: true` in every
+  kit CI job that copies the template, and skip the file in text checks. **Watch out for:** without it the template
+  holds a pointer file: the `template` job imported it and failed, and every test that pushes a made game to a bare
+  repository stopped with "Git LFS upload failed: (missing) ...exr". **Seen:** gdstudio #788, 2026-11-08 (the first CI
+  run of the lightmap; fixed in `ci.yml`).
 
 ## Adding a template {#adding-a-template}
 

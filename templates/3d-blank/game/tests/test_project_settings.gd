@@ -1,14 +1,27 @@
-# The settings every GDStudio game keeps: the web build is WebGL2, so only Compatibility is used.
+# The settings every GDStudio game keeps: the web build is WebGL2, so the web and phone builds use
+# Compatibility and the desktop build uses Forward+ on top of the same level.
 extends GdUnitTestSuite
 
 
-func test_the_renderer_is_compatibility_on_every_platform() -> void:
+func test_the_renderer_is_forward_plus_on_desktop_and_compatibility_on_web_and_phones() -> void:
 	assert_str(ProjectSettings.get_setting("rendering/renderer/rendering_method")).is_equal(
+		"forward_plus"
+	)
+	assert_str(ProjectSettings.get_setting("rendering/renderer/rendering_method.web")).is_equal(
 		"gl_compatibility"
 	)
 	assert_str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile")).is_equal(
 		"gl_compatibility"
 	)
+
+
+func test_the_grid_cell_and_the_editor_snap_come_from_one_shader_global() -> void:
+	var cell: Dictionary = ProjectSettings.get_setting("shader_globals/prototype_cell_size")
+	assert_float(cell["value"]).is_greater(0.0)
+	var project := ConfigFile.new()
+	assert_int(project.load("res://project.godot")).is_equal(OK)
+	var enabled := PackedStringArray(project.get_value("editor_plugins", "enabled", []))
+	assert_bool(enabled.has("res://addons/prototype_grid/plugin.cfg")).is_true()
 
 
 func test_the_web_preset_leaves_tests_and_tools_out_of_the_export() -> void:

@@ -11,28 +11,59 @@ func _level() -> Node3D:
 	return level
 
 
-func _shapes(level: Node) -> Array[CSGShape3D]:
-	var found: Array[CSGShape3D] = []
-	for node in level.find_children("*", "CSGShape3D", true, false):
+func _blocks(level: Node) -> Array[ProtoBlock]:
+	var found: Array[ProtoBlock] = []
+	for node in level.find_children("*", "ProtoBlock", true, false):
 		found.append(node)
 	return found
 
 
-func test_every_solid_has_collision_and_a_prototype_material() -> void:
+func test_every_block_has_collision_and_a_prototype_material() -> void:
 	var level := _level()
-	var shapes := _shapes(level)
-	assert_array(shapes).is_not_empty()
-	for shape in shapes:
-		if shape.operation == CSGShape3D.OPERATION_SUBTRACTION:
-			continue
-		assert_bool(shape.use_collision).override_failure_message(shape.name).is_true()
-		assert_object(shape.material).override_failure_message(shape.name).is_not_null()
-		assert_str(shape.material.resource_path).starts_with(MATERIAL_FOLDER)
+	var blocks := _blocks(level)
+	assert_array(blocks).is_not_empty()
+	for block in blocks:
+		assert_object(block.material).override_failure_message(block.name).is_not_null()
+		assert_str(block.material.resource_path).starts_with(MATERIAL_FOLDER)
+		var body := block.get_node("Body") as StaticBody3D
+		assert_int(body.get_child_count()).override_failure_message(block.name).is_greater(0)
+
+
+func test_every_block_mesh_has_the_second_uv_set_a_lightmap_needs() -> void:
+	for block in _blocks(_level()):
+		var mesh := block.mesh as ArrayMesh
+		assert_object(mesh).override_failure_message(block.name).is_not_null()
+		var format := mesh.surface_get_format(0)
+		(
+			assert_bool((format & Mesh.ARRAY_FORMAT_TEX_UV2) != 0)
+			. override_failure_message(block.name)
+			. is_true()
+		)
 
 
 func test_the_floor_top_is_at_ground_level() -> void:
-	var floor_shape: CSGBox3D = _level().get_node("Boundary/Floor")
-	assert_float(floor_shape.position.y + floor_shape.size.y / 2.0).is_equal_approx(0.0, 0.001)
+	var floor_block: ProtoBlock = _level().get_node("Boundary/Floor")
+	assert_float(floor_block.position.y + floor_block.size.y / 2.0).is_equal_approx(0.0, 0.001)
+
+
+func test_the_level_carries_baked_bounce_light_and_a_dynamic_sun() -> void:
+	var level := _level()
+	var lightmap: LightmapGI = level.find_children("*", "LightmapGI", true, false)[0]
+	assert_object(lightmap.light_data).is_not_null()
+	var sun: DirectionalLight3D = level.find_children("*", "DirectionalLight3D", true, false)[0]
+	assert_int(sun.light_bake_mode).is_equal(Light3D.BAKE_DYNAMIC)
+
+
+func test_the_graphics_profile_does_nothing_on_the_compatibility_renderer() -> void:
+	var level := _level()
+	var profile: GraphicsProfile = level.find_children("*", "GraphicsProfile", true, false)[0]
+	var world: WorldEnvironment = level.find_children("*", "WorldEnvironment", true, false)[0]
+	var before := world.environment
+	profile.apply()
+	if GraphicsProfile.is_supported():
+		assert_bool(world.environment.ssao_enabled).is_equal(profile.ambient_occlusion)
+	else:
+		assert_object(world.environment).is_same(before)
 
 
 func test_the_level_has_a_sun_with_shadows_and_a_sky() -> void:

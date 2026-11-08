@@ -436,7 +436,7 @@ def test_local_sends_nothing_to_github(workspace_root, monkeypatch):
 def test_list_prints_the_templates_a_line_each(capsys):
     assert cli.main(["new", "game", "--list"]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("3d-blank ") and "prototype level" in out
+    assert out.startswith("3d-blank ") and "prototype map" in out
 
 
 def test_a_name_and_template_are_needed_without_list(capsys):

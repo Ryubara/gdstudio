@@ -36,7 +36,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| LightmapGI (baking) | most of the lighting: the drive-in at night | known, with a warning: bakes only from a Vulkan editor and our bake looked wrong ([Compatibility lighting](compat-lighting.md#lightmapgi)) |
+| LightmapGI (baking) | most of the lighting: the drive-in at night; the 3D Blank map's bounce light | known, with a warning: bakes only from a Vulkan editor, the drive-in's bake looked wrong, the 3D Blank bake is right with a Dynamic sun and meshes unwrapped in the editor ([Compatibility lighting](compat-lighting.md#lightmapgi)) |
 | Environment: fog, glow, tonemap | mood | known ([Compatibility lighting](compat-lighting.md#environment-features)) |
 | Full-screen post shaders | colour grade, outlines, grain | known on desktop; web cost still to measure ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)) |
 | OmniLight3D / SpotLight3D | projector beam, lamps, muzzle flash | known on desktop: 16+ unshadowed fine, 8 per mesh; web still to measure ([Compatibility lighting](compat-lighting.md#dynamic-lights)) |

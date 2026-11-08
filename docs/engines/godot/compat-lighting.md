@@ -138,6 +138,15 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
   the bake output we measured (identical file sizes), and we did not isolate why in the time box. Until a follow-up
   spike gets a bake that matches the dynamic look, **do not plan the drive-in's mood on LightmapGI.**
 
+- **Approach:** For a level whose meshes a script makes, let the editor unwrap each mesh (`lightmap_unwrap`) and save
+  it in the scene, build only collision at run time, bake in the Forward+ editor with the sun left Dynamic, and set
+  `rendering/reflections/reflection_atlas/reflection_size` to 64 with probes. **Watch out for:** `lightmap_unwrap`
+  exists only in the editor binary (an export prints `array_mesh_lightmap_unwrap_callback is null`, the mesh has no
+  UV2 and the lightmap silently skips it); two probes took 257 MB in Compatibility at the default 256 (8 MB at 64);
+  `LightmapGI.visible = false` hides it in Forward+ only (clear `light_data`); a closed room bakes near black (add a
+  static `OmniLight3D`). **Seen:** gdstudio #788, 2026-11-08 (3D Blank: 50 blocks bake in 0.9 to 2.0 s, 45 KB; right
+  in both renderers).
+
 ## Night mood: honest judgement {#night-mood-honest-judgement}
 
 - **Works:** filmic tonemap + glow + fog + a handful of coloured omni lights + emissive meshes gives a convincing
