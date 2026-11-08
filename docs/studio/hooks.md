@@ -74,6 +74,12 @@ branch to read (no commit, a detached head, the checkout on `main`, no `origin/m
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
 
+- **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
+  body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
+  `check-body` does not see the history, so it passed; the `body` check then failed on the fix commit ("build-ok failed
+  on an earlier commit of it") and the pull request sat red until the line was added. **Seen:** gdstudio #821, 2026-11-08
+  (the `template` job failed once; the body got its `Lessons:` line after the fix push).
+
 ## Which paths the image guard covers {#attach-paths}
 
 `gh pr create|edit --attach` uploads each file and rewrites a `![alt](../path)` reference in the body to the upload, in
