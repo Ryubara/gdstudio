@@ -259,4 +259,4 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
   offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
   [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
-  [Starting work: pausing a game](../starting-work.md#paused)).
+  [Starting work: pausing a game](starting-work.md#paused)).

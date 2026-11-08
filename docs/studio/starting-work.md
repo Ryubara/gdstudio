@@ -114,7 +114,7 @@ maintainer sets):
 What still runs: scheduled CI and the nightlies keep running and keep their issues current. Pull requests already
 open stay open, and no agent merges one while the repository is paused. A pause kept only in someone's memory or in
 a plan's wording does not count, because no tool can read it
-([lesson](lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md)).
+([lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md)).
 
 ## The branch and worktree {#worktree}
 

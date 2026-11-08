@@ -68,7 +68,7 @@ class RepoEntry:
     name: str
     url: str
     role: str
-    paused: str = ""  # why the maintainer paused it (docs/starting-work.md#paused); "" when it is not
+    paused: str = ""  # why the maintainer paused it (docs/studio/starting-work.md#paused); "" when it is not
 
 
 @dataclass(frozen=True)
