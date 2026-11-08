@@ -232,7 +232,7 @@ because
 the pull request still closes it. Skip both. Give the new agent `PR: <owner/repo>#N` and the `Worktree:` line of the old
 one, whose folder is the pull request's branch.
 
-## Starting an agent
+## Starting an agent {#starting-an-agent}
 
 The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`, any agent
 that is not a read-only helper or the reviewer) has a line of one of these forms:
@@ -241,13 +241,63 @@ that is not a read-only helper or the reviewer) has a line of one of these forms
 | --- | --- | --- |
 | `Issue: <owner/repo>#N` | new work | the issue is in the ledger of `gds issue start` |
 | `PR: <owner/repo>#N` | work on an existing open pull request: a review, a red check (a broken `main` has its pull request or issue), a conflict (DIRTY), review comments | GitHub says the pull request is open |
+| `Read: <page>.md#<anchor>, ...` | the sections of the docs the agent reads before it starts | at least one, and each exists in the kit's `docs/` |
 
-Both lines can appear; each must hold. An agent whose prompt has neither is refused with how to start the issue.
+`Issue:` or `PR:` (both can appear; each must hold) and at least one `Read:` line. An agent whose prompt lacks either is
+refused, with the command that fixes it.
 
-`gds issue start` also maps the issue's labels to areas of the mistakes glossary (`docs/lessons/areas.toml`) and
-keeps them in the ledger with the issue's title: the sections of the docs closest to the title and the rules of those
-areas are put into the agent's context when it starts ([Hooks: docs](hooks.md#docs)). `gds learn <words>` and
-`gds lessons <area>` print them for a person.
+**Before every Agent call the coordinator runs `gds brief`** for the issue or pull request the agent takes:
+
+```text
+uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N [--why] [--limit 6]
+```
+
+It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), at most six, best first:
+
+1. every section the issue names as `page.md#anchor`;
+2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
+   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
+   pages);
+3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
+   instructions"), then its body, which counts least.
+
+`--why` adds each section's title and why it is there. The coordinator copies the lines into the prompt as they are,
+adds a section the task needs that the brief missed (`gds learn <words>` finds one), and drops one that does not fit.
+`gds issue start` prints the same lines after `Issue:`, so a new start needs no second command; a `PR:` agent, a
+resumed issue or a second agent on one issue gets its own `gds brief`. The ranking is plain word matching
+(`lessons.propose`), so a brief is a proposal: the coordinator owns the final list.
+
+There are no lesson categories: nothing maps a label to a list of rules, and the start hook injects nothing. The
+sections an agent reads are named in its prompt, where the coordinator can see and change them, and the hook checks
+they exist.
+
+- **Approach:** Name the sections a task agent reads in its prompt, chosen for that issue when it is dispatched
+  (`gds brief`, then the coordinator's own judgement), and refuse a prompt that names none or one that does not exist.
+  **Watch out for:** the start hook could not see the prompt, so it matched agents to issues by a ten-minute note and
+  injected the newest items of each label's area, the same list for every task in an area and nothing the coordinator
+  could check or change. **Seen:** gdstudio #771, 2026-11-07 (fix: `gds brief`, the `Read:` guard on the Agent tool, the
+  injection and its note removed, and `docs/lessons/areas.toml` with them).
+
+## The report {#the-report}
+
+<!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->
+
+A task agent's final report, besides its pull request and its `Mistakes` section, says what it read:
+
+```text
+Read: studio/hooks.md#docs, studio/starting-work.md#starting-an-agent
+Docs gaps: studio/hooks.md#docs: does not say what a game's hooks read; a section on briefs for games belongs on
+studio/starting-work.md
+```
+
+- `Read:` names the sections it read, as `page.md#anchor` (the prompt's, and any it found with `gds learn`).
+- `Docs gaps:` names each section that was missing, wrong or out of date for the task, with what, or the page a
+  missing section belongs on; `Docs gaps: none` when there was nothing.
+
+SubagentStop holds back once a task agent's report that names a pull request without both lines
+([Hooks: docs](hooks.md#docs)). The coordinator reads them: a gap the agent did not fix itself becomes a docs change or
+an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
+closes an issue names the same sections on its `Read first:` line.
 
 ## Looking
 

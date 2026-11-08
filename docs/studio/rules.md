@@ -99,8 +99,8 @@ so a rename is not a new section. **A new page** has the reason line under its `
 
 ## Anchors {#anchors}
 
-What links to a section, from a pull request, a report or a tool (`gds learn`, the `Read:` lines of #771, the
-corrections log), names it as `<page>#<anchor>`:
+What links to a section, from a pull request, a report or a tool (`gds learn`, the `Read:` lines of `gds brief`
+and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>`:
 
 - **The page** is its path under `docs/`, with or without that prefix: `engines/godot/ui-controls.md#focus` and
   `docs/engines/godot/ui-controls.md#focus` name the same section.
@@ -131,7 +131,8 @@ one time a learning makes a new page. The check names the page and its size.
   changes against `origin/main` (`Mistakes: none` when nothing went wrong).
 - **A pull request.** A fix, a rework, or a pull request after a failed check carries `Lessons: <page.md#anchor>` in
   its Summary, naming the topic section that the pull request updates; `pr-rules` checks the anchor's page is among its
-  changed files. A pull request that closes an issue names the areas it read first (`Read first: <areas>`).
+  changed files. A pull request that closes an issue names the sections its author read first
+  (`Read first: <page.md#anchor>, ...`, the `Read:` lines of its brief).
 - **A game's pull request.** A general learning goes to the kit's topic section in a kit pull request, named on the
   game pull request's `Kit docs:` line; a learning about that game alone goes to the game's own docs.
 
@@ -148,7 +149,6 @@ one time a learning makes a new page. The check names the page and its size.
 | An entry in the old `**Rule:**` form | the format above |
 | A duplicate or malformed `{#anchor}` on a page | a reference must name one section |
 | A row of the corrections log that quotes the maintainer or links no section | the log says what was pointed out in our words and where its entry lives |
-| An old lesson file without `areas:` front matter | the old files keep building until #770 empties the folder |
 
 The numbers live in `.github/conventions.yml` under `learning` (a test keeps `lessons.py` equal to them).
 
