@@ -335,8 +335,7 @@ export (#421) with a tap on the browser's audio output:
 - Anything designed with bus effects (a duck, a low-pass for occlusion) has to be heard in the browser before it is
   called done; with samples it is lost.
 - To tap the output, wrap `AudioNode.prototype.connect` so connections to an `AudioDestinationNode` go through a
-  `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps
-  ([lesson](../../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
+  `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps.
 
 ### What to build instead (Deadnight #423)
 
@@ -349,7 +348,7 @@ export (#421) with a tap on the browser's audio output:
 - **Measure through your own service**, not a bare player: a probe that plays one bright voice through the game's
   audio service and prints each effect against the open voice found all three effects missing in one run.
 - **A probe's project setting** goes under `[audio]` without its `audio/` prefix, and the playback-type values are
-  0 stream, 1 sample ([lesson](../../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md)).
+  0 stream, 1 sample.
 
 ## Menu sounds
 

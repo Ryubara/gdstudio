@@ -5,7 +5,7 @@ areas: [tests, godot-ui]
 
 Note (Deadnight #1197): the 844 x 390 window this lesson reads is a canvas no phone page has; on a web page the window
 is twice the CSS size and the phone layout did not apply at all. See [a phone test read the canvas, not the
-page](2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md).
+page](../engines/godot/web-export.md#a-phone-pages-size-the-canvas-is-not-the-page).
 
 2026-11-05
 
