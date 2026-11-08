@@ -1,7 +1,6 @@
 """Rules kept in topic sections (docs/studio/rules.md, gdstudio #769): sections, anchors and rules; the checks against
-the checkout and against a base commit; `gds learn`; the corrections log; the glossary built from the rules and the old
-lesson files; and that the kit's own docs pass every check. The glossary is never committed, so two pull requests
-cannot conflict on it."""
+the checkout and against a base commit; `gds learn`; the sections proposed for an issue (`gds brief`, gdstudio #771);
+the corrections log; and that the kit's own docs pass every check. There are no lesson categories (no areas file)."""
 
 from __future__ import annotations
 
@@ -15,23 +14,6 @@ import yaml
 from gds_tools import lessons
 
 KIT = Path(__file__).resolve().parents[2]
-
-AREAS = """
-[areas]
-general = "Anything else."
-net = "The network."
-web = "The browser."
-tests = "Tests."
-[labels]
-A-net = ["net", "web"]
-A-tests = ["tests"]
-[pages]
-"engines/godot/web" = ["web"]
-[keywords]
-net = ["server", "packet"]
-web = ["browser"]
-tests = ["test"]
-"""
 
 LESSON = """# {title}
 
@@ -82,7 +64,6 @@ def kit(tmp_path: Path) -> Path:
     (tmp_path / "docs" / "lessons").mkdir(parents=True)
     (tmp_path / "docs" / "studio").mkdir(parents=True)
     (tmp_path / "docs" / "engines" / "godot").mkdir(parents=True)
-    (tmp_path / lessons.AREAS_FILE).write_text(AREAS, encoding="utf-8")
     (tmp_path / lessons.CORRECTIONS).write_text(CORRECTIONS, encoding="utf-8")
     (tmp_path / "docs" / "engines" / "godot" / "web.md").write_text(PAGE, encoding="utf-8")
     a = LESSON.format(title="A packet filter dropped a valid packet", fix="Count the bytes.")
@@ -90,10 +71,6 @@ def kit(tmp_path: Path) -> Path:
     (tmp_path / "docs" / "lessons" / "2026-11-01-a.md").write_text("---\nareas: [net]\n---\n" + a, encoding="utf-8")
     (tmp_path / "docs" / "lessons" / "2026-11-02-b.md").write_text(b, encoding="utf-8")
     return tmp_path
-
-
-def areas_of(kit: Path) -> lessons.Areas:
-    return lessons.Areas.load(kit / lessons.AREAS_FILE)
 
 
 def _git(path: Path, *args: str) -> str:
@@ -116,12 +93,9 @@ def commit_base(kit: Path) -> str:
 # --- the kit itself ---------------------------------------------------------------------------------------------------
 
 
-def test_the_kits_docs_pass_every_check_and_the_glossary_builds():
-    areas = lessons.Areas.load(KIT / lessons.AREAS_FILE)
-    assert lessons.problems(KIT, areas) == []
-    page = lessons.build(KIT)
-    assert [ln for ln in page.splitlines() if ln.startswith("## ")] == [f"## {a}" for a in areas.names]
-    assert len(lessons.section(page, "general")) > 3
+def test_the_kits_docs_pass_every_check_and_hold_no_areas_file():
+    assert lessons.problems(KIT) == []
+    assert not (KIT / "docs" / "lessons" / "areas.toml").exists()  # no lesson categories (gdstudio #771)
 
 
 def test_the_corrections_log_links_a_section_on_every_row_and_quotes_no_prompt():
@@ -141,7 +115,7 @@ def test_the_conventions_hold_the_same_numbers_as_the_checker():
     assert learning["max_page_kb"] == lessons.MAX_PAGE_KB
     assert tuple(learning["rule_parts"]) == lessons.RULE_PARTS
     assert learning["reason_line"] == lessons.REASON_LINE
-    assert learning["legacy_lessons"] == {"folder": "docs/lessons/", "last_date": lessons.LEGACY_LAST_DATE}
+    assert learning["legacy_lessons"] == {"folder": lessons.LESSONS.as_posix() + "/"}
     assert learning["format"] == lessons.RULES_DOC.as_posix()
     assert learning["corrections_log"] == lessons.CORRECTIONS.as_posix()
 
@@ -152,12 +126,12 @@ def test_the_page_is_not_a_committed_file():
     assert tracked.returncode == 0 and "mistakes-by-area.md" not in tracked.stdout
 
 
-def test_the_script_checks_and_prints_the_page():
+def test_the_script_checks_the_kit():
     script = KIT / ".github" / "scripts" / "mistakes.py"
     check = subprocess.run([sys.executable, str(script), "check"], capture_output=True, text=True)
     assert check.returncode == 0, check.stderr
-    render = subprocess.run([sys.executable, str(script), "render"], capture_output=True, text=True, encoding="utf-8")
-    assert render.returncode == 0 and render.stdout == lessons.build(KIT)
+    render = subprocess.run([sys.executable, str(script), "render"], capture_output=True, text=True)
+    assert render.returncode == 2  # the glossary is gone with the areas
 
 
 # --- sections, anchors and rules --------------------------------------------------------------------------------------
@@ -241,23 +215,7 @@ def test_anchors_reads_a_page(kit):
 
 
 def test_the_fixture_kit_passes(kit):
-    assert lessons.problems(kit, areas_of(kit)) == []
-
-
-def test_problems_name_an_old_lesson_without_areas_and_an_unknown_area(kit):
-    path = kit / "docs" / "lessons" / "2026-11-01-a.md"
-    path.write_text(path.read_text(encoding="utf-8").replace("---\nareas: [net]\n---\n", ""), encoding="utf-8")
-    assert lessons.problems(kit, areas_of(kit)) == ["2026-11-01-a.md: no `areas: [...]` front matter"]
-    path = kit / "docs" / "lessons" / "2026-11-02-b.md"
-    path.write_text(path.read_text(encoding="utf-8").replace("web, net", "web, nope"), encoding="utf-8")
-    assert "unknown area 'nope'" in lessons.problems(kit, areas_of(kit))[-1]
-
-
-def test_a_lesson_dated_after_the_old_folder_closed_is_refused_without_git(kit):
-    text = "---\nareas: [net]\n---\n" + LESSON.format(title="New", fix="x")
-    (kit / "docs" / "lessons" / "2026-11-08-new.md").write_text(text, encoding="utf-8")
-    found = lessons.problems(kit, areas_of(kit))
-    assert len(found) == 1 and "no new file goes in the old lessons folder" in found[0] and "gds learn" in found[0]
+    assert lessons.problems(kit) == []
 
 
 @pytest.mark.parametrize("mark", ['"', "'", "“", "‘", "«"])
@@ -267,7 +225,7 @@ def test_a_log_row_that_quotes_the_maintainer_is_a_problem(kit, mark):
     path = kit / lessons.CORRECTIONS
     text = path.read_text(encoding="utf-8")
     path.write_text(text.replace("| The browser decoded twice |", f"| {mark}Decode it once{mark} |"), "utf-8")
-    found = lessons.problems(kit, areas_of(kit))
+    found = lessons.problems(kit)
     assert len(found) == 1 and "maintainer-corrections.md:7: the row quotes the maintainer" in found[0]
     # Headers, separators and quotation marks later in a cell are not quotes of a prompt.
     assert lessons.quoted_rows(text) == []
@@ -278,7 +236,7 @@ def test_a_log_row_that_links_no_section_is_a_problem(kit):
     path = kit / lessons.CORRECTIONS
     text = path.read_text(encoding="utf-8")
     path.write_text(text.replace("[web.md#compression](../engines/godot/web.md#compression)", "see above"), "utf-8")
-    assert lessons.problems(kit, areas_of(kit)) == [
+    assert lessons.problems(kit) == [
         "docs/studio/maintainer-corrections.md:7: the row links no section; its last cell names where the rule lives "
         "as a link to page.md#anchor"
     ]
@@ -337,75 +295,25 @@ def test_an_unknown_base_is_an_error(kit):
 # --- gds learn --------------------------------------------------------------------------------------------------------
 
 
-def test_learn_prints_the_closest_section_with_its_rules_then_old_lessons(kit):
-    matches = lessons.learn(kit, "browser decoded the gzip response twice", legacy=3)
+def test_learn_prints_the_closest_section_with_its_rules(kit):
+    matches = lessons.learn(kit, "browser decoded the gzip response twice")
     assert matches[0].section.ref == "engines/godot/web.md#compression"
-    assert [m.lesson.path.name for m in matches if m.lesson][0] == "2026-11-02-b.md"
-    assert all(m.section for m in lessons.learn(kit, "browser decoded the gzip response twice"))  # pages only
-    text = lessons.learn_text(kit, "decode a compressed response", legacy=3)
+    assert all(m.section for m in matches)  # pages only: the old lesson files are gone (gdstudio #770)
+    text = lessons.learn_text(kit, "decode a compressed response")
     assert text.splitlines()[2].startswith("1. engines/godot/web.md#compression  Compression")
     assert "   - Decode a response once, in one place." in text
-    assert "Old lesson files on the same subject" in text
+    assert "Old lesson files" not in text
     assert lessons.learn_text(kit, "zzz qqq").startswith("No section mentions")
 
 
 def test_learn_skips_the_corrections_log_and_the_format_page(kit):
     (kit / lessons.RULES_DOC).write_text("# Rules\n\n## Compression rules {#x}\n\ncompression compression\n", "utf-8")
-    refs = [m.section.ref for m in lessons.learn(kit, "compression", legacy=0)]
+    refs = [m.section.ref for m in lessons.learn(kit, "compression")]
     assert refs and not any(r.startswith("studio/") for r in refs)
 
 
 def test_terms_drop_short_and_common_words_and_stem():
     assert lessons.terms("The keyframes of looping clips, and a bone") == ["keyframe", "loop", "clip", "bone"]
-
-
-# --- areas and the glossary -------------------------------------------------------------------------------------------
-
-
-def test_labels_map_to_areas_and_general_is_always_there(kit):
-    areas = areas_of(kit)
-    assert areas.for_labels({"A-net", "bug"}) == ["general", "net", "web"]
-    assert areas.for_labels({"A-tests", "A-net"}) == ["general", "net", "web", "tests"]
-    assert areas.for_labels(set()) == ["general"]
-
-
-def test_keywords_and_page_prefixes_place_text_in_areas(kit):
-    areas = areas_of(kit)
-    assert areas.classify("the server dropped a packet in the server") == ["net"]
-    assert areas.classify("a browser test of the server") == ["net", "web"]
-    assert areas.classify("nothing to match") == ["general"]
-    assert areas.for_page("engines/godot/web.md", "a server packet") == ["web"]
-    assert areas.for_page("studio/x.md", "a server packet") == ["net"]
-
-
-def test_backfill_adds_areas_by_keyword_and_leaves_the_rest(kit):
-    path = kit / "docs" / "lessons" / "2026-11-01-a.md"
-    path.write_text(LESSON.format(title="A packet filter dropped a valid packet", fix="x"), encoding="utf-8")
-    changed = lessons.backfill(kit, areas_of(kit))
-    assert [p.name for p in changed] == ["2026-11-01-a.md"]
-    assert path.read_text(encoding="utf-8").startswith("---\nareas: [net]\n---\n# A packet filter")
-    assert lessons.backfill(kit, areas_of(kit)) == []  # nothing left to place
-    assert lessons.parse_lesson(kit / "docs" / "lessons" / "2026-11-02-b.md").areas == ["web", "net"]
-
-
-def test_the_glossary_has_the_rules_of_the_sections_first_then_the_old_lessons(kit):
-    page = lessons.build(kit)
-    assert [ln for ln in page.splitlines() if ln.startswith("## ")] == ["## general", "## net", "## web", "## tests"]
-    web = lessons.section(page, "web")
-    assert web[0] == (
-        "Decode a response once, in one place.",
-        "a proxy and the client both decoded it, so the bytes were garbage.",
-    )
-    assert web[1] == ("The browser decoded twice", "Decode once | only. wrapped on a second line.")
-    assert lessons.section(page, "net")[0][0] == "The browser decoded twice"  # newest old lesson first
-    assert "(../engines/godot/web.md#compression)" in page and "(../lessons/2026-11-02-b.md)" in page
-    assert page.endswith("\n") and not page.endswith("\n\n")
-
-
-def test_checks_text_takes_the_first_per_area_and_skips_empty_areas(kit):
-    text = lessons.checks_text(lessons.build(kit), ["web", "nope"], per_area=1)
-    assert text.startswith("[web]\n- Decode a response once, in one place.: ") and "[nope]" not in text
-    assert text.count("\n- ") == 1
 
 
 def test_two_rule_branches_from_the_same_main_merge_clean_in_either_order(kit):
@@ -425,14 +333,9 @@ def test_two_rule_branches_from_the_same_main_merge_clean_in_either_order(kit):
     _git(kit, "checkout", "main")
     for name in ("a", "b"):
         _git(kit, "merge", "--no-ff", "-m", f"merge {name}", f"rule-{name}")
-        assert lessons.problems(kit, areas_of(kit)) == []
+        assert lessons.problems(kit) == []
     rules = [r for s in lessons.sections_in(kit) for r in s.rules()]
     assert any("Rule a" in r for r in rules) and any("Rule b" in r for r in rules)
-
-
-def test_angle_brackets_outside_code_are_escaped_in_the_page():
-    assert lessons.brief("use <owner> or `<repo>`", 80) == "use &lt;owner> or `<repo>`"
-    assert lessons.brief("a " * 200, 20).endswith(" ...")
 
 
 def test_what_main_already_has_is_not_new_in_a_merge_of_main(kit):
@@ -445,3 +348,94 @@ def test_what_main_already_has_is_not_new_in_a_merge_of_main(kit):
     new_main = _git(kit, "rev-parse", "HEAD").strip()
     assert "the new section 'Workers'" in lessons.base_problems(kit, old_main)[0]
     assert lessons.base_problems(kit, [old_main, new_main]) == []
+
+
+# --- gds brief: the sections a task agent reads first -----------------------------------------------------------------
+
+HOOKS_PAGE = """# Hooks
+
+The hooks of the kit.
+
+## The agent guard {#agent-guard}
+
+The PreToolUse guard on the Agent tool refuses a task agent whose prompt names no started issue. It reads
+`.claude/hooks/guards.py` and the ledger of started issues.
+
+## Disk {#disk}
+
+The disk guard frees space when the drive is nearly full, and refuses a new worktree under the hard limit.
+
+## Parent {#parent}
+
+### Child {#child}
+
+A subsection with text of its own, long enough to be read as a section rather than a heading over others.
+"""
+
+
+@pytest.fixture()
+def brief_kit(kit: Path) -> Path:
+    (kit / "docs" / "studio" / "hooks.md").write_text(HOOKS_PAGE, encoding="utf-8")
+    return kit
+
+
+def refs_of(found: list[lessons.Proposal]) -> list[str]:
+    return [p.section.ref for p in found]
+
+
+def test_paths_in_finds_files_and_deep_folders_but_not_refs_urls_or_words():
+    text = (
+        "Edit `.claude/hooks/guards.py` and tools.toml, see docs/lessons/ and studio/hooks.md#disk, not design/, "
+        "e.g. v1.2, or https://example.com/a/b.py"
+    )
+    assert lessons.paths_in(text) == [".claude/hooks/guards.py", "tools.toml", "docs/lessons/"]
+
+
+def test_propose_puts_named_sections_then_named_paths_then_words(brief_kit):
+    found = lessons.propose(
+        brief_kit,
+        "hooks: Fix the agent guard",
+        "The guard in .claude/hooks/guards.py misreads a prompt; see studio/hooks.md#disk and "
+        "docs/engines/godot/web.md for the browser.",
+        {"A-hooks": "Claude Code hooks and the guards"},
+        limit=4,
+    )
+    assert refs_of(found)[:2] == ["studio/hooks.md#disk", "studio/hooks.md#agent-guard"]
+    assert found[2].section.page == "engines/godot/web.md" and len(found) == 4
+    assert [p.why for p in found[:3]] == [
+        "named in the issue",
+        "mentions .claude/hooks/guards.py",
+        "the issue names docs/engines/godot/web.md",
+    ]
+    assert found[0].line == "Read: studio/hooks.md#disk"
+
+
+def test_propose_ranks_by_words_skips_headings_over_subsections_and_the_log(brief_kit):
+    found = lessons.propose(brief_kit, "net: Fix the disk guard on a full drive", limit=3)
+    assert found[0].section.ref == "studio/hooks.md#disk" and found[0].why == "closest to the issue's words"
+    assert "studio/hooks.md#parent" not in refs_of(lessons.propose(brief_kit, "parent child subsection", limit=6))
+    assert not any(r.startswith("studio/maintainer-corrections.md") for r in refs_of(found))
+
+
+def test_propose_takes_a_pull_requests_changed_files_and_its_labels(brief_kit):
+    found = lessons.propose(brief_kit, "x: Update one thing", "", {}, [".claude/hooks/guards.py"], limit=1)
+    assert refs_of(found) == ["studio/hooks.md#agent-guard"]
+    label = lessons.propose(brief_kit, "x: Update it", "", {"A-web": "the browser build"}, limit=1)
+    assert [p.section.page for p in label] == ["engines/godot/web.md"]  # `web` and `browser` from the label
+    assert lessons.propose(brief_kit, "zzz qqq") == []
+
+
+def test_brief_text_and_missing_refs(brief_kit):
+    found = lessons.propose(brief_kit, "the disk guard", limit=1)
+    assert lessons.brief_text(found) == "Read: studio/hooks.md#disk"
+    assert lessons.brief_text(found, why=True) == "Read: studio/hooks.md#disk  Disk (closest to the issue's words)"
+    text = "Read: studio/hooks.md#disk, studio/hooks.md#nope\nRead: docs/nowhere.md#x"
+    assert lessons.missing_refs(brief_kit, text) == ["studio/hooks.md#nope", "nowhere.md#x"]
+
+
+def test_the_kit_proposes_real_sections_for_this_issue():
+    found = lessons.propose(
+        KIT, "agents: Add gds brief and require Read lines in task prompts", "", {"A-agents": "Agents"}, limit=6
+    )
+    assert "studio/starting-work.md#starting-an-agent" in refs_of(found)
+    assert lessons.missing_refs(KIT, "\n".join(p.line for p in found)) == []

@@ -43,6 +43,13 @@ each one, rather than finding them one by one in play.
   landscape lock and safe areas with the first playable build. **Watch out for:** desktop and the browser were planned
   and phones were not, though Discord Activities run on them. **Seen:** Deadnight, 2026-11-01 (fix: deadnight got
   researched touch controls for landscape play ([Touch controls](../engines/godot/ui-controls.md#touch-controls))).
+- **Approach:** Write one block per action in `[input]`, make gameplay actions listen to their own actions (`pause`,
+  `interact`), never to `ui_cancel`, refuse the router's back on an in-game screen, and test the project file for a
+  repeated action and the `InputMap` for two gameplay actions on one pad button or stick direction. **Watch out for:**
+  two pull requests each added `interact`, Godot keeps the last block and `InputMap` cannot show the first, so on a pad
+  X both reloaded and bought a door, and B (crouch) was also `ui_cancel`, which the player, the screen and the router
+  each listened to and which paused the night. **Seen:** Deadnight, 2026-11-01 (fix: one block per action, gameplay
+  actions own their names, and a test reads `project.godot`).
 
 ## Aim and hip fire {#aim}
 
@@ -54,12 +61,15 @@ each one, rather than finding them one by one in play.
   order. **Watch out for:** hip fire was first built as a second, partial aim (its own camera spring, a bool for the
   gun's yaw), then one aim weight driven by two inputs coupled every hip-fire tweak to the aim zoom. **Seen:**
   Deadnight #300, 2026-11-01; Deadnight #464, 2026-11-02 (fix: deadnight #473 removed the hip-fire zoom and #488 holds a
-  press-order suite ([lesson](../lessons/2026-11-01-hip-fire-was-a-second-partial-aim.md),
-  [lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md))).
+  press-order suite).
 - **Approach:** When two states share one output, test every transition between them, not only each state alone. **Watch
   out for:** a shot while aiming is not hip fire, but the aim weight was held while `fire_age < hip_fire_hold` and every
   shot reset `fire_age`, so the hip-fire zoom came on after aiming, shooting and letting go. **Seen:** Deadnight #428,
-  2026-11-01 (fix: deadnight #433 ([lesson](../lessons/2026-11-02-aim-release-kept-the-hip-fire-zoom.md))).
+  2026-11-01 (fix: deadnight #433).
+- **Approach:** Check the line to the target from both the eye and the barrel before an autopilot fires, in a
+  third-person game. **Watch out for:** the shot leaves the barrel, beside and below the camera, so a corner can block
+  the barrel and not the camera ray: a bot emptied its magazine into a car five metres away while the camera saw the
+  zombie. **Seen:** Deadnight, 2026-11-01 (fix: the autopilot tests both lines).
 
 ## States and actions {#states}
 
@@ -70,15 +80,14 @@ each one, rather than finding them one by one in play.
   it from the worst starting state on the server and the replaying client, and run a rule on the view with the bots.
   **Watch out for:** the server fired on the trigger alone and every test started with the body facing the view, so a
   hip-fire shot left a body that had not turned; the bot looked where it walked, so the new rule held its shots too.
-  **Seen:** Deadnight #477, 2026-11-02 (fix: the shot waits for the turn (Deadnight #488, #511,
-  [lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md), [bot
-  lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md))).
+  **Seen:** Deadnight #477, 2026-11-02 (fix: the simulation the server and the predicting client
+  share computes `shot_ready`: the trigger or a buffered press, the body within a tolerance of the view (#488, #511);
+  bot suites run when a rule reads a command field, [Bots](bots.md)).
 - **Approach:** Evaluate a rule about a state (a dry gun in hand) on the server every tick, not on the action that
   usually meets it, and in the test let go of every input when the state arrives. **Watch out for:** the automatic
   reload began only when the server refused a shot at an empty gun, and touch auto-fire stops pulling the trigger at 0
   rounds, so on a phone nothing asked and the gun stayed dry. **Seen:** Deadnight #1278, 2026-11-05 (fix:
-  `NightServer._reload_if_dry` starts it from the state
-  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md))).
+  `NightServer._reload_if_dry` starts it from the state).
 
 ## Feel {#feel}
 

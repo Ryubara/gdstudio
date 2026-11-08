@@ -26,10 +26,9 @@ LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1920x1080x24" godot --path gam
 
 Run each suite in its own Godot, in its own process group, and kill the group on a timeout (`xvfb-run` starts the X
 server; killing only Godot leaves it). A suite that hangs then costs its timeout and nothing after it, the log is per
-suite, and the kit lesson on the windowed hang
-([lesson](../../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)) cannot take a whole
-folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI suite
-that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
+suite, and the windowed hang of a private Windows desktop (see [No focus](no-focus.md#what-to-know)) cannot take a
+whole folder with it. That hang did **not** appear on the runner: the pair that hung on a private Windows desktop (a UI
+suite that pushes mouse events, then the night crosshair suite, in one process) finished in 57 s under `xvfb-run`. The
 cause found since is that GdUnit minimizes the window after every suite and a minimized window draws nothing
 ([A minimized window draws nothing](minimized-window.md)); the pair did not hang under xvfb, so the minimize had
 no effect there (not looked into), and one process a suite meets only the first suite's window anyway.
@@ -72,6 +71,26 @@ Measured on the runner (Deadnight issue 1348, 2026-11-06, run 42228307964):
 - **A result that differs between runs is a time, not a luck.** Run the suite on the runner a few times with the run
   made slower (saving the pictures is enough) and keep what each run saw: a suite that failed in one reading, then in
   another, and passed in a third had a bulb row sliding in and out of the area read.
+
+## Where a headless run and a window differ in the game {#headless-differences}
+
+<!-- new section: the sections above say what the renderer cannot judge; the game's own switches that a headless run
+turns the other way had no home -->
+
+- **Approach:** Run a suite that pushes a night or a menu screen once in a window before its pull request (`gds godot
+  --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>`), tell the headless run what a window of this size is, start a
+  suite that is not about the opening show with no show due (`NightScreen.arrival_enabled = false`, restored) while a
+  second set of tests plays it, and make a "phone" case assert that it saw something clipped. **Watch out for:** the
+  game's own switches turn the other way headless: a 64 pixel window never made the menu shell a phone's, so a hover
+  suite's "phone" ran the desktop layout in CI; a window plays the helicopter drop that opens a night, which holds the
+  look, the touch layer and the HUD; three suites failed in a window on `main` for days while CI was green. **Seen:**
+  Deadnight, 2026-11-05 (fix: `MenuShell.phone_mode`, `arrival_enabled`).
+- **Approach:** When a guard test is written for "every suite that does X", list the ways X is reached in the game's
+  own flow (the router, the Play screen's Start, not only the one the first suite used), and let its scan test say what
+  is and is not a start. **Watch out for:** the guard for a due drop scanned for a push or reset of the night scene, and
+  `test_night_tap_targets` reached the night by `UIRouter.reset(PLAY)` and `play.start()`, so no line named the night
+  and the first scheduled windowed run failed it three times. **Seen:** Deadnight #1348, 2026-11-06 (fix: each suite
+  sets `arrival_enabled` and restores it, and the guard also reads `play.start()`).
 
 ## Sources
 

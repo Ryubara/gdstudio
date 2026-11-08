@@ -42,6 +42,18 @@ game/
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
   Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
+- **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
+  (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
+  the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
+  script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
+  Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
+  own).
+
+- **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
+  itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
+  go through the menu. **Watch out for:** a screen of the router starts its work in `screen_enter`, which only the
+  router calls: F6 on `night_screen.tscn` instanced the scene, ran `_ready` and showed the loading card, never the
+  night. **Seen:** Deadnight, 2026-11-02 (fix: the dev entry scene).
 
 ## What the check cannot see
 
@@ -58,6 +70,24 @@ uv run --project <workspace>/repos/gdstudio/python gds check layout game
 It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
 beside `gds sync --check`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
 `python/tests/test_layout.py`: a new rule is a kit pull request, not a game's exception.
+
+## Editing a file by script {#scripted-edits}
+
+<!-- new section: the page lists the layout rules; the line-length limits of the commit hooks, which a scripted edit
+breaks without anyone reading the line, had no home -->
+
+The general rules of an edit made by a script (escapes, working from the end, reflowing only your own text) are in
+[The shell and scripted edits](../../studio/shell.md#scripted-edits); this section is the line limits a Godot
+project's hooks hold.
+
+- **Approach:** After a scripted word or number change, measure the lines it touched in every file type it touched
+  (`awk 'length>100'` on `.gd`, `length>120` on `.md`), or run `uvx pre-commit run --all-files` once and fix all of its
+  output in one pass, and rewrap by hand. **Watch out for:** a script replaced `62` with `64` and added words inside
+  existing comment and doc lines, so they grew past the limit; each hook stops at its first failing group, so one UI fix
+  was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
+  clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
+  2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
+  matched and read `git diff` of every file it touched before the commit).
 
 ## Where the rules came from
 

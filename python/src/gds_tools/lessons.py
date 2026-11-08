@@ -1,17 +1,18 @@
 """Topic sections, the entries that record what was learned, the checks of their format, `gds learn`, and the
-mistakes glossary built from them.
+sections proposed for an issue (`gds brief`).
 
 What was learned goes into the topic page agents read for that task, as a short entry in the page's own voice
 (docs/studio/rules.md): `- **Approach:** ... **Watch out for:** ... **Seen:** ...`, in a `##`/`###` section with an
 explicit `{#anchor}`, named elsewhere as `page.md#anchor`. There are no lesson pages. This module reads the sections
-and entries of the docs, finds the ones closest to some words (`gds learn`), and checks the format (`problems`, and
+and entries of the docs, finds the ones closest to some words (`gds learn`) or to an issue (`propose`, which
+`gds brief` prints as `Read:` lines for a task agent's prompt), and checks the format (`problems`, and
 `base_problems` against the base of a pull request): no new file under the old `docs/lessons/` folder, no page past
 its size, no new section without a reason line, no malformed entry or anchor, and no corrections-log row that quotes
 the maintainer or links no section.
 
-The old lesson files (`docs/lessons/<date>-<slug>.md`, `areas:` front matter) keep building until gdstudio #770
-empties the folder. The glossary (`gds lessons <area>`, the SubagentStart hook) is built in memory from the entries of
-the sections and those old files, never written to a file. Standard library only: the hooks load this file by path.
+The old lesson files (`docs/lessons/<date>-<slug>.md`) stay readable for `gds learn --old` until gdstudio #770 empties
+the folder. There are no lesson categories: what an agent reads is named by section. Standard library only: the hooks
+load this file by path.
 """
 
 from __future__ import annotations
@@ -19,14 +20,11 @@ from __future__ import annotations
 import math
 import re
 import subprocess
-import tomllib
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
-GENERAL = "general"
 DOCS = Path("docs")
-AREAS_FILE = DOCS / "lessons" / "areas.toml"
 CORRECTIONS = DOCS / "studio" / "maintainer-corrections.md"
 LESSONS = DOCS / "lessons"
 RULES_DOC = DOCS / "studio" / "rules.md"
@@ -36,10 +34,7 @@ MAX_PAGE_KB = 50
 MAX_RULE_CHARS = 900
 RULE_PARTS = ("Approach:", "Watch out for:", "Seen:")
 REASON_LINE = "<!-- new section:"
-LEGACY_LAST_DATE = "2026-11-07"
 
-_FRONT = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
-_AREAS_LINE = re.compile(r"^areas:\s*\[(.*?)\]\s*$", re.MULTILINE)
 _LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 _ATTRS = re.compile(r"\s*\{:?([^{}]*)\}\s*$")
@@ -49,51 +44,10 @@ _RULE_START = re.compile(r"^- \*\*Approach:\*\*")
 _OLD_RULE = re.compile(r"^- \*\*Rule:\*\*")
 _REF = re.compile(r"((?:[\w.-]+/)*[\w.-]+\.md)#([A-Za-z0-9_-]+)")
 _SEEN_SOURCE = re.compile(r"#\d+|20\d\d-\d\d-\d\d|github\.com/")
-_LESSON_DATE = re.compile(r"^(20\d\d-\d\d-\d\d)-")
 
 
 class LessonsError(Exception):
     """The lessons or the glossary are inconsistent."""
-
-
-@dataclass(frozen=True)
-class Areas:
-    """`docs/lessons/areas.toml`: the area names with their descriptions, the label map, the placement keywords and
-    the page prefixes whose rules belong to an area."""
-
-    names: dict[str, str]
-    labels: dict[str, list[str]]
-    keywords: dict[str, list[str]]
-    pages: dict[str, list[str]] | None = None
-
-    @classmethod
-    def load(cls, path: Path) -> Areas:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-        return cls(
-            dict(data["areas"]),
-            dict(data.get("labels", {})),
-            dict(data.get("keywords", {})),
-            dict(data.get("pages", {})),
-        )
-
-    def for_labels(self, labels: list[str] | set[str] | frozenset[str]) -> list[str]:
-        """The areas of an issue's labels, in the order of the label map; `general` is always there."""
-        found = [GENERAL]
-        for label in sorted(labels):
-            found += [a for a in self.labels.get(label, []) if a not in found]
-        return found
-
-    def classify(self, text: str) -> list[str]:
-        """The (at most two) areas whose keywords the text mentions most; `general` when none does."""
-        lower = f" {text.lower()} "
-        scores = {a: sum(lower.count(k) for k in words) for a, words in self.keywords.items() if a in self.names}
-        best = sorted((a for a, s in scores.items() if s), key=lambda a: (-scores[a], list(self.names).index(a)))
-        return best[:2] or [GENERAL]
-
-    def for_page(self, page: str, text: str) -> list[str]:
-        """The areas of a rule on `page` (a path under docs/): the longest prefix of `[pages]`, else by keyword."""
-        prefixes = sorted((p for p in (self.pages or {}) if page.startswith(p)), key=len, reverse=True)
-        return [a for a in (self.pages or {})[prefixes[0]] if a in self.names] if prefixes else self.classify(text)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -272,63 +226,10 @@ def page_problems(page: str, text: str) -> list[str]:
 # --------------------------------------------------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class Lesson:
-    path: Path
-    title: str
-    areas: list[str]
-    fix: str
-    cause: str = ""
-
-
-def split_front_matter(text: str) -> tuple[str, str]:
-    """(front matter, body) of a Markdown file; the front matter is '' when the file has none."""
-    found = _FRONT.match(text.replace("\r\n", "\n"))
-    return (found.group(1), text.replace("\r\n", "\n")[found.end() :]) if found else ("", text.replace("\r\n", "\n"))
-
-
-def parse_lesson(path: Path) -> Lesson:
-    front, body = split_front_matter(path.read_text(encoding="utf-8"))
-    line = _AREAS_LINE.search(front)
-    areas = [a.strip() for a in line.group(1).split(",") if a.strip()] if line else []
-    title = next((ln[2:].strip() for ln in body.splitlines() if ln.startswith("# ")), path.stem)
-    return Lesson(path, title, areas, _bullet(body, "Fix"), _bullet(body, "Cause"))
-
-
-def _bullet(body: str, name: str) -> str:
-    """The text of a lesson's `- **<name>...:**` bullet (`**Fix:**`, `**Fix (Deadnight #364):**`), its wrapped lines
-    joined."""
-    head = re.compile(r"^- \*\*" + name + r"[^:*]*:\*\*\s*(.*)")
-    out, on = [], False
-    for line in body.splitlines():
-        found = head.match(line)
-        if found:
-            on = True
-            out.append(found.group(1).strip())
-        elif on and (line.startswith("- **") or not line.strip()):
-            break
-        elif on:
-            out.append(line.strip())
-    return " ".join(out)
-
-
-def lessons_in(root: Path) -> list[Lesson]:
-    """Every old lesson file of a kit checkout, oldest first by file name."""
-    return [parse_lesson(p) for p in sorted((root / LESSONS).glob("20*.md"))]
-
-
-def problems(root: Path, areas: Areas) -> list[str]:
-    """Everything a checkout alone can show is wrong: old lesson files without areas, naming an unknown area or dated
-    after the old folder closed; topic pages past their size or with a malformed anchor or rule; and corrections-log
-    rows that quote the maintainer or link no section."""
+def problems(root: Path) -> list[str]:
+    """Everything a checkout alone can show is wrong: topic pages past their size or with a malformed anchor or rule,
+    and corrections-log rows that quote the maintainer or link no section."""
     found = []
-    for lesson in lessons_in(root):
-        if not lesson.areas:
-            found.append(f"{lesson.path.name}: no `areas: [...]` front matter")
-        found += [f"{lesson.path.name}: unknown area {a!r}" for a in lesson.areas if a not in areas.names]
-        date = _LESSON_DATE.match(lesson.path.name)
-        if date and date.group(1) > LEGACY_LAST_DATE:
-            found.append(_new_lesson_message(lesson.path.name))
     for path in topic_pages(root):
         found += page_problems(path.relative_to(root / DOCS).as_posix(), path.read_text(encoding="utf-8"))
     corrections = root / CORRECTIONS
@@ -340,27 +241,9 @@ def problems(root: Path, areas: Areas) -> list[str]:
 
 def _new_lesson_message(name: str) -> str:
     return (
-        f"docs/lessons/{name}: no new file goes in the old lessons folder; write the rule into the topic section it "
-        f"belongs to (`gds learn <words>` finds it; {RULES_DOC.as_posix()})"
+        f"docs/lessons/{name}: no new file goes in the old lessons folder (emptied by gdstudio #770); write the rule "
+        f"into the topic section it belongs to (`gds learn <words>` finds it; {RULES_DOC.as_posix()})"
     )
-
-
-def backfill(root: Path, areas: Areas) -> list[Path]:
-    """Give every old lesson without areas a front-matter line placed by keyword (a script, not by hand). Returns the
-    files changed."""
-    changed = []
-    for path in sorted((root / LESSONS).glob("20*.md")):
-        text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-        front, body = split_front_matter(text)
-        if _AREAS_LINE.search(front):
-            continue
-        title = next((ln[2:] for ln in body.splitlines() if ln.startswith("# ")), "")
-        placed = areas.classify(f"{title} " * 3 + body[:2500])  # the title counts three times
-        line = f"areas: [{', '.join(placed)}]"
-        new = f"---\n{front}\n{line}\n---\n{body}" if front else f"---\n{line}\n---\n{text}"
-        path.write_text(new, encoding="utf-8", newline="\n")
-        changed.append(path)
-    return changed
 
 
 def cells(line: str) -> list[str]:
@@ -587,7 +470,6 @@ def terms(text: str) -> list[str]:
 class Match:
     score: float
     section: Section | None = None
-    lesson: Lesson | None = None
 
 
 def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[str]]]) -> list[tuple[float, object]]:
@@ -619,20 +501,13 @@ def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[
     return sorted(out, key=lambda pair: -pair[0])
 
 
-def learn(root: Path, words: str, limit: int = 5, legacy: int = 0) -> list[Match]:
-    """The `limit` sections of the topic pages closest to `words`, best first; then, when asked (`legacy`), the closest
-    old lesson files, which #770 empties."""
+def learn(root: Path, words: str, limit: int = 5) -> list[Match]:
+    """The `limit` sections of the topic pages closest to `words`, best first."""
     query = terms(words)
     skip = {CORRECTIONS.relative_to(DOCS).as_posix(), RULES_DOC.relative_to(DOCS).as_posix()}  # a log, the format
     sections = [s for s in sections_in(root) if s.page not in skip]
     ranked = _rank(query, [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections])
-    out = [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
-    if legacy:
-        files = lessons_in(root)
-        texts = [(lesson, lesson.path.read_text(encoding="utf-8")) for lesson in files]
-        ranked = _rank(query, [(les, terms(les.title), [], terms(text)) for les, text in texts])
-        out += [Match(score, lesson=les) for score, les in ranked[:legacy]]  # type: ignore[arg-type]
-    return out
+    return [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
 
 
 def _first_words(text: str, limit: int) -> str:
@@ -640,13 +515,11 @@ def _first_words(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " ..."
 
 
-def learn_text(root: Path, words: str, limit: int = 5, legacy: int = 0, rules_per: int = 4) -> str:
+def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> str:
     """What `gds learn` prints: each close section as `page.md#anchor` with its rules (or its first words when it has
-    none), then the close old lesson files."""
-    matches = learn(root, words, limit, legacy)
-    sections = [m.section for m in matches if m.section]
-    old = [m.lesson for m in matches if m.lesson]
-    if not sections and not old:
+    none)."""
+    sections = [m.section for m in learn(root, words, limit) if m.section]
+    if not sections:
         return f"No section mentions {words!r}. Make a new one where it belongs ({RULES_DOC.as_posix()}#section)."
     lines = [
         f"The sections closest to {words!r}, best first. Update one of them (add to an entry's Seen, sharpen it, or "
@@ -666,93 +539,177 @@ def learn_text(root: Path, words: str, limit: int = 5, legacy: int = 0, rules_pe
             prose = "\n".join(ln for ln in body.split("\n") if ln.strip() and not ln.startswith("|"))
             if prose:
                 lines.append(f"   {_first_words(prose, 220)}")
-    if old:
-        lines += ["", "Old lesson files on the same subject (#770 moves them into sections; fold their point in):"]
-        lines += [f"- {les.path.relative_to(root).as_posix()}  {les.title}" for les in old]
     return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# The glossary: the rules of the sections and the old lesson files, by area
+# `gds brief`: the sections a task agent reads before it starts, proposed from its issue
 # --------------------------------------------------------------------------------------------------------------------
 
-
-def brief(text: str, limit: int) -> str:
-    """One table cell of text: links reduced to their words, cut at a word near `limit`; `|` and `<` become entities."""
-    text = " ".join(_LINK.sub(r"\1", text).split())
-    if len(text) > limit:
-        text = text[:limit].rsplit(" ", 1)[0].rstrip(",;:(") + " ..."
-    parts = text.split("`")  # the odd parts are code spans, which keep their `<` as it is
-    text = "`".join(p.replace("<", "&lt;") if i % 2 == 0 else p for i, p in enumerate(parts))
-    return text.replace("|", "&#124;")
-
-
-HEADER = """# Mistakes by area
-
-<!-- Built from the rules of the topic sections and the old lesson files by `gds lessons <area>` and
-`python .github/scripts/mistakes.py render`, which print it: edit those, not this page. It is not a file in the
-repository. -->
-
-Read the sections of your task's areas before you start: each line is a rule we learned the hard way, and the check
-that keeps it. Rules live in the topic sections (docs/studio/rules.md; `gds learn <words>` finds the closest); the
-old lesson files of docs/lessons/ follow until #770 moves them. `gds issue start` records an issue's areas from its
-labels and the hooks put these sections into the agent's context.
-"""
+# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/guards.py`) or a folder of two
+# parts or more that ends in a slash (`docs/lessons/`; a bare `design/` matches too much prose). Words that merely
+# contain a dot (`e.g.`, `v1.2`) are not paths.
+_PATH = re.compile(
+    r"(?<![\w/.#-])((?:\.?[\w-]+/)*\.?[\w-]+\.(?:py|md|toml|ya?ml|json|gd|tscn|tres|gdshader|ps1|sh|cfg|blend|glb)"
+    r"(?![\w-])|(?:\.?[\w-]+/){2,}(?![\w.-]))"
+)
+#: How much each source of words counts in the query: the issue's title, the words of its area labels, its body.
+#: Tuned on the open kit issues of 2026-11-07 (#768, #770, #771, #773, #774): with the body at full weight, the two
+#: longest studio sections topped every issue.
+TITLE_WEIGHT, LABEL_WEIGHT, BODY_WEIGHT = 3.0, 2.0, 0.3
+#: BM25's length normalisation (0.75 is the usual value; more weighs a long section down harder).
+LENGTH_B = 0.9
+#: At most this many proposed sections come from one page by words alone, so one long page does not take every slot.
+PER_PAGE = 2
+#: A section whose own text (without its subsections) is shorter than this is a heading over subsections: skipped.
+MIN_BODY_CHARS = 80
 
 
-def build(root: Path) -> str:
-    """The text of the glossary for the rules and the old lesson files of a kit checkout."""
-    areas = Areas.load(root / AREAS_FILE)
-    sections: dict[str, list[tuple[str, str, str]]] = {a: [] for a in areas.names}
-    for s in sections_in(root):
-        for rule in s.rules():
-            parts = rule_parts(rule) or {"Approach": rule, "Watch out for": ""}
-            link = f"[section](../{s.page}#{s.anchor})"
-            for area in areas.for_page(s.page, rule):
-                sections.setdefault(area, []).append(
-                    (brief(parts["Approach"], 170), brief(parts["Watch out for"] or s.ref, 260), link)
-                )
-    for lesson in reversed(lessons_in(root)):  # newest first
-        link = f"[lesson](../lessons/{lesson.path.name})"
-        for area in lesson.areas or [GENERAL]:
-            sections.setdefault(area, []).append(
-                (brief(lesson.title, 150), brief(lesson.fix or lesson.cause or "see the lesson", 260), link)
-            )
-    out = [HEADER]
-    for area, description in areas.names.items():
-        items = sections.get(area, [])
-        out.append(f"## {area}\n\n{description} ({len(items)})\n")
-        if items:
-            out.append("| Mistake | Check | Source |\n| --- | --- | --- |")
-            out += [f"| {m} | {c} | {s} |" for m, c, s in items]
-            out.append("")
-    return "\n".join(out).rstrip("\n") + "\n"
+@dataclass(frozen=True)
+class Proposal:
+    """One section proposed for a task, and why."""
+
+    section: Section
+    why: str
+
+    @property
+    def line(self) -> str:
+        return f"Read: {self.section.ref}"
 
 
-def _plain(cell: str) -> str:
-    return cell.replace("\\|", "|").replace("&#124;", "|").replace("&lt;", "<")
+def paths_in(text: str) -> list[str]:
+    """The file and folder paths a text names, in order, without repeats; URLs and `page.md#anchor` refs are skipped
+    (`refs_in` reads a ref)."""
+    text = re.sub(r"https?://\S+", " ", text)
+    text = _REF.sub(" ", text)
+    out: list[str] = []
+    for found in _PATH.finditer(text):
+        path = found.group(1)
+        if path not in out:
+            out.append(path)
+    return out
 
 
-def section(glossary: str, area: str) -> list[tuple[str, str]]:
-    """The (mistake, check) pairs of one area in the glossary's text."""
-    items, on = [], False
-    for line in glossary.replace("\r\n", "\n").splitlines():
-        if line.startswith("## "):
-            on = line[3:].strip() == area
-        elif on and line.startswith("| ") and not line.startswith(("| Mistake", "| ---")):
-            parts = cells(line)
-            if len(parts) == 3:
-                items.append((_plain(parts[0]), _plain(parts[1])))
-    return items
+def _weighted_rank(
+    query: dict[str, float], docs: list[tuple[Section, list[str], list[str], list[str]]]
+) -> list[tuple[float, Section]]:
+    """BM25 like `_rank`, with each query term weighted (a title word counts more than a body word) and a stronger
+    length normalisation (`LENGTH_B`), so a long section that mentions everything does not top every issue."""
+    if not query or not docs:
+        return []
+    counted = []
+    for item, title, path, body in docs:
+        tf: dict[str, float] = {}
+        for weight, words in ((4.0, title), (2.0, path), (1.0, body)):
+            for w in words:
+                tf[w] = tf.get(w, 0.0) + weight
+        counted.append((item, tf, len(title) * 4 + len(path) * 2 + len(body)))
+    total = len(counted)
+    average = sum(n for _, _, n in counted) / total or 1.0
+    df = {t: sum(1 for _, tf, _ in counted if t in tf) for t in query}
+    out = []
+    for item, tf, length in counted:
+        hits = [t for t in query if t in tf]
+        if not hits:
+            continue
+        score = 0.0
+        for t in hits:
+            idf = math.log(1 + (total - df[t] + 0.5) / (df[t] + 0.5))
+            score += query[t] * idf * tf[t] * 2.2 / (tf[t] + 1.2 * (1 - LENGTH_B + LENGTH_B * length / average))
+        out.append((score, item))
+    return sorted(out, key=lambda pair: -pair[0])
 
 
-def checks_text(glossary: str, wanted: list[str], per_area: int = 12) -> str:
-    """The checks of some areas as plain text for an agent's context: the first `per_area` of each (the rules of the
-    sections, then the newest old lessons)."""
-    lines = []
-    for area in wanted:
-        items = section(glossary, area)[:per_area]
-        if items:
-            lines.append(f"[{area}]")
-            lines += [f"- {mistake}: {check}" for mistake, check in items]
-    return "\n".join(lines)
+def _query(title: str, labels: dict[str, str], body: str) -> dict[str, float]:
+    """The weighted search terms of an issue: its title (without its `area:` prefix), its area labels (`A-<area>` and
+    the label's description) and its body (code blocks and quoted lines left out). A word takes the highest weight of
+    the places it appears in."""
+    body = re.sub(r"```.*?```", " ", body, flags=re.DOTALL)
+    body = "\n".join(ln for ln in body.splitlines() if not ln.lstrip().startswith(">"))
+    out: dict[str, float] = {}
+    for weight, text in (
+        (BODY_WEIGHT, body),
+        (LABEL_WEIGHT, " ".join(f"{n[2:]} {d}" for n, d in labels.items() if n.startswith("A-"))),
+        (TITLE_WEIGHT, title.split(":", 1)[-1]),
+    ):
+        for t in terms(text):
+            out[t] = max(out.get(t, 0.0), weight)
+    return out
+
+
+def _readable(s: Section) -> bool:
+    """A section with text of its own (not a heading over subsections only)."""
+    return len(re.sub(r"<!--.*?-->", "", s.body, flags=re.DOTALL).strip()) >= MIN_BODY_CHARS
+
+
+def propose(
+    root: Path,
+    title: str,
+    body: str = "",
+    labels: dict[str, str] | None = None,
+    paths: list[str] | None = None,
+    limit: int = 6,
+) -> list[Proposal]:
+    """The sections of the kit's topic pages a task agent reads before it starts, best first, at most `limit`:
+
+    1. every `page.md#anchor` the issue names that exists;
+    2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
+       closest to the issue's words, any other path the closest section that mentions it;
+    3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
+       from one page.
+
+    The corrections log and the format page (rules.md) are left out, as in `learn`."""
+    query = _query(title, labels or {}, body)
+    skip = {CORRECTIONS.relative_to(DOCS).as_posix(), RULES_DOC.relative_to(DOCS).as_posix()}
+    sections = [s for s in sections_in(root) if s.page not in skip]
+    by_ref = {s.ref: s for s in sections}
+    docs = [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections]
+    ranked = _weighted_rank(query, docs)
+    score = {s.ref: sc for sc, s in ranked}
+    out: list[Proposal] = []
+
+    def add(s: Section, why: str) -> bool:
+        if len(out) >= limit or any(p.section.ref == s.ref for p in out):
+            return False
+        out.append(Proposal(s, why))
+        return True
+
+    for page, anchor in refs_in(f"{title}\n{body}"):
+        if f"{page}#{anchor}" in by_ref:
+            add(by_ref[f"{page}#{anchor}"], "named in the issue")
+    for path in dict.fromkeys([*paths_in(f"{title}\n{body}"), *(paths or [])]):
+        page = path.split("docs/", 1)[1] if path.startswith("docs/") else path
+        on_page = [s for s in sections if s.page == page and _readable(s)]
+        if on_page:
+            add(max(on_page, key=lambda s: (score.get(s.ref, 0.0), -s.line)), f"the issue names docs/{page}")
+            continue
+        needle = path.rstrip("/")
+        mentions = [s for s in sections if needle in s.body or needle in s.title]
+        name = needle.rsplit("/", 1)[-1]
+        if not mentions and "." in name and len(name) >= 8:
+            alone = re.compile(rf"(?<![\w.-]){re.escape(name)}(?![\w-])")
+            mentions = [s for s in sections if alone.search(s.body)]
+        if mentions:
+            add(max(mentions, key=lambda s: (score.get(s.ref, 0.0), -len(s.body))), f"mentions {path}")
+    from_page: dict[str, int] = {}
+    for _, s in ranked:
+        if len(out) >= limit:
+            break
+        if _readable(s) and from_page.get(s.page, 0) < PER_PAGE and add(s, "closest to the issue's words"):
+            from_page[s.page] = from_page.get(s.page, 0) + 1
+    return out
+
+
+def brief_text(proposals: list[Proposal], why: bool = False) -> str:
+    """What `gds brief` prints: one `Read: page.md#anchor` line per section (with `why`, the title and the reason
+    after it)."""
+    if not why:
+        return "\n".join(p.line for p in proposals)
+    width = max((len(p.line) for p in proposals), default=0)
+    return "\n".join(f"{p.line:{width}}  {p.section.title} ({p.why})" for p in proposals)
+
+
+def missing_refs(root: Path, text: str) -> list[str]:
+    """The `page.md#anchor` refs of a text that name no section of the kit's docs (no such page, or no such anchor on
+    it)."""
+    return [f"{page}#{anchor}" for page, anchor in refs_in(text) if anchor not in anchors(root / DOCS / page)]

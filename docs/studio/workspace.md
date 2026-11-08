@@ -77,8 +77,7 @@ Discord: the app icon and key art) are kept this way: `scratch/deadnight/key-art
   a commit or in `scratch/`, and judge a sweep by what it refuses: never a worktree a process uses, one touched lately,
   or one with commits on no remote branch; copy loose files before removal. **Watch out for:** removing a worktree was a
   manual step after each merge, skipped under load, so 64 Deadnight worktrees with import caches filled the disk to 8 GB
-  free and detached ones had no owner. **Seen:** gdstudio #241, 2026-11-03 (fix: `gds worktree sweep`, started by a hook
-  ([lesson](../lessons/2026-11-03-finished-worktrees-were-never-removed-and-the-disk-filled.md))).
+  free and detached ones had no owner. **Seen:** gdstudio #241, 2026-11-03 (fix: `gds worktree sweep`, started by a hook).
 
 ## The disk guard {#disk}
 
@@ -181,8 +180,24 @@ uv cache) it does not: `gds disk status` and the report name the workspace's fol
   their numbers and delete them in the same task. **Watch out for:** the scratch folder was never cleaned by rule, so
   captures kept all their frames (25.9 GB) and CI investigations their artifacts; the sweep covered only worktrees (7 of
   64 GB), free space reached 120 MB, and imports and pre-commit broke. **Seen:** gdstudio #489, 2026-11-04 (fix: `gds
-  disk guard` runs from every hook (40 GB soft limit: sweep; 10 GB hard limit: refuse new agents and worktrees)
-  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md))).
+  disk guard` runs from every hook (40 GB soft limit: sweep; 10 GB hard limit: refuse new agents and worktrees)).
+
+- **Approach:** Look at free space before a first import and at the start of a measuring session (`df -k /c`, or
+  `Get-PSDrive C`); after a full-disk import, `git checkout -- '*.import'`, delete `.godot/imported` and
+  `.godot/editor/filesystem_cache*`, import again once there is room, and check that `find .godot/imported -type f -size
+  -5c` is empty and no `.import` file shows in `git status`. Never delete another agent's scratch folder to make room:
+  report it. **Watch out for:** Godot writes what it can and goes on; a failed importer saves `valid=false` into the
+  tracked `.import` file and a later `--import` trusts it, so `--import` exited 0 and a `--quit-after` run was clean
+  while textures read `Bad header`. **Seen:** Deadnight, 2026-11-04 (C: fell from 5 GB to 120 MB during the import, from
+  another agent's downloaded CI artifacts).
+- **Approach:** Write a clean-up from what must stay and prove each hold twice: a test where the same topic is cleared
+  when nothing is live, and a mutation that removes the hold and fails a test; any check that cannot answer holds; a
+  fake answers as the real tool does, refusals included. Replay the rule over a mirror of the real folder (zero-byte
+  files with real names, notes and ages, in a temporary folder) before trusting it. **Watch out for:** "finished" came
+  from one spelling of one kind of reference, so the guard freed 0 B of 43 GiB, and the holds failed open (a download
+  folder deleted whole with a note inside); a copied `LICENSE.md` that held 127 finished topics showed only on real
+  names. **Seen:** gdstudio #691, 2026-11-05 (fix: holds from `PR:` and `Issue:` lines; the replay freed 27.10 of 28.61
+  GiB and lost no note).
 
 ## A shared machine {#shared-machine}
 
@@ -192,7 +207,7 @@ other projects on the machine -->
 - **Approach:** On the shared machine, run at most four test suites at once, write no busy loops, stop a process by its
   PID, put a timeout on every long command, and warn the neighbouring projects before a long load test. **Watch out
   for:** load tests had no limit, and 93 Godot processes held the CPU at 100% for a neighbouring project. **Seen:**
-  Deadnight, 2026-11-01 (fix: the caps above ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md))).
+  Deadnight, 2026-11-01 (fix: the caps above).
 
 ## Bootstrap {#bootstrap}
 
@@ -233,6 +248,8 @@ memory, so every clone and every agent gets them.
 `tools.toml` pins each tool's version, per-platform download and hash, copied from the vendor's own checksum file.
 Godot runs in self-contained mode (a `_sc_` file beside it), so its settings and export templates stay in its own
 `editor_data/` and never mix with another Godot on the machine. Scripts find a tool with `gds tool path <name>`.
+Blender comes from the official mirrors, with the same checksum file: download.blender.org sits behind a browser check
+that refuses scripts.
 
 Steam or system installs are never used by the tooling: an automatic update would silently change test results.
 

@@ -11,12 +11,26 @@ You build GDStudio games in Godot 4.7 (GDScript, Compatibility renderer: what th
 from its issue to a pull request whose checks pass, in your own worktree. The repository's `AGENTS.md` and the kit's
 (`<workspace>/repos/gdstudio/AGENTS.md`) are your rules; read both first.
 
-Before you start, read what the team already learned: run `gds learn <words of your task>` and read the sections it
-prints (the sections closest to your issue and the rules of its areas are also put into your context at
-start). Each entry is a mistake already made, with what to do instead. If your task came from a maintainer correction,
-put its log line in your final report (what the maintainer pointed out, in our words with its source and never quoted,
-and the topic section it updated) and any general cause you found: the coordinator adds it to
-`docs/studio/maintainer-corrections.md`, so you do not edit that page yourself (many agents editing one page conflict).
+Before you start, read what the team already learned: read every section your prompt's `Read:` lines name
+(`page.md#anchor`, a page under the kit's `docs/`), then run `gds learn <words of your task>` for more. Each entry is a
+mistake already made, with what to do instead. If your task came from a maintainer correction, put its log line in your
+final report (what the maintainer pointed out, in our words with its source and never quoted, and the topic section it
+updated) and any general cause you found: the coordinator adds it to `docs/studio/maintainer-corrections.md`, so you do
+not edit that page yourself (many agents editing one page conflict).
+
+Your `Read:` lines come from `gds brief` (`docs/studio/starting-work.md#starting-an-agent`); when a part of your task is
+not covered by them, run `uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N --why` or
+`gds learn <words>`. Whatever the task, these sections of the kit's `docs/engines/godot/` hold the rules every change
+meets:
+
+| For | Page and section |
+| --- | --- |
+| Where a file goes, its name, which folder may use which | `project-conventions.md#rules`, checked by `gds check layout game` |
+| A game made from a template | `new-game.md` |
+| Running GdUnit4 headless, the command line, before the push | `running-gdunit.md#command-line`, `#before-the-push` |
+| Tests that wait on frames, springs or physics | `test-speed.md#time-driven-values` |
+| The renderer the web build runs | `index.md#rendering-compatibility-renderer` |
+| Models from Blender | `../../tools/blender/export.md` |
 
 ## How you work
 
@@ -36,8 +50,10 @@ and the topic section it updated) and any general cause you found: the coordinat
 4. **Build it well.** Small scripts with typed GDScript, one responsibility each; scenes composed from reusable parts;
    no magic numbers where a shared token or setting belongs. Keep the test mode possible: fixed timestep, seeded
    randomness, no reliance on real time or a human.
-5. **Prove it.** Run the pinned Godot: headless import and run (`$(uv run --project <workspace>/repos/gdstudio/python
-   gds tool path godot) --headless ...`) must print no `ERROR`. For anything visible, capture it with Movie Maker into
+5. **Prove it.** Run `gds check layout game` (`project-conventions.md#rules`), gdformat and gdlint, and the GdUnit4
+   suites with the command on `running-gdunit.md#command-line`. Run the pinned Godot: headless import and run
+   (`$(uv run --project <workspace>/repos/gdstudio/python gds tool path godot) --headless ...`) must print no `ERROR`.
+   For anything visible, capture it with Movie Maker into
    `<workspace>/scratch/<repo>/<branch>/` (`gds capture frames`, or `gds godot -- --write-movie <folder>/<name>.png
    --fixed-fps 10 --quit-after N`), then **look at the frames** (Read the PNG) and fix what looks wrong before you
    report. **Every Godot that opens a window (captures, autopilots, GdUnit without `--headless`) runs through
@@ -58,6 +74,13 @@ and the topic section it updated) and any general cause you found: the coordinat
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
+
+## Eval runs
+
+Your page is measured by the agent evals (kit `docs/studio/agent-evals.md`): small tasks with numbers to meet, run
+before and after a change to this page or the Godot docs. A prompt that says it is an eval run comes with an eval
+folder instead of a worktree: work only there, open no branch, pull request or issue, edit no docs, run `gds eval check`
+when done, and report what the docs lacked under `Docs gaps:`.
 
 ## Pull request rules the checks enforce
 
@@ -101,7 +124,7 @@ in it can go (`Can go: <globs>`), so the guard clears it after the merge.
 
 Never end a turn by announcing the next step ("Now the autopilot."): ending a turn stops you, and nothing wakes
 you again. Do the step in the same turn, or start a background command that notifies you when it ends (kit lesson
-`docs/lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md`).
+`docs/studio/agents.md#the-loop`).
 
 ## Record what you learned (every task)
 
@@ -128,17 +151,22 @@ Before you report, leave what the next person needs, short and in the right plac
 - **What you learn lives in a topic section.** An entry sits under a `##`/`###` heading with an explicit `{#anchor}` and
   is named as `page.md#anchor`. `python .github/scripts/mistakes.py check` (pre-commit and CI) refuses a new file in
   `docs/lessons/`, a page over 50 KB, a new section without its reason line and an entry without its three parts.
-- **The sections closest to your issue are in your context at start** (`gds learn <words>` and `gds lessons <area>` print
-  them again). Apply them: they are mistakes already made.
-- **Your pull request says so.** Its Summary has `Read first: <areas>` (the areas of your issue's labels, when it
-  closes an issue), `Lessons: <page.md#anchor>` naming the topic section your pull request updates when it is a
-  `Fix` or `Rework`, or a required check failed on an earlier commit of it, or it closes a `bug` issue (`Lessons: none`
-  is refused there), and, in a game, `Kit docs: <the kit pull request>` (or `none (reason)`) when it is a `Fix` or
-  `Rework` or closes a `bug` issue. The checks read the title, the check history, the changed files and the issue's
-  labels, not your word.
+- **Read the sections your prompt names.** Its `Read:` lines (from `gds brief`) name the sections of the docs for your
+  task: read each before you start and apply them, they hold the approach and the mistakes already made. `gds learn
+  <words>` finds more.
+- **Your pull request says so.** Its Summary has `Read first: <page.md#anchor>, ...` (the sections you read, when it
+  closes an issue), `Lessons: <page.md#anchor>` naming the topic section your pull request updates when it is a `Fix` or
+  `Rework`, or a required check failed on an earlier commit of it, or it closes a `bug` issue (`Lessons: none` is
+  refused there), and, in a game, `Kit docs: <the kit pull request>` (or `none (reason)`) when it is a `Fix` or `Rework`
+  or closes a `bug` issue. The checks read the title, the check history, the changed files and the issue's labels, not
+  your word.
 - **Your report has a `Mistakes` section.** List what you got wrong first or had to redo (a red check you fixed, a wrong
   guess, a rework) and name the topic section you updated for each as `page.md#anchor`; write `Mistakes: none` when
   nothing went wrong. A report with mistakes that names no section your kit branch edits is held back.
+- **Your report says what you read.** A `Read:` line naming the sections you read (`page.md#anchor, ...`) and a `Docs
+  gaps:` line naming each one you found missing, wrong or out of date for this task, as `page.md#anchor: what` (or the
+  page a missing section belongs on), or `Docs gaps: none`. The coordinator fixes the docs and the next brief from it; a
+  report without them is held back once.
 
 ## Spikes
 

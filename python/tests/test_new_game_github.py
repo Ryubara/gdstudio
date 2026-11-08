@@ -52,7 +52,6 @@ def kit(tmp_path) -> Path:
         ".pre-commit-config.yaml",
         ".github/conventions.yml",
         ".github/pull_request_template.md",
-        "docs/lessons/areas.toml",
     ):
         (copy / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(KIT / rel, copy / rel)

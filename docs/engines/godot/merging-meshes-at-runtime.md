@@ -29,9 +29,18 @@ mesh per material (Deadnight #830). Godot 4.7.2, Compatibility renderer, measure
 | A small glb scene, first load / instantiate | 3 ms / 0.02 ms |
 | The crane (8 near models, 8 far levels merged, boxes merged) | 60 ms the first time, 15 ms with its models cached |
 
-## Pitfalls
+## Pitfalls {#pitfalls}
 
 - A `SphereMesh` is 64 x 32 segments by default (about 4,000 triangles). As a `CPUParticles3D` mesh it is multiplied
   by the particle count: 36 sparks were 145,000 triangles. Give particles a box or a low sphere.
 - `gdformat` run through `uvx` on Windows wrote CRLF into the files it reformatted; a later scripted replace then
   matched nothing. Convert back (`sed -i 's/\r$//'`) before editing by script.
+
+- **Approach:** Compare a before and after of merged meshes under the lights a night starts with (only the starting
+  circuits on); split a cell until no more lights reach it than the map's cap less the room a fight needs, and pack
+  pieces that stand in one place (a floor and the ceiling over it) by what they add to the reach, since splitting by
+  position cannot separate them; a test holds every built mesh to the budget. **Watch out for:** with every lamp on,
+  more lights reach a mesh than `max_lights_per_object` (8) draws, and which are kept follows the mesh's box and
+  order: a merged mesh has another box, so one view differed on 70 % of its pixels though every material and transform
+  matched; the picture was never defined with every circuit on. **Seen:** Deadnight, 2026-11-03 (fix: `MeshBatch`
+  takes the lights and a budget).

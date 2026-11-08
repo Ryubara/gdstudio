@@ -11,8 +11,10 @@ from datetime import datetime
 from pathlib import Path
 
 from gds_tools import (
+    brief,
     capture,
     disk,
+    evals,
     issues,
     layout,
     lessons,
@@ -327,7 +329,6 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
     refused = disk.refusal(root, disk.load_limits(kit), f"starting {repo}#{number}")
     if refused:  # under the hard limit no agent and no worktree starts (docs/studio/workspace.md#disk)
         raise issues.IssueError(refused)
-    areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
         repo,
         number,
@@ -336,7 +337,7 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
         ledger=ledger,
         size=settings.window,
         branch=args.branch or "",
-        areas_for=areas.for_labels if areas else None,
+        brief_for=lambda issue: [p.line for p in brief.propose(kit, brief.fetch(repo, issue.number, issues.run_gh))],
         prepare=None
         if args.no_worktree
         else _prepare_worktree(root, repo, args.branch or "", fresh=args.fresh, ledger=ledger),
@@ -394,6 +395,7 @@ def _cmd_issue_done(args: argparse.Namespace) -> int:
 
 def _cmd_merge_main(args: argparse.Namespace) -> int:
     path = Path(args.path).resolve() if args.path else Path.cwd()
+    issues.refuse_paused(workspace.kit_checkout(), issues.checkout_repo(path), "gds merge-main")
     print("\n".join(worktrees.merge_main(path, co_author=args.co_author or "", resume=args.resume)))
     return 0
 
@@ -401,6 +403,7 @@ def _cmd_merge_main(args: argparse.Namespace) -> int:
 def _cmd_pr_hold(args: argparse.Namespace) -> int:
     """`gds pr hold <owner/repo>#N`: the label, then a wait until GitHub's `hold` check is red."""
     repo, number = _issue_ref(args)
+    issues.refuse_paused(workspace.kit_checkout(), repo, f"gds pr hold {repo}#{number}")
     print("\n".join(pr.hold(repo, number, gh=issues.run_gh)))
     return 0
 
@@ -411,6 +414,7 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
     repo = pr.repo_root(here)
     if repo is None:
         raise pr.PrCheckError(f"{here} is not in a git checkout; pass --repo <checkout>")
+    issues.refuse_paused(workspace.kit_checkout(), issues.checkout_repo(repo), "gds pr check-body")
     read = lambda source: sys.stdin.read() if source == "-" else Path(source).read_text(encoding="utf-8-sig")  # noqa: E731
     title = None
     if args.title:
@@ -442,22 +446,54 @@ def _cmd_learn(args: argparse.Namespace) -> int:
     a new one (docs/studio/rules.md#find)."""
     kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
     root = Path(args.kit) if args.kit else kit
-    print(lessons.learn_text(root, " ".join(args.words), args.limit, args.old))
+    print(lessons.learn_text(root, " ".join(args.words), args.limit))
     return 0
 
 
-def _cmd_lessons(args: argparse.Namespace) -> int:
-    """`gds lessons [area ...]`: the checks of the mistakes glossary for some areas, or the list of areas."""
-    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
-    areas = lessons.Areas.load(kit / lessons.AREAS_FILE)
-    if not args.areas:
-        for name, description in areas.names.items():
-            print(f"{name:10} {description}")
-        return 0
-    unknown = [a for a in args.areas if a not in areas.names]
-    if unknown:
-        raise workspace.WorkspaceError(f"unknown area {unknown[0]!r}; `gds lessons` lists them")
-    print(lessons.checks_text(lessons.build(kit), args.areas, args.limit))
+def _cmd_brief(args: argparse.Namespace) -> int:
+    """`gds brief <owner/repo>#N`: the `Read:` lines of the sections a task agent reads before it starts, for its
+    prompt (docs/studio/starting-work.md#starting-an-agent)."""
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT if not args.kit else None
+    kit = Path(args.kit) if args.kit else kit
+    repo, number = brief.parse_ref(args.ref)
+    print(brief.text(kit, brief.fetch(repo, number, issues.run_gh), args.limit, args.why))
+    return 0
+
+
+def _eval_context() -> tuple[Path, Path]:
+    """The kit checkout and the workspace's tools folder."""
+    root = workspace.require_workspace()
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    return kit, root / "tools"
+
+
+def _cmd_eval_list(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    for task in evals.tasks(kit).values():
+        print(f"{task.name:18} {task.agent:16} {task.title}")
+    return 0
+
+
+def _cmd_eval_prepare(args: argparse.Namespace) -> int:
+    kit, tools_dir = _eval_context()
+    task = evals.get(kit, args.name)
+    target = Path(args.folder).resolve()
+    evals.prepare(task, target, kit, tools_dir, workspace.tool_path, print)
+    print(f"ready: {target}")
+    return 0
+
+
+def _cmd_eval_check(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    task = evals.get(kit, args.name)
+    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None)
+    print(evals.table(data))
+    return 0 if all(r["pass"] for r in data["rows"]) else 1
+
+
+def _cmd_eval_prompt(args: argparse.Namespace) -> int:
+    kit, _ = _eval_context()
+    print(evals.prompt(evals.get(kit, args.name), Path(args.folder).resolve(), args.issue, args.gds_project))
     return 0
 
 
@@ -756,14 +792,34 @@ def build_parser() -> argparse.ArgumentParser:
     lrn = sub.add_parser("learn", help="the sections closest to some words, with their rules (update one first)")
     lrn.add_argument("words", nargs="+", help="the topic or words of the mistake")
     lrn.add_argument("--limit", type=int, default=5, help="sections to print (default: 5)")
-    lrn.add_argument("--old", type=int, default=0, help="also print the N closest old lesson files (until #770)")
     lrn.add_argument("--kit", help="the kit checkout or worktree to search (default: the workspace's kit)")
     lrn.set_defaults(func=_cmd_learn)
 
-    les = sub.add_parser("lessons", help="the rules of past mistakes by area (topic sections and old lesson files)")
-    les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
-    les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
-    les.set_defaults(func=_cmd_lessons)
+    brf = sub.add_parser("brief", help="the Read: lines of the sections a task agent reads first, for its prompt")
+    brf.add_argument("ref", help="the issue or pull request: owner/repo#N")
+    brf.add_argument("--limit", type=int, default=6, help="sections to propose (default: 6)")
+    brf.add_argument("--why", action="store_true", help="say after each line why the section is proposed")
+    brf.add_argument("--kit", help="the kit checkout or worktree whose docs to read (default: the workspace's kit)")
+    brf.set_defaults(func=_cmd_brief)
+
+    ev = sub.add_parser("eval", help="measured agent tasks (docs/studio/agent-evals.md)").add_subparsers(
+        dest="cmd", required=True
+    )
+    ev.add_parser("list", help="the tasks, their agent and title").set_defaults(func=_cmd_eval_list)
+    evp = ev.add_parser("prepare", help="make a fresh eval folder: the brief and its inputs")
+    evp.add_argument("name")
+    evp.add_argument("folder")
+    evp.set_defaults(func=_cmd_eval_prepare)
+    evc = ev.add_parser("check", help="measure an eval folder's delivery; exit 0 when every number is met")
+    evc.add_argument("name")
+    evc.add_argument("folder")
+    evc.set_defaults(func=_cmd_eval_check)
+    evq = ev.add_parser("prompt", help="the fixed prompt of a run, for the Agent call")
+    evq.add_argument("name")
+    evq.add_argument("folder")
+    evq.add_argument("--issue", required=True, help="owner/repo#N the run is made under")
+    evq.add_argument("--gds-project", default=evals.GDS_PROJECT, help="the python/ folder whose gds the agent runs")
+    evq.set_defaults(func=_cmd_eval_prompt)
 
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser
@@ -788,6 +844,7 @@ def main(argv: list[str] | None = None) -> int:
         pr.PrCheckError,
         new_game.NewGameError,
         new_game_github.GitHubError,
+        evals.EvalError,
     ) as error:
         print(f"gds: {error}", file=sys.stderr)
         return 2

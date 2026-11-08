@@ -12,7 +12,8 @@ start and have no agent, so it stays standard library only.
 
 A repository can be paused (`paused = "<reason, date>"` on its `[repos.<name>]` entry of the kit's workspace.toml,
 set by the maintainer): its window holds only `P-critical` issues, so `start`, `list` and the Stop hook offer nothing
-else from it (`paused_repositories`). Scheduled CI and nightlies are not read from here and keep running.
+else from it (`paused_repositories`). Its pull requests are left alone too: `refuse_paused` stops `gds merge-main`,
+`gds pr hold` and `gds pr check-body` on them. Scheduled CI and nightlies are not read from here and keep running.
 
 `start` checks the window, labels and assigns the issue, and writes the start to a ledger in
 `<workspace>/cache/issues-started.json`; the hook (`.claude/hooks/guards.py`) refuses to start a task agent whose
@@ -171,16 +172,43 @@ def paused_repositories(kit: Path | None) -> dict[str, str]:
     for entry in repos.values():
         if not isinstance(entry, dict):
             continue
-        reason = entry.get("paused")
-        match = _GITHUB_URL.search(str(entry.get("url", "")))
-        if match and reason:
-            found[match.group(1).lower()] = "paused" if reason is True else str(reason).strip()
+        reason, repo = entry.get("paused"), repo_of_url(str(entry.get("url", "")))
+        if repo and reason:
+            found[repo.lower()] = "paused" if reason is True else str(reason).strip()
     return found
+
+
+def repo_of_url(url: str) -> str:
+    """`owner/repo` of a GitHub remote url (https or ssh), or "" for anything else."""
+    match = _GITHUB_URL.search(url.strip())
+    return match.group(1) if match else ""
 
 
 def paused_reason(kit: Path | None, repo: str) -> str:
     """Why `repo` is paused, or "" when it is not."""
     return paused_repositories(kit).get(repo.lower(), "")
+
+
+def checkout_repo(path: Path) -> str:
+    """`owner/repo` of the `origin` remote of the checkout or worktree around `path`; "" when it has none on GitHub."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(path), "config", "--get", "remote.origin.url"], capture_output=True, text=True, timeout=15
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return repo_of_url(done.stdout) if done.returncode == 0 else ""
+
+
+def refuse_paused(kit: Path | None, repo: str, what: str) -> None:
+    """Raise IssueError when `repo` is paused: no agent refreshes, checks, holds, edits or merges a pull request of a
+    paused repository (docs/studio/starting-work.md#paused). `what` names the refused action."""
+    reason = paused_reason(kit, repo) if repo else ""
+    if reason:
+        raise IssueError(
+            f"{what} refused: {repo} is paused ({reason}). No agent works its pull requests while it is paused: leave "
+            "them as drafts, and only the maintainer lifts the pause (`paused` in workspace.toml)"
+        )
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -536,15 +564,16 @@ def start(
     size: int = DEFAULT_WINDOW,
     branch: str = "",
     now: datetime | None = None,
-    areas_for: Callable[[frozenset[str]], list[str]] | None = None,
+    brief_for: Callable[[Issue], list[str]] | None = None,
     prepare: Callable[[Issue], Prepared] | None = None,
     paused: str = "",
 ) -> list[str]:
     """Start an issue if it is in the window: make its branch and worktree, label, assign, comment, ledger. Returns the
-    lines to print. `areas_for` maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps
-    for the SubagentStart hook. `prepare` makes the branch and worktree after the window allows the start and before
-    anything on GitHub changes, so a worktree that cannot be made leaves the issue where it was. `paused` is the reason
-    the repository is paused (`paused_reason`): only a `P-critical` issue of it starts."""
+    lines to print. `brief_for` gives the `Read:` lines of the sections the agent reads first (`gds brief`), printed
+    with the `Issue:` line for the agent's prompt; a failure there only leaves them out. `prepare` makes the branch
+    and worktree after the window allows the start and before anything on GitHub changes, so a worktree that cannot be
+    made leaves the issue where it was. `paused` is the reason the repository is paused (`paused_reason`): only a
+    `P-critical` issue of it starts."""
     issues, prs = fetch(repo, gh)
     window = compute_window(repo, issues, prs, size, paused)
     started = load_ledger(ledger)
@@ -560,7 +589,6 @@ def start(
             if label in issue.labels:
                 edit += ["--remove-label", label]
         gh(edit)
-        areas = areas_for(issue.labels) if areas_for else []
         started = load_ledger(ledger)
         started[ledger_key(repo, number)] = {
             "repo": repo,
@@ -570,7 +598,6 @@ def start(
             "agent": agent,
             "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "branch": prepared.branch if prepared else branch,
-            "areas": areas,
             **({"worktree": prepared.path} if prepared else {}),
         }
         save_ledger(ledger, started)
@@ -579,15 +606,18 @@ def start(
         if prepared:
             prepared.undo()
         raise
+    try:
+        reads = brief_for(issue) if brief_for else []
+    except Exception:  # the start is done; the coordinator runs `gds brief` itself
+        reads = []
     return [
         f"started {repo}#{number} ({issue.title}) for agent {agent}",
-        *([f"areas: {', '.join(areas)} (their checks are put into the agent's context at start)"] if areas else []),
         *(prepared.lines if prepared else []),
-        "Put these lines in the agent's prompt (the hook looks for the first):"
-        if prepared
-        else "Put this line in the agent's prompt (the hook looks for it):",
+        "Put these lines in the agent's prompt (the hook checks `Issue:` and `Read:`; add or drop sections as the task "
+        f"needs, `gds brief {repo}#{number} --why` says why each is there):",
         *([f"Worktree: {prepared.path}"] if prepared else []),
         f"Issue: {repo}#{number}",
+        *(reads or ([f"Read: <page>.md#<anchor> (run `gds brief {repo}#{number}`)"] if brief_for else [])),
     ]
 
 

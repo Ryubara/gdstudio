@@ -54,14 +54,21 @@ without the guard), not a share of samples (kit #166).
 The test also checks that no window of the program appears on the person's desktop. "The program's windows" are those of
 its process tree, found with `python/tests/process_tree.py`: a process is a child only if it was created after its
 parent, because a parent id alone is reused and an orphan (Explorer, Windows Terminal, the IME host) names a dead
-parent's id that a new program can be given (kit #229, [lesson](../../lessons/2026-11-02-a-process-tree-walked-by-parent-id-took-orphans-for-children.md)).
+parent's id that a new program can be given (kit #229).
 
 - **Approach:** Run every local program that can take the mouse, Godot or browser, through `gds quiet` (or `gds godot`).
   **Watch out for:** the quiet-run rule covered Godot only, while Deadnight's Playwright probes ran headless Chrome
   straight from the shell; under pointer lock it clipped the real cursor to its hidden window, measured at `(17, 68,
   864, 541)`, until Esc ended the lock. **Seen:** Deadnight, 2026-11-01 (fix: `gds quiet`; the hook refuses a web probe
-  or Playwright run without it, and a test measures the clip under a real headless Chrome pointer lock
-  ([lesson](../../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md))).
+  or Playwright run without it, and a test measures the clip under a real headless Chrome pointer lock).
+- **Approach:** Find a program's processes by creation time, not by parent id alone: a process is a child only if it was
+  created after its parent, the tree takes the root's creation time as read at start (empty once the root exited and its
+  id went elsewhere), and a process you cannot open is not proven a child; better still, ask the job object the program
+  started in. **Watch out for:** Windows reuses ids
+  within seconds and an orphan keeps its dead parent's id (169 of 709 processes here): the walk took Explorer, the
+  IME host and a Firefox task for a browser's children, and a pointer-lock test failed on a docs-only pull
+  request, the third fix of one test in a day. **Seen:** kit #227, #229, 2026-11-02 (fix: `python/tests/process_tree.py`,
+  tested on a planted process table; on a third fix of one test, re-read the evidence before changing the design).
 
 ## How it works
 
@@ -88,7 +95,7 @@ maintainer felt it as an invisible box the cursor could not leave while a captur
   was measured for focus and keys only, and a game capturing the mouse calls `ClipCursor`, which crosses desktops and
   held the real cursor inside the hidden window while its sound played. **Seen:** Deadnight, 2026-11-01 (fix: `gds
   godot` sets `GDS_QUIET=1`, and a test clips the cursor from the hidden desktop and asserts the real one stays free
-  (gdstudio #77, [lesson](../../lessons/2026-11-02-a-hidden-capture-held-the-cursor-in-an-invisible-box.md))).
+  (gdstudio #77)).
 
 ## What was measured {#what-was-measured}
 
@@ -157,8 +164,7 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   `gds godot` and `gds quiet` hid the window and freed the cursor but left audio on, so captures, autopilots and browser
   probes played through the speakers. **Seen:** gdstudio #102, 2026-11-02 (fix: `gds godot` adds `--audio-driver Dummy`,
   `gds quiet` sets `GDS_QUIET=1` and the probes add `--mute-audio`; the hook refuses a real `--audio-driver` and
-  `--with-audio` from a session (gdstudio #102,
-  [lesson](../../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md))).
+  `--with-audio` from a session).
 
 ## What to know {#what-to-know}
 
@@ -177,14 +183,15 @@ script), and the Godot editor opened by a person or by the MCP add-on.
 - **GdUnit through `gds godot` can hang where CI does not.** A windowed run of a suite that pushes pointer events, followed
   by a suite that starts a night, stalled the night's `UIRouter.idle`; the same pair headless, as CI runs it, passed. Run
   suites with `godot --headless ... GdUnitCmdTool.gd ... --ignoreHeadlessMode`, keep `gds godot` for captures, and
-  give a long windowed run `gds godot --timeout 3000 --` (the default stops it at 900 s)
-  ([lesson](../../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)).
+  give a long windowed run `gds godot --timeout 3000 --` (the default stops it at 900 s). The cause
+  was found afterwards: GdUnit minimizes the window after every suite ([A minimized window draws
+  nothing](minimized-window.md)); `-a file.gd:test_name` runs nothing of that file when more than one `-a` is
+  given, so bisect by suite ([Running GdUnit4](running-gdunit.md#logs)).
 - **A suite can fail in a window and pass headless for a switch of the game's own.** Headless has a 64 pixel window and
   no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
   a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
   `gds godot --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>` (a baseline worktree needs GdUnit4 copied in first), and
-  make the headless run answer what the window answers
-  ([lesson](../../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).
+  make the headless run answer what the window answers.
 
 - **Approach:** Start every windowed tool run (captures, recordings, autopilots) off the person's desktop with `gds
   godot`, and prove it by keystrokes still reaching the person's window, not only by the mouse staying put. **Watch out
@@ -193,5 +200,4 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   private desktop and a hook refuses a bare windowed Godot).
 - **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
   person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
-  runs of the same capture script differed
-  ([lesson](../../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).
+  runs of the same capture script differed).

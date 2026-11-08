@@ -21,8 +21,8 @@ Issues are worked from oldest to newest, at all times, and every start goes thro
   the window of oldest ready ones (`P-critical` first); a task agent's prompt names `Issue:` or `PR:`, and a pull
   request counts as in progress by existing. **Watch out for:** a brand-new request (the outline shader, Deadnight #523)
   went to an agent the moment it arrived while older issues waited; the order lived only in memory and the status label
-  was set by hand, so nothing refused it. **Seen:** gdstudio #97, 2026-11-02 (fix: the tool and its hook (gdstudio #97,
-  [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md))).
+  was set by hand, so nothing refused it. **Seen:** gdstudio #97, 2026-11-02 (fix: the tool and its hook
+  (gdstudio #97)).
 
 ## Everything that can run, runs {#parallel}
 
@@ -45,7 +45,7 @@ Parallel pull requests still conflict when they edit the same lines, whatever or
 decides which one settles the clash, and auto-merge lands the first that goes green, not the oldest. So a fix several
 of them need lands once (in the first, or on its own) and the others merge `main` after it instead of writing it
 again; each adds its own rows to a shared docs table and never rewords another's; and the coordinator names the shared
-files in each agent's prompt ([lesson](../lessons/2026-11-03-five-parallel-prs-edited-the-same-files-and-conflicted.md)).
+files in each agent's prompt.
 
 `gds issue block` enforces that, so a block cannot be written on a reason it does not have. `--on "#N"` is accepted
 when the blocked issue's body names #N as a dependency, or when `--conflict <path>...` names the files both would edit
@@ -81,14 +81,28 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   check that reads the state. **Watch out for:** the coordinator kept two or three agents on long issues while four kit
   issues sat startable and three agents stalled for hours unseen, and ten waiting issues without `S-blocked` held the
   window. **Seen:** GDStudio coordinator, 2026-11-02; gdstudio #165, 2026-11-02 (fix: the coordinator's `Stop` is
-  refused while an issue may start with no agent ([hooks](hooks.md#idle);
-  [lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md))).
+  refused while an issue may start with no agent ([hooks](hooks.md#idle))).
 - **Approach:** Block one issue on another only for a dependency its `Depends on:` line names or for files both would
   edit; a shared subsystem is not a conflict, so start the issue and have each agent merge `origin/main` before it
   pushes. **Watch out for:** four bot issues were blocked on one running issue as the same bot brain though none needed
   what it made, and the kit's own example of a block taught that reason; one agent tuned numbers while three issues
   could run. **Seen:** GDStudio coordinator, 2026-11-02 (fix: `gds issue block` takes a named dependency or `--conflict`
-  files (gdstudio #218; [lesson](../lessons/2026-11-02-issues-blocked-on-a-shared-subsystem-ran-one-at-a-time.md))).
+  files (gdstudio #218)).
+
+- **Approach:** Before building the core of a system, run `gh pr list` and search the open and in-progress issues for
+  its words; if another branch builds it, build only the part that sits on top, against its interface, or wait for it to
+  merge. The coordinator never gives two issues that need one mechanic to two agents: one owns it, the other waits
+  (`Waiting on #N`), and each brief names the open pull requests and files to stay out of. **Watch out for:** the revive
+  branch and the bots pull request each built a revive channel (hold, reach, prompt, events) in `game_rules.gd`,
+  `player_health.gd` and `night_server.gd`; it showed when the second was ready, the merge conflicted in eight files,
+  and one branch's whole channel was thrown away. **Seen:** Deadnight #486 and #511, 2026-11-02 (fix: the older pull
+  request landed first and the other rebuilt on it).
+- **Approach:** When pull requests touch one seam, name the other in Issues affected and merge `origin/main` before the
+  last push; two halves that merge together get an integration pull request with a test of the join. **Watch out for:**
+  the first playable night and a doors fix merged seconds apart with every check green, yet the night rebuilt its
+  navigation its own way and the new door classes had no caller; each was tested against a `main` that lacked the other.
+  **Seen:** Deadnight, 2026-11-01 (fix: the night wired to the new classes, its copy deleted, and tests of a night that
+  buys a door and one that ends during the rebake).
 
 ## Starting an issue
 
@@ -132,21 +146,37 @@ maintainer sets):
 - The coordinator's `Stop` hook ([Hooks: idle issues](hooks.md#idle)) lists none of its issues, not even blocked ones
   whose blocker has closed.
 
-What still runs: scheduled CI and the nightlies keep running and keep their issues current. Pull requests already
-open stay open, and no agent merges one while the repository is paused. A pause kept only in someone's memory or in
-a plan's wording does not count, because no tool can read it
-([lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md)).
+The pause covers pull requests too. While it is set, no agent works a pull request of the repository: no refresh,
+no rerun, no edit, no hold and no merge, and no new pull request in it, a docs move made for kit work included.
+
+- Open pull requests are left as they are, turned into drafts (`gh pr ready --undo`), and are out of the
+  [landing queue](#landing).
+- Kit work that would change a paused game waits as a note on the game's own issue, or in the kit issue's "left for
+  later" list, until the pause is lifted.
+- `gds merge-main` on a worktree of the repository, `gds pr hold` on one of its pull requests and `gds pr check-body`
+  in one of its checkouts refuse, change nothing, and print the reason (`refuse_paused` in `gds_tools/issues.py`,
+  which reads the same `paused` lookup as `gds issue start`).
+
+What still runs: scheduled CI and the nightlies keep running and keep their issues current. A pause kept only in
+someone's memory or in a plan's wording does not count, because no tool can read it.
 
 - **Approach:** Before starting an issue, check that its repository is not paused, and move a standing rule that lives
   only in memory into a file a tool enforces, in the same session. **Watch out for:** the pause lived in the
   coordinator's memory and the plan's wording, so the `Stop` hook and `gds issue list` offered Deadnight #1372 as ready
   and the coordinator followed the tool. **Seen:** gdstudio #786, 2026-11-07 (fix: `paused` in `workspace.toml`,
   honoured by `gds issue start`, `gds issue list` and the `Stop` hook (gdstudio #786)).
+- **Approach:** Before refreshing, rerunning, editing or merging a pull request, or opening one for kit work, check
+  that its repository is not paused; in a paused one, turn open pull requests into drafts and leave kit changes to
+  it as a note. **Watch out for:** the pause covered only issues, and the landing rules read an open pull request as
+  work to finish, so the coordinator refreshed and reran Deadnight #1371 and a kit task opened Deadnight #1374 during
+  the pause. **Seen:** gdstudio #811, 2026-11-08 (fix: `gds merge-main`, `gds pr hold` and `gds pr check-body` refuse
+  a paused repository with the reason; tests in `test_paused_prs.py`).
 
 ## The branch and worktree {#worktree}
 
 An agent never makes its own branch. A mistake in a hand-made branch or merge is found after the push, where fixing it
-takes a force push (the maintainer's) or a new pull request ([lesson](../lessons/2026-11-02-a-local-check-judged-the-draft-and-ci-the-stored-commit.md)).
+takes a force push (the maintainer's) or a new pull request
+([Writing checks](writing-checks.md#same-input)).
 So `gds issue start` sets the work up first, once the window has allowed the start and before anything on GitHub
 changes:
 
@@ -174,7 +204,7 @@ relative path with `git -C` resolves inside the repository.
   merges; the local commit-msg check dropped the `#` lines that git keeps with `--no-edit`, so a merge's `# Conflicts:`
   paragraph passed locally and failed CI on the stored commit (Deadnight #503 became #531). **Seen:** gdstudio #107,
   2026-11-02 (fix: `gds issue start`, a pre-push hook that runs CI's message functions on the stored commits, and `gds
-  merge-main` ([lesson](../lessons/2026-11-02-a-local-check-judged-the-draft-and-ci-the-stored-commit.md))).
+  merge-main` ([Writing checks](writing-checks.md#same-input))).
 
 ### The worktree is removed when the work is finished {#sweep}
 
@@ -186,7 +216,8 @@ written to `scratch/`.
 
 ### A takeover reuses the worktree {#takeover}
 
-When an agent stalls and another takes the issue (`gds issue release <ref>`, then `gds issue start <ref> --agent <new>`),
+When an agent stalls and another takes the issue (`gds issue release <ref>`, then `gds issue start <ref> --agent
+<new>`),
 the work is in the old agent's worktree: commits and uncommitted edits. `start` first looks for a worktree the issue
 already has and hands that one over instead of making an empty one. An issue's worktree is a folder directly under
 `<workspace>/worktrees/<repo>/` that is the checkout of a branch named for it, in this order of knowing:
@@ -212,11 +243,12 @@ worktree. Then:
 
 The agent that continues merges `origin/main` into the reused branch with `gds merge-main` (it may be behind).
 
-An issue with an open pull request has no such takeover: `start` refuses it, and `release` leaves it in progress, because
+An issue with an open pull request has no such takeover: `start` refuses it, and `release` leaves it in progress,
+because
 the pull request still closes it. Skip both. Give the new agent `PR: <owner/repo>#N` and the `Worktree:` line of the old
 one, whose folder is the pull request's branch.
 
-## Starting an agent
+## Starting an agent {#starting-an-agent}
 
 The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`, any agent
 that is not a read-only helper or the reviewer) has a line of one of these forms:
@@ -225,13 +257,63 @@ that is not a read-only helper or the reviewer) has a line of one of these forms
 | --- | --- | --- |
 | `Issue: <owner/repo>#N` | new work | the issue is in the ledger of `gds issue start` |
 | `PR: <owner/repo>#N` | work on an existing open pull request: a review, a red check (a broken `main` has its pull request or issue), a conflict (DIRTY), review comments | GitHub says the pull request is open |
+| `Read: <page>.md#<anchor>, ...` | the sections of the docs the agent reads before it starts | at least one, and each exists in the kit's `docs/` |
 
-Both lines can appear; each must hold. An agent whose prompt has neither is refused with how to start the issue.
+`Issue:` or `PR:` (both can appear; each must hold) and at least one `Read:` line. An agent whose prompt lacks either is
+refused, with the command that fixes it.
 
-`gds issue start` also maps the issue's labels to areas of the mistakes glossary (`docs/lessons/areas.toml`) and
-keeps them in the ledger with the issue's title: the sections of the docs closest to the title and the rules of those
-areas are put into the agent's context when it starts ([Hooks: docs](hooks.md#docs)). `gds learn <words>` and
-`gds lessons <area>` print them for a person.
+**Before every Agent call the coordinator runs `gds brief`** for the issue or pull request the agent takes:
+
+```text
+uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N [--why] [--limit 6]
+```
+
+It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), at most six, best first:
+
+1. every section the issue names as `page.md#anchor`;
+2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
+   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
+   pages);
+3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
+   instructions"), then its body, which counts least.
+
+`--why` adds each section's title and why it is there. The coordinator copies the lines into the prompt as they are,
+adds a section the task needs that the brief missed (`gds learn <words>` finds one), and drops one that does not fit.
+`gds issue start` prints the same lines after `Issue:`, so a new start needs no second command; a `PR:` agent, a
+resumed issue or a second agent on one issue gets its own `gds brief`. The ranking is plain word matching
+(`lessons.propose`), so a brief is a proposal: the coordinator owns the final list.
+
+There are no lesson categories: nothing maps a label to a list of rules, and the start hook injects nothing. The
+sections an agent reads are named in its prompt, where the coordinator can see and change them, and the hook checks
+they exist.
+
+- **Approach:** Name the sections a task agent reads in its prompt, chosen for that issue when it is dispatched
+  (`gds brief`, then the coordinator's own judgement), and refuse a prompt that names none or one that does not exist.
+  **Watch out for:** the start hook could not see the prompt, so it matched agents to issues by a ten-minute note and
+  injected the newest items of each label's area, the same list for every task in an area and nothing the coordinator
+  could check or change. **Seen:** gdstudio #771, 2026-11-07 (fix: `gds brief`, the `Read:` guard on the Agent tool, the
+  injection and its note removed, and `docs/lessons/areas.toml` with them).
+
+## The report {#the-report}
+
+<!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->
+
+A task agent's final report, besides its pull request and its `Mistakes` section, says what it read:
+
+```text
+Read: studio/hooks.md#docs, studio/starting-work.md#starting-an-agent
+Docs gaps: studio/hooks.md#docs: does not say what a game's hooks read; a section on briefs for games belongs on
+studio/starting-work.md
+```
+
+- `Read:` names the sections it read, as `page.md#anchor` (the prompt's, and any it found with `gds learn`).
+- `Docs gaps:` names each section that was missing, wrong or out of date for the task, with what, or the page a
+  missing section belongs on; `Docs gaps: none` when there was nothing.
+
+SubagentStop holds back once a task agent's report that names a pull request without both lines
+([Hooks: docs](hooks.md#docs)). The coordinator reads them: a gap the agent did not fix itself becomes a docs change or
+an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
+closes an issue names the same sections on its `Read first:` line.
 
 ## Looking
 
@@ -264,13 +346,12 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   deployed". **Watch out for:** fixes verified in tests were judged on a build behind the merge (CI queued, the deploy
   lagging, nobody noting the live commit), and a web measure split into a follow-up was never started. **Seen:**
   Deadnight #344, #353, 2026-11-01; Deadnight #464, #478, 2026-11-02 (fix: the live commit and the probe against the
-  live URL in the pull request
-  ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md))).
+  live URL in the pull request).
 - **Approach:** Before closing an issue, grep the code for its number and resolve every "until #N" note in the same pull
   request; two buttons with different labels do different things, with a test for each route. **Watch out for:** a
   stopgap sent Quick join to the Play together screen until the rooms flow replaced it; that issue closed and the route
   stayed, so Quick join was a second Play together. **Seen:** Deadnight #526, 2026-11-02 (fix: quick join joins the
-  first game found ([lesson](../lessons/2026-11-02-an-until-issue-stopgap-outlived-its-issue.md))).
+  first game found).
 - **Approach:** Before opening a pull request, run the whole suite folder of every file it changes, not only the test it
   aims at. **Watch out for:** a balance fix ran only the gate test; four simulator tests around the code it changed
   failed in CI, and `main` stayed red past the deadline. **Seen:** Deadnight, 2026-11-01 (fix: CI on the fix caught it).
@@ -278,8 +359,25 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   affected, and test that every menu entry reaches the screen it promises. **Watch out for:** Deadnight #449 built the
   Play screen with the host's match settings and left its menu route as a one-line change with no issue; the menu rework
   routed Solo straight into a night, so Solo never offered the settings. **Seen:** Deadnight #620, 2026-11-02 (fix:
-  deadnight #637 routed it and walks every menu entry
-  ([lesson](../lessons/2026-11-02-a-finished-screen-was-never-routed-from-the-menu.md))).
+  deadnight #637 routed it and walks every menu entry).
+
+- **Approach:** In a pull request that only works on an issue (one bucket of a split task), name the issue as "#N stays
+  open" and put it under Issues affected, never in a sentence with "close" or "closes" before it. **Watch out for:** the
+  CI body check reads "does not close #770" as a pull request that closes an issue, so it asked for `Read first:`
+  areas, the local `gds pr check-body` passed (it has no labels) and the body check failed on the first push. **Seen:**
+  gdstudio #799, 2026-11-08 (fix: the sentence was reworded and the body edited; the check passed on the next run).
+- **Approach:** Before starting an issue, search the merged pull requests for its number (`gh pr list --state merged
+  --search "#N"`); the pull request that finishes the last part of a split issue carries `Fixes #N`, and the coordinator
+  closes an issue whose parts have all merged. **Watch out for:** the prize crane's rules and visuals merged as two pull
+  requests with no `Fixes`, nobody closed the issue, and it was assigned as new work. **Seen:** Deadnight #258,
+  2026-11-02 (fix: the agent audited `main` first and filled only the gaps).
+- **Approach:** Before calling a pull request done, walk every sentence of the issue's Summary and of the design section
+  it points to, one line each: built (with the test that fails without it) or not built; whatever is not built goes
+  under `Not covered` in the report and the pull request and becomes an issue. Name each place the feature must show up
+  (a menu card and the night report, the lobby and the scoreboard, online and solo). **Watch out for:** the `What "done"
+  means` list is shorter than the Summary, so a finished poster set in the night report was built nowhere while the
+  tests and captures were green; the walk also found a set told twice and a finish invisible to the solo report.
+  **Seen:** Deadnight #1073 and #1164, 2026-11-04.
 
 ## Landing pull requests {#landing}
 
@@ -297,6 +395,9 @@ Open pull requests come before new work: each one left open goes stale against `
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
   passed. Several land one at a time. On 2026-11-06 three parked pull requests landed unrefreshed and `main` went red: a
   shorter reload met a test added after its last run.
+- **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
+  rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
+  ([Pausing a game](#paused)). Landing what you would recommend does not reach past the pause.
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 
@@ -313,7 +414,7 @@ Open pull requests come before new work: each one left open goes stale against `
   rerun <id> --failed`) and file it. **Watch out for:** parallel pull requests touched the same files, a flaky check
   stalled `main`, and a pull request in work looks abandoned from GitHub, so Deadnight #402 sat four hours on a flake.
   **Seen:** Deadnight, 2026-11-01; Deadnight #402, 2026-11-02 (fix: `S-conflict` and `S-ci-failing` kept in sync
-  (kit #76) ([lesson](../lessons/2026-11-02-new-prs-opened-while-old-ones-stalled.md))).
+  (kit #76)).
 - **Approach:** Rerun the balance gate on `main` after each merge that touches tuning, and let one balance owner rebase
   on the others. **Watch out for:** two pull requests each passed the gate alone (#260 changed speeds, #271 the crane
   price) and broke it once both were on `main`. **Seen:** Deadnight #260 and #271, 2026-11-01 (fix: the gate on the next
@@ -322,14 +423,28 @@ Open pull requests come before new work: each one left open goes stale against `
   rows to shared docs tables and never reword others', and the coordinator names the shared files in each prompt.
   **Watch out for:** five parallel art pull requests added rows to the same two docs and three rewrote one test with the
   same fix; auto-merge lands the first green pull request, not the oldest, so merge order only picks who settles a
-  clash. **Seen:** Deadnight #655, #656, #660 and #661, 2026-11-03 (fix:
-  [lesson](../lessons/2026-11-03-five-parallel-prs-edited-the-same-files-and-conflicted.md)).
+  clash. **Seen:** Deadnight #655, #656, #660 and #661, 2026-11-03 (fix: the rule above).
 - **Approach:** Before asking whether to merge, check the maintainer decisions list and `S-hold`; if neither applies and
   you would recommend the pull request, refresh it, land it, and report the trade-off afterwards. **Watch out for:** the
   coordinator had decided, then parked green pull requests for a yes though merging is not a maintainer decision, and
   each handoff carried the parked state on. **Seen:** Deadnight #1199, #1244 and #1252, 2026-11-06 (fix: land what you
-  would recommend, above
-  ([lesson](../lessons/2026-11-06-a-green-pull-request-with-a-recommendation-waited-for-a-yes.md))).
+  would recommend, above).
+
+- **Approach:** Before pushing a follow-up commit to a branch that has a pull request, run `gh pr view <branch> --json
+  state -q .state`; when it is `MERGED`, branch from `origin/main`, cherry-pick the commit and open a new pull request,
+  and put every doc a task needs into the first pull request before turning auto-merge on. **Watch out for:** on a green
+  docs pull request `--auto` merges within a minute, so a later push goes to a branch whose pull request is closed; the
+  Stop gate looks for kit branches with commits and no pull request, and this one had one. **Seen:** gdstudio #175
+  and #176, 2026-11-02; gdstudio, 2026-11-05 (fix: a new branch and pull request each time; the hooks name a branch that
+  holds commits `main` lacks).
+- **Approach:** Turn auto-merge on only after the proof is read: when the test plan is a long run, every job of that run
+  (`gh run view <id> --json jobs`, none queued or in progress, each conclusion explained, named in the body), and turn
+  it off in the same step as asking for changes. **Watch out for:** on a green, clean pull request `--auto` merges at
+  once, so the step is a merge, not a setting: a pull request the maintainer meant to see first merged past its hold, a
+  nightly fix merged before its dispatch finished a job that failed on a limit it had called harmless, and a pull
+  request with stale numbers landed before the three fixes asked for. **Seen:** Deadnight #1115, 2026-11-04 (fix: the
+  hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
+  2026-11-04.
 
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
@@ -348,8 +463,8 @@ It fetches `origin/main`, merges with `--no-commit`, and commits with the whole 
 (`git commit --cleanup=strip -F`): `Merge origin/main into <branch>`, a blank line, and the `Co-Authored-By` line of the
 branch's newest commit (`--co-author "<model> <noreply address>"` names another). It refuses a dirty tree and a branch
 that already has `main`. Never `git merge -m ...` and `git commit --no-edit` a merge that had conflicts: git adds a
-`# Conflicts:` paragraph after the message, which pushes the trailer out of the last paragraph and fails `pr-rules`
-([lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md)). The `pre-push` hook now stops
+`# Conflicts:` paragraph after the message, which pushes the trailer out of the last paragraph and fails `pr-rules`. The
+`pre-push` hook now stops
 such a commit before it leaves the machine ([Hooks](hooks.md#pre-push)); reword it with
 `git commit --amend --cleanup=strip -F <message file>`. A commit that is already pushed cannot be reworded without a
 force push, which is the maintainer's decision: open the same change from a new branch instead.
@@ -358,14 +473,37 @@ force push, which is the maintainer's decision: open the same change from a new 
   read `gh run list --status queued` and the open count each cycle, and when the queue grows stop new pull requests,
   land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
   20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
-  2026-11-02 (fix: the rule above ([lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md))).
+  2026-11-02 (fix: the rule above).
 - **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
   **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
   **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
 
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
+  nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
+  `--continue`, run `--continue` unpiped, and check that `git log -1` shows the merge before rebuilding or pushing.
+  **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
+  so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
+  limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
+  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02; Deadnight #656 and #410,
+  2026-11-02.
+- **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
+  after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
+  HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
+  --3way mine.patch`; a pull request stacked on a hand-merged sync one takes its own side of the synced files, runs `gds
+  sync <game>` and `gds sync --check`, and says what it is stacked on. **Watch out for:** a squash merge writes a commit
+  no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
+  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on #643, 2026-11-03; Deadnight #575 on #571,
+  2026-11-02.
+- **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
+  merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
+  a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub
+  `has_voice` and a `near_only` grip option stayed beside the real female voices and the same far-hand fix that `main`
+  had landed. **Seen:** Deadnight #678, 2026-11-03 (fix: the branch wired to `main`'s mechanism, the workaround and its
+  test dropped).
+
 ## Why a tool and a hook
 
 The rule used to live in the coordinator's memory and was broken the day a new request arrived while older issues
-waited ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md)). Now the order is a function of the
-issue list, not of anyone's attention: the tool computes it, the ledger records it, the hook refuses an agent that skips
+waited. Now the order is a function of the issue list, not of anyone's attention: the tool computes it, the ledger
+records it, the hook refuses an agent that skips
 it.

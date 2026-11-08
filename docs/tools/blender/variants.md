@@ -55,7 +55,7 @@ Learned building Deadnight's boss zombie (Deadnight issue #98, `tools/blender/bu
   a `BoneAttachment3D` with the node under it, following every clip.
 - **Author clips that key every bone** (rotation and location) and the static-pose problems above go away.
 
-## Clothes that stand off the body
+## Clothes that stand off the body {#clothes-that-stand-off-the-body}
 
 Learned on Deadnight's tall boots, full skirt and rubber mask (Deadnight issue #1078, `tools/blender/soldier_ladder.py`
 there). What lies on the body borrows the body's skin; what stands off it needs a plan of its own.
@@ -82,7 +82,15 @@ there). What lies on the body borrows the body's skin; what stands off it needs 
   tile in one atlas cell, shown once per quad with the UVs across the whole cell, cost 160 triangles for the whole
   scarf. Keep it fixed, after the colour swatches, and give the faces the cell's corners instead of its centre.
 
-## Modular parts
+- **Approach:** Check a thin wall against the limb, not the limb against the wall: sample places on the wall (corners,
+  edge and face middles) and count one inside when nothing lies between it and the limb's bone line, its depth the way
+  out; leave out places past a bone's end, where the tube is open. Check a new metric on a size you know before tuning
+  art to it. **Watch out for:** an inside test of the limb's vertices passed a skirt a thigh went through, since a thin
+  wall has no inside, and a ray from the hips crossed the folded wall far from the limb and read 0.6 m on a 0.4 m thigh.
+  **Seen:** Deadnight #1078, 2026-11-04 (fix: the wall-against-bone check, and a sheet at the hips, where the grey legs
+  showed).
+
+## Modular parts {#modular-parts}
 
 Learned building Deadnight's modular Soldier (Deadnight issue #100, `tools/blender/build_soldier_parts.py` there):
 swappable parts on one skeleton, a look stored as a part id per slot plus palette indices.
@@ -110,7 +118,15 @@ swappable parts on one skeleton, a look stored as a part id per slot plus palett
   heaviest look. Keep small pieces whole (a 254-triangle cap at a third turned to slivers), and triangulate and drop
   zero-area faces before counting, or the glTF round trip disagrees with the count by a triangle.
 
-## A second body on the same parts
+- **Approach:** Free the parts a look does not wear when dressing it, and take a part back from a fresh copy of the file
+  on a look change (about 2 ms); before a catalogue grows, multiply its meshes by the copies alive (bodies, portraits in
+  SubViewports) and test a count that does not depend on the catalogue's size. **Watch out for:** a hidden
+  `MeshInstance3D` is still a node and a counted instance, so 13 new pieces took the late-round budget over its limit
+  (2,728 of 2,600); nodes parked off the tree count as orphans, and a node moved out of its scene needs its `owner`
+  cleared first. **Seen:** Deadnight #1086, 2026-11-04 (fix: 136 meshes to 11-15 a soldier, 2,718 instances to 1,734 on
+  one run).
+
+## A second body on the same parts {#a-second-body-on-the-same-parts}
 
 Learned building Deadnight's female Soldier (Deadnight issue #678, `tools/blender/build_soldier_parts.py` there): a
 second character on the modular parts, same skeleton and clips, chosen in the look like any part.
@@ -135,17 +151,23 @@ second character on the modular parts, same skeleton and clips, chosen in the lo
   at z 0.86 (5 % put the swinging hands into them). A bob's ends flare to r 0.40 at z 1.72 to clear the collar's top
   (r 0.36 at z 1.68). Her face pieces (lashes, a mouth, freckles or rosy cheeks) add 116-188 triangles, kept whole in
   the far heads; her heaviest look is 5,428 of 6,000, and his Projectionist worn by her is 2,000 of 2,000 far.
-- **What broke:** a rebuild picked up clips shipped elsewhere
-  ([lesson](../../lessons/2026-11-02-a-parts-rebuild-picked-up-clips-that-ship-in-their-own-files.md)); her looks moved
-  the
-  far ratio of his parts ([lesson](../../lessons/2026-11-02-a-new-variant-moved-the-far-lod-of-the-old-parts.md)); the
-  short-sleeved tops had always pushed the hands off the grips
-  ([lesson](../../lessons/2026-11-02-short-sleeved-tops-pushed-the-hands-off-the-grips.md)); and the grip contact test
-  had measured the far level of detail as well as the hand you see
-  ([lesson](../../lessons/2026-11-02-the-grip-test-measured-the-far-level-of-detail.md)).
+- **What broke:** a rebuild picked up clips shipped elsewhere ([Build scripts](build-scripts.md#rebuilding)); her
+  looks moved the far ratio of his parts (solve it over the looks that shipped and decimate her head and features
+  only, joining the small pieces whole); the short-sleeved tops had always pushed the hands off the grips (below);
+  and the grip contact test had measured the far level of detail as well as the hand you see
+  ([Hands on the weapon](weapons.md#hands-on-the-weapon)).
 - **Keep a hand's vertices where they are.** Any per-outfit push or pull (bare arms hugging the limb, cuffs pulled in)
   skips vertices whose main bone is a finger's, the way the grip test picks them; sparing only the hand's faces still
   moved its border vertices and sank the palm 3-13 mm into a grip.
+
+- **Approach:** When a change to the suspected cause leaves a number exactly where it was, drop the guess: list every
+  input the measure reads (which meshes, which pose, which preset), and look at another pose or diff a passing and a
+  failing preset part by part before changing the test or refining the change. **Watch out for:** a grip failure that
+  moved with the preset was first blamed on the test, when the short-sleeved tops pushed the hands in; two test guesses
+  left a 10.4 mm palm unchanged, when the measure counted the far level of detail; three ray changes left a slit in a
+  boot that a side view in another pose showed at once. **Seen:** Deadnight #678, 2026-11-02; Deadnight #1078,
+  2026-11-04 (fix: the presets diffed part by part, the far meshes skipped in `HandContact`, the boot's shaft kept on
+  the shin).
 
 ## Closed, and fitting, in every combination {#closed-and-fitting-in-every-combination}
 
@@ -180,16 +202,16 @@ pose, with back faces culled as the game draws them.
   the animation's are recorded per clip and may not get worse. Check the probe on a closed and an opened ball.
 - **Physics probes in a test** need two physics steps after new shapes (one returned the last pose's surface) and
   bone poses reset before each sample (clips that do not key the fingers kept the last clip's). Step physics fast in
-  the suite (`Engine.physics_ticks_per_second = 480`)
-  ([lesson](../../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
+  the suite (`Engine.physics_ticks_per_second = 480`).
 - **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
   `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
   normal with the way out (`normal_update()` first on a new face) and flip. A closed shell is one test, on one face
   whose way out is known: face by face from the middle turned the corners of a wide curved shape the wrong way.
 - **A decal follows the surface inside its outline too.** Points on the outline alone leave a flat front that sinks
   behind a head's bulge on anything wider than about 0.1 m: cut the front where it sinks, lift the new corners onto the
-  surface, keep it off a crease in the head, and smooth-shade it
-  ([lesson](../../lessons/2026-11-04-a-decal-flat-between-its-outline-sank-behind-the-face.md)).
+  surface (measured at edge middles and triangle centres, not by edge length), keep it off a crease in the head,
+  and smooth-shade it. Test every corner and triangle middle out of the head: corners alone passed with skin
+  showing, and the Workbench sheet hid what the game's lamp showed (Deadnight #1061).
 - **An expression is a part, not a head.** Deadnight's mouths (#1061) left the head meshes for a slot of their own, with
   her variant of each: eight mouths on three heads of two characters are sixteen meshes, not forty-eight. A piece too
   small to decimate needs no far mesh: with no visibility range set, the one mesh shows at every distance.
@@ -199,8 +221,7 @@ pose, with back faces culled as the game draws them.
   the kit body has no neck, so open-necked tops left the hood's ring open and Godot's culling made the head see-through;
   Workbench review renders drew the insides as surfaces, and pose checks were relative, so limbs through the chest never
   failed. **Seen:** Deadnight #895, 2026-11-03 (fix: `test_soldier_watertight.gd`, `test_soldier_clip_fit.gd`, culled
-  review renders and 360-degree turntables
-  ([lesson](../../lessons/2026-11-03-a-modular-body-was-checked-part-by-part-and-showed-holes.md))).
+  review renders and 360-degree turntables).
 
 ## Pieces laid on a body
 
@@ -227,7 +248,7 @@ body that other parts also dress. Measure first what they all share; the numbers
   fixed set, assert the new looks against the budget. Keep a small piece under the keep-whole limit, or the far level
   cuts it to slivers.
 
-## Clips that keep the arms out
+## Clips that keep the arms out {#clips-that-keep-the-arms-out}
 
 Learned reworking Deadnight's Soldier clips that put the forearms and hands through the body (Deadnight issue #939,
 `tools/blender/soldier_clips.py` and `tools/blender/arm_clearance.py` there). A clip authored by where a bone ends (a
@@ -269,6 +290,26 @@ hand on a grip, on a chest, on the ground) says nothing about what the forearm a
 - **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
   pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
 
+- **Approach:** Before tuning poses against a proxy or a new probe, copy the game check's exact rule (one surface of
+  every part, as the game casts) and run it once on a case that must fault; filter a probe's table by whole cells (`sed
+  's/ [0-9]*:00//g'` prints only the faults), never by a prefix of the line. **Watch out for:** a part-by-part proxy
+  called a hand on the belly clear that the game's union test counted 83 mm in, and a `grep -v` of the all-zero line
+  also dropped every line that began with it, so a table of faults read all clear. **Seen:** Deadnight #939, 2026-11-04;
+  Deadnight #1282, 2026-11-05 (fix: the proxy builds the union and followed Godot within a few mm; the probe prints the
+  nonzero cells).
+- **Approach:** Check every two-character clip (a revive, a carry) with both characters in a game capture, and keep the
+  actor upright with the arms reaching out and down, aimed at the other's belly. **Watch out for:** the kit heads are
+  about 40 % of the height, so a body leaning over its hands to a chest brings its head into the other's, which one
+  character alone in Blender cannot show. **Seen:** Deadnight, 2026-11-02 (fix: the reviver stays upright, checked with
+  the downed teammate in the capture).
+- **Approach:** For every pair of clips a tree blends between, evaluate both clips' tracks at weight steps of 0.025 to
+  0.05 over several phases of the looping one, on every look, and measure the pose; when the straight blend crosses the
+  body, route the limb through a still waypoint pose in a filtered Blend2 (the first clip to the waypoint, that to the
+  second). **Watch out for:** a blend is a pose no clip sampler sees: the downed sit to the crawl swept the right hand
+  81-87 mm into the trunk at weights 0.1 to 0.5 though both clips passed, and a waypoint mixed into the finished blend
+  still left a band at small weights. **Seen:** Deadnight #1282, 2026-11-05 (fix: a waypoint for the arm, measured with
+  `ClipFit.measure` on both looks).
+
 ## Proportions: measure the arm {#proportions-measure-the-arm}
 
 Learned when the maintainer saw the female Soldier's arms as too long (Deadnight issue #978,
@@ -288,8 +329,9 @@ one's arms.
   only rotations on the arm (no Soldier clip keys an arm bone's position) play on the shorter arm unchanged; clips
   solved by reach are solved again on it by the same build. Keep the hand if grips are solved on it.
 - **Places along the arm in the build's rules** (a cuff picked by `|x|`, a wrist seam) are written in the kit's numbers
-  and read through one map of the change, or they miss it
-  ([lesson](../../lessons/2026-11-04-places-along-the-arm-in-kit-numbers-missed-the-shorter-arm.md)).
+  and read through one map of the change (Deadnight's `soldier_arms.along(x)`), or they miss it: cuff faces kept
+  their colour as bracelets and the wrists of 24 combinations opened. When a rest pose changes, grep the build for
+  constants that name a place on what moved.
 - **A shorter arm reaches less.** Before building, shorten the skeleton's rest at run time in a probe and read the
   IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready (which
   turned the armband deeper into the chest) or a slide of the gun back along its barrel, which it now does, with the
@@ -299,5 +341,4 @@ one's arms.
   shorten bones on the imported body before clips, and check every hold's reach in a run-time probe first. **Watch out
   for:** proportions were inherited from the kit Soldier: every look wore its arm (0.547 of the height, fingertips below
   the knee), her body was his with the trunk warped, and guns were held at that arm's full reach. **Seen:**
-  Deadnight #978, 2026-11-04 (fix: the style bible names the arm-to-height ratio with the head and the hips
-  ([lesson](../../lessons/2026-11-04-the-kit-s-long-arm-was-worn-by-every-character.md))).
+  Deadnight #978, 2026-11-04 (fix: the style bible names the arm-to-height ratio with the head and the hips).

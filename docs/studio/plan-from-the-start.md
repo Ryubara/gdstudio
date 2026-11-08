@@ -14,22 +14,18 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   listed before the controller is built ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
   the shot waits for the body's turn
-  ([lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md)).
+  ([controller states](../gamedev/controller.md#states)).
 - Plan: a rule that follows from a state (empty, downed) is evaluated from that state on the server each tick, never
-  as a side effect of an action a control can stop sending
-  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md)).
+  as a side effect of an action a control can stop sending ([States and actions](../gamedev/controller.md#states)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
-  it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
-- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button
-  ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md)).
-- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content
-  ([lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md)).
+  it as it holds a person ([Bots](../gamedev/bots.md)).
+- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
+- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
-  camera ([lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+  camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
-  ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md)).
-- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser
-  ([lesson](../lessons/2026-11-01-layout-test-found-hud-overlaps-no-eye-would.md)).
+  ([Settings that scale the game](../gamedev/design.md#settings)).
+- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
   and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
 - Plan: for an identity feature, every place a name is drawn, found by searching the code and listed in the issue, the
@@ -47,22 +43,20 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
   ([web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
-  is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
+  is tested on a screen with no focus.
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
-  ([lesson](../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md)).
+  ([web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: touch proved in a phone-emulated browser; a finger is also a mouse motion in the web runtime
-  ([lesson](../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md)).
+  ([web export](../engines/godot/web-export.md#phone-touch-and-fit)).
 - Plan: multi-touch with two thumbs at once, and hold buttons (aim) that also drag to look; per-finger positions,
-  never `relative` ([lesson](../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md)).
+  never `relative` ([touch controls](../engines/godot/ui-controls.md#touch-controls)).
 - Plan: touch designed as its own interface before its first button: every action and every element on the screen for
   that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
-  expects everywhere (reload at 0) are proved through each device's real input path
-  ([lesson](../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md)).
+  expects everywhere (reload at 0) are proved through each device's real input path.
 - Plan: a touch action is listed by what it does, derived from one table, not by an allow-list: every button looks while
   dragged unless its row owns the drag, so a new one cannot opt out unseen
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
-- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`.
 
 ## Platforms
 
@@ -71,7 +65,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a platform differs from the website only in sign-in and chrome: list every branch on the platform (an instance
   id, the Discord host) in the first build and keep none that changes what a press does; players reach each other by
   a code, a link or a list, never by a platform identity
-  ([lesson](../lessons/2026-11-05-a-platform-shortcut-outlived-the-fix-that-moved-its-first-screen.md),
+  ([web export](../engines/godot/web-export.md#activity-same-game),
   [deadnight #1178](https://github.com/Ryubara/deadnight/issues/1178)).
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
@@ -84,7 +78,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   pixels on the web, never the canvas's device pixels), has a test for each class, and is run once on the real page (the
   web export in phone emulation, and in an iframe for Discord) before a phone capture is trusted; a menu's smallest
   text and tap target are measured in CSS pixels on every screen
-  ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md),
+  ([web export](../engines/godot/web-export.md#a-phone-pages-size-the-canvas-is-not-the-page),
   [deadnight #1197](https://github.com/Ryubara/deadnight/issues/1197)).
 - Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
   probe each inside the Activity frame with Discord's policy before shipping
@@ -92,49 +86,48 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: every text field is opened, typed in, closed and submitted with a finger on a phone-shaped page (the export's
   virtual keyboard option on, the field kept above the keyboard, a keypad for a code) before a flow that needs text
   is called done ([web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build),
-  [lesson](../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md)).
+  [keyboard](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build)).
 - Plan: a visible pre-game lobby (members, host, a start the host controls) and mid-match join, every player state
   designed and tested with real clients ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
-  ([lesson](../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md)).
+  ([performance budgets](../engines/godot/performance-budgets.md#the-rule)).
 
 ## Netcode
 
 - Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
   more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
-  ([lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md),
+  ([multiplayer](../engines/godot/multiplayer.md#a-client-that-freezes-measured-on-the-live-server),
   [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
-  ([lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md)).
+  ([netcode](../gamedev/netcode.md#parallel-branches)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit
-  ([lesson](../lessons/2026-11-02-web-and-server-deployed-minutes-apart.md)).
+  ([railway](railway.md#skew)).
 - Plan: never deploy a branch to the shared web service; a CI deploy of main replaces it anyway
   ([deadnight #491](https://github.com/Ryubara/deadnight/issues/491),
   [web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: events the server causes alone reach every client
-  ([lesson](../lessons/2026-11-01-events-the-server-causes-alone-never-reach-the-client.md)).
+  ([multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every player feature is specified and tested from another player's view: a two-client test over the real
   socket for what the other screen shows, and captures from the second client's screen
-  ([lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md),
+  ([multiplayer](../engines/godot/multiplayer.md#appearance),
   [deadnight #518](https://github.com/Ryubara/deadnight/issues/518)).
 - Plan: where a player is (menu, waiting room, night, away, reopened lobby) and what ends each state, written as one
   table of states and ways out before the lobby is built; a player moves between lobbies by creating or joining
   (never a refusal for being in another), and a lobby with no person is gone at once, with the game server saying
   when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
-  [lesson](../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md)).
+  [multiplayer](../engines/godot/multiplayer.md#player-states), [netcode](../gamedev/netcode.md#leaving)).
 
 ## Saving
 
 - Plan: hold menu choices in one draft, preview the draft, and commit once on leaving; no other view rereads saved
-  state while the screen is open ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
-- Plan: a test for every choice against another choice, a tab change and a reload, counting writes
-  ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
+  state while the screen is open.
+- Plan: a test for every choice against another choice, a tab change and a reload, counting writes.
 - Plan: tests point the settings and save files away from the player's own `user://`
-  ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
+  ([Throwaway user folder](../engines/godot/throwaway-user-folder.md#tests)).
 
 ## Co-op rules
 
@@ -147,16 +140,17 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Content: weapons, art and animation
 
 - Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
-  ([lesson](../lessons/2026-11-02-weapon-models-sat-without-definitions-or-a-source.md)).
+  ([A weapon is a model, a definition and a source](../gamedev/balance.md#roster)).
 - Plan: every catalogue entry played through in the real night with the real input
-  ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
-- Plan: weapons sized against the hand that holds them, not only the body ([lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)).
+  ([Every catalogue entry](../gamedev/testing.md#catalogue)).
+- Plan: weapons sized against the hand that holds them, not only the body
+  ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
   the kit's clips never move the fingers ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
-  ([lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md)).
+  ([One action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
-  ([lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md)).
+  ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
 - Plan: kit props and materials on the map as soon as the layout holds
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
@@ -167,87 +161,86 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Audio
 
 - Plan: loudness, first-50 ms energy and pitch spread measured from a recording of the real service
-  ([lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)).
+  ([close and powerful sounds](../engines/godot/audio.md#close-and-powerful-sounds)).
 - Plan: voice lines written as a person speaking, with many takes per event
-  ([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)).
+  ([writing the lines](../gamedev/audio/voice-lines.md#2-writing-the-lines)).
 - Plan: no sound design in bus effects, which the web build ignores
-  ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
+  ([audio](../engines/godot/audio.md#web-samples-or-streams)).
 
 ## Performance
 
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
   ([first-use hitches](../engines/godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
-  ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+  ([starting sounds](../engines/godot/audio.md#starting-sounds)).
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
-  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a maintainer
-  found the lag first ([performance budgets](../engines/godot/performance-budgets.md),
-  [lesson](../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md),
+  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a
+  maintainer
+  found the lag first ([performance budgets](../engines/godot/performance-budgets.md#the-rule),
   [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
 ## Test infrastructure
 
 - Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
   `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
-  ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
+  ([sound](../engines/godot/no-focus.md#sound)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
-  ([lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)).
+  ([browser probes](../engines/godot/web-probes.md#running)).
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
-  ([lesson](../lessons/2026-11-02-each-browser-probe-walked-the-menu-its-own-way.md)).
+  ([browser probes](../engines/godot/web-export.md#browser-probes)).
 - Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
-  ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
+  ([ui controls](../engines/godot/ui-controls.md#a-menu-over-a-live-game)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
-  ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
-- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+  ([lesson](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive)).
+- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
-  ([lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
-  [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md)).
-- Plan: captures and recordings from the player's camera, with the real devices switched off
-  ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md)).
+  ([Testing a game](../gamedev/testing.md#leftover-state), [waits](../gamedev/testing.md#bounded-waits)).
+- Plan: captures and recordings from the player's camera, with the real devices switched off.
 
 ## Process
 
 - Plan: land old PRs before new ones, reporting from the oldest down
-  ([lesson](../lessons/2026-11-02-new-prs-opened-while-old-ones-stalled.md)).
+  ([Starting work](starting-work.md#landing)).
 - Plan: rerun known flakes at once and push only what a merge needs
-  ([lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md)).
+  ([Starting work](starting-work.md#merging-main-into-a-pull-request)).
 - Plan: a fix is done when it is live where the maintainer plays (deployed commit named, probe run on the live URL)
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
-  ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md)).
+  ([Hooks](hooks.md#mains)).
 - Plan: a stopgap comment names its issue ("until #N"), and closing #N greps for it and resolves it
-  ([lesson](../lessons/2026-11-02-an-until-issue-stopgap-outlived-its-issue.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: the PR that finishes a split issue carries `Fixes #N`
-  ([lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
-  ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
+  ([A shared machine](workspace.md#shared-machine)).
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task
-  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](workspace.md#disk)).
+  ([The disk guard](workspace.md#disk)).
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
-  ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
+  ([The shell](shell.md#paths),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
 - Plan: every kit file a game carries a copy of (the checker, the pre-commit message hooks, the agent definitions) is on
   the `gds sync` list from the first game, so a rule changed in the kit reaches the games in one sync pull request
-  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](sync.md)).
+  ([Sync](sync.md#pre-commit-blocks)).
 - Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
-  ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),
-  [Starting work](starting-work.md)).
+  ([Starting work](starting-work.md#the-rule)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
-  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
-  the mistakes glossary (`gds lessons <area>`)).
+  they start ([Hooks](hooks.md#docs)).
+- Plan: the coordinator names the doc sections each task agent reads in its prompt when it dispatches it (`gds brief`,
+  `Read:` lines the Agent guard checks), and the agent's report says what it read and what was missing; no category
+  of lessons is pushed at every agent of an area ([Starting an agent](starting-work.md#starting-an-agent)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
-- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
+- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer
+  decisions
   in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every
   time; the second kind becomes a default the agent runs (a new game's GitHub repository, Pages, ruleset, hold sweep and
@@ -258,7 +251,6 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
   offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
-  [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
   [Starting work: pausing a game](starting-work.md#paused)).
 - Plan: a docs site's navigation is designed for the page count it will reach (a tab per topic, sections that fold
   and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at

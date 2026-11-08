@@ -33,7 +33,7 @@ GPU ms are for the whole viewport, base scene = 0.044 (1080p) / 0.105 (2160p).
 | SSR, SDFGI | **no** (silently ignored) | 0.035 | 0.100 | no change in the image. |
 | Filmic + glow + fog + adjustments together | yes | 0.138 | 0.354 | roughly the sum. |
 
-## Dynamic lights
+## Dynamic lights {#dynamic-lights}
 
 Extra lights on top of the three base lights, no shadows, 1.6 to 3 energy, range 9 to 12 m, spread over the lot.
 
@@ -65,7 +65,16 @@ Extra lights on top of the three base lights, no shadows, 1.6 to 3 energy, range
 - **Light projector textures are not supported** in Compatibility (docs): the `projector` capture lit a patch but showed
   no pattern. A cheap "film beam" is a transparent additive cone mesh, not a projected light.
 
-## Full-screen post shader
+- **Approach:** Run the project's light-cap suite after any change to a light's position, range, cone or aim (not only
+  its count), print the new lamp's reach when it fails, and narrow a spot's cone where nothing needs it wide; print
+  `-global_basis.z` of a spot to see where it points. **Watch out for:** an omni counts on every mesh its range
+  touches, and a spot by the box of its cone's widest end: moving a lamp 1.2 m put a seventh light on the stand's roof
+  (the lot keeps 6 for a fight), a spot with `yaw 180` faced the road for the life of a map and aiming it at the
+  screen dipped its cone under a roof, and an 85 degree spot of 10 m (a box 114 m wide) took a mesh 60 m away over the
+  cap. **Seen:** Deadnight #830, #840, #852, 2026-11-03 (fix: range 5 to 4.6 m; yaw 0 with a pitch of the half-angle;
+  cone 60 degrees).
+
+## Full-screen post shader {#full-screen-post-shader}
 
 A `ColorRect` on a `CanvasLayer` with a canvas_item shader (colour grade + vignette + grain).
 
@@ -78,6 +87,11 @@ A `ColorRect` on a `CanvasLayer` with a canvas_item shader (colour grade + vigne
 - Reading the screen costs a back-buffer copy: about **+0.18 ms at 1080p, +0.21 ms at 4K**, +12 MB. That is 4 to
   5 times the overlay version. The overlay version can darken and add noise but cannot grade colour.
 - The grade shader does the job the Environment adjustments do, for a bit more; use one or the other.
+
+- **Approach:** Use a sine-free integer-style hash for noise in a shader, and write `1.0 - smoothstep(0.0, 1.0, x)`
+  instead of reversed edges. **Watch out for:** `fract(sin(dot(...)) * 43758.5)` loses precision on large arguments
+  and showed diagonal bands in film grain and a starfield; `smoothstep(1.0, 0.0, x)` is undefined in GLSL, so edges
+  flickered differently between GPUs. **Seen:** Deadnight, 2026-11-01 (fix: an integer hash and `1.0 - smoothstep`).
 
 ## Combined
 
@@ -296,7 +310,7 @@ every floor under a roof and a lamp lights the next room through the wall.
   from behind and from inside. **Watch out for:** `glow_pane.tscn` was a QuadMesh on a StandardMaterial3D with the
   default back-face culling, built and captured only from the field side, so the windows were holes from the room, while
   every other glow used the `cull_disabled` glow shader. **Seen:** Deadnight #701, 2026-11-03 (fix: a test that each
-  see-through flat mesh is double-sided ([lesson](../../lessons/2026-11-03-a-lit-window-was-a-hole-from-the-room.md))).
+  see-through flat mesh is double-sided).
 
 ## A backdrop past the playable bounds
 
@@ -311,18 +325,17 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   mesh, no slot in the 8-light cap, and no lamp indoors lights the outside. Writing the `FOG` output of a lit shader
   gave black and blown-out results in Compatibility.
 - **Pass colours as they are.** Compatibility takes a colour uniform as is (as if it lit in sRGB space): the fog
-  colour through `srgb_to_linear` drew ten times too dark
-  ([lesson](../../lessons/2026-11-03-a-backdrop-colour-passed-as-linear-drew-ten-times-too-dark.md)).
+  colour through `srgb_to_linear` drew ten times too dark.
 - **One `MultiMeshInstance3D` per model.** A `.tscn` cannot point into an imported glTF scene, so the multimesh names
   the scene in metadata and a node takes its first mesh at load; models exported as `.obj` are plain meshes. 330
   copies in 37 drawing nodes, 62k triangles.
 - **Glow by atlas cell**: emission where `floor(UV * 5)` is a bulb or neon cell (Godot's UV starts at the image's top,
-  [lesson](../../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)); fires and halos are glow quads, no
-  light.
+  [Palette cells in Godot](../../tools/blender/weapons.md#palette-cells-in-godot)); fires and halos are glow quads,
+  no light.
 - **Cost on the web**: 34 more draw calls and about 0.4 ms a frame in Chrome on an RTX 5080 (1280 x 720, unpaced,
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
-  ([lesson](../../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
+  ([Capture](../../studio/capture.md#frames)).
 
 ## A lamp near a wall {#a-lamp-near-a-wall}
 
@@ -338,8 +351,7 @@ pixels of the next room, measured with each part hidden and shown from the playe
 - **Shrink the pool and move it away.** A pool of half-size `h` moved `h/2` away from a wall at distance `d` stops short
   of it when `h <= d / (1 - c/2)`. The halo stays: it is the bulb's, and the bulb is seen over the wall.
 - **Measure it hidden and shown**, from behind the wall, with a hide the game does not undo (`light_cull_mask = 0`,
-  `layers = 0`, never `visible`;
-  [lesson](../../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
+  `layers = 0`, never `visible`).
 - **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
   changes a mesh's set of lights.
 
@@ -348,9 +360,7 @@ pixels of the next room, measured with each part hidden and shown from the playe
   the wall and from above with the glow hidden and shown (0 pixels changed inside). **Watch out for:** Compatibility has
   no shadows, so a card's only wall is the depth test and a light's only limit is its range; a billboarded 9 x 4 m halo
   0.4 m off a wall bled into the room behind, and the sign's omni light lit through. **Seen:** Deadnight #703,
-  2026-11-03; Deadnight #832, 2026-11-03 (fix: `test_glow_bleed.gd` ([halo
-  lesson](../../lessons/2026-11-03-a-billboard-halo-wider-than-its-gap-to-the-wall-bled-through-it.md), [sign
-  lesson](../../lessons/2026-11-03-a-sign-was-built-for-the-front-and-its-light-went-through-the-wall.md))).
+  2026-11-03; Deadnight #832, 2026-11-03 (fix: `test_glow_bleed.gd`).
 
 ## A column of light has a length from what is above it {#a-column-of-light-has-a-length-from-what-is-above-it}
 
@@ -368,8 +378,7 @@ beam rises through it.
   placement on every map, and capture it from the first solid above each spot. **Watch out for:** the depth test hides
   the part of a glow behind a surface, not the part beyond it on the camera's side; the crane's beam was a fixed 36 m
   additive cone that stood out of the roof and showed on the second map's upper floor, and every capture was taken from
-  the floor in front. **Seen:** Deadnight #911, 2026-11-03 (fix: the beam stops at what is above it
-  ([lesson](../../lessons/2026-11-03-a-beam-of-fixed-length-came-out-of-the-floor-above-it.md))).
+  the floor in front. **Seen:** Deadnight #911, 2026-11-03 (fix: the beam stops at what is above it).
 
 ## Glow on the web, and what a wing of fire costs (Deadnight #1053)
 

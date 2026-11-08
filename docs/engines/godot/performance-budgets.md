@@ -23,15 +23,13 @@ From the first playable night a game has three things, and a change that breaks 
 - **Approach:** Name the platform every performance cap was measured on, measure each shipped platform (desktop client,
   browser, headless server, network) and give each its own number. **Watch out for:** a crowd ceiling measured on the
   web build (40) became the one ceiling everywhere, so desktop, which should hold over 100 zombies on a fast machine,
-  never had a budget of its own. **Seen:** Deadnight, 2026-11-01 (fix: a limit per platform on the page of limits
-  ([lesson](../../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md))).
+  never had a budget of its own. **Seen:** Deadnight, 2026-11-01 (fix: a limit per platform on the page of limits).
 - **Approach:** From the first playable night, measure, write down and hold in CI a game's limits (dead, lights, sounds,
   nodes, memory, a frame) at the worst combination of its own settings: one command for the worst case, a sampler of
   counts and labelled times, a budget file (counts tight, time as a ratio of a calibration loop) and a limits page.
   **Watch out for:** earlier work measured the web and a bare crowd, never the whole night at round 12, 3x, bots; a
   hosted bot capped a desktop night at 40 dead against 120 designed, and wall times on the shared machine ran 1 to 14
-  times the code's cost. **Seen:** Deadnight #906, 2026-11-03 (fix: this page
-  ([lesson](../../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md))).
+  times the code's cost. **Seen:** Deadnight #906, 2026-11-03 (fix: this page).
 
 ## What to sample
 
@@ -54,9 +52,9 @@ that release (a tree of dictionaries, arrays, vectors) is charged to the label t
 1172: storing the last frame in the challenge tracker raised `server.challenges` by about a quarter and failed the
 late-round budget while the work itself had not grown. Keep no event; read what is needed in the call that is handed
 it, or from state the system already owns. Test a change to a timed system with the budget's own case, three or more runs
-interleaved with the change off ([lesson](../../lessons/2026-11-05-a-held-frame-moved-its-release-into-the-timer.md)).
+interleaved with the change off.
 
-## Reading a timing on a shared machine
+## Reading a timing on a shared machine {#reading-a-timing-on-a-shared-machine}
 
 The machine that builds a game is never quiet: other agents' Godot processes, builds, a browser. Deadnight's
 measurements ran at 88 to 100 % of 16 cores with 20 to 46 Godot processes up. Two runs of the same code in the same
@@ -82,6 +80,12 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
 - **Interleave before and after** (one, the other, one, the other), so a busy hour falls on both. Report the spread of
   all repeats, not the best.
 
+- **Approach:** Hold a wall-clock tick budget on a shared machine at a percentile below the scheduler's share of lost
+  ticks (the 95th), print the 99th and the worst without judging them, and compare medians to tell the code from the
+  machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
+  a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
+  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
+
 ## A leak is read as a count at the same crowd, round after round
 
 Run the night for as long as a player would (30 minutes), sample every second, and compare rounds, not times:
@@ -96,7 +100,7 @@ Run the night for as long as a player would (30 minutes), sample every second, a
 - A round that does not end (one dead left that nobody finds) makes a long soak useless after it: stop at a stalled
   round and report it.
 
-## Budgets: counts tight, time loose
+## Budgets: counts tight, time loose {#budgets-counts-tight-time-loose}
 
 `tools/perf/budget.json` (Deadnight) holds for the worst case: the most of each count while the crowd stands, how much
 a count may grow a minute over the steady rows, and the ratio of the frame to the calibration. `check_budget.py` reads
@@ -108,18 +112,31 @@ limit stops a regression, the target is what the game should reach.
 microseconds of mixed work) but not a section of a few microseconds that runs cold once a frame: across 46 CI runs a
 timed section went with the frame at a slope of 1.0 and with the calibration at 0.35, and a limit as a ratio of the
 calibration swung 2.1 times between runners that ran the same code (a false red, and a section twice as slow that
-passed). Hold such a section as a *share of the frame* the same rows took. Pick the divisor by fitting the log of the
-timing on the log of each candidate over the last runs (slope near 1 is a ruler that cancels the host), put the limit
-between the highest share seen and twice the lowest, and keep a test that runs the checker on made-up reports of every
-kind of runner, unchanged (passes) and twice as slow (fails). See the
-[lesson](../../lessons/2026-11-05-a-microsecond-section-was-held-to-a-ruler-it-does-not-follow.md).
+passed). Hold such a section as a *share of the frame* the same rows took.
 
-**A count is only tight when the run fixes every input.** The seed and the step are not enough: anything the measured
-code reads from the machine (the date, the time of day, a random seed from the system) moves the count between days
-and machines, and a limit set on one day fails every pull request on another. Pin such a clock or seed in the bench
-(through the seam a test already uses), set the limit from the pinned run, and before trusting it run the bench with the
-date moved by a day and see that the count does not move. See the
-[lesson](../../lessons/2026-11-07-a-count-budget-read-the-date-of-the-machine.md).
+- **Approach:** Divide a section of a few microseconds by the frame the same rows took, not by the calibration loop:
+  fit the log of the timing on the log of each candidate divisor over the last runs (slope near 1 cancels the host), put
+  the limit between the highest share seen and twice the lowest, and test the checker on made-up reports of every kind
+  of runner, unchanged (passes) and twice as slow (fails). **Watch out for:** over 46 CI runs the section followed the
+  frame at slope 0.98 and the calibration at 0.35; runners come in three kinds the loop tells apart (3.1, 4.5, 6.0 ms)
+  where the section costs the same, so a ratio of the calibration swung 2.1 times: a false red on unchanged code, and a
+  section twice as slow that passed. **Seen:** Deadnight, 2026-11-05 (fix: the spread fell from 2.1 to 1.36 times; a
+  unit test of the checker fails a moved limit).
+- **Approach:** Fix every input of a count bench: the seed, the step, the crowd and whatever the measured code reads
+  from the machine (the date, the time of day, a system seed), through the seam a test already uses; set the limit from
+  the pinned run, and before trusting it run the bench with the date moved by a day. **Watch out for:** accounts were
+  dealt daily challenges from the machine's clock, which three are dealt decides how often a challenge advances, and a
+  limit set one day (0.13) failed every pull request the next (0.23 against 0.18); raising the limit hides it.
+  **Seen:** Deadnight, 2026-11-07 (fix: `ChallengeClock.fixed` set before the first account; a test deals one account
+  three machine dates and expects the same dailies).
+- **Approach:** Read a rate limit on a fixed-step run in the run's own time (frames stepped at the budget's
+  `fixed_fps`), never the wall clock; before a limit moves for a red rate, print the rate over two other nights and the
+  wall seconds of the same window (seconds differing by 1.5 times or more make the unit the suspect). **Watch out
+  for:** the leak check fitted its line through the sampler's wall-clock `t`: the same 1,079 steady rows took 280 to 553
+  s on different machines, so the same growth read 1.0 to 2.2 MB a minute and a limit was wrongly raised to 2.5, while
+  per minute of the night it was 0.4 to 0.6 on all six nights. **Seen:** Deadnight #1319, 2026-11-06 (fix:
+  `leak_budget.json` has `fixed_fps: 60` and the limit is back at 1.5; `tools/perf/test_check_budget.py` runs a flat
+  night and 1.2 and 0.5 times each limit on a fast and a slow runner).
 
 ## In the editor
 

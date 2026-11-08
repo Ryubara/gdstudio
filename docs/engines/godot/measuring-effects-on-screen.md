@@ -2,7 +2,7 @@
 
 An effect the player must read (a muzzle flash, a hit marker, a pickup glint, a warning) is judged by what it does to
 the pixels the player sees, from the player's camera, in the renderer the player plays in: not by its parameters and
-not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+not by a close-up capture of the effect on its own (Deadnight #408).
 
 ## Method {#method}
 
@@ -19,13 +19,40 @@ not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../
   lights none of that surface: place a flash light above the floor.
 - Measured in headless Chrome on an RTX 5080 (ANGLE, Direct3D 11), Godot 4.7.2.
 
+- **Approach:** A capture or plan view restores only the nodes it hid itself (it keeps the list), and a scene that
+  hides parts on purpose is checked in the player's view, not by a probe of the tree alone. **Watch out for:** a
+  plan-view script set every `VisualInstance3D` and CSG shape visible again when it was done, undoing what the level
+  hides on purpose: a hidden collision box drew over the kit's pillar and stair rails the scene had switched off came
+  back, while `is_visible_in_tree()` said false. **Seen:** Deadnight, 2026-11-03 (fix: restore only what the capture
+  hid; the second map's views were taken again).
+
 - **Approach:** Measure a readable effect on the screen before and after (draw the frame again without it), from the
   real camera, hip and aimed, desktop and browser, hold the numbers as floors in a test, and turn quads near the
   player's own mesh toward the camera. **Watch out for:** an effect is judged by its pixels from the player's camera,
   not its parameters: the muzzle flash covered 0.02 to 0.14 % of the screen for 2 frames, its quads lay in the muzzle's
   plane so the gun, hand and arm hid 25 to 87 % of them, and its light went under the floor when the gun pointed down.
-  **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448
-  ([lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md))).
+  **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448).
+- **Approach:** Read where a thing's ink sits by drawing it in a flat colour no other thing uses and counting that
+  colour's share of each pixel over the ground (digits: the label's colour with outline and shadow set clear; an icon:
+  the atlas with its colours replaced and its alpha kept), and check the method against a case you know before trusting
+  it. **Watch out for:** a difference between "with the icon" and "icon made clear" put the scoreboard's icon 1.2 px
+  off, but its outline is nearly black on a nearly black card, so those rows differ by less than the threshold and the
+  icon looked shorter; the flat-colour reading put it within 0.4 px, and the error followed the art, so it looked like
+  a real fault in some levels only. **Seen:** Deadnight #1161, 2026-11-04 (fix: the flat-colour method in
+  `test_level_ink.gd`).
+- **Approach:** Judge a burst from the frames of the shot itself (the largest PNGs after it), not a fixed frame number,
+  and give a blast seen at night a bright shell and a hot core that is gone by half its time. **Watch out for:** one
+  unshaded sphere at 55% alpha fading fast read as nothing on a dark lot, and the frame captured was the end of the
+  fade. **Seen:** Deadnight (re-cut blast), 2026-11-03 (fix: an 80% shell and a core; Deadnight's
+  `docs/design/upgrades.md`).
+
+- **Approach:** Measure a faint defect in a series, not in one shot: take 40 screenshots of a screen that holds
+  still, subtract their per-pixel median, and read each column against the columns x-3 and x+3 (the smaller of the
+  two, so a step edge reads 0). A defect at the same place in one capture and elsewhere in the next is in a
+  time-driven layer (a shader's `TIME`, an overlay), so grep the shaders over the screen first. **Watch out for:** a
+  single capture cannot tell a film overlay's 1.6 px scratch from a panel's own hairline border (both are ridges in a
+  column measure), and it was first read as a seam in something sampled in screen space. **Seen:** Deadnight #1249,
+  2026-11-05 (fix: the line showed in 8 of 40 shots on main and in 0 of 40 with the scratch removed).
 
 ## A held weapon from the shoulder camera
 
@@ -34,8 +61,7 @@ draw again, and count the pixels that change (above 0.08 in any channel, every o
 four). From a shoulder camera 0.6 m right and 2.3 m behind a chibi Soldier, a gun held at the hip is behind his head:
 Deadnight's tommy gun showed 284 pixels of 2.07 million at rest and **0** during the reload that tilted it 35 degrees
 down (#383), the rifle about 300 throughout. A reload carried out to the right of the head and up showed 6,700 to
-8,700 for the long guns and 2,700 to 3,700 for the pistols (Deadnight #683,
-[lesson](../../lessons/2026-11-02-a-reload-tilt-was-hidden-behind-the-head.md)). So for any action on a held item:
+8,700 for the long guns and 2,700 to 3,700 for the pistols (Deadnight #683). So for any action on a held item:
 
 - measure it from the camera the player has, at rest and in the middle of the action, and keep the numbers as floors;
 - expect the space in front of the chest to be the head's, and move what must read to the right of the head (the
@@ -49,14 +75,14 @@ Deadnight's capture: `game/tests/captures/reload_sheet.tscn --measure`.
 
 A prop that shows the player something (a prize, a pickup, a sign that changes) is read from the spot where its use
 prompt appears, through the player's resting camera with the player's own body in the frame, not from a capture placed
-to show the whole prop (Deadnight #830, [lesson](../../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md)).
+to show the whole prop (Deadnight #830).
 Deadnight's prize crane floated its prize 3.25 m up, turning: from the marker (0.8 m from the glass, camera 2.3 m
 behind and 0.6 m right of a 1.4 m Soldier, level, FOV 60) it was at the frame's top edge and end on half the time,
 while the Soldier's head covers the machine's middle below about 1.65 m. The prize now slides out at 1.72 to 2.18 m,
 side on: whole on screen, 14 to 24 % of a 1920-pixel width, 0 % behind the body; at grab height (1.35 m) 79 to 98 % of
 it was behind the head.
 
-To hold it in a headless test ([lesson](../../lessons/2026-11-03-a-screen-test-passed-the-layout-it-was-written-to-catch.md)):
+To hold it in a headless test:
 
 - project into a `SubViewport` sized like the screen (a headless root viewport is 1920 x 1920) with a `Camera3D` that
   copies the player camera's global transform and FOV; `unproject_position` needs no drawing;
@@ -70,7 +96,7 @@ Deadnight's checks: `game/tests/night/test_crane_view.gd`; the screenshots, `gam
 ## A soft rim, and which node it is
 
 An additive wall (a beam, a cone of haze, a shaft) reads as a solid object when its edge is a hard step. Whether it does
-is measured, not judged by eye (Deadnight #854, [lesson](../../lessons/2026-11-03-a-pale-column-was-blamed-on-the-wrong-node.md)):
+is measured, not judged by eye (Deadnight #854):
 
 - Draw the view with the column shown, then hidden, in a frozen frame: `get_tree().paused = true` with the capture node
   on `PROCESS_MODE_ALWAYS`, the player's body hidden in both (its own edges are not the column's), and read both

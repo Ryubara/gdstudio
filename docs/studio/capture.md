@@ -40,7 +40,30 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
 - **Approach:** Take captures and recordings through the camera the player has (in Deadnight the over-the-shoulder
   camera), never a spectator camera. **Watch out for:** the bot was filmed through a spectator camera, which shows the
   game as no player sees it. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's recordings come from the player's camera
-  with the real devices switched off ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).
+  with the real devices switched off).
+
+- **Approach:** Read frame N-1 to see the state before a change made at step N; to record at a real smaller size (a UI
+  test at 720p) write an uncommitted `game/override.cfg` with `window/size/window_width_override` and
+  `window_height_override` (the stretch base stays 1920 x 1080, so the UI scales as for a 720p player), and delete it
+  afterwards. **Watch out for:** frame N is written after that step's script ran, so it already shows the change; the
+  movie is the project's viewport size, and `--write-movie` with `--resolution 1280x720`, or a window resized from a
+  script, still wrote 1920x1080 frames (Godot 4.7.2). **Seen:** Deadnight #442, 2026-11-01 (fix: `gds capture sheet`
+  and `clip` scale afterwards).
+- **Approach:** Look at every spot's frame of a tour before believing it: give each spot the floor and collision a
+  player would stand on (a hidden floor under every spot outside the room), and when comparing variants loop over full
+  triples (name, player look, teammate look), print each run's looks in its log and read one picture of each run.
+  **Watch out for:** a yard shot showed sky and a band of horizon because the backdrop's ground has no collision and
+  the player fell through; a him-and-her pair that varied only the player's preset passed the teammate as a literal, so
+  both runs showed two Carhops. **Seen:** Deadnight, 2026-11-03 (backdrop tour); Deadnight, 2026-11-02 (shoulder views)
+  (fix: `[female] loadout character: ...` is printed by each run).
+
+- **Approach:** Count a capture scene's waits in physics ticks and size `--quit-after` (which counts rendered frames)
+  as ticks / 6 at `--fixed-fps 10`; make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to
+  a shot (not only a sheet), and cross-check them against a headless log of the events. **Watch out for:** Movie Maker
+  renders one image per 1 / fixed-fps seconds while the physics step stays 60 a second, so six physics frames pass
+  between two images: 150 `physics_frame` waits for a 2.5 s action ended after 25 frames, and a tracer or flash that
+  lives 0.1 s fell between two frames and was in none. **Seen:** Deadnight, 2026-11-01 (fix: waits in ticks, effects
+  that live 2 to 3 frames).
 
 ## sheet
 
@@ -70,8 +93,8 @@ reference stays local and the upload is appended after `## AI use` (Deadnight #6
 So `cd` into the folder that holds the images first and attach `./<file>` (any form of the path works there:
 `./sheet.png`, `sheet.png`, the absolute path), or write the reference with the same absolute path as `--attach`. Then
 read the body back and check the image lines sit under the bullets
-([lesson](../lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md),
-[lesson](../lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md)).
+([Writing checks](writing-checks.md#same-input)). Seven Deadnight pull requests hit the appended images before the
+guard below existed (#448 to #565); the written lesson alone did not stop it.
 
 The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
 named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
@@ -138,15 +161,20 @@ A `Before:` capture needs the code from before the change, and the task's worktr
 edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
 --detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
-phone's 844 by 390 and the web export), then `git worktree remove` it
-([lesson](../lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
+phone's 844 by 390 and the web export), then `git worktree remove` it.
 
 - **Approach:** Capture a feature's payoff (a machine's reveal, a prompt) from the player's camera at the spot the
   player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated
   3.25 m up, spun end on for half of each turn in front of the brightest beam, and from the shoulder camera on the use
   marker sat at the top of the frame behind the player's own body; it had been filmed from a spot no player stands on.
-  **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker
-  ([lesson](../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md))).
+  **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker).
+
+- **Approach:** Take every `Before:` capture from `main` checked out beside the change, for every size the pull request
+  shows at once (desktop, phone, web), and never put old files back under a running test. **Watch out for:** the first
+  "before" frames covered the desktop window only, and once the code had changed the phone and web ones could not be
+  taken, while `git stash` is refused by the hooks; old weapon files checked out for a capture were read by a suite that
+  started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
+  the same capture scripts with `--label=before`).
 
 ## Tests
 

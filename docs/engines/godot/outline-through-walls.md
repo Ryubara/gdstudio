@@ -52,21 +52,20 @@ shader, and `discard` the pixels where the body is not behind the scene.
   (Deadnight `tests/outline/test_outline_pixels.gd`; it needs a real renderer, a headless dummy cannot read pixels).
   Also capture the half case from the player's camera: a zombie half behind a car.
   A windowed run is minimized and draws nothing by itself: `RenderingServer.force_draw(false)` (a few times), never
-  `await RenderingServer.frame_post_draw`, which hangs. See the
-  [lesson](../../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
+  `await RenderingServer.frame_post_draw`, which hangs. See [A minimized window draws nothing](minimized-window.md).
 
 - **Approach:** Turn each adjective of an ask into a capture that can fail (the target in the open, half hidden, fully
   hidden), ask about any effect the ask did not name, and draw an effect meant for hidden parts from the depth per
   pixel. **Watch out for:** two words of the ask were read literally: the glow became a faint halo pass, the outline
   through walls was drawn everywhere, captures in the open were judged readable, never as having no outline, and a
   half-hidden zombie was never shot. **Seen:** Deadnight #617, 2026-11-02 (fix: the outline reads the depth per pixel,
-  as above ([lesson](../../lessons/2026-11-02-an-outline-through-walls-was-drawn-on-visible-parts-with-a-glow.md))).
+  as above).
 
 ## Pitfalls
 
 - Make the outline's node and materials with the body, not at the first mark: a pooled-crowd game counts nodes made
-  after the warm-up. See the
-  [lesson](../../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
+  after the warm-up (Deadnight's kill-allocations test caught a node made at a zombie's first mark in the last
+  round); run the suites that watch allocations, not only the outline's own, when a change touches the view pool.
 - A mesh outlined with no stencil-aware ordering shows one body's outline over another's: use `render_priority`.
 - Thickness in raw pixels looks thinner on a big screen: scale by `VIEWPORT_SIZE.y / 1080`.
 - Cost is passes, and the depth read: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls
@@ -76,5 +75,5 @@ shader, and `discard` the pixels where the body is not behind the scene.
   engine copies the depth buffer for the shader (probably the multisample resolve: the project has 2x MSAA; not
   isolated). Nothing is paid while
   the overlay is off. Measure both, and with the depth read on and off. Leave the overlay off (null) when nothing is
-  outlined: then it costs nothing. See the
-  [lesson](../../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).
+  outlined: then it costs nothing. See
+  [the web build on a phone](web-phone-frames.md#measuring-a-phone-without-one).

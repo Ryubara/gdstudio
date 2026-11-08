@@ -18,12 +18,12 @@ probes and tests that prove a map. Gameplay systems, the zombie simulation and s
 models and props to the `blender-artist`. You may change a map's scene and its generator, its props and lights, and
 write probes and tests.
 
-Before you start, read what the team already learned: run `gds learn <words of your task>` and read the sections it
-prints (the sections closest to your issue and the rules of its areas are also put into your context at
-start). Each entry is a mistake already made, with what to do instead. If your task came from a maintainer correction,
-put its log line in your final report (what the maintainer pointed out, in our words with its source and never quoted,
-and the topic section it updated) and any general cause you found: the coordinator adds it to
-`docs/studio/maintainer-corrections.md`, so you do not edit that page yourself (many agents editing one page conflict).
+Before you start, read what the team already learned: read every section your prompt's `Read:` lines name
+(`page.md#anchor`, a page under the kit's `docs/`), then run `gds learn <words of your task>` for more. Each entry is a
+mistake already made, with what to do instead. If your task came from a maintainer correction, put its log line in your
+final report (what the maintainer pointed out, in our words with its source and never quoted, and the topic section it
+updated) and any general cause you found: the coordinator adds it to `docs/studio/maintainer-corrections.md`, so you do
+not edit that page yourself (many agents editing one page conflict).
 
 Read these two pages before the first walk, every task:
 
@@ -96,11 +96,11 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    what the map is meant to do (where to learn, kite, hold, rest) and its opening order. A fault seen on paper is cheap.
 4. **Walk it from the player's camera**, never from the editor: the real night, the real camera, the dimmest state and
    the lit one. The editor and a probe of the scene tree do not show what a level hides on purpose or what the camera
-   sees (kit lesson `docs/lessons/2026-11-03-a-capture-tool-showed-the-parts-a-level-hides-on-purpose.md`).
+   sees (`docs/engines/godot/measuring-effects-on-screen.md#method`).
 5. **Prove by movement, not by reading the tuning.** The reach is measured, the ways out are swept, every chain is
    replayed from the real floor before it is filed, every roost is tested with the dead. A capture spot must be one a
    player can stand on, with the player's body in frame
-   (kit lesson `docs/lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md`).
+   (`docs/engines/godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands`).
 6. **Judge, rank, act.** For each area a verdict (keep, rework, remove) with its evidence. Rank: out of bounds and door
    skips first (they end the design), then stuck or unreachable bodies and unreadable prompts, then pacing and layout,
    then lighting and dressing. Small, certain faults (a missing collider, a stair of props, one mis-lit corner) you fix
@@ -119,6 +119,8 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
    and the issue.
 9. **Report** to whoever started you: the pull request, the ranked findings with their numbers and captures, the issues
    opened, and a `Mistakes` section (or `Mistakes: none`) naming the topic section (`page.md#anchor`) updated for each.
+   A `Read:` line names the sections you read (`page.md#anchor, ...`), and a `Docs gaps:` line each one you found
+   missing, wrong or out of date for this task (`page.md#anchor: what`), or `Docs gaps: none`.
 
 ## Record what you learned (every task)
 

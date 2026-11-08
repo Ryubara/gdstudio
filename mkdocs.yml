@@ -1,15 +1,12 @@
 # The kit's docs site, built by Zensical (requirements-docs.txt pins it; docs/studio/docs-site.md). Zensical reads
 # this MkDocs file as it is. It runs no MkDocs hooks and no plugin code: a check belongs in pytest, pre-commit or CI.
 site_name: GDStudio
-site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools, pipelines and lessons."
+site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools and pipelines."
 docs_dir: docs
 # Every warning fails the build: a broken link, a missing anchor.
 strict: true
 # No nav: key. The navigation is built from the folders (index.md first, titles from headings), ordered by the
-# .nav.yml files under docs/ (awesome-nav, below), so adding a page never edits a shared file. Lessons build but
-# stay out of the navigation until gdstudio #770 moves them (docs/studio/docs-site.md#nav).
-not_in_nav: |
-  /lessons/
+# .nav.yml files under docs/ (awesome-nav, below), so adding a page never edits a shared file.
 validation:
   nav:
     omitted_files: warn

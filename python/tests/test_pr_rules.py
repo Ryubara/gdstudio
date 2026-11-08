@@ -109,25 +109,40 @@ def test_kit_docs_when_not_needed_is_still_checked_if_present():
     assert problems({"kit_docs": KITDOCS}, "net: Add a lag", body("Kit docs: soon"), CLEAN) != []
 
 
-def test_read_first_names_the_areas_of_the_issues_labels(tmp_path, monkeypatch):
-    (tmp_path / "areas.toml").write_text('[labels]\nA-net = ["net", "web"]\nA-ui = ["godot-ui"]\n', encoding="utf-8")
-    rule = {"read_first": {"section": "Summary", "label": "Read first:", "areas_file": str(tmp_path / "areas.toml")}}
+def test_read_first_names_sections_that_exist(tmp_path):
+    (tmp_path / "studio").mkdir()
+    (tmp_path / "studio" / "hooks.md").write_text("# Hooks\n\n## Docs {#docs}\n\n## Agent stalls\n", "utf-8")
+    rule = {"read_first": {"section": "Summary", "label": "Read first:", "docs": str(tmp_path)}}
     history = {"closes": [{"number": 5, "labels": ["bug", "A-net"]}]}
     out = problems(rule, "net: Add a packet", body(), history)
-    assert out and "naming net, web" in out[0]
-    out = problems(rule, "net: Add a packet", body("Read first: net"), history)
-    assert out and "missing web" in out[0]
-    assert problems(rule, "net: Add a packet", body("Read first: net, web, general"), history) == []
-    assert problems(rule, "net: Add a packet", body("Read first: Web; NET"), history) == []
+    assert out and "names the sections of the docs its author read first" in out[0] and "gds brief" in out[0]
+    out = problems(rule, "net: Add a packet", body("Read first: net, web"), history)
+    assert out and "not areas or words" in out[0]
+    out = problems(rule, "net: Add a packet", body("Read first: studio/hooks.md#docs, studio/hooks.md#nope"), history)
+    assert out and "do not exist" in out[0] and "studio/hooks.md#nope" in out[0] and "#docs," not in out[0]
+    good = "Read first: docs/studio/hooks.md#docs, [stalls](../studio/hooks.md#agent-stalls)"
+    assert problems(rule, "net: Add a packet", body(good), history) == []
     assert problems(rule, "net: Add a packet", body(), {"closes": []}) == []  # closes nothing: nothing to read first
     assert problems(rule, "net: Add a packet", body(), None) == []  # history unavailable: judged from the text only
 
 
-def test_read_first_with_no_areas_file_only_needs_the_line(tmp_path):
-    rule = {"read_first": {"section": "Summary", "label": "Read first:", "areas_file": str(tmp_path / "none.toml")}}
+def test_read_first_without_a_docs_folder_checks_only_the_form(tmp_path):
+    rule = {"read_first": {"section": "Summary", "label": "Read first:"}}  # a game: the kit's docs are not here
     history = {"closes": [{"number": 5, "labels": ["A-net"]}]}
     assert problems(rule, "net: Add a packet", body(), history) != []
-    assert problems(rule, "net: Add a packet", body("Read first: net"), history) == []
+    assert problems(rule, "net: Add a packet", body("Read first: net"), history) != []
+    assert problems(rule, "net: Add a packet", body("Read first: studio/nowhere.md#x"), history) == []
+    gone = {"read_first": {"section": "Summary", "label": "Read first:", "docs": str(tmp_path / "none")}}
+    assert problems(gone, "net: Add a packet", body("Read first: studio/nowhere.md#x"), history) == []
+
+
+def test_page_anchors_agree_with_the_tools():
+    from gds_tools import lessons
+
+    page = KIT / "docs" / "studio" / "hooks.md"
+    assert groundwork.page_anchors(page) == lessons.anchors(page)
+    page = KIT / "docs" / "engines" / "godot" / "web-export.md"
+    assert groundwork.page_anchors(page) == lessons.anchors(page)
 
 
 @pytest.mark.parametrize("value", ["(documentation only)", "(documentation only).", "  (documentation only).  "])
@@ -271,7 +286,7 @@ def test_the_kits_own_conventions_load_with_the_new_rules():
     loaded = groundwork.load(KIT / ".github" / "conventions.yml")
     rules = loaded["pull_requests"]
     assert rules["lessons"]["label"] == "Lessons:" and rules["read_first"]["label"] == "Read first:"
-    assert (KIT / rules["read_first"]["areas_file"]).is_file()
+    assert (KIT / rules["read_first"]["docs"]).is_dir() and "areas_file" not in rules["read_first"]
 
 
 SECTIONS = {**LESSONS, "names": "section", "edited": True}

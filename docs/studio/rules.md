@@ -8,9 +8,9 @@ voice: the **approach** to take, what to **watch out for**, and where it was **s
 keyframes section of the Blender or Godot animation page; a hook that misread a path goes under the hook's section of
 [Hooks](hooks.md). The page gets better each time; nobody writes a page for one mistake (gdstudio #769).
 
-There are no lesson pages and no lesson categories. `docs/lessons/` (one file per problem, the old way) takes no new
-file, a check refuses one; #770 empties it, moving the general files into topic pages and Deadnight's into the
-Deadnight repository.
+There are no lesson pages and no lesson categories. `docs/lessons/` (one file per problem, the old way) was emptied by
+gdstudio #770: what its 969 files taught became entries in the topic pages, and the ones about Deadnight alone moved to
+Deadnight's own docs. A check refuses a file added to it.
 
 ## Where a learning goes {#where}
 
@@ -30,7 +30,7 @@ uv run --project python gds learn <topic or words>
 ```
 
 `gds learn` searches the topic pages and prints the sections closest to the words, best first, each as
-`page.md#anchor` with its entries (`--old N` adds the closest old lesson files while #770 runs). Read them before
+`page.md#anchor` with its entries. Read them before
 writing: when a section already has the entry, add where you saw it to its `Seen:`; when it has one close to yours,
 sharpen that one. Only when nothing fits do you make a new section, and only when a topic outgrows its page a new page.
 
@@ -40,6 +40,12 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   making `gamedev/ui.md#hud` and `gamedev/controller.md`, so the topics were duplicated. **Seen:** gdstudio #769,
   2026-11-07 (fix: the entries were moved into `ui.md#hud` and `controller.md`, and `hud.md` was deleted before the
   report).
+- **Approach:** When several pull requests fill the same pages at once, look for an open one on the subject
+  (`gh pr list --search <page or words>`) before making a section or page, and at each merge of main keep a deleted
+  file deleted and fold a section or page that main now has twice into the older one. **Watch out for:** nine agents
+  folding the old lessons each made their own sections, so main got two `#simulator` sections, overlapping sections of
+  `gamedev/testing.md` and two pages on running GdUnit4. **Seen:** gdstudio #770, 2026-11-07 (fix: `gdunit-tests.md`
+  was folded into `running-gdunit.md` and the duplicate sections merged before each pull request landed).
 
 ## An entry {#rule}
 
@@ -94,13 +100,19 @@ hyphens), so the links to it keep working.
 
 The check compares the docs with `origin/main` (CI: the pull request's base): a heading whose anchor the base page does
 not have needs the reason line, unless the heading above it is new as well. Renaming a heading keeps its `{#anchor}`,
-so a rename is not a new section. **A new page** has the reason line under its `#` title, is listed in its folder's
-`index.md`, and goes where [Docs site](docs-site.md#folders) says.
+so a rename is not a new section. **A new page** has the same reason line, starting `<!-- new section:`, under its `#`
+title, is listed in its folder's `index.md`, and goes where [Docs site](docs-site.md#folders) says. A `#` title holds
+no entries: on a page with no `##` heading yet, an entry goes under a new `##` section, which takes its reason line.
+
+- **Approach:** Start the reason line of a new page with `<!-- new section:`, as under a new heading. **Watch out
+  for:** the check knows one prefix only, so a page that starts `<!-- new page:` is refused as having no reason line.
+  **Seen:** gdstudio #770, 2026-11-07 (three of the agents folding the old lessons wrote `new page:`; the check caught
+  each before the push).
 
 ## Anchors {#anchors}
 
-What links to a section, from a pull request, a report or a tool (`gds learn`, the `Read:` lines of #771, the
-corrections log), names it as `<page>#<anchor>`:
+What links to a section, from a pull request, a report or a tool (`gds learn`, the `Read:` lines of `gds brief`
+and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>`:
 
 - **The page** is its path under `docs/`, with or without that prefix: `engines/godot/ui-controls.md#focus` and
   `docs/engines/godot/ui-controls.md#focus` name the same section.
@@ -131,7 +143,8 @@ one time a learning makes a new page. The check names the page and its size.
   changes against `origin/main` (`Mistakes: none` when nothing went wrong).
 - **A pull request.** A fix, a rework, or a pull request after a failed check carries `Lessons: <page.md#anchor>` in
   its Summary, naming the topic section that the pull request updates; `pr-rules` checks the anchor's page is among its
-  changed files. A pull request that closes an issue names the areas it read first (`Read first: <areas>`).
+  changed files. A pull request that closes an issue names the sections its author read first
+  (`Read first: <page.md#anchor>, ...`, the `Read:` lines of its brief).
 - **A game's pull request.** A general learning goes to the kit's topic section in a kit pull request, named on the
   game pull request's `Kit docs:` line; a learning about that game alone goes to the game's own docs.
 
@@ -141,14 +154,13 @@ one time a learning makes a new page. The check names the page and its size.
 
 | Refused | Why |
 | --- | --- |
-| A file under `docs/lessons/` that the base does not have, or one dated after 2026-11-07 | a learning updates a topic section instead |
+| A file under `docs/lessons/` that the base does not have | the old folder was emptied (#770); a learning updates a topic section instead |
 | A page over 50 KB | a topic that big is split into a folder |
 | A new heading without a reason line | a section is made only when none fits |
 | An entry without its three parts in order, over 900 characters, or in a section without an explicit anchor | the format above |
 | An entry in the old `**Rule:**` form | the format above |
 | A duplicate or malformed `{#anchor}` on a page | a reference must name one section |
 | A row of the corrections log that quotes the maintainer or links no section | the log says what was pointed out in our words and where its entry lives |
-| An old lesson file without `areas:` front matter | the old files keep building until #770 empties the folder |
 
 The numbers live in `.github/conventions.yml` under `learning` (a test keeps `lessons.py` equal to them).
 
