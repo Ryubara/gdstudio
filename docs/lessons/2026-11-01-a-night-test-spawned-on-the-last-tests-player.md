@@ -10,4 +10,4 @@ areas: [tests, gameplay]
   player spawned on the old player's body and heard its grenades.
 - **Fix:** a test that builds a level, or anything that owns bodies or players, frees it in `after_test`; a rerun
   would only have hidden it (Deadnight #356).
-- **Docs:** [A leftover screen timer took the focus](2026-11-01-a-leftover-screen-timer-took-the-focus-only-under-load.md).
+- **Docs:** A leftover screen timer took the focus.

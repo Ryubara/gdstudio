@@ -57,7 +57,7 @@ Numbers that gave the template's look, in `world/lighting/`:
   repository; keep a final `git status --porcelain` step after the tests, which caught this and an import that left
   uids behind (Deadnight, 2026-11-07).
 - **`gdformat` writes CRLF on Windows**; run `sed -i 's/\r$//'` over the scripts it touched
-  ([lesson](../../lessons/2026-11-02-python-on-windows-writes-crlf-into-edited-files.md)).
+  ([The shell](../../studio/shell.md#line-endings)).
 
 ## Measured on the export
 

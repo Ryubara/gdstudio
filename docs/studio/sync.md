@@ -61,3 +61,12 @@ default_install_hook_types: [pre-commit, commit-msg, pre-push]
 `gds issue start` installs the three hook types in a game and runs the `pre-push` hook once
 ([Starting work](starting-work.md#worktree)), but a game whose config has no `pre-push` hook has nothing to run;
 syncing the blocks is what gives it one.
+
+- **Approach:** When a file enforces a rule and a game also carries it, put it on the sync list in the same pull request
+  that changes the rule, give a file that is only partly the kit's marked blocks, not an exception, and `grep` the games
+  for any kit file you change. Prove a push hook with the real remote's name and tracking refs (`git -c
+  remote.origin.pushurl=<bare> push origin <branch>`). **Watch out for:** `gds sync` copied the agent definitions and
+  the templates only, so the checker and the pre-commit hooks existed twice with nothing comparing them: a fix to the
+  commit-message check and a new `pre-push` hook never reached the games, and a merge with a `# Conflicts:` paragraph
+  still reached CI.  **Seen:** Deadnight #503, 2026-11-02 (fix: `gds sync` copies `groundwork.py` and the marked blocks,
+  and `--check` reports old copies and missing markers).

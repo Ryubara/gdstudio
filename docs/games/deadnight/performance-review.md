@@ -71,4 +71,4 @@ decoded five times.
 - Counts are exact on a loaded machine; times are ratios between arms run together
   ([measuring without a quiet machine](../../engines/godot/performance-review.md#how-to-measure-it-counts-first)).
 - Stop a run by its own process id: the reviewer's `taskkill /IM` of the Godot console ended every agent's run
-  ([lesson](../../lessons/2026-11-01-killing-godot-by-name-stopped-other-agents-runs.md)).
+  ([The shell](../../studio/shell.md#background)).

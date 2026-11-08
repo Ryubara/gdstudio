@@ -72,9 +72,17 @@ game's page is `docs/research/hit-blood.md`).
 - **Every amount is exported** (per weapon and on the player tuning) and a player setting scales it to zero; reduced
   motion turns it off.
 
-## Capturing it
+## Capturing it {#capturing-it}
 
 - **Movie Maker's file numbers are not a script's own frame count**: the frames spent loading are numbered too. Print
   `Engine.get_frames_drawn()` for the file to keep. A 2-frame flash shows in exactly two files at a fixed 10 fps.
 - **The exit-time "still in use" log flakes under load**: a headless run beside other Godot processes printed audio
   streams still playing at quit; alone it was clean. Judge a leak check on a quiet machine.
+- **Approach:** Make a capture of anything that moves by time wait by time or for the state (`await
+  get_tree().create_timer(0.6).timeout`, or `is_instance_valid(night.arrival_show)` until the thing that draws it is
+  gone), never for a frame count, and load the scene once headless (`--quit-after 5`) to read its parse errors before a
+  windowed capture. **Watch out for:** a bot wheel that opens after 0.18 s held and grows over 0.12 s was shot a third
+  open after 24 frames of hold (0.4 s at 60 fps, 0.13 s at 300); a scene that failed to parse kept the window open to
+  the 300 s timeout; two captures of a night had black bands 58 px high, the arrival show's own bars, still up 0.45 s
+  after `arrival_ended`. **Seen:** Deadnight #642, 2026-11-02; Deadnight, 2026-11-05 (fix: wait for the show to be gone;
+  find an unexplained band by its size first, 58.5 / 780 named the constant).

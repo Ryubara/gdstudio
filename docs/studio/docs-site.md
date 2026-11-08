@@ -44,8 +44,8 @@ stub; a test fails an `engines/<name>/` that holds only its index.
 
 **Inside a page.** What is learned updates the section it belongs to, never a page of its own: the format of an entry,
 a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). `docs/lessons/` (one file per
-problem, with `areas:` front matter) takes no new file; its old files stay readable, and feed `gds learn` and
-`gds lessons <area>`, until #770 moves them and Deadnight's general docs into the sections.
+problem) takes no new file; its old files stay readable, and feed `gds learn --old`, until #770 moves them and
+Deadnight's general docs into the sections.
 
 ## The navigation {#nav}
 
@@ -147,9 +147,9 @@ runs elsewhere and nothing is lost:
 
 | Check | Where it runs now |
 | --- | --- |
-| Every old lesson has `areas:` front matter naming known areas | `python .github/scripts/mistakes.py check`: pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
+| Every old lesson had `areas:` front matter naming known areas | dropped with the areas (gdstudio #771); the rest of `python .github/scripts/mistakes.py check` runs in pre-commit, pytest (`test_lessons.py`), and the docs job of CI |
 | No corrections-log row quotes the maintainer (`lessons.quoted_rows()`) | the same check, and `test_the_kits_corrections_page_quotes_no_prompt` |
-| The glossary can be built from the rules and the old lessons | the same check; `gds lessons <area>` and the SubagentStart hook build it in memory |
+| The glossary can be built from the rules and the old lessons | dropped: the glossary is gone (gdstudio #771); a task agent's `Read:` lines name sections, which the Agent guard checks exist |
 | The rules of the topic sections ([the list](rules.md#checks)) | the same check, with `--base HEAD^1` in CI (gdstudio #769) |
 
 A test fails a `hooks:` key in `mkdocs.yml`, and a plugin Zensical does not implement itself (today only `awesome-nav`
@@ -177,4 +177,32 @@ merging main), fix the links in the next commit, and add a line to the map.
 | `research/level-design.md` | `gamedev/level-design.md` |
 | `research/deadnight-performance-review.md` | `games/deadnight/performance-review.md` |
 | `research/index.md` | removed; its pages are listed on [Studio](index.md) |
-| `research/mistakes-by-area.md` (generated) | removed; `gds lessons <area>` prints it |
+| `research/mistakes-by-area.md` (generated) | removed; the areas went too (gdstudio #771): `gds brief` names sections |
+
+## Writing a page {#writing-pages}
+
+<!-- new section: the page says how the site is laid out and built; nothing held what to check in a page before the
+first push, where the strict build and markdownlint otherwise find it -->
+
+- **Approach:** Run the strict docs build in the repository that holds the page (`uvx --with-requirements
+  requirements-docs.txt zensical build --strict`) before the first push of any change that adds a link; copy an anchor
+  from the built page instead of guessing it (a heading's underscore stays: `#_process-is-on-after-ready`), read the
+  target's headings (`grep -n '^## '`), and link only files under `docs/` (name `AGENTS.md` in code). **Watch out for:**
+  `AGENTS.md` sits at the repository root, which the site does not publish; a heading copied from the kit's page of the
+  same name did not exist on the game's own page; a guessed anchor failed the build. **Seen:** gdstudio #432,
+  2026-11-03; Deadnight #648, 2026-11-02; gdstudio, 2026-11-04.
+- **Approach:** Link a page of another repository by its full GitHub URL or name it as text, and use relative links only
+  to pages of the same repository; link a page from another open pull request only after it lands, naming it in plain
+  text until then; read every link of a row drafted by a game agent before it goes on a kit page. **Watch out for:** a
+  relative link resolves against the page that holds it, so `[..](dead-contact.md)` pointed at Deadnight's research page
+  and failed the kit's build; two open pull requests see two mains, so a page on its way counts as missing. **Seen:**
+  gdstudio #478, 2026-11-04; Deadnight #1087, 2026-11-04.
+- **Approach:** On a docs failure read `git diff origin/main --stat -- docs` before touching the link: a page that
+  should only grow shows 0 deletions; before a report says a page was updated, grep the page for the heading the body
+  names. **Watch out for:** a broken anchor was the only sign that 23 lines of another pull request's findings were gone
+  and the new section never reached the page: its headings repeated older ones, which markdownlint refuses, and an edit
+  put the numbers into the older section of that name. **Seen:** Deadnight #1129, 2026-11-04 (fix: `main`'s text
+  restored and the section added whole, with headings of its own).
+- **Approach:** Never start a wrapped line with an issue number (`#785's`, `#787 is`): rewrap so a word comes first.
+  **Watch out for:** Markdown reads a line that starts with `#` as a heading, and markdownlint fails MD018 on a
+  sentence. **Seen:** Deadnight, 2026-11-03 (fix: the lines rewrapped).

@@ -500,6 +500,9 @@ def test_session_start_merge_and_stop_start_the_sweep(monkeypatch, workspace):
 # --------------------------------------------------------------------------------------------------------------------
 
 
+READ = "\nRead: studio/hooks.md#docs, studio/starting-work.md#starting-an-agent"
+
+
 def agent_call(workspace: Path, kind: str | None, prompt: str = "") -> dict:
     inp = {"prompt": prompt, **({"subagent_type": kind} if kind else {})}
     return {"hook_event_name": "PreToolUse", "tool_name": "Agent", "tool_input": inp, "cwd": str(workspace)}
@@ -534,7 +537,7 @@ def test_a_started_issue_lets_the_agent_start(workspace):
         "Task text\n- Issue: `Ryubara/deadnight#523`",
         "issue: ryubara/DEADNIGHT#523 (lower case is fine)",
     ):
-        assert denied(agent_call(workspace, "godot-engineer", prompt)) == ""
+        assert denied(agent_call(workspace, "godot-engineer", prompt + READ)) == ""
     assert "was not started" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#524"))
     assert "was not started" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/gdstudio#523"))
 
@@ -552,12 +555,14 @@ def test_helpers_and_reviewers_need_no_issue(workspace):
 def test_work_on_an_existing_pull_request_names_it(workspace, monkeypatch):
     states = {"7": "OPEN", "8": "MERGED", "9": "MISSING", "10": None}
     monkeypatch.setattr(guards, "pr_state", lambda repo, number: states[number])
-    assert denied(agent_call(workspace, "godot-engineer", "Resolve the conflicts.\nPR: Ryubara/deadnight#7")) == ""
+    assert (
+        denied(agent_call(workspace, "godot-engineer", "Resolve the conflicts.\nPR: Ryubara/deadnight#7" + READ)) == ""
+    )
     assert denied(agent_call(workspace, "reviewer", "PR: Ryubara/deadnight#7")) == ""
     assert "not an open pull request" in denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#8"))
     assert "not an open pull request" in denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#9"))
     # gh cannot tell (offline): the guard lets the call through rather than lock the session out
-    assert denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#10")) == ""
+    assert denied(agent_call(workspace, "godot-engineer", "PR: Ryubara/deadnight#10" + READ)) == ""
 
 
 def test_a_pull_request_line_does_not_stand_in_for_an_unstarted_issue(workspace, monkeypatch):
@@ -568,8 +573,51 @@ def test_a_pull_request_line_does_not_stand_in_for_an_unstarted_issue(workspace,
 
 def test_no_enforcement_outside_a_workspace_or_when_switched_off(tmp_path, workspace):
     assert denied(agent_call(tmp_path.parent, "godot-engineer", "no issue")) == ""
-    off = {**CONFIG, "issues": {**CONFIG["issues"], "enforce": False}}
+    off = {**CONFIG, "issues": {**CONFIG["issues"], "enforce": False}, "brief": {"enforce": False}}
     assert dispatch.answer(agent_call(workspace, "godot-engineer", "no issue"), off) is None
+    issue_off = {**CONFIG, "issues": {**CONFIG["issues"], "enforce": False}}
+    assert "names none" in denied_with(agent_call(workspace, "godot-engineer", "no issue"), issue_off)
+
+
+def denied_with(payload: dict, config: dict) -> str:
+    out = dispatch.answer(payload, config)
+    return out["hookSpecificOutput"]["permissionDecisionReason"] if out else ""
+
+
+def test_a_task_agent_needs_read_lines_naming_sections_that_exist(workspace):
+    """gdstudio #771: the coordinator runs `gds brief` and puts its `Read:` lines in the prompt; the guard refuses a
+    prompt with none, and one naming a section the kit's docs do not have."""
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    none = denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523\nBuild it."))
+    assert "names none" in none and "gds brief Ryubara/deadnight#523" in none and "Read: <page>.md#<anchor>" in none
+    words = denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523\nRead: the hooks page"))
+    assert "names none" in words
+    wrong = "Issue: Ryubara/deadnight#523\nRead: studio/hooks.md#docs, studio/hooks.md#nope\nRead: gone.md#x"
+    reason = denied(agent_call(workspace, "godot-engineer", wrong))
+    assert "do not exist" in reason and "studio/hooks.md#nope, gone.md#x" in reason and "#docs," not in reason
+    for prompt in (
+        "Issue: Ryubara/deadnight#523\nRead: docs/studio/hooks.md#docs",
+        "Issue: Ryubara/deadnight#523\n- **Read:** [hooks](../studio/hooks.md#docs)",
+        "Issue: Ryubara/deadnight#523\nRead:\n- studio/hooks.md#docs\n- studio/starting-work.md#starting-an-agent",
+    ):
+        assert denied(agent_call(workspace, "godot-engineer", prompt)) == "", prompt
+    listed = "Issue: Ryubara/deadnight#523\nRead:\n- studio/hooks.md#docs\n- studio/hooks.md#nope"
+    assert "studio/hooks.md#nope" in denied(agent_call(workspace, "godot-engineer", listed))
+
+
+def test_read_lines_are_not_asked_of_helpers_the_reviewer_or_when_switched_off(workspace):
+    for kind in ("Explore", "fork", "reviewer"):
+        assert denied(agent_call(workspace, kind, "look")) == ""
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    off = {**CONFIG, "brief": {"enforce": False}}
+    assert dispatch.answer(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523"), off) is None
+
+
+def test_read_lines_need_only_their_form_when_the_kit_cannot_be_loaded(workspace, monkeypatch):
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    monkeypatch.setattr(guards, "lessons_module", lambda kit: None)
+    assert denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523\nRead: x.md#y")) == ""
+    assert "names none" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523"))
 
 
 def test_refused_agent_types_get_one_reason_not_two(workspace):
@@ -630,139 +678,17 @@ def test_other_label_work_is_allowed(tmp_path):
 # Docs ship with the change (docs/studio/hooks.md#docs)
 # --------------------------------------------------------------------------------------------------------------------
 
-GLOSSARY = """# Mistakes by area
 
-## general
-
-Anything else. (1)
-
-| Mistake | Check | Source |
-| --- | --- | --- |
-| A rule lived in memory | Put it in a tool and a hook | [lesson](../lessons/x.md) |
-
-## net
-
-The network. (2)
-
-| Mistake | Check | Source |
-| --- | --- | --- |
-| Gzip decoded twice behind a proxy | Decode once &#124; in one place, use `<a>` | [lesson](../lessons/y.md) |
-| A length guard dropped valid packets | Send the largest packet in a test | [lesson](../lessons/z.md) |
-
-## audio
-
-Sound. (1)
-
-| Mistake | Check | Source |
-| --- | --- | --- |
-| A click at every stroke | Fade the loop | [lesson](../lessons/w.md) |
-"""
-
-
-AREAS = """
-[areas]
-general = "Anything else."
-net = "The network."
-audio = "Sound."
-"""
-
-KIT_LESSONS = {  # file name: (areas, title, fix); the newest sorts last and is listed first
-    "2026-10-01-memory.md": ("general", "A rule lived in memory", "Put it in a tool and a hook"),
-    "2026-10-02-length.md": ("net", "A length guard dropped valid packets", "Send the largest packet in a test"),
-    "2026-10-03-gzip.md": ("net", "Gzip decoded twice behind a proxy", "Decode once | in one place, use `<a>`"),
-    "2026-10-04-click.md": ("audio", "A click at every stroke", "Fade the loop"),
-}
-
-
-@pytest.fixture()
-def kit_workspace(workspace: Path) -> Path:
-    """A workspace whose kit checkout has the lessons (the glossary is built from them, not a committed page)."""
-    kit = workspace / "repos" / "gdstudio"
-    (kit / "python" / "src" / "gds_tools").mkdir(parents=True)
-    (kit / "python" / "src" / "gds_tools" / "lessons.py").write_text(
-        (HOOKS.parents[1] / "python" / "src" / "gds_tools" / "lessons.py").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    (kit / "docs" / "lessons").mkdir(parents=True)
-    (kit / "docs" / "studio").mkdir(parents=True)
-    (kit / "docs" / "lessons" / "areas.toml").write_text(AREAS, encoding="utf-8")
-    for name, (area, title, fix) in KIT_LESSONS.items():
-        text = f"---\nareas: [{area}]\n---\n# {title}\n\n- **Saw:** x.\n- **Fix:** {fix}\n"
-        (kit / "docs" / "lessons" / name).write_text(text, encoding="utf-8")
-    return workspace
-
-
-def started_with_areas(workspace: Path, ref: str, areas: list[str]) -> None:
-    from gds_tools import issues
-
-    repo, number = issues.parse_ref(ref)
-    ledger = workspace / "cache" / "issues-started.json"
-    started = issues.load_ledger(ledger)
-    started[issues.ledger_key(repo, number)] = {"repo": repo, "number": number, "agent": "t", "areas": areas}
-    issues.save_ledger(ledger, started)
-
-
-def test_the_areas_checks_of_the_issue_reach_the_agent_at_start(kit_workspace):
-    started_with_areas(kit_workspace, "Ryubara/deadnight#523", ["general", "net"])
-    assert denied(agent_call(kit_workspace, "godot-engineer", "Issue: Ryubara/deadnight#523")) == ""
-    text = context("SubagentStart", kit_workspace, agent_type="godot-engineer", agent_id="a1")
-    assert "learning loop" in text  # the old text stays
-    assert "[general]\n- A rule lived in memory: Put it in a tool and a hook" in text
-    assert "[net]\n- Gzip decoded twice behind a proxy: Decode once | in one place, use `<a>`" in text
-    assert "A click at every stroke" not in text  # the audio area is not this issue's
-    # the note is used up: the next agent of that type gets the general area only
-    again = context("SubagentStart", kit_workspace, agent_type="godot-engineer", agent_id="a2")
-    assert "[general]" in again and "[net]" not in again
-
-
-def test_notes_are_matched_by_agent_type_in_order(kit_workspace):
-    started_with_areas(kit_workspace, "Ryubara/deadnight#1", ["general", "net"])
-    started_with_areas(kit_workspace, "Ryubara/deadnight#2", ["general", "audio"])
-    assert denied(agent_call(kit_workspace, "godot-engineer", "Issue: Ryubara/deadnight#1")) == ""
-    assert denied(agent_call(kit_workspace, "blender-artist", "Issue: Ryubara/deadnight#2")) == ""
-    blender = context("SubagentStart", kit_workspace, agent_type="blender-artist")
-    godot = context("SubagentStart", kit_workspace, agent_type="godot-engineer")
-    assert "[audio]" in blender and "[net]" not in blender
-    assert "[net]" in godot and "[audio]" not in godot
-
-
-def test_a_pull_request_agent_gets_the_general_area_only(kit_workspace, monkeypatch):
-    monkeypatch.setattr(guards, "pr_state", lambda repo, number: "OPEN")
-    assert denied(agent_call(kit_workspace, "godot-engineer", "PR: Ryubara/deadnight#7")) == ""
-    text = context("SubagentStart", kit_workspace, agent_type="godot-engineer")
-    assert "[general]" in text and "[net]" not in text
-
-
-def test_no_lessons_module_means_no_area_text(kit_workspace):
-    assert "[general]" in guards.area_checks(kit_workspace, ["general", "net"], CONFIG)
-    (kit_workspace / "repos" / "gdstudio" / "python" / "src" / "gds_tools" / "lessons.py").unlink()
-    assert guards.area_checks(kit_workspace, ["general", "net"], CONFIG) == ""
-
-
-def test_the_glossary_is_built_from_the_lessons_not_read_from_a_file(kit_workspace):
-    kit = kit_workspace / "repos" / "gdstudio"
-    assert not list((kit / "docs").rglob("mistakes-by-area.md"))
-    new = kit / "docs" / "lessons" / "2026-10-09-new.md"
-    new.write_text("---\nareas: [net]\n---\n# A brand new mistake\n\n- **Fix:** Check it\n", encoding="utf-8")
-    assert "- A brand new mistake: Check it" in guards.area_checks(kit_workspace, ["net"], CONFIG)
-
-
-def test_the_glossary_parser_of_the_hook_agrees_with_the_tools():
-    from gds_tools import lessons
-
-    for area in ("general", "net", "audio", "missing"):
-        assert guards.glossary_items(GLOSSARY, area) == lessons.section(GLOSSARY, area)
-    real = lessons.build(HOOKS.parents[1])
-    assert guards.glossary_items(real, "net") == lessons.section(real, "net")
-    assert len(lessons.section(real, "net")) > 5
-    assert guards.build_glossary(HOOKS.parents[1]) == real  # the hook builds the same page
-
-
-def test_the_injected_text_is_limited(kit_workspace):
-    small = {**CONFIG, "docs": {**CONFIG["docs"], "inject_limit": 1, "inject_chars": 100000}}
-    text = guards.area_checks(kit_workspace, ["net"], small)
-    assert "Gzip" in text and "length guard" not in text
-    tiny = {**CONFIG, "docs": {**CONFIG["docs"], "inject_chars": 40}}
-    assert "(cut; the full list is in the glossary)" in guards.area_checks(kit_workspace, ["general", "net"], tiny)
+def test_subagent_start_tells_the_agent_to_read_its_prompts_sections_and_injects_none(workspace):
+    """gdstudio #771: the prompt names the sections (`Read:`), so SubagentStart no longer guesses them from a note of
+    the Agent guard; no note file is written."""
+    start_in_ledger(workspace, "Ryubara/deadnight#523")
+    assert denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523" + READ)) == ""
+    assert not (workspace / "cache" / "subagent-pending.json").exists()
+    text = context("SubagentStart", workspace, agent_type="godot-engineer", agent_id="a1")
+    assert "learning loop" in text and "`Read:` lines" in text and "`Docs gaps:`" in text
+    assert "Sections of the docs closest" not in text and "Mistakes already made in your areas" not in text
+    assert not hasattr(guards, "note_agent_start") and not hasattr(guards, "area_checks")
 
 
 def _kit_worktree(workspace: Path, name: str, commits: int) -> Path:
@@ -926,6 +852,27 @@ def subagent_stop_payload(workspace: Path, report: str, **extra) -> dict:
 MISTAKES_REPORT = (
     "PR opened.\n\n## Mistakes\n\n- I trusted the cached import and the web build hung.\n\n## Next\n\nnothing"
 )
+READ_REPORT = "\n\nRead: studio/hooks.md#docs, studio/starting-work.md#starting-an-agent\nDocs gaps: none"
+
+
+def test_a_report_of_finished_work_names_what_was_read_and_the_gaps(workspace, monkeypatch):
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    bare = "Done: https://github.com/Ryubara/deadnight/pull/412\n\nMistakes: none"
+    out = dispatch.answer(subagent_stop_payload(workspace, bare), CONFIG)
+    assert out["decision"] == "block" and "`Read: <page>.md#<anchor>, ...`" in out["reason"]
+    assert "`Docs gaps: none`" in out["reason"]
+    only_read = bare + "\n\nRead: studio/hooks.md#docs"
+    reason = dispatch.answer(subagent_stop_payload(workspace, only_read), CONFIG)["reason"]
+    assert "Docs gaps:" in reason and "`Read: <page>.md#<anchor>, ...`" not in reason
+    gaps = bare + "\n\n**Read:** studio/hooks.md#docs\n**Docs gaps:** studio/hooks.md#docs: says nothing of briefs"
+    assert dispatch.answer(subagent_stop_payload(workspace, gaps), CONFIG) is None
+    assert dispatch.answer(subagent_stop_payload(workspace, bare, stop_hook_active=True), CONFIG) is None  # once
+    blocked = "Blocked: the Railway token expired."
+    assert dispatch.answer(subagent_stop_payload(workspace, blocked), CONFIG) is None  # not finished work
+    for kind in ("reviewer", "Explore"):
+        assert dispatch.answer(subagent_stop_payload(workspace, bare, agent_type=kind), CONFIG) is None
+    off = {**CONFIG, "brief": {"report": False}}
+    assert dispatch.answer(subagent_stop_payload(workspace, bare), off) is None
 
 
 def test_an_agent_may_not_finish_with_mistakes_and_no_section(workspace, monkeypatch):
@@ -955,13 +902,15 @@ def test_a_named_section_the_branch_edits_satisfies_the_report(workspace, monkey
     """The rule was written into the section (gdstudio #769): the report names it as page.md#anchor, a kit worktree has
     that anchor, and its branch changes the page against origin/main. An old lesson file no longer counts."""
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
-    report = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#imports (kit PR #120)"
+    report = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#imports (kit PR #120)" + READ_REPORT
     assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
     rule = "\n- **Approach:** x. **Watch out for:** y. **Seen:** Deadnight #1, 2026-11-07.\n"
     _page_on_branch(workspace, "engines/godot/web-export.md", "# Page\n\n## Imports {#imports}\n\nold\n" + rule)
     assert dispatch.answer(subagent_stop_payload(workspace, report), CONFIG) is None
     wrong = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#nope"
     assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, wrong), CONFIG)["reason"]
+    read_only = MISTAKES_REPORT + "\n\nRead:\n- engines/godot/web-export.md#imports\nDocs gaps: none"
+    assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, read_only), CONFIG)["reason"]
     old = MISTAKES_REPORT + "\n\nLesson: docs/lessons/2026-11-02-a.md and maintainer-corrections.md#log"
     assert guards.sections_named(workspace, old) == []
 
@@ -973,28 +922,6 @@ def test_a_section_the_branch_does_not_change_does_not_count(workspace):
     assert guards.sections_named(workspace, "Mistakes: see studio/x.md#imports") == ["studio/x.md#imports"]
 
 
-def test_subagent_start_adds_the_sections_closest_to_the_issue_title(workspace):
-    """The note of the Agent guard carries the issue's title from the ledger; SubagentStart runs `gds learn` on it."""
-    ledger = workspace / "cache" / "issues-started.json"
-    ledger.parent.mkdir(parents=True, exist_ok=True)
-    key = "ryubara/gdstudio#769"
-    entry = {"areas": ["tools"], "title": "hooks: Fix the stop hook docs check"}
-    ledger.write_text(json.dumps({"started": {key: entry}}), "utf-8")
-    payload = {
-        "hook_event_name": "PreToolUse",
-        "tool_name": "Agent",
-        "cwd": str(workspace),
-        "tool_input": {"subagent_type": "godot-engineer", "prompt": "Issue: Ryubara/gdstudio#769\ndo it"},
-    }
-    guards.note_agent_start(payload, CONFIG)
-    note = json.loads((workspace / "cache" / "subagent-pending.json").read_text(encoding="utf-8"))[0]
-    assert note["title"] == "hooks: Fix the stop hook docs check" and "tools" in note["areas"]
-    text = context("SubagentStart", workspace, agent_type="godot-engineer", agent_id="a2")
-    assert "Sections of the docs closest to your issue" in text and "studio/hooks.md#" in text
-    assert guards.closest_sections(workspace, "", CONFIG) == ""
-    assert guards.closest_sections(workspace, "hooks", {"docs": {"learn_limit": 0}}) == ""
-
-
 def test_mistakes_none_and_empty_sections_pass(workspace):
     for report in (
         "Done.\n\n## Mistakes\n\nnone\n",
@@ -1004,8 +931,9 @@ def test_mistakes_none_and_empty_sections_pass(workspace):
         "Done. PR #5. Nothing went wrong.",
     ):
         assert guards.mistakes_text(report) == "", report
-        assert dispatch.answer(subagent_stop_payload(workspace, report), CONFIG) is None
+        assert dispatch.answer(subagent_stop_payload(workspace, report + READ_REPORT), CONFIG) is None
     assert "cached import" in guards.mistakes_text(MISTAKES_REPORT)
+    assert guards.mistakes_text("## Mistakes\nnone\nRead: studio/hooks.md#docs\nDocs gaps: none") == ""
     assert guards.mistakes_text("Mistakes: I broke the build").startswith("I broke")
     assert guards.mistakes_text("Done.\n**Mistakes**\nthe cause was a guess\n**Next**\nx") == "the cause was a guess"
 
@@ -1217,7 +1145,10 @@ def test_a_clean_description_or_an_unrelated_command_says_nothing(monkeypatch):
 # --------------------------------------------------------------------------------------------------------------------
 
 STALLED = "I ran the unit tests and they pass.\n\nNow the autopilot."
-REPORT = "Done.\n\nPR: https://github.com/Ryubara/deadnight/pull/412 (auto-merge off)\n\nMistakes: none"
+REPORT = (
+    "Done.\n\nPR: https://github.com/Ryubara/deadnight/pull/412 (auto-merge off)\n\nMistakes: none\n\n"
+    "Read: studio/hooks.md#stall\nDocs gaps: none"
+)
 
 
 def write_transcript(path: Path, last: str) -> Path:
@@ -1262,7 +1193,7 @@ def test_a_report_with_a_pull_request_passes(workspace, tmp_path):
     transcript = write_transcript(tmp_path / "agent.jsonl", REPORT)
     payload = {"hook_event_name": "SubagentStop", "cwd": str(workspace), "agent_type": "backend-engineer"}
     assert dispatch.answer({**payload, "agent_transcript_path": str(transcript)}, CONFIG) is None
-    assert stall_answer(workspace, "Opened PR #148 and left auto-merge off.") is None
+    assert stall_answer(workspace, "Opened PR #148 and left auto-merge off." + READ_REPORT) is None
 
 
 def test_a_blocked_line_passes(workspace):
@@ -1405,7 +1336,7 @@ def test_nothing_idle_lets_the_coordinator_stop(workspace, idle):
 
 def test_a_task_agents_stop_and_an_agent_session_are_never_judged(workspace, idle):
     idle.found = IDLE
-    out = dispatch.answer(subagent_stop_payload(workspace, "PR #5 opened.\n\nMistakes: none"), CONFIG)
+    out = dispatch.answer(subagent_stop_payload(workspace, "PR #5 opened.\n\nMistakes: none" + READ_REPORT), CONFIG)
     assert out is None and idle.asked == 0  # SubagentStop does not even look
     assert dispatch.answer(stop_payload(workspace, agent_type="godot-engineer"), CONFIG) is None
     assert idle.asked == 0
@@ -1576,7 +1507,7 @@ def test_the_hook_reads_the_kits_own_window_code(workspace):
 
 
 def disk_agent_call(cwd: Path, kind: str = "godot-engineer") -> dict:
-    prompt = "Issue: Ryubara/deadnight#7\nDo it."
+    prompt = "Issue: Ryubara/deadnight#7\nDo it." + READ
     return {
         "hook_event_name": "PreToolUse",
         "tool_name": "Agent",

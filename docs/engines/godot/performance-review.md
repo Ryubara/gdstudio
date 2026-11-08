@@ -91,7 +91,7 @@ the probe output.
    redraw by key (heap); measure fill with SwiftShader and CPU with a throttle, interleaved, never one setup once
    ([frames on the web and the phone](web-phone-frames.md)).
 
-## How to measure it (counts first)
+## How to measure it (counts first) {#how-to-measure-it-counts-first}
 
 - **A tick of the real night, with the bots on, at the platform ceiling**, headless, `--fixed-fps 60`: `PerfLog` rows
   (`dt`, `objects`, `resources`, `nodes`, `orphans`, `usec`, `counts`) and `PerfProbe` labels summed over the ticks
@@ -104,31 +104,30 @@ the probe output.
   counted loop adds to the number it checks.
   The counts are the whole process's: assert growth (`is_less_equal(before)` or `before + SLACK`), never `is_equal`, or
   an earlier suite's free fails a test that leaked nothing.
-  A count taken across `await process_frame` also starts from a quiet `Audio` service: the deferred sounds an earlier
-  suite queued decode a few milliseconds a frame and each is objects. Deadnight's `AudioSettle.until_idle` waits for
-  the queue, and a warm item (one label, one effect) is made and freed before the first reading
-  ([lesson](../../lessons/2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md)).
-  A live fight or menu holds objects of its own that come and go (a Tween with its tweeners is 3 to 5 objects, a
-  sound that plays 2, the last playback of every voice stays until it is used again, the main menu loads every sound in
-  the background), so never take the peak over frames against a start: stand the source still and read at a quiet
-  moment before and after (Deadnight `QuietCount.settle`; `AudioSettle.until_idle` also ends the background load)
-  ([lesson](../../lessons/2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md)).
-  A count that only *falls* by a few objects is the suite before's sounds ending (each frees its playback in a frame
-  of its own): call `QuietCount.settle` as well as `AudioSettle.until_idle`, and find the suite by running the shard's
-  list in CI order and halving it
-  ([lesson](../../lessons/2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md)).
-  The same fall hides a leak from a test that bounds the count only upwards: settle in every suite that reads the
-  object count across frames (a scan test fails the one that does not), and inject a leak to see a count test fail
-  ([lesson](../../lessons/2026-11-04-a-count-bounded-upwards-passed-a-leak-under-the-fall.md)).
   `OBJECT_RESOURCE_COUNT` counts only resources that have a path: what code makes (`StandardMaterial3D.new()`,
   `BoxMesh.new()`) shows in `OBJECT_COUNT` alone.
+- **Approach:** In a test that counts objects across frames, first wait for all work the process does by itself
+  (`AudioSettle.until_idle` for the Audio queue and background load, then `QuietCount.settle` for voices, tweens and
+  the mixer), in one helper every counting test calls; make a warm item first and read at a standstill, never at the
+  peak of a live fight. **Watch out for:** deferred sound banks, a menu's background load, a Tween (3 to 5 objects)
+  and each sound that starts or ends (2 objects) move the count by tens, so a test failed on main in one shard and
+  passed alone, and a fix inside the one test that failed left the others open. **Seen:** Deadnight #823, 2026-11-03;
+  Deadnight #1093, #1102, 2026-11-04 (fix: the shared helpers, no slack widened; 13 extra sounds at the peak failed the
+  old test and passed the new one).
+- **Approach:** Make a count test show its teeth: inject a leak of 2 to 3 times its slack with sounds left playing and
+  see it fail, settle in every suite that reads the object count across frames (a scan test fails the one that does
+  not), and find which suite moves a count by running the shard's list in CI order (the job log's `shard N:` line) and
+  halving it. **Watch out for:** a count that only falls (the last night's sounds ending, 3 to 10 objects at a time)
+  is a free allowance for a leak under an upward bound: a 12-object leak passed with a slack of 6 in 2 of 2 runs, and
+  a green test that never failed has not shown it can. **Seen:** Deadnight #1134, 2026-11-04; Deadnight #1138,
+  2026-11-04 (fix: `QuietCount.settle` before the baseline, after which the same runs failed on the leak 3 of 3 times).
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
   the pools fill), and over four nights back to back (each returns to the baseline node count). Count the grenades,
   blast kills, hits and doors in the same run.
 - **Spikes**: the largest single tick after an event (cripple 20, buy a door, a blast kills 20), not the mean.
 - **Free disk first** (`df -k /c`): an import on a full disk writes truncated files and tracked `.import` files with
   `valid=false`, and the run then fails with "corrupt" errors far from the cause
-  ([lesson](../../lessons/2026-11-04-an-import-on-a-full-disk-left-truncated-files-that-read-as-corrupt.md)).
+  ([The workspace](../../studio/workspace.md#disk)).
 - **Stop a run by its own process id, never by program name**, on a shared machine.
 - An editor run is a debug build with the debugger; take the budget from headless runs and from an export.
 

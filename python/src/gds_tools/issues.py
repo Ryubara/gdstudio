@@ -536,15 +536,16 @@ def start(
     size: int = DEFAULT_WINDOW,
     branch: str = "",
     now: datetime | None = None,
-    areas_for: Callable[[frozenset[str]], list[str]] | None = None,
+    brief_for: Callable[[Issue], list[str]] | None = None,
     prepare: Callable[[Issue], Prepared] | None = None,
     paused: str = "",
 ) -> list[str]:
     """Start an issue if it is in the window: make its branch and worktree, label, assign, comment, ledger. Returns the
-    lines to print. `areas_for` maps the issue's labels to the areas of the mistakes glossary, which the ledger keeps
-    for the SubagentStart hook. `prepare` makes the branch and worktree after the window allows the start and before
-    anything on GitHub changes, so a worktree that cannot be made leaves the issue where it was. `paused` is the reason
-    the repository is paused (`paused_reason`): only a `P-critical` issue of it starts."""
+    lines to print. `brief_for` gives the `Read:` lines of the sections the agent reads first (`gds brief`), printed
+    with the `Issue:` line for the agent's prompt; a failure there only leaves them out. `prepare` makes the branch
+    and worktree after the window allows the start and before anything on GitHub changes, so a worktree that cannot be
+    made leaves the issue where it was. `paused` is the reason the repository is paused (`paused_reason`): only a
+    `P-critical` issue of it starts."""
     issues, prs = fetch(repo, gh)
     window = compute_window(repo, issues, prs, size, paused)
     started = load_ledger(ledger)
@@ -560,7 +561,6 @@ def start(
             if label in issue.labels:
                 edit += ["--remove-label", label]
         gh(edit)
-        areas = areas_for(issue.labels) if areas_for else []
         started = load_ledger(ledger)
         started[ledger_key(repo, number)] = {
             "repo": repo,
@@ -570,7 +570,6 @@ def start(
             "agent": agent,
             "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "branch": prepared.branch if prepared else branch,
-            "areas": areas,
             **({"worktree": prepared.path} if prepared else {}),
         }
         save_ledger(ledger, started)
@@ -579,15 +578,18 @@ def start(
         if prepared:
             prepared.undo()
         raise
+    try:
+        reads = brief_for(issue) if brief_for else []
+    except Exception:  # the start is done; the coordinator runs `gds brief` itself
+        reads = []
     return [
         f"started {repo}#{number} ({issue.title}) for agent {agent}",
-        *([f"areas: {', '.join(areas)} (their checks are put into the agent's context at start)"] if areas else []),
         *(prepared.lines if prepared else []),
-        "Put these lines in the agent's prompt (the hook looks for the first):"
-        if prepared
-        else "Put this line in the agent's prompt (the hook looks for it):",
+        "Put these lines in the agent's prompt (the hook checks `Issue:` and `Read:`; add or drop sections as the task "
+        f"needs, `gds brief {repo}#{number} --why` says why each is there):",
         *([f"Worktree: {prepared.path}"] if prepared else []),
         f"Issue: {repo}#{number}",
+        *(reads or ([f"Read: <page>.md#<anchor> (run `gds brief {repo}#{number}`)"] if brief_for else [])),
     ]
 
 

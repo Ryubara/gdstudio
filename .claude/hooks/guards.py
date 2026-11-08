@@ -250,6 +250,82 @@ def check_issue(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     return reasons
 
 
+# `Read: page.md#anchor[, page.md#anchor ...]` on a line of an agent's prompt or report (a list bullet, a quote mark or
+# bold around the label are fine), and the list lines right under it.
+_READ_LINE = re.compile(r"(?im)^[ \t>*_-]*Read[*_]*[ \t]*:[*_]*(.*)$")
+_LIST_LINE = re.compile(r"^[ \t]*[-*][ \t]+\S")
+
+
+def read_lines(text: str) -> str:
+    """The text of every `Read:` line of a prompt or report, with the list lines under one (`- page.md#anchor`)."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    out = []
+    for i, line in enumerate(lines):
+        found = _READ_LINE.match(line)
+        if not found:
+            continue
+        out.append(found.group(1))
+        for after in lines[i + 1 :]:
+            if not _LIST_LINE.match(after) or _READ_LINE.match(after):
+                break
+            out.append(after)
+    return "\n".join(out)
+
+
+def without_read_lines(text: str) -> str:
+    """A report without its `Read:` lines and the list lines under them: a section the agent read is not one it
+    updated, so the Mistakes check (`sections_named`) never counts it."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    out, skipping = [], False
+    for line in lines:
+        if _READ_LINE.match(line):
+            skipping = True
+            continue
+        if skipping and _LIST_LINE.match(line):
+            continue
+        skipping = False
+        out.append(line)
+    return "\n".join(out)
+
+
+def check_read(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
+    """A task agent's prompt names the sections of the docs it reads before it starts, as `Read: page.md#anchor`
+    lines (`gds brief <owner/repo>#N` proposes them), and every one exists in the kit's docs. Helpers, the reviewer
+    and `general-purpose` (refused by `check_agents`) are exempt, as for `check_issue`. A kit whose `lessons.py`
+    cannot be loaded checks only that a line names a section."""
+    rules = config.get("brief", {})
+    inp = payload.get("tool_input") or {}
+    kind = inp.get("subagent_type") or "general-purpose"
+    exempt = [*config.get("agents", {}).get("helpers", []), *config.get("issues", {}).get("exempt", [])]
+    if not rules.get("enforce", True) or kind in exempt or kind in config.get("agents", {}).get("refused", []):
+        return []
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    if workspace is None:
+        return []
+    prompt = inp.get("prompt") or ""
+    work = _WORK_LINE.search(prompt)
+    ref = f"{work.group(2)}#{work.group(3)}" if work else "<owner/repo>#N"
+    gds = f"uv run --project {(workspace / 'repos' / 'gdstudio' / 'python').as_posix()} gds"
+    kit = kit_root(workspace)
+    module = lessons_module(kit)
+    listed = read_lines(prompt)
+    refs = module.refs_in(listed) if module else re.findall(r"[\w./-]+\.md#[\w-]+", listed)
+    if not refs:
+        return [
+            f"the agent type {kind!r} starts with the sections of the docs it reads first, and its prompt names none: "
+            f"run `{gds} brief {ref}` and put the `Read: <page>.md#<anchor>` lines it prints in the prompt (add or "
+            f"drop sections as the task needs; `--why` says why each is proposed)"
+        ]
+    missing = module.missing_refs(kit, listed) if module else []
+    if missing:
+        return [
+            f"the prompt's Read: lines name sections that do not exist in {(kit / 'docs').as_posix()}: "
+            f"{', '.join(missing)}. Name a section as <page under docs/>.md#<anchor> (docs/studio/rules.md#anchors); "
+            f"`{gds} brief {ref}` and `{gds} learn <words>` print real ones"
+        ]
+    return []
+
+
 def label_values(words: list[str]) -> list[str]:
     """The labels a `gh issue|pr edit|create` command adds (`--add-label X`, `--label=X`, `-l X`, comma lists)."""
     found: list[str] = []
@@ -1139,10 +1215,12 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     if workspace:
         start_disk_guard(workspace, config)  # throttled: one stat of a stamp file when it is not yet time
     if tool in AGENT_TOOLS:
-        reasons = check_agents(payload, config) + check_issue(payload, config) + check_disk_agent(payload, config)
-        if not reasons:
-            note_agent_start(payload, config)
-        return reasons
+        return (
+            check_agents(payload, config)
+            + check_issue(payload, config)
+            + check_read(payload, config)
+            + check_disk_agent(payload, config)
+        )
     if tool in EDIT_TOOLS:
         return check_edit(payload, config)
     if tool not in SHELL_TOOLS:
@@ -1619,25 +1697,16 @@ def user_prompt_submit(payload: dict[str, Any], config: dict[str, Any]) -> str:
 
 
 def subagent_start(payload: dict[str, Any], config: dict[str, Any]) -> str:
-    """What a starting agent is told: read the corrections and lessons that touch its task. Read-only helpers (and
-    the forks that carry the parent's context) are left alone."""
+    """What a starting agent is told: read the sections its prompt's `Read:` lines name (the Agent guard made sure
+    there are some, and that they exist), and how a mistake updates a section. Read-only helpers (and the forks that
+    carry the parent's context) are left alone."""
     if payload.get("agent_type") in config.get("agents", {}).get("helpers", []):
         return ""
     workspace = workspace_of(Path(payload.get("cwd") or "."))
     if not workspace:
         return ""
-    note = take_agent_note(workspace, payload.get("agent_type") or "", config)
     start_disk_guard(workspace, config)
-    return "\n\n".join(
-        t
-        for t in (
-            lesson_text("subagent", config, workspace),
-            closest_sections(workspace, note.get("title", ""), config),
-            area_checks(workspace, note.get("areas") or [GENERAL], config),
-            disk_note(workspace, config),
-        )
-        if t
-    )
+    return "\n\n".join(t for t in (lesson_text("subagent", config, workspace), disk_note(workspace, config)) if t)
 
 
 def pending_lessons(workspace: Path, config: dict[str, Any]) -> list[Path]:
@@ -1670,11 +1739,10 @@ def stop_queue(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Docs ship with the change: areas' checks are read first, kit docs are never left unpublished
+# Docs ship with the change: the sections named are read first, kit docs are never left unpublished
 # (docs/studio/hooks.md#docs)
 # --------------------------------------------------------------------------------------------------------------------
 
-GENERAL = "general"
 _INLINE_NONE = re.compile(r"(?i)^\W*(none|n/?a|nothing|no mistakes?|-|no)\W*$")
 
 
@@ -1683,21 +1751,6 @@ def kit_root(workspace: Path | None) -> Path:
     if workspace and (workspace / "repos" / "gdstudio").is_dir():
         return workspace / "repos" / "gdstudio"
     return KIT
-
-
-def glossary_items(text: str, area: str) -> list[tuple[str, str]]:
-    """The (mistake, check) rows of one area's section of the glossary built from the lessons (never a file)."""
-    items, on = [], False
-    for line in text.replace("\r\n", "\n").splitlines():
-        if line.startswith("## "):
-            on = line[3:].strip() == area
-        elif on and line.startswith("| ") and not line.startswith(("| Mistake", "| ---")):
-            parts = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
-            if len(parts) == 3:
-                items.append(
-                    tuple(p.replace("\\|", "|").replace("&#124;", "|").replace("&lt;", "<") for p in parts[:2])
-                )
-    return items
 
 
 def lessons_module(kit: Path) -> Any:
@@ -1713,117 +1766,6 @@ def lessons_module(kit: Path) -> Any:
     except Exception:  # a hook never locks a session out: no checks beat a crash
         sys.modules.pop(name, None)
         return None
-
-
-def build_glossary(kit: Path) -> str:
-    """The glossary built from the entries of the topic sections and the old lesson files of a kit checkout (it is not a
-    committed file). '' when it cannot be built."""
-    module = lessons_module(kit)
-    try:
-        return module.build(kit) if module else ""
-    except Exception:
-        return ""
-
-
-def closest_sections(workspace: Path | None, title: str, config: dict[str, Any]) -> str:
-    """The sections of the docs closest to the issue's title, with their rules (`gds learn <title>`), at most
-    `learn_limit` sections and `learn_chars` characters; '' without a title or when they cannot be found."""
-    rules = config.get("docs", {})
-    limit = int(rules.get("learn_limit", 4))
-    if not title.strip() or limit <= 0:
-        return ""
-    kit = kit_root(workspace)
-    module = lessons_module(kit)
-    try:
-        text = module.learn_text(kit, title, limit, legacy=0, rules_per=3) if module else ""
-    except Exception:
-        return ""
-    if not text or text.startswith("No section"):
-        return ""
-    chars = int(rules.get("learn_chars", 2500))
-    if len(text) > chars:
-        text = text[:chars].rsplit("\n", 1)[0] + "\n... (cut; `gds learn <words>` prints more)"
-    return f"Sections of the docs closest to your issue ({title!r}); a mistake you make updates one of them:\n{text}"
-
-
-def area_checks(workspace: Path | None, areas: list[str], config: dict[str, Any]) -> str:
-    """The checks of some areas as plain text for an agent's context: the newest `inject_limit` of each, cut at
-    `inject_chars` altogether. Empty when the glossary cannot be built."""
-    rules = config.get("docs", {})
-    kit = kit_root(workspace)
-    text = build_glossary(kit)
-    if not text:
-        return ""
-    lines = []
-    for area in areas:
-        items = glossary_items(text, area)[: int(rules.get("inject_limit", 12))]
-        if items:
-            lines.append(f"[{area}]")
-            lines += [f"- {mistake}: {check}" for mistake, check in items]
-    body = "\n".join(lines)
-    limit = int(rules.get("inject_chars", 7000))
-    if len(body) > limit:
-        body = body[:limit].rsplit("\n", 1)[0] + "\n... (cut; the full list is in the glossary)"
-    if not body:
-        return ""
-    return (
-        f"Mistakes already made in your areas ({', '.join(areas)}), each with the check that catches it. Apply them "
-        f"before you start; the full list is built from "
-        f"{(kit / 'docs' / 'lessons').as_posix()} (`gds lessons <area>` prints one):\n{body}"
-    )
-
-
-def pending_path(workspace: Path, config: dict[str, Any]) -> Path:
-    return workspace / config.get("docs", {}).get("pending", "cache/subagent-pending.json")
-
-
-def note_agent_start(payload: dict[str, Any], config: dict[str, Any]) -> None:
-    """An Agent call that passed the guards leaves a note of the areas of its issue: SubagentStart (which does not see
-    the prompt) reads it to inject those areas' checks. Notes older than ten minutes are dropped."""
-    inp = payload.get("tool_input") or {}
-    kind = inp.get("subagent_type") or ""
-    workspace = workspace_of(Path(payload.get("cwd") or "."))
-    exempt = [*config.get("agents", {}).get("helpers", []), *config.get("issues", {}).get("exempt", [])]
-    if workspace is None or not kind or kind in exempt:
-        return
-    ledger = read_ledger(workspace, config)
-    areas = [GENERAL]
-    for label, repo, number in _WORK_LINE.findall(inp.get("prompt") or ""):
-        if label.lower() == "issue":
-            areas += [a for a in ledger.get(ledger_key(repo, number), {}).get("areas", []) if a not in areas]
-    path, now = pending_path(workspace, config), time.time()
-    try:
-        notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
-    except (OSError, ValueError, TypeError):
-        notes = []
-    titles = [
-        ledger.get(ledger_key(repo, number), {}).get("title", "")
-        for label, repo, number in _WORK_LINE.findall(inp.get("prompt") or "")
-        if label.lower() == "issue"
-    ]
-    notes.append({"agent_type": kind, "areas": areas, "title": next((t for t in titles if t), ""), "time": now})
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(notes), encoding="utf-8")
-    except OSError:
-        pass
-
-
-def take_agent_note(workspace: Path, agent_type: str, config: dict[str, Any]) -> dict[str, Any]:
-    """The oldest unread note for this agent type (and the note is used up): its `areas` and its issue's `title`;
-    `{"areas": ["general"]}` when there is none."""
-    path, now = pending_path(workspace, config), time.time()
-    try:
-        notes = [n for n in json.loads(path.read_text(encoding="utf-8")) if now - n.get("time", 0) < 600]
-    except (OSError, ValueError, TypeError):
-        return {"areas": [GENERAL]}
-    for i, note in enumerate(notes):
-        if note.get("agent_type") == agent_type:
-            del notes[i]
-            with contextlib.suppress(OSError):
-                path.write_text(json.dumps(notes), encoding="utf-8")
-            return {**note, "areas": note.get("areas") or [GENERAL]}
-    return {"areas": [GENERAL]}
 
 
 def kit_remote(kit: Path) -> str:
@@ -1997,8 +1939,9 @@ def mistakes_text(report: str) -> str:
         body = [inline.strip().strip("*_ ")]
         for after in lines[i + 1 :]:
             label = re.match(r"^\s*(?:\*\*|__)[^*_\n]{1,40}(?:\*\*|__)", after)
-            if re.match(r"^\s*#{1,6}\s", after) or label or (body[0] and not after.strip()):
-                break  # the next heading or label; a one-line "Mistakes: text" ends at its paragraph
+            ends = _READ_LINE.match(after) or _GAPS_LINE.match(after)  # the report's next lines (gdstudio #771)
+            if re.match(r"^\s*#{1,6}\s", after) or label or ends or (body[0] and not after.strip()):
+                break  # the next heading, label or line; a one-line "Mistakes: text" ends at its paragraph
             body.append(after.strip())
         text = " ".join(b for b in body if b).strip()
         return "" if not text or _INLINE_NONE.match(text) else text
@@ -2301,10 +2244,39 @@ def stop_idle(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     return idle_message(workspace, found, count + 1, limit)
 
 
+_GAPS_LINE = re.compile(r"(?im)^[ \t>*_#-]*docs gaps?[*_]*[ \t]*:")
+_PR_NAMED = re.compile(r"(?i)github\.com/[\w.-]+/[\w.-]+/pull/\d+|\b(?:PR|pull request)\s*#\d+")
+
+
+def read_report_reason(report: str, config: dict[str, Any]) -> str | None:
+    """Why a task agent's report of finished work (it names a pull request) is held back: it does not say which
+    sections it read (`Read: page.md#anchor, ...`) or what it found missing or wrong in them (`Docs gaps: ...`, or
+    `Docs gaps: none`). None when it says both; a `Blocked:` end or a stall is not judged here (`stop_stall` judges a
+    stall). `[brief] report = false` turns it off."""
+    if not config.get("brief", {}).get("report", True) or not _PR_NAMED.search(report):
+        return None
+    missing = []
+    if not re.search(r"[\w./-]+\.md#[\w-]+", read_lines(report)):
+        missing.append("a `Read: <page>.md#<anchor>, ...` line naming the sections of the docs you read")
+    if not _GAPS_LINE.search(report):
+        missing.append(
+            "a `Docs gaps:` line naming each section you found missing, wrong or out of date for this task, as "
+            "`page.md#anchor: what` (or the page a missing section belongs on), or `Docs gaps: none`"
+        )
+    if not missing:
+        return None
+    return (
+        "Your report does not say what you read. Add "
+        + " and ".join(missing)
+        + ". The coordinator uses it to fix the docs and the next brief (docs/studio/starting-work.md#the-report)."
+    )
+
+
 def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
-    """An agent may not finish while its kit docs are unpublished, or while its report lists mistakes and names no
-    section its kit branch edits (held back once: `stop_hook_active` lets the next finish through), or while it ends
-    on a step instead of a report (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
+    """An agent may not finish while its kit docs are unpublished, while its report lists mistakes and names no
+    section its kit branch edits, or while a task agent's report leaves out the sections it read and the gaps it found
+    (held back once: `stop_hook_active` lets the next finish through), or while it ends on a step instead of a report
+    (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
     stalled = stop_stall(payload, config)
     if payload.get("stop_hook_active"):
         return stalled
@@ -2317,7 +2289,9 @@ def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None
     start_disk_guard(workspace, config)
     reasons = [stalled, stop_kit_docs(payload, config)]
     report = report_of(payload)
-    if mistakes_text(report) and not sections_named(workspace, report):
+    if payload.get("agent_type") in config.get("stop_check", {}).get("agents", []) and report.strip():
+        reasons.append(read_report_reason(report, config))
+    if mistakes_text(report) and not sections_named(workspace, without_read_lines(report)):
         reasons.append(
             "Your report has a Mistakes section but names no topic section that your kit branch updates. Update the "
             "topic section each mistake belongs to with an entry (the approach, what to watch out for, where it was "

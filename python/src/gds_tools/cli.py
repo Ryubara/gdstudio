@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from gds_tools import (
+    brief,
     capture,
     disk,
     issues,
@@ -327,7 +328,6 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
     refused = disk.refusal(root, disk.load_limits(kit), f"starting {repo}#{number}")
     if refused:  # under the hard limit no agent and no worktree starts (docs/studio/workspace.md#disk)
         raise issues.IssueError(refused)
-    areas = lessons.Areas.load(kit / lessons.AREAS_FILE) if (kit / lessons.AREAS_FILE).is_file() else None
     for line in issues.start(
         repo,
         number,
@@ -336,7 +336,7 @@ def _cmd_issue_start(args: argparse.Namespace) -> int:
         ledger=ledger,
         size=settings.window,
         branch=args.branch or "",
-        areas_for=areas.for_labels if areas else None,
+        brief_for=lambda issue: [p.line for p in brief.propose(kit, brief.fetch(repo, issue.number, issues.run_gh))],
         prepare=None
         if args.no_worktree
         else _prepare_worktree(root, repo, args.branch or "", fresh=args.fresh, ledger=ledger),
@@ -446,18 +446,13 @@ def _cmd_learn(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_lessons(args: argparse.Namespace) -> int:
-    """`gds lessons [area ...]`: the checks of the mistakes glossary for some areas, or the list of areas."""
-    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
-    areas = lessons.Areas.load(kit / lessons.AREAS_FILE)
-    if not args.areas:
-        for name, description in areas.names.items():
-            print(f"{name:10} {description}")
-        return 0
-    unknown = [a for a in args.areas if a not in areas.names]
-    if unknown:
-        raise workspace.WorkspaceError(f"unknown area {unknown[0]!r}; `gds lessons` lists them")
-    print(lessons.checks_text(lessons.build(kit), args.areas, args.limit))
+def _cmd_brief(args: argparse.Namespace) -> int:
+    """`gds brief <owner/repo>#N`: the `Read:` lines of the sections a task agent reads before it starts, for its
+    prompt (docs/studio/starting-work.md#starting-an-agent)."""
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT if not args.kit else None
+    kit = Path(args.kit) if args.kit else kit
+    repo, number = brief.parse_ref(args.ref)
+    print(brief.text(kit, brief.fetch(repo, number, issues.run_gh), args.limit, args.why))
     return 0
 
 
@@ -760,10 +755,12 @@ def build_parser() -> argparse.ArgumentParser:
     lrn.add_argument("--kit", help="the kit checkout or worktree to search (default: the workspace's kit)")
     lrn.set_defaults(func=_cmd_learn)
 
-    les = sub.add_parser("lessons", help="the rules of past mistakes by area (topic sections and old lesson files)")
-    les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
-    les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
-    les.set_defaults(func=_cmd_lessons)
+    brf = sub.add_parser("brief", help="the Read: lines of the sections a task agent reads first, for its prompt")
+    brf.add_argument("ref", help="the issue or pull request: owner/repo#N")
+    brf.add_argument("--limit", type=int, default=6, help="sections to propose (default: 6)")
+    brf.add_argument("--why", action="store_true", help="say after each line why the section is proposed")
+    brf.add_argument("--kit", help="the kit checkout or worktree whose docs to read (default: the workspace's kit)")
+    brf.set_defaults(func=_cmd_brief)
 
     sub.add_parser("doctor", help="check the workspace and its tools").set_defaults(func=_cmd_doctor)
     return parser

@@ -38,8 +38,6 @@ Windows, nor on a Linux machine with another directory order.
   Windows; copy the project (without `.godot`), import twice (the first import can crash on a font), and run the same
   arguments, with `taskset -c 0-3` for a four-core runner.
 
-See the [lesson](../../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
-
 ## A test that only needs a number from a scene
 
 A suite that `instantiate()`d the lot's greybox to read the size of one floor passed every case and ended with `2 RID

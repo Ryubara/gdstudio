@@ -23,7 +23,7 @@ draw `previous.lerp(current, Engine.get_physics_interpolation_fraction())`. Make
 top, the unblended jitter is already small (2.7 percent of the travel at 144 Hz over a 60 Hz run in our test); the
 blend takes it to zero.
 
-## Walls
+## Walls {#walls}
 
 - `PhysicsDirectSpaceState3D.cast_motion` **ignores a body the shape already starts inside**, so start every sweep
   from a point known to be clear. A `SpringArm3D` covers only the boom; sweep sideways to the shoulder first, then back
@@ -34,6 +34,23 @@ blend takes it to zero.
   capsule fits here".
 - Hide the body by the lens-to-head distance (with a hysteresis margin), not by the arm length: a wall at the shoulder
   puts the lens in the head with a full arm.
+
+- **Approach:** Stand a capture spot at least the arm's length (2.8 m) clear of any closed door or wall behind it, set
+  the body's facing to the camera's yaw when posing it, and look at the first frame of each spot before taking numbers
+  from it. **Watch out for:** a "from the yard's gate" capture stood the player 1 m in front of a shut door whose slab
+  is solid; the spring arm hit it and pulled the camera in to his face, which also changes draw counts, and the body
+  kept its spawn facing and looked at the camera. **Seen:** Deadnight #853, 2026-11-03 (fix: spots are placed clear of
+  doors and walls and the pose sets `state.facing` and `rotation.y`).
+
+## Reading a rotation {#rotations}
+
+<!-- new section: the page held smoothing, walls and projection but nothing on reading a turn back from a transform -->
+
+- **Approach:** Read the turn about the up axis from where an axis points, `atan2(basis.z.x, basis.z.z)`, never from
+  `rotation.y` or a YXZ Euler triple. **Watch out for:** Euler angles in YXZ order are ambiguous near a quarter turn
+  about Y, so the engine may return the same rotation as another triple and `rotation.y` is not the turn you set: a
+  prop placed from a marker's yaw landed 0.05 m off for markers turned 90 or 270 degrees. **Seen:** Deadnight,
+  2026-11-01 (fix: the yaw is read from the basis).
 
 ## Shake and sway {#shake-and-sway}
 
@@ -51,8 +68,7 @@ blend takes it to zero.
   be read two ways as a number and a visible result, and confirm it before building. **Watch out for:**
   `SprintSway.step` took only the sprint flag and speed, which stay set in the air, so a sprint-jump swayed as on the
   ground; and a field of view meant to sit closer was first widened (70 to 77), the opposite of the ask. **Seen:**
-  Deadnight #405, 2026-11-01 (fix: the rig takes `on_floor`; FOV 60, aim 40, sprint 63, sway halved (Deadnight #426,
-  [lesson](../../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md))).
+  Deadnight #405, 2026-11-01 (fix: the rig takes `on_floor`; FOV 60, aim 40, sprint 63, sway halved (Deadnight #426)).
 
 ## Projecting world points to the HUD {#projecting-world-points-to-the-hud}
 
@@ -66,16 +82,15 @@ From Deadnight's world markers and teammate names (#430):
   `process_priority` so it follows a camera that places itself in `_process`.
 - A test that reads what a `_process` pushed awaits two idle frames: `await get_tree().process_frame` returns before
   that frame's `_process` calls.
-- Another `Camera3D` entering the tree (a second body in the same process) can become current
-  ([lesson](../../lessons/2026-11-01-a-second-body-took-the-current-camera.md)); see the next section for the fix.
+- Another `Camera3D` entering the tree (a second body in the same process) can become current; see the next
+  section for the fix.
 
 - **Approach:** Draw anything "at the centre of the screen" from the viewport, never from an inset container, and test
   aim end to end: the shot's end projected through the camera against the reticle's drawn centre, with an uneven safe
   area, near to far, hip and aimed, mouse and touch, on the phone canvas and in the browser. **Watch out for:** the HUD
   is inset to the phone's safe area and the reticle sat in the middle of the inset rectangle, 1.8 degrees above the
   shots on an iPhone; every aim test ran with zero insets and compared the shot with the camera, never the reticle.
-  **Seen:** Deadnight #601, 2026-11-02 (fix: the reticle is placed from the viewport
-  ([lesson](../../lessons/2026-11-02-the-reticle-sat-in-the-middle-of-the-inset-hud.md))).
+  **Seen:** Deadnight #601, 2026-11-02 (fix: the reticle is placed from the viewport).
 
 ## One current camera per viewport {#one-current-camera-per-viewport}
 
@@ -97,8 +112,7 @@ From Deadnight #702 (a bot's body had the view):
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
   its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty
   capture scripts as `make_current()`, and tests read the person's camera node, never the viewport's. **Seen:**
-  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above
-  ([lesson](../../lessons/2026-11-03-a-bot-body-took-the-view-from-the-person.md))).
+  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above).
 
 ## A rig no one looks through
 

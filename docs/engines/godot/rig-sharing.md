@@ -81,7 +81,7 @@ Contact sheet (attached to the pull request): four moments of each clip, both ch
 the same library; rows Walk, Run, Walk_NoPos, Run_NoPos. Reproduce with the commands in
 `sandbox/rig-sharing/README.md`.
 
-## Found later
+## Found later {#found-later}
 
 From the Soldier's weapon clips (Deadnight #42):
 
@@ -115,6 +115,12 @@ From the Soldier's aim-move clips (Deadnight #74):
   the kit's `Foot` bones, needs nothing else). Deadnight #74.
 - **A state machine without an automatic first transition stays at `Start`.** Deadnight's player body enters
   locomotion on its first landing; a test with physics off calls `playback.start()` itself.
+
+- **Approach:** When a view swaps a character's model (a look or a colour changed), add the new model hidden, keep the
+  old one on screen, and swap them on the next `process_frame`. **Watch out for:** a model instanced from a `.glb` stays
+  in its rest pose (arms out) until its `AnimationPlayer` and skeleton have run once, and `play()` with `advance(0.0)`
+  before the first process does not pose it in time, so captures caught a T-pose for a frame on every rebuild. **Seen:**
+  Deadnight, 2026-11-01 (fix: the preview swaps on the next frame).
 
 ## Skeleton modifiers
 

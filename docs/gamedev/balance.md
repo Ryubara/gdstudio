@@ -30,8 +30,7 @@ drop). Art, definitions, the shop and the drops are one list.
   with a test that every definition has a source a player can reach and every source names a real id; an unclear model
   is a question to the maintainer. **Watch out for:** there were 10 weapon models and 6 definitions; the bat and the
   fire axe had models and holds but no id, numbers or source, and the prize crane's pool was a hand-written list of
-  four. **Seen:** Deadnight #461, 2026-11-02 (fix: every weapon got a definition and a source (Deadnight #530;
-  [lesson](../lessons/2026-11-02-weapon-models-sat-without-definitions-or-a-source.md))).
+  four. **Seen:** Deadnight #461, 2026-11-02 (fix: every weapon got a definition and a source, Deadnight #530).
 
 ## Comparing weapons {#comparing}
 
@@ -68,3 +67,24 @@ place.
   and the HUD showed sums like 31 to 34. **Seen:** Deadnight #916, 2026-11-03 (fix: `PointSteps` (award nearest, price
   up, loss down) in steps of 5
   ([lesson](../lessons/2026-11-03-points-came-in-any-amount-until-one-rule-rounded-them-to-fives.md))).
+
+## A balance simulator {#simulator}
+
+<!-- new section: the page's sections are about one number at a time; none covered a model that plays whole nights -->
+
+A simulator plays many seeded nights with modelled players to show where a level's difficulty lands. It answers only as
+well as its numbers and its players are the game's.
+
+- **Approach:** Read every number a balance model uses from the game's own definitions and functions (the weapon
+  catalogue, the damage model, the night's tuning, the generator's circuits), model only what the game does not own,
+  drop what it does not do, and say in the report where each number comes from. **Watch out for:** numbers typed in
+  beside the game's data passed the gate (an average solo player reached round 11) while the game's own weapons ended
+  the same seeded nights at round 4: the stand-in rifle did 210 damage a second against 85, tonics had effects the game
+  lacks, and lit ground slowed the dead without costing fuel. **Seen:** Deadnight, 2026-11-01 (fix: the model reads
+  `WeaponCatalog`, `DamageModel` and `NightTuning`, and was retuned from the honest report).
+- **Approach:** Give each simulated night its own player skill, drawn from the level's average with a spread (20 %),
+  and measure difficulty by how close a round came to downing someone (the lowest health reached), not by damage
+  taken. **Watch out for:** players of fixed skill on deterministic rules vary only by the enemy rolls, so every seed
+  ended in the same round (100 % reached round 11, 0 % round 12), a cliff that says nothing about balance; damage taken
+  is zero in most rounds and then everything. **Seen:** Deadnight, 2026-11-01 (fix: per-night skill with a spread,
+  scored by the lowest health).

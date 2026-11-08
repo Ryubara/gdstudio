@@ -72,6 +72,26 @@ Measured on the runner (Deadnight issue 1348, 2026-11-06, run 42228307964):
   made slower (saving the pictures is enough) and keep what each run saw: a suite that failed in one reading, then in
   another, and passed in a third had a bulb row sliding in and out of the area read.
 
+## Where a headless run and a window differ in the game {#headless-differences}
+
+<!-- new section: the sections above say what the renderer cannot judge; the game's own switches that a headless run
+turns the other way had no home -->
+
+- **Approach:** Run a suite that pushes a night or a menu screen once in a window before its pull request (`gds godot
+  --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>`), tell the headless run what a window of this size is, start a
+  suite that is not about the opening show with no show due (`NightScreen.arrival_enabled = false`, restored) while a
+  second set of tests plays it, and make a "phone" case assert that it saw something clipped. **Watch out for:** the
+  game's own switches turn the other way headless: a 64 pixel window never made the menu shell a phone's, so a hover
+  suite's "phone" ran the desktop layout in CI; a window plays the helicopter drop that opens a night, which holds the
+  look, the touch layer and the HUD; three suites failed in a window on `main` for days while CI was green. **Seen:**
+  Deadnight, 2026-11-05 (fix: `MenuShell.phone_mode`, `arrival_enabled`).
+- **Approach:** When a guard test is written for "every suite that does X", list the ways X is reached in the game's
+  own flow (the router, the Play screen's Start, not only the one the first suite used), and let its scan test say what
+  is and is not a start. **Watch out for:** the guard for a due drop scanned for a push or reset of the night scene, and
+  `test_night_tap_targets` reached the night by `UIRouter.reset(PLAY)` and `play.start()`, so no line named the night
+  and the first scheduled windowed run failed it three times. **Seen:** Deadnight #1348, 2026-11-06 (fix: each suite
+  sets `arrival_enabled` and restores it, and the guard also reads `play.start()`).
+
 ## Sources
 
 - [Xvfb and `xvfb-run`](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml); Mesa's
