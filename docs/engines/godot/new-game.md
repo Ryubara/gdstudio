@@ -156,6 +156,11 @@ from the kit or a worktree, and it waits for Enter before the window closes. A t
 when the game is made again: `gds sync` refreshes the files every game shares, never a template's own. Agents keep
 using the command above, since the script asks questions.
 
+- **Approach:** Write a script a person runs for the bash every platform has: macOS ships bash 3.2, so no `mapfile`,
+  `readarray`, associative arrays or `${var,,}`; read lines with a `while IFS= read -r` loop and give every array a
+  value (`LINES=()`) before `set -u` meets it. **Watch out for:** Git Bash and Ubuntu run bash 5, so the script passed
+  there and only the macOS test job failed (`mapfile: command not found`). **Seen:** gdstudio #840, 2026-11-08.
+
 ## The templates {#the-templates}
 
 | Template | What it is | Status |

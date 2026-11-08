@@ -36,7 +36,11 @@ echo "GDStudio: a new game from a template"
 echo "Workspace: $WORKSPACE"
 echo
 
-mapfile -t LINES < <(gds new game --list | tr -d '\r')
+# No mapfile: macOS ships bash 3.2.
+LINES=()
+while IFS= read -r line; do
+  [ -n "$line" ] && LINES+=("$line")
+done < <(gds new game --list | tr -d '\r')
 if [ "${#LINES[@]}" -eq 0 ]; then
   echo "No templates found."
   finish 1
