@@ -1,26 +1,29 @@
 # Prototype level
 
-The level in `game/world/prototype/prototype_level.tscn` is a space to build in, not a map: a 50 m square floor
-with walls, and a few shapes that answer the questions a first prototype asks (how high can I step, how steep is a
-ramp, how wide is a door). `game/main.tscn` instances it and looks at it through one camera.
+The level in `game/world/prototype/prototype_level.tscn` is a space to build in, and a map that shows what the
+components do: a 50 m square floor with walls, shapes that answer a first prototype's questions (how high can I
+step, how steep is a ramp, how wide is a door) and a few of each component. `game/main.tscn` instances it and looks
+at it through one camera.
 
 ## What is in it
 
 | Part | Where | What it is for |
 | --- | --- | --- |
 | Floor and four walls | `Boundary/` | The edge of the space: 4 m walls. The floor's top is the ground, `y = 0`. |
-| Tower platform and stairs | `Landings/` | A 3 m platform reached by twelve steps (0.25 m rise, 0.45 m run). |
-| Ramp and platform | `Landings/` | A 9.5 degree slope up to a 1.5 m platform. |
-| Dais | `Landings/` | A low square in the middle: the natural start for a character. |
-| Crates and low walls | `Cover/` | 1 m crates, a 2 m crate and 1.2 m walls: cover and climbing practice. |
-| Jump blocks | `Steps/` | Blocks of 0.5, 1, 1.5 and 2 m, each labelled with its height. |
-| Columns | `Columns/` | Four round pillars: something to walk around and to see shadows on. |
-| Divider with a doorway | `Divider/` | A wall with a 2 m by 2.6 m door cut out of it (a subtracted CSG box). |
-| Sun and sky | `Daylight` | One shadowed directional light and a procedural sky. |
+| Tower platform and stairs, bridge, ramp | `Landings/` | A 3 m platform reached by twelve steps, two raised blocks and a ramp up to them. |
+| A room with a roof opening | `Room/` | A closed room with a doorway and a baked lamp: the lightmap in a dark place. |
+| Cover, jump blocks, columns | `Cover/`, `Steps/`, `Columns/` | Crates and low walls, blocks of 0.5 to 2 m, round pillars. |
+| Doors, pressure pad | `Doors/`, `Triggers/` | A `Door` that opens when the pad's `TriggerZone` is stepped on, and one that opens when a body comes near. |
+| Moving platform | `Platforms/` | A `MovingPlatform` that carries what stands on it. |
+| Pickups | `Pickups/` | `Pickup` coins and gems that spin, say who took them and may come back. |
+| Spawn points | `Spawns/` | `SpawnPoint` markers in groups (`player`, `wave`). |
+| Props | `Props/` | `PhysicsProp` crates, barrels and two chrome balls (they show the reflection probes). |
+| Sun, sky, bounce light | `Daylight`, `LightmapGI`, `Probes/`, `Lamps/` | One real-time sun, a procedural sky, baked bounce light and two reflection probes. |
+| Graphics profile | `GraphicsProfile` | Forward+ extras, set in the inspector (below). |
 
-Everything solid is a `CSGBox3D`, `CSGPolygon3D` or `CSGCylinder3D` with `use_collision` on, so a shape is resized in
-the inspector and collides at once. CSG is for prototyping: when a shape is final, replace it with a mesh and a
-collision shape.
+Every solid is a `ProtoBlock`: pick its kind (box, cylinder, ramp, stairs) and its `size` in the inspector and the
+mesh and the collision follow. Blocks snap onto the grid when the editor's snap is on (the `prototype_grid` plugin
+sets its step to the grid's cell size).
 
 ## Materials {#materials}
 
@@ -39,21 +42,26 @@ is no texture file: nothing to license, nothing to import, the same on the web a
 | `prototype_green` | green | slopes and safe ground |
 | `prototype_red` | red | hazards and measurements |
 
-A new colour is a copy of one of these with its own `base_color`; the grid size and line strengths are shader
-parameters on the material.
+A new colour is a copy of one of these with its own `base_color`; the line strengths are shader parameters on the
+material. The cell size (`prototype_cell_size`, 1 m) and the heavier line every 8 cells (`prototype_major_every`) are
+shader globals in Project Settings > Shader Globals, shared by every material and by the editor's snap step.
 
 ## Lighting {#lighting}
 
-`game/world/lighting/daylight.tscn` is the whole rig, so another map (or a night one) instances a different scene
-and nothing else changes. It is set up for the Compatibility renderer:
+The web build runs the Compatibility renderer (WebGL 2) and a desktop runs Forward+; one level serves both
+(`rendering_method` is Forward+ with `.web` and `.mobile` overrides to Compatibility).
 
-- A `ProceduralSkyMaterial` sky (no sky file) lights the ambient colour a little and fills the background.
-- One directional light with shadows: a single shadowed light is the web build's budget ([Compatibility
-  lighting](https://{KIT_PAGES}/godot/compat-lighting/)).
-- Filmic tonemap, a touch of contrast and saturation, and a thin haze. SSAO, SSR and volumetric fog are left off:
-  the Compatibility renderer ignores them.
+- **Lit for the web first.** A `ProceduralSkyMaterial` sky, one real-time sun with shadows (set to Dynamic, so its
+  bounce is baked and its shadows are not) and a `LightmapGI` bake for soft bounce light and room light, which cost
+  nothing at run time. Two reflection probes (`reflection_size` 64 in the project settings keeps their memory low).
+- **Baking again.** After you move or resize a block, select `LightmapGI` and press "Bake Lightmaps" (Forward+ editor).
+  Only the editor can build a block's lightmap UVs, so the editor saves each block's mesh in the scene; a running game
+  builds only the collision.
+- **Forward+ extras.** `GraphicsProfile` turns on SSAO, SSIL, SSR, volumetric fog, finer sun shadows and, if you
+  choose, SDFGI instead of the baked light, all from the inspector. On the web it does nothing.
+- Filmic tonemap, a touch of contrast and saturation, and a thin haze.
 
 ## Looking at it
 
-`game/tools/capture/level_tour.tscn` flies a camera through seven views; record it for a pull request with
+`game/tools/capture/level_tour.tscn` flies a camera through six views; record it for a pull request with
 `gds capture frames --project game --scene res://tools/capture/level_tour.tscn --seconds 3.5 --fps 10`.

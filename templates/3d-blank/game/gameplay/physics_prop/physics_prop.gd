@@ -62,6 +62,13 @@ func _ready() -> void:
 	_start = transform
 
 
+## Mass and surface come from `weight`, `grip` and `bounciness`, so the inspector shows those
+## only and the scene keeps neither.
+func _validate_property(property: Dictionary) -> void:
+	if property.name in ["mass", "physics_material_override"]:
+		property.usage = PROPERTY_USAGE_NONE
+
+
 func _physics_process(_delta: float) -> void:
 	if Engine.is_editor_hint():
 		return

@@ -50,6 +50,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 
 ## Project and scene files {#project-and-scene-files}
 
+- **Approach:** In a scene file written by hand or script, put `node_paths=PackedStringArray("target")` on the
+  `[node]` line of every node with a node-typed export, and `unbinds=N` on a `[connection]` whose method takes fewer
+  arguments than the signal; instance it and print the reference. **Watch out for:** without `node_paths`,
+  `target = NodePath("../Other")` loads as `null` with no error (the editor writes the key itself), and a connection
+  without `unbinds` fails only when the signal fires (the key is `unbinds`). **Seen:** gdstudio #788, 2026-11-08 (the
+  graphics profile found no node and did nothing; fixed, with a test that applies it).
+
 - **Approach:** Treat `project.godot` as Godot's file: change it by hand only for a real setting, keep local-only
   settings in an untracked `override.cfg`, run `git checkout game/project.godot` after each import or run, and stage
   files by path (never `git add -A` in a worktree where Godot has just run). **Watch out for:** Godot rewrites the

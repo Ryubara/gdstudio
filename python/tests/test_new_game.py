@@ -60,7 +60,11 @@ def make(kit, root, name="my-game", **options):
 
 def text_files(repo: Path):
     for path in sorted(repo.rglob("*")):
-        if path.is_file() and ".git" not in path.relative_to(repo).parts and path.suffix not in {".png", ".svg"}:
+        if (
+            path.is_file()
+            and ".git" not in path.relative_to(repo).parts
+            and path.suffix not in {".png", ".svg", ".exr", ".lmbake"}
+        ):
             yield path
 
 

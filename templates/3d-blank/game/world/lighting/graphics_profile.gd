@@ -41,8 +41,14 @@ const FORWARD_PLUS := "forward_plus"
 @export var volumetric_fog := true
 ## How thick the volumetric haze is.
 @export_range(0.0, 0.1, 0.001) var volumetric_density := 0.012
+## Brightness: the same scene reads darker in Forward+ than in Compatibility, so this lifts the
+## tonemap exposure to match what the web build shows. Set 1 to take the plain tonemap.
+@export_range(0.5, 2.0, 0.05) var exposure_match := 1.35
 ## Four shadow cascades, a sharper atlas and softer edges for the sun.
 @export var finer_shadows := true
+
+## The level's own environment, kept so that applying twice never stacks the extras.
+var _source: Environment
 
 
 ## True when this build can draw the extras.
@@ -60,13 +66,17 @@ func apply() -> void:
 	if not is_supported():
 		return
 	if world_environment != null and world_environment.environment != null:
-		var environment := world_environment.environment.duplicate() as Environment
+		if _source == null:
+			_source = world_environment.environment
+		var environment := _source.duplicate() as Environment
 		environment.ssao_enabled = ambient_occlusion
 		environment.ssil_enabled = indirect_light
 		environment.ssr_enabled = reflections
 		environment.sdfgi_enabled = global_light == GlobalLight.SDFGI
 		environment.volumetric_fog_enabled = volumetric_fog
 		environment.volumetric_fog_density = volumetric_density
+		environment.volumetric_fog_sky_affect = 0.0
+		environment.tonemap_exposure *= exposure_match
 		world_environment.environment = environment
 	if lightmap != null:
 		lightmap.visible = global_light == GlobalLight.BAKED

@@ -137,7 +137,7 @@ check this way (`gds new game template-check --template 3d-blank --local`).
 
 | Template | What it is | Status |
 | --- | --- | --- |
-| `3d-blank` | A lit prototype level, the folder layout and the web export, with no entities and no game scripts ([Prototype surfaces and daylight](prototype-surfaces.md)). | made |
+| `3d-blank` | A web-first prototype map (baked light, a Forward+ graphics profile, a grid surface) with six map components, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)). | made, reworked in #788 |
 | `3d-third-person`, `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with

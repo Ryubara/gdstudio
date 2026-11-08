@@ -1,14 +1,16 @@
 @tool
 class_name ProtoBlock
 extends MeshInstance3D
-## A solid piece of the prototype level: its mesh and its collision come from one size, so resizing
-## it in the inspector keeps both in step, and the grid material keeps its 1 m cells at any size.
+## A solid piece of the prototype level: its mesh and its collision come from one size, so
+## resizing it in the inspector keeps both in step, and the grid material keeps its 1 m cells at any
+## size.
 ##
 ## The block is the mesh itself (a lightmap only bakes meshes that belong to the scene, not ones a
 ## script adds under them) and keeps its collision in a `StaticBody3D` child. The mesh carries a
-## second UV set (UV2), which a lightmap needs: bake the level again after moving or resizing a
-## block (select the level's `LightmapGI` node and press "Bake Lightmaps", with the Forward+
-## renderer).
+## second UV set (UV2), which a lightmap needs. Only the editor can unwrap UV2 (an exported game has
+## no unwrapper), so the editor builds the mesh and the scene saves it; a running game uses the
+## saved mesh and builds only the collision. Bake the level again after moving or resizing a block
+## (select the level's `LightmapGI` node and press "Bake Lightmaps", with the Forward+ renderer).
 
 enum Kind {
 	BOX,  ## A cuboid: floors, walls, crates, platforms.
@@ -56,20 +58,30 @@ func _init() -> void:
 
 
 func _ready() -> void:
-	_rebuild()
+	material_override = material
+	_rebuild_collision()
+	if mesh == null:
+		mesh = _build_mesh()
 
 
-## The mesh and the material are made from the exports above, so neither is saved with the scene.
+## The mesh is saved with the scene (it carries the lightmap's UV2) but not shown in the inspector;
+## the material comes from `material`, so it is not saved.
 func _validate_property(property: Dictionary) -> void:
-	if property.name in ["mesh", "material_override"]:
+	if property.name == "mesh":
+		property.usage = PROPERTY_USAGE_STORAGE
+	elif property.name == "material_override":
 		property.usage = PROPERTY_USAGE_NONE
 
 
+## A shape property changed in the editor or in code: make both again.
 func _rebuild() -> void:
-	if _body == null:
+	if not is_node_ready():
 		return
-	material_override = material
 	mesh = _build_mesh()
+	_rebuild_collision()
+
+
+func _rebuild_collision() -> void:
 	for old in _body.get_children():
 		_body.remove_child(old)
 		old.queue_free()
@@ -107,9 +119,10 @@ func _build_mesh() -> ArrayMesh:
 				var box := BoxMesh.new()
 				box.size = step["size"]
 				tool.append_from(box, 0, Transform3D(Basis.IDENTITY, step["position"]))
-	var mesh := tool.commit()
-	mesh.lightmap_unwrap(Transform3D.IDENTITY, LIGHTMAP_TEXEL_M)
-	return mesh
+	var built := tool.commit()
+	if Engine.is_editor_hint():
+		built.lightmap_unwrap(Transform3D.IDENTITY, LIGHTMAP_TEXEL_M)
+	return built
 
 
 ## Collision as an array of [Shape3D, Transform3D].
