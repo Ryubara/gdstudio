@@ -18,4 +18,4 @@ areas: [godot-ui, tests, web]
   and give the probe the context flag (`touch_strike`) so it skips a circle that is not drawn; run a fit or clearance
   matrix twice, with the context down and up; hand a place search the cards that move (the zone's `cards`), and add
   the new hint to every "first run" list in the same commit.
-- **Docs:** [the older lesson](2026-11-05-a-button-that-shows-only-sometimes-broke-seven-suites-that-listed-it.md).
+- **Docs:** [Testing a game](../gamedev/testing.md#shared-change).

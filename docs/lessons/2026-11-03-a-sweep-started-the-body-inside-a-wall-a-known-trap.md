@@ -10,7 +10,7 @@ areas: [tests, godot]
   the far side.
 - **Cause:** the start check was "a capsule query returns nothing". A CSG box collides by its faces, one-sided, so a
   capsule (and a ray, even with `hit_from_inside`) whose middle is inside a thin wall meets no face and the query says
-  the cell is clear. The [camera sweep lesson](2026-11-01-camera-sweep-started-inside-a-wall.md) said exactly this two
+  the cell is clear. The [camera sweep note](../engines/godot/camera.md#walls) said exactly this two
   days earlier; I searched the lessons for "sweep" and "reach", not for the query I was about to trust.
 - **Fix:** the sweep keeps the bounds of every collidable CSG box (in 4 m squares) and refuses a start whose capsule
   overlaps one at body height, besides the query. The three reports went, and nothing a body can reach was lost.

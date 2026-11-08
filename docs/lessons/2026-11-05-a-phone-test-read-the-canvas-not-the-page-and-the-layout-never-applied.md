@@ -14,7 +14,7 @@ areas: [godot-ui, web, tests]
   device pixels, and the page reports a pixel ratio of up to 2 (`PhoneRender`): an 844 x 390 page is a 1688 x 780
   window, short side 780, "not a phone". Every test and capture made a Godot window of 844 x 390, a canvas that no
   phone page has, so each result was true of a layout nobody reached. The earlier lesson on phone captures
-  ([a phone capture without the phone scale](2026-11-05-a-phone-capture-without-the-phone-scale-showed-the-wrong-layout.md))
+  (a phone capture without the phone scale)
   had the right idea (say which scale a capture runs at) at the wrong level: it still counted pixels of a window.
 - **Fix:** a phone is what the person holds, in CSS pixels. `PageSize` reads the canvas's box in CSS pixels from the
   page (`getBoundingClientRect`, so an iframe such as Discord's reports its own); `MenuScale.is_phone` is true for a
