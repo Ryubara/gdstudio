@@ -42,8 +42,7 @@ draw the blend of the last two ticks.
   under a plain `Node`, while in the game the night hangs under a `Control`, which switched it off below, and the web
   measure was split into a follow-up nobody started. **Seen:** Deadnight #344, #353, 2026-11-01 (fix: the world's root
   is set ON and asserted in the game's tree, and the reported fix is proved on the live web build
-  ([lesson](../../lessons/2026-11-01-a-control-above-the-3d-world-switched-interpolation-off.md),
-  [proof](../../studio/starting-work.md#stopping-and-finishing))).
+  ([proof](../../studio/starting-work.md#stopping-and-finishing))).
 
 ## Measuring it
 

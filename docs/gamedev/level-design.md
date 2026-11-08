@@ -275,7 +275,7 @@ starting bar, not a published number: a dead at the longest sightline is at leas
 ### P18. Maps agree with each other, and the check stays in the suite
 
 The same kit, door widths, prompt words and light colours mean the same thing on every map, and a map's words are its
-own ([lesson](../lessons/2026-11-03-a-card-spoke-of-the-first-map-on-the-second.md)). A sweep run once is a snapshot:
+own. A sweep run once is a snapshot:
 geometry changes, and the jump is retuned.
 
 **Check (a probe):** the reach, escape and use-sight checks are tests the suite runs; a review re-runs the sweeps after

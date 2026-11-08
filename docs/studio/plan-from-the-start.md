@@ -19,16 +19,13 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   as a side effect of an action a control can stop sending ([States and actions](../gamedev/controller.md#states)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
   it as it holds a person ([Bots](../gamedev/bots.md)).
-- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button
-  ([lesson](../lessons/2026-11-02-a-shared-aim-weight-coupled-hip-fire-to-the-aim-zoom.md)).
-- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content
-  ([lesson](../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md)).
+- Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
+- Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
-  camera ([lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+  camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
   ([Settings that scale the game](../gamedev/design.md#settings)).
-- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser
-  ([lesson](../lessons/2026-11-01-layout-test-found-hud-overlaps-no-eye-would.md)).
+- Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
   and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
 - Plan: for an identity feature, every place a name is drawn, found by searching the code and listed in the issue, the
@@ -46,7 +43,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
   ([web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
-  is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
+  is tested on a screen with no focus.
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
   ([web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: touch proved in a phone-emulated browser; a finger is also a mouse motion in the web runtime
@@ -55,13 +52,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   never `relative` ([touch controls](../engines/godot/ui-controls.md#touch-controls)).
 - Plan: touch designed as its own interface before its first button: every action and every element on the screen for
   that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
-  expects everywhere (reload at 0) are proved through each device's real input path
-  ([lesson](../lessons/2026-11-05-a-phone-was-built-as-a-keyboard-on-glass.md)).
+  expects everywhere (reload at 0) are proved through each device's real input path.
 - Plan: a touch action is listed by what it does, derived from one table, not by an allow-list: every button looks while
   dragged unless its row owns the drag, so a new one cannot opt out unseen
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
-- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+- Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`.
 
 ## Platforms
 
@@ -129,9 +124,8 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Saving
 
 - Plan: hold menu choices in one draft, preview the draft, and commit once on leaving; no other view rereads saved
-  state while the screen is open ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
-- Plan: a test for every choice against another choice, a tab change and a reload, counting writes
-  ([lesson](../lessons/2026-11-02-a-view-that-rereads-saved-state-erased-unsaved-choices.md)).
+  state while the screen is open.
+- Plan: a test for every choice against another choice, a tab change and a reload, counting writes.
 - Plan: tests point the settings and save files away from the player's own `user://`
   ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
 
@@ -199,13 +193,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
   ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
-- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame
-  ([lesson](../lessons/2026-11-01-a-held-action-counted-as-two-presses.md)).
+- Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
   ([lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
   [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md)).
-- Plan: captures and recordings from the player's camera, with the real devices switched off
-  ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md)).
+- Plan: captures and recordings from the player's camera, with the real devices switched off.
 
 ## Process
 

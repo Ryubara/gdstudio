@@ -17,6 +17,30 @@ parts one by one. How Godot runs such tests is in the testing pages of [Godot](.
   carried the look), and grenades were wired only into their test range while keys, HUD, shop and sounds existed.
   **Seen:** Deadnight, 2026-11-01 (wardrobe look); Deadnight #351, #356, 2026-11-01 (grenades) (fix: the real-path tests
   and the action matrix).
+- **Approach:** Count a screen or feature as shipped when a player reaches it from the menu: its test starts at the
+  menu's button (never at the scene path), and a hand-off to "the menu work" becomes an issue in the same pull request.
+  **Watch out for:** the Play screen with the shared settings panel was built, its route was left as "a one-line change
+  for the menu work", and its own tests opened it by path, so they passed while no player could reach it; a headless run
+  also measures text as nothing, so check the fit in a windowed capture and the web build. **Seen:** Deadnight #620,
+  2026-11-02 (fix: Solo opens the Play screen, a test presses Solo from the menu, another fails when a `MatchSettings`
+  key has no row).
+- **Approach:** Capture and probe the shipped state first (the start the game really gives: one weapon and an empty
+  second place; the real scene with a real sign-in, in a [throwaway user folder](../engines/godot/throwaway-user-folder.md)),
+  and run a fault seen in a capture that assembles its own parts in the real scene before believing it. **Watch out
+  for:** fixtures that fill the hands look like a night, so a probe waited for two weapons and timed out; a capture that
+  built its own router and overlay showed LEVEL UP 12 over a plate that said LEVEL 1, while the real menu read the
+  profile once at build and the start-up sign-in landed later (level 4, 52 of 124 cells locked instead of 39). **Seen:**
+  Deadnight #1130, 2026-11-04; Deadnight #682, 2026-11-03 (fix: `ProfileUplink.adopt_and_tell`, and a test that fails
+  without it).
+- **Approach:** Set a setting through the service the player uses (in a test-owned settings file), not the field on the
+  object, in any bench or test of something that listens to `Settings.changed`. **Watch out for:** a browser run set the
+  aim assist's strength and auto-fire on the object, and the first touch (the first-run hints write a setting) fired
+  `changed`, so the object re-read the saved settings and every run behaved the same. **Seen:** Deadnight, 2026-11-01
+  (fix: the bench sets the setting).
+- **Approach:** Count a design claim against the data before a test is written to it, pin the real number with a
+  comment, and report the gap to the maintainer as a question instead of re-dressing the data. **Watch out for:** the
+  issue asked for four starting costumes lit at level 1; the twelve presets' pieces counted against the ladder gave two.
+  **Seen:** Deadnight, 2026-11-04 (fix: the test computes each costume's level from the tables the game reads).
 
 ## Every catalogue entry {#catalogue}
 
@@ -149,10 +173,33 @@ plays another night from the same seed. Why two runs of one night differ in Godo
   Deadnight (link soak), 2026-11-03; Deadnight (second map dressing), 2026-11-03; Deadnight (crowd budget), 2026-11-03
   (fix: the baselines redone; the bots' deterministic suites named as the proof).
 
-## Which suites a change runs {#what-to-run}
+## When something shared changes {#shared-change}
 
-<!-- new section: which tests a change must run before it is pushed, and after a merge of main, had no home -->
+<!-- new section: a changed default, constant or row turned suites red that never named it; no page held the habit that
+finds them first -->
 
+- **Approach:** When a default, a constant or a row of a table changes, search the tests and the code for every reader
+  of it (`LookStore.load_look`, `unlocks.json`, `STICK_`) and run those suites, then the whole folder once more after
+  `gds merge-main`; a test that is not about the thing says what it owns (`LookUnlocks.at_level(55)`). **Watch out
+  for:** a level on 26 wearables made every default mean "a level 1 player" and 88 assertions failed in look, loadout,
+  menu and network suites; flipping 24 rows to `available` was checked against the readers in the checkout, and a
+  popup test over every available row, merged meanwhile, found four with no art; a stick ring moved to CSS pixels broke
+  the night input matrix's pushes of 70 and 150 units. **Seen:** Deadnight, 2026-11-04; Deadnight #1070, 2026-11-04;
+  Deadnight, 2026-11-05 (fix: tests name what they own; the readers learned the new art).
+- **Approach:** Derive a number a test depends on from the thing it counts (circles minus the hidden button plus the
+  places) or name it with its reason, and treat an element that shows only in a context as a hidden case in every suite
+  that lists, counts or presses the elements: search for it first, give the fixture a switch for the context, run a fit
+  matrix with the context down and up, and add a new hint to every "first run" list in the same commit. **Watch out
+  for:** a Strike button that shows with a dead in reach broke seven suites that each held their own picture of "the
+  buttons"; a fourth hint made two suites that compared with the constant list go red; merging another layout change
+  turned a marker capacity of eight and a box count of 15 red with no test edit. **Seen:** Deadnight #1285, #1286,
+  #1280, 2026-11-05 (fix: `TouchFixture.strike_up`, `WITHOUT_BOTS`, `CROWDED_HOLDS`).
+- **Approach:** Print the failure count and every `FAILED` line (`grep -c FAILED`, never `head` on a mixed list),
+  compare the `Overall Summary` line, and run the whole test folder of the game before the pull request, not the
+  folders you think you touched. **Watch out for:** a test script piped through `head -60` showed 55 passes and two
+  failures; a sixth settings row used the 50 units the Play screen's fit tests had left, and only the folders run were
+  green. **Seen:** Deadnight #715, 2026-11-03 (fix: the skill selector went beside the Bots count; the tour's hook was
+  cleared).
 - **Approach:** Before pushing a change to something many suites read (a default bot behaviour, a shared node, a
   roster number, the map, the walking mesh, the pool of bodies), grep for its readers and its old value, run every
   folder that holds them (the night, bot and world suites, not only the new one), and make each old test say what it
