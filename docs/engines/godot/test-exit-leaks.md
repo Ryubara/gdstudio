@@ -22,7 +22,7 @@ whose order loaded them last passed, and one whose order loaded them first faile
 (fonts, shaped text, textures, audio banks: everything the leaked scripts' statics reach). It never reproduced on
 Windows, nor on a Linux machine with another directory order.
 
-## What to do
+## What to do {#what-to-do}
 
 - **Keep dev tools out of the folders a test run scans.** Probes, solvers, measuring scripts and captures that are not
   suites go under `tools/` (Deadnight: `game/tools/art`, `game/tools/captures`), not under `tests/`. A helper class that
@@ -39,6 +39,12 @@ Windows, nor on a Linux machine with another directory order.
   arguments, with `taskset -c 0-3` for a four-core runner.
 
 See the [lesson](../../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
+
+- **Approach:** Clear a handler stored on an object that the handler itself names in that object's dispose method, not
+  in each test, and run a new suite alone and grep its log for `leaked at exit|still in use` before the pull request.
+  **Watch out for:** a test set `night.on_event` to a lambda that named `night`, a RefCounted cycle that kept the night,
+  its server and every bot script alive: 207 objects leaked and a shard failed with every test green. **Seen:**
+  Deadnight #597, 2026-11-02 (fix: `SeatedNight.dispose()` clears the handler first).
 
 ## A test that only needs a number from a scene
 

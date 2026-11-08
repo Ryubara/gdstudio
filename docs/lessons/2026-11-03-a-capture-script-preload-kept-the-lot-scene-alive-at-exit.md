@@ -21,6 +21,5 @@ areas: [tests, godot, ci]
   script stays loaded for the whole run, and so does everything it names. Use `load()` where it runs. When a shard
   leaks and nothing locally does, list the `preload` lines of the scripts in the folders the shard scans before
   bisecting in CI.
-- **Docs:** related: [a test handler that named its
-  night](2026-11-02-a-test-handler-that-names-its-night-leaked-the-whole-bot-code.md) and [a run that printed leaks no
-  test reported](2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md).
+- **Docs:** related: [a handler that names its object](../engines/godot/test-exit-leaks.md#what-to-do) and [a run
+  that printed leaks no test reported](2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md).

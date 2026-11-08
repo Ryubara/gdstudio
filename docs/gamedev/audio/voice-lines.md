@@ -260,7 +260,7 @@ voices of 139) move with it.
   them. Deadnight's: a line -24.0 LUFS while it speaks, a shot -19.2, the beds -34.6, so the voice sat 4.8 LU under the
   guns and 10.6 LU over the beds. Attach the chart, the sheet and a clip with sound.
 
-## 4. In game
+## 4. In game {#4-in-game}
 
 Three pieces, each with its own tests ([design][design]):
 
@@ -289,6 +289,12 @@ under a sting), at -4 dB (`VOICE_DB`). The player's own voice is flat (in their 
 (`LOCAL_DB`); a teammate's comes from where they stand, at head height, heard to 40 m with `unit_size` 6. Those two
 numbers were set from the stems capture above. Pooling, groups and the slot budget are the audio service's
 ([Godot: Audio](../../engines/godot/audio.md#service-shape-that-worked)).
+
+- **Approach:** Bound how often one speaker talks with a window (at most N lines in T seconds) as well as each line's
+  cooldown, and test the worst case (every kind of trouble at once for minutes), not a typical night. **Watch out
+  for:** twelve bot callouts, each with a 20 to 60 s cooldown and a short gap before an urgent one, let a bot say 1.4
+  lines in ten seconds. **Seen:** Deadnight #229, 2026-11-02 (fix: a window of lines, 0.8 lines in ten seconds at
+  most by construction).
 
 ## 5. The zombies are different
 

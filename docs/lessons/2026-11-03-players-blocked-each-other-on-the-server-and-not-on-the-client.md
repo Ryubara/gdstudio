@@ -17,7 +17,7 @@ areas: [net, tests]
   side. `test_world_parity.gd` walks one server body into another (it stopped at 0.8 m before, 8 m now), checks the
   layers, and the soak compares both worlds' solid things every 300 ticks and says in its failure line what each body
   slid on.
-- **Note:** [the bots' spreading lesson](2026-11-02-bots-in-a-crowd-block-each-other-because-players-are-solid.md)
+- **Note:** [the bots' slots and meeting rule](../gamedev/bots.md#movement)
   worked around this solidity for bots alone; with bodies passing through each other that jam cannot happen.
 - **Rays:** a ray that has to meet a body (a shot, the dead's swing, a grenade, footsteps, a ping) lists `PhysicsLayers.BODY`
   in its own mask; moving the layer alone made the dead's swing check stop meeting the bot and broke

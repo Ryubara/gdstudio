@@ -18,7 +18,7 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 | a batch of seeded runs bigger than the case needs | keep the full count where it is the gate; a case that proves the gate can fail needs a wall, not a statistic |
 | a test about the engine's own callback, a socket or a freeze | leave it on the clock and say so in its first comment |
 
-## What hand stepping needs
+## What hand stepping needs {#what-hand-stepping-needs}
 
 - **One physics step for new bodies, and `physics_frame` is emitted before it.** The physics server indexes a body on its
   next step, and the signal fires at the start of an iteration, before that iteration's step. After loading a room and
@@ -39,6 +39,15 @@ same way only when nothing else is loading the machine: a loaded machine doubles
 
 See also [a physics frame per tick](../../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
 and [Engine.time_scale](../../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
+
+- **Approach:** Animate anything a hand-stepped test must move from the delta the view is given each step, not with a
+  Tween, which runs on idle frames a hand-stepped suite never draws. **Watch out for:** a prop that slid with a Tween
+  stayed where it was however many simulated seconds the night was ticked. **Seen:** Deadnight, 2026-11-01 (fix: the
+  crane's view counts `delta` per frame event; Tweens are kept for what no test steps).
+- **Approach:** In a hand-run night, press an input and run a few neutral ticks before reading its events, the way the
+  nearest suite presses: a command crosses the loopback link and the server uses it on a later tick. **Watch out
+  for:** four tests read `reload_started` on the tick of the press and found an empty list. **Seen:** Deadnight #687,
+  2026-11-03 (fix: a press, then three ticks, as `test_night_commands.gd` already did).
 
 ## Split the suite by seconds, not by folder
 
@@ -88,8 +97,7 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
   still world, so a tick that leaves the state unchanged under an unchanged command leaves every later tick unchanged.
   Prove it on the real sweep before relying on it: run all ticks, note the first fixed tick, and count the hops whose last
   state differs from it (0 of 19,667 on the midway sweep). Do not coarsen a sweep's grid instead: a trimmed grid passed
-  on the map it was written to catch
-  ([lesson](../../lessons/2026-11-03-a-trimmed-sweep-test-passed-on-the-unfixed-map.md)).
+  on the map it was written to catch.
 - **Break it once, with a mutation that the cut test must still see.** For a seed cut, give a profile another profile's
   skill (a Rookie with the Veteran's reaction) and see the band fail on the fewer seeds; for a soak, take the safety
   constants out of the code and see the shorter night fail.
@@ -98,8 +106,7 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
 
 A test that makes a `BotClient` by hand copies `BotHost.seat`: the shared `bot_ids` table and team, not only what compiles.
 Without the table each bot takes its neighbour for a person and a team order (Hold, a ring about a spot) collapses; a
-flake of 3 cm over a bound was the symptom
-([lesson](../../lessons/2026-11-03-a-bot-test-seated-its-bots-without-the-host-s-table.md)).
+flake of 3 cm over a bound was the symptom.
 
 ## One clock per test
 

@@ -27,3 +27,17 @@ minutes). How it is started decides what it can build.
   `--import` once before the first run; the first `--import` of a worktree takes about a minute.
 - **Write the probe with the file tool, not a heredoc**: a shell heredoc with quotes in it failed to parse in the
   agent's shell ([lesson](../../lessons/2026-11-01-large-bash-heredocs-failed-to-parse.md)).
+
+## An engine error from a player's own file {#engine-errors-from-input}
+
+<!-- new section: the probes above read the engine's error log; nothing said which engine calls write to it on bad
+input -->
+
+A smoke run or a probe that fails on `^ERROR` in the log also fails on an error the engine logs for bad input, though
+the code handled it.
+
+- **Approach:** Parse text from a player's disk or the network with a `JSON` instance (`var json := JSON.new()`, then
+  `json.parse(text) != OK`, and `json.data`), which fails silently, never with `JSON.parse_string`. **Watch out for:**
+  `JSON.parse_string` reports a syntax error in the engine's error log as well as returning null, so a test of a
+  damaged save printed `ERROR: Parse JSON failed` and the smoke run, which greps for `^ERROR`, went red. **Seen:**
+  Deadnight, 2026-11-01 (fix: an instance for every file from a disk or the network).

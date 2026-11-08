@@ -14,6 +14,8 @@ studio itself works (`studio/`).
 | [Audio](audio/index.md) | Making sound assets outside the engine: voice lines, menu and interface sounds. |
 | [The player's controller](controller.md) | Genre conventions, devices, aim and hip fire, states and actions, feel. |
 | [UI and HUD](ui.md) | What the HUD holds, a screen of choices, what an online menu offers. |
-| [Testing a game](testing.md) | When a feature counts as tested: the real path and every catalogue entry. |
-| [Balance](balance.md) | The numbers a player meets: hits to kill, the weapon roster, comparing weapons, prices, a score's step. |
+| [Testing a game](testing.md) | When a feature counts as tested: the real path, every catalogue entry, scenarios, seeded runs and which suites a change runs. |
+| [Balance](balance.md) | The numbers a player meets: hits to kill, the weapon roster, comparing weapons, prices, a score's step, the balance gate and its simulator. |
 | [Designing from a reference](design.md) | The reference's loop and numbers, variety beats, settings that scale, bot teammates, content and interactions. |
+| [Bots](bots.md) | Players the game plays itself: what a bot knows, its choices, walking, throws, fitting it to the balance model, soaks. |
+| [Simulation rules](simulation.md) | A game's own simulation: timers on a fixed step, ids two owners share, events, scripted bodies in space. |

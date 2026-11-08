@@ -73,8 +73,7 @@ stride.
   player and the puppet, and fail on a per-tick jump. **Watch out for:** Deadnight #525 faded the hands IK by the
   modifier's `influence` and switched it off at 0, but Godot blends only the chest and hand bones by `influence`, so the
   arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
-  Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test
-  ([lesson](../../lessons/2026-11-02-a-sprint-start-popped-because-modifier-influence-leaves-the-arms.md))).
+  Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test).
 
 ## A state machine that starts at Start and has no way out
 
@@ -132,8 +131,7 @@ entry and is not scaled), and a fall is a clip that holds its last frame while t
   and test through the real night that the body's highest bone in each action stays within that state's height. **Watch
   out for:** the view picked its state by mode and only the move state had a crawl branch, so every crawler rose into
   the standing `Punch` (the mesh from 0.85 to 1.84 m), with one reach and windup for every zombie. **Seen:**
-  Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above
-  ([lesson](../../lessons/2026-11-04-a-crawler-played-the-standing-punch-because-the-attack-state-had-one-clip.md))).
+  Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above).
 
 ## Two clips half a turn apart on a bone
 

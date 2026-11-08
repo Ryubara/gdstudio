@@ -13,5 +13,5 @@ areas: [process, general]
   into the scratch folder, then read `parse.wikitext` with `python -I`; `action=query&list=search&srsearch=<words>`
   finds a page's title. The wikitext is the whole article with its tables, galleries and trivia, so one call replaces
   several fetches. Cite the article's normal URL and mark it read. The older fix (game scripts on GitHub,
-  [lesson](2026-11-01-reading-another-games-scripts-without-its-wiki.md)) still holds for numbers no wiki prints.
+  [Designing from a reference](../gamedev/design.md#reference)) still holds for numbers no wiki prints.
 - **Docs:** the worked example is Deadnight's `docs/research/maps/small-map-formula.md`, section "Sources".

@@ -26,6 +26,11 @@ not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../
   plane so the gun, hand and arm hid 25 to 87 % of them, and its light went under the floor when the gun pointed down.
   **Seen:** Deadnight #408, 2026-11-01 (fix: deadnight #448
   ([lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md))).
+- **Approach:** Judge a burst from the frames of the shot itself (the largest PNGs after it), not a fixed frame number,
+  and give a blast seen at night a bright shell and a hot core that is gone by half its time. **Watch out for:** one
+  unshaded sphere at 55% alpha fading fast read as nothing on a dark lot, and the frame captured was the end of the
+  fade. **Seen:** Deadnight (re-cut blast), 2026-11-03 (fix: an 80% shell and a core; Deadnight's
+  `docs/design/upgrades.md`).
 
 ## A held weapon from the shoulder camera
 
