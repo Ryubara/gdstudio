@@ -5,5 +5,7 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
 
 - `tools/capture/level_tour.tscn` records the level from a few angles for a pull request's screenshots.
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
+- `tools/capture/action_tour.tscn` plays the character through the range, the crouch course and the cubes by pressing the
+  input actions, for a clip with the sound.
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).

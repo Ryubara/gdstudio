@@ -11,6 +11,8 @@ The template has a character and the map's components:
 
 - `player/`: the character (`Player`, its `PlayerTuning`, `PlayerAnimation`, `PlayerCamera`, `Interactor`,
   `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
+- `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the crosshair,
+  and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
 - `camera_zone/`: hands the view to another Phantom Camera while the player stands in a trigger zone.
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,

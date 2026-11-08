@@ -7,6 +7,10 @@ extends Node3D
 ## of walls with its spring arm, damps the follow and blends to another camera when one has a
 ## higher `priority`.
 ##
+## Sprinting zooms the view out a little and can shake it; aiming brings the camera in, over the
+## shoulder, to a narrower field of view. Both blend smoothly in and out and sit on top of the
+## framing below, so `distance`, `offset` and `field_of_view` stay the resting view.
+##
 ## Orbit comes from the mouse (while it is captured), the right stick (`look_*` actions) and
 ## touch (`TouchControls.look_turned`, connected in the scene to `orbit()`). The character turns
 ## to its move direction on its own (`Player`), so the camera never drags it.
@@ -47,6 +51,9 @@ const _FORWARDED: Array[StringName] = [
 		follow_camera = value
 		update_configuration_warnings()
 
+## The character whose sprint and aim the camera follows. Empty looks at the parent of `target`.
+@export var player: Player
+
 @export_group("Framing")
 ## How far behind the target the lens sits.
 @export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 4.4:
@@ -76,6 +83,51 @@ const _FORWARDED: Array[StringName] = [
 		_forward()
 ## The angle looking down at the start: positive looks down at the character.
 @export_range(-80.0, 80.0, 0.5, "suffix:deg") var start_pitch := 14.0
+
+@export_group("Sprint")
+## How much wider the field of view gets at a full sprint.
+@export_range(-20.0, 30.0, 0.5, "suffix:deg") var sprint_fov_change := 6.0:
+	set(value):
+		sprint_fov_change = value
+		_forward_blend()
+## How much farther behind the target the lens sits at a full sprint.
+@export_range(-3.0, 3.0, 0.05, "suffix:m") var sprint_distance_change := 0.4:
+	set(value):
+		sprint_distance_change = value
+		_forward_blend()
+## How fast the view zooms in and out of the sprint view (1 is a second, 4 a quarter of one).
+@export_range(0.5, 20.0, 0.1, "suffix:/s") var sprint_zoom_speed := 3.0
+
+@export_subgroup("Shake")
+## How far the sprint rocks the view up and down, in degrees (the sideways turn and roll are
+## smaller shares of it). Zero is off; 0.3 is subtle.
+@export_range(0.0, 2.0, 0.01, "suffix:deg") var sprint_shake_amplitude := 0.0
+## Steps a second of the shake: one bob for each foot that lands (the sprint clip lands three).
+@export_range(0.5, 8.0, 0.05, "suffix:Hz") var sprint_shake_frequency := 3.0
+## How fast the shake builds up and dies down (1 is a second).
+@export_range(0.5, 20.0, 0.1, "suffix:/s") var sprint_shake_blend := 4.0
+
+@export_group("Aim")
+## How far behind the target the lens sits while aiming.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 2.4:
+	set(value):
+		aim_distance = value
+		_forward_blend()
+## How far the view moves to the right of the character while aiming, so the crosshair clears the
+## body.
+@export_range(-2.0, 2.0, 0.01, "suffix:m") var aim_shoulder := 0.55:
+	set(value):
+		aim_shoulder = value
+		_forward_blend()
+## The field of view while aiming.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var aim_fov := 50.0:
+	set(value):
+		aim_fov = value
+		_forward_blend()
+## How fast the view comes in to the aim view (1 is a second, 8 an eighth of one).
+@export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_in_speed := 8.0
+## How fast the view goes back out.
+@export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_out_speed := 6.0
 
 @export_group("Follow")
 ## Smooths the camera's follow of a moving target.
@@ -154,8 +206,13 @@ var yaw := 0.0
 var pitch := 0.0
 
 var _arm_waited := 0
+var _sprint_blend := 0.0
+var _aim_blend := 0.0
+var _shake_blend := 0.0
+var _shake_phase := 0.0
 
 var _pcam: PhantomCamera3D
+var _player: Player
 
 
 func _enter_tree() -> void:
@@ -195,12 +252,15 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	pitch = start_pitch
+	_player = player
 	if target != null:
 		var heading := target.get_parent() as Node3D
 		if heading != null:
 			yaw = rad_to_deg(heading.global_rotation.y)
 		if heading is Player:
 			(heading as Player).teleported.connect(_pcam.teleport_position)
+			if _player == null:
+				_player = heading as Player
 
 
 func _process(delta: float) -> void:
@@ -213,7 +273,7 @@ func _process(delta: float) -> void:
 	var stick := Input.get_vector(&"look_left", &"look_right", &"look_up", &"look_down")
 	if not stick.is_zero_approx():
 		orbit(stick * stick_speed * delta)
-	_apply()
+	advance(delta)
 
 
 ## Turns the camera by `degrees` (x about the up axis, y up and down). The mouse, the stick and
@@ -223,6 +283,64 @@ func orbit(degrees: Vector2) -> void:
 	var vertical := -degrees.y if invert_y else degrees.y
 	pitch = clampf(pitch + vertical, min_pitch, max_pitch)
 	orbited.emit(yaw, pitch)
+
+
+## Moves the sprint and aim blends `delta` seconds toward where the player is (sprinting,
+## aiming), puts the blended view on the Phantom Camera and turns it. `_process` calls it every
+## frame; a test calls it with the time it wants.
+func advance(delta: float) -> void:
+	var sprinting := is_instance_valid(_player) and _player.is_sprinting()
+	var aiming := is_instance_valid(_player) and _player.aiming
+	_sprint_blend = move_toward(_sprint_blend, 1.0 if sprinting else 0.0, sprint_zoom_speed * delta)
+	var aim_speed := aim_in_speed if aiming else aim_out_speed
+	_aim_blend = move_toward(_aim_blend, 1.0 if aiming else 0.0, aim_speed * delta)
+	_shake_blend = move_toward(_shake_blend, 1.0 if sprinting else 0.0, sprint_shake_blend * delta)
+	if _shake_blend > 0.0:
+		_shake_phase = fmod(_shake_phase + TAU * sprint_shake_frequency * delta, TAU * 2.0)
+	_forward_blend()
+	_apply()
+
+
+## The distance behind the target now: `distance`, farther while sprinting, `aim_distance` while
+## aiming.
+func current_distance() -> float:
+	var sprint := distance + sprint_distance_change * _eased(_sprint_blend)
+	return lerpf(sprint, aim_distance, _eased(_aim_blend))
+
+
+## The field of view now: `field_of_view`, wider while sprinting, `aim_fov` while aiming.
+func current_fov() -> float:
+	var sprint := field_of_view + sprint_fov_change * _eased(_sprint_blend)
+	return lerpf(sprint, aim_fov, _eased(_aim_blend))
+
+
+## The aim point offset now: `offset`, moved to the right by `aim_shoulder` while aiming.
+func current_offset() -> Vector3:
+	return offset + Vector3(aim_shoulder * _eased(_aim_blend), 0.0, 0.0)
+
+
+## The sprint shake right now as turns in degrees (x pitch, y yaw, z roll). Zero when
+## `sprint_shake_amplitude` is zero.
+func current_shake() -> Vector3:
+	var strength := sprint_shake_amplitude * _eased(_shake_blend)
+	if strength <= 0.0:
+		return Vector3.ZERO
+	# One bob for each footfall, the sideways turn and the roll once for every two.
+	return Vector3(
+		sin(_shake_phase) * strength,
+		sin(_shake_phase * 0.5) * strength * 0.5,
+		cos(_shake_phase * 0.5) * strength * 0.67
+	)
+
+
+## How far into the sprint view the camera is, 0 to 1.
+func sprint_blend() -> float:
+	return _sprint_blend
+
+
+## How far into the aim view the camera is, 0 to 1.
+func aim_blend() -> float:
+	return _aim_blend
 
 
 ## The Phantom Camera that does the work (for a game that wants its other settings).
@@ -263,10 +381,8 @@ func _forward() -> void:
 	var pcam := _pcam
 	if not is_instance_valid(pcam):
 		return
-	pcam.spring_length = distance
 	pcam.collision_mask = wall_mask
 	pcam.margin = wall_margin
-	pcam.follow_offset = offset
 	pcam.priority = priority
 	if pcam.tween_resource != null:
 		pcam.tween_duration = blend_duration
@@ -278,11 +394,33 @@ func _forward() -> void:
 	pcam.follow_damping_value = Vector3.ONE * follow_damping_amount
 	var lens := pcam.camera_3d_resource
 	if lens != null:
-		if not is_equal_approx(lens.fov, field_of_view):
-			lens.fov = field_of_view
-		lens.near = near_clip
-		lens.far = far_clip
+		# Only a changed value is written: the lens tells the camera host about every write.
+		if not is_equal_approx(lens.near, near_clip):
+			lens.near = near_clip
+		if not is_equal_approx(lens.far, far_clip):
+			lens.far = far_clip
+	_forward_blend()
+
+
+# The part of the view that sprinting and aiming move: how far behind, how far to the side and
+# how wide.
+func _forward_blend() -> void:
+	var pcam := _pcam
+	if not is_instance_valid(pcam):
+		return
+	pcam.spring_length = current_distance()
+	pcam.follow_offset = current_offset()
+	var lens := pcam.camera_3d_resource
+	if lens != null and not is_equal_approx(lens.fov, current_fov()):
+		lens.fov = current_fov()
+
+
+func _eased(blend: float) -> float:
+	return smoothstep(0.0, 1.0, blend)
 
 
 func _apply() -> void:
-	_pcam.set_third_person_rotation_degrees(Vector3(-pitch, yaw, 0.0))
+	if not is_instance_valid(_pcam):
+		return
+	var shake := current_shake()
+	_pcam.set_third_person_rotation_degrees(Vector3(-pitch + shake.x, yaw + shake.y, shake.z))

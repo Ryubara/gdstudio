@@ -8,7 +8,9 @@ extends Area3D
 ## while.
 ##
 ## Its look is two nodes of `pickup.tscn`, `Visual` (the mesh) and `Shape` (what a body touches),
-## so open the scene to restyle it. `tint` and `item_size` follow the inspector live.
+## so open the scene to restyle it. `tint` and `item_size` follow the inspector live. Its sound is
+## the `Sound` node (an `AudioStreamPlayer3D`: volume, bus and distance are its own); a pickup
+## with no `respawn_time` waits for the sound to end before it goes.
 
 ## A body took the pickup. `item_id` and `amount` are the inspector's values.
 signal collected(collector: Node3D, item_id: StringName, amount: int)
@@ -39,15 +41,24 @@ signal respawned
 ## Seconds for one rise and fall.
 @export_range(0.2, 10.0, 0.1, "suffix:s") var bob_period := 1.6
 
+@export_group("Sound")
+## The sounds a pickup plays when it is taken, one of them each time (the coin has four).
+@export var sounds: Array[AudioStream] = []
+## How much the pitch varies from one pickup to the next, as a share (0.05 is 5 percent either way).
+@export_range(0.0, 0.5, 0.01) var pitch_variation := 0.04
+
 @export_group("Respawn")
 ## Comes back this long after it was taken. Zero collects it once and removes it.
 @export_range(0.0, 600.0, 0.5, "or_greater", "suffix:s") var respawn_time := 0.0
 
 var _phase := 0.0
 var _hidden_for := -1.0
+var _rng := RandomNumberGenerator.new()
+var _last_sound := -1
 
 
 func _ready() -> void:
+	_rng.seed = 1
 	_update_look()
 	if Engine.is_editor_hint():
 		set_process(false)
@@ -96,8 +107,27 @@ func _on_body_entered(body: Node3D) -> void:
 	if body.has_method(&"collect"):
 		body.call(&"collect", item_id, amount)
 	_hide_now()
+	var length := _play_sound()
 	if respawn_time <= 0.0:
-		queue_free()
+		if length > 0.0:
+			get_tree().create_timer(length).timeout.connect(queue_free)
+		else:
+			queue_free()
+
+
+# Plays one of the sounds and returns how long it lasts (zero when there is nothing to play).
+func _play_sound() -> float:
+	var player := get_node_or_null("%Sound") as AudioStreamPlayer3D
+	if player == null or sounds.is_empty():
+		return 0.0
+	var pick := _rng.randi() % sounds.size()
+	if sounds.size() > 1 and pick == _last_sound:
+		pick = (pick + 1) % sounds.size()
+	_last_sound = pick
+	player.stream = sounds[pick]
+	player.pitch_scale = 1.0 + _rng.randf_range(-pitch_variation, pitch_variation)
+	player.play()
+	return sounds[pick].get_length() / player.pitch_scale + 0.05
 
 
 func _hide_now() -> void:

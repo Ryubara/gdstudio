@@ -2,9 +2,11 @@
 class_name PlayerAnimation
 extends Node
 ## Plays the clip for what the `Player` is doing, through an `AnimationTree` it builds: a state
-## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `jump`,
-## `fall`, `land` and `push` are clips of their own) and a one-shot layer on top for actions
-## (interact, hit, and any clip a game asks for with `play_clip()`).
+## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
+## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
+## pistol layer on the upper body (the arm holds the pistol, comes up to aim by the camera's
+## pitch, and recoils for a shot) and a one-shot layer on the whole body for actions (interact,
+## hit, and any clip a game asks for with `play_clip()`).
 ##
 ## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
 ## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
@@ -26,11 +28,19 @@ const JUMP := &"jump"
 const FALL := &"fall"
 const LAND := &"land"
 const PUSH := &"push"
+const CROUCH := &"crouch"
 
 const _MACHINE := "Locomotion"
 const _ACTION := "Action"
 const _ACTION_CLIP := "ActionClip"
 const _ACTION_SCALE := "ActionScale"
+const _ARMED := "Armed"
+const _PISTOL_IDLE := "PistolIdle"
+const _AIM_POSE := "AimPose"
+const _SHOOT_CLIP := "ShootClip"
+const _SHOOT_SCALE := "ShootScale"
+const _SHOOT := "Shoot"
+const _AIM := "Aim"
 
 @export_group("Nodes")
 ## The player that is animated.
@@ -76,6 +86,16 @@ const _ACTION_SCALE := "ActionScale"
 	set(value):
 		land_clip = value
 		_rebuild()
+## Crouched and standing still.
+@export var crouch_idle_clip: StringName = CharacterClips.CROUCH_IDLE:
+	set(value):
+		crouch_idle_clip = value
+		_rebuild()
+## Crouch walking: the blend space puts it at the crouch speed.
+@export var crouch_walk_clip: StringName = CharacterClips.CROUCH_WALK:
+	set(value):
+		crouch_walk_clip = value
+		_rebuild()
 ## Walking into a prop.
 @export var push_clip: StringName = CharacterClips.PUSH:
 	set(value):
@@ -92,6 +112,46 @@ const _ACTION_SCALE := "ActionScale"
 		hit_clip = value
 		_rebuild()
 
+@export_group("Pistol")
+## The pose of the upper body while the character holds the pistol and is not aiming.
+@export var pistol_idle_clip: StringName = CharacterClips.PISTOL_IDLE:
+	set(value):
+		pistol_idle_clip = value
+		_rebuild()
+## Aiming level; the aim blends to the clips below by the camera's pitch.
+@export var aim_clip: StringName = CharacterClips.PISTOL_AIM:
+	set(value):
+		aim_clip = value
+		_rebuild()
+## Aiming up (the camera looks `aim_pitch_range` degrees up).
+@export var aim_up_clip: StringName = CharacterClips.PISTOL_AIM_UP:
+	set(value):
+		aim_up_clip = value
+		_rebuild()
+## Aiming down (the camera looks `aim_pitch_range` degrees down).
+@export var aim_down_clip: StringName = CharacterClips.PISTOL_AIM_DOWN:
+	set(value):
+		aim_down_clip = value
+		_rebuild()
+## The recoil of a shot, played on the upper body.
+@export var shoot_clip: StringName = CharacterClips.PISTOL_SHOOT:
+	set(value):
+		shoot_clip = value
+		_rebuild()
+## The bone where the upper body starts: it and everything below it in the skeleton (spine, arms,
+## head, fingers) take the pistol layer; the legs do not.
+@export var upper_body_bone: StringName = &"spine_01":
+	set(value):
+		upper_body_bone = value
+		_rebuild()
+## How far the camera looks up or down for the full aim up or aim down pose.
+@export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
+	set(value):
+		aim_pitch_range = value
+		_rebuild()
+## How fast the recoil plays (1 is the clip's own speed).
+@export_range(0.2, 4.0, 0.05) var shoot_speed := 1.6
+
 @export_group("Blending")
 ## Seconds the body states take to blend into each other.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var blend_time := 0.15:
@@ -106,7 +166,9 @@ const _ACTION_SCALE := "ActionScale"
 
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
+var _crouch: AnimationNodeBlendSpace1D
 var _ground_speeds: Array = []
+var _shoot_scale_node: AnimationNodeTimeScale
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
 var _playback: AnimationNodeStateMachinePlayback
@@ -128,6 +190,8 @@ func _ready() -> void:
 	player.state_changed.connect(_on_state_changed)
 	player.interacted.connect(_on_interacted)
 	player.took_hit.connect(_on_hit)
+	if player.weapon != null:
+		player.weapon.fired.connect(_on_shot)
 
 
 func _notification(what: int) -> void:
@@ -148,13 +212,15 @@ func _process(_delta: float) -> void:
 	_sync_ground_speeds()
 	var speed := player.ground_speed()
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, GROUND], speed)
+	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, CROUCH], speed)
+	_drive_pistol()
 	var active: bool = tree.get(&"parameters/%s/active" % _ACTION)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
 
 
-## The body state the tree is in now (`ground`, `jump`, `fall`, `land` or `push`).
+## The body state the tree is in now (`ground`, `crouch`, `jump`, `fall`, `land` or `push`).
 func body_state() -> StringName:
 	return _playback.get_current_node() if _playback != null else &""
 
@@ -184,6 +250,22 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	action_started.emit(clip)
 
 
+## How much of the upper body the pistol holds (0 none, 1 all of it): the holding pose, then the
+## aim over it.
+func pistol_weights() -> Vector2:
+	if tree == null:
+		return Vector2.ZERO
+	return Vector2(
+		tree.get(&"parameters/%s/blend_amount" % _ARMED),
+		tree.get(&"parameters/%s/blend_amount" % _AIM)
+	)
+
+
+## Where the aim pose is on its pitch axis, in degrees (negative looks down).
+func aim_pitch() -> float:
+	return tree.get(&"parameters/%s/blend_position" % _AIM_POSE) if tree != null else 0.0
+
+
 ## Stops an action clip early.
 func stop_clip() -> void:
 	if tree != null:
@@ -209,19 +291,37 @@ func _rebuild() -> void:
 	_playback.start(current if current != &"" else GROUND)
 
 
-# Moves the walk, run and sprint points of the ground blend space to the tuning's speeds (the
-# tuning has no `changed` for them, so the game checks every frame).
+# Moves the walk, run and sprint points of the ground blend space (and the crouch walk point) to
+# the tuning's speeds (the tuning has no `changed` for them, so the game checks every frame).
 func _sync_ground_speeds() -> void:
 	if _ground == null or player == null or player.tuning == null:
 		return
 	var tuning := player.tuning
-	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed]
+	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed, tuning.crouch_speed]
 	if speeds == _ground_speeds:
 		return
 	_ground_speeds = speeds
 	_ground.max_space = tuning.sprint_speed
-	for index in speeds.size():
+	for index in 3:
 		_ground.set_blend_point_position(index + 1, speeds[index])
+	_crouch.max_space = tuning.crouch_speed
+	_crouch.set_blend_point_position(1, tuning.crouch_speed)
+
+
+# The pistol layer follows the player: held (or not), how far the arm is up, and the camera's pitch
+# for the aim pose.
+func _drive_pistol() -> void:
+	var armed := 1.0 if player.weapon != null else 0.0
+	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
+	tree.set(&"parameters/%s/blend_amount" % _AIM, player.aim_amount * armed)
+	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
+	var camera := get_viewport().get_camera_3d()
+	if camera != null:
+		var up := rad_to_deg(asin(clampf(-camera.global_basis.z.y, -1.0, 1.0)))
+		tree.set(
+			&"parameters/%s/blend_position" % _AIM_POSE,
+			clampf(up, -aim_pitch_range, aim_pitch_range)
+		)
 
 
 func _on_state_changed(state: Player.State) -> void:
@@ -236,6 +336,8 @@ func _on_state_changed(state: Player.State) -> void:
 			_travel(LAND)
 		Player.State.PUSH:
 			_travel(PUSH)
+		Player.State.CROUCH:
+			_travel(CROUCH)
 
 
 func _on_interacted(_target: Node3D) -> void:
@@ -244,6 +346,10 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, player.tuning.hit_stun_time)
+
+
+func _on_shot(_projectile: Projectile) -> void:
+	tree.set(&"parameters/%s/request" % _SHOOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
 func _travel(state: StringName) -> void:
@@ -262,11 +368,76 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
-	root.add_node(_ACTION, action, Vector2(400, 0))
-	root.connect_node(_ACTION, 0, _MACHINE)
+	root.add_node(_ACTION, action, Vector2(1000, 0))
+	_add_pistol_layer(root)
+	root.connect_node(_ACTION, 0, _AIM)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
+
+
+# The pistol layer, on the upper body only: `Armed` blends the holding pose over the locomotion,
+# `Aim` blends the aim pose (with a recoil one-shot over it) over that.
+func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
+	var upper := _upper_body_paths()
+	var armed := AnimationNodeBlend2.new()
+	armed.filter_enabled = true
+	var aim := AnimationNodeBlend2.new()
+	aim.filter_enabled = true
+	var shoot := AnimationNodeOneShot.new()
+	shoot.fadein_time = 0.03
+	shoot.fadeout_time = 0.12
+	shoot.filter_enabled = true
+	for path in upper:
+		armed.set_filter_path(path, true)
+		aim.set_filter_path(path, true)
+		shoot.set_filter_path(path, true)
+	var pose := AnimationNodeBlendSpace1D.new()
+	pose.min_space = -aim_pitch_range
+	pose.max_space = aim_pitch_range
+	pose.sync = true
+	pose.add_blend_point(_clip(aim_down_clip), -aim_pitch_range, -1, &"down")
+	pose.add_blend_point(_clip(aim_clip), 0.0, -1, &"level")
+	pose.add_blend_point(_clip(aim_up_clip), aim_pitch_range, -1, &"up")
+	_shoot_scale_node = AnimationNodeTimeScale.new()
+	root.add_node(_PISTOL_IDLE, _clip(pistol_idle_clip), Vector2(200, 400))
+	root.add_node(_ARMED, armed, Vector2(400, 0))
+	root.add_node(_AIM_POSE, pose, Vector2(200, 600))
+	root.add_node(_SHOOT_CLIP, _clip(shoot_clip), Vector2(200, 800))
+	root.add_node(_SHOOT_SCALE, _shoot_scale_node, Vector2(400, 800))
+	root.add_node(_SHOOT, shoot, Vector2(600, 600))
+	root.add_node(_AIM, aim, Vector2(800, 0))
+	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
+	root.connect_node(_ARMED, 0, _MACHINE)
+	root.connect_node(_ARMED, 1, _PISTOL_IDLE)
+	root.connect_node(_SHOOT, 0, _AIM_POSE)
+	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
+	root.connect_node(_AIM, 0, _ARMED)
+	root.connect_node(_AIM, 1, _SHOOT)
+
+
+# The filter paths of the upper body: `upper_body_bone` and every bone below it, as the clips'
+# tracks name them (`Armature/Skeleton3D:spine_01`).
+func _upper_body_paths() -> Array[NodePath]:
+	var found: Array[NodePath] = []
+	var model := animation_player.get_node_or_null(animation_player.root_node)
+	if model == null:
+		return found
+	var skeletons := model.find_children("*", "Skeleton3D", true, false)
+	if skeletons.is_empty():
+		return found
+	var skeleton := skeletons[0] as Skeleton3D
+	var start := skeleton.find_bone(upper_body_bone)
+	if start < 0:
+		return found
+	var where := model.get_path_to(skeleton)
+	for bone in skeleton.get_bone_count():
+		var cursor := bone
+		while cursor >= 0 and cursor != start:
+			cursor = skeleton.get_bone_parent(cursor)
+		if cursor == start:
+			found.append(NodePath("%s:%s" % [where, skeleton.get_bone_name(bone)]))
+	return found
 
 
 func _build_machine() -> AnimationNodeStateMachine:
@@ -276,10 +447,11 @@ func _build_machine() -> AnimationNodeStateMachine:
 	_machine.add_node(FALL, _clip(air_clip), Vector2(600, 0))
 	_machine.add_node(LAND, _clip(land_clip), Vector2(400, 100))
 	_machine.add_node(PUSH, _clip(push_clip), Vector2(200, 160))
+	_machine.add_node(CROUCH, _build_crouch(), Vector2(0, 160))
 	var start := AnimationNodeStateMachineTransition.new()
 	start.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
 	_machine.add_transition(&"Start", GROUND, start)
-	var states := [GROUND, JUMP, FALL, LAND, PUSH]
+	var states := [GROUND, JUMP, FALL, LAND, PUSH, CROUCH]
 	for from: StringName in states:
 		for to: StringName in states:
 			if from != to:
@@ -304,7 +476,19 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 	space.add_blend_point(_clip(run_clip), tuning.run_speed, -1, &"run")
 	space.add_blend_point(_clip(sprint_clip), tuning.sprint_speed, -1, &"sprint")
 	_ground = space
-	_ground_speeds = [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed]
+	_ground_speeds = [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed, tuning.crouch_speed]
+	return space
+
+
+func _build_crouch() -> AnimationNodeBlendSpace1D:
+	var tuning := player.tuning if player.tuning != null else PlayerTuning.new()
+	var space := AnimationNodeBlendSpace1D.new()
+	space.min_space = 0.0
+	space.max_space = tuning.crouch_speed
+	space.sync = true
+	space.add_blend_point(_clip(crouch_idle_clip), 0.0, -1, &"idle")
+	space.add_blend_point(_clip(crouch_walk_clip), tuning.crouch_speed, -1, &"walk")
+	_crouch = space
 	return space
 
 

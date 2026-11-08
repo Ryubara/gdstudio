@@ -20,6 +20,7 @@ const PERIOD := 0.1
 var _object: JavaScriptObject
 var _since := 0.0
 var _jumps := 0
+var _shots := 0
 
 
 func _ready() -> void:
@@ -31,6 +32,8 @@ func _ready() -> void:
 	_object = JavaScriptBridge.create_object("Object")
 	JavaScriptBridge.get_interface("window").gdprobe = _object
 	player.jumped.connect(func() -> void: _jumps += 1)
+	if player.weapon != null:
+		player.weapon.fired.connect(func(_shot: Projectile) -> void: _shots += 1)
 	set_process(true)
 
 
@@ -47,6 +50,11 @@ func _process(delta: float) -> void:
 	_object.speed = player.ground_speed()
 	_object.state = int(player.state)
 	_object.jumps = _jumps
+	_object.shots = _shots
+	_object.crouching = player.crouching
+	_object.aiming = player.aiming
+	_object.aim_amount = player.aim_amount
+	_object.fire_held = Input.is_action_pressed(&"fire")
 	_object.on_floor = player.is_on_floor()
 	if camera_rig != null:
 		_object.yaw = camera_rig.yaw

@@ -32,3 +32,16 @@ func test_the_main_scene_is_the_one_the_project_runs() -> void:
 		"res://main.tscn"
 	)
 	assert_bool(ResourceLoader.exists("res://main.tscn")).is_true()
+
+
+func test_the_wind_plays_from_the_start_as_a_loop_on_the_ambient_bus() -> void:
+	var runner := scene_runner("res://main.tscn")
+	await await_idle_frame()
+	var wind := runner.scene().get_node("Wind") as AudioStreamPlayer
+	assert_bool(wind.autoplay).is_true()
+	assert_bool(wind.playing).is_true()
+	assert_str(String(wind.bus)).is_equal("Ambient")
+	assert_str(wind.stream.resource_path).is_equal("res://assets/audio/wind/wind_soft_1.ogg")
+	assert_bool((wind.stream as AudioStreamOggVorbis).loop).is_true()
+	AudioSettings.stop_players(runner.scene())
+	AudioSettings.drain_mixer()

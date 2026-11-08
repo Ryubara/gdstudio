@@ -18,6 +18,14 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   compilation. **Seen:** Deadnight, 2026-11-01 (fix: `reload_weapon`); Deadnight #462, 2026-11-01 (a helper named
   `_set`).
 
+- **Approach:** Name a local variable or parameter so that it matches no member of its node class (`gravity_scale`,
+  not `scale`, in a `Node3D`; `stick_offset`, not `offset`, in a `CanvasLayer`; `earlier`, not `before`, in a GdUnit
+  suite), and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
+  `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
+  opening 3D Third Person ("local variable "scale" is shadowing an already-declared property in the base class"), which
+  a headless run never shows; as errors, `gds check scripts` fails the script (a throwaway `var scale` gave "1 of 429 do
+  not parse"). **Seen:** gdstudio #836, 2026-11-08.
+
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
   look for a duplicate global class first. **Watch out for:** Godot keeps one global class per name and silently picks
@@ -46,7 +54,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   value when it is made, so `kills += 1` or `vertices.append(...)` works on a copy: a test read 0 events and a
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
   outer variable inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (fix: Array holders and members
-  in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`).
+  in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`);
+  gdstudio #836, 2026-11-08 (`hits += 1` read 0).
 
 ## Project and scene files {#project-and-scene-files}
 

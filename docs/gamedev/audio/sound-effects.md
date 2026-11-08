@@ -17,7 +17,10 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Wind | `3d-blank` `assets/audio/wind/` | 1 take of 12 s, `loop` | one seamless loop of 10.5 s |
 
 The wind is in the base because the base owns the `Ambient` bus (and has the sky it blows under); the coin and the
-steps belong to the character, so they are in the third-person template.
+steps belong to the character, so they are in the third-person template. Each is played by a scene of its own (kit
+[#836](https://github.com/Ryubara/gdstudio/issues/836)): the wind by `main.tscn` in both templates, the coin by
+`pickup.tscn` and the steps by `footsteps.tscn`, timed to the feet of the walk, run, sprint and crouch-walk clips
+([Audio](../../engines/godot/audio.md#template-buses)).
 
 ## 1. The request {#the-request}
 

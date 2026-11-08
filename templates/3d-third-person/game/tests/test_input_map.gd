@@ -15,6 +15,9 @@ const ACTIONS: Array[StringName] = [
 	&"sprint",
 	&"walk",
 	&"interact",
+	&"crouch",
+	&"aim",
+	&"fire",
 ]
 
 
@@ -26,12 +29,14 @@ func test_every_action_exists_and_is_bound_for_every_device() -> void:
 
 
 func test_the_move_jump_and_interact_actions_work_from_a_pad_and_a_keyboard() -> void:
-	for action: StringName in [&"move_left", &"move_forward", &"jump", &"interact", &"sprint"]:
+	for action: StringName in [
+		&"move_left", &"move_forward", &"jump", &"interact", &"sprint", &"crouch", &"aim", &"fire"
+	]:
 		var has_pad := false
 		var has_key := false
 		for event in InputMap.action_get_events(action):
 			has_pad = has_pad or event is InputEventJoypadButton or event is InputEventJoypadMotion
-			has_key = has_key or event is InputEventKey
+			has_key = has_key or event is InputEventKey or event is InputEventMouseButton
 		assert_bool(has_pad).override_failure_message("%s has no pad" % action).is_true()
 		assert_bool(has_key).override_failure_message("%s has no key" % action).is_true()
 

@@ -228,11 +228,11 @@ func safe_rect() -> Rect2:
 	var safe := Rect2(DisplayServer.get_display_safe_area())
 	if safe.size.x <= 0.0:
 		return view
-	var scale := view.size / screen
-	var left := maxf(safe.position.x, 0.0) * scale.x
-	var top := maxf(safe.position.y, 0.0) * scale.y
-	var right := maxf(screen.x - safe.end.x, 0.0) * scale.x
-	var bottom := maxf(screen.y - safe.end.y, 0.0) * scale.y
+	var view_scale := view.size / screen
+	var left := maxf(safe.position.x, 0.0) * view_scale.x
+	var top := maxf(safe.position.y, 0.0) * view_scale.y
+	var right := maxf(screen.x - safe.end.x, 0.0) * view_scale.x
+	var bottom := maxf(screen.y - safe.end.y, 0.0) * view_scale.y
 	return Rect2(
 		view.position + Vector2(left, top), view.size - Vector2(left + right, top + bottom)
 	)
@@ -357,11 +357,11 @@ func _apply_stick() -> void:
 	var push := Vector2.ZERO
 	var sprint := false
 	if _stick_finger >= 0:
-		var offset := (_stick_at - _stick_origin) / stick_radius
-		var length := minf(offset.length(), 1.0)
+		var stick_offset := (_stick_at - _stick_origin) / stick_radius
+		var length := minf(stick_offset.length(), 1.0)
 		sprint = length >= sprint_ring
 		if length > deadzone:
-			push = offset.normalized() * ((length - deadzone) / (1.0 - deadzone))
+			push = stick_offset.normalized() * ((length - deadzone) / (1.0 - deadzone))
 	_stick_push = push
 	_press(move_right, maxf(push.x, 0.0))
 	_press(move_left, maxf(-push.x, 0.0))

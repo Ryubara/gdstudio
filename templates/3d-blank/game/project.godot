@@ -21,6 +21,12 @@ config/icon="res://assets/branding/icon.svg"
 UIRouter="*res://addons/gds_ui/router/ui_router.gd"
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 
+[debug]
+
+gdscript/warnings/shadowed_variable=2
+gdscript/warnings/shadowed_variable_base_class=2
+gdscript/warnings/shadowed_global_identifier=2
+
 [display]
 
 window/size/viewport_width=1920

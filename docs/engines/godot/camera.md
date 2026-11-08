@@ -108,6 +108,14 @@ blend takes it to zero.
   ground; and a field of view meant to sit closer was first widened (70 to 77), the opposite of the ask. **Seen:**
   Deadnight #405, 2026-11-01 (fix: the rig takes `on_floor`; FOV 60, aim 40, sprint 63, sway halved (Deadnight #426)).
 
+- **Approach:** Blend a sprint zoom, a sprint shake and an aim view on the wrapper's resting framing: `advance(delta)`
+  moves 0-to-1 blends toward the player's state, eases them with `smoothstep` and sets the Phantom Camera's
+  `spring_length`, `follow_offset` and field of view; shake the third-person rotation (pitch once a footfall, yaw and
+  roll once for two, 1 : 0.5 : 0.67 of an amplitude that is 0 by default). **Watch out for:** the host copies the active
+  camera onto the real `Camera3D` every frame, so a rotation set on that node is overwritten; turning the rig swings the
+  lens about the target (2 cm at 0.3 degrees and 4.4 m). **Seen:** gdstudio #836, 2026-11-08 (sprint +6 degrees and
+  +0.4 m; aim 2.4 m, 0.55 m over the shoulder, 50 degrees).
+
 ## Projecting world points to the HUD {#projecting-world-points-to-the-hud}
 
 From Deadnight's world markers and teammate names (#430):

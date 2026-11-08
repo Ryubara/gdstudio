@@ -149,8 +149,18 @@ check this way (`gds new game template-check --template 3d-blank --local`).
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller, a Phantom Camera third-person view, touch controls bound to it, the Quaternius mannequin with the Universal Animation Library 1 and 2, and the #788 prototype map with its six components ([The 3D Third Person template](third-person-template.md)). | made in #821 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius mannequin with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
+
+What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
+
+| Template | Sound | Played by | Bus |
+| --- | --- | --- | --- |
+| `3d-blank` | the wind loop (`assets/audio/wind/`) | the `Wind` player of `main.tscn`, from the start | `Ambient` |
+| `3d-third-person` | the wind loop | the same `Wind` player | `Ambient` |
+| `3d-third-person` | footsteps (ten files, `assets/audio/footsteps/`) | `Footsteps` (`Step`, `CrouchStep`, `LandStep`), a step each time a foot of the animated skeleton lands | `SFX` |
+| `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup`, one file a pickup | `SFX` |
+| `3d-third-person` | a pistol shot | the `ShotSound` slot of `Weapon`, empty: no pistol sound is licensed to ship | `SFX` |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
   `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`

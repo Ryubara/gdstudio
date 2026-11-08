@@ -231,14 +231,14 @@ func test_the_zones_decide_which_finger_does_what_and_show_on_request() -> void:
 
 func test_a_button_moved_in_the_editor_is_where_it_is_pressed() -> void:
 	var jump := _touch.buttons_root.get_child(0) as TouchButton
-	var before := _touch.button_center(0)
+	var earlier := _touch.button_center(0)
 	jump.position += Vector2(-500.0, -300.0)
 	assert_vector(_touch.button_center(0)).is_equal_approx(
-		before + Vector2(-500.0, -300.0), Vector2.ONE * 0.5
+		earlier + Vector2(-500.0, -300.0), Vector2.ONE * 0.5
 	)
-	_down(2, before)
+	_down(2, earlier)
 	assert_bool(Input.is_action_pressed(&"jump")).is_false()
-	_up(2, before)
+	_up(2, earlier)
 	_down(2, _touch.button_center(0))
 	assert_bool(Input.is_action_pressed(&"jump")).is_true()
 	_up(2, _touch.button_center(0))

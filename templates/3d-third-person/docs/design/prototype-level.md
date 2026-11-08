@@ -20,6 +20,9 @@ height and the ramp is gentler than its slope limit.
 | Pickups | `Pickups/` | `Pickup` coins and gems that spin, say who took them and may come back. |
 | Spawn points | `Spawns/` | `SpawnPoint` markers in groups (`player`, `wave`). The character starts at the first `player` one: on the dais, facing into the map. |
 | Camera views | `CameraViews/` | A `TriggerZone` by the jump blocks and a fixed Phantom Camera: a `CameraZone` hands the view to it while the character stands in the zone, and back (a blend over the camera's tween). |
+| Crouch course | `CrouchCourse/` | A tunnel 1.25 m high with a coin in it, a low ceiling on four posts at 1.3 m (let go of crouch under it and the character stays crouched until it walks out), a wall with a gap under a red bar at 1.2 m and a coin behind it. Each place is lower than the standing capsule (1.8 m) and higher than the crouched one (1.1 m); a test holds that. |
+| Range | `Targets/` | Four `Target` boards on posts in front of the bar wall, 15 m north of the dais: aim with the right mouse button and shoot. |
+| Push cubes | `PushCubes/` | Four 60 kg cubes with a grip of 0.5 at the south, with 8 m of floor to push them across. A cube is pushed at 1.2 m/s (its `push_speed`), so the push clip plays for as long as the character walks. |
 | Props | `Props/` | `PhysicsProp` crates, barrels and two chrome balls (they show the reflection probes). |
 | Sun, sky, bounce light | `Daylight`, `LightmapGI`, `Probes/`, `Lamps/` | One real-time sun, a procedural sky, baked bounce light and two reflection probes. |
 | Graphics profile | `GraphicsProfile` | Forward+ extras, set in the inspector (below). |

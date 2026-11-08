@@ -9,6 +9,7 @@ game's `WebProbe` writes to `window.gdprobe`:
   and moves nothing else;
 - the stick moves the character along the camera's heading and turns nothing;
 - a tap on the jump button jumps;
+- the crouch button crouches, the aim button aims and the fire button shoots;
 - with two fingers down at once (the stick and a look drag) each does only its own job, and lifting one leaves the
   other working.
 
@@ -234,6 +235,29 @@ def main() -> int:
         check("two fingers: the look finger still turns by the designed angle", abs(turned - want) <= abs(want) * LOOK_TOLERANCE, f"turned {turned:.1f} deg, designed {want:.1f}")
         check("two fingers: the stick finger still moves the character", math.dist((before["x"], before["z"]), (both["x"], both["z"])) > 0.5, f"moved {math.dist((before['x'], before['z']), (both['x'], both['z'])):.2f} m")
         check("two fingers: lifting the look finger keeps the character moving and the view still", math.dist((mid_state["x"], mid_state["z"]), (after_lift["x"], after_lift["z"])) > 0.8 and abs(angle_between(mid_state["yaw"], after_lift["yaw"])) < 1.0, f"moved {math.dist((mid_state['x'], mid_state['z']), (after_lift['x'], after_lift['z'])):.2f} m, turned {angle_between(mid_state['yaw'], after_lift['yaw']):.2f} deg")
+
+        # 5. The crouch, aim and fire buttons: a finger on each does its own job.
+        hand.down(6, css("button4_x"), css("button4_y"))
+        state = wait_for(page, lambda s: s.get("crouching") is True, 3.0)
+        page.screenshot(path=str(args.out / "phone_crouch.png"))
+        check("the crouch button crouches", state.get("crouching") is True, f"crouching={state.get('crouching')}")
+        hand.up(6)
+        state = wait_for(page, lambda s: s.get("crouching") is False, 3.0)
+        check("lifting the crouch button stands up", state.get("crouching") is False, f"crouching={state.get('crouching')}")
+        hand.down(7, css("button3_x"), css("button3_y"))
+        state = wait_for(page, lambda s: s.get("aiming") is True, 3.0)
+        check("the aim button aims", state.get("aiming") is True, f"aiming={state.get('aiming')}")
+        time.sleep(1.0)
+        page.screenshot(path=str(args.out / "phone_aim.png"))
+        before = probe(page)
+        hand.down(8, css("button2_x"), css("button2_y"))
+        state = wait_for(page, lambda s: s.get("shots", 0) > before.get("shots", 0), 3.0)
+        page.screenshot(path=str(args.out / "phone_fire.png"))
+        check("the fire button shoots", state.get("shots", 0) == before.get("shots", 0) + 1, f"shots {before.get('shots')} to {state.get('shots')}")
+        hand.up(8)
+        hand.up(7)
+        state = wait_for(page, lambda s: s.get("aiming") is False, 4.0)
+        check("lifting the aim button lowers the arm", state.get("aiming") is False, f"aiming={state.get('aiming')}")
 
         check("no console error or page error", not console_errors, "; ".join(console_errors[:5]) or "none")
         browser.close()

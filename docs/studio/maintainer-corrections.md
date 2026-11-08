@@ -225,6 +225,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-08 | gdstudio #831 | Every part of a template must be tunable live in the inspector, following good practice for agents and people; the twelve-item checklist is how every template is built and reviewed | [engines/godot/new-game.md#template-checklist](../engines/godot/new-game.md#template-checklist) |
 | 2026-11-08 | gdstudio #831 | The touch controls were drawn in code with nothing to see in their scene; visible parts of a template belong in its scenes, which agents read as well as code | [engines/godot/new-game.md#template-checklist](../engines/godot/new-game.md#template-checklist) |
 | 2026-11-08 | gdstudio #831 | The camera's framing exposed only a height, while the sideways and depth offsets had to be set on the Phantom Camera node; everything about the camera should be tuned on `PlayerCamera` | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
+| 2026-11-08 | gdstudio #836 | Template scripts used local names (`scale`, `offset`) that shadow properties of the node class, which the editor reports as warnings; names must not collide with the node class's own members, and the template projects now treat shadowing as an error | [engines/godot/gdscript.md#names-and-types](../engines/godot/gdscript.md#names-and-types) |
 
 ## Start of a new game {#start-of-a-new-game}
 

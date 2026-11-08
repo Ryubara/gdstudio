@@ -33,6 +33,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"weight": 10.0,
 		&"grip": 0.6,
 		&"bounciness": 0.1,
+		&"push_speed": 0.0,
 		&"fall_limit": -20.0,
 	}
 	assert_array(ExportPins.differences(_prop, pins)).is_empty()

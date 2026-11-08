@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://ui/touch/touch_controls.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://ui/touch/touch_button.tscn" id="2_button"]
+
+[node name="ThirdPersonTouchControls" instance=ExtResource("1_base")]
+
+[node name="Fire" parent="SafeArea/Buttons" index="2" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -200.0
+offset_top = -380.0
+offset_right = -30.0
+offset_bottom = -210.0
+action = &"fire"
+label = "Fire"
+
+[node name="Aim" parent="SafeArea/Buttons" index="3" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -400.0
+offset_top = -430.0
+offset_right = -230.0
+offset_bottom = -260.0
+action = &"aim"
+label = "Aim"
+
+[node name="Crouch" parent="SafeArea/Buttons" index="4" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -590.0
+offset_top = -200.0
+offset_right = -420.0
+offset_bottom = -30.0
+action = &"crouch"
+label = "Crouch"
