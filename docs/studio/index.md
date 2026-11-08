@@ -14,6 +14,9 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
 | [Starting work](starting-work.md) | Issues start oldest first, through `gds issue start`; how the window works. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
+| [Writing a check or a guard](writing-checks.md) | What went wrong in hooks, `groundwork.py` and CI jobs, and how to write the next check. |
+| [The shell and scripted edits](shell.md) | Pipes, chains, line endings, escapes, paths and processes: the habits that keep a command from hiding its failure. |
+| [Pull request titles, bodies and images](pull-requests.md) | Writing a title, a description and its captures so that `pr-rules` passes the first time. |
 | [Capture](capture.md) | Screenshots, clips and sound as proof you can look at, attached to pull requests. |
 | [Sync](sync.md) | The kit-owned files every game carries, and `gds sync`. |
 | [References](refs.md) | Fetching third-party models into `refs/` with their licences. |

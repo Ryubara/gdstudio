@@ -12,8 +12,8 @@ average, what a word about people or defaults covers, and what already owns a jo
   otherwise, use perceived loudness for quieter, and write the base, the scale and the resulting number in the issue and
   the pull request. **Watch out for:** the 50% cut was taken from the level of the day (already cut 25%) and as
   amplitude (-6 dB), where the original level (-16 dB) and half as loud (about -10 dB, so -26 dB) were meant; each
-  request was stacked on the last. **Seen:** Deadnight #781, 2026-11-03 (fix:
-  [lesson](../lessons/2026-11-03-a-percent-cut-was-taken-from-the-wrong-base.md)).
+  request was stacked on the last. **Seen:** Deadnight #781, 2026-11-03 (fix: the
+  crickets set to -26 dB from the original; [levelling a bed](../engines/godot/audio.md#levelling-ambient-beds)).
 - **Approach:** When reporting a pace or a curve, give its ends (the first and the last step) and its shape, and say
   when a number is an average. **Watch out for:** a reply gave the average of a rising XP curve (9 minutes a level),
   which described a pace nobody plays and read as if the climb were flat. **Seen:** Deadnight, 2026-11-04 (fix: the
