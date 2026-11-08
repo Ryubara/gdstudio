@@ -40,6 +40,11 @@ not by a close-up capture of the effect on its own (Deadnight #408).
   icon looked shorter; the flat-colour reading put it within 0.4 px, and the error followed the art, so it looked like
   a real fault in some levels only. **Seen:** Deadnight #1161, 2026-11-04 (fix: the flat-colour method in
   `test_level_ink.gd`).
+- **Approach:** Judge a burst from the frames of the shot itself (the largest PNGs after it), not a fixed frame number,
+  and give a blast seen at night a bright shell and a hot core that is gone by half its time. **Watch out for:** one
+  unshaded sphere at 55% alpha fading fast read as nothing on a dark lot, and the frame captured was the end of the
+  fade. **Seen:** Deadnight (re-cut blast), 2026-11-03 (fix: an 80% shell and a core; Deadnight's
+  `docs/design/upgrades.md`).
 
 - **Approach:** Measure a faint defect in a series, not in one shot: take 40 screenshots of a screen that holds
   still, subtract their per-pixel median, and read each column against the columns x-3 and x+3 (the smaller of the

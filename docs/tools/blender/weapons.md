@@ -175,8 +175,8 @@ lever is thrown) and the left hand brings something back from the belt. Both are
   a prize, the menu) would then show. A drum that is the gun's own part is the same mesh again.
 - **Draw the ammunition for the fist, not the gun.** At the gun's size a shell vanished inside the Soldier's left
   hand; the game holds it at 1.5 times the gun's size, standing out of the fingertips (the hand bone's +Y runs along the
-  fingers, their tips 0.25 bone units out), as the [held prop lesson](../../lessons/2026-11-02-a-held-prop-passed-its-tests-and-showed-nothing-in-the-fist.md)
-  found for the grenade.
+  fingers, their tips 0.25 bone units out), as the grenade showed: it passed every hold test and was hidden in the
+  fist from the side, so a small held prop gets close views of its own in the capture sheet (Deadnight #285).
 - Godot's axes for a gun drawn along Blender -X: the muzzle is -X, up +Y and **the gun's left is +Z** (Blender -Y). A
   break-open's muzzle drops with a positive turn about +Z; a cylinder swings out to the left with a positive turn about
   +X about a crane under its left side.

@@ -146,23 +146,21 @@ game's second pillar, read as a blank wall from the yard's gate: a finding.
 "Signs are easily mistaken for irrelevant set dressing"
 ([The Level Design Book: wayfinding](https://book.leveldesignbook.com/process/blockout/wayfinding.md)): interactive
 things share one visual language and a prompt says what they do. A prompt or a press through a wall teaches that walls
-lie ([lesson](../lessons/2026-11-03-a-use-reach-was-a-distance-and-never-asked-for-a-wall.md)). Two things used with one
+lie. Two things used with one
 button are spaced so their reaches never meet: a person mending a window taps use again and again, and a wall weapon
-whose reach took in the window's bought the gun that replaced the one in hand
-([lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)).
+whose reach took in the window's bought the gun that replaced the one in hand.
 
 **Check (a probe):** the game's use-sight test walks a grid of standing points round every interactable, behind the
 walls too, and demands no prompt and no press where a wall is between; a spacing sweep walks the same ground and fails on
 a point inside two use zones, with half a metre between them. On the plan, before a wall is built, the middles of two
 things on one floor are at least their two reaches and the gap apart: a corner with an opening on each wall has no room
-for a third thing ([lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)).
+for a third thing.
 
 - **Approach:** Make an interact reach a line of sight from the hand as well as a distance, and give every interactable
   a test from behind its nearest wall or floor, on the server and on the prompt. **Watch out for:** every kind (wall
   spots, doors, posts, fuel, boards, revive) had its own flat distance check and each test stood in front, where no wall
   is, so a player behind a wall saw the card and could buy. **Seen:** Deadnight #831, 2026-11-03 (fix:
-  `test_use_through_walls.gd`
-  ([lesson](../lessons/2026-11-03-a-use-reach-was-a-distance-and-never-asked-for-a-wall.md))).
+  `test_use_through_walls.gd`).
 - **Approach:** When a look reads as a gameplay cue, find the object that owns it and check it on every instance of that
   object on every map, with a test that walks all of them. **Watch out for:** the boarded outline the maintainer saw was
   a moonlight card's shadow bars through an empty window, given by hand to six of the second map's twelve entries, so
@@ -172,8 +170,7 @@ for a third thing ([lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breac
   the drawn opening, and check every barricade on every map from the player's camera for what its shape affords. **Watch
   out for:** an opening from floor to lintel reads as a way through whatever the rules say; the breaches were
   door-shaped because the gap the navigation needed at the ground was also the drawn opening. **Seen:** Deadnight #915,
-  2026-11-03 (fix: the barricades were redrawn as windows
-  ([lesson](../lessons/2026-11-03-a-barricade-shaped-like-a-door-told-players-to-walk-through-it.md))).
+  2026-11-03 (fix: the barricades were redrawn as windows).
 
 ### P11. Light guides the route; dark is never black
 
@@ -207,8 +204,8 @@ light's position or aim changes.
 ### P13. The real body's reach, not the jump height
 
 The tuning's jump height is not the most a body climbs: the step-up at an edge and the capsule's rounded foot add to it
-(Deadnight: jump 1.1 m, climbed 1.25 m, so a counter built "a little over a jump" at 1.2 m was a roost;
-[lesson](../lessons/2026-11-03-a-jump-reach-test-used-the-jump-height-and-the-body-climbs-further.md)). Engines that
+(Deadnight: jump 1.1 m, climbed 1.25 m, so a counter built "a little over a jump" at 1.2 m was a roost,
+Deadnight #833). Engines that
 publish metrics list the crouch-jump apart from the jump for the same reason
 ([Valve: dimensions](https://developer.valvesoftware.com/wiki/Dimensions_(Half-Life_2_and_Counter-Strike:_Source))).
 
@@ -216,10 +213,8 @@ publish metrics list the crouch-jump apart from the jump for the same reason
 walking, jumping at several moments; the highest it stands on is the reach, and a test pins it. Every perimeter wall,
 closed door and closed-area wall is above the reach plus the height of anything standable within reach of it, with the
 margin written down. A top over the reach is out of reach only by the sweep: two such blocks meeting at an inside
-corner were climbed from the floor
-([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)). A thin collider is
-judged the same way: a tree's trunk "above a jump" (2.4 m) was a step from a car roof beside it
-([lesson](../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)). The reach is one
+corner were climbed from the floor. A thin collider is
+judged the same way: a tree's trunk "above a jump" (2.4 m) was a step from a car roof beside it. The reach is one
 constant every test reads, not a number copied into each.
 
 ### P14. Escape sweeps for every door state
@@ -246,16 +241,14 @@ caches each hop across door states by the slabs near it, so a map's every door s
 
 A place a player can stand on and the dead cannot strike from turns a survival map into a shooting gallery; the genre
 keeps one or two on purpose and pays for them (a long climb, a single ramp the dead also use). The dead must also be
-able to follow where the design says they can: a crowd moved off the physics engine needs its floor
-([lesson](../lessons/2026-11-03-zombies-kept-their-spawn-height-and-never-climbed-a-ramp.md)).
+able to follow where the design says they can: a crowd moved off the physics engine needs its floor.
 
 **Check (a probe and a number):** the game's roost probe puts the player on each standable top the escape sweep found,
 in a real night with ten dead chasing for 40 s, and counts the blows that landed. 0 blows is a roost; each roost is
 listed with its verdict (by design, or a finding). Deadnight's start-room counter: 0 blows on top, 7 on the floor;
 the lot's plaza container against its end wall, reached from a crate: 0 blows on its back edge (#855). The dead walk
 at a night's pace (2.4 m/s): a probe that put them down with no speed never closed in. The sweep tests fail on any
-standing place over the reach, not only on leaving the map
-([lesson](../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
+standing place over the reach, not only on leaving the map.
 
 ### P16. The camera fits where the body goes
 
@@ -296,8 +289,7 @@ first questions of a place are "who made this place?" and "how will the player k
 imageability (P9) needs a world that holds together from every viewpoint. A formula of counts and distances can be met
 by a layout no one believes: Deadnight's second map gave each room's dead "ground of their own" with a bank at the upper
 floor's height and the hall's roof as ground, so both floors looked out on flat land at their sills, five windows stood
-in one wall to hit a count, and one window opened over a stairwell (Deadnight #917, #824;
-[lesson](../lessons/2026-11-03-a-map-met-its-formula-and-did-not-make-sense.md)).
+in one wall to hit a count, and one window opened over a stairwell (Deadnight #917, #824).
 
 **Check (a table, a capture and a test):** for every opening, what is outside it at its sill and the way its dead walk
 to it from where they rise on the world's ground; a capture from behind it with its boards torn and from where its dead
@@ -318,8 +310,7 @@ like a night's work and can be a minute of walking. The test of "too easy" is wr
 and the steps are expanded until they pass. Three things have made such a chain read wrong. A fresh night is the one
 state nothing has been used, so a step that asks for a full tank or whole windows is done before it starts: Deadnight's
 extraction chains read 256 s from an empty night and 295 s once the boards were down and the tank half used, and the
-first real nights counted a seal behind a shut door as done (Deadnight #1056;
-[lesson](../lessons/2026-11-04-a-floor-measured-on-a-fresh-night-read-the-work-as-free.md)). The quiet is a tool players
+first real nights counted a seal behind a shut door as done (Deadnight #1056). The quiet is a tool players
 will use: in this genre a team keeps one dead alive and does its chores in peace, so a chain has to hold up against that
 stall. And kills made ahead of the steps have to bank nothing, or the steps are a chore at the end of a farm.
 

@@ -41,8 +41,7 @@ to find where two runs part, and what was found.
 
 Two things to keep: the build is old enough whatever the navigation does (`tests/night/test_night_repeats.gd`), and
 nights of one seed started 0 and 3 frames apart keep every place to the last bit. A hash of positions in quarter metres
-hides this; compare the raw floats. See also [navigation in tests](navigation-in-tests.md) and the
-[lesson](../../lessons/2026-11-06-two-nights-of-one-seed-differed-by-the-age-of-the-lot.md).
+hides this; compare the raw floats. See also [navigation in tests](navigation-in-tests.md).
 
 - **Approach:** Make a fixed-step simulation fixed in its own code: keep a pending time, run whole steps of the tuned
   length, ignore a delta that is not a positive number and cap the catch-up after a stall; test it by hashing every tick
@@ -50,3 +49,10 @@ hides this; compare the raw floats. See also [navigation in tests](navigation-in
   caller's delta was deterministic only at the 1/30 s its tuning assumed: stepped at 1/60 s it put zombies inside solid
   boxes for 52 zombie-ticks. **Seen:** Deadnight, 2026-11-01 (fix: the pending-time loop and the sliced-delta hash
   test).
+- **Approach:** Before an A/B or a replay test of a whole night is believed, run the baseline twice; hash only what both
+  runs can agree on (no positions rounded to a grid, whose edges flip with a centimetre), keep raw `sin`, `cos` and
+  `atan2` floats out of a golden hash meant for two platforms, and prove sameness with a night of bodies that stand and
+  dead that walk straight lines. **Watch out for:** a replay hash of zombie places in quarter metres matched one run in
+  six once a change moved the grid's edges; `main` differed from `main` on one seeded night; the last bit of a float
+  differs between Windows and Linux. **Seen:** Deadnight #225, 2026-11-02; Deadnight #681, 2026-11-03; Deadnight
+  (crowd budget), 2026-11-03 (fix: the place left out of the hash; the bots' signature in eighths and 5 degree buckets).

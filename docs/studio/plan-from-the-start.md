@@ -16,16 +16,15 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   the shot waits for the body's turn
   ([controller states](../gamedev/controller.md#states)).
 - Plan: a rule that follows from a state (empty, downed) is evaluated from that state on the server each tick, never
-  as a side effect of an action a control can stop sending
-  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md)).
+  as a side effect of an action a control can stop sending ([States and actions](../gamedev/controller.md#states)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
-  it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
+  it as it holds a person ([Bots](../gamedev/bots.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
 - Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
   camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
-  ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md)).
+  ([Settings that scale the game](../gamedev/design.md#settings)).
 - Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
   and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
@@ -143,7 +142,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
   ([A weapon is a model, a definition and a source](../gamedev/balance.md#roster)).
 - Plan: every catalogue entry played through in the real night with the real input
-  ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
+  ([Every catalogue entry](../gamedev/testing.md#catalogue)).
 - Plan: weapons sized against the hand that holds them, not only the body
   ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
@@ -151,7 +150,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
   ([One action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
-  ([lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md)).
+  ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
 - Plan: kit props and materials on the map as soon as the layout holds
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the

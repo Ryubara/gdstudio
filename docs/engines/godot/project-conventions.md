@@ -42,6 +42,12 @@ game/
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
   Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
+- **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
+  (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
+  the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
+  script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
+  Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
+  own).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

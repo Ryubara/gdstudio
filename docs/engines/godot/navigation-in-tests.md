@@ -47,8 +47,7 @@ Stop it in `after_test` as well, so a failing test does not leave it installed. 
 The lot's mesh is baked for an agent of radius 0.5 m; the player's capsule is 0.35 m. A 1.8 m gap between parked cars
 is 0.8 m of mesh after the erosion, which the bake's cell rounding closes for most of them: of about 60 pairs of
 neighbouring cars, four are open to the mesh and the rest are a 12 to 34 m detour. A test that crosses "every car gap"
-must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions
-([lesson](../../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
+must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions.
 
 ## A prop that is not in the bake {#a-prop-that-is-not-in-the-bake}
 
@@ -57,19 +56,16 @@ is solid to a body and absent from the mesh. A path hugs the mesh's corners, so 
 margin is on the line a bot walks round that wall's corner, and the bot walks into it and stands: the path is fine, the
 legs report nothing wrong, and the stuck ladder is the only thing that moves it. To test it, start the body where the
 real walk starts (the approach line, 10 m back), not at the place it ended up, and run the real ladder; a ray along
-the path (`BotPath.walkable`) at a low height does not see a prop the path passes within a body's radius of
-([lesson](../../lessons/2026-11-06-a-roam-bot-stood-at-a-breaker-post-because-the-ladders-nudge-made-its-goal-unreachable.md)).
+the path (`BotPath.walkable`) at a low height does not see a prop the path passes within a body's radius of.
 
 The fix is in the baker, not in each prop: a body that is solid and not CSG joins the mesh by being in the group
 `navmesh_obstacle` (its box shapes are baked like a CSG box), the saved meshes are baked again, and a suite finds every
 `StaticBody3D` with only the world's layer on and fails on one outside the group. Show what baking in a prop changed
 with a path check over the roam spots, the markers and the sites on every saved set, before and after (the lot's four
 posts: +16 polygons a set, no pair of points lost). Boards and window frames stay out of it: they open and shut, and the
-dead come through the breach they close
-([lesson](../../lessons/2026-11-06-a-solid-prop-outside-the-baked-mesh-stopped-every-walk-past-it.md)). A test that walks
+dead come through the breach they close. A test that walks
 many paths with a body walks the stretch round the thing under test (6 m before, 4 m after), not the whole path, and
-sizes the night's break for the whole suite
-([lesson](../../lessons/2026-11-06-a-walk-suite-outlasted-its-break-and-the-body-died.md)).
+sizes the night's break for the whole suite.
 
 - **Approach:** Make anything that opens and closes at run time (boards, a gate, anything a rule removes) a
   `StaticBody3D` with a box shape, never a CSG box with collision, and hold the walkers at it in the simulation, not
@@ -82,8 +78,7 @@ sizes the night's break for the whole suite
 A point inside a wall, a closed door's slab or a counter is no goal for a path: it snaps to whichever side of the wall's
 cut-back edge is nearer in 3D, and that can be the shut room behind it (a different island), so the path ends far short.
 Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stands`, 1.5 m out) and make the test ask
-the map where the path ends, within the bots' 2.5 m
-([lesson](../../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
+the map where the path ends, within the bots' 2.5 m.
 
 ## Never wait a fixed number of frames for a mesh
 
@@ -108,7 +103,7 @@ check that finds it: print the end of `map_get_path` from a stuck dead one to it
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server
 take a new mesh in: a door bought in it leaves the map as it was, so the dead (and the bots) path on the old walls.
 Give the engine a physics frame every few ticks (the soak does one every 30) and wait for the map's answer after a
-purchase, as `SeatedNight.settle` does ([lesson](../../lessons/2026-11-02-a-night-stepped-by-hand-never-took-a-bought-doors-mesh.md)).
+purchase, as `SeatedNight.settle` does.
 
 ## Measuring a map on its mesh
 
@@ -126,8 +121,7 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
 - **Sight lines.** Rays at eye height between standing points (each room's edge every 0.5 m, inside every metre):
   list the pairs, sort them longest first, and stop at the first clear one. 870 points take under a second.
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
-  own: bodies that collide stand on each other in a stair
-  ([lesson](../../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
+  own: bodies that collide stand on each other in a stair.
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
 
 ## A walk to a goal the layer never reaches
@@ -137,8 +131,7 @@ when the path ends short. A goal the person's layer does not reach (outside a bo
 walk) makes it walk into whatever lies on the straight line, and a stall test reads that as the prop it stands at.
 Keep a walk only when `NavigationServer3D.map_get_path(map, from, to, true, NavLayers.WALK)` ends within a metre of the
 goal and no board lies across it, and probe the night's map, not a map made from the saved resource: the night cuts the
-mesh into a walking region and the dead's gaps, so the two answer differently round a window
-([lesson](../../lessons/2026-11-06-a-walk-to-a-goal-the-walking-layer-never-reaches-stood-at-the-locker.md)). A prop only
+mesh into a walking region and the dead's gaps, so the two answer differently round a window. A prop only
 the dead can reach is checked on the dead's path (`NavLayers.DEAD`): the least distance of the path from the prop's box.
 
 ## The nearest point on the mesh ignores the layers
@@ -148,8 +141,7 @@ dead's gaps and scraps included. A bot (or a test) that calls the answer "ground
 dead walk, and a walking path asked from there starts on the nearest *walking* polygon, which can lie across a wall.
 Ask the owner (`region_get_navigation_layers(owner) & NavLayers.WALK`) before treating a point as walkable, and
 reproduce a body stuck in a margin twice: set down at the spot (the way out) and from the step that brought it there
-(the way in), each failing on `main`
-([lesson](../../lessons/2026-11-06-a-bot-stepped-onto-a-piece-of-mesh-only-the-dead-walk-and-stood-in-a-corner.md)).
+(the way in), each failing on `main`.
 
 ## An async bake outlives its test {#an-async-bake-outlives-its-test}
 

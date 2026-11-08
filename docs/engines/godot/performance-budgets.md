@@ -54,7 +54,7 @@ late-round budget while the work itself had not grown. Keep no event; read what 
 it, or from state the system already owns. Test a change to a timed system with the budget's own case, three or more runs
 interleaved with the change off.
 
-## Reading a timing on a shared machine
+## Reading a timing on a shared machine {#reading-a-timing-on-a-shared-machine}
 
 The machine that builds a game is never quiet: other agents' Godot processes, builds, a browser. Deadnight's
 measurements ran at 88 to 100 % of 16 cores with 20 to 46 Godot processes up. Two runs of the same code in the same
@@ -79,6 +79,12 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   without them cannot be compared with another day's.
 - **Interleave before and after** (one, the other, one, the other), so a busy hour falls on both. Report the spread of
   all repeats, not the best.
+
+- **Approach:** Hold a wall-clock tick budget on a shared machine at a percentile below the scheduler's share of lost
+  ticks (the 95th), print the 99th and the worst without judging them, and compare medians to tell the code from the
+  machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
+  a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
+  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
 
 ## A leak is read as a count at the same crowd, round after round
 

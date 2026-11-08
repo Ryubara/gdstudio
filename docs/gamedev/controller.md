@@ -81,14 +81,13 @@ each one, rather than finding them one by one in play.
   **Watch out for:** the server fired on the trigger alone and every test started with the body facing the view, so a
   hip-fire shot left a body that had not turned; the bot looked where it walked, so the new rule held its shots too.
   **Seen:** Deadnight #477, 2026-11-02 (fix: the simulation the server and the predicting client
-  share computes `shot_ready`: the trigger or a buffered press, the body within a tolerance of the view (#488, #511),
-  [bot lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md))).
+  share computes `shot_ready`: the trigger or a buffered press, the body within a tolerance of the view (#488, #511);
+  bot suites run when a rule reads a command field, [Bots](bots.md)).
 - **Approach:** Evaluate a rule about a state (a dry gun in hand) on the server every tick, not on the action that
   usually meets it, and in the test let go of every input when the state arrives. **Watch out for:** the automatic
   reload began only when the server refused a shot at an empty gun, and touch auto-fire stops pulling the trigger at 0
   rounds, so on a phone nothing asked and the gun stayed dry. **Seen:** Deadnight #1278, 2026-11-05 (fix:
-  `NightServer._reload_if_dry` starts it from the state
-  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md))).
+  `NightServer._reload_if_dry` starts it from the state).
 
 ## Feel {#feel}
 
