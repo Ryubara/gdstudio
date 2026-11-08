@@ -74,7 +74,7 @@ throttling does not touch WebSockets, so the delay is a relay in the probe. A 60
 
 The probe starts the game server as a process of its own. On Windows the console build of Godot is a wrapper that starts
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
-the server running, and the next run cannot open its log ([lesson](../../lessons/2026-11-02-a-probe-left-its-game-server-running-after-it-was-killed.md)).
+the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
 ## Godot's raw WebSocket, without the high-level multiplayer
 

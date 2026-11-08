@@ -207,7 +207,7 @@ other projects on the machine -->
 - **Approach:** On the shared machine, run at most four test suites at once, write no busy loops, stop a process by its
   PID, put a timeout on every long command, and warn the neighbouring projects before a long load test. **Watch out
   for:** load tests had no limit, and 93 Godot processes held the CPU at 100% for a neighbouring project. **Seen:**
-  Deadnight, 2026-11-01 (fix: the caps above ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md))).
+  Deadnight, 2026-11-01 (fix: the caps above).
 
 ## Bootstrap {#bootstrap}
 

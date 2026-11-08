@@ -5,7 +5,7 @@
 
 The mistakes that GDScript and Godot's own files let through without a warning: a name that means something else, a
 lambda that works on a copy, a file Godot rewrites. Each entry is something an agent already lost time to; the
-checks are in the entry. Testing traps are in [GdUnit tests](gdunit-tests.md), probes in
+checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.md), probes in
 [Probes and tools in headless Godot](headless-probes.md).
 
 ## Names and types {#names-and-types}
