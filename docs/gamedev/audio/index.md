@@ -8,3 +8,4 @@ A pull request that adds or changes a sound carries [a clip you can listen to](.
 | --- | --- |
 | [Voice lines](voice-lines.md) | Casting, writing, generating, checking and playing a character's voice lines with ElevenLabs, from Deadnight's soldier. |
 | [Menu and interface sounds](ui-sounds.md) | Which components take a sound and which stay silent, weight, repetition, levels, touch and accessibility, how to wire a table of roles and cues, from the sources, with a checklist for a new menu. |
+| [Sound effects](sound-effects.md) | Asking ElevenLabs Sound Effects for a short sound or a loop, what it costs, cutting steps from a long take, making a seamless bed, levelling and checking the files, and the licence, from the templates' first set. |
