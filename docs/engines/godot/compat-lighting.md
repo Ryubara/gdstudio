@@ -330,8 +330,8 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   the scene in metadata and a node takes its first mesh at load; models exported as `.obj` are plain meshes. 330
   copies in 37 drawing nodes, 62k triangles.
 - **Glow by atlas cell**: emission where `floor(UV * 5)` is a bulb or neon cell (Godot's UV starts at the image's top,
-  [lesson](../../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)); fires and halos are glow quads, no
-  light.
+  [Palette cells in Godot](../../tools/blender/weapons.md#palette-cells-in-godot)); fires and halos are glow quads,
+  no light.
 - **Cost on the web**: 34 more draw calls and about 0.4 ms a frame in Chrome on an RTX 5080 (1280 x 720, unpaced,
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot

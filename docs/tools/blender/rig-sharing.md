@@ -81,7 +81,7 @@ Found building the Soldier's weapon clips (Deadnight #42).
 - **The boots are weighted to the IK foot bones.** `Foot.L`/`Foot.R` hang from `Root` and carry location keys; key
   location as well as rotation on every bone in a derived clip.
 
-## Posing by hand position
+## Posing by hand position {#posing-by-hand-position}
 
 Found building the Soldier's grenade clips (Deadnight #102).
 
@@ -92,7 +92,16 @@ Found building the Soldier's grenade clips (Deadnight #102).
   hand position (a coordinate search with a halving step, a few hundred pose evaluations, about a second) and paste the
   rounded offsets into the clip script, with the target in a comment. Deadnight's throw keys land within 6 cm.
 
-## Bone axes in Godot, and clips that hold a weapon
+- **Approach:** Measure a bone turn by where the hand goes, in numbers: turn each axis about 50 degrees and print how
+  far the hand bone's tail moves (out, forward, up), and say in which frame an axis is (the bone's own or the world's;
+  the Soldier faces -Y) before turning about it. **Watch out for:** the kit's arm bones are rolled mirrored (X swings
+  either hand up and in, Z lifts the left hand up and out and -Z the right), a rendered probe hides depth and was
+  misread twice, and a helper that took the Torso's own Y for the world's fore-aft axis took a hand from 37 to 55 mm
+  into the body. A first measure that gets worse is a sign or frame error before it is a bad idea. **Seen:** Deadnight,
+  2026-11-01; Deadnight #1282, 2026-11-05 (fix: the axes probed in numbers, straight overhead is X and +/-Z together,
+  and the helper turns about world axes).
+
+## Bone axes in Godot, and clips that hold a weapon {#bone-axes-in-godot-and-clips-that-hold-a-weapon}
 
 Found rebuilding the Soldier's sprint carries on the solved hand grips (Deadnight #527).
 
@@ -110,6 +119,14 @@ Found rebuilding the Soldier's sprint carries on the solved hand grips (Deadnigh
   clip that instead fixes the forearm and lets the weapon follow from where the hand happened to hold it moves the
   whole carry when the grip changes: the gun ended by the right leg with the left hand 0.2 m off it.
 
+- **Approach:** Judge a pose from where the player sees it: render the clip sheet from the game camera's side
+  (`render_clips.py --view back` for a camera over the shoulder) before posing further, and prove it in a Godot capture
+  through the real camera, and from the side for anything that moves the big kit head. **Watch out for:** a sprint carry
+  held low across the chest looked right on the front sheet and the body hid it from the shoulder camera; a drink with
+  the head tipped back 18 to 24 degrees read from the side as pouring the bottle over the head, and from the shoulder
+  camera the head hid the bottle. **Seen:** Deadnight #459, 2026-11-02; Deadnight #912, 2026-11-03 (fix: the carry's
+  muzzle points across and up past the helmet; the drink tips the head 3 to 9 degrees and comes from his right).
+
 ## A held prop to the mouth
 
 Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown away.
@@ -121,11 +138,13 @@ Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown a
   reach the arm onto it by two-bone IK. A face point (the mouth) is kept in the Head bone's frame (measured once in a
   rest-like pose), so it follows the head at every key; the build prints each key's miss and the point in the bone's
   frame, which a game test checks the drawn prop against (the drawn lip was within 3 cm of it over the game's hips).
-- **The kit head is a third of the body.** Tip it back only a few degrees: 20 degrees read as pouring over the head
-  ([lesson](../../lessons/2026-11-03-a-drink-clip-tipped-the-chibi-head-back-and-read-as-pouring.md)). Bring the prop to
-  the face from the camera's side (the right, for a camera over the right shoulder), or the head hides it.
-- **Read a Godot value from a `.tres` between its parentheses**, never with a number pattern
-  ([lesson](../../lessons/2026-11-03-a-number-regex-read-the-3-of-vector3.md)).
+- **The kit head is a third of the body**, its origin low at the neck, so a few degrees there move the face a long
+  way. Tip it back 3 to 9 degrees in all: 18 to 24 read as pouring over the head. Bring the prop to the face from
+  the camera's side (the right, for a camera over the right shoulder), or the head hides it.
+- **Read a Godot value from a `.tres` between its parentheses**
+  (`text[text.index("(") + 1 : text.rindex(")")].split(",")`), never with a number pattern: `-?[\d.]+` also
+  matches the `3` of `Vector3(`, and the arm was solved onto a lip 6 m away. A first build whose misses read in
+  metres where they should read millimetres has read its input wrong.
 
 ## Clips written in the world's space
 

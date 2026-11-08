@@ -297,7 +297,7 @@ added to the column.
   and the PNG is taken a few frames late.
 
 - **Parsed input is buffered.** After `Input.parse_input_event`, call `Input.flush_buffered_events()` and wait two
-  frames before reading action state ([lesson](../../lessons/2026-11-02-a-parsed-input-event-is-buffered.md)).
+  frames before reading action state.
 - **Counts sit in containers beside their text**, never at a hand-measured offset: the offset breaks with the next
   font, scale or translation (Deadnight #466).
 - **A centred panel is measured in its tallest state at 720 high.** A `CenterContainer` panel grows with its content

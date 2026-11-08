@@ -166,7 +166,7 @@ per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, a
   look); mesh LODs for the skinned body (the importer does not make them for skinned meshes); a shared
   animation phase so far zombies reuse the same pose.
 
-## Gotchas found while building it
+## Gotchas found while building it {#gotchas-found-while-building-it}
 
 - Put the `AnimationTree` as a **sibling of the `AnimationPlayer`** under the imported scene root: the clips' track
   paths (`RootNode/CharacterArmature/Skeleton3D:Bone`) resolve against `..`.
@@ -183,6 +183,24 @@ per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, a
   poses only what its camera sees, and with the night's camera looking elsewhere the crowd stays on its first pose.
 - Zombies in a `--fixed-fps` run advance by a fixed delta, so the run is repeatable; in the browser the delta is
   real, so two runs differ slightly (the "first / second" cells).
+
+- **Approach:** Bake a greybox of `CSGBox3D`s from faces built from each box's size
+  (`NavigationMeshSourceGeometryData3D.add_faces(faces, shape.global_transform)`), wound so walkable faces point up in
+  Godot's winding, and on a flat floor keep the spawn height rather than the path's. **Watch out for:** the standard
+  parser ignores CSG nodes (no polygons), feeding it `CSGShape3D.get_meshes()` warns about reading meshes back from the
+  GPU, wrongly wound faces bake to nothing, and the baker lifts the surface by twice the cell height (0.5 m over the box
+  tops). **Seen:** Deadnight, 2026-11-01 (fix: Deadnight's baker builds the faces from the boxes).
+- **Approach:** Ask a path that may end somewhere unreachable with `NavigationServer3D.query_path` and
+  `NavigationPathQueryParameters3D` whose `path_search_max_polygons` is larger than the mesh, and read
+  `NavigationPathQueryResult3D.path`. **Watch out for:** `map_get_path` searches at most 4096 polygons, and proving a
+  target unreachable means exploring the whole connected mesh, so on a fine bake (0.05 m cells over a 124 x 116 m lot)
+  it printed `It's not expect to not find the most reachable polygons` and stopped far from the nearest reachable point.
+  **Seen:** Deadnight, 2026-11-01 (fix: the query with a raised polygon limit; a 0.25 m bake never hit it).
+- **Approach:** Guard the completion callable of `NavigationServer3D.bake_from_source_geometry_data_async` with
+  `is_valid()` before calling it, and keep a test that frees the owner during a bake. **Watch out for:** the server
+  calls the completion later on the main thread whatever happened to the node that asked, so a night ended right after a
+  door was bought printed `Attempt to call function 'null::_on_baked (Callable)' on a null instance`. **Seen:**
+  Deadnight, 2026-11-01 (fix: the `done.is_valid()` guard and a test that frees the owner mid-bake).
 
 ## Captures
 
