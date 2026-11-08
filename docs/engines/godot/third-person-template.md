@@ -158,13 +158,13 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   clips are 0.17 s long and do not loop, so they hold their last pose, which is what an aim should do; the pistol clips
   are whole-body poses, so without the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Time footsteps to the skeleton, not to a clock or a distance: a foot lands when its bone, moving toward
-  the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it), read from
-  `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and no step off the floor or under
-  `min_speed`. **Watch out for:** the clips play at their own cadence and are not scaled to the ground speed, so a fixed
-  stride length drifts from the feet; foot height alone does not work, because the planted ankle sits at 0.10 m in the
-  walk, 0.12 to 0.17 m in the jog and 0.12 in the sprint. The landings it finds are two per clip cycle, one a foot
-  (walk 0.0 and 0.67 s of 1.33 s, jog 0.47 s of 0.93 s, sprint 0.28 s of 0.67 s, crouch walk 1.0 s of 2.0 s).
-  **Seen:** gdstudio #836, 2026-11-08.
+  the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it, after a swing of at
+  least `min_stride`), read from `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and
+  no step off the floor or under `min_speed`. **Watch out for:** the clips play at their own cadence, so a fixed
+  stride length drifts from the feet, and foot height alone fails (the planted ankle is at 0.10 m in the walk and
+  0.12 to 0.17 m in the jog); a jitter of the blended pose gave a second step 124 ms after the first with the same
+  foot until `min_stride`. Landings: walk 0.0 and 0.67 s of 1.33 s, jog
+  0.47 s of 0.93 s, sprint 0.28 s of 0.67 s, crouch walk 1.0 s of 2.0 s. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Give a body its shapes as direct children, and move only a mesh with an animated pivot: a `Target`'s
   `Shape` is a child of the body and `Pivot` (which tips back) holds only the board. **Watch out for:** a
   `CollisionShape3D` under a plain `Node3D` that sits under the body is not a shape of the body, so the first target
@@ -184,6 +184,11 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   export: `Weapon.muzzle` was null, the fire button did nothing and no error was printed; the touch smoke found it
   ("the fire button shoots", shots 0 to 0) by reading `player.weapon`'s muzzle in the page. **Seen:** gdstudio #836,
   2026-11-08 (fix: the line, a test that reads the scene's text, and the smoke's three new checks).
+- **Approach:** Size a `Control` that sits by its anchors (the `Crosshair`, at the middle of the screen) by setting its
+  four offsets from the exports (`-half`, `half`), not `custom_minimum_size`. **Watch out for:** a minimum size only
+  makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size
+  and middle failed for a smaller circle. The weapon aims through the middle of the viewport, which is the middle of
+  this control, so a test compares the two. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Add a template's own buttons to the base's touch layer with an inherited scene
   (`third_person_touch_controls.tscn`, root `instance=` the base's, new buttons under `SafeArea/Buttons`) and not by
   copying the base file. **Watch out for:** an extending template replaces a file of the base whole, so a copy of
