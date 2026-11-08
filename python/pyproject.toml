@@ -22,6 +22,8 @@ packages = ["src/gds_tools"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# a helper thread that dies in a test fails it: by default pytest only warns, and the test can pass on a dead watcher
+filterwarnings = ["error::pytest.PytestUnhandledThreadExceptionWarning"]
 
 [tool.ruff]
 line-length = 120
