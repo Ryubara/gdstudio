@@ -30,7 +30,18 @@ an autoload in a game does not change. Inside an owned addon the game owns nothi
 is in the game's copy and not in the kit (a hand-added file, or one the kit has dropped or renamed), and `gds sync`
 removes it. To take a new version, run `gds sync <game>` in a game worktree and commit what it wrote. A game that has
 never had the addon gets it, its plugin enabled and the `UIRouter` autoload added by hand once (`[editor_plugins]`
-and `[autoload]` in its `project.godot`: a game's project file is its own).
+and `[autoload]` in its `project.godot`: a game's project file is its own); the 3D Blank template already has both.
+`gds sync` prints a warning for a game that has the addon and lacks either line, and `gds check layout` fails on it
+(`addon-plugin`, `addon-autoload`), because a script that names `UIRouter` (the demo, the focus ring) does not parse
+without the autoload.
+
+- **Approach:** When the kit syncs an addon into games that enable nothing, put the addon's registrations
+  (`[editor_plugins]`, `[autoload]`) in the template's `project.godot` and in the layout check's table
+  (`ADDON_REGISTRATIONS`, compared with the kit's own `godot/project.godot` by a test), so a game cannot hold the code
+  without them. **Watch out for:** a new 3D Blank game opened in the editor with five parse errors, since the
+  template synced `gds_ui` but never registered the `UIRouter` autoload its demo names; the export had the same
+  errors and was only given an exclude filter. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers both,
+  layout and sync check them, and `gds check scripts` parses every script).
 
 ## Not synced: what a new game is made from {#templates}
 

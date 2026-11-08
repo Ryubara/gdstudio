@@ -3,14 +3,14 @@
 What a phone-sized Chrome taught about a Godot 4.7 web build (Compatibility renderer), from Deadnight's issue #689.
 The game's own numbers are on `docs/research/phone-frames.md` there.
 
-## There is no frame cap to lift
+## There is no frame cap to lift {#there-is-no-frame-cap-to-lift}
 
 The web main loop is `requestAnimationFrame`: the game draws once per display refresh, whatever the refresh is (60,
 90, 120 Hz). `application/run/max_fps` is 0 (unlimited) by default and the project setting "vsync" is ignored by the
 browser. If a player says the frame rate is "capped" on a phone, it is that the frame takes too long, and the browser
 shows only the frames that finished. Check `max_fps` and the physics tick in `project.godot`, then measure.
 
-## Pixels are the first lever
+## Pixels are the first lever {#pixels-are-the-first-lever}
 
 - **Godot sizes the canvas by `window.devicePixelRatio`.** A phone reports 3 (a page of 844 x 390 becomes a canvas of
   2532 x 1170, 2.9 million pixels), and a Compatibility frame is mostly fill. Capping what the page reports
@@ -61,7 +61,7 @@ Chrome has two knobs and each hides what the other shows:
   calls) moved a 40-zombie frame from 2.66 to 2.62 ms in Chrome with a GPU and from 199 to 239 ms on SwiftShader.
   **Seen:** Deadnight #580, 2026-11-02 (fix: `outline_cost.py --gl gpu` and `--gl software` are both reported).
 
-## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728)
+## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728) {#draw-calls-cpu-bound}
 
 Folding a lot's 850 mesh surfaces and 295 CSG boxes into per-cell meshes (`SurfaceTool.append_from`, one surface per
 material per cell) cut draw calls by about a quarter and left the CPU x4 median unchanged (46.8 against 48.2 ms over 10
@@ -76,7 +76,7 @@ minutes of shuffled 20 s blocks): of a 47 ms frame, script and physics were 47 a
 - Chrome's CPU throttle belongs after the page has loaded, and `gds quiet` stops a command at 900 s.
 - A page whose heap grows over a night is a different question from its frame time: see [The web page's heap](web-heap.md).
 
-## Counting a scene's draw calls from fixed cameras (Deadnight #849)
+## Counting a scene's draw calls from fixed cameras (Deadnight #849) {#counting-draw-calls}
 
 To say what new geometry costs, put one camera at each of a few dozen spots, draw, and read the count: an instance
 draws whether or not anything is in front of it (no occlusion culling), so a wall across the map costs a call from every

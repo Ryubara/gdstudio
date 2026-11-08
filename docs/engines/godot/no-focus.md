@@ -70,7 +70,7 @@ parent's id that a new program can be given (kit #229).
   request, the third fix of one test in a day. **Seen:** kit #227, #229, 2026-11-02 (fix: `python/tests/process_tree.py`,
   tested on a planted process table; on a third fix of one test, re-read the evidence before changing the design).
 
-## How it works
+## How it works {#how-it-works}
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it
 (`STARTUPINFO.lpDesktop`). A window on another desktop can never take the focus of the desktop the person works on: it
@@ -131,6 +131,13 @@ foreground at 0.72 s.
   pytest only warns when a thread dies. **Seen:** gdstudio #793, 2026-11-08 (fix: `root` with a `root_known` event
   and a separate clock, the watcher's errors asserted, unhandled thread exceptions made errors in `pyproject.toml`;
   0 of 20 local runs passed before, 20 of 20 after).
+- **Approach:** Give a started program its own environment (an environment block for `CreateProcessW`, `env=` for
+  `subprocess`), never a write to `os.environ`, and read a skip's reason before allowing it: a skip that fires for the
+  wrong reason is a bug, not a platform fact. **Watch out for:** `run_quiet` set `GDS_QUIET=1` in its own process so
+  the program would inherit it, and never took it back, so every later test in the same pytest run skipped as if it ran
+  on the private desktop; the new skip allowlist caught it on `windows-2025` as an unlisted skip of the headless-Chrome
+  pointer-lock test. **Seen:** gdstudio #797, 2026-11-08 (fix: the program gets its own block and the caller's
+  environment is untouched; `test_the_caller_is_not_marked_quiet` failed before and passes after).
 
 ## Sound {#sound}
 

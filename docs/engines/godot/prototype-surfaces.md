@@ -5,7 +5,7 @@ it (kit issue #773). The level is described in the game's own docs (`docs/design
 from the template); this page is how the engine behaves. Everything here was measured in the Compatibility renderer,
 on the desktop and in headless Chromium (SwiftShader) with the web export, and looked the same in both.
 
-## A grid with no texture
+## A grid with no texture {#a-grid-with-no-texture}
 
 `templates/3d-blank/game/assets/shaders/prototype/prototype_grid.gdshader` draws the grid in the fragment shader from
 the world position, three planes (x, y, z) blended by the normal raised to the eighth power.
@@ -17,7 +17,7 @@ the world position, three planes (x, y, z) blended by the normal raised to the e
 | Lines that do not shimmer | `fwidth` of the cell coordinate is the footprint of a pixel; a line fades out where the footprint passes a third of a cell, so a far floor is a calm tone. It is `fwidth` in the fragment stage, so it cannot sit inside a branch. |
 | Licence | None needed: no file. The icon is our own SVG. |
 
-## Daylight in the Compatibility renderer
+## Daylight in the Compatibility renderer {#daylight-in-the-compatibility-renderer}
 
 Numbers that gave the template's look, in `world/lighting/`:
 
@@ -36,7 +36,7 @@ Numbers that gave the template's look, in `world/lighting/`:
   the budget ([Compatibility lighting](compat-lighting.md#dynamic-lights)). Shadow edges step visibly at the
   default size; `soft_shadow_filter_quality` 3 made little difference in Compatibility.
 
-## Smaller findings
+## Smaller findings {#smaller-findings}
 
 - **CSG collides one frame late.** `use_collision` builds the collider when the CSG tree updates, so a test that drops
   a body onto a fresh level waits physics frames before judging where it landed (120 frames: the crate rests at 0.5 m).
@@ -47,9 +47,10 @@ Numbers that gave the template's look, in `world/lighting/`:
 - **Movie Maker is one frame behind `_process`.** The frame written is the state `_process` left on the previous call,
   so a tour that cuts to a new view every N frames sets the first view in `_ready` and chooses each view one frame
   ahead; otherwise frame 0 is the default camera and every cut shows late.
-- **The synced `gds_ui` addon's demo does not export without the `UIRouter` autoload.** Import, a run and the tests
-  are clean, but `--export-release` loads every script and printed 20 lines of parse errors for the five demo
-  scripts; the preset excludes `addons/gds_ui/demo/*`.
+- **The synced `gds_ui` addon's demo does not parse without the `UIRouter` autoload.** Import, a run and the tests
+  are clean, but the editor and `--export-release` load every script and printed parse errors for the five demo
+  scripts. Registering the autoload and the plugin in the template's `project.godot` fixed it (gdstudio #814); the
+  first answer, excluding `addons/gds_ui/demo/*` from the export, hid the cause and left the editor errors.
 - **GdUnit4's `-rd <folder>` takes an absolute path on Windows only.** A path that starts with `/` is read as `res://`
   plus the path (`make_qualified_path`), so on a Linux runner `-rd "$RUNNER_TEMP/reports"` wrote `game/home/runner/...`
   inside the project. Godot runs in the project folder, so a relative path starts there: `-rd reports` made
@@ -59,7 +60,7 @@ Numbers that gave the template's look, in `world/lighting/`:
 - **`gdformat` writes CRLF on Windows**; run `sed -i 's/\r$//'` over the scripts it touched
   ([The shell](../../studio/shell.md#line-endings)).
 
-## Measured on the export
+## Measured on the export {#measured-on-the-export}
 
 The 3D Blank web export (`--export-release Web`, Compatibility, no threads) is a 154 KB `index.pck` (the level and
 the synced `gds_ui` addon, no demo) and a 39.5 MB `index.wasm` (the engine); it holds the level and no file of `tests/`

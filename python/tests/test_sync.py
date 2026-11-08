@@ -227,3 +227,19 @@ def test_the_real_kit_owns_the_addon_with_its_uids_and_none_of_the_third_party_o
     assert "game/addons/gds_ui/plugin.cfg" in targets
     assert "game/addons/gds_ui/router/ui_router.gd.uid" in targets
     assert not [t for t in targets if t.startswith("game/addons/") and "/gds_ui/" not in t]
+
+
+def test_sync_warns_about_a_synced_addon_the_games_project_does_not_register(tmp_path, monkeypatch, capsys):
+    from gds_tools import cli, workspace
+
+    kit, game = make_kit(tmp_path), tmp_path / "game"
+    add_addon(kit)
+    (kit / "godot" / "addons" / "gds_ui" / "plugin.cfg").write_text("[plugin]\n")
+    (game / "game").mkdir(parents=True)
+    (game / "game" / "project.godot").write_text("config_version=5\n")
+    monkeypatch.setattr(workspace, "kit_checkout", lambda: kit)
+    assert cli.main(["sync", str(game)]) == 0
+    warned = capsys.readouterr().err
+    assert "warning: project.godot: [addon-autoload]" in warned
+    assert "UIRouter" in warned
+    assert "[addon-plugin]" in warned

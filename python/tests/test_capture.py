@@ -155,6 +155,14 @@ def test_contact_sheet_layout(tmp_path: Path) -> None:
 def test_contact_sheet_errors(tmp_path: Path) -> None:
     with pytest.raises(CaptureError, match="no frames"):
         capture.contact_sheet(tmp_path)
+    for name in ("walk-front.png", "sheet.png"):
+        Image.new("RGB", (8, 8)).save(tmp_path / name)
+    with pytest.raises(CaptureError) as error:  # names that miss the pattern: the error says the pattern (#815)
+        capture.contact_sheet(tmp_path)
+    assert "<prefix><number>.png" in str(error.value) and "00000001.png" in str(error.value)
+    assert "its 2 PNG files (sheet.png, walk-front.png) are not" in str(error.value)
+    for name in ("walk-front.png", "sheet.png"):
+        (tmp_path / name).unlink()
     make_frames(tmp_path, 1)
     with pytest.raises(CaptureError):
         capture.contact_sheet(tmp_path, every=0)

@@ -4,7 +4,7 @@ What makes a good match between an interface component and its sound, for any GD
 table from this page (Deadnight's is in its `docs/research/menu-sfx.md`). Written for Deadnight #894; the sources are
 listed at the end with how far each can be trusted.
 
-## 1. Which component takes a sound
+## 1. Which component takes a sound {#1-which-component-takes-a-sound}
 
 Sound is feedback, and feedback should match the weight of what happened (Apple's feedback guideline says the same of
 every channel: match the significance of the information to the way it is delivered). So a component gets a sound
@@ -31,7 +31,7 @@ when something **changes or commits**, and stays silent when nothing did.
 Sound never carries essential information alone (Material, Apple, Xbox guidelines all say this): every sound above has
 a visible change beside it, and a player with the interface sound turned off loses nothing but character.
 
-## 2. Weight: a sound matches its component
+## 2. Weight: a sound matches its component {#2-weight-a-sound-matches-its-component}
 
 A ladder of weights, each about 4 to 6 dB louder and longer than the one below (Material's sound hierarchy ranks
 brand/hero moments over alerts over primary and secondary cues, so the same kind of event is always at the same rank):
@@ -53,7 +53,7 @@ brand/hero moments over alerts over primary and secondary cues, so the same kind
 - **Reuse:** one asset may serve many actions with a different pitch or layer; consistent families teach faster than
   many unrelated sounds (Audiokinetic, on reuse).
 
-## 3. Repetition: the hundredth press
+## 3. Repetition: the hundredth press {#3-repetition-the-hundredth-press}
 
 The test: **every sound a player hears every few seconds must still be pleasant at the hundredth time.**
 
@@ -69,7 +69,7 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   steps makes 6 to 8 ticks, not 20.
 - **Voices:** a `ui` group of 3 to 4 voices so a press is never lost to a tick; a press outranks a hint.
 
-## 4. Level, the bus and the mix
+## 4. Level, the bus and the mix {#4-level-the-bus-and-the-mix}
 
 - **A UI bus of its own** with its own volume in the settings (Xbox Accessibility Guideline 105 asks for independent
   controls per kind of audio; its own example is *Grounded*, with master, effects, music, UI, dialogue and voice-chat
@@ -115,7 +115,7 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   cue a **fight trim** (Deadnight: -10 dB while a night runs) rather than duck the game: a cue that lowers the guns
   hides what the player needs (`docs/research/menu-sfx.md`, "The progression sounds", in the game).
 
-## 5. Touch, mouse, keyboard and pad
+## 5. Touch, mouse, keyboard and pad {#5-touch-mouse-keyboard-and-pad}
 
 - **No hover on a touch screen** (the CSS `hover: none` media feature exists for this; it fails on devices with both).
   In a game, the last input device tells: a finger gets no hover or focus-move sound and its tap is the press. A
@@ -131,7 +131,7 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   next to a bed on a small speaker (a low bed falls 3 to 7 dB on them, the hints do not), not whether the bed is
   pleasant, and a person's taste is the slider.
 
-## 6. Accessibility
+## 6. Accessibility {#6-accessibility}
 
 - A separate UI volume slider (above), and zero is mute.
 - Nothing is sound-only: a sound repeats a visible change.
@@ -141,7 +141,7 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   game ties them (Deadnight does not: the whoosh stays a click-sized cue).
 - Mono and sound-direction options matter for gameplay, not menus.
 
-## 7. How to wire it: roles, cues and one table
+## 7. How to wire it: roles, cues and one table {#7-how-to-wire-it-roles-cues-and-one-table}
 
 What left Deadnight's menu silent was that sound lived in the *controls*: the addon's controls called the hook and the
 game's own controls (drawn tickets, a tab bar) did not, and nothing noticed. The shape that fixes it, in any engine:
@@ -158,7 +158,7 @@ game's own controls (drawn tickets, a tab bar) did not, and nothing noticed. The
   checks its role and its rows; a second test sends each control its events and checks the cues; a third reads the
   code for a cue sent without a source.
 
-## 8. A checklist for a new menu
+## 8. A checklist for a new menu {#8-a-checklist-for-a-new-menu}
 
 1. List every interactive control and give it a **role** (ticket, tab, toggle, slider, ...). A role is the unit the
    table is written for, not the screen.
@@ -169,7 +169,7 @@ game's own controls (drawn tickets, a tab bar) did not, and nothing noticed. The
 6. Put the recording through a laptop and a phone speaker model and read the margins over any bed (section 4); listen
    on a laptop speaker and, when you can, a phone. Sound design needs a human's ear last.
 
-## Sources and how far to trust them
+## Sources and how far to trust them {#sources-and-how-far-to-trust-them}
 
 Strong (primary, or a standards body): [Xbox Accessibility Guideline
 105](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105) (separate volume per

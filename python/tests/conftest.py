@@ -8,6 +8,13 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from skip_allowlist import (  # noqa: F401 - the hooks of the skip allowlist (--allowed-skips)
+    pytest_addoption,
+    pytest_collectreport,
+    pytest_runtest_logreport,
+    pytest_sessionfinish,
+    pytest_terminal_summary,
+)
 
 REAL_SERVICES = frozenset({"gh", "powershell", "pwsh", "ps"})
 

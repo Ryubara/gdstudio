@@ -3,7 +3,7 @@
 Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godot 4.7 with the Compatibility renderer
 (the game's own page is its `docs/research/shot-feedback.md`).
 
-## Muzzle flash
+## Muzzle flash {#muzzle-flash}
 
 - **Every firearm model carries a `Muzzle` empty** at the barrel tip, -Z out of the barrel, placed by whoever models
   the weapon. The flash hangs on it in every view. A server-side "muzzle" offset from the body is only the start of
@@ -64,7 +64,7 @@ game's page is `docs/research/hit-blood.md`).
   of the combat loop: shots had numbers, sounds and a reticle but nothing on the body, and no issue listed the genre's
   feedback. **Seen:** Deadnight #618, 2026-11-02 (fix: deadnight #648 added the blood above).
 
-## Camera shake
+## Camera shake {#camera-shake}
 
 - **Trauma style, rotation only, on the lens node.** The rig keeps the unshaken transform, and the aim ray reads that,
   so shots stay on the crosshair under full shake.

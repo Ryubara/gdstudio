@@ -3,7 +3,7 @@
 From Deadnight #995: the dead need a gap that a person is shut out of (a fence breach, a window with boards across it),
 and the bots must not path through it. One baked mesh serves both with navigation layers.
 
-## What worked
+## What worked {#what-worked}
 
 - **Split the mesh, not the map.** Put the baked `NavigationMesh` in a region on layer 1 with the polygons across the
   gap taken out, and those polygons in a second `NavigationRegion3D` on layer 2. Both regions are in the one map. A
@@ -31,7 +31,7 @@ and the bots must not path through it. One baked mesh serves both with navigatio
   lot, about 430 polygons, 6 ms more on a desktop), such a spot is not on the walking layer, and a person's path from
   it starts on the nearest walking polygon, in any mode, with no code of its own.
 
-## What did not
+## What did not {#what-did-not}
 
 - **Trusting the path and checking it after.** A ray along each path segment found the boards and cut the path short or
   marked the goal unreachable, but the nearest route to the goal was still the one through the boards, so the bot gave up

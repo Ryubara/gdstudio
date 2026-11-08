@@ -118,6 +118,18 @@ def frame_files(folder: Path) -> list[Path]:
     return [p for _, p in sorted(found)]
 
 
+def no_frames_error(folder: Path) -> CaptureError:
+    """The error for a folder without frames: it names the pattern a frame needs and the PNG files that miss it."""
+    others = sorted(p.name for p in folder.glob("*.png"))
+    listed = ", ".join(others[:3]) + (", ..." if len(others) > 3 else "")
+    found = f"; its {len(others)} PNG files ({listed}) are not" if others else ""
+    return CaptureError(
+        f"no frames in {folder}: a frame is a PNG named <prefix><number>.png, one prefix and one number width for the "
+        f"folder, numbered in order (Movie Maker writes capture00000000.png, capture00000001.png, ...){found}; "
+        "run `gds capture frames`, or rename the files to that pattern"
+    )
+
+
 def read_fps(folder: Path) -> int:
     """The frame rate `frames` recorded for a folder, or the default when it was not made by `gds capture`."""
     try:
@@ -188,7 +200,7 @@ def contact_sheet(folder: Path, every: int = 1, columns: int = 4, output: Path |
         raise CaptureError("--every and --columns must be at least 1")
     frames = frame_files(folder)
     if not frames:
-        raise CaptureError(f"no frames in {folder}; run `gds capture frames` first")
+        raise no_frames_error(folder)
     picked = list(enumerate(frames))[::every]
     with Image.open(picked[0][1]) as first:
         width = SHEET_TILE_WIDTH
@@ -243,7 +255,7 @@ def encode_clip(
     """
     frames = frame_files(folder)
     if not frames:
-        raise CaptureError(f"no frames in {folder}; run `gds capture frames` first")
+        raise no_frames_error(folder)
     match = FRAME_RE.match(frames[0].name)
     assert match is not None
     digits = len(match["number"])

@@ -6,7 +6,7 @@ window, pixel for pixel the same picture (at most one level of 255 in about 3,00
 on a shared machine; read them with `Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)` and
 attribute them by hiding one node at a time (Deadnight `HudCostProbe`).
 
-## What batches and what does not
+## What batches and what does not {#what-batches-and-what-does-not}
 
 A spike of 20 cards, each drawing one shape and a small `draw_rect` after it (draw calls of the frame):
 
@@ -30,7 +30,7 @@ A spike of 20 cards, each drawing one shape and a small `draw_rect` after it (dr
 - `Control.visible = false` takes a node out of the count at once: hide one node, count again, and the difference is
   what it draws (hiding a parent takes its children with it, so read the tree, not a sum).
 
-## Draw many shapes as one command
+## Draw many shapes as one command {#draw-many-shapes-as-one-command}
 
 `RenderingServer.canvas_item_add_triangle_array(item, indices, points, colours)` is one polygon command with a colour
 for each vertex. Collect a card's shadow, paper, edge and stripe in one array, in drawing order (the GPU blends the
@@ -51,7 +51,7 @@ To keep the picture the same, build the engine's geometry:
 - An antialiased arc or polyline (`draw_arc(..., true)`) has a feathered edge that is not reproduced: leave it as its own
   command, drawn after the array.
 
-## A label's outline in two calls instead of four
+## A label's outline in two calls instead of four {#a-labels-outline-in-two-calls-instead-of-four}
 
 Give the label an outline of its own and none to the engine (`outline_size` 0): the engine draws the shadow and the
 letters (one texture, one call). Draw the outline yourself into a child canvas item made with
@@ -78,7 +78,7 @@ two-line label.
 A child canvas item does not get its parent's `self_modulate` (it gets `modulate`): a fade-in by `self_modulate` must set
 the outline item's `canvas_item_set_self_modulate` too (Deadnight `HudLabel.set_enter_alpha`).
 
-## Icons from one atlas
+## Icons from one atlas {#icons-from-one-atlas}
 
 Deadnight's level icons (#1060), eight 24 px name tags, counted in the web build and on the desktop with the same
 numbers, the frame's own call taken off:
@@ -102,12 +102,12 @@ numbers, the frame's own call taken off:
   transforms, and no `<text>`. Compare hashes of the sources in a manifest to catch a stale atlas, not pixels: no
   raster has to match across machines.
 
-## Animate alpha with `modulate`, not a redraw
+## Animate alpha with `modulate`, not a redraw {#animate-alpha-with-modulate-not-a-redraw}
 
 A fade or pulse that only changes a colour's alpha does not need `queue_redraw()`: draw the shapes in a child at full
 alpha and set its `self_modulate.a` (the same blend, no new vertex arrays; see [the web heap](web-heap.md)).
 
-## A node per box counts against the canvas-item budget
+## A node per box counts against the canvas-item budget {#a-node-per-box-counts-against-the-canvas-item-budget}
 
 The late-round budget (Deadnight `tools/perf/budget.json`, `canvas_items`) counts every canvas item in the tree, and a
 HUD box is built once per player, so one `Control` added to a box costs the party's size (Deadnight #1199: a strip
@@ -132,7 +132,7 @@ ends: nothing under the part while idle, the whole card after use.
   `MAX_ROWS`) was not built at all. **Seen:** Deadnight #1191, 2026-11-05 (fix: `HudPoints` makes the strip past eight
   bodies and frees it at eight or fewer; the HUD reads 164 canvas items at four bodies on main and on the branch).
 
-## How to compare two builds
+## How to compare two builds {#how-to-compare-two-builds}
 
 Capture a still scene (the time-driven parts stopped) from the old and the new build and compare pixels. Render both from
 separate checkouts, never by swapping files under a run. Mask what is not deterministic (a 3D portrait in a SubViewport

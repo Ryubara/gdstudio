@@ -37,7 +37,7 @@ scroll areas' room, the bars) comes from the router's stage. Without it a label 
   ran the desktop layout in CI; see [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md#headless-differences).
   **Seen:** Deadnight, 2026-11-05 (fix: `MenuShell.phone_mode` from `MenuScale.is_phone`).
 
-## MultiMesh copies have no transform headless
+## MultiMesh copies have no transform headless {#multimesh-copies-have-no-transform-headless}
 
 The dummy renderer keeps no instance data: `MultiMesh.get_instance_transform(i)` returns the zero transform for every
 copy. A test that checks where copies stand reads the `buffer` property instead (12 floats a copy, each basis row

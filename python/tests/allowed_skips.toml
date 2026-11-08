@@ -1,0 +1,67 @@
+# The tests that may skip in CI, each with the platforms it may skip on and why (kit #797). CI runs pytest with
+# `--allowed-skips python/tests/allowed_skips.toml` (python/tests/skip_allowlist.py): a skip that is not here fails the
+# run, and so does an entry whose test ran on a platform it names. A new skip in CI is an entry with its reason here,
+# in the same pull request. Platforms are `sys.platform` values: win32, linux, darwin.
+#
+# Every entry is a platform fact: the test proves something that exists on one system only, and runs on that system's
+# runner. A tool a test needs is installed on the runner instead (the pinned Godot on windows-2025).
+
+[[skip]]
+test = "test_hold.py::test_the_step_itself"
+platforms = ["win32"]
+reason = "the hold step runs under Linux bash on an ubuntu runner; it runs on the Linux and macOS jobs"
+
+[[skip]]
+test = "test_disk.py::test_a_junction_in_a_download_folder_is_not_followed"
+platforms = ["linux", "darwin"]
+reason = "a junction is a Windows folder link"
+
+[[skip]]
+test = "test_disk.py::test_a_junction_in_a_plain_folder_is_not_walked_into"
+platforms = ["linux", "darwin"]
+reason = "a junction is a Windows folder link"
+
+[[skip]]
+test = "test_pr_check_body.py::test_a_git_bash_drive_path_and_cd_d_are_followed"
+platforms = ["linux", "darwin"]
+reason = "Git Bash drive paths are a Windows form"
+
+[[skip]]
+test = "test_worktrees.py::test_a_git_lfs_pre_push_that_pre_commit_moved_aside_is_made_runnable"
+platforms = ["linux", "darwin"]
+reason = "pre-commit cannot find /bin/sh only on Windows"
+
+[[skip]]
+test = "test_quiet_run.py::test_the_guard_frees_the_cursor_every_interval_and_once_more_at_the_end"
+platforms = ["linux", "darwin"]
+reason = "the cursor clip is a Windows call"
+
+[[skip]]
+test = "test_quiet_run.py::test_a_cursor_clip_on_the_hidden_desktop_is_freed_and_does_not_hold_the_real_cursor"
+platforms = ["linux", "darwin"]
+reason = "the cursor clip is a Windows call"
+
+[[skip]]
+test = "test_quiet_run.py::test_every_program_the_command_starts_runs_on_the_private_desktop"
+platforms = ["linux", "darwin"]
+reason = "private desktops are Windows'"
+
+[[skip]]
+test = "test_quiet_run.py::test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the_desktop"
+platforms = ["linux", "darwin"]
+reason = "the focus rules are Windows'; it runs on windows-2025 with the pinned Godot"
+
+[[skip]]
+test = "test_quiet_run.py::test_the_browser_probe_times_a_held_clip_and_a_missing_guard_exceeds_the_bound"
+platforms = ["linux", "darwin"]
+reason = "the probe reads the Windows cursor clip"
+
+[[skip]]
+test = "test_quiet_run.py::test_a_headless_chrome_pointer_lock_does_not_hold_the_real_cursor"
+platforms = ["linux", "darwin"]
+reason = "the cursor clip under pointer lock is a Windows call"
+
+[[skip]]
+test = "test_quiet_run.py::test_only_windows_of_the_started_programs_tree_are_counted"
+platforms = ["linux", "darwin"]
+reason = "window lists are read through the Windows API"

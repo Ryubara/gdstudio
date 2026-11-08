@@ -52,8 +52,10 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-07 | gdstudio #780 | The maintainer's prompts were quoted in the public docs; none belongs in a public repository | [studio/rules.md#rule](rules.md#rule) |
 | 2026-11-07 | gdstudio #786 | Deadnight was paused for kit work, yet a Deadnight issue was started and a pull request opened for it | [studio/starting-work.md#paused](starting-work.md#paused) |
 | 2026-11-08 | gdstudio #811 | No Deadnight pull request is worked while Deadnight is paused; the pause covered issues, so the coordinator refreshed and reran Deadnight #1371 and a kit task opened Deadnight #1374 | [studio/starting-work.md#paused](starting-work.md#paused) |
+| 2026-11-08 | gdstudio #797 | Pull request #808 had failed with its agent stopped while the coordinator kept reporting it as waiting on checks | [studio/starting-work.md#stopping-and-finishing](starting-work.md#stopping-and-finishing) |
 | 2026-11-08 | gdstudio #790 | The new site listed about 970 lessons in one sidebar group that was always open; sections should fold and nest | [studio/docs-site.md#nav](docs-site.md#nav) |
 | 2026-11-08 | gdstudio #769 | The maintainer questioned whether agents use per-mistake lesson pages at all; a learning belongs in the page an agent reads for the task | [studio/rules.md#where](rules.md#where) |
+| 2026-11-08 | gdstudio #814 | A new 3D Blank game opened in the editor with five parse errors from the `gds_ui` demo; #778 had excluded the demo from the export instead of finding the missing autoload | [engines/godot/new-game.md#proof](../engines/godot/new-game.md#proof) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 

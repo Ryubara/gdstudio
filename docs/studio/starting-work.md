@@ -104,7 +104,7 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   **Seen:** Deadnight, 2026-11-01 (fix: the night wired to the new classes, its copy deleted, and tests of a night that
   buys a door and one that ends during the rebake).
 
-## Starting an issue
+## Starting an issue {#starting-an-issue}
 
 ```text
 uv run --project <workspace>/repos/gdstudio/python gds issue start Ryubara/deadnight#523 --agent godot-engineer-4
@@ -315,7 +315,7 @@ SubagentStop holds back once a task agent's report that names a pull request wit
 an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
 closes an issue names the same sections on its `Read first:` line.
 
-## Looking
+## Looking {#looking}
 
 ```text
 gds issue list [owner/repo]
@@ -378,6 +378,12 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   means` list is shorter than the Summary, so a finished poster set in the night report was built nowhere while the
   tests and captures were green; the walk also found a set told twice and a finish invisible to the solo report.
   **Seen:** Deadnight #1073 and #1164, 2026-11-04.
+- **Approach:** Report an open pull request's state to the maintainer only from a fresh read of it (`gh pr view` or
+  `gh pr checks`), and check that the agent that owns it is still running; a pull request whose agent has stopped and
+  whose checks failed is the coordinator's to fix or hand on at once. **Watch out for:** the coordinator repeated an
+  agent's last word, "waiting on its checks", in several updates while #808's Windows job had failed and its agent had
+  stopped, until the maintainer found the failure. **Seen:** gdstudio #797, 2026-11-08 (fix: the coordinator found the
+  cause, a leaked `GDS_QUIET`, fixed it in #808 and landed it).
 
 ## Landing pull requests {#landing}
 
@@ -501,7 +507,7 @@ force push, which is the maintainer's decision: open the same change from a new 
   had landed. **Seen:** Deadnight #678, 2026-11-03 (fix: the branch wired to `main`'s mechanism, the workaround and its
   test dropped).
 
-## Why a tool and a hook
+## Why a tool and a hook {#why-a-tool-and-a-hook}
 
 The rule used to live in the coordinator's memory and was broken the day a new request arrived while older issues
 waited. Now the order is a function of the issue list, not of anyone's attention: the tool computes it, the ledger

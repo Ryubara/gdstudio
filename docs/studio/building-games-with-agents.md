@@ -3,7 +3,7 @@
 How GDStudio went from one prompt to a coordinator running a dozen agents on a game, in about a night, and what to
 copy to do the same on another engine.
 
-## Timeline
+## Timeline {#timeline}
 
 | Phase | What happened |
 | --- | --- |
@@ -20,7 +20,7 @@ copy to do the same on another engine.
 | 11. Live tests | A test server deployed to Railway to measure real latency, then torn down. |
 | 12. Handoffs | Long sessions cleared and resumed from `HANDOFF.md`, written at each checkpoint. |
 
-## What made it work
+## What made it work {#what-made-it-work}
 
 - **Proof, not claims.** Done means tests and captures pass; the agent looks at its own captures before asking.
 - **Agents test everything.** Input simulation, bots and audio analysis replace "please try it" for the user.
@@ -33,7 +33,7 @@ copy to do the same on another engine.
   per problem ([Learning in the topic pages](rules.md)). The first week wrote 963 lesson files, many on the same
   subject.
 
-## What went wrong
+## What went wrong {#what-went-wrong}
 
 - Hook refusals stopped legitimate merges until the user granted a time-boxed merge authorization.
 - A relative worktree path landed inside a repository; worktrees now always take absolute paths.
@@ -44,7 +44,7 @@ copy to do the same on another engine.
 - Many gaps were never considered when the game was first built; the checklist for the next game is
   [What to plan from the start](plan-from-the-start.md).
 
-## Reproduce it on another engine
+## Reproduce it on another engine {#reproduce-it-on-another-engine}
 
 Everything except the engine column is generic and carries over unchanged.
 
@@ -61,7 +61,7 @@ Steps, in order: pin the tools; make the workspace and bootstrap; write the conv
 define the roster with proof steps in each brief; write the game's design docs; then dispatch agents in parallel and
 review every merge.
 
-## Limits
+## Limits {#limits}
 
 - Some steps stay with the user: maintainer decisions, licences, accounts (a Discord application), and paid assets.
 - A coordinator can track about a dozen agents at once; beyond that, results queue faster than they can be reviewed.

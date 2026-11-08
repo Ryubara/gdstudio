@@ -158,6 +158,8 @@ learning:
   max_rule_chars: 900
   # A page past this size is split into a folder of subpages.
   max_page_kb: 50
+  # Every ## and ### heading of a page in these folders under docs/ has an explicit {#anchor}.
+  anchored_folders: [studio, engines, tools, gamedev]
   # A heading the base does not have starts its section with this comment, which says why no section fits.
   reason_line: "<!-- new section:"
   # The old folder, one file per problem, emptied by gdstudio #770: a file added to it is refused.
