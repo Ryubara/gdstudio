@@ -45,6 +45,13 @@ the mesh is welded.
   into 2,228 open edges and a shape 14% of its size off the original. **Seen:** gdstudio #774, 2026-11-07 (fix: the
   eval's boulder is smooth-shaded, the checks weld before measuring, and the `decimate-boulder` eval counts open edges).
 
+- **Approach:** After a collapse Decimate of a static prop, snap the vertices of its flat bottom back to the floor,
+  then remove folds near the far level's budget with a few edge flips and vertex nudges toward the source while the
+  outermost vertices stay locked; shade it smooth with only the bottom's edge hard. **Watch out for:** collapse shrank
+  the bounds 0.63% and kept 54% of the flat bottom's area at 500 triangles, left small faces turned away from the
+  source, and a pass that pulled every vertex in pushed the bounds past 1%; sharp edges split by angle (45 degrees)
+  cut a noisy rock into dark wedges. **Seen:** gdstudio #774, 2026-11-07 (the `decimate-boulder` baseline run).
+
 Measure a decimated mesh against its source, not by eye: the mean and largest distance between the two surfaces over
 the bounding-box diagonal, the bounds, the lowest vertex (a flat bottom stays on the floor) and the area that ended up
 facing the wrong way.
@@ -66,5 +73,5 @@ family's props into one mesh at run time ([Merging meshes](../../engines/godot/m
 
 ## The decimation eval {#eval}
 
-The `decimate-boulder` eval ([Agent evals](../../studio/agent-evals.md)) turns an 80,000-triangle sculpt into a near and
+The `decimate-boulder` eval ([Agent evals](../../studio/agent-evals.md)) turns a 20,480-triangle sculpt into a near and
 a far level and measures the budgets, the surface distances, the bounds, the flat bottom, open edges and flipped area.

@@ -12,6 +12,7 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | --- | --- |
 | [Workspace](workspace.md) | The folder layout, the bootstrap, and the pinned Godot and Blender. |
 | [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
+| [Agent evals](agent-evals.md) | Small tasks with numbers to meet that measure a change to an agent's page, and the baseline. |
 | [Starting work](starting-work.md) | Issues start oldest first, through `gds issue start`; how the window works. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
 | [Writing a check or a guard](writing-checks.md) | What went wrong in hooks, `groundwork.py` and CI jobs, and how to write the next check. |

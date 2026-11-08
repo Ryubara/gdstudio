@@ -7,7 +7,7 @@ read = ["tools/blender/build-scripts.md#checks", "tools/blender/variants.md#modu
 
 # Decimate a boulder into two levels of detail
 
-`boulder_high.glb` in this folder is a sculpted boulder of about 80,000 triangles, far too heavy for a web game. Make
+`boulder_high.glb` in this folder is a sculpted boulder of 20,480 triangles, far too heavy for a web game. Make
 the two meshes the game draws: a near level for gameplay distance and a far level, keeping its shape, its flat
 bottom and its one material.
 

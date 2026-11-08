@@ -51,6 +51,19 @@ vertex buffers and triangle set, never by bytes, since the exporter does not kee
 ([Build scripts](build-scripts.md#rebuilding)). Models are Git LFS files: `git show` of one prints its pointer, and a
 pointer imported as a model leaves a broken `.import` behind ([Build scripts](build-scripts.md#rebuilding)).
 
+## Reading a glb back in Blender {#reimport}
+
+A script that measures or rebuilds from an exported file reads it back with Blender's glTF importer, which does not
+give back what was exported: vertices are split at every hard edge and UV seam (weld them before anything that reads
+the topology, [Optimisation](optimisation.md#decimation)), bone tails are guessed ([Rigging](rigging.md#joints)), and
+an armature brings an extra object.
+
+- **Approach:** After importing a file with an armature, take the meshes skinned to it (an Armature modifier pointing
+  at the rig) instead of every mesh in the scene, or delete the collection `glTF_not_exported`. **Watch out for:**
+  Blender 5.2's importer adds an `Icosphere` of radius 1, unparented, as every bone's custom shape, so a lowest-vertex
+  or triangle count over the scene's meshes reads a sphere reaching 1 m under the floor. **Seen:** gdstudio #774,
+  2026-11-07 (fix: the `clip-walk` baseline run deleted it; the eval checks read only skinned meshes).
+
 ## In the evals {#eval}
 
 Every Blender eval ([Agent evals](../../studio/agent-evals.md)) is judged on the exported glb, read back through

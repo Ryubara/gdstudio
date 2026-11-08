@@ -18,7 +18,8 @@ that looks the same: one Principled BSDF per asset family, its base colour from 
 | Metallic | 0.4 on weapons, 0 on props, map pieces and vehicles | 0.4 reads dark at night, with nothing to reflect |
 | Backface culling | on | the review renders show inside-out faces |
 
-Make the Image Texture node the active node, or a Workbench preview renders the model black
+In Blender 5 every new material already has a node tree: `Material.use_nodes` is deprecated and warns on the pinned
+5.2. Make the Image Texture node the active node, or a Workbench preview renders the model black
 ([Variants](variants.md)). The kits' own files carry 2 to 4 flat-colour materials per asset and a few left at Blender's
 default grey: converting one is a palette remap to the nearest cell, not a copy of its materials (Deadnight's style
 bible).

@@ -175,4 +175,6 @@ answer depends on how long a frame took, which is the machine, the window and th
   on the branch and on main before deciding whose fault it is; a new suite that reads the client runs ten times alone
   before it is called green. **Watch out for:** the test moved the dead away, ran two ticks and waited two frames, but
   the client's frame and the layer's read of it each land a frame later, so it failed 4 of 8 runs on main and landed
-  green by chance. **Seen:** Deadnight #1296, 2026-11-05 (fix: Deadnight #1302, 0 of 12 runs failed).
+  green by chance; ten awaited `physics_frame` signals were nine or ten ticks of a pickup's spin. **Seen:**
+  Deadnight #1296, 2026-11-05 (fix: Deadnight #1302, 0 of 12 runs failed); gdstudio #774, 2026-11-07 (the
+  `pickup-feature` eval's own spin test).

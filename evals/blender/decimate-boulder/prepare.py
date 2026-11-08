@@ -1,4 +1,4 @@
-"""Input of the decimate-boulder eval: boulder_high.glb, a sculpted-looking boulder of about 80,000 triangles."""
+"""Input of the decimate-boulder eval: boulder_high.glb, a sculpted-looking boulder of 20,480 triangles."""
 
 import sys
 from pathlib import Path

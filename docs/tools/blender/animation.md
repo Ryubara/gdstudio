@@ -48,6 +48,11 @@ In Blender 5 an action plays on an object only through a slot (`animation_data.a
 glTF roots import in quaternion rotation mode ([Modular kits](modular-kits.md)). Mute NLA tracks before posing by hand
 or reading bones, or the tracks override the pose ([Gaits](gaits.md)).
 
+- **Approach:** In Blender 5, set `bpy.context.preferences.edit.keyframe_new_interpolation_type` (and the handle type)
+  before a script keys a clip, rather than editing the curves afterwards. **Watch out for:** a layered action has no
+  `action.fcurves`; its curves sit in its layers, strips and channel bags, so a script written for Blender 4 that walks
+  `action.fcurves` to change interpolation fails. **Seen:** gdstudio #774, 2026-11-07 (the `clip-walk` baseline run).
+
 ## Export {#export}
 
 Export each clip as its own NLA track (`export_animation_mode="NLA_TRACKS"`) with `export_force_sampling=True`, and

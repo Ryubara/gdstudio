@@ -46,6 +46,18 @@ every part's normals simple. A measuring script that welds coincident vertices (
 also joins parts that touch, so it counts an edge shared by two parts as more than two faces: that is not a fault in a
 kitbashed model.
 
+## Building with bmesh {#bmesh}
+
+Build scripts make geometry with `bmesh.ops`, which do less than the operators of the same name in the interface: they
+return the new geometry and leave the old in place.
+
+- **Approach:** After `bmesh.ops.extrude_face_region`, delete the original faces yourself
+  (`bmesh.ops.delete(bm, geom=faces, context="FACES_ONLY")`), give `bmesh.ops.inset_individual` and `inset_region`
+  `use_even_offset=True`, and count open and over-shared edges in the build before export. **Watch out for:** the
+  extrude keeps the face it extruded, so every recess of a crate's panels left three faces on each rim edge (32 bad
+  edges), and an inset of 0.1 m without even offset came out at about 0.071 m. **Seen:** gdstudio #774, 2026-11-07
+  (fix: the `model-crate` baseline run's second build; the eval counts open edges).
+
 ## Origins and axes {#origins}
 
 The origin is where the game holds or places the asset: a gun at its grip, a melee weapon near the handle's end, a prop

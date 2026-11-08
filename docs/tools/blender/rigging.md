@@ -45,6 +45,12 @@ Blender's automatic weights (parent with automatic weights) need a closed, welde
 split at every hard edge and UV seam, so weld it (merge by distance) before computing weights, or assign weights by
 part from the geometry, which a script can repeat exactly.
 
+- **Approach:** Before weighting a model built from separate pieces, find the vertices that share a position across
+  pieces (a sleeve on a shoulder, a leg on a foot) and give every copy at one position the same weights. **Watch out
+  for:** weights assigned per piece differ at the seam, so the bend opens a crack there and the two sides' weights stop
+  mirroring (96.9% on the first build). **Seen:** gdstudio #774, 2026-11-07 (fix: the `rig-humanoid` baseline run
+  copied each position's most blended weights to all its copies; the eval checks mirrored weights).
+
 ## Sockets and hitboxes {#sockets}
 
 An empty parented to a bone becomes a `BoneAttachment3D` in Godot: use it for a held item's grip, a muzzle or a hitbox
