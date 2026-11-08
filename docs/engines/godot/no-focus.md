@@ -148,8 +148,7 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   `gds godot` and `gds quiet` hid the window and freed the cursor but left audio on, so captures, autopilots and browser
   probes played through the speakers. **Seen:** gdstudio #102, 2026-11-02 (fix: `gds godot` adds `--audio-driver Dummy`,
   `gds quiet` sets `GDS_QUIET=1` and the probes add `--mute-audio`; the hook refuses a real `--audio-driver` and
-  `--with-audio` from a session (gdstudio #102,
-  [lesson](../../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md))).
+  `--with-audio` from a session).
 
 ## What to know {#what-to-know}
 

@@ -167,9 +167,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Audio
 
 - Plan: loudness, first-50 ms energy and pitch spread measured from a recording of the real service
-  ([lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)).
+  ([close and powerful sounds](../engines/godot/audio.md#close-and-powerful-sounds)).
 - Plan: voice lines written as a person speaking, with many takes per event
-  ([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)).
+  ([writing the lines](../gamedev/audio/voice-lines.md#2-writing-the-lines)).
 - Plan: no sound design in bus effects, which the web build ignores
   ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
 
@@ -178,7 +178,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
   ([first-use hitches](../engines/godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
-  ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+  ([starting sounds](../engines/godot/audio.md#starting-sounds)).
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
@@ -191,7 +191,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 - Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
   `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
-  ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
+  ([sound](../engines/godot/no-focus.md#sound)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
   ([lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)).
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
