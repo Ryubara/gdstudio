@@ -9,14 +9,18 @@ lessons and Deadnight's general docs migrated, #771 `gds brief`) work from this 
 
 ```text
 docs/
-  index.md          the home page: the sections below
-  gamedev/          engine-neutral principles: animation, camera, input, AI, netcode, audio, UI, level design,
-                    performance, testing
-  engines/godot/    one engine: GDScript, scenes, physics, rendering, animation, UI, export, networking, testing
-  tools/blender/    one tool: modelling, UV and texturing, materials, baking, rigging, animation, optimisation, export
-  studio/           how the studio works: agents, starting work, hooks, CI, workspace, conventions, templates, this site
-  games/<game>/     one game: summary, how we build it, design philosophy, conventions
-  lessons/          the record of problems hit, one file each (see below)
+  index.md         the home page: the sections below
+  gamedev/         engine-neutral principles: animation, camera, input,
+                   AI, netcode, audio, UI, level design, performance, tests
+  engines/godot/   one engine: GDScript, scenes, physics, rendering,
+                   animation, UI, export, networking, testing
+  tools/blender/   one tool: modelling, UVs and texturing, materials,
+                   baking, rigging, animation, optimisation, export
+  studio/          how the studio works: agents, starting work, hooks,
+                   CI, workspace, conventions, templates, this site
+  games/<game>/    one game: summary, how we build it, design
+                   philosophy, conventions
+  lessons/         the record of problems hit, one file each (below)
 ```
 
 Every folder has an `index.md` that says what belongs in it and what does not, and lists its pages. The navigation is
