@@ -54,7 +54,7 @@ not by a close-up capture of the effect on its own (Deadnight #408).
   column measure), and it was first read as a seam in something sampled in screen space. **Seen:** Deadnight #1249,
   2026-11-05 (fix: the line showed in 8 of 40 shots on main and in 0 of 40 with the scratch removed).
 
-## A held weapon from the shoulder camera
+## A held weapon from the shoulder camera {#a-held-weapon-from-the-shoulder-camera}
 
 The same method answers "does the player see this action at all": hide the weapon (and whatever the hands carry),
 draw again, and count the pixels that change (above 0.08 in any channel, every other pixel in both directions, times
@@ -71,7 +71,7 @@ down (#383), the rifle about 300 throughout. A reload carried out to the right o
 
 Deadnight's capture: `game/tests/captures/reload_sheet.tscn --measure`.
 
-## A reveal from where the player stands
+## A reveal from where the player stands {#a-reveal-from-where-the-player-stands}
 
 A prop that shows the player something (a prize, a pickup, a sign that changes) is read from the spot where its use
 prompt appears, through the player's resting camera with the player's own body in the frame, not from a capture placed
@@ -93,7 +93,7 @@ To hold it in a headless test:
 
 Deadnight's checks: `game/tests/night/test_crane_view.gd`; the screenshots, `game/tests/captures/crane_prize_view.tscn`.
 
-## A soft rim, and which node it is
+## A soft rim, and which node it is {#a-soft-rim-and-which-node-it-is}
 
 An additive wall (a beam, a cone of haze, a shaft) reads as a solid object when its edge is a hard step. Whether it does
 is measured, not judged by eye (Deadnight #854):

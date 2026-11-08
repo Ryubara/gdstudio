@@ -6,7 +6,7 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
 `Strafe_Right`, `tools/blender/gaitlib.py` and `soldier_clips.aim_moves`). The clean-up before it is
 [rig sharing](rig-sharing.md).
 
-## What the kit Run gives
+## What the kit Run gives {#what-the-kit-run-gives}
 
 | | Zombie | Soldier |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
 | Ankle in the lower leg's frame | constant to 1 cm over the clip | strays up to 14 cm |
 | Planted foot | barely moves at touchdown, then sweeps fast | same |
 
-## The recipe
+## The recipe {#the-recipe}
 
 1. **Keep the Run's length.** A clip of the same length steps with the Run, so the game can blend the two linearly
    by speed; a different length drifts out of phase in a synced blend space.
@@ -34,7 +34,7 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
 5. **Measure it the way the game does**: the planted foot (within 20 % of its own lift from its lowest point),
    sampled at 60 Hz from 0.5 s in for 5 s, linearly between frames, median of its ground speed.
 
-## Measured
+## Measured {#measured}
 
 | Clip | Design | Blender reading | Godot reading |
 | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
 | Zombie Sprint | 7.0 m/s sweep | 6.60 | 6.52 |
 | Soldier aim clips (four ways) | 2.6 m/s | 2.60 | 2.60 (every direction) |
 
-## What broke
+## What broke {#what-broke}
 
 - **The kit's stride is already the legs' reach.** A 1.5 times longer stride on the zombie's short legs was out of
   reach by up to 18 cm; pulling the feet into reach lifted the touchdown off the ground. A faster gait shortens the

@@ -7,7 +7,7 @@ RTX 5080): about 290 GL programs were linked during the first 20 s of a night, a
 (six runs). After the fix below there were none in three runs, and the worst frame was 17 to 25 ms. The game's own
 page, with the numbers and the method, is `docs/research/first-use-hitches.md` in Deadnight.
 
-## What the engine does
+## What the engine does {#what-the-engine-does}
 
 - **Programs are built on first draw.** The Compatibility renderer builds a GL program the first time a mesh is drawn
   with a material under a set of render conditions: the shader, the pass (colour, depth), instancing, and the
@@ -32,7 +32,7 @@ page, with the numbers and the method, is `docs/research/first-use-hitches.md` i
 - **Chrome keeps a program cache** in the browser profile, so a second visit on the same profile hides the problem.
   Measure with a fresh profile every run (Playwright's `launch` makes one).
 
-## How to find it
+## How to find it {#how-to-find-it}
 
 Wrap WebGL in the page before the game loads and count what is linked while playing. A frame that links programs is a
 frame that stutters, and "no program linked after the loading screen" is a clean, noise-free test:
@@ -53,7 +53,7 @@ the `#define` list of each program (`DISABLE_LIGHT_OMNI`, `USE_INSTANCING`, `MOD
 second program for the same material was needed. Frame times alone (requestAnimationFrame deltas) show the hitches but
 not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough, a software renderer is not.
 
-## The first draw of a shader builds four programs, two of them huge
+## The first draw of a shader builds four programs, two of them huge {#first-shader-draw}
 
 Reading the engine (`ShaderGLES3::_version_bind_shader` and `_initialize_version`, 4.7) and measuring in Chrome
 (ANGLE on Direct3D 11, RTX 5080, a small spike with one cube per material and a directional, an omni and a spot light):
@@ -78,7 +78,7 @@ fog. Then it builds the specialisation the draw really asked for. Only the last 
 - What shortens the loading screen is **fewer lit shaders**, not fewer meshes: materials that differ in one setting
   (specular on or off, `cull_mode` disabled on one gun, an emission flag) are one more pair of huge programs each.
 
-## Drawing the level in pieces
+## Drawing the level in pieces {#drawing-the-level-in-pieces}
 
 Hold what the level draws out of the picture and bring it back **one new kind of material at a time**, a frame each,
 so the loading bar moves between the long frames and no frame meets two shaders:
@@ -164,7 +164,7 @@ Other things the load profile found (Deadnight #509, Compatibility, web):
   nothing new. **Seen:** Deadnight #828, 2026-11-03 (fix: weapons' and voices' banks deferred; a new exported property
   on a resource with a pinned tuning table needs that table's test run too).
 
-## Particle systems: two programs of their own, and a sample that expires
+## Particle systems: two programs of their own, and a sample that expires {#particle-programs}
 
 A `GPUParticles3D` draws with two programs besides the level's: the one that **moves the particles** (built from its
 `ParticleProcessMaterial`: 845 ms at its first run with ANGLE on Direct3D 11, and a second variant of it about 0.85 s
@@ -188,7 +188,7 @@ Test the fix by firing the effect in the browser three times (the first, one soo
 counting the programs linked in the seconds after each trigger (Deadnight `tools/web_smoke/flare_first.py`): 10, 0 and 8
 programs before, 0, 0 and 0 after, and the worst frame after the first shot from 1.8 s to 7 to 36 ms.
 
-## Testing it
+## Testing it {#testing-it}
 
 - **No program linked after the loading screen** in a browser run (the counter above) is the real test.
 - A unit test can compare what the night draws with what the warm-up drew. Key each mesh by its kind (plain, skinned,
@@ -196,7 +196,7 @@ programs before, 0, 0 and 0 after, and the worst frame after the first shot from
   shader), and each light by its type; play the game with a bot for a minute and assert the played set is inside the
   warmed set. Add a test that a new effect with a new material makes that check fail, or the check proves nothing.
 
-## Sources
+## Sources {#sources}
 
 - Godot docs, [Pipeline compilations](https://docs.godotengine.org/en/latest/tutorials/performance/pipeline_compilations.html)
   (Forward+/Mobile only; shader baker not on the web; preload for Compatibility).

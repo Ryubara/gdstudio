@@ -28,7 +28,7 @@ localhost, bytes counted by a proxy in front of each stack.
   cost of hosting). **Seen:** Deadnight, 2026-11-01 (fix: deadnight runs its own protocol and backend, built
   network-first, chosen by the comparison above).
 
-## The constraint that decides everything
+## The constraint that decides everything {#the-constraint-that-decides-everything}
 
 A web client (and a Discord Activity inside an iframe) can only open **WebSockets** (and HTTP). No raw TCP/UDP, no
 WebRTC through Discord's proxy. So the shape is: one authoritative server that clients reach over a WebSocket
@@ -68,7 +68,7 @@ gap once it stood still:
   wait on `RenderingServer.frame_post_draw` hangs headless, and a test spot inside a 3.8 m snow bank was pushed out by
   the physics. **Seen:** Deadnight #862, 2026-11-03 (fix: reset after the move; the camera read a frame later).
 
-### The same in the browser (Deadnight #502)
+### The same in the browser (Deadnight #502) {#the-same-in-the-browser-deadnight-502}
 
 The page's main thread is Godot's, so a busy loop run in the page (`page.evaluate`, a `while (performance.now() < end)`)
 is the freeze a player gets, and the browser goes on receiving into the socket's buffer meanwhile. A probe that joins a
@@ -83,7 +83,7 @@ The probe starts the game server as a process of its own. On Windows the console
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
-## Godot's raw WebSocket, without the high-level multiplayer
+## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
   `poll()` every tick and read `get_ready_state()` (`STATE_OPEN`, `STATE_CLOSED`), `get_available_packet_count()` and
@@ -99,7 +99,7 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 - `StreamPeerBuffer` is enough for a compact binary protocol: little-endian by default, `put_u8/put_8/put_16/put_u32`
   and the matching `get_*` (signed variants have no `u`). Check each packet's length before reading.
 
-## The pattern that worked (own protocol over that transport)
+## The pattern that worked (own protocol over that transport) {#own-protocol}
 
 - Fixed tick (30 Hz). The client sends one **input command per tick with a sequence number**, repeated redundantly (last
   1 to 3) if the link may lose packets; the server applies each input exactly once, in order, with a fixed step per
@@ -135,7 +135,7 @@ random 31-bit numbers. Fine for a prototype; for a game with a real tick, own th
   spawn state), so values replicated but prediction and reconciliation never started, and a spawn packet can carry a
   stale value. **Seen:** Deadnight #38, 2026-11-01 (fix: both signals are connected in the networking spike).
 
-## A room over a real socket, faster than real time (Deadnight #230)
+## A room over a real socket, faster than real time (Deadnight #230) {#room-over-socket}
 
 A soak of a game server's room with real clients (ten game minutes, two people and two bots) runs in about three
 minutes of wall time on one headless Godot process: `--fixed-fps 60` makes each frame exactly one physics tick and
@@ -238,7 +238,7 @@ listeners (the tallies) and by no client unless its events are sent on: `room._c
   `PLAYER 3 LEFT` suggested a lost event where the product was inconsistent. **Seen:** Deadnight #542, 2026-11-02 (fix:
   the name goes first and the test asserts names).
 
-## A room test that needs a map or a fast round
+## A room test that needs a map or a fast round {#a-room-test-that-needs-a-map-or-a-fast-round}
 
 A ticket's map is kept only when the host's level opens it, so name a host level (`TicketMaker.make(..., settings, 12,
 seat)` opens the back rooms at 10) and assert `room.server.rules.settings.map` first. The count multiplier is also the
@@ -250,7 +250,7 @@ for each dead. A room test that plays rounds shortens it in its own copy of the 
 online suite of 11 cases went from 270 s to 23 s that way, with the same checks, and a shard fails at 80% of its
 time limit.
 
-## Act on a rules event where the rules say it, not in the list a step returns (Deadnight #1059)
+## Act on a rules event where the rules say it, not in the list a step returns (Deadnight #1059) {#rules-events}
 
 `NightServer.step` returns the events of that tick, but a rules event can also be made by an `apply` between steps, by a
 bot's buy, or by a test that calls the rules directly, and those land in the outbox the host has already taken. A host
@@ -258,7 +258,7 @@ that waits for `round_ended` in the step's list to post a report misses the roun
 report never goes. Hook the rules' own signal (`GameRules.event_emitted`, which `NightServer._on_rules_event` already
 listens to) and keep what is owed (`XpAward.take_due`); the host asks after each step and posts what is due.
 
-## What the last event of a night makes
+## What the last event of a night makes {#what-the-last-event-of-a-night-makes}
 
 Once the rules say the match is over, `NightServer.step` runs `_step_over` (a frame and the intermission's clock) and
 nothing else, so whatever the end made has to be handed out there. A stat that is counted at `game_over` or by the
@@ -267,7 +267,7 @@ last down (*Dead on arrival*, *Standing room only*, a night count) finishes chal
 1172: the board held the number and no client heard it). `_step_over` drains them. Test a night's end as *told*: wait
 for `challenge_done` on a client after `game_over`, not only for the board's number.
 
-## An end the server owns: intermission and return (Deadnight #973)
+## An end the server owns: intermission and return (Deadnight #973) {#server-owned-end}
 
 The end of a match is a state of the server, not of each client, or no two screens agree on the second:
 
@@ -349,7 +349,7 @@ backend deployed -->
   bytes shorter with a new `levels` table (173 to 151): two sizes either side of a threshold are not the field's cost.
   **Seen:** Deadnight #1077, 2026-11-04 (fix: 1017 to 1052, +35 for the WELCOME, 110 to 154 for the event).
 
-## Web export
+## Web export {#web-export}
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
   iframe. The cost is that threads and some audio features are unavailable; networking is unaffected.

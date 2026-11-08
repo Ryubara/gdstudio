@@ -3,7 +3,7 @@
 Draft for `docs/engines/godot/audio.md` in the kit (from Deadnight's sound design, issue 43). Game specifics are in Deadnight's
 `docs/design/audio.md` and `docs/research/audio.md`.
 
-## Making sounds with code
+## Making sounds with code {#making-sounds-with-code}
 
 Original, committable sounds: numpy and scipy through `uv run --with numpy --with scipy`, one function per sound, a seeded
 `numpy.random.Generator` (seed = CRC of the name and variant number), WAV to the pinned ffmpeg, Ogg Vorbis quality 4 with
@@ -21,7 +21,7 @@ Original, committable sounds: numpy and scipy through `uv run --with numpy --wit
 Without ears, check with log spectrogram sheets (`ffmpeg -i a.wav -lavfi showspectrumpic=s=700x180:legend=0:scale=log:fscale=log`),
 peak levels and loop seams; judging taste is a human's job.
 
-## Service shape that worked
+## Service shape that worked {#service-shape-that-worked}
 
 Pooled `AudioStreamPlayer`/`AudioStreamPlayer3D` (no nodes created while playing); a pure `RefCounted` budget that hands
 out slots (group limits, priority, a loudness margin so a voice is not stolen back and forth, per-sound cooldown) and
@@ -65,7 +65,7 @@ each fall, until about four mixes have landed (with a poll cap).
   (the relative path); Deadnight #718, 2026-11-03 (fix: runs of one case each, three at a time; five minutes of sound
   and 40 minutes were lost to a deleted avi).
 
-## Layered gunshots and event-timed sounds
+## Layered gunshots and event-timed sounds {#layered-gunshots-and-event-timed-sounds}
 
 - **Split a shot across voices.** Play the report (transient and body, 0.05 to 0.35 s), a long blast and a tail as
   three separate sounds with their own random variants and a few dB of level jitter; the combinations are many even
@@ -115,7 +115,7 @@ A gun "sounding distant" is measured on a recording of the real shot through the
   and windows that end at the next play; the pinned table of close levels comes from that clean run with the caps it
   was measured at, so a cap moved without measuring again fails a test).
 
-## Headroom without a limiter
+## Headroom without a limiter {#headroom-without-a-limiter}
 
 Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and anything landing on a shot clipped:
 
@@ -166,7 +166,7 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
   beside the LU; and a table that pins the bench's numbers should pin the files too (a SHA-256 of each, checked by the
   test), or a re-rendered file leaves the table describing other sounds.
 
-## A layer over a sound that already peaks
+## A layer over a sound that already peaks {#a-layer-over-a-sound-that-already-peaks}
 
 Deadnight #791: one futuristic layer that plays over the shot of any upgraded weapon, so seventeen weapons need no
 recipe each. Peaks add, so it has to be heard without taking the headroom the shots were given (the first layer lifted a
@@ -241,7 +241,7 @@ voice limit) and for one put off to the next frame by the starts-per-frame cap, 
 from the returned player (a gust that times the next one by its length) takes null as "length unknown", never as "not
 played" (Deadnight #782).
 
-## Swelling a bed with an event
+## Swelling a bed with an event {#swelling-a-bed-with-an-event}
 
 `Audio.set_bed_level(id, db)` is dB under the bed's own level and is clamped at 0: a bed cannot be raised over what its
 trim gives it. A bed that an event should lift (a gust of wind over a located wind loop, Deadnight #809) needs
@@ -286,7 +286,7 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   2026-11-03 (fix: trims from the Ambience-bus capture; the seed picked by a probe of the plan so the proof shows every
   part).
 
-## A crowd's voices (the dead)
+## A crowd's voices (the dead) {#a-crowds-voices-the-dead}
 
 - **Ration at the source, not only in the pool.** A per-zombie random timer plus one gate for the whole horde (one
   idle voice every 0.6 to 1.6 s, from the nearest three that are due) keeps 28 groaning zombies readable; the pool's
@@ -346,7 +346,7 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   2026-11-02 (fix: the waiting `_exit_tree`; a test runs a child Godot that starts sounds and quits at once and fails
   on any leak line, as it did before the fix every time).
 
-## Sound through windows, not walls (Deadnight #657)
+## Sound through windows, not walls (Deadnight #657) {#sound-through-windows-not-walls-deadnight-657}
 
 The second map is a shut-in building with a yard outside, and the yard is heard only through the windows. One ray from
 the listener to a source cannot say that (a wall with a gap in it blocks the ray unless it threads the gap), so the
@@ -374,7 +374,7 @@ router (`SmallMapWays`) asks the question the other way round:
   gone and behind a wall, each at its own level, in the real engine. A table from the bank, the files and the engine's
   fall-off (`... table`) gives how far each carries before the audible floor.
 
-## Web: samples or streams
+## Web: samples or streams {#web-samples-or-streams}
 
 Godot 4.3+ plays an `AudioStreamPlayer` in a web export as a *sample* by default
 (`audio/general/default_playback_type.web`): the browser's own `AudioBufferSourceNode`s. Measured on Deadnight's
@@ -396,7 +396,7 @@ export (#421) with a tap on the browser's audio output:
 - To tap the output, wrap `AudioNode.prototype.connect` so connections to an `AudioDestinationNode` go through a
   `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps.
 
-### What to build instead (Deadnight #423)
+### What to build instead (Deadnight #423) {#what-to-build-instead-deadnight-423}
 
 - **The duck is bus volume.** Effects and Ambience send to a `Duck` bus (listed before the buses that send to it);
   the service moves its volume. Measured through the real service in the browser: -11.9 dB for -12 asked, and desktop
@@ -409,7 +409,7 @@ export (#421) with a tap on the browser's audio output:
 - **A probe's project setting** goes under `[audio]` without its `audio/` prefix, and the playback-type values are
   0 stream, 1 sample.
 
-## Menu sounds
+## Menu sounds {#menu-sounds}
 
 The interface's sounds (which component takes one, weights, repetition, levels, touch, accessibility, how to wire a table
 of roles and cues) are [Menu and interface sounds](../../gamedev/audio/ui-sounds.md). Two facts from making them:
@@ -432,7 +432,7 @@ of roles and cues) are [Menu and interface sounds](../../gamedev/audio/ui-sounds
   every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with
   the recording within 0.1 dB, so the level is pinned in a plain test.
 
-## Music that holds a long stay
+## Music that holds a long stay {#music-that-holds-a-long-stay}
 
 A menu is left open, so the question is repetition, not the first minute (Deadnight #979;
 [the game's page](https://github.com/Ryubara/deadnight/blob/main/docs/research/menu-music.md)). What worked, all
@@ -454,7 +454,7 @@ synthesised so there is no licence to ask about:
   loudness curve should move only a few dB over the loop. A phone speaker loses what is under 500 Hz, so a pad of low
   notes is silent there: give it harmonics and an octave above, and put the wind in the mids.
 
-## A queue of lines said one after another
+## A queue of lines said one after another {#a-queue-of-lines-said-one-after-another}
 
 A helper that says "after the line that speaks" (`wait = director.wait()` at the call) is right for one caller and
 wrong for two in the same instant: both read the wait of a free channel, both start together, and the second is refused

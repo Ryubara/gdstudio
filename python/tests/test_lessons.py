@@ -41,7 +41,7 @@ The browser build.
 How responses are compressed.
 
 {RULE}
-## Threads
+## Threads {{#threads}}
 
 ```markdown
 ## Not a heading {{#inside-code}}
@@ -115,6 +115,7 @@ def test_the_conventions_hold_the_same_numbers_as_the_checker():
     assert learning["max_page_kb"] == lessons.MAX_PAGE_KB
     assert tuple(learning["rule_parts"]) == lessons.RULE_PARTS
     assert learning["reason_line"] == lessons.REASON_LINE
+    assert tuple(learning["anchored_folders"]) == lessons.ANCHORED_FOLDERS
     assert learning["legacy_lessons"] == {"folder": lessons.LESSONS.as_posix() + "/"}
     assert learning["format"] == lessons.RULES_DOC.as_posix()
     assert learning["corrections_log"] == lessons.CORRECTIONS.as_posix()
@@ -142,7 +143,7 @@ def test_sections_have_explicit_or_implicit_anchors_and_code_blocks_are_not_head
     assert [(s.level, s.anchor, s.explicit) for s in sections] == [
         (1, "web-export", False),
         (2, "compression", True),
-        (2, "threads", False),
+        (2, "threads", True),
     ]
     assert sections[1].ref == "engines/godot/web.md#compression"
     assert len(sections[1].rules()) == 1 and sections[2].rules() == []
@@ -172,7 +173,8 @@ def test_an_entry_has_its_three_parts_in_order():
         (PAGE.replace("Deadnight #12,\n  2026-11-03 (", "somewhere ("), "names its issue or pull request"),
         (PAGE.replace("one place.", "one place. " + "x" * 900), "characters, over 900"),
         (PAGE.replace("{#compression}", "{#Compression_X}"), "is not lowercase words joined by hyphens"),
-        (PAGE.replace("## Threads", "## Threads {#compression}"), "anchor #compression is used twice"),
+        (PAGE.replace("{#threads}", "{#compression}"), "anchor #compression is used twice"),
+        (PAGE.replace(" {#threads}", ""), "the heading 'Threads' has no explicit {#anchor}; add {#threads}"),
         (PAGE + "\n" + "word " * 11000, "over the 50 KB limit"),
     ],
 )
@@ -182,6 +184,16 @@ def test_page_problems(page, expected):
         assert found == []
     else:
         assert any(expected in p for p in found), found
+
+
+def test_only_the_anchored_folders_need_an_anchor_on_every_heading():
+    """studio/, engines/, tools/ and gamedev/ name every ## and ### heading's anchor, so a `Read:` line can name any
+    section there (gdstudio #815); a game's pages and the home page do not have to."""
+    bare = PAGE.replace(" {#threads}", "")
+    for page in ("studio/x.md", "engines/godot/web.md", "tools/blender/x.md", "gamedev/x.md"):
+        assert any("has no explicit {#anchor}" in p for p in lessons.page_problems(page, bare)), page
+    for page in ("games/deadnight/x.md", "index.md"):
+        assert lessons.page_problems(page, bare) == [], page
 
 
 @pytest.mark.parametrize(
@@ -269,11 +281,21 @@ def test_a_new_section_needs_a_reason_line_and_its_subsections_do_not(kit):
 def test_an_anchor_added_to_an_old_heading_or_a_reworded_heading_is_not_new(kit):
     base = commit_base(kit)
     page = kit / "docs" / "engines" / "godot" / "web.md"
-    text = PAGE.replace("## Threads", "## Threads in the browser {#threads}")
+    text = PAGE.replace("## Threads {#threads}", "## Threads in the browser {#threads}")
     page.write_text(text.replace("## Compression {#compression}", "## How responses shrink {#compression}"), "utf-8")
     assert lessons.base_problems(kit, base) == []
-    page.write_text(PAGE.replace("## Threads", "## Workers"), encoding="utf-8")  # the anchor changed: a new section
+    page.write_text(PAGE.replace("## Threads {#threads}", "## Workers"), encoding="utf-8")  # new anchor and words: new
     assert "the new section 'Workers'" in lessons.base_problems(kit, base)[0]
+
+
+def test_an_old_heading_given_a_shorter_anchor_is_not_new(kit):
+    """Anchoring a long heading may choose a shorter anchor than its slug when nothing links to it (rules.md#anchors):
+    its words are the base's, so it is not a new section and needs no reason line (gdstudio #815)."""
+    page = kit / "docs" / "engines" / "godot" / "web.md"
+    page.write_text(PAGE.replace("## Threads {#threads}", "## Threads"), encoding="utf-8")
+    base = commit_base(kit)
+    page.write_text(PAGE.replace("{#threads}", "{#workers}"), encoding="utf-8")
+    assert lessons.base_problems(kit, base) == []
 
 
 def test_a_new_page_needs_its_reason_line_under_the_title(kit):

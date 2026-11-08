@@ -4,7 +4,7 @@ Rendering a game's app icon and key art in the pinned Blender, headless (`-b -P`
 game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, icon masters at 2048 px and key art at
 3840 x 2160, 33 to 225 s each on the GPU.
 
-## Building the shot from the game
+## Building the shot from the game {#building-the-shot-from-the-game}
 
 - Load the game's own `.glb` characters, weapons and props; build anything else (a fence, a screen) from the game's
   numbers, so the art shows the game players get.
@@ -15,7 +15,7 @@ game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, 
   weapon at `arm.matrix_world @ pose_bone.matrix @ C @ HOLD @ M_gl^-1`: the game's numbers on Blender's bone as
   they are put the weapon at the wrong angle.
 
-## Light, camera and compositor
+## Light, camera and compositor {#light-camera-and-compositor}
 
 - Cycles light linking (`light.light_linking.receiver_collection`) gives each character its own key and rim light
   without lighting the set; a rim from behind makes the dead read as silhouettes.
@@ -24,7 +24,7 @@ game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, 
 - Blender 5's compositor is a node group (`scene.compositing_node_group`) and the Glare node's settings are input
   sockets; `scene.use_nodes` and `scene.node_tree` are gone. Check the pinned version's API, not memory.
 
-## Files
+## Files {#files}
 
 - Generated images (masks, a sky) packed into the `.blend` need `pixels.foreach_set` and a pack at save: packed
   right after writing `image.pixels`, the image was stored before the pixels reached it and came back empty.
@@ -33,7 +33,7 @@ game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, 
 - Export each icon master to every platform size (1024 down to 16) with rounded-square and circle mask previews and a
   check sheet on dark and light grounds, so the pick is made at the sizes players see.
 
-## Title art and store sizes
+## Title art and store sizes {#title-art-and-store-sizes}
 
 Learned on Deadnight's title art: five compositions with the title, each a 3840 x 2160 and a 2400 x 3600 master,
 cut into every Discord, Steam, itch.io and social size (the table is in the game's `docs/design/branding.md`).

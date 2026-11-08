@@ -56,13 +56,13 @@ game/
   router calls: F6 on `night_screen.tscn` instanced the scene, ran `_ready` and showed the loading card, never the
   night. **Seen:** Deadnight, 2026-11-02 (fix: the dev entry scene).
 
-## What the check cannot see
+## What the check cannot see {#what-the-check-cannot-see}
 
 `gds check layout` reads `res://` paths, so a dependency through a `class_name` (code that names `Player` from `core/`)
 is not caught: keep `class_name` for the types a feature owns and let other folders use them only from above. It does
 not judge whether a name means anything, or whether a feature folder has grown past a sensible size.
 
-## Running it
+## Running it {#running-it}
 
 ```text
 uv run --project <workspace>/repos/gdstudio/python gds check layout game
@@ -92,7 +92,7 @@ project's hooks hold.
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
   matched and read `git diff` of every file it touched before the commit).
 
-## Where the rules came from
+## Where the rules came from {#where-the-rules-came-from}
 
 | Fact in Deadnight | Rule it made |
 | --- | --- |

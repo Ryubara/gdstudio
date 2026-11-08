@@ -5,7 +5,7 @@ goes to one dispatcher, `.claude/hooks/dispatch.py`; a game runs the same one th
 which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml` (a game may override keys in
 `.claude/hooks.local.toml`).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 | Guard | Refuses | Instead |
 | --- | --- | --- |
@@ -290,13 +290,15 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
 - **Topic sections, not lesson pages.** A mistake updates a section of the page an agent reads for that task:
   `- **Approach:** ... **Watch out for:** ... **Seen:** ...` under a `##`/`###` heading with an explicit `{#anchor}`,
   named elsewhere as `page.md#anchor`. `gds learn <words>` prints the closest sections and their entries first, so the
-  agent sharpens one instead of writing a duplicate; a new section has a reason line, a new page is made only when a
-  topic outgrows its 50 KB. `docs/lessons/` (963 files in a week, many on the same subject, where no agent looked
-  while working) was emptied into the topic pages by #770 and takes no new file.
+  agent sharpens one instead of writing a duplicate; a new section has a reason line starting `<!-- new section:` (a
+  new page too, never `new page:`), and a new page is made only when a topic outgrows its 50 KB. `docs/lessons/` (963
+  files in a week, many on the same subject, where no agent looked while working) was emptied into the topic pages by
+  #770 and takes no new file.
 - **The checks.** `python .github/scripts/mistakes.py check` runs in the `topic-sections` pre-commit hook, in pytest
   and in the docs job of CI ([the list](rules.md#checks)). From the checkout it refuses a page over the limit, an entry
   without its three parts or over 900 characters or outside an anchored section or in the old `**Rule:**` form, a
-  malformed or repeated anchor, and a corrections-log row that quotes the maintainer or links no section. Against the
+  malformed or repeated anchor, a `##`/`###` heading without an explicit anchor under `studio/`, `engines/`, `tools/`
+  or `gamedev/`, and a corrections-log row that quotes the maintainer or links no section. Against the
   base (where the branch left `origin/main`; CI checks
   out two commits and passes `--base HEAD^1`) it refuses a file added to `docs/lessons/` and a new heading without its
   reason line.
@@ -419,7 +421,7 @@ At Stop, a session that changed visual files of a game (scenes, shaders, `game/u
 is held back once until a capture newer than those changes sits in `<workspace>/scratch/<repo>/<branch>/`. The reason
 names the folder and the Movie Maker command.
 
-## Session start
+## Session start {#session-start}
 
 Each session is told its workspace, repository and branch, the pinned tool paths, and its branch's scratch folder,
 and to read the checks of the corrections page that touch its task (see [Learning](#learning)); under the soft disk
@@ -501,7 +503,7 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
   corrections depended on the coordinator remembering; nothing tied a correction to a docs change, and agents did not
   read past corrections before starting. **Seen:** Deadnight, 2026-11-01 (fix: the learning hooks (kit #72)).
 
-## Tests
+## Tests {#tests}
 
 `python/tests/test_hooks.py` covers every guard (the comment guard with one case per route, spelling and mutation, and
 one per command that must keep working), the answer protocol, the fail-open path, the issue-order checks, the

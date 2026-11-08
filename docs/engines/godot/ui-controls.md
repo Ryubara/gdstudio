@@ -96,7 +96,7 @@ Deadnight #628 and #644: `game/tests/ui/test_hover_room.gd`.
   layout, and the lobby put edge-to-edge buttons in a `ScrollContainer`, which clips at its rect; the layout tests read
   only resting rects. **Seen:** Deadnight #628, 2026-11-02 (fix: deadnight #650 added the drawn-state test).
 
-## A picker of cards in a form row
+## A picker of cards in a form row {#a-picker-of-cards-in-a-form-row}
 
 A choice that needs a picture and a few facts (Deadnight's map picker, `MapPicker` and `MapCard`) is a column of
 focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOptionSelector`.
@@ -115,14 +115,14 @@ focusable `Button` cards inside a `UIRow`'s control column, not a bigger `UIOpti
   d-pad and A (`InputEventJoypadButton`), and a tap (`InputEventScreenTouch` plus the emulated mouse button), on the
   card chosen and on the card that is locked.
 
-## A row on a screen that scrolls and focuses its button
+## A row on a screen that scrolls and focuses its button {#a-row-on-a-screen-that-scrolls-and-focuses-its-button}
 
 A column with `follow_focus` whose screen focuses its button on entry opens scrolled to that button (the lobby: Start,
 at the bottom). A control placed above a long list is off screen at first: put what the player must see next to the
 button, and print the control's global rect in the capture (a negative y or one past the canvas is the proof). A row
 that is pressed on a phone is `MenuLook.TAP_TARGET` units high, the switch inside it too.
 
-## Two option selectors in one row
+## Two option selectors in one row {#two-option-selectors-in-one-row}
 
 A setting that is a choice of two or three words shares a form row with its neighbour instead of taking a row of its
 own (`bots` and `bot_skill`; `count_multiplier` and `perk_limit`): an `HBoxContainer` of two `UIOptionSelector`s, both
@@ -243,7 +243,7 @@ pass). Test it by changing the layout and measuring the rectangles after two idl
   place nudged it its own way, judged by rectangles, so the bottom-left box (icon 7 px high) was found by eye. **Seen:**
   Deadnight #1161, 2026-11-04 (fix: the helper and the pixel test).
 
-## A card that looks for free ground
+## A card that looks for free ground {#a-card-that-looks-for-free-ground}
 
 A card that must stand clear of columns that grow (the challenge prompt beside the players' column, Deadnight #1299)
 does not get a share of the screen's height and a hope: `ChallengeFit.place` is pure geometry over the room, the usual
@@ -352,7 +352,7 @@ of it -->
   ...): started with no Tweeners`, which the shake under reduced motion did on every refused action. **Seen:**
   Deadnight, 2026-11-01 (fix: `UIMotion.shake` adds the empty interval).
 
-## A grid of items with locked silhouettes
+## A grid of items with locked silhouettes {#a-grid-of-items-with-locked-silhouettes}
 
 Deadnight's wardrobe (#1065) is the model: tabs on top, an `HFlowContainer` of cells in a `ScrollContainer`, a detail
 line under it.
@@ -400,7 +400,7 @@ line under it.
   canvas, not the window's pixels, its `msaa_3d` was its own, and the governor dropped to half resolution after one slow
   window for the whole session. **Seen:** Deadnight #893, 2026-11-03 (fix: deadnight #920 and gdstudio #439).
 
-## A part at a scale of its own inside a screen
+## A part at a scale of its own inside a screen {#a-part-at-a-scale-of-its-own-inside-a-screen}
 
 A card that opens over a screen whose window factor must not change (a pause card over a night's HUD) is drawn by a
 control with `scale = f` and a size of the holder over `f` (Deadnight `PhoneScale`): its children lay out on the smaller
@@ -428,7 +428,7 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   2026-11-02 (fix: one restore used by every close;
   `test_night_crosshair.gd` joins over a real loopback socket and checks the first running frame).
 
-## Reading a screen under test: the scale it really runs at
+## Reading a screen under test: the scale it really runs at {#reading-a-screen-under-test-the-scale-it-really-runs-at}
 
 - **A phone is a page, and its scale is the screen's.** A phone's web page is a canvas of twice its CSS size (the pixel
   ratio is capped at 2, `PhoneRender`): an 844 x 390 page is a 1688 x 780 window, and `MenuScale.is_phone` reads the

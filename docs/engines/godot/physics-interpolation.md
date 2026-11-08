@@ -4,7 +4,7 @@ What turning on 3D physics interpolation taught us in Deadnight (the game's page
 there, with the numbers). Godot 4.7.2, Compatibility renderer (desktop measured; it is a scene-side feature, the same
 code for every renderer).
 
-## Why
+## Why {#why}
 
 Physics runs at a fixed rate (60 ticks a second), the screen at any rate. A body drawn at its last tick position is still
 for two or three frames at 144 Hz, then jumps: from the side it looks doubled and blurry. At 60 Hz frames and ticks
@@ -44,7 +44,7 @@ draw the blend of the last two ticks.
   is set ON and asserted in the game's tree, and the reported fix is proved on the live web build
   ([proof](../../studio/starting-work.md#stopping-and-finishing))).
 
-## Measuring it
+## Measuring it {#measuring-it}
 
 - The node's `global_transform` shows the tick, never the blend: measure where the renderer draws. In a headless test,
   `Node3D.get_global_transform_interpolated()` through `Camera3D.unproject_position()`; in a capture, find a marker ball

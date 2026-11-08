@@ -5,7 +5,7 @@ another, and what a test that steps the tree by hand sees. Learned on Deadnight'
 upper-body clip that must stay on the legs' Run frame for frame). The crowd side (throttling, manual advance) is on
 [Crowds](crowds.md).
 
-## Reading where a clip is
+## Reading where a clip is {#reading-where-a-clip-is}
 
 Every node of a tree publishes read-only parameters: `current_position`, `current_length` and `current_delta`
 (seconds; the last is the step it took in the last process). For a clip inside a blend space in a state machine:
@@ -25,7 +25,7 @@ List them with `tree.get_property_list()` filtered on `parameters/`: there is no
   `reset = true` (the default) restarts the state's clips at 0 when it is entered again (a landing back into the
   locomotion restarts the Run).
 
-## Locking one branch to another
+## Locking one branch to another {#locking-one-branch-to-another}
 
 Two clips in different branches (an upper-body layer and the legs) drift unless one is driven from the other. Put an
 `AnimationNodeTimeSeek` in front of the follower and, every frame, seek it to the leader's `current_position` plus
@@ -80,7 +80,7 @@ stride.
   arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
   Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test).
 
-## A state machine that starts at Start and has no way out
+## A state machine that starts at Start and has no way out {#a-state-machine-that-starts-at-start-and-has-no-way-out}
 
 A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached only by `travel()` from the locomotion
 (Deadnight's crouch) is unreachable from there if `Start` has no automatic transition out. A played body left `Start`
@@ -138,7 +138,7 @@ entry and is not scaled), and a fall is a clip that holds its last frame while t
   Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above);
   Deadnight #1000, 2026-11-04 (fix: `Crawl_Stagger` and `Crawl_Death` too, and a test that loops over the mode enum).
 
-## Two clips half a turn apart on a bone
+## Two clips half a turn apart on a bone {#two-clips-half-a-turn-apart-on-a-bone}
 
 The tree blends a bone's rotation between two clips along the shorter arc. Where the two are near half a turn apart
 (a hand rolled over between a gun hold and a carry), the shorter arc swaps sides as either clip moves, and the bone
@@ -166,7 +166,7 @@ space: [Clips written in the world's space](../../tools/blender/rig-sharing.md#c
   lifted origin, and the bots aimed 1.1 m over it, at nothing. **Seen:** Deadnight #991, 2026-11-04 (fix: a hit set of
   its own for the climb, twice the shapes, and the aim read from it).
 
-## Build the state machine once, share it between trees
+## Build the state machine once, share it between trees {#build-the-state-machine-once-share-it-between-trees}
 
 An `AnimationTree` keeps its own playback, parameters and seek requests (`parameters/...`); the `tree_root`
 (`AnimationNodeStateMachine` with its blend spaces, blend trees, clip nodes and transitions) is only the recipe. One

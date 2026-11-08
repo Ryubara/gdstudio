@@ -4,7 +4,7 @@ A spike (kit issue #8) on what the Compatibility renderer (OpenGL, the WebGL2 we
 lit by a big screen, neon and lamps: LightmapGI baking, Environment features, dynamic light counts and one full-screen
 post shader. The throwaway project is `sandbox/compat-lighting/`; the captures are attached to the pull request.
 
-## How it was measured
+## How it was measured {#how-it-was-measured}
 
 - **Scene:** a 60 m lot (6 x 6 ground tiles), an 18 x 8 m emissive screen, 15 box "cars", a lamp post, a neon sign;
   three base lights (lamp, neon, screen glow); about 69 draw calls and 5 500 triangles. Deliberately small.
@@ -18,7 +18,7 @@ post shader. The throwaway project is `sandbox/compat-lighting/`; the captures a
   0.8 to 1.3 ms for every setup (CPU and present bound), so it does not separate the setups; it is in the logs only.
 - **Not measured:** a real browser, a weak GPU, a phone. Do those before trusting any cost below for the web build.
 
-## Environment features
+## Environment features {#environment-features}
 
 GPU ms are for the whole viewport, base scene = 0.044 (1080p) / 0.105 (2160p).
 
@@ -93,7 +93,7 @@ A `ColorRect` on a `CanvasLayer` with a canvas_item shader (colour grade + vigne
   and showed diagonal bands in film grain and a starfield; `smoothstep(1.0, 0.0, x)` is undefined in GLSL, so edges
   flickered differently between GPUs. **Seen:** Deadnight, 2026-11-01 (fix: an integer hash and `1.0 - smoothstep`).
 
-## Combined
+## Combined {#combined}
 
 | Setup | 1080p ms | 2160p ms |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ A `ColorRect` on a `CanvasLayer` with a canvas_item shader (colour grade + vigne
 Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base scene's cost, but 2 percent of a
 16.7 ms frame. Multiply by whatever ratio your weakest web target has to this GPU (often 10 to 30 times slower).
 
-## LightmapGI
+## LightmapGI {#lightmapgi}
 
 | Quality | Bake time | Bake file | Atlas |
 | --- | --- | --- | --- |
@@ -138,7 +138,7 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
   the bake output we measured (identical file sizes), and we did not isolate why in the time box. Until a follow-up
   spike gets a bake that matches the dynamic look, **do not plan the drive-in's mood on LightmapGI.**
 
-## Night mood: honest judgement
+## Night mood: honest judgement {#night-mood-honest-judgement}
 
 - **Works:** filmic tonemap + glow + fog + a handful of coloured omni lights + emissive meshes gives a convincing
   neon-and-screen night. The neon sign, lamp bulb and tail lights bloom; the screen reads as the light source; fog
@@ -152,7 +152,7 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
 - Film grain and vignette from the overlay shader read as cheap-film mood without damaging the dark scene.
   The grade shader (desaturated, blue-tinted shadows) is the more graded look but cost 4 times as much.
 
-## Recommendations for the drive-in
+## Recommendations for the drive-in {#recommendations-for-the-drive-in}
 
 1. **Light the lot with dynamic lights, not LightmapGI,** until a follow-up spike makes baked lighting look right.
    Budget: 3 to 8 unshadowed omni/spot lights near the camera (lamps, neon, screen glow), at most 16 on the whole map
@@ -171,7 +171,7 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
 7. **Before committing to any of this, measure on a real browser and a weak GPU,** and re-run the matrix there
    (`sandbox/compat-lighting/run.sh`).
 
-## Reproducing
+## Reproducing {#reproducing}
 
 ```text
 GODOT=$(uv run --project python gds tool path godot)
@@ -184,12 +184,12 @@ A setup is `+`-joined tokens: `tm_filmic|aces|agx|reinhard|linear`, `glow`, `fog
 `sdfgi`, `omniN`, `spotN`, `bigground`, `shadow_spot|omni|moon`, `projector`, `post_grade`, `post_overlay`,
 `lm_<bake name>`. `--sway` moves the camera for Movie Maker captures.
 
-## Sources
+## Sources {#sources}
 
 - [Compatibility renderer feature list](https://docs.godotengine.org/en/latest/tutorials/rendering/renderers.html)
 - [Using LightmapGI](https://docs.godotengine.org/en/latest/tutorials/3d/global_illumination/using_lightmap_gi.html)
 
-## Lamps in a game: what looks like light and what is light
+## Lamps in a game: what looks like light and what is light {#lamps-in-a-game-what-looks-like-light-and-what-is-light}
 
 What a lighting pass on Deadnight's lot (a night with about 30 lamps, a screen, neon and a projector, web build) taught;
 the game's own page is `docs/research/night-environment.md` there.
@@ -312,7 +312,7 @@ every floor under a roof and a lamp lights the next room through the wall.
   every other glow used the `cull_disabled` glow shader. **Seen:** Deadnight #701, 2026-11-03 (fix: a test that each
   see-through flat mesh is double-sided).
 
-## A backdrop past the playable bounds
+## A backdrop past the playable bounds {#a-backdrop-past-the-playable-bounds}
 
 What the outside of Deadnight's indoor map taught (Deadnight #638; its page is `docs/research/maps/small-map-art.md`
 there): the drive-in seen through windows and broken walls, 20 to 150 m out, never walked.
@@ -380,7 +380,7 @@ beam rises through it.
   additive cone that stood out of the roof and showed on the second map's upper floor, and every capture was taken from
   the floor in front. **Seen:** Deadnight #911, 2026-11-03 (fix: the beam stops at what is above it).
 
-## Glow on the web, and what a wing of fire costs (Deadnight #1053)
+## Glow on the web, and what a wing of fire costs (Deadnight #1053) {#web-glow}
 
 A test effect on four Soldiers (a dark feathered wing, an additive flame sheet, 40 sparks, a billboard halo) and the
 engine's glow, in arms that add one part each, measured in Godot 4.7.2 Compatibility on the desktop, in Chrome on WebGL2

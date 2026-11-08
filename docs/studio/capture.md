@@ -65,13 +65,19 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   lives 0.1 s fell between two frames and was in none. **Seen:** Deadnight, 2026-11-01 (fix: waits in ticks, effects
   that live 2 to 3 frames).
 
-## sheet
+## sheet {#sheet}
 
 Tiles every `--every`-th frame (default 1) in `--columns` columns (default 4) into `sheet.png` in the folder. Tiles
 are 480 px wide with the frame number in the corner. Pick `--every` so that the sheet has about 8 to 24 tiles, then
 read it with the Read tool and fix what looks wrong.
 
-## clip
+`sheet` and `clip` read any folder of frames, not only one `frames` wrote: a frame is a PNG named
+`<prefix><number>.png`, with one prefix and one number width for the whole folder, numbered in order from the first
+(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also
+works). Frames recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise
+(`walk-front.png`) has no frames, and the error lists the files it skipped.
+
+## clip {#clip}
 
 Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif` with a
 128-colour palette at up to 12 fps. The clip is cut at 30 s and has to stay under 9 MB (GitHub takes 10 MB for most
@@ -109,7 +115,7 @@ report only after reading the body back.
   **Seen:** Deadnight, 2026-11-01 (fix: the pull request body check refuses a visual change without its `Before:` and
   `After:` images ([Hooks](hooks.md#pr-body))).
 
-## Sound: a clip you can listen to
+## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
 Every pull request that adds or changes a sound carries a clip with the sound in it, because a spectrogram and a
 loudness chart prove the numbers and nobody can hear them. `gh --attach` takes images and videos only, so an `.ogg` or
@@ -176,7 +182,7 @@ phone's 844 by 390 and the web export), then `git worktree remove` it.
   started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
   the same capture scripts with `--label=before`).
 
-## Tests
+## Tests {#tests}
 
 `python/tests/test_quiet_run.py` runs the real pinned Godot and Movie Maker on Windows with a test window holding the
 foreground. `python/tests/test_capture.py` replaces Godot and ffmpeg with fakes that record the command line and

@@ -4,7 +4,7 @@ A silhouette edge that shows through walls, and only where the body is hidden, f
 the Compatibility renderer and in the web build (WebGL2). Learned on Deadnight's issues #523 and #617; the shader,
 the component and the numbers are in that game's `game/gameplay/outline/` and `docs/research/outline.md`.
 
-## What works
+## What works {#what-works}
 
 - **`stencil_mode` in a spatial shader works in Compatibility, on desktop and in the web export** (Godot 4.7.2,
   checked in Deadnight's night on desktop OpenGL, in Chrome with a GPU and in Chromium on SwiftShader).
@@ -61,7 +61,7 @@ shader, and `discard` the pixels where the body is not behind the scene.
   half-hidden zombie was never shot. **Seen:** Deadnight #617, 2026-11-02 (fix: the outline reads the depth per pixel,
   as above).
 
-## Pitfalls
+## Pitfalls {#pitfalls}
 
 - Make the outline's node and materials with the body, not at the first mark: a pooled-crowd game counts nodes made
   after the warm-up (Deadnight's kill-allocations test caught a node made at a zombie's first mark in the last

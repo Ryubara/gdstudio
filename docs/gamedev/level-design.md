@@ -14,7 +14,7 @@ studied for design and nothing of their games (layouts, names, content) is copie
 the real night run by a tool), a capture from the player's camera (read as a picture, not as parameters), or a number
 (measured, with the threshold written down). "Looks sealed", "looks dark" and "reads fine" are not results.
 
-## The principles
+## The principles {#the-principles}
 
 ### P1. Judge the map by its own numbers, measured first {#p1-judge-the-map-by-its-own-numbers-measured-first}
 
@@ -34,7 +34,7 @@ shoulder offset, the dead's swing reach and the **measured reach** (P13). The re
   shipped anyway and nothing tied the row to the scene, so the page and the map disagreed until asked. **Seen:**
   Deadnight #859, 2026-11-03 (fix: `test_map_machines.gd`).
 
-### P2. Every opening adds a loop to run
+### P2. Every opening adds a loop to run {#p2-every-opening-adds-a-loop-to-run}
 
 Wave survival is played by running a circuit until the pack strings out ("training" or kiting). A designer who studied
 the genre's maps found "most maps have a self looping design philosophy, where players will often times travel around
@@ -50,7 +50,7 @@ experience design goals" ([The Level Design Book: flow](https://book.leveldesign
 `test_lot_loops.gd`) and its narrowest width (two bodies abreast); a bot soak records where bodies stop
 moving. A purchase that adds no loop, weapon or light is listed as a tax.
 
-### P3. Not every place is safe to train in
+### P3. Not every place is safe to train in {#p3-not-every-place-is-safe-to-train-in}
 
 The same study builds "no man's lands" where spawners, traps and fog make circling hard, because "too many of these
 opportunities can create a very 'easy' map, where there's no danger in your navigation"
@@ -62,7 +62,7 @@ anything solid (Deadnight's review: the field's largest circle was 7.2 m and 0.5
 so it was not too wide, only empty at the flanks). Each area is labelled: a place to run, to hold, or to cross, and an
 area that is none of them is a finding.
 
-### P4. Cover is low, sparse and readable, and sightlines are decided
+### P4. Cover is low, sparse and readable, and sightlines are decided {#p4-cover}
 
 "In general, low cover is better than tall cover", "often less cover is better", and "too many wide tall cover objects
 can create confusing maze-like flow and wayfinding"; low cover keeps a player "constantly aware of enemy positions and
@@ -77,7 +77,7 @@ wall to hide behind than something to run round and see over.
 at eye height in each area (a ray sweep) with who it favours; and every prop given a job from the map's inventory
 (cover, landmark, dressing or collision). A prop with no job is removed or given one.
 
-### P5. Chokepoints are meant, and every fight has a way out
+### P5. Chokepoints are meant, and every fight has a way out {#p5-chokepoints-are-meant-and-every-fight-has-a-way-out}
 
 Players need "time to look around where to fight from" and to "create an escape plan in case the fight turns against
 them" ([The Level Design Book: encounter](https://book.leveldesignbook.com/process/combat/encounter.md)). A place to hold
@@ -86,7 +86,7 @@ is a narrow the dead must pass, wide enough to hold in and with a way back.
 **Check (a number):** each named chokepoint's width from the walking mesh and the second way out of the room behind it;
 a hold place with one way out is listed as a dead end and justified or fixed.
 
-### P6. The dead arrive out of sight, through an opening the player can see
+### P6. The dead arrive out of sight, through an opening the player can see {#p6-arrivals}
 
 Left 4 Dead's director asks of its navigation mesh "where is a spot near the Survivors, not visible to any of them?",
 places mobs "at randomized spot 'behind' the Survivor team", and zeroes the wanderers of an area "when an area becomes
@@ -104,14 +104,14 @@ way in only if there is floor behind it: the way from its spawn to a point 1.5 m
 line. Deadnight's second map had a window over a stairwell whose dead walked 10 m outside to the next window; a path to
 a far room passed it.
 
-### P7. The way the dead come in stays true as the map opens
+### P7. The way the dead come in stays true as the map opens {#p7-the-way-the-dead-come-in-stays-true-as-the-map-opens}
 
 As doors are bought, the spawn pool grows; if the new spawns are bare ground, the arrival read of P6 erodes area by area.
 
 **Check (a number):** the share of the spawn pool that comes through a real opening (window, breach, gate) for each
 door state (Deadnight's lot fell from 100 % to 35 % as its doors opened). It is written in the review and does not fall.
 
-### P8. Pacing rises and falls as areas open
+### P8. Pacing rises and falls as areas open {#p8-pacing-rises-and-falls-as-areas-open}
 
 Booth's director keeps a per-player "emotional intensity" and runs build up, sustain peak (3 to 5 seconds), peak fade
 and relax (30 to 45 seconds, or until the team has moved on): "unpredictable peaks and valleys of intensity create a
@@ -127,7 +127,7 @@ needs a valley (a place the dead are held off) or the pace has none
 players, and what it adds (a loop, a weapon, a light, a rest); a capture of each closed door from in front of it, which
 shows what is behind it (light, a silhouette, a window) before it is bought.
 
-### P9. Each area has a lit landmark seen from its way in
+### P9. Each area has a lit landmark seen from its way in {#p9-each-area-has-a-lit-landmark-seen-from-its-way-in}
 
 Rogers' "weenies" are "landmarks that draw guests towards certain locations", and the player is drawn "towards goals
 geographically and visually" ([Rogers](https://craphound.com/disneylandleveldesign.txt)). Kevin Lynch's paths, edges,
@@ -172,7 +172,7 @@ for a third thing.
   door-shaped because the gap the navigation needed at the ground was also the drawn opening. **Seen:** Deadnight #915,
   2026-11-03 (fix: the barricades were redrawn as windows).
 
-### P11. Light guides the route; dark is never black
+### P11. Light guides the route; dark is never black {#p11-light-guides-the-route-dark-is-never-black}
 
 Lighting places lights to "provide information to help players play"; "brightly lit doorways help players understand
 the flow of the room", and a dark far wall is not a primary exit, which "would be lit more prominently"
@@ -187,7 +187,7 @@ removing light ([lighting for darkness](https://book.leveldesignbook.com/process
 (the squint test), its brightest region is the way on or the landmark; the area's lit share (floor cells above the
 game's lit threshold) matches what its design page says (Deadnight's back lot was 30 % lit where its page said 5 %).
 
-### P12. Light stays on its side of the wall
+### P12. Light stays on its side of the wall {#p12-light-stays-on-its-side-of-the-wall}
 
 A glow is judged from every side, not the side its picture is for: billboard halos swing through walls, unshadowed
 lamps reach the next room by their range, one-sided panes are holes from behind, and a spot's aim decides which boxes it
@@ -201,7 +201,7 @@ lights ([halo](../engines/godot/compat-lighting.md#a-lamp-near-a-wall),
 and present; the pixels that change inside the room are 0. The game's glow-bleed and light-cap tests run after any
 light's position or aim changes.
 
-### P13. The real body's reach, not the jump height
+### P13. The real body's reach, not the jump height {#p13-the-real-bodys-reach-not-the-jump-height}
 
 The tuning's jump height is not the most a body climbs: the step-up at an edge and the capsule's rounded foot add to it
 (Deadnight: jump 1.1 m, climbed 1.25 m, so a counter built "a little over a jump" at 1.2 m was a roost,
@@ -217,7 +217,7 @@ corner were climbed from the floor. A thin collider is
 judged the same way: a tree's trunk "above a jump" (2.4 m) was a step from a car roof beside it. The reach is one
 constant every test reads, not a number copied into each.
 
-### P14. Escape sweeps for every door state
+### P14. Escape sweeps for every door state {#p14-escape-sweeps-for-every-door-state}
 
 Collision faults are found by movement, not by eye, and again after every geometry change
 ([Bugnet: QA for out of bounds and clipping](https://bugnet.io/blog/qa-testing-for-out-of-bounds-and-clipping)).
@@ -237,7 +237,7 @@ player must not cross is within the reach of the floor, so a way out begins on a
 caches each hop across door states by the slabs near it, so a map's every door state runs in under two minutes
 (Deadnight #848, whose first run found a way out the review had missed).
 
-### P15. A roost is a decision, proven against the dead
+### P15. A roost is a decision, proven against the dead {#p15-a-roost-is-a-decision-proven-against-the-dead}
 
 A place a player can stand on and the dead cannot strike from turns a survival map into a shooting gallery; the genre
 keeps one or two on purpose and pays for them (a long climb, a single ramp the dead also use). The dead must also be
@@ -250,7 +250,7 @@ the lot's plaza container against its end wall, reached from a crate: 0 blows on
 at a night's pace (2.4 m/s): a probe that put them down with no speed never closed in. The sweep tests fail on any
 standing place over the reach, not only on leaving the map.
 
-### P16. The camera fits where the body goes
+### P16. The camera fits where the body goes {#p16-the-camera-fits-where-the-body-goes}
 
 A third-person camera needs the shoulder offset plus air on both sides; a prop near a wall puts the lens inside it
 ([Third-person camera: walls](../engines/godot/camera.md#walls)).
@@ -258,7 +258,7 @@ A third-person camera needs the shoulder offset plus air on both sides; a prop n
 **Check (a capture):** from the player's camera at every door, stair and corner, the player and the way on are in the
 frame.
 
-### P17. It reads on a phone
+### P17. It reads on a phone {#p17-it-reads-on-a-phone}
 
 The maps ship to the web on phones: a smaller picture, fewer pixels drawn ([the web build on a
 phone](../engines/godot/web-phone-frames.md#pixels-are-the-first-lever)) and thumbs over the screen. Mobile levels
@@ -272,7 +272,7 @@ scale, with the touch controls drawn: the landmark, the openings and a dead at t
 visible and not under a thumb button; a prompt's text against the scene behind it measures 4.5:1 or more. The kit's
 starting bar, not a published number: a dead at the longest sightline is at least 24 px tall in a 390 px-high frame.
 
-### P18. Maps agree with each other, and the check stays in the suite
+### P18. Maps agree with each other, and the check stays in the suite {#p18-maps-agree}
 
 The same kit, door widths, prompt words and light colours mean the same thing on every map, and a map's words are its
 own. A sweep run once is a snapshot:
@@ -303,7 +303,7 @@ review's [Does it make sense?](../engines/godot/map-review.md#does-it-make-sense
   past the lot's walls, so it stayed unfinished for a hundred pull requests. **Seen:** Deadnight #686, 2026-11-03 (fix:
   players found it when the road opened).
 
-### P20. An objective is measured, not read
+### P20. An objective is measured, not read {#p20-an-objective-is-measured-not-read}
 
 A task on a map (a step, a carry, a last stand) reads harder on paper than it plays: a list of chores across a map sounds
 like a night's work and can be a minute of walking. The test of "too easy" is written before the steps are, in numbers,
@@ -320,14 +320,14 @@ real night in which the team keeps one dead alive. The night: real bots, with th
 dead within 10 m, the downs and the rounds it crosses. The farm: kills past the next tier bank nothing. Each place a
 step stands on passes the use-sight and spacing tests (P10), and a step's new prop is judged by P13 to P15.
 
-## What could not be read
+## What could not be read {#what-could-not-be-read}
 
 - Valve's developer wiki sits behind an anti-bot page; the dimension figures above come from its search excerpts, and
   the Left 4 Dead points come from Booth's slides and the secondary sources.
 - The Doom GDC 2018 talk was read through its listing and Game Developer's summary, not watched.
 - Totten's book was read through its contents (chapter and section titles), not its text.
 
-## Sources
+## Sources {#sources}
 
 | Principle | Source |
 | --- | --- |

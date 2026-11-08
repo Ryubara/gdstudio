@@ -183,8 +183,9 @@ first push, where the strict build and markdownlint otherwise find it -->
 
 - **Approach:** Run the strict docs build in the repository that holds the page (`uvx --with-requirements
   requirements-docs.txt zensical build --strict`) before the first push of any change that adds a link; copy an anchor
-  from the built page instead of guessing it (a heading's underscore stays: `#_process-is-on-after-ready`), read the
-  target's headings (`grep -n '^## '`), and link only files under `docs/` (name `AGENTS.md` in code). **Watch out for:**
+  from the target heading's `{#anchor}` instead of guessing it (every `##`/`###` heading under `studio/`, `engines/`,
+  `tools/` and `gamedev/` has one, [Anchors](rules.md#anchors)), read the target's headings (`grep -n '^## '`), and
+  link only files under `docs/` (name `AGENTS.md` in code). **Watch out for:**
   `AGENTS.md` sits at the repository root, which the site does not publish; a heading copied from the kit's page of the
   same name did not exist on the game's own page; a guessed anchor failed the build. **Seen:** gdstudio #432,
   2026-11-03; Deadnight #648, 2026-11-02; gdstudio, 2026-11-04.

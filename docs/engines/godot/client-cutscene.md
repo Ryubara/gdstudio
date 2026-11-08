@@ -4,7 +4,7 @@ What Deadnight's helicopter drop (#1057: every player arrives by rope from a hel
 start of a night and on every late join) taught about showing something to one player while the night goes on for
 everyone. The game's own page is its `docs/design/arrival.md`; this one is for the next cutscene of this kind.
 
-## Who owns what
+## Who owns what {#who-owns-what}
 
 | Owner | What it holds | Why |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ everyone. The game's own page is its `docs/design/arrival.md`; this one is for t
 | The server | the **shield**: for as long as the show plays, the player cannot be hurt, is not chased, takes no part in the night and is not drawn by the others | the body is in the world from the moment of joining and the dead do not know about a screen |
 | The wire | one small message, begin and end (two bytes) | the server has to be told; it must never wait for it |
 
-## The server's half
+## The server's half {#the-servers-half}
 
 - **The client's word starts and ends the shield, a cap ends it too.** A client that stalls, closes or lies is shielded
   no longer than the cap (`cap_seconds`); a skip or a slow web build is followed by the client's end message, not a
@@ -31,7 +31,7 @@ everyone. The game's own page is its `docs/design/arrival.md`; this one is for t
 - **Other clients draw nothing of the player until it ends**: hide the avatar, skip its name marker, and let the bots'
   beliefs leave it out.
 
-## The client's half
+## The client's half {#the-clients-half}
 
 - **Take the picture, not the input.** Keep the player's mouse grip as it is (a browser gives a pointer lock only to a
   click: letting go for the show may lose it for good), lock the mouse look, send neutral commands and hide the body;
@@ -54,7 +54,7 @@ everyone. The game's own page is its `docs/design/arrival.md`; this one is for t
   a headless run's. A page that asks for the probes skips it unless the page asks for the show too (a bridge call the
   page makes anyway), so the dozens of web probes that drive a night from its first frame need no edit.
 
-## Measuring it
+## Measuring it {#measuring-it}
 
 An elevated camera sees far more of the lot than the player's own does: Deadnight's show draws about 240 calls where the
 player's view draws 30 to 50 (the engine's count), and in a browser about 450 where the night after draws about 110.

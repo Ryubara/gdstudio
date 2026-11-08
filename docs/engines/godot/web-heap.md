@@ -4,7 +4,7 @@ What a Godot 4.7 web build (Compatibility renderer) taught about a page whose JS
 collection, grew 50 MB a minute over a night while the engine's own nodes, resources and video memory stayed flat
 (Deadnight #834, found by #728). The game's numbers are on `docs/research/web-heap.md` there.
 
-## The mechanism: WebGL object ids are never given back
+## The mechanism: WebGL object ids are never given back {#the-mechanism-webgl-object-ids-are-never-given-back}
 
 Emscripten numbers every WebGL object the engine creates (`glGenBuffers`, `glGenVertexArrays`, `glGenTextures`,
 `glFenceSync`, `glCreateProgram`, ...) from **one shared counter**, `GL.counter`, and pads **every** id table
@@ -18,7 +18,7 @@ A game that creates a few hundred objects at load never sees it. One that create
 leaks: 200 objects a frame at 100 frames a second is 80 MB a minute. The engine's monitors (objects, nodes,
 resources, texture and buffer memory) are flat, because the objects are freed; only the page's heap shows it.
 
-## What makes objects every frame
+## What makes objects every frame {#what-makes-objects-every-frame}
 
 In the Compatibility renderer a **canvas item that is redrawn builds its polygons again**: every `draw_circle`,
 `draw_arc`, `draw_polygon`, `draw_polyline` and `draw_colored_polygon` command is a polygon that gets its own vertex
@@ -50,7 +50,7 @@ Rules:
   (#883). A pure-polygon item that is only *moved* (a child `Node2D` whose position, scale and alpha are set) makes
   no new commands; one redrawn does.
 
-## How to find it (an hour, not a week)
+## How to find it (an hour, not a week) {#how-to-find-it-an-hour-not-a-week}
 
 Switching the page's own JavaScript publishers and recorders off one at a time was the plan and it was the wrong
 tree: they were never the cause. What found it, in order:
@@ -74,7 +74,7 @@ tree: they were never the cause. What found it, in order:
 Release web exports have no function names (the wasm has no name section, the debug template neither), so a stack of
 `wasm-function[9312]` only tells two sources apart; use it to count sources, not to name one.
 
-## Reading a heap number
+## Reading a heap number {#reading-a-heap-number}
 
 `performance.memory.usedJSHeapSize` rises and falls with the collector (93, 158, 117 MB seconds apart). Only the value
 after a forced collection says anything. Compare arms after the same minutes of the same night, and give the
