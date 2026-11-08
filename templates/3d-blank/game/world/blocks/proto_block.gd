@@ -6,10 +6,12 @@ extends MeshInstance3D
 ## any size.
 ##
 ## The block is the mesh itself (a lightmap only bakes meshes that belong to the scene, not ones
-## a script adds under them) and keeps its collision in a `StaticBody3D` child. The mesh carries
-## a second UV set (UV2), which a lightmap needs. Only the editor can unwrap UV2 (an exported
-## game has no unwrapper), so the editor builds the mesh and the scene saves it; a running game
-## uses the saved mesh and builds only the collision. Bake the level again after moving or
+## a script adds under them) and keeps its collision in the `Body` (`StaticBody3D`) node of
+## `proto_block.tscn`, whose shapes are made from `kind` and `size`. The mesh carries a second UV
+## set (UV2), which a lightmap needs. Only the editor can unwrap UV2 (an exported game has no
+## unwrapper), so the editor builds the mesh and the scene saves it (the one generated thing a
+## template scene holds, because the bake needs it); a running game uses the saved mesh and builds
+## only the collision. Bake the level again after moving or
 ## resizing a block (select the level's `LightmapGI` node and press "Bake Lightmaps", with the
 ## Forward+ renderer).
 
@@ -51,14 +53,6 @@ const MIN_SIZE_M := 0.25
 		material = value
 		material_override = value
 
-var _body: StaticBody3D
-
-
-func _init() -> void:
-	_body = StaticBody3D.new()
-	_body.name = "Body"
-	add_child(_body)
-
 
 func _ready() -> void:
 	material_override = material
@@ -84,15 +78,30 @@ func _rebuild() -> void:
 	_rebuild_collision()
 
 
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if _body() == null:
+		warnings.append("The scene needs a `Body` (StaticBody3D): the block's collision.")
+	return warnings
+
+
+func _body() -> StaticBody3D:
+	return get_node_or_null("%Body") as StaticBody3D
+
+
+# The body's shapes are made from `kind` and `size` and not saved (they have no owner).
 func _rebuild_collision() -> void:
-	for old in _body.get_children():
-		_body.remove_child(old)
+	var body := _body()
+	if body == null:
+		return
+	for old in body.get_children():
+		body.remove_child(old)
 		old.queue_free()
 	for entry in _build_shapes():
 		var collision := CollisionShape3D.new()
 		collision.shape = entry[0]
 		collision.transform = entry[1]
-		_body.add_child(collision)
+		body.add_child(collision)
 
 
 ## The mesh, with UV2 for a lightmap.

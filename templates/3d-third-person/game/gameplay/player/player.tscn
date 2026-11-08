@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://gameplay/player/player_animation.gd" id="7_animation"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
@@ -19,15 +20,18 @@ script = ExtResource("1_player")
 tuning = ExtResource("2_tuning")
 
 [node name="Body" type="CollisionShape3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_body")
 
 [node name="Model" parent="." instance=ExtResource("3_model")]
+unique_name_in_owner = true
 
 [node name="CameraTarget" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
 
 [node name="Interactor" type="Node3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 script = ExtResource("4_interactor")
 

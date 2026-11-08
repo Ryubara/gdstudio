@@ -13,5 +13,6 @@ The template has a character and the map's components:
   `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
 - `camera_zone/`: hands the view to another Phantom Camera while the player stands in a trigger zone.
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
-  with a script and inspector groups, working on its own. Connect their signals in the editor's Node dock (a
-  trigger's `activated` to a door's `open`).
+  with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,
+  `Shape` and `Sensor`), so open the scene to restyle one; the `@tool` scripts size them from the inspector in the
+  editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`).

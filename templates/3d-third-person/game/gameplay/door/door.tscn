@@ -1,6 +1,38 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/door/door.gd" id="1_door"]
 
+[sub_resource type="BoxMesh" id="BoxMesh_panel"]
+resource_local_to_scene = true
+size = Vector3(2, 3, 0.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_panel"]
+resource_local_to_scene = true
+size = Vector3(2, 3, 0.25)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_sensor"]
+resource_local_to_scene = true
+radius = 0.01
+
 [node name="Door" type="AnimatableBody3D"]
 script = ExtResource("1_door")
+
+[node name="Panel" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("BoxMesh_panel")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_panel")
+
+[node name="Sensor" type="Area3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+collision_layer = 0
+monitoring = false
+
+[node name="SensorShape" type="CollisionShape3D" parent="Sensor"]
+unique_name_in_owner = true
+shape = SubResource("SphereShape3D_sensor")

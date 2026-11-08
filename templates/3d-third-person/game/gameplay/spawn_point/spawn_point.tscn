@@ -1,6 +1,19 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/spawn_point/spawn_point.gd" id="1_spawn"]
 
+[sub_resource type="PrismMesh" id="PrismMesh_arrow"]
+size = Vector3(0.6, 0.6, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_arrow"]
+shading_mode = 0
+albedo_color = Color(0.2, 0.55, 1, 1)
+
 [node name="SpawnPoint" type="Marker3D"]
 script = ExtResource("1_spawn")
+
+[node name="Marker" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.05, -0.3)
+material_override = SubResource("StandardMaterial3D_arrow")
+mesh = SubResource("PrismMesh_arrow")

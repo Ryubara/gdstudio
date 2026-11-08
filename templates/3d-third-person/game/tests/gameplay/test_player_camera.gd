@@ -31,7 +31,7 @@ func _view_yaw() -> float:
 
 func test_the_camera_sits_behind_and_above_the_player_at_the_tuned_distance() -> void:
 	var pivot: Vector3 = _player.get_node("CameraTarget").global_position
-	var distance := _camera.global_position.distance_to(pivot + Vector3.UP * _rig.height)
+	var distance := _camera.global_position.distance_to(pivot + _rig.offset)
 	assert_float(distance).is_equal_approx(_rig.distance, 0.4)
 	assert_float(_camera.global_position.y).is_greater(pivot.y)
 	assert_object(_scene.get_node("Camera/PhantomCameraHost").get_active_pcam()).is_same(
@@ -111,21 +111,21 @@ func test_the_lens_does_not_go_through_a_wall_behind_the_player() -> void:
 # runs (the remote inspector, a tuning menu), not only when the scene loads.
 
 
-func test_distance_height_and_walls_reach_the_phantom_camera_live() -> void:
+func test_distance_offset_and_walls_reach_the_phantom_camera_live() -> void:
 	var pcam := _rig.phantom_camera()
 	_rig.distance = 7.0
-	_rig.height = 0.6
+	_rig.offset = Vector3(0.4, 0.6, -0.2)
 	_rig.wall_margin = 0.5
 	_rig.wall_mask = 6
 	await InputSim.ticks(get_tree(), 2)
 	assert_float(pcam.spring_length).is_equal_approx(7.0, 0.001)
-	assert_vector(pcam.follow_offset).is_equal_approx(Vector3(0.0, 0.6, 0.0), Vector3.ONE * 0.001)
+	assert_vector(pcam.follow_offset).is_equal_approx(Vector3(0.4, 0.6, -0.2), Vector3.ONE * 0.001)
 	assert_float(pcam.margin).is_equal_approx(0.5, 0.001)
 	assert_int(pcam.collision_mask).is_equal(6)
 
 
 func test_a_longer_distance_moves_the_real_camera_back() -> void:
-	var pivot: Vector3 = _player.get_node("CameraTarget").global_position + Vector3.UP * _rig.height
+	var pivot: Vector3 = _player.get_node("CameraTarget").global_position + _rig.offset
 	_rig.distance = 8.0
 	await InputSim.ticks(get_tree(), 90)
 	assert_float(_camera.global_position.distance_to(pivot)).is_equal_approx(8.0, 0.5)

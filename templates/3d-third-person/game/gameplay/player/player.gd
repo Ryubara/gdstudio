@@ -1,3 +1,4 @@
+@tool
 class_name Player
 extends CharacterBody3D
 ## The third-person character: walks, runs and sprints toward where the camera looks, jumps
@@ -5,6 +6,9 @@ extends CharacterBody3D
 ## `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door` and collects a `Pickup`. Everything
 ## a developer tunes is in the `PlayerTuning` resource. Other nodes connect to the signals;
 ## `PlayerAnimation` follows `state`.
+##
+## It is a `@tool` script so the editor shows the capsule follow the tuning (radius and height);
+## only the setup runs there, never the movement.
 ##
 ## It reads these input actions (all devices): `move_left`, `move_right`, `move_forward`,
 ## `move_back`, `jump`, `sprint`, `walk` (slows to a walk) and `interact`.
@@ -39,16 +43,18 @@ enum State {
 
 ## The group the player joins, so a HUD or a camera finds it.
 const GROUP := &"player"
-## Below this the player went out of the map and starts again at its spawn point.
-const FALL_LIMIT := -25.0
-## How long the landing clip holds the state, in seconds.
-const LAND_TIME := 0.3
-## A body slower than this on the ground is standing.
-const STAND_SPEED := 0.15
 
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
-@export var tuning: PlayerTuning
+## Changing a number while the game runs works at once.
+@export var tuning: PlayerTuning:
+	set(value):
+		if tuning != null and tuning.changed.is_connected(_apply_tuning):
+			tuning.changed.disconnect(_apply_tuning)
+		tuning = value
+		if tuning != null:
+			tuning.changed.connect(_apply_tuning)
+			_apply_tuning()
 ## Starts at a `SpawnPoint` of the group `player` when the scene has one.
 @export var start_at_spawn := true
 
@@ -78,25 +84,28 @@ var _pushing := false
 var _jump_held := false
 var _spawn_rng := RandomNumberGenerator.new()
 
-@onready var _model: Node3D = $Model
-@onready var _interactor: Interactor = $Interactor
+@onready var _model: Node3D = %Model
+@onready var _interactor: Interactor = %Interactor
+@onready var _body: CollisionShape3D = %Body
 
 
 func _ready() -> void:
 	_spawn_rng.seed = 1
-	add_to_group(GROUP)
 	if tuning == null:
 		tuning = PlayerTuning.new()
 	_apply_tuning()
-	floor_max_angle = deg_to_rad(tuning.max_slope)
-	floor_snap_length = tuning.snap_length
+	if Engine.is_editor_hint():
+		return
+	add_to_group(GROUP)
 	facing = _model.rotation.y
-	if start_at_spawn and not Engine.is_editor_hint():
+	if start_at_spawn:
 		respawn()
 
 
 func _physics_process(delta: float) -> void:
-	if global_position.y < FALL_LIMIT:
+	if Engine.is_editor_hint():
+		return
+	if global_position.y < tuning.fall_limit:
 		respawn()
 		return
 	_tick_timers(delta)
@@ -176,12 +185,19 @@ func ground_speed() -> float:
 	return Vector2(velocity.x, velocity.z).length()
 
 
+# Fits the capsule, the steepest floor and the floor snap to the tuning (they are copied into
+# the body, so a change to them is applied here, from the tuning's `changed`).
 func _apply_tuning() -> void:
-	var capsule := ($Body.shape as CapsuleShape3D).duplicate() as CapsuleShape3D
-	$Body.shape = capsule
+	if not is_node_ready() or tuning == null:
+		return
+	var capsule := _body.shape as CapsuleShape3D
 	capsule.radius = tuning.radius
 	capsule.height = tuning.height
-	$Body.position.y = tuning.height / 2.0
+	_body.position.y = tuning.height / 2.0
+	if Engine.is_editor_hint():
+		return
+	floor_max_angle = deg_to_rad(tuning.max_slope)
+	floor_snap_length = tuning.snap_length
 
 
 func _tick_timers(delta: float) -> void:
@@ -281,7 +297,7 @@ func _climb(delta: float) -> void:
 func _push_props(before: Vector3) -> bool:
 	var pushing := false
 	var flat := Vector3(before.x, 0.0, before.z)
-	if flat.length() < STAND_SPEED:
+	if flat.length() < tuning.stand_speed:
 		return false
 	for index in get_slide_collision_count():
 		var collision := get_slide_collision(index)
@@ -309,7 +325,7 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
 		if _fall_speed >= tuning.land_clip_speed:
-			_land_timer = LAND_TIME
+			_land_timer = tuning.land_time
 		_fall_speed = 0.0
 	_was_airborne = not grounded
 	state = _pick_state(grounded, wish)
@@ -325,7 +341,7 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 		picked = State.LAND
 	elif _pushing and not wish.is_zero_approx():
 		picked = State.PUSH
-	elif ground_speed() >= STAND_SPEED:
+	elif ground_speed() >= tuning.stand_speed:
 		picked = State.WALK if ground_speed() <= tuning.walk_speed + 0.35 else State.RUN
 	return picked
 
