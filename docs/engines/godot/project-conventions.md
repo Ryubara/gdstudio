@@ -37,6 +37,7 @@ game/
 | Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
 | Splitting a feature | Past about 30 scripts with clear clusters, a feature folder gets subfolders named for the clusters. | judgment |
 | Suffixes, no type prefixes | Names say what a thing is with a suffix the codebase already uses (`_tuning`, `_def`, `_catalog`, `_state`, `_view`, `_server`, `_screen`, `_panel`), never a type prefix (`scr_`, `tex_`). Assets are `<subject>_<variant>_<n>`. | judgment |
+| No shadowed names | A local variable, parameter or member never takes the name of a property of the node's own class or a global (`scale`, `offset`, `name`, `position`); pick a name that says what it is (`gravity_scale`). [GDScript: names and types](gdscript.md#names-and-types) has the detail. | the templates' `project.godot` sets `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to errors, so the script fails to load and the template proof fails |
 
 - **Approach:** Make every number a designer would tune an `@export` of a `.tres` the game loads (groups, ranges, units,
   a `##` tooltip), pin each file's defaults in a test, and keep a scene map (which scene loads which, and which one is

@@ -25,7 +25,7 @@ scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, nev
 | --- | --- |
 | `--project` | The game's project folder, the one holding `project.godot` (required). |
 | `--scene` | A scene to run instead of the main scene, e.g. `res://ui/hud.tscn`. |
-| `--seconds`, `--fps` | Length and rate; the capture is `ceil(seconds * fps)` frames. Defaults 5 s at 10 fps. |
+| `--seconds`, `--fps` | Length and rate; the capture is at most `ceil(seconds * fps)` frames: a scene that calls `quit()` ends it sooner, so `--seconds` is an upper bound. Defaults 5 s at 10 fps. |
 | `--name` | The folder name (default `capture`). |
 
 The frames go to `<workspace>/scratch/<repo>/<branch>/<name>/` as `<name>00000000.png`, `<name>00000001.png`, ...
