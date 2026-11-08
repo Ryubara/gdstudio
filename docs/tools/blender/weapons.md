@@ -160,6 +160,39 @@ the right one's place with `x` turned about (a node whose basis turns the other 
 `Muzzle` empty keeps its barrel direction). No left grip needs solving: Deadnight's dual pistols reuse the right hand's
 grip file mirrored, and the hand contact test measured the left hand within the same 2 mm and 5 mm as the right.
 
+### A real-sized mannequin and the Universal Animation Library {#the-third-person-template-pistol}
+
+<!-- new section: every rule above is for the Toon Shooter Soldier's chibi fist; the 3D Third Person template holds a
+real-sized mannequin animated by the Universal Animation Library -->
+
+The 3D Third Person template's pistol (kit #834, `templates/3d-third-person/game/assets/weapons/pistol/`) is
+Deadnight's service pistol on Quaternius's mannequin (1.8 m, a real-sized hand), held in the Universal Animation
+Library's six pistol clips on the `hand_r` bone.
+
+- **Size it at real length and keep the chunky cross-sections.** Deadnight holds the drawing at 1.95 for its chibi
+  Soldier; on the mannequin the drawing at 1.0 (0.25 m overall) puts three fingers on the grip and the index finger
+  along the frame to the trigger. Three candidates were seated and captured: real cross-sections (the drawing at
+  0.6 across and 0.75 in height) went 5.5 mm at most into the fist but drew the slide 7 px tall at 1080p from the
+  camera's 4.4 m, the chunky drawing 9.5 mm and 9 px, and the drawing at 1.3 looked like a toy and went 15 mm in. The
+  chunky one matches the kit pistol's cross-section and the clips' fist, which is made for a thick grip.
+- **One hold fits every pistol clip.** The clips never change the fist (the hand's contact with the gun measured the
+  same in `Pistol_Idle`, `Aim_Neutral`, `Aim_Up`, `Aim_Down`, `Shoot` and `Reload`), so the gun rides `hand_r` with no
+  per-clip offset: a `BoneAttachment3D` with the pistol at 12.3 cm along the bone's +Y and 2.6 cm to its -X, the barrel
+  along +Y tilted 9 degrees toward -Z. In `Pistol_Aim_Neutral` that aims 1.5 degrees up and 3 degrees out from the
+  facing. The numbers and the scene are in the folder's README and `pistol_held.tscn`.
+- **Seat it by a search, not by one finger.** Put the grip in the middle finger's ring (the mean of its four joints
+  and the point on the palm across from the tip), point the barrel along the facing, then move it 4 mm and turn it
+  3 degrees at a time while the count of hand vertices more than 2 mm inside a closed part of the gun falls, the
+  deepest one and the gap of the nearest 60 come down, and the barrel stays near the facing.
+
+- **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
+  times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender
+  with (x, y, z) to (x, -z, y), search the seat there, then capture it in Godot. **Watch out for:** the clip assigned in
+  Blender to the mannequin's armature put the hand 2 to 3 cm off Godot's with the index finger straight, though the
+  rests match, and a seat aligned to that finger turned the barrel 60 degrees out; headless,
+  `bake_mesh_from_current_skeleton_pose()` fails (no skin registered with the skeleton). **Seen:** gdstudio #834,
+  2026-11-08 (fix: the Godot dump; its seat held in all six clips).
+
 ## Moving parts and a reload's ammunition {#moving-parts-and-a-reloads-ammunition}
 
 A reload reads when something on the gun moves (a drum comes off, the barrels break open, a cylinder swings out, a
