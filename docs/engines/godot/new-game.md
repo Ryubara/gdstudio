@@ -90,6 +90,15 @@ the web export, `gdformat` and `gdlint`, the docs build, `markdownlint` and `act
   the same for every game. **Seen:** gdstudio #779, 2026-11-07 (fix: `gds new game` does them, with MIT as the default
   licence (gdstudio #779)).
 
+- **Approach:** Before adding a second place that installs or runs git hooks, grep for the first (`install_hooks`,
+  `ensure_hooks`) and call it or its repairs rather than calling `pre-commit install` again; find a hidden hook failure
+  without pushing by running `.git/hooks/pre-push origin <url>` with the ref line on stdin. **Watch out for:**
+  `pre-commit install` moves Git LFS's `pre-push` to `pre-push.legacy`, and on Windows pre-commit cannot find its
+  `#!/bin/sh`; `gds worktree` had repaired this since it first happened, but the new command never called it, and only
+  git's stderr was kept while pre-commit writes to stdout. A loop variable `name` shadowed the game's, so the probe's
+  pull request was titled "Add the pre-push.legacy game". **Seen:** gdstudio #779, 2026-11-07 (fix: `new_game` calls
+  `repair_legacy_hooks`, a test checks the branch and title).
+
 ## With `--local`
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
@@ -97,12 +106,19 @@ create the repository and push `main`; Pages' source to GitHub Actions and the t
 `gh workflow run hold-sweep.yml`; `[repos.<name>]` in the kit's `workspace.toml`. The kit's CI makes its template
 check this way (`gds new game template-check --template 3d-blank --local`).
 
-## The templates
+## The templates {#the-templates}
 
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | A lit prototype level, the folder layout and the web export, with no entities and no game scripts ([Prototype surfaces and daylight](prototype-surfaces.md)). | made |
 | `3d-third-person`, `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
+
+- **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
+  `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`
+  line of the template's workflows and fails on more than one hook id. **Watch out for:** the template's `ci.yml` ran
+  `pre-commit run gdformat gdlint --all-files`, but `pre-commit run` takes one hook id; the kit's `template` job makes a
+  game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
+  **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
 
 ## Adding a template
 

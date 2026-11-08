@@ -273,7 +273,7 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   same for any door state that leaves the same slabs near its start, so cache it by those (Deadnight: 9 door sets of
   the lot in 91 s, 8 of the second map in 68 s). Prove it on the unfixed map: put a merged fix back in a scratch
   worktree (no commit) and see it fail
-  ([lesson](../../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)). A start cell is clear
+  ([The shell](../../studio/shell.md#checkout)). A start cell is clear
   by the boxes' bounds, not by a capsule query: CSG faces are one-sided and a body inside a thin wall touches none
   ([lesson](../../lessons/2026-11-03-a-sweep-started-the-body-inside-a-wall-a-known-trap.md)).
 - [ ] **An interactable is a prop too.** A breaker post, a buy stand or a machine against a wall is a step like a crate:

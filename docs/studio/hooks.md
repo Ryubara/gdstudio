@@ -52,18 +52,18 @@ A `](../path)` reference to a file the same command passes with `--attach` (the 
 as an uploaded capture there (the guard swaps in an upload address before it asks, as `--attach` does), so one body
 satisfies both guards; a reference to a file that is not attached, or the same body without `--attach`, is refused.
 `gds pr check-body` by hand has no `--attach` and still wants uploaded captures
-([lesson](../lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). A relative `--body-file` is read
+([Pull requests](pull-requests.md#attach)). A relative `--body-file` is read
 from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd /d`, `~` and Git
 Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a glob) leaves a
 relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
 is not judged. The refusal for a missing file names the path it looked in
-([lesson](../lessons/2026-11-02-the-body-guard-read-a-relative-file-from-the-wrong-folder.md)). `--attach` paths are never
+([Writing checks](writing-checks.md#paths)). `--attach` paths are never
 opened by the guard, only placed and compared with the references ([below](#attach-paths)). The docs rule of
 `pr-rules` (code changed, no docs changed, no `Docs: none` line) reads the branch's files: `gds pr check-body` and the
 guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
 branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
 `docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([lesson](../lessons/2026-11-02-the-local-body-check-skipped-the-docs-rule.md)). The guard is a hand-merge path
+([Writing checks](writing-checks.md#same-input)). The guard is a hand-merge path
 (`.claude/hooks/`): a maintainer merges changes to it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
@@ -157,7 +157,7 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
 Nothing an agent runs posts a comment or a review under the maintainer's GitHub account (their decision of 2026-10-12);
 status labels say that work is under way. `check_comments` in `guards.py` judges what `gh` would do, because a rule
 that lists the commands named `comment` let `gh issue close --comment` post on #691
-([lesson](../lessons/2026-11-05-a-closing-comment-passed-a-rule-that-listed-commands.md)). The routes come from every page
+([Writing checks](writing-checks.md#effects)). The routes come from every page
 of `gh help` in gh 2.102 and the mutations from GitHub's schema, read on 2026-11-05; a later `gh` can add a route, so
 the list is only as current as that walk.
 
@@ -184,8 +184,7 @@ an alias made before this guard, a `gh` extension, `curl` with a token, the webs
 `gds` is the last of these and has its own rule, because it runs under the maintainer's account: `run_gh` in
 `python/src/gds_tools/issues.py` is its one way to run `gh`, and refuses what `posts_a_comment` names; a test fails
 if a second way appears. `gds issue start`, `release` and `unblock` change labels and the ledger and post nothing.
-Until 2026-11-06 they did post, and this page called it by design
-([lesson](../lessons/2026-11-06-a-guard-on-what-agents-type-missed-what-the-tool-posted.md)).
+Until 2026-11-06 they did post, and this page called it by design.
 Comments a workflow posts with `GITHUB_TOKEN` appear under `github-actions[bot]`, not under the maintainer.
 
 A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook
@@ -320,7 +319,7 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
   is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
   the gap that lost a lesson twice (kit #175 and #176;
-  [lesson](../lessons/2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md)).
+  [Starting work](starting-work.md#landing)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
@@ -368,14 +367,13 @@ game's `lessons` rule without `names: section` keeps the old form.
   sat on a kit branch for a coordinator batch, two lessons sat unpushed, nothing tied a game pull request to its kit
   docs, and an agent's own fixes left none. **Seen:** Deadnight #507, gdstudio #99, 2026-11-02 (fix: the Stop and
   SubagentStop gates flag a kit branch with commits and no pull request and a report with mistakes and no section; `gds
-  issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99,
-  [lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md))).
+  issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99)).
 
 ## Agent stalls {#stall}
 
 A background task agent whose turn ends is finished for good: nothing wakes it, `ListAgents` still says `running`, and
 nothing shows on GitHub. It happened three times on 2026-11-02 (the agents ended on "Now the autopilot." and the like;
-[lesson](../lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The rule in the agent
+[Agents](agents.md#the-loop)). The rule in the agent
 definitions did not stop the third, so `SubagentStop` now refuses such an end. Settings: `[stop_check]` in `hooks.toml`.
 
 1. Only the agent types in `[stop_check] agents` are judged: `godot-engineer`, `backend-engineer`, `blender-artist`,
@@ -433,8 +431,7 @@ changes are in the way, or one on another branch, is left alone and named in the
 - **Approach:** Keep every local `main` checkout fast-forwarded after each merge by a hook, never by memory, and name a
   checkout with local changes instead of discarding it. **Watch out for:** merges landed on GitHub, most by auto-merge,
   while the local main checkouts the maintainer opens in the editor stayed behind. **Seen:** Deadnight, 2026-11-01 (fix:
-  the hook above pulls after a merge command, at session start and at Stop
-  ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md))).
+  the hook above pulls after a merge command, at session start and at Stop).
 
 ## Finished worktrees {#sweep}
 
@@ -444,7 +441,7 @@ hook only starts the process and returns, so it never blocks or delays a session
 (`cache/worktree-sweep.lock`, taken over after half an hour), so sessions that start together run one sweep, and it stops
 by itself after 20 minutes. Its report is appended to `scratch/worktree-sweep.log`. On Windows the process is started
 with `CREATE_NO_WINDOW`, so neither it nor its git children flash a console window
-([lesson](../lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md)). `enabled = false` turns it off and
+([Agents](agents.md#the-loop)). `enabled = false` turns it off and
 `args = ["--no-idle"]` limits it to the pull request and issue rules.
 
 ## Disk {#disk}
