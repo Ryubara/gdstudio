@@ -6,7 +6,7 @@ Fixes #128
 
 Read first: tools, process
 
-Lessons: docs/lessons/2026-11-02-a-body-check-refused-a-reason-with-a-full-stop.md
+Lessons: docs/studio/hooks.md#pr-body
 
 ## Checklist
 

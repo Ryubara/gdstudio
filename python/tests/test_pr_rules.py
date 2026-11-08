@@ -272,3 +272,31 @@ def test_the_kits_own_conventions_load_with_the_new_rules():
     rules = loaded["pull_requests"]
     assert rules["lessons"]["label"] == "Lessons:" and rules["read_first"]["label"] == "Read first:"
     assert (KIT / rules["read_first"]["areas_file"]).is_file()
+
+
+SECTIONS = {**LESSONS, "names": "section", "edited": True}
+
+
+def test_names_section_takes_a_topic_section_and_refuses_the_old_forms():
+    """gdstudio #769: a learning updates a topic section, so `Lessons:` names it as page.md#anchor."""
+    ok = body("Lessons: docs/engines/godot/web-export.md#threads")
+    assert problems({"lessons": SECTIONS}, "net: Fix the lag", ok) == []
+    for old in (LESSON, "Lessons: [row](docs/studio/maintainer-corrections.md#found-by-playing)"):
+        out = problems({"lessons": SECTIONS}, "net: Fix the lag", body(old))
+        assert out and "names the section of the rule as page.md#anchor" in out[0]
+    out = problems({"lessons": SECTIONS}, "net: Fix the lag", body())
+    assert "'Lessons: <page.md#anchor>'" in out[0]
+
+
+def test_edited_needs_the_sections_page_among_the_changed_files():
+    text = body("Lessons: docs/engines/godot/web-export.md#threads")
+    rules = {"lessons": SECTIONS}
+    assert (
+        groundwork.lessons_problems(conv(**rules), "net: Fix it", text, CLEAN, ["docs/engines/godot/web-export.md"])
+        == []
+    )
+    out = groundwork.lessons_problems(conv(**rules), "net: Fix it", text, CLEAN, ["python/x.py"])
+    assert out and "does not change that page" in out[0]
+    assert (
+        groundwork.lessons_problems(conv(**rules), "net: Fix it", text, CLEAN, None) == []
+    )  # no file list: not judged

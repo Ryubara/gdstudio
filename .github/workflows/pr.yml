@@ -44,7 +44,7 @@ jobs:
         run: printf '%s\n' "$PR_TITLE" | uv run --with pyyaml python .github/scripts/groundwork.py check-title -
 
   # The description is judged with what the API knows of the pull request (checks that failed on its earlier commits, the
-  # issues it closes and their labels): `pr-history` reads it with the read-only token, and falls back to the title alone
+  # issues it closes and their labels, its changed files): `pr-history` reads it with the read-only token, and falls back to the title alone
   # when GitHub cannot be asked.
   body:
     runs-on: ubuntu-24.04
@@ -72,8 +72,11 @@ jobs:
           printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
           uv run --with pyyaml python .github/scripts/groundwork.py pr-history --repo "$GH_REPO" --number "$NUMBER" \
             > "$RUNNER_TEMP/pr-history.json"
+          # The changed files: a `Lessons:` line names a section whose page the pull request changes.
+          gh api --paginate "repos/$GH_REPO/pulls/$NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/changed.txt"
           uv run --with pyyaml python .github/scripts/groundwork.py check-body --body "$RUNNER_TEMP/pr-body.md" \
-            --title "$RUNNER_TEMP/pr-title.txt" --history "$RUNNER_TEMP/pr-history.json"
+            --title "$RUNNER_TEMP/pr-title.txt" --history "$RUNNER_TEMP/pr-history.json" \
+            --changed "$RUNNER_TEMP/changed.txt"
 
   # The changed files come from the API (at most 3000; a bigger pull request is refused rather than half-checked).
   docs:

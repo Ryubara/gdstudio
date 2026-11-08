@@ -1,13 +1,17 @@
-"""The mistakes glossary of the kit: build it, check the lessons, place lessons in areas.
+"""The checks of rules kept in topic sections (docs/studio/rules.md), and the mistakes glossary built from them.
 
-    python .github/scripts/mistakes.py render [PATH]   print the glossary built from the lessons and the corrections page
-                                                       (or write it to PATH); it is never committed
-    python .github/scripts/mistakes.py check           fail when a lesson has no (or an unknown) area, a corrections row
-                                                       quotes the maintainer, or the page cannot be built
-    python .github/scripts/mistakes.py backfill        add `areas:` front matter, placed by keyword, to lessons without it
+    python .github/scripts/mistakes.py check [--base REF]   fail on what the rules refuse (below)
+    python .github/scripts/mistakes.py render [PATH]        print the glossary (or write it to PATH); never committed
+    python .github/scripts/mistakes.py backfill             add `areas:` front matter, placed by keyword, to old
+                                                            lesson files without it
 
-The glossary is never a file, so two lesson pull requests never touch the same one: `gds lessons <area>` and the
-SubagentStart hook build it from the lessons. `check` runs in pre-commit, in pytest and in the docs job of CI. Standard library only; the logic is python/src/gds_tools/lessons.py.
+`check` refuses, from the checkout alone: a page over the size limit, an entry without its three parts (Approach,
+Watch out for, Seen) or in the old form or too long or in a section without an explicit anchor, a malformed or repeated
+anchor, a corrections-log row that quotes the maintainer or links no section, and an old lesson file without areas or
+dated after the old folder closed. Against a base (`--base REF`; by default where the branch left origin/main and
+origin/main itself, skipped with a note when they are not known) it also refuses a file added to docs/lessons/ and a
+new heading without a reason line. It runs in pre-commit, in pytest and in the docs job of CI (`--base HEAD^1` on the
+merge commit of a pull request). Standard library only; the logic is python/src/gds_tools/lessons.py.
 """
 
 from __future__ import annotations
@@ -21,15 +25,34 @@ sys.path.insert(0, str(ROOT / "python" / "src"))
 from gds_tools import lessons  # noqa: E402
 
 
+def check(argv: list[str]) -> int:
+    areas = lessons.Areas.load(ROOT / lessons.AREAS_FILE)
+    found = lessons.problems(ROOT, areas)
+    base = [argv[argv.index("--base") + 1]] if "--base" in argv[:-1] else lessons.default_bases(ROOT)
+    if not base:
+        print("note: origin/main is not known here, so new sections and new lesson files were not checked",
+              file=sys.stderr)
+    else:
+        try:
+            found += lessons.base_problems(ROOT, base)
+        except lessons.LessonsError as error:
+            found.append(str(error))
+    if not found:
+        lessons.build(ROOT)  # raises when a page or a lesson cannot be read
+    print("\n".join(found), file=sys.stderr)
+    return 1 if found else 0
+
+
 def main(argv: list[str]) -> int:
     command = argv[0] if argv else "check"
-    areas = lessons.Areas.load(ROOT / lessons.AREAS_FILE)
     if command == "backfill":
-        changed = lessons.backfill(ROOT, areas)
+        changed = lessons.backfill(ROOT, lessons.Areas.load(ROOT / lessons.AREAS_FILE))
         print(f"{len(changed)} lesson(s) given areas")
         return 0
-    found = lessons.problems(ROOT, areas)
+    if command == "check":
+        return check(argv[1:])
     if command == "render":
+        found = lessons.problems(ROOT, lessons.Areas.load(ROOT / lessons.AREAS_FILE))
         if found:
             print("\n".join(found), file=sys.stderr)
             return 1
@@ -41,13 +64,6 @@ def main(argv: list[str]) -> int:
             sys.stdout.reconfigure(encoding="utf-8", newline="\n")
             sys.stdout.write(text)
         return 0
-    if command == "check":
-        if not found:
-            lessons.build(
-                ROOT
-            )  # raises when a lesson or the corrections page cannot be read
-        print("\n".join(found), file=sys.stderr)
-        return 1 if found else 0
     print(__doc__, file=sys.stderr)
     return 2
 

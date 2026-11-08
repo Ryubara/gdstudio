@@ -48,8 +48,8 @@ body:
   id: docs-page
   attributes:
     label: Docs page
-    description: The kit page (and section) that covers this, such as docs/engines/godot/... or docs/lessons/...,
-      as a link, or none yet.
+    description: The kit page and section that covers this, as page.md#anchor (docs/studio/rules.md#anchors), or
+      none yet.
     placeholder: docs/engines/godot/ui.md#focus
 - type: textarea
   id: done

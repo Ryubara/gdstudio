@@ -15,7 +15,7 @@ has neither (the hooks refuse it). Every agent researches as part of its own wor
 Definitions: `.claude/agents/*.md`. A new agent is added only when a kind of work keeps recurring that none of these
 covers well.
 
-## The loop
+## The loop {#the-loop}
 
 1. The coordinator writes an issue (problem first, what "done" means) and starts the right agent on it. Two issues
    that need the same mechanic are never given to two agents at once: one owns it, the other waits on it, and each brief
@@ -41,3 +41,15 @@ covers well.
    no change is a stall, and a fresh agent takes over from its notes
    ([lesson](../lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The `SubagentStop` hook also
    refuses the end of an engineer or artist whose last message is no report ([Agent stalls](hooks.md#stall)).
+
+- **Approach:** Before reporting why a guard did not fire, list every term of its condition as ruled out by evidence or
+  not checked, call the cause likely until all are ruled out, and compare other tests of the same state. **Watch out
+  for:** Tether's checkpoint holds on `busy` or a raw `draft !== ''`; the diagnosis blamed only `busy`, as fact, while a
+  lone newline counted as a draft there and kept the session running past 950,000 tokens. **Seen:** Tether checkpoint,
+  2026-11-04 (fix: the diagnosis names each term and its evidence
+  ([lesson](../lessons/2026-11-04-a-blank-draft-held-a-checkpoint-and-the-diagnosis-missed-it.md))).
+- **Approach:** Make every script given to Monitor or run in the background end on its own (a deadline, and when its
+  parent goes), and count the copies after each re-arm. **Watch out for:** the coordinator's pull request monitor was a
+  `while true` loop; each 30-minute expiry of the Monitor tool left it running, and 35 orphaned copies forked about 70
+  `bash.exe` a minute with no console to hide in. **Seen:** GDStudio coordinator, 2026-11-03 (fix: the windows opening
+  on the desktop showed it ([lesson](../lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md))).

@@ -33,10 +33,12 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   it themselves (simulated input in GdUnit4, bots or an autopilot, audio analysis, a browser driven by a probe) and
   never hand a test to the maintainer. Visual work attaches screenshots or a clip, and sound attaches a clip to listen
   to (`docs/studio/capture.md`).
-- **Learn in the same session.** When the maintainer corrects an agent or reports a problem in earlier work, the
-  learning is written into the docs in that session: a row on `docs/studio/maintainer-corrections.md`, and a lesson
-  (`docs/lessons/`) when the cause is general. Agents read the checks that touch their task before they start. The
-  hooks enforce it (`docs/studio/hooks.md#learning`).
+- **Learn in the same session.** A mistake, an agent's own or one the maintainer corrects, updates the topic section an
+  agent reads for that task, in that session: a short entry in the page's own voice (the approach, what to watch out
+  for, where it was seen; `docs/studio/rules.md`). There are no lesson pages. `gds learn <topic or words>` finds the
+  closest sections first; a new section is made only when none fits, with a reason line. A maintainer correction also
+  gets a line on `docs/studio/maintainer-corrections.md`, in our words. Agents read the sections that touch their task
+  before they start. The hooks and checks enforce it (`docs/studio/hooks.md#learning`).
 - **No comments under the maintainer's account.** Nothing an agent or a tool runs posts a comment or a review on an
   issue or a pull request under the maintainer's GitHub account, ever, with no exception: labels say that work is under
   way, and a report goes in the pull request's body or the scratch folder (`docs/studio/hooks.md#comments`).
@@ -65,12 +67,12 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   `PR: <owner/repo>#N` (`docs/studio/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
 - Open pull requests land before new work starts, oldest stuck one first; a parked one is refreshed before it lands
   (`docs/studio/starting-work.md#landing`).
-- Lessons: a lesson has `areas: [...]` front matter; the mistakes glossary is built from the lessons by
-  `gds lessons <area>`, never committed (`python .github/scripts/mistakes.py check` fails on a lesson without areas
-  and on a corrections row that quotes the maintainer). The agent that finds a
-  mistake writes the lesson and opens the kit pull request in the same task (`docs/studio/hooks.md#docs`). A `Fix` or `Rework`
-  pull request, or one after a failed check or closing a `bug` issue, carries `Lessons: docs/lessons/<file>.md`; one
-  that closes an issue carries `Read first: <areas>`.
+- Learning: a mistake updates its topic section (`docs/studio/rules.md`); no file goes in `docs/lessons/` (#770 empties
+  it). `python .github/scripts/mistakes.py check` refuses a new lesson file, a page over 50 KB, a new section without a
+  reason line and a malformed entry. The agent that finds a mistake updates the section and opens the kit pull request
+  in the same task (`docs/studio/hooks.md#docs`). A `Fix` or `Rework` pull request, or one after a failed check or
+  closing a `bug` issue, carries `Lessons: <page.md#anchor>` naming the topic section it updates; one that closes an
+  issue carries `Read first: <areas>`.
 
 ## Commits and pull requests
 

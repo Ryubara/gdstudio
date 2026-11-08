@@ -278,6 +278,7 @@ def context(event: str, cwd: Path, **extra) -> str:
 def test_every_prompt_gets_the_short_reminder(workspace):
     text = context("UserPromptSubmit", workspace, prompt="that is wrong")
     assert "corrects an agent" in text and "maintainer-corrections.md" in text
+    assert "docs/studio/rules.md" in text and "gds learn" in text and "never a lesson page" in text
     assert (workspace / "scratch" / "kit-lessons-queue").as_posix() in text  # the queue, from the workspace
     assert len(text.splitlines()) <= 3 and len(text) < 900  # it is paid for on every prompt
     assert context("UserPromptSubmit", Path(__file__).anchor, prompt="x") == ""  # outside any workspace: silent
@@ -290,14 +291,16 @@ def test_reminder_text_comes_from_the_config(workspace):
     assert dispatch.answer({"hook_event_name": "UserPromptSubmit", "cwd": str(workspace)}, {}) is None
 
 
-def test_session_start_points_at_the_corrections_and_lessons(repo, workspace):
+def test_session_start_points_at_gds_learn_and_the_rules(repo, workspace):
     text = context("SessionStart", repo)
-    assert "docs/studio/maintainer-corrections.md" in text and "docs/lessons/index.md" in text
+    assert "docs/studio/maintainer-corrections.md" in text and "docs/studio/rules.md" in text
+    assert "gds learn" in text and "docs/lessons/index.md" not in text
 
 
-def test_starting_agents_are_told_to_read_and_to_report_the_row(workspace):
+def test_starting_agents_are_told_to_read_and_to_report_the_log_line(workspace):
     text = context("SubagentStart", workspace, agent_type="godot-engineer", agent_id="a1")
-    assert "maintainer-corrections.md" in text and "final report" in text and "do not edit that table" in text
+    assert "maintainer-corrections.md" in text and "final report" in text and "do not edit that page" in text
+    assert "page.md#anchor" in text and "docs/studio/rules.md" in text
     for helper in ("Explore", "Plan", "claude-code-guide"):
         assert context("SubagentStart", workspace, agent_type=helper) == ""
 
@@ -925,24 +928,71 @@ MISTAKES_REPORT = (
 )
 
 
-def test_an_agent_may_not_finish_with_mistakes_and_no_lesson(workspace, monkeypatch):
+def test_an_agent_may_not_finish_with_mistakes_and_no_section(workspace, monkeypatch):
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
     out = dispatch.answer(subagent_stop_payload(workspace, MISTAKES_REPORT), CONFIG)
-    assert out["decision"] == "block" and "Mistakes section but names no lesson file" in out["reason"]
-    assert "Mistakes: none" in out["reason"]
+    assert out["decision"] == "block" and "names no topic section that your kit branch updates" in out["reason"]
+    assert "Mistakes: none" in out["reason"] and "gds learn" in out["reason"]
     held = subagent_stop_payload(workspace, MISTAKES_REPORT, stop_hook_active=True)
     assert dispatch.answer(held, CONFIG) is None
 
 
-def test_a_named_lesson_file_that_exists_satisfies_the_report(workspace, monkeypatch):
+def _page_on_branch(workspace: Path, page: str, text: str) -> Path:
+    """A kit worktree whose branch changes `page` against its origin/main."""
+    tree = _kit_worktree(workspace, "rule-branch", 0)
+    path = tree / "docs" / page
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# Page\n\n## Imports {#imports}\n\nold\n", encoding="utf-8")
+    git = ["git", "-C", str(tree), "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git, "add", "-A"], check=True, capture_output=True)
+    subprocess.run([*git, "commit", "-m", "base"], check=True, capture_output=True)
+    subprocess.run([*git, "update-ref", "refs/remotes/origin/main", "HEAD"], check=True, capture_output=True)
+    path.write_text(text, encoding="utf-8")
+    return tree
+
+
+def test_a_named_section_the_branch_edits_satisfies_the_report(workspace, monkeypatch):
+    """The rule was written into the section (gdstudio #769): the report names it as page.md#anchor, a kit worktree has
+    that anchor, and its branch changes the page against origin/main. An old lesson file no longer counts."""
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
-    name = "2026-11-02-a-cached-import-hung-the-web-build.md"
-    report = MISTAKES_REPORT + f"\n\nLesson: docs/lessons/{name} (kit PR #120)"
-    assert "names no lesson file" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
-    tree = _kit_worktree(workspace, "lesson-branch", 0)  # the file written on a kit branch counts
-    (tree / "docs" / "lessons").mkdir(parents=True)
-    (tree / "docs" / "lessons" / name).write_text("# x\n", encoding="utf-8")
+    report = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#imports (kit PR #120)"
+    assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
+    rule = "\n- **Approach:** x. **Watch out for:** y. **Seen:** Deadnight #1, 2026-11-07.\n"
+    _page_on_branch(workspace, "engines/godot/web-export.md", "# Page\n\n## Imports {#imports}\n\nold\n" + rule)
     assert dispatch.answer(subagent_stop_payload(workspace, report), CONFIG) is None
+    wrong = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#nope"
+    assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, wrong), CONFIG)["reason"]
+    old = MISTAKES_REPORT + "\n\nLesson: docs/lessons/2026-11-02-a.md and maintainer-corrections.md#log"
+    assert guards.sections_named(workspace, old) == []
+
+
+def test_a_section_the_branch_does_not_change_does_not_count(workspace):
+    tree = _page_on_branch(workspace, "studio/x.md", "# Page\n\n## Imports {#imports}\n\nold\n")  # unchanged
+    assert guards.sections_named(workspace, "Mistakes: see studio/x.md#imports") == []
+    (tree / "docs" / "studio" / "x.md").write_text("# Page\n\n## Imports {#imports}\n\nnew\n", encoding="utf-8")
+    assert guards.sections_named(workspace, "Mistakes: see studio/x.md#imports") == ["studio/x.md#imports"]
+
+
+def test_subagent_start_adds_the_sections_closest_to_the_issue_title(workspace):
+    """The note of the Agent guard carries the issue's title from the ledger; SubagentStart runs `gds learn` on it."""
+    ledger = workspace / "cache" / "issues-started.json"
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    key = "ryubara/gdstudio#769"
+    entry = {"areas": ["tools"], "title": "hooks: Fix the stop hook docs check"}
+    ledger.write_text(json.dumps({"started": {key: entry}}), "utf-8")
+    payload = {
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Agent",
+        "cwd": str(workspace),
+        "tool_input": {"subagent_type": "godot-engineer", "prompt": "Issue: Ryubara/gdstudio#769\ndo it"},
+    }
+    guards.note_agent_start(payload, CONFIG)
+    note = json.loads((workspace / "cache" / "subagent-pending.json").read_text(encoding="utf-8"))[0]
+    assert note["title"] == "hooks: Fix the stop hook docs check" and "tools" in note["areas"]
+    text = context("SubagentStart", workspace, agent_type="godot-engineer", agent_id="a2")
+    assert "Sections of the docs closest to your issue" in text and "studio/hooks.md#" in text
+    assert guards.closest_sections(workspace, "", CONFIG) == ""
+    assert guards.closest_sections(workspace, "hooks", {"docs": {"learn_limit": 0}}) == ""
 
 
 def test_mistakes_none_and_empty_sections_pass(workspace):
@@ -1398,7 +1448,7 @@ def test_idle_reasons_come_with_the_other_stop_gates(workspace, idle):
     idle.found = IDLE
     (queue_of(workspace) / "row.md").write_text("a row", encoding="utf-8")
     reason = dispatch.answer(stop_payload(workspace), CONFIG)["reason"]
-    assert "Lesson rows are queued" in reason and "may start now and no agent has them" in reason
+    assert "Corrections are queued" in reason and "may start now and no agent has them" in reason
 
 
 # The real look at GitHub, with `gh` replaced by recorded answers.

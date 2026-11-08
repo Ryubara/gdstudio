@@ -8,7 +8,7 @@ findings are Deadnight #929 to #936 and #938.
 Performance is reviewed in every pull request: by reading the diff for the cost it adds, and by measuring the cases the
 diff could make worse. The author states the cost; the reviewer checks it.
 
-## The rule
+## The rule {#the-rule}
 
 A pull request that adds **per-frame or per-tick work, a run-time spawn, a light, a particle system, a shader, a draw
 call, a sound or a network message** has a `## Cost` section in its description:
@@ -23,6 +23,14 @@ call, a sound or a network message** has a `## Cost` section in its description:
 
 The reviewer opens one issue per finding, with file:line, the cost, how it scales, how sure, and the fix, and attaches
 the probe output.
+
+- **Approach:** State a change's cost when it is made (per frame, per spawn, per light, and what it scales with) in a
+  `## Cost` section of its pull request, make every run-time spawn free itself or come from a pool, with a test that the
+  node count is flat after N events, and measure one tick of the real night with the bots at the ceiling. **Watch out
+  for:** the desktop ceiling was set from the server step and the client draw with no bots, HUD or client script, and a
+  one-shot blast effect faded to alpha 0 and was never freed. **Seen:** Deadnight #906, 2026-11-03; Deadnight #907,
+  2026-11-03 (fix: the checklist on this page (Deadnight #929, #930;
+  [lesson](../../lessons/2026-11-03-a-one-shot-effect-from-the-range-was-never-freed-in-the-night.md))).
 
 ## Checklist (read the diff for each)
 

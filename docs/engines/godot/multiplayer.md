@@ -4,7 +4,7 @@ What we learned building the Deadnight net spike (Godot 4.7.2, Compatibility ren
 numbers and the architecture we chose live in that game's `docs/research/multiplayer.md`; this page is what any
 GDStudio game can reuse.
 
-## Why our own protocol: the comparison
+## Why our own protocol: the comparison {#why-our-own-protocol-the-comparison}
 
 Measured in Deadnight #38 (`docs/research/networking-comparison.md` there): 4 players and 24 zombies at 30 Hz,
 localhost, bytes counted by a proxy in front of each stack.
@@ -22,6 +22,12 @@ localhost, bytes counted by a proxy in front of each stack.
 - Railway documents TCP and HTTP only, and WebSockets on its HTTPS domain; a web client can only use WebSocket or
   WebRTC anyway.
 
+- **Approach:** Before any netcode, write down who plays where (browser, Discord, desktop), the bandwidth each player
+  has and where the server runs, and compare the options with measured numbers. **Watch out for:** the engine's built-in
+  multiplayer was the first reach, a default rather than an answer to the game's constraints (players in a browser, the
+  cost of hosting). **Seen:** Deadnight, 2026-11-01 (fix: deadnight runs its own protocol and backend, built
+  network-first, chosen by the comparison above).
+
 ## The constraint that decides everything
 
 A web client (and a Discord Activity inside an iframe) can only open **WebSockets** (and HTTP). No raw TCP/UDP, no
@@ -30,7 +36,7 @@ WebRTC through Discord's proxy. So the shape is: one authoritative server that c
 a missing packet, it shows up as a **stall** (head-of-line blocking) followed by a burst. Design for stalls: tolerate
 late data, send state (snapshots) rather than events that must each arrive, and never let the sim wait for a client.
 
-## A client that freezes, measured on the live server
+## A client that freezes, measured on the live server {#a-client-that-freezes-measured-on-the-live-server}
 
 Deadnight #483 (2026-11-02): a native headless client joined a night on the deployed server (guest sign-in, own lobby,
 `wss`), walked, froze its own thread with `OS.delay_msec` and walked on. Worst gap to the server's position, then the
@@ -46,6 +52,14 @@ gap once it stood still:
   round trip, with a push, closed (client, link and server), and freeze the client's thread, not only the link.
 - Godot's WebSocket buffers default to 64 KB: a client that does not read for a few seconds makes the server drop the
   newest ticks. Raise them (1 MB), and send a whole frame, not a delta, after a tick the socket would not take.
+
+- **Approach:** Test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms
+  and more) with a push, freeze the client's own thread (`OS.delay_msec`) over a real socket, not only the link, and
+  read a server's `send` errors. **Watch out for:** the reconcile moved the body but not the remembered positions of the
+  unanswered commands, so each answer corrected the same error once per frame in flight and a snap grew exponentially; a
+  freeze sent eight catch-up ticks at once and the 64 KB socket buffers dropped the newest. **Seen:** Deadnight #483,
+  2026-11-02 (fix: a correction moves the history it is judged against
+  ([lesson](../../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md))).
 
 ### The same in the browser (Deadnight #502)
 
@@ -134,6 +148,26 @@ and 2 stopped at a teammate for good; players now sit on a layer of their own). 
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
 (`tests/net/test_world_parity.gd`).
 
+## Every client sees the same bodies {#appearance}
+
+<!-- new section: the solid-things section compares collision; nothing covered how bodies look and stand on every
+client -->
+
+- **Approach:** Dress every body, the player's own included, from one appearance table the server owns, build local and
+  remote bodies from one scene (or one shared transform), and test two clients over the real socket: every player shows
+  the same parts, colours, skeleton height, scale and facing on every client and on the server. **Watch out for:**
+  bodies were dressed only on the loopback path, two windows on one machine shared one settings file, and the player
+  scene turned its model half round and scaled it 0.8 while remote avatars did neither, so on the other screen a player
+  was a quarter taller and faced the camera. **Seen:** Deadnight, 2026-11-01 (looks); Deadnight, 2026-11-01 (height)
+  (fix: the two-client test, and a `--look` flag that gives local windows different looks).
+- **Approach:** Build and test every player-visible feature twice, as the player sees themselves and as every other
+  client sees them, from the same state and events: a two-client test over the real socket asserts the other client's
+  screen for each action (weapon, swap, aim, fire clip and flash, reload, swing, throw, a late joiner). **Watch out
+  for:** online, a remote player was a bare model with no `PlayerAnimation`, so everything that draws a weapon got null
+  and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
+  remote bodies are the same scene as local ones and captures are taken from the second client (Deadnight #548;
+  [lesson](../../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md))).
+
 ## Events reach a client only through its command loop
 
 A test client that is driven by hand must still send its command every tick (`night.ticked` connected to
@@ -194,6 +228,46 @@ The end of a match is a state of the server, not of each client, or no two scree
 - **Test it over real sockets** with the real backend and a leaver: clocks within a second of each other, the room freed,
   the lobby open again with the host's rules, a host who left replaced, and a night everyone left not reopened.
 
+## A player's way in and out of a room {#player-states}
+
+<!-- new section: the room sections cover the transport and the protocol; none lists the states a player passes
+through, the ways in and out, or what is kept for a seat -->
+
+- **Approach:** For any multiplayer flow, list every state a player can be in (alone, with friends, started, late, full,
+  host gone, tab closed) from the player's view before building, test each with two or more real clients on the real
+  stack, and run a new screen once in the web build against the real backend. **Watch out for:** creating a night was
+  create then start, so the waiting room, who is in it and who starts were never designed: no screen showed the members,
+  a closed tab never left, and the first lobby screen reused a covered screen's requests, which never answered.
+  **Seen:** Deadnight #515, 2026-11-02 (fix: deadnight #521, #537 and #555
+  ([lesson](../../lessons/2026-11-02-a-request-under-a-covered-screen-never-answered.md))).
+- **Approach:** Erase state kept by player id in a second place where the rules erase the player, and test a seat given
+  up and taken again; walk a "did not arrive" report from every source with both lists side by side, and say which
+  source the walk could not reach. **Watch out for:** leaving erased the rules' player but not the combat server's
+  loadout, and the room gives the lowest free id to the next person, who carried the last one's weapons while the rules
+  said the start weapon only. **Seen:** Deadnight #904, 2026-11-03 (fix: the loadout is erased on leave; the
+  maintainer's solo case was not reproduced
+  ([lesson](../../lessons/2026-11-03-a-seat-kept-the-weapons-of-the-last-player.md))).
+- **Approach:** For any "you are already in X" refusal, list every way the system puts a player into X and every way out
+  from the player's view (button, menu, closed tab, dropped connection, night ended, Activity closed), test each over
+  the real stack with bots in, and prefer moving the player to refusing them. **Watch out for:** a finished night's
+  reopen put its users back in the one-open-lobby index, an entry they never made, so a player at the menu was refused
+  by a lobby they could not see for ten minutes. **Seen:** Deadnight #1177, 2026-11-05 (fix: a failing test for every
+  suspect in the issue, keeping the ones that fail; the suspect, bots, was innocent
+  ([lesson](../../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md))).
+
+## A feature that crosses services {#across-services}
+
+<!-- new section: the page covers the client and the game server; nothing covered a change that also needs the
+backend deployed -->
+
+- **Approach:** Call a feature that crosses services (client, backend, game server) done only when every service it
+  crosses is deployed by the pipeline that merges it, with one test per setting through the real stack, read back from
+  the running night. **Watch out for:** the backend had no deploy job, so the live one predated the lobby rules,
+  answered a rules change with a bare 404 and ignored a start's settings; every test ran a backend built from the
+  checkout. **Seen:** Deadnight #944, 2026-11-04 (fix: the deploy compares the live service's settings keys with the
+  client's, and an unknown key is refused by name at every border
+  ([lesson](../../lessons/2026-11-04-a-service-nobody-deployed-dropped-every-lobby-setting.md))).
+
 ## Web export
 
 - Single-threaded export (`variant/thread_support=false`) needs no cross-origin isolation headers and works in an
@@ -209,7 +283,7 @@ The end of a match is a state of the server, not of each client, or no two scree
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
 
-## Small things that cost time
+## Small things that cost time {#small-things-that-cost-time}
 
 - Check a port before choosing it (`netstat -ano | grep :<port>`): on Windows a second listener can bind a port
   silently and clients reach the wrong one. 9080 is the Godot editor MCP bridge here.
@@ -224,3 +298,10 @@ write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the 
   used to end by itself stays on in the frozen frame: a revive hold is stopped by the downed reviver's own `_act`,
   and the last player down is both the reviver and the game over. End such state once, on the first frozen tick
   (`ReviveChannel.end_all`), and read the frozen frame in the test.
+
+- **Approach:** When one person fails and probes pass, compare what their account holds with the probe's and probe with
+  a full account; give a size limit and what fills it one test across both sides, and log why a check drops a message.
+  **Watch out for:** the cause was chased in the proxy and the client; the ticket carried finished challenges for a
+  player wearing a card, emblem or frame, which put the hello past its 1024-byte limit, the server dropped it unanswered
+  (logged `SILENT`), and every probe was a fresh guest. **Seen:** Deadnight #1366, 2026-11-06 (fix:
+  [lesson](../../lessons/2026-11-06-a-limit-older-than-what-fills-it-dropped-a-hello.md)).

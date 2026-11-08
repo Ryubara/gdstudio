@@ -48,7 +48,7 @@ with no texture work, and must not cost a draw call.
 - A GdUnit4 checkout lives only in the main repository's `game/addons/gdUnit4` (excluded from git); a worktree has to
   copy that folder to run suites there.
 
-## Pitfalls
+## Pitfalls {#pitfalls}
 
 - **State every texture import; turn Detect 3D off.** Set `detect_3d/compress_to=0` and spell out
   `compress/mode` and `mipmaps/generate` in every texture `.import`. With Detect 3D on (the default), the first
@@ -61,7 +61,11 @@ with no texture work, and must not cost a draw call.
 - `metallic` above 0 only darkens a surface when there is nothing to reflect (no sky, no reflection probe): keep
   ground and walls at metallic 0.
 
-## Measured
+- **Approach:** Check the `.import` settings of every new 3D texture in review. **Watch out for:** a headless import
+  left new textures without mipmaps, so the far ground aliased. **Seen:** Deadnight, 2026-11-01 (fix: looking at the far
+  ground in a capture showed it; the import settings to keep are listed above).
+
+## Measured {#measured}
 
 Deadnight's web export in Chromium (`tools/web_smoke/smoke.py`: 1280 x 720, a 45 s night from the start, frame time
 from `requestAnimationFrame`), the software renderer (SwiftShader), each build run twice and alternated with main:
@@ -75,3 +79,7 @@ from `requestAnimationFrame`), the software renderer (SwiftShader), each build r
 The shader is cheaper than the flat colours it replaced: dropping the specular term saves more than the one texture
 read costs. SwiftShader is a CPU rasteriser, so these are relative numbers for a fill-bound device, not what a
 graphics card shows; the menu (no 3D) held 38-40 ms in every run, which is the run-to-run noise.
+
+- **Approach:** Measure the frame time of the web build for every material or lighting change. **Watch out for:** the
+  world triplanar materials slowed the web frame from 79 to 90 ms, which a desktop run does not show. **Seen:**
+  Deadnight, 2026-11-01 (fix: a frame-time measurement in the browser caught it).

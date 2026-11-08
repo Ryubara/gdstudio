@@ -93,16 +93,20 @@ pull_requests:
   # Docs ship with the change (docs/studio/hooks.md#docs). A pull request is judged an agent correcting earlier work from what
   # GitHub knows, not from what its author says: its title verb, a watched check that failed on an earlier commit of
   # it, or a closed issue labelled `bug` (`groundwork.py pr-history`, then `check-body --history`). Such a pull request
-  # needs a `Lessons:` line in Summary linking the lesson (or a corrections row) that records what went wrong;
-  # `Lessons: none (reason)` is refused for it and allowed elsewhere.
+  # needs a `Lessons:` line in Summary naming the topic section it updates, as `page.md#anchor`
+  # (docs/studio/rules.md#named); `Lessons: none (reason)` is refused for it and allowed elsewhere. names: section takes
+  # only a section (`legacy`, the default, also takes an old lesson file or a corrections row); edited: the section's
+  # page is among the pull request's changed files (`check-body --changed`).
   lessons:
     section: Summary
     label: "Lessons:"
     verbs: [Fix, Rework]
     bug_labels: [bug]
     history_checks: [build-ok, conventions, mkdocs, markdownlint, actionlint]
-  # A pull request that closes an issue names the areas of docs/lessons/areas.toml whose checks the author read first
-  # (`gds lessons <area>`), and they must include the areas of the issue's labels.
+    names: section
+    edited: true
+  # A pull request that closes an issue names the areas of docs/lessons/areas.toml whose rules the author read first
+  # (`gds learn <words>`, `gds lessons <area>`), and they must include the areas of the issue's labels.
   read_first:
     section: Summary
     label: "Read first:"
@@ -116,7 +120,7 @@ pull_requests:
     # names_trailer_models: the model line must name every model a commit's co-author trailer names.
     model: {label: "Model:", none: "n/a", names_trailer_models: true}
   guidance:
-    Summary: "One short paragraph: what this changes and why. If the change needs no documentation, add a line `Docs: none`. If this finishes an issue, add a line `Fixes #<number>` (one per issue) and a line `Read first: <areas>` naming the areas of its labels (docs/lessons/areas.toml). A fix or rework, or a change after a failed check, adds `Lessons: docs/lessons/<file>.md` (what went wrong, written in this task)."
+    Summary: "One short paragraph: what this changes and why. If the change needs no documentation, add a line `Docs: none`. If this finishes an issue, add a line `Fixes #<number>` (one per issue) and a line `Read first: <areas>` naming the areas of its labels (docs/lessons/areas.toml). A fix or rework, or a change after a failed check, adds `Lessons: <page.md#anchor>`, the topic section this pull request updates with what was learned (docs/studio/rules.md)."
     "Issues affected": "Every other open issue this partly fixes, changes or makes out of date, one line each: `- #123: its step 2 is done`. An issue this finishes is `Fixes #N` in Summary, not here. None affected: one line `None (reason)`, such as `None (one-line fix)`. After the merge the coordinator updates each issue listed."
     Checklist: "List what this pull request finishes, each item ticked. Work it does not finish is not listed here: it lives in its own issue."
     Testing: "What was run and what came out: commands, tests added or changed, results as counts or pass/fail. A `Fix` pull request adds a line `Failed first:` naming the test that failed before the fix and passes after (or `Failed first: none (reason)`)."
@@ -140,6 +144,25 @@ merge:
   # on auto-merge for it (`needs-maintainer`). The rules that judge agents are changed only by a person, and so are
   # the pinned tools.
   manual_paths: [.github/conventions.yml, AGENTS.md, .claude/settings.json, .claude/hooks/, tools.toml]
+
+learning:
+  # What is learned updates the topic page an agent reads for that task, as a short entry in the page's own voice;
+  # there are no lesson pages (docs/studio/rules.md).
+  # `python .github/scripts/mistakes.py check` (pre-commit, pytest, the docs job of CI) enforces these; the numbers are
+  # also constants of python/src/gds_tools/lessons.py, and a test keeps the two equal.
+  format: docs/studio/rules.md
+  # An entry is one list item with these bold labels in this order, at most max_rule_chars characters long, in a ## or
+  # ### section with an explicit {#anchor}.
+  rule_parts: ["Approach:", "Watch out for:", "Seen:"]
+  max_rule_chars: 900
+  # A page past this size is split into a folder of subpages.
+  max_page_kb: 50
+  # A heading the base does not have starts its section with this comment, which says why no section fits.
+  reason_line: "<!-- new section:"
+  # The old folder, one file per problem: it keeps building until gdstudio #770 empties it; no file is added.
+  legacy_lessons: {folder: docs/lessons/, last_date: "2026-11-07"}
+  # A log of each correction in our words with its source; its last column links the topic section of its entry.
+  corrections_log: docs/studio/maintainer-corrections.md
 
 issues:
   blank_issues: false
@@ -182,7 +205,7 @@ issues:
         docs-page:
           heading: Docs page
           type: input
-          description: "The kit page (and section) that covers this, such as docs/engines/godot/... or docs/lessons/..., as a link, or none yet."
+          description: "The kit page and section that covers this, as page.md#anchor (docs/studio/rules.md#anchors), or none yet."
           placeholder: "docs/engines/godot/ui.md#focus"
         done:
           heading: What "done" means

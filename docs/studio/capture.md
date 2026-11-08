@@ -12,7 +12,7 @@ gds capture clip   <folder> [--gif]
 
 Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ...`.
 
-## frames
+## frames {#frames}
 
 Runs the pinned Godot with [Movie Maker](https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html)
 in a real window (not `--headless`: Movie Maker needs a renderer). The window opens on a private Windows desktop, so
@@ -37,6 +37,11 @@ run of the same name are replaced. A project that was never imported is imported
 Frames are the project's viewport size (Godot's `--resolution` has no effect on Movie Maker); the sheet and the clip
 scale them down. Godot's `ERROR` lines are printed and flagged: a capture with errors is not proof.
 
+- **Approach:** Take captures and recordings through the camera the player has (in Deadnight the over-the-shoulder
+  camera), never a spectator camera. **Watch out for:** the bot was filmed through a spectator camera, which shows the
+  game as no player sees it. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's recordings come from the player's camera
+  with the real devices switched off ([lesson](../lessons/2026-11-01-the-real-mouse-turned-a-capture-camera.md))).
+
 ## sheet
 
 Tiles every `--every`-th frame (default 1) in `--columns` columns (default 4) into `sheet.png` in the folder. Tiles
@@ -49,7 +54,7 @@ Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, w
 128-colour palette at up to 12 fps. The clip is cut at 30 s and has to stay under 9 MB (GitHub takes 10 MB for most
 attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720 and 480 px, then the command fails.
 
-## Attaching
+## Attaching {#attaching}
 
 ```text
 cd <folder> && gh pr create -R <owner>/<repo> --body-file <folder>/body.md --attach ./sheet.png --attach ./<name>.mp4
@@ -75,6 +80,11 @@ files and the line to write. Write the body file first (with the Write tool, not
 body is copied from `gh pr view N --json body -q .body`. A reference whose path is not the attached file's, from the
 folder the command runs in, is refused with both places named ([Hooks](hooks.md#attach-paths)). Say "attached" in a
 report only after reading the body back.
+
+- **Approach:** Attach uploaded before and after captures (screenshots or a clip) to every issue and pull request that
+  changes something a player sees. **Watch out for:** work was judged from its text, so nobody saw what had changed.
+  **Seen:** Deadnight, 2026-11-01 (fix: the pull request body check refuses a visual change without its `Before:` and
+  `After:` images ([Hooks](hooks.md#pr-body))).
 
 ## Sound: a clip you can listen to
 
@@ -111,7 +121,18 @@ line.** Read the body back, replace the link with the address alone, with a blan
 repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
 `<video` tag.
 
-## Before captures
+## What proves a feature {#feature-proof}
+
+<!-- new section: the sections above say how to take a capture; none says that every feature names its own proof and
+that agents run it -->
+
+- **Approach:** Name each feature's own proof when the work starts (input simulation, a bot run, audio analysis, a
+  browser run) and run it yourself; nothing is handed to the maintainer to try. **Watch out for:** asking the maintainer
+  to try it had become the default proof. **Seen:** Deadnight, 2026-11-01 (fix: agents prove features with GdUnit4 input
+  simulation, autopilot bots, audio analysis and browser probes, and the `Stop` hook holds back a visual change without
+  a capture ([Hooks](hooks.md#proof))).
+
+## Before captures {#before-captures}
 
 A `Before:` capture needs the code from before the change, and the task's worktree has no copy of it after the first
 edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
@@ -119,6 +140,13 @@ edit (`git stash` is refused by the hooks). Take them from `main` checked out be
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
 phone's 844 by 390 and the web export), then `git worktree remove` it
 ([lesson](../lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
+
+- **Approach:** Capture a feature's payoff (a machine's reveal, a prompt) from the player's camera at the spot the
+  player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated
+  3.25 m up, spun end on for half of each turn in front of the brightest beam, and from the shoulder camera on the use
+  marker sat at the top of the frame behind the player's own body; it had been filmed from a spot no player stands on.
+  **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker
+  ([lesson](../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md))).
 
 ## Tests
 

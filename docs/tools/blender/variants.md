@@ -147,7 +147,7 @@ second character on the modular parts, same skeleton and clips, chosen in the lo
   skips vertices whose main bone is a finger's, the way the grip test picks them; sparing only the hand's faces still
   moved its border vertices and sank the palm 3-13 mm into a grip.
 
-## Closed, and fitting, in every combination
+## Closed, and fitting, in every combination {#closed-and-fitting-in-every-combination}
 
 Learned when the maintainer saw a see-through neck, a mask-like face and arms through each other on Deadnight's modular
 Soldier (Deadnight issue #895). A wardrobe is the product of its parts: check combinations, from every side, in every
@@ -193,6 +193,14 @@ pose, with back faces culled as the game draws them.
 - **An expression is a part, not a head.** Deadnight's mouths (#1061) left the head meshes for a slot of their own, with
   her variant of each: eight mouths on three heads of two characters are sixteen meshes, not forty-eight. A piece too
   small to decimate needs no far mesh: with no visibility range set, the one mesh shows at every distance.
+
+- **Approach:** Check a modular wardrobe as every combination, from every side, in every pose the player sees, with back
+  faces culled as the game draws them, and design and model a face rather than recolour a kit helmet. **Watch out for:**
+  the kit body has no neck, so open-necked tops left the hood's ring open and Godot's culling made the head see-through;
+  Workbench review renders drew the insides as surfaces, and pose checks were relative, so limbs through the chest never
+  failed. **Seen:** Deadnight #895, 2026-11-03 (fix: `test_soldier_watertight.gd`, `test_soldier_clip_fit.gd`, culled
+  review renders and 360-degree turntables
+  ([lesson](../../lessons/2026-11-03-a-modular-body-was-checked-part-by-part-and-showed-holes.md))).
 
 ## Pieces laid on a body
 
@@ -261,7 +269,7 @@ hand on a grip, on a chest, on the ground) says nothing about what the forearm a
 - **Watch the blends too.** A full-body layer eased in (down, the crawl) passes through poses no clip has; measure the
   pose the game draws through the blend (Deadnight `tests/captures/clip_arms_tour.tscn -- --measure`).
 
-## Proportions: measure the arm
+## Proportions: measure the arm {#proportions-measure-the-arm}
 
 Learned when the maintainer saw the female Soldier's arms as too long (Deadnight issue #978,
 `tools/blender/soldier_arms.py` and `tools/blender/measure_arms.py` there). A kit body reused as a base carries its
@@ -286,3 +294,10 @@ one's arms.
   IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready (which
   turned the armband deeper into the chest) or a slide of the gun back along its barrel, which it now does, with the
   two-handed elbows bent further out so the shorter right forearm stays out of the jacket.
+
+- **Approach:** Measure every look's arm against its height at rest before any clip is authored, pin it in a test,
+  shorten bones on the imported body before clips, and check every hold's reach in a run-time probe first. **Watch out
+  for:** proportions were inherited from the kit Soldier: every look wore its arm (0.547 of the height, fingertips below
+  the knee), her body was his with the trunk warped, and guns were held at that arm's full reach. **Seen:**
+  Deadnight #978, 2026-11-04 (fix: the style bible names the arm-to-height ratio with the head and the hips
+  ([lesson](../../lessons/2026-11-04-the-kit-s-long-arm-was-worn-by-every-character.md))).

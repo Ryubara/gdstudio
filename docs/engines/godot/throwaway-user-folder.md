@@ -18,3 +18,15 @@ folder, but on Windows it takes the folder from the `APPDATA` environment variab
   credential, the backend's address) after loading the real scene; say so in the pull request.
 - **Not a test of the game's own start-up order** to the frame: what is loaded is the real scene and the real code, the
   one call that a harness run leaves out is made by the capture.
+
+## Tests never write the real folder {#tests}
+
+<!-- new section: the page covers captures of the real game; nothing covered test suites that write the person's folder
+-->
+
+- **Approach:** Point a settings or save autoload away from `user://` from a game's first test, fail a test when a suite
+  run changes the real file, and never edit `app_userdata` by hand: report it. **Watch out for:** suites saved
+  `camera_shake=0` through the `Settings` autoload into the player's real `user://settings.cfg`; the game lost its
+  camera shake and two agents fixed it by editing the real file. **Seen:** Deadnight #418 and #446, 2026-11-01 (fix:
+  spurious failures on other branches, then agents comparing notes, found it
+  ([lesson](../../lessons/2026-11-02-tests-wrote-the-players-settings.md))).

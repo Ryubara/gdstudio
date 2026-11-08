@@ -96,7 +96,7 @@ so the loading bar moves between the long frames and no frame meets two shaders:
 - Test the cut in the browser by counting programs linked in each page frame (a frame that links more than a dozen is
   too coarse). The count is the same on a software renderer and any GPU, so unlike a frame time it can fail CI.
 
-## The warm-up
+## The warm-up {#the-warm-up}
 
 Behind a loading screen, before the game starts:
 
@@ -117,6 +117,13 @@ Behind a loading screen, before the game starts:
 Things that did not matter or cannot be done: a second `SubViewport` of your own is not needed (the main viewport
 with a second camera is the same world); the headless renderer compiles nothing, so skip the warm-up there; a
 `ShaderMaterial` shared through a scene file stays alive with the scene.
+
+- **Approach:** Warm up every enemy, weapon, effect and shader behind a loading screen from the first playable night,
+  and measure in a browser with a fresh profile, counting the GL programs linked during play. **Watch out for:** frame
+  times were measured on desktop and with a warm browser profile, and nothing drew each effect once before play, so the
+  deployed build hitched the first time a shot or a zombie appeared. **Seen:** Deadnight, 2026-11-01 (fix: the warm-up
+  above, gated by a fresh-profile browser run that expects no program linked after the loading screen ([Testing
+  it](#testing-it))).
 
 ## A warm-up on the CPU pays for every pixel
 

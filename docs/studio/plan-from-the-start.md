@@ -264,5 +264,75 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at
   desktop and phone width, not by its build warnings (gdstudio #790)
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
-  [lesson](../lessons/2026-11-08-a-docs-site-judged-by-its-build-log-listed-970-lessons-in-one-column.md),
   [Docs site: the navigation](docs-site.md#nav)).
+
+## Start of a new game {#start-of-a-new-game}
+
+<!-- new section: the first-day checklist sat on the corrections page, which turns into a log of where each rule
+lives (#769); its home is this page, beside the plan it summarises -->
+
+The short list to read on the first day of a new game, by subject; the lines above give the cause of each.
+
+### Feel and camera {#feel-and-camera}
+
+- Name the reference camera and tune it (framing, damping, render interpolation, aim and sprint transitions) first.
+- Look at the game from the player's view every day, not only through tests.
+
+### Movement and numbers against the reference {#movement-and-numbers-against-the-reference}
+
+- Collect the reference game's numbers (movement, enemy tiers by round, damage, economy) and cite them.
+- Build the balance simulator on the real weapons and tuning, with a gate in CI.
+
+### HUD at real resolutions {#hud-at-real-resolutions}
+
+- Capture every HUD change at 720p, 1080p, 1440p and in the browser; test alignment and overflow.
+- One place per number; transient panels for slow progress.
+
+### Art beyond the greybox early {#art-beyond-the-greybox-early}
+
+- Inventory the starter kit against the design; plan the missing content.
+- Materials and kit props on the map as soon as the layout holds.
+
+### Animation for every interaction {#animation-for-every-interaction}
+
+- Each interaction (repair, buy, revive, tear) ships with its actor clip and object motion.
+- Locomotion rate follows the actor's speed; clip ground speeds are measured, not guessed.
+- Held items are checked against the hands, the shoulder and the aim ray.
+- A state that changes a pose (aim, sprint, crouch) reaches it through one eased weight; nothing in the pose flips
+  on a bool.
+
+### Every input device {#every-input-device}
+
+- Play every build for ten minutes with a mouse and keyboard and with a gamepad, in the editor and in the browser,
+  before calling a feature done.
+
+- Touch controls (landscape, safe areas, no browser scroll or zoom) planned with the first playable build when the
+  game ships in a browser or Discord.
+
+### AI teammates {#ai-teammates}
+
+- Decide whether bots fill player slots; if so, research them (perception, aim, movement, economy, revives) first.
+
+### Testing and recordings {#testing-and-recordings}
+
+- Every feature names its proof; every visual PR carries before/after captures.
+- Recordings use the player's camera.
+- Every catalogue entry (weapon, item, perk) is played through in the real game with the real input before it
+  counts as done; tests never assert a stand-in as the expected result, and a shipped gap is reported to the maintainer.
+- Captures drive the game's real path and switch off the real devices' input.
+
+### Process on a shared machine {#process-on-a-shared-machine}
+
+- Cap load tests, stop processes by PID, time out long commands, and warn neighbouring projects first.
+
+### First use {#first-use}
+
+- Load and draw every enemy, weapon, effect and light state once behind a loading screen; keep the materials of
+  short-lived effects alive.
+- A browser run with a fresh profile that counts programs linked after the loading screen is the gate (zero).
+
+### Hosting {#hosting}
+
+- A playable web build is live from the first playable night and redeploys on merge.
+- Before an online feature is called playable, walk the flow a stranger takes in the browser and in Discord: rooms, an
+  invite link or a code, never a server address or `localhost` on a player-facing screen.

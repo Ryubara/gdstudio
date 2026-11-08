@@ -220,7 +220,7 @@ Compatibility), two to six interleaved runs an arm. Read it before cutting "the 
 - **Frame time cannot show a 0.3 ms change on a shared machine** (one arm ran 17 and 29 ms); count the advances and draws
   and time the advance alone (a script that advances 92 views in a loop).
 
-## Gait follows speed
+## Gait follows speed {#gait-follows-speed}
 
 Measure each locomotion clip's ground speed (the planted foot's backward speed at game scale) and put the blend
 points there; never guess them. Put the move state behind an `AnimationNodeTimeScale` whose scale is ground speed
@@ -229,7 +229,16 @@ the rate so the blend covers the target speed, because two out-of-phase loops of
 mid-blend. Beyond the clamp, an authored sprint clip is needed. Deadnight's numbers: `docs/research/zombie-gait.md`
 there (Walk 0.97, Run 4.4, Crawl 1.1, boss walk 1.1 m/s).
 
-## Height: a crowd off the physics engine must be given its floor
+- **Approach:** Measure each locomotion clip's ground speed, and check foot slide and gait in the same pull request as
+  any change to a movement speed. **Watch out for:** speeds were retuned without the clips that show them and the blend
+  points were guesses, so fast zombies slid and the gait did not follow the round. **Seen:** Deadnight #260, 2026-11-01
+  (fix: clip speeds measured and the time scale above
+  ([lesson](../../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md))).
+- **Approach:** Measure each clip's ground speed before setting any blend threshold. **Watch out for:** the walk and run
+  blend points were guessed at 1.0 and 3.0 m/s while the clips move at 0.97 and 4.4, so speed and gait disagreed.
+  **Seen:** Deadnight, 2026-11-01 (fix: measuring the planted foot gave the real speeds).
+
+## Height: a crowd off physics needs its floor {#height-a-crowd-off-the-physics-engine-must-be-given-its-floor}
 
 A crowd walked on a navigation path in x and z with no height ("the lot is flat") climbed nothing: on a ramp each
 repath asked the map for the nearest mesh point to a position still at floor height, and a little way up the ramp the
@@ -240,7 +249,14 @@ at 0.25 m cells, so 0.4 m is within 0.1 m), and move it there at a climb rate. S
 height too, or a walker on the ramp pushes one on the floor under it and the dead under a floor hit the person over
 their heads. Prove it with a pack on the real ramp and a control that walks the same mesh with the heights left out.
 
-## A player's body against a crowd that is not physics bodies
+- **Approach:** When a map gains height (ramps, stairs, a second storey), give every mover's simulation a test that
+  walks it up and down, and write an assumption like "the lot is flat" where it lives so the change that breaks it finds
+  it. **Watch out for:** the zombie sim never gave a zombie a height because the first lot was flat, so on the booth
+  ramp and the second map's stairs a zombie kept its spawn height, and no test walked one up a slope. **Seen:**
+  Deadnight #681, 2026-11-03 (fix: walkers take their height off the path, as above
+  ([lesson](../../lessons/2026-11-03-zombies-kept-their-spawn-height-and-never-climbed-a-ramp.md))).
+
+## A player against a crowd that is not physics bodies {#a-players-body-against-a-crowd-that-is-not-physics-bodies}
 
 A crowd of plain data (positions and a state machine on the server, drawn from a frame on the client) is not in the
 physics world, so a `CharacterBody3D` walks through it: `move_and_slide` can only meet what has a collision layer
@@ -264,6 +280,14 @@ through them). Make it solid in the movement function both machines run, not wit
   in six seconds. A wall behind the walker stops the yield (a ray), and then it rolls to the side.
 - Cost: microseconds per tick per body, only for the walkers within three metres; see Deadnight
   `docs/research/dead-contact.md` for the numbers.
+
+- **Approach:** When a new kind of thing is only data (no node, no physics body), list every way a player's body, shots,
+  grenades, the camera and the bots meet it, decide for each whether it is solid, and put a test and a number beside the
+  choice. **Watch out for:** the dead were made plain data for a node-free server sim, and a player's body is stopped
+  only by physics layers, so players ran through them, which nobody had decided. **Seen:** Deadnight #914, 2026-11-03
+  (fix: contact in the movement function the server and the predicting client share, a held push rolls a zombie aside
+  (Deadnight's `docs/research/dead-contact.md`;
+  [lesson](../../lessons/2026-11-03-a-nudged-zombie-went-ahead-of-the-player-instead-of-aside.md))).
 
 ## A pooled body costs 1 ms to take if the pool still looks the scene up
 

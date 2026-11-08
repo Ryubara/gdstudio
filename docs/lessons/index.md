@@ -1,18 +1,14 @@
 # Lessons
 
-Problems we hit and how we solved them. Before solving something, search these pages: it may have happened before.
+Problems we hit and how we solved them, one file each: the old record. **No new file goes here** (gdstudio #769): a
+mistake now updates the topic section it belongs to, found first with `gds learn <words>` ([Learning in the topic
+pages](../studio/rules.md)), and `python .github/scripts/mistakes.py check` refuses a file added to this folder. The
+files below stay readable, and feed `gds learn` and `gds lessons <area>`, until #770 moves each into its section.
 
-## Adding a lesson
+## The old format
 
-One problem per file: `docs/lessons/<yyyy-mm-dd>-<slug>.md`, where the slug is a few words of the problem in
-lowercase with hyphens. Every file here builds as a page that search finds and links reach, without any list to
-edit, so adding a lesson never touches a shared file and never conflicts with another pull request. The site's sidebar
-leaves this folder out until gdstudio #770 moves it ([Docs site](../studio/docs-site.md#nav)).
-
-The `areas:` line is required: pick from [areas.toml](areas.toml) (the names and what each covers). The mistakes
-glossary is built from it by `gds lessons <area>`; it is not a file in the repository, so there is nothing to render or
-commit, and two lesson pull requests never conflict on it. `python .github/scripts/mistakes.py check` (pre-commit, pytest
-and the docs job of CI) fails on a lesson with no area or an unknown one.
+One problem per file, `docs/lessons/<yyyy-mm-dd>-<slug>.md`, with a required `areas:` line from
+[areas.toml](areas.toml). The site's sidebar leaves this folder out ([Docs site](../studio/docs-site.md#nav)):
 
 ```markdown
 ---

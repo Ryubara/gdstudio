@@ -48,7 +48,7 @@ cycle: a seek is a cut.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
 
-## A clip on top of a pose a modifier fades out
+## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 
 A `SkeletonModifier3D` that holds the arms (Deadnight's `WeaponHandsIK`, the gun at the shoulder) and fades its
 `influence` out over a few frames when a one-shot clip takes the arms does not give the clip the arms at once: at an
@@ -69,6 +69,13 @@ turns. At weight 0 the pose is the clip's, so switching off moves nothing. The m
 `skeleton_updated`; record the bones there, every tick, and fail on a per-tick turn or move far above the clip's own
 stride.
 
+- **Approach:** When a modifier or additive fades out, record the drawn bones every tick through the fade, for the
+  player and the puppet, and fail on a per-tick jump. **Watch out for:** Deadnight #525 faded the hands IK by the
+  modifier's `influence` and switched it off at 0, but Godot blends only the chest and hand bones by `influence`, so the
+  arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
+  Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test
+  ([lesson](../../lessons/2026-11-02-a-sprint-start-popped-because-modifier-influence-leaves-the-arms.md))).
+
 ## A state machine that starts at Start and has no way out
 
 A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached only by `travel()` from the locomotion
@@ -77,7 +84,7 @@ by falling onto the lot at the spawn; a drawn copy of another player, standing o
 did, so its crouch never began. Call `playback.start(&"locomotion")` in `_ready`, and test a body that was never
 airborne.
 
-## A modifier that aims in the world needs the world value written on every turn
+## World aim is written on every turn {#a-modifier-that-aims-in-the-world-needs-the-world-value-written-on-every-turn}
 
 `WeaponHandsIK` (Deadnight) poses the arms against a world yaw its view writes (`aim_yaw`); nothing in the modifier
 reads the body's own turn. A view that turns the body and writes the yaw only inside an "animated" step (Deadnight's
@@ -87,7 +94,15 @@ at build time, and pose on every step with a delta of 0 when the clock is stoppe
 applies the clip once, so the skeleton is not left in the model's arms-out rest. Test every level the view can run at,
 reading the bones at `skeleton_updated`. Deadnight #940.
 
-## One action state for every body
+- **Approach:** Set a held weapon's aim from the body's own facing every frame, whatever the stage's motion level, and
+  test the stage through each of its paths (animated, still, reduced motion) at a sweep of turn angles with every
+  weapon, hands and muzzle in front of the chest. **Watch out for:** the arms were posed in world space along an
+  `aim_yaw` written only in the animated step, so in a still or with reduced motion the idle clip never applied and the
+  weapon pointed backwards through a turned body. **Seen:** Deadnight #940, 2026-11-03 (fix: the yaw is written with the
+  body's turn, as above
+  ([lesson](../../lessons/2026-11-03-a-held-weapon-aimed-in-the-world-was-left-behind-by-a-turn.md))).
+
+## One action state for every body {#one-action-state-for-every-body}
 
 A state machine that picks its states by mode (move, attack, stagger, die) and by body only for the move state plays
 the standing clip in the actions of a body that cannot stand. Deadnight's crippled zombie (a crawler, legless, lying on
@@ -106,6 +121,19 @@ mode added later is measured too: #971 fixed the attack only, and the stagger (`
 (`Death`, 1.81 m) kept standing the crawler up until #1000 gave it `Crawl_Stagger` and `Crawl_Death` (0.87 m and
 0.85 m). A flinch is as long as the stagger the simulation holds (0.4 s: the clip is played from its start on every
 entry and is not scaled), and a fall is a clip that holds its last frame while the body lies.
+
+- **Approach:** For every movement state (walk, run, sprint, crouch, air), list what each body layer plays and capture
+  it from the player's camera; a layered rig never leaves a layer in a pose meant for another state. **Watch out for:**
+  a sprint is a whole-body action, but the legs played `Run` while the upper layer kept looping `Aim_<Class>`, so arms
+  and gun froze and the kit's `Run_Gun` clip sat unused; only the camera sway had been tuned. **Seen:** Deadnight #459,
+  2026-11-02 (fix: deadnight #525 added the sprint carry
+  ([lesson](../../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md))).
+- **Approach:** For every body state (standing, crawling, downed, climbing), list each action's clip, hit set and reach,
+  and test through the real night that the body's highest bone in each action stays within that state's height. **Watch
+  out for:** the view picked its state by mode and only the move state had a crawl branch, so every crawler rose into
+  the standing `Punch` (the mesh from 0.85 to 1.84 m), with one reach and windup for every zombie. **Seen:**
+  Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above
+  ([lesson](../../lessons/2026-11-04-a-crawler-played-the-standing-punch-because-the-attack-state-had-one-clip.md))).
 
 ## Two clips half a turn apart on a bone
 

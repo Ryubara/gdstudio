@@ -65,6 +65,14 @@ branch to read (no commit, a detached head, the checkout on `main`, no `origin/m
 ([lesson](../lessons/2026-11-02-the-local-body-check-skipped-the-docs-rule.md)). The guard is a hand-merge path
 (`.claude/hooks/`): a maintainer merges changes to it.
 
+- **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
+  and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
+  when a pull request had nowhere to name them. **Seen:** Deadnight, 2026-11-01 (fix: the template carries both sections
+  and the body check reads them before a pull request is sent).
+- **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
+  `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
+  Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
+
 ## Which paths the image guard covers {#attach-paths}
 
 `gh pr create|edit --attach` uploads each file and rewrites a `![alt](../path)` reference in the body to the upload, in
@@ -184,6 +192,13 @@ A second copy of the rule runs on the maintainer's machine, for every project: t
 starts it, including `--help`, and reads a heredoc's lines as commands, so a test string that names one has to be
 written with the Write tool. It does not know the closing routes; this guard is what covers them here.
 
+- **Approach:** Check a rule about the maintainer's account where the effect happens (the one place a tool runs `gh`) as
+  well as where an agent types, and fix a known gap that contradicts a maintainer's rule instead of listing it as a
+  design or asking whether to. **Watch out for:** the no-comments rule guarded what an agent types, while `gds` posted
+  its status lines from Python, where no guard reads, 595 times; the page listing the rule called that by design, and a
+  handoff carried it as an open question. **Seen:** gdstudio, 2026-11-06 (fix: `gds` posts nothing and its one runner
+  refuses every posting route; the comments were deleted).
+
 ## Issue order {#issues}
 
 Issues are started oldest first, only through `gds issue start` ([Starting work](starting-work.md)). Two checks in the
@@ -261,26 +276,36 @@ the workspace, not a repository, so only the kit's `.claude/settings.json` needs
 
 ## Docs ship with the change {#docs}
 
-The learning loop above starts from a maintainer message. This part starts from the agents' own work: what they got
-wrong is written down by the agent that found it, in the same task, and the next agent reads it before it starts.
+The learning loop below starts from a maintainer message. This part starts from the agents' own work: what they got
+wrong updates the topic section it belongs to, by the agent that found it, in the same task
+([Learning in the topic pages](rules.md)), and the next agent reads it before it starts.
 
-- **Areas.** Every lesson has `areas: [net, web]` front matter; the names, the issue label to areas map and the
-  placement keywords are in [`docs/lessons/areas.toml`](../lessons/areas.toml). The mistakes glossary is built from
-  the lessons and the corrections rows (a row that links a lesson takes its areas, any other is placed by keyword) and
-  is **not a file in the repository**: `gds lessons <area>` and the hook below build it in memory, and
-  `python .github/scripts/mistakes.py render` prints it. The docs site no longer shows it: Zensical runs no build
-  hooks ([Docs site](docs-site.md#checks)), and the rules that replace it come with gdstudio #769. It used to be
-  committed, so every lesson pull request rewrote
-  it and the second of two concurrent ones conflicted or went stale (#119); now a lesson pull request touches only its
-  own file. A test, the `mistakes-by-area` pre-commit hook and the docs job of CI (`mistakes.py check`) fail on a
-  lesson with no area or one that cannot be built, and on a corrections row that quotes the maintainer; `backfill`
-  places the lessons that have none, by keyword, as a script.
+- **Topic sections, not lesson pages.** A mistake updates a section of the page an agent reads for that task:
+  `- **Approach:** ... **Watch out for:** ... **Seen:** ...` under a `##`/`###` heading with an explicit `{#anchor}`,
+  named elsewhere as `page.md#anchor`. `gds learn <words>` prints the closest sections and their entries first, so the
+  agent sharpens one instead of writing a duplicate; a new section has a reason line, a new page is made only when a
+  topic outgrows its 50 KB. `docs/lessons/` (963 files in a week, many on the same subject, where no agent looked
+  while working) takes no new file, and #770 empties it.
+- **The checks.** `python .github/scripts/mistakes.py check` runs in the `mistakes-by-area` pre-commit hook, in pytest
+  and in the docs job of CI ([the list](rules.md#checks)). From the checkout it refuses a page over the limit, an entry
+  without its three parts or over 900 characters or outside an anchored section or in the old `**Rule:**` form, a
+  malformed or repeated anchor, a corrections-log row that quotes the maintainer or links no section, and an old lesson
+  file without areas or dated after the folder closed. Against the base (where the branch left `origin/main`; CI checks
+  out two commits and passes `--base HEAD^1`) it refuses a file added to `docs/lessons/` and a new heading without its
+  reason line.
+- **Areas.** The names, the issue label to areas map, the page prefixes and the placement keywords are in
+  [`docs/lessons/areas.toml`](../lessons/areas.toml). The mistakes glossary has a section per area: the entries of the
+  topic sections (placed by the longest `[pages]` prefix of their page, else by keyword), then the old lesson files by
+  their `areas:` front matter. It is **not a file in the repository**: `gds lessons <area>` and the hook below build it
+  in memory, and `python .github/scripts/mistakes.py render` prints it. It used to be committed, so every lesson pull
+  request rewrote it and the second of two concurrent ones conflicted or went stale (#119).
 - **Injected, not hoped for.** `gds issue start` maps the issue's labels to areas (`A-net` is net, web and backend; the
-  `general` area is always there) and keeps them in the ledger. When the Agent guard lets a task agent start it leaves a
-  note (`cache/subagent-pending.json`, ten minutes) with the areas of the `Issue:` line; `SubagentStart`, which does not
-  see the prompt, takes the oldest note for that agent type and adds the newest `inject_limit` items of each area, as
-  text, to the agent's context (built from the lessons when it starts). A `PR:`-only agent gets the `general` area.
-  `gds lessons <area>` prints the same.
+  `general` area is always there) and keeps them in the ledger with the issue's title. When the Agent guard lets a task
+  agent start it leaves a note (`cache/subagent-pending.json`, ten minutes) with the areas and the title of the
+  `Issue:` line; `SubagentStart`, which does not see the prompt, takes the oldest note for that agent type and adds two
+  texts to the agent's context: the sections closest to the title with their rules (`gds learn <title>`, at most
+  `learn_limit` sections and `learn_chars` characters), then the first `inject_limit` items of each area. A `PR:`-only
+  agent gets the `general` area and no sections.
 - **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
   with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
   session back once, naming the branch. If GitHub cannot be asked, the hook lets go.
@@ -297,28 +322,46 @@ wrong is written down by the agent that found it, in the same task, and the next
   [lesson](../lessons/2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
-  `docs/lessons/<file>.md` that exists in the kit checkout or one of its worktrees, or the agent is held back once.
-  Helpers and the `reviewer` are exempt. Settings: `[docs]` in `hooks.toml`.
+  section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
+  `origin/main`: the rule was written there. A file of `docs/lessons/` or the corrections log does not count. Otherwise
+  the agent is held back once. Helpers and the `reviewer` are exempt. Settings: `[docs]` in `hooks.toml`.
 
 - **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
   (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
   closes with their labels; a check that failed only because a newer push cancelled its run, which `build-ok`
-  reports as a failure when a job it needs was cancelled, is not counted). It counts as an agent correcting earlier
-  work when its title verb is `Fix` or `Rework`,
+  reports as a failure when a job it needs was cancelled, is not counted) and with its changed files. It counts as an
+  agent correcting earlier work when its title verb is `Fix` or `Rework`,
   when a check of `pull_requests.lessons.history_checks` failed on an earlier commit of it, or when an issue it closes
   is labelled `bug` (the nearest signal to "a fix to an agent-caused issue"). Such a pull request needs
-  `Lessons: docs/lessons/<file>.md` (or a corrections row) in Summary, and `Lessons: none (reason)` is refused for it;
-  elsewhere the line is optional. A pull request that closes an issue needs `Read first: <areas>` naming at least the
-  areas of the issue's labels (`docs/lessons/areas.toml`). A game's conventions add `Kit docs: <kit pull request>` (or
-  `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue (`pull_requests.kit_docs`, same script). If GitHub cannot be
-  asked, the title alone is judged.
+  `Lessons: <page.md#anchor>` in Summary, naming the topic section it updates; with `lessons.names: section` an
+  old lesson file or the corrections log is refused, and with `lessons.edited` the section's page must be among the
+  pull request's changed files (`check-body --changed`; `gds pr check-body` and the guard pass the branch's files).
+  `Lessons: none (reason)` is refused for it; elsewhere the line is optional. A pull request that closes an issue
+  needs `Read first: <areas>` naming at least the areas of the issue's labels (`docs/lessons/areas.toml`). A game's
+  conventions add `Kit docs: <kit pull request>` (or `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue
+  (`pull_requests.kit_docs`, same script): a game's rules live in the kit's sections. If GitHub cannot be asked, the
+  title alone is judged.
   Every `none (reason)` line (`Lessons`, `Kit docs`, `Failed first`, `Issues affected`, `Screenshots`, `Before`) takes the
   reason in parentheses with one full stop after it, and refuses any other text after the parenthesis.
 
-What it cannot see: that the listed mistakes are all the agent's mistakes (the report is the agent's own), a lesson
-file that exists but says nothing, and a correction that fails no check and carries no `Fix` title; a reviewer reads
-both. A game takes the `pr-history` command and the three rules when its `.github/scripts/groundwork.py` and
-`conventions.yml` are updated from the kit's, in a pull request of its own.
+What it cannot see: a mistake the agent does not report (the report is the agent's own), a rule that is well formed
+but says nothing, and a correction that fails no check and carries no `Fix` title. The reviewer looks for them
+([what no program sees](rules.md#unseen)). A game takes the `pr-history` command and the rules when its
+`.github/scripts/groundwork.py` and `conventions.yml` are updated from the kit's, in a pull request of its own; a
+game's `lessons` rule without `names: section` keeps the old form.
+
+- **Approach:** Update the research page a pull request builds on in that pull request, and land each maintainer
+  correction on the corrections log the same session. **Watch out for:** findings stayed in agent reports and pull
+  request bodies, where the next agent never reads them. **Seen:** Deadnight, 2026-11-01 (fix: the docs hook holds a
+  change back until its docs ship with it).
+- **Approach:** Write the docs for what was not planned at the start in the same task as the fix, by the agent that did
+  it, and count an agent's own corrections (a red check, a rework) as mistakes to record too; read the rules of an area
+  before a task in it. **Watch out for:** the learning loop fired only on a maintainer message: #507's hand-grip docs
+  sat on a kit branch for a coordinator batch, two lessons sat unpushed, nothing tied a game pull request to its kit
+  docs, and an agent's own fixes left none. **Seen:** Deadnight #507, gdstudio #99, 2026-11-02 (fix: the Stop and
+  SubagentStop gates flag a kit branch with commits and no pull request and a report with mistakes and no section; `gds
+  issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99,
+  [lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md))).
 
 ## Agent stalls {#stall}
 
@@ -379,6 +422,12 @@ Stop at most once every two minutes (auto-merges land without a command). It nev
 changes are in the way, or one on another branch, is left alone and named in the session's context. Settings:
 `[mains]` in `hooks.toml`.
 
+- **Approach:** Keep every local `main` checkout fast-forwarded after each merge by a hook, never by memory, and name a
+  checkout with local changes instead of discarding it. **Watch out for:** merges landed on GitHub, most by auto-merge,
+  while the local main checkouts the maintainer opens in the editor stayed behind. **Seen:** Deadnight, 2026-11-01 (fix:
+  the hook above pulls after a merge command, at session start and at Stop
+  ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md))).
+
 ## Finished worktrees {#sweep}
 
 `gds worktree sweep` ([the rules](workspace.md#sweep)) is started in the background at session start, right after a
@@ -408,29 +457,37 @@ refusals off.
 
 ## Learning {#learning}
 
-What the maintainer corrects is written into the docs in the same session, so the next agent gets it right the first
-time. Four hooks make it happen, all in the one dispatcher; their texts are the `[lessons]` keys of `hooks.toml`.
+A mistake is written into the docs in the same session, so the next agent gets it right the first time: as an entry in
+the topic section it belongs to ([Learning in the topic pages](rules.md)). A maintainer correction also gets a line on
+the [corrections log](maintainer-corrections.md). Four hooks make it happen, all in the one dispatcher; their texts are
+the `[lessons]` keys of `hooks.toml`.
 
-A row, a lesson or a queued file says what the maintainer decided or pointed out in our words, with the issue or pull
-request and the date as its source. The maintainer's prompts are never quoted, word for word or nearly, in a committed
-file or in an issue or pull request body an agent writes; the docs build and the tests fail a corrections row whose
-first cell starts with a quotation mark (gdstudio #780).
+A rule, a log line or a queued file says what the maintainer decided or pointed out in our words, with the issue or
+pull request and the date as its source. The maintainer's prompts are never quoted, word for word or nearly, in a
+committed file or in an issue or pull request body an agent writes; the checks fail a log row with a cell that starts
+with a quotation mark (gdstudio #780).
 
 | Event | What it does |
 | --- | --- |
-| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](maintainer-corrections.md) (what the maintainer pointed out in our words, with its issue or pull request and date and never a quote of the prompt; concept missed, detail missed, check for next time) and a [lesson](../lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
-| `SessionStart` | Tells the session to read the checks that touch its task and to search the lessons index before solving. |
-| `SubagentStart` | Tells every project agent the same, and that an agent whose task came from a correction puts the row's text in its final report: the coordinator publishes it, so many agents never edit one table. Read-only helpers (`[agents] helpers`) get nothing. |
-| `Stop` | Holds the session back once while a queued row is unpublished (below). `stop_hook_active` lets the next stop through, so it never loops. |
+| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, update the topic section it belongs to (`gds learn <words>` finds it; never a lesson page) and a line on [the corrections log](maintainer-corrections.md) (what the maintainer pointed out in our words, with its issue or pull request and date and never a quote of the prompt, linking the section), in a kit pull request in this session. If the cause is not known yet, queue it. |
+| `SessionStart` | Tells the session to run `gds learn` on its task and read the rules it prints, and that a mistake becomes a rule in its section. |
+| `SubagentStart` | Tells every project agent the same, adds the sections closest to its issue and the rules of its areas ([above](#docs)), and says that an agent whose task came from a correction puts the log line in its final report: the coordinator publishes it, so many agents never edit one page. Read-only helpers (`[agents] helpers`) get nothing. |
+| `Stop` | Holds the session back once while a queued correction is unpublished (below). `stop_hook_active` lets the next stop through, so it never loops. |
 
-**The queue.** A row whose cause is not known yet is a Markdown file in `<workspace>/scratch/kit-lessons-queue/`
+**The queue.** A correction whose cause is not known yet is a Markdown file in `<workspace>/scratch/kit-lessons-queue/`
 (`[lessons] queue`, relative to the workspace): a title, what the maintainer pointed out (in our words, with its
 source), and what is known. A file that says `Waiting on: #N` (the issue that finds the cause) is left alone. When the
-cause is found, the row is published in a kit pull request and its file moves to `published/`. The Stop gate lists every
-other file in the queue folder. It applies to any session in the workspace; rows that are not yours: say so and finish.
+cause is found, the rule and the log line are published in a kit pull request and its file moves to `published/`. The
+Stop gate lists every other file in the queue folder. It applies to any session in the workspace; corrections that are
+not yours: say so and finish.
 
 Registered in `.claude/settings.json` and in the game template (`templates/game/.claude/settings.json`, which
 `gds sync` writes into each game): restart sessions to pick the hooks up.
+
+- **Approach:** Tie every maintainer correction to a docs change by hooks: a reminder on every prompt, the rules read at
+  session and agent start, and a stop gate on corrections not yet published. **Watch out for:** learning from
+  corrections depended on the coordinator remembering; nothing tied a correction to a docs change, and agents did not
+  read past corrections before starting. **Seen:** Deadnight, 2026-11-01 (fix: the learning hooks (kit #72)).
 
 ## Tests
 

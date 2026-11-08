@@ -566,6 +566,7 @@ def start(
             "repo": repo,
             "number": number,
             "issue": f"{repo}#{number}",
+            "title": issue.title,
             "agent": agent,
             "time": (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "branch": prepared.branch if prepared else branch,

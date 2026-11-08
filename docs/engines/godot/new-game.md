@@ -84,6 +84,12 @@ policy and the lint and format configuration. The game's `ci` runs the same step
 `gds sync --check` and [`gds check layout`](project-conventions.md), the import, a run of the main scene, the tests,
 the web export, `gdformat` and `gdlint`, the docs build, `markdownlint` and `actionlint`.
 
+- **Approach:** Ask of every end step a tool leaves for the maintainer whether it is a real choice per game or the same
+  every time, and make the second kind a default the agent runs. **Watch out for:** `gds new game` stopped at the local
+  repository and handed over the GitHub repository, Pages, the ruleset, the hold sweep and the licence, though they are
+  the same for every game. **Seen:** gdstudio #779, 2026-11-07 (fix: `gds new game` does them, with MIT as the default
+  licence (gdstudio #779)).
+
 ## With `--local`
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:

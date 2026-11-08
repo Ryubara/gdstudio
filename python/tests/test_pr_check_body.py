@@ -525,3 +525,22 @@ def test_the_guard_refuses_a_code_branch_without_a_docs_line(workspace, tmp_path
 
 def test_the_guard_does_not_judge_the_docs_rule_without_a_branch(workspace, tmp_path):
     assert denied(shell(f"gh pr edit 7 --body-file {docs_body(tmp_path)}", workspace["kit"])) == ""
+
+
+@pytest.mark.parametrize(
+    ("changed", "refused"),
+    [("docs/studio/hooks.md", False), ("docs/page.md", True)],
+)
+def test_a_fix_names_a_section_its_branch_edits(workspace, tmp_path, capsys, changed, refused):
+    """`Lessons: docs/studio/hooks.md#pr-body` holds only when the branch changes that page (gdstudio #769): the rule is
+    written into the section in the same pull request. `gds pr check-body` passes the branch's files to the checker."""
+    kit = branch_with(workspace["kit"], {changed: "# Page\n"})
+    title = tmp_path / "title.txt"
+    title.write_text("hooks: Fix the body check\n", encoding="utf-8")
+    body = tmp_path / "body.md"
+    text = (
+        (BODIES / "good.txt").read_text(encoding="utf-8").replace("Testing\n\n", "Testing\n\nFailed first: none (x).\n")
+    )
+    body.write_text(text, encoding="utf-8", newline="\n")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert ("does not change that page" in err) is refused, err

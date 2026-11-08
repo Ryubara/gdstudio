@@ -12,3 +12,8 @@ studio itself works (`studio/`).
 | --- | --- |
 | [Level design](level-design.md) | The principles the `level-designer` agent carries, each with its sources and the check that settles it. |
 | [Audio](audio/index.md) | Making sound assets outside the engine: voice lines, menu and interface sounds. |
+| [The player's controller](controller.md) | Genre conventions, devices, aim and hip fire, states and actions, feel. |
+| [UI and HUD](ui.md) | What the HUD holds, a screen of choices, what an online menu offers. |
+| [Testing a game](testing.md) | When a feature counts as tested: the real path and every catalogue entry. |
+| [Balance](balance.md) | The numbers a player meets: hits to kill, the weapon roster, comparing weapons, prices, a score's step. |
+| [Designing from a reference](design.md) | The reference's loop and numbers, variety beats, settings that scale, bot teammates, content and interactions. |

@@ -164,6 +164,7 @@ def test_start_labels_assigns_and_writes_the_ledger_and_posts_no_comment(tmp_pat
         "repo": REPO,
         "number": 156,
         "issue": "Ryubara/deadnight#156",
+        "title": "gameplay: Profile the night server tick in the late rounds",
         "agent": "godot-engineer-3",
         "time": "2026-11-02T09:30:00Z",
         "branch": "profile-tick",

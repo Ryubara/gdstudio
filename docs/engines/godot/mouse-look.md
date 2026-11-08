@@ -20,7 +20,7 @@ Godot 4.7.2. The game's page, with the numbers and the plots, is `docs/research/
 - **Sample the view for gameplay when the gameplay needs it** (a shot, the body's facing): read the same yaw and pitch;
   never keep a second copy of them that is turned at a different time.
 
-## Godot specifics
+## Godot specifics {#godot-specifics}
 
 - `InputEventMouseMotion.relative` is the motion in the **viewport's** units: with `canvas_items` or `viewport`
   stretch it is multiplied by `base width / window width` (a 64 pixel headless window turned a 1920 base 30 times as
@@ -47,7 +47,15 @@ Godot 4.7.2. The game's page, with the numbers and the plots, is `docs/research/
 - A rig that is placed every drawn frame is set to `PHYSICS_INTERPOLATION_MODE_OFF`
   ([Physics interpolation](physics-interpolation.md)), so the engine does not blend it a second time.
 
-## The fault: set the child, then the parent
+- **Approach:** Give every Control that only holds screens or a world `MOUSE_FILTER_IGNORE`, and prove mouse look
+  through the real input path: a test lists every mouse-catching Control over a running level with the real main scene
+  loaded, and the browser smoke moves the mouse and asserts the view turned. **Watch out for:** three full-screen
+  Controls (the game's `Main` root, the router's `Stage`, the night screen) kept the default STOP and marked every
+  motion handled; tests called the look handler directly, and a headless run skips GUI mouse handling, so nothing saw
+  it. **Seen:** Deadnight, 2026-11-01 (fix: the containers ignore the mouse, and the listing test and the browser check
+  hold it).
+
+## The fault: set the child, then the parent {#the-fault-set-the-child-then-the-parent}
 
 `ThirdPersonCamera._place` computed the view from the newest yaw, assigned it to the `Camera3D`'s `global_transform`,
 and **then** assigned the rig above it (its `top_level` Node3D) the new position and yaw. A child keeps its *local*
@@ -64,7 +72,14 @@ through the same place.
 `top_level`.** And a look test reads the **node the renderer draws** (`Camera3D.global_transform`), not the numbers the
 script keeps.
 
-## How to measure it
+- **Approach:** In a view test, read the drawn `Camera3D`'s `global_transform` while replaying a recorded look path
+  through the real input over 1/144 to 1/15 s and uneven frames, and set the parent before the child for anything placed
+  by hand in `_process`. **Watch out for:** every look test read the rig's yaw, which matched the hand; the camera set
+  its child's global transform and then moved its `top_level` parent, so the lens drew one step of the last turn ahead
+  (33 to 133 degrees off at the worst frame). **Seen:** Deadnight #905, 2026-11-03 (fix: the parent is placed first
+  ([lesson](../../lessons/2026-11-03-the-drawn-camera-ran-a-step-ahead-of-the-mouse.md))).
+
+## How to measure it {#how-to-measure-it}
 
 - Replay one recorded path (whole pixels, one per millisecond, seeded) through the real input path
   (`Input.parse_input_event`, the player's own `_unhandled_input`) while the frame rate is held at 144, 60, 30 and 15
@@ -79,3 +94,8 @@ script keeps.
   against the hand, and every rate ends at the same total. Do the same online (a client of a game server, added to the
   window's own tree: a `SubViewport` does not get the window's input, so the test would pass on a player that heard
   nothing; assert the player turned at all).
+
+- **Approach:** Measure per-frame motion in a child Godot run at `--fixed-fps`, with control cases that must fail.
+  **Watch out for:** a smoothness test measured frames timed by the real clock and failed on busy machines, turning
+  `main` red. **Seen:** Deadnight #362, 2026-11-01 (fix: main's CI and a local run showed it
+  ([lesson](../../lessons/2026-11-01-a-smoothness-test-read-the-real-clock.md))).

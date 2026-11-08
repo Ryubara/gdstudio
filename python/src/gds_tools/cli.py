@@ -417,7 +417,8 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         lines = read(args.title).splitlines()
         title = lines[0] if lines else ""
     body, kit = read(args.body), workspace.kit_checkout()
-    result = pr.check_body(repo, body, title, kit=kit)
+    changed, why = pr.branch_changes(repo)
+    result = pr.check_body(repo, body, title, kit=kit, changed=None if why else changed)
     docs = pr.check_docs(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
@@ -434,6 +435,15 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         for reason in docs.reasons:
             print(f"  - {reason}", file=sys.stderr)
     return 0 if result.ok and docs.ok else 1
+
+
+def _cmd_learn(args: argparse.Namespace) -> int:
+    """`gds learn <topic or words>`: the existing sections closest to the words, with their rules, before anyone writes
+    a new one (docs/studio/rules.md#find)."""
+    kit = workspace.kit_checkout() or workspace.require_workspace() / "repos" / workspace.KIT
+    root = Path(args.kit) if args.kit else kit
+    print(lessons.learn_text(root, " ".join(args.words), args.limit, args.old))
+    return 0
 
 
 def _cmd_lessons(args: argparse.Namespace) -> int:
@@ -743,7 +753,14 @@ def build_parser() -> argparse.ArgumentParser:
     hol.add_argument("ref", help="the pull request: owner/repo#N, or #N in its checkout")
     hol.set_defaults(func=_cmd_pr_hold)
 
-    les = sub.add_parser("lessons", help="the checks of past mistakes by area (built from docs/lessons)")
+    lrn = sub.add_parser("learn", help="the sections closest to some words, with their rules (update one first)")
+    lrn.add_argument("words", nargs="+", help="the topic or words of the mistake")
+    lrn.add_argument("--limit", type=int, default=5, help="sections to print (default: 5)")
+    lrn.add_argument("--old", type=int, default=0, help="also print the N closest old lesson files (until #770)")
+    lrn.add_argument("--kit", help="the kit checkout or worktree to search (default: the workspace's kit)")
+    lrn.set_defaults(func=_cmd_learn)
+
+    les = sub.add_parser("lessons", help="the rules of past mistakes by area (topic sections and old lesson files)")
     les.add_argument("areas", nargs="*", help="areas to print (default: list the areas)")
     les.add_argument("--limit", type=int, default=12, help="newest items per area (default: 12)")
     les.set_defaults(func=_cmd_lessons)

@@ -15,4 +15,4 @@ taught it. [Docs site](studio/docs-site.md) has the folder map and the rules for
 | [Tools](tools/index.md) | The programs outside the engine that make assets; today [Blender](tools/blender/index.md). |
 | [Studio](studio/index.md) | How the studio works: agents, starting work, hooks, the workspace, captures, sync. |
 | [Games](games/index.md) | One folder per game: what it is and how we build it. |
-| [Lessons](lessons/index.md) | Problems we hit and how we solved them: search here first. |
+| [Lessons](lessons/index.md) | The old record, one file per problem, until #770 moves it into the topic sections. |

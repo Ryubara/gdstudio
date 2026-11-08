@@ -35,7 +35,7 @@ blend takes it to zero.
 - Hide the body by the lens-to-head distance (with a hysteresis margin), not by the arm length: a wall at the shoulder
   puts the lens in the head with a full arm.
 
-## Shake and sway
+## Shake and sway {#shake-and-sway}
 
 - **Rotation only, on the lens node**, while the rig keeps the unshaken transform that the aim reads, so shots stay on
   the crosshair (firing shake: [Shot feedback](shot-feedback.md)).
@@ -46,7 +46,15 @@ blend takes it to zero.
 - **"Very subtle" is a number.** Deadnight settled on sway peaks of 0.3 degrees pitch, 0.15 yaw and 0.2 roll, and at
   most 0.5 degrees for any shot; a test holds each bound, and a player setting scales both to zero.
 
-## Projecting world points to the HUD
+- **Approach:** Key any camera motion that follows steps to the grounded state, with a test that steps it through the
+  first airborne tick; capture camera numbers in a sprint, a sprint-jump and long play; restate a feel request that can
+  be read two ways as a number and a visible result, and confirm it before building. **Watch out for:**
+  `SprintSway.step` took only the sprint flag and speed, which stay set in the air, so a sprint-jump swayed as on the
+  ground; and a field of view meant to sit closer was first widened (70 to 77), the opposite of the ask. **Seen:**
+  Deadnight #405, 2026-11-01 (fix: the rig takes `on_floor`; FOV 60, aim 40, sprint 63, sway halved (Deadnight #426,
+  [lesson](../../lessons/2026-11-02-sprint-sway-kept-going-in-the-air.md))).
+
+## Projecting world points to the HUD {#projecting-world-points-to-the-hud}
 
 From Deadnight's world markers and teammate names (#430):
 
@@ -61,7 +69,15 @@ From Deadnight's world markers and teammate names (#430):
 - Another `Camera3D` entering the tree (a second body in the same process) can become current
   ([lesson](../../lessons/2026-11-01-a-second-body-took-the-current-camera.md)); see the next section for the fix.
 
-## One current camera per viewport
+- **Approach:** Draw anything "at the centre of the screen" from the viewport, never from an inset container, and test
+  aim end to end: the shot's end projected through the camera against the reticle's drawn centre, with an uneven safe
+  area, near to far, hip and aimed, mouse and touch, on the phone canvas and in the browser. **Watch out for:** the HUD
+  is inset to the phone's safe area and the reticle sat in the middle of the inset rectangle, 1.8 degrees above the
+  shots on an iPhone; every aim test ran with zero insets and compared the shot with the camera, never the reticle.
+  **Seen:** Deadnight #601, 2026-11-02 (fix: the reticle is placed from the viewport
+  ([lesson](../../lessons/2026-11-02-the-reticle-sat-in-the-middle-of-the-inset-hud.md))).
+
+## One current camera per viewport {#one-current-camera-per-viewport}
 
 From Deadnight #702 (a bot's body had the view):
 
@@ -76,6 +92,13 @@ From Deadnight #702 (a bot's body had the view):
   other body's `camera.current` being false; check after each event that adds a body: the spawn, a late seat, a
   revive. A test that reads only the person's own camera node passes while the view is elsewhere.
 - `release_view()` leaves the camera node in place, since the rig uses it for aiming; only the `current` flag goes.
+
+- **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
+  `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
+  its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty
+  capture scripts as `make_current()`, and tests read the person's camera node, never the viewport's. **Seen:**
+  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above
+  ([lesson](../../lessons/2026-11-03-a-bot-body-took-the-view-from-the-person.md))).
 
 ## A rig no one looks through
 
