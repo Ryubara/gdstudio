@@ -15,10 +15,10 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 | Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`. |
 | Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode; a zone that raises a second camera's priority. |
-| Touch controls | `ui/touch/` (in 3D Blank, for every template) | A floating stick, a look drag and buttons that press the game's actions. |
+| Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. |
 | Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
-| The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. |
+| The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
 camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
@@ -95,8 +95,9 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   copies the active Phantom Camera onto it, `PlayerCamera` is the tuning wrapper and `FollowCamera` the
   `PhantomCamera3D` it drives (3D Blank has no wrapper: its `ViewCamera` is a plain `PhantomCamera3D`). **Watch out
   for:** the host overwrites the real `Camera`'s FOV, and the wrapper's exports now forward through setters
-  ([Phantom Camera](camera.md#phantom-camera)); the addon moves `FollowCamera` under its spring arm, so look it up once
-  in `_enter_tree` (a later `get_node_or_null("FollowCamera")` finds nothing). **Seen:** gdstudio #830, 2026-11-08.
+  ([Phantom Camera](camera.md#phantom-camera)); the addon moves `FollowCamera` under its spring arm, so the wrapper
+  exports it as `follow_camera` (a path looked up after the move finds nothing). **Seen:** gdstudio #830, 2026-11-08;
+  gdstudio #831 (the export, and the wrapper is a `@tool` script: [Phantom Camera](camera.md#phantom-camera)).
 - **Approach:** A second view is a `PhantomCamera3D` with a lower priority that a trigger raises (`CameraZone`); the
   blend is the lower camera's `tween_resource` (duration, transition, ease). **Watch out for:** the camera is
   only raised and lowered by the zone's two signals, so a zone that never reports the player leaves the view where it
@@ -108,12 +109,38 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   `examples/` and C# scripts, and every hook of the game's `pre-commit` and the kit's skips it (the addon's files have
   no final newline in places and its own style).
 
+## The map components as scenes {#map-components}
+
+<!-- new section: the six components were first scripts that built their children in code; #831 made them scenes -->
+
+`Door`, `MovingPlatform`, `PhysicsProp`, `Pickup`, `TriggerZone` and `SpawnPoint` each hold their visible parts as nodes
+of their own scene (the door's `Panel`, `Shape` and `Sensor`; the platform's `Mesh`, `Shape` and `EndPreview`; the
+pickup's `Visual` and `Shape`; the trigger's `Shape` and `Plate`; the spawn point's `Marker`; a prop's crate, barrel and
+ball), as `@tool` scripts that size them from the inspector. The platform's `EndPreview` is a translucent copy of the slab
+at the far end (hidden in the game) and the door's sensor sphere is `auto_open_range`, so the editor shows the travel
+and the reach; the spawn point's blue arrow is its `-Z`.
+
+- **Approach:** Give each node's mesh, shape and material `resource_local_to_scene = true` in the component's scene, set
+  the sizes from setters (looking nodes up with `get_node_or_null("%Panel")`, which works from an instance's own root
+  and before `_ready`), and apply them again in `_ready`. **Watch out for:** without `local_to_scene` two doors share
+  one `BoxMesh` and a resize of one resizes all (a test makes two and resizes one); a `PhysicsProp` with `shape = BALL`
+  would save a generated sphere mesh into the level, so its three shapes are nodes and `shape` shows one. **Seen:**
+  gdstudio #831, 2026-11-08.
+- **Approach:** Read an `AnimatableBody3D`'s new transform after a `physics_frame` or two in a test, and set its place
+  before it enters the tree. **Watch out for:** with `sync_to_physics` on, `global_position = x` read straight back gave
+  the old position until the next step, so a door's `slide_distance` change and a test that moved a door and asked the
+  interactor for it both saw the old place. **Seen:** gdstudio #831, 2026-11-08.
+
 ## Touch controls {#touch-controls}
 
 <!-- new section: ui-controls.md has the Deadnight lessons; this is the reusable component and how it was proved -->
 
-`TouchControls` is in the base (`ui/touch/`): instance it, list its `TouchButton` resources (an action, a word, a slot)
-and connect `look_turned` to whatever turns the view. It presses the game's actions, so no gameplay code changes.
+`TouchControls` is in the base (`ui/touch/`): instance `touch_controls.tscn`, add or move its `TouchButton` nodes under
+`SafeArea/Buttons` (an action and a word each; the Jump and Use buttons are there) and connect `look_turned` to whatever
+turns the view. It presses the game's actions, so no gameplay code changes. Everything you see is a node you arrange in
+the 2D editor: `TouchStick` (drag it to move where the stick waits), the `MoveZone` and `LookZone` panels that decide
+which finger does what, and the `SafeArea` box that keeps the controls off the device's notches. The script is `@tool`,
+so the editor shows the controls even when `show_mode` hides them in the game.
 
 - **Approach:** Prove a touch layer in the real web export in a mobile-emulated browser: `Input.dispatchTouchEvent`
   through a CDP session, a probe node that writes the state to `window.gdprobe` when the page has `?probe`, a look drag

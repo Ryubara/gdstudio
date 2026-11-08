@@ -8,7 +8,7 @@ at it through one camera.
 
 | Part | Where | What it is for |
 | --- | --- | --- |
-| Floor and four walls | `Boundary/` | The edge of the space. The floor's top is the ground, `y = 0`. |
+| Floor and four walls | `Boundary/` | The edge of the space, five `ProtoBlock`s: change a block's `size` or `material` in the inspector. The floor's top is the ground, `y = 0`. |
 | Sun, sky, bounce light | `Daylight`, `LightmapGI` | One real-time sun, a procedural sky and baked bounce light. |
 | Graphics profile | `GraphicsProfile` | Forward+ extras, set in the inspector (below). |
 

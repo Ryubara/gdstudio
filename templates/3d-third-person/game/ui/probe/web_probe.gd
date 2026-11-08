@@ -61,8 +61,8 @@ func _process(delta: float) -> void:
 		var home := touch.stick_home()
 		_object.home_x = home.x
 		_object.home_y = home.y
-		for index in touch.buttons.size():
+		for index in touch.button_count():
 			var centre := touch.button_center(index)
 			_object.set("button%d_x" % index, centre.x)
 			_object.set("button%d_y" % index, centre.y)
-		_object.button_size = touch.button_size
+		_object.button_size = touch.button_size_of(0) if touch.button_count() > 0 else 0.0
