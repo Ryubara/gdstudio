@@ -68,8 +68,10 @@ breaks without anyone reading the line, had no home -->
   (`awk 'length>100'` on `.gd`, `length>120` on `.md`), or run `uvx pre-commit run --all-files` once and fix all of its
   output in one pass, and rewrap by hand. **Watch out for:** a script replaced `62` with `64` and added words inside
   existing comment and doc lines, so they grew past the limit; each hook stops at its first failing group, so one UI fix
-  was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time). **Seen:**
-  Deadnight, 2026-11-05 (fix: both limits checked on every touched file before the commit).
+  was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
+  clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
+  2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
+  matched and read `git diff` of every file it touched before the commit).
 
 ## Where the rules came from
 
