@@ -118,6 +118,13 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
   plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
+- **Approach:** Try `gds new game` in a throwaway workspace outside the real one: a folder of its own holding a copy of
+  `.gdstudio-workspace`, `gdstudio.local.toml` and the addon folders under `tools/`, and in a test of a template's
+  `project.godot`, read the file with `ConfigFile`. **Watch out for:** a throwaway folder inside the real workspace
+  finds the real marker, so `gds new game` wrote `repos/zz-parse` into the real `repos/`; and
+  `editor_plugins/enabled` is an editor setting that `ProjectSettings` does not hold at run time, so a test reading it
+  there failed with the plugin enabled. **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted at once; the
+  test changed to `ConfigFile`).
 
 ## With `--local` {#with-local}
 
