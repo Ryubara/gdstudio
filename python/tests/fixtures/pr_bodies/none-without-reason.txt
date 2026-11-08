@@ -4,7 +4,7 @@
 
 Fixes #128
 
-Read first: tools, process
+Read first: studio/hooks.md#docs
 
 Lessons: docs/studio/hooks.md#pr-body
 
