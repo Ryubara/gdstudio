@@ -129,6 +129,13 @@ commits and what is wrong, and the fix needs no force push because the commit is
 --cleanup=strip -F <message file>` for the last commit, `git reset --soft <base>` and a new commit for an older one. A
 branch deletion and an empty push pass. `--no-verify` is refused by the Git guard above.
 
+- **Approach:** Choose a commit and pull request title from the verb list (Add, Fix, Update, Remove, Rebuild, Rework,
+  Improve, Document), never copy an issue's title; run `gds pr check-body <body> --title <title file>` before
+  committing, and read the commit's output before chaining the push and `gh pr create`. **Watch out for:** an issue title
+  is not checked and "Step" (or "Keep") is no verb: the commit hook refused the commit, and the chained `gh pr create`
+  then said "No commits between main and <branch>", which hid the first error. **Seen:** Deadnight #892, 2026-11-03
+  (fix: retitled "Fix the two-thumbs touch test that waits on real frames").
+
 ## The hold {#hold}
 
 A pull request the maintainer must see first carries the label `S-hold`. GitHub enforces it, not this hook: the `hold`

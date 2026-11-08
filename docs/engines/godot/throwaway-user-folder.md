@@ -28,5 +28,4 @@ folder, but on Windows it takes the folder from the `APPDATA` environment variab
   run changes the real file, and never edit `app_userdata` by hand: report it. **Watch out for:** suites saved
   `camera_shake=0` through the `Settings` autoload into the player's real `user://settings.cfg`; the game lost its
   camera shake and two agents fixed it by editing the real file. **Seen:** Deadnight #418 and #446, 2026-11-01 (fix:
-  spurious failures on other branches, then agents comparing notes, found it
-  ([lesson](../../lessons/2026-11-02-tests-wrote-the-players-settings.md))).
+  tests and captures use their own settings store, and a test fails if a suite run changes the real file).

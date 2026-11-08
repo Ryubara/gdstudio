@@ -34,7 +34,7 @@ rate (measured: within 0.002 s over 40 frames at 1.3 times the clip's pace). Whe
 restarted) or stops (in the air), let the follower hold or catch up over a few frames instead of seeking across the
 cycle: a seek is a cut.
 
-## Stepping a tree by hand in tests
+## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
 `callback_mode_process = ANIMATION_CALLBACK_MODE_PROCESS_MANUAL`, the owner's `_process(delta)` then
 `tree.advance(delta)`, one fixed step at a time: no clock is read.
@@ -43,10 +43,15 @@ cycle: a seek is a cut.
   moved yet in the same step: it follows on the skeleton's next update, so a test reading the attachment saw a hand
   that did not move at all.
 - Keep a clip's time in a `float` from step to step. Passed through a `Vector2` (32-bit components) a time of
-  2.4999999 became 2.5, so the clip's last event fired a step before its end check
-  ([lesson](../../lessons/2026-11-03-a-vector2-of-two-clip-times-rounded-the-end-a-step-early.md)).
+  2.4999999 became 2.5, so the clip's last event fired a step before its end check.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
+
+- **Approach:** Hold the clip (`pause()`, or `speed_scale` 0) after sampling a pose, and repeat a measure that awaits
+  a few times in one process before choosing a limit for it. **Watch out for:** `ClipFit.pose` left the clip playing,
+  so readings made after two awaited physics frames came from a later pose (a knee moved up to 6 cm) and one pose gave
+  0.144, 0.142 and 0.1348; it failed two of three pull requests that touched no character file. **Seen:** Deadnight
+  #1143, 2026-11-04 (fix: `_player.pause()` after the sample; eight repeats gave 0.1348 each).
 
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 
@@ -73,8 +78,7 @@ stride.
   player and the puppet, and fail on a per-tick jump. **Watch out for:** Deadnight #525 faded the hands IK by the
   modifier's `influence` and switched it off at 0, but Godot blends only the chest and hand bones by `influence`, so the
   arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
-  Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test
-  ([lesson](../../lessons/2026-11-02-a-sprint-start-popped-because-modifier-influence-leaves-the-arms.md))).
+  Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test).
 
 ## A state machine that starts at Start and has no way out
 
@@ -131,8 +135,7 @@ entry and is not scaled), and a fall is a clip that holds its last frame while t
   and test through the real night that the body's highest bone in each action stays within that state's height. **Watch
   out for:** the view picked its state by mode and only the move state had a crawl branch, so every crawler rose into
   the standing `Punch` (the mesh from 0.85 to 1.84 m), with one reach and windup for every zombie. **Seen:**
-  Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above
-  ([lesson](../../lessons/2026-11-04-a-crawler-played-the-standing-punch-because-the-attack-state-had-one-clip.md)));
+  Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above);
   Deadnight #1000, 2026-11-04 (fix: `Crawl_Stagger` and `Crawl_Death` too, and a test that loops over the mode enum).
 
 ## Two clips half a turn apart on a bone

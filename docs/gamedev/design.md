@@ -23,6 +23,12 @@ economy), cite where each comes from, and only then tune.
   cite them before tuning any speed. **Watch out for:** Deadnight's zombie speeds were set without the reference's
   ratios to the player's walk and sprint. **Seen:** Deadnight, 2026-11-01 (fix: zombie speed was researched against the
   reference's walk and sprint, and a new game collects these numbers first).
+- **Approach:** Find a reference game's numbers in its scripts: `gh search code "<identifier>"` finds the decompiled
+  dumps, `gh api` lists a repository and fetches a raw file into the scratch folder, and one rule is cross-checked in
+  the dumps of two games; mark what the scripts do not hold (root motion, weapon files) as an estimate. **Watch out
+  for:** web searches gave forum guesses, the wikis refused fetching, and a fetch tool paraphrases code instead of
+  quoting it. **Seen:** Deadnight, 2026-11-01 (fix: Deadnight's `docs/research/movement-speeds.md` names where each
+  number comes from).
 
 ## Variety beats {#variety}
 
@@ -41,11 +47,12 @@ A setting the players choose (more of the dead, faster rounds) changes how the g
   too), not the length of a round, and add no limit or fail rule the maintainer did not ask for. **Watch out for:** a
   count multiplier was read as more zombies over a longer round, and a time limit with an overtime rule was added
   unasked. **Seen:** Deadnight, 2026-11-01 (fix: rounds have no time limit, and a test checks that a round lasts about
-  as long at 1x, 2x and 3x ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md))).
+  as long at 1x, 2x and 3x).
 
 ## Bot teammates {#bot-teammates}
 
-A bot that fills a player's seat is a teammate: it has to do everything a player does.
+A bot that fills a player's seat is a teammate: it has to do everything a player does. How such a bot is built,
+fitted to the balance model and soaked is on [Bots](bots.md).
 
 - **Approach:** Decide early whether the game needs bot teammates; if it does, research them in depth (reviving, buying,
   moving, every weapon) before building the systems they use. **Watch out for:** Deadnight's bot was a test tool, not a
@@ -60,8 +67,7 @@ A bot that fills a player's seat is a teammate: it has to do everything a player
   needs-against-orders table in the same pull request; distances a bot acts on are walk lengths. **Watch out for:**
   resupply was added as one more reply to a person's ping (Deadnight #647, #670), so the bot's own want of ammo had
   nothing to rank against once orders landed, and the nearest locker was measured in a straight line. **Seen:**
-  Deadnight #692, 2026-11-03 (fix: the ask for bots that fetch their own ammo showed it
-  ([lesson](../lessons/2026-11-03-a-teammate-bot-had-answers-to-a-person-and-no-needs-of-its-own.md))).
+  Deadnight #692, 2026-11-03 (fix: the ask for bots that fetch their own ammo showed it).
 - **Approach:** When a bot spends and then uses what it bought, price the spend by the chance the use says yes, count
   paid, offered and used per bot in a real night, have a test named for an outcome assert it (the weapon in the arms),
   and walk a waiting bot back. **Watch out for:** a bot paid when any of seventeen prizes would do but took only one

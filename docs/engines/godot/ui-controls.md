@@ -7,7 +7,7 @@ a suite leaves for the next are in [Input in UI tests](ui-input-tests.md).
 | Topic | What we learned |
 | --- | --- |
 | Drawn controls | Extend the engine control for its behaviour (HSlider, Button), empty its styleboxes in a theme variation, and draw in `_draw` with springs. A script `_draw` on a Button runs after the native draw, so a fill drawn there paints over the text (found by capture, not in the docs): draw on a child control with `show_behind_parent`. |
-| Tweens on a disabled or freed node | A node whose `process_mode` is `PROCESS_MODE_DISABLED` (a screen a router covers) never advances a tween created on it, so its animation never runs. A tween on a node that is freed is killed and its `finished` signal never fires, so an `await` on it waits forever. Create transition tweens on a node that stays enabled and outlives the screens (the router's stage), and check `is_instance_valid` after every await ([lesson](../../lessons/2026-11-01-a-screen-freed-mid-transition-locked-the-router-for-good.md)). |
+| Tweens on a disabled or freed node | A node whose `process_mode` is `PROCESS_MODE_DISABLED` (a screen a router covers) never advances a tween created on it, so its animation never runs. A tween on a node that is freed is killed and its `finished` signal never fires, so an `await` on it waits forever. Create transition tweens on a node that stays enabled and outlives the screens (the router's stage), and check `is_instance_valid` after every await. |
 | Screen-reading shaders | `hint_screen_texture` makes the renderer copy the back buffer: +0.18 ms at 1080p and +12 MB for a full-screen grade ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)), and it is the shader feature most likely to differ on a mobile or WebGL2 GPU. A screen transition does not need it: make it procedural (hash noise) over a colour the shader owns, close it over the old screen, swap behind it, then open. |
 | Clear colour | Set `RenderingServer.set_default_clear_color` to the UI's background token. A fade or a screen swap that passes through "nothing" shows the engine's default grey, which no token owns. |
 | A transition checklist | A pop is not a push played backwards: the screen that leaves must be on top, and only the transition may decide layering (never the stage's child order). For each transition capture the push **and** the pop, free the outgoing, the incoming and the popped screen mid-transition and check the router is idle, queue calls during it and check they run in order, and run it with reduced motion on. The list is in the addon's README (`godot/addons/gds_ui/README.md` in the kit). |
@@ -162,8 +162,7 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   (`UIThemeBuilder.build(UITokens.active())`) is what the player has; a headless run then measures the same numbers as
   a window.
 - **Answer what a fixture starts.** A screen put in a state that ends in `await some_signal` (the name prompt) is
-  answered before it is freed, or the run leaks at exit and CI refuses it
-  ([lesson](../../lessons/2026-11-04-a-test-left-a-screen-waiting-for-an-answer-and-leaked-at-exit.md)).
+  answered before it is freed, or the run leaks at exit and CI refuses it.
 - **Not every size is a size.** A phone held upright is covered by the "turn your phone" prompt (test that it is); a
   phone at the Large interface size has a 432-unit canvas and is left out of the sweep. The phone sizes swept are
   844 x 390 (a 1169 x 540 canvas), 932 x 430 and 667 x 375 (the narrowest, 960 x 540).
@@ -280,7 +279,7 @@ added to the column.
   children depends on when the container lays them out; `UIMotion.stagger_in` read each row's position one frame after
   the tab showed, before the deferred sort, and it was only ever tested from a script, so the settings rows sometimes
   collapsed into each other. **Seen:** Deadnight, 2026-11-01 (fix: positions are read after the sort, and the real-input
-  test holds it ([lesson](../../lessons/2026-11-01-container-children-read-before-the-deferred-sort.md))).
+  test holds it).
 
 ## Menus under test {#menus-under-test}
 
@@ -415,7 +414,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   (`process_mode = DISABLED`), which is right for a solo night and wrong for a multiplayer one (the link is no longer
   read). Hold the sub-screen (settings) as a child of the menu instead, with a `closed` signal for its Back, and take
   Esc, B and Start in the owner: the child's own `ui_cancel` must go back one step, not resume
-  ([lesson](../../lessons/2026-11-02-a-menu-pushed-on-the-router-froze-the-night-behind-it.md)).
+  (Deadnight #471, 2026-11-02: a test joins a real server over loopback, opens the menu and the settings, and
+  checks the server's tick still climbs).
 - **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
   ("Menu: the night goes on around you", not "Paused").
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
@@ -425,8 +425,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   overlay, and test a screen's first running frame through every entry route (solo, join, resume, the Activity). **Watch
   out for:** the Joining card hid the reticle, the scoreboard and the touch layer; a finished online join only hid the
   card and only Resume restored them, so every online join started with no crosshair. **Seen:** Deadnight #529,
-  2026-11-02 (fix: one restore used by every close
-  ([lesson](../../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md))).
+  2026-11-02 (fix: one restore used by every close;
+  `test_night_crosshair.gd` joins over a real loopback socket and checks the first running frame).
 
 ## Reading a screen under test: the scale it really runs at
 

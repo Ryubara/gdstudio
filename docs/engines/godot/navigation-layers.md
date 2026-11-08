@@ -29,12 +29,10 @@ and the bots must not path through it. One baked mesh serves both with navigatio
   on, so a body on a scrap the cut left, on an island the bake left or on a top it jumped to has no way anywhere, with no
   error to say so. Moved to the second region (a piece under 30 m2 but for the largest; 187 of 207 pieces on Deadnight's
   lot, about 430 polygons, 6 ms more on a desktop), such a spot is not on the walking layer, and a person's path from
-  it starts on the nearest walking polygon, in any mode, with no code of its own
-  ([lesson](../../lessons/2026-11-04-a-walking-mesh-held-pieces-a-body-could-stand-on-and-never-leave.md)).
+  it starts on the nearest walking polygon, in any mode, with no code of its own.
 
 ## What did not
 
 - **Trusting the path and checking it after.** A ray along each path segment found the boards and cut the path short or
   marked the goal unreachable, but the nearest route to the goal was still the one through the boards, so the bot gave up
-  the goal (or stood at the boards, for a brain that did not check) instead of taking the long way round by the gate
-  ([lesson](../../lessons/2026-11-04-bots-walked-the-dead-s-mesh-through-the-boards.md)).
+  the goal (or stood at the boards, for a brain that did not check) instead of taking the long way round by the gate.

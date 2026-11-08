@@ -180,8 +180,7 @@ per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, a
 - `Performance.TIME_PROCESS` and `TIME_PHYSICS_PROCESS` did not match the wall-clock frame time in a fixed-fps
   run; the numbers here are wall clock and a headless run instead.
 - A capture that draws through a camera of its own gives it to the throttle (`horde.throttle.camera`): the throttle
-  poses only what its camera sees, and with the night's camera looking elsewhere the crowd stays on its first pose
-  ([lesson](../../lessons/2026-11-04-a-capture-with-its-own-camera-froze-the-dead.md)).
+  poses only what its camera sees, and with the night's camera looking elsewhere the crowd stays on its first pose.
 - Zombies in a `--fixed-fps` run advance by a fixed delta, so the run is repeatable; in the browser the delta is
   real, so two runs differ slightly (the "first / second" cells).
 
@@ -250,8 +249,7 @@ there (Walk 0.97, Run 4.4, Crawl 1.1, boss walk 1.1 m/s).
 - **Approach:** Measure each locomotion clip's ground speed, and check foot slide and gait in the same pull request as
   any change to a movement speed. **Watch out for:** speeds were retuned without the clips that show them and the blend
   points were guesses, so fast zombies slid and the gait did not follow the round. **Seen:** Deadnight #260, 2026-11-01
-  (fix: clip speeds measured and the time scale above
-  ([lesson](../../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md))).
+  (fix: clip speeds measured and the time scale above).
 - **Approach:** Measure each clip's ground speed before setting any blend threshold. **Watch out for:** the walk and run
   blend points were guessed at 1.0 and 3.0 m/s while the clips move at 0.97 and 4.4, so speed and gait disagreed.
   **Seen:** Deadnight, 2026-11-01 (fix: measuring the planted foot gave the real speeds).
@@ -271,8 +269,14 @@ their heads. Prove it with a pack on the real ramp and a control that walks the 
   walks it up and down, and write an assumption like "the lot is flat" where it lives so the change that breaks it finds
   it. **Watch out for:** the zombie sim never gave a zombie a height because the first lot was flat, so on the booth
   ramp and the second map's stairs a zombie kept its spawn height, and no test walked one up a slope. **Seen:**
-  Deadnight #681, 2026-11-03 (fix: walkers take their height off the path, as above
-  ([lesson](../../lessons/2026-11-03-zombies-kept-their-spawn-height-and-never-climbed-a-ramp.md))).
+  Deadnight #681, 2026-11-03 (fix: walkers take their height off the path, as above).
+- **Approach:** Before the first map with floors (a roof, a deck), grep every flat distance in gameplay code (`_flat(`,
+  `Vector2(a.x - b.x, a.z - b.z)`) and every query on a thing fixed to the ground (a gate, a zone, a trigger), decide
+  what a metre of height does to each, and test each with two points a storey apart and 0.3 m apart on the flat.
+  **Watch out for:** on the first two-storey map a zombie struck through a wall from a stair, a press upstairs bought
+  the door below, and a ground window's gate lifted the dead walking the floor over it. **Seen:** Deadnight (second
+  map), 2026-11-03; Deadnight, 2026-11-04 (fix: storey rules for the dead and the use button, a height band on each
+  gate; found from `HURT` lines with each zombie's height difference).
 
 ## A player against a crowd that is not physics bodies {#a-players-body-against-a-crowd-that-is-not-physics-bodies}
 
@@ -304,8 +308,13 @@ through them). Make it solid in the movement function both machines run, not wit
   choice. **Watch out for:** the dead were made plain data for a node-free server sim, and a player's body is stopped
   only by physics layers, so players ran through them, which nobody had decided. **Seen:** Deadnight #914, 2026-11-03
   (fix: contact in the movement function the server and the predicting client share, a held push rolls a zombie aside
-  (Deadnight's `docs/research/dead-contact.md`;
-  [lesson](../../lessons/2026-11-03-a-nudged-zombie-went-ahead-of-the-player-instead-of-aside.md))).
+  (Deadnight's `docs/research/dead-contact.md`)).
+- **Approach:** Test a solid that moves during a night (a cabinet, a door, a board) with everything that can stand where
+  it lands, bodies that are only data included, and when a unit stands still and nobody can hit it, query the physics
+  space at its feet for the node's name. **Watch out for:** a prize crane's cabinet landed on two dead that are not
+  physics bodies; inside it, every sight line and shot stopped on the box while their swings, which have no wall
+  check, hit a bot for ever. **Seen:** Deadnight #1352, 2026-11-06 (fix: the sim keeps the dead out of the box;
+  `test_crane_cabinet_dead.gd` lands it on two).
 
 ## A pooled body costs 1 ms to take if the pool still looks the scene up
 

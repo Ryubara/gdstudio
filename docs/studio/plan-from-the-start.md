@@ -14,18 +14,17 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   listed before the controller is built ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
   the shot waits for the body's turn
-  ([lesson](../lessons/2026-11-02-hip-fire-shot-before-the-body-turned.md)).
+  ([controller states](../gamedev/controller.md#states)).
 - Plan: a rule that follows from a state (empty, downed) is evaluated from that state on the server each tick, never
-  as a side effect of an action a control can stop sending
-  ([lesson](../lessons/2026-11-05-a-reload-that-needed-a-trigger-pull-never-ran-on-a-phone.md)).
+  as a side effect of an action a control can stop sending ([States and actions](../gamedev/controller.md#states)).
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
-  it as it holds a person ([lesson](../lessons/2026-11-02-a-rule-on-the-view-held-a-bot-that-looked-where-it-walked.md)).
+  it as it holds a person ([Bots](../gamedev/bots.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
 - Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
   camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
-  ([lesson](../lessons/2026-11-02-a-scaling-setting-needs-a-pace-test.md)).
+  ([Settings that scale the game](../gamedev/design.md#settings)).
 - Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
   and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
@@ -99,28 +98,28 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 - Plan: test every closed loop (prediction, interpolation, rate limits) at the worst shipped round trip (300 ms and
   more) with a push, and with the client's own thread frozen (0.5, 2, 5 s) over the real socket, not only steady lag
-  ([lesson](../lessons/2026-11-02-a-correction-must-move-the-history-it-is-judged-against.md),
+  ([multiplayer](../engines/godot/multiplayer.md#a-client-that-freezes-measured-on-the-live-server),
   [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
-  ([lesson](../lessons/2026-11-01-two-branches-bumped-the-same-snapshot-version.md)).
+  ([netcode](../gamedev/netcode.md#parallel-branches)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit
-  ([lesson](../lessons/2026-11-02-web-and-server-deployed-minutes-apart.md)).
+  ([railway](railway.md#skew)).
 - Plan: never deploy a branch to the shared web service; a CI deploy of main replaces it anyway
   ([deadnight #491](https://github.com/Ryubara/deadnight/issues/491),
   [web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: events the server causes alone reach every client
-  ([lesson](../lessons/2026-11-01-events-the-server-causes-alone-never-reach-the-client.md)).
+  ([multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every player feature is specified and tested from another player's view: a two-client test over the real
   socket for what the other screen shows, and captures from the second client's screen
-  ([lesson](../lessons/2026-11-02-a-remote-player-was-a-model-with-nothing-to-hold-a-weapon.md),
+  ([multiplayer](../engines/godot/multiplayer.md#appearance),
   [deadnight #518](https://github.com/Ryubara/deadnight/issues/518)).
 - Plan: where a player is (menu, waiting room, night, away, reopened lobby) and what ends each state, written as one
   table of states and ways out before the lobby is built; a player moves between lobbies by creating or joining
   (never a refusal for being in another), and a lobby with no person is gone at once, with the game server saying
   when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
-  [lesson](../lessons/2026-11-05-a-lobby-the-backend-reopened-held-players-who-never-saw-it.md)).
+  [multiplayer](../engines/godot/multiplayer.md#player-states), [netcode](../gamedev/netcode.md#leaving)).
 
 ## Saving
 
@@ -128,7 +127,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   state while the screen is open.
 - Plan: a test for every choice against another choice, a tab change and a reload, counting writes.
 - Plan: tests point the settings and save files away from the player's own `user://`
-  ([lesson](../lessons/2026-11-02-tests-wrote-the-players-settings.md)).
+  ([Throwaway user folder](../engines/godot/throwaway-user-folder.md#tests)).
 
 ## Co-op rules
 
@@ -143,7 +142,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
   ([A weapon is a model, a definition and a source](../gamedev/balance.md#roster)).
 - Plan: every catalogue entry played through in the real night with the real input
-  ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
+  ([Every catalogue entry](../gamedev/testing.md#catalogue)).
 - Plan: weapons sized against the hand that holds them, not only the body
   ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
@@ -151,7 +150,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
   ([One action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
-  ([lesson](../lessons/2026-11-01-walk-and-run-blend-points-were-guessed.md)).
+  ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
 - Plan: kit props and materials on the map as soon as the layout holds
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
@@ -192,13 +191,12 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
   ([browser probes](../engines/godot/web-export.md#browser-probes)).
 - Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
-  ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
+  ([ui controls](../engines/godot/ui-controls.md#a-menu-over-a-live-game)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
-  ([lesson](../lessons/2026-11-01-refcounted-lambda-cycle-leaks-at-exit.md)).
+  ([lesson](../engines/godot/test-exit-leaks.md#what-a-test-leaves-alive)).
 - Plan: one-tick flags latched per physics tick, and motion bounded per tick, not per frame.
 - Plan: suites clear the UI router and every wait loop has a bound
-  ([lesson](../lessons/2026-11-02-a-suite-that-ends-on-a-router-screen-eats-later-clicks.md),
-  [lesson](../lessons/2026-11-02-a-test-wait-loop-without-a-bound-hung-the-suite.md)).
+  ([Testing a game](../gamedev/testing.md#leftover-state), [waits](../gamedev/testing.md#bounded-waits)).
 - Plan: captures and recordings from the player's camera, with the real devices switched off.
 
 ## Process
@@ -216,7 +214,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: the PR that finishes a split issue carries `Fixes #N`
   ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
-  ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
+  ([A shared machine](workspace.md#shared-machine)).
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task

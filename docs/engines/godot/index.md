@@ -17,6 +17,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | --- | --- | --- |
 | `gds new game`, the templates | a new game repository that builds, tests and exports from its first commit | known: [A new game from a template](new-game.md) (`3d-blank` first; the local steps, the GitHub repository with its settings and proof, MIT by default; adding a template) |
 | Folder, naming and dependency rules | every game's project layout, enforced by `gds check layout` | known: [Project conventions](project-conventions.md) (by feature, snake_case, dependencies one way, tools out of the export) |
+| GDScript and project-file traps | names, lambdas, `project.godot`, `.tscn` and `.tres` files that fail without a message | known: [GDScript and project-file traps](gdscript.md) (a static function named like an Object method, a lambda that works on a copy, a file Godot rewrites) |
 
 ## UI and presentation
 
@@ -78,7 +79,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Web export (single-threaded) | the browser build and the Discord Activity | spike with multiplayer; testing it in a headless browser: [Web export](web-export.md) (pointer lock on the Linux runner) |
 | Browser probes (Playwright, CDP) and the gates that read them | every web build tested in a headless browser | known: [Browser probes](web-probes.md) (run through `gds quiet`; a probe that can fail; a time gate set from many runs, not one) |
 | Web page heap (WebGL id tables) | a page whose heap grows while the engine's counters are flat | known: [The web page's heap](web-heap.md) (every `glGen*` costs a slot in each id table for good; a canvas item redrawn every frame makes about 200 objects a frame) |
-| Headless server export | the game server on Railway | spike with multiplayer |
+| Headless server export | the game server on Railway | spike with multiplayer; deploying it: [Railway](../../studio/railway.md); the rules that hold in any engine: [Netcode](../../gamedev/netcode.md) |
 | Callable, `await` | a send that waits on a request and is handed over as a Callable | known: [Callables and coroutines](callables-and-coroutines.md) (a Callable does not keep a RefCounted object alive; what `await` does with a plain value) |
 | `static var` initialisers | a cache or flag shared by scripts that refer to each other | known: [Static variables and the order scripts load in](static-variables.md) (an initialiser runs when its script loads; a script loaded inside another still holds the type's defaults, so "not read" is 0, not -1) |
 | `Performance.OBJECT_RESOURCE_COUNT`, `ResourceLoader.has_cached` | finding what a resource count (a leak budget's peak) is made of | known: [Naming what the resource count is made of](resource-count.md) (`OS.dump_resources_to_file` is not in GDScript; walk the files and ask the cache) |
@@ -97,6 +98,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | Performance budgets (worst-case run, sampler, CI budget, leak soak, timing on a shared machine) | every game from its first playable night | known: [Performance budgets](performance-budgets.md) (count what does not depend on the load, time as a ratio of a calibration loop, headless at a fixed step, a leak read at the same crowd) |
 | GdUnit4 (scene runner, input simulation) | unit and scene tests | known (Deadnight's smoke test) |
 | Performance review (cost per frame, per tick, per spawn) | every pull request that adds per-frame work, a spawn, a light, a shader or a message | known: [Performance review](performance-review.md) (state the cost in a `## Cost` section; every run-time spawn frees itself or is pooled; measure a tick of the real night with the bots at the ceiling, counts first) |
+| A whole GdUnit run (fresh worktree, time limits, logs, what to run before a push) | every game, before a test change is pushed | known: [Running GdUnit4](running-gdunit.md) (copy the addon and import first, `gds godot --timeout`, one raw log per run, all folders on the merged branch; no `-d`, a parse error ends the whole scan, a suite is one object) |
 | Test speed (hand ticks, settles, CI job time) | every suite that steps the game by hand | known: [Test speed](test-speed.md) |
 | The headless (dummy) renderer | every GdUnit run in CI | known: [meshes are not safe to make from two threads](headless-renderer.md) |
 | Worker threads (`WorkerThreadPool`: a group of cells, a bake, a load) | every job that runs a simulation off the main thread | known: [Worker threads](worker-threads.md) (the first use of shared state from several workers crashes silently: warm it on the calling thread, prove it in a cold child process) |
@@ -106,5 +108,5 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | A tour that exits with 139 after saving its frames | every capture that sets a hook on the game | known: [Exit code 139](exit-code-139.md) (a lambda left in a static variable is freed after its script; clear the hook before `quit()`) |
 | A probe that builds the game (`-s` or a scene, autoloads, fresh worktree) | every throwaway run that prints what it saw | known: [Probes and tools in headless Godot](headless-probes.md) (`-s` has no autoloads: write the probe as a scene) |
 | The real `main.tscn` against a real sign-in, without the person's saves | every capture of what the game shows after a read from the backend | known: [A throwaway user folder](throwaway-user-folder.md) (`APPDATA` points at a folder of its own; seed it by a real sign-in; a harness run skips the start-up sign-in, so the capture makes that one call) |
-| A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [lesson](../../lessons/2026-11-03-a-parse-error-in-one-class-showed-up-as-errors-in-its-users.md) (the real message shows only when the script is loaded on its own) |
+| A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [Probes and tools in headless Godot](headless-probes.md#parse-errors) (the real message shows only when the script is loaded on its own; a run that never ends needs a timeout) |
 | Godot MCP | driving a live editor | known (`docs/studio/workspace.md#integrations`) |

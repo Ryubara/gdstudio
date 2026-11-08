@@ -202,8 +202,7 @@ pose, with back faces culled as the game draws them.
   the animation's are recorded per clip and may not get worse. Check the probe on a closed and an opened ball.
 - **Physics probes in a test** need two physics steps after new shapes (one returned the last pose's surface) and
   bone poses reset before each sample (clips that do not key the fingers kept the last clip's). Step physics fast in
-  the suite (`Engine.physics_ticks_per_second = 480`)
-  ([lesson](../../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
+  the suite (`Engine.physics_ticks_per_second = 480`).
 - **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
   `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
   normal with the way out (`normal_update()` first on a new face) and flip. A closed shell is one test, on one face
