@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/item_counter.tscn" id="8_counter"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="9_tween"]
 [ext_resource type="Script" path="res://ui/probe/web_probe.gd" id="10_probe"]
+[ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
 
 [sub_resource type="Resource" id="Resource_follow_tween"]
 script = ExtResource("9_tween")
@@ -17,6 +18,9 @@ transition = 1
 ease = 2
 
 [node name="Main" type="Node"]
+
+[node name="AudioSettings" type="Node" parent="."]
+script = ExtResource("11_audio")
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
 

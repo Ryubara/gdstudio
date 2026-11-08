@@ -124,6 +124,11 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
   plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
+- **Approach:** To run a template's own tests, make a game from it (`gds new game <name> --template <t> --local
+  --workspace <throwaway>`), copy each changed file into that game, and make a second one when the template's
+  committed files changed after the first. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
+  cannot run there, and a game made earlier keeps the template as it was (the old `.tres` and scene of a dropped
+  approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830, 2026-11-08.
 - **Approach:** Try `gds new game` in a throwaway workspace outside the real one: a folder of its own holding a copy of
   `.gdstudio-workspace`, `gdstudio.local.toml` and the addon folders under `tools/`, and in a test of a template's
   `project.godot`, read the file with `ConfigFile`. **Watch out for:** a throwaway folder inside the real workspace

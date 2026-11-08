@@ -17,6 +17,7 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode; a zone that raises a second camera's priority. |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. |
 | Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
+| Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview

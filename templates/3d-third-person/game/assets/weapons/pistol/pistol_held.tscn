@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://bss8sibyu6oj7" path="res://assets/weapons/pistol/pistol.glb" id="1_pistol"]
+
+[node name="PistolHeld" type="BoneAttachment3D"]
+bone_name = "hand_r"
+
+[node name="Pistol" parent="." instance=ExtResource("1_pistol")]
+transform = Transform3D(0.0234, -0.0805, -0.9965, -0.9867, 0.1585, -0.036, 0.1609, 0.9841, -0.0757, -0.0264, 0.1234, 0.0091)

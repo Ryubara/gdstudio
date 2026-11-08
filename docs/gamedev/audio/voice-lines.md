@@ -240,6 +240,11 @@ voices of 139) move with it.
   before and after, and put both numbers in the pull request.
 - The free tier allows no commercial use and needs attribution: the game records it in the folder's `LICENSE.md` and
   on its Credits screen, and relicensing before a commercial release is the maintainer's call.
+- **Generated sounds from the free tier go into a template only with the maintainer's yes and a replace note.** A
+  template is copied into every game, so a non-commercial sound there is every game's problem: read the plan first
+  (`GET /v1/user/subscription`), stop on `free` and ask; the first set (kit #835, 2026-11-08) went in with a yes, marked
+  temporary, a `LICENSE.md` per folder and the line "Replace or relicense before any commercial release" on the
+  template's assets page and design page ([Sound effects](sound-effects.md#licence)).
 
 ### Proof {#proof}
 
@@ -301,7 +306,7 @@ The dead have no words, so they do not use text to speech: their voices are most
 | Repeatable | a seed per take | no seed: variety comes from asking again |
 | Selection | every take kept; Scribe flags tags read aloud | three candidates a slot, picked by analysis: hiss above 5 kHz, silence inside the take, a slow onset on the short sounds; any clipping is rejected |
 | Clean-up | trim, -20 LUFS, -1 dBFS peak | trim, low-pass at 8 kHz on the voices, fades, normalised to the synthesised variants' peak (-3 dBFS) |
-| Cost | characters (tags free) | 40 credits per second of requested length |
+| Cost | characters (tags free) | 40 credits per second of requested length planned; billed 10 a second on the free tier in 2026 ([Sound effects](sound-effects.md#what-a-request-costs)) |
 | Bus | Voice, never ducked | Effects, ducked under a sting like every sound of the lot |
 | Playback | one at a time, by the director | rationed: one idle voice every 0.6 to 1.6 s for the whole horde, six zombie voices at most ([Godot: Audio](../../engines/godot/audio.md#a-crowds-voices-the-dead)) |
 
