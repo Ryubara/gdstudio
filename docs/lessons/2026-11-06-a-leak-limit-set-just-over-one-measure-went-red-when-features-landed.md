@@ -18,7 +18,7 @@ areas: [tests, godot]
   191 to minute 6, 84, 47, then 5). A 60 minute night confirmed it: resources 5.7, 1.1 and 0.0 a night minute in the
   three windows after minute 12. An absolute peak limit on a count that every feature adds to goes stale with the first
   batch of features. (The memory failure of 2026-11-04 was not this: see
-  `2026-11-06-a-growth-limit-was-read-per-minute-of-the-wall-clock.md`.)
+  `engines/godot/performance-budgets.md#budgets-counts-tight-time-loose`.)
 - **Fix:** the limit moved with the measure, not past it: resources 2 500 to 2 750 (6% over the most any 30 minute night
   read, 4% over the 60 minute plateau), memory growth was moved to 2.5 here too and put back to 1.5
   when the wall clock was found to be the fault, with the table of measures in `docs/research/performance.md`.
