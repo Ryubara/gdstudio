@@ -14,6 +14,8 @@ var _tuning: PlayerTuning
 
 
 func before_test() -> void:
+	# Another suite may have left a button down (a base suite leaves `fire` pressed).
+	InputSim.release_all()
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))

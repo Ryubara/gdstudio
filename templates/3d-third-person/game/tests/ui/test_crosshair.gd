@@ -11,6 +11,8 @@ var _player: Player
 
 
 func before_test() -> void:
+	# Another suite may have left a button down (a base suite leaves `fire` pressed).
+	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
 	_crosshair = _scene.get_node("Hud/Crosshair")
 	_player = _scene.get_node("Player")

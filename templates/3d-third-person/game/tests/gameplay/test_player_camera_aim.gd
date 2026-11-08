@@ -11,6 +11,8 @@ var _camera: Camera3D
 
 
 func before_test() -> void:
+	# Another suite may have left a button down (a base suite leaves `fire` pressed).
+	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
 	_rig = _scene.get_node("PlayerCamera")
 	_player = _scene.get_node("Player")

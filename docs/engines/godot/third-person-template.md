@@ -189,6 +189,12 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size
   and middle failed for a smaller circle. The weapon aims through the middle of the viewport, which is the middle of
   this control, so a test compares the two. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Start every suite that reads the pistol's buttons (`fire`, `aim`, `crouch`) by letting go of them with
+  `Input.action_release`, and run the suites in the CI's order before pushing (`-a` once per suite, as the log lists
+  them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base touch suite leaves the
+  left mouse button and `fire` down (a mouse release event does not clear the action): the crosshair and touch suites
+  passed in every local order and failed 8 tests on the runner, where one of them ran straight after it. **Seen:**
+  gdstudio #836, 2026-11-08 (`InputSim.release_all()` lets go of the actions too).
 - **Approach:** Add a template's own buttons to the base's touch layer with an inherited scene
   (`third_person_touch_controls.tscn`, root `instance=` the base's, new buttons under `SafeArea/Buttons`) and not by
   copying the base file. **Watch out for:** an extending template replaces a file of the base whole, so a copy of

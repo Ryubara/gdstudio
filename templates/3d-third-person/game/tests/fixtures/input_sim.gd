@@ -59,6 +59,10 @@ static func release_all() -> void:
 	pad_button(JOY_BUTTON_B, false)
 	mouse_button(MOUSE_BUTTON_LEFT, false)
 	mouse_button(MOUSE_BUTTON_RIGHT, false)
+	# A base suite that sends a click leaves the left button and `fire` down, and a mouse release
+	# does not clear the action: let go of the actions of the pistol directly.
+	for action: StringName in [&"fire", &"aim", &"crouch"]:
+		Input.action_release(action)
 	Input.flush_buffered_events()
 
 
