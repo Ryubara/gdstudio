@@ -56,6 +56,7 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-08 | gdstudio #790 | The new site listed about 970 lessons in one sidebar group that was always open; sections should fold and nest | [studio/docs-site.md#nav](docs-site.md#nav) |
 | 2026-11-08 | gdstudio #769 | The maintainer questioned whether agents use per-mistake lesson pages at all; a learning belongs in the page an agent reads for the task | [studio/rules.md#where](rules.md#where) |
 | 2026-11-08 | gdstudio #814 | A new 3D Blank game opened in the editor with five parse errors from the `gds_ui` demo; #778 had excluded the demo from the export instead of finding the missing autoload | [engines/godot/new-game.md#proof](../engines/godot/new-game.md#proof) |
+| 2026-11-08 | gdstudio #819 | 3D Blank should be only a bounded floor and walls; the prototype map built in #788 suits the templates with a character controller | [engines/godot/new-game.md#the-templates](../engines/godot/new-game.md#the-templates) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 

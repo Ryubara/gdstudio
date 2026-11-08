@@ -147,6 +147,12 @@ check this way (`gds new game template-check --template 3d-blank --local`).
   game and runs every hook itself, never the game's own command lines, so the first game's first `ci` run was red.
   **Seen:** gdstudio #778 and #779, 2026-11-07 (fix: one call for each hook; the next probe's first run was green).
 
+- **Approach:** Keep `3d-blank` to the base every game shares: a bounded floor and walls on the grid surface, the
+  sky and sun, the renderer per platform and the graphics profile. A prototype map with props and map components
+  belongs to the first template with a character to move through it. **Watch out for:** #788 built a full prototype
+  map with six components into `3d-blank`, which gives every game started from it a level to delete first. **Seen:**
+  gdstudio #788 and pull request #819, 2026-11-08 (the map moves to `3d-third-person`).
+
 - **Approach:** When a template holds a Git LFS file (a lightmap's `.exr`), check out the kit with `lfs: true` in every
   kit CI job that copies the template, and skip the file in text checks. **Watch out for:** without it the template
   holds a pointer file: the `template` job imported it and failed, and every test that pushes a made game to a bare
