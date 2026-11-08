@@ -1,6 +1,14 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=30 format=3]
 
-[ext_resource type="PackedScene" path="res://world/lighting/daylight.tscn" id="1_daylight"]
+[ext_resource type="PackedScene" path="res://world/blocks/proto_block.tscn" id="blk"]
+[ext_resource type="PackedScene" path="res://gameplay/door/door.tscn" id="door"]
+[ext_resource type="PackedScene" path="res://gameplay/pickup/pickup.tscn" id="pickup"]
+[ext_resource type="PackedScene" path="res://gameplay/trigger_zone/trigger_zone.tscn" id="zone"]
+[ext_resource type="PackedScene" path="res://gameplay/moving_platform/moving_platform.tscn" id="plat"]
+[ext_resource type="PackedScene" path="res://gameplay/spawn_point/spawn_point.tscn" id="spawn"]
+[ext_resource type="PackedScene" path="res://gameplay/physics_prop/physics_prop.tscn" id="prop"]
+[ext_resource type="PackedScene" path="res://world/lighting/daylight.tscn" id="daylight"]
+[ext_resource type="Script" path="res://world/lighting/graphics_profile.gd" id="gp"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_floor.tres" id="2_floor"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_wall.tres" id="3_wall"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_dark.tres" id="4_dark"]
@@ -9,230 +17,456 @@
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_green.tres" id="7_green"]
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_red.tres" id="8_red"]
 
+[sub_resource type="StandardMaterial3D" id="chrome"]
+albedo_color = Color(0.85, 0.86, 0.9, 1)
+metallic = 1.0
+roughness = 0.12
+
 [node name="PrototypeLevel" type="Node3D"]
 
-[node name="Daylight" parent="." instance=ExtResource("1_daylight")]
+[node name="Daylight" parent="." instance=ExtResource("daylight")]
 
 [node name="Boundary" type="Node3D" parent="."]
-
-[node name="Floor" type="CSGBox3D" parent="Boundary"]
+[node name="Floor" parent="Boundary" instance=ExtResource("blk")]
 position = Vector3(0, -0.5, 0)
 size = Vector3(50, 1, 50)
-use_collision = true
 material = ExtResource("2_floor")
 
-[node name="WallNorth" type="CSGBox3D" parent="Boundary"]
+[node name="WallNorth" parent="Boundary" instance=ExtResource("blk")]
 position = Vector3(0, 2, -24.5)
 size = Vector3(50, 4, 1)
-use_collision = true
 material = ExtResource("3_wall")
 
-[node name="WallSouth" type="CSGBox3D" parent="Boundary"]
+[node name="WallSouth" parent="Boundary" instance=ExtResource("blk")]
 position = Vector3(0, 2, 24.5)
 size = Vector3(50, 4, 1)
-use_collision = true
 material = ExtResource("3_wall")
 
-[node name="WallWest" type="CSGBox3D" parent="Boundary"]
+[node name="WallWest" parent="Boundary" instance=ExtResource("blk")]
 position = Vector3(-24.5, 2, 0)
 size = Vector3(1, 4, 48)
-use_collision = true
 material = ExtResource("3_wall")
 
-[node name="WallEast" type="CSGBox3D" parent="Boundary"]
+[node name="WallEast" parent="Boundary" instance=ExtResource("blk")]
 position = Vector3(24.5, 2, 0)
 size = Vector3(1, 4, 48)
-use_collision = true
 material = ExtResource("3_wall")
 
 [node name="Landings" type="Node3D" parent="."]
+[node name="Dais" parent="Landings" instance=ExtResource("blk")]
+position = Vector3(0, 0.5, 0)
+size = Vector3(8, 1, 8)
+material = ExtResource("6_blue")
 
-[node name="TowerPlatform" type="CSGBox3D" parent="Landings"]
+[node name="TowerPlatform" parent="Landings" instance=ExtResource("blk")]
 position = Vector3(-18, 1.5, -18)
-size = Vector3(10, 3, 10)
-use_collision = true
+size = Vector3(8, 3, 8)
 material = ExtResource("6_blue")
 
-[node name="TowerStairs" type="CSGPolygon3D" parent="Landings"]
-polygon = PackedVector2Array(0, 0, -5.4, 0, -5.4, 3, -4.95, 3, -4.95, 2.75, -4.5, 2.75, -4.5, 2.5, -4.05, 2.5, -4.05, 2.25, -3.6, 2.25, -3.6, 2, -3.15, 2, -3.15, 1.75, -2.7, 1.75, -2.7, 1.5, -2.25, 1.5, -2.25, 1.25, -1.8, 1.25, -1.8, 1, -1.35, 1, -1.35, 0.75, -0.9, 0.75, -0.9, 0.5, -0.45, 0.5, -0.45, 0.25, -0, 0.25)
-depth = 3.2
-position = Vector3(-7.6, 0, -16.4)
-use_collision = true
+[node name="TowerStairs" parent="Landings" instance=ExtResource("blk")]
+rotation_degrees = Vector3(0, 180, 0)
+position = Vector3(-11, 1.5, -18.5)
+kind = 3
+size = Vector3(6, 3, 3)
+steps = 12
 material = ExtResource("6_blue")
 
-[node name="RampPlatform" type="CSGBox3D" parent="Landings"]
-position = Vector3(17, 0.75, 12)
-size = Vector3(8, 1.5, 9)
-use_collision = true
+[node name="BridgeStart" parent="Landings" instance=ExtResource("blk")]
+position = Vector3(18, 1, 0)
+size = Vector3(8, 2, 8)
 material = ExtResource("7_green")
 
-[node name="RampSlope" type="CSGPolygon3D" parent="Landings"]
-polygon = PackedVector2Array(0, 0, 9, 1.5, 9, 0)
-depth = 4
-position = Vector3(4, 0, 14)
-use_collision = true
+[node name="BridgeEnd" parent="Landings" instance=ExtResource("blk")]
+position = Vector3(18, 1, 16)
+size = Vector3(8, 2, 8)
 material = ExtResource("7_green")
 
-[node name="Dais" type="CSGBox3D" parent="Landings"]
-position = Vector3(0, 0.2, 0)
-size = Vector3(12, 0.4, 12)
-use_collision = true
+[node name="Ramp" parent="Landings" instance=ExtResource("blk")]
+position = Vector3(10, 1, 16)
+kind = 2
+size = Vector3(8, 2, 4)
+material = ExtResource("7_green")
+
+[node name="Room" type="Node3D" parent="."]
+[node name="WallNorth" parent="Room" instance=ExtResource("blk")]
+position = Vector3(14, 2, -20.5)
+size = Vector3(14, 4, 1)
+material = ExtResource("3_wall")
+
+[node name="WallWest" parent="Room" instance=ExtResource("blk")]
+position = Vector3(7.5, 2, -15)
+size = Vector3(1, 4, 10)
+material = ExtResource("3_wall")
+
+[node name="WallSouthLeft" parent="Room" instance=ExtResource("blk")]
+position = Vector3(9.5, 2, -9.5)
+size = Vector3(5, 4, 1)
+material = ExtResource("3_wall")
+
+[node name="WallSouthRight" parent="Room" instance=ExtResource("blk")]
+position = Vector3(17.5, 2, -9.5)
+size = Vector3(7, 4, 1)
+material = ExtResource("3_wall")
+
+[node name="DoorLintel" parent="Room" instance=ExtResource("blk")]
+position = Vector3(13, 3.5, -9.5)
+size = Vector3(2, 1, 1)
+material = ExtResource("3_wall")
+
+[node name="WallEastLow" parent="Room" instance=ExtResource("blk")]
+position = Vector3(20.5, 0.5, -15)
+size = Vector3(1, 1, 10)
+material = ExtResource("3_wall")
+
+[node name="WallEastHigh" parent="Room" instance=ExtResource("blk")]
+position = Vector3(20.5, 3.5, -15)
+size = Vector3(1, 1, 10)
+material = ExtResource("3_wall")
+
+[node name="WallEastPostA" parent="Room" instance=ExtResource("blk")]
+position = Vector3(20.5, 2, -18.5)
+size = Vector3(1, 2, 3)
+material = ExtResource("3_wall")
+
+[node name="WallEastPostB" parent="Room" instance=ExtResource("blk")]
+position = Vector3(20.5, 2, -12)
+size = Vector3(1, 2, 4)
+material = ExtResource("3_wall")
+
+[node name="RoofNorth" parent="Room" instance=ExtResource("blk")]
+position = Vector3(14, 4.5, -18.5)
+size = Vector3(14, 1, 5)
 material = ExtResource("4_dark")
 
+[node name="RoofSouth" parent="Room" instance=ExtResource("blk")]
+position = Vector3(14, 4.5, -11.5)
+size = Vector3(14, 1, 5)
+material = ExtResource("4_dark")
+
+[node name="RoofWest" parent="Room" instance=ExtResource("blk")]
+position = Vector3(10, 4.5, -15)
+size = Vector3(6, 1, 2)
+material = ExtResource("4_dark")
+
+[node name="RoofEast" parent="Room" instance=ExtResource("blk")]
+position = Vector3(18, 4.5, -15)
+size = Vector3(6, 1, 2)
+material = ExtResource("4_dark")
+
+[node name="Counter" parent="Room" instance=ExtResource("blk")]
+position = Vector3(12, 0.5, -18.5)
+size = Vector3(6, 1, 1)
+material = ExtResource("5_orange")
+
 [node name="Cover" type="Node3D" parent="."]
-
-[node name="LowWallA" type="CSGBox3D" parent="Cover"]
-position = Vector3(-6, 0.6, 7)
-size = Vector3(5, 1.2, 0.6)
-use_collision = true
+[node name="LowWallA" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(-9, 0.5, 6.5)
+size = Vector3(6, 1, 1)
 material = ExtResource("5_orange")
 
-[node name="LowWallB" type="CSGBox3D" parent="Cover"]
-position = Vector3(7, 0.6, -2)
-size = Vector3(0.6, 1.2, 6)
-use_collision = true
+[node name="LowWallB" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(6.5, 0.5, 0)
+size = Vector3(1, 1, 6)
 material = ExtResource("5_orange")
 
-[node name="CrateA" type="CSGBox3D" parent="Cover"]
-position = Vector3(3, 0.5, 6)
+[node name="CrateA" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(3.5, 0.5, 6.5)
 size = Vector3(1, 1, 1)
-use_collision = true
 material = ExtResource("5_orange")
 
-[node name="CrateB" type="CSGBox3D" parent="Cover"]
-position = Vector3(4, 0.5, 6)
+[node name="CrateB" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(4.5, 0.5, 6.5)
 size = Vector3(1, 1, 1)
-use_collision = true
 material = ExtResource("5_orange")
 
-[node name="CrateC" type="CSGBox3D" parent="Cover"]
-position = Vector3(3.5, 1.5, 6)
+[node name="CrateC" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(3.5, 1.5, 6.5)
 size = Vector3(1, 1, 1)
-use_collision = true
 material = ExtResource("5_orange")
 
-[node name="CrateWide" type="CSGBox3D" parent="Cover"]
-position = Vector3(-10.5, 0.5, -3)
+[node name="CrateWide" parent="Cover" instance=ExtResource("blk")]
+position = Vector3(-11, 0.5, -3.5)
 size = Vector3(2, 1, 1)
-use_collision = true
 material = ExtResource("5_orange")
 
-[node name="Crate2m" type="CSGBox3D" parent="Cover"]
+[node name="Crate2m" parent="Cover" instance=ExtResource("blk")]
 position = Vector3(-9, 1, 2)
-size = Vector3(1.4, 2, 1.4)
-use_collision = true
+size = Vector3(2, 2, 2)
 material = ExtResource("5_orange")
 
 [node name="Steps" type="Node3D" parent="."]
-
-[node name="Block1" type="CSGBox3D" parent="Steps"]
-position = Vector3(-12, 0.25, 18)
-size = Vector3(2, 0.5, 2)
-use_collision = true
+[node name="Block1" parent="Steps" instance=ExtResource("blk")]
+position = Vector3(-21, 0.5, 17)
+size = Vector3(2, 1, 2)
 material = ExtResource("8_red")
 
 [node name="Block1Label" type="Label3D" parent="Steps"]
-position = Vector3(-12, 0.51, 18)
+position = Vector3(-21, 1.01, 17)
 rotation_degrees = Vector3(-90, 180, 0)
 pixel_size = 0.006
 modulate = Color(1, 1, 1, 0.95)
-outline_modulate = Color(0.35, 0.1, 0.1, 1)
-text = "0.5 m"
-font_size = 96
-outline_size = 24
-
-[node name="Block2" type="CSGBox3D" parent="Steps"]
-position = Vector3(-9, 0.5, 18)
-size = Vector3(2, 1, 2)
-use_collision = true
-material = ExtResource("8_red")
-
-[node name="Block2Label" type="Label3D" parent="Steps"]
-position = Vector3(-9, 1.01, 18)
-rotation_degrees = Vector3(-90, 180, 0)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.95)
-outline_modulate = Color(0.35, 0.1, 0.1, 1)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
 text = "1 m"
 font_size = 96
 outline_size = 24
-
-[node name="Block3" type="CSGBox3D" parent="Steps"]
-position = Vector3(-6, 0.75, 18)
-size = Vector3(2, 1.5, 2)
-use_collision = true
-material = ExtResource("8_red")
-
-[node name="Block3Label" type="Label3D" parent="Steps"]
-position = Vector3(-6, 1.51, 18)
-rotation_degrees = Vector3(-90, 180, 0)
-pixel_size = 0.006
-modulate = Color(1, 1, 1, 0.95)
-outline_modulate = Color(0.35, 0.1, 0.1, 1)
-text = "1.5 m"
-font_size = 96
-outline_size = 24
-
-[node name="Block4" type="CSGBox3D" parent="Steps"]
-position = Vector3(-3, 1, 18)
+[node name="Block2" parent="Steps" instance=ExtResource("blk")]
+position = Vector3(-18, 1, 17)
 size = Vector3(2, 2, 2)
-use_collision = true
 material = ExtResource("8_red")
 
-[node name="Block4Label" type="Label3D" parent="Steps"]
-position = Vector3(-3, 2.01, 18)
+[node name="Block2Label" type="Label3D" parent="Steps"]
+position = Vector3(-18, 2.01, 17)
 rotation_degrees = Vector3(-90, 180, 0)
 pixel_size = 0.006
 modulate = Color(1, 1, 1, 0.95)
-outline_modulate = Color(0.35, 0.1, 0.1, 1)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
 text = "2 m"
 font_size = 96
 outline_size = 24
+[node name="Block3" parent="Steps" instance=ExtResource("blk")]
+position = Vector3(-15, 1.5, 17)
+size = Vector3(2, 3, 2)
+material = ExtResource("8_red")
 
+[node name="Block3Label" type="Label3D" parent="Steps"]
+position = Vector3(-15, 3.01, 17)
+rotation_degrees = Vector3(-90, 180, 0)
+pixel_size = 0.006
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "3 m"
+font_size = 96
+outline_size = 24
+[node name="Block4" parent="Steps" instance=ExtResource("blk")]
+position = Vector3(-12, 2, 17)
+size = Vector3(2, 4, 2)
+material = ExtResource("8_red")
+
+[node name="Block4Label" type="Label3D" parent="Steps"]
+position = Vector3(-12, 4.01, 17)
+rotation_degrees = Vector3(-90, 180, 0)
+pixel_size = 0.006
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "4 m"
+font_size = 96
+outline_size = 24
 [node name="Columns" type="Node3D" parent="."]
-
-[node name="Column1" type="CSGCylinder3D" parent="Columns"]
+[node name="Column1" parent="Columns" instance=ExtResource("blk")]
 position = Vector3(-8, 2, -8)
-radius = 0.6
-height = 4
-sides = 28
-use_collision = true
+kind = 1
+size = Vector3(2, 4, 2)
 material = ExtResource("4_dark")
 
-[node name="Column2" type="CSGCylinder3D" parent="Columns"]
-position = Vector3(8, 2, -8)
-radius = 0.6
-height = 4
-sides = 28
-use_collision = true
-material = ExtResource("4_dark")
-
-[node name="Column3" type="CSGCylinder3D" parent="Columns"]
-position = Vector3(-8, 2, 8)
-radius = 0.6
-height = 4
-sides = 28
-use_collision = true
-material = ExtResource("4_dark")
-
-[node name="Column4" type="CSGCylinder3D" parent="Columns"]
+[node name="Column2" parent="Columns" instance=ExtResource("blk")]
 position = Vector3(8, 2, 8)
-radius = 0.6
-height = 4
-sides = 28
-use_collision = true
+kind = 1
+size = Vector3(2, 4, 2)
 material = ExtResource("4_dark")
 
-[node name="Divider" type="Node3D" parent="."]
+[node name="Column3" parent="Columns" instance=ExtResource("blk")]
+position = Vector3(0, 2, -12)
+kind = 1
+size = Vector3(2, 4, 2)
+material = ExtResource("4_dark")
 
-[node name="DividerWall" type="CSGBox3D" parent="Divider"]
-position = Vector3(14, 1.6, -9)
-size = Vector3(16, 3.2, 0.6)
-use_collision = true
+[node name="Column4" parent="Columns" instance=ExtResource("blk")]
+position = Vector3(0, 2, 12)
+kind = 1
+size = Vector3(2, 4, 2)
+material = ExtResource("4_dark")
+
+[node name="Pavilion" type="Node3D" parent="."]
+[node name="Roof" parent="Pavilion" instance=ExtResource("blk")]
+position = Vector3(-16, 4.5, 0)
+size = Vector3(8, 1, 8)
 material = ExtResource("3_wall")
 
-[node name="Doorway" type="CSGBox3D" parent="Divider/DividerWall"]
-operation = 2
-position = Vector3(0, -0.3, 0)
-size = Vector3(2, 2.6, 2)
+[node name="Pillar1" parent="Pavilion" instance=ExtResource("blk")]
+position = Vector3(-19.5, 2, -3.5)
+kind = 1
+size = Vector3(1, 4, 1)
+material = ExtResource("4_dark")
+
+[node name="Pillar2" parent="Pavilion" instance=ExtResource("blk")]
+position = Vector3(-12.5, 2, -3.5)
+kind = 1
+size = Vector3(1, 4, 1)
+material = ExtResource("4_dark")
+
+[node name="Pillar3" parent="Pavilion" instance=ExtResource("blk")]
+position = Vector3(-19.5, 2, 3.5)
+kind = 1
+size = Vector3(1, 4, 1)
+material = ExtResource("4_dark")
+
+[node name="Pillar4" parent="Pavilion" instance=ExtResource("blk")]
+position = Vector3(-12.5, 2, 3.5)
+kind = 1
+size = Vector3(1, 4, 1)
+material = ExtResource("4_dark")
+
+[node name="Gate" type="Node3D" parent="."]
+[node name="PostLeft" parent="Gate" instance=ExtResource("blk")]
+position = Vector3(-8.5, 1.5, 9.5)
+size = Vector3(1, 3, 1)
+material = ExtResource("4_dark")
+
+[node name="PostRight" parent="Gate" instance=ExtResource("blk")]
+position = Vector3(-5.5, 1.5, 9.5)
+size = Vector3(1, 3, 1)
+material = ExtResource("4_dark")
+
+[node name="Lintel" parent="Gate" instance=ExtResource("blk")]
+position = Vector3(-7, 3.5, 9.5)
+size = Vector3(4, 1, 1)
+material = ExtResource("4_dark")
+
+[node name="FenceLeft" parent="Gate" instance=ExtResource("blk")]
+position = Vector3(-10.5, 0.5, 9.5)
+size = Vector3(3, 1, 1)
 material = ExtResource("3_wall")
+
+[node name="FenceRight" parent="Gate" instance=ExtResource("blk")]
+position = Vector3(-3.5, 0.5, 9.5)
+size = Vector3(3, 1, 1)
+material = ExtResource("3_wall")
+
+[node name="Doors" type="Node3D" parent="."]
+[node name="MainDoor" parent="Doors" instance=ExtResource("door")]
+position = Vector3(13, 0, -9.5)
+style = 1
+close_after = 6.0
+panel_material = ExtResource("6_blue")
+[node name="GateDoor" parent="Doors" instance=ExtResource("door")]
+position = Vector3(-7, 0, 9.5)
+style = 2
+close_after = 3.0
+auto_open_range = 3.0
+panel_material = ExtResource("6_blue")
+[node name="Triggers" type="Node3D" parent="."]
+[node name="PressurePad" parent="Triggers" instance=ExtResource("zone")]
+position = Vector3(13, 0.5, -5)
+size = Vector3(3, 1, 3)
+show_plate = true
+[node name="Platforms" type="Node3D" parent="."]
+[node name="Shuttle" parent="Platforms" instance=ExtResource("plat")]
+position = Vector3(18, 1.5, 6)
+size = Vector3(4, 1, 4)
+travel = Vector3(0, 0, 4)
+speed = 2.0
+wait_time = 1.5
+material = ExtResource("5_orange")
+[node name="Pickups" type="Node3D" parent="."]
+[node name="JumpCoin1" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(-21, 1.7, 17)
+respawn_time = 10.0
+[node name="JumpCoin2" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(-18, 2.7, 17)
+respawn_time = 10.0
+[node name="JumpCoin3" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(-15, 3.7, 17)
+respawn_time = 10.0
+[node name="JumpCoin4" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(-12, 4.7, 17)
+respawn_time = 10.0
+[node name="TowerStar" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(-18, 3.8, -18)
+item_id = &"star"
+amount = 5
+tint = Color(1, 0.55, 0.15, 1)
+item_size = 0.8
+[node name="RoomGem" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(10, 0.9, -17)
+item_id = &"gem"
+tint = Color(0.3, 0.6, 1, 1)
+[node name="RoomHeart" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(18, 0.9, -13)
+item_id = &"health"
+amount = 25
+tint = Color(0.35, 0.85, 0.4, 1)
+[node name="BridgeCoin" parent="Pickups" instance=ExtResource("pickup")]
+position = Vector3(18, 2.7, 16)
+respawn_time = 10.0
+[node name="Spawns" type="Node3D" parent="."]
+[node name="PlayerA" parent="Spawns" instance=ExtResource("spawn")]
+position = Vector3(-2, 1, 0)
+[node name="PlayerB" parent="Spawns" instance=ExtResource("spawn")]
+position = Vector3(2, 1, 0)
+[node name="PlayerC" parent="Spawns" instance=ExtResource("spawn")]
+position = Vector3(0, 1, 2)
+[node name="WaveSouthEast" parent="Spawns" instance=ExtResource("spawn")]
+position = Vector3(20, 0, 21)
+spawn_group = &"wave"
+radius = 2.0
+[node name="WaveSouthWest" parent="Spawns" instance=ExtResource("spawn")]
+position = Vector3(-18, 0, 21)
+spawn_group = &"wave"
+radius = 2.0
+[node name="Props" type="Node3D" parent="."]
+[node name="Prop1" parent="Props" instance=ExtResource("prop")]
+position = Vector3(9.5, 0.5, 3.5)
+shape = 0
+size = Vector3(1, 1, 1)
+material = ExtResource("5_orange")
+[node name="Prop2" parent="Props" instance=ExtResource("prop")]
+position = Vector3(10.5, 0.5, 3.5)
+shape = 0
+size = Vector3(1, 1, 1)
+material = ExtResource("5_orange")
+[node name="Prop3" parent="Props" instance=ExtResource("prop")]
+position = Vector3(10, 1.5, 3.5)
+shape = 0
+size = Vector3(1, 1, 1)
+material = ExtResource("5_orange")
+[node name="Prop4" parent="Props" instance=ExtResource("prop")]
+position = Vector3(11.5, 0.55, 6)
+shape = 1
+size = Vector3(0.8, 1.1, 0.8)
+material = ExtResource("8_red")
+[node name="Prop5" parent="Props" instance=ExtResource("prop")]
+position = Vector3(12.5, 0.55, 6)
+shape = 1
+size = Vector3(0.8, 1.1, 0.8)
+material = ExtResource("8_red")
+[node name="Prop6" parent="Props" instance=ExtResource("prop")]
+position = Vector3(8, 0.5, 7)
+shape = 2
+size = Vector3(1, 1, 1)
+material = ExtResource("5_orange")
+[node name="ChromeBallA" parent="Props" instance=ExtResource("prop")]
+position = Vector3(-6, 0.75, 3)
+shape = 2
+size = Vector3(1.5, 1.5, 1.5)
+weight = 30.0
+material = SubResource("chrome")
+[node name="ChromeBallB" parent="Props" instance=ExtResource("prop")]
+position = Vector3(-16, 0.75, 0)
+shape = 2
+size = Vector3(1.5, 1.5, 1.5)
+weight = 30.0
+material = SubResource("chrome")
+[node name="Probes" type="Node3D" parent="."]
+[node name="Outdoors" type="ReflectionProbe" parent="Probes"]
+position = Vector3(0, 6, 0)
+update_mode = 0
+size = Vector3(50, 12, 50)
+[node name="RoomInside" type="ReflectionProbe" parent="Probes"]
+position = Vector3(14, 2, -15)
+update_mode = 0
+size = Vector3(14, 4, 10)
+interior = true
+[node name="GraphicsProfile" type="Node" parent="."]
+script = ExtResource("gp")
+world_environment = NodePath("../Daylight/WorldEnvironment")
+sun = NodePath("../Daylight/Sun")
+lightmap = NodePath("../LightmapGI")
+[node name="LightmapGI" type="LightmapGI" parent="."]
+quality = 1
+bounces = 3
+max_texture_size = 4096
+environment_mode = 2
+environment_custom_color = Color(0.62, 0.68, 0.78, 1)
+environment_custom_energy = 0.8
+
+[connection signal="activated" from="Triggers/PressurePad" to="Doors/MainDoor" method="open"]
