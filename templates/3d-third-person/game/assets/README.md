@@ -9,3 +9,5 @@
   grid shader and a material per colour.
 - `assets/characters/mannequin/` is Quaternius's mannequin and `assets/animation/universal/` the Universal Animation
   Library 1 and 2 (CC0, each with a `LICENSE.md`): the character's mesh and its 86 clips.
+- `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
+  `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
