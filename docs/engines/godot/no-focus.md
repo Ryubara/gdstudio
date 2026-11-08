@@ -60,8 +60,7 @@ parent's id that a new program can be given (kit #229).
   **Watch out for:** the quiet-run rule covered Godot only, while Deadnight's Playwright probes ran headless Chrome
   straight from the shell; under pointer lock it clipped the real cursor to its hidden window, measured at `(17, 68,
   864, 541)`, until Esc ended the lock. **Seen:** Deadnight, 2026-11-01 (fix: `gds quiet`; the hook refuses a web probe
-  or Playwright run without it, and a test measures the clip under a real headless Chrome pointer lock
-  ([lesson](../../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md))).
+  or Playwright run without it, and a test measures the clip under a real headless Chrome pointer lock).
 - **Approach:** Find a program's processes by creation time, not by parent id alone: a process is a child only if it was
   created after its parent, the tree takes the root's creation time as read at start (empty once the root exited and its
   id went elsewhere), and a process you cannot open is not proven a child; better still, ask the job object the program

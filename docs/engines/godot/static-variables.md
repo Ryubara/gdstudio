@@ -34,5 +34,3 @@ was wrong.
   up is listed there with why.
 - Find the cause on the web with a log of the variable at the head of the function (`JavaScriptBridge.eval` to push
   `typeof(_x):_x` into a page array): the first call read `2:0` (an int, zero) where the initialiser said `-1`.
-
-See [the lesson](../../lessons/2026-11-06-a-static-cache-read-from-an-initialiser-held-its-default-and-the-page-played-the-drop.md).
