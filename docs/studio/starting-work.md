@@ -146,15 +146,31 @@ maintainer sets):
 - The coordinator's `Stop` hook ([Hooks: idle issues](hooks.md#idle)) lists none of its issues, not even blocked ones
   whose blocker has closed.
 
-What still runs: scheduled CI and the nightlies keep running and keep their issues current. Pull requests already
-open stay open, and no agent merges one while the repository is paused. A pause kept only in someone's memory or in
-a plan's wording does not count, because no tool can read it.
+The pause covers pull requests too. While it is set, no agent works a pull request of the repository: no refresh,
+no rerun, no edit, no hold and no merge, and no new pull request in it, a docs move made for kit work included.
+
+- Open pull requests are left as they are, turned into drafts (`gh pr ready --undo`), and are out of the
+  [landing queue](#landing).
+- Kit work that would change a paused game waits as a note on the game's own issue, or in the kit issue's "left for
+  later" list, until the pause is lifted.
+- `gds merge-main` on a worktree of the repository, `gds pr hold` on one of its pull requests and `gds pr check-body`
+  in one of its checkouts refuse, change nothing, and print the reason (`refuse_paused` in `gds_tools/issues.py`,
+  which reads the same `paused` lookup as `gds issue start`).
+
+What still runs: scheduled CI and the nightlies keep running and keep their issues current. A pause kept only in
+someone's memory or in a plan's wording does not count, because no tool can read it.
 
 - **Approach:** Before starting an issue, check that its repository is not paused, and move a standing rule that lives
   only in memory into a file a tool enforces, in the same session. **Watch out for:** the pause lived in the
   coordinator's memory and the plan's wording, so the `Stop` hook and `gds issue list` offered Deadnight #1372 as ready
   and the coordinator followed the tool. **Seen:** gdstudio #786, 2026-11-07 (fix: `paused` in `workspace.toml`,
   honoured by `gds issue start`, `gds issue list` and the `Stop` hook (gdstudio #786)).
+- **Approach:** Before refreshing, rerunning, editing or merging a pull request, or opening one for kit work, check
+  that its repository is not paused; in a paused one, turn open pull requests into drafts and leave kit changes to
+  it as a note. **Watch out for:** the pause covered only issues, and the landing rules read an open pull request as
+  work to finish, so the coordinator refreshed and reran Deadnight #1371 and a kit task opened Deadnight #1374 during
+  the pause. **Seen:** gdstudio #811, 2026-11-08 (fix: `gds merge-main`, `gds pr hold` and `gds pr check-body` refuse
+  a paused repository with the reason; tests in `test_paused_prs.py`).
 
 ## The branch and worktree {#worktree}
 
@@ -379,6 +395,9 @@ Open pull requests come before new work: each one left open goes stale against `
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
   passed. Several land one at a time. On 2026-11-06 three parked pull requests landed unrefreshed and `main` went red: a
   shorter reload met a test added after its last run.
+- **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
+  rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
+  ([Pausing a game](#paused)). Landing what you would recommend does not reach past the pause.
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 

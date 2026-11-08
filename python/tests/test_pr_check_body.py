@@ -27,7 +27,7 @@ _spec.loader.exec_module(dispatch)
 guards = dispatch.guards
 CONFIG = dispatch.load_config(None)
 
-from gds_tools import cli  # noqa: E402
+from gds_tools import cli, issues  # noqa: E402
 
 REASON_NONE = "'None' needs a reason in parentheses"
 FAILING = {
@@ -67,7 +67,9 @@ def game_conventions() -> str:
 
 
 @pytest.fixture()
-def workspace(tmp_path: Path) -> dict[str, Path]:
+def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
+    # the real kit pauses Deadnight, and `gds pr check-body` refuses a paused repository (test_paused_prs.py)
+    monkeypatch.setattr(issues, "paused_repositories", lambda kit: {})
     root = tmp_path / "ws"
     (root / "repos").mkdir(parents=True)
     (root / ".gdstudio-workspace").write_text("", encoding="utf-8")

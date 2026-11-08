@@ -394,6 +394,7 @@ def _cmd_issue_done(args: argparse.Namespace) -> int:
 
 def _cmd_merge_main(args: argparse.Namespace) -> int:
     path = Path(args.path).resolve() if args.path else Path.cwd()
+    issues.refuse_paused(workspace.kit_checkout(), issues.checkout_repo(path), "gds merge-main")
     print("\n".join(worktrees.merge_main(path, co_author=args.co_author or "", resume=args.resume)))
     return 0
 
@@ -401,6 +402,7 @@ def _cmd_merge_main(args: argparse.Namespace) -> int:
 def _cmd_pr_hold(args: argparse.Namespace) -> int:
     """`gds pr hold <owner/repo>#N`: the label, then a wait until GitHub's `hold` check is red."""
     repo, number = _issue_ref(args)
+    issues.refuse_paused(workspace.kit_checkout(), repo, f"gds pr hold {repo}#{number}")
     print("\n".join(pr.hold(repo, number, gh=issues.run_gh)))
     return 0
 
@@ -411,6 +413,7 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
     repo = pr.repo_root(here)
     if repo is None:
         raise pr.PrCheckError(f"{here} is not in a git checkout; pass --repo <checkout>")
+    issues.refuse_paused(workspace.kit_checkout(), issues.checkout_repo(repo), "gds pr check-body")
     read = lambda source: sys.stdin.read() if source == "-" else Path(source).read_text(encoding="utf-8-sig")  # noqa: E731
     title = None
     if args.title:
