@@ -114,6 +114,17 @@ report only after reading the body back.
   changes something a player sees. **Watch out for:** work was judged from its text, so nobody saw what had changed.
   **Seen:** Deadnight, 2026-11-01 (fix: the pull request body check refuses a visual change without its `Before:` and
   `After:` images ([Hooks](hooks.md#pr-body))).
+- **Approach:** Give `--attach` the very file name the body links: when a capture is renamed or swapped (a `.png` for
+  an `.mp4`), change the `./<file>` reference in the body file in the same step. **Watch out for:** `gh` swaps a
+  reference by name only, so `![after](./gate-after.mp4)` beside `--attach ./gate-after.png` stays a local path and
+  the upload goes to the end of the body. **Seen:** gdstudio #847, 2026-11-08 (its first body linked
+  `./gate-after.mp4`; the one sent links `./gate-after.png`, the file attached).
+- **Approach:** Put an image on the `After:` line (a still, or a [contact sheet](#sheet) of the clip) and the clip's
+  bare upload address beside it, as for [sound](#sound-a-clip-you-can-listen-to); run `gds pr check-body` on the body
+  read back after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
+  plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
+  refuses every local `./file`, since only a `github.com/user-attachments/` address counts. **Seen:** gdstudio #847,
+  2026-11-08 (the `After:` became a contact sheet with the clip's address beside it).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
