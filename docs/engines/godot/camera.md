@@ -17,6 +17,12 @@ developer tunes. The springs, interpolation and wall notes below still apply whe
   well, and show one priority hand-off between two cameras in the sample map. **Watch out for:** a hand-rolled spring
   arm was planned for 3D Third Person until the maintainer asked for Phantom Camera with inspector-level settings in
   every template. **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Give every export a wrapper forwards to a Phantom Camera a setter that applies it (`spring_length`,
+  `follow_offset`, `camera_3d_resource.fov`, damping, `collision_mask`, `margin`), and keep only what the addon needs
+  before its `_ready` (follow mode, target, a new `Camera3DResource`) in `_enter_tree`; test it by changing each export
+  on the running scene and reading the Phantom Camera and, frames later, the real `Camera3D`. **Watch out for:** a
+  wrapper that copies once in `_enter_tree` ignores a run-time change (the remote inspector), and the host overwrites
+  the real `Camera`'s own FOV. **Seen:** gdstudio #830, 2026-11-08 (fix: setters and a test per export).
 
 ## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 

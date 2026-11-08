@@ -220,6 +220,8 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-06 | gdstudio | gds posted 595 status comments under the maintainer's account; the guard read only what agents typed | [studio/hooks.md#comments](hooks.md#comments) |
 | 2026-11-06 | Deadnight #1366 | A lobby start stuck for one account whose ticket pushed the hello past its byte limit; every probe was a fresh guest | [engines/godot/multiplayer.md#small-things-that-cost-time](../engines/godot/multiplayer.md#small-things-that-cost-time) |
 | 2026-11-07 | gdstudio #771 | A mod and a new repository were proposed for work the orchestrator, a guard and the kit already did | [studio/asks.md#new-tools](asks.md#new-tools) |
+| 2026-11-08 | gdstudio #830 | The editor showed an empty AnimationTree with a warning in 3D Third Person; the maintainer chose to keep code-built trees, because templates are developed by agents, and to make the editor show them through `@tool` | [engines/godot/animation-tree.md#a-tree-built-in-code](../engines/godot/animation-tree.md#a-tree-built-in-code) |
+| 2026-11-08 | gdstudio #830 | The 3D Third Person `PlayerCamera`'s settings did nothing when changed at run time, because they were copied onto the Phantom Camera once at load | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 
 ## Start of a new game {#start-of-a-new-game}
 

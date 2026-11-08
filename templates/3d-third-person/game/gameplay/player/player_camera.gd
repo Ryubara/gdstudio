@@ -17,19 +17,34 @@ signal orbited(yaw: float, pitch: float)
 ## What the camera follows and looks at: the player's `CameraTarget` (a point at head height).
 @export var target: Node3D
 ## How far behind the target the lens sits.
-@export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 4.4
+@export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 4.4:
+	set(value):
+		distance = value
+		_forward()
 ## How far above the target's point the camera aims.
-@export_range(-1.0, 2.0, 0.01, "suffix:m") var height := 0.1
+@export_range(-1.0, 2.0, 0.01, "suffix:m") var height := 0.1:
+	set(value):
+		height = value
+		_forward()
 ## The lens's field of view.
-@export_range(30.0, 110.0, 0.5, "suffix:deg") var field_of_view := 62.0
+@export_range(30.0, 110.0, 0.5, "suffix:deg") var field_of_view := 62.0:
+	set(value):
+		field_of_view = value
+		_forward()
 ## The angle looking down at the start: positive looks down at the character.
 @export_range(-80.0, 80.0, 0.5, "suffix:deg") var start_pitch := 14.0
 
 @export_group("Follow")
 ## Smooths the camera's follow of a moving target.
-@export var follow_damping := true
+@export var follow_damping := true:
+	set(value):
+		follow_damping = value
+		_forward()
 ## How heavy that smoothing is: higher lags more.
-@export_range(0.0, 1.0, 0.01) var follow_damping_amount := 0.06
+@export_range(0.0, 1.0, 0.01) var follow_damping_amount := 0.06:
+	set(value):
+		follow_damping_amount = value
+		_forward()
 
 @export_group("Orbit")
 ## Mouse turn per pixel, in degrees (the mouse must be captured).
@@ -51,9 +66,15 @@ signal orbited(yaw: float, pitch: float)
 
 @export_group("Walls")
 ## The physics layers that push the lens in (the spring arm's mask).
-@export_flags_3d_physics var wall_mask := 1
+@export_flags_3d_physics var wall_mask := 1:
+	set(value):
+		wall_mask = value
+		_forward()
 ## How far the lens stays from a wall it was pushed in by.
-@export_range(0.0, 1.0, 0.01, "suffix:m") var wall_margin := 0.25
+@export_range(0.0, 1.0, 0.01, "suffix:m") var wall_margin := 0.25:
+	set(value):
+		wall_margin = value
+		_forward()
 
 ## The horizontal orbit angle in degrees (0 looks along -Z).
 var yaw := 0.0
@@ -62,24 +83,21 @@ var pitch := 0.0
 
 var _arm_waited := 0
 
-@onready var _pcam: PhantomCamera3D = $FollowCamera
+var _pcam: PhantomCamera3D
 
 
 func _enter_tree() -> void:
 	# Before the Phantom Camera is ready: it builds its spring arm from these values.
+	# The Phantom Camera moves itself under its spring arm once it is ready, so it is found
+	# here, while it is still the rig's child, and kept.
 	var pcam := get_node_or_null("FollowCamera") as PhantomCamera3D
 	if pcam == null:
 		return
+	_pcam = pcam
 	pcam.follow_mode = PhantomCamera3D.FollowMode.THIRD_PERSON
 	pcam.follow_target = target
-	pcam.spring_length = distance
-	pcam.collision_mask = wall_mask
-	pcam.margin = wall_margin
-	pcam.follow_offset = Vector3(0.0, height, 0.0)
-	pcam.follow_damping = follow_damping
-	pcam.follow_damping_value = Vector3.ONE * follow_damping_amount
 	pcam.camera_3d_resource = Camera3DResource.new()
-	pcam.camera_3d_resource.fov = field_of_view
+	_forward()
 
 
 func _ready() -> void:
@@ -130,6 +148,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _mouse_orbits() -> bool:
 	return not require_captured_mouse or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+
+
+# Puts the framing, follow and wall settings on the Phantom Camera. Every one of them comes
+# through here from its setter, so a change in the inspector or the remote tree works while the
+# game runs, not only when the scene loads.
+func _forward() -> void:
+	var pcam := _pcam
+	if not is_instance_valid(pcam):
+		return
+	pcam.spring_length = distance
+	pcam.collision_mask = wall_mask
+	pcam.margin = wall_margin
+	pcam.follow_offset = Vector3(0.0, height, 0.0)
+	pcam.follow_damping = follow_damping
+	pcam.follow_damping_value = Vector3.ONE * follow_damping_amount
+	var lens := pcam.camera_3d_resource
+	if lens != null and not is_equal_approx(lens.fov, field_of_view):
+		lens.fov = field_of_view
 
 
 func _apply() -> void:

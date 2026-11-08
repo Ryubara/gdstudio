@@ -45,6 +45,14 @@ cycle: a seek is a cut.
   node is set to the new clip by writing its `animation` before the request, with an `AnimationNodeTimeScale` in front
   to fit the clip to the time the game holds the body (the 2 s Interact clip into 0.7 s). **Seen:** gdstudio #821,
   2026-11-08 ([The 3D Third Person template](third-person-template.md#animation-libraries)).
+- **Approach:** Keep a tree in code when agents develop the project, and make the editor show it too: `@tool` on the
+  builder, `tree_root` and `anim_player` built in `_ready` for editor and game, `Engine.is_editor_hint()` guards on all
+  driving, and setters on the clip exports that rebuild it in the editor. Take both off the node on
+  `NOTIFICATION_EDITOR_PRE_SAVE` and build them again on `..._POST_SAVE`; test it by reading the `.tscn` files for
+  `tree_root`, `AnimationNode` and `anim_player`. **Watch out for:** a tree built in `_ready` of a non-`@tool` script
+  left the editor's AnimationTree empty, with a warning and no graph. A tree dragged together by hand is saved in the
+  scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `PlayerAnimation` is `@tool`;
+  [screenshots](editor-screenshots.md#how)).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 

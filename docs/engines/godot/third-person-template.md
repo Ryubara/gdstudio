@@ -13,7 +13,7 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 | Part | Where (in `templates/3d-third-person/game/`, the base in `templates/3d-blank/game/`) | Notes |
 | --- | --- | --- |
 | Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`. |
-| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code: a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
+| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode; a zone that raises a second camera's priority. |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | A floating stick, a look drag and buttons that press the game's actions. |
 | Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
@@ -90,6 +90,12 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   `_ready`; and a camera with a `tween_resource` tweens to its first view from the Camera3D's own transform unless
   `tween_on_load` is off (3D Blank's view camera had it on: a test read the lens too early and failed on the CI
   runner). **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Tune `PlayerCamera`, never `Camera`: `Camera` (a `Camera3D`) renders, `PhantomCameraHost` under it
+  copies the active Phantom Camera onto it, `PlayerCamera` is the tuning wrapper and `FollowCamera` the
+  `PhantomCamera3D` it drives (3D Blank has no wrapper: its `ViewCamera` is a plain `PhantomCamera3D`). **Watch out
+  for:** the host overwrites the real `Camera`'s FOV, and the wrapper's exports now forward through setters
+  ([Phantom Camera](camera.md#phantom-camera)); the addon moves `FollowCamera` under its spring arm, so look it up once
+  in `_enter_tree` (a later `get_node_or_null("FollowCamera")` finds nothing). **Seen:** gdstudio #830, 2026-11-08.
 - **Approach:** A second view is a `PhantomCamera3D` with a lower priority that a trigger raises (`CameraZone`); the
   blend is the lower camera's `tween_resource` (duration, transition, ease). **Watch out for:** the camera is
   only raised and lowered by the zone's two signals, so a zone that never reports the player leaves the view where it

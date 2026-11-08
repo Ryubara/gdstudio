@@ -22,6 +22,13 @@ The plugin is enabled by adding its `plugin.cfg` to `[editor_plugins] enabled` i
 the target comes from environment variables. Run it with `gds godot -- --editor --path game`. The whole editor window
 is saved (3840 x 2126 on this machine); crop the inspector dock, about 430 px wide at the right edge.
 
+For a bottom panel (the AnimationTree graph): select the node with `EditorInterface.get_selection().add_node(node)` and
+`edit_node(node)`, make the panel taller with `base.find_child("DockVSplitCenter", true, false).set("split_offset",
+-800)` (a `VSplitContainer` of the center column; the split of the panel's own graph is another one), press the
+"Open Editor" button of a state machine node (`emit_signal("pressed")`) for its states, and wait about 60 frames before
+saving the viewport's image. The same plugin can call `EditorInterface.save_scene()` and read the `.tscn` afterwards
+to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
+
 ## What to know {#what-to-know}
 
 - The dock is narrow and widening it from script did not work (`DockHSplitMain.split_offset` moved the viewport, not
