@@ -51,8 +51,15 @@ Chrome has two knobs and each hides what the other shows:
   a CPU throttle, before and after interleaved in one run, and name the limit measured against. **Watch out for:** a
   phone frame costs fill rate times the pixel ratio; the export sized its canvas by the page's ratio (3 on a phone, 2.9
   million pixels) with 2x MSAA everywhere, and every check ran on desktop or under a CPU throttle, which hides fill
-  cost. **Seen:** Deadnight #689, 2026-11-03 (fix:
-  [lesson](../../lessons/2026-11-03-two-phone-profile-runs-of-one-setup-differed-ten-times.md)).
+  cost. **Seen:** Deadnight #689, 2026-11-03 (fix: one page switches between the arms every 30 s; fill cost is read with
+  SwiftShader and processor cost with the throttle, each as a ratio and never as a phone's frame rate).
+
+- **Approach:** Measure a rendering change on a GPU and on the software renderer, interleave the cells so a slow minute
+  hits every row, report both, and read the draw calls (`RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME`) first. **Watch out
+  for:** a GPU hides draw calls and extra passes behind its own parallelism, while the software renderer pays every
+  vertex and pixel on the CPU, nearer to a weak phone or an integrated chip: an outline of 3 zombies (51 extra draw
+  calls) moved a 40-zombie frame from 2.66 to 2.62 ms in Chrome with a GPU and from 199 to 239 ms on SwiftShader.
+  **Seen:** Deadnight #580, 2026-11-02 (fix: `outline_cost.py --gl gpu` and `--gl software` are both reported).
 
 ## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728)
 

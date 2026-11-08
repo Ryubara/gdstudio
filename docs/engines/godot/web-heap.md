@@ -81,7 +81,7 @@ after a forced collection says anything. Compare arms after the same minutes of 
 statement a rate: MB a minute at the frame rate measured (the cost is per frame, so a phone at 30 frames a second
 grows at a third of a desktop at 100).
 
-## Test hooks cost the player's page: count the bridge's calls
+## Test hooks cost the player's page {#test-hooks-cost-the-players-page-count-the-bridges-calls}
 
 A `JavaScriptBridge` read or write is a call into the page, and a string, an `Array` or a `Dictionary` that crosses it is
 allocated on the page's heap. A hook that only a browser test reads (a probe publishing `window.<game>`) must not run
