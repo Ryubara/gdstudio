@@ -345,6 +345,11 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   routed Solo straight into a night, so Solo never offered the settings. **Seen:** Deadnight #620, 2026-11-02 (fix:
   deadnight #637 routed it and walks every menu entry).
 
+- **Approach:** In a pull request that only works on an issue (one bucket of a split task), name the issue as "#N stays
+  open" and put it under Issues affected, never in a sentence with "close" or "closes" before it. **Watch out for:** the
+  CI body check reads "does not close #770" as a pull request that closes an issue, so it asked for `Read first:`
+  areas, the local `gds pr check-body` passed (it has no labels) and the body check failed on the first push. **Seen:**
+  gdstudio #799, 2026-11-08 (fix: the sentence was reworded and the body edited; the check passed on the next run).
 - **Approach:** Before starting an issue, search the merged pull requests for its number (`gh pr list --state merged
   --search "#N"`); the pull request that finishes the last part of a split issue carries `Fixes #N`, and the coordinator
   closes an issue whose parts have all merged. **Watch out for:** the prize crane's rules and visuals merged as two pull
