@@ -1,12 +1,15 @@
 # The kit's docs site, built by Zensical (requirements-docs.txt pins it; docs/studio/docs-site.md). Zensical reads
-# this MkDocs file as it is. It runs no MkDocs hooks or plugins: a check belongs in pytest, pre-commit or CI.
+# this MkDocs file as it is. It runs no MkDocs hooks and no plugin code: a check belongs in pytest, pre-commit or CI.
 site_name: GDStudio
 site_description: "The global docs hub: how GDStudio builds Godot games with agents, its tools, pipelines and lessons."
 docs_dir: docs
 # Every warning fails the build: a broken link, a missing anchor.
-# No nav: the navigation is built from the folders (index.md first, titles from headings), so adding a page
-# never edits a shared file.
 strict: true
+# No nav: key. The navigation is built from the folders (index.md first, titles from headings), ordered by the
+# .nav.yml files under docs/ (awesome-nav, below), so adding a page never edits a shared file. Lessons build but
+# stay out of the navigation until gdstudio #770 moves them (docs/studio/docs-site.md#nav).
+not_in_nav: |
+  /lessons/
 validation:
   nav:
     omitted_files: warn
@@ -19,9 +22,12 @@ validation:
 
 theme:
   name: material
+  # Topics are header tabs; a tab's sidebar folds its sections open and shut, nested; prune sends only the open
+  # tab's tree with each page. navigation.sections stays off: it opens every group at once.
   features:
-    - navigation.sections
+    - navigation.tabs
     - navigation.indexes
+    - navigation.prune
     - navigation.top
     - search.highlight
     - content.code.copy
@@ -33,6 +39,10 @@ theme:
       scheme: slate
       toggle: {icon: material/brightness-4, name: Light mode}
 
+# Zensical reads awesome-nav's .nav.yml files itself (no plugin code runs): the nav order per folder.
+plugins:
+  - awesome-nav
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -43,3 +53,5 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed: {alternate_style: true}
+plugins:
+  - awesome-nav

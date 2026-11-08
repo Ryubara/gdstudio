@@ -24,7 +24,8 @@ docs/
 ```
 
 Every folder has an `index.md` that says what belongs in it and what does not, and lists its pages. The navigation is
-built from the folders (`index.md` first, titles from the headings), so adding a page never edits a shared file.
+built from the folders (`index.md` first, titles from the headings), so adding a page never edits a shared file; how it
+is ordered and folded is [below](#nav).
 
 **Where a page goes.** Ask what the page is about, not who learned it or which kind of file it is:
 
@@ -45,6 +46,47 @@ stub; a test fails an `engines/<name>/` that holds only its index.
 a section and its anchor is on [Learning in the topic pages](rules.md) (gdstudio #769). `docs/lessons/` (one file per
 problem, with `areas:` front matter) takes no new file; its old files stay readable, and feed `gds learn` and
 `gds lessons <area>`, until #770 moves them and Deadnight's general docs into the sections.
+
+## The navigation {#nav}
+
+The topics are tabs in the header: GDStudio (the home page), Game dev, Godot, Blender, Studio, Games. A tab's sidebar
+holds only that topic, its sections folded shut until opened and nested to any depth (Games, then Deadnight, then its
+pages); a section's title opens its `index.md`. On a phone the same tree is in the menu. The `mkdocs.yml` features that
+do it are `navigation.tabs`, `navigation.indexes` and `navigation.prune` (a page carries only its own tab's tree, about
+60 links on a Godot page instead of 1,070 on every page). `navigation.sections` stays off: it opens every group at once,
+which is how the first Zensical site listed all 970 lessons in one column (gdstudio #790).
+
+**What sets the order.** Zensical 0.1.0 reads three things, tested on the kit (#790):
+
+- a `nav:` key in `mkdocs.yml`, which must name every page: a folder named there is a plain link to its index, not a
+  section, and a page left out drops from the sidebar with no warning, even under `--strict`. The kit has none.
+- `.nav.yml` files, one per folder, the format of the awesome-nav plugin, turned on by `plugins: [awesome-nav]`.
+  Zensical reads them itself and runs no plugin code. **This is what the kit uses.**
+- `weight:` front matter (mkdocs-nav-weight), not used.
+
+A folder without a `.nav.yml` lists `index.md` first, then its pages and then its folders by file name. The files:
+
+| File | What it says |
+| --- | --- |
+| `docs/.nav.yml` | the tab order; `flatten_single_child_sections`, so a folder with one child becomes that child |
+| `docs/engines/.nav.yml`, `docs/tools/.nav.yml` | one folder each, so the tabs read Godot and Blender; a second engine or tool is listed here and the tab becomes Engines or Tools |
+| `docs/studio/.nav.yml` | reading order; `append_unmatched: true` puts a new page after the listed ones |
+
+A page or folder listed in a `.nav.yml` that does not exist fails the build. One left out of a list without
+`append_unmatched` drops out of the sidebar silently, so a test fails a topic missing from `docs/.nav.yml` or an engine
+or tool folder missing from its parent's. Sorting by title (`sort: {by: title}`) has no effect on our pages, whose
+titles come from their headings, so Godot and Blender read in file-name order.
+
+**Lessons** build and their links work, but `not_in_nav: /lessons/` keeps them out of the tabs and the sidebar
+until #770 moves them; search still finds them.
+
+- **Approach:** Judge a change to a site, its theme or its nav by captures of the built pages at desktop and phone
+  width with the biggest folder in view, and by the number of sidebar links a page carries, not by its build log.
+  **Watch out for:** the move to Zensical kept `navigation.sections` from a site a tenth the size; a clean strict build
+  and a full page count said every page was there, while the sidebar put all 970 lessons in one open group, about
+  1,070 links and 450 KB on every page. **Seen:** gdstudio #790, 2026-11-08 (fix: topics are tabs, sections fold and
+  nest, `navigation.prune` sends one tab's tree, `.nav.yml` sets the order, the lessons stay out of the nav, and a
+  test fails `navigation.sections`).
 
 ## Building it {#build}
 
@@ -94,7 +136,8 @@ What decided it:
   checks moved, see [below](#checks)) and redirects are written by a script after the build (see [Moved
   pages](#moved)).
 - **The risk.** It is a beta, so the version is pinned exactly and an upgrade is a reviewed pull request. The way back
-  stays open: the `mkdocs.yml` has nothing Zensical-only, and MkDocs Material 9.7.7 still builds it strictly.
+  stays open: the `mkdocs.yml` has nothing Zensical-only, and MkDocs Material 9.7.7 still builds it strictly with the
+  `mkdocs-awesome-nav` plugin installed for the [nav order](#nav).
 
 ## Checks the old build hook ran {#checks}
 
@@ -109,8 +152,9 @@ runs elsewhere and nothing is lost:
 | The glossary can be built from the rules and the old lessons | the same check; `gds lessons <area>` and the SubagentStart hook build it in memory |
 | The rules of the topic sections ([the list](rules.md#checks)) | the same check, with `--base HEAD^1` in CI (gdstudio #769) |
 
-A test fails a `hooks:` or `plugins:` key in `mkdocs.yml`: Zensical would ignore it without a word, and a check put
-there would never run. A new check of the docs goes in pytest, pre-commit or the CI job.
+A test fails a `hooks:` key in `mkdocs.yml`, and a plugin Zensical does not implement itself (today only `awesome-nav`
+is allowed): Zensical would ignore it without a word, and a check put there would never run. A new check of the docs
+goes in pytest, pre-commit or the CI job.
 
 ## Moved pages {#moved}
 

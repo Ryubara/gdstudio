@@ -426,28 +426,40 @@ def default_base(root: Path) -> str | None:
     return out.strip() if code == 0 and out.strip() else None
 
 
-def base_problems(root: Path, base: str) -> list[str]:
-    """What the checkout adds against `base` (a commit) that the rules refuse: a file in the old lessons folder, and a
-    heading the base page does not have with no reason line under it. Raises LessonsError when `base` is unknown."""
-    code, _ = _git(root, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}")
-    if code != 0:
-        raise LessonsError(f"the base {base!r} is not a commit here (fetch it, or pass --base)")
-    _, listed = _git(root, "ls-tree", "-r", "--name-only", base, "--", LESSONS.as_posix())
-    before = set(listed.split())
+def default_bases(root: Path) -> list[str]:
+    """What the branch is compared with by default: where it left origin/main, and origin/main itself. A heading or a
+    lesson file that either has is not the branch's own (in a merge of main, the merge base is still the old main)."""
+    base = default_base(root)
+    return [base, "origin/main"] if base else []
+
+
+def base_problems(root: Path, base: str | list[str]) -> list[str]:
+    """What the checkout adds against `base` (a commit, or several: what any of them has is not new) that the rules
+    refuse: a file in the old lessons folder, and a heading no base page has with no reason line under it. Raises
+    LessonsError when a base is unknown."""
+    bases = [base] if isinstance(base, str) else list(base)
+    for commit in bases:
+        code, _ = _git(root, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}")
+        if code != 0:
+            raise LessonsError(f"the base {commit!r} is not a commit here (fetch it, or pass --base)")
+    before: set[str] = set()
+    for commit in bases:
+        _, listed = _git(root, "ls-tree", "-r", "--name-only", commit, "--", LESSONS.as_posix())
+        before |= set(listed.split())
     found = [
         _new_lesson_message(p.name)
         for p in sorted((root / LESSONS).glob("*.md"))
         if p.relative_to(root).as_posix() not in before
     ]
-    _, changed = _git(root, "diff", "--name-only", base, "--", DOCS.as_posix())
+    _, changed = _git(root, "diff", "--name-only", bases[0], "--", DOCS.as_posix())
     _, untracked = _git(root, "ls-files", "--others", "--exclude-standard", "--", DOCS.as_posix())
     for name in sorted(set(changed.split()) | set(untracked.split())):
         path = root / name
         if not name.endswith(".md") or not path.is_file() or (root / LESSONS) in path.parents:
             continue
-        code, old = _git(root, "show", f"{base}:{name}")
+        olds = [text for code, text in (_git(root, "show", f"{commit}:{name}") for commit in bases) if code == 0]
         page = path.relative_to(root / DOCS).as_posix()
-        found += new_section_problems(page, old if code == 0 else None, path.read_text(encoding="utf-8"))
+        found += new_section_problems(page, "\n".join(olds) if olds else None, path.read_text(encoding="utf-8"))
     return found
 
 

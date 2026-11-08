@@ -1,0 +1,4 @@
+# One tool today, so the Tools section flattens into a Blender tab. A new tool folder is added here (a test fails
+# one left out), which turns this back into a Tools tab with a section per tool.
+nav:
+  - blender

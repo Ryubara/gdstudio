@@ -1,0 +1,11 @@
+# The site's header tabs, in this order (docs/studio/docs-site.md#nav). A folder with one child becomes that
+# child: engines/ and tools/ list one folder each, so the tabs read Godot and Blender. lessons/ is left out on
+# purpose (mkdocs.yml not_in_nav) until gdstudio #770 moves it.
+flatten_single_child_sections: true
+nav:
+  - index.md
+  - Game dev: gamedev
+  - engines
+  - tools
+  - studio
+  - games

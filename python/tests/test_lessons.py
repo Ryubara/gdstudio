@@ -433,3 +433,15 @@ def test_two_rule_branches_from_the_same_main_merge_clean_in_either_order(kit):
 def test_angle_brackets_outside_code_are_escaped_in_the_page():
     assert lessons.brief("use <owner> or `<repo>`", 80) == "use &lt;owner> or `<repo>`"
     assert lessons.brief("a " * 200, 20).endswith(" ...")
+
+
+def test_what_main_already_has_is_not_new_in_a_merge_of_main(kit):
+    """Mid-merge, the merge base is still the old main: a section main added since is not the branch's own, so the
+    default compares with the merge base and origin/main together (`default_bases`)."""
+    old_main = commit_base(kit)
+    page = kit / "docs" / "engines" / "godot" / "web.md"
+    page.write_text(PAGE + "\n## Workers {#workers}\n\nAdded on main.\n", encoding="utf-8")
+    _git(kit, "commit", "-am", "main adds a section")
+    new_main = _git(kit, "rev-parse", "HEAD").strip()
+    assert "the new section 'Workers'" in lessons.base_problems(kit, old_main)[0]
+    assert lessons.base_problems(kit, [old_main, new_main]) == []

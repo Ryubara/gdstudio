@@ -5,13 +5,13 @@
     python .github/scripts/mistakes.py backfill             add `areas:` front matter, placed by keyword, to old
                                                             lesson files without it
 
-`check` refuses, from the checkout alone: a page over the size limit, a rule without its four parts or too long or in a
-section without an explicit anchor, a malformed or repeated anchor, a corrections-log row that quotes the maintainer or
-links no section, and an old lesson file without areas or dated after the old folder closed. Against a base commit
-(`--base REF`; by default where the branch left origin/main, skipped with a note when that is not known) it also
-refuses a file added to docs/lessons/ and a new heading without a reason line. It runs in pre-commit, in pytest and in
-the docs job of CI (`--base HEAD^1` on the merge commit of a pull request). Standard library only; the logic is
-python/src/gds_tools/lessons.py.
+`check` refuses, from the checkout alone: a page over the size limit, an entry without its three parts (Approach,
+Watch out for, Seen) or in the old form or too long or in a section without an explicit anchor, a malformed or repeated
+anchor, a corrections-log row that quotes the maintainer or links no section, and an old lesson file without areas or
+dated after the old folder closed. Against a base (`--base REF`; by default where the branch left origin/main and
+origin/main itself, skipped with a note when they are not known) it also refuses a file added to docs/lessons/ and a
+new heading without a reason line. It runs in pre-commit, in pytest and in the docs job of CI (`--base HEAD^1` on the
+merge commit of a pull request). Standard library only; the logic is python/src/gds_tools/lessons.py.
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ from gds_tools import lessons  # noqa: E402
 def check(argv: list[str]) -> int:
     areas = lessons.Areas.load(ROOT / lessons.AREAS_FILE)
     found = lessons.problems(ROOT, areas)
-    base = argv[argv.index("--base") + 1] if "--base" in argv[:-1] else lessons.default_base(ROOT)
-    if base is None:
+    base = [argv[argv.index("--base") + 1]] if "--base" in argv[:-1] else lessons.default_bases(ROOT)
+    if not base:
         print("note: origin/main is not known here, so new sections and new lesson files were not checked",
               file=sys.stderr)
     else:

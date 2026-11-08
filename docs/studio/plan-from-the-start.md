@@ -260,6 +260,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
   [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
   [Starting work: pausing a game](starting-work.md#paused)).
+- Plan: a docs site's navigation is designed for the page count it will reach (a tab per topic, sections that fold
+  and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at
+  desktop and phone width, not by its build warnings (gdstudio #790)
+  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
+  [Docs site: the navigation](docs-site.md#nav)).
 
 ## Start of a new game {#start-of-a-new-game}
 

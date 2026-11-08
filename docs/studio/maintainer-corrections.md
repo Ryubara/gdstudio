@@ -51,6 +51,7 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-07 | gdstudio #779 | `gds new game` should finish the GitHub steps itself, with MIT as the default licence, not leave them to the maintainer | [engines/godot/new-game.md#github](../engines/godot/new-game.md#github) |
 | 2026-11-07 | gdstudio #780 | The maintainer's prompts were quoted in the public docs; none belongs in a public repository | [studio/rules.md#rule](rules.md#rule) |
 | 2026-11-07 | gdstudio #786 | Deadnight was paused for kit work, yet a Deadnight issue was started and a pull request opened for it | [studio/starting-work.md#paused](starting-work.md#paused) |
+| 2026-11-08 | gdstudio #790 | The new site listed about 970 lessons in one sidebar group that was always open; sections should fold and nest | [studio/docs-site.md#nav](docs-site.md#nav) |
 | 2026-11-08 | gdstudio #769 | The maintainer questioned whether agents use per-mistake lesson pages at all; a learning belongs in the page an agent reads for the task | [studio/rules.md#where](rules.md#where) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}

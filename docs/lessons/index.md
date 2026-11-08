@@ -8,7 +8,7 @@ files below stay readable, and feed `gds learn` and `gds lessons <area>`, until 
 ## The old format
 
 One problem per file, `docs/lessons/<yyyy-mm-dd>-<slug>.md`, with a required `areas:` line from
-[areas.toml](areas.toml):
+[areas.toml](areas.toml). The site's sidebar leaves this folder out ([Docs site](../studio/docs-site.md#nav)):
 
 ```markdown
 ---

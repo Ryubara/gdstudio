@@ -1,0 +1,16 @@
+# Studio in reading order: what the studio is, then how work starts and runs, then the record. A page not listed
+# comes after these (append_unmatched); a listed page that is gone fails the build.
+append_unmatched: true
+nav:
+  - index.md
+  - building-games-with-agents.md
+  - starting-work.md
+  - agents.md
+  - hooks.md
+  - workspace.md
+  - sync.md
+  - capture.md
+  - refs.md
+  - docs-site.md
+  - maintainer-corrections.md
+  - plan-from-the-start.md
