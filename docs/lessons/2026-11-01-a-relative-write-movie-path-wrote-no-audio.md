@@ -11,4 +11,4 @@ areas: [audio, tests]
   a folder that did not exist, and the writer does not create folders.
 - **Fix:** Pass an absolute path to a folder that already exists. Smoke the capture with `--quit-after 25` first: a run
   with script errors still records every frame (a 1500-frame run took 100 s and recorded nothing useful).
-- **Docs:** [Audio](../godot/audio.md#capturing-sound)
+- **Docs:** [Audio](../engines/godot/audio.md#capturing-sound)

@@ -12,4 +12,4 @@ areas: [tests, godot]
   statement that is not valid GDScript.
 - **Fix:** keep assert chains short: one `assert_*` call with one matcher per statement, put the message in a variable
   or drop it, and re-run the tests after every `pre-commit` run that reformats a test file.
-- **Docs:** [Tests](../godot/index.md).
+- **Docs:** [Tests](../engines/godot/index.md).

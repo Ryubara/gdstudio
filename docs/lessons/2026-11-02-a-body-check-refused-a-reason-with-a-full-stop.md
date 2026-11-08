@@ -16,4 +16,4 @@ areas: [tools, process]
   too. The tests run every `none (reason)` line of the checker with and without the full stop.
 - **Check for next time:** a rule that reads free text takes both ways of writing the line before it is merged: run
   the new check on a sentence form and a bare form, and call one shared helper instead of copying the test.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

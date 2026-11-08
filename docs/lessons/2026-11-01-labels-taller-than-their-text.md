@@ -12,4 +12,4 @@ areas: [godot-ui, godot]
 - **Fix:** size a box from the line height it holds; put two sizes on one baseline by placing each label at `baseline -
   font.get_ascent(size)`, or by lifting the smaller one by the difference of the descents. A layout test that measures
   label rectangles against their parent's finds both at once.
-- **Docs:** [UI controls](../godot/ui-controls.md); in Deadnight, `docs/research/hud.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); in Deadnight, `docs/research/hud.md`.

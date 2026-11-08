@@ -16,4 +16,4 @@ areas: [tests, godot, ci]
   checked by keeping an orphan `Node` or a `StandardMaterial3D` per throw: the objects (and, for the node, orphans)
   assertions fail. Never `is_equal` a process-wide count; use growth with a slack (`before + SLACK`) or count
   something only the test can move (`get_tree().node_added`, a pool's own `live_count()`).
-- **Docs:** [Performance review](../godot/performance-review.md), "How to measure it".
+- **Docs:** [Performance review](../engines/godot/performance-review.md), "How to measure it".

@@ -10,4 +10,4 @@ areas: [tests, camera]
 - **Cause:** the script counted its own `_process` calls; Movie Maker numbers files from the first rendered frame,
   loading frames included.
 - **Fix:** print `Engine.get_frames_drawn()` for the frame to keep.
-- **Docs:** [Shot feedback](../godot/shot-feedback.md).
+- **Docs:** [Shot feedback](../engines/godot/shot-feedback.md).

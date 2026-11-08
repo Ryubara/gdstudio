@@ -11,4 +11,4 @@ areas: [net, tests]
   level decides"); `TicketMaker.make(..., rules, null)` names no host level, and the back rooms open at level 10.
 - **Fix:** pass a host level that opens the map (`TicketMaker.make(secret, server, match, user, name, 60, settings,
   12, seat)`) and assert `room.server.rules.settings.map` before counting anything on it.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#a-room-test-that-needs-a-map-or-a-fast-round).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#a-room-test-that-needs-a-map-or-a-fast-round).

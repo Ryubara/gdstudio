@@ -12,4 +12,4 @@ areas: [camera, tests]
   starts inside, so the camera passed through the wall.
 - **Fix:** take standing places from the baked navigation mesh (within 0.15 m of it), start every sweep from a clear
   point, and cast the ground ray from just above the floor.
-- **Docs:** [Third-person camera](../godot/camera.md#walls).
+- **Docs:** [Third-person camera](../engines/godot/camera.md#walls).

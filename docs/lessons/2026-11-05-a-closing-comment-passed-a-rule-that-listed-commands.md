@@ -19,10 +19,11 @@ areas: [tools, process]
 - **Fix:** `check_comments` in `.claude/hooks/guards.py` judges what `gh` would do, wherever a line starts it: every
   command of `gh help` that posts, `--comment` and `-c` on a close or reopen in every spelling gh reads, `gh api` writes
   to a `comments` or `reviews` path, the twelve GraphQL mutations of GitHub's schema, and a query it cannot read
-  ([Hooks](../hooks.md#comments)). The new tests failed 101 of 278 before the guard and all pass after it; each of 15
+  ([Hooks](../studio/hooks.md#comments)). The new tests failed 101 of 278 before the guard and all pass after it; each
+  of 15
   mutations of the guard fails them.
 - **Check for next time:** a rule about an effect (nothing is posted, nothing is merged) is checked against the tool's
   whole manual, not against the commands named after the effect: walk `gh help` for every flag that causes it, and ask
   the API's schema for the rest. A refusal seen once does not show a rule holds; find which program made it. When a
   rule in one repository closes a hole in a guard on the shared machine, carry it to every project the guard covers.
-- **Docs:** [Hooks](../hooks.md#comments).
+- **Docs:** [Hooks](../studio/hooks.md#comments).

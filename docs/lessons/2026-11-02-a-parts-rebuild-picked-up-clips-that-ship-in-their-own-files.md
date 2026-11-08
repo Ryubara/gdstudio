@@ -13,4 +13,4 @@ areas: [blender]
 - **Fix:** the build keeps a frozen list of the clips the file carries (`FILE_CLIPS`) and asserts it; the 39 rebuilt
   sample for sample identical to the committed file (compared the glb's animation accessors), so only the meshes
   changed. Before rebuilding a shared file, diff its catalog (`parts.json` `clips`) against the committed one.
-- **Docs:** [Character variants](../blender/variants.md#a-second-body-on-the-same-parts).
+- **Docs:** [Character variants](../tools/blender/variants.md#a-second-body-on-the-same-parts).

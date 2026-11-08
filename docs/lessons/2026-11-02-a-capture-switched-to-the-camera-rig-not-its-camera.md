@@ -10,4 +10,4 @@ areas: [tests, godot]
 - **Cause:** a player's `camera_rig` is the rig (a `Node3D` that places the lens), not the `Camera3D` it moves.
 - **Fix:** make the rig's own camera current: `rig.find_children("*", "Camera3D", true, false)[0].make_current()`;
   read the capture's log for `SCRIPT ERROR` before looking at its frames.
-- **Docs:** [Modular kits: stairs](../blender/modular-kits.md#stairs-rails-and-blockers).
+- **Docs:** [Modular kits: stairs](../tools/blender/modular-kits.md#stairs-rails-and-blockers).

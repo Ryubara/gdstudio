@@ -21,10 +21,10 @@ The source of truth is Deadnight's files; this page explains them and does not c
 
 The lessons this page builds on, each read before starting:
 
-- [Voice lines written as captions sounded robotic](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)
-- [The voice samples used a model picked from memory](../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)
-- [Speech-to-text catches audio tags the voice read aloud](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)
-- [AudioEffectRecord gives per-bus stems](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md) (measuring
+- [Voice lines written as captions sounded robotic](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)
+- [The voice samples used a model picked from memory](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)
+- [Speech-to-text catches audio tags the voice read aloud](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)
+- [AudioEffectRecord gives per-bus stems](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md) (measuring
   the voice against the guns)
 
 ## 1. Casting
@@ -34,7 +34,7 @@ tough male soldier: a deep, calm, steady voice with some expression that changes
 sample, list the account's voices (`GET /v1/voices`) and models (`GET /v1/models`) and pick from those lists, never
 from memory: the first samples were made on `eleven_v3` from an earlier session's notes while the account already
 offered `eleven_v4`, "most emotive", and the maintainer had to ask whether it was the best model available
-([lesson](../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)). Say in the pull request which model and
+([lesson](../../lessons/2026-11-01-a-voice-model-was-picked-from-memory.md)). Say in the pull request which model and
 why.
 
 **Send two or three voices, one line each, and let the maintainer choose.** Deadnight sent two premade voices (Adam and
@@ -63,7 +63,7 @@ settings fails instead of slipping in a second voice.
 **A line is the character reacting, not a caption for the event.** The first sample said "Reload... catch your breath"
 and read like a narrator; the maintainer wanted a person reacting out loud, in the first person, with expression,
 fillers and plenty of variety (Deadnight #384)
-([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)). So each line is:
+([lesson](../../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)). So each line is:
 
 - first person, with contractions (`gotta`, `'em`, `outta`, `I'm`);
 - a filler, a breath or a repeat where a person under stress would have one ("Come on, come on", "Okay, okay");
@@ -186,7 +186,7 @@ From the cached mp3 to the committed Ogg, with the pinned ffmpeg (`gds tool path
 A tag the model reads aloud ("laughs" spoken as a word) is easy to miss across a hundred takes. `check` transcribes
 each take with ElevenLabs Scribe (`POST /v1/speech-to-text`, `scribe_v1`), which writes the sounds it hears in
 brackets: a performed tag comes back as `[laughs]`, a spoken one as plain words
-([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). A take is flagged when a tag's word
+([lesson](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). A take is flagged when a tag's word
 appears in the transcript outside brackets (and is not also a word of the line), or when more than a quarter of the
 line's words (at least three) are missing. Transcripts are cached (`<take>.stt.json`) and never fetched twice.
 
@@ -228,7 +228,7 @@ voices of 139) move with it.
 - **Scribe bills the same character quota as speech.** Budget for the check before generating, or it may not fit.
 - **The counter lags the requests.** A reading right after a batch is too low (Deadnight's female set read 3,419, then
   6,333, then 6,457 for the same work); read the total once, after a pause, and record that
-  ([lesson](../lessons/2026-11-02-the-elevenlabs-character-counter-lags-the-requests.md)).
+  ([lesson](../../lessons/2026-11-02-the-elevenlabs-character-counter-lags-the-requests.md)).
 - **A second voice is a second data file.** Deadnight's female soldier (#679) is `soldier_voice_female.json` and
   `--voice female` on the same recipe: the same moments and takes, another premade voice, the same settings, her own
   words only where a line names a sex. Compare loudness per moment against the first voice (within 0.1 LU there).
@@ -243,7 +243,7 @@ voices of 139) move with it.
 - [`voice_sheet.py`][sheet] draws the script (moment, line, characters, seconds) as a contact sheet for the pull request,
   so the lines can be read without opening the data.
 - A night capture with the soldier speaking records the Voice, Effects and Ambience buses as stems
-  ([lesson](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)); [`voice_report.py`][report] measures
+  ([lesson](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)); [`voice_report.py`][report] measures
   them. Deadnight's: a line -24.0 LUFS while it speaks, a shot -19.2, the beds -34.6, so the voice sat 4.8 LU under the
   guns and 10.6 LU over the beds. Attach the chart, the sheet and a clip with sound.
 
@@ -275,12 +275,12 @@ Three pieces, each with its own tests ([design][design]):
 under a sting), at -4 dB (`VOICE_DB`). The player's own voice is flat (in their head) and another 2 dB lower
 (`LOCAL_DB`); a teammate's comes from where they stand, at head height, heard to 40 m with `unit_size` 6. Those two
 numbers were set from the stems capture above. Pooling, groups and the slot budget are the audio service's
-([Godot: Audio](../godot/audio.md#service-shape-that-worked)).
+([Godot: Audio](../../engines/godot/audio.md#service-shape-that-worked)).
 
 ## 5. The zombies are different
 
 The dead have no words, so they do not use text to speech: their voices are mostly synthesised (one throat model,
-[Godot: Audio](../godot/audio.md#making-sounds-with-code)) and ElevenLabs **Sound Effects** adds extra variants
+[Godot: Audio](../../engines/godot/audio.md#making-sounds-with-code)) and ElevenLabs **Sound Effects** adds extra variants
 (`POST /v1/sound-generation`, [`elevenlabs_zombies.py`][zombies], every prompt and model in
 [`zombie/eleven.json`][zombie-json]):
 
@@ -293,7 +293,7 @@ The dead have no words, so they do not use text to speech: their voices are most
 | Clean-up | trim, -20 LUFS, -1 dBFS peak | trim, low-pass at 8 kHz on the voices, fades, normalised to the synthesised variants' peak (-3 dBFS) |
 | Cost | characters (tags free) | 40 credits per second of requested length |
 | Bus | Voice, never ducked | Effects, ducked under a sting like every sound of the lot |
-| Playback | one at a time, by the director | rationed: one idle voice every 0.6 to 1.6 s for the whole horde, six zombie voices at most ([Godot: Audio](../godot/audio.md#a-crowds-voices-the-dead)) |
+| Playback | one at a time, by the director | rationed: one idle voice every 0.6 to 1.6 s for the whole horde, six zombie voices at most ([Godot: Audio](../../engines/godot/audio.md#a-crowds-voices-the-dead)) |
 
 The prompts that worked name a single sound and keep the room out: "One-shot, an undead man's short rising rasping
 snarl as he spots prey, guttural, close-mic, dry, no reverb" (`prompt_influence` 0.45). The game places the sound

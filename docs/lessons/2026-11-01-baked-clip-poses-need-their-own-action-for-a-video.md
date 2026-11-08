@@ -11,4 +11,4 @@ areas: [tools, blender]
   with no action makes a new one each call, and putting the clip back replaces the keys.
 - **Fix:** make one `Video_<armature>` action, and after each frame's pose (and before any depsgraph update) assign
   it and its slot, then key the bones; assign it once more at the end.
-- **Docs:** [Key art](../blender/key-art.md#title-art-and-store-sizes).
+- **Docs:** [Key art](../tools/blender/key-art.md#title-art-and-store-sizes).

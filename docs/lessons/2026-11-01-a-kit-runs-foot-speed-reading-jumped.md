@@ -11,4 +11,4 @@ areas: [gameplay, input]
   samples falls between two groups and flips with sampling phase or a small change of the feet.
 - **Fix:** author the contact as one steady sweep that touches down and lifts off at ground speed; set the game's
   blend point from the Godot reading.
-- **Docs:** [Gaits from kit clips](../blender/gaits.md).
+- **Docs:** [Gaits from kit clips](../tools/blender/gaits.md).

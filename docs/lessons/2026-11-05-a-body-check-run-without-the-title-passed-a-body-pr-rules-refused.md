@@ -19,4 +19,4 @@ areas: [tools, ci]
 - **Check for next time:** a local check that takes optional inputs is run with all of them; `description: ok` from a
   run without `--title` says nothing about the three title rules. Open follow-up: the edit guard should read the live
   title of the pull request it edits (a change to `.claude/hooks/`, merged by the maintainer).
-- **Docs:** [Hooks](../hooks.md#pr-body).
+- **Docs:** [Hooks](../studio/hooks.md#pr-body).

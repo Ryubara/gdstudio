@@ -16,4 +16,4 @@ areas: [process, ci]
   it applied cleanly. Better still, when the coordinator says another pull request is about to land, build the parts
   that do not need it, and merge only after it is on `main`; if you must build on it first, never push the merge, and
   expect to rebase your patch this way.
-- **Docs:** [Starting work](../starting-work.md#parallel).
+- **Docs:** [Starting work](../studio/starting-work.md#parallel).

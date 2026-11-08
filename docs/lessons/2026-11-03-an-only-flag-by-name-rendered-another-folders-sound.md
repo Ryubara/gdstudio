@@ -11,4 +11,4 @@ areas: [audio, tools]
   too, from its own recipe, over the committed file.
 - **Fix:** `git checkout` of the file, and the new sound is named for what it is (`refuse`); run `git status` after
   every render and look for files outside the folder you meant.
-- **Docs:** [Godot: Audio, Menu sounds](../godot/audio.md#menu-sounds).
+- **Docs:** [Godot: Audio, Menu sounds](../engines/godot/audio.md#menu-sounds).

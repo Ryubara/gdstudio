@@ -12,4 +12,4 @@ areas: [gameplay, tests]
 - **Fix:** a test that is about a time window sets the count to 2 (the interval halves); a test that is about many
   rounds sets 0.25. Check for next time: when a window is in seconds, print the seconds between the events the test
   makes before trusting the window.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#a-room-test-that-needs-a-map-or-a-fast-round).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#a-room-test-that-needs-a-map-or-a-fast-round).

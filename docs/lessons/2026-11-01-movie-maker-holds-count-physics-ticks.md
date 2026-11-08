@@ -12,4 +12,4 @@ areas: [godot, tests]
 - **Fix:** count waits in physics ticks and size `--quit-after` (which counts rendered frames) as ticks / 6. A look at
   the frames of the capture itself shows when the sequence is cut short.
 - **Docs:** [greybox and captures](https://github.com/Ryubara/deadnight) in Deadnight's research; the kit's
-  [Godot docs hub](../godot/index.md).
+  [Godot docs hub](../engines/godot/index.md).

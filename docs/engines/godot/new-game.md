@@ -43,14 +43,14 @@ green (it prints which), and 2 when it refused before doing anything.
    of it (`gh api licenses/<id>`), its year and holder filled in. An id GitHub does not know stops the command first.
 4. **Syncs.** The same call as `gds sync`: agent definitions, the hook launcher and its settings, the commit and pull
    request checker, the hold workflows and the message-check hooks, with the lock `.claude/gds-sync.json`
-   ([Sync](../sync.md)). `.github/scripts/pr_status.py` is copied from the kit once.
+   ([Sync](../../studio/sync.md)). `.github/scripts/pr_status.py` is copied from the kit once.
 5. **Sets up git.** `git init -b main`, `git lfs install --local`, a first commit (`build: Add the 3D Blank starter`,
    no trailer: a command wrote it), and the three hooks of `.pre-commit-config.yaml` (`uvx pre-commit install`).
    Git LFS's own pre-push hook, which pre-commit moves to `pre-push.legacy`, is repaired for Windows as
    `gds worktree` repairs it: its `#!/bin/sh` is not found by pre-commit there, and the first push died on it.
    A step whose program is missing is skipped with a line and listed at the end.
 6. **Installs the pinned addons.** GdUnit4 and the Godot MCP addon go into `game/addons/` untracked, as
-   `gds workspace init` does for every game ([Workspace](../workspace.md)), when they were fetched.
+   `gds workspace init` does for every game ([Workspace](../../studio/workspace.md)), when they were fetched.
 
 ## On GitHub {#github}
 
@@ -64,7 +64,7 @@ Without `--local`, the command goes on:
 3. **The conventions.** `python .github/scripts/groundwork.py labels`, `settings` and `ruleset`, each with `-R
    <owner>/<name> --apply`, from the game's own conventions.
 4. **The hold sweep.** `gh workflow run hold-sweep.yml` once, now that the ruleset requires `hold`
-   ([The hold](../hooks.md#hold)), tried again for a minute while GitHub registers the pushed workflows.
+   ([The hold](../../studio/hooks.md#hold)), tried again for a minute while GitHub registers the pushed workflows.
 5. **The proof.** It waits for the first `ci` and `docs` runs of the pushed commit and for the site to answer, and
    prints the runs' and the site's URLs.
 6. **The kit pull request.** A kit branch `workspace-add-<name>` in its own worktree
@@ -73,7 +73,8 @@ Without `--local`, the command goes on:
    `check-body` before `gh pr create`. The agent lands it like any other pull request.
 
 Every `gh` call goes through the one runner of `gds` (`issues.run_gh`), which refuses anything that posts a comment
-([No comments](../hooks.md#comments)). A failed step stops the command with what failed; the repository may then exist
+([No comments](../../studio/hooks.md#comments)). A failed step stops the command with what failed; the repository may
+then exist
 already, so finish the remaining steps by hand rather than running the command again under the same name.
 
 The game then holds: `game/` (the project), `docs/` and `mkdocs.yml` (a docs site), `.github/` (the conventions, the

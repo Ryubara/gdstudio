@@ -17,4 +17,4 @@ areas: [gameplay, camera, tests]
   (`Player.make_viewless()`, `Player.look_through()` to undo it). Connections made in `setup()` check
   `is_connected` first. Run the whole `tests/player`, `tests/night` and `tests/bots` folders before pushing a change
   to a node everyone shares, not only the new suite.
-- **Docs:** [Third-person camera](../godot/camera.md#a-rig-no-one-looks-through).
+- **Docs:** [Third-person camera](../engines/godot/camera.md#a-rig-no-one-looks-through).

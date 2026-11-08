@@ -252,7 +252,7 @@ def test_quoted_pipes_do_not_split_commands(tmp_path):
     assert "pinned" in denied(shell('echo "a|b" && godot -e', tmp_path))
 
 
-# --- The learning loop (docs/hooks.md#learning) ----------------------------------------------------------------------
+# --- The learning loop (docs/studio/hooks.md#learning) ----------------------------------------------------------------
 
 
 @pytest.fixture()
@@ -292,7 +292,7 @@ def test_reminder_text_comes_from_the_config(workspace):
 
 def test_session_start_points_at_the_corrections_and_lessons(repo, workspace):
     text = context("SessionStart", repo)
-    assert "docs/research/maintainer-corrections.md" in text and "docs/lessons/index.md" in text
+    assert "docs/studio/maintainer-corrections.md" in text and "docs/lessons/index.md" in text
 
 
 def test_starting_agents_are_told_to_read_and_to_report_the_row(workspace):
@@ -358,7 +358,7 @@ def test_dispatch_end_to_end_through_stdin(workspace):
         assert key in run.stdout
 
 
-# --- local mains follow origin (docs/hooks.md#mains) ---------------------------------------------------------------
+# --- local mains follow origin (docs/studio/hooks.md#mains) -----------------------------------------------------------
 
 
 def _git(path: Path, *args: str) -> str:
@@ -440,7 +440,7 @@ def test_session_start_pulls_the_local_main(mains, workspace):
     assert _git(local, "rev-parse", "HEAD") == head
 
 
-# --- finished worktrees are swept in the background (docs/hooks.md#sweep) -------------------------------------------
+# --- finished worktrees are swept in the background (docs/studio/hooks.md#sweep) --------------------------------------
 
 
 @pytest.fixture()
@@ -493,7 +493,7 @@ def test_session_start_merge_and_stop_start_the_sweep(monkeypatch, workspace):
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Issue order (docs/hooks.md#issues)
+# Issue order (docs/studio/hooks.md#issues)
 # --------------------------------------------------------------------------------------------------------------------
 
 
@@ -624,7 +624,7 @@ def test_other_label_work_is_allowed(tmp_path):
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Docs ship with the change (docs/hooks.md#docs)
+# Docs ship with the change (docs/studio/hooks.md#docs)
 # --------------------------------------------------------------------------------------------------------------------
 
 GLOSSARY = """# Mistakes by area
@@ -680,7 +680,7 @@ def kit_workspace(workspace: Path) -> Path:
         (HOOKS.parents[1] / "python" / "src" / "gds_tools" / "lessons.py").read_text(encoding="utf-8"), encoding="utf-8"
     )
     (kit / "docs" / "lessons").mkdir(parents=True)
-    (kit / "docs" / "research").mkdir(parents=True)
+    (kit / "docs" / "studio").mkdir(parents=True)
     (kit / "docs" / "lessons" / "areas.toml").write_text(AREAS, encoding="utf-8")
     for name, (area, title, fix) in KIT_LESSONS.items():
         text = f"---\nareas: [{area}]\n---\n# {title}\n\n- **Saw:** x.\n- **Fix:** {fix}\n"
@@ -737,7 +737,7 @@ def test_no_lessons_module_means_no_area_text(kit_workspace):
 
 def test_the_glossary_is_built_from_the_lessons_not_read_from_a_file(kit_workspace):
     kit = kit_workspace / "repos" / "gdstudio"
-    assert not (kit / "docs" / "research" / "mistakes-by-area.md").exists()
+    assert not list((kit / "docs").rglob("mistakes-by-area.md"))
     new = kit / "docs" / "lessons" / "2026-10-09-new.md"
     new.write_text("---\nareas: [net]\n---\n# A brand new mistake\n\n- **Fix:** Check it\n", encoding="utf-8")
     assert "- A brand new mistake: Check it" in guards.area_checks(kit_workspace, ["net"], CONFIG)
@@ -1163,7 +1163,7 @@ def test_a_clean_description_or_an_unrelated_command_says_nothing(monkeypatch):
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Agent stalls (docs/hooks.md#stall)
+# Agent stalls (docs/studio/hooks.md#stall)
 # --------------------------------------------------------------------------------------------------------------------
 
 STALLED = "I ran the unit tests and they pass.\n\nNow the autopilot."
@@ -1309,7 +1309,7 @@ def test_the_stall_gate_through_the_real_process(workspace):
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Idle issues: the coordinator's Stop (docs/hooks.md#idle)
+# Idle issues: the coordinator's Stop (docs/studio/hooks.md#idle)
 # --------------------------------------------------------------------------------------------------------------------
 
 DEADNIGHT = "Ryubara/deadnight"
@@ -1505,7 +1505,7 @@ def test_the_hook_reads_the_kits_own_window_code(workspace):
     assert module is not None and hasattr(module, "compute_window") and hasattr(module, "parse_block")
 
 
-# --- the disk guard (docs/hooks.md#disk) ----------------------------------------------------------------------------
+# --- the disk guard (docs/studio/hooks.md#disk) -----------------------------------------------------------------------
 
 
 def disk_agent_call(cwd: Path, kind: str = "godot-engineer") -> dict:
@@ -1593,7 +1593,7 @@ def test_the_disk_guard_starts_in_the_background_and_is_throttled(monkeypatch, w
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Comments (docs/hooks.md#comments): every route in gh 2.102's manual, and what must keep working
+# Comments (docs/studio/hooks.md#comments): every route in gh 2.102's manual, and what must keep working
 # --------------------------------------------------------------------------------------------------------------------
 
 # The command that put the closing comment on #691, as it was run.
@@ -1763,7 +1763,7 @@ ALLOWED_COMMANDS = [
     "uv run --project python gds issue start Ryubara/gdstudio#695 --agent claude",
     "echo gh issue comment 5 --body hi",
     "echo 'gh issue close 5 --comment hi'",
-    'grep -n "gh issue close --comment" docs/hooks.md',
+    'grep -n "gh issue close --comment" docs/studio/hooks.md',
     "git log --grep 'gh pr comment'",
     "git commit -m 'hooks: Refuse gh issue close --comment'",
     "git commit -m \"$(cat <<'EOF'\ngh issue close 5 --comment hi\nEOF\n)\"",

@@ -1,4 +1,4 @@
-"""`gds issue`: issues are started oldest first, through one tool (docs/starting-work.md).
+"""`gds issue`: issues are started oldest first, through one tool (docs/studio/starting-work.md).
 
 Only the oldest open issues that nobody works on may be started: the window. An issue is out of the line when it is
 `S-in-progress`, `S-pending-review`, `S-blocked` or `S-needs-info`, or when an open pull request closes it (a pull
@@ -101,7 +101,7 @@ _COMMENT_MUTATION = re.compile(r"\b(add|update|submit|dismiss)\w*(Comment|Review
 
 def posts_a_comment(args: list[str]) -> bool:
     """Whether `gh <args>` would post a comment or a review: `gds` runs as the maintainer, who allows none
-    (their decision of 2026-10-12; docs/hooks.md#comments)."""
+    (their decision of 2026-10-12; docs/studio/hooks.md#comments)."""
     route = tuple(args[:2])
     if route in _POSTING:
         return True
@@ -214,7 +214,8 @@ _BLOCK_LINE = re.compile(r"(?im)^[ \t>*_-]*Blocked[ \t]*\(([^)\n]*)\)[ \t]*:[ \t
 _WAITS_ON = re.compile(r"(?i)^waits?\s+on\s+(.*)$")
 _CLAUSE_END = re.compile(r"[:;(]| [-–—] |\.\s")
 _BLOCKER = re.compile(r"(?<![\w/])((?:[\w.-]+/[\w.-]+)?)#(\d+)")
-# What a block may wait on besides the maintainer (docs/starting-work.md#parallel): an issue the blocked one's body
+# What a block may wait on besides the maintainer (docs/studio/starting-work.md#parallel): an issue the blocked one's
+# body
 # names as a dependency (`Depends on: #227.`, `**Depends on:** #53 to #57`, `Carried from #228 (PR #597, ...)`,
 # `Starts after #630 merges`, or any `#N` in the `### Blocked by` section the issue form renders), or files both would
 # edit in ways a merge cannot settle (`--conflict`, written `(conflict in: a, b)` after the reason).
@@ -630,7 +631,7 @@ def block(
                 f"`Starts after #{blocker}` or `Carried from #{blocker}` line in the issue body, or "
                 f"`--conflict <path>...` naming the files both would edit in ways a merge cannot settle, or "
                 f"`--on {MAINTAINER}`. 'Same subsystem', 'same agent' and 'in order' are not reasons: start it, and "
-                f"parallel agents merge origin/main before each push (docs/starting-work.md#parallel)."
+                f"parallel agents merge origin/main before each push (docs/studio/starting-work.md#parallel)."
             )
     body = without_blocks(issue.body)
     edit = ["issue", "edit", str(number), "-R", repo, "--body", (body + "\n\n" if body else "") + line]

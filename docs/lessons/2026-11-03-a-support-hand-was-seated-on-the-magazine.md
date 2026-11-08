@@ -15,4 +15,4 @@ areas: [blender, tests]
 - **Fix:** the `Support` socket 2 cm further forward (x -0.30, the hand's rear clear of the magazine); after a solve,
   compare the solved `left_hand` origin with the support point (12-14 cm under it on a gun that works, 20 cm on this
   one) and read the model sheet's contact lines in the game pose, which print where each miss is in model space.
-- **Docs:** [Weapons, hands on the weapon](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Weapons, hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon).

@@ -11,4 +11,4 @@ areas: [godot, input]
   Godot accepts any integer as a `physical_keycode`.
 - **Fix:** write bindings in the editor or print `InputMap.action_get_events(action)` from a probe, and add a test that
   sends the real key.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

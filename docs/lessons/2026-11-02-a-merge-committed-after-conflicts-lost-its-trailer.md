@@ -22,4 +22,4 @@ areas: [ci, tools]
   `git merge -m "<title> + trailer"` and finished with `git commit --no-edit`; that is the pattern to search your own
   shell history for. `git merge --no-commit`, then `git commit -F <file>` is the safe order. #539 became #546: a new
   branch from `main` with `git merge --squash` of the old one and one clean commit.
-- **Docs:** [Merging main into a pull request](../starting-work.md#merging-main-into-a-pull-request).
+- **Docs:** [Merging main into a pull request](../studio/starting-work.md#merging-main-into-a-pull-request).

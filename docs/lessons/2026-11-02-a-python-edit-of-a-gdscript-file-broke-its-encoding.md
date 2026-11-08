@@ -12,4 +12,4 @@ areas: [godot, tools]
 ` line ends.
 - **Fix:** open with `encoding="utf-8", newline=""` (read and write), keep tooltip units ASCII (`deg`, `m/s^2`), and
   run a headless import after any scripted edit: it prints the broken file's name.
-- **Docs:** [Godot index](../godot/index.md).
+- **Docs:** [Godot index](../engines/godot/index.md).

@@ -94,7 +94,7 @@ numbers, the frame's own call taken off:
   batch, so draw all the icons of a frame before any words.
 - **`load()` in `_draw` is not enough either.** Draw commands keep a RID, not a reference, so a texture nothing else
   holds is freed when `_draw` returns and the rect comes out white, with no error
-  ([lesson](../lessons/2026-11-04-a-texture-loaded-in-draw-came-out-white.md)).
+  ([lesson](../../lessons/2026-11-04-a-texture-loaded-in-draw-came-out-white.md)).
 - **An atlas shown far under its size:** import it with mipmaps and set `texture_filter` to
   `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS`. 64 px cells at 24 px are softer at rest and change 22 to 43 percent less at each
   quarter-pixel step than with plain linear filtering. Keep the art 3 px of 128 inside the cell so a mipmap does not
@@ -124,7 +124,7 @@ and never shows. Count by part first (Deadnight: `--canvasparts=1` on the budget
 are one item each until used. Make the words on first need (a property whose getter builds, `_build()` where the part
 is shown) and never park them out of the tree, which makes them orphans, another budgeted count. A test checks both
 ends: nothing under the part while idle, the whole card after use. See the
-[lesson](../lessons/2026-11-05-hidden-hud-cards-held-a-fifth-of-the-canvas-item-budget.md).
+[lesson](../../lessons/2026-11-05-hidden-hud-cards-held-a-fifth-of-the-canvas-item-budget.md).
 
 ## How to compare two builds
 

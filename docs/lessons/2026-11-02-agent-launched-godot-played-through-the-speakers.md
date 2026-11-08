@@ -13,4 +13,4 @@ areas: [tools, audio]
 - **Fix:** `gds godot` adds `--audio-driver Dummy` (`--with-audio` opts out), the hook refuses a real driver from a
   session, `--headless` and Movie Maker already force Dummy, and Deadnight's probes add the mute under `GDS_QUIET=1`.
   The Dummy driver still mixes: a bus peak and an `AudioEffectCapture` read the same numbers headless and windowed.
-- **Docs:** [Sound](../godot/no-focus.md#sound).
+- **Docs:** [Sound](../engines/godot/no-focus.md#sound).

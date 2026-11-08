@@ -181,7 +181,7 @@ per-zombie cost); all together take 80 zombies from about 40 ms to about 5 ms, a
   run; the numbers here are wall clock and a headless run instead.
 - A capture that draws through a camera of its own gives it to the throttle (`horde.throttle.camera`): the throttle
   poses only what its camera sees, and with the night's camera looking elsewhere the crowd stays on its first pose
-  ([lesson](../lessons/2026-11-04-a-capture-with-its-own-camera-froze-the-dead.md)).
+  ([lesson](../../lessons/2026-11-04-a-capture-with-its-own-camera-froze-the-dead.md)).
 - Zombies in a `--fixed-fps` run advance by a fixed delta, so the run is repeatable; in the browser the delta is
   real, so two runs differ slightly (the "first / second" cells).
 

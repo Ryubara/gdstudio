@@ -13,4 +13,4 @@ areas: [camera, tests]
 - **Fix:** the 3D world's root sets its own mode to ON (`Night._init`), which overrides the inherited OFF; a test and a
   browser flag check it in the tree the game builds, and a browser probe measures the soldier's screen position per
   frame (Deadnight #385): unevenness 9.06 px before, 0.26 px after.
-- **Docs:** [Physics interpolation](../godot/physics-interpolation.md).
+- **Docs:** [Physics interpolation](../engines/godot/physics-interpolation.md).

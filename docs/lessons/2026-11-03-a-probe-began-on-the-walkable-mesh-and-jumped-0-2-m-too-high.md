@@ -13,4 +13,4 @@ areas: [tests, godot]
   asking whether the start can walk there.
 - **Fix:** start every hop at the solid floor found by a ray (`_floor_under`), and call ground reached only when a path
   query from the start ends on it; replay any claimed chain hop by hop from the real floor before it is filed.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

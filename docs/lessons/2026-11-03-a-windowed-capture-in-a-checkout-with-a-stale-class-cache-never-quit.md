@@ -14,5 +14,6 @@ areas: [tests, tools]
 - **Fix:** run `godot --headless --path game --import` in a checkout before its first windowed run, and give every
   capture a watchdog (`get_tree().create_timer(60).timeout.connect(get_tree().quit)`) or a short `gds godot --timeout`;
   look at the first lines of the log within a minute, not at the end. Stop a stuck run by its PID.
-- **Docs:** [no-focus](../godot/no-focus.md). Check: a windowed run that has printed no `SHOT`/frame line after a
+- **Docs:** [no-focus](../engines/godot/no-focus.md). Check: a windowed run that has printed no `SHOT`/frame line after
+  a
   minute is stuck, not slow.

@@ -14,4 +14,4 @@ areas: [godot-ui, net]
   same restore; `test_night_crosshair.gd` joins over a real loopback socket and checks the first running frame.
 - **General:** test a screen's first running frame through every route into it (solo, join, resume, the Activity), not
   only the route the author played. An overlay that hides HUD state has exactly one way to undo it.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

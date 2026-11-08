@@ -11,4 +11,4 @@ areas: [blender, tools]
   bones and `export_reset_pose_bones=True` replace with Blender's rest (arms out).
 - **Fix:** read the static pose right after the import, key it into every clip for the bones it leaves out, pose it
   before export, `export_reset_pose_bones=False`.
-- **Docs:** [Rig sharing (Blender)](../blender/rig-sharing.md).
+- **Docs:** [Rig sharing (Blender)](../tools/blender/rig-sharing.md).

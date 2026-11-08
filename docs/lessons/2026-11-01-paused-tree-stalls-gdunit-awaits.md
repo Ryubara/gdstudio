@@ -10,4 +10,4 @@ areas: [tests, godot]
 - **Cause:** GdUnit4's wait timer is not an always-processing node, so it stops with the tree.
 - **Fix:** wait with `await get_tree().create_timer(seconds, true).timeout` (the second argument ignores pause) and
   reset `get_tree().paused = false` in `after_test`.
-- **Docs:** [Godot testing](../godot/index.md#testing-and-capture).
+- **Docs:** [Godot testing](../engines/godot/index.md#testing-and-capture).

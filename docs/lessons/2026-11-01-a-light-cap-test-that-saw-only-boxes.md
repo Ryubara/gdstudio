@@ -11,4 +11,4 @@ areas: [tests, blender]
   never counted.
 - **Fix:** count every shaded mesh, keep 2 lights free for the fight, find light sources by walking the project, and
   hold known overruns in a ratchet table.
-- **Docs:** [Lighting in Compatibility](../godot/compat-lighting.md).
+- **Docs:** [Lighting in Compatibility](../engines/godot/compat-lighting.md).

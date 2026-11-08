@@ -18,4 +18,4 @@ areas: [process, ci, tools]
   body back (`gh pr view N --json body -q .body`), move each uploaded `user-attachments` URL into its place under
   `## Screenshots`, delete the appended block and `gh pr edit N --body-file <file>` without `--attach`. Check the
   headings' order after every edit.
-- **Docs:** [Agents](../agents.md) (the pull request rules the checks enforce).
+- **Docs:** [Agents](../studio/agents.md) (the pull request rules the checks enforce).

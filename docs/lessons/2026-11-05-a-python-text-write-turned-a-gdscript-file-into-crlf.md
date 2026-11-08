@@ -12,4 +12,4 @@ areas: [general, tools]
 - **Fix:** open both ends with `newline=""` (`open(p, newline="")` to read, `open(p, "w", newline="")` to write) in an
   edit script, or strip afterwards with `sed -i 's/\r$//' <file>`; run `file <file>` (it must say `ASCII text`, not
   `with CRLF line terminators`) after any scripted edit. The hook-written CRLF of `gdformat` has the same cure.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

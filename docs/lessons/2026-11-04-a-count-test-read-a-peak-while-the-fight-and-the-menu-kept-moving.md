@@ -26,5 +26,5 @@ areas: [tests, audio, ci]
 - **Rule:** a test that counts objects waits for every kind of work the process does by itself (queues, loads, tweens,
   voices) before it reads, and compares two readings taken in the same state; it never takes a maximum over frames of
   a live fight. No assertion between two readings (an assertion is objects of its own).
-- **Docs:** [Performance review](../godot/performance-review.md), "How to measure it"; earlier lessons:
+- **Docs:** [Performance review](../engines/godot/performance-review.md), "How to measure it"; earlier lessons:
   [a count test that skipped the Audio queue](2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md).

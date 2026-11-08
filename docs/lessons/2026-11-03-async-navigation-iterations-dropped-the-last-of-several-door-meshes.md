@@ -19,4 +19,4 @@ areas: [tests, godot, gameplay]
   about half failing before; a test asserts the setting and that a path from each window reaches the hall.
 - **Check:** a sim that must be deterministic must not read a navigation map that a thread updates; when a
   stand-still dead is the symptom, print each dead one's `map_get_path` end against its target before blaming the AI.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md).

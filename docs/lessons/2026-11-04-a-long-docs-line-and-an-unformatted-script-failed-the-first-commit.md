@@ -12,4 +12,4 @@ areas: [process, tools]
 - **Fix:** run `uvx pre-commit run --files <the files just edited>` after each docs or script edit, not at the end, and
   wrap by hand as you write (a table row is the only line that may pass 120). Add new files first
   (`git add -N .`), see [pre-commit skipped the new files](2026-11-03-pre-commit-all-files-skipped-the-new-files.md).
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

@@ -306,17 +306,17 @@ there): the drive-in seen through windows and broken walls, 20 to 150 m out, nev
   gave black and blown-out results in Compatibility.
 - **Pass colours as they are.** Compatibility takes a colour uniform as is (as if it lit in sRGB space): the fog
   colour through `srgb_to_linear` drew ten times too dark
-  ([lesson](../lessons/2026-11-03-a-backdrop-colour-passed-as-linear-drew-ten-times-too-dark.md)).
+  ([lesson](../../lessons/2026-11-03-a-backdrop-colour-passed-as-linear-drew-ten-times-too-dark.md)).
 - **One `MultiMeshInstance3D` per model.** A `.tscn` cannot point into an imported glTF scene, so the multimesh names
   the scene in metadata and a node takes its first mesh at load; models exported as `.obj` are plain meshes. 330
   copies in 37 drawing nodes, 62k triangles.
 - **Glow by atlas cell**: emission where `floor(UV * 5)` is a bulb or neon cell (Godot's UV starts at the image's top,
-  [lesson](../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)); fires and halos are glow quads, no
+  [lesson](../../lessons/2026-11-03-an-atlas-cell-read-from-uv-was-upside-down.md)); fires and halos are glow quads, no
   light.
 - **Cost on the web**: 34 more draw calls and about 0.4 ms a frame in Chrome on an RTX 5080 (1280 x 720, unpaced,
   alternating 50-frame blocks with and without in one page), about 10 % on SwiftShader.
 - **Prove it from the player's camera** in a blockout room and outside it, with a hidden floor under every spot
-  ([lesson](../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
+  ([lesson](../../lessons/2026-11-03-a-capture-spot-outside-the-room-had-no-floor.md)).
 
 ## A lamp near a wall
 
@@ -333,7 +333,7 @@ pixels of the next room, measured with each part hidden and shown from the playe
   of it when `h <= d / (1 - c/2)`. The halo stays: it is the bulb's, and the bulb is seen over the wall.
 - **Measure it hidden and shown**, from behind the wall, with a hide the game does not undo (`light_cull_mask = 0`,
   `layers = 0`, never `visible`;
-  [lesson](../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
+  [lesson](../../lessons/2026-11-03-hiding-a-lamp-part-to-measure-it-was-undone-by-the-lamps-own-update.md)).
 - **A flickering lamp never goes dark**: keep its energy above 0 so the light stays `visible`; a light that toggles
   changes a mesh's set of lights.
 

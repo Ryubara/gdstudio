@@ -12,4 +12,4 @@ areas: [blender]
 - **Fix:** butts 0.14-0.16 m deep and the MP5's and M4A1's stocks narrower (0.054-0.056 m across), the top line kept and
   the bottom line raised. Render a turntable beside a kit-style gun after the first build, before anything is solved
   against it.
-- **Docs:** [Weapons, building by script](../blender/weapons.md#building-by-script).
+- **Docs:** [Weapons, building by script](../tools/blender/weapons.md#building-by-script).

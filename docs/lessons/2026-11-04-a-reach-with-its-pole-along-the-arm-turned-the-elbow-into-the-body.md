@@ -18,4 +18,4 @@ areas: [blender, godot, tests]
   the left hand takes the far end of the magazine or drum, not its middle. A coordinate search on the keys cleared
   every gun but walked the hands off their parts (a drum held from the barrel) and merged two points of a cycle: search
   near the part and look at every result. Sample every tick at the end; every third missed the crossings of a transit.
-- **Docs:** [Clips that keep the arms out](../blender/variants.md#clips-that-keep-the-arms-out).
+- **Docs:** [Clips that keep the arms out](../tools/blender/variants.md#clips-that-keep-the-arms-out).

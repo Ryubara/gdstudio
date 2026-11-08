@@ -14,4 +14,4 @@ areas: [tests, gameplay]
   neighbouring suite (`test_night_commands.gd`) already did the same.
 - **Check for next time:** a test of a pressed key in the real night runs the press and three ticks, and reads the events
   after them; copy the nearest suite's way of pressing before writing a new one.
-- **Docs:** [Test speed](../godot/test-speed.md#what-hand-stepping-needs).
+- **Docs:** [Test speed](../engines/godot/test-speed.md#what-hand-stepping-needs).

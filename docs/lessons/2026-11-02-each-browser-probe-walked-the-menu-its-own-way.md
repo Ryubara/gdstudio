@@ -12,4 +12,4 @@ areas: [tests, web]
 - **Fix (Deadnight #484):** one shared start helper (`smoke.start_solo`) for every probe, and CI runs every probe's
   start-up, so a menu change fails there and not later.
 - **General:** test drivers share one way into the game; a UI change then breaks one helper, at once, in CI.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks).

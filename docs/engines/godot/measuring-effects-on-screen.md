@@ -2,7 +2,7 @@
 
 An effect the player must read (a muzzle flash, a hit marker, a pickup glint, a warning) is judged by what it does to
 the pixels the player sees, from the player's camera, in the renderer the player plays in: not by its parameters and
-not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
+not by a close-up capture of the effect on its own (Deadnight #408, [lesson](../../lessons/2026-11-02-a-flash-in-the-guns-plane-was-hidden-by-the-gun.md)).
 
 ## Method
 
@@ -27,7 +27,7 @@ four). From a shoulder camera 0.6 m right and 2.3 m behind a chibi Soldier, a gu
 Deadnight's tommy gun showed 284 pixels of 2.07 million at rest and **0** during the reload that tilted it 35 degrees
 down (#383), the rifle about 300 throughout. A reload carried out to the right of the head and up showed 6,700 to
 8,700 for the long guns and 2,700 to 3,700 for the pistols (Deadnight #683,
-[lesson](../lessons/2026-11-02-a-reload-tilt-was-hidden-behind-the-head.md)). So for any action on a held item:
+[lesson](../../lessons/2026-11-02-a-reload-tilt-was-hidden-behind-the-head.md)). So for any action on a held item:
 
 - measure it from the camera the player has, at rest and in the middle of the action, and keep the numbers as floors;
 - expect the space in front of the chest to be the head's, and move what must read to the right of the head (the
@@ -41,14 +41,14 @@ Deadnight's capture: `game/tests/captures/reload_sheet.tscn --measure`.
 
 A prop that shows the player something (a prize, a pickup, a sign that changes) is read from the spot where its use
 prompt appears, through the player's resting camera with the player's own body in the frame, not from a capture placed
-to show the whole prop (Deadnight #830, [lesson](../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md)).
+to show the whole prop (Deadnight #830, [lesson](../../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md)).
 Deadnight's prize crane floated its prize 3.25 m up, turning: from the marker (0.8 m from the glass, camera 2.3 m
 behind and 0.6 m right of a 1.4 m Soldier, level, FOV 60) it was at the frame's top edge and end on half the time,
 while the Soldier's head covers the machine's middle below about 1.65 m. The prize now slides out at 1.72 to 2.18 m,
 side on: whole on screen, 14 to 24 % of a 1920-pixel width, 0 % behind the body; at grab height (1.35 m) 79 to 98 % of
 it was behind the head.
 
-To hold it in a headless test ([lesson](../lessons/2026-11-03-a-screen-test-passed-the-layout-it-was-written-to-catch.md)):
+To hold it in a headless test ([lesson](../../lessons/2026-11-03-a-screen-test-passed-the-layout-it-was-written-to-catch.md)):
 
 - project into a `SubViewport` sized like the screen (a headless root viewport is 1920 x 1920) with a `Camera3D` that
   copies the player camera's global transform and FOV; `unproject_position` needs no drawing;
@@ -62,7 +62,7 @@ Deadnight's checks: `game/tests/night/test_crane_view.gd`; the screenshots, `gam
 ## A soft rim, and which node it is
 
 An additive wall (a beam, a cone of haze, a shaft) reads as a solid object when its edge is a hard step. Whether it does
-is measured, not judged by eye (Deadnight #854, [lesson](../lessons/2026-11-03-a-pale-column-was-blamed-on-the-wrong-node.md)):
+is measured, not judged by eye (Deadnight #854, [lesson](../../lessons/2026-11-03-a-pale-column-was-blamed-on-the-wrong-node.md)):
 
 - Draw the view with the column shown, then hidden, in a frozen frame: `get_tree().paused = true` with the capture node
   on `PROCESS_MODE_ALWAYS`, the player's body hidden in both (its own edges are not the column's), and read both

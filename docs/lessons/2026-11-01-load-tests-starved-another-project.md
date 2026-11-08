@@ -11,4 +11,4 @@ areas: [tests, process]
 - **Fix:** at most four parallel suites and no busy-loop processes; stop every process you start, by PID, the moment its
   measurement ends; give long commands a timeout; prefer a deterministic reproduction (step frames by hand, inject the
   delay). Now in the engineer agent definitions.
-- **Docs:** [Building games with agents](../research/building-games-with-agents.md).
+- **Docs:** [Building games with agents](../studio/building-games-with-agents.md).

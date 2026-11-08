@@ -1,7 +1,7 @@
 # Level design: the principles and how each is checked
 
 The principles the `level-designer` agent carries (`.claude/agents/level-designer.md`), with the published practice
-each one comes from and the check that settles it. The checklist an agent walks is [Map review](../godot/map-review.md);
+each one comes from and the check that settles it. The checklist an agent walks is [Map review](../engines/godot/map-review.md);
 this page is why that checklist says what it says. It was written for the kit's #401, after Deadnight's review of both
 maps (#833) found three ways out or past a door that the tests missed, spawns that did not read, and lighting and
 landmark faults, all from a level-design reading.
@@ -174,7 +174,7 @@ lights ([halo](../lessons/2026-11-03-a-billboard-halo-wider-than-its-gap-to-the-
 [sign](../lessons/2026-11-03-a-sign-was-built-for-the-front-and-its-light-went-through-the-wall.md),
 [pane](../lessons/2026-11-03-a-lit-window-was-a-hole-from-the-room.md),
 [spot](../lessons/2026-11-03-a-spot-written-with-a-yaw-of-180-faced-the-road.md);
-[Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light)).
+[Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light)).
 
 **Check (a number):** capture the room behind each wall-mounted glow, along the wall and from above, with the glow freed
 and present; the pixels that change inside the room are 0. The game's glow-bleed and light-cap tests run after any
@@ -236,7 +236,7 @@ standing place over the reach, not only on leaving the map
 ### P16. The camera fits where the body goes
 
 A third-person camera needs the shoulder offset plus air on both sides; a prop near a wall puts the lens inside it
-([Third-person camera: walls](../godot/camera.md#walls)).
+([Third-person camera: walls](../engines/godot/camera.md#walls)).
 
 **Check (a capture):** from the player's camera at every door, stair and corner, the player and the way on are in the
 frame.
@@ -244,7 +244,8 @@ frame.
 ### P17. It reads on a phone
 
 The maps ship to the web on phones: a smaller picture, fewer pixels drawn ([the web build on a
-phone](../godot/web-phone-frames.md#pixels-are-the-first-lever)) and thumbs over the screen. Mobile levels should be easy
+phone](../engines/godot/web-phone-frames.md#pixels-are-the-first-lever)) and thumbs over the screen. Mobile levels
+should be easy
 to read "at just one glance" ([GlobalStep: level design in mobile games](https://globalstep.com/blog/level-design-in-mobile-games-adapting-to-smaller-screens-and-touch-controls/)).
 Apple's guidelines set a 44 x 44 pt default control size (28 x 28 pt minimum) and, from WCAG AA, a 4.5:1 contrast for
 text up to 17 pt and 3:1 above it ([Apple HIG: accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)).
@@ -278,7 +279,7 @@ in one wall to hit a count, and one window opened over a stairwell (Deadnight #9
 to it from where they rise on the world's ground; a capture from behind it with its boards torn and from where its dead
 rise; one world outside seen from every floor; a test that fails an opening with no floor inside it or no ground or
 deck outside it at its own height, and an upper opening whose dead do not rise on the ground and walk up. The map
-review's [Does it make sense?](../godot/map-review.md#does-it-make-sense) is the list.
+review's [Does it make sense?](../engines/godot/map-review.md#does-it-make-sense) is the list.
 
 ### P20. An objective is measured, not read
 

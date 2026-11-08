@@ -13,4 +13,4 @@ areas: [godot, tests]
   The stand's sign passes because its neighbours are few; the box does not care what the cone really lights.
 - **Fix:** narrow the cone where nothing needs it wide (`LotNeonSign.light_angle`, 60 degrees: a 17 m box) and run the
   light-cap suite before a spot is added or swapped in, with the new lamp's reach printed when it fails.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md) (the "Test the cap" bullet).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md) (the "Test the cap" bullet).

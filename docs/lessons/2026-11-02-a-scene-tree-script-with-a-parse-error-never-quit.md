@@ -13,4 +13,4 @@ areas: [godot, tests]
 - **Fix:** parse-check the scripts first (`godot --headless --check-only -s <script>`, once per file), give every
   headless run a `timeout`, write its log to a file instead of a pipe, and start the work after
   `await process_frame`. A report tool also exits 1 when it measured nothing.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md#measuring-a-map-on-its-mesh).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md#measuring-a-map-on-its-mesh).

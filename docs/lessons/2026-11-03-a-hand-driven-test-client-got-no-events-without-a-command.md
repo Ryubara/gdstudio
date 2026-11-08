@@ -12,4 +12,4 @@ areas: [tests, net, gameplay]
   the server accepts (the view must agree with the shot).
 - **Fix:** connect the client's `ticked` to `link.send(command.to_dict())`, keep one `NightCommand` per client, aim it
   with `aim_along(direction)` and set `fire`, as a player's input would; do not call the combat server by hand.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop).

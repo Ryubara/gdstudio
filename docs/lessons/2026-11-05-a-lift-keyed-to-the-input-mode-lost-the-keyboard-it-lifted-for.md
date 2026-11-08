@@ -14,4 +14,4 @@ areas: [web, input, godot-ui]
 - **Fix:** decide "a finger did this" from the press itself (an emulated mouse press or a screen touch just before the
   focus), and let the lift ask only whether something covers the page (`visualViewport` against `innerHeight`, or the
   keypad's own height). The tests print what reached the game (`print` in the handler) before any guess about order.
-- **Docs:** [web export](../godot/web-export.md#a-phones-keyboard-in-the-web-build).
+- **Docs:** [web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build).

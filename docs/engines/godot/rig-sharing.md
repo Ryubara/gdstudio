@@ -2,7 +2,7 @@
 
 One AnimationLibrary playing on every Quaternius character, in Godot 4.7.2 with the Compatibility renderer. Learned
 in the spike `sandbox/rig-sharing/godot/` (kit issue #10) from files cleaned as in
-[Rig sharing (Blender)](../blender/rig-sharing.md).
+[Rig sharing (Blender)](../../tools/blender/rig-sharing.md).
 
 ## The recipe
 

@@ -14,4 +14,4 @@ areas: [tests, ci]
   `tools/ui_windowed_known.json`, handled like `llvmpipe:`: left out of the whole-folder run, run and shown when asked
   for by name). Measure first, with a probe suite on the runner printing the mode and the frames drawn: a guess
   ("fewer frames, like the others") would have hidden that it is a different limit.
-- **Docs:** the kit's [Windowed GdUnit on a Linux runner](../godot/windowed-gdunit-on-linux.md).
+- **Docs:** the kit's [Windowed GdUnit on a Linux runner](../engines/godot/windowed-gdunit-on-linux.md).

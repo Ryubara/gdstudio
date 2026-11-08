@@ -16,6 +16,6 @@ areas: [audio]
   and the file level lowered by what the limiter took off so the far level stays), and measure once more; the loudest
   400 ms at 1.2 m came back 3.5 to 6.4 LU at -9.9 dBFS or lower. A test reads the files' crest (highest sample over the
   loudest 400 ms), the table's loudness over the beds and the order of the boards.
-- **Docs:** [Audio: headroom without a limiter](../godot/audio.md#headroom-without-a-limiter). Check: after a change
+- **Docs:** [Audio: headroom without a limiter](../engines/godot/audio.md#headroom-without-a-limiter). Check: after a change
   to a file's dynamics, never reuse the cap measured for the old file: record the close peak again and pin the new
   table.

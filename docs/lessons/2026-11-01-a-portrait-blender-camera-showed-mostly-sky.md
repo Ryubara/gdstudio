@@ -11,4 +11,4 @@ areas: [blender, camera]
   the same lens covers the full 36 mm vertically (84 degrees at 20 mm) and only 24 mm across.
 - **Fix:** frame portraits with a longer lens (the landscape lens times about 1.35) and the subject a little lower,
   or set `sensor_fit = "HORIZONTAL"` when the width must match.
-- **Docs:** [Key art](../blender/key-art.md#title-art-and-store-sizes).
+- **Docs:** [Key art](../tools/blender/key-art.md#title-art-and-store-sizes).

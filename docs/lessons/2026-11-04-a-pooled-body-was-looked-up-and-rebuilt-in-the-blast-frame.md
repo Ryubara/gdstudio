@@ -17,4 +17,4 @@ areas: [godot, gameplay]
   frame, a test that counts the views made in the tick (zero) and the place, gait and clip kept.
 - **Check:** every path that changes a zombie's body goes through the pool, and a cost measured once ("reuse 2 us")
   is measured again on the path the game takes (a pool reuse inside a real horde, not a bare view).
-- **Where:** [Crowds](../godot/crowds.md#a-pooled-body-costs-1-ms-to-take-if-the-pool-still-looks-the-scene-up).
+- **Where:** [Crowds](../engines/godot/crowds.md#a-pooled-body-costs-1-ms-to-take-if-the-pool-still-looks-the-scene-up).

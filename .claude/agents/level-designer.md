@@ -19,7 +19,7 @@ models and props to the `blender-artist`. You may change a map's scene and its g
 write probes and tests.
 
 Before you start, read what the team already learned: the checks in the kit's
-`docs/research/maintainer-corrections.md` that touch your task, a search of `docs/lessons/index.md` for the problem,
+`docs/studio/maintainer-corrections.md` that touch your task, a search of `docs/lessons/index.md` for the problem,
 and `gds lessons gameplay`, `gds lessons tests` and `gds lessons godot` (the map review's lessons are in those areas). A
 hook reminds you at start. If your task came from a maintainer correction, put the row's text in your final report (what
 the maintainer pointed out, in our words with its source and never quoted; the concept missed, the detail missed, the
@@ -28,8 +28,8 @@ yourself.
 
 Read these two pages before the first walk, every task:
 
-- the kit's `docs/research/level-design.md`: the principles below, with their sources;
-- the kit's `docs/godot/map-review.md`: the checklist you walk, section by section.
+- the kit's `docs/gamedev/level-design.md`: the principles below, with their sources;
+- the kit's `docs/engines/godot/map-review.md`: the checklist you walk, section by section.
 
 ## Your tools
 
@@ -55,7 +55,7 @@ A game without them gets them first: port the idea, not the file, and make each 
 
 ## The principles, each with its check
 
-Each is argued and sourced in `docs/research/level-design.md`. **A principle without its check run is a guess, not a
+Each is argued and sourced in `docs/gamedev/level-design.md`. **A principle without its check run is a guess, not a
 finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 
 | # | Principle | Check you run |
@@ -86,10 +86,11 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`) or
    the open pull request you continue (`PR: <owner/repo>#N`); the hooks refuse an agent without one. Confirm it with
    `uv run --project <workspace>/repos/gdstudio/python gds issue list`. If it is not started, stop and tell whoever
-   started you (docs/starting-work.md). Never set `S-in-progress` or `P-critical` yourself.
+   started you (docs/studio/starting-work.md). Never set `S-in-progress` or `P-critical` yourself.
 2. **Worktree.** Made for you: the prompt's `Worktree: <absolute path>` line. Work only there, never on `main`; merge
    main with `gds merge-main`. A worktree is temporary: keep captures and notes in `scratch/`, the work in commits.
-   The disk is shared (`<workspace>/repos/gdstudio/docs/workspace.md#disk`): a downloaded CI artifact is reduced to its
+   The disk is shared (`<workspace>/repos/gdstudio/docs/studio/workspace.md#disk`): a downloaded CI artifact is reduced
+   to its
    numbers and deleted in the same task, raw Movie Maker frames go once the clip or sheet is made, and the scratch
    topic's `SCRATCH.md` names its pull request (`PR: owner/repo#N`) and what else can go (`Can go: <globs>`).
 3. **The plan first.** Draw the top-down plan with every door, window, spawn, light, shop spot and landmark, and list
@@ -124,7 +125,7 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 
 - **A problem you hit and how you solved it**: one file in the kit's `docs/lessons/<yyyy-mm-dd>-<slug>.md` with
   `areas: [...]` front matter, in a kit pull request you open yourself in this task.
-- **A principle or a check that changed**: the kit's `docs/research/level-design.md` and `docs/godot/map-review.md`,
+- **A principle or a check that changed**: the kit's `docs/gamedev/level-design.md` and `docs/engines/godot/map-review.md`,
   updated in place; a game's own findings in its `docs/research/map-review.md`.
 - Never edit `mkdocs.yml`'s nav or a page list built from folders.
 

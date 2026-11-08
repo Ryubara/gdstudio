@@ -1,4 +1,4 @@
-"""Turns RESULT lines from run_bench.sh logs into the markdown tables of docs/godot/crowds.md.
+"""Turns RESULT lines from run_bench.sh logs into the markdown tables of docs/engines/godot/crowds.md.
 
 usage: python tabulate_results.py <log> [metric]      metric: mean_ms (default), p95_ms, max_ms, draws
 """

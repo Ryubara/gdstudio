@@ -27,7 +27,7 @@ jobs:
   conventions:
     # The rules a program can check, in seconds: the conventions file is well formed and the generated files match it,
     # the files the kit owns are the kit's (`gds sync --check`), and the project follows the folder, naming and
-    # dependency rules (`gds check layout`, the kit's docs/godot/project-conventions.md).
+    # dependency rules (`gds check layout`, the kit's docs/engines/godot/project-conventions.md).
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

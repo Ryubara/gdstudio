@@ -12,4 +12,4 @@ areas: [blender]
   the file was built. The parts builder had been given a frozen list then; the main build had not.
 - **Fix:** `--clips main` builds the file's own set (every kit clip and `MAIN_CLIPS`); the 35 names matched the
   committed file. Before rebuilding any file a clip module feeds, compare its clip list with the committed one.
-- **Docs:** [Clips that keep the arms out](../blender/variants.md#clips-that-keep-the-arms-out).
+- **Docs:** [Clips that keep the arms out](../tools/blender/variants.md#clips-that-keep-the-arms-out).

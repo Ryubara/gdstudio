@@ -13,4 +13,4 @@ areas: [godot, tests]
 - **Fix:** keep the lamp just in front of the board and cut its range from 5 m to 4.6 m; run the lot's light-cap test
   after any change to a light's position or range, not only to its count.
 - **Docs:** Deadnight's `docs/research/night-environment.md` (the crane's lamp) and
-  [Compatibility lighting](../godot/compat-lighting.md#dynamic-lights).
+  [Compatibility lighting](../engines/godot/compat-lighting.md#dynamic-lights).

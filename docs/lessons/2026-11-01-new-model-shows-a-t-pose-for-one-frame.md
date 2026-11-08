@@ -10,4 +10,4 @@ areas: [blender, godot]
 - **Cause:** a model instanced from a .glb is in its rest pose until the `AnimationPlayer` and the skeleton have run
   once; `play()` and `advance(0.0)` before the first process do not pose it in time for the first render.
 - **Fix:** add the new model hidden, keep the old one on screen, and swap on the next `process_frame`.
-- **Docs:** [Rig sharing](../godot/rig-sharing.md).
+- **Docs:** [Rig sharing](../engines/godot/rig-sharing.md).

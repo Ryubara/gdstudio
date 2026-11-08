@@ -21,4 +21,4 @@ areas: [camera, gameplay, tests]
 - **Check for next time:** a workaround made in a capture script is a bug report: the capture's `make_current()`
   line says the game does the wrong thing. Fix the cause where the bodies are made, and a test asserts the thing the
   workaround papered over, on the engine's own answer (the viewport's current camera), not on the node it expects.
-- **Docs:** [Camera](../godot/camera.md#one-current-camera-per-viewport).
+- **Docs:** [Camera](../engines/godot/camera.md#one-current-camera-per-viewport).

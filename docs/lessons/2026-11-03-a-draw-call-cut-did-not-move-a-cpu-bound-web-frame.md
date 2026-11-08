@@ -18,4 +18,4 @@ areas: [web, godot, tests]
   `phone_frames.py --arms` shuffles each round and reports `alive` per arm), and Chrome's CPU throttle applied during the
   page load leaves no minutes to measure (it is set after the load now). `gds quiet` stops a command at 900 s, so a probe
   longer than that must be split.
-- **Docs:** Deadnight `docs/research/phone-frames.md` (the batching section), `docs/godot/web-phone-frames.md`.
+- **Docs:** Deadnight `docs/research/phone-frames.md` (the batching section), `docs/engines/godot/web-phone-frames.md`.

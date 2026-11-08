@@ -13,4 +13,4 @@ areas: [net, web, tests]
 - **Fix:** a TCP relay in the probe holds every chunk back 100 ms each way, in order; the same old client then flew off
   to 10^22 m and the fixed one stayed within 0.03 m. Run any "does it come back" probe on a build known to be broken
   first, and give it the link conditions the bug needs.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#the-same-in-the-browser-deadnight-502).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#the-same-in-the-browser-deadnight-502).

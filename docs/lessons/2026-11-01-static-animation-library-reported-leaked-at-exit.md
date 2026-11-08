@@ -16,4 +16,4 @@ areas: [godot, blender, tests]
   `Dictionary[StringName, WeakRef]`: a mesh lives while a node shows it, spots still share one, nothing outlives the
   tree. The local run had only grepped for `ERROR`; run the shard's folders with `--verbose` and grep the log for
   `leaked at exit|still in use` (the CI step's command) before pushing.
-- **Docs:** [Rig sharing](../godot/rig-sharing.md).
+- **Docs:** [Rig sharing](../engines/godot/rig-sharing.md).

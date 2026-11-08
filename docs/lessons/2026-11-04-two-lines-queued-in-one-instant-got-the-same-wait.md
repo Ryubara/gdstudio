@@ -15,4 +15,4 @@ areas: [audio, tests]
 - **Fix:** one queue of lines said one after another: say the front line, and when it started (or was refused with the
   channel free) schedule the next after the channel's wait; when it was held back, retry after that wait (never less
   than a few hundredths, so a big test step cannot spin). Test two speakers at once in small steps (0.1 s).
-- **Docs:** [audio: a queue of cheers](../godot/audio.md#a-queue-of-lines-said-one-after-another).
+- **Docs:** [audio: a queue of cheers](../engines/godot/audio.md#a-queue-of-lines-said-one-after-another).

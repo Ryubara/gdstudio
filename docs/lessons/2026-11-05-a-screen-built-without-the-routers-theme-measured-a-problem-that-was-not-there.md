@@ -16,4 +16,4 @@ areas: [tests, godot-ui]
   eight to the height of a plain one. Check for next time: before fixing a layout fault a test found, compare the
   test's row height or font size with the real screen's (a fit run or a capture through the router) and that the fault
   is on screen in the game, not only in the fixture.
-- **Docs:** [UI controls](../godot/ui-controls.md), Deadnight #1181 (`docs/research/level-badge-alignment.md`).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md), Deadnight #1181 (`docs/research/level-badge-alignment.md`).

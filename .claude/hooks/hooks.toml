@@ -1,4 +1,4 @@
-# Settings of GDStudio's Claude Code hook dispatcher (docs/hooks.md). dispatch.py reads this file on every call; a
+# Settings of GDStudio's Claude Code hook dispatcher (docs/studio/hooks.md). dispatch.py reads this file on every call; a
 # game repository may add `.claude/hooks.local.toml` beside its launcher, whose keys replace these. Standard library
 # only (the hooks run under `uv run --no-project`), so TOML, not YAML.
 
@@ -13,7 +13,7 @@ helpers = ["Explore", "Plan", "fork", "claude-code-guide", "web-fetch", "statusl
 protected_branches = ["main", "master"]
 
 [mains]
-# Every main checkout in <workspace>/repos/ follows origin (docs/hooks.md#mains): `git pull --ff-only` right after a
+# Every main checkout in <workspace>/repos/ follows origin (docs/studio/hooks.md#mains): `git pull --ff-only` right after a
 # command that merges a pull request, at session start, and at Stop at most once every `every_seconds` (auto-merges land
 # without a command). A checkout with local changes in the way is never touched, only named.
 pull = true
@@ -21,7 +21,7 @@ every_seconds = 120
 stamp = "cache/mains-pulled"
 
 [sweep]
-# Finished worktrees are removed in the background (docs/hooks.md#sweep, docs/workspace.md#sweep): `gds worktree sweep`
+# Finished worktrees are removed in the background (docs/studio/hooks.md#sweep, docs/studio/workspace.md#sweep): `gds worktree sweep`
 # starts at session start, right after a command that merges a pull request, and at Stop at most once every
 # `every_seconds`. It never blocks the hook; its report is appended to `log` (relative to the workspace), which is
 # moved aside to `*.old.log` past `max_log_bytes`. `args` are extra flags for the sweep (for example "--no-idle").
@@ -33,7 +33,7 @@ max_log_bytes = 1000000
 args = []
 
 [disk]
-# The disk guard (docs/hooks.md#disk, docs/workspace.md#disk). Every hook event (a tool call, an agent's start and stop, a
+# The disk guard (docs/studio/hooks.md#disk, docs/studio/workspace.md#disk). Every hook event (a tool call, an agent's start and stop, a
 # session's start and stop) starts `gds disk guard` in the background at most once every `every_seconds`: under
 # `soft_gb` free it runs the worktree sweep, clears the import caches of worktrees idle for `imports_idle_hours`, and
 # deletes the downloads and captures of scratch topics past their issue or pull request; it writes `status`, which the mod shows in
@@ -74,7 +74,7 @@ secret_names = '(?i)\$\{?(?:env:)?[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9
 # Godot and Blender run only from the workspace's pinned copies (tools.toml): never Steam's or one on PATH.
 names = ["godot", "blender"]
 # A Godot started straight from a shell opens a window that takes the keyboard focus; only these flags mean it does
-# not (otherwise `gds godot` runs it on a private desktop, docs/godot/no-focus.md).
+# not (otherwise `gds godot` runs it on a private desktop, docs/engines/godot/no-focus.md).
 windowless_flags = ["--headless", "--version", "--help", "-h"]
 # A local browser probe (headless Chrome under pointer lock) clips the person's real cursor to its hidden window, so it
 # runs through `gds quiet` too: scripts on these paths, and any Python or Node run whose command names a marker.
@@ -82,26 +82,26 @@ browser_probes = ["**/web_smoke/*.py"]
 browser_markers = ["playwright", "puppeteer"]
 
 [proof]
-# The Stop gate (docs/hooks.md#proof): a session that changed visual files in a game repository ends only once a
+# The Stop gate (docs/studio/hooks.md#proof): a session that changed visual files in a game repository ends only once a
 # capture (an image or a clip) newer than its last change sits in <workspace>/scratch/<repo>/<branch>/.
 visual = ["game/**/*.tscn", "game/**/*.gdshader", "game/ui/**", "game/assets/**", "game/world/**"]
 captures = ["*.png", "*.jpg", "*.gif", "*.mp4", "*.webm"]
 
 [lessons]
-# The learning loop (docs/hooks.md#learning): what the maintainer corrects becomes a row on the corrections page, and a
+# The learning loop (docs/studio/hooks.md#learning): what the maintainer corrects becomes a row on the corrections page, and a
 # lesson when the cause is general, in the same session. `{queue}`, `{corrections}` and `{lessons}` are filled in with
 # absolute paths (the kit of the workspace); keep the texts short, the prompt one is added to every message.
 # Pending rows wait in this folder (relative to the workspace); published ones move to its `published/` folder.
 queue = "scratch/kit-lessons-queue"
 # A queued file that says this is waiting for a cause or an issue: the Stop gate lets it be.
 waiting = '''(?im)^\s*waiting on:\s*\S'''
-prompt = """GDStudio learning loop: if this message corrects an agent or reports a problem in work agents did earlier, then besides fixing it, in this same session add a row to the kit's docs/research/maintainer-corrections.md (what the maintainer pointed out in our words with its issue or pull request and date, never a quote of the prompt; concept missed, detail missed, check for next time), plus a lesson in docs/lessons/ if the cause is general, in a kit pull request.
+prompt = """GDStudio learning loop: if this message corrects an agent or reports a problem in work agents did earlier, then besides fixing it, in this same session add a row to the kit's docs/studio/maintainer-corrections.md (what the maintainer pointed out in our words with its issue or pull request and date, never a quote of the prompt; concept missed, detail missed, check for next time), plus a lesson in docs/lessons/ if the cause is general, in a kit pull request.
 Cause not known yet: write the row to {queue}/<slug>.md with a `Waiting on: #N` line, and publish it when the cause is found (a session cannot end with a queued row that is not waiting)."""
 session = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} (the index) for what you are about to solve; they hold what the maintainer already had to point out. When the maintainer corrects you or reports a problem in earlier work, add the row and any lesson in this session."""
 subagent = """GDStudio learning loop: before you start, read the checks in {corrections} that touch your task and search {lessons} for what you are about to solve. If your task came from a maintainer correction, put the row's text (what the maintainer pointed out, in our words with its source and never quoted; concept missed, detail missed, check for next time) in your final report: the coordinator publishes it, so do not edit that table yourself. If you find a general cause on the way, say so in the report too."""
 
 [issues]
-# Issue order (docs/hooks.md#issues, docs/starting-work.md): issues start oldest first, through `gds issue start`. Only the
+# Issue order (docs/studio/hooks.md#issues, docs/studio/starting-work.md): issues start oldest first, through `gds issue start`. Only the
 # `window` oldest open issues that are not S-in-progress, S-pending-review, S-blocked or S-needs-info (and that no open
 # pull request closes) may start, P-critical ones first. A game replaces `window` in `.claude/hooks.local.toml`.
 window = 5
@@ -113,10 +113,10 @@ enforce = true
 exempt = ["reviewer"]
 
 [attach]
-# `gh pr create|edit --attach` (docs/capture.md#attaching) is refused unless the body it sends already refers to every
+# `gh pr create|edit --attach` (docs/studio/capture.md#attaching) is refused unless the body it sends already refers to every
 # attached file inside this section, the before capture between the `Before:` and `After:` lines, by a path that names
 # the same file as the `--attach` path (`gh` compares files, a relative path from the folder it runs in): otherwise the
-# images land at the end of the body, after `## AI use`, and the references stay local (docs/hooks.md#attach-paths).
+# images land at the end of the body, after `## AI use`, and the references stay local (docs/studio/hooks.md#attach-paths).
 enforce = true
 section = "Screenshots"
 # After a command that opened or edited a pull request (or printed its address), the description is read back and a
@@ -126,12 +126,12 @@ readback = true
 
 [pr_body]
 # `gh pr create|edit` with a body (`--body-file`, or a literal `--body`) that `groundwork.py check-body` refuses is
-# refused before it runs (docs/hooks.md#pr-body): the same function `pr-rules` runs, in the checkout of the repository
+# refused before it runs (docs/studio/hooks.md#pr-body): the same function `pr-rules` runs, in the checkout of the repository
 # the pull request is for. `gds pr check-body <file> [--title <file>]` runs it by hand.
 enforce = true
 
 [docs]
-# Docs ship with the change (docs/hooks.md#docs). The glossary is built from the lessons of the kit checkout (it is not a
+# Docs ship with the change (docs/studio/hooks.md#docs). The glossary is built from the lessons of the kit checkout (it is not a
 # committed file); SubagentStart puts the sections of the issue's areas into the agent's context, at most `inject_limit`
 # lines per area and `inject_chars` characters in all. `pending` holds the notes the Agent guard leaves for it.
 inject_limit = 12
@@ -142,7 +142,7 @@ pending = "cache/subagent-pending.json"
 kit_worktrees = "worktrees/gdstudio"
 
 [stop_check]
-# The agent-stall gate (docs/hooks.md#stall): a task agent that ends its turn without a report is finished for good, because
+# The agent-stall gate (docs/studio/hooks.md#stall): a task agent that ends its turn without a report is finished for good, because
 # nothing wakes a background agent. SubagentStop refuses such an end for these agent types (the reviewer and the helpers
 # are not listed, so they are never touched) up to `max_refusals` times per agent, then lets it go: the gate can never
 # hold an agent forever. A final message is a report when it matches `report` (a pull request link or number, a
@@ -154,7 +154,7 @@ counter = "cache/stop-check.json"
 report = '''(?im)(github\.com/[\w.-]+/[\w.-]+/pull/\d+|\b(?:PR|pull request)\s*#\d+|^[\s>*_#-]*mistakes?\b|^[\s>*_#-]*(?:blocked|blocker)\b[\s*_]*[:–—-]|\bstopped because\b|\b(?:i am|i'm|is) blocked\b)'''
 
 [idle]
-# The coordinator check (docs/hooks.md#idle): the main session's Stop is refused while an issue of any repository in
+# The coordinator check (docs/studio/hooks.md#idle): the main session's Stop is refused while an issue of any repository in
 # workspace.toml may start now (the window's "May start now", plus blocked issues whose blocker closed) and has no agent. The
 # way out is `gds issue start`, or `gds issue block <ref> --on <#N|maintainer> --why "..."`. Task agents never send Stop.
 # GitHub is asked at most once per `cache_seconds` and for at most `budget_seconds` in all; any failure lets the stop through.

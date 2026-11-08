@@ -20,4 +20,4 @@ areas: [audio]
   sines is
   seamless when each frequency is moved to the nearest whole number of cycles in the loop (under a tenth of a cent), and
   loops of lengths with no common factor never come back together.
-- **Docs:** [Audio, Music that holds a long stay](../godot/audio.md#music-that-holds-a-long-stay).
+- **Docs:** [Audio, Music that holds a long stay](../engines/godot/audio.md#music-that-holds-a-long-stay).

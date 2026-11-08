@@ -14,7 +14,7 @@ uv run --project <kit>/python gds godot --path game --write-movie <out>/shot.png
 It runs the pinned Godot with the arguments you give, prints its output as it arrives, ends with its exit code (124
 after `--timeout`, default 900 s, which kills Godot and the program it started). The Claude Code hook refuses a Godot
 started straight from a shell without `--headless`, `--version` or `--help` and names this command
-([hooks](../hooks.md)). Inside a shell script, call `gds godot` where the script called Godot.
+([hooks](../../studio/hooks.md)). Inside a shell script, call `gds godot` where the script called Godot.
 
 ## Browser probes and any other program: `gds quiet`
 
@@ -54,7 +54,7 @@ without the guard), not a share of samples (kit #166).
 The test also checks that no window of the program appears on the person's desktop. "The program's windows" are those of
 its process tree, found with `python/tests/process_tree.py`: a process is a child only if it was created after its
 parent, because a parent id alone is reused and an orphan (Explorer, Windows Terminal, the IME host) names a dead
-parent's id that a new program can be given (kit #229, [lesson](../lessons/2026-11-02-a-process-tree-walked-by-parent-id-took-orphans-for-children.md)).
+parent's id that a new program can be given (kit #229, [lesson](../../lessons/2026-11-02-a-process-tree-walked-by-parent-id-took-orphans-for-children.md)).
 
 ## How it works
 
@@ -116,7 +116,7 @@ the machine, so everything an agent launches is silent:
 | a browser probe under `gds quiet` | muted | `GDS_QUIET=1` is set; Playwright's headless Chromium starts with `--mute-audio` (read off the process command line, Playwright 1.64.1), and a game's launch helper adds `--mute-audio` (headed Chromium) and Firefox's `media.volume_scale` under `GDS_QUIET` (Deadnight: `smoke.mute_args()`) |
 
 The hook refuses a Godot with another `--audio-driver` and `gds godot --with-audio` from an agent session
-([hooks](../hooks.md)). `--headless` without the flag is allowed, since it is Dummy already.
+([hooks](../../studio/hooks.md)). `--headless` without the flag is allowed, since it is Dummy already.
 
 **The Dummy driver still mixes.** It runs the same mixer thread as a real driver and throws the output away. Measured
 on 2026-11-02 (Godot 4.7.2): a 440 Hz tone played on a bus gives `get_bus_peak_volume_left_db` of -4.3 dB (the exact
@@ -147,10 +147,10 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   by a suite that starts a night, stalled the night's `UIRouter.idle`; the same pair headless, as CI runs it, passed. Run
   suites with `godot --headless ... GdUnitCmdTool.gd ... --ignoreHeadlessMode`, keep `gds godot` for captures, and
   give a long windowed run `gds godot --timeout 3000 --` (the default stops it at 900 s)
-  ([lesson](../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)).
+  ([lesson](../../lessons/2026-11-04-a-windowed-gdunit-run-hung-the-night-suites-after-a-ui-suite.md)).
 - **A suite can fail in a window and pass headless for a switch of the game's own.** Headless has a 64 pixel window and
   no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
   a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
   `gds godot --timeout 600 -- ... GdUnitCmdTool.gd -a <suite>` (a baseline worktree needs GdUnit4 copied in first), and
   make the headless run answer what the window answers
-  ([lesson](../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).
+  ([lesson](../../lessons/2026-11-05-three-ui-suites-failed-windowed-and-passed-headless.md)).

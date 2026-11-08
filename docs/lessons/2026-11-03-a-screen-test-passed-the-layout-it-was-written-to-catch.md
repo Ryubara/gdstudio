@@ -12,4 +12,4 @@ areas: [tests, godot]
 - **Fix:** project into a `SubViewport` of 1920 x 1080 with its own `Camera3D` copying the player camera's transform
   and FOV; build the body as a box round the `Head` bone (0.36 m over it for the hair, 0.7 m across, measured on a
   capture); snap twice. Then run the test once with the bad layout and see it fail before trusting it.
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md#a-reveal-from-where-the-player-stands).

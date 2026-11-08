@@ -1,4 +1,4 @@
-# The GDStudio workspace (docs/workspace.md): its folders and the repositories `gds workspace init` clones into
+# The GDStudio workspace (docs/studio/workspace.md): its folders and the repositories `gds workspace init` clones into
 # <workspace>/repos/<name>/. Add a game here when its repository exists; any game's own bootstrap also adds itself.
 
 # Folders of the workspace root, which is a plain folder and never a repository.

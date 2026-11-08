@@ -12,4 +12,4 @@ areas: [tests, godot]
 - **Fix:** install a `Logger` (`OS.add_logger`) for the length of the test, collect `_log_error`, and assert it is
   empty; remove it in `after_test`. A test of the catcher itself makes a query on a map that has not synchronised and
   asserts the line was caught.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md#asserting-that-nothing-was-printed).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md#asserting-that-nothing-was-printed).

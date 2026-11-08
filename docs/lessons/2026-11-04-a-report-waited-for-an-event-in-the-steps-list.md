@@ -14,4 +14,4 @@ areas: [net, tests]
 - **Fix:** the award notes what is owed when the rules signal it (`XpAward.take_due`), and the host asks after each
   step. Anything a host must do because a rules event happened is hooked at the rules signal, never read back from a
   step's list.
-- **Docs:** [Multiplayer](../godot/multiplayer.md), the section on acting on a rules event where the rules say it.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md), the section on acting on a rules event where the rules say it.

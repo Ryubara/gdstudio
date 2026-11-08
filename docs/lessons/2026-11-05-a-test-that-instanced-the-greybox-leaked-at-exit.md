@@ -14,4 +14,4 @@ areas: [tests, godot]
   `size`) and compute from that: same assertion, a clean exit. Check for next time: a test that compares a data line
   with a scene reads the `.tscn` text, and every new suite is run alone with its whole log grepped for
   `leaked at exit|still in use`.
-- **Docs:** [Test exit leaks](../godot/test-exit-leaks.md#a-test-that-only-needs-a-number-from-a-scene).
+- **Docs:** [Test exit leaks](../engines/godot/test-exit-leaks.md#a-test-that-only-needs-a-number-from-a-scene).

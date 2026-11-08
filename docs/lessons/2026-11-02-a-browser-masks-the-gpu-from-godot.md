@@ -10,4 +10,4 @@ areas: [web, godot-ui]
 - **Cause:** browsers mask the GPU adapter from the page by default; Godot's web build sees the masked string.
 - **Fix:** read the unmasked renderer from WebGL (`WEBGL_debug_renderer_info`, `UNMASKED_RENDERER_WEBGL`) through
   `JavaScriptBridge`, and drop to the still stage when it names SwiftShader or another software renderer.
-- **Docs:** [Web export](../godot/web-export.md).
+- **Docs:** [Web export](../engines/godot/web-export.md).

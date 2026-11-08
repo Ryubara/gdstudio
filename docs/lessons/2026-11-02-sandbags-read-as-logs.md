@@ -11,4 +11,4 @@ areas: [blender]
   directions (width x 0.72, height x 0.7), which turns a chamfered box into a pencil tip.
 - **Fix:** bags 0.22 m tall on a 0.17 m course, so each sags onto the one below, ends gathered sideways only (x 0.86),
   less tilt. The line reads as bags at the same 1,320 triangles.
-- **Docs:** [Modular kits: building props](../blender/modular-kits.md#building-props).
+- **Docs:** [Modular kits: building props](../tools/blender/modular-kits.md#building-props).

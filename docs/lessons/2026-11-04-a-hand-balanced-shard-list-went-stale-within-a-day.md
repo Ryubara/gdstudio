@@ -20,5 +20,5 @@ areas: [ci, tests]
 - **Check for next time:** never write a list of what runs in which shard; keep the seconds and compute the lists. A
   job time limit gets a share check (warn, then fail) well under the limit, and the number of shards is checked
   against the total whenever the times are refreshed.
-- **Docs:** [Test speed](../godot/test-speed.md) (sharding); Deadnight's
+- **Docs:** [Test speed](../engines/godot/test-speed.md) (sharding); Deadnight's
   [CI time](https://github.com/Ryubara/deadnight/blob/main/docs/research/ci-time.md) ("Keeping the shards balanced").

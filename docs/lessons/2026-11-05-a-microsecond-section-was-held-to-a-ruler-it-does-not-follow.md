@@ -21,5 +21,5 @@ areas: [tests, ci]
   of the checker so a moved limit fails in CI. Check for next time: before choosing what a timing is divided by, fit
   the slope of the log of the timing on the log of each candidate across runs; a candidate whose slope is far from 1 is
   not cancelling the host. Also keep a mean's rounding below the quantity (0.001 ms on 0.006 ms is 7 %).
-- **Docs:** [Performance budgets](../godot/performance-budgets.md#budgets-counts-tight-time-loose) and Deadnight's
+- **Docs:** [Performance budgets](../engines/godot/performance-budgets.md#budgets-counts-tight-time-loose) and Deadnight's
   `docs/research/performance.md`, "What the label limits mean".

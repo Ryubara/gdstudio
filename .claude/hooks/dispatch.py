@@ -1,4 +1,4 @@
-"""GDStudio's Claude Code hook dispatcher: the one entry point for every hook event (docs/hooks.md).
+"""GDStudio's Claude Code hook dispatcher: the one entry point for every hook event (docs/studio/hooks.md).
 
 `.claude/settings.json` sends every event here (a game repository through its `launch.py`). Each event runs the guards
 registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.

@@ -39,4 +39,4 @@ areas: [ci, tools, process]
   global git identity (`Committer identity unknown` on the runners). Tests that make real commits or hooks set
   `GIT_AUTHOR_*`/`GIT_COMMITTER_*` and `chmod` their hooks, and are run once with `GIT_CONFIG_GLOBAL=/dev/null` to see
   what a runner sees.
-- **Docs:** [Starting work](../starting-work.md#worktree), [Hooks](../hooks.md#pre-push).
+- **Docs:** [Starting work](../studio/starting-work.md#worktree), [Hooks](../studio/hooks.md#pre-push).

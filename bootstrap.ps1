@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Sets up a GDStudio workspace on Windows: installs uv if it is missing, then runs `gds workspace init`
-    (docs/workspace.md#bootstrap). Every argument is passed on to init.
+    (docs/studio/workspace.md#bootstrap). Every argument is passed on to init.
 
 .EXAMPLE
     # From a clone of the kit at <workspace>\repos\gdstudio:

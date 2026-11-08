@@ -13,4 +13,4 @@ areas: [godot, web]
   texture, metallic and roughness, so the weapon draws as often as before; a test counts the surfaces with and without
   the skin and that no mesh has an overlay or a `material_override`. The web bench (20 zombies, ten re-cut weapons
   held out near the camera) read the same draw calls with and without it (111.0 and 111.0 on the phone profile).
-- **Documented:** [Surface materials](../godot/surface-materials.md#re-skinning-a-model-that-is-already-painted).
+- **Documented:** [Surface materials](../engines/godot/surface-materials.md#re-skinning-a-model-that-is-already-painted).

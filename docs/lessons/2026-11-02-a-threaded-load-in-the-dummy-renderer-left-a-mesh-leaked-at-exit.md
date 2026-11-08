@@ -19,4 +19,4 @@ areas: [tests, godot]
   suite or the last change.
 - **Check for next time:** a leak at exit with passing tests: search the full log for the first line that starts with
   `ERROR:` or `SCRIPT ERROR:` before blaming the newest test; a mesh made from a thread in a headless run is a race.
-- **Docs:** [The headless renderer](../godot/headless-renderer.md).
+- **Docs:** [The headless renderer](../engines/godot/headless-renderer.md).

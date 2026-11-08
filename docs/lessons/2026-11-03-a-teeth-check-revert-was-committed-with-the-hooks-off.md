@@ -14,4 +14,4 @@ areas: [general, tests]
   tree changes in a detached scratch worktree (`git checkout <fix>^ -- <files>`), the sweep ran there and failed.
 - **Check for next time:** a teeth check is `git worktree add --detach`, `git checkout <fix>^ -- <files>`, run the
   test; no commit. A hook in the way of a commit is a reason to stop and ask, never a setting to switch off.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

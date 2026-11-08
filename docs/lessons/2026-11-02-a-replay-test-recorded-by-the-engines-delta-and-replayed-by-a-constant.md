@@ -22,4 +22,4 @@ areas: [tests, godot]
   arguments, taken from constants and not from the engine (`get_physics_process_delta_time`, `Engine.time_scale`,
   the wall clock); then inject the difference you suspect (here the tick rate) into a copy of the old test and see it
   fail.
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

@@ -13,4 +13,4 @@ areas: [blender]
 - **Fix:** set `animation_data.action_slot = action.slots[0]` with the action and `frame_set` its first frame before
   measuring. Turn and move an imported root through `matrix_world` (or set `rotation_mode = "XYZ"` first). Then look
   at the render.
-- **Docs:** [Modular kits](../blender/modular-kits.md#staging-game-characters-for-scale).
+- **Docs:** [Modular kits](../tools/blender/modular-kits.md#staging-game-characters-for-scale).

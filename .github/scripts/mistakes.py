@@ -2,11 +2,12 @@
 
     python .github/scripts/mistakes.py render [PATH]   print the glossary built from the lessons and the corrections page
                                                        (or write it to PATH); it is never committed
-    python .github/scripts/mistakes.py check           fail when a lesson has no (or an unknown) area, or the page cannot be built
+    python .github/scripts/mistakes.py check           fail when a lesson has no (or an unknown) area, a corrections row
+                                                       quotes the maintainer, or the page cannot be built
     python .github/scripts/mistakes.py backfill        add `areas:` front matter, placed by keyword, to lessons without it
 
-The page `docs/research/mistakes-by-area.md` is built by the MkDocs build (.github/scripts/mkdocs_glossary.py), so two
-lesson pull requests never touch the same file. Standard library only; the logic is python/src/gds_tools/lessons.py.
+The glossary is never a file, so two lesson pull requests never touch the same one: `gds lessons <area>` and the
+SubagentStart hook build it from the lessons. `check` runs in pre-commit, in pytest and in the docs job of CI. Standard library only; the logic is python/src/gds_tools/lessons.py.
 """
 
 from __future__ import annotations

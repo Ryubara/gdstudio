@@ -21,4 +21,4 @@ areas: [tests, godot]
   Check for next time: a windowed run of two suites in one session, in both orders, before a pull request that adds a
   suite which waits for a drawn frame; and read which `await` hangs (frame count and window mode) before touching a
   timeout.
-- **Docs:** [A minimized window draws nothing](../godot/minimized-window.md).
+- **Docs:** [A minimized window draws nothing](../engines/godot/minimized-window.md).

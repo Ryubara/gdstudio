@@ -15,4 +15,4 @@ areas: [godot, tests]
   reach it than the map's own cap less the room a fight needs (`MeshBatch` takes the lights and a budget), and pack
   pieces that stand in one place (a floor and the ceiling over it) into cells by what they add to the reach, since
   splitting by position cannot separate them. A test holds every built mesh to the budget.
-- **Docs:** Deadnight `docs/research/phone-frames.md` (the batching section), kit `docs/godot/compat-lighting.md`.
+- **Docs:** Deadnight `docs/research/phone-frames.md` (the batching section), kit `docs/engines/godot/compat-lighting.md`.

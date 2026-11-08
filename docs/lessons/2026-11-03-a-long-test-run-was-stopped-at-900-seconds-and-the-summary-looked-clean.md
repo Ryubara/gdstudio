@@ -9,7 +9,7 @@ areas: [tests, tools]
   `PASSED` lines and two failures. The folder `tests/night` had barely started: the last line of the log, `gds: godot did
   not finish within 900 s and was stopped`, was the only trace, and a `grep` for `FAILED|Statistics|Overall` did not
   show it. A hundred and fifty suites had not run.
-- **Cause:** `gds godot` stops Godot after `--timeout`, default 900 s (`docs/godot/no-focus.md`). A helper that
+- **Cause:** `gds godot` stops Godot after `--timeout`, default 900 s (`docs/engines/godot/no-focus.md`). A helper that
   filters a log down to its failures cannot tell "all passed" from "stopped half way".
 - **Fix:** give a long run `--timeout`, or split the suites into chunks that each fit and run three at a time; have the
   helper print the stop line, and compare the number of `Run Test Suite` lines with the number of `test_*.gd` files

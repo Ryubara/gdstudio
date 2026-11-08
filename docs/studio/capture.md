@@ -16,7 +16,8 @@ Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ..
 
 Runs the pinned Godot with [Movie Maker](https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html)
 in a real window (not `--headless`: Movie Maker needs a renderer). The window opens on a private Windows desktop, so
-it never takes the keyboard or cursor from the person at the machine ([why](godot/no-focus.md)). The scene runs on a
+it never takes the keyboard or cursor from the person at the machine ([why](../engines/godot/no-focus.md)). The scene
+runs on a
 fixed timestep, so a seeded scene gives the same frames every time. To record with your own command line (several
 scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself.
 
@@ -55,8 +56,8 @@ cd <folder> && gh pr create -R <owner>/<repo> --body-file <folder>/body.md --att
 ```
 
 `--attach` (on `gh pr create` and `gh pr edit`) appends the images at the end of the body, outside `## Screenshots`,
-and the body check refuses `Before:`/`After:` until they sit there. Write `![before](./before.png)` on the `Before:`
-line and `![after](./sheet.png)` on the `After:` line so `--attach` replaces each reference with the upload in place.
+and the body check refuses `Before:`/`After:` until they sit there. Write `![before](../before.png)` on the `Before:`
+line and `![after](../sheet.png)` on the `After:` line so `--attach` replaces each reference with the upload in place.
 **`gh` swaps a reference only when it names the same file as an `--attach` path**, and it reads a relative path from
 the folder it runs in, not from the body file. Captures live in `<workspace>/scratch/...` and the command usually runs
 in the worktree: `--attach <scratch>/before.png` with a `./before.png` reference is two different files, so the
@@ -64,8 +65,8 @@ reference stays local and the upload is appended after `## AI use` (Deadnight #6
 So `cd` into the folder that holds the images first and attach `./<file>` (any form of the path works there:
 `./sheet.png`, `sheet.png`, the absolute path), or write the reference with the same absolute path as `--attach`. Then
 read the body back and check the image lines sit under the bullets
-([lesson](lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md),
-[lesson](lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md)).
+([lesson](../lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md),
+[lesson](../lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md)).
 
 The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
 named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
@@ -103,7 +104,7 @@ ffmpeg -i mix.wav -f concat -safe 0 -i cards.txt \
 `duration <seconds>` for each section (repeat the last `file` line). A 36 s clip of twelve sections is about 5 MB; keep
 it under the 9 MB of [clip](#clip).
 
-Attach it in two steps. `--attach` with `![listen](./<name>.mp4)` under `## Screenshots` uploads the file, but the
+Attach it in two steps. `--attach` with `![listen](../<name>.mp4)` under `## Screenshots` uploads the file, but the
 reference becomes a plain link, not a player: **GitHub draws a player only for the bare upload address on its own
 line.** Read the body back, replace the link with the address alone, with a blank line on each side, and `gh pr edit
 --body-file` again. Check it with `gh api
@@ -117,7 +118,7 @@ edit (`git stash` is refused by the hooks). Take them from `main` checked out be
 --detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
 phone's 844 by 390 and the web export), then `git worktree remove` it
-([lesson](lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
+([lesson](../lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
 
 ## Tests
 

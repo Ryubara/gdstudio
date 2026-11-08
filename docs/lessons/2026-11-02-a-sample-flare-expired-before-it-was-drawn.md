@@ -17,4 +17,4 @@ areas: [web, godot]
   (`tools/web_smoke/flare_first.py`): 10, 0 and 8 programs before, 0, 0 and 0 after.
 - **Check:** a sample effect in a warm-up never expires on its own; a ledger or a pin list that walks `MeshInstance3D`
   walks `GPUParticles3D` too; count programs linked after the first and the later uses of every effect in Chrome.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md#particle-systems-two-programs-of-their-own-and-a-sample-that-expires).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md#particle-systems-two-programs-of-their-own-and-a-sample-that-expires).

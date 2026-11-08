@@ -13,26 +13,26 @@ game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, 
 - glTF-imported bones have Blender axes, not the file's. To use Godot's hold transform `HOLD` on a bone, compute the
   rest correction from the `.glb`'s own node tree, `C = bone.matrix_local^-1 @ (M_gl @ node_rest)`, then place the
   weapon at `arm.matrix_world @ pose_bone.matrix @ C @ HOLD @ M_gl^-1`
-  ([lesson](../lessons/2026-11-01-gltf-bones-in-blender-do-not-have-the-files-axes.md)).
+  ([lesson](../../lessons/2026-11-01-gltf-bones-in-blender-do-not-have-the-files-axes.md)).
 
 ## Light, camera and compositor
 
 - Cycles light linking (`light.light_linking.receiver_collection`) gives each character its own key and rim light
   without lighting the set; a rim from behind makes the dead read as silhouettes.
 - A camera aimed by where a subject should sit on screen needs Euler order `XYZ` (yaw outermost); `ZXY` spins it
-  ([lesson](../lessons/2026-11-01-a-camera-in-zxy-order-spun-off-its-subject.md)).
+  ([lesson](../../lessons/2026-11-01-a-camera-in-zxy-order-spun-off-its-subject.md)).
 - Blender 5's compositor is a node group (`scene.compositing_node_group`) and the Glare node's settings are input
   sockets; `scene.use_nodes` and `scene.node_tree` are gone
-  ([lesson](../lessons/2026-11-01-blender-5-moved-the-compositor-to-a-node-group.md)).
+  ([lesson](../../lessons/2026-11-01-blender-5-moved-the-compositor-to-a-node-group.md)).
 
 ## Files
 
 - Generated images (masks, a sky) packed into the `.blend` need `pixels.foreach_set` and a pack at save
-  ([lesson](../lessons/2026-11-01-a-packed-generated-image-lost-its-pixels.md)).
+  ([lesson](../../lessons/2026-11-01-a-packed-generated-image-lost-its-pixels.md)).
 - Pass absolute output paths: Blender resolves a relative path itself
-  ([lesson](../lessons/2026-11-01-blender-resolved-a-relative-out-path-itself.md)).
+  ([lesson](../../lessons/2026-11-01-blender-resolved-a-relative-out-path-itself.md)).
 - Do not edit a bash render script while it runs
-  ([lesson](../lessons/2026-11-01-editing-a-running-bash-script-corrupted-the-run.md)).
+  ([lesson](../../lessons/2026-11-01-editing-a-running-bash-script-corrupted-the-run.md)).
 - Export each icon master to every platform size (1024 down to 16) with rounded-square and circle mask previews and a
   check sheet on dark and light grounds, so the pick is made at the sizes players see.
 
@@ -47,7 +47,7 @@ cut into every Discord, Steam, itch.io and social size (the table is in the game
 - Compose for the title: keep a dark, quiet band (the night sky) above the action, and keep the action in the
   middle 4:3 so the narrow crops (itch.io's 5:4 cover, Discord's 13:11 shelf crop) keep it.
 - Render a separate 2:3 master for the vertical and library capsules rather than cropping the 16:9 one; give it a
-  longer lens ([lesson](../lessons/2026-11-01-a-portrait-blender-camera-showed-mostly-sky.md)).
+  longer lens ([lesson](../../lessons/2026-11-01-a-portrait-blender-camera-showed-mostly-sky.md)).
 - Build the wordmark from the game's display face in plain Python (Pillow, NumPy, SciPy): close the face's inline
   hairline with a distance-transform closing to get the solid letter, sweep it for a block shadow, grow it for a
   keyline.
@@ -57,7 +57,7 @@ cut into every Discord, Steam, itch.io and social size (the table is in the game
 - A prop's palette swatch can be lit in the render (a marquee's bulbs) by an emission driven by the distance of the
   texture colour from that swatch.
 - A video preview (Discord asks for 640 x 360, at most 0.5 MB and 10 s): bake each walker's clip into its own action
-  ([lesson](../lessons/2026-11-01-baked-clip-poses-need-their-own-action-for-a-video.md)), stop each walker short of
+  ([lesson](../../lessons/2026-11-01-baked-clip-poses-need-their-own-action-for-a-video.md)), stop each walker short of
   the subject (dead walking toward it pile up in front of it within seconds), render about 5 s, and encode two-pass
   H.264 at the bitrate the size cap allows; denoised frames compress far better than noisy ones. A 5 s 1920 x 1080
   copy also fits under 0.5 MB.

@@ -18,4 +18,4 @@ areas: [ci, tools]
 - **Check:** before stacking on a pull request that a maintainer merges by hand, ask whether the work can start from
   main with only the files it needs; the kit's `gds sync` is idempotent, so re-running it on the new branch is cheaper
   than carrying the other branch.
-- **Docs:** [Syncing the kit's files into a game](../sync.md).
+- **Docs:** [Syncing the kit's files into a game](../studio/sync.md).

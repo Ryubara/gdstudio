@@ -54,4 +54,4 @@ error from #1149 were not reproduced (not seen in the dead runs of 600 child run
   once and `ResourceLoader.has_cached` never shows it: the probe cannot see that load, and it is warmed by playing an
   assisted night on the main thread instead.
 
-Lesson: [a worker crashed the engine on first use](../lessons/2026-11-04-workers-first-using-shared-state-crashed-the-engine.md).
+Lesson: [a worker crashed the engine on first use](../../lessons/2026-11-04-workers-first-using-shared-state-crashed-the-engine.md).

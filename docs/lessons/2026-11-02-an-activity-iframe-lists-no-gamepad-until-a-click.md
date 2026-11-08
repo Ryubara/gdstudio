@@ -18,4 +18,4 @@ areas: [web, input]
 - **Check:** an embedded web build is tested from an unfocused start, in a headed browser (headless Chromium reports
   the focus as held), and the pad is proved after a click. A virtual pad proves our code path, not the browser's
   focus rule: say which one a test proved.
-- **Docs:** [Web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe).
+- **Docs:** [Web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe).

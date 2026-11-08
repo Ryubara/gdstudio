@@ -18,4 +18,4 @@ areas: [blender]
   the gun back along its barrel when the fore-end is out of the left arm's reach; more stance reached too, but turned
   the armband deeper into the chest. A test pins each look's arm over its height. Before shortening, try it at run
   time: set the skeleton rest of the bones below the forearm in a probe and read the IK's reach for every hold.
-- **Docs:** [Character variants: proportions](../blender/variants.md#proportions-measure-the-arm).
+- **Docs:** [Character variants: proportions](../tools/blender/variants.md#proportions-measure-the-arm).

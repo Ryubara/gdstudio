@@ -15,4 +15,4 @@ areas: [godot, input]
   `queue_sort()` the container when the tween ends. Reproduce with `Input.parse_input_event` and
   `Engine.physics_ticks_per_second = 1`; a click's position in window pixels is
   `viewport.get_final_transform() * control.get_global_transform_with_canvas() * (size / 2)`.
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

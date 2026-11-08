@@ -16,4 +16,4 @@ areas: [process, gameplay]
   take a 0.4 m band.
 - **Check for next time:** when two pages feed one build, list the numbers both state (heights, widths, counts) side
   by side before any modelling starts, and settle each difference on the page that owns it.
-- **Docs:** [Modular kits](../blender/modular-kits.md#planning-the-kit); Deadnight `docs/design/smallmap.md`.
+- **Docs:** [Modular kits](../tools/blender/modular-kits.md#planning-the-kit); Deadnight `docs/design/smallmap.md`.

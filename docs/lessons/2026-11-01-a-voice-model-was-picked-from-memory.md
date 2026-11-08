@@ -11,4 +11,4 @@ areas: [audio, blender]
   Vendors ship new models faster than an agent's notes.
 - **Fix:** before generating with a vendor API, list its current models (`GET /v1/models`), pick from that list, and
   say in the pull request which model and why.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

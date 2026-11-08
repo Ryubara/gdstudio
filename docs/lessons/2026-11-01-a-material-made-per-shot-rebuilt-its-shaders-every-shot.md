@@ -13,4 +13,4 @@ areas: [godot, gameplay]
 - **Fix:** a warm-up behind a loading screen replays one of each effect through the game's own code, then keeps the
   materials those effects made for the whole night, so the shaders are never freed; the check is "no program linked
   after the loading screen". It also draws the lot lit and dark and every enemy under each light condition.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md).

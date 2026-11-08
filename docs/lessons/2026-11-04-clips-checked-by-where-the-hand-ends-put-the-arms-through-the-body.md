@@ -17,4 +17,4 @@ areas: [blender, tests]
   eight samples) prints an `ARMS` line per clip at build time; poses were tuned against it, then confirmed in Godot. The
   dual base is the IK's own hold, read in Godot; a probe drives the real player through every action and measures the
   pose after the IK. The test now samples eight frames and allows no clip over 3 cm.
-- **Docs:** [Clips that keep the arms out](../blender/variants.md#clips-that-keep-the-arms-out).
+- **Docs:** [Clips that keep the arms out](../tools/blender/variants.md#clips-that-keep-the-arms-out).

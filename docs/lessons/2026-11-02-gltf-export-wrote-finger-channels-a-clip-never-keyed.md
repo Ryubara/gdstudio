@@ -11,4 +11,4 @@ areas: [blender, web]
   sampled at whatever the pose bone holds; Godot's immutable-track removal does not drop them all.
 - **Fix:** after the export, remove the unkeyed bones' channels (and unused samplers) from the .glb JSON chunk;
   test the imported clip has no such track (Deadnight `tools/blender/build_soldier.py`, `strip_channels`).
-- **Docs:** [Rig sharing (Blender)](../blender/rig-sharing.md).
+- **Docs:** [Rig sharing (Blender)](../tools/blender/rig-sharing.md).

@@ -41,4 +41,4 @@ areas: [gameplay, tests]
 - **Follow-up (Deadnight #389):** the sweep moved to the body's head; the test now drives the real human
   controller with the real camera, since bots send their eye position and skip the camera; and a test checks that
   every catalogue id resolves to its own model file, so no hold per class can let one model stand in for another.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

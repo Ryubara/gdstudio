@@ -13,4 +13,4 @@ areas: [gameplay, tools]
 - **Fix:** measure each clip's planted-foot speed, put the blend points there, put the move state behind an
   `AnimationNodeTimeScale` set to ground speed over the gait's own speed (clamped 0.5-1.6), and cross over from walk
   to run over a short band, solving the rate so the blend covers the target speed.
-- **Docs:** [Crowds](../godot/crowds.md#gait-follows-speed).
+- **Docs:** [Crowds](../engines/godot/crowds.md#gait-follows-speed).

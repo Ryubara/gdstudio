@@ -59,7 +59,7 @@ From Deadnight's world markers and teammate names (#430):
 - A test that reads what a `_process` pushed awaits two idle frames: `await get_tree().process_frame` returns before
   that frame's `_process` calls.
 - Another `Camera3D` entering the tree (a second body in the same process) can become current
-  ([lesson](../lessons/2026-11-01-a-second-body-took-the-current-camera.md)); see the next section for the fix.
+  ([lesson](../../lessons/2026-11-01-a-second-body-took-the-current-camera.md)); see the next section for the fix.
 
 ## One current camera per viewport
 
@@ -89,7 +89,7 @@ frame (16 to 43 us a step), whether anyone looked through it or not: the bots', 
   nothing), not from `local_input`, which is also false for a body driven by hand or filmed.
 - **Switch it off in `_ready()`.** `set_process(false)` before the node is in the tree is undone when it is ready
   (probe: one call a frame still), so the rig re-asserts its flag in `_ready()`
-  ([lesson](../lessons/2026-11-03-a-process-switch-set-before-the-tree-was-undone-on-ready.md)). Prove it by counting
+  ([lesson](../../lessons/2026-11-03-a-process-switch-set-before-the-tree-was-undone-on-ready.md)). Prove it by counting
   `is_processing()` nodes in the built scene.
 - **The bodies a sweep passes through** are kept in a static list (added on `tree_entered`, removed on
   `tree_exiting`), not found with `get_nodes_in_group` and a new Array in every step (1.2 to 1.8 us down to 0.2 us

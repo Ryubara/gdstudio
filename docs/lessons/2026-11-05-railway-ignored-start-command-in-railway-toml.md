@@ -14,4 +14,4 @@ areas: [backend, tools]
   script and its settings inside the uploaded `game/` folder. The script prints `RESULT|<label>|<rep>|<json>` lines
   and ends with `sleep` so the container stays up; `railway logs --service <name>` returns them, and the service is
   deleted when the numbers are copied out.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#headless-server-image).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#headless-server-image).

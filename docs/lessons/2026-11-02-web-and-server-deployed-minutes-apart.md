@@ -15,4 +15,4 @@ areas: [backend, net]
 - **Also:** `railway delete` deletes the whole project; a service is `railway service delete -s <name> -y`. Run
   `railway` from a scratch folder linked with `railway link -p <project> -e production`, never from a game checkout.
 - **Docs:** [Railway CLI for a throwaway service](2026-11-01-railway-cli-for-a-throwaway-test-service.md),
-  [Multiplayer](../godot/multiplayer.md).
+  [Multiplayer](../engines/godot/multiplayer.md).

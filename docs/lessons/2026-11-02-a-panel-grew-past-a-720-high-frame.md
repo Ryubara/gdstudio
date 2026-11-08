@@ -12,4 +12,4 @@ areas: [godot, web]
 - **Fix:** capture and unit-test the tallest state at 1280 x 720 (`SubViewport` in GdUnit4); put buttons in rows,
   ellipsise one-line text, cap a `ScrollContainer` at the viewport height minus a margin, `follow_focus = true`, and
   `ensure_control_visible` two frames after showing a field (Deadnight #537).
-- **Docs:** [UI controls](../godot/ui-controls.md).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md).

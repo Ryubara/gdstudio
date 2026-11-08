@@ -15,4 +15,4 @@ areas: [blender, tests]
 - **Fix:** the sampler loads every file the player's animation loads (the drink added), so the test is the same alone
   and in any order; the bottle comes round 45 degrees, not 58, raised to 126, not 135, the elbow back a little, and it
   starts further out from the hip: 13 mm at most, every quarter frame, both looks, lip still on the mouth.
-- **Docs:** [Clips that keep the arms out](../blender/variants.md#clips-that-keep-the-arms-out).
+- **Docs:** [Clips that keep the arms out](../tools/blender/variants.md#clips-that-keep-the-arms-out).

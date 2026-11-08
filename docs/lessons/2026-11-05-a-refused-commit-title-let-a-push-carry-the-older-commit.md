@@ -12,4 +12,4 @@ areas: [process, tools]
   verdict before the push.
 - **Fix:** recommitted with a shorter title and pushed again. Count a title before it is written (`wc -c` on the title
   file), chain a commit and its push with `&&`, and read `git log -1` and `git status` before pushing.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

@@ -12,4 +12,4 @@ areas: [tools]
   shell's directory.
 - **Fix:** give `git worktree add` an absolute path (`<workspace>/worktrees/<repo>/<branch>`); remove a stray one with
   `git worktree remove --force`.
-- **Docs:** [The workspace](../workspace.md).
+- **Docs:** [The workspace](../studio/workspace.md).

@@ -4,6 +4,10 @@ The Godot 4.7 systems GDStudio games rely on, what we know about each, and where
 page here once someone learns something about it; the table links them. Every game runs the **Compatibility renderer**
 (the web build is WebGL2), so a system is judged by how it behaves there, not in Forward+.
 
+**Belongs here:** how Godot does something (GDScript, scenes, physics, rendering, animation, UI, export, networking,
+testing) and what it costs. **Not here:** the principle behind it, which holds in any engine
+([Game development](../../gamedev/index.md)), and one game's numbers (that game's docs).
+
 **Status:** *known* (used in a merged pull request, page written), *spike* (needs a sandbox experiment before the
 game depends on it), *learn while building* (low risk: the first task that uses it writes the page).
 
@@ -82,7 +86,7 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 
 | System | Used for | Status |
 | --- | --- | --- |
-| Movie Maker (`--write-movie`) | captures for every visual change | known: [Capture](../capture.md) |
+| Movie Maker (`--write-movie`) | captures for every visual change | known: [Capture](../../studio/capture.md) |
 | Windowed runs (captures, autopilots, GdUnit) | every one that is not `--headless` | known: [Windowed Godot without taking the focus](no-focus.md) (`gds godot` runs it on a private desktop; a plain start takes the keyboard) |
 | GdUnit in a window on a CI runner (`xvfb-run`, Mesa software GL) | every game that wants its pixel and window-only suites run on a schedule | known: [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md) |
 | A windowed GdUnit session of several suites | every suite that waits for a drawn frame (a night's warm-up) | known: [A minimized window draws nothing](minimized-window.md) (GdUnit minimizes after every suite; restore the window in `before()`) |
@@ -100,5 +104,5 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | A tour that exits with 139 after saving its frames | every capture that sets a hook on the game | known: [Exit code 139](exit-code-139.md) (a lambda left in a static variable is freed after its script; clear the hook before `quit()`) |
 | A probe that builds the game (`-s` or a scene, autoloads, fresh worktree) | every throwaway run that prints what it saw | known: [Probes and tools in headless Godot](headless-probes.md) (`-s` has no autoloads: write the probe as a scene) |
 | The real `main.tscn` against a real sign-in, without the person's saves | every capture of what the game shows after a read from the backend | known: [A throwaway user folder](throwaway-user-folder.md) (`APPDATA` points at a folder of its own; seed it by a real sign-in; a harness run skips the start-up sign-in, so the capture makes that one call) |
-| A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [lesson](../lessons/2026-11-03-a-parse-error-in-one-class-showed-up-as-errors-in-its-users.md) (the real message shows only when the script is loaded on its own) |
-| Godot MCP | driving a live editor | known (`docs/workspace.md#integrations`) |
+| A script that will not parse (`--check-only --script`) | every "could not parse global class" error | known: [lesson](../../lessons/2026-11-03-a-parse-error-in-one-class-showed-up-as-errors-in-its-users.md) (the real message shows only when the script is loaded on its own) |
+| Godot MCP | driving a live editor | known (`docs/studio/workspace.md#integrations`) |

@@ -22,4 +22,4 @@ areas: [godot, tests]
   wall, with a table of the leaks that remain (unshadowed room lamps reach the next room by their range) that can only
   shrink. Judge a new glow or light by the numbers, not the front view: sample its card and its range against every
   wall within reach, and capture it from the room behind with the glow hidden and shown.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).

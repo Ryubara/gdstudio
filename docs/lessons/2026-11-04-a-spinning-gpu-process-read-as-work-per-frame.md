@@ -12,4 +12,4 @@ areas: [web, ci, tests]
 - **Fix:** count the WebGL calls per frame (they do not move with the machine) and compare builds in turns; test a slower
   machine by pinning the run to fewer cores, not by dividing CPU seconds. The artifact path and the stats key were also
   guessed (`smoke/result.json`, `mean_ms`) and caught by reading one artifact before collecting 150.
-- **Docs:** [web export](../godot/web-export.md) (row "A frame time on a software renderer, compared").
+- **Docs:** [web export](../engines/godot/web-export.md) (row "A frame time on a software renderer, compared").

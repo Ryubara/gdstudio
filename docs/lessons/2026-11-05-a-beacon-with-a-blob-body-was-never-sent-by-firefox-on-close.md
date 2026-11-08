@@ -21,4 +21,4 @@ areas: [net, web]
   while a page closes is proved by closing a real tab (`page.close()`, not a script's `window.close()` or a
   navigation) in Chromium, Firefox and WebKit, over a real network or a proxy that holds each request 150 ms, and the
   table of what arrived, per engine, goes in the design page. Deadnight `tools/web_smoke/page_closing_transport.py`.
-- **Docs:** [Web export](../godot/web-export.md) (a last request when the page closes).
+- **Docs:** [Web export](../engines/godot/web-export.md) (a last request when the page closes).

@@ -11,4 +11,4 @@ areas: [tests, tools]
   (3,400 cases) takes longer.
 - **Fix:** give the run `gds godot --timeout 3500 -- ...` (and a shell timeout above it), in the background; check the
   log for `did not finish` before reading the summary.
-- **Docs:** [Starting Godot without the focus](../godot/no-focus.md).
+- **Docs:** [Starting Godot without the focus](../engines/godot/no-focus.md).

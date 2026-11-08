@@ -15,4 +15,4 @@ areas: [net, tests]
   (`NightHost._collect`), and the test waits until the client has heard the event it compares against.
   Check for next time: an online test that compares a server number with what a client heard must send the events it
   makes itself, or the client's side is empty and the comparison passes or fails for nothing.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop).

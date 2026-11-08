@@ -12,4 +12,4 @@ areas: [godot, tools]
   entry is interleaved with it when the file is reformatted.
 - **Fix:** start a commented block after a one-line entry (here the heavy batch went after `"grenade"` and ended on the
   one-line `"m249"`), run gdformat on the file and read the lines back before committing.
-- **Docs:** [Weapons](../blender/weapons.md).
+- **Docs:** [Weapons](../tools/blender/weapons.md).

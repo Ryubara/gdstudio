@@ -19,4 +19,4 @@ areas: [godot, web, tests]
   order, not a race: log the variable's value at the first call. Say "not read yet" with the type's default, and
   never call another script's static function from a static initialiser. A probe that guards a contract runs it down
   the path the odd callers use, not only the menu.
-- **Docs:** [Static variables and the order scripts load in](../godot/static-variables.md).
+- **Docs:** [Static variables and the order scripts load in](../engines/godot/static-variables.md).

@@ -11,4 +11,4 @@ areas: [blender, gameplay]
   `Index1.R`, the bone the weapon rides, and the other three stayed with the forearm.
 - **Fix:** turn the other three by the same rotation off their rest (they share the parent and the pivot), every frame
   after the IK.
-- **Docs:** [Blender weapons](../blender/weapons.md#hands-on-the-weapon).
+- **Docs:** [Blender weapons](../tools/blender/weapons.md#hands-on-the-weapon).

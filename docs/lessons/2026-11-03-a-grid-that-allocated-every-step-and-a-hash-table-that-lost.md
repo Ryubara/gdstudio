@@ -19,4 +19,4 @@ areas: [gameplay, godot]
 - **Check for next time:** measure the replacement in the same bench as the original before writing the tests, in
   bytes held and in time, both arms interleaved; a loop of your own over a hot path has to beat a native call, and when
   floats are summed the order of the sum is part of the behaviour.
-- **Docs:** [Performance review](../godot/performance-review.md), counting allocations.
+- **Docs:** [Performance review](../engines/godot/performance-review.md), counting allocations.

@@ -16,6 +16,6 @@ areas: [input, camera, godot, tests, web]
   cancel the ratio; a ratio-2 screen turned twice as far in the first probe) and the look divides it out. The test
   resizes the root window across sizes and stretch modes and fails on the old line; a browser probe resizes the page at
   two pixel ratios.
-- **Docs:** [Mouse look at any frame rate](../godot/mouse-look.md); Deadnight `docs/research/mouse-look-window-size.md`.
+- **Docs:** [Mouse look at any frame rate](../engines/godot/mouse-look.md); Deadnight `docs/research/mouse-look-window-size.md`.
   Check: a look or aim that reads a mouse motion reads `screen_relative`, and a test of it runs at more than one window
   size and stretch mode.

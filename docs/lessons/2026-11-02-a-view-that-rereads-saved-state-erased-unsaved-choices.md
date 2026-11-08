@@ -17,4 +17,4 @@ areas: [godot-ui, tools]
 - **Check:** any panel with more than one choice has a test: change A, then B, then tab away and back, then reload
   from the file, counting writes (0 while open, 1 on leaving). Held choices never go through a setting that other
   views react to.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

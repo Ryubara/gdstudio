@@ -16,4 +16,4 @@ areas: [tests, godot, process]
   the thing in the picture goes (a pixel difference, or `visible = false` and a look). Hide with `layers = 0` when the
   owner sets `visible` itself every frame (the crane did, so a hidden beam came back between two grabs). Then fix what
   the picture shows (here the crane's beam, plus a smaller change to the cones).
-- **Docs:** [Measuring an effect on the screen](../godot/measuring-effects-on-screen.md#a-soft-rim-and-which-node-it-is).
+- **Docs:** [Measuring an effect on the screen](../engines/godot/measuring-effects-on-screen.md#a-soft-rim-and-which-node-it-is).

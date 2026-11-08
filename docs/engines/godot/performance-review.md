@@ -99,19 +99,19 @@ the probe output.
   A count taken across `await process_frame` also starts from a quiet `Audio` service: the deferred sounds an earlier
   suite queued decode a few milliseconds a frame and each is objects. Deadnight's `AudioSettle.until_idle` waits for
   the queue, and a warm item (one label, one effect) is made and freed before the first reading
-  ([lesson](../lessons/2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md)).
+  ([lesson](../../lessons/2026-11-04-a-count-test-that-skipped-the-audio-queue-failed-on-main.md)).
   A live fight or menu holds objects of its own that come and go (a Tween with its tweeners is 3 to 5 objects, a
   sound that plays 2, the last playback of every voice stays until it is used again, the main menu loads every sound in
   the background), so never take the peak over frames against a start: stand the source still and read at a quiet
   moment before and after (Deadnight `QuietCount.settle`; `AudioSettle.until_idle` also ends the background load)
-  ([lesson](../lessons/2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md)).
+  ([lesson](../../lessons/2026-11-04-a-count-test-read-a-peak-while-the-fight-and-the-menu-kept-moving.md)).
   A count that only *falls* by a few objects is the suite before's sounds ending (each frees its playback in a frame
   of its own): call `QuietCount.settle` as well as `AudioSettle.until_idle`, and find the suite by running the shard's
   list in CI order and halving it
-  ([lesson](../lessons/2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md)).
+  ([lesson](../../lessons/2026-11-04-a-count-fell-while-the-last-night-s-sounds-ended.md)).
   The same fall hides a leak from a test that bounds the count only upwards: settle in every suite that reads the
   object count across frames (a scan test fails the one that does not), and inject a leak to see a count test fail
-  ([lesson](../lessons/2026-11-04-a-count-bounded-upwards-passed-a-leak-under-the-fall.md)).
+  ([lesson](../../lessons/2026-11-04-a-count-bounded-upwards-passed-a-leak-under-the-fall.md)).
   `OBJECT_RESOURCE_COUNT` counts only resources that have a path: what code makes (`StandardMaterial3D.new()`,
   `BoxMesh.new()`) shows in `OBJECT_COUNT` alone.
 - **Leaks**: nodes, objects, resources and memory sampled every second over five minutes from the worst round (flat once
@@ -120,7 +120,7 @@ the probe output.
 - **Spikes**: the largest single tick after an event (cripple 20, buy a door, a blast kills 20), not the mean.
 - **Free disk first** (`df -k /c`): an import on a full disk writes truncated files and tracked `.import` files with
   `valid=false`, and the run then fails with "corrupt" errors far from the cause
-  ([lesson](../lessons/2026-11-04-an-import-on-a-full-disk-left-truncated-files-that-read-as-corrupt.md)).
+  ([lesson](../../lessons/2026-11-04-an-import-on-a-full-disk-left-truncated-files-that-read-as-corrupt.md)).
 - **Stop a run by its own process id, never by program name**, on a shared machine.
 - An editor run is a debug build with the debugger; take the budget from headless runs and from an export.
 

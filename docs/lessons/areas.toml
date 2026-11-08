@@ -1,4 +1,4 @@
-# The areas of the mistakes glossary (docs/research/mistakes-by-area.md, built from the lessons, never committed).
+# The areas of the mistakes glossary (`gds lessons <area>`, built from the lessons, never committed).
 # Every lesson names its areas in a front-matter line `areas: [net, web]`; the glossary has one section per area. An
 # issue's labels map to areas ([labels]); `gds issue start` records them and the SubagentStart hook puts those areas'
 # checks into the agent's context. [keywords] are how `mistakes.py backfill` first places a lesson (the first match

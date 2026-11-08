@@ -11,4 +11,4 @@ areas: [process, gameplay]
 - **Fix:** download the PDF with `curl` into its own empty directory and extract the text with `uv run --with pypdf
   python -I` (redirect stderr: the font warnings are huge). In the research page, mark each source read, fetched (a
   summarising tool) or reported (search summary only).
-- **Docs:** [Building games with agents](../research/building-games-with-agents.md).
+- **Docs:** [Building games with agents](../studio/building-games-with-agents.md).

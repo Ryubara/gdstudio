@@ -18,4 +18,4 @@ areas: [godot-ui, tests]
   over a plate, capture it over the plate with the most at its edge (a title, numbers flush right, a seat number flush
   left) and read it at player size before writing the test; and read the stroke width off the smallest plate (a
   compact box of 32 units, not only the 66 of your own).
-- **Docs:** Deadnight `docs/research/calling-cards.md#frames`, [UI controls](../godot/ui-controls.md).
+- **Docs:** Deadnight `docs/research/calling-cards.md#frames`, [UI controls](../engines/godot/ui-controls.md).

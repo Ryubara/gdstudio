@@ -41,7 +41,7 @@ that release (a tree of dictionaries, arrays, vectors) is charged to the label t
 1172: storing the last frame in the challenge tracker raised `server.challenges` by about a quarter and failed the
 late-round budget while the work itself had not grown. Keep no event; read what is needed in the call that is handed
 it, or from state the system already owns. Test a change to a timed system with the budget's own case, three or more runs
-interleaved with the change off ([lesson](../lessons/2026-11-05-a-held-frame-moved-its-release-into-the-timer.md)).
+interleaved with the change off ([lesson](../../lessons/2026-11-05-a-held-frame-moved-its-release-into-the-timer.md)).
 
 ## Reading a timing on a shared machine
 
@@ -99,14 +99,14 @@ passed). Hold such a section as a *share of the frame* the same rows took. Pick 
 timing on the log of each candidate over the last runs (slope near 1 is a ruler that cancels the host), put the limit
 between the highest share seen and twice the lowest, and keep a test that runs the checker on made-up reports of every
 kind of runner, unchanged (passes) and twice as slow (fails). See the
-[lesson](../lessons/2026-11-05-a-microsecond-section-was-held-to-a-ruler-it-does-not-follow.md).
+[lesson](../../lessons/2026-11-05-a-microsecond-section-was-held-to-a-ruler-it-does-not-follow.md).
 
 **A count is only tight when the run fixes every input.** The seed and the step are not enough: anything the measured
 code reads from the machine (the date, the time of day, a random seed from the system) moves the count between days
 and machines, and a limit set on one day fails every pull request on another. Pin such a clock or seed in the bench
 (through the seam a test already uses), set the limit from the pinned run, and before trusting it run the bench with the
 date moved by a day and see that the count does not move. See the
-[lesson](../lessons/2026-11-07-a-count-budget-read-the-date-of-the-machine.md).
+[lesson](../../lessons/2026-11-07-a-count-budget-read-the-date-of-the-machine.md).
 
 ## In the editor
 

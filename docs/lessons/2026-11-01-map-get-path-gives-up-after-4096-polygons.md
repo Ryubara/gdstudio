@@ -12,4 +12,4 @@ areas: [blender, gameplay]
   means exploring the whole connected mesh.
 - **Fix:** query with `NavigationServer3D.query_path` and `NavigationPathQueryParameters3D` whose
   `path_search_max_polygons` is larger than the mesh; read `NavigationPathQueryResult3D.path`.
-- **Docs:** [Zombie crowds](../godot/crowds.md).
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md).

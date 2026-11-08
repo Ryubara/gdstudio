@@ -15,5 +15,5 @@ areas: [process, ci]
 - **Fix:** before pushing a follow-up to a kit branch, run `gh pr view <branch> --json state -q .state`; if it is
   `MERGED`, start a new branch from `origin/main`, cherry-pick the commit and open a new pull request. The coordinator
   checks `git log origin/main..origin/<branch>` for every merged kit docs branch an agent reports on.
-- **Docs:** [Hooks: docs](../hooks.md#docs). Follow-up: the docs gate should also name a kit branch whose pull request
+- **Docs:** [Hooks: docs](../studio/hooks.md#docs). Follow-up: the docs gate should also name a kit branch whose pull request
   merged but which holds commits that main does not.

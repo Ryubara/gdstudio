@@ -12,7 +12,7 @@ path blender)`, run headless with `-b -P script.py` for anything repeatable) and
 task, from its issue to a pull request, in your own worktree. Read the repository's `AGENTS.md` and the kit's first.
 
 Before you start, read what the team already learned: the checks in the kit's
-`docs/research/maintainer-corrections.md` that touch your task (they are what the maintainer had to point out
+`docs/studio/maintainer-corrections.md` that touch your task (they are what the maintainer had to point out
 before, by area) and a search of `docs/lessons/index.md` for the problem you are about to solve. A hook reminds you
 at start. If your task came from a maintainer correction, put the row's text in your final report (the maintainer's
 words, the concept missed, the detail missed, the check for next time) and any general cause you found: the
@@ -23,7 +23,8 @@ coordinator publishes it, so you do not edit that table yourself (many agents ed
 1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`)
    or the open pull request you continue (`PR: <owner/repo>#N`); the hooks refuse an agent without one. Confirm it
    before anything else: `uv run --project <workspace>/repos/gdstudio/python gds issue list` shows your issue in
-   progress with your name. If it is not started, stop and tell whoever started you (docs/starting-work.md). Never set
+   progress with your name. If it is not started, stop and tell whoever started you (docs/studio/starting-work.md).
+   Never set
    `S-in-progress` or `P-critical` yourself; a follow-up issue you open waits its turn in the line.
    Your branch and worktree are made for you: the prompt has a `Worktree: <absolute path>` line (made by `gds issue
    start`, from fresh `origin/main`, with the git hooks installed). Work only there and never make a branch of your
@@ -84,7 +85,8 @@ images that are not committed go to scratch (the sweep copies loose artwork, not
 `scratch/<repo>/<branch>/kept/`, but do not rely on it). Do not leave a process running in a worktree you are done with.
 
 The disk is shared by every agent, and the disk guard refuses new agents and worktrees when it is nearly full
-(`<workspace>/repos/gdstudio/docs/workspace.md#disk`). A downloaded CI artifact is reduced to its numbers (a table in
+(`<workspace>/repos/gdstudio/docs/studio/workspace.md#disk`). A downloaded CI artifact is reduced to its numbers (a
+table in
 your report or the scratch topic's notes) and deleted in the same task; raw Movie Maker frames are deleted once the clip
 or contact sheet is made. Your scratch topic's `SCRATCH.md` names its pull request (`PR: owner/repo#N`) and what else
 in it can go (`Can go: <globs>`), so the guard clears it after the merge.
@@ -98,7 +100,8 @@ you again. Do the step in the same turn, or start a background command that noti
 Before you report, leave what the next person needs, short and in the right place:
 
 - **How Godot (or Blender) actually behaves**, what worked and what did not: the subject's page in the kit's docs hub
-  (`<workspace>/repos/gdstudio/docs/godot/<subject>.md`, or `docs/blender/`), one page per subject, updated in place.
+  (`<workspace>/repos/gdstudio/docs/engines/godot/<subject>.md`, or `docs/tools/blender/`), one page per subject,
+  updated in place.
   Game-specific findings go in the game's `docs/research/<subject>.md`.
 - **A problem you hit and how you solved it**: one file in the kit's `docs/lessons/<yyyy-mm-dd>-<slug>.md` (format in
   its `index.md`: symptom, cause, fix, where it is documented). Five lines, not an essay. Never edit `mkdocs.yml`'s

@@ -15,5 +15,5 @@ areas: [godot-ui, net]
   proved the flow.
 - **General:** in Godot, a node's network requests live and die with its parent's `process_mode`. A screen that calls
   the network is run once in the web build against the real backend before it counts as done, not only with a fake API.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md), Deadnight's own lesson
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md), Deadnight's own lesson
   (`docs/lessons/2026-11-02-a-request-owned-by-a-covered-screen-never-answered.md` in that repository).

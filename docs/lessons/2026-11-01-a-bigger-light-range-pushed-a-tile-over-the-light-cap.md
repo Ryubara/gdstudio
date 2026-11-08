@@ -11,4 +11,4 @@ areas: [gameplay, blender]
   their range; raising the range raises the count.
 - **Fix:** keep the range, draw the pool as an additive quad, tile the field's ground at 16 m, and a test that counts the
   lights reaching every CSG box with every circuit on.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#lamps-in-a-game-what-looks-like-light-and-what-is-light).

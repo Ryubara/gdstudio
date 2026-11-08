@@ -16,4 +16,4 @@ areas: [godot-ui, godot, tests]
   the stage stays down, so the look changes at most three times. Tests feed frames by hand: the recovery, the doubling
   and the stop, the fast display, and a drop long after a climb not counting. Capture the fallback at both levels on
   the target display, and run the governor in a real window with a load that ends.
-- **Docs:** [UI controls](../godot/ui-controls.md#3d-in-a-menu).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#3d-in-a-menu).

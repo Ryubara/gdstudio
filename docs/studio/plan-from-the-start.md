@@ -45,7 +45,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: every device class the game ships on (keyboard and mouse, gamepad on any device id, touch), each played on
   every platform ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
-  ([web export](../godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
+  ([web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
   is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
@@ -76,10 +76,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
 - Plan: store, key-art and Discord asset sizes listed with the first art pass, portrait crops framed with their own
-  lens ([key art](../blender/key-art.md#title-art-and-store-sizes),
+  lens ([key art](../tools/blender/key-art.md#title-art-and-store-sizes),
   [deadnight #492](https://github.com/Ryubara/deadnight/issues/492)).
 - Plan: the Activity stood in locally (mapping prefix, gzip, iframe focus) before the maintainer tries it
-  ([web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
+  ([web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: a layout rule for a device class (phone, tablet, desktop window) takes its input in what the person holds (CSS
   pixels on the web, never the canvas's device pixels), has a test for each class, and is run once on the real page (the
   web export in phone emulation, and in an iframe for Discord) before a phone capture is trusted; a menu's smallest
@@ -88,10 +88,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #1197](https://github.com/Ryubara/deadnight/issues/1197)).
 - Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
   probe each inside the Activity frame with Discord's policy before shipping
-  ([web export](../godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).
+  ([web export](../engines/godot/web-export.md#discord-activity-copy-and-paste-in-the-frame)).
 - Plan: every text field is opened, typed in, closed and submitted with a finger on a phone-shaped page (the export's
   virtual keyboard option on, the field kept above the keyboard, a keypad for a code) before a flow that needs text
-  is called done ([web export](../godot/web-export.md#a-phones-keyboard-in-the-web-build),
+  is called done ([web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build),
   [lesson](../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md)).
 - Plan: a visible pre-game lobby (members, host, a start the host controls) and mid-match join, every player state
   designed and tested with real clients ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
@@ -112,7 +112,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-02-web-and-server-deployed-minutes-apart.md)).
 - Plan: never deploy a branch to the shared web service; a CI deploy of main replaces it anyway
   ([deadnight #491](https://github.com/Ryubara/deadnight/issues/491),
-  [web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
+  [web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: events the server causes alone reach every client
   ([lesson](../lessons/2026-11-01-events-the-server-causes-alone-never-reach-the-client.md)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
@@ -152,7 +152,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([lesson](../lessons/2026-11-01-a-catalogue-weapon-was-never-played-in-the-night.md)).
 - Plan: weapons sized against the hand that holds them, not only the body ([lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
-  the kit's clips never move the fingers ([Hands on the weapon](../blender/weapons.md#hands-on-the-weapon)).
+  the kit's clips never move the fingers ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
   ([lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
@@ -162,7 +162,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
   player's camera: loops and kiting space, chokepoints, spawns, pacing of the doors, landmarks, lighting, and every
   out-of-bounds and door-skip candidate proven by movement, not by eye; Deadnight's two maps were first reviewed after
-  more than a hundred pull requests (#833; [checklist](../godot/map-review.md)).
+  more than a hundred pull requests (#833; [checklist](../engines/godot/map-review.md)).
 
 ## Audio
 
@@ -176,14 +176,14 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Performance
 
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
-  ([first-use hitches](../godot/first-use-hitches.md)).
+  ([first-use hitches](../engines/godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
   ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
   game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a maintainer
-  found the lag first ([performance budgets](../godot/performance-budgets.md),
+  found the lag first ([performance budgets](../engines/godot/performance-budgets.md),
   [lesson](../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md),
   [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
@@ -227,26 +227,26 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task
-  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](../workspace.md#disk)).
+  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](workspace.md#disk)).
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
   ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
 - Plan: every kit file a game carries a copy of (the checker, the pre-commit message hooks, the agent definitions) is on
   the `gds sync` list from the first game, so a rule changed in the kit reaches the games in one sync pull request
-  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](../sync.md)).
+  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](sync.md)).
 - Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
   ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),
-  [Starting work](../starting-work.md)).
+  [Starting work](starting-work.md)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
   they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
-  [Mistakes by area](mistakes-by-area.md)).
+  the mistakes glossary (`gds lessons <area>`)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../godot/shot-feedback.md#blood)).
+  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
 - Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
   in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every

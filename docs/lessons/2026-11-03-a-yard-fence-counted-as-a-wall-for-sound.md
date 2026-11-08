@@ -12,4 +12,4 @@ areas: [audio, godot]
 - **Fix:** keep the ray's layers, and when it hits something under the map's `Outside` group (fences, ground), add that
   hit's `rid` to `exclude` and cast again, up to a dozen times; only a hit on the building is a wall. The window's own
   players-only blocker is excluded the same way.
-- **Docs:** [Sound through windows](../godot/audio.md#sound-through-windows-not-walls-deadnight-657).
+- **Docs:** [Sound through windows](../engines/godot/audio.md#sound-through-windows-not-walls-deadnight-657).

@@ -21,5 +21,5 @@ areas: [process]
   repos/<o>/<r>/issues/<n>/timeline` and the agent's transcript under `subagents/`, not in the report: every merge
   shows the same GitHub account, so `merged_by` cannot tell a person from an agent.
 - **Closed by:** kit #618. The hold lives on the pull request: the label `S-hold`, a `hold` check that fails while it
-  is on, that check required by the `Main` rulesets, and a guard as a second layer ([Hooks: the hold](../hooks.md#hold)).
+  is on, that check required by the `Main` rulesets, and a guard as a second layer ([Hooks: the hold](../studio/hooks.md#hold)).
 - **Docs:** `.claude/agents/godot-engineer.md`, `.claude/agents/level-designer.md`.

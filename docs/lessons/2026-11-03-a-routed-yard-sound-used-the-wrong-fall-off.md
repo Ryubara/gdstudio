@@ -16,4 +16,4 @@ areas: [audio]
 - **Fix:** the extra level is `20 log(distance to the window / whole way round)`, so engine plus extra is
   `unit / whole way`; windows are ranked by the whole way (shortest first). A test checks that engine gain plus extra
   equals the whole-way level, and a capture level per stage shows nothing jumps.
-- **Docs:** [Sound through windows](../godot/audio.md#sound-through-windows-not-walls-deadnight-657).
+- **Docs:** [Sound through windows](../engines/godot/audio.md#sound-through-windows-not-walls-deadnight-657).

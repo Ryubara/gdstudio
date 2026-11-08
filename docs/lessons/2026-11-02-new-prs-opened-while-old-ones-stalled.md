@@ -14,4 +14,4 @@ areas: [process, ci]
 - **Fix:** the queue view is the PR list, not the agents' notes: report from the oldest PR down (state, owner, what it
   waits on, when it pushes), open no new PR while an older one has no live owner, and rerun a known flake at once
   (`gh run rerun <id> --failed`) with an issue for the flake (#487).
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

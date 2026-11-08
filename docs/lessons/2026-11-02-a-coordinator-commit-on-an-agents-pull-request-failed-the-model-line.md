@@ -17,5 +17,5 @@ areas: [process, ci]
 - **Fix:** when you add a commit to another agent's pull request, or carry their commit into yours, edit the `Model:`
   line in the same step to name every model in `git log --format=%(trailers:key=Co-Authored-By) origin/main..HEAD`. Then
   run `gds pr check-body` before you push.
-- **Docs:** [Hooks: docs](../hooks.md#docs), and the stranded-push lesson
+- **Docs:** [Hooks: docs](../studio/hooks.md#docs), and the stranded-push lesson
   (2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md), whose fix leads to this case.

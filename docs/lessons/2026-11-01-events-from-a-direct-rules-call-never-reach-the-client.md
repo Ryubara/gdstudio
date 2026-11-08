@@ -12,4 +12,4 @@ areas: [net, godot-ui]
 - **Fix:** deliver what the call returns (`night.state.apply_events(rules.apply(action))`), as the link would. The
   server-side half of the same gap is
   [events the server causes alone](2026-11-01-events-the-server-causes-alone-never-reach-the-client.md).
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/hud.md`.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/hud.md`.

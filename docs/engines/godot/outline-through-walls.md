@@ -53,13 +53,13 @@ shader, and `discard` the pixels where the body is not behind the scene.
   Also capture the half case from the player's camera: a zombie half behind a car.
   A windowed run is minimized and draws nothing by itself: `RenderingServer.force_draw(false)` (a few times), never
   `await RenderingServer.frame_post_draw`, which hangs. See the
-  [lesson](../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
+  [lesson](../../lessons/2026-11-02-a-pixel-test-hung-or-read-a-blank-picture-in-a-minimized-window.md).
 
 ## Pitfalls
 
 - Make the outline's node and materials with the body, not at the first mark: a pooled-crowd game counts nodes made
   after the warm-up. See the
-  [lesson](../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
+  [lesson](../../lessons/2026-11-02-a-mark-made-a-node-in-the-middle-of-a-night.md).
 - A mesh outlined with no stencil-aware ordering shows one body's outline over another's: use `render_priority`.
 - Thickness in raw pixels looks thinner on a big screen: scale by `VIEWPORT_SIZE.y / 1080`.
 - Cost is passes, and the depth read: with 17 passes (mask, 8 line, 8 glow) three outlined zombies added 51 draw calls
@@ -70,4 +70,4 @@ shader, and `discard` the pixels where the body is not behind the scene.
   isolated). Nothing is paid while
   the overlay is off. Measure both, and with the depth read on and off. Leave the overlay off (null) when nothing is
   outlined: then it costs nothing. See the
-  [lesson](../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).
+  [lesson](../../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).

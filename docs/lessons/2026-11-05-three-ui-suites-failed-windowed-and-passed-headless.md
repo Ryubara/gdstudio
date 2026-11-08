@@ -18,4 +18,4 @@ areas: [tests, godot-ui]
   suite that pushes a night or a menu screen is run once in a window before its pull request (`gds godot --timeout 600
   -- ... GdUnitCmdTool.gd -a <suite>`); a "phone" case that sees no clipped button measured nothing, so it asserts it
   saw some.
-- **Docs:** the game's `docs/research/windowed-vs-headless-tests.md`; [No focus](../godot/no-focus.md).
+- **Docs:** the game's `docs/research/windowed-vs-headless-tests.md`; [No focus](../engines/godot/no-focus.md).

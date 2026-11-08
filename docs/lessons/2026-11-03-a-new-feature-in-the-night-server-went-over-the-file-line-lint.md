@@ -14,4 +14,4 @@ areas: [gameplay, tools]
   were the frame's two fields and the hooks. Check the line counts before writing the feature, not after.
 - **Check for next time:** `wc -l` the hot files (`night_server.gd`, `game_rules.gd`, `night.gd`) before putting code
   in them; put the logic in a class and the call in the file.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

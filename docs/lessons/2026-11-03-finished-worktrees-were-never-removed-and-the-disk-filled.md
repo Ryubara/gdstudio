@@ -14,9 +14,10 @@ areas: [tools, process]
   were 181 MB.
 - **Cause:** removing a worktree was a manual step after each merge, so it was skipped under load, and nothing owned the
   worktrees that no pull request or issue named. Which files were worth keeping was only known by looking at each one.
-- **Fix:** `gds worktree sweep` ([workspace.md](../workspace.md#sweep)) removes a worktree whose pull request merged, whose
+- **Fix:** `gds worktree sweep` ([workspace.md](../studio/workspace.md#sweep)) removes a worktree whose pull request
+  merged, whose
   issue closed or that nothing touched for hours, after copying its changed and untracked files that are not generated
-  to `scratch/<repo>/<branch>/kept/`. A hook starts it in the background ([hooks.md](../hooks.md#sweep)); `gds doctor`
+  to `scratch/<repo>/<branch>/kept/`. A hook starts it in the background ([hooks.md](../studio/hooks.md#sweep)); `gds doctor`
   warns under 20 GB free.
 - **Check:** a program that removes things is judged by what it refuses. Test, with real git repositories, that it
   keeps a worktree with an open pull request, one with commits on no remote branch, one a process uses (also by a longer

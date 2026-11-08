@@ -12,4 +12,4 @@ areas: [tests, godot-ui]
   under a condition (a bot in the room) made the expectation false for a fixture without that condition.
 - **Fix:** the tests name the hints that fixture can show (`WITHOUT_BOTS`), and the new hint has its own suite for the
   condition. Run all of `tests/ui` in parts after adding to a shared list; grep the tests for the constant first.
-- **Docs:** [Touch controls](../godot/ui-controls.md#touch-controls).
+- **Docs:** [Touch controls](../engines/godot/ui-controls.md#touch-controls).

@@ -1,8 +1,8 @@
-# Optional: the documentation site. Copy to .github/workflows/docs.yml with `mkdocs.yml` and `requirements-docs.txt`
-# from pack/optional/. It builds the site strictly (a broken link or a page missing from the nav fails), lints the
-# Markdown and the workflows, and a push to the default branch publishes the site to GitHub Pages (set Pages' source to
-# "GitHub Actions" once). Add `mkdocs`, `markdownlint` and `actionlint` to merge.required_checks to make them gates.
-# Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+# The kit's docs site (docs/studio/docs-site.md). It checks the lessons, builds the site with the pinned Zensical in
+# strict mode (a link to a missing page or anchor fails), writes the redirect pages of moved pages, lints the Markdown
+# and the workflows, and a push to the default branch publishes the site to GitHub Pages. The build job keeps the id
+# `mkdocs` because that is the name of a required check (merge.required_checks). Actions are pinned to a full commit
+# SHA; the tag is in the comment beside it.
 name: docs
 
 on:
@@ -25,11 +25,15 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - run: pip install -r requirements-docs.txt
+      # Every package by exact version and sha256 hash (requirements-docs.in, docs/studio/docs-site.md#pin).
+      - run: pip install --require-hashes -r requirements-docs.txt
+      # What the MkDocs build hook used to check: lessons have areas, no corrections row quotes the maintainer.
+      - run: python .github/scripts/mistakes.py check
       - id: pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - run: mkdocs build --strict
+      - run: zensical build --strict
+      - run: python .github/scripts/site_redirects.py site
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

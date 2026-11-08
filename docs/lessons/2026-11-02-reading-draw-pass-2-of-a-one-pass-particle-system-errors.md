@@ -11,4 +11,4 @@ areas: [godot, web]
   (a headless GdUnit run did not show it, the web build's console did).
 - **Fix:** loop `for i in particles.draw_passes` and call `get_draw_pass_mesh(i)`. Treat a console `ERROR` in the
   browser probe as a failure, as the flare probe does.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md#particle-systems-two-programs-of-their-own-and-a-sample-that-expires).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md#particle-systems-two-programs-of-their-own-and-a-sample-that-expires).

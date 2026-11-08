@@ -12,4 +12,4 @@ areas: [blender]
 - **Fix:** chamfer only the big round parts that face the camera (the hand guard), leave collars, rings and the flash
   hider bare, three ribs instead of five, no chamfer on small blocks: 1,236. Count with the build's `WEAPON` line on
   the first build, and spend chamfers on the signature parts.
-- **Docs:** [Weapons, budgets](../blender/weapons.md#budgets).
+- **Docs:** [Weapons, budgets](../tools/blender/weapons.md#budgets).

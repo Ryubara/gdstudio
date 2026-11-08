@@ -14,4 +14,4 @@ areas: [audio, blender]
 - **Fix:** wait on the mixer's own steps, not time: after `stop()`, poll `AudioServer.get_time_since_last_mix()` once
   per frame and count each time it falls, until about four steps have landed (with a poll cap). A test checks a stream's
   `get_reference_count()` returns to its earlier value after the wait.
-- **Docs:** [Audio](../godot/audio.md).
+- **Docs:** [Audio](../engines/godot/audio.md).

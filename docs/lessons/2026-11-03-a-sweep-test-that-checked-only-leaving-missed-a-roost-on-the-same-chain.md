@@ -15,4 +15,4 @@ areas: [gameplay, tests]
 - **Fix:** the plaza's sweep test also fails on any standing place over the reach (it failed on the old props), the
   steps are gone (loose cartons, tyres moved by the booths), and `map_escape_probe.gd` now lists every standing place
   0.9 m and more up (`raised`), the tops a roost check starts from.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

@@ -38,7 +38,7 @@ Parallel pull requests still conflict when they edit the same lines, whatever or
 decides which one settles the clash, and auto-merge lands the first that goes green, not the oldest. So a fix several
 of them need lands once (in the first, or on its own) and the others merge `main` after it instead of writing it
 again; each adds its own rows to a shared docs table and never rewords another's; and the coordinator names the shared
-files in each agent's prompt ([lesson](lessons/2026-11-03-five-parallel-prs-edited-the-same-files-and-conflicted.md)).
+files in each agent's prompt ([lesson](../lessons/2026-11-03-five-parallel-prs-edited-the-same-files-and-conflicted.md)).
 
 `gds issue block` enforces that, so a block cannot be written on a reason it does not have. `--on "#N"` is accepted
 when the blocked issue's body names #N as a dependency, or when `--conflict <path>...` names the files both would edit
@@ -92,7 +92,7 @@ line and starts when its turn comes, or when the maintainer marks it `P-critical
 ## The branch and worktree {#worktree}
 
 An agent never makes its own branch. A mistake in a hand-made branch or merge is found after the push, where fixing it
-takes a force push (the maintainer's) or a new pull request ([lesson](lessons/2026-11-02-a-local-check-judged-the-draft-and-ci-the-stored-commit.md)).
+takes a force push (the maintainer's) or a new pull request ([lesson](../lessons/2026-11-02-a-local-check-judged-the-draft-and-ci-the-stored-commit.md)).
 So `gds issue start` sets the work up first, once the window has allowed the start and before anything on GitHub
 changes:
 
@@ -167,7 +167,7 @@ that is not a read-only helper or the reviewer) has a line of one of these forms
 Both lines can appear; each must hold. An agent whose prompt has neither is refused with how to start the issue.
 
 `gds issue start` also maps the issue's labels to areas of the
-[mistakes glossary](research/mistakes-by-area.md) (built from the lessons; `docs/lessons/areas.toml`) and keeps them in
+mistakes glossary (`gds lessons <area>`) (built from the lessons; `docs/lessons/areas.toml`) and keeps them in
 the ledger: the checks of those areas are put into the agent's context when it starts
 ([Hooks: docs](hooks.md#docs)). `gds lessons <area>` prints them for a person.
 
@@ -233,7 +233,7 @@ It fetches `origin/main`, merges with `--no-commit`, and commits with the whole 
 branch's newest commit (`--co-author "<model> <noreply address>"` names another). It refuses a dirty tree and a branch
 that already has `main`. Never `git merge -m ...` and `git commit --no-edit` a merge that had conflicts: git adds a
 `# Conflicts:` paragraph after the message, which pushes the trailer out of the last paragraph and fails `pr-rules`
-([lesson](lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md)). The `pre-push` hook now stops
+([lesson](../lessons/2026-11-02-a-merge-committed-after-conflicts-lost-its-trailer.md)). The `pre-push` hook now stops
 such a commit before it leaves the machine ([Hooks](hooks.md#pre-push)); reword it with
 `git commit --amend --cleanup=strip -F <message file>`. A commit that is already pushed cannot be reworded without a
 force push, which is the maintainer's decision: open the same change from a new branch instead.
@@ -241,6 +241,6 @@ force push, which is the maintainer's decision: open the same change from a new 
 ## Why a tool and a hook
 
 The rule used to live in the coordinator's memory and was broken the day a new request arrived while older issues
-waited ([lesson](lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md)). Now the order is a function of the
+waited ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md)). Now the order is a function of the
 issue list, not of anyone's attention: the tool computes it, the ledger records it, the hook refuses an agent that skips
 it.

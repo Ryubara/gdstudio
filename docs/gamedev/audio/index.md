@@ -1,8 +1,8 @@
 # Audio
 
 How GDStudio games make their sound assets, outside the engine. How a game plays them in Godot (buses, the voice
-budget, captures, the web) is on [Godot: Audio](../godot/audio.md).
-A pull request that adds or changes a sound carries [a clip you can listen to](../capture.md#sound-a-clip-you-can-listen-to).
+budget, captures, the web) is on [Godot: Audio](../../engines/godot/audio.md).
+A pull request that adds or changes a sound carries [a clip you can listen to](../../studio/capture.md#sound-a-clip-you-can-listen-to).
 
 | Page | What it covers |
 | --- | --- |

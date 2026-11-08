@@ -15,4 +15,4 @@ areas: [blender, godot]
   keeps the wrist within 150 degrees of the hold's in every frame (`CARRY_WRIST_MAX`); the hand's world turn and the
   wrist's place do not change. Any clip the tree blends against another keeps each bone's local turn well under half a
   turn from the other's: print it at build time.
-- **Docs:** [Animation tree](../godot/animation-tree.md).
+- **Docs:** [Animation tree](../engines/godot/animation-tree.md).

@@ -1,6 +1,7 @@
 """`gds check layout`: the folder, naming and dependency rules of a game's Godot project.
 
-The rules are the kit's `docs/godot/project-conventions.md`; this module is the part of them a program can judge, so a
+The rules are the kit's `docs/engines/godot/project-conventions.md`; this module is the part of them a program can
+judge, so a
 game's CI fails on a hand-made exception instead of a review noticing it. It reads files only (no Godot, no git
 beyond one `ls-files`), so it runs in a second on any machine.
 

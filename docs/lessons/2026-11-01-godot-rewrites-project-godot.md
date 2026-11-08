@@ -12,4 +12,4 @@ areas: [godot, tools]
 - **Fix:** never hand-comment it; local-only settings go in an untracked `override.cfg`. Run
   `git checkout game/project.godot` after each run, before staging, and stage files by path (never `git add -A` in a
   worktree where Godot has just run); change the file by hand only for a real setting.
-- **Docs:** [Workspace](../workspace.md).
+- **Docs:** [Workspace](../studio/workspace.md).

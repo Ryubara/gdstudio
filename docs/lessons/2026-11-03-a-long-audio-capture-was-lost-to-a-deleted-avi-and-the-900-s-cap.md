@@ -13,4 +13,4 @@ areas: [audio, tools]
   frame, so 18 000 frames do not fit.
 - **Fix:** split a long capture into runs of a few minutes of sound (one per case, three at a time), extract the track
   at once (`ffmpeg -i x.avi -vn -c:a pcm_s32le x.wav`) and delete the avi only after the wav exists.
-- **Docs:** [Audio](../godot/audio.md#capturing-sound).
+- **Docs:** [Audio](../engines/godot/audio.md#capturing-sound).

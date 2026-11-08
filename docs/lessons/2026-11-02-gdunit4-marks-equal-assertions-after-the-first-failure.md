@@ -10,4 +10,4 @@ areas: [tests, godot]
   too, even when their values match.
 - **Fix:** read the first failure of a test and fix that; the later "x but was x" lines go away with it.
 - **General:** with GdUnit4, only the first failing assertion of a test is evidence.
-- **Docs:** [Mistakes by area](../research/mistakes-by-area.md).
+- **Docs:** the mistakes glossary (`gds lessons <area>`).

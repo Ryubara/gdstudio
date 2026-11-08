@@ -13,4 +13,4 @@ areas: [godot, tests]
 - **Fix:** a `shortest` flag that asks for `PATH_POSTPROCESSING_CORRIDORFUNNEL`, and waypoints at the outside corners
   of what the loop circles (0.6 to 0.8 m off): the cartons then measure 30 m, the booths 52 m, the shortest lap a pack
   cuts to. `test_lot_loops.gd` holds each at 40 m and more.
-- **Docs:** [Level design, P2](../research/level-design.md#p2-every-opening-adds-a-loop-to-run).
+- **Docs:** [Level design, P2](../gamedev/level-design.md#p2-every-opening-adds-a-loop-to-run).

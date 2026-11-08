@@ -16,7 +16,7 @@ learned on Deadnight's second map (Deadnight #623, `docs/research/maps/small-map
 - **Check the kit's sizes against the design's targets first.** A map built to a formula page (areas, ceiling,
   camera passages) can overrule the sizes read off reference images: Deadnight's second map took a 3.4 m storey
   and 2.0 m doors and stairs from its formula over the kit's 3.0 m and 1.4 m
-  ([lesson](../lessons/2026-11-02-two-sister-pages-gave-one-map-two-ceilings.md)).
+  ([lesson](../../lessons/2026-11-02-two-sister-pages-gave-one-map-two-ceilings.md)).
 - **List coverage per part**: exists, a material on a box, a model, or an engine job (light cards, shaders). Group
   the models so the groups share only the palette module, and agents can build them in parallel.
 
@@ -48,10 +48,10 @@ Learned on Deadnight's walls, openings and floors (Deadnight #633, `tools/blende
   players must not (a window with its sill under the jump height) gets a StaticBody3D on a player-only layer; an
   opening nobody walks but shots cross (bars, a hole) gets CSG on that layer.
 - **Write the palette's sRGB values into the image.** A byte image's `pixels` are what the PNG stores; converting to
-  linear first saves every swatch far too dark ([lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+  linear first saves every swatch far too dark ([lesson](../../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
   Read a cell of the saved PNG back once.
 - **Keep `.bin` out of the text hooks.** A small glTF buffer can pass as text, and the end-of-file fixer appends a
-  byte to it ([lesson](../lessons/2026-11-03-the-end-of-file-hook-appended-a-newline-to-a-gltf-buffer.md)).
+  byte to it ([lesson](../../lessons/2026-11-03-the-end-of-file-hook-appended-a-newline-to-a-gltf-buffer.md)).
 - **Prove it twice:** a Workbench sheet of the exported files beside the game's characters, and a Godot capture of a
   room built from the fixtures under the game's own night environment, the characters at the game's scales.
 
@@ -71,7 +71,7 @@ Learned on Deadnight's stairs (Deadnight #634, `tools/blender/build_kit_stairs.p
   basis by rows; check the convention with a ray down onto each tread.
 - **Test with the real body:** walk up and down, at a run, a sprint and across corners; assert no tick with a step-up
   and none off the floor, bound the dip at a slope's crest (the capsule settles 4-8 mm there,
-  [lesson](../lessons/2026-11-02-a-stair-walk-test-failed-on-the-ramps-crest.md)), and keep a control flight with
+  [lesson](../../lessons/2026-11-02-a-stair-walk-test-failed-on-the-ramps-crest.md)), and keep a control flight with
   its treads as collision that does step.
 - **Rails are player-only collision** (Deadnight's boards' layer): a thin pipe stops a player but not a shot or the
   shoulder camera. A rail that may sit on either side of a straight flight is two nodes and a switch on the fixture.
@@ -86,26 +86,26 @@ Learned on Deadnight's cover and clutter (Deadnight #635, `tools/blender/build_s
 
 - **Sandbags are full pillows that sag onto each other.** Make each bag taller than its course (0.22 m on 0.17 m) and
   gather its ends sideways only. Thin bags pinched in both directions, with a gap between courses, read as stacked
-  logs ([lesson](../lessons/2026-11-02-sandbags-read-as-logs.md)). Alternate header courses (bags across) with
+  logs ([lesson](../../lessons/2026-11-02-sandbags-read-as-logs.md)). Alternate header courses (bags across) with
   stretcher courses, and keep a 2 m line near 1.3k triangles.
 - **Write the fixtures from the build script.** Give each piece a collision spec in Blender metres (its bounding box,
   boxes, or a cone) and write the `.tscn` with Blender (x, y, z) as Godot (x, z, -y). Walk-over dressing under the
   step height gets none, as a game's papers and debris. A rerun then keeps model and collision together.
 - **Each group's test reads its own build report.** Kit groups share the asset and fixture folders, so a test lists
   its pieces from its report's keys, never from the folder's files
-  ([lesson](../lessons/2026-11-03-a-kit-test-claimed-every-file-in-a-shared-folder.md)).
+  ([lesson](../../lessons/2026-11-03-a-kit-test-claimed-every-file-in-a-shared-folder.md)).
 - **Mark where a game node goes later.** A cabinet that holds a wall buy carries a `Marker3D` turned so the game's
   existing plaque node, put under it unchanged, stands on end in the recess. Test that the plaque's box sits inside
   the model.
 - **Check normals in Blender, not from Godot's triangles.** Godot's front faces wind clockwise, so a cross product of
   an index triangle points inward on a correct mesh. Sum the signed volume per island of the exported file in Blender
-  instead ([lesson](../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
+  instead ([lesson](../../lessons/2026-11-02-a-normal-check-on-godot-triangles-flagged-every-face.md)).
 - **Tune colours only once the palette reads right.** Read a cell of the saved PNG back before changing a swatch for
-  looking dark ([the palette lesson](../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
+  looking dark ([the palette lesson](../../lessons/2026-11-02-a-palette-written-as-linear-came-out-dark.md)).
 - **Show an encoding fix before and after from the same cameras.** A fixed atlas changes a look that may have been
   approved dark: capture the night with the old atlas put back and imported, then the new one, from a seeded tour
   (old file: `git show <rev>:<path> | git lfs smudge`,
-  [lesson](../lessons/2026-11-01-git-show-of-an-lfs-file-gives-a-pointer-not-the-model.md)). On Deadnight's drive-in
+  [lesson](../../lessons/2026-11-01-git-show-of-an-lfs-file-gives-a-pointer-not-the-model.md)). On Deadnight's drive-in
   (#651) 0-5 % of each lot view changed and up to 24 % of a close prop view; under the night's lights nothing read
   washed out, so no swatch was tuned.
 
@@ -116,14 +116,14 @@ Learned on Deadnight's roof and backdrop (Deadnight #638, `tools/blender/build_s
 - **A roof in bays along the ridge** sits on the walls as wall modules do: the origin on the wall tops, the rafters'
   undersides resting on the wall plates (lift the rafters' plane by the plate's height plus the rafter depth over the
   pitch's cosine). Boards at a bay's end lap 20 mm into the next, or the sky shows through every joint
-  ([lesson](../lessons/2026-11-03-modular-roof-bays-showed-the-sky-through-their-joints.md)).
+  ([lesson](../../lessons/2026-11-03-modular-roof-bays-showed-the-sky-through-their-joints.md)).
 - **A broken bay** is the courses with a rectangle left out, short boards of different lengths into the hole, battens
   across it and a snapped rafter hanging; seen from below it reads at once.
 - **What the backdrop repeats gets a far level of detail** of 300 triangles or fewer (four-sided limbs, no caps, no
   barbs) and an `.obj` copy for a MultiMesh. A wire is a run of three-sided tubes along a parabola; its span is its own
   piece, from one pole's insulators to the next's.
 - The backdrop itself (haze, unshaded, multimeshes, cost) is on
-  [Compatibility lighting](../godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
+  [Compatibility lighting](../../engines/godot/compat-lighting.md#a-backdrop-past-the-playable-bounds).
 
 ## Staging game characters for scale
 
@@ -136,4 +136,4 @@ The scale sheet and room render put the game's own characters beside the pieces.
   `matrix_world = Translation @ Rotation @ matrix_world`, or set `rotation_mode = "XYZ"` first.
 
 Look at every render before believing it: both traps produced a plausible image with the wrong pose or facing
-([lesson](../lessons/2026-11-02-an-imported-character-kept-its-import-pose-and-facing.md)).
+([lesson](../../lessons/2026-11-02-an-imported-character-kept-its-import-pose-and-facing.md)).

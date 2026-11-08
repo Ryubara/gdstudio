@@ -1,7 +1,8 @@
 """Headless Chrome takes pointer lock on a page and holds it 0.8 s, the way a browser smoke probe aims a game camera.
 
 Run by test_quiet_run.py through `run_quiet` (never on its own: under pointer lock headless Chrome clips the person's
-real cursor to its hidden window, docs/godot/no-focus.md). Prints one JSON line: whether the lock took, the desktop
+real cursor to its hidden window, docs/engines/godot/no-focus.md). Prints one JSON line: whether the lock took, the
+desktop
 this process runs on, and the longest time (ms) the cursor clip differed from the free one while the lock lasted, seen
 from this process (so the test needs no sampler of its own to be scheduled against the guard).
 

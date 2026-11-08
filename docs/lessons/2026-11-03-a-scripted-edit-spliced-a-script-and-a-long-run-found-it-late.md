@@ -12,4 +12,4 @@ areas: [tests, process]
 - **Fix:** rewrote the splice from the intact copy. After any scripted edit of a `.gd` file, run `gdformat` on it (it
   parses) before starting a run that takes minutes, and start such runs with a first look at their log after ten
   seconds, not at the end.
-- **Docs:** [Headless probes](../godot/headless-probes.md) (every run gets a timeout and a look at its first seconds).
+- **Docs:** [Headless probes](../engines/godot/headless-probes.md) (every run gets a timeout and a look at its first seconds).

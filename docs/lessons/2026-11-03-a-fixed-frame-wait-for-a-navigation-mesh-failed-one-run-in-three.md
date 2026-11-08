@@ -16,5 +16,5 @@ areas: [tests, godot]
   area ends within a metre of it (and the bake is not busy), with a large cap that fails with a message. Guard the
   line after an assertion that can fail (`continue` when `points` is empty). A second test shows the wait is needed
   (the map does not answer the frame a door is bought).
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md); the same rule as
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md); the same rule as
   [a new region](2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md).

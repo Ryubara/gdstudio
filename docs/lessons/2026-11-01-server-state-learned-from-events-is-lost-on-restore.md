@@ -10,4 +10,4 @@ areas: [gameplay, net]
 - **Cause:** the server mirrored the zombie list from spawn events it had seen, and its own state was in no snapshot.
 - **Fix:** ask the owner of a fact (`GameRules.has_zombie`) instead of mirroring it from events, and give the state a
   server alone owns `to_dict`/`from_dict`/bytes with its own version, restored after the rules.
-- **Docs:** [Multiplayer](../godot/multiplayer.md); Deadnight `docs/research/grenades.md`.
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md); Deadnight `docs/research/grenades.md`.

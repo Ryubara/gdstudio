@@ -11,4 +11,4 @@ areas: [tests, godot]
   last physics tick left it; node visibility changes at once.
 - **Fix:** `physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF` on a capture camera (and any model it places
   by hand), and take the settled frame a frame before the switch.
-- **Docs:** [physics interpolation](../godot/physics-interpolation.md).
+- **Docs:** [physics interpolation](../engines/godot/physics-interpolation.md).

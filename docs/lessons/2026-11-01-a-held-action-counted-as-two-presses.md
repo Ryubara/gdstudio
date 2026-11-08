@@ -12,4 +12,4 @@ areas: [input, godot]
 - **Fix:** the player keeps its own per-tick edge: remember whether the action was down last tick and report the
   rising edge once. The same code works headless, where GdUnit4 does not transport input events at all (actions work,
   mouse motion does not; call `_unhandled_input` with an event instead).
-- **Docs:** [Tests](../godot/index.md).
+- **Docs:** [Tests](../engines/godot/index.md).

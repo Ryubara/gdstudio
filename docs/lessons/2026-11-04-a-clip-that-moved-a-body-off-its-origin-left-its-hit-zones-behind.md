@@ -12,4 +12,4 @@ areas: [blender, gameplay]
 - **Fix:** a set of its own for the clip (twice the shapes: the body travels over a metre), chosen by the snapshot's
   bit, and the aim read from that set; bots, the autopilot and touch aim assist pass the bit. When a clip moves a body
   off its origin, grep for the hit sets and every aim offset in the same change.
-- **Docs:** [Animation tree](../godot/animation-tree.md#a-clip-driven-by-place).
+- **Docs:** [Animation tree](../engines/godot/animation-tree.md#a-clip-driven-by-place).

@@ -1,4 +1,4 @@
-"""What `gds workspace init` sets up around the checkouts (docs/workspace.md#integrations).
+"""What `gds workspace init` sets up around the checkouts (docs/studio/workspace.md#integrations).
 
 - The pinned Godot addons (the MCP addon, GdUnit4) go into every game's `game/addons/<name>/`, and into the kit's own
   Godot project (`godot/`, where `gds_ui` is edited and tested), enabled through an untracked `override.cfg` beside

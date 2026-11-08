@@ -16,4 +16,4 @@ areas: [gameplay, camera, net]
   For each state (turning, reloading, swapping), decide whether the action leaves, waits or is cancelled, and test it
   from the worst starting state.
 - **Docs:** Deadnight `docs/research/hip-fire.md` ("Turn first, then shoot"), with the tolerance, buffer and turn-rate
-  numbers; [What to plan from the start](../research/plan-from-the-start.md).
+  numbers; [What to plan from the start](../studio/plan-from-the-start.md).

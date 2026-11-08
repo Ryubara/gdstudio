@@ -4,7 +4,7 @@ A reusable review for any GDStudio map, run before it ships and again when its l
 Deadnight's #833 (a full review of two maps) from published level-design writing, and it is built for the games we
 make: co-op, wave-based, third-person survival with doors that open by purchase. Other games are studied for design
 only; nothing here is copied from them. The principles behind each section, their sources and the check each one runs
-are in [Level design](../research/level-design.md), and the `level-designer` agent walks this checklist.
+are in [Level design](../../gamedev/level-design.md), and the `level-designer` agent walks this checklist.
 
 Run it as a person (an agent) who walks the map **from the player's camera**, not from the editor, and **proves every
 claim by movement or by measurement**: "looks sealed" and "looks dark" are guesses. Each section ends with the proof
@@ -63,7 +63,7 @@ circled is a corridor with a countdown.
   guessed) and wide enough that two bodies abreast do not jam. A loop that a single dead end or a slot breaks is not a
   loop. *Proof: a pathfinding query round the loop with the dead's agent size, through waypoints at the outside corners
   of what it circles and with the funnel (shortest) path, not edge-centred points, which zigzag and read half again too
-  long ([lesson](../lessons/2026-11-03-a-loop-length-on-edge-centred-paths-was-half-again-too-long.md)); a bot soak
+  long ([lesson](../../lessons/2026-11-03-a-loop-length-on-edge-centred-paths-was-half-again-too-long.md)); a bot soak
   that records where bodies stop moving.*
 - [ ] **No trap slots.** A gap wider than a seam and narrower than a body wedges whoever is pushed into it.
   *Proof: scan every pair of facing collider faces for a gap between the seam and the body's width.*
@@ -171,14 +171,14 @@ avoid a finale at full intensity.
   a repair buys nothing, and a purchase that costs a weapon takes a press made once its card was read. *Proof: a sweep
   over a grid of standing ground round every interactable, each zone grown by half the gap, that asks the server's own
   zone functions and fails on a point inside two; a capture from the player's camera at the worst point* (Deadnight
-  #908, [lesson](../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)). *On the plan, before building:*
+  #908, [lesson](../../lessons/2026-11-03-use-zones-overlapped-and-the-purchase-won.md)). *On the plan, before building:*
   the middles of two things on one floor are at least their two reaches and the gap apart. With Deadnight's reaches
   (2.5 m from a window, a door or a post, 1.5 m from a shop spot, 0.5 m between): two windows, or a window and a door,
   5.5 m; a window or a door and a spot 4.5 m; two spots 3.5 m. A room's corner with an opening on each wall has no
   room for anything else used with the button (Deadnight #994,
-  [lesson](../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)). A sweep's grid point on a
+  [lesson](../../lessons/2026-11-04-a-corner-held-a-window-a-breach-and-a-perk-alcove.md)). A sweep's grid point on a
   wall's face is not room for a body: its rays start behind the point
-  ([lesson](../lessons/2026-11-04-a-grid-point-on-a-wall-face-counted-as-room-for-a-body.md)).
+  ([lesson](../../lessons/2026-11-04-a-grid-point-on-a-wall-face-counted-as-room-for-a-body.md)).
 - [ ] **Props have a job and a material.** Walk the prop list: cover, landmark, dressing or collision. A bare grey
   box in a finished area is a defect; a prop with no collision that looks solid is one too.
 
@@ -212,13 +212,13 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   step-up at an edge and the capsule's rounded foot add to it (Deadnight: jump 1.1 m, climbs 1.25 m, so a counter
   built "a little over a jump" at 1.2 m was climbed). *Proof: run the real body at blocks of each height from level
   ground, sprinting and walking, from several distances, jumping at several moments; the highest it stands on is the
-  reach, and a test pins it* ([lesson](../lessons/2026-11-03-a-jump-reach-test-used-the-jump-height-and-the-body-climbs-further.md)).
+  reach, and a test pins it* ([lesson](../../lessons/2026-11-03-a-jump-reach-test-used-the-jump-height-and-the-body-climbs-further.md)).
 - [ ] **Compute the reach.** The measured reach, plus the height of anything a player can stand on (cars, crates,
   counters, stairs' rails, a prop's top, a window sill), must be below every perimeter wall, closed door and
   closed-area wall. *Proof: list every standable platform and the highest wall top within reach of it; a margin
   under the reach is a defect. Keep the sum as a test over the shipped scene (wall top minus the tallest standable
   prop within a few metres of it, against the reach plus a margin), so a prop stacked at the wall later fails it*
-  ([lesson](../lessons/2026-11-03-a-wall-height-worked-out-once-was-never-checked-against-props-added-later.md)).
+  ([lesson](../../lessons/2026-11-03-a-wall-height-worked-out-once-was-never-checked-against-props-added-later.md)).
 - [ ] **Chains of props are stairs.** A wall is judged against what a body can get onto from what it can get onto: a
   barrel (0.8 m) beside a dumpster (1.6 m) beside a fence (2.6 m) is a flight. *Proof: a sweep that, from every ground
   cell near something solid, runs the body at it (sprint and jump at several moments, walk and jump, crouch-walk), takes
@@ -229,19 +229,19 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   a counter 1.75 m from every edge) is a roost; put the player there with ten dead chasing and count the blows. A probe
   that spawns the dead must give them a speed and print how near they came: a zero with the dead never closer than their
   start is a probe fault
-  ([lesson](../lessons/2026-11-03-a-roost-probe-whose-dead-stood-still.md)). Deadnight's `tools/world/roost_probe.gd`.
+  ([lesson](../../lessons/2026-11-03-a-roost-probe-whose-dead-stood-still.md)). Deadnight's `tools/world/roost_probe.gd`.
 - [ ] **Inside corners are steps.** Two blocks each over the reach, meeting in an L, are climbed at the corner where
   one alone is not (a 1.3 m wreck turned across another's end, against a 1.25 m reach). Tall pieces stand square, end
   to end; the sweep, not the height, says a top is out of reach
-  ([lesson](../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)).
+  ([lesson](../../lessons/2026-11-03-a-wreck-out-of-reach-was-climbed-at-the-inside-corner-of-two.md)).
 - [ ] **A sweep test fails on every standing place over the reach,** not only on leaving the map: a top over the reach
   was reached through a step, and against a wall it is a roost one hop short of the way out
-  ([lesson](../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
+  ([lesson](../../lessons/2026-11-03-a-sweep-test-that-checked-only-leaving-missed-a-roost-on-the-same-chain.md)).
 - [ ] **A thin collider is a wall.** A tree's trunk, a post or a sign stood "above a jump" is a step from a car roof
   beside it: a 2.4 m trunk 4.6 m from a 1.65 m roof was climbed and was one hop from over a 3.0 m fence. *Proof: every
   such collider's top against the tallest standable top within a hop (about 5 m at a sprint) plus the reach and a
   margin, as a test*
-  ([lesson](../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)).
+  ([lesson](../../lessons/2026-11-03-a-tree-trunk-set-above-a-jump-was-a-step-from-a-car-roof.md)).
 - [ ] **The sweep is a test that runs in two minutes a map.** Start the real body on every top within the reach that
   lies near a barrier (a perimeter wall, a closed door's slab, a closed area's wall) and on the floor beside tops a
   little over it; aim at whatever is solid ahead; chain three hops; judge where it settles by the areas as boxes, each
@@ -249,9 +249,9 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   same for any door state that leaves the same slabs near its start, so cache it by those (Deadnight: 9 door sets of
   the lot in 91 s, 8 of the second map in 68 s). Prove it on the unfixed map: put a merged fix back in a scratch
   worktree (no commit) and see it fail
-  ([lesson](../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)). A start cell is clear
+  ([lesson](../../lessons/2026-11-03-a-teeth-check-revert-was-committed-with-the-hooks-off.md)). A start cell is clear
   by the boxes' bounds, not by a capsule query: CSG faces are one-sided and a body inside a thin wall touches none
-  ([lesson](../lessons/2026-11-03-a-sweep-started-the-body-inside-a-wall-a-known-trap.md)).
+  ([lesson](../../lessons/2026-11-03-a-sweep-started-the-body-inside-a-wall-a-known-trap.md)).
 - [ ] **An interactable is a prop too.** A breaker post, a buy stand or a machine against a wall is a step like a crate:
   Deadnight's 1.5 m breaker post flush with a 2.4 m fence was climbed from a 1.0 m kerb wall 4 m away and was one hop
   from a closed area. Place the low cover after the posts, and keep it a sprint-jump (6.4 m) from any of them.
@@ -271,12 +271,12 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   beyond, with the jump added to the climb. *Proof: the sweep above, once for each door state; a baked mesh holds the
   closed rooms' floors as islands, so ground counts as reached only when a path query from the start ends on it, and a
   hop starts at the solid floor under the mesh (it floats above it), never at the mesh*
-  ([lesson](../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)).
+  ([lesson](../../lessons/2026-11-03-a-probe-began-on-the-walkable-mesh-and-jumped-0-2-m-too-high.md)).
 - [ ] **No body is stranded on the walking mesh.** A path never leaves the piece it starts on, so a piece a body can
   walk or climb to and joined to nothing leaves a bot with no way anywhere and no error. *Proof: every piece of the walking
   mesh, per door state, with its size and place; the real capsule flooded over the floor from each must not reach the
   ground the players start on within the reach, nor a top reached from it; each piece that stays has its reason written*
-  ([lesson](../lessons/2026-11-04-a-walking-mesh-held-pieces-a-body-could-stand-on-and-never-leave.md)).
+  ([lesson](../../lessons/2026-11-04-a-walking-mesh-held-pieces-a-body-could-stand-on-and-never-leave.md)).
 - [ ] **Fall-through and edges.** Nothing walkable lies past the map's walls (distant scenery is not collision), and a
   kill volume or floor sits under every open edge. A player who somehow leaves is returned, not lost.
 - [ ] **Out of bounds for the dead.** The dead, not only the players, stay inside, and no gap is wide enough for them to
@@ -289,7 +289,7 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
 ## 7a. Objectives on the map
 
 For a map with steps to finish (a chain, a carry, a last stand): the principle is
-[P20](../research/level-design.md#p20-an-objective-is-measured-not-read).
+[P20](../../gamedev/level-design.md#p20-an-objective-is-measured-not-read).
 
 - [ ] The test of "too easy" is written down before the steps, with its numbers.
 - [ ] The floor is run with real bodies and no dead, **from the state the chain will find**: boards down, the tank used,
@@ -321,7 +321,7 @@ corner) are fixed in the review with a test; layout, pacing and balance are issu
 ## Sources
 
 Read for design only; nothing here is copied from a game. The full list, by principle, is in
-[Level design: sources](../research/level-design.md#sources).
+[Level design: sources](../../gamedev/level-design.md#sources).
 
 | Subject | Source |
 | --- | --- |

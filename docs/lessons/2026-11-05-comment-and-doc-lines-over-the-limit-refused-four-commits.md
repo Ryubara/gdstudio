@@ -15,4 +15,4 @@ areas: [godot-ui, tools]
   its output in one pass; rewrap by hand, never leave a long line for the hook to find.
 - **Check for next time:** a scripted word or number change in a comment is a change to its line length: measure the
   lines it touched, in every file type it touched.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

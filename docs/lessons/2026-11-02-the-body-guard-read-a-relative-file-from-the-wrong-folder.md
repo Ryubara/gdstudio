@@ -21,4 +21,4 @@ areas: [tools, process]
 - **Check for next time:** a guard that reads a relative path must say where it looked, and when it cannot know the
   folder it says so and asks for an absolute path; it never reports a missing file from a guess. Run a new path guard
   on every spelling of the folder change (`cd`, `;`, quotes, `/c/`, `~`, `$VAR`) before calling it right.
-- **Docs:** [Hooks](../hooks.md#pr-body).
+- **Docs:** [Hooks](../studio/hooks.md#pr-body).

@@ -14,4 +14,4 @@ areas: [blender, tests]
   as inside when nothing lies between it and the limb's own bone line, with the depth being the way on out. Past a
   bone's end a tube is open, so those places are left out. A number larger than the limb is a broken metric: sanity-check
   a new metric against a size you know before tuning art to it.
-- **Docs:** [Character variants, clothes that stand off the body](../blender/variants.md).
+- **Docs:** [Character variants, clothes that stand off the body](../tools/blender/variants.md).

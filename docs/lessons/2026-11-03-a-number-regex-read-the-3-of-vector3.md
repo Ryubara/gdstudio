@@ -13,4 +13,4 @@ areas: [blender, tools]
 - **Fix:** read a Godot value from the text between its parentheses, as `soldier_clips._transform` does for a
   `Transform3D`: `text[text.index("(") + 1 : text.rindex(")")].split(",")`. Print each key's miss on the first build:
   a solve that reports metres where it should report millimetres has read its input wrong.
-- **Docs:** [Rig sharing, a prop to the mouth](../blender/rig-sharing.md#a-held-prop-to-the-mouth).
+- **Docs:** [Rig sharing, a prop to the mouth](../tools/blender/rig-sharing.md#a-held-prop-to-the-mouth).

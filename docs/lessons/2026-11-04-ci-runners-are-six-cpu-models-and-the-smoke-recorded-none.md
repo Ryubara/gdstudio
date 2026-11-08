@@ -20,4 +20,4 @@ areas: [ci, web]
   downloads, read only `smoke/result.json` out of each artifact zip with HTTP range requests (70 KB a run: Deadnight
   `tools/web_smoke/smoke_history.py`). A probe built for the A/B must copy the gate's own steps before its window (the
   smoke reads the probe and takes a screenshot first): without them the older build read 150 to 2 600 ms.
-- **Docs:** [web export](../godot/web-export.md) (row "Hosted runners are several CPU models").
+- **Docs:** [web export](../engines/godot/web-export.md) (row "Hosted runners are several CPU models").

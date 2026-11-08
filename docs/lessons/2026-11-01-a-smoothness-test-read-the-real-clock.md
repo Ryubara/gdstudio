@@ -15,4 +15,4 @@ areas: [tests, godot]
   cases (body not interpolated, rig blended twice) must show more than 5 px, so the measure is proven against the faults
   it guards. The limit is unchanged.
 - **Check:** anything measured per drawn frame runs at a fixed frame length, never at the machine's.
-- **Docs:** [Physics interpolation](../godot/physics-interpolation.md).
+- **Docs:** [Physics interpolation](../engines/godot/physics-interpolation.md).

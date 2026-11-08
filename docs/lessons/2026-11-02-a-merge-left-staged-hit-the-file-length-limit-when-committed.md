@@ -15,4 +15,4 @@ areas: [process, tests]
   file-length limit, move a helper to the class that already owns the subject (`MachineOffers.replaces` took what the
   server file could not hold) instead of squeezing lines; merge two early returns into one condition for the return
   count; `gdformat` rewrites the staged file, so `git add -A` and commit again.
-- **Docs:** [Agents](../agents.md).
+- **Docs:** [Agents](../studio/agents.md).

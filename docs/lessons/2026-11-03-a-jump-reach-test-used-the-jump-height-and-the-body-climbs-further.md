@@ -16,4 +16,4 @@ areas: [tests, gameplay, godot]
   of each height, jumping at nine moments) and write the number where tests read it; judge every wall, door slab and
   prop against the measured reach, and run the body, not a formula, at each candidate. Look at a prop's height against
   1.25 m, not 1.1 m, when a design page says "unjumpable".
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

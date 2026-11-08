@@ -6,7 +6,7 @@ pipelines and global docs that every GDStudio game shares. Each game is its own 
 ## Layout
 
 The workspace is a plain folder (never a repository) that `bootstrap.ps1` / `bootstrap.sh` builds
-(`docs/workspace.md`):
+(`docs/studio/workspace.md`):
 
 ```text
 <workspace>/
@@ -32,14 +32,14 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - **Proof, not claims.** Work is done when its tests and scenario captures pass, not when it looks done. Agents test
   it themselves (simulated input in GdUnit4, bots or an autopilot, audio analysis, a browser driven by a probe) and
   never hand a test to the maintainer. Visual work attaches screenshots or a clip, and sound attaches a clip to listen
-  to (`docs/capture.md`).
+  to (`docs/studio/capture.md`).
 - **Learn in the same session.** When the maintainer corrects an agent or reports a problem in earlier work, the
-  learning is written into the docs in that session: a row on `docs/research/maintainer-corrections.md`, and a lesson
+  learning is written into the docs in that session: a row on `docs/studio/maintainer-corrections.md`, and a lesson
   (`docs/lessons/`) when the cause is general. Agents read the checks that touch their task before they start. The
-  hooks enforce it (`docs/hooks.md#learning`).
+  hooks enforce it (`docs/studio/hooks.md#learning`).
 - **No comments under the maintainer's account.** Nothing an agent or a tool runs posts a comment or a review on an
   issue or a pull request under the maintainer's GitHub account, ever, with no exception: labels say that work is under
-  way, and a report goes in the pull request's body or the scratch folder (`docs/hooks.md#comments`).
+  way, and a report goes in the pull request's body or the scratch folder (`docs/studio/hooks.md#comments`).
 <!-- conventions:begin maintainer-decisions -->
 - **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make an existing
   repository public or private (a new game's, from `gds new game`, is not one: kit #779); tag a release; force-push
@@ -54,20 +54,21 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - Workspace: `uv run --project python gds doctor`.
 - Windowed Godot (captures, autopilots, GdUnit without `--headless`):
   `uv run --project python gds godot -- <godot arguments>`, never the Godot program directly: a plain window takes the
-  keyboard from the person at the machine (`docs/godot/no-focus.md`).
+  keyboard from the person at the machine (`docs/engines/godot/no-focus.md`).
 - Local browser probes (Playwright, a game's `tools/web_smoke/*.py`) and any other program that can take the mouse:
   `uv run --project python gds quiet -- <command>`: headless Chrome under pointer lock traps the person's cursor.
 - Before committing: `uvx pre-commit run --all-files` (installed once with `uvx pre-commit install`).
-- Docs: `uvx --with-requirements requirements-docs.txt mkdocs build --strict`.
+- Docs: `uvx --with-requirements requirements-docs.txt zensical build --strict` (Zensical, pinned with hashes; the
+  topic folders and where a page goes: `docs/studio/docs-site.md`).
 - Start work: only `uv run --project python gds issue start <owner/repo>#N --agent <name>` (the oldest ready issues first,
   `P-critical` before them; `gds issue list` shows them); a task agent's prompt carries `Issue: <owner/repo>#N` or
-  `PR: <owner/repo>#N` (`docs/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
+  `PR: <owner/repo>#N` (`docs/studio/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
 - Open pull requests land before new work starts, oldest stuck one first; a parked one is refreshed before it lands
-  (`docs/starting-work.md#landing`).
-- Lessons: a lesson has `areas: [...]` front matter; `docs/research/mistakes-by-area.md` is built from the lessons by the
-  docs build and `gds lessons <area>`, never committed (`python .github/scripts/mistakes.py check` fails on a lesson
-  without areas). The agent that finds a
-  mistake writes the lesson and opens the kit pull request in the same task (`docs/hooks.md#docs`). A `Fix` or `Rework`
+  (`docs/studio/starting-work.md#landing`).
+- Lessons: a lesson has `areas: [...]` front matter; the mistakes glossary is built from the lessons by
+  `gds lessons <area>`, never committed (`python .github/scripts/mistakes.py check` fails on a lesson without areas
+  and on a corrections row that quotes the maintainer). The agent that finds a
+  mistake writes the lesson and opens the kit pull request in the same task (`docs/studio/hooks.md#docs`). A `Fix` or `Rework`
   pull request, or one after a failed check or closing a `bug` issue, carries `Lessons: docs/lessons/<file>.md`; one
   that closes an issue carries `Read first: <areas>`.
 
@@ -85,7 +86,7 @@ from it (`uv run --with pyyaml python .github/scripts/groundwork.py render`): ed
 <!-- conventions:end -->
 
 A pull request the maintainer must see first carries `S-hold` (`gds pr hold <owner/repo>#N`): a required check stops
-every merge while it is on, and only the maintainer takes it off, by hand (`docs/hooks.md#hold`).
+every merge while it is on, and only the maintainer takes it off, by hand (`docs/studio/hooks.md#hold`).
 
 Work happens on branches, one pull request per change, squash-merged; `main` takes no direct pushes. A pull request
 description follows `.github/pull_request_template.md`.

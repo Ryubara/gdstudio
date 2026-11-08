@@ -15,4 +15,4 @@ areas: [gameplay, tests, godot]
 - **Fix:** the night lets the dead rise in an area only once a path from the field reaches its spawn points
   (`NightWorld.take_in_areas`, asked every 15 ticks), and a harness that buys doors gives the engine its frames. A test
   of a bought door waits for the map's answer, never for the purchase.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md#a-night-stepped-by-hand-has-a-stale-map).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md#a-night-stepped-by-hand-has-a-stale-map).

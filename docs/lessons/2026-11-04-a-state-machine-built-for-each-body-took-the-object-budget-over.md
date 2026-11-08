@@ -16,4 +16,4 @@ areas: [godot, ci, general]
   the CI command: 20 839 objects with a machine each, 15 589 shared (limit unchanged). A test checks that two views
   share the `tree_root` and keep their own state. Teeth: the objects peak is the CI step; run it locally
   (`--autopilot --rounds=12 --startround=12 ...` and `check_budget.py`) for any change that adds to what a body builds.
-- **Docs:** [AnimationTree](../godot/animation-tree.md), "Build the state machine once, share it between trees".
+- **Docs:** [AnimationTree](../engines/godot/animation-tree.md), "Build the state machine once, share it between trees".

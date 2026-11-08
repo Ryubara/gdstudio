@@ -18,4 +18,4 @@ areas: [blender]
   show beside the head. Checked in the game from the side, from a teammate's place and from the shoulder camera.
 - **Check for next time:** pose anything that moves the kit head in the game's own captures (side and the shoulder
   camera) after the first build; a pose right in a front sheet can be wrong on a head this big.
-- **Docs:** [Rig sharing, a prop to the mouth](../blender/rig-sharing.md#a-held-prop-to-the-mouth).
+- **Docs:** [Rig sharing, a prop to the mouth](../tools/blender/rig-sharing.md#a-held-prop-to-the-mouth).

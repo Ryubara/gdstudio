@@ -18,4 +18,4 @@ areas: [audio, web]
   without a break while a reload, a teammate's gun, zombie voices and world sounds land on it and counts the samples
   over -1 dBFS (1 of 25 cells after, 14 of 25 before; the one left is the one gun whose trim was not cut). Measure the
   sum, not each source.
-- **Docs:** [Audio](../godot/audio.md#headroom-without-a-limiter).
+- **Docs:** [Audio](../engines/godot/audio.md#headroom-without-a-limiter).

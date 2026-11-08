@@ -17,5 +17,5 @@ areas: [blender]
   comes back only until the hand clears the magazine or the box (closer, the solved grip left the thumb 80 mm off), and
   the stock takes the rest: supports at 0.28-0.32 ahead of the grip, butts at 0.30-0.345 behind it, shorter than the
   real guns'; grips solved again and measured in the capture.
-- **Docs:** [Weapons in the Toon Shooter style](../blender/weapons.md#hands-on-the-weapon); Deadnight's
+- **Docs:** [Weapons in the Toon Shooter style](../tools/blender/weapons.md#hands-on-the-weapon); Deadnight's
   `docs/research/weapon-models.md` "The left hand's reach".

@@ -9,7 +9,7 @@
     {
       "name": "gdstudio-disk",
       "source": "./mods/gdstudio-disk",
-      "description": "The disk guard in the status line: free space, limits and the folders over budget (docs/workspace.md#disk)"
+      "description": "The disk guard in the status line: free space, limits and the folders over budget (docs/studio/workspace.md#disk)"
     }
   ]
 }

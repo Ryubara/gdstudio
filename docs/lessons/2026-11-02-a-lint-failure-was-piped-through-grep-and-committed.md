@@ -12,4 +12,4 @@ areas: [tools, process]
   nothing stopped the chain. Git Bash paths (`/c/...`) mean nothing to the Windows `python` on the machine.
 - **Fix:** chain with `&&` so a failing check stops the commit (`uvx pre-commit run --all-files && git commit ...`) and
   read the output after, not through a filter; give Python the Windows form (`C:/...`) of a path.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

@@ -1,4 +1,4 @@
-# A fresh workspace from the bootstrap, on Linux and Windows (docs/workspace.md#bootstrap): the script installs uv
+# A fresh workspace from the bootstrap, on Linux and Windows (docs/studio/workspace.md#bootstrap): the script installs uv
 # itself (it is not set up here), builds the folders, clones the repositories of workspace.toml, downloads and checks
 # the default pinned tools, then `gds doctor` runs in the new workspace. MCP servers are skipped: Claude Code is not on
 # the runner. It runs weekly, by hand, and on a pull request that changes the bootstrap. Not a required check.

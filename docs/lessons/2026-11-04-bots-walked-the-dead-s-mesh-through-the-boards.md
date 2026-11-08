@@ -16,4 +16,4 @@ areas: [gameplay, tests]
 - **Fix:** two regions in one map: the mesh without the polygons that cross a barricade's line (layer 1) and those
   polygons (layer 2); bots ask layer 1, the dead ask both (`NavLayers`, `NavmeshSplit`). A test walks a path over every
   barricade of the map for both kinds and puts a bot on each side of the lot's pockets with every door sold.
-- **Docs:** [One navigation map for two kinds of walkers](../godot/navigation-layers.md).
+- **Docs:** [One navigation map for two kinds of walkers](../engines/godot/navigation-layers.md).

@@ -14,4 +14,4 @@ areas: [tests, input]
   screen clears the autoload in `before_test`. Find the thief by printing the time and frame in the screen's timer
   callback and in `before_test`, then run just the two neighbouring suites (6 s) under load (at most four parallel
   suites).
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/research/ui-foundation.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/research/ui-foundation.md`.

@@ -17,5 +17,5 @@ areas: [net, godot, tests]
 - **Also:** the stance (sprint, crouch, in the air, rising) travels as one four-bit field per player, delta-coded, and
   the client draws the sample the interpolation clock is at, not the newest, so the carry starts when the body is seen
   to speed up.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#small-things-that-cost-time) and
-  [AnimationTree](../godot/animation-tree.md#a-state-machine-that-starts-at-start-and-has-no-way-out).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#small-things-that-cost-time) and
+  [AnimationTree](../engines/godot/animation-tree.md#a-state-machine-that-starts-at-start-and-has-no-way-out).

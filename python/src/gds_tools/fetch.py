@@ -1,4 +1,5 @@
-"""Downloads pinned tools, checks their hashes and unpacks them into <workspace>/tools/ (docs/workspace.md#tools).
+"""Downloads pinned tools, checks their hashes and unpacks them into <workspace>/tools/
+(docs/studio/workspace.md#tools).
 
 A download goes to <workspace>/cache/downloads/ first and is hashed while it streams; a file whose hash does not
 match the manifest is deleted and never unpacked. An installed tool carries a `.gds-installed` stamp naming the hash

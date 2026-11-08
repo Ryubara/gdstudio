@@ -13,4 +13,4 @@ areas: [blender]
 - **Fix:** build the clip as the weapon's pose (grip point, muzzle, top), read the game's grip file in Blender (Godot
   bone frames are Blender's pose bone frames), and reach both hands to it by IK; a test measures both hands on the
   weapon's skin during the sprint (Deadnight `soldier_clips.py`, `sprint_carries`; `test_hand_grips.gd`).
-- **Docs:** [Rig sharing, bone axes in Godot](../blender/rig-sharing.md#bone-axes-in-godot-and-clips-that-hold-a-weapon).
+- **Docs:** [Rig sharing, bone axes in Godot](../tools/blender/rig-sharing.md#bone-axes-in-godot-and-clips-that-hold-a-weapon).

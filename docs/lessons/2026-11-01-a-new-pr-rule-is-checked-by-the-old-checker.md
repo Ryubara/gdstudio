@@ -11,4 +11,4 @@ areas: [ci, tools]
   after it merges, and only to pull requests opened or edited after that.
 - **Fix:** run the new checker locally on the pull request's own body (`groundwork.py check-body --body <file> --title
   <file>`; both take files) before merging, then edit each open pull request's description to re-run `body`.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

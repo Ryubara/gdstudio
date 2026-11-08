@@ -30,4 +30,4 @@ that sets the hook and calls `quit()`).
 
 A GdUnit test runs that reduced script in a child Godot and asserts exit code 0, and reads every capture script for a
 lambda set on a class that is not cleared in the same file (Deadnight `tests/core/test_capture_quit.gd`).
-See the [lesson](../lessons/2026-11-03-a-lambda-in-a-static-variable-crashed-the-engine-at-quit.md).
+See the [lesson](../../lessons/2026-11-03-a-lambda-in-a-static-variable-crashed-the-engine-at-quit.md).

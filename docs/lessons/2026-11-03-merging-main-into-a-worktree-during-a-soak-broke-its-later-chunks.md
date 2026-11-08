@@ -14,4 +14,4 @@ areas: [tests, tools]
 - **Fix:** run a long soak from its own checkout (a detached worktree of the commit under test), never the worktree that
   is being merged or edited; after a merge run `godot --headless --path game --import` before any test, and read a median
   of 1 as a crashed run, not a result.
-- **Docs:** [Probes and tools in headless Godot](../godot/headless-probes.md).
+- **Docs:** [Probes and tools in headless Godot](../engines/godot/headless-probes.md).

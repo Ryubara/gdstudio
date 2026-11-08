@@ -22,4 +22,4 @@ areas: [tests]
   fix was in the new file, not the scan: it joins the scene's name from two parts, so no other scan finds it. Run
   the whole folder headless again after every merge of main, not only the new suite.
 - **Docs:** Deadnight `docs/research/windowed-ui-ci.md` (the guard and the scheduled run);
-  [Windowed GdUnit on a Linux runner](../godot/windowed-gdunit-on-linux.md) for the run itself.
+  [Windowed GdUnit on a Linux runner](../engines/godot/windowed-gdunit-on-linux.md) for the run itself.

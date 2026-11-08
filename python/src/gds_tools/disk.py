@@ -1,4 +1,4 @@
-"""`gds disk`: the always-on disk guard (docs/workspace.md#disk).
+"""`gds disk`: the always-on disk guard (docs/studio/workspace.md#disk).
 
 The C: drive of the workspace reached 120 MB free with some 25 agents at work: Godot imports were truncated, a
 pre-commit hook emptied a source file, test runs failed. `gds worktree sweep` existed, but nothing watched the disk.
@@ -167,7 +167,8 @@ def refusal(root: Path, limits: Limits, what: str, free: int | None = None) -> s
     names = "; ".join(f"{b['path']} {b['gb']:.1f} GB" for b in biggest if isinstance(b, dict) and "path" in b)
     return (
         f"{what} refused: the disk has {free / GB:.1f} GB free, under the hard limit of {limits.hard_gb:g} GB "
-        f"(docs/workspace.md#disk). Nothing new starts until space is back. `gds disk guard` frees what the rules "
+        f"(docs/studio/workspace.md#disk). Nothing new starts until space is back. `gds disk guard` frees what the "
+        f"rules "
         f"allow (finished worktrees, idle import caches, scratch downloads past their pull request); tell the "
         f"coordinator and the maintainer what is left." + (f" The biggest folders: {names}." if names else "")
     )

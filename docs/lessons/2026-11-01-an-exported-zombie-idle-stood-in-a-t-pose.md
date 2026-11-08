@@ -11,4 +11,4 @@ areas: [gameplay, blender]
   action left on unkeyed bones (the import's active Crawl), and a sampled glTF export writes the rest pose there.
 - **Fix:** give each clip a held channel, from Walk's first frame, for every bone Walk turns and the clip does not
   (Deadnight `tools/blender/build_zombies.py`, `fill_missing_rotations`).
-- **Docs:** [character variants](../blender/variants.md).
+- **Docs:** [character variants](../tools/blender/variants.md).

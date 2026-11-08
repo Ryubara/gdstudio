@@ -11,4 +11,4 @@ areas: [audio, web]
 - **Fix:** build every mix move from bus volume: a `Duck` bus that Effects and Ambience send to, listed before them
   in the layout, whose volume the service moves; and where a player's low-pass is not heard (samples), a few dB of
   volume instead. Measured through the real service: duck -11.9 dB for -12 asked; desktop unchanged.
-- **Docs:** [Audio](../godot/audio.md#web-samples-or-streams).
+- **Docs:** [Audio](../engines/godot/audio.md#web-samples-or-streams).

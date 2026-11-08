@@ -11,4 +11,4 @@ areas: [tests, blender]
   animation's; outside that window the skeleton reports the clip's pose.
 - **Fix:** read modified poses in a handler for the skeleton's `skeleton_updated` signal (or from the modifier's own
   `_process_modification`), and test there.
-- **Docs:** [Rig sharing](../godot/rig-sharing.md#skeleton-modifiers).
+- **Docs:** [Rig sharing](../engines/godot/rig-sharing.md#skeleton-modifiers).

@@ -11,4 +11,4 @@ areas: [godot, tests]
   step. Hand ticks do not step it, so a query before the first step finds nothing there.
 - **Fix:** take one real `await get_tree().physics_frame` after loading the room and after adding any collider, then
   tick by hand; that is one frame per setup, not per tick.
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

@@ -10,4 +10,4 @@ areas: [blender, tools]
   each component, so the path between them is wild, and the exporter samples it.
 - **Fix:** keep each key's sign continuous with the previous one (negate when the dot product is negative); flip the
   target before a slerp.
-- **Docs:** [Rig sharing (Blender)](../blender/rig-sharing.md).
+- **Docs:** [Rig sharing (Blender)](../tools/blender/rig-sharing.md).

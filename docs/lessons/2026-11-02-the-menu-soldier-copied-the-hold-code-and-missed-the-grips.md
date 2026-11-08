@@ -22,5 +22,5 @@ areas: [godot-ui, blender]
   night, never a copy of its set-up; when you change how a thing is held, grep for every view of it and give each a
   test that measures the same contact as the night's test. A copy that "looks the same today" is a bug on the day the
   data it copied changes.
-- **Docs:** [Hands on the weapon](../blender/weapons.md#hands-on-the-weapon),
-  [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon),
+  [What the maintainer caught](../studio/maintainer-corrections.md).

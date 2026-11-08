@@ -38,7 +38,7 @@ Windows, nor on a Linux machine with another directory order.
   Windows; copy the project (without `.godot`), import twice (the first import can crash on a font), and run the same
   arguments, with `taskset -c 0-3` for a four-core runner.
 
-See the [lesson](../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
+See the [lesson](../../lessons/2026-11-04-dev-scripts-in-scanned-test-folders-leaked-at-exit-on-some-runners.md).
 
 ## A test that only needs a number from a scene
 
@@ -48,7 +48,7 @@ scene's text (`FileAccess.get_file_as_string` and a `RegEx` over the node's `tra
 assertion with a clean exit (Deadnight #1172). A check that a data line agrees with a scene reads the `.tscn`; a test
 that needs the scene running instances a small one of its own.
 
-See the [lesson](../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
+See the [lesson](../../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
 
 ## A suite that only names a class
 
@@ -75,4 +75,4 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 - **A real leak still fails through the wrapper:** a throwaway suite with a two-object `RefCounted` cycle and a `Node`
   in a static variable printed `3 ObjectDB instances were leaked at exit` and exited 101; a failing assert exits 100.
 
-See the [lesson](../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).
+See the [lesson](../../lessons/2026-11-05-a-suite-that-only-named-a-class-leaked-the-shard-at-exit.md).

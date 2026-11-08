@@ -15,4 +15,4 @@ areas: [tests, ci]
 - **Fix:** keep `GdUnitCmdTool.gd` at the end of the wrapper's name (`warm_GdUnitCmdTool.gd`); run one shard at a time
   with the log in a file and look at its last `Run Test Suite` line; before editing the game for a guess, run the
   suite alone with and without the edit (the counts did not move, so it was reverted).
-- **Docs:** [Leaks at exit in a GdUnit run](../godot/test-exit-leaks.md#a-suite-that-only-names-a-class).
+- **Docs:** [Leaks at exit in a GdUnit run](../engines/godot/test-exit-leaks.md#a-suite-that-only-names-a-class).

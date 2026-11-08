@@ -14,4 +14,4 @@ areas: [blender, tests]
 - **Fix:** one rule in the helper (`plate`: the outline is always counter-clockwise from the front, and the two ends are
   sorted, so a negative thickness cannot flip it). Do not judge the winding of a thin shape from a render: run the probe
   on every new part alone.
-- **Docs:** [Closed, and fitting, in every combination](../blender/variants.md#closed-and-fitting-in-every-combination).
+- **Docs:** [Closed, and fitting, in every combination](../tools/blender/variants.md#closed-and-fitting-in-every-combination).

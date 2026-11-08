@@ -1,4 +1,4 @@
-"""Runs the GDStudio kit's hook dispatcher for this game (the kit's docs/hooks.md).
+"""Runs the GDStudio kit's hook dispatcher for this game (the kit's docs/studio/hooks.md).
 
 The guards live once, in the kit (`<workspace>/repos/gdstudio/.claude/hooks/`), so every game shares them. This
 launcher finds the workspace by its marker file and hands the hook input to the kit's dispatcher. Without a workspace

@@ -20,6 +20,6 @@ areas: [gameplay, tests]
 - **Check:** a path to a far room proves the map is joined, not that an opening is used. For every opening, ask the way
   from its own spawn to a point just inside it and compare it with the straight line, and look at the floor behind
   every window on the plan before it is built: a stairwell, a prop or a parapet there takes the opening away.
-- **Docs:** [Map review: spawns](../godot/map-review.md#3-spawns-and-how-the-dead-arrive),
-  [Level design P6](../research/level-design.md#p6-the-dead-arrive-out-of-sight-through-an-opening-the-player-can-see);
+- **Docs:** [Map review: spawns](../engines/godot/map-review.md#3-spawns-and-how-the-dead-arrive),
+  [Level design P6](../gamedev/level-design.md#p6-the-dead-arrive-out-of-sight-through-an-opening-the-player-can-see);
   Deadnight `docs/design/smallmap.md`, "The windows".

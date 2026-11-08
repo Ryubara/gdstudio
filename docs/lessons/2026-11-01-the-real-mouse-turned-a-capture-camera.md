@@ -11,4 +11,4 @@ areas: [input, tests]
 - **Fix (Deadnight #364, #368):** capture and tour scenes set `player.local_input = false` after `Night.start` and drive
   the player with input actions only.
 - **Check:** every scripted capture disables the device input of the player it drives.
-- **Docs:** [Captures](../capture.md), [Godot without focus](../godot/no-focus.md).
+- **Docs:** [Captures](../studio/capture.md), [Godot without focus](../engines/godot/no-focus.md).

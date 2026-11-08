@@ -14,4 +14,4 @@ areas: [blender, tests, godot]
 - **Fix:** measure the meshes drawn up close only (Deadnight `HandContact.is_near`: no `visibility_range_begin` and
   no `__far` name) with a test that the measured meshes hold no far mesh; re-curl only the rifle's fingers with the
   solver's `--fingers` (the hold, and the sprint carry built from it, unchanged).
-- **Docs:** [Weapons, hand grips](../blender/weapons.md).
+- **Docs:** [Weapons, hand grips](../tools/blender/weapons.md).

@@ -15,4 +15,4 @@ areas: [gameplay, tests]
   launch cells only in the changed stretch, `--region`) then stood nothing on a row. A piece over the reach is still
   judged by the sweep, not by its height, and a wreck's top was also checked with the dead (`roost_probe.gd`: 5 blows
   in 40 s, so not a roost even if reached).
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

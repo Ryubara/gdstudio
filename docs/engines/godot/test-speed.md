@@ -24,21 +24,21 @@ same way only when nothing else is loading the machine: a loaded machine doubles
   next step, and the signal fires at the start of an iteration, before that iteration's step. After loading a room and
   after adding a collider or a body, `await get_tree().physics_frame` **twice**; then tick by hand. With none, a
   hand-ticked body falls through the floor; with one, it may stand but `move_and_slide` still costs ten times what it
-  does once indexed (lessons: [ten times the cost](../lessons/2026-11-04-a-hand-ticked-body-cost-ten-times-more-until-a-physics-step-had-run.md),
-  [falling through the floor](../lessons/2026-11-02-a-hand-ticked-player-fell-through-a-floor-no-step-had-seen.md)).
+  does once indexed (lessons: [ten times the cost](../../lessons/2026-11-04-a-hand-ticked-body-cost-ten-times-more-until-a-physics-step-had-run.md),
+  [falling through the floor](../../lessons/2026-11-02-a-hand-ticked-player-fell-through-a-floor-no-step-had-seen.md)).
 - **The same code path.** Call what the engine calls (`_physics_process`, or the node's public `tick`), with the same
   delta, so a faster suite plays the same game. A node whose `_physics_process` is switched off is not ticked twice.
 - **Delta-sensitive comparisons stay in one kind of frame.** `move_and_slide` steps an idle frame by its wall-time
   delta; a recording made in a physics callback and replayed in an idle frame can differ by millimetres under load
-  ([lesson](../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md)).
+  ([lesson](../../lessons/2026-11-02-a-replay-in-an-idle-frame-missed-by-millimetres-on-a-loaded-machine.md)).
 - **A changed tick rate is waited for by its delta, not by a frame count.** After `Engine.physics_ticks_per_second = hz`,
   await `physics_frame` until `get_physics_process_delta_time()` is `1 / hz`: a loaded machine runs several steps in one
   iteration with the old step
-  ([lesson](../lessons/2026-11-03-a-tick-rate-test-read-the-old-delta-after-two-physics-frames.md)).
+  ([lesson](../../lessons/2026-11-03-a-tick-rate-test-read-the-old-delta-after-two-physics-frames.md)).
 - **Prove it still tests.** Break the behaviour once, locally, and see each sped-up suite fail.
 
-See also [a physics frame per tick](../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
-and [Engine.time_scale](../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
+See also [a physics frame per tick](../../lessons/2026-11-02-a-physics-frame-per-hand-stepped-tick-ties-a-test-to-the-clock.md)
+and [Engine.time_scale](../../lessons/2026-11-01-time-scale-also-scales-the-physics-step.md).
 
 ## Split the suite by seconds, not by folder
 
@@ -49,7 +49,7 @@ a light shard by itself. Size the shard count from the total (`total / 480 s`, r
 by 1.5x from job to job), have a self-test compare the shard count with the workflow's matrix, and end every shard with
 a check that warns past 60 % and fails past 80 % of the job's time limit, so drift is red before the limit cancels a
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
-[lesson](../lessons/2026-11-04-a-hand-balanced-shard-list-went-stale-within-a-day.md)).
+[lesson](../../lessons/2026-11-04-a-hand-balanced-shard-list-went-stale-within-a-day.md)).
 
 ## Night suites: where the seconds go, and what may be cut
 
@@ -61,7 +61,7 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
   `server.move` (`move_and_slide` of the players, 0.24 ms for a body standing still), 15 % in the server's frame and the
   players' actions, 11 % in the bots' thinking, 4 % in the dead's. The 64 % was bodies the physics server had not yet
   indexed: after two physics frames it was 1.6 ms a tick and 0.02 ms a call, and every bot suite halved with no cut
-  ([lesson](../lessons/2026-11-04-a-hand-ticked-body-cost-ten-times-more-until-a-physics-step-had-run.md)). Cut seconds
+  ([lesson](../../lessons/2026-11-04-a-hand-ticked-body-cost-ten-times-more-until-a-physics-step-had-run.md)). Cut seconds
   and seeds only after that.
 - **A built night costs 0.5 s** (0.85 s the first time in a process: the lot's scene instantiates in about 0.35 s and
   its navigation in 0.1 s). A suite that builds one per trial (40 trials of the boss's telegraph) pays a third of its time
@@ -83,13 +83,13 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
 - **Wait for the engine's answer, not for a count of frames.** `SeatedNight.settle_doors` polls until the map has taken
   in the doors bought (2 to 3 frames on a quiet machine, 8 to 12 under load), where 60 frames cost a second of real time
   and 12 failed one run in three
-  ([lesson](../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
+  ([lesson](../../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
 - **A sweep may stop a hop when the state is a fixed point, exactly.** The simulation reads only the state and the
   still world, so a tick that leaves the state unchanged under an unchanged command leaves every later tick unchanged.
   Prove it on the real sweep before relying on it: run all ticks, note the first fixed tick, and count the hops whose last
   state differs from it (0 of 19,667 on the midway sweep). Do not coarsen a sweep's grid instead: a trimmed grid passed
   on the map it was written to catch
-  ([lesson](../lessons/2026-11-03-a-trimmed-sweep-test-passed-on-the-unfixed-map.md)).
+  ([lesson](../../lessons/2026-11-03-a-trimmed-sweep-test-passed-on-the-unfixed-map.md)).
 - **Break it once, with a mutation that the cut test must still see.** For a seed cut, give a profile another profile's
   skill (a Rookie with the Veteran's reaction) and see the band fail on the fewer seeds; for a soak, take the safety
   constants out of the code and see the shorter night fail.
@@ -99,7 +99,7 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
 A test that makes a `BotClient` by hand copies `BotHost.seat`: the shared `bot_ids` table and team, not only what compiles.
 Without the table each bot takes its neighbour for a person and a team order (Hold, a ring about a spot) collapses; a
 flake of 3 cm over a bound was the symptom
-([lesson](../lessons/2026-11-03-a-bot-test-seated-its-bots-without-the-host-s-table.md)).
+([lesson](../../lessons/2026-11-03-a-bot-test-seated-its-bots-without-the-host-s-table.md)).
 
 ## One clock per test
 
@@ -107,4 +107,4 @@ A test that holds packets for real milliseconds (a `LinkConditioner`, a ping) wh
 two clocks, and a slow runner pulls them apart. Give the real-time part an injectable clock driven by the frame count
 (Deadnight's `WebSocketLink.clock`), count every wait in frames, and prove it by slowing each frame with
 `OS.delay_msec`: the numbers of the run must not move
-([lesson](../lessons/2026-11-02-a-bad-network-test-waited-in-wall-seconds-while-the-game-ran-in-frames.md)).
+([lesson](../../lessons/2026-11-02-a-bad-network-test-waited-in-wall-seconds-while-the-game-ran-in-frames.md)).

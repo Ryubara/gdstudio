@@ -12,4 +12,4 @@ areas: [tools]
   fixed since the branch began, and the pipe's exit code was `grep`'s, not the commit's.
 - **Fix:** run `git log --oneline -1` after a filtered commit, or do not filter it. For a lint in a line you did not
   write, take main first (`gds merge-main`) before changing the code.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

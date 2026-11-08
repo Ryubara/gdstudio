@@ -1,6 +1,6 @@
 # Audio
 
-Draft for `docs/godot/audio.md` in the kit (from Deadnight's sound design, issue 43). Game specifics are in Deadnight's
+Draft for `docs/engines/godot/audio.md` in the kit (from Deadnight's sound design, issue 43). Game specifics are in Deadnight's
 `docs/design/audio.md` and `docs/research/audio.md`.
 
 ## Making sounds with code
@@ -44,11 +44,11 @@ each fall, until about four mixes have landed (with a poll cap).
   wrong.
 - Movie Maker writes only the mix. For per-bus stems (voice against guns against beds), put an `AudioEffectRecord` on
   each bus to measure and save its recording at the end; it works under Movie Maker
-  ([lesson](../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)).
+  ([lesson](../../lessons/2026-11-01-audio-effect-record-gives-per-bus-stems.md)).
 - Transcribe generated voice takes with ElevenLabs Scribe to catch audio tags read aloud: performed sounds come back
   in brackets, spoken tags as words; Scribe bills the speech character quota
-  ([lesson](../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). The whole voice pipeline, from
-  casting to the game: [Voice lines](../audio/voice-lines.md).
+  ([lesson](../../lessons/2026-11-01-speech-to-text-catches-audio-tags-read-aloud.md)). The whole voice pipeline, from
+  casting to the game: [Voice lines](../../gamedev/audio/voice-lines.md).
 
 - **Time a pattern of sounds at 60 fps, with no pictures.** A sound schedule follows the frames, so a recording at 10
   frames a second puts every start on a 0.1 s grid and stacks the quick ones in a frame. Use `--write-movie
@@ -56,7 +56,7 @@ each fall, until about four mixes have landed (with a poll cap).
   pictures. To find a tone in a busy mix, correlate with a windowed carrier at its frequency (Deadnight's
   `tools/audio/beep_report.py`): a pure tone reads 0.58 and noise far less, and the tone's amplitude is its level in the
   mix whatever else sounds
-  ([lesson](../lessons/2026-11-03-a-10-fps-recording-cannot-time-a-sound-that-follows-the-frames.md)).
+  ([lesson](../../lessons/2026-11-03-a-10-fps-recording-cannot-time-a-sound-that-follows-the-frames.md)).
 
 ## Layered gunshots and event-timed sounds
 
@@ -79,7 +79,7 @@ each fall, until about four mixes have landed (with a poll cap).
 ## Close and powerful sounds
 
 A gun "sounding distant" is measured on a recording of the real shot through the real buses, not read off the files
-(Deadnight #455, [lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)):
+(Deadnight #455, [lesson](../../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)):
 
 - Measure per sound: peak, loudness (LUFS) against the bed it plays over, the share of energy in the first 50 ms,
   band energies, and the spread of pitch and level across a burst. Give every family of sounds one written pitch and
@@ -109,16 +109,16 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
 - **Measure on a warm pool and on a clean one.** Pooled players keep what the last sound set: Deadnight's
   `max_db` of a sound with no near cap stayed at the gun trim that last used the slot, so the same zombie voice read
   4 to 10 dB higher played alone than after the guns, and moved with the gun trims
-  ([lesson](../lessons/2026-11-03-a-pooled-3d-player-kept-the-last-sounds-max-db.md)). Play each cell alone and after
+  ([lesson](../../lessons/2026-11-03-a-pooled-3d-player-kept-the-last-sounds-max-db.md)). Play each cell alone and after
   the others, and set every pooled property on every play.
 - **A sound's variant files differ by 3 to 9 dB in peak** (a zombie voice's loudest and quietest take): to bound the
   worst case point the definition at one file for each play (`path_format = def.path_for(k)`, `variants = 1`) and put
   it back.
 - **Measure on the merged tree, before and after from one base.** Merge `main` before measuring a mix and keep a second
   worktree on `origin/main` for the "before" runs
-  ([lesson](../lessons/2026-11-03-a-baseline-was-measured-before-main-changed-the-sounds-under-it.md)). Capture in runs
+  ([lesson](../../lessons/2026-11-03-a-baseline-was-measured-before-main-changed-the-sounds-under-it.md)). Capture in runs
   of a few minutes of sound and pull the track out of the avi before deleting it
-  ([lesson](../lessons/2026-11-03-a-long-audio-capture-was-lost-to-a-deleted-avi-and-the-900-s-cap.md)).
+  ([lesson](../../lessons/2026-11-03-a-long-audio-capture-was-lost-to-a-deleted-avi-and-the-900-s-cap.md)).
 - **A gain cut is not a loss of punch.** Lowering a trim moves loudness and peak together, so the crest factor of a
   burst is unchanged; what limits the cut is the loudness rule against the beds (Deadnight: 14 LU for a shot, 17 for a
   burst).
@@ -131,13 +131,13 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
   close peak again: the distance low-pass had been taking the crack's peak off, so the limited file's peak (the body's)
   reaches the mix 0 to 3 dB higher than the old close peak, and the old cap does not carry over. Deadnight #762: crest of
   a file 15 to 23 dB before, 12.6 to 16.6 after; the loudest 400 ms at 1.2 m up 3.5 to 6.4 LU at the same -9.9 dBFS
-  ([lesson](../lessons/2026-11-03-a-limited-crack-raised-the-close-peak-more-than-the-limiter-took-off.md)).
+  ([lesson](../../lessons/2026-11-03-a-limited-crack-raised-the-close-peak-more-than-the-limiter-took-off.md)).
 - **Tune a reshape on a model of the bench, then let the bench decide** (Deadnight #761, the flare gun: crest 20 dB, so
   a trim for -5.5 dBFS broke the 17 LU burst rule; limited and given a fuller body it is 17.5 dB, burst 17.9 LU over
   the beds at a -5.2 dBFS peak). Render the files with the real pipeline, Vorbis-encode and decode them with the pinned
   ffmpeg, play the bench's burst, and put the shots where the bench's recording has them: the integrated loudness of a
   sharp sound depends on where the 400 ms blocks fall
-  ([lesson](../lessons/2026-11-03-an-offline-burst-loudness-read-high-until-it-used-the-benchs-block-alignment.md)).
+  ([lesson](../../lessons/2026-11-03-an-offline-burst-loudness-read-high-until-it-used-the-benchs-block-alignment.md)).
   Three more traps on the way: a driven, limited file decodes up to 3 dB over its PCM peak (a -2 dBFS file at +1.2), so
   set the trim from the decoded peak; a low sine is the cheapest way to loudness at a given peak and turned a pop into
   a boom (91 percent of its energy under 250 Hz against the other guns' 44 to 69), so read `low_end_share` and the
@@ -148,7 +148,7 @@ Measured in Deadnight #718, where the player's own gun peaked at -1.5 dBFS and a
 
 Deadnight #791: one futuristic layer that plays over the shot of any upgraded weapon, so seventeen weapons need no
 recipe each. Peaks add, so it has to be heard without taking the headroom the shots were given
-([lesson](../lessons/2026-11-03-a-layer-over-a-gun-was-either-inaudible-or-took-its-headroom.md)):
+([lesson](../../lessons/2026-11-03-a-layer-over-a-gun-was-either-inaudible-or-took-its-headroom.md)):
 
 - **Put it where the sound is not.** A gun's energy is front-loaded (0.9 of it in the first 50 ms for a close shot), so
   start the layer 30 ms late (in the file: a game that schedules it has the same delay on every platform) and give it a
@@ -175,7 +175,7 @@ Measured, not listened to (Deadnight #683, its `tools/audio/reload_audibility.py
   seed), or the second part shifts the first one's variants.
 - **Find the sound in its own track, not at its call.** Under Movie Maker a sound starts 40 to 60 ms after the frame
   that played it, and its loudest moment may come later in the file (a lever's second clack 0.2 s in): a window at the
-  call missed both ([lesson](../lessons/2026-11-02-a-step-measured-at-its-play-call-missed-its-sound.md)). Bound the
+  call missed both ([lesson](../../lessons/2026-11-02-a-step-measured-at-its-play-call-missed-its-sound.md)). Bound the
   search by the next sound's call.
 - **Compare by octave band over 80 ms** around the sound's loudest moment: heard when, in some band, it is louder than
   the fire there. At a tommy gun's 0.075 s every such window holds a whole shot, so this is strict; the best 20 ms
@@ -192,7 +192,7 @@ filter, 13 dB down). A cue the player has to act on, such as a grenade's fuse be
 make it a low tone with some harmonics (a 2.6 kHz beep measured at -40 to -80 dBFS behind a wall) and give its
 `SoundDef` an `occlusion_scale` under 1, so cover takes only that share of the dulling. Prove it from a recording of the
 real service from behind a wall, reading the tone's level in the mix
-([lesson](../lessons/2026-11-03-a-fuse-beep-was-silent-behind-a-wall-because-the-mix-low-passes-it.md)).
+([lesson](../../lessons/2026-11-03-a-fuse-beep-was-silent-behind-a-wall-because-the-mix-low-passes-it.md)).
 
 ## Starting sounds
 
@@ -200,12 +200,12 @@ Measured in Deadnight's web build (Chrome, RTX 5080, #402): starting an Ogg Vorb
 0.8 ms (headers and codebooks are read again on every `play()`), a PCM one about 0.3 ms, and a 40 s Ogg bed 43 ms. A
 frame that starts six sounds pays six times. Decode short sounds (up to 2.5 s) to `AudioStreamWAV` with
 `AudioStreamPlayback.mix_audio` while loading, cap starts per frame and defer the rest, and start beds silent and
-paused, then fade them in ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+paused, then fade them in ([lesson](../../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
 
 A capped start returns no player: Deadnight's `Audio.play` answers null both for a dropped sound (too far, over its
 voice limit) and for one put off to the next frame by the starts-per-frame cap, which then plays. Code that schedules from
 the returned player (a gust that times the next one by its length) takes null as "length unknown", never as "not played"
-([lesson](../lessons/2026-11-03-wind-gusts-leveled-from-the-files-read-low-in-the-night.md)).
+([lesson](../../lessons/2026-11-03-wind-gusts-leveled-from-the-files-read-low-in-the-night.md)).
 
 ## Swelling a bed with an event
 
@@ -262,14 +262,14 @@ the rest of the bus raised the bus by 0.3 to 0.6 LU, and 3 dB on the roof wind, 
   out when it is freed. Run the test folders one at a time with `--verbose` to see which stream or script it is. Cut
   the cycle at the end of the test, stop the audio after each test that builds a night, wait `Audio.wait_for_mixer()`
   once, and have CI grep the test log for `leaked at exit|still in use`
-  ([lesson](../lessons/2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md)).
+  ([lesson](../../lessons/2026-11-01-a-gdunit4-run-printed-leaks-at-exit-that-no-test-reported.md)).
 - **The check can fail a passing run at random.** A process that quits at once (a test run: GdUnit exits itself)
   leaks whatever voice is playing or just stopped, because the audio server frees a playback only after its mixer
   has stepped a few times. A suite cannot wait after the last test, so wait in the audio autoload's `_exit_tree`:
   block the main thread, counting `AudioServer.get_time_since_last_mix()` falls (the mixer has its own thread). A
   child Godot that starts sounds and quits is a deterministic test for it. `--verbose` makes the engine list every
   leaked instance and resource, and CI keeps those lines as an artifact
-  ([lesson](../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md)).
+  ([lesson](../../lessons/2026-11-02-the-exit-leak-check-failed-a-passing-test-run-at-random.md)).
 
 ## Sound through windows, not walls (Deadnight #657)
 
@@ -284,11 +284,11 @@ router (`SmallMapWays`) asks the question the other way round:
   `unit_size`, not `unit_size / (unit_size + distance)`, which is only `AudioService`'s voice ranking), so to be as loud
   as the whole way round, add `20 log(distance to the window / whole way)` and the window's cost. Rank windows by the
   whole way, not by that remainder, which is larger for a window farther away
-  ([lesson](../lessons/2026-11-03-a-routed-yard-sound-used-the-wrong-fall-off.md)). No window: play it where it is,
+  ([lesson](../../lessons/2026-11-03-a-routed-yard-sound-used-the-wrong-fall-off.md)). No window: play it where it is,
   quieter and duller, as through a wall. Outside the building: where it is.
 - **Fences and the ground are not walls.** The rays read the same layers as the walls; ask again past a hit under the
   outside group by adding its `rid` to `exclude`, and exclude the windows' own blockers
-  ([lesson](../lessons/2026-11-03-a-yard-fence-counted-as-a-wall-for-sound.md)).
+  ([lesson](../../lessons/2026-11-03-a-yard-fence-counted-as-a-wall-for-sound.md)).
 - **A bed that follows a room** needs a level, not only start and stop: `Audio.set_bed_level(id, db)` moves a bed's target
   (dB under its own level) at the bed's fade rates, and silence parks it like `stop_bed`.
 - **Loops out of reach stop** (a 3D loop beyond its `max_distance` costs a voice for nothing) and start again at a stored
@@ -321,7 +321,7 @@ export (#421) with a tap on the browser's audio output:
   called done; with samples it is lost.
 - To tap the output, wrap `AudioNode.prototype.connect` so connections to an `AudioDestinationNode` go through a
   `GainNode` feeding an `AudioWorklet` that counts zero blocks and sample jumps
-  ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
+  ([lesson](../../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
 
 ### What to build instead (Deadnight #423)
 
@@ -334,32 +334,32 @@ export (#421) with a tap on the browser's audio output:
 - **Measure through your own service**, not a bare player: a probe that plays one bright voice through the game's
   audio service and prints each effect against the open voice found all three effects missing in one run.
 - **A probe's project setting** goes under `[audio]` without its `audio/` prefix, and the playback-type values are
-  0 stream, 1 sample ([lesson](../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md)).
+  0 stream, 1 sample ([lesson](../../lessons/2026-11-02-a-project-setting-written-with-its-section-prefix-was-ignored.md)).
 
 ## Menu sounds
 
 The interface's sounds (which component takes one, weights, repetition, levels, touch, accessibility, how to wire a table
-of roles and cues) are [Menu and interface sounds](../audio/ui-sounds.md). Two facts from making them:
+of roles and cues) are [Menu and interface sounds](../../gamedev/audio/ui-sounds.md). Two facts from making them:
 
 - **A sound's name is not unique across folders.** A generator run with `--only deny` rendered the menu's new `deny`
   *and* the existing `world/deny_1.ogg`, overwriting the committed file. Give a new sound a name nothing has (grep the
   registries first) and run `git status` after a render: a file outside the folder you meant is the sign
-  ([lesson](../lessons/2026-11-03-an-only-flag-by-name-rendered-another-folders-sound.md)).
+  ([lesson](../../lessons/2026-11-03-an-only-flag-by-name-rendered-another-folders-sound.md)).
 - **A bed under the menu plays the night's own files.** A bed is a looping Ogg stream (`start_bed`), never decoded to
   samples, so the menu's ambience (#926) plays `projector_1.ogg` and `crickets_1.ogg` under new, quieter sounds in the
   beds bank: no new file, 0 files for the night's warm-up to read (it finds both read), 2.9 and 3.7 ms to open them in
   the menu, 0.02 ms a frame to mix. Do not put a loop in a `deferred` bank: the bank's queue would decode 36 s of it to
   samples for nothing. A bed has a pool of players (`AudioService.POOL_BEDS`) and `start_bed` returns null, silently,
   when none is free: size it for the beds of the scene you leave still fading out plus the beds of the one you enter
-  ([lesson](../lessons/2026-11-04-a-menu-bed-found-no-free-player-after-leaving-a-night.md)).
+  ([lesson](../../lessons/2026-11-04-a-menu-bed-found-no-free-player-after-leaving-a-night.md)).
 - **Check a bed against the hints in the hints' band**, through a laptop and a phone speaker model
-  ([lesson](../lessons/2026-11-04-a-whole-spectrum-margin-failed-hints-a-bed-did-not-bury.md);
-  [the method](../audio/ui-sounds.md#4-level-the-bus-and-the-mix)).
+  ([lesson](../../lessons/2026-11-04-a-whole-spectrum-margin-failed-hints-a-bed-did-not-bury.md);
+  [the method](../../gamedev/audio/ui-sounds.md#4-level-the-bus-and-the-mix)).
 - **Measure a menu sound on the real service**, one play at a time through the buses (a capture that plays each variant
   file of each row of the table, 0.7 s apart, 60 frames a second, no picture), and read peak and K-weighted loudness of
   every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with
   the recording within 0.1 dB, so the level is pinned in a plain test
-  ([lesson](../lessons/2026-11-03-equal-peaks-made-whooshes-louder-than-clicks.md)).
+  ([lesson](../../lessons/2026-11-03-equal-peaks-made-whooshes-louder-than-clicks.md)).
 
 ## Music that holds a long stay
 
@@ -373,7 +373,7 @@ synthesised so there is no licence to ask about:
   lengths, no pulse, silence at least as long as the sound).
 - **Every note in one scale over a held root and fifth**, so any meeting of the loops is in key. Tune each voice as a
   just ratio of the root, or its partials beat against its neighbours'
-  ([lesson](../lessons/2026-11-04-a-pad-in-equal-temperament-pulsed-against-its-own-harmonics.md)).
+  ([lesson](../../lessons/2026-11-04-a-pad-in-equal-temperament-pulsed-against-its-own-harmonics.md)).
 - **A seamless loop from sines**: move each frequency to the nearest whole number of cycles in the loop, make every
   slow control (vibrato, level drift, harmonic opening) a whole number of cycles of it, and build reverb and echo as a
   circular convolution and a circular shift, so the last sample is followed by the first. Check the step across the seam
@@ -392,4 +392,4 @@ queue: say the front one, schedule the next after the channel's wait when it sta
 still refused (its cooldown, a downed speaker). Lines that arrive within a short window for the same player are
 collapsed to the best one first, so a level, its tier and its item are one cheer. Test two speakers at once with
 small steps, not one big step.
-([lesson](../lessons/2026-11-04-two-lines-queued-in-one-instant-got-the-same-wait.md))
+([lesson](../../lessons/2026-11-04-two-lines-queued-in-one-instant-got-the-same-wait.md))

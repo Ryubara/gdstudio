@@ -13,4 +13,4 @@ areas: [input, tests]
   then `gui_get_hovered_control()` and `mouse_entered` work. Keys still go through `Input.parse_input_event`. If a
   test-runner control covers the screen as well, see [the click that never reached the
   menu](2026-11-01-gdunit4-mouse-click-never-reaches-the-menu.md).
-- **Docs:** [UI controls](../godot/ui-controls.md#menus-under-test).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#menus-under-test).

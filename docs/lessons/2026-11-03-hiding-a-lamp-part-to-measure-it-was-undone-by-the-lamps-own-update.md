@@ -16,4 +16,4 @@ areas: [tests, godot]
   the parts by their path under the group being measured (`/BackLot/Lamps/`). A probe that must read non-zero somewhere
   is run first on the unfixed scene (here 28,000 to 330,000 pixels behind each wall), so a 0 after the fix means
   something.
-- **Docs:** [Compatibility lighting: a lamp near a wall](../godot/compat-lighting.md#a-lamp-near-a-wall).
+- **Docs:** [Compatibility lighting: a lamp near a wall](../engines/godot/compat-lighting.md#a-lamp-near-a-wall).

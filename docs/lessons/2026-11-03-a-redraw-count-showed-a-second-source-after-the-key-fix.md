@@ -17,4 +17,4 @@ areas: [godot-ui, godot, web]
 - **Check:** after a "redraw by key" fix, count the `draw` signal over a few seconds against the key's rate; any
   surplus is another `queue_redraw()` (a refresh, a setter, an event). Remove the ones whose drawn things the key
   already covers; letters and bars that are child nodes (a label's `modulate`) never need their parent to redraw.
-- **Docs:** [The web page's heap](../godot/web-heap.md); Deadnight `docs/research/web-heap.md`.
+- **Docs:** [The web page's heap](../engines/godot/web-heap.md); Deadnight `docs/research/web-heap.md`.

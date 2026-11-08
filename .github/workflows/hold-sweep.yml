@@ -1,4 +1,4 @@
-# Gives the `hold` check to every open pull request whose head commit has none (docs/hooks.md#hold). hold.yml runs on
+# Gives the `hold` check to every open pull request whose head commit has none (docs/studio/hooks.md#hold). hold.yml runs on
 # pull request events only, so a pull request opened before the check became required has no run on its head, and a
 # required check with no run stays pending for ever. Run this by hand once, after the ruleset starts requiring `hold`
 # (`gh workflow run hold-sweep.yml`), and after an outage that dropped events.

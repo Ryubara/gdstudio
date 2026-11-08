@@ -10,4 +10,4 @@ areas: [tests, godot]
   still running.
 - **Fix:** a test that starts async work (a navigation bake, a thread, a resource load) waits for it before freeing its
   scene; give the fixture a `settle` helper that such suites call in `after_test`.
-- **Docs:** [Zombie crowds](../godot/crowds.md); Deadnight `docs/lessons.md`.
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md); Deadnight `docs/lessons.md`.

@@ -1,4 +1,5 @@
-"""The disk guard (gds_tools.disk, docs/workspace.md#disk): its thresholds, the refusal under the hard limit, and what
+"""The disk guard (gds_tools.disk, docs/studio/workspace.md#disk): its thresholds, the refusal under the hard limit,
+and what
 it never deletes. Nothing here measures or cleans the real disk: free space, processes and GitHub are stand-ins."""
 
 from __future__ import annotations

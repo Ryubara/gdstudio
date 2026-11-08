@@ -9,4 +9,4 @@ areas: [blender, web]
 - **Cause:** the clean-up set `armature.data.pose_position = "REST"` before the export; the exporter samples clips
   through the pose, so it sampled the rest pose.
 - **Fix:** leave `pose_position` at `POSE` and zero the pose bones instead.
-- **Docs:** [Rig sharing (Blender)](../blender/rig-sharing.md#what-broke).
+- **Docs:** [Rig sharing (Blender)](../tools/blender/rig-sharing.md#what-broke).

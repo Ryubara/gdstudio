@@ -13,4 +13,4 @@ areas: [tools, godot]
   one rewrote), put constants and variables before functions, keep comments under 100, and after it strip the carriage
   returns of what `gdformat` touched (`sed -i 's/\r$//' <files>`; check with a byte search for `\r\n`, not `grep $'\r'`,
   which found nothing here).
-- **Docs:** [Hooks](../hooks.md), and each repository's `.pre-commit-config.yaml`.
+- **Docs:** [Hooks](../studio/hooks.md), and each repository's `.pre-commit-config.yaml`.

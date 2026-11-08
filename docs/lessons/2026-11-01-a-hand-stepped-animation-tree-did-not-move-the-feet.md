@@ -12,4 +12,4 @@ areas: [blender, godot]
   hand never reaches.
 - **Fix:** `playback.start(locomotion)` in the test, and compose the bone's position from its local pose
   (`get_bone_pose_position/rotation`) and its parent's global pose.
-- **Docs:** [Rig sharing (Godot)](../godot/rig-sharing.md#found-later).
+- **Docs:** [Rig sharing (Godot)](../engines/godot/rig-sharing.md#found-later).

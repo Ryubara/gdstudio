@@ -12,4 +12,4 @@ areas: [audio, godot]
   The menu's bed is started once, on the menu's resume, so it never tried again.
 - **Fix:** `AudioService.POOL_BEDS` 10 (the night's seven still fading plus the menu's two), and
   `test_menu_ambience.gd` pops the night at once and expects the bed. A new bed is a count to check against the pool.
-- **Docs:** [Godot audio, menu sounds](../godot/audio.md#menu-sounds).
+- **Docs:** [Godot audio, menu sounds](../engines/godot/audio.md#menu-sounds).

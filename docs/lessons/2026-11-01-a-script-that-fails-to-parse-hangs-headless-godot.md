@@ -15,4 +15,4 @@ areas: [godot]
 - **Also:** the same hang follows a *runtime* error in `_init` before `quit()` (Deadnight #415), and with the output
   redirected to a file the console build looks empty: pipe through `head` first, put `quit()` where an error cannot
   skip it, and run under `timeout 60`.
-- **Docs:** [Godot index](../godot/index.md).
+- **Docs:** [Godot index](../engines/godot/index.md).

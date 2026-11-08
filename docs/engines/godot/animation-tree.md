@@ -44,7 +44,7 @@ cycle: a seek is a cut.
   that did not move at all.
 - Keep a clip's time in a `float` from step to step. Passed through a `Vector2` (32-bit components) a time of
   2.4999999 became 2.5, so the clip's last event fired a step before its end check
-  ([lesson](../lessons/2026-11-03-a-vector2-of-two-clip-times-rounded-the-end-a-step-early.md)).
+  ([lesson](../../lessons/2026-11-03-a-vector2-of-two-clip-times-rounded-the-end-a-step-early.md)).
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
 
@@ -114,7 +114,7 @@ The tree blends a bone's rotation between two clips along the shorter arc. Where
 spins most of a turn in one tick of the crossfade. Deadnight's sprint carries had the left wrist 175-180 degrees off
 the gun hold's; the build now rolls the forearm about its own axis until every frame is within 150 degrees, and
 prints the worst
-([lesson](../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
+([lesson](../../lessons/2026-11-04-a-hand-half-a-turn-off-between-two-clips-spun-in-the-blend.md)). Keeping a
 modifier's own slerp on one arc does not help when the flip is in the tree.
 
 ## A clip driven by place
@@ -126,7 +126,7 @@ request written on every snapshot from the body's position. Only the seek moves 
 clip, and the order is output, scale, seek, clip: the seek reaches the clip through a scale of 0 (a seek is not scaled).
 The state's transitions from the gait carry `xfade_time` and the view uses `travel`, not `start`, which cuts; a state
 with no path is teleported to, so a stagger into the climb still works. Blender writes such a clip in the obstacle's
-space: [Clips written in the world's space](../blender/rig-sharing.md#clips-written-in-the-worlds-space).
+space: [Clips written in the world's space](../../tools/blender/rig-sharing.md#clips-written-in-the-worlds-space).
 
 ## Build the state machine once, share it between trees
 

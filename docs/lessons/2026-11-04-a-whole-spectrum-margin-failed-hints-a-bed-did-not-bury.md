@@ -13,4 +13,4 @@ areas: [audio]
 - **Fix:** the second margin is read in the hints' own band (1.5 to 8 kHz): the hint's loudest 50 ms rms over the bed's
   95th percentile 50 ms rms in that band, gate 6 dB; the first margin (hint peak over the bed's loudest 400 ms) stays
   as the kit's rule. Both are in `tools/audio/menu_speakers.py` and pinned by `test_menu_bed_levels.gd`.
-- **Docs:** [Menu and interface sounds, level](../audio/ui-sounds.md#4-level-the-bus-and-the-mix).
+- **Docs:** [Menu and interface sounds, level](../gamedev/audio/ui-sounds.md#4-level-the-bus-and-the-mix).

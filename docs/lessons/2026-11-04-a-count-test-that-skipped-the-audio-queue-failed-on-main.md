@@ -21,5 +21,5 @@ areas: [tests, audio, ci]
 - **Rule:** a fix for an order-dependent count belongs in a helper every counting test calls, not in the one test that
   failed, and the test that proves it brings its own queue (a fresh service) instead of hoping an earlier suite left
   one.
-- **Docs:** [Performance review](../godot/performance-review.md), "How to measure it"; earlier lessons:
+- **Docs:** [Performance review](../engines/godot/performance-review.md), "How to measure it"; earlier lessons:
   [a resource-count test counted the sounds an earlier suite queued](2026-11-03-a-resource-count-test-counted-the-sounds-an-earlier-suite-queued.md).

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Sets up a GDStudio workspace on Linux or macOS: installs uv if it is missing, then runs `gds workspace init`
-# (docs/workspace.md#bootstrap). Every argument is passed on to init.
+# (docs/studio/workspace.md#bootstrap). Every argument is passed on to init.
 #
 # From a clone of the kit at <workspace>/repos/gdstudio:  ./bootstrap.sh
 # On its own, building a new workspace (clones the kit):  sh bootstrap.sh --workspace ~/GDStudio

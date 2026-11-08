@@ -9,4 +9,4 @@ areas: [godot-ui, godot]
 - **Cause:** `set_anchors_preset(PRESET_FULL_RECT)` changes only the anchors and keeps the control's current rect, so a
   freshly made Control stays 0 x 0.
 - **Fix:** use `set_anchors_and_offsets_preset(PRESET_FULL_RECT)` for any Control built in code.
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/research/hud.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/research/hud.md`.

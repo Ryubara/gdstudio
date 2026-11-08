@@ -1,9 +1,11 @@
-"""The GitHub half of `gds new game` (docs/godot/new-game.md#github): the repository, Pages, the conventions' labels,
+"""The GitHub half of `gds new game` (docs/engines/godot/new-game.md#github): the repository, Pages, the conventions'
+labels,
 settings and ruleset, the hold sweep, the proof (the first CI run and the Pages deploy) and the kit pull request that
 registers the game in workspace.toml.
 
 Every `gh` call goes through `issues.run_gh`, the one runner, which refuses anything that would post a comment
-(docs/hooks.md#comments). Nothing here asks a question: an agent cannot answer stdin, so every choice is a flag of the
+(docs/studio/hooks.md#comments). Nothing here asks a question: an agent cannot answer stdin, so every choice is a flag
+of the
 command with a default. Making a new game repository public under MIT this way is the agent's to do (kit #779);
 changing an existing repository's visibility or licence still waits for the maintainer.
 """

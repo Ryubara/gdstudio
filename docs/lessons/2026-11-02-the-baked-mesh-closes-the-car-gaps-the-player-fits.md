@@ -14,4 +14,5 @@ areas: [gameplay, tests]
 - **Fix:** pick the gaps by asking the mesh (a path across of about the straight length) and assert the closest approach
   to the middle, so a test that "crosses a gap" goes through it. Bots lag behind a person who cuts through the cars;
   say so in the research page instead of tuning it away.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md); Deadnight `docs/research/bots.md` (Built in phase 2).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md); Deadnight `docs/research/bots.md` (Built in
+  phase 2).

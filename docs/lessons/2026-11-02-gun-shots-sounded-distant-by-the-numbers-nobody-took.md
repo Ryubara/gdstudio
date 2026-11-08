@@ -18,4 +18,4 @@ areas: [audio, gameplay]
   `tools/audio/gun_levels.py` and a bench scene that measure it, natively and in the browser (Deadnight #455).
 - **Related:** [Close 3D sounds all play at the ceiling](2026-11-01-close-3d-sounds-all-play-at-the-ceiling.md): the
   same general cause, a mix tuned by peak and per-file level instead of by what reaches the player's ears.
-- **Docs:** [Audio](../godot/audio.md#close-and-powerful-sounds).
+- **Docs:** [Audio](../engines/godot/audio.md#close-and-powerful-sounds).

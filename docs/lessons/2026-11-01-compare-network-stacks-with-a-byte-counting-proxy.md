@@ -12,4 +12,4 @@ areas: [net, tools]
   delays each chunk, and models TCP loss as a retransmission timeout that stalls every later chunk in that
   direction (head-of-line blocking). Server CPU comes from `psutil` over the same window. Works for any stack
   that speaks TCP, WebSocket included.
-- **Docs:** Deadnight `spikes/net-compare/tools/run_scenario.py`; belongs on a kit page `docs/godot/multiplayer.md`.
+- **Docs:** Deadnight `spikes/net-compare/tools/run_scenario.py`; belongs on a kit page `docs/engines/godot/multiplayer.md`.

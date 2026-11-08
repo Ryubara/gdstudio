@@ -45,4 +45,4 @@ areas: [godot-ui, input]
   touch test that sends `InputEventScreenTouch` and drag steps (headless cannot scroll by touch,
   `DisplayServer.is_touchscreen_available()` is false: test what the card receives and measure the scroll in a web
   probe), and a press that moves a little.
-- **Docs:** [UI controls](../godot/ui-controls.md); Deadnight `docs/research/button-drag-scroll.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md); Deadnight `docs/research/button-drag-scroll.md`.

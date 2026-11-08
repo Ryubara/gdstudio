@@ -11,4 +11,4 @@ areas: [godot, web]
   camera, so all of it was drawn at full strength, added up front and back.
 - **Fix:** fade the haze by view depth, `soft *= smoothstep(0.2 * near_fade, near_fade, -VERTEX.z)` (2 m), as a uniform
   that defaults to off so the other users of the shader are unchanged.
-- **Docs:** [Compatibility lighting](../godot/compat-lighting.md#light-cards-indoors-moon-shafts-door-glow-chalk).
+- **Docs:** [Compatibility lighting](../engines/godot/compat-lighting.md#light-cards-indoors-moon-shafts-door-glow-chalk).

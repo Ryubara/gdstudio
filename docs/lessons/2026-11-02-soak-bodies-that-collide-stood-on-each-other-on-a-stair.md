@@ -13,4 +13,4 @@ areas: [tests, gameplay]
   A keep-right rule removed the head-on cases but not one following another up a stair.
 - **Fix:** a soak that measures the map puts its bodies on a physics layer no mask has; how bodies pass each other is
   the bots' business and their own test. With that, 1242 of 1242 legs were walked with no second stuck.
-- **Docs:** [Navigation in tests](../godot/navigation-in-tests.md#measuring-a-map-on-its-mesh).
+- **Docs:** [Navigation in tests](../engines/godot/navigation-in-tests.md#measuring-a-map-on-its-mesh).

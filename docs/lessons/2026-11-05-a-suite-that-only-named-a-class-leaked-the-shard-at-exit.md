@@ -29,5 +29,5 @@ areas: [tests, ci, godot]
   regression: run each suite alone (`-a <suite>`) before reading any log, and a suite that leaks alone is the
   cause. Main's green shards were not proof of anything else: they held the leaking suites in a mix that cures them
   (shard 3 of runs 42011482212 and 42016360272), so check which suites a green run held before saying a leak is new.
-- **Docs:** [Leaks at exit in a GdUnit run](../godot/test-exit-leaks.md#a-suite-that-only-names-a-class); Deadnight
+- **Docs:** [Leaks at exit in a GdUnit run](../engines/godot/test-exit-leaks.md#a-suite-that-only-names-a-class); Deadnight
   `docs/research/test-exit-leaks.md`.

@@ -14,4 +14,4 @@ areas: [godot, web]
 - **Fix:** the preset's `exclude_filter` holds `addons/gds_ui/demo/*` (the demo is the kit's own tour, never game
   content), and a template test reads the filter. The template's CI job fails on any `ERROR` in the
   export log, which is what caught it.
-- **Docs:** [Prototype surfaces and daylight](../godot/prototype-surfaces.md#smaller-findings), [Sync](../sync.md#addons).
+- **Docs:** [Prototype surfaces and daylight](../engines/godot/prototype-surfaces.md#smaller-findings), [Sync](../studio/sync.md#addons).

@@ -1,4 +1,4 @@
-"""Check a pull request description on this machine, before `gh pr create|edit` sends it (docs/hooks.md#pr-body).
+"""Check a pull request description on this machine, before `gh pr create|edit` sends it (docs/studio/hooks.md#pr-body).
 
 `pr-rules` runs `groundwork.py check-body` on the description after the push, and an agent whose body failed found out
 there. `check_body` runs the same function, from the checkout of the repository the pull request is for: every
@@ -181,7 +181,8 @@ def hold(
     timeout: float = HOLD_TIMEOUT_SECONDS,
 ) -> list[str]:
     """Put the hold label on a pull request and wait until GitHub's required `hold` check is red on its head
-    (docs/hooks.md#hold). The label stops nothing by itself: until the check has gone red, the green run before it
+    (docs/studio/hooks.md#hold). The label stops nothing by itself: until the check has gone red, the green run before
+    it
     still counts, so a hold is only reported once it holds. Raises when the pull request is not open, or merged in the
     wait."""
 

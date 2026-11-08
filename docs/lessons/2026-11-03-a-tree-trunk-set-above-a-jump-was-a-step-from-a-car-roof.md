@@ -18,5 +18,5 @@ areas: [gameplay, tests]
 - **Check for next time:** any "not standable" height in a generator (a wall, a post, a trunk, a sign) is judged
   against the tallest standable top within a hop (about 5 m at a sprint) plus the measured reach, never against the
   jump from the floor; a sweep's starts are the props, not only the floor.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors),
-  [Level design, P13](../research/level-design.md#p13-the-real-bodys-reach-not-the-jump-height).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors),
+  [Level design, P13](../gamedev/level-design.md#p13-the-real-bodys-reach-not-the-jump-height).

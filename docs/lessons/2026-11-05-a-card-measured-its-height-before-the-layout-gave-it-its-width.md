@@ -19,4 +19,4 @@ areas: [godot-ui]
   width, waits two frames and checks the measure is never under the laid-out height. A real page (Chrome as a phone)
   broke what the headless run had agreed on: the same words took a third line there, so the card was run on the page
   too (`tools/web_smoke/challenge_card_phone.py`).
-- **Docs:** [UI controls](../godot/ui-controls.md#a-card-that-looks-for-free-ground).
+- **Docs:** [UI controls](../engines/godot/ui-controls.md#a-card-that-looks-for-free-ground).

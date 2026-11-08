@@ -18,6 +18,7 @@ areas: [audio, gameplay]
   every other sound) that takes only that share of the dulling. A test asserts the beep keeps more of its level and
   cutoff than a shot behind the same wall, and `tools/audio/beep_report.py` reads the beeps' tone out of the real mix.
   The same recording also showed the first level (-9 dBFS at the ear) as loud as the blast, and fixed that.
-- **Docs:** [Audio: warnings that must carry](../godot/audio.md#warnings-that-must-carry-through-cover); check: a
+- **Docs:** [Audio: warnings that must carry](../engines/godot/audio.md#warnings-that-must-carry-through-cover); check:
+  a
   sound the player must act on (a fuse, a siren, a revive call) is recorded through the real service from behind a
   wall and from across the lot, and its level read in the mix, not asserted from the events.

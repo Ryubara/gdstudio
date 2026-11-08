@@ -12,4 +12,4 @@ areas: [web, backend]
 - **Fix:** the backend serves its routes with and without the mapping prefix (Deadnight #469). Test the web build
   behind the real `<id>.discordsays.com` host, or a local stand-in that keeps the prefix, before asking the
   maintainer to try it.
-- **Docs:** [Web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe).
+- **Docs:** [Web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe).

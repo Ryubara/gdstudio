@@ -19,4 +19,4 @@ areas: [godot, gameplay, tests]
 - **Check for next time:** a number read from a catalogue resource in code that runs every tick is read once and kept;
   a cost test that regresses is bisected by commit on the same machine in the same session, and its parts timed,
   before its budget is touched.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md#what-the-engine-does).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md#what-the-engine-does).

@@ -14,4 +14,4 @@ areas: [godot-ui]
 - **Fix:** measure a part's words on a real capture (the brightest pixels of the word against its plate, from the PNG),
   not only from the tokens; for a word that must read at a glance make it larger (1.35 times the caption) and lighten the
   weak colour; and write the rendered numbers down, with what stays under the target and why.
-- **Docs:** [Touch controls](../godot/ui-controls.md#touch-controls) and the game's `docs/research/bot-wheel.md`.
+- **Docs:** [Touch controls](../engines/godot/ui-controls.md#touch-controls) and the game's `docs/research/bot-wheel.md`.

@@ -19,4 +19,4 @@ areas: [gameplay, blender, general]
 - **Check:** when a fix is "this body has the wrong clip for action A", the same pull request lists every action of the
   enum for that body and tests the whole list by looping over the enum, not by naming the clips; list what a body never
   does (a crawler never tears boards: the sim sends it under) and what is not merged yet (the sill climb of #986).
-- **Docs:** [AnimationTree: one action state for every body](../godot/animation-tree.md#one-action-state-for-every-body).
+- **Docs:** [AnimationTree: one action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body).

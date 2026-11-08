@@ -13,4 +13,4 @@ areas: [godot, tools]
   binary.
 - **Again (2026-11-02):** the old palette atlas of a before/after check (Deadnight #651): PNGs are LFS objects too, and
   Pillow said `cannot identify image file`. Any binary in `.gitattributes` goes through `git lfs smudge`.
-- **Docs:** [Modular kits: building props](../blender/modular-kits.md#building-props).
+- **Docs:** [Modular kits: building props](../tools/blender/modular-kits.md#building-props).

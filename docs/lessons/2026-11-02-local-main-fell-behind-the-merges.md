@@ -11,4 +11,4 @@ areas: [ci, tools]
   nothing ever moved `repos/<repo>` on `main`. Pulling was left to memory.
 - **Fix:** the hooks pull every local main with `--ff-only` after a merge command, at session start and at Stop (at
   most every two minutes), and name a checkout whose local changes block it instead of discarding them.
-- **Docs:** [Hooks: local mains](../hooks.md#mains).
+- **Docs:** [Hooks: local mains](../studio/hooks.md#mains).

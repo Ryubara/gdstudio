@@ -11,4 +11,4 @@ areas: [godot, tests]
   `MultiMesh.get_instance_transform(i)` returns the zero transform for every copy (probed for 1 to 30 copies).
 - **Fix:** read the `buffer` property (12 floats a copy, each basis row followed by its origin's coordinate), which
   keeps the scene's values.
-- **Docs:** [The headless renderer](../godot/headless-renderer.md#multimesh-copies-have-no-transform-headless).
+- **Docs:** [The headless renderer](../engines/godot/headless-renderer.md#multimesh-copies-have-no-transform-headless).

@@ -13,4 +13,4 @@ areas: [audio, process]
 - **Fix:** merge `main` (`gds merge-main`) before the first measurement of a mix, and again before the one that goes
   into the pull request; keep a second worktree on `origin/main` for the "before" runs so both sides come from the same
   base; give a harness no copy of a level a game script now sets itself.
-- **Docs:** [Audio](../godot/audio.md#headroom-without-a-limiter).
+- **Docs:** [Audio](../engines/godot/audio.md#headroom-without-a-limiter).

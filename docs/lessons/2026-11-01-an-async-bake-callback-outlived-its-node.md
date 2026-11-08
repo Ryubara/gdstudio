@@ -11,4 +11,4 @@ areas: [godot, blender]
   thread, whatever happened to the node that asked; the lambda called a Callable of a freed object.
 - **Fix:** guard the call with `done.is_valid()` (false once the object is freed); keep a test that frees the owner
   during a bake.
-- **Docs:** [Zombie crowds](../godot/crowds.md).
+- **Docs:** [Zombie crowds](../engines/godot/crowds.md).

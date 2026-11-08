@@ -12,5 +12,6 @@ areas: [tests]
   death cannot tell a crash from a script that did not load.
 - **Fix:** a separate probe for the old tree without the new call, and the loop prints the first error line of every
   dead run; read those before trusting a rate (the real before rates were 2, 3 and 0 of 100).
-- **Docs:** [Worker threads](../godot/worker-threads.md). Check for next time: run each arm once by hand and see its
+- **Docs:** [Worker threads](../engines/godot/worker-threads.md). Check for next time: run each arm once by hand and
+  see its
   success line before looping, and read the first dead run's output.

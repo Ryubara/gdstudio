@@ -17,4 +17,4 @@ areas: [process, gameplay]
 - **Check:** before assigning, compare each issue's mechanics with the open issues and pull requests (`gds issue list`
   with owners). When two need the same mechanic, one owns it and the other waits on it (`Waiting on #N`), and each
   brief names the open pull requests and files to stay out of.
-- **Docs:** [Agents: the loop](../agents.md#the-loop).
+- **Docs:** [Agents: the loop](../studio/agents.md#the-loop).

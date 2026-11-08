@@ -19,4 +19,4 @@ areas: [net, gameplay]
   loudly, or make the remote thing the same type. A bump of the protocol version for the new frame fields collided with
   two other branches in one afternoon: merge `origin/main` right before the last push and bump past it.
 - **Docs:** Deadnight `docs/research/multiplayer.md` (Other players' weapons); [What to plan from the
-  start](../research/plan-from-the-start.md).
+  start](../studio/plan-from-the-start.md).

@@ -464,7 +464,7 @@ def test_block_refuses_a_chain_with_no_dependency_and_points_at_the_rule(tmp_pat
         gh = gh_for([raw(7, "S-ready-to-start", body=body), raw(564, "S-in-progress")])
         with pytest.raises(IssueError, match=r"does not name #564 as a dependency") as caught:
             issues.block(REPO, 7, "#564", "the same bot brain", gh=gh, ledger=tmp_path / "l.json", now=NOW)
-        assert "docs/starting-work.md#parallel" in str(caught.value) and "--conflict" in str(caught.value), body
+        assert "docs/studio/starting-work.md#parallel" in str(caught.value) and "--conflict" in str(caught.value), body
         assert gh.calls == [], body  # nothing was changed
 
 

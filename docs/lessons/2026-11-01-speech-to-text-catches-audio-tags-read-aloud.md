@@ -12,4 +12,4 @@ areas: [audio, blender]
 - **Fix:** transcribe every take and flag any whose transcript holds a tag word outside brackets; regenerate those
   (Deadnight #442: 0 of 115 flagged). Audio tags in a line are not billed, but Scribe bills the same character quota
   as speech (976 characters for 115 takes), so budget for the check.
-- **Docs:** [Audio](../godot/audio.md#making-sounds-with-code).
+- **Docs:** [Audio](../engines/godot/audio.md#making-sounds-with-code).

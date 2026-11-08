@@ -10,4 +10,4 @@ areas: [tests]
   that matches nothing measures nothing and reports no fault.
 - **Fix:** put the checks back and see the test fail before trusting it. A test that filters a table by name either
   asserts the names are in the table or is seen red once.
-- **Docs:** [Learn in the same session](../hooks.md#learning).
+- **Docs:** [Learn in the same session](../studio/hooks.md#learning).

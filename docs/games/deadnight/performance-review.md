@@ -1,6 +1,6 @@
 # Deadnight's performance review (#907)
 
-The first review made with the [Performance review](../godot/performance-review.md) checklist: Deadnight `origin/main`
+The first review made with the [Performance review](../../engines/godot/performance-review.md) checklist: Deadnight `origin/main`
 0fe9a1ff (2026-11-03), after the maintainer asked (Deadnight #906 and #907) for the places that would clearly lag the
 game. The reviewer opened nine issues; all but #935 are closed. This page keeps the numbers and what the review could
 not see, so the next review starts from them.
@@ -69,6 +69,6 @@ decoded five times.
 ## Method notes
 
 - Counts are exact on a loaded machine; times are ratios between arms run together
-  ([measuring without a quiet machine](../godot/performance-review.md#how-to-measure-it-counts-first)).
+  ([measuring without a quiet machine](../../engines/godot/performance-review.md#how-to-measure-it-counts-first)).
 - Stop a run by its own process id: the reviewer's `taskkill /IM` of the Godot console ended every agent's run
-  ([lesson](../lessons/2026-11-01-killing-godot-by-name-stopped-other-agents-runs.md)).
+  ([lesson](../../lessons/2026-11-01-killing-godot-by-name-stopped-other-agents-runs.md)).

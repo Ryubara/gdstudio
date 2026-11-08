@@ -15,7 +15,7 @@ there) from the Quaternius Zombie (CC0); the clean-up before it is [rig sharing]
 | Accessory | a small mesh skinned 100 % to one bone, joined into the body | one mesh per character (draw calls) |
 
 Applying a scale or moving bones gives each variant its own rest pose, and then position keys need rebasing per body
-([Godot side](../godot/rig-sharing.md)).
+([Godot side](../../engines/godot/rig-sharing.md)).
 
 ## Measured (Quaternius Zombie, 7,822 tris)
 
@@ -136,12 +136,13 @@ second character on the modular parts, same skeleton and clips, chosen in the lo
   (r 0.36 at z 1.68). Her face pieces (lashes, a mouth, freckles or rosy cheeks) add 116-188 triangles, kept whole in
   the far heads; her heaviest look is 5,428 of 6,000, and his Projectionist worn by her is 2,000 of 2,000 far.
 - **What broke:** a rebuild picked up clips shipped elsewhere
-  ([lesson](../lessons/2026-11-02-a-parts-rebuild-picked-up-clips-that-ship-in-their-own-files.md)); her looks moved the
-  far ratio of his parts ([lesson](../lessons/2026-11-02-a-new-variant-moved-the-far-lod-of-the-old-parts.md)); the
+  ([lesson](../../lessons/2026-11-02-a-parts-rebuild-picked-up-clips-that-ship-in-their-own-files.md)); her looks moved
+  the
+  far ratio of his parts ([lesson](../../lessons/2026-11-02-a-new-variant-moved-the-far-lod-of-the-old-parts.md)); the
   short-sleeved tops had always pushed the hands off the grips
-  ([lesson](../lessons/2026-11-02-short-sleeved-tops-pushed-the-hands-off-the-grips.md)); and the grip contact test
+  ([lesson](../../lessons/2026-11-02-short-sleeved-tops-pushed-the-hands-off-the-grips.md)); and the grip contact test
   had measured the far level of detail as well as the hand you see
-  ([lesson](../lessons/2026-11-02-the-grip-test-measured-the-far-level-of-detail.md)).
+  ([lesson](../../lessons/2026-11-02-the-grip-test-measured-the-far-level-of-detail.md)).
 - **Keep a hand's vertices where they are.** Any per-outfit push or pull (bare arms hugging the limb, cuffs pulled in)
   skips vertices whose main bone is a finger's, the way the grip test picks them; sparing only the hand's faces still
   moved its border vertices and sank the palm 3-13 mm into a grip.
@@ -180,7 +181,7 @@ pose, with back faces culled as the game draws them.
 - **Physics probes in a test** need two physics steps after new shapes (one returned the last pose's surface) and
   bone poses reset before each sample (clips that do not key the fingers kept the last clip's). Step physics fast in
   the suite (`Engine.physics_ticks_per_second = 480`)
-  ([lesson](../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
+  ([lesson](../../lessons/2026-11-03-a-physics-ray-probe-measured-the-last-pose.md)).
 - **Orient new faces yourself.** `bmesh.ops.holes_fill` faced a neck cap down into the trunk and
   `recalc_face_normals` turned a thin mouth prism inside out (its front culled): after making faces, compare each
   normal with the way out (`normal_update()` first on a new face) and flip. A closed shell is one test, on one face
@@ -188,7 +189,7 @@ pose, with back faces culled as the game draws them.
 - **A decal follows the surface inside its outline too.** Points on the outline alone leave a flat front that sinks
   behind a head's bulge on anything wider than about 0.1 m: cut the front where it sinks, lift the new corners onto the
   surface, keep it off a crease in the head, and smooth-shade it
-  ([lesson](../lessons/2026-11-04-a-decal-flat-between-its-outline-sank-behind-the-face.md)).
+  ([lesson](../../lessons/2026-11-04-a-decal-flat-between-its-outline-sank-behind-the-face.md)).
 - **An expression is a part, not a head.** Deadnight's mouths (#1061) left the head meshes for a slot of their own, with
   her variant of each: eight mouths on three heads of two characters are sixteen meshes, not forty-eight. A piece too
   small to decimate needs no far mesh: with no visibility range set, the one mesh shows at every distance.
@@ -280,7 +281,7 @@ one's arms.
   solved by reach are solved again on it by the same build. Keep the hand if grips are solved on it.
 - **Places along the arm in the build's rules** (a cuff picked by `|x|`, a wrist seam) are written in the kit's numbers
   and read through one map of the change, or they miss it
-  ([lesson](../lessons/2026-11-04-places-along-the-arm-in-kit-numbers-missed-the-shorter-arm.md)).
+  ([lesson](../../lessons/2026-11-04-places-along-the-arm-in-kit-numbers-missed-the-shorter-arm.md)).
 - **A shorter arm reaches less.** Before building, shorten the skeleton's rest at run time in a probe and read the
   IK's reach for every hold and view pitch: Deadnight's long guns needed 10 degrees more stance at the low ready (which
   turned the armband deeper into the chest) or a slide of the gun back along its barrel, which it now does, with the

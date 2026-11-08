@@ -11,4 +11,4 @@ areas: [blender]
   its end disc covered the whole Grey2 face.
 - **Fix:** one DarkGrey band round the drum's middle (a cylinder across part of its width) and Grey2 to the faces. A
   trim on a round part is a band or a ring, never a capped cylinder over a face; read the cells by area after a build.
-- **Docs:** [Weapons, building by script](../blender/weapons.md#building-by-script).
+- **Docs:** [Weapons, building by script](../tools/blender/weapons.md#building-by-script).

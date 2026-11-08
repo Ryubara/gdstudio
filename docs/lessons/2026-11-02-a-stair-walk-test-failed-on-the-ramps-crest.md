@@ -12,4 +12,4 @@ areas: [godot, tests]
   engine's slope behaviour, not a step: a step-up lifts the body by a whole riser (200 mm) and sets `stepped_up`.
 - **Fix:** judge a stair walk on what a step does: no tick with `stepped_up`, none off the floor, and a dip bound of
   10 mm a tick; prove the measure with a control (the same flight with its treads as collision steps fifteen times).
-- **Docs:** [Modular kits: stairs](../blender/modular-kits.md#stairs-rails-and-blockers).
+- **Docs:** [Modular kits: stairs](../tools/blender/modular-kits.md#stairs-rails-and-blockers).

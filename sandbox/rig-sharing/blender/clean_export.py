@@ -2,7 +2,7 @@
 
     blender -b --factory-startup -P sandbox/rig-sharing/blender/clean_export.py -- <in.glb> <out.glb>
 
-What it does, in order (each step is a finding of the spike, see docs/blender/rig-sharing.md):
+What it does, in order (each step is a finding of the spike, see docs/tools/blender/rig-sharing.md):
 
 1. Import with `bone_heuristic="TEMPERANCE"` (the default moves bone-attached meshes).
 2. Delete held items (meshes parented to a hand bone: the 14 kit weapons) and strays (unparented meshes: the 80-tri

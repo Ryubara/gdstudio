@@ -13,4 +13,4 @@ areas: [ci, process]
 - **Fix:** push only what a merge needs (the PR is DIRTY, or `main` broke one of its checks); merge `main` locally for
   tests; watch `gh run list --status queued` and the open-PR count each cycle; when the queue grows, stop new PRs and
   land the oldest; a flake's fix goes first. Deadnight #451 cut the jobs per push.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

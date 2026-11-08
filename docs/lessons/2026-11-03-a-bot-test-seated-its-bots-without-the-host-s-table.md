@@ -20,4 +20,4 @@ areas: [tests, gameplay]
   (`bot_ids`, `team`, the legs), not only the ones it needs to compile; a distance bound that sits within a few
   centimetres of what a probe measures is a sign the setup is wrong, not that the bound is right. Log the thing for
   the whole run before choosing between "widen the bound" and "fix the cause".
-- **Docs:** [Test speed](../godot/test-speed.md).
+- **Docs:** [Test speed](../engines/godot/test-speed.md).

@@ -32,4 +32,4 @@ areas: [tools, process, tests]
   check that cannot answer holds. A fake answers as the real tool does, including its refusals, and a tripwire in the
   suite proves the default route ends at it. Replay a rule over a mirror of the real folder before trusting its numbers:
   zero-byte files with real names, real notes and real ages, on temporary folders, never the real folder.
-- **Docs:** [the disk guard](../workspace.md#disk).
+- **Docs:** [the disk guard](../studio/workspace.md#disk).

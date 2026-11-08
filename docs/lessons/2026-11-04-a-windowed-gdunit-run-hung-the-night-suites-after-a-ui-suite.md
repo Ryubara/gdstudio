@@ -13,7 +13,7 @@ areas: [tests, tools]
   every suite, a minimized window draws no frame, and the night's warm-up waits for `RenderingServer.frame_post_draw`;
   any suite that opens a night after another suite hung, in either order. See
   [the lesson](2026-11-05-a-minimized-gdunit-window-hung-the-next-suite-s-warm-up.md) and
-  [A minimized window draws nothing](../godot/minimized-window.md). Written first as "not found in the code".
+  [A minimized window draws nothing](../engines/godot/minimized-window.md). Written first as "not found in the code".
   The same pair run **headless**, as CI runs it (`godot --headless ... --ignoreHeadlessMode`),
   passed in 11 s; the hang is in the windowed run on the private desktop after the first suite's pushed pointer events.
   Bisecting by hand was misleading for a time: `-a file.gd:test_name` runs nothing of that file when more than one is
@@ -23,4 +23,4 @@ areas: [tests, tools]
   captures and for the one suite that needs a window; give a long windowed run `gds godot --timeout 3000 -- ...`;
   a log written through `sed` is block-buffered and looks empty until the end, so read `FAILED` and
   `Overall Summary` after the run, not during it.
-- **Docs:** [No focus](../godot/no-focus.md).
+- **Docs:** [No focus](../engines/godot/no-focus.md).

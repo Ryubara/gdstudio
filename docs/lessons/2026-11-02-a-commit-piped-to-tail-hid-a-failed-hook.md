@@ -12,4 +12,4 @@ areas: [process, tools]
 - **Fix:** run the commit alone (or check `git log --oneline -1` and `git status --short` after it), read the whole hook
   output, fix the lint (`| --- |` separators, wrap research pages at 120) and commit again before pushing or opening
   the pull request. Run `uvx pre-commit run --all-files` first and read its failures.
-- **Docs:** [Hooks](../hooks.md).
+- **Docs:** [Hooks](../studio/hooks.md).

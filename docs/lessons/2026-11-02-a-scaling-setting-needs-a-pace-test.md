@@ -15,4 +15,4 @@ areas: [gameplay, process]
   within about 10 percent of 1x.
 - **Check:** when a setting scales a quantity, ask what it does to round length and pace, and measure it; never add a
   new mechanism (a limit, an overtime) to cover a side effect of the first.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

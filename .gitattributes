@@ -3,7 +3,7 @@
 *.ps1 text eol=crlf
 *.cmd text eol=crlf
 
-# Binary assets go through Git LFS (docs/workspace.md#lfs). The same list is used by every GDStudio repo.
+# Binary assets go through Git LFS (docs/studio/workspace.md#lfs). The same list is used by every GDStudio repo.
 *.blend filter=lfs diff=lfs merge=lfs -text
 *.glb filter=lfs diff=lfs merge=lfs -text
 *.gltf filter=lfs diff=lfs merge=lfs -text

@@ -18,4 +18,4 @@ areas: [audio]
   dB. Then a trim for the context: the cues are 10 dB under their menu level while a night runs, and still
   stand out of a burst of automatic fire in 2 to 6 third-octave bands. The peak in a table of a ticket is a
   menu level, not a fight level.
-- **Docs:** [Menu and interface sounds, section 4](../audio/ui-sounds.md#4-level-the-bus-and-the-mix).
+- **Docs:** [Menu and interface sounds, section 4](../gamedev/audio/ui-sounds.md#4-level-the-bus-and-the-mix).

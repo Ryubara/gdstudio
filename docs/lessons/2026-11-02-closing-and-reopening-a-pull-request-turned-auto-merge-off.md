@@ -12,4 +12,4 @@ areas: [ci, process]
 - **Cause:** GitHub disables auto-merge when a pull request is closed, and reopening does not restore it.
 - **Fix:** after a close and reopen, run `gh pr merge <N> --auto --squash` again in the same command, except on
   pull requests that are merged by hand; check with `gh pr view <N> --json autoMergeRequest`.
-- **Docs:** [Agents: the loop](../agents.md#the-loop).
+- **Docs:** [Agents: the loop](../studio/agents.md#the-loop).

@@ -10,7 +10,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Guard | Refuses | Instead |
 | --- | --- | --- |
 | Agents | `general-purpose`, or an Agent call with no type | a project agent (`.claude/agents/`) or a read-only helper |
-| Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request, or commits made after its pull request merged; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/hooks.md#docs) |
+| Unpublished docs | an agent finishing, or a session stopping, while a branch of the kit's worktrees has commits and no pull request, or commits made after its pull request merged; an agent's report with a `Mistakes` section and no lesson file | push the branch and open its pull request; write the lesson (docs/studio/hooks.md#docs) |
 | Agent stalls | a task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`) finishing on a message that is not a report: no pull request link or number, no `Mistakes` section, no `Blocked:` line, and no background task running | do the announced step in the same turn, or end with the report or `Blocked: <why>` ([below](#stall)) |
 | Idle issues | the **main session** (the coordinator) ending a turn while an issue in any repository of `workspace.toml` may start now (the window's "May start now", or blocked with a blocker that has closed) and has no agent; never a task agent | start each (`gds issue start`), or take it out of the line with a reason (`gds issue block <ref> --on <#N\|maintainer> --why "..." [--conflict <path>...]`) ([below](#idle)) |
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
@@ -20,11 +20,11 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
-| Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
-| Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
-| Browser probes | a `tools/web_smoke/*.py` script or a Playwright run (`playwright test`, `uv run --with playwright python x.py`) not wrapped in `gds quiet`: headless Chrome under pointer lock clips the person's cursor (docs/godot/no-focus.md) | `gds quiet -- <command>` |
-| Pull request images | `gh pr create\|edit --attach <file>` whose body file (`--body-file`, or a literal `--body`) does not refer to every attached file inside `## Screenshots` by a path that names the same file as `--attach` (`./x.png` is `<the folder the command runs in>/x.png`, [below](#attach-paths)), has no image between `Before:` and `After:` (unless `Before: none (reason)`) or none below `After:`, or cannot be read before the command runs (`[attach]` in `hooks.toml`) | write the body to a file with `![before](./before.png)` / `![after](./after.png)` on those lines, `cd` into the folder that holds the images, then `--body-file <file> --attach ./before.png ...`; read the body back |
-| Local images left in a pull request | after a shell command that opened or edited a pull request, or printed one's address as its last line (a script, an alias): the description read back from GitHub still has a `![x](./x.png)` reference that is not an upload (`readback` in `[attach]`) | the answer names the references; fix the description at once ([below](#attach-paths)) |
+| Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
+| Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/engines/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
+| Browser probes | a `tools/web_smoke/*.py` script or a Playwright run (`playwright test`, `uv run --with playwright python x.py`) not wrapped in `gds quiet`: headless Chrome under pointer lock clips the person's cursor (docs/engines/godot/no-focus.md) | `gds quiet -- <command>` |
+| Pull request images | `gh pr create\|edit --attach <file>` whose body file (`--body-file`, or a literal `--body`) does not refer to every attached file inside `## Screenshots` by a path that names the same file as `--attach` (`./x.png` is `<the folder the command runs in>/x.png`, [below](#attach-paths)), has no image between `Before:` and `After:` (unless `Before: none (reason)`) or none below `After:`, or cannot be read before the command runs (`[attach]` in `hooks.toml`) | write the body to a file with `![before](../before.png)` / `![after](../after.png)` on those lines, `cd` into the folder that holds the images, then `--body-file <file> --attach ./before.png ...`; read the body back |
+| Local images left in a pull request | after a shell command that opened or edited a pull request, or printed one's address as its last line (a script, an alias): the description read back from GitHub still has a `![x](../x.png)` reference that is not an upload (`readback` in `[attach]`) | the answer names the references; fix the description at once ([below](#attach-paths)) |
 | Pull request body | `gh pr create\|edit` with a `--body-file` (or a literal `--body`) that `groundwork.py check-body` refuses: the rules `pr-rules` runs after the push (`[pr_body]` in `hooks.toml`, [below](#pr-body)) | fix the body file, check it with `gds pr check-body <file> [--title <file>]`, then run the command |
 | Kills | stopping Godot or Blender by name (`taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name`): every agent's run dies | kill your own process by its PID |
 | Secrets | printing a key-like variable; dumping the environment | test that it is set |
@@ -47,29 +47,29 @@ reasons and the command to run. `--title` on the command turns on the title rule
 Not judged, because they cannot be read first: a body from standard input, a file not written yet, a literal body with a
 backtick or `$(`, a `gh pr edit` without a body, and a repository with no checkout. The pull request's history is not
 asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge.
-A `](path)` reference to a file the same command passes with `--attach` (the same file, [below](#attach-paths)) counts
+A `](../path)` reference to a file the same command passes with `--attach` (the same file, [below](#attach-paths)) counts
 as an uploaded capture there (the guard swaps in an upload address before it asks, as `--attach` does), so one body
 satisfies both guards; a reference to a file that is not attached, or the same body without `--attach`, is refused.
 `gds pr check-body` by hand has no `--attach` and still wants uploaded captures
-([lesson](lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). A relative `--body-file` is read
+([lesson](../lessons/2026-11-02-gh-pr-create-attach-is-refused-by-the-body-check.md)). A relative `--body-file` is read
 from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd /d`, `~` and Git
 Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a glob) leaves a
 relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
 is not judged. The refusal for a missing file names the path it looked in
-([lesson](lessons/2026-11-02-the-body-guard-read-a-relative-file-from-the-wrong-folder.md)). `--attach` paths are never
+([lesson](../lessons/2026-11-02-the-body-guard-read-a-relative-file-from-the-wrong-folder.md)). `--attach` paths are never
 opened by the guard, only placed and compared with the references ([below](#attach-paths)). The docs rule of
 `pr-rules` (code changed, no docs changed, no `Docs: none` line) reads the branch's files: `gds pr check-body` and the
 guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
 branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
 `docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([lesson](lessons/2026-11-02-the-local-body-check-skipped-the-docs-rule.md)). The guard is a hand-merge path
+([lesson](../lessons/2026-11-02-the-local-body-check-skipped-the-docs-rule.md)). The guard is a hand-merge path
 (`.claude/hooks/`): a maintainer merges changes to it.
 
 ## Which paths the image guard covers {#attach-paths}
 
-`gh pr create|edit --attach` uploads each file and rewrites a `![alt](path)` reference in the body to the upload, in
+`gh pr create|edit --attach` uploads each file and rewrites a `![alt](../path)` reference in the body to the upload, in
 place, **only when the reference and the `--attach` path name the same file**. `gh` places both from the folder it runs
-in. With the command run in the worktree, `--attach <scratch>/before.png` and `![before](./before.png)` are two files:
+in. With the command run in the worktree, `--attach <scratch>/before.png` and `![before](../before.png)` are two files:
 the reference stays `./before.png`, the upload is appended after `## AI use`, and `pr-rules` fails with "the 'Before:'
 capture is missing". Measured on 2026-11-03 with `gh` 2.102.0 (`gh issue edit --attach` shares the code):
 
@@ -83,7 +83,7 @@ capture is missing". Measured on 2026-11-03 with `gh` 2.102.0 (`gh issue edit --
 The guard before the command used to match by file name alone, so it passed the first row. Deadnight #611 and #637
 were opened that way through the Bash tool, which the guard does see: the body file was written first, `--attach` took
 absolute paths in the scratch folder, and the command ran in the worktree (the agents' transcripts; the body history
-on GitHub shows the first body with `](./before-desktop-2-solo.png)` references and the uploads appended). The same
+on GitHub shows the first body with `](../before-desktop-2-solo.png)` references and the uploads appended). The same
 history shows 17 Deadnight pull requests of 2026-11-02 and 03 with a description revision that had `./` image
 references. The guard now places the reference and the `--attach` path (`file_key` in
 `.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
@@ -94,7 +94,7 @@ the two guards agree.
 
 Paths the guard cannot read are covered by a second line, a `PostToolUse` read-back. After a shell command that ran
 `gh pr create|edit`, or whose last output line is a pull request address (a script that runs `gh`, an alias), the
-description is fetched (`gh pr view <url> --json body`) and any `![x](./x.png)` reference to an image that is not an
+description is fetched (`gh pr view <url> --json body`) and any `![x](../x.png)` reference to an image that is not an
 upload is named in the answer, with the command that repairs it. It is advice, not a refusal (the pull request already
 exists), and `readback = false` in `[attach]` turns it off. Neither check can read a script file (`python open_pr.py`
 runs `gh` out of sight; only the read-back sees its result) or a `gh api` call that sets a body; `pr-rules` in CI
@@ -148,7 +148,7 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
 Nothing an agent runs posts a comment or a review under the maintainer's GitHub account (their decision of 2026-10-12);
 status labels say that work is under way. `check_comments` in `guards.py` judges what `gh` would do, because a rule
 that lists the commands named `comment` let `gh issue close --comment` post on #691
-([lesson](lessons/2026-11-05-a-closing-comment-passed-a-rule-that-listed-commands.md)). The routes come from every page
+([lesson](../lessons/2026-11-05-a-closing-comment-passed-a-rule-that-listed-commands.md)). The routes come from every page
 of `gh help` in gh 2.102 and the mutations from GitHub's schema, read on 2026-11-05; a later `gh` can add a route, so
 the list is only as current as that walk.
 
@@ -176,7 +176,7 @@ an alias made before this guard, a `gh` extension, `curl` with a token, the webs
 `python/src/gds_tools/issues.py` is its one way to run `gh`, and refuses what `posts_a_comment` names; a test fails
 if a second way appears. `gds issue start`, `release` and `unblock` change labels and the ledger and post nothing.
 Until 2026-11-06 they did post, and this page called it by design
-([lesson](lessons/2026-11-06-a-guard-on-what-agents-type-missed-what-the-tool-posted.md)).
+([lesson](../lessons/2026-11-06-a-guard-on-what-agents-type-missed-what-the-tool-posted.md)).
 Comments a workflow posts with `GITHUB_TOKEN` appear under `github-actions[bot]`, not under the maintainer.
 
 A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook
@@ -214,7 +214,7 @@ progress with no owner, and the weekly hygiene sweep reports labels that sit idl
 ## Idle issues {#idle}
 
 Run everything that can run in parallel, and enforce it: nothing used to notice when issues that could start sat with no
-agent ([the maintainer's correction](research/maintainer-corrections.md); on 2026-11-02 two or three agents ran while
+agent ([the maintainer's correction](maintainer-corrections.md); on 2026-11-02 two or three agents ran while
 four kit issues waited, and later 15 Deadnight issues sat behind the window because issues that waited on #227 or on the
 maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main session; task agents send
 `SubagentStop`, which this never touches) now refuses to end a turn while an issue is idle. Settings: `[idle]` in
@@ -264,14 +264,16 @@ The learning loop above starts from a maintainer message. This part starts from 
 wrong is written down by the agent that found it, in the same task, and the next agent reads it before it starts.
 
 - **Areas.** Every lesson has `areas: [net, web]` front matter; the names, the issue label to areas map and the
-  placement keywords are in [`docs/lessons/areas.toml`](lessons/areas.toml). [Mistakes by area](research/mistakes-by-area.md)
-  is built from the lessons and the corrections rows (a row that links a lesson takes its areas, any other is placed by
-  keyword) and is **not a file in the repository**: the MkDocs build creates it (`.github/scripts/mkdocs_glossary.py`, a
-  `hooks:` entry of `mkdocs.yml`), `gds lessons <area>` and the hook below build it in memory, and
-  `python .github/scripts/mistakes.py render` prints it. It used to be committed, so every lesson pull request rewrote
+  placement keywords are in [`docs/lessons/areas.toml`](../lessons/areas.toml). The mistakes glossary is built from
+  the lessons and the corrections rows (a row that links a lesson takes its areas, any other is placed by keyword) and
+  is **not a file in the repository**: `gds lessons <area>` and the hook below build it in memory, and
+  `python .github/scripts/mistakes.py render` prints it. The docs site no longer shows it: Zensical runs no build
+  hooks ([Docs site](docs-site.md#checks)), and the rules that replace it come with gdstudio #769. It used to be
+  committed, so every lesson pull request rewrote
   it and the second of two concurrent ones conflicted or went stale (#119); now a lesson pull request touches only its
-  own file. A test (and the `mistakes-by-area` pre-commit hook) fails on a lesson with no area or one that cannot be
-  built; `backfill` places the lessons that have none, by keyword, as a script.
+  own file. A test, the `mistakes-by-area` pre-commit hook and the docs job of CI (`mistakes.py check`) fail on a
+  lesson with no area or one that cannot be built, and on a corrections row that quotes the maintainer; `backfill`
+  places the lessons that have none, by keyword, as a script.
 - **Injected, not hoped for.** `gds issue start` maps the issue's labels to areas (`A-net` is net, web and backend; the
   `general` area is always there) and keeps them in the ledger. When the Agent guard lets a task agent start it leaves a
   note (`cache/subagent-pending.json`, ten minutes) with the areas of the `Issue:` line; `SubagentStart`, which does not
@@ -291,7 +293,7 @@ wrong is written down by the agent that found it, in the same task, and the next
   stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
   is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
   the gap that lost a lesson twice (kit #175 and #176;
-  [lesson](lessons/2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md)).
+  [lesson](../lessons/2026-11-02-a-lesson-pushed-after-its-pull-request-merged-was-lost.md)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   `docs/lessons/<file>.md` that exists in the kit checkout or one of its worktrees, or the agent is held back once.
@@ -321,7 +323,7 @@ both. A game takes the `pr-history` command and the three rules when its `.githu
 
 A background task agent whose turn ends is finished for good: nothing wakes it, `ListAgents` still says `running`, and
 nothing shows on GitHub. It happened three times on 2026-11-02 (the agents ended on "Now the autopilot." and the like;
-[lesson](lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The rule in the agent
+[lesson](../lessons/2026-11-02-an-agent-that-ended-its-turn-on-a-next-step-stalled.md)). The rule in the agent
 definitions did not stop the third, so `SubagentStop` now refuses such an end. Settings: `[stop_check]` in `hooks.toml`.
 
 1. Only the agent types in `[stop_check] agents` are judged: `godot-engineer`, `backend-engineer`, `blender-artist`,
@@ -384,7 +386,7 @@ hook only starts the process and returns, so it never blocks or delays a session
 (`cache/worktree-sweep.lock`, taken over after half an hour), so sessions that start together run one sweep, and it stops
 by itself after 20 minutes. Its report is appended to `scratch/worktree-sweep.log`. On Windows the process is started
 with `CREATE_NO_WINDOW`, so neither it nor its git children flash a console window
-([lesson](lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md)). `enabled = false` turns it off and
+([lesson](../lessons/2026-11-03-expired-monitors-left-their-polling-loops-running.md)). `enabled = false` turns it off and
 `args = ["--no-idle"]` limits it to the pull request and issue rules.
 
 ## Disk {#disk}
@@ -415,7 +417,7 @@ first cell starts with a quotation mark (gdstudio #780).
 
 | Event | What it does |
 | --- | --- |
-| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](research/maintainer-corrections.md) (what the maintainer pointed out in our words, with its issue or pull request and date and never a quote of the prompt; concept missed, detail missed, check for next time) and a [lesson](lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
+| `UserPromptSubmit` | Adds a two-line reminder to every message in a GDStudio workspace: if this message corrects an agent or reports a problem in earlier work, add a row to [the corrections page](maintainer-corrections.md) (what the maintainer pointed out in our words, with its issue or pull request and date and never a quote of the prompt; concept missed, detail missed, check for next time) and a [lesson](../lessons/index.md) if the cause is general, in a kit pull request in this session. If the cause is not known yet, queue the row. |
 | `SessionStart` | Tells the session to read the checks that touch its task and to search the lessons index before solving. |
 | `SubagentStart` | Tells every project agent the same, and that an agent whose task came from a correction puts the row's text in its final report: the coordinator publishes it, so many agents never edit one table. Read-only helpers (`[agents] helpers`) get nothing. |
 | `Stop` | Holds the session back once while a queued row is unpublished (below). `stop_hook_active` lets the next stop through, so it never loops. |

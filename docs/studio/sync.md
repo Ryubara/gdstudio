@@ -5,7 +5,7 @@ Some files live in every game but belong to the kit. The kit is their one source
 | What | Kit source | Game copy |
 | --- | --- | --- |
 | Agent definitions | `.claude/agents/*.md` | the same path |
-| The `gds_ui` Godot addon ([UI controls](godot/ui-controls.md#where)) | `godot/addons/gds_ui/` | `game/addons/gds_ui/`, the same `res://` path |
+| The `gds_ui` Godot addon ([UI controls](../engines/godot/ui-controls.md#where)) | `godot/addons/gds_ui/` | `game/addons/gds_ui/`, the same `res://` path |
 | Hook launcher and its settings | `templates/game/.claude/` | `.claude/` |
 | The checker for titles, messages, descriptions | `.github/scripts/groundwork.py` | the same path (it reads the game's own `.github/conventions.yml`) |
 | The hold's check and its sweep (only the label name is read from them, so one copy fits every game) | `.github/workflows/hold.yml`, `hold-sweep.yml` | the same paths |
@@ -35,7 +35,8 @@ and `[autoload]` in its `project.godot`: a game's project file is its own).
 ## Not synced: what a new game is made from {#templates}
 
 `templates/game/` is the only part of `templates/` that `gds sync` writes. `templates/repo/` and each template
-(`templates/3d-blank/`) are copied once by `gds new game` ([A new game from a template](godot/new-game.md)) and are the
+(`templates/3d-blank/`) are copied once by `gds new game` ([A new game from a template](../engines/godot/new-game.md))
+and are the
 game's own afterwards: changing them in the kit changes no existing game. A file every game must receive goes in
 `templates/game/`.
 

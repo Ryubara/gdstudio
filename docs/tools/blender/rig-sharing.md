@@ -2,7 +2,7 @@
 
 How to clean a Quaternius character file in the pinned Blender (5.2.3) so its clips can go into one Godot
 AnimationLibrary shared by every character. Learned in the spike `sandbox/rig-sharing/` (kit issue #10); the Godot
-side is [Rig sharing (Godot)](../godot/rig-sharing.md).
+side is [Rig sharing (Godot)](../../engines/godot/rig-sharing.md).
 
 ## What the files hold
 
@@ -115,10 +115,10 @@ Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown a
   rest-like pose), so it follows the head at every key; the build prints each key's miss and the point in the bone's
   frame, which a game test checks the drawn prop against (the drawn lip was within 3 cm of it over the game's hips).
 - **The kit head is a third of the body.** Tip it back only a few degrees: 20 degrees read as pouring over the head
-  ([lesson](../lessons/2026-11-03-a-drink-clip-tipped-the-chibi-head-back-and-read-as-pouring.md)). Bring the prop to
+  ([lesson](../../lessons/2026-11-03-a-drink-clip-tipped-the-chibi-head-back-and-read-as-pouring.md)). Bring the prop to
   the face from the camera's side (the right, for a camera over the right shoulder), or the head hides it.
 - **Read a Godot value from a `.tres` between its parentheses**, never with a number pattern
-  ([lesson](../lessons/2026-11-03-a-number-regex-read-the-3-of-vector3.md)).
+  ([lesson](../../lessons/2026-11-03-a-number-regex-read-the-3-of-vector3.md)).
 
 ## Clips written in the world's space
 

@@ -12,4 +12,4 @@ areas: [godot-ui, input]
 - **Fix:** a page shows when its tab is pressed; the first row of the grid links Up to the tab on show (set in a
   deferred call after each `sort_children`, since the rows exist only after the layout) and the tabs link Down to the
   page's first cell. The pad test checks both ways and that walking along the strip changes the focus, not the page.
-- **Docs:** [A grid of items with locked silhouettes](../godot/ui-controls.md#a-grid-of-items-with-locked-silhouettes).
+- **Docs:** [A grid of items with locked silhouettes](../engines/godot/ui-controls.md#a-grid-of-items-with-locked-silhouettes).

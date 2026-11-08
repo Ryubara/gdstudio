@@ -17,4 +17,4 @@ areas: [web, godot]
   not depend on the picture's size; the window draws the night once at the end); effects replayed once; the audio
   service loads sounds in the background while a menu is up; the seven materials use `metallic_specular = 0`. 30.5 s
   to 7.5 s in SwiftShader, 20.4 s to 16.0 s with a GPU, the same 207 programs, none linked while playing.
-- **Docs:** [First-use hitches](../godot/first-use-hitches.md#a-warm-up-on-the-cpu-pays-for-every-pixel).
+- **Docs:** [First-use hitches](../engines/godot/first-use-hitches.md#a-warm-up-on-the-cpu-pays-for-every-pixel).

@@ -15,4 +15,4 @@ areas: [tests, ci, net]
   own seat list, the same wait with the reads joins.
 - **Check for next time:** a probe that waits for something slow (a page, a night) keeps every stand-in player alive the
   way its screen does, and is run once with the wait made long on purpose.
-- **Docs:** [web export](../godot/web-export.md#a-phones-keyboard-in-the-web-build).
+- **Docs:** [web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build).

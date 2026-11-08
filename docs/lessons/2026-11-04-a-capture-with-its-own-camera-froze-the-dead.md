@@ -13,4 +13,4 @@ areas: [tests, godot]
 - **Fix:** a capture that makes its own camera gives it to the throttle (`horde.throttle.camera = camera`); then take
   the "before" sheets again, from a checkout of main with the fixed capture script. Print a playhead twice before
   reading a pose.
-- **Docs:** [Crowds](../godot/crowds.md).
+- **Docs:** [Crowds](../engines/godot/crowds.md).

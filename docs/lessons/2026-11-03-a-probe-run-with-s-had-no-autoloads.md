@@ -15,4 +15,4 @@ areas: [tests, godot]
 - **Fix:** write the probe as a scene in the game's `tests/captures/` and run it with
   `godot --headless --path game res://tests/captures/probe.tscn -- <args>`; the autoloads are there, the output goes to
   a log file, and what began as a probe usually stays as the soak. Put `timeout` on it as for any headless run.
-- **Docs:** [Probes and tools in headless Godot](../godot/headless-probes.md).
+- **Docs:** [Probes and tools in headless Godot](../engines/godot/headless-probes.md).

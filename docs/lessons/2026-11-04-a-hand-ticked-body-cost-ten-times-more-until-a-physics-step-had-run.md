@@ -22,4 +22,4 @@ areas: [tests, godot]
   frame is a calibration step for a sweep, not a free speed-up.
 - **Check next time:** time `simulate` for one body standing still (about 0.02 ms indexed) before reading a profile of
   a hand-ticked suite; a 10x figure means the bodies are not indexed yet.
-- **Docs:** [Test speed](../godot/test-speed.md#what-hand-stepping-needs).
+- **Docs:** [Test speed](../engines/godot/test-speed.md#what-hand-stepping-needs).

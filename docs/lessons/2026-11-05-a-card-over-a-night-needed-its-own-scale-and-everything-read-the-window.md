@@ -23,4 +23,4 @@ areas: [godot-ui, tests]
   `git archive HEAD` in the scratch folder. Check for next time: a part drawn at a scale of its own is measured by its
   own size and its global scale, never by the window's or the viewport's; run the failing test against main's files
   (`git archive`) before calling it a test of the fix.
-- **Docs:** [UI controls](../godot/ui-controls.md), Deadnight #1205 and its `docs/research/phone-page-scale.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md), Deadnight #1205 and its `docs/research/phone-page-scale.md`.

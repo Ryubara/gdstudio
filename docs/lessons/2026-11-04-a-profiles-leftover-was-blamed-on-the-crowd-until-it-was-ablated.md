@@ -18,5 +18,5 @@ areas: [godot, tests, general]
   night, interleaved arms, three or more pairs, and report the deterministic counts (advances, draws, triangles) beside
   the times; cut the part that was measured. A census line a second (views by distance band and throttle tier,
   advances a frame, the viewport's CPU and GPU render time) found in a minute what a frame time could not.
-- **Docs:** [Crowds](../godot/crowds.md#what-a-crowd-costs-at-the-ceiling-in-the-real-night) and
-  [Performance review](../godot/performance-review.md).
+- **Docs:** [Crowds](../engines/godot/crowds.md#what-a-crowd-costs-at-the-ceiling-in-the-real-night) and
+  [Performance review](../engines/godot/performance-review.md).

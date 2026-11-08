@@ -16,4 +16,4 @@ areas: [godot, net]
 - **Check for next time:** a Callable stored for later (`uploader`, `on_done`, a hook) to a method of a `RefCounted`
   object made inline needs a field that owns the object; look for `.new(...).method` and a local `var x := Foo.new()`
   whose method is stored.
-- **Docs:** [Callables and coroutines](../godot/callables-and-coroutines.md).
+- **Docs:** [Callables and coroutines](../engines/godot/callables-and-coroutines.md).

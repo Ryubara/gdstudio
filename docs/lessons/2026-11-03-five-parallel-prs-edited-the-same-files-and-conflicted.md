@@ -26,4 +26,4 @@ areas: [process, ci]
       tells it to merge `main` right before it pushes.
     - **Merge order:** stays first-green until the maintainer chooses otherwise (a merge queue is their call). Either
       way, the conflicts come from the files, not the order.
-- **Docs:** [Starting work: everything that can run, runs](../starting-work.md#parallel).
+- **Docs:** [Starting work: everything that can run, runs](../studio/starting-work.md#parallel).

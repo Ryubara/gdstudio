@@ -17,4 +17,4 @@ areas: [tests, godot]
 - **Check for next time:** before trusting a physics query in a probe or a test, search the lessons for the call
   (`intersect_shape`, `intersect_ray`, `cast_motion`) and the shape (CSG, concave); a "clear" cell is proved by
   bounds, not by a query that cannot see from inside.
-- **Docs:** [Map review, collision hygiene](../godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).
+- **Docs:** [Map review, collision hygiene](../engines/godot/map-review.md#7-collision-hygiene-out-of-bounds-and-skipped-doors).

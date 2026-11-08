@@ -17,4 +17,4 @@ areas: [blender, tests]
   re-solve the rifle's grip (`tests/art/solve_grips.gd -- --only lever_rifle`). When a number does not move at all
   under a change of the suspected cause, drop the guess: list every input the measure reads (here, which meshes)
   before changing the test.
-- **Docs:** [Character variants](../blender/variants.md#a-second-body-on-the-same-parts).
+- **Docs:** [Character variants](../tools/blender/variants.md#a-second-body-on-the-same-parts).

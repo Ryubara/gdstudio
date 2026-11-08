@@ -14,12 +14,12 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   "before first map synchronization" error, but the polygons of a region you just added are still not in the map: the
   path comes back empty. Wait with `await get_tree().physics_frame` until `map_get_closest_point` on one of your own
   vertices answers within half a metre (the same rule as
-  [a new region](../lessons/2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md)).
+  [a new region](../../lessons/2026-11-01-wait-for-a-navigation-answer-not-an-iteration-id.md)).
 - **A door's new mesh is an iteration.** Putting a fresh mesh into the region again and waiting a few physics frames
   moves the iteration id, which is how a test makes "the map took the new mesh in".
 - **A lambda copies a packed array.** Building the vertex list inside a lambda (`var corner := func(...)` appending to a
   `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty
-  ([lesson](../lessons/2026-11-02-a-lambda-appended-to-a-copy-of-a-packed-array.md)). Use a method and member variables.
+  ([lesson](../../lessons/2026-11-02-a-lambda-appended-to-a-copy-of-a-packed-array.md)). Use a method and member variables.
 
 ## Asserting that nothing was printed
 
@@ -49,7 +49,7 @@ The lot's mesh is baked for an agent of radius 0.5 m; the player's capsule is 0.
 is 0.8 m of mesh after the erosion, which the bake's cell rounding closes for most of them: of about 60 pairs of
 neighbouring cars, four are open to the mesh and the rest are a 12 to 34 m detour. A test that crosses "every car gap"
 must pick the gaps by asking the mesh (a path across them of about the straight length), not by the cars' positions
-([lesson](../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
+([lesson](../../lessons/2026-11-02-the-baked-mesh-closes-the-car-gaps-the-player-fits.md)).
 
 ## A prop that is not in the bake
 
@@ -59,7 +59,7 @@ margin is on the line a bot walks round that wall's corner, and the bot walks in
 legs report nothing wrong, and the stuck ladder is the only thing that moves it. To test it, start the body where the
 real walk starts (the approach line, 10 m back), not at the place it ended up, and run the real ladder; a ray along
 the path (`BotPath.walkable`) at a low height does not see a prop the path passes within a body's radius of
-([lesson](../lessons/2026-11-06-a-roam-bot-stood-at-a-breaker-post-because-the-ladders-nudge-made-its-goal-unreachable.md)).
+([lesson](../../lessons/2026-11-06-a-roam-bot-stood-at-a-breaker-post-because-the-ladders-nudge-made-its-goal-unreachable.md)).
 
 The fix is in the baker, not in each prop: a body that is solid and not CSG joins the mesh by being in the group
 `navmesh_obstacle` (its box shapes are baked like a CSG box), the saved meshes are baked again, and a suite finds every
@@ -67,10 +67,10 @@ The fix is in the baker, not in each prop: a body that is solid and not CSG join
 with a path check over the roam spots, the markers and the sites on every saved set, before and after (the lot's four
 posts: +16 polygons a set, no pair of points lost). Boards and window frames stay out of it: they open and shut, and the
 dead come through the breach they close
-([lesson](../lessons/2026-11-06-a-solid-prop-outside-the-baked-mesh-stopped-every-walk-past-it.md)). A test that walks
+([lesson](../../lessons/2026-11-06-a-solid-prop-outside-the-baked-mesh-stopped-every-walk-past-it.md)). A test that walks
 many paths with a body walks the stretch round the thing under test (6 m before, 4 m after), not the whole path, and
 sizes the night's break for the whole suite
-([lesson](../lessons/2026-11-06-a-walk-suite-outlasted-its-break-and-the-body-died.md)).
+([lesson](../../lessons/2026-11-06-a-walk-suite-outlasted-its-break-and-the-body-died.md)).
 
 ## A goal in a wall
 
@@ -78,7 +78,7 @@ A point inside a wall, a closed door's slab or a counter is no goal for a path: 
 cut-back edge is nearer in 3D, and that can be the shut room behind it (a different island), so the path ends far short.
 Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stands`, 1.5 m out) and make the test ask
 the map where the path ends, within the bots' 2.5 m
-([lesson](../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
+([lesson](../../lessons/2026-11-02-a-goal-in-a-wall-snapped-into-the-shut-room-behind-it.md)).
 
 ## Never wait a fixed number of frames for a mesh
 
@@ -87,7 +87,7 @@ map iterations: the count moves with machine load). A test that waited 12 frames
 (Deadnight #699). Poll until the map answers for what the mesh opens (a path from the start to a point in each open
 area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a large cap that fails with a message,
 and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion
-([lesson](../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
+([lesson](../../lessons/2026-11-03-a-fixed-frame-wait-for-a-navigation-mesh-failed-one-run-in-three.md)).
 
 ## A thread-synced map drops meshes swapped in one go
 
@@ -96,7 +96,7 @@ frame (a test selling every door) can leave the map on an older mesh for good: t
 (7 against 8 or 9), `map_force_update` does not move it, and the dead's paths end short of their targets so they stand
 still (Deadnight #733, #736). Turn it off for a server's map with
 `NavigationServer3D.map_set_use_async_iterations(map, false)`: the physics step takes the mesh in, the same on every
-machine ([lesson](../lessons/2026-11-03-async-navigation-iterations-dropped-the-last-of-several-door-meshes.md)). A
+machine ([lesson](../../lessons/2026-11-03-async-navigation-iterations-dropped-the-last-of-several-door-meshes.md)). A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
 
 ## A night stepped by hand has a stale map
@@ -104,7 +104,7 @@ check that finds it: print the end of `map_get_path` from a stuck dead one to it
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server
 take a new mesh in: a door bought in it leaves the map as it was, so the dead (and the bots) path on the old walls.
 Give the engine a physics frame every few ticks (the soak does one every 30) and wait for the map's answer after a
-purchase, as `SeatedNight.settle` does ([lesson](../lessons/2026-11-02-a-night-stepped-by-hand-never-took-a-bought-doors-mesh.md)).
+purchase, as `SeatedNight.settle` does ([lesson](../../lessons/2026-11-02-a-night-stepped-by-hand-never-took-a-bought-doors-mesh.md)).
 
 ## Measuring a map on its mesh
 
@@ -123,9 +123,9 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
   list the pairs, sort them longest first, and stop at the first clear one. 870 points take under a second.
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
   own: bodies that collide stand on each other in a stair
-  ([lesson](../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
+  ([lesson](../../lessons/2026-11-02-soak-bodies-that-collide-stood-on-each-other-on-a-stair.md)).
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`
-  ([lesson](../lessons/2026-11-02-a-scene-tree-script-with-a-parse-error-never-quit.md)).
+  ([lesson](../../lessons/2026-11-02-a-scene-tree-script-with-a-parse-error-never-quit.md)).
 
 ## A walk to a goal the layer never reaches
 
@@ -135,7 +135,7 @@ walk) makes it walk into whatever lies on the straight line, and a stall test re
 Keep a walk only when `NavigationServer3D.map_get_path(map, from, to, true, NavLayers.WALK)` ends within a metre of the
 goal and no board lies across it, and probe the night's map, not a map made from the saved resource: the night cuts the
 mesh into a walking region and the dead's gaps, so the two answer differently round a window
-([lesson](../lessons/2026-11-06-a-walk-to-a-goal-the-walking-layer-never-reaches-stood-at-the-locker.md)). A prop only
+([lesson](../../lessons/2026-11-06-a-walk-to-a-goal-the-walking-layer-never-reaches-stood-at-the-locker.md)). A prop only
 the dead can reach is checked on the dead's path (`NavLayers.DEAD`): the least distance of the path from the prop's box.
 
 ## The nearest point on the mesh ignores the layers
@@ -146,4 +146,4 @@ dead walk, and a walking path asked from there starts on the nearest *walking* p
 Ask the owner (`region_get_navigation_layers(owner) & NavLayers.WALK`) before treating a point as walkable, and
 reproduce a body stuck in a margin twice: set down at the spot (the way out) and from the step that brought it there
 (the way in), each failing on `main`
-([lesson](../lessons/2026-11-06-a-bot-stepped-onto-a-piece-of-mesh-only-the-dead-walk-and-stood-in-a-corner.md)).
+([lesson](../../lessons/2026-11-06-a-bot-stepped-onto-a-piece-of-mesh-only-the-dead-walk-and-stood-in-a-corner.md)).

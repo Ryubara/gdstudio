@@ -12,4 +12,4 @@ areas: [godot, blender]
 - **Fix:** set `mipmaps/generate=true` in each `.import` file, import again, and commit the `.import` files.
   Also set `detect_3d/compress_to=0`: leaving Detect 3D on made the editor recompress every palette on open
   ([the follow-up](2026-11-01-the-editor-recompressed-palettes-on-open.md)).
-- **Docs:** [Surface materials in Compatibility](../godot/surface-materials.md#pitfalls).
+- **Docs:** [Surface materials in Compatibility](../engines/godot/surface-materials.md#pitfalls).

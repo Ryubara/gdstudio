@@ -14,4 +14,4 @@ areas: [backend, tools]
   (`railway up <stage> --path-as-root --service <name> --ci`, as `deploy/server/deploy.sh` does). Read `railway status`
   first when unsure. A stray project is removed with `railway delete --project <id> --yes`; the project list then still
   shows it with a `deletedAt` two days ahead, which is the soft delete, not a failure.
-- **Docs:** [Multiplayer](../godot/multiplayer.md#headless-server-image).
+- **Docs:** [Multiplayer](../engines/godot/multiplayer.md#headless-server-image).

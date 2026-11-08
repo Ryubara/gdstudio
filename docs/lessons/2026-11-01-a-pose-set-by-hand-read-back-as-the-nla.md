@@ -10,4 +10,4 @@ areas: [blender, tools]
 - **Cause:** the rig-sharing clean-up leaves every clip on an unmuted NLA track; with no active action the NLA still
   evaluates on each `view_layer.update()` and overrides the pose bones set by hand.
 - **Fix:** mute every NLA track before setting pose bones and reading `pose.bones[...].matrix`.
-- **Docs:** [Gaits from kit clips](../blender/gaits.md).
+- **Docs:** [Gaits from kit clips](../tools/blender/gaits.md).

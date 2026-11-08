@@ -15,4 +15,4 @@ areas: [process]
 - **Fix:** whoever does the work publishes the docs, in the same task. A Stop and SubagentStop gate holds back a kit
   branch with commits and no pull request; a report with a `Mistakes` section must name its lesson file; every lesson
   carries `areas:` and a generated glossary by area is put into the context of an agent whose issue has those areas.
-- **Docs:** [Hooks: docs ship with the change](../hooks.md#docs), [Mistakes by area](../research/mistakes-by-area.md).
+- **Docs:** [Hooks: docs ship with the change](../studio/hooks.md#docs), the mistakes glossary (`gds lessons <area>`).

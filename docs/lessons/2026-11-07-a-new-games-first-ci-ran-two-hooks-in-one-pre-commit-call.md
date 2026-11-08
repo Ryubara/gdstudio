@@ -16,4 +16,4 @@ areas: [ci, tools]
 - **Check:** a workflow written for games is proven by a run in a real game repository, not by the kit's job that
   copies its steps. Make a throwaway game with `gds new game` and read its first CI run before calling a template
   change done.
-- **Docs:** [A new game from a template](../godot/new-game.md).
+- **Docs:** [A new game from a template](../engines/godot/new-game.md).

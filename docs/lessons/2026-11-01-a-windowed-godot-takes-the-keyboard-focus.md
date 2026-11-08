@@ -11,4 +11,4 @@ areas: [godot, input]
   window over the screen.
 - **Fix:** start Godot on a private Windows desktop with `gds godot ...` (`gds capture frames` does): rendering and
   Movie Maker work, nothing reaches the person's desktop. A hook refuses a windowed Godot started straight from a shell.
-- **Docs:** [Windowed Godot without taking the focus](../godot/no-focus.md).
+- **Docs:** [Windowed Godot without taking the focus](../engines/godot/no-focus.md).

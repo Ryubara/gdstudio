@@ -42,4 +42,4 @@ to find where two runs part, and what was found.
 Two things to keep: the build is old enough whatever the navigation does (`tests/night/test_night_repeats.gd`), and
 nights of one seed started 0 and 3 frames apart keep every place to the last bit. A hash of positions in quarter metres
 hides this; compare the raw floats. See also [navigation in tests](navigation-in-tests.md) and the
-[lesson](../lessons/2026-11-06-two-nights-of-one-seed-differed-by-the-age-of-the-lot.md).
+[lesson](../../lessons/2026-11-06-two-nights-of-one-seed-differed-by-the-age-of-the-lot.md).

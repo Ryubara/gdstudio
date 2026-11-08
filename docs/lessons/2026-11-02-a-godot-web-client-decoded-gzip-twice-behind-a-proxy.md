@@ -14,4 +14,4 @@ areas: [web, net]
   again, and Discord answered `400 invalid_grant`.
 - **Fix:** `HTTPRequest.accept_gzip = false` in the web build (Deadnight #475); trade an OAuth code once. Reproduce
   with a local HTTPS stand-in that gzips its answers, never only in a plain browser tab.
-- **Docs:** [Web export](../godot/web-export.md#discord-activity-the-proxy-and-the-iframe).
+- **Docs:** [Web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe).

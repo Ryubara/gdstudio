@@ -15,4 +15,4 @@ areas: [input, web]
   only after three drags; the aim button drags to look.
 - **General:** touch is multi-finger. Every touch control test has a second finger down on another control at the same
   time, and the live probe runs a two-finger case; buttons players hold are checked for drag-to-look.
-- **Docs:** [What the maintainer caught](../research/maintainer-corrections.md).
+- **Docs:** [What the maintainer caught](../studio/maintainer-corrections.md).

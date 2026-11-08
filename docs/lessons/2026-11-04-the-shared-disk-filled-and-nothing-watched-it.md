@@ -20,4 +20,4 @@ areas: [tools, process, tests]
   (`mods/gdstudio-disk`). Agents reduce a downloaded CI artifact to its numbers and delete it in the same task, and
   a topic's `SCRATCH.md` names its pull request and what can go. Check for next time: anything many agents write to
   gets a measured budget and an automatic clean-up when it is made, not when it is full.
-- **Docs:** [The disk guard](../workspace.md#disk), [Disk hook](../hooks.md#disk).
+- **Docs:** [The disk guard](../studio/workspace.md#disk), [Disk hook](../studio/hooks.md#disk).

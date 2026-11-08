@@ -23,4 +23,4 @@ areas: [godot-ui, godot, ci, tests]
   in a budget that counts nodes, and an out-of-tree node is an orphan (the budget limits those too), so build late,
   never build and park. Read the CI peak after the push: it differs from a local run's.
 - **Docs:** Deadnight `docs/research/performance.md`, "Canvas items by part"; the kit's
-  [Canvas draw calls](../godot/canvas-draw-calls.md#a-node-per-box-counts-against-the-canvas-item-budget).
+  [Canvas draw calls](../engines/godot/canvas-draw-calls.md#a-node-per-box-counts-against-the-canvas-item-budget).

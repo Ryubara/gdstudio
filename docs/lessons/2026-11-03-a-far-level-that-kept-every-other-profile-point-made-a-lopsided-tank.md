@@ -12,4 +12,4 @@ areas: [blender]
 - **Fix:** a turned part with rounded ends takes a far profile of its own, drawn by hand from the same outline
   (`revolve_x(..., far=[...])` in Deadnight's `tools/blender/weapon_specs/_revolve.py`); look at the far level in a
   turntable beside the near one.
-- **Docs:** [Weapons: building by script](../blender/weapons.md#building-by-script).
+- **Docs:** [Weapons: building by script](../tools/blender/weapons.md#building-by-script).

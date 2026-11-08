@@ -13,4 +13,4 @@ areas: [audio]
 - **Fix:** estimate a batch from what the last set billed (speech: about 1.08 times the characters without audio tags;
   Scribe: about 8.5 per take of 4 s), read the total once after the last request, and record the total, not the
   differences between readings. Deadnight #679: 6,457 of 10,000 for 115 lines and their check.
-- **Docs:** [Voice lines](../audio/voice-lines.md#credits-and-budget).
+- **Docs:** [Voice lines](../gamedev/audio/voice-lines.md#credits-and-budget).

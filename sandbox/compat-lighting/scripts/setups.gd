@@ -1,6 +1,6 @@
 class_name Setups
 extends RefCounted
-## Applies a setup, a "+"-joined list of tokens, to the night scene. See docs/godot/compat-lighting.md
+## Applies a setup, a "+"-joined list of tokens, to the night scene. See docs/engines/godot/compat-lighting.md
 ## for what each token measures.
 
 const DYNAMIC_COLORS: Array[Color] = [

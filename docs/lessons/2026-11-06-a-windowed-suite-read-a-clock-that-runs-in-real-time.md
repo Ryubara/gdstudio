@@ -20,5 +20,5 @@ areas: [tests, godot-ui, ci]
   case for each that fails without it in any run: `Engine.max_fps = 5` for the card (a frame of 0.2 s, headless too),
   and "no marquee panel is processing" for the lobby. A flaky windowed result is a time: make the run slower (saving the
   pictures did it) and keep what each run saw.
-- **Docs:** the kit's [Windowed GdUnit on a Linux runner](../godot/windowed-gdunit-on-linux.md) and Deadnight's
+- **Docs:** the kit's [Windowed GdUnit on a Linux runner](../engines/godot/windowed-gdunit-on-linux.md) and Deadnight's
   `docs/research/windowed-vs-headless-tests.md`.

@@ -24,4 +24,4 @@ areas: [web, ci]
   change is unlikely to move, and replay it locally with the two builds interleaved. When a change speeds up the term
   the gate divides by, the gate's calibration is what is out of date (a maintainer's decision, never a quiet raise of
   the limit in the same pull request).
-- **Docs:** [Web export: testing the browser build](../godot/web-export.md).
+- **Docs:** [Web export: testing the browser build](../engines/godot/web-export.md).

@@ -15,4 +15,4 @@ areas: [godot-ui, tests]
   control's global rect with each still, so a row outside the canvas is a number, not something to notice by eye. Check
   for next time: for a control added to a screen that scrolls, read its rect in the first frame the player sees (after
   the initial focus), and put anything a host must see next to the button that screen focuses.
-- **Docs:** [UI controls](../godot/ui-controls.md), Deadnight `docs/design/lobby.md`.
+- **Docs:** [UI controls](../engines/godot/ui-controls.md), Deadnight `docs/design/lobby.md`.

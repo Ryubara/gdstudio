@@ -13,4 +13,4 @@ areas: [tests, godot]
 - **Fix:** await two `physics_frame`s after `set_faces` (and run the suite at `physics_ticks_per_second = 480`),
   `Skeleton3D.reset_bone_poses()` before each sample, keep the mesh's winding; a test checks the probe on a closed and
   an opened ball first (Deadnight `test_soldier_watertight.gd`).
-- **Docs:** [Closed, and fitting, in every combination](../blender/variants.md#closed-and-fitting-in-every-combination).
+- **Docs:** [Closed, and fitting, in every combination](../tools/blender/variants.md#closed-and-fitting-in-every-combination).
