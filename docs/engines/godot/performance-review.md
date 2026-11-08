@@ -31,7 +31,7 @@ the probe output.
   one-shot blast effect faded to alpha 0 and was never freed. **Seen:** Deadnight #906, 2026-11-03; Deadnight #907,
   2026-11-03 (fix: the checklist on this page, from Deadnight #929 and #930).
 
-## Checklist (read the diff for each)
+## Checklist (read the diff for each) {#checklist-read-the-diff-for-each}
 
 1. **Per frame and per tick**
    - New `_process` / `_physics_process`, or a signal handler that runs on every `frame` event? Count the listeners; a
@@ -130,11 +130,11 @@ the probe output.
 - **Stop a run by its own process id, never by program name**, on a shared machine.
 - An editor run is a debug build with the debugger; take the budget from headless runs and from an export.
 
-## Standing questions for any review
+## Standing questions for any review {#standing-questions-for-any-review}
 
 What does this cost with 120 dead and 7 bots? What frees it? What did the diff not measure?
 
-## Counting allocations in a pass (a bench, not a guess)
+## Counting allocations in a pass (a bench, not a guess) {#counting-allocations-in-a-pass-a-bench-not-a-guess}
 
 A per-step `Array`, `Dictionary` or `values()` copy is invisible in a time on a loaded machine (the saving is a few
 percent) and plain in bytes. In a build that tracks memory (the pinned editor build, a debug template) count the most a

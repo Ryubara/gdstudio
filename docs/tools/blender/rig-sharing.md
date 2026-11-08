@@ -4,7 +4,7 @@ How to clean a Quaternius character file in the pinned Blender (5.2.3) so its cl
 AnimationLibrary shared by every character. Learned in the spike `sandbox/rig-sharing/` (kit issue #10); the Godot
 side is [Rig sharing (Godot)](../../engines/godot/rig-sharing.md).
 
-## What the files hold
+## What the files hold {#what-the-files-hold}
 
 Measured with `sandbox/rig-sharing/blender/inspect_rig.py` on the Soldier (Toon Shooter kit, `PpLF4rt4ah`) and the
 Zombie (`VlXjG0N8Eg`), both CC0 by Quaternius.
@@ -20,7 +20,7 @@ Zombie (`VlXjG0N8Eg`), both CC0 by Quaternius.
 | Root motion | none: no `Root` location keys; `Body` bobs in place | none |
 | Leaf empties | `*_end` empties at every bone tip | same |
 
-## The recipe
+## The recipe {#the-recipe}
 
 `sandbox/rig-sharing/blender/clean_export.py <in.glb> <out.glb>`, run headless. In order:
 
@@ -60,12 +60,12 @@ After it: Soldier 43 bones, 5828 tris, 14 clips; Zombie 50 bones, 7822 tris, 16 
   channels) and Godot kept 14 finger tracks after import, since its immutable-track removal does not drop them all.
   **Seen:** Deadnight, 2026-11-02 (fix: `strip_channels` in `tools/blender/build_soldier.py`).
 
-## Avoid
+## Avoid {#avoid}
 
 - Exporting the raw file: in Godot its skeleton sits at `RootNode/CharacterArmature/Skeleton3D` with a global scale of
   100, so its track paths and position values match no cleaned character.
 
-## Static pose and authored clips
+## Static pose and authored clips {#static-pose-and-authored-clips}
 
 Found building the Soldier's weapon clips (Deadnight #42).
 
@@ -127,7 +127,7 @@ Found rebuilding the Soldier's sprint carries on the solved hand grips (Deadnigh
   camera the head hid the bottle. **Seen:** Deadnight #459, 2026-11-02; Deadnight #912, 2026-11-03 (fix: the carry's
   muzzle points across and up past the helmet; the drink tips the head 3 to 9 degrees and comes from his right).
 
-## A held prop to the mouth
+## A held prop to the mouth {#a-held-prop-to-the-mouth}
 
 Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown away.
 
@@ -146,7 +146,7 @@ Found building Deadnight's perk drink (#912): a bottle drunk from, then thrown a
   matches the `3` of `Vector3(`, and the arm was solved onto a lip 6 m away. A first build whose misses read in
   metres where they should read millimetres has read its input wrong.
 
-## Clips written in the world's space
+## Clips written in the world's space {#clips-written-in-the-worlds-space}
 
 A clip whose hands and feet must meet a ledge while the game moves the origin (Deadnight's `Climb_Sill`): keep tables
 of places in game metres in the ledge's space (pelvis, hands, feet), and for every frame put the origin where the

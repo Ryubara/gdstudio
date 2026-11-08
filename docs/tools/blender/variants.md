@@ -4,7 +4,7 @@ How to make many characters from one rigged model in the pinned Blender (5.2.3) 
 on all of them. Learned building Deadnight's zombie variants (Deadnight issue #40, `tools/blender/build_zombies.py`
 there) from the Quaternius Zombie (CC0); the clean-up before it is [rig sharing](rig-sharing.md).
 
-## Keep the skeleton identical
+## Keep the skeleton identical {#keep-the-skeleton-identical}
 
 | Change | How | Why it keeps the clips shared |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ there) from the Quaternius Zombie (CC0); the clean-up before it is [rig sharing]
 Applying a scale or moving bones gives each variant its own rest pose, and then position keys need rebasing per body
 ([Godot side](../../engines/godot/rig-sharing.md)).
 
-## Measured (Quaternius Zombie, 7,822 tris)
+## Measured (Quaternius Zombie, 7,822 tris) {#measured-quaternius-zombie-7822-tris}
 
 - Collapse decimation to 51 % (4,000) and 19 % (1,500) keeps every colour of a swatch atlas in place: each face sits
   on one swatch, and no colour block moved or bled (checked on contact sheets of all seven variants).
@@ -26,7 +26,7 @@ Applying a scale or moving bones gives each variant its own rest pose, and then 
   open edge.
 - A bone-skinned accessory joined into the body (a 10-sided cap with a one-segment chamfer) costs 76 tris.
 
-## What broke
+## What broke {#what-broke}
 
 - **A clip with no channel for a bone exports the rest pose there.** The zombie's Idle, Yes and No have no shoulder or
   arm channels. Blender shows the pose the previous action left (so a sheet or measurement made by switching actions
@@ -37,7 +37,7 @@ Applying a scale or moving bones gives each variant its own rest pose, and then 
 - **A UV layer with another name is dropped by a join.** Name the accessory's UV layer like the body's
   (`bm.loops.layers.uv.new(body.data.uv_layers.active.name)`), or the joined faces fall on texel (0, 0).
 
-## A boss on the shared rig
+## A boss on the shared rig {#a-boss-on-the-shared-rig}
 
 Learned building Deadnight's boss zombie (Deadnight issue #98, `tools/blender/build_boss.py` there).
 
@@ -223,7 +223,7 @@ pose, with back faces culled as the game draws them.
   failed. **Seen:** Deadnight #895, 2026-11-03 (fix: `test_soldier_watertight.gd`, `test_soldier_clip_fit.gd`, culled
   review renders and 360-degree turntables).
 
-## Pieces laid on a body
+## Pieces laid on a body {#pieces-laid-on-a-body}
 
 Learned adding Deadnight's ladder wearables (issue #1078): a bib, straps, a lanyard, buttons and braids laid over a kit
 body that other parts also dress. Measure first what they all share; the numbers go on the game's page.

@@ -4,7 +4,7 @@ One AnimationLibrary playing on every Quaternius character, in Godot 4.7.2 with 
 in the spike `sandbox/rig-sharing/godot/` (kit issue #10) from files cleaned as in
 [Rig sharing (Blender)](../../tools/blender/rig-sharing.md).
 
-## The recipe
+## The recipe {#the-recipe}
 
 Plain matching names are enough: every cleaned file imports to `CharacterArmature/Skeleton3D` with the same bone
 names, so a track `CharacterArmature/Skeleton3D:UpperLeg.L` resolves on every character. No BoneMap or
@@ -21,7 +21,7 @@ soldier_player.play("rig/Walk")
 
 The library can be saved with `ResourceSaver.save(lib, "....tres")` and loaded by any character.
 
-## Measured
+## Measured {#measured}
 
 | | Walk (from the zombie) | Run (from the Soldier) |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ The library can be saved with `ResourceSaver.save(lib, "....tres")` and loaded b
 The cleaned Walk is exported sampled, 150 channels (every bone); Godot's importer drops the ones that never change and
 keeps 56, so a clip carries only the bones it moves.
 
-## What breaks
+## What breaks {#what-breaks}
 
 - **Extra bones: nothing.** The zombie's Walk on the Soldier names five bones he does not have; they are skipped with
   no error. The Soldier's clips leave the zombie's tongue and eyelids at rest.
@@ -50,7 +50,7 @@ keeps 56, so a clip carries only the bones it moves.
 - **Bone renamed by the importer** when a mesh shares its name (`Body_2`), so that file's clips miss on every other
   character: fixed in Blender.
 
-## Rebasing position keys (one library, every body)
+## Rebasing position keys (one library, every body) {#rebasing-position-keys-one-library-every-body}
 
 When a clip goes into the library, store the source skeleton's rest position of every bone it moves as clip
 metadata; each character's AnimationPlayer runs `sandbox/rig-sharing/godot/retarget_player.gd`, which overrides
@@ -70,12 +70,12 @@ It runs GDScript for every position key on every character each frame (9 tracks 
 spike before 40 zombies use it. Baking one rebased copy of each clip per body type when the library is built costs
 memory instead of frame time.
 
-## Next
+## Next {#next}
 
 - Cost of the rebasing callback with a crowd (the crowds spike), against baked per-body copies.
 - BoneMap and a SkeletonProfile only when a rig with other bone names joins (Mixamo, other packs).
 
-## Evidence
+## Evidence {#evidence}
 
 Contact sheet (attached to the pull request): four moments of each clip, both characters playing the same clip from
 the same library; rows Walk, Run, Walk_NoPos, Run_NoPos. Reproduce with the commands in
@@ -122,7 +122,7 @@ From the Soldier's aim-move clips (Deadnight #74):
   before the first process does not pose it in time, so captures caught a T-pose for a frame on every rebuild. **Seen:**
   Deadnight, 2026-11-01 (fix: the preview swaps on the next frame).
 
-## Skeleton modifiers
+## Skeleton modifiers {#skeleton-modifiers}
 
 A `SkeletonModifier3D` (for example arm IK that puts both hands on a held weapon) changes the pose only for the
 skeleton's update: read and test its result in a `skeleton_updated` handler, since `get_bone_global_pose` after the

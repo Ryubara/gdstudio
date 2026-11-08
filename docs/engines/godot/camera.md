@@ -3,7 +3,7 @@
 What building Deadnight's shoulder camera taught us (the game's page is `docs/research/shoulder-camera.md` in the
 Deadnight repository, with the numbers). Godot 4.7.2.
 
-## Smoothing that feels the same at any frame rate
+## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 
 - `lerp(a, b, k)` with a constant `k` per frame, and an Euler spring, both feel different at 30, 60 and 144 frames a
   second, and in Movie Maker (a fixed 0.1 s delta at 10 fps, with six physics ticks in each frame). Use the closed-form
@@ -15,7 +15,7 @@ Deadnight repository, with the numbers). Godot 4.7.2.
 - Following a body that moves steadily, a critically damped spring trails it by `2 v / w`, not `v / w`. Pick the
   follow rate by the lag you can accept at a run, not by the settle time.
 
-## Physics ticks and render frames
+## Physics ticks and render frames {#physics-ticks-and-render-frames}
 
 A camera that reads the body in `_process` sees it jump once per physics tick. Record the body after each tick and
 draw `previous.lerp(current, Engine.get_physics_interpolation_fraction())`. Make the camera's step a function of
@@ -120,7 +120,7 @@ From Deadnight #702 (a bot's body had the view):
   capture scripts as `make_current()`, and tests read the person's camera node, never the viewport's. **Seen:**
   Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above).
 
-## A rig no one looks through
+## A rig no one looks through {#a-rig-no-one-looks-through}
 
 From Deadnight #938. Every body of a night owned a rig that eased its springs and swept the world in every drawn
 frame (16 to 43 us a step), whether anyone looked through it or not: the bots', the puppets', a game server's.
@@ -140,7 +140,7 @@ frame (16 to 43 us a step), whether anyone looked through it or not: the bots', 
   night's worth of turns while the body turned), so its weapon's pose read the spawn heading and the lens the
   body-hidden check measured sat behind that. The look from the command is what the pose should read.
 
-## A fly-over that starts on the player's own lens
+## A fly-over that starts on the player's own lens {#a-fly-over-that-starts-on-the-players-own-lens}
 
 From Deadnight #973 (the end of a night: a slow pull-back from each player's camera, then cuts between authored angles
 of the map; the game's page is `docs/research/end-of-night.md`):

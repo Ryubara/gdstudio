@@ -4,7 +4,7 @@ A game that steps at a fixed rate with a seed should play the same night twice. 
 11 from one commit, seed and command, issue #1350), and the cause was neither the clock nor the audio. This page is how
 to find where two runs part, and what was found.
 
-## Find the first difference before choosing a theory
+## Find the first difference before choosing a theory {#find-the-first-difference-before-choosing-a-theory}
 
 1. Make the run write one line a tick of **hashes by part** of the night: the simulated dead, the bodies, the dice's
    states, the paths, the points, the count standing. Hash values (`hash(PackedFloat64Array)`), not text; add the raw
@@ -17,7 +17,7 @@ to find where two runs part, and what was found.
    night: three nights with those counts different were identical for 36 000 ticks.
 4. Record the physics frame the first tick runs on (`Engine.get_physics_frames()`) and the frames each wait takes.
 
-## What was found (Godot 4.7.2, Deadnight)
+## What was found (Godot 4.7.2, Deadnight) {#what-was-found-godot-472-deadnight}
 
 - **The age of the physics space at the first tick can change a body's contacts.** A static ground made of tiles that
   meet (CSG boxes with collision) played a standing or walking body's contacts differently until the lot was about 17

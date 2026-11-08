@@ -10,7 +10,7 @@ Run it as a person (an agent) who walks the map **from the player's camera**, no
 claim by movement or by measurement**: "looks sealed" and "looks dark" are guesses. Each section ends with the proof
 that settles it.
 
-## 0. Before the walk
+## 0. Before the walk {#0-before-the-walk}
 
 - [ ] Write down the metrics the review judges against: capsule, jump height, step height, camera arm and shoulder
   offset, the dead's reach, and the narrowest passage the camera must fit. A map is judged against its own numbers
@@ -91,7 +91,7 @@ circled is a corridor with a countdown.
   as a height) left a 0.29 m slot and pushed a plank through a wall. **Seen:** Deadnight #564, 2026-11-02; Deadnight
   (end wall props), 2026-11-03 (fix: the slot scan `test_lot_gaps.gd`; the generator places props touching or clear).
 
-## 2. Chokepoints, cover and sightlines
+## 2. Chokepoints, cover and sightlines {#2-chokepoints-cover-and-sightlines}
 
 - [ ] **Chokepoints are named, measured and meant.** A door or gap the dead must pass is a place to hold; it needs the
   width to hold in (two abreast with room) and a place to stand that is not in the dead's line.
@@ -153,7 +153,7 @@ circled is a corridor with a countdown.
   missing climb clip. **Seen:** Deadnight #915, 2026-11-03 (fix: a climb link and clip, with a change of look kept from
   changing the pace).
 
-## 4. Pacing and door unlocks
+## 4. Pacing and door unlocks {#4-pacing-and-door-unlocks}
 
 Intensity is "suspense, the player's stake" over time, not difficulty
 ([pacing](https://book.leveldesignbook.com/process/preproduction/pacing.md)): start quiet, alternate highs and lows,
@@ -213,7 +213,7 @@ avoid a finale at full intensity.
   window, then behind a breaker post that hid its plaque; only the first was caught by a test. **Seen:** Deadnight
   #577, 2026-11-02 (fix: the rack moved clear of every cut-out; the spot test lists the new kind).
 
-## 6. Lighting
+## 6. Lighting {#6-lighting}
 
 - [ ] **Light the route, not the room.** Players go toward light; light the way on (entrances, exits, shops) and let
   the rest fall off ([Game Developer](https://www.gamedeveloper.com/design/level-design-tricks-of-the-trade),
@@ -315,7 +315,7 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   first; one marker was inside a parked car, and a seat reopened after a leave took a marker still in use. **Seen:**
   Deadnight, 2026-11-05 (fix: 15 markers a map; a test of every map in the registry, before and after bodies settle).
 
-## 7a. Objectives on the map
+## 7a. Objectives on the map {#7a-objectives-on-the-map}
 
 For a map with steps to finish (a chain, a carry, a last stand): the principle is
 [P20](../../gamedev/level-design.md#p20-an-objective-is-measured-not-read).
@@ -331,7 +331,7 @@ For a map with steps to finish (a chain, a carry, a last stand): the principle i
 - [ ] Every place a step stands on passes the use-sight and spacing sweeps, and is captured from the player's camera,
       dimmest state.
 
-## 8. Consistency across maps
+## 8. Consistency across maps {#8-consistency-across-maps}
 
 - [ ] The same kit, scale, door widths, prompt wording, light colours and shop prices mean the same thing on every map,
   or the difference is written down and on purpose.
@@ -339,7 +339,7 @@ For a map with steps to finish (a chain, a carry, a last stand): the principle i
 - [ ] Anything the second map copies from the first (a script, a light rig) is checked in the place it landed, not only
   where it was written.
 
-## 9. The review page
+## 9. The review page {#9-the-review-page}
 
 For each map: a top-down plan with notes; for each area a verdict (keep, rework, remove), the evidence (a player-camera
 capture, the measured number or the proven movement) and the finding's issue. Rank findings by how much they hurt
@@ -347,7 +347,7 @@ play: **out of bounds or a skipped door first** (it ends the design), then dead 
 prompts, then pacing and layout, then lighting and dressing. Small, certain faults (a missing collider, one mis-lit
 corner) are fixed in the review with a test; layout, pacing and balance are issues for the maintainer.
 
-## Sources
+## Sources {#sources}
 
 Read for design only; nothing here is copied from a game. The full list, by principle, is in
 [Level design: sources](../../gamedev/level-design.md#sources).

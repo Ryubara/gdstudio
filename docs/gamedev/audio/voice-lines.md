@@ -19,7 +19,7 @@ The source of truth is Deadnight's files; this page explains them and does not c
 | [`tools/audio/voice_report.py`][report], [`voice_sheet.py`][sheet] | the voice's loudness in a night capture; the script as a contact sheet |
 | [`docs/design/audio.md`][design], [`docs/research/audio.md`][research] | the design of the soldiers' voices; settings, characters and measurements |
 
-## 1. Casting
+## 1. Casting {#1-casting}
 
 **Start from the brief, then list what the account offers now.** The maintainer's brief for Deadnight asked for a
 tough male soldier: a deep, calm, steady voice with some expression that changes with the line. Before any
@@ -104,7 +104,7 @@ paraphrased (the kit's "original work" rule in `AGENTS.md`).
   Deadnight #384, 2026-11-01 (fix: the caption test fails a line with no performance mark and fewer than four words
   (Deadnight #442)).
 
-### Deadnight's lines, as the reference
+### Deadnight's lines, as the reference {#deadnights-lines-as-the-reference}
 
 A representative set per moment; every line is in [`soldier_voice.json`][json].
 
@@ -133,7 +133,7 @@ Notice the patterns: the frequent barks are short and repeat a word ("I'm reload
 turns halfway ("Quiet. Too quiet. I don't trust it, but I'll take it."), and humour and fear sit side by side, which is
 what makes one man out of 115 files.
 
-## 3. The pipeline
+## 3. The pipeline {#3-the-pipeline}
 
 One recipe, [`elevenlabs_voice.py`][recipe], reads everything from the data file and never from its own code: lines,
 voice, model, settings, output format, target loudness. The key comes from `ELEVENLABS_API_KEY` in the environment and
@@ -148,7 +148,7 @@ ELEVENLABS_API_KEY=... uv run --with requests python tools/audio/elevenlabs_voic
 plan ──> generate ──> encode ──> check ──> (flagged?) retake only those ──> encode
 ```
 
-### Plan
+### Plan {#plan}
 
 `plan` prints every take (file, moment, characters, text) and the characters still to request, sends nothing, and
 refuses when that is over `--budget`. Take names are `<moment>_<n>` in the order of the data file, so a file name is
@@ -169,7 +169,7 @@ stable as long as lines are appended, not inserted. `--only reload,kill` limits 
   ElevenLabs `eleven_v3`, chosen from memory, while the account offered `eleven_v4`, listed as the most emotive.
   **Seen:** Deadnight #384, 2026-11-01 (fix: the maintainer asked whether it was the best model available).
 
-### Encode
+### Encode {#encode}
 
 From the cached mp3 to the committed Ogg, with the pinned ffmpeg (`gds tool path`):
 
@@ -183,7 +183,7 @@ From the cached mp3 to the committed Ogg, with the pinned ffmpeg (`gds tool path
 5. Write `manifest.json`: per file the moment, text, characters, model, voice, voice id, settings, output format, seed,
    source (`text-to-speech` or `maintainer-approved sample`), seconds and loudness before levelling.
 
-### Check
+### Check {#check}
 
 A tag the model reads aloud ("laughs" spoken as a word) is easy to miss across a hundred takes. `check` transcribes
 each take with ElevenLabs Scribe (`POST /v1/speech-to-text`, `scribe_v1`), which writes the sounds it hears in
@@ -195,7 +195,7 @@ line's words (at least three) are missing. Transcripts are cached (`<take>.stt.j
 Deadnight: 0 of 115 flagged. Some tags are heard as a different sound than written (`[sharp inhale]` as `[inhales]`,
 `[through gritted teeth]` as nothing), which is fine for a bark; what matters is that no tag is spoken.
 
-### Retake only what was flagged
+### Retake only what was flagged {#retake-only-what-was-flagged}
 
 Delete the flagged take's mp3, its request and its transcript (`<take>.mp3`, `<take>.json`, `<take>.stt.json`) from
 the cache and run `generate` again: nothing else is requested. Leave the transcript and `check` reads the old one. The
@@ -203,7 +203,7 @@ same text, settings and seed may well give the same take back, so change somethi
 in the data file, or give the take a new seed and record it. (Deadnight never needed a retake, so this path is
 untested.) Then `encode` and `check` again.
 
-### Adding moments to voices that exist
+### Adding moments to voices that exist {#adding-moments-to-voices-that-exist}
 
 New moments for a finished cast (Deadnight's eight progression cheers, [#1063](https://github.com/Ryubara/deadnight/issues/1063),
 24 takes a voice) go to the **end** of each voice's data file, so that every earlier take keeps its file name and its
@@ -217,7 +217,7 @@ requests, not from the account page: the tier is what made the file. A game that
 adds a row per moment, the take count with the files, and the tests that count takes (a total of 278 sounds for two
 voices of 139) move with it.
 
-### Credits and budget
+### Credits and budget {#credits-and-budget}
 
 | Deadnight, 113 requested takes (two were approved samples) | Characters |
 | --- | ---: |
@@ -241,7 +241,7 @@ voices of 139) move with it.
 - The free tier allows no commercial use and needs attribution: the game records it in the folder's `LICENSE.md` and
   on its Credits screen, and relicensing before a commercial release is the maintainer's call.
 
-### Proof
+### Proof {#proof}
 
 - [`voice_sheet.py`][sheet] draws the script (moment, line, characters, seconds) as a contact sheet for the pull request,
   so the lines can be read without opening the data.
@@ -287,7 +287,7 @@ numbers were set from the stems capture above. Pooling, groups and the slot budg
   lines in ten seconds. **Seen:** Deadnight #229, 2026-11-02 (fix: a window of lines, 0.8 lines in ten seconds at
   most by construction).
 
-## 5. The zombies are different
+## 5. The zombies are different {#5-the-zombies-are-different}
 
 The dead have no words, so they do not use text to speech: their voices are mostly synthesised (one throat model,
 [Godot: Audio](../../engines/godot/audio.md#making-sounds-with-code)) and ElevenLabs **Sound Effects** adds extra variants
@@ -310,7 +310,7 @@ snarl as he spots prey, guttural, close-mic, dry, no reverb" (`prompt_influence`
 itself (distance attenuation and low-pass, a rear cue), so a take should arrive dry and close; "no music" keeps a
 score out of it.
 
-## 6. Checklist for the next game
+## 6. Checklist for the next game {#6-checklist-for-the-next-game}
 
 1. Write the brief for each voice (who, how they sound at rest, what moments they react to) and get it from the
    maintainer.

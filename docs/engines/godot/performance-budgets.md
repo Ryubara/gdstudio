@@ -31,7 +31,7 @@ From the first playable night a game has three things, and a change that breaks 
   hosted bot capped a desktop night at 40 dead against 120 designed, and wall times on the shared machine ran 1 to 14
   times the code's cost. **Seen:** Deadnight #906, 2026-11-03 (fix: this page).
 
-## What to sample
+## What to sample {#what-to-sample}
 
 One row a second, from the running night, in a node that costs nothing when it is off:
 
@@ -45,7 +45,7 @@ One row a second, from the running night, in a node that costs nothing when it i
   client's apply, the bots, the views), added to the frame's total and written beside it. A label that nests in
   another is read as part of it, not added to it. Add a label before guessing which system is slow.
 
-## A timed function must not hold what it is handed
+## A timed function must not hold what it is handed {#a-timed-function-must-not-hold-what-it-is-handed}
 
 A reference to an event kept between calls (the last frame, a snapshot) makes the *next* call release the old one, and
 that release (a tree of dictionaries, arrays, vectors) is charged to the label that happens to be running. Deadnight
@@ -86,7 +86,7 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
   (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
 
-## A leak is read as a count at the same crowd, round after round
+## A leak is read as a count at the same crowd, round after round {#leak-count}
 
 Run the night for as long as a player would (30 minutes), sample every second, and compare rounds, not times:
 
@@ -138,7 +138,7 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   `leak_budget.json` has `fixed_fps: 60` and the limit is back at 1.5; `tools/perf/test_check_budget.py` runs a flat
   night and 1.2 and 0.5 times each limit on a fast and a slow runner).
 
-## In the editor
+## In the editor {#in-the-editor}
 
 The pinned Godot is a debug build, so a game run from the editor costs about what a run with `godot --path` costs (a
 release export was not measured: do that before promising a frame rate). The editor adds the debugger link and, with its

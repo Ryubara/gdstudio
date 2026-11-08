@@ -3,7 +3,7 @@
 How to test code that asks the navigation server for paths, from Deadnight's bot movement (Deadnight #226). The game's
 own notes on its mesh are in `docs/research/zombies.md` and `docs/research/bots.md`.
 
-## A small mesh of your own
+## A small mesh of your own {#a-small-mesh-of-your-own}
 
 A unit test of path code needs a mesh it controls, not the lot's. Build a navigation map of its own from squares of
 ground: `NavigationServer3D.map_create()`, `map_set_active(true)`, a `region_create()` joined to the map with
@@ -20,7 +20,7 @@ edge; clockwise seen from above). Free the region and the map when the test ends
 - **A lambda copies a packed array.** Building the vertex list inside a lambda (`var corner := func(...)` appending to a
   `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty. Use a method and member variables.
 
-## Asserting that nothing was printed
+## Asserting that nothing was printed {#asserting-that-nothing-was-printed}
 
 A navigation query before the map has synchronised prints an `ERROR` and the test goes on and passes: GdUnit4 does not
 count it. Install a `Logger` for the length of the test and assert it saw nothing:
@@ -42,7 +42,7 @@ func _log_error(function: String, _file: String, _line: int, code: String, ratio
 Stop it in `after_test` as well, so a failing test does not leave it installed. The same class is what GdUnit4's own
 `GdUnitScriptErrorCollector` uses.
 
-## What the baked mesh closes
+## What the baked mesh closes {#what-the-baked-mesh-closes}
 
 The lot's mesh is baked for an agent of radius 0.5 m; the player's capsule is 0.35 m. A 1.8 m gap between parked cars
 is 0.8 m of mesh after the erosion, which the bake's cell rounding closes for most of them: of about 60 pairs of
@@ -73,14 +73,14 @@ sizes the night's break for the whole suite.
   closed with CSG boards was shut in the mesh and the dead outside found no path in, whatever the game later did with
   the boards. **Seen:** Deadnight, 2026-11-01 (fix: the boards became static bodies the baker never reads).
 
-## A goal in a wall
+## A goal in a wall {#a-goal-in-a-wall}
 
 A point inside a wall, a closed door's slab or a counter is no goal for a path: it snaps to whichever side of the wall's
 cut-back edge is nearer in 3D, and that can be the shut room behind it (a different island), so the path ends far short.
 Use a point on the open ground in front of it (Deadnight's `NightWorld.door_stands`, 1.5 m out) and make the test ask
 the map where the path ends, within the bots' 2.5 m.
 
-## Never wait a fixed number of frames for a mesh
+## Never wait a fixed number of frames for a mesh {#never-wait-a-fixed-number-of-frames-for-a-mesh}
 
 A door's saved mesh is swapped into the region at once, but the map takes it in over 8 to 12 physics frames (async
 map iterations: the count moves with machine load). A test that waited 12 frames failed one run in three
@@ -88,7 +88,7 @@ map iterations: the count moves with machine load). A test that waited 12 frames
 area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a large cap that fails with a message,
 and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion.
 
-## A thread-synced map drops meshes swapped in one go
+## A thread-synced map drops meshes swapped in one go {#a-thread-synced-map-drops-meshes-swapped-in-one-go}
 
 With `navigation/world/map_use_async_iterations` on (the default), a loop that swaps several meshes into a region in one
 frame (a test selling every door) can leave the map on an older mesh for good: the iteration id ends lower on those runs
@@ -98,14 +98,14 @@ still (Deadnight #733, #736). Turn it off for a server's map with
 machine. A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
 
-## A night stepped by hand has a stale map
+## A night stepped by hand has a stale map {#a-night-stepped-by-hand-has-a-stale-map}
 
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server
 take a new mesh in: a door bought in it leaves the map as it was, so the dead (and the bots) path on the old walls.
 Give the engine a physics frame every few ticks (the soak does one every 30) and wait for the map's answer after a
 purchase, as `SeatedNight.settle` does.
 
-## Measuring a map on its mesh
+## Measuring a map on its mesh {#measuring-a-map-on-its-mesh}
 
 How Deadnight's second map is held to its design targets (Deadnight #631, `tests/world/smallmap/` there):
 
@@ -124,7 +124,7 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
   own: bodies that collide stand on each other in a stair.
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
 
-## A walk to a goal the layer never reaches
+## A walk to a goal the layer never reaches {#a-walk-to-a-goal-the-layer-never-reaches}
 
 A stand-in that walks (`HumanWalker`) steers to the first path point more than a metre away, and to the goal itself
 when the path ends short. A goal the person's layer does not reach (outside a boarded wall, in a piece only the dead
@@ -134,7 +134,7 @@ goal and no board lies across it, and probe the night's map, not a map made from
 mesh into a walking region and the dead's gaps, so the two answer differently round a window. A prop only
 the dead can reach is checked on the dead's path (`NavLayers.DEAD`): the least distance of the path from the prop's box.
 
-## The nearest point on the mesh ignores the layers
+## The nearest point on the mesh ignores the layers {#the-nearest-point-on-the-mesh-ignores-the-layers}
 
 `NavigationServer3D.map_get_closest_point` and `map_get_closest_point_owner` look at every region of the map, the
 dead's gaps and scraps included. A bot (or a test) that calls the answer "ground" puts a person on a piece only the

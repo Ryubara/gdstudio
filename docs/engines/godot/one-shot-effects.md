@@ -4,7 +4,7 @@ A client-side effect (a blast, gibs, a scorch mark, a flash) is made while the g
 night. What it does when it ends decides whether a night is flat or grows for as long as it lasts. Found in Deadnight's
 performance review (#907, #929); the lessons are linked below.
 
-## The rule
+## The rule {#the-rule}
 
 - **A one-shot frees itself.** Whoever makes it does not have to remember: the effect counts its parts (a tween each, or
   a timer) and calls `queue_free` on the last. A part that has faded to alpha 0 or energy 0 is not "gone": it is still
@@ -19,7 +19,7 @@ performance review (#907, #929); the lessons are linked below.
   fast (`Engine.time_scale`) for the long wait, but check the early moments (a light gone, a scorch still there) at real
   speed: one slow frame at a fast clock skips past everything.
 
-## `_process` is on after ready
+## `_process` is on after ready {#process-is-on-after-ready}
 
 A script that defines `_process` has it turned on when the node is ready, *after* `_init` ran. `set_process(false)` in
 `_init` does nothing; put it in `_ready` (or call it from the code that decides the node has nothing to move). The same

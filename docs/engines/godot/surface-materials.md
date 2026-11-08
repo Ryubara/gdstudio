@@ -5,7 +5,7 @@ WebGL2, learned on Deadnight's drive-in lot (its issue #217; the shader and the 
 `game/assets/lot/` and `tools/world/build_lot_textures.py`). The game's own numbers (tints, tile sizes) are in its
 style bible; this page is how Godot behaves.
 
-## What works
+## What works {#what-works}
 
 | Need | Do | Why |
 | --- | --- | --- |
@@ -15,14 +15,14 @@ style bible; this page is how Godot behaves.
 | Paint on the ground (parking lines, road dashes) | one `MultiMeshInstance3D` of a thin `BoxMesh` per set, written as `transform_format = 1` and a `buffer` of 12 floats per instance (basis rows, each followed by its origin) | One draw call for a hundred lines, no collision, nothing for a navigation bake. `Decal` is documented as Forward+ and Mobile only |
 | Texture cost | 256 x 256 greyscale PNG, lossless, mipmapped | the lot's 8 textures are about 12 KB of PNG together |
 
-## What did not
+## What did not {#what-did-not}
 
 - **`StandardMaterial3D` world triplanar** (`uv1_triplanar`, `uv1_world_triplanar`) gives the same picture with no
   code, but reads the texture three times a pixel and blends. In the web build under Chromium's software renderer
   (SwiftShader, fill-rate bound) a night frame went from 79 to 90 ms on average (two runs each, main against the
   branch). See [Measured](#measured) for the shader.
 
-## Re-skinning a model that is already painted
+## Re-skinning a model that is already painted {#re-skinning-a-model-that-is-already-painted}
 
 Learned on Deadnight's re-cut weapon skin (its issue #787): a look that has to sit on every model, present and future,
 with no texture work, and must not cost a draw call.

@@ -3,7 +3,7 @@
 How to keep a GdUnit4 suite from running at the speed of the clock, from Deadnight's CI job that took 20 minutes
 (Deadnight #524). The numbers and the suite-by-suite list are in the game's `docs/research/ci-time.md`.
 
-## Measure first
+## Measure first {#measure-first}
 
 The job log has a timestamp per line. A suite's time is the gap between its `Run Test Suite:` line and the next one
 (its `before()` and `after()` included). Sort the gaps; the top twenty are the work. Run the whole suite locally the
@@ -58,7 +58,7 @@ same way only when nothing else is loading the machine: a loaded machine doubles
   for:** four tests read `reload_started` on the tick of the press and found an empty list. **Seen:** Deadnight #687,
   2026-11-03 (fix: a press, then three ticks, as `test_night_commands.gd` already did).
 
-## Split the suite by seconds, not by folder
+## Split the suite by seconds, not by folder {#split-the-suite-by-seconds-not-by-folder}
 
 When a suite is too long for one CI job, split it over parallel jobs by the measured seconds of each test script, not
 by folder: keep a file of seconds per script (the `Statistics:` line of each suite in the job log carries it), deal the
@@ -69,7 +69,7 @@ a check that warns past 60 % and fails past 80 % of the job's time limit, so dri
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
 [CI and deploys](../../studio/ci.md#shards)).
 
-## Night suites: where the seconds go, and what may be cut
+## Night suites: where the seconds go, and what may be cut {#night-suites-where-the-seconds-go-and-what-may-be-cut}
 
 From Deadnight's ten slowest suites (#1017). All are hand-ticked already, so the time is compute; the numbers are from
 one machine with 16 threads, and a shared machine moves a suite by 1.5x to 2x between two runs, so a before and after is
@@ -109,7 +109,7 @@ run interleaved, twice, and a change of waiting is counted in frames beside the 
   skill (a Rookie with the Veteran's reaction) and see the band fail on the fewer seeds; for a soak, take the safety
   constants out of the code and see the shorter night fail.
 
-## Seat bots as the host does
+## Seat bots as the host does {#seat-bots-as-the-host-does}
 
 A test that makes a `BotClient` by hand copies `BotHost.seat`: the shared `bot_ids` table and team, not only what compiles.
 Without the table each bot takes its neighbour for a person and a team order (Hold, a ring about a spot) collapses; a

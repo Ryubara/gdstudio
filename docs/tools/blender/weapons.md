@@ -150,7 +150,7 @@ Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/t
   test and floated 0.1 mm past the menu's limit, in a folder not run. **Seen:** Deadnight #621, 2026-11-02; Deadnight
   #793, 2026-11-03 (fix: one builder, the contact test in each view, both grip suites run for a new model).
 
-### A weapon in each hand
+### A weapon in each hand {#a-weapon-in-each-hand}
 
 Test the rig for symmetry before solving a second hand. The kit Soldier is an **exact mirror**: each left bone's rest
 rotation is its right one's with `y` and `z` negated (a probe printing both rests per bone: every pair matched to 1e-5,
@@ -160,7 +160,7 @@ the right one's place with `x` turned about (a node whose basis turns the other 
 `Muzzle` empty keeps its barrel direction). No left grip needs solving: Deadnight's dual pistols reuse the right hand's
 grip file mirrored, and the hand contact test measured the left hand within the same 2 mm and 5 mm as the right.
 
-## Moving parts and a reload's ammunition
+## Moving parts and a reload's ammunition {#moving-parts-and-a-reloads-ammunition}
 
 A reload reads when something on the gun moves (a drum comes off, the barrels break open, a cylinder swings out, a
 lever is thrown) and the left hand brings something back from the belt. Both are the modeller's, like the `Muzzle`:
@@ -183,7 +183,7 @@ lever is thrown) and the left hand brings something back from the belt. Both are
 
 Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs/design/animation.md` "Reloading".
 
-## Building by script
+## Building by script {#building-by-script}
 
 | Lesson | Detail |
 | --- | --- |
@@ -201,7 +201,7 @@ Deadnight's tools: `build_weapons.py` (`NODES`, `AMMO`); the motion is its `docs
 | Trim is a band, not a cap | A rim drawn as a slightly larger capped cylinder covers the face it trims; draw it as a band round the edge, then read the cells by area |
 | A copied guard needs its frame | A trigger guard copied from another gun keeps its opening only if the frame above the trigger sits at the donor's height: 5-7 mm lower took Deadnight's MP5 and M4A1 from 0.95 to 0.83-0.86 of the finger; measure the fit after the first build |
 
-## Palette cells in Godot
+## Palette cells in Godot {#palette-cells-in-godot}
 
 Every face's UVs sit on the centre of one swatch of a G x G palette, so a shader or an emission texture can tell the
 parts apart by colour cell with no extra texture. In Godot (the glTF flips V) **a face's cell is
@@ -213,7 +213,7 @@ A swatch that must glow (an energy cell, a lamp) gets its own cell and is lit by
 layout, black but for that cell, on a copy of the material: no second material, no extra draw call. Append new
 swatches at the end of the palette's list, so no older swatch moves and no model has to be rebuilt.
 
-## What reads on a phone
+## What reads on a phone {#what-reads-on-a-phone}
 
 From a shoulder camera in the aim pose every gun is a fist and a barrel tip: a weapon is recognised from the side,
 at the hip, reloading and in other players' hands. A weapon is drawn at about `screen height / (2 d tan(fov / 2))`
@@ -236,7 +236,7 @@ and look:
 Deadnight's `tools/blender/render_weapon_plan.py --silhouette --px-per-m 42` draws it; the measured set is its
 `docs/research/weapon-models.md`.
 
-## Many weapons in parallel
+## Many weapons in parallel {#many-weapons-in-parallel}
 
 When several agents build weapons at once, give each weapon its own module (Deadnight's
 `tools/blender/weapon_specs/<id>.py`: its builders and one `SPEC` dict with the node pivots, sockets and ammunition,
@@ -256,7 +256,7 @@ request. A plan render that reads the sizes from the hold files takes the new mo
 the same names (Deadnight #816 and #818): before writing a tool a batch needs, look in the open pull requests of the
 other batches for one.
 
-## Budgets
+## Budgets {#budgets}
 
 Kit guns are 1.0-1.45k tris and melee 660-760. For a third-person web game, one held and world model at 1.5k and a far
 level at 500 is enough. Deadnight's first ten came out at 432-1,172 tris and 108-374 for the far level (24-50 %

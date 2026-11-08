@@ -5,7 +5,7 @@ task, `tests/rules/shipped_cells.gd`). The workers are safe while they only read
 of anything shared, started from several workers at once**: the engine does not make that first use thread safe for
 you, and the result is not an error you can read but a silent death or a signal 11.
 
-## What was first-used from the workers
+## What was first-used from the workers {#what-was-first-used-from-the-workers}
 
 Found in Deadnight #1149, where `ShippedCells` crashed the engine in CI (`handle_crash: Program crashed with signal 11`,
 exit 134, no test failed) and on a Windows machine (the process vanishes, exit 127, no summary).
@@ -19,7 +19,7 @@ exit 134, no test failed) and on a Windows machine (the process vanishes, exit 1
 
 The real suite showed it too: `test_xp_pace.gd` alone died in 4 of 7 runs before, and in none of 8 after.
 
-## What to do
+## What to do {#what-to-do}
 
 - **Play one night of every kind on the calling thread first**, then start the workers. This reaches the lazy statics,
   the resource loads and the scripts that a hand-listed warm-up would miss; the cost was 0.7 s for 9 cells
@@ -35,7 +35,7 @@ The real suite showed it too: `test_xp_pace.gd` alone died in 4 of 7 runs before
   by repeating the suite in one: the first use happens once a process. Count completed runs against exits, and give the
   rate before and after.
 
-## The other group tasks (Deadnight #1156)
+## The other group tasks (Deadnight #1156) {#the-other-group-tasks-deadnight-1156}
 
 The balance gate (`test_balance_targets.gd`: the six gate cells and the two-arm climb read) and the touch assist suite
 (`test_balance_touch_assist.gd`) started their own group tasks after `SimWeapons.warm()` alone. Measured in 100 cold

@@ -3,7 +3,7 @@
 A GDStudio workspace is a plain folder holding every repository and everything that must stay out of them. It is
 never a repository itself, so the kit's bootstrap rebuilds it on any machine.
 
-## The layout
+## The layout {#the-layout}
 
 | Folder | What lives there |
 | --- | --- |

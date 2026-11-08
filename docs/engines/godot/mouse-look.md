@@ -4,7 +4,7 @@ How a first or third person view is kept one to one with the hand when frames dr
 and the engine docs say, and the one fault that broke it in Deadnight (#905) although every look rule was followed.
 Godot 4.7.2. The game's page, with the numbers and the plots, is `docs/research/mouse-look-under-lag.md` there.
 
-## What good shooters do
+## What good shooters do {#what-good-shooters-do}
 
 - **The mouse delta is a distance, not a speed.** Turn the view by `delta_pixels * sensitivity`, once per event, and
   never by `delta_pixels * sensitivity * frame_time`: a hand that moved 1000 pixels turned 1000 pixels at 30 or 144
