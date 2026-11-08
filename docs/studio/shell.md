@@ -36,7 +36,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
-  and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above).
+  and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
+  gdstudio #830, 2026-11-08.
 
 ## Scripted edits {#scripted-edits}
 
