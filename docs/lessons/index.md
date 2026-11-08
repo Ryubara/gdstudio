@@ -5,8 +5,9 @@ Problems we hit and how we solved them. Before solving something, search these p
 ## Adding a lesson
 
 One problem per file: `docs/lessons/<yyyy-mm-dd>-<slug>.md`, where the slug is a few words of the problem in
-lowercase with hyphens. The navigation lists every file in this folder by itself, so adding a lesson never touches a
-shared file and never conflicts with another pull request.
+lowercase with hyphens. Every file here builds as a page that search finds and links reach, without any list to
+edit, so adding a lesson never touches a shared file and never conflicts with another pull request. The site's sidebar
+leaves this folder out until gdstudio #770 moves it ([Docs site](../studio/docs-site.md#nav)).
 
 The `areas:` line is required: pick from [areas.toml](areas.toml) (the names and what each covers). The mistakes
 glossary is built from it by `gds lessons <area>`; it is not a file in the repository, so there is nothing to render or

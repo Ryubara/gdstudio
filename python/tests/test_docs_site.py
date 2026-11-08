@@ -6,6 +6,8 @@ import importlib.util
 import re
 from pathlib import Path
 
+import yaml
+
 KIT = Path(__file__).resolve().parents[2]
 DOCS = KIT / "docs"
 TOPICS = ["gamedev", "engines", "tools", "studio", "games", "lessons"]
@@ -35,11 +37,44 @@ def test_zensical_is_pinned_by_exact_version_with_a_hash_for_every_package():
     assert f"zensical=={names['zensical']}" == direct[0]
 
 
+# Plugins Zensical 0.1.0 implements itself, reading their files without running any plugin code.
+NATIVE_PLUGINS = {"awesome-nav"}
+
+
+def site_config() -> dict:
+    return yaml.safe_load((KIT / "mkdocs.yml").read_text(encoding="utf-8"))
+
+
 def test_the_config_has_no_hooks_or_plugins_that_zensical_would_skip():
-    """Zensical reads mkdocs.yml but runs no MkDocs hooks or plugins: a check put there would never run."""
-    keys = re.findall(r"^([a-z_]+):", (KIT / "mkdocs.yml").read_text(encoding="utf-8"), re.MULTILINE)
-    assert "hooks" not in keys and "plugins" not in keys
-    assert "strict" in keys
+    """Zensical reads mkdocs.yml but runs no MkDocs hooks and no plugin code: a check put there would never run.
+    Only the plugins it implements natively may be named."""
+    config = site_config()
+    assert "hooks" not in config and config["strict"] is True
+    assert set(config.get("plugins", [])) <= NATIVE_PLUGINS
+
+
+def test_the_sidebar_folds_by_tab_and_leaves_the_lessons_out():
+    """Topics are header tabs and a tab's sections fold open and shut (docs/studio/docs-site.md#nav):
+    navigation.sections would open every group at once, the way #768 listed 970 lessons in one column."""
+    config = site_config()
+    features = config["theme"]["features"]
+    assert {"navigation.tabs", "navigation.indexes", "navigation.prune"} <= set(features)
+    assert "navigation.sections" not in features and "navigation.expand" not in features
+    assert config["not_in_nav"].split() == ["/lessons/"]
+
+
+def nav_entries(folder: Path) -> list[str]:
+    nav = yaml.safe_load((folder / ".nav.yml").read_text(encoding="utf-8"))["nav"]
+    return [next(iter(e.values())) if isinstance(e, dict) else e for e in nav]
+
+
+def test_the_nav_order_lists_every_topic_and_every_engine_and_tool():
+    """A folder a .nav.yml leaves out drops out of the sidebar without a warning; a listed one that is gone fails
+    the build. The top lists every topic but lessons; engines/ and tools/ list each of their folders."""
+    assert nav_entries(DOCS) == ["index.md", *[t for t in TOPICS if t != "lessons"]]
+    for parent in ("engines", "tools"):
+        folders = sorted(p.name for p in (DOCS / parent).iterdir() if p.is_dir())
+        assert sorted(nav_entries(DOCS / parent)) == folders, f"docs/{parent}/.nav.yml must list every folder"
 
 
 def test_the_docs_are_laid_out_by_topic_with_an_index_in_every_folder():

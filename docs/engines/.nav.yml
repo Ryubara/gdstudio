@@ -1,0 +1,4 @@
+# One engine today, so the Engines section flattens into a Godot tab. A new engine folder is added here (a test
+# fails one left out), which turns this back into an Engines tab with a section per engine.
+nav:
+  - godot
