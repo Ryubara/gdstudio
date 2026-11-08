@@ -71,7 +71,7 @@ So `cd` into the folder that holds the images first and attach `./<file>` (any f
 `./sheet.png`, `sheet.png`, the absolute path), or write the reference with the same absolute path as `--attach`. Then
 read the body back and check the image lines sit under the bullets
 ([lesson](../lessons/2026-11-01-gh-attach-puts-images-outside-screenshots.md),
-[lesson](../lessons/2026-11-03-attach-matched-the-file-name-and-gh-matches-the-file.md)).
+[Writing checks](writing-checks.md#same-input)).
 
 The hooks enforce it ([Hooks](hooks.md)): `gh pr create|edit --attach` is refused before it runs unless the body file
 named with `--body-file` (or a literal `--body`) already refers to every attached file inside `## Screenshots`, with an
@@ -138,8 +138,7 @@ A `Before:` capture needs the code from before the change, and the task's worktr
 edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
 --detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
-phone's 844 by 390 and the web export), then `git worktree remove` it
-([lesson](../lessons/2026-11-03-a-before-capture-needs-main-checked-out-beside-the-change.md)).
+phone's 844 by 390 and the web export), then `git worktree remove` it.
 
 - **Approach:** Capture a feature's payoff (a machine's reveal, a prompt) from the player's camera at the spot the
   player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated
@@ -147,6 +146,13 @@ phone's 844 by 390 and the web export), then `git worktree remove` it
   marker sat at the top of the frame behind the player's own body; it had been filmed from a spot no player stands on.
   **Seen:** Deadnight #830, 2026-11-03 (fix: every pool weapon's reveal is captured from the use marker
   ([lesson](../lessons/2026-11-03-a-prize-reveal-was-filmed-from-a-spot-no-player-stands-on.md))).
+
+- **Approach:** Take every `Before:` capture from `main` checked out beside the change, for every size the pull request
+  shows at once (desktop, phone, web), and never put old files back under a running test. **Watch out for:** the first
+  "before" frames covered the desktop window only, and once the code had changed the phone and web ones could not be
+  taken, while `git stash` is refused by the hooks; old weapon files checked out for a capture were read by a suite that
+  started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
+  the same capture scripts with `--label=before`).
 
 ## Tests
 

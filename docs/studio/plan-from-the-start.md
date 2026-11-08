@@ -167,9 +167,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Audio
 
 - Plan: loudness, first-50 ms energy and pitch spread measured from a recording of the real service
-  ([lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)).
+  ([close and powerful sounds](../engines/godot/audio.md#close-and-powerful-sounds)).
 - Plan: voice lines written as a person speaking, with many takes per event
-  ([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)).
+  ([writing the lines](../gamedev/audio/voice-lines.md#2-writing-the-lines)).
 - Plan: no sound design in bus effects, which the web build ignores
   ([audio](../engines/godot/audio.md#web-samples-or-streams)).
 
@@ -178,20 +178,20 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
   ([first-use hitches](../engines/godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
-  ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+  ([starting sounds](../engines/godot/audio.md#starting-sounds)).
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
-  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a maintainer
-  found the lag first ([performance budgets](../engines/godot/performance-budgets.md),
-  [lesson](../lessons/2026-11-03-nobody-knew-the-games-limits-until-a-maintainer-lagged.md),
+  game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a
+  maintainer
+  found the lag first ([performance budgets](../engines/godot/performance-budgets.md#the-rule),
   [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 
 ## Test infrastructure
 
 - Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
   `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
-  ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
+  ([sound](../engines/godot/no-focus.md#sound)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
   ([browser probes](../engines/godot/web-probes.md#running)).
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
@@ -211,43 +211,43 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Process
 
 - Plan: land old PRs before new ones, reporting from the oldest down
-  ([lesson](../lessons/2026-11-02-new-prs-opened-while-old-ones-stalled.md)).
+  ([Starting work](starting-work.md#landing)).
 - Plan: rerun known flakes at once and push only what a merge needs
-  ([lesson](../lessons/2026-11-02-every-push-restarted-ci-for-the-whole-queue.md)).
+  ([Starting work](starting-work.md#merging-main-into-a-pull-request)).
 - Plan: a fix is done when it is live where the maintainer plays (deployed commit named, probe run on the live URL)
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
-  ([lesson](../lessons/2026-11-02-local-main-fell-behind-the-merges.md)).
+  ([Hooks](hooks.md#mains)).
 - Plan: a stopgap comment names its issue ("until #N"), and closing #N greps for it and resolves it
-  ([lesson](../lessons/2026-11-02-an-until-issue-stopgap-outlived-its-issue.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: the PR that finishes a split issue carries `Fixes #N`
-  ([lesson](../lessons/2026-11-02-an-issue-stayed-open-after-both-halves-merged.md)).
+  ([Starting work](starting-work.md#stopping-and-finishing)).
 - Plan: load tests capped on the shared machine (four suites, stop by PID, a timeout on every long command)
   ([lesson](../lessons/2026-11-01-load-tests-starved-another-project.md)).
 - Plan: the disk is watched from day one: a guard that frees finished worktrees, idle import caches and scratch
   downloads past their pull request below a soft limit, refuses new agents below a hard one, and names the folders over
   budget; captures and CI artifacts are reduced to what is kept in the same task
-  ([lesson](../lessons/2026-11-04-the-shared-disk-filled-and-nothing-watched-it.md), [The disk guard](workspace.md#disk)).
+  ([The disk guard](workspace.md#disk)).
 - Plan: worktrees always take absolute paths, and agent roster changes reach every game with `gds sync`
-  ([lesson](../lessons/2026-11-01-git-worktree-add-path-is-relative-to-the-c-repo.md),
+  ([The shell](shell.md#paths),
   [what went wrong](building-games-with-agents.md#what-went-wrong)).
 - Plan: every kit file a game carries a copy of (the checker, the pre-commit message hooks, the agent definitions) is on
   the `gds sync` list from the first game, so a rule changed in the kit reaches the games in one sync pull request
-  ([lesson](../lessons/2026-11-02-a-kit-change-to-a-copied-file-never-reached-the-games.md), [Sync](sync.md)).
+  ([Sync](sync.md#pre-commit-blocks)).
 - Plan: issue order and ownership are enforced by a tool from day one: work starts only through `gds issue start`
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
-  ([lesson](../lessons/2026-11-02-a-rule-in-memory-is-broken-under-pressure.md),
-  [Starting work](starting-work.md)).
+  ([Starting work](starting-work.md#the-rule)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
   read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
-  they start ([lesson](../lessons/2026-11-02-docs-written-on-a-branch-were-left-for-a-batch.md),
+  they start ([Hooks](hooks.md#docs),
   the mistakes glossary (`gds lessons <area>`)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
-- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer decisions
+- Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer
+  decisions
   in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every
   time; the second kind becomes a default the agent runs (a new game's GitHub repository, Pages, ruleset, hold sweep and
@@ -258,7 +258,6 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
   offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
-  [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
   [Starting work: pausing a game](starting-work.md#paused)).
 - Plan: a docs site's navigation is designed for the page count it will reach (a tab per topic, sections that fold
   and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at
