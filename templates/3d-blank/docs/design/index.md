@@ -5,6 +5,7 @@ The game as it stands. Each subject gets one page here, updated in place as the 
 {GAME_TITLE} started from the kit's 3D Blank template: no entities and no game scripts, just a lit prototype level
 and the folder layout every GDStudio game uses. What it gave you is in [Prototype level](prototype-level.md); add the
 game's own pillars, loop and systems here as they are decided.
+The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md).
 
 ## Pillars
 
