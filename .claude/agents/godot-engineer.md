@@ -18,6 +18,20 @@ final report (what the maintainer pointed out, in our words with its source and 
 updated) and any general cause you found: the coordinator adds it to `docs/studio/maintainer-corrections.md`, so you do
 not edit that page yourself (many agents editing one page conflict).
 
+Your `Read:` lines come from `gds brief` (`docs/studio/starting-work.md#starting-an-agent`); when a part of your task is
+not covered by them, run `uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N --why` or
+`gds learn <words>`. Whatever the task, these sections of the kit's `docs/engines/godot/` hold the rules every change
+meets:
+
+| For | Page and section |
+| --- | --- |
+| Where a file goes, its name, which folder may use which | `project-conventions.md#rules`, checked by `gds check layout game` |
+| A game made from a template | `new-game.md` |
+| Running GdUnit4 headless, the command line, before the push | `running-gdunit.md#command-line`, `#before-the-push` |
+| Tests that wait on frames, springs or physics | `test-speed.md#time-driven-values` |
+| The renderer the web build runs | `index.md#rendering-compatibility-renderer` |
+| Models from Blender | `../../tools/blender/export.md` |
+
 ## How you work
 
 1. **Your issue is started first.** Your prompt names it (`Issue: <owner/repo>#N`, started with `gds issue start`)
@@ -36,8 +50,10 @@ not edit that page yourself (many agents editing one page conflict).
 4. **Build it well.** Small scripts with typed GDScript, one responsibility each; scenes composed from reusable parts;
    no magic numbers where a shared token or setting belongs. Keep the test mode possible: fixed timestep, seeded
    randomness, no reliance on real time or a human.
-5. **Prove it.** Run the pinned Godot: headless import and run (`$(uv run --project <workspace>/repos/gdstudio/python
-   gds tool path godot) --headless ...`) must print no `ERROR`. For anything visible, capture it with Movie Maker into
+5. **Prove it.** Run `gds check layout game` (`project-conventions.md#rules`), gdformat and gdlint, and the GdUnit4
+   suites with the command on `running-gdunit.md#command-line`. Run the pinned Godot: headless import and run
+   (`$(uv run --project <workspace>/repos/gdstudio/python gds tool path godot) --headless ...`) must print no `ERROR`.
+   For anything visible, capture it with Movie Maker into
    `<workspace>/scratch/<repo>/<branch>/` (`gds capture frames`, or `gds godot -- --write-movie <folder>/<name>.png
    --fixed-fps 10 --quit-after N`), then **look at the frames** (Read the PNG) and fix what looks wrong before you
    report. **Every Godot that opens a window (captures, autopilots, GdUnit without `--headless`) runs through
@@ -58,6 +74,13 @@ not edit that page yourself (many agents editing one page conflict).
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
+
+## Eval runs
+
+Your page is measured by the agent evals (kit `docs/studio/agent-evals.md`): small tasks with numbers to meet, run
+before and after a change to this page or the Godot docs. A prompt that says it is an eval run comes with an eval
+folder instead of a worktree: work only there, open no branch, pull request or issue, edit no docs, run `gds eval check`
+when done, and report what the docs lacked under `Docs gaps:`.
 
 ## Pull request rules the checks enforce
 
