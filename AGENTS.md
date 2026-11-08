@@ -10,7 +10,7 @@ The workspace is a plain folder (never a repository) that `bootstrap.ps1` / `boo
 
 ```text
 <workspace>/
-  repos/gdstudio/            this kit; repos/<game>/ every game; repos/gdstudio-assets/ the shared asset library
+  repos/gdstudio/            this kit, with the assets every game shares; repos/<game>/ every game
   worktrees/<repo>/<branch>/ every git worktree, and nowhere else
   scratch/                   task output, captures, reports, PR text; never committed
   cache/  tools/             downloads; pinned Godot and Blender (tools.toml)
@@ -29,7 +29,10 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   licence entry (the licence gate, coming with the hooks).
 - **Original work.** GDStudio games are original. Other games are studied for design and used as visual reference;
   their content, layouts, names and assets are never copied.
-- **Proof, not claims.** Work is done when its tests and scenario captures pass, not when it looks done.
+- **Proof, not claims.** Work is done when its tests and scenario captures pass, not when it looks done. Agents test
+  it themselves (simulated input in GdUnit4, bots or an autopilot, audio analysis, a browser driven by a probe) and
+  never hand a test to the maintainer. Visual work attaches screenshots or a clip, and sound attaches a clip to listen
+  to (`docs/capture.md`).
 - **Learn in the same session.** When the maintainer corrects an agent or reports a problem in earlier work, the
   learning is written into the docs in that session: a row on `docs/research/maintainer-corrections.md`, and a lesson
   (`docs/lessons/`) when the cause is general. Agents read the checks that touch their task before they start. The
@@ -38,9 +41,11 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   issue or a pull request under the maintainer's GitHub account, ever, with no exception: labels say that work is under
   way, and a report goes in the pull request's body or the scratch folder (`docs/hooks.md#comments`).
 <!-- conventions:begin maintainer-decisions -->
-- **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make the repository
-  public; tag a release; force-push the default branch or someone else's branch; legal or licence questions; change
-  these conventions; change a pinned tool version (tools.toml); commit a third-party asset or its licence entry.
+- **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make an existing
+  repository public or private (a new game's, from `gds new game`, is not one: kit #779); tag a release; force-push
+  the default branch or someone else's branch; legal or licence questions, an existing repository's licence among
+  them (a new game's MIT is not one); change these conventions; change a pinned tool version (tools.toml); commit a
+  third-party asset or its licence entry.
 <!-- conventions:end -->
 
 ## Build and test
@@ -57,6 +62,8 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
 - Start work: only `uv run --project python gds issue start <owner/repo>#N --agent <name>` (the oldest ready issues first,
   `P-critical` before them; `gds issue list` shows them); a task agent's prompt carries `Issue: <owner/repo>#N` or
   `PR: <owner/repo>#N` (`docs/starting-work.md`). Nobody sets `S-in-progress` by hand; only the maintainer sets `P-critical`.
+- Open pull requests land before new work starts, oldest stuck one first; a parked one is refreshed before it lands
+  (`docs/starting-work.md#landing`).
 - Lessons: a lesson has `areas: [...]` front matter; `docs/research/mistakes-by-area.md` is built from the lessons by the
   docs build and `gds lessons <area>`, never committed (`python .github/scripts/mistakes.py check` fails on a lesson
   without areas). The agent that finds a

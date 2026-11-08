@@ -12,10 +12,10 @@ repo:
   wording: {person: user, avoid: [owner]}
   # Decisions only a maintainer makes: an agent stops and reports instead of acting.
   maintainer_decisions:
-    - make the repository public
+    - "make an existing repository public or private (a new game's, from `gds new game`, is not one: kit #779)"
     - tag a release
     - force-push the default branch or someone else's branch
-    - legal or licence questions
+    - "legal or licence questions, an existing repository's licence among them (a new game's MIT is not one)"
     - change these conventions
     - change a pinned tool version (tools.toml)
     - commit a third-party asset or its licence entry

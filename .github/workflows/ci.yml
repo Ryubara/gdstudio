@@ -110,7 +110,7 @@ jobs:
           GIT_AUTHOR_EMAIL: template-check@example.invalid
           GIT_COMMITTER_NAME: template-check
           GIT_COMMITTER_EMAIL: template-check@example.invalid
-        run: uv run --project repos/gdstudio/python --frozen gds new game template-check --template 3d-blank --workspace .
+        run: uv run --project repos/gdstudio/python --frozen gds new game template-check --template 3d-blank --local --workspace .
       - name: The conventions, the kit's files and the layout rules
         working-directory: repos/template-check
         run: |
