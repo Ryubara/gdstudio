@@ -140,14 +140,15 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Content: weapons, art and animation
 
 - Plan: a roster table (model, definition, source, numbers) with a test that every weapon can be obtained
-  ([lesson](../lessons/2026-11-02-weapon-models-sat-without-definitions-or-a-source.md)).
+  ([A weapon is a model, a definition and a source](../gamedev/balance.md#roster)).
 - Plan: every catalogue entry played through in the real night with the real input
   ([Every catalogue entry](../gamedev/testing.md#catalogue)).
-- Plan: weapons sized against the hand that holds them, not only the body ([lesson](../lessons/2026-11-01-a-chibi-hand-needs-guns-sized-for-it.md)).
+- Plan: weapons sized against the hand that holds them, not only the body
+  ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: hand sockets on every held model and a solved grip, with skin-against-weapon contact tested in every pose;
   the kit's clips never move the fingers ([Hands on the weapon](../tools/blender/weapons.md#hands-on-the-weapon)).
 - Plan: what each body layer plays in every movement state (walk, sprint, crouch, air)
-  ([lesson](../lessons/2026-11-02-a-carry-posed-from-the-front-was-hidden-from-the-game-camera.md)).
+  ([One action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
   ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
 - Plan: kit props and materials on the map as soon as the layout holds

@@ -43,6 +43,12 @@ Two things to keep: the build is old enough whatever the navigation does (`tests
 nights of one seed started 0 and 3 frames apart keep every place to the last bit. A hash of positions in quarter metres
 hides this; compare the raw floats. See also [navigation in tests](navigation-in-tests.md).
 
+- **Approach:** Make a fixed-step simulation fixed in its own code: keep a pending time, run whole steps of the tuned
+  length, ignore a delta that is not a positive number and cap the catch-up after a stall; test it by hashing every tick
+  on a real navmesh with the same time sliced into 2 and 4 deltas. **Watch out for:** a `tick(delta)` that used the
+  caller's delta was deterministic only at the 1/30 s its tuning assumed: stepped at 1/60 s it put zombies inside solid
+  boxes for 52 zombie-ticks. **Seen:** Deadnight, 2026-11-01 (fix: the pending-time loop and the sliced-delta hash
+  test).
 - **Approach:** Before an A/B or a replay test of a whole night is believed, run the baseline twice; hash only what both
   runs can agree on (no positions rounded to a grid, whose edges flip with a centimetre), keep raw `sin`, `cos` and
   `atan2` floats out of a golden hash meant for two platforms, and prove sameness with a night of bodies that stand and

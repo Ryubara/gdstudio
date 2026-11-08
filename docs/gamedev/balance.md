@@ -29,8 +29,7 @@ drop). Art, definitions, the shop and the drops are one list.
   with a test that every definition has a source a player can reach and every source names a real id; an unclear model
   is a question to the maintainer. **Watch out for:** there were 10 weapon models and 6 definitions; the bat and the
   fire axe had models and holds but no id, numbers or source, and the prize crane's pool was a hand-written list of
-  four. **Seen:** Deadnight #461, 2026-11-02 (fix: every weapon got a definition and a source (Deadnight #530;
-  [lesson](../lessons/2026-11-02-weapon-models-sat-without-definitions-or-a-source.md))).
+  four. **Seen:** Deadnight #461, 2026-11-02 (fix: every weapon got a definition and a source, Deadnight #530).
 - **Approach:** When a roster, weapon or round number moves, grep the game for the old value and the type's id, change
   every copy in the same commit, and run the test folder of each file that names them. **Watch out for:** the bots kept
   the boss's health multiplier as a constant (13.0) after the tuning said 16.25, so they would have judged a revive
@@ -103,10 +102,26 @@ team size) inside a range. A cell read from too few nights is a coin flip for th
   solo median read 13 and 10 at 100 and 150 nights. **Seen:** Deadnight #687, #793, 2026-11-03; Deadnight
   (progression levers), 2026-11-04 (fix: levers as multipliers, a confidence beside every difference).
 
-## The simulator plays the shipped game {#simulator}
+## A balance simulator {#simulator}
 
-<!-- new section: what keeps the balance simulator measuring the game as shipped had no home -->
+<!-- new section: the page's sections are about one number at a time; none covered a model that plays whole nights -->
 
+A simulator plays many seeded nights with modelled players to show where a level's difficulty lands. It answers only as
+well as its numbers and its players are the game's.
+
+- **Approach:** Read every number a balance model uses from the game's own definitions and functions (the weapon
+  catalogue, the damage model, the night's tuning, the generator's circuits), model only what the game does not own,
+  drop what it does not do, and say in the report where each number comes from. **Watch out for:** numbers typed in
+  beside the game's data passed the gate (an average solo player reached round 11) while the game's own weapons ended
+  the same seeded nights at round 4: the stand-in rifle did 210 damage a second against 85, tonics had effects the game
+  lacks, and lit ground slowed the dead without costing fuel. **Seen:** Deadnight, 2026-11-01 (fix: the model reads
+  `WeaponCatalog`, `DamageModel` and `NightTuning`, and was retuned from the honest report).
+- **Approach:** Give each simulated night its own player skill, drawn from the level's average with a spread (20 %),
+  and measure difficulty by how close a round came to downing someone (the lowest health reached), not by damage
+  taken. **Watch out for:** players of fixed skill on deterministic rules vary only by the enemy rolls, so every seed
+  ended in the same round (100 % reached round 11, 0 % round 12), a cliff that says nothing about balance; damage taken
+  is zero in most rounds and then everything. **Seen:** Deadnight, 2026-11-01 (fix: per-night skill with a spread,
+  scored by the lowest health).
 - **Approach:** Read every number a balance run or a fit starts from out of the data the game loads (the shipped tuning
   file, the curve's own function), never a script's defaults or a page's table, and have the unchanged baseline
   reproduce the gate's medians to the digit first. **Watch out for:** a sweep scaled a tuning script's `@export`
