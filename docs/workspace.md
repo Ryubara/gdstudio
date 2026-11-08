@@ -219,8 +219,15 @@ Steam or system installs are never used by the tooling: an automatic update woul
 | ffmpeg | `tools/ffmpeg-<version>/` | pinned like Godot; clips from captures (Windows build pinned; elsewhere the system package) |
 | Blender in portable mode | `tools/blender-<version>/.../portable/` | its settings and add-ons stay apart from any other Blender |
 | Blender MCP add-on | inside the pinned Blender | installed as an extension |
-| Godot MCP addon | each game's `game/addons/godot_mcp/` | copied in, enabled by an untracked `game/override.cfg`, excluded in `.git/info/exclude`: third-party code stays out of the public repositories |
+| Godot MCP addon, GdUnit4 | each game's `game/addons/<name>/` and the kit's `godot/addons/<name>/` | copied in, enabled by an untracked `override.cfg` beside the `project.godot`, excluded in `.git/info/exclude`: third-party code stays out of the public repositories |
 | MCP servers (`godot`, `blender`) | Claude Code, per checkout | `claude mcp add -s local`, from `[mcp]` in `tools.toml`; skipped when registered or with `--no-mcp` |
 
 The Godot MCP drives a live editor and the Blender MCP a live Blender: open the pinned program with its add-on enabled
 before an agent uses them. Headless scripts and Movie Maker need neither.
+
+## The kit's Godot project {#kit-godot}
+
+`godot/` in this repository is a small Godot project of its own, not a game: it holds the Godot addons the kit owns
+(`godot/addons/gds_ui/`) and the GdUnit4 suites that prove them (`godot/tests/`). `gds workspace init` installs the
+pinned GdUnit4 into it, in the checkout and in every kit worktree, like into a game. The addon is edited only here and
+`gds sync` writes it into each game ([where `gds_ui` is edited](godot/ui-controls.md#where), [Sync](sync.md#addons)).

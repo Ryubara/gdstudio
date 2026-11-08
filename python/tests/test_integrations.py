@@ -92,3 +92,16 @@ def test_two_plugins_share_one_override(tmp_path):
     text = override.read_text()
     assert text.count("[editor_plugins]") == 1
     assert '"res://addons/a/plugin.cfg", "res://addons/b/plugin.cfg"' in text
+
+
+def test_the_kits_own_godot_project_gets_the_addons_too(tmp_path):
+    project = tmp_path / "repos" / "gdstudio" / "godot"
+    project.mkdir(parents=True)
+    (project / "project.godot").write_text("")
+    (tmp_path / "repos" / "gdstudio" / ".git" / "info").mkdir(parents=True)
+    tool = make_addon(tmp_path)
+    assert integrations.game_projects(tmp_path / "repos") == [project]
+    assert integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
+    assert (project / "addons" / "godot_mcp" / "plugin.cfg").exists()
+    exclude = (project.parent / ".git" / "info" / "exclude").read_text()
+    assert "/godot/addons/godot_mcp/" in exclude and "/godot/override.cfg" in exclude

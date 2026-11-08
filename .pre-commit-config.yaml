@@ -43,6 +43,16 @@ repos:
         files: ^(python|\.claude/hooks)/
       - id: ruff-format
         files: ^(python|\.claude/hooks)/
+  # GDScript formatting and lint for the kit's Godot project (`godot/`: the gds_ui addon and its tests) and for the
+  # templates (what a new game starts with). The version is the one the games pin, so a file that passes here passes
+  # unchanged in a game after `gds sync`.
+  - repo: https://github.com/Scony/godot-gdscript-toolkit
+    rev: 4.5.0
+    hooks:
+      - id: gdformat
+        files: ^(godot|templates)/
+      - id: gdlint
+        files: ^(godot|templates)/
   - repo: local
     hooks:
       # gds-sync:begin message-checks (kit-owned: edit it in the kit, then run `gds sync`)

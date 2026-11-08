@@ -41,9 +41,11 @@ In this repo: `python/` the `gds` CLI (uv), `tools.toml` pinned tools, `workspac
   issue or a pull request under the maintainer's GitHub account, ever, with no exception: labels say that work is under
   way, and a report goes in the pull request's body or the scratch folder (`docs/hooks.md#comments`).
 <!-- conventions:begin maintainer-decisions -->
-- **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make the repository
-  public; tag a release; force-push the default branch or someone else's branch; legal or licence questions; change
-  these conventions; change a pinned tool version (tools.toml); commit a third-party asset or its licence entry.
+- **Maintainer decisions** are never an agent's: it stops and reports instead of acting. They are: make an existing
+  repository public or private (a new game's, from `gds new game`, is not one: kit #779); tag a release; force-push
+  the default branch or someone else's branch; legal or licence questions, an existing repository's licence among
+  them (a new game's MIT is not one); change these conventions; change a pinned tool version (tools.toml); commit a
+  third-party asset or its licence entry.
 <!-- conventions:end -->
 
 ## Build and test

@@ -1,0 +1,216 @@
+# The game's build and tests, with the same pinned Godot agents use: the runner's work folder becomes a GDStudio
+# workspace, the kit's `gds workspace init` fetches Godot and GdUnit4 from tools.toml (hash-checked, cached), and the
+# project is imported and run headless. Any engine or script error fails the job, since Godot itself exits 0 on most
+# of them. The `web` job exports the game for the browser and checks that the tests and tools stayed out of it.
+# `build-ok` is the required check for the build, so the jobs above it can change freely.
+# Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The tool that runs the hooks. What it runs (gdtoolkit's version, the files, the settings) is `.pre-commit-config.yaml`.
+  PRE_COMMIT: pre-commit@4.7.0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  conventions:
+    # The rules a program can check, in seconds: the conventions file is well formed and the generated files match it,
+    # the files the kit owns are the kit's (`gds sync --check`), and the project follows the folder, naming and
+    # dependency rules (`gds check layout`, the kit's docs/godot/project-conventions.md).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/{GAME_SLUG}
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: {KIT_REPO}
+          path: repos/gdstudio
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: The conventions file and the files generated from it
+        working-directory: repos/{GAME_SLUG}
+        run: |
+          uv run --with pyyaml python .github/scripts/groundwork.py validate
+          uv run --with pyyaml python .github/scripts/groundwork.py render --check
+          uv run --with pyyaml python .github/scripts/groundwork.py check-files
+      - name: The kit's files are the kit's
+        run: uv run --project repos/gdstudio/python gds sync repos/{GAME_SLUG} --check
+      - name: The folder, naming and dependency rules
+        run: uv run --project repos/gdstudio/python gds check layout repos/{GAME_SLUG}/game
+
+  godot:
+    needs: conventions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/{GAME_SLUG}
+          persist-credentials: false
+          lfs: true # models, textures and sounds are LFS objects: without them Godot imports pointer files
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: {KIT_REPO}
+          path: repos/gdstudio
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: cache/downloads
+          key: tools-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
+      - name: Make the workspace and fetch the pinned Godot and GdUnit4
+        run: uv run --project repos/gdstudio/python gds workspace init --workspace . --no-clone --no-mcp --fetch godot,gdunit4
+      - name: Import the project
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          "$godot" --headless --path repos/{GAME_SLUG}/game --import 2>&1 | tee import.log
+          ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: Run the main scene
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          "$godot" --headless --path repos/{GAME_SLUG}/game --quit-after 60 2>&1 | tee run.log
+          ! grep -E "^(SCRIPT )?ERROR" run.log
+      - name: Run the tests (GdUnit4)
+        # No `-d`: with the debugger attached, the first script error stops the engine at a prompt and the job hangs.
+        # `--ignoreHeadlessMode` is needed because GdUnit4 otherwise refuses to run headless. The reports go outside
+        # the project (`-rd ../../../reports`: Godot runs in the project folder, three levels below the work folder, and
+        # GdUnit4 reads an absolute `/path` as `res://path`): generated files never live under res://. Godot prints a
+        # leak after the run has finished, so only the log shows it.
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
+          ! grep -E "leaked at exit|still in use" tests.log
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gdunit4-report
+          path: |
+            reports
+            tests.log
+          if-no-files-found: warn
+
+  web:
+    needs: conventions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/{GAME_SLUG}
+          persist-credentials: false
+          lfs: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: {KIT_REPO}
+          path: repos/gdstudio
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: cache/downloads
+          key: tools-web-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
+      - name: Make the workspace and fetch the pinned Godot and its export templates
+        # The templates are about 1 GB.
+        run: uv run --project repos/gdstudio/python gds workspace init --workspace . --no-clone --no-mcp --fetch godot,godot-templates
+      - name: Import the project
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          "$godot" --headless --path repos/{GAME_SLUG}/game --import 2>&1 | tee import.log
+          ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: Export the web build
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          mkdir -p repos/{GAME_SLUG}/build/web
+          "$godot" --headless --path repos/{GAME_SLUG}/game --export-release Web 2>&1 | tee export.log
+          if grep -E "ERROR" export.log; then exit 1; fi
+          test -s repos/{GAME_SLUG}/build/web/index.pck
+          test -s repos/{GAME_SLUG}/build/web/index.wasm
+      - name: The export holds the level and leaves the tests and tools out
+        run: |
+          pck=repos/{GAME_SLUG}/build/web/index.pck
+          grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
+          if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+
+  gdlint:
+    # The commit hook itself, so its version (the `rev` in `.pre-commit-config.yaml`), its files and its settings cannot
+    # differ from what a person's machine runs.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: gdformat and gdlint on every script
+        # `pre-commit run` takes one hook id, so one call each (two in one call failed every new game: kit #779).
+        run: |
+          uvx "$PRE_COMMIT" run gdformat --all-files
+          uvx "$PRE_COMMIT" run gdlint --all-files
+
+  mkdocs:
+    # The documentation site built strictly (a broken link or a page missing from the nav fails). The push to the
+    # default branch builds and publishes the site in docs.yml.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-docs.txt
+      - run: mkdocs build --strict
+
+  markdownlint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The rules are in .markdownlint.yaml; the files skipped in .markdownlint-cli2.yaml.
+      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        with:
+          globs: |
+            **/*.md
+            #.venv
+            #site
+
+  actionlint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The download script comes from the same commit as the release it fetches (v1.7.12).
+      - name: Download actionlint 1.7.12
+        run: >-
+          bash <(curl -sSfL
+          https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash)
+          1.7.12
+      - run: ./actionlint -color .github/workflows/*.yml
+
+  build-ok:
+    if: always()
+    needs: [conventions, godot, web, gdlint, mkdocs, markdownlint, actionlint]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          case " $RESULTS " in *" failure "* | *" cancelled "*) exit 1 ;; esac
