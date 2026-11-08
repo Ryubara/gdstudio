@@ -144,6 +144,23 @@ create the repository and push `main`; Pages' source to GitHub Actions and the t
 `gh workflow run hold-sweep.yml`; `[repos.<name>]` in the kit's `workspace.toml`. The kit's CI makes its template
 check this way (`gds new game template-check --template 3d-blank --local`).
 
+## A double-click for people {#double-click}
+
+<!-- new section: the page held the command for agents; nothing gave a person a way without typing it -->
+
+A person trying a template double-clicks `templates/new-game.sh` (on Windows `templates/new-game.cmd`, which runs it
+with Git for Windows' bash). It lists the templates, asks for one and for a name, refuses a bad name or one whose
+`repos/<name>` exists, runs `gds new game <name> --template <t> --local` into `<workspace>/repos/<name>/`, and offers to
+open the game in the pinned Godot editor. It finds the workspace by walking up to `.gdstudio-workspace`, so it works
+from the kit or a worktree, and it waits for Enter before the window closes. A template change reaches a game only
+when the game is made again: `gds sync` refreshes the files every game shares, never a template's own. Agents keep
+using the command above, since the script asks questions.
+
+- **Approach:** Write a script a person runs for the bash every platform has: macOS ships bash 3.2, so no `mapfile`,
+  `readarray`, associative arrays or `${var,,}`; read lines with a `while IFS= read -r` loop and give every array a
+  value (`LINES=()`) before `set -u` meets it. **Watch out for:** Git Bash and Ubuntu run bash 5, so the script passed
+  there and only the macOS test job failed (`mapfile: command not found`). **Seen:** gdstudio #840, 2026-11-08.
+
 ## The templates {#the-templates}
 
 | Template | What it is | Status |
