@@ -224,21 +224,30 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
         assert holder.received == holder.sent == 1, "the test window does not receive keys: the test cannot judge"
         run_quiet([str(godot), "--headless", "--path", str(SPIKE), "--import"], timeout=120)
         movie = tmp_path / "shot.png"
-        started: list[tuple[int, int | None]] = []  # (the program's id, its creation time)
+        root: list[tuple[int, int | None]] = []  # (the program's id, its creation time), set once when it starts
+        root_known = threading.Event()  # set after `root` is filled: the watcher reads `root` only once this is set
         foreground_taken: list[float] = []
         windows: set[str] = set()
+        watcher_errors: list[BaseException] = []  # a thread's exception is only a warning: the test asserts on this
         done = threading.Event()
-        started = time.time()
+        clock_start = time.time()
+
+        def on_start(pid: int) -> None:
+            root.append((pid, creation_time(pid)))
+            root_known.set()
 
         def watch() -> None:
-            while not done.is_set():
-                if started:
-                    tree = tree_of(*started[0])
-                    if holder.foreground_owner() in tree:
-                        foreground_taken.append(round(time.time() - started, 2))
-                    windows.update(visible_windows_of(tree))
-                holder.type_key()
-                time.sleep(0.03)
+            try:
+                while not done.is_set():
+                    if root_known.is_set():
+                        tree = tree_of(*root[0])
+                        if holder.foreground_owner() in tree:
+                            foreground_taken.append(round(time.time() - clock_start, 2))
+                        windows.update(visible_windows_of(tree))
+                    holder.type_key()
+                    done.wait(0.03)
+            except BaseException as error:  # noqa: BLE001 - reported by the test's own assert below
+                watcher_errors.append(error)
 
         watcher = threading.Thread(target=watch)
         watcher.start()
@@ -256,11 +265,13 @@ def test_a_windowed_godot_renders_a_capture_without_touching_the_keyboard_or_the
                     "30",
                 ],
                 timeout=120,
-                on_start=lambda pid: started.append((pid, creation_time(pid))),
+                on_start=on_start,
             )
         finally:
             done.set()
             watcher.join()
+        assert not watcher_errors, f"the watcher thread failed: {watcher_errors[0]!r}"
+        assert root_known.is_set(), "run_quiet never reported the program's id"
         time.sleep(0.2)  # the last keys are still in the message queue
         assert outcome.returncode == 0, outcome.output
         assert "ERROR" not in outcome.output
