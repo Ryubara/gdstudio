@@ -43,6 +43,11 @@ each one, rather than finding them one by one in play.
   landscape lock and safe areas with the first playable build. **Watch out for:** desktop and the browser were planned
   and phones were not, though Discord Activities run on them. **Seen:** Deadnight, 2026-11-01 (fix: deadnight got
   researched touch controls for landscape play ([Touch controls](../engines/godot/ui-controls.md#touch-controls))).
+- **Approach:** Ship every kit template that has a character controller with simple, intuitive touch controls: a
+  floating move stick, a drag zone that turns the camera, a few large buttons, built as one reusable component that
+  shows only on touch, presses the existing input actions and is tuned in the inspector. **Watch out for:** the first
+  3D Third Person plan listed touch controls as one line beside the camera, until the maintainer made them a
+  requirement of every controller template. **Seen:** gdstudio #821, 2026-11-08.
 - **Approach:** Write one block per action in `[input]`, make gameplay actions listen to their own actions (`pause`,
   `interact`), never to `ui_cancel`, refuse the router's back on an in-game screen, and test the project file for a
   repeated action and the `InputMap` for two gameplay actions on one pad button or stick direction. **Watch out for:**
