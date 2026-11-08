@@ -55,6 +55,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   test loads a capture script. **Seen:** Deadnight, 2026-11-04 (fix: the constant put back, the suites of every touched
   file run); Deadnight, 2026-11-05 (fix: the helpers restored from `git show HEAD:<path>`).
 
+- **Approach:** When a script reflows a page you are adding to, wrap only your own text, then read `git diff --stat` and
+  every hunk outside your additions. **Watch out for:** a wrap-everything pass at 120 columns rewrapped existing lines
+  that markdownlint accepts (a long link has no space to break at), so a dozen lines of other people's text changed in
+  the pull request. **Seen:** gdstudio #770, 2026-11-07 (fix: the hunks whose text only rewrapped were restored from
+  `HEAD`, and the wrapper skips a line whose overflow is one unbreakable link).
+
 ## Folders and paths {#paths}
 
 - **Approach:** Give `git worktree add` an absolute path, chain everything after a `cd` with `&&` (or use `git -C
