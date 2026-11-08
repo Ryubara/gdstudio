@@ -59,7 +59,7 @@ shader, and `discard` the pixels where the body is not behind the scene.
   pixel. **Watch out for:** two words of the ask were read literally: the glow became a faint halo pass, the outline
   through walls was drawn everywhere, captures in the open were judged readable, never as having no outline, and a
   half-hidden zombie was never shot. **Seen:** Deadnight #617, 2026-11-02 (fix: the outline reads the depth per pixel,
-  as above ([lesson](../../lessons/2026-11-02-an-outline-through-walls-was-drawn-on-visible-parts-with-a-glow.md))).
+  as above).
 
 ## Pitfalls
 
@@ -75,5 +75,5 @@ shader, and `discard` the pixels where the body is not behind the scene.
   engine copies the depth buffer for the shader (probably the multisample resolve: the project has 2x MSAA; not
   isolated). Nothing is paid while
   the overlay is off. Measure both, and with the depth read on and off. Leave the overlay off (null) when nothing is
-  outlined: then it costs nothing. See the
-  [lesson](../../lessons/2026-11-02-a-render-cost-showed-nothing-on-a-gpu-and-20-percent-on-software-gl.md).
+  outlined: then it costs nothing. See
+  [the web build on a phone](web-phone-frames.md#measuring-a-phone-without-one).

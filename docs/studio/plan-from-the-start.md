@@ -49,11 +49,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
   is tested on a screen with no focus ([lesson](../lessons/2026-11-02-start-was-eaten-by-the-routers-first-focus-key.md)).
 - Plan: a gamepad inside an embedded iframe (the Discord Activity) needs the focus: prompt one click
-  ([lesson](../lessons/2026-11-02-an-activity-iframe-lists-no-gamepad-until-a-click.md)).
+  ([web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: touch proved in a phone-emulated browser; a finger is also a mouse motion in the web runtime
-  ([lesson](../lessons/2026-11-02-a-finger-is-a-mouse-motion-too-in-the-web-runtime.md)).
+  ([web export](../engines/godot/web-export.md#phone-touch-and-fit)).
 - Plan: multi-touch with two thumbs at once, and hold buttons (aim) that also drag to look; per-finger positions,
-  never `relative` ([lesson](../lessons/2026-11-02-a-second-finger-broke-screen-drag-relative-on-the-web.md)).
+  never `relative` ([touch controls](../engines/godot/ui-controls.md#touch-controls)).
 - Plan: touch designed as its own interface before its first button: every action and every element on the screen for
   that device gets a verdict (keep, make the existing element tappable, drop as a duplicate), and rules the player
   expects everywhere (reload at 0) are proved through each device's real input path
@@ -71,7 +71,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a platform differs from the website only in sign-in and chrome: list every branch on the platform (an instance
   id, the Discord host) in the first build and keep none that changes what a press does; players reach each other by
   a code, a link or a list, never by a platform identity
-  ([lesson](../lessons/2026-11-05-a-platform-shortcut-outlived-the-fix-that-moved-its-first-screen.md),
+  ([web export](../engines/godot/web-export.md#activity-same-game),
   [deadnight #1178](https://github.com/Ryubara/deadnight/issues/1178)).
 - Plan: player identity and display names per platform (Discord nickname, a guest name prompt, Steam later)
   (known gap, [deadnight #485](https://github.com/Ryubara/deadnight/issues/485)).
@@ -84,7 +84,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   pixels on the web, never the canvas's device pixels), has a test for each class, and is run once on the real page (the
   web export in phone emulation, and in an iframe for Discord) before a phone capture is trusted; a menu's smallest
   text and tap target are measured in CSS pixels on every screen
-  ([lesson](../lessons/2026-11-05-a-phone-test-read-the-canvas-not-the-page-and-the-layout-never-applied.md),
+  ([web export](../engines/godot/web-export.md#a-phone-pages-size-the-canvas-is-not-the-page),
   [deadnight #1197](https://github.com/Ryubara/deadnight/issues/1197)).
 - Plan: list the browser abilities each embed grants (focus, gamepad, pointer lock, clipboard, autoplay, fullscreen) and
   probe each inside the Activity frame with Discord's policy before shipping
@@ -92,13 +92,13 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: every text field is opened, typed in, closed and submitted with a finger on a phone-shaped page (the export's
   virtual keyboard option on, the field kept above the keyboard, a keypad for a code) before a flow that needs text
   is called done ([web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build),
-  [lesson](../lessons/2026-11-05-a-phone-could-not-open-a-keyboard-in-the-web-build.md)).
+  [keyboard](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build)).
 - Plan: a visible pre-game lobby (members, host, a start the host controls) and mid-match join, every player state
   designed and tested with real clients ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
   ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
-  ([lesson](../lessons/2026-11-02-a-web-budget-became-the-desktop-cap.md)).
+  ([performance budgets](../engines/godot/performance-budgets.md#the-rule)).
 
 ## Netcode
 
@@ -167,18 +167,18 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Audio
 
 - Plan: loudness, first-50 ms energy and pitch spread measured from a recording of the real service
-  ([lesson](../lessons/2026-11-02-gun-shots-sounded-distant-by-the-numbers-nobody-took.md)).
+  ([close and powerful sounds](../engines/godot/audio.md#close-and-powerful-sounds)).
 - Plan: voice lines written as a person speaking, with many takes per event
-  ([lesson](../lessons/2026-11-01-voice-lines-written-as-captions-sounded-robotic.md)).
+  ([writing the lines](../gamedev/audio/voice-lines.md#2-writing-the-lines)).
 - Plan: no sound design in bus effects, which the web build ignores
-  ([lesson](../lessons/2026-11-01-web-samples-ignore-bus-effects.md)).
+  ([audio](../engines/godot/audio.md#web-samples-or-streams)).
 
 ## Performance
 
 - Plan: first-use hitches: warm up every effect, enemy and shader behind a loading screen
   ([first-use hitches](../engines/godot/first-use-hitches.md)).
 - Plan: web spikes on shot and kill: no allocation per event, short sounds decoded at load
-  ([lesson](../lessons/2026-11-01-ogg-starts-cost-a-millisecond-in-the-browser.md)).
+  ([starting sounds](../engines/godot/audio.md#starting-sounds)).
 - Plan: performance from the first playable night, not after a lag report: one command for the worst case (latest
   round, most players, strongest intensity setting, platform ceiling), a sampler of counts and labelled times, a budget
   file held in CI (counts tight, time as a ratio of a calibration loop), and a page of per-system limits with what the
@@ -191,11 +191,11 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 
 - Plan: agent launches are silent, unfocused and cursor-free from day one, one wrapper for each (`gds godot` mutes with
   `--audio-driver Dummy`, `gds quiet` sets `GDS_QUIET=1` and every probe launch adds `--mute-audio`)
-  ([lesson](../lessons/2026-11-02-agent-launched-godot-played-through-the-speakers.md)).
+  ([sound](../engines/godot/no-focus.md#sound)).
 - Plan: quiet runs for anything that can take the mouse, Godot or browser
-  ([lesson](../lessons/2026-11-02-a-headless-browser-under-pointer-lock-held-the-cursor.md)).
+  ([browser probes](../engines/godot/web-probes.md#running)).
 - Plan: one shared start helper for every browser probe, so a menu change cannot break them
-  ([lesson](../lessons/2026-11-02-each-browser-probe-walked-the-menu-its-own-way.md)).
+  ([browser probes](../engines/godot/web-export.md#browser-probes)).
 - Plan: a screen's first running frame tested through every route into it (solo, join, resume, the Activity)
   ([lesson](../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md)).
 - Plan: no flaky exit-leak checks to stall the queue: disconnect test lambdas
