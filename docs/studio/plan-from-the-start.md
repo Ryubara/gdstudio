@@ -255,3 +255,8 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: the docs record what the maintainer decided or pointed out in our words, with the issue or pull request and the
   date, never the prompt; a check fails a corrections row that starts with a quotation mark (gdstudio #780)
   ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+- Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
+  the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
+  offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
+  [lesson](../lessons/2026-11-07-a-pause-kept-in-memory-lost-to-the-hook-that-offers-work.md),
+  [Starting work: pausing a game](../starting-work.md#paused)).

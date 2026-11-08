@@ -1434,9 +1434,14 @@ def fake_gh(issues_json: list | None = None, calls: list | None = None):
     return gh
 
 
+PAUSES: dict[str, str] = {}  # what the hook's issues module reads as paused (the real workspace.toml pauses deadnight)
+
+
 @pytest.fixture()
 def one_repository(monkeypatch):
     monkeypatch.setattr(guards, "workspace_repositories", lambda kit: [(DEADNIGHT, "deadnight")])
+    PAUSES.clear()
+    monkeypatch.setattr(guards.issues_module(guards.KIT), "paused_repositories", lambda kit: dict(PAUSES))
 
 
 def test_idle_issues_finds_the_window_and_the_unblocked(workspace, one_repository):
@@ -1460,6 +1465,18 @@ def test_idle_issues_fails_open_when_github_cannot_answer(workspace, one_reposit
         return "not json"
 
     assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=garbage) == []
+
+
+def test_a_paused_repository_offers_nothing_but_its_critical_issues(workspace, one_repository):
+    PAUSES[DEADNIGHT.lower()] = "by the maintainer on 2026-11-07, for kit work first"
+    assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=fake_gh()) == []  # neither #52 (ready) nor #54 (unblocked)
+    rows = [*WINDOW_ISSUES, {"number": 60, "title": "urgent", "labels": [{"name": "P-critical"}], "assignees": []}]
+    assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=fake_gh(rows)) == [(DEADNIGHT, 60, "urgent", "start")]
+
+
+def test_the_stop_hook_reads_the_pause_of_the_kits_workspace_toml():
+    paused = guards.issues_module(guards.KIT).paused_repositories(guards.KIT)
+    assert paused.get("ryubara/deadnight") and "ryubara/gdstudio" not in paused
 
 
 def test_every_repository_of_workspace_toml_is_looked_at():
