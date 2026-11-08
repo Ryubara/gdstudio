@@ -61,6 +61,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   that markdownlint accepts (a long link has no space to break at), so a dozen lines of other people's text changed in
   the pull request. **Seen:** gdstudio #770, 2026-11-07 (fix: the hunks whose text only rewrapped were restored from
   `HEAD`, and the wrapper skips a line whose overflow is one unbreakable link).
+- **Approach:** When the text an edit writes holds backslash escapes (`$'\r'`, `'\n'`, a regex), put the edit in a
+  Python file written with the Write tool and run it, or use the Edit tool, then `cat -A` the lines it changed.
+  **Watch out for:** a Python heredoc and a `sed -i` inside the Bash tool both turned `\r` into a real carriage return,
+  twice over, so `tr -d '\r'` became `tr -d '<CR>'` and the script still passed `bash -n`. **Seen:** gdstudio #839,
+  2026-11-08 (fix: a Python file with the backslash built from a variable).
 
 ## Folders and paths {#paths}
 
