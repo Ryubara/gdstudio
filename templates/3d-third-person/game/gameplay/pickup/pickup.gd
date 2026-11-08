@@ -1,11 +1,12 @@
 @tool
 class_name Pickup
 extends Area3D
-## Something to collect: a coin, a key, a health pack. It spins and bobs, and when a body on the
-## chosen layers touches it (the Collision > Mask below), `collected` says who took what. It
-## does nothing else: the game decides what an item means (a body with a `collect(item_id,
-## amount)` method, like `Player`, is also told). It works on its own and can come back after a
-## while.
+## Something to collect: a coin, a key, a health pack. It spins and bobs, and when a character (a
+## `CharacterBody3D` on the chosen layers, the Collision > Mask below) touches it, `collected` says
+## who took what. A wall, the floor or a pushed crate beside it never takes it (`characters_only`
+## turns that off). It does nothing else: the game decides what an item means (a body with a
+## `collect(item_id, amount)` method, like `Player`, is also told). It works on its own and can
+## come back after a while.
 ##
 ## Its look is two nodes of `pickup.tscn`, `Visual` (the mesh) and `Shape` (what a body touches),
 ## so open the scene to restyle it. `tint` and `item_size` follow the inspector live.
@@ -25,6 +26,12 @@ signal respawned
 	set(value):
 		tint = value
 		_update_look()
+
+@export_group("Collector")
+## Only a `CharacterBody3D` can take it. The area also reports static blocks, the floor and props
+## that touch it, so a coin set against a wall would be taken at the start. Off lets any body on
+## the Collision > Mask layers take it.
+@export var characters_only := true
 
 @export_group("Look")
 ## How wide the item is.
@@ -89,7 +96,7 @@ func _shape() -> CollisionShape3D:
 
 
 func _on_body_entered(body: Node3D) -> void:
-	if not is_available():
+	if not is_available() or (characters_only and not body is CharacterBody3D):
 		return
 	collected.emit(body, item_id, amount)
 	# A body that keeps count (`Player`) is told too, so no wiring is needed to carry a coin.
