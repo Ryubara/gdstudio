@@ -10,7 +10,7 @@ talk through signals and input actions, so each can be replaced alone.
 | --- | --- | --- |
 | `Player` | `gameplay/player/player.tscn` | A `CharacterBody3D`: walks, runs, sprints, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`. Says what happens in signals. |
 | `PlayerTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
-| `PlayerCamera` | `main.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera and turns it to the orbit input. |
+| `PlayerCamera` | `main.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Interactor` | `gameplay/player/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
@@ -54,8 +54,10 @@ fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
 The camera's settings are on the `PlayerCamera` node: distance, height, field of view and start pitch (Framing),
 damping (Follow), mouse, stick and pitch limits (Orbit) and the wall mask and margin (Walls). They are applied to the
-`FollowCamera` Phantom Camera when the game starts; anything else about it (noise, tweens, dead zones) is that node's
-own inspector, and the addon's docs are at <https://phantom-camera.dev>.
+`FollowCamera` Phantom Camera when the game starts and again each time one changes, so they can be tuned in the remote
+inspector while the game runs. `Camera` renders and `PhantomCameraHost` copies the active Phantom Camera onto it, so a
+change to `Camera` itself (its field of view, say) is overwritten: tune `PlayerCamera`. Anything else about it (noise,
+tweens, dead zones) is that node's own inspector, and the addon's docs are at <https://phantom-camera.dev>.
 
 The touch layer's settings are on `TouchControls` in `main.tscn`: when it shows, the stick's radius, dead zone and
 sprint ring, the look sensitivity and smoothing, the button size, opacity and margin, and the `buttons` list (an action,
@@ -70,7 +72,9 @@ a word and a slot each).
 
 ## Animation {#animation}
 
-`PlayerAnimation` builds an `AnimationTree` when the game starts. The body is a state machine: `ground` (a blend space
+`PlayerAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open in
+the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
+saved into a scene file. The body is a state machine: `ground` (a blend space
 on ground speed: idle, walk, run, sprint), `jump`, `fall`, `land` and `push`. On top is a one-shot layer for actions:
 interact and hit play there, and so does anything else:
 

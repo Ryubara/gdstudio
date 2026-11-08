@@ -105,3 +105,45 @@ func test_the_lens_does_not_go_through_a_wall_behind_the_player() -> void:
 	assert_float(_camera.global_position.z).is_greater(-24.0)
 	var pivot: Vector3 = _player.get_node("CameraTarget").global_position
 	assert_float(_camera.global_position.distance_to(pivot)).is_less(_rig.distance - 1.0)
+
+
+# The wrapper's settings reach the Phantom Camera through setters, so they work while the game
+# runs (the remote inspector, a tuning menu), not only when the scene loads.
+
+
+func test_distance_height_and_walls_reach_the_phantom_camera_live() -> void:
+	var pcam := _rig.phantom_camera()
+	_rig.distance = 7.0
+	_rig.height = 0.6
+	_rig.wall_margin = 0.5
+	_rig.wall_mask = 6
+	await InputSim.ticks(get_tree(), 2)
+	assert_float(pcam.spring_length).is_equal_approx(7.0, 0.001)
+	assert_vector(pcam.follow_offset).is_equal_approx(Vector3(0.0, 0.6, 0.0), Vector3.ONE * 0.001)
+	assert_float(pcam.margin).is_equal_approx(0.5, 0.001)
+	assert_int(pcam.collision_mask).is_equal(6)
+
+
+func test_a_longer_distance_moves_the_real_camera_back() -> void:
+	var pivot: Vector3 = _player.get_node("CameraTarget").global_position + Vector3.UP * _rig.height
+	_rig.distance = 8.0
+	await InputSim.ticks(get_tree(), 90)
+	assert_float(_camera.global_position.distance_to(pivot)).is_equal_approx(8.0, 0.5)
+
+
+func test_the_field_of_view_reaches_the_real_camera_live() -> void:
+	assert_float(_camera.fov).is_equal_approx(62.0, 0.01)
+	_rig.field_of_view = 90.0
+	await InputSim.ticks(get_tree(), 3)
+	assert_float(_rig.phantom_camera().camera_3d_resource.fov).is_equal_approx(90.0, 0.001)
+	assert_float(_camera.fov).is_equal_approx(90.0, 0.5)
+
+
+func test_the_follow_damping_reaches_the_phantom_camera_live() -> void:
+	var pcam := _rig.phantom_camera()
+	_rig.follow_damping_amount = 0.3
+	await InputSim.ticks(get_tree(), 2)
+	assert_vector(pcam.follow_damping_value).is_equal_approx(Vector3.ONE * 0.3, Vector3.ONE * 0.001)
+	_rig.follow_damping = false
+	await InputSim.ticks(get_tree(), 2)
+	assert_bool(pcam.follow_damping).is_false()

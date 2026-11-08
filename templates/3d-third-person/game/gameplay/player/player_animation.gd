@@ -1,3 +1,4 @@
+@tool
 class_name PlayerAnimation
 extends Node
 ## Plays the clip for what the `Player` is doing, through an `AnimationTree` it builds: a state
@@ -8,6 +9,11 @@ extends Node
 ## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
 ## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
 ## `CharacterClips` names them all.
+##
+## It is a `@tool` script so the editor shows the tree too: opening the player scene builds the
+## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
+## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
+## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 
 ## An action clip started; `clip` is its name.
 signal action_started(clip: StringName)
@@ -36,31 +42,67 @@ const _ACTION_SCALE := "ActionScale"
 
 @export_group("Clips")
 ## Standing still.
-@export var idle_clip: StringName = CharacterClips.IDLE
+@export var idle_clip: StringName = CharacterClips.IDLE:
+	set(value):
+		idle_clip = value
+		_rebuild_in_editor()
 ## Walking: the blend space puts it at the walk speed.
-@export var walk_clip: StringName = CharacterClips.WALK
+@export var walk_clip: StringName = CharacterClips.WALK:
+	set(value):
+		walk_clip = value
+		_rebuild_in_editor()
 ## Running: the blend space puts it at the run speed.
-@export var run_clip: StringName = CharacterClips.RUN
+@export var run_clip: StringName = CharacterClips.RUN:
+	set(value):
+		run_clip = value
+		_rebuild_in_editor()
 ## Sprinting: the blend space puts it at the sprint speed.
-@export var sprint_clip: StringName = CharacterClips.SPRINT
+@export var sprint_clip: StringName = CharacterClips.SPRINT:
+	set(value):
+		sprint_clip = value
+		_rebuild_in_editor()
 ## The push off the ground.
-@export var jump_clip: StringName = CharacterClips.JUMP_START
+@export var jump_clip: StringName = CharacterClips.JUMP_START:
+	set(value):
+		jump_clip = value
+		_rebuild_in_editor()
 ## In the air, rising or falling.
-@export var air_clip: StringName = CharacterClips.AIR
+@export var air_clip: StringName = CharacterClips.AIR:
+	set(value):
+		air_clip = value
+		_rebuild_in_editor()
 ## Touching down.
-@export var land_clip: StringName = CharacterClips.LAND
+@export var land_clip: StringName = CharacterClips.LAND:
+	set(value):
+		land_clip = value
+		_rebuild_in_editor()
 ## Walking into a prop.
-@export var push_clip: StringName = CharacterClips.PUSH
+@export var push_clip: StringName = CharacterClips.PUSH:
+	set(value):
+		push_clip = value
+		_rebuild_in_editor()
 ## Using a door or a lever.
-@export var interact_clip: StringName = CharacterClips.INTERACT
+@export var interact_clip: StringName = CharacterClips.INTERACT:
+	set(value):
+		interact_clip = value
+		_rebuild_in_editor()
 ## Being hit.
-@export var hit_clip: StringName = CharacterClips.HIT
+@export var hit_clip: StringName = CharacterClips.HIT:
+	set(value):
+		hit_clip = value
+		_rebuild_in_editor()
 
 @export_group("Blending")
 ## Seconds the body states take to blend into each other.
-@export_range(0.0, 1.0, 0.01, "suffix:s") var blend_time := 0.15
+@export_range(0.0, 1.0, 0.01, "suffix:s") var blend_time := 0.15:
+	set(value):
+		blend_time = value
+		_rebuild_in_editor()
 ## Seconds an action clip takes to blend in and out.
-@export_range(0.0, 1.0, 0.01, "suffix:s") var action_blend_time := 0.1
+@export_range(0.0, 1.0, 0.01, "suffix:s") var action_blend_time := 0.1:
+	set(value):
+		action_blend_time = value
+		_rebuild_in_editor()
 
 var _machine: AnimationNodeStateMachine
 var _action_clip_node: AnimationNodeAnimation
@@ -73,8 +115,9 @@ var _action_was_active := false
 func _ready() -> void:
 	if player == null or animation_player == null or tree == null:
 		return
-	tree.anim_player = tree.get_path_to(animation_player)
-	tree.tree_root = _build_root()
+	_build()
+	if Engine.is_editor_hint():
+		return
 	tree.active = true
 	_playback = tree.get(&"parameters/%s/playback" % _MACHINE)
 	_playback.start(GROUND)
@@ -83,8 +126,20 @@ func _ready() -> void:
 	player.took_hit.connect(_on_hit)
 
 
+func _notification(what: int) -> void:
+	if not Engine.is_editor_hint():
+		return
+	# The tree is built in code, so a scene file must not keep a copy: take it off the node
+	# while the scene (this one, or one that instances it) is written, and build it again after.
+	if what == NOTIFICATION_EDITOR_PRE_SAVE and tree != null:
+		tree.tree_root = null
+		tree.anim_player = NodePath()
+	elif what == NOTIFICATION_EDITOR_POST_SAVE:
+		_rebuild_in_editor()
+
+
 func _process(_delta: float) -> void:
-	if tree == null or not tree.active or _playback == null:
+	if Engine.is_editor_hint() or tree == null or not tree.active or _playback == null:
 		return
 	var speed := player.ground_speed()
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, GROUND], speed)
@@ -128,6 +183,16 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 func stop_clip() -> void:
 	if tree != null:
 		tree.set(&"parameters/%s/request" % _ACTION, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+
+
+func _build() -> void:
+	tree.anim_player = tree.get_path_to(animation_player)
+	tree.tree_root = _build_root()
+
+
+func _rebuild_in_editor() -> void:
+	if Engine.is_editor_hint() and is_node_ready() and tree != null and animation_player != null:
+		_build()
 
 
 func _on_state_changed(state: Player.State) -> void:
@@ -200,7 +265,7 @@ func _link(from: StringName, to: StringName) -> void:
 
 
 func _build_ground() -> AnimationNodeBlendSpace1D:
-	var tuning := player.tuning
+	var tuning := player.tuning if player.tuning != null else PlayerTuning.new()
 	var space := AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = tuning.sprint_speed
