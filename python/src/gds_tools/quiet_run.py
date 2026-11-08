@@ -223,7 +223,11 @@ if sys.platform == "win32":
             proc = _ProcessInfo()
             flags = _CREATE_SUSPENDED | _CREATE_NO_WINDOW | _CREATE_UNICODE_ENVIRONMENT
             line = ctypes.create_unicode_buffer(subprocess.list2cmdline([str(c) for c in cmd]))
-            os.environ[QUIET_ENV] = "1"  # inherited: CreateProcess gets no environment block of its own
+            # The program's own environment block (this process's, plus the quiet flag), never a write to
+            # os.environ: setting it here leaked `GDS_QUIET=1` into the caller, so every later check in the same
+            # process (a pytest run, kit #797) believed it was already on the private desktop.
+            block = "".join(f"{k}={v}\0" for k, v in {**os.environ, QUIET_ENV: "1"}.items()) + "\0"
+            env = ctypes.create_unicode_buffer(block, len(block))
             _check(
                 _k32.CreateProcessW(
                     None,
@@ -232,7 +236,7 @@ if sys.platform == "win32":
                     None,
                     True,
                     flags,
-                    None,
+                    ctypes.cast(env, wt.LPVOID),
                     str(cwd) if cwd else None,
                     ctypes.byref(info),
                     ctypes.byref(proc),
