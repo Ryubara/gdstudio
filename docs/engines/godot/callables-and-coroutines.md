@@ -47,6 +47,39 @@ Calling a coroutine as a statement (`store.flush(send)`) is fine. Using its **re
 (`Function "flush()" is a coroutine, so it must be called with "await"`): a function that gains an `await` needs
 `await` at every caller that reads its value, tests included.
 
+## A timer belongs to the tree, not the node {#a-timer-belongs-to-the-tree}
+
+<!-- new section: the page covers what keeps an object alive and what await returns; none covered whose timer a wait
+     is -->
+
+- **Approach:** Wait on a screen with a child `Timer` node (it stops with a disabled parent and is freed with it),
+  take focus only while the screen is the router's top, and make the delay settable so tests need no wall time.
+  **Watch out for:** `SceneTree.create_timer` belongs to the tree, not the node: it ignores the node's disabled
+  `process_mode` and outlives it, so a main menu that waited 0.55 s before focusing `Play` stole the focus back from a
+  screen pushed over it inside that window. **Seen:** Deadnight, 2026-11-01 (fix: a `Timer` child and a top-of-router
+  check).
+
+## Where an await resumes {#where-an-await-resumes}
+
+<!-- new section: the page covers what await does with a value; none covered a signal that already fired or one that
+     frees its listener -->
+
+- **Approach:** Do not `await` a signal after the call that emits it: check the state (`is_arriving()`) or connect
+  before the call; give every capture script a hard stop in frames of its own (a counter in `_process` that quits)
+  besides `--quit-after`, bound every wait loop, run a new capture with a small `--quit-after` first, and delete the
+  frames once the sheet or clip is made. **Watch out for:** `arrival_show.skip_now()` ended the show inside the call
+  and emitted `arrival_ended` there, so the `await` after it began after the signal and waited for ever; Movie Maker
+  recorded 3,000 frames of a night that never began, enough to fill the disk. **Seen:** Deadnight #1278, 2026-11-05
+  (fix: a state check and a frame counter in the capture).
+
+- **Approach:** Let a fixture yield one frame before it frees what a test awaited (`RouterFixture.clear` does), and
+  test that the screen is still alive when `clear` first gives control back; when a headless run must be free of
+  `ERROR`, grep the log for it. **Watch out for:** `await signal` resumes the caller synchronously inside the emit: a
+  test that freed the screen right after `await night.ready_to_play` freed the night while `Night._go` was still
+  emitting ("freed or unreferenced while a signal is being emitted"); the suite stayed green, so no check saw it, and
+  the game itself frees nothing there. **Seen:** Deadnight, 2026-11-06 (fix: `clear` yields a frame;
+  `test_router_fixture.gd`).
+
 ## Packed arrays are values {#packed-arrays}
 
 <!-- new section: the page covers Callables and coroutines; another silent GDScript failure (a copy that is changed

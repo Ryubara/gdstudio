@@ -108,6 +108,12 @@ From Deadnight #702 (a bot's body had the view):
   revive. A test that reads only the person's own camera node passes while the view is elsewhere.
 - `release_view()` leaves the camera node in place, since the rig uses it for aiming; only the `current` flag goes.
 
+- **Approach:** In a capture, make the rig's own camera current (`rig.find_children("*", "Camera3D", true,
+  false)[0].make_current()`), and read the capture's log for `SCRIPT ERROR` before looking at its frames. **Watch out
+  for:** a player's `camera_rig` is the `Node3D` that places the lens, not the `Camera3D` it moves: `make_current` is
+  a nonexistent function there, and the Movie Maker frames stayed on the overview camera. **Seen:** Deadnight #634,
+  2026-11-02 (fix: the rig's camera made current).
+
 - **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
   its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty
@@ -125,8 +131,7 @@ frame (16 to 43 us a step), whether anyone looked through it or not: the bots', 
   carries the origin and the direction. Say which bodies rest where they are made (a bot, a body that draws
   nothing), not from `local_input`, which is also false for a body driven by hand or filmed.
 - **Switch it off in `_ready()`.** `set_process(false)` before the node is in the tree is undone when it is ready
-  (probe: one call a frame still), so the rig re-asserts its flag in `_ready()`
-  ([lesson](../../lessons/2026-11-03-a-process-switch-set-before-the-tree-was-undone-on-ready.md)). Prove it by counting
+  (probe: one call a frame still), so the rig re-asserts its flag in `_ready()`. Prove it by counting
   `is_processing()` nodes in the built scene.
 - **The bodies a sweep passes through** are kept in a static list (added on `tree_entered`, removed on
   `tree_exiting`), not found with `get_nodes_in_group` and a new Array in every step (1.2 to 1.8 us down to 0.2 us

@@ -29,8 +29,7 @@ the probe output.
   node count is flat after N events, and measure one tick of the real night with the bots at the ceiling. **Watch out
   for:** the desktop ceiling was set from the server step and the client draw with no bots, HUD or client script, and a
   one-shot blast effect faded to alpha 0 and was never freed. **Seen:** Deadnight #906, 2026-11-03; Deadnight #907,
-  2026-11-03 (fix: the checklist on this page (Deadnight #929, #930;
-  [lesson](../../lessons/2026-11-03-a-one-shot-effect-from-the-range-was-never-freed-in-the-night.md))).
+  2026-11-03 (fix: the checklist on this page, from Deadnight #929 and #930).
 
 ## Checklist (read the diff for each)
 

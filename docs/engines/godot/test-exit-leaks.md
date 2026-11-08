@@ -52,8 +52,6 @@ scene's text (`FileAccess.get_file_as_string` and a `RegEx` over the node's `tra
 assertion with a clean exit (Deadnight #1172). A check that a data line agrees with a scene reads the `.tscn`; a test
 that needs the scene running instances a small one of its own.
 
-See the [lesson](../../lessons/2026-11-05-a-test-that-instanced-the-greybox-leaked-at-exit.md).
-
 ## A suite that only names a class {#a-suite-that-only-names-a-class}
 
 A GdUnit shard leaked 996 objects and 432 resources at exit with every test green, on pull requests that changed
@@ -99,3 +97,32 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   loads `PlayerAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
   log and called usual. **Seen:** Deadnight #1100, 2026-11-04 (fix: bisect with a prefix of the test file, then one line
   at a time; the test reads the source).
+
+## What a test leaves alive {#what-a-test-leaves-alive}
+
+<!-- new section: the page covers the folder scan and a suite that only names a class; the causes a test creates
+     itself (cycles, nodes never freed, a preloaded scene) were only in one-problem files -->
+
+- **Approach:** Connect methods, or callables made with `Callable(self, &"method")` or `.bind(id)`, not lambdas that
+  name `self` or the object they listen to: a test captures the id (`var player_id := state.player_id`) and
+  disconnects before it frees the night; a rig passes its own methods to what it owns. Run a new suite alone with
+  `--verbose` and grep its log for `leaked at exit|still in use` before the first push. **Watch out for:** an object
+  that holds the connection and a lambda that holds the object is a cycle nothing frees: every test passes and CI
+  fails on `resources still in use at exit`, which the summary line does not carry (576 tests green, 6 instances and 3
+  resources leaked). **Seen:** Deadnight #207, #225, #432, 2026-11-01..02; Deadnight #1074, 2026-11-05 (fix: ids
+  captured, disconnect in `after_test`; the leak count reproduces exactly alone with `--verbose`).
+
+- **Approach:** Free what a test makes or removes: `remove_child(node)` then `node.free()`,
+  `auto_free(SomeNode.new())` (even for a node made only to read `get_property_list()`), or leave the node in the
+  `auto_free`d host; read the orphans column of every run (`grep -E "[1-9][0-9]* orphans"`) and fix any number above 0
+  before the pull request. **Watch out for:** the host frees only the children it still holds: a HUD taken out of the
+  tree had no owner left (298 orphans, 1,529 instances at exit) while the summary read `0 errors | 0 failures` and the
+  run was reported green; CI's leak gate failed the shard. **Seen:** Deadnight #746, 2026-11-03; Deadnight, 2026-11-03
+  (a node made for its property list, 1 orphan and 2 resources).
+
+- **Approach:** A test or capture script never `preload`s a scene or a heavy resource into a `const`: keep the path as
+  a string and `load()` inside the function that runs; when a CI shard leaks and nothing leaks locally, grep
+  `preload(".*\.tscn")` under `tests/` before bisecting in CI. **Watch out for:** the folder scan keeps every script
+  it loads until the end of the run, so each const kept the whole lot scene, its scripts and statics in use at exit;
+  the leak showed only in one shard, never in 15 local runs, and bisecting by CI runs took five pushes. **Seen:**
+  Deadnight #837, 2026-11-03 (fix: the three capture scripts load in the function that runs).

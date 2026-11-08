@@ -49,6 +49,12 @@ game/
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
   own).
 
+- **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
+  itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
+  go through the menu. **Watch out for:** a screen of the router starts its work in `screen_enter`, which only the
+  router calls: F6 on `night_screen.tscn` instanced the scene, ran `_ready` and showed the loading card, never the
+  night. **Seen:** Deadnight, 2026-11-02 (fix: the dev entry scene).
+
 ## What the check cannot see
 
 `gds check layout` reads `res://` paths, so a dependency through a `class_name` (code that names `Player` from `core/`)

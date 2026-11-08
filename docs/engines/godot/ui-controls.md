@@ -7,7 +7,7 @@ a suite leaves for the next are in [Input in UI tests](ui-input-tests.md).
 | Topic | What we learned |
 | --- | --- |
 | Drawn controls | Extend the engine control for its behaviour (HSlider, Button), empty its styleboxes in a theme variation, and draw in `_draw` with springs. A script `_draw` on a Button runs after the native draw, so a fill drawn there paints over the text (found by capture, not in the docs): draw on a child control with `show_behind_parent`. |
-| Tweens on a disabled or freed node | A node whose `process_mode` is `PROCESS_MODE_DISABLED` (a screen a router covers) never advances a tween created on it, so its animation never runs. A tween on a node that is freed is killed and its `finished` signal never fires, so an `await` on it waits forever. Create transition tweens on a node that stays enabled and outlives the screens (the router's stage), and check `is_instance_valid` after every await ([lesson](../../lessons/2026-11-01-a-screen-freed-mid-transition-locked-the-router-for-good.md)). |
+| Tweens on a disabled or freed node | A node whose `process_mode` is `PROCESS_MODE_DISABLED` (a screen a router covers) never advances a tween created on it, so its animation never runs. A tween on a node that is freed is killed and its `finished` signal never fires, so an `await` on it waits forever. Create transition tweens on a node that stays enabled and outlives the screens (the router's stage), and check `is_instance_valid` after every await. |
 | Screen-reading shaders | `hint_screen_texture` makes the renderer copy the back buffer: +0.18 ms at 1080p and +12 MB for a full-screen grade ([Compatibility lighting](compat-lighting.md#full-screen-post-shader)), and it is the shader feature most likely to differ on a mobile or WebGL2 GPU. A screen transition does not need it: make it procedural (hash noise) over a colour the shader owns, close it over the old screen, swap behind it, then open. |
 | Clear colour | Set `RenderingServer.set_default_clear_color` to the UI's background token. A fade or a screen swap that passes through "nothing" shows the engine's default grey, which no token owns. |
 | A transition checklist | A pop is not a push played backwards: the screen that leaves must be on top, and only the transition may decide layering (never the stage's child order). For each transition capture the push **and** the pop, free the outgoing, the incoming and the popped screen mid-transition and check the router is idle, queue calls during it and check they run in order, and run it with reduced motion on. The list is in the addon's README (`godot/addons/gds_ui/README.md` in the kit). |
@@ -162,8 +162,7 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   (`UIThemeBuilder.build(UITokens.active())`) is what the player has; a headless run then measures the same numbers as
   a window.
 - **Answer what a fixture starts.** A screen put in a state that ends in `await some_signal` (the name prompt) is
-  answered before it is freed, or the run leaks at exit and CI refuses it
-  ([lesson](../../lessons/2026-11-04-a-test-left-a-screen-waiting-for-an-answer-and-leaked-at-exit.md)).
+  answered before it is freed, or the run leaks at exit and CI refuses it.
 - **Not every size is a size.** A phone held upright is covered by the "turn your phone" prompt (test that it is); a
   phone at the Large interface size has a 432-unit canvas and is left out of the sweep. The phone sizes swept are
   844 x 390 (a 1169 x 540 canvas), 932 x 430 and 667 x 375 (the narrowest, 960 x 540).
@@ -280,7 +279,7 @@ added to the column.
   children depends on when the container lays them out; `UIMotion.stagger_in` read each row's position one frame after
   the tab showed, before the deferred sort, and it was only ever tested from a script, so the settings rows sometimes
   collapsed into each other. **Seen:** Deadnight, 2026-11-01 (fix: positions are read after the sort, and the real-input
-  test holds it ([lesson](../../lessons/2026-11-01-container-children-read-before-the-deferred-sort.md))).
+  test holds it).
 
 ## Menus under test {#menus-under-test}
 
