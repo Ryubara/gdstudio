@@ -98,7 +98,7 @@ maintainer felt it as an invisible box the cursor could not leave while a captur
   godot` sets `GDS_QUIET=1`, and a test clips the cursor from the hidden desktop and asserts the real one stays free
   (gdstudio #77, [lesson](../../lessons/2026-11-02-a-hidden-capture-held-the-cursor-in-an-invisible-box.md))).
 
-## What was measured
+## What was measured {#what-was-measured}
 
 A spike project (`sandbox/no-focus/`, a window that changes colour every frame) was started while a test window held
 the foreground and was typed into (F24 once every 30 ms; `python/tests/focus_holder.py`). Pinned Godot 4.7.2, RTX 5080,
@@ -123,6 +123,15 @@ starts the real pinned Godot with Movie Maker and the test asserts that the fore
 key reached the test window, no Godot window is visible on the person's desktop, and the 30 frames are rendered,
 different from each other and not black. Run with the plain start instead (`Failed first`), it fails: Godot took the
 foreground at 0.72 s.
+
+- **Approach:** Give each value a test's helper thread reads its own name, hand it over with a `threading.Event`, catch
+  the thread's exception and assert on it after `join()`, and run every test CI skips (no pinned Godot on the runner)
+  locally before it lands. **Watch out for:** #238 named the program's id list `started` above the old
+  `started = time.time()`, so the watcher and `on_start` both got the float and failed every run that reached them,
+  which looked random because the test skips when its window cannot take the foreground and CI skips it outright;
+  pytest only warns when a thread dies. **Seen:** gdstudio #793, 2026-11-08 (fix: `root` with a `root_known` event
+  and a separate clock, the watcher's errors asserted, unhandled thread exceptions made errors in `pyproject.toml`;
+  0 of 20 local runs passed before, 20 of 20 after).
 
 ## Sound {#sound}
 
