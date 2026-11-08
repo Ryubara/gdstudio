@@ -405,7 +405,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   (`process_mode = DISABLED`), which is right for a solo night and wrong for a multiplayer one (the link is no longer
   read). Hold the sub-screen (settings) as a child of the menu instead, with a `closed` signal for its Back, and take
   Esc, B and Start in the owner: the child's own `ui_cancel` must go back one step, not resume
-  ([lesson](../../lessons/2026-11-02-a-menu-pushed-on-the-router-froze-the-night-behind-it.md)).
+  (Deadnight #471, 2026-11-02: a test joins a real server over loopback, opens the menu and the settings, and
+  checks the server's tick still climbs).
 - **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
   ("Menu: the night goes on around you", not "Paused").
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
@@ -415,8 +416,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   overlay, and test a screen's first running frame through every entry route (solo, join, resume, the Activity). **Watch
   out for:** the Joining card hid the reticle, the scoreboard and the touch layer; a finished online join only hid the
   card and only Resume restored them, so every online join started with no crosshair. **Seen:** Deadnight #529,
-  2026-11-02 (fix: one restore used by every close
-  ([lesson](../../lessons/2026-11-02-an-online-join-never-restored-the-crosshair.md))).
+  2026-11-02 (fix: one restore used by every close;
+  `test_night_crosshair.gd` joins over a real loopback socket and checks the first running frame).
 
 ## Reading a screen under test: the scale it really runs at
 

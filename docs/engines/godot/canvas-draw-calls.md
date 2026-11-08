@@ -116,7 +116,7 @@ behind the words made 233 against a limit of 230 when main peaked at 229). Draw 
 item that is already there (`draw_set_transform` moves it to the right place; it may draw outside its own rect) and
 keep the shape's data in a `RefCounted` that emits `changed`. Do not raise the limit for a look.
 
-## A hidden part still counts: build it when it is first needed
+## A hidden part still counts: build it when needed {#a-hidden-part-still-counts-build-it-when-it-is-first-needed}
 
 The same budget counts a card that is hidden for the whole night, so the room is usually in the parts a night builds
 and never shows. Count by part first (Deadnight: `--canvasparts=1` on the budget's command, then
@@ -125,6 +125,14 @@ are one item each until used. Make the words on first need (a property whose get
 is shown) and never park them out of the tree, which makes them orphans, another budgeted count. A test checks both
 ends: nothing under the part while idle, the whole card after use. See the
 [lesson](../../lessons/2026-11-05-hidden-hud-cards-held-a-fifth-of-the-canvas-item-budget.md).
+
+- **Approach:** Build what only a bigger case needs when the night reaches it and free it on the way down (a test checks
+  both ends), and before pushing count the nodes a feature for the larger case leaves in the small one: a probe over
+  the fixture on main and on the branch, then the CI command locally and `check_budget.py`; never raise the limit.
+  **Watch out for:** the bots' chip strip (a container and a grid) was made in `HudPoints._init`, so every HUD held two
+  empty canvas items and the four-body budget night peaked at 232 over its 230; the suspect named first (rows up to
+  `MAX_ROWS`) was not built at all. **Seen:** Deadnight #1191, 2026-11-05 (fix: `HudPoints` makes the strip past eight
+  bodies and frees it at eight or fewer; the HUD reads 164 canvas items at four bodies on main and on the branch).
 
 ## How to compare two builds
 
