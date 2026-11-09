@@ -104,7 +104,7 @@ func test_the_lens_does_not_go_through_a_wall_behind_the_player() -> void:
 	await InputSim.ticks(get_tree(), 40)
 	assert_float(_camera.global_position.z).is_greater(-24.0)
 	var pivot: Vector3 = _player.get_node("CameraTarget").global_position
-	assert_float(_camera.global_position.distance_to(pivot)).is_less(_rig.distance - 1.0)
+	assert_float(_camera.global_position.distance_to(pivot)).is_less(_rig.distance - 0.5)
 
 
 # The wrapper's settings reach the Phantom Camera through setters, so they work while the game

@@ -7,9 +7,12 @@ extends Node3D
 ## of walls with its spring arm, damps the follow and blends to another camera when one has a
 ## higher `priority`.
 ##
-## Sprinting zooms the view out a little and can shake it; aiming brings the camera in, over the
-## shoulder, to a narrower field of view. Both blend smoothly in and out and sit on top of the
-## framing below, so `distance`, `offset` and `field_of_view` stay the resting view.
+## The over-the-shoulder view is the `shoulder` setting (left, center or right, `shoulder_offset`
+## to the side and `vertical_offset` up): it writes the Camera node's own H Offset and V Offset,
+## which shift the view without moving the camera or its wall cast, and nothing else writes
+## them. Sprinting zooms the view out a little and can shake it; aiming and firing bring the
+## camera in to a narrower field of view. All of them blend smoothly in and out and sit on top of
+## the framing below, so `distance`, `offset` and `field_of_view` stay the resting view.
 ##
 ## Orbit comes from the mouse (while it is captured), the right stick (`look_*` actions) and
 ## touch (`TouchControls.look_turned`, connected in the scene to `orbit()`). The character turns
@@ -21,6 +24,9 @@ extends Node3D
 
 ## The orbit angles changed; `yaw` and `pitch` are in degrees.
 signal orbited(yaw: float, pitch: float)
+
+## Which side of the character the view sits on.
+enum Shoulder { LEFT, CENTER, RIGHT }
 
 ## The Phantom Camera properties this wrapper sets from its own exports. This node is the one
 ## place to tune the camera: nobody needs to open the Phantom Camera node for these.
@@ -50,18 +56,25 @@ const _FORWARDED: Array[StringName] = [
 	set(value):
 		follow_camera = value
 		update_configuration_warnings()
+## The `Camera3D` that draws the scene (the Phantom Camera host's camera). Its H Offset and V
+## Offset are the over-the-shoulder view this wrapper sets from the Shoulder group.
+@export var camera: Camera3D:
+	set(value):
+		camera = value
+		update_configuration_warnings()
 
 ## The character whose sprint and aim the camera follows. Empty looks at the parent of `target`.
 @export var player: Player
 
 @export_group("Framing")
 ## How far behind the target the lens sits.
-@export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 4.4:
+@export_range(1.0, 12.0, 0.05, "suffix:m") var distance := 1.7:
 	set(value):
 		distance = value
 		_forward()
-## Where the camera aims, from the target's point: x is the shoulder (positive moves the view to
-## the right of the character), y the height, z the depth.
+## Where the camera's arm starts, from the target's point, in world axes (x east, y up, z south).
+## It moves the arm and its wall cast, so keep it near zero sideways: the over-the-shoulder view
+## is the Shoulder group's, which does not move the cast.
 @export_custom(PROPERTY_HINT_RANGE, "-3,3,0.01,suffix:m") var offset := Vector3(0.0, 0.1, 0.0):
 	set(value):
 		offset = value
@@ -83,6 +96,28 @@ const _FORWARDED: Array[StringName] = [
 		_forward()
 ## The angle looking down at the start: positive looks down at the character.
 @export_range(-80.0, 80.0, 0.5, "suffix:deg") var start_pitch := 14.0
+
+@export_group("Shoulder")
+## The side of the character the view sits on. It sets the Camera node's H Offset to
+## `-shoulder_offset` (left), 0 (center) or `shoulder_offset` (right).
+@export var shoulder := Shoulder.RIGHT:
+	set(value):
+		shoulder = value
+		if Engine.is_editor_hint():
+			_shoulder_pos = _shoulder_side()
+		_forward_view()
+## How far to the side the view sits on the left and right shoulder (the Camera node's H Offset).
+@export_range(0.0, 2.0, 0.01, "suffix:m") var shoulder_offset := 0.5:
+	set(value):
+		shoulder_offset = value
+		_forward_view()
+## How far up the view sits (the Camera node's V Offset).
+@export_range(-1.0, 1.0, 0.01, "suffix:m") var vertical_offset := 0.0:
+	set(value):
+		vertical_offset = value
+		_forward_view()
+## Seconds the view takes to cross from one shoulder to the other.
+@export_range(0.0, 3.0, 0.05, "suffix:s") var shoulder_time := 0.3
 
 @export_group("Sprint")
 ## How much wider the field of view gets at a full sprint.
@@ -109,16 +144,22 @@ const _FORWARDED: Array[StringName] = [
 
 @export_group("Aim")
 ## How far behind the target the lens sits while aiming.
-@export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 2.4:
+@export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 1.1:
 	set(value):
 		aim_distance = value
 		_forward_blend()
-## How far the view moves to the right of the character while aiming, so the crosshair clears the
-## body.
-@export_range(-2.0, 2.0, 0.01, "suffix:m") var aim_shoulder := 0.55:
+## Aiming also moves the view to `aim_shoulder`. Off keeps the shoulder view as it is and only
+## zooms in and out (distance and field of view).
+@export var aim_shifts_shoulder := false:
+	set(value):
+		aim_shifts_shoulder = value
+		_forward_view()
+## How far to the side of the character the view sits while aiming (on the chosen shoulder), when
+## `aim_shifts_shoulder` is on.
+@export_range(0.0, 2.0, 0.01, "suffix:m") var aim_shoulder := 0.7:
 	set(value):
 		aim_shoulder = value
-		_forward_blend()
+		_forward_view()
 ## The field of view while aiming.
 @export_range(20.0, 110.0, 0.5, "suffix:deg") var aim_fov := 50.0:
 	set(value):
@@ -128,6 +169,24 @@ const _FORWARDED: Array[StringName] = [
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_in_speed := 8.0
 ## How fast the view goes back out.
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_out_speed := 6.0
+
+@export_group("Fire")
+## Firing without aiming zooms the view in. Off leaves the framing alone while firing.
+@export var zoom_when_firing := true
+## How far behind the target the lens sits while the fire button is held.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var fire_distance := 1.4:
+	set(value):
+		fire_distance = value
+		_forward_blend()
+## The field of view while the fire button is held.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var fire_fov := 56.0:
+	set(value):
+		fire_fov = value
+		_forward_blend()
+## How fast the view comes in while firing (1 is a second, 8 an eighth of one).
+@export_range(0.5, 30.0, 0.1, "suffix:/s") var fire_in_speed := 8.0
+## How fast the view goes back out once the fire button is let go.
+@export_range(0.5, 30.0, 0.1, "suffix:/s") var fire_out_speed := 6.0
 
 @export_group("Follow")
 ## Smooths the camera's follow of a moving target.
@@ -208,6 +267,9 @@ var pitch := 0.0
 var _arm_waited := 0
 var _sprint_blend := 0.0
 var _aim_blend := 0.0
+var _fire_blend := 0.0
+var _shoulder_pos := 1.0
+var _arm_ready := false
 var _shake_blend := 0.0
 var _shake_phase := 0.0
 
@@ -243,6 +305,10 @@ func _notification(what: int) -> void:
 		_pcam.tween_transition = plain.transition
 		_pcam.tween_ease = plain.ease
 		_pcam.camera_3d_resource = null
+		# The Camera node's offsets are set from the Shoulder group: the scene keeps the defaults.
+		if camera != null:
+			camera.h_offset = 0.0
+			camera.v_offset = 0.0
 	elif what == NOTIFICATION_EDITOR_POST_SAVE:
 		_pcam.camera_3d_resource = Camera3DResource.new()
 		_forward()
@@ -252,6 +318,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	pitch = start_pitch
+	_shoulder_pos = _shoulder_side()
 	_player = player
 	if target != null:
 		var heading := target.get_parent() as Node3D
@@ -270,6 +337,8 @@ func _process(delta: float) -> void:
 	if _arm_waited < 3:
 		_arm_waited += 1
 		return
+	if not _arm_ready:
+		_exclude_player()
 	var stick := Input.get_vector(&"look_left", &"look_right", &"look_up", &"look_down")
 	if not stick.is_zero_approx():
 		orbit(stick * stick_speed * delta)
@@ -290,10 +359,18 @@ func orbit(degrees: Vector2) -> void:
 ## frame; a test calls it with the time it wants.
 func advance(delta: float) -> void:
 	var sprinting := is_instance_valid(_player) and _player.is_sprinting()
-	var aiming := is_instance_valid(_player) and _player.aiming
+	# The zoom follows the buttons, not the arm: the character keeps its aim pose for a moment
+	# after a shot, and the camera must not wait for that.
+	var aiming := is_instance_valid(_player) and _player.aim_held
+	var firing := is_instance_valid(_player) and _player.fire_held and zoom_when_firing
 	_sprint_blend = move_toward(_sprint_blend, 1.0 if sprinting else 0.0, sprint_zoom_speed * delta)
 	var aim_speed := aim_in_speed if aiming else aim_out_speed
 	_aim_blend = move_toward(_aim_blend, 1.0 if aiming else 0.0, aim_speed * delta)
+	var fire_speed := fire_in_speed if firing else fire_out_speed
+	_fire_blend = move_toward(_fire_blend, 1.0 if firing else 0.0, fire_speed * delta)
+	_shoulder_pos = move_toward(
+		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(shoulder_time, 0.001)
+	)
 	_shake_blend = move_toward(_shake_blend, 1.0 if sprinting else 0.0, sprint_shake_blend * delta)
 	if _shake_blend > 0.0:
 		_shake_phase = fmod(_shake_phase + TAU * sprint_shake_frequency * delta, TAU * 2.0)
@@ -301,22 +378,42 @@ func advance(delta: float) -> void:
 	_apply()
 
 
-## The distance behind the target now: `distance`, farther while sprinting, `aim_distance` while
-## aiming.
+## Turns the view to the other shoulder (the left one from the right, and the right from the left
+## or the center). The `shoulder_swap` action calls it.
+func swap_shoulder() -> void:
+	shoulder = Shoulder.LEFT if shoulder == Shoulder.RIGHT else Shoulder.RIGHT
+
+
+## The distance behind the target now: `distance`, farther while sprinting, `fire_distance` while
+## firing, `aim_distance` while aiming.
 func current_distance() -> float:
 	var sprint := distance + sprint_distance_change * _eased(_sprint_blend)
-	return lerpf(sprint, aim_distance, _eased(_aim_blend))
+	var fire := lerpf(sprint, fire_distance, _eased(_fire_blend))
+	return lerpf(fire, aim_distance, _eased(_aim_blend))
 
 
-## The field of view now: `field_of_view`, wider while sprinting, `aim_fov` while aiming.
+## The field of view now: `field_of_view`, wider while sprinting, `fire_fov` while firing,
+## `aim_fov` while aiming.
 func current_fov() -> float:
 	var sprint := field_of_view + sprint_fov_change * _eased(_sprint_blend)
-	return lerpf(sprint, aim_fov, _eased(_aim_blend))
+	var fire := lerpf(sprint, fire_fov, _eased(_fire_blend))
+	return lerpf(fire, aim_fov, _eased(_aim_blend))
 
 
-## The aim point offset now: `offset`, moved to the right by `aim_shoulder` while aiming.
+## Where the arm starts now: `offset`. Aiming and firing never move it.
 func current_offset() -> Vector3:
-	return offset + Vector3(aim_shoulder * _eased(_aim_blend), 0.0, 0.0)
+	return offset
+
+
+## The Camera node's H Offset (x) and V Offset (y) now: the shoulder's side times
+## `shoulder_offset` (`aim_shoulder` while aiming, when `aim_shifts_shoulder` is on) and
+## `vertical_offset`.
+func current_view_offset() -> Vector2:
+	var width := shoulder_offset
+	if aim_shifts_shoulder:
+		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
+	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
+	return Vector2(side * width, vertical_offset)
 
 
 ## The sprint shake right now as turns in degrees (x pitch, y yaw, z roll). Zero when
@@ -343,6 +440,11 @@ func aim_blend() -> float:
 	return _aim_blend
 
 
+## How far into the fire view the camera is, 0 to 1.
+func fire_blend() -> float:
+	return _fire_blend
+
+
 ## The Phantom Camera that does the work (for a game that wants its other settings).
 func phantom_camera() -> PhantomCamera3D:
 	return _pcam
@@ -359,6 +461,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed(&"ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif InputMap.has_action(&"shoulder_swap") and event.is_action_pressed(&"shoulder_swap"):
+		swap_shoulder()
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -367,6 +471,8 @@ func _get_configuration_warnings() -> PackedStringArray:
 		warnings.append("Set `target`: the node the camera follows (the player's `CameraTarget`).")
 	if follow_camera == null:
 		warnings.append("Set `follow_camera`: a PhantomCamera3D in Third Person follow mode.")
+	if camera == null:
+		warnings.append("Set `camera`: the Camera3D that draws the scene (its H and V Offset).")
 	return warnings
 
 
@@ -413,6 +519,50 @@ func _forward_blend() -> void:
 	var lens := pcam.camera_3d_resource
 	if lens != null and not is_equal_approx(lens.fov, current_fov()):
 		lens.fov = current_fov()
+	_forward_view()
+
+
+# Writes the shoulder view to the Camera node's H and V Offset. The Phantom Camera host copies
+# its lens resource (with the resource's offsets) onto the Camera node whenever the resource
+# changes, so the resource is kept equal to the view and nothing resets it.
+func _forward_view() -> void:
+	var view := current_view_offset()
+	var lens: Camera3DResource = null
+	if is_instance_valid(_pcam):
+		lens = _pcam.camera_3d_resource
+	if lens != null:
+		if not is_equal_approx(lens.h_offset, view.x):
+			lens.h_offset = view.x
+		if not is_equal_approx(lens.v_offset, view.y):
+			lens.v_offset = view.y
+	if is_instance_valid(camera):
+		if not is_equal_approx(camera.h_offset, view.x):
+			camera.h_offset = view.x
+		if not is_equal_approx(camera.v_offset, view.y):
+			camera.v_offset = view.y
+
+
+# -1 for the left shoulder, 0 for the center, 1 for the right.
+func _shoulder_side() -> float:
+	match shoulder:
+		Shoulder.LEFT:
+			return -1.0
+		Shoulder.CENTER:
+			return 0.0
+	return 1.0
+
+
+# The arm's cast must never hit the character it follows: an arm that starts outside the capsule
+# (a sideways `offset`) would otherwise stop at its own body and put the lens in the head.
+func _exclude_player() -> void:
+	var arm: SpringArm3D = null
+	if is_instance_valid(_pcam):
+		arm = _pcam.get_parent() as SpringArm3D
+	if arm == null:
+		return
+	_arm_ready = true
+	if is_instance_valid(_player):
+		arm.add_excluded_object(_player.get_rid())
 
 
 func _eased(blend: float) -> float:

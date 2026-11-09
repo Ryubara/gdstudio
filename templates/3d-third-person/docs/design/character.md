@@ -24,8 +24,8 @@ talk through signals and input actions, so each can be replaced alone.
 
 The player reads actions, never devices: `move_left`, `move_right`, `move_forward`, `move_back`, `jump`, `sprint`,
 `walk` (a slow walk), `interact`, `crouch`, `aim`, `fire` and, for the camera, `look_left`, `look_right`, `look_up`,
-`look_down`. Each has a key and, where it makes sense, a pad binding for any device; the touch layer presses the same
-actions. Rebind them in Project Settings > Input Map.
+`look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
+layer presses the same actions. Rebind them in Project Settings > Input Map.
 
 | Action | Keyboard and mouse | Pad | Touch |
 | --- | --- | --- | --- |
@@ -38,6 +38,7 @@ actions. Rebind them in Project Settings > Input Map.
 | Crouch | C or Ctrl (held; a toggle in the tuning) | B | the Crouch button |
 | Aim | right mouse button (held) | left trigger | the Aim button |
 | Fire | left mouse button | right trigger | the Fire button (it aims too) |
+| Swap shoulder | Q | right stick click | none |
 
 The character moves toward where the camera looks and turns to face its movement; while it aims it faces where the
 camera looks instead, however it walks (the clips only walk forward, so a sidestep slides).
@@ -75,16 +76,26 @@ The sample map is built for these numbers (blocks 1 m apart in height, twelve st
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
 The camera's settings are all on the `PlayerCamera` node, so you never open the Phantom Camera node: the nodes it
-works with (Nodes), distance, the offset (x shoulder, y height, z depth), field of view, near and far clip and start
-pitch (Framing), damping (Follow), mouse, stick and pitch limits (Orbit), the priority and the blend back from a
-`CameraZone`'s camera (Blending), the wall mask, shape and margin (Walls), and two views that blend on top of the
-framing: Sprint (the field of view and distance added at a full sprint, the zoom speed, and a shake with its amplitude
-in degrees, frequency and blend speed, off at 0) and Aim (the distance, the shoulder offset and the field of view while
-aiming, and the speeds in and out). They are applied to the `FollowCamera` Phantom Camera when the game starts and again
-each time one changes, so they can be tuned in the remote inspector while the game runs, and the node is a `@tool`
-script, so changing the distance or the field of view in the editor moves the camera in the viewport. `Camera` renders
-and `PhantomCameraHost` copies the active Phantom Camera onto it, so a change to `Camera` itself (its field of view,
-say) is overwritten: tune `PlayerCamera`. Anything else about it (noise, tweens, dead zones) is that node's own
+works with (Nodes), distance (1.7 m), the arm's offset (`offset`, in world axes; it moves the wall cast, so keep it near
+zero sideways), field of view, near and far clip and start pitch (Framing), the **Shoulder** group, damping (Follow),
+mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera (Blending), the wall
+mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the field of view and distance
+added at a full sprint, the zoom speed, and a shake with its amplitude in degrees, frequency and blend speed, off at 0),
+Aim (the distance, the field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a
+shot fired without aiming, with `zoom_when_firing` to turn it off). The zoom follows the buttons: it starts back out on
+the next frame after aim and fire are let go, while the character keeps its aim pose for the tuning's 0.8 s.
+
+**Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
+own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
+sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
+right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes). Tune
+the shoulder there, in the editor or in the remote inspector while the game runs; nothing else writes those two values
+(the Phantom Camera host copies its lens resource onto `Camera` whenever it changes, so `PlayerCamera` keeps the
+resource equal to them). With `aim_shifts_shoulder` on, aiming also moves the view to `aim_shoulder`. The settings are
+applied to the `FollowCamera` Phantom Camera when the game starts and again each time one changes, and the node is a
+`@tool` script, so changing the distance, the field of view or the shoulder in the editor moves the camera in the
+viewport. `Camera` renders and `PhantomCameraHost` copies the active Phantom Camera onto it, so a change to `Camera`'s
+field of view is overwritten: tune `PlayerCamera`. Anything else about it (noise, tweens, dead zones) is that node's own
 inspector, and the addon's docs are at <https://phantom-camera.dev>.
 
 The touch layer is a scene you arrange in the 2D editor (`ui/touch/third_person_touch_controls.tscn`, which inherits

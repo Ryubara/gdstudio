@@ -66,7 +66,7 @@ each one, rather than finding them one by one in play.
   order. **Watch out for:** hip fire was first built as a second, partial aim (its own camera spring, a bool for the
   gun's yaw), then one aim weight driven by two inputs coupled every hip-fire tweak to the aim zoom. **Seen:**
   Deadnight #300, 2026-11-01; Deadnight #464, 2026-11-02 (fix: deadnight #473 removed the hip-fire zoom and #488 holds a
-  press-order suite).
+  press-order suite); gdstudio #856, 2026-11-08 (a camera driven by the aim pose zoomed on for a second after a shot).
 - **Approach:** When two states share one output, test every transition between them, not only each state alone. **Watch
   out for:** a shot while aiming is not hip fire, but the aim weight was held while `fire_age < hip_fire_hold` and every
   shot reset `fire_age`, so the hip-fire zoom came on after aiming, shooting and letting go. **Seen:** Deadnight #428,

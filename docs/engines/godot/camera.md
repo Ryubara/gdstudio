@@ -30,16 +30,32 @@ node. The springs, interpolation and wall notes below still apply when a game tu
   `NOTIFICATION_EDITOR_PRE_SAVE` it puts the addon's defaults back on every property it forwards
   (`get_script().get_property_default_value`), resets the transform and drops the lens resource, then forwards again in
   `..._POST_SAVE`. **Watch out for:** saving `main.tscn` without that wrote spring length, margin, damping, offset and a
-  transform computed from the distance onto the `FollowCamera`. **Seen:** gdstudio #831, 2026-11-08 (proved by saving the
-  scene in the editor and reading the file).
+  transform computed from the distance onto the `FollowCamera`. **Seen:** gdstudio #831, 2026-11-08 (proved by saving
+  the scene in the editor and reading the file).
 
 - **Approach:** Give the wrapper every Phantom Camera property the template relies on and a developer would tune: the
-  offset as a `Vector3` (x shoulder, y height, z depth), distance, field of view, near and far clip, damping, priority,
-  the blend (duration, transition, ease), and the wall mask, shape and margin. Forward each through a setter, and in
-  `PRE_SAVE` put the addon's defaults back (a fresh `PhantomCameraTween.new()` gives the blend's). **Watch out for:** the
-  Framing group exposed only a `height`, which fed `follow_offset.y`, so a shoulder offset (x) or a depth (z) meant
-  opening the Phantom Camera node, a second place with the same settings. Look-at, dead zones and axis locks are not
-  forwarded: Third Person follow mode does not use them. **Seen:** gdstudio #831, 2026-11-08.
+  arm's start as a `Vector3` (world axes: the shoulder is not x, see the next entry), distance, field of view, near and
+  far clip, damping, priority, the blend (duration, transition, ease), and the wall mask, shape and margin. Forward each
+  through a setter, and in `PRE_SAVE` put the addon's defaults back (a fresh `PhantomCameraTween.new()` gives the
+  blend's). **Watch out for:** the Framing group exposed only a `height`, which fed `follow_offset.y`, so a shoulder
+  offset (x) or a depth (z) meant opening the Phantom Camera node, a second place with the same settings. Look-at, dead
+  zones and axis locks are not forwarded: Third Person follow mode does not use them. **Seen:** gdstudio #831,
+  2026-11-08.
+- **Approach:** Keep the over-the-shoulder framing in one place on the wrapper: a `shoulder` choice (left, center,
+  right), a `shoulder_offset` and a vertical offset that it writes to the **Camera node's own** `h_offset` and
+  `v_offset`, over a `shoulder_time` when the side changes; keep the wrapper's `offset` for the arm's start. **Watch out
+  for:** #831 built an `offset` Vector3 on the wrapper that fed `follow_offset`, which is in world axes and moves the
+  arm and its wall cast (the "shoulder" was always toward world +X), where the request was the Camera node's H and V
+  Offset, which shift the view along the camera's own axes without moving the camera or its cast. **Seen:** gdstudio
+  #856, 2026-11-08 (maintainer correction, [log](../studio/maintainer-corrections.md)).
+- **Approach:** Make the wrapper the only writer of the Camera node's `h_offset` and `v_offset` and keep the Phantom
+  Camera's `Camera3DResource` equal to what it writes, with a test that changes the field of view, the near clip and
+  the sprint zoom and reads the node's offsets after; take them off the node in `NOTIFICATION_EDITOR_PRE_SAVE` too.
+  **Watch out for:** the host copies the active camera's whole lens resource, offsets included, onto the `Camera3D` on
+  every write of `fov`, `near` or `far`, so an offset typed on the Camera node alone is reset to the resource's 0 by the
+  next zoom, and in the editor the host puts back any edit of a property it owns, with a warning. **Seen:** gdstudio
+  #856, 2026-11-08 (proved in the editor: shoulder, offset and height set through the inspector reach the node, and the
+  saved scene holds no offset on it).
 
 ## Smoothing that feels the same at any frame rate {#smoothing-that-feels-the-same-at-any-frame-rate}
 
@@ -79,6 +95,15 @@ blend takes it to zero.
   is solid; the spring arm hit it and pulled the camera in to his face, which also changes draw counts, and the body
   kept its spawn facing and looked at the camera. **Seen:** Deadnight #853, 2026-11-03 (fix: spots are placed clear of
   doors and walls and the pose sets `state.facing` and `rotation.y`).
+
+- **Approach:** Keep the arm's start inside the character's capsule (`follow_offset` near zero sideways, the shoulder on
+  the Camera node's `h_offset`), exclude the character from the arm (`SpringArm3D.add_excluded_object(
+  player.get_rid())`) and sweep the camera's yaw in a walled room and in the open with aim, fire and sprint held.
+  **Watch out for:** a world-space `follow_offset` of 0.55 m (the aim shoulder) put the arm's origin outside the
+  capsule, and at the yaws where the arm points back across the body (-150 to -30) its ray hit the character: the lens
+  dropped to 0.28 to 0.41 m from the head, a first-person view. Not the wall (the open floor did it too); at rest the
+  origin is inside the capsule, where a ray ignores the body it starts in. The addon excludes `follow_target`, a
+  `Node3D` and no collision object, so it excludes nothing. **Seen:** gdstudio #856, 2026-11-08.
 
 ## Reading a rotation {#rotations}
 

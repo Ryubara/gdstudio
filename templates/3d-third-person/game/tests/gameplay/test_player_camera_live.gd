@@ -23,24 +23,35 @@ func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
 		&"target": null,
 		&"follow_camera": null,
+		&"camera": null,
 		&"player": null,
-		&"distance": 4.4,
+		&"distance": 1.7,
 		&"offset": Vector3(0.0, 0.1, 0.0),
 		&"field_of_view": 62.0,
 		&"near_clip": 0.05,
 		&"far_clip": 4000.0,
 		&"start_pitch": 14.0,
+		&"shoulder": PlayerCamera.Shoulder.RIGHT,
+		&"shoulder_offset": 0.5,
+		&"vertical_offset": 0.0,
+		&"shoulder_time": 0.3,
 		&"sprint_fov_change": 6.0,
 		&"sprint_distance_change": 0.4,
 		&"sprint_zoom_speed": 3.0,
 		&"sprint_shake_amplitude": 0.0,
 		&"sprint_shake_frequency": 3.0,
 		&"sprint_shake_blend": 4.0,
-		&"aim_distance": 2.4,
-		&"aim_shoulder": 0.55,
+		&"aim_distance": 1.1,
+		&"aim_shifts_shoulder": false,
+		&"aim_shoulder": 0.7,
 		&"aim_fov": 50.0,
 		&"aim_in_speed": 8.0,
 		&"aim_out_speed": 6.0,
+		&"zoom_when_firing": true,
+		&"fire_distance": 1.4,
+		&"fire_fov": 56.0,
+		&"fire_in_speed": 8.0,
+		&"fire_out_speed": 6.0,
 		&"follow_damping": true,
 		&"follow_damping_amount": 0.06,
 		&"mouse_sensitivity": 0.12,
@@ -66,9 +77,10 @@ func test_every_export_has_its_default_pinned() -> void:
 func test_the_scene_sets_both_nodes_and_the_camera_has_no_warning() -> void:
 	assert_object(_rig.target).is_not_null()
 	assert_object(_rig.follow_camera).is_not_null()
+	assert_object(_rig.camera).is_same(_scene.get_node("Camera"))
 	assert_array(_rig._get_configuration_warnings()).is_empty()
 	var bare := PlayerCamera.new()
-	assert_array(bare._get_configuration_warnings()).has_size(2)
+	assert_array(bare._get_configuration_warnings()).has_size(3)
 	bare.free()
 
 
