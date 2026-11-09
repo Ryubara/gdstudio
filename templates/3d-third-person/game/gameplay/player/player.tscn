@@ -11,17 +11,19 @@
 [ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="9_weapon"]
 [ext_resource type="PackedScene" path="res://gameplay/player/footsteps.tscn" id="10_footsteps"]
 [ext_resource type="Script" path="res://gameplay/player/player_model.gd" id="11_model"]
+[ext_resource type="Script" path="res://gameplay/player/player_ragdoll.gd" id="12_ragdoll"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "weapon")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("bones", "model", "weapon")]
 floor_stop_on_slope = true
 floor_max_angle = 0.837758
 script = ExtResource("1_player")
 tuning = ExtResource("2_tuning")
+bones = NodePath("Ragdoll")
 model = NodePath("Model")
 weapon = NodePath("Weapon")
 
@@ -63,6 +65,11 @@ player = NodePath("..")
 model = NodePath("../Model")
 animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("player", "model")]
+script = ExtResource("12_ragdoll")
+player = NodePath("..")
+model = NodePath("../Model")
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("muzzle", "shooter") instance=ExtResource("9_weapon")]
 muzzle = NodePath("../Model/PistolHeld/Pistol/Pistol/Muzzle")

@@ -181,6 +181,7 @@ var _action_scale_node: AnimationNodeTimeScale
 var _playback: AnimationNodeStateMachinePlayback
 var _action_clip: StringName = &""
 var _action_was_active := false
+var _dead := false
 
 
 func _ready() -> void:
@@ -384,6 +385,17 @@ func _drive_pistol() -> void:
 
 
 func _on_state_changed(state: Player.State) -> void:
+	# A dead character is the ragdoll's: the tree stops writing the skeleton's pose, and starts
+	# again from the ground state when the character gets up.
+	if state == Player.State.DEAD:
+		tree.active = false
+		_dead = true
+		return
+	if _dead:
+		_dead = false
+		tree.active = true
+		_playback = tree.get(&"parameters/%s/playback" % _MACHINE)
+		_playback.start(GROUND)
 	match state:
 		Player.State.IDLE, Player.State.WALK, Player.State.RUN:
 			_travel(GROUND)

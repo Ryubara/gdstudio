@@ -12,7 +12,9 @@ extends CharacterBody3D
 ##
 ## It reads these input actions (all devices): `move_left`, `move_right`, `move_forward`,
 ## `move_back`, `jump`, `sprint`, `walk` (slows to a walk), `interact`, `crouch`, `aim` and
-## `fire`.
+## `fire`. `ragdoll` (Y by default; see `ragdoll_key`) kills the character and brings it back: a
+## dead character is a ragdoll (`PlayerRagdoll`), takes no input but the camera's, and the camera
+## follows its pelvis.
 
 ## The body left the ground by jumping.
 signal jumped
@@ -33,6 +35,10 @@ signal teleported
 signal aim_changed(aiming: bool)
 ## The character crouched or stood up (it stands only when it has room).
 signal crouch_changed(crouching: bool)
+## The character died (`die()`, the `ragdoll` key or checkbox): it is a ragdoll now.
+signal died
+## The character got up again (`revive()`): standing where the ragdoll lay.
+signal revived
 
 enum State {
 	IDLE,
@@ -45,6 +51,7 @@ enum State {
 	INTERACT,
 	HIT,
 	CROUCH,  ## Crouched, standing still or walking.
+	DEAD,  ## A ragdoll: no movement, jump, interact, aim or fire until it gets up.
 }
 
 ## The group the player joins, so a HUD or a camera finds it.
@@ -56,6 +63,8 @@ const PUSH_CONTACT := 1.15
 ## Seconds a slow push goes on counting after the last touch: pushing a heavy prop is a series of
 ## touches with a small gap between them, and the push clip and the speed limit should not flicker.
 const PUSH_HOLD := 0.25
+## The input action the ragdoll key is bound to.
+const RAGDOLL_ACTION := &"ragdoll"
 
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
@@ -75,6 +84,37 @@ const PUSH_HOLD := 0.25
 ## unique name on the path to the model is what makes the editor's helper player lose the model
 ## (see `PlayerAnimation`).
 @export var model: PlayerModel
+
+@export_group("Ragdoll")
+## Dead: the character goes limp as a ragdoll, takes no movement, jump, sprint, crouch, interact,
+## aim or fire, and the camera follows its pelvis. Tick it in the inspector (or the remote
+## inspector, while the game runs) to kill the character, and untick it to stand it up where the
+## ragdoll lies. `died` and `revived` say when.
+@export var ragdoll := false:
+	set(value):
+		if value == ragdoll:
+			return
+		ragdoll = value
+		if is_node_ready() and not Engine.is_editor_hint():
+			if value:
+				_die()
+			else:
+				_revive(true)
+## The key that toggles `ragdoll`, bound to the input action `ragdoll` when the game starts and
+## whenever this changes. It is a testing aid: a game that ships turns `ragdoll_key_enabled` off
+## and calls `die()` and `revive()` from its own rules.
+@export var ragdoll_key: Key = KEY_Y:
+	set(value):
+		ragdoll_key = value
+		_bind_ragdoll_key()
+## Off: no key is bound to the `ragdoll` action (a game that ships; set the action's own events in
+## the Input Map instead if it wants a button).
+@export var ragdoll_key_enabled := true:
+	set(value):
+		ragdoll_key_enabled = value
+		_bind_ragdoll_key()
+## The node that builds the physical bones and gives the skeleton to them and back.
+@export var bones: PlayerRagdoll
 
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot.
@@ -124,6 +164,8 @@ var _fire_hold := 0.0
 var _fire_buffer := 0.0
 var _stand_probe := CapsuleShape3D.new()
 var _spawn_rng := RandomNumberGenerator.new()
+var _ragdoll_event: InputEventKey
+var _dead := false
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -139,12 +181,24 @@ func _ready() -> void:
 		return
 	add_to_group(GROUP)
 	facing = model.rotation.y
+	_bind_ragdoll_key()
 	if start_at_spawn:
 		respawn()
+	if ragdoll:
+		_die()
+
+
+func _exit_tree() -> void:
+	_unbind_ragdoll_key()
 
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
+		return
+	if Input.is_action_just_pressed(RAGDOLL_ACTION):
+		ragdoll = not ragdoll
+	if _dead:
+		_follow_body()
 		return
 	if global_position.y < tuning.fall_limit:
 		respawn()
@@ -175,6 +229,8 @@ func respawn() -> void:
 ## Puts the character at `spot` standing still, facing `heading` (radians about the up axis;
 ## keeps the current facing when omitted). A camera that follows cuts to it.
 func teleport(spot: Vector3, heading: float = NAN) -> void:
+	if _dead:
+		_revive(false)
 	global_position = spot
 	velocity = Vector3.ZERO
 	if not is_nan(heading):
@@ -186,6 +242,8 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 
 ## Hurts the character: stops it for `hit_stun_time` and throws it away from `source`.
 func hit(amount: float = 1.0, source: Node3D = null) -> void:
+	if _dead:
+		return
 	took_hit.emit(amount, source)
 	_action_lock = tuning.hit_stun_time
 	var away := Vector3.ZERO
@@ -200,6 +258,8 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 
 ## Uses the nearest usable thing in front. Returns it, or null when there is nothing to use.
 func interact() -> Node3D:
+	if _dead:
+		return null
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
 	var target := _interactor.find_target(forward, tuning.interact_reach)
 	if target == null or _action_lock > 0.0:
@@ -253,6 +313,23 @@ func has_room_to_stand() -> bool:
 	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 
+## Kills the character: it goes limp as a ragdoll with the velocity it had (the same as ticking
+## `ragdoll`). Nothing but the camera answers the player until `revive()`.
+func die() -> void:
+	ragdoll = true
+
+
+## Stands the character up where the ragdoll lies, facing the way it faces, and blends the
+## pose back into the animation (the same as unticking `ragdoll`).
+func revive() -> void:
+	ragdoll = false
+
+
+## True while the character is a ragdoll (`State.DEAD`).
+func is_dead() -> bool:
+	return _dead
+
+
 # Fits the capsule, the camera's target, the steepest floor and the floor snap to the tuning (they
 # are copied into the body, so a change to them is applied here, from the tuning's `changed`).
 func _apply_tuning() -> void:
@@ -274,7 +351,122 @@ func _fit_body() -> void:
 	capsule.height = height
 	_body.position.y = height / 2.0
 	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	_camera_target.position.y = lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink)
+	if not _dead:
+		_camera_target.position.y = lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink)
+
+
+# The character goes limp: it keeps no input and no capsule, its bones take the skeleton with
+# the velocity it ran at, and the camera's target goes to the pelvis (`_follow_body`).
+func _die() -> void:
+	if _dead:
+		return
+	_dead = true
+	var carried := velocity * tuning.ragdoll_carry
+	velocity = Vector3.ZERO
+	_drop_actions()
+	# Deferred: the checkbox can be ticked while the physics step is flushing queries.
+	_body.set_deferred(&"disabled", true)
+	_camera_target.top_level = true
+	state = State.DEAD
+	if bones != null:
+		bones.start(carried)
+	died.emit()
+
+
+# Stands the character up. With `at_body` it stands where the pelvis lies, facing the way the
+# body faces, and the pose of the ragdoll fades into the animation; without it (a teleport) it
+# stays where it is put and the animation takes over at once.
+func _revive(at_body: bool) -> void:
+	if not _dead:
+		return
+	_dead = false
+	ragdoll = false
+	var held: Array[Transform3D] = []
+	if bones != null and at_body:
+		held = bones.snapshot()
+		var heading := bones.heading(held)
+		global_position = _ground_below(bones.pelvis_position())
+		if not is_nan(heading):
+			facing = heading
+			model.rotation.y = facing
+		reset_physics_interpolation()
+	if bones != null:
+		bones.stop(held)
+	velocity = Vector3.ZERO
+	_fall_speed = 0.0
+	_was_airborne = false
+	_wants_crouch = false
+	_crouch_amount = 0.0
+	if crouching:
+		crouching = false
+		crouch_changed.emit(false)
+	_body.set_deferred(&"disabled", false)
+	_camera_target.top_level = false
+	_camera_target.position = Vector3(0.0, tuning.camera_height, 0.0)
+	_fit_body()
+	state = State.IDLE
+	revived.emit()
+
+
+# The dead take no input, so what the live ones were doing stops: no aim, no fire, no jump waiting.
+func _drop_actions() -> void:
+	if aiming:
+		aiming = false
+		aim_changed.emit(false)
+	aim_held = false
+	fire_held = false
+	aim_amount = 0.0
+	_sprinting = false
+	_pushing = false
+	_push_cap = 0.0
+	_push_hold = 0.0
+	_fire_hold = 0.0
+	_fire_buffer = 0.0
+	_jump_buffer = 0.0
+	_action_lock = 0.0
+	_jump_held = false
+
+
+# While dead the camera's target is the pelvis, a little above it.
+func _follow_body() -> void:
+	if bones == null:
+		return
+	var pelvis := bones.pelvis_position()
+	_camera_target.global_position = pelvis + Vector3.UP * tuning.ragdoll_camera_lift
+	if pelvis.y < tuning.fall_limit:
+		respawn()
+
+
+# The floor under `spot` (the pelvis lies a hand above it), or a little below `spot` when there
+# is none.
+func _ground_below(spot: Vector3) -> Vector3:
+	var query := PhysicsRayQueryParameters3D.create(
+		spot + Vector3.UP * 0.4, spot + Vector3.DOWN * 3.0, collision_mask, [get_rid()]
+	)
+	var found := get_world_3d().direct_space_state.intersect_ray(query)
+	if found.is_empty():
+		return spot + Vector3.DOWN * 0.2
+	return found[&"position"]
+
+
+# Binds `ragdoll_key` to the `ragdoll` action (the action is made when the project has none).
+func _bind_ragdoll_key() -> void:
+	if Engine.is_editor_hint() or not is_node_ready():
+		return
+	_unbind_ragdoll_key()
+	if not ragdoll_key_enabled or ragdoll_key == KEY_NONE:
+		return
+	if not InputMap.has_action(RAGDOLL_ACTION):
+		InputMap.add_action(RAGDOLL_ACTION)
+	_ragdoll_event = InputEventKey.new()
+	_ragdoll_event.physical_keycode = ragdoll_key
+	InputMap.action_add_event(RAGDOLL_ACTION, _ragdoll_event)
+
+
+func _unbind_ragdoll_key() -> void:
+	if _ragdoll_event != null and InputMap.has_action(RAGDOLL_ACTION):
+		InputMap.action_erase_event(RAGDOLL_ACTION, _ragdoll_event)
+	_ragdoll_event = null
 
 
 # The shortest the capsule can be: a capsule is at least two radii tall.

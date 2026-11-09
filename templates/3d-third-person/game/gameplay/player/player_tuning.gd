@@ -128,6 +128,58 @@ extends Resource
 		height = value
 		emit_changed()
 
+@export_group("Ragdoll")
+## The whole body's weight, shared out over the bones by `RagdollLayout`.
+@export_range(10.0, 300.0, 1.0, "suffix:kg") var ragdoll_mass := 75.0:
+	set(value):
+		ragdoll_mass = value
+		emit_changed()
+## How much of the body's velocity at the moment of death the bones start with: 1 keeps the run
+## going, 0 drops the body where it stands.
+@export_range(0.0, 2.0, 0.05) var ragdoll_carry := 1.0
+## Drag on the bones' movement: higher settles the body sooner and floppier.
+@export_range(0.0, 5.0, 0.01) var ragdoll_linear_damp := 0.05:
+	set(value):
+		ragdoll_linear_damp = value
+		emit_changed()
+## Drag on the bones' turning (the joints' stiffness): 0 is limp and swings long, higher is stiff.
+@export_range(0.0, 20.0, 0.05) var ragdoll_angular_damp := 2.0:
+	set(value):
+		ragdoll_angular_damp = value
+		emit_changed()
+## Friction of the bones on the floor and the props.
+@export_range(0.0, 2.0, 0.01) var ragdoll_friction := 1.0:
+	set(value):
+		ragdoll_friction = value
+		emit_changed()
+## How much the bones bounce.
+@export_range(0.0, 1.0, 0.01) var ragdoll_bounce := 0.0:
+	set(value):
+		ragdoll_bounce = value
+		emit_changed()
+## How far the joints may bend, as a share of what a person's joints do: 0 is rigid, 1 a person's,
+## above 1 a rubber doll.
+@export_range(0.0, 1.5, 0.01) var ragdoll_joint_freedom := 1.0:
+	set(value):
+		ragdoll_joint_freedom = value
+		emit_changed()
+## Seconds the body takes to blend from the ragdoll's pose into the animation when it gets up.
+@export_range(0.0, 3.0, 0.01, "suffix:s") var ragdoll_get_up_time := 0.7
+## Height above the pelvis of the point the camera follows while the character is dead.
+@export_range(0.0, 2.0, 0.01, "suffix:m") var ragdoll_camera_lift := 0.5
+## The layers the bones are on. The player's capsule, the doors and the zones look at layer 1, so
+## the bones stay out of their way; the bones hit what is on `ragdoll_collision_mask`.
+@export_flags_3d_physics var ragdoll_collision_layer := 2:
+	set(value):
+		ragdoll_collision_layer = value
+		emit_changed()
+## The layers the bones hit: the world and the props (layer 1). Add the bones' own layer, and the
+## limbs hit each other too.
+@export_flags_3d_physics var ragdoll_collision_mask := 1:
+	set(value):
+		ragdoll_collision_mask = value
+		emit_changed()
+
 @export_group("Safety")
 ## Below this height (y) the character went out of the map and starts again at its spawn point.
 ## Set it under the lowest floor.
