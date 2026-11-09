@@ -54,7 +54,6 @@ func test_the_scene_holds_the_three_players_each_on_the_sfx_bus() -> void:
 func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
 		&"player": _player,
-		&"skeleton": _player.get_node("Model/Armature/Skeleton3D"),
 		&"model": _player.get_node("Model"),
 		&"steps": _steps.steps,
 		&"pitch_variation": 0.05,

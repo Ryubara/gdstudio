@@ -18,11 +18,10 @@ signal stepped(foot: StringName, crouched: bool)
 @export_group("Nodes")
 ## The character whose feet are followed.
 @export var player: Player
-## The skeleton the clips pose (the mannequin's `Skeleton3D`).
-@export var skeleton: Skeleton3D
-## The model the skeleton belongs to: its +Z is forward, so a foot moving toward +Z is swinging
-## ahead.
-@export var model: Node3D
+## The slot that holds the character's model: the feet are read from the skeleton it finds, so a
+## replaced model needs nothing set here. Its +Z is forward, so a foot moving toward +Z is
+## swinging ahead.
+@export var model: PlayerModel
 
 @export_group("Sounds")
 ## The footstep files; one is picked for each step.
@@ -44,6 +43,7 @@ signal stepped(foot: StringName, crouched: bool)
 ## Below this ground speed no step sounds.
 @export_range(0.0, 2.0, 0.05, "suffix:m/s") var min_speed := 0.5
 
+var _skeleton: Skeleton3D
 var _bones: Array[int] = []
 var _last: Array[float] = []
 var _swinging: Array[bool] = []
@@ -58,16 +58,18 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
-	_find_bones()
 	if player != null:
 		player.landed.connect(_on_landed)
 
 
 func _process(delta: float) -> void:
-	if skeleton == null or model == null or player == null or delta <= 0.0:
+	if model == null or player == null or delta <= 0.0:
 		return
-	if _bones.size() != foot_bones.size():
-		_find_bones()
+	var skeleton := model.skeleton()
+	if skeleton == null:
+		return
+	if skeleton != _skeleton or _bones.size() != foot_bones.size():
+		_find_bones(skeleton)
 	_since += delta
 	var inverse := model.global_transform.affine_inverse()
 	for index in _bones.size():
@@ -118,13 +120,12 @@ func _on_landed(_impact: float) -> void:
 	sound.play()
 
 
-func _find_bones() -> void:
+func _find_bones(skeleton: Skeleton3D) -> void:
+	_skeleton = skeleton
 	_bones.clear()
 	_last.clear()
 	_swinging.clear()
 	_low.clear()
-	if skeleton == null:
-		return
 	for foot in foot_bones:
 		_bones.append(skeleton.find_bone(foot))
 		_last.append(0.0)
@@ -144,8 +145,8 @@ func _pick() -> int:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
-	if player == null or skeleton == null or model == null:
-		warnings.append("Set `player`, `skeleton` and `model`: the feet are read from them.")
+	if player == null or model == null:
+		warnings.append("Set `player` and `model`: the feet are read from them.")
 	for part_name in ["Step", "CrouchStep", "LandStep"]:
 		if get_node_or_null("%" + part_name) == null:
 			warnings.append("The scene needs an AudioStreamPlayer3D named `%s`." % part_name)

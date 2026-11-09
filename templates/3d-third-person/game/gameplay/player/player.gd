@@ -70,6 +70,11 @@ const PUSH_HOLD := 0.25
 			_apply_tuning()
 ## Starts at a `SpawnPoint` of the group `player` when the scene has one.
 @export var start_at_spawn := true
+## The slot that holds the character's model; it is turned to the heading. It is the slot that is
+## referenced (never the model inside it, which a game replaces), so it has no unique name: a
+## unique name on the path to the model is what makes the editor's helper player lose the model
+## (see `PlayerAnimation`).
+@export var model: PlayerModel
 
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot.
@@ -115,7 +120,6 @@ var _fire_buffer := 0.0
 var _stand_probe := CapsuleShape3D.new()
 var _spawn_rng := RandomNumberGenerator.new()
 
-@onready var _model: Node3D = %Model
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
 @onready var _camera_target: Node3D = %CameraTarget
@@ -129,7 +133,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	add_to_group(GROUP)
-	facing = _model.rotation.y
+	facing = model.rotation.y
 	if start_at_spawn:
 		respawn()
 
@@ -170,7 +174,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	velocity = Vector3.ZERO
 	if not is_nan(heading):
 		facing = heading
-		_model.rotation.y = facing
+		model.rotation.y = facing
 	reset_physics_interpolation()
 	teleported.emit()
 
@@ -391,12 +395,12 @@ func _steer(wish: Vector3, delta: float) -> void:
 	if aiming and _action_lock <= 0.0 and not is_nan(heading):
 		# Aiming turns the body to the camera's heading, however it walks.
 		facing = lerp_angle(facing, heading, clampf(tuning.aim_turn_speed * delta, 0.0, 1.0))
-		_model.rotation.y = facing
+		model.rotation.y = facing
 	elif strength > 0.0 and _action_lock <= 0.0:
 		facing = lerp_angle(
 			facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
 		)
-		_model.rotation.y = facing
+		model.rotation.y = facing
 
 
 func _vertical(delta: float) -> void:

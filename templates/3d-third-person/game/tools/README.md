@@ -9,3 +9,6 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
   input actions, for a clip with the sound.
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
+- `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
+  drops `mannequin.glb` on `Model` and checks that the clips, the pistol and the tree survive. The header of
+  `swap_in_editor.gd` says how to run it.
