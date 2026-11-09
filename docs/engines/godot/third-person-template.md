@@ -91,6 +91,28 @@ Scene dock and checks the result.
   against the emptied Root Node resolved 86 clips from the wrong node: 4,816 `couldn't resolve track` warnings and a
   stall for each rebuild; an attachment bound to a skeleton that was freed first logged "Attempt to disconnect a
   nonexistent connection ... skeleton_updated". **Seen:** gdstudio #844, 2026-11-08.
+- **Approach:** To put a `BoneAttachment3D` on the skeleton of a model swapped in at run time, do not rely on the
+  path: seat it with the steps of the next entry (`PlayerModel._seat_attachments`), and skip an attachment that
+  already sits in the skeleton's `skeleton_updated` connections. **Watch out for:** the engine (4.7.2) connects the
+  attachment to `skeleton_updated` only when it enters the tree and in the setters of `use_external_skeleton` and
+  `bone_name`, and remembers that it is connected; writing the path neither connects nor disconnects. The old skeleton
+  was freed with the mark still set, so the new one had 0 connections and the pistol stayed where the old hand last
+  was, though the path read right and the attachment looked bound. **Seen:** gdstudio #860, 2026-11-09.
+- **Approach:** Seat the attachment with `set_external_skeleton(NodePath())`, `use_external_skeleton = true`, the new
+  path, then `bone_name = bone_name`. **Watch out for:** every setter first disconnects from the skeleton the path
+  points at. A toggle written before the path connects nothing (0 connections: the first try in `_seat_attachments`);
+  written after it, with the old mark stale, it finds no connection on the new skeleton, logs "Attempt to disconnect a
+  nonexistent connection ... skeleton_updated" and then connects. With the path empty the first setter clears the mark
+  without an error. `bone_name = bone_name` also looks the bone up again by name: a model with another bone order is
+  not bound to the old index, and an empty skeleton is not connected (it logged "Index p_bone = 34 is out of bounds").
+  **Seen:** gdstudio #860, 2026-11-09.
+- **Approach:** Measure a seat against its bone, not the thing hung on it, to a few centimetres, in every frame of a
+  crouch-walk after the swap, in `main.tscn` as well as in the test arena, and check that the bone moved. **Watch out
+  for:** the first test compared the pistol (0.13 m from its seat) with the hand 4 ticks after the swap against 0.35
+  m. A seat left behind sits where the old hand last was, near the new hand while the pose has not changed (1.3 cm
+  while aiming, 0.62 m after a crouch in the capture), so the same bug failed locally (0.71 m) and passed in CI, which
+  the pose at the sample would explain (the CI run was not reproduced). **Seen:** gdstudio #860, 2026-11-09 (the three
+  tests fail on `main` with 0.68 to 0.79 m and pass with the fix).
 - **Approach:** Keep every unique name (`%Name`) off the path from the scene's owner to the model, and reference the
   slot from the `Player` by an export (`model`). **Watch out for:** `AnimationTree` sets its `root_node` to
   `get_path_to(model, true)` whenever its player changes, a path that starts at a unique node (`%Model/...`). Selecting

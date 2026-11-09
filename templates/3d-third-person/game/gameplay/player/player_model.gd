@@ -85,18 +85,41 @@ func _find() -> void:
 
 # Every `BoneAttachment3D` child hangs on the model's skeleton by a path this node writes, as
 # the engine clears a path when the node it points at is deleted.
+#
+# Writing the path is not enough. The engine connects an attachment to its skeleton's
+# `skeleton_updated` signal when it enters the tree and whenever `use_external_skeleton` or
+# `bone_name` is set, and remembers that it is connected. Setting the path changes where it looks
+# and neither disconnects nor connects. When the model is swapped at run time the old skeleton is
+# freed with the attachment still marked connected, so the new skeleton is never connected and the
+# pistol stays where the old hand last was. The setters first let go of the skeleton the path points
+# at, so they run with the path empty (nothing to disconnect from) to clear the mark, and after the
+# path is written to connect. Run with the new path while the mark is stale, they disconnect from
+# the new skeleton, which has no connection to it, and the engine logs an error.
 func _seat_attachments() -> void:
 	if _skeleton == null or not is_inside_tree():
 		return
 	for child in get_children():
 		var seat := child as BoneAttachment3D
-		if seat == null:
+		if seat == null or _is_seated(seat):
 			continue
-		var path := seat.get_path_to(_skeleton)
-		if not seat.use_external_skeleton:
-			seat.use_external_skeleton = true
-		if seat.get_external_skeleton() != path:
-			seat.set_external_skeleton(path)
+		seat.set_external_skeleton(NodePath())
+		seat.use_external_skeleton = true
+		seat.set_external_skeleton(seat.get_path_to(_skeleton))
+		# Looks the bone up again by its name on this skeleton (a model may order its bones
+		# differently, and one without the bone gets no connection) and connects.
+		seat.bone_name = seat.bone_name
+
+
+# The attachment looks for this model's skeleton and is connected to its `skeleton_updated`.
+func _is_seated(seat: BoneAttachment3D) -> bool:
+	if not seat.use_external_skeleton:
+		return false
+	if seat.get_node_or_null(seat.get_external_skeleton()) != _skeleton:
+		return false
+	for connection in _skeleton.get_signal_connection_list(&"skeleton_updated"):
+		if connection["callable"].get_object() == seat:
+			return true
+	return false
 
 
 func _get_configuration_warnings() -> PackedStringArray:

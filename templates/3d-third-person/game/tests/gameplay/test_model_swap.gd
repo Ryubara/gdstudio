@@ -8,6 +8,8 @@
 extends GdUnitTestSuite
 
 const MANNEQUIN := "res://assets/characters/mannequin/mannequin.glb"
+## How far the seat may be from the bone it hangs on, in metres.
+const SEAT_TOLERANCE := 0.02
 
 var _arena: PlayArena
 var _player: Player
@@ -115,6 +117,17 @@ func test_the_pose_moves_on_the_new_model() -> void:
 	assert_float(rad_to_deg(moved)).is_greater(15.0)
 
 
+# How far the pistol's seat (the `BoneAttachment3D` itself, not the pistol's own offset from it) is
+# from the bone it hangs on, in metres.
+func _seat_error(slot: PlayerModel) -> float:
+	var skeleton := slot.skeleton()
+	var seat := slot.get_node("PistolHeld") as BoneAttachment3D
+	var hand := (
+		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	)
+	return seat.global_position.distance_to(hand.origin)
+
+
 func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
 	var added := await _swap(load(MANNEQUIN), "male")
 	var skeleton := added.get_node("Armature/Skeleton3D") as Skeleton3D
@@ -122,13 +135,68 @@ func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
 	assert_bool(seat.use_external_skeleton).is_true()
 	assert_object(seat.get_node(seat.get_external_skeleton())).is_same(skeleton)
 	await InputSim.ticks(get_tree(), 4)
-	var hand := (
-		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
-	)
+	assert_float(_seat_error(_slot)).is_less(SEAT_TOLERANCE)
 	var pistol := seat.get_node("Pistol") as Node3D
-	assert_float(pistol.global_position.distance_to(hand.origin)).is_less(0.35)
+	assert_float(pistol.global_position.distance_to(seat.global_position)).is_less(0.35)
 	var muzzle := _player.weapon.muzzle
 	assert_bool(is_instance_valid(muzzle) and muzzle.is_inside_tree()).is_true()
+
+
+func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_to_the_same_name() -> void:
+	# The new skeleton has the old one's path, so only the connection tells the seat is stale.
+	await _swap(load(MANNEQUIN), "Mannequin")
+	assert_float(await _walk_and_measure(_slot)).is_less(SEAT_TOLERANCE)
+
+
+# The same swap in `main.tscn`, where the player stands in the level under the camera, and the
+# bug lay: the pistol stayed where the old hand last was, so the test walks the character and
+# compares the seat with the hand in every frame.
+func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_scene() -> void:
+	var scene := scene_runner("res://main.tscn").scene()
+	var player := scene.get_node("Player") as Player
+	var slot := player.model
+	await InputSim.ticks(get_tree(), 10)
+	var old := slot.rig()
+	slot.remove_child(old)
+	old.free()
+	player.get_node("AnimationPlayer").root_node = NodePath()
+	player.get_node("AnimationTree").root_node = NodePath()
+	var added := (load(MANNEQUIN) as PackedScene).instantiate() as Node3D
+	added.name = "male"
+	slot.add_child(added)
+	added.owner = player
+	await _idle_frames()
+	assert_object(slot.rig()).is_same(added)
+	assert_float(await _walk_and_measure(slot)).is_less(SEAT_TOLERANCE)
+
+
+# Crouch-walks the player of `slot` for a second and a half and returns the largest distance the
+# pistol's seat was from the hand in any frame once the pose had updated. It also checks that the
+# hand really moved, which a seat left behind would not follow.
+func _walk_and_measure(slot: PlayerModel) -> float:
+	var skeleton := slot.skeleton()
+	var hand := skeleton.find_bone(&"hand_r")
+	InputSim.key(KEY_X, true)
+	InputSim.key(KEY_W, true)
+	await InputSim.ticks(get_tree(), 3)
+	var worst := 0.0
+	var low := Vector3(INF, INF, INF)
+	var high := -low
+	for tick in 90:
+		await get_tree().physics_frame
+		worst = maxf(worst, _seat_error(slot))
+		var at := (skeleton.global_transform * skeleton.get_bone_global_pose(hand)).origin
+		var in_model := slot.to_local(at)
+		low = low.min(in_model)
+		high = high.max(in_model)
+	(
+		assert_float((high - low).length())
+		. override_failure_message(
+			"the hand did not move, so the test would pass with a seat left behind"
+		)
+		. is_greater(0.05)
+	)
+	return worst
 
 
 func test_the_footsteps_follow_the_new_skeleton() -> void:
