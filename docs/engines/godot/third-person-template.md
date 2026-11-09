@@ -13,10 +13,11 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 | Part | Where (in `templates/3d-third-person/game/`, the base in `templates/3d-blank/game/`) | Notes |
 | --- | --- | --- |
 | Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
+| Model | `gameplay/player/player_model.gd` | `Model` is a slot (a `Node3D`) that holds the glb and the pistol seat; replace the glb under it: [Replacing the model](#replacing-the-model). |
 | Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake and an aim view blended on its framing; a zone that raises a second camera's priority. |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
-| Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet, a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
+| Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
@@ -51,6 +52,53 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
   `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
   sha256 in the licence entry.
+
+## Replacing the model {#replacing-the-model}
+
+<!-- new section: a swap of the player's glb in the editor broke the clips, the pistol and the game (gdstudio #844) -->
+
+The player's model is a **slot**: `Model` is a plain `Node3D` with the `PlayerModel` script, and the glb sits under it
+(`Model/Mannequin`) with the pistol (`Model/PistolHeld`, a `BoneAttachment3D` on `hand_r`). Nothing refers to the glb
+by its name. To swap the character in the editor:
+
+1. In the Scene dock, select the old model (`Mannequin`) and delete it. Leave `Model` and `PistolHeld`.
+2. Drag the new `.glb` from the FileSystem dock onto `Model` (any name; a glb of the Quaternius universal rig, with
+   `Armature/Skeleton3D` under its root and the bone names of the mannequin).
+3. Save. The `AnimationPlayer`'s Root Node, the `AnimationTree`, the pistol's skeleton path and the footsteps follow
+   the new model by themselves; nothing is set by hand. Turn the new model to face +Z if its file faces the other way.
+
+`PlayerModel.rig()` and `skeleton()` give the model and its skeleton, `rig_changed` says when they change, and the
+node warns when it holds no model or two. `PlayerAnimation` points the `AnimationPlayer` at the new model and builds the
+tree again; `Footsteps` asks the slot for the skeleton; `PlayerModel` seats every `BoneAttachment3D` child on it. A
+model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
+one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
+Scene dock and checks the result.
+
+- **Approach:** Put a part that people replace (the model, a weapon) under a stable slot node and reference only the
+  slot (an export); a `@tool` script on the slot finds the part and rewrites the paths that depend on it (the
+  `AnimationPlayer`'s Root Node, a `BoneAttachment3D`'s `external_skeleton`) one idle frame after a child enters or
+  leaves. Prove the swap with the editor's Scene dock, not `remove_child`. **Watch out for:** the editor **empties every
+  NodePath that points at a deleted node**, the Root Node of the `AnimationPlayer` and of the `AnimationTree` among them
+  (Godot 4.7.2, Delete key and confirm dialog: `../Model` became empty at once). A dropped-in scene takes its file's
+  name and is not unique, so `%Model` in `_ready` ended the game on `null.rotation`. Pistol and muzzle hung inside the
+  glb are deleted with it: put them under the slot. **Seen:** gdstudio #844, 2026-11-08.
+- **Approach:** Compare the model the slot found with the last one it announced, not with the one it found last. **Watch
+  out for:** `rig()` finds the model too, and the editor asks for it whenever it lists a scene's warnings, so a "new
+  model" test against the last lookup saw nothing change and `rig_changed` never fired in the editor, while every
+  GdUnit test (which never asks in between) passed. **Seen:** gdstudio #844, 2026-11-08.
+- **Approach:** Do not rebuild the `AnimationTree` while there is no model (between the delete and the drop), and
+  unseat a `BoneAttachment3D` in `child_exiting_tree`, while its skeleton still exists. **Watch out for:** a tree built
+  against the emptied Root Node resolved 86 clips from the wrong node: 4,816 `couldn't resolve track` warnings and a
+  stall for each rebuild; an attachment bound to a skeleton that was freed first logged "Attempt to disconnect a
+  nonexistent connection ... skeleton_updated". **Seen:** gdstudio #844, 2026-11-08.
+- **Approach:** Keep every unique name (`%Name`) off the path from the scene's owner to the model, and reference the
+  slot from the `Player` by an export (`model`). **Watch out for:** `AnimationTree` sets its `root_node` to
+  `get_path_to(model, true)` whenever its player changes, a path that starts at a unique node (`%Model/...`). Selecting
+  the tree makes the editor copy it into an owner-less helper `AnimationPlayer`, which cannot resolve `%Name`: 9,632
+  warnings and a freeze, in the unmodified template once the tree had filter paths (#836). **Seen:** gdstudio #844,
+  2026-11-08 (0 `couldn't resolve track` warnings after; deleting the model still logs the engine's `invalid root_node`
+  warning and one `!p_callable.is_valid()` error from the dock's undo bookkeeping, only while the tree is built in the
+  editor, cause not found).
 
 ## The character controller {#controller}
 
@@ -177,13 +225,12 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   `PistolHeld/Pistol/Pistol/Muzzle` (the glb's root and its mesh are both called `Pistol`), and a wrong path in a
   `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
   2026-11-08.
-- **Approach:** When a scene hangs a node on a part inside an instanced scene (the pistol on the mannequin's
-  `Skeleton3D`), mark that instance editable (`[editable path="Model"]` at the end of the `.tscn`, which the editor
-  writes when you tick "Editable Children"), and prove the web export, not only the tests. **Watch out for:** without
-  the line the pistol was there in the editor, in every GdUnit test and in a windowed capture, and missing from the web
-  export: `Weapon.muzzle` was null, the fire button did nothing and no error was printed; the touch smoke found it
-  ("the fire button shoots", shots 0 to 0) by reading `player.weapon`'s muzzle in the page. **Seen:** gdstudio #836,
-  2026-11-08 (fix: the line, a test that reads the scene's text, and the smoke's three new checks).
+- **Approach:** Hang a node that belongs to the character (the pistol) on the model's slot, not on a part inside the
+  glb's instance, and prove the web export, not only the tests. **Watch out for:** a node added inside an instanced
+  scene is there in the editor and in a test and missing from the web export unless the instance is marked editable
+  (`[editable path="Model"]`), and it is lost when the model is replaced; #836 shipped without the line
+  (`Weapon.muzzle` null, the fire button did nothing, no error) and #844 moved the pistol under the slot, so the line is
+  no longer needed ([Replacing the model](#replacing-the-model)). **Seen:** gdstudio #836, 2026-11-08; gdstudio #844.
 - **Approach:** Size a `Control` that sits by its anchors (the `Crosshair`, at the middle of the screen) by setting its
   four offsets from the exports (`-half`, `half`), not `custom_minimum_size`. **Watch out for:** a minimum size only
   makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size

@@ -246,8 +246,14 @@ template cheap to change):
    thing a new person sees, and it teaches them to ignore warnings.
 6. **Shared tuning lives in a `.tres` resource** (`player_tuning.tres`) and an edit to the resource applies live (its
    `changed` signal). *Why:* a copy of the file is a second feel, and the resource is one place to diff.
-7. **Node references are exported (`@export var x: Node3D`) or unique names (`%Name`)**, never long hard-coded paths.
-   *Why:* a component then works when it is moved or reused.
+7. **Node references are exported (`@export var x: Node3D`) or unique names (`%Name`)**, never long hard-coded paths,
+   and **a part a person is expected to replace (a model, a weapon) is never referenced by its own node name or unique
+   name**: it sits under a stable slot node, and everything else references the slot (an export) and asks it for the
+   part. *Why:* a component then works when it is moved or reused, and a replaced part is deleted, so the editor empties
+   every path that pointed at it, and a dropped-in scene takes its file's name and is not unique
+   (the model swap in #844; [Replacing the model](third-person-template.md#replacing-the-model)). A unique name on a
+   node between the owner and the part also turns the `AnimationTree`'s root into a `%Name/...` path that the editor's
+   helper player cannot resolve.
 8. **Each component works alone** when dropped into an empty scene and set up from the inspector, and talks to the others
    through signals. An area that senses bodies says which ones count (characters, props, any) in an export, and by
    default ignores the level and itself. *Why:* a template that only works whole cannot be taken apart, and in a
