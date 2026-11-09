@@ -144,6 +144,12 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   suite left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in
   CI; run the pair that failed in the log's order before pushing again. **Seen:** gdstudio #836, 2026-11-08.
 
+- **Approach:** After merging main into a template branch, make a fresh game from the merged branch (`gds new game
+  --local`) rather than copying the template's files over an older one. **Watch out for:** a copy loop that skips
+  `.glb` and `.exr` files (to keep the import cache) leaves out every model or texture main added, so the copied game
+  runs new scripts against old assets and its tests fail for no fault of the change. **Seen:** gdstudio #856,
+  2026-11-09.
+
 ## With `--local` {#with-local}
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
