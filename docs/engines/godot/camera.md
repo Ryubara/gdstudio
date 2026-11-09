@@ -47,7 +47,7 @@ node. The springs, interpolation and wall notes below still apply when a game tu
   for:** #831 built an `offset` Vector3 on the wrapper that fed `follow_offset`, which is in world axes and moves the
   arm and its wall cast (the "shoulder" was always toward world +X), where the request was the Camera node's H and V
   Offset, which shift the view along the camera's own axes without moving the camera or its cast. **Seen:** gdstudio
-  #856, 2026-11-08 (maintainer correction, [log](../studio/maintainer-corrections.md)).
+  #856, 2026-11-08 (maintainer correction, [log](../../studio/maintainer-corrections.md)).
 - **Approach:** Make the wrapper the only writer of the Camera node's `h_offset` and `v_offset` and keep the Phantom
   Camera's `Camera3DResource` equal to what it writes, with a test that changes the field of view, the near clip and
   the sprint zoom and reads the node's offsets after; take them off the node in `NOTIFICATION_EDITOR_PRE_SAVE` too.
