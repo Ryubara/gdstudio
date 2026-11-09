@@ -46,6 +46,14 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   `EditorInterface.get_editor_viewport_3d(0).get_camera_3d().look_at_from_position(...)` after selecting the node, and
   again after about 20 frames. Gdstudio #831, Godot 4.7.2.
 
+- **Do what a person does in the Scene dock** with the same plugin, in a headless editor (`godot --headless --editor
+  --path game`, no window; list the plugin in `override.cfg` or `project.godot`): select the node, `grab_focus()` the
+  dock's `Tree`, `push_input` a `KEY_DELETE` press on the dock's viewport, then emit `confirmed` on the visible
+  `ConfirmationDialog`; `dock.call("instantiate", "res://x.glb")` drops a scene on the selected node. That runs the
+  editor's own undo/redo and path fixing, which `remove_child` does not (the editor empties the NodePaths that point
+  at a deleted node). The template's `tools/editor_swap/` does this for the player's model; count the engine's
+  warnings in the log (`grep -c "couldn't resolve"`). Gdstudio #844, Godot 4.7.2.
+
 ## Changing values like the remote inspector {#remote-inspector}
 
 <!-- new section: nothing said how to check that a setter really takes the edit that the Remote tab sends -->

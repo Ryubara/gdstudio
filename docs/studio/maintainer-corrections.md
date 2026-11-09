@@ -231,6 +231,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-08 | gdstudio #856 | The camera's over-the-shoulder offset was meant to be the Camera node's own H and V Offset, not a second offset on the wrapper; it is chosen as a left, center or right shoulder on `PlayerCamera`, which writes those two values, and nothing else may overwrite them | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 | 2026-11-08 | gdstudio #856 | Aiming should only zoom while the shoulder view stays (moving the view over the shoulder on aim is a toggle, off by default), and firing without aiming gets its own zoom with a toggle | [engines/godot/third-person-template.md#crouch-aim-shoot](../engines/godot/third-person-template.md#crouch-aim-shoot) |
 | 2026-11-08 | gdstudio #856 | After firing the camera stayed zoomed in for about a second before moving back, and aiming sometimes dropped the camera next to the head | [engines/godot/camera.md#walls](../engines/godot/camera.md#walls) |
+| 2026-11-08 | gdstudio #844 | Swapping the player's model in a game made from 3D Third Person (delete `Model`, drop in a glb) broke the character: the editor empties every path that points at a deleted node, so the clips lost their root and the game failed on the unique name; a part a person is meant to replace must not be reached by its own node name | [engines/godot/third-person-template.md#replacing-the-model](../engines/godot/third-person-template.md#replacing-the-model) |
 
 ## Start of a new game {#start-of-a-new-game}
 

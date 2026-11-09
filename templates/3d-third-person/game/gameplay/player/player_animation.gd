@@ -16,6 +16,11 @@ extends Node
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
+##
+## It follows the `PlayerModel` too: when the character's model is replaced, it points the
+## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
+## nothing set by hand (the editor empties the player's Root Node when the node it pointed at is
+## deleted).
 
 ## An action clip started; `clip` is its name.
 signal action_started(clip: StringName)
@@ -45,6 +50,8 @@ const _AIM := "Aim"
 @export_group("Nodes")
 ## The player that is animated.
 @export var player: Player
+## The slot that holds the character's model; the clips are played on the model it finds.
+@export var model: PlayerModel
 ## The `AnimationPlayer` that holds the clip libraries.
 @export var animation_player: AnimationPlayer
 ## The tree that is built and driven.
@@ -179,6 +186,9 @@ var _action_was_active := false
 func _ready() -> void:
 	if player == null or animation_player == null or tree == null:
 		return
+	if model != null:
+		model.rig_changed.connect(_on_rig_changed)
+		_follow_rig()
 	_build()
 	if player.tuning != null:
 		player.tuning.changed.connect(_sync_ground_speeds)
@@ -270,6 +280,55 @@ func aim_pitch() -> float:
 func stop_clip() -> void:
 	if tree != null:
 		tree.set(&"parameters/%s/request" % _ACTION, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+
+
+# Points the animation player at the model the slot holds: the clips' tracks
+# (`Armature/Skeleton3D:<bone>`) are paths from the model's root. A model that has no such path
+# gets no root at all, so the engine logs one warning for the player instead of one for every
+# bone of every clip (and the tree is switched off in the game).
+func _follow_rig() -> void:
+	if animation_player == null or model == null:
+		return
+	var rig := model.rig()
+	if rig == null or not rig.is_inside_tree():
+		return
+	var path := animation_player.get_path_to(rig) if _fits(rig) else NodePath()
+	if animation_player.root_node != path:
+		animation_player.root_node = path
+
+
+# The model was swapped: new root for the clips, and the tree (its root and the upper body's
+# bones) is built again from the new skeleton.
+func _on_rig_changed(_rig: Node3D) -> void:
+	if tree == null or animation_player == null or player == null:
+		return
+	update_configuration_warnings()
+	if _rig == null:
+		# Between the old model and the new one: the editor has emptied the paths already, and a
+		# tree built now would resolve every track of every clip from nothing.
+		if not Engine.is_editor_hint():
+			tree.active = false
+		return
+	_follow_rig()
+	tree.anim_player = NodePath()
+	if not Engine.is_editor_hint():
+		tree.active = _fits(model.rig())
+	_rebuild()
+
+
+func _fits(rig: Node3D) -> bool:
+	return rig != null and rig.get_node_or_null("Armature/Skeleton3D") != null
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if model == null:
+		warnings.append("Set `model` to the PlayerModel that holds the character.")
+	elif model.rig() != null and not _fits(model.rig()):
+		warnings.append(
+			"The clips name `Armature/Skeleton3D` under the model, and this one has none."
+		)
+	return warnings
 
 
 func _build() -> void:
@@ -420,17 +479,17 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 # tracks name them (`Armature/Skeleton3D:spine_01`).
 func _upper_body_paths() -> Array[NodePath]:
 	var found: Array[NodePath] = []
-	var model := animation_player.get_node_or_null(animation_player.root_node)
-	if model == null:
+	var rig := animation_player.get_node_or_null(animation_player.root_node)
+	if rig == null:
 		return found
-	var skeletons := model.find_children("*", "Skeleton3D", true, false)
+	var skeletons := rig.find_children("*", "Skeleton3D", true, false)
 	if skeletons.is_empty():
 		return found
 	var skeleton := skeletons[0] as Skeleton3D
 	var start := skeleton.find_bone(upper_body_bone)
 	if start < 0:
 		return found
-	var where := model.get_path_to(skeleton)
+	var where := rig.get_path_to(skeleton)
 	for bone in skeleton.get_bone_count():
 		var cursor := bone
 		while cursor >= 0 and cursor != start:

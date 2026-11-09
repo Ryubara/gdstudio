@@ -39,6 +39,7 @@ func test_every_export_has_its_default_pinned() -> void:
 	var fresh := PlayerAnimation.new()
 	var pins := {
 		&"player": null,
+		&"model": null,
 		&"animation_player": null,
 		&"tree": null,
 		&"idle_clip": CharacterClips.IDLE,
