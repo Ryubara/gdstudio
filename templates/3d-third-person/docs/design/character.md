@@ -18,7 +18,7 @@ talk through signals and input actions, so each can be replaced alone.
 | `Interactor` | `gameplay/player/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim and Crouch added here). |
-| The mannequin and its clips | `assets/characters/mannequin/`, `assets/animation/universal/` | Quaternius's mannequin and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
+| The mannequin and its clips | `assets/characters/mannequin/`, `assets/animation/universal/` | Quaternius's female and male mannequins (`mannequin_female.glb`, `mannequin_male.glb`) and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
 
 ## Input
 
@@ -132,12 +132,12 @@ $Player/Animation.play_clip(CharacterClips.OPEN_CHEST, 1.0)  # taking 1 second
 
 `CharacterClips` names every clip (`ual1/` and `ual2/` for the two libraries; the `_Loop` of a looping clip's name is
 dropped on import and the clip loops) and lists all 86 in `CharacterClips.ALL`. The clip each state plays is an
-inspector setting of `PlayerAnimation`. Both libraries use the Quaternius universal rig, which is the mannequin's, so
+inspector setting of `PlayerAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
 no retargeting is needed.
 
 ## Licences
 
-The mannequin, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
+The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen.
 

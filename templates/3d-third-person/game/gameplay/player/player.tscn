@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://gameplay/player/player.gd" id="1_player"]
 [ext_resource type="Resource" path="res://gameplay/player/player_tuning.tres" id="2_tuning"]
-[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin.glb" id="3_model"]
+[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_female.glb" id="3_model"]
 [ext_resource type="Script" path="res://gameplay/player/interactor.gd" id="4_interactor"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]

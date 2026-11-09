@@ -4,6 +4,8 @@ Captures, benches and probes, one folder per purpose (`tools/capture/`, `tools/w
 export, so shipped code never refers to `res://tools/`: the other way round is fine, tools may use the game.
 
 - `tools/capture/level_tour.tscn` records the level from a few angles for a pull request's screenshots.
+- `tools/capture/model_tour.tscn` films the player's model from the front and from behind with the pistol up, for the
+  screenshots of a model change (it films the model `player.tscn` holds).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
 - `tools/capture/action_tour.tscn` plays the character through the range, the crouch course and the cubes by pressing the
   input actions, for a clip with the sound.
@@ -13,5 +15,5 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
-  drops `mannequin.glb` on `Model` and checks that the clips, the pistol and the tree survive. The header of
-  `swap_in_editor.gd` says how to run it.
+  drops the other mannequin (`mannequin_male.glb`) on `Model` and checks that the clips, the pistol and the tree
+  survive. The header of `swap_in_editor.gd` says how to run it.

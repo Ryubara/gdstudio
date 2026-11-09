@@ -2,7 +2,7 @@
 
 - Animations: "Universal Animation Library" (`UAL1_Standard.glb`) and "Universal Animation Library 2"
   (`UAL2_Standard.glb`), the Standard packs, by Quaternius. Both use the Quaternius universal humanoid rig, so their
-  clips play on `assets/characters/mannequin/mannequin.glb` without retargeting. These are the files with root motion
+  clips play on either mannequin in `assets/characters/mannequin/` without retargeting. These are the files with root motion
   off (the packs' `_RM` files have it on).
 - Source: <https://quaternius.itch.io/universal-animation-library> (file `Universal Animation Library[Standard].zip`,
   sha256 `cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724`) and
