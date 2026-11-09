@@ -230,7 +230,8 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   scene is there in the editor and in a test and missing from the web export unless the instance is marked editable
   (`[editable path="Model"]`), and it is lost when the model is replaced; #836 shipped without the line
   (`Weapon.muzzle` null, the fire button did nothing, no error) and #844 moved the pistol under the slot, so the line is
-  no longer needed ([Replacing the model](#replacing-the-model)). **Seen:** gdstudio #836, 2026-11-08; gdstudio #844.
+  no longer needed ([Replacing the model](#replacing-the-model)); a null `muzzle` is still the sign of a path into a
+  part that is gone. **Seen:** gdstudio #836, 2026-11-08; gdstudio #844.
 - **Approach:** Size a `Control` that sits by its anchors (the `Crosshair`, at the middle of the screen) by setting its
   four offsets from the exports (`-half`, `half`), not `custom_minimum_size`. **Watch out for:** a minimum size only
   makes a control bigger: shrinking the radius left the rect at its old size, and the test that reads the rect's size
