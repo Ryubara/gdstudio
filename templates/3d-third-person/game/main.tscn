@@ -26,10 +26,11 @@ bus = &"Ambient"
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
-[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "player")]
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "player")]
 script = ExtResource("3_camera")
 target = NodePath("../Player/CameraTarget")
 follow_camera = NodePath("FollowCamera")
+camera = NodePath("../Camera")
 player = NodePath("../Player")
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]

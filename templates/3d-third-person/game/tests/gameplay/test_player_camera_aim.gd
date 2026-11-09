@@ -59,7 +59,7 @@ func test_sprinting_zooms_the_view_out_and_widens_it_and_stopping_brings_it_back
 	await _sprint()
 	_settle()
 	assert_float(_rig.sprint_blend()).is_equal(1.0)
-	assert_float(_rig.current_distance()).is_equal_approx(4.4 + 0.4, 0.001)
+	assert_float(_rig.current_distance()).is_equal_approx(_rig.distance + 0.4, 0.001)
 	assert_float(_rig.current_fov()).is_equal_approx(62.0 + 6.0, 0.001)
 	# The lens that draws the scene follows (the Phantom Camera host copies it).
 	await InputSim.ticks(get_tree(), 4)
@@ -69,7 +69,7 @@ func test_sprinting_zooms_the_view_out_and_widens_it_and_stopping_brings_it_back
 	await InputSim.ticks(get_tree(), 40)
 	_settle()
 	assert_float(_rig.current_fov()).is_equal_approx(62.0, 0.001)
-	assert_float(_rig.current_distance()).is_equal_approx(4.4, 0.001)
+	assert_float(_rig.current_distance()).is_equal_approx(_rig.distance, 0.001)
 
 
 func test_the_sprint_zoom_numbers_are_live() -> void:
@@ -78,10 +78,10 @@ func test_the_sprint_zoom_numbers_are_live() -> void:
 	_rig.sprint_distance_change = -1.0
 	_settle()
 	assert_float(_rig.current_fov()).is_equal_approx(74.0, 0.001)
-	assert_float(_rig.current_distance()).is_equal_approx(3.4, 0.001)
+	assert_float(_rig.current_distance()).is_equal_approx(_rig.distance - 1.0, 0.001)
 	var pcam := _rig.phantom_camera()
 	assert_float(pcam.camera_3d_resource.fov).is_equal_approx(74.0, 0.001)
-	assert_float(pcam.spring_length).is_equal_approx(3.4, 0.001)
+	assert_float(pcam.spring_length).is_equal_approx(_rig.distance - 1.0, 0.001)
 
 
 func test_sprint_zoom_speed_is_how_fast_the_zoom_blends() -> void:
@@ -144,15 +144,14 @@ func test_the_shake_does_not_run_off_the_ground_or_while_walking() -> void:
 	assert_vector(_rig.current_shake()).is_equal(Vector3.ZERO)
 
 
-func test_aiming_brings_the_camera_in_over_the_shoulder() -> void:
+func test_aiming_brings_the_camera_in_and_narrows_the_view() -> void:
 	await _aim()
 	_settle()
 	assert_float(_rig.aim_blend()).is_equal(1.0)
 	assert_float(_rig.current_distance()).is_equal_approx(_rig.aim_distance, 0.001)
 	assert_float(_rig.current_fov()).is_equal_approx(_rig.aim_fov, 0.001)
-	assert_vector(_rig.current_offset()).is_equal_approx(
-		_rig.offset + Vector3(_rig.aim_shoulder, 0.0, 0.0), Vector3.ONE * 0.001
-	)
+	# Aiming zooms only: the arm's start stays where it is (the shoulder is the Camera node's).
+	assert_vector(_rig.current_offset()).is_equal(_rig.offset)
 	await InputSim.ticks(get_tree(), 4)
 	assert_float(_camera.fov).is_equal_approx(_rig.aim_fov, 0.5)
 	InputSim.pad_axis(JOY_AXIS_TRIGGER_LEFT, 0.0)
@@ -165,15 +164,16 @@ func test_aiming_brings_the_camera_in_over_the_shoulder() -> void:
 func test_the_aim_numbers_are_live() -> void:
 	await _aim()
 	_rig.aim_distance = 1.5
-	_rig.aim_shoulder = -0.8
+	_rig.aim_shifts_shoulder = true
+	_rig.aim_shoulder = 0.8
 	_rig.aim_fov = 40.0
 	_settle()
 	assert_float(_rig.current_distance()).is_equal_approx(1.5, 0.001)
-	assert_float(_rig.current_offset().x).is_equal_approx(_rig.offset.x - 0.8, 0.001)
+	assert_float(_rig.current_view_offset().x).is_equal_approx(0.8, 0.001)
 	assert_float(_rig.current_fov()).is_equal_approx(40.0, 0.001)
 	var pcam := _rig.phantom_camera()
 	assert_float(pcam.spring_length).is_equal_approx(1.5, 0.001)
-	assert_float(pcam.follow_offset.x).is_equal_approx(_rig.offset.x - 0.8, 0.001)
+	assert_float(pcam.camera_3d_resource.h_offset).is_equal_approx(0.8, 0.001)
 	assert_float(pcam.camera_3d_resource.fov).is_equal_approx(40.0, 0.001)
 
 

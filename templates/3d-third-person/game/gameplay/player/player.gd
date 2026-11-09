@@ -99,6 +99,11 @@ var items: Dictionary[StringName, int] = {}
 var crouching := false
 ## True while it aims: the aim button is held, or it fired a moment ago.
 var aiming := false
+## True while the aim button is held (not the moment the arm stays up after a shot). The camera
+## zooms from this, so it never waits for `aim_hold_time`.
+var aim_held := false
+## True while the fire button is held and the character can shoot.
+var fire_held := false
 ## How far the arm is up, 0 (down) to 1 (aiming); `PlayerAnimation` blends the pose by it.
 var aim_amount := 0.0
 
@@ -301,13 +306,17 @@ func _update_crouch(delta: float) -> void:
 func _update_aim(delta: float) -> void:
 	var wants := false
 	if weapon != null and input_enabled and _action_lock <= 0.0:
-		if Input.is_action_pressed(&"fire"):
+		fire_held = Input.is_action_pressed(&"fire")
+		aim_held = Input.is_action_pressed(&"aim")
+		if fire_held:
 			_fire_hold = tuning.aim_hold_time
 		else:
 			_fire_hold = maxf(_fire_hold - delta, 0.0)
-		wants = Input.is_action_pressed(&"aim") or _fire_hold > 0.0
+		wants = aim_held or _fire_hold > 0.0
 	else:
 		_fire_hold = 0.0
+		aim_held = false
+		fire_held = false
 	if wants != aiming:
 		aiming = wants
 		aim_changed.emit(aiming)

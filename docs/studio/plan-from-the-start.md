@@ -21,6 +21,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   it as it holds a person ([Bots](../gamedev/bots.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
 - Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
+- Plan: for a game camera, which node owns each framing value and who may write it (distance on the rig, the shoulder on
+  the Camera node's own H and V Offset, nothing else writing them, the addon's host copy included), and one test that
+  sweeps the camera's yaw with every zoom held to prove the lens never nears the head
+  ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
   camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
