@@ -4,9 +4,9 @@
 
 How the template's character is built and what Godot 4.7.2 did on the way (kit issue #821): a `CharacterBody3D`
 controller, a Phantom Camera third-person view, touch controls for phones and a Quaternius mannequin animated with the
-Universal Animation Library 1 and 2. What a game made from it holds is in its own `docs/design/character.md`; the
-template list is [A new game from a template](new-game.md#the-templates). Measured on Windows, an RTX 5080, Godot
-4.7.2, and in headless Chromium on SwiftShader.
+Universal Animation Library 1 and 2 (the female and the male one). What a game made from it holds is in its own
+`docs/design/character.md`; the template list is [A new game from a template](new-game.md#the-templates). Measured on
+Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 
 ## What is in it {#what-is-in-it}
 
@@ -19,7 +19,7 @@ template list is [A new game from a template](new-game.md#the-templates). Measur
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
-| Assets | `assets/characters/mannequin/`, `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`. |
+| Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
@@ -53,6 +53,38 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
   `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
   sha256 in the licence entry.
 
+## The two mannequins {#mannequins}
+
+<!-- new section: the template shipped one mannequin under a neutral name; #843 added the other and named both -->
+
+The template ships both Quaternius mannequins, CC0, on the one universal rig (65 bones, the same names and parents), so
+every clip of both libraries plays on either: `mannequin_female.glb` (the pack's `Mannequin_F.glb`, 1.4 MB, the
+default in `player.tscn`) and `mannequin_male.glb` (0.6 MB). The pack has no model-only file for the male: he is the
+`Mannequin` mesh inside `UAL1_Standard.glb` and `UAL2_Standard.glb` (byte for byte the same mesh, skin and skeleton in
+both), so `mannequin_male.glb` is `UAL1_Standard.glb` with its 43 clips removed, by
+`tools/models/strip_glb_animations.py` (it copies the nodes, mesh, skin and materials as they are and drops only the
+animation data; no Blender round trip, which would have renamed and re-ordered things). The sha256 of the source and of
+the result are in the folder's `LICENSE.md`. The female stays the default because the template's captures, the pistol's
+seat and the clip checks were all made on her, and the two stand 1.8 m tall with the same feet; the male has longer
+collarbones and upper arms (0.22 m and 0.27 m against 0.19 m and 0.22 m; the forearms are the same), so a clip reaches
+a slightly different pose.
+Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.glb` (or the other way round).
+
+- **Approach:** Take a model that a pack ships only inside its clip files by dropping the clips from the glb itself
+  (parse the glTF chunks, remove `animations`, keep only the accessors and buffer views the meshes and skins use,
+  re-pack the binary chunk), and keep the source file's sha256 in the licence entry. **Watch out for:** the
+  male's mesh node is `Mannequin` and the female's `Mannequin_F`, and the scene root of both imports as `Armature`/
+  `Skeleton3D`, so nothing may refer to either by name (the player scene's node is its own `Mannequin`); the rest
+  poses of the arms differ between the two files, so a test compares the bone names and parents, not the poses.
+  **Seen:** gdstudio #843, 2026-11-09.
+- **Approach:** Film each model through the scene that holds it: point `player.tscn`'s model at the other glb (what
+  the editor swap saves) and record `tools/capture/model_tour.tscn`; read the aim-pose frame, where the pistol sits in
+  the hand. **Watch out for:** swapping the model in code at run time (`remove_child`, `free`, `add_child` on `Model`)
+  left the pistol's `BoneAttachment3D` at the new skeleton's rest pose, 0.65 m from the hand, in `main.tscn` (the path
+  was right; toggling `use_external_skeleton` off and on later fixed it, doing so in `_seat_attachments` did not),
+  while GdUnit's swap and a scene saved with the male glb were right: the test passed and the capture showed the pistol
+  on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
+
 ## Replacing the model {#replacing-the-model}
 
 <!-- new section: a swap of the player's glb in the editor broke the clips, the pistol and the game (gdstudio #844) -->
@@ -62,8 +94,8 @@ The player's model is a **slot**: `Model` is a plain `Node3D` with the `PlayerMo
 by its name. To swap the character in the editor:
 
 1. In the Scene dock, select the old model (`Mannequin`) and delete it. Leave `Model` and `PistolHeld`.
-2. Drag the new `.glb` from the FileSystem dock onto `Model` (any name; a glb of the Quaternius universal rig, with
-   `Armature/Skeleton3D` under its root and the bone names of the mannequin).
+2. Drag the new `.glb` from the FileSystem dock onto `Model` (the other mannequin, or any name; a glb of the
+   Quaternius universal rig, with `Armature/Skeleton3D` under its root and the bone names of the mannequin).
 3. Save. The `AnimationPlayer`'s Root Node, the `AnimationTree`, the pistol's skeleton path and the footsteps follow
    the new model by themselves; nothing is set by hand. Turn the new model to face +Z if its file faces the other way.
 

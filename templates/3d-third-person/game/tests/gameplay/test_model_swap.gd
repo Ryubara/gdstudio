@@ -4,10 +4,12 @@
 #
 # The editor, when it deletes a node, empties every path that pointed at it: the AnimationPlayer's
 # Root Node and the AnimationTree's. `_swap` does the same (recorded from the editor's own delete
-# by `tools/editor_swap/`), then adds the new model as the editor does.
+# by `tools/editor_swap/`), then adds the new model as the editor does. The tests swap in the male
+# mannequin, which the player scene does not hold; the female one is the default.
 extends GdUnitTestSuite
 
-const MANNEQUIN := "res://assets/characters/mannequin/mannequin.glb"
+const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
+const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
 ## How far the seat may be from the bone it hangs on, in metres.
 const SEAT_TOLERANCE := 0.02
 
@@ -83,14 +85,39 @@ func test_the_shipped_model_resolves_every_track() -> void:
 
 
 func test_a_new_model_with_another_name_resolves_every_track_of_every_clip() -> void:
-	var added := await _swap(load(MANNEQUIN), "mannequin_female")
+	var added := await _swap(load(MALE), "mannequin_male")
 	assert_object(_slot.rig()).is_same(added)
 	assert_array(_unresolved_tracks()).is_empty()
 	assert_object(_animation_player.get_node(_animation_player.root_node)).is_same(added)
 
 
+func test_either_mannequin_can_be_dropped_on_the_slot_in_turn() -> void:
+	# Female (the default) to male and back: the clips resolve each time and the slot hands out
+	# the model it holds.
+	for path in [MALE, FEMALE, MALE]:
+		var added := await _swap(load(path), String(path).get_file().get_basename())
+		assert_object(_slot.rig()).is_same(added)
+		assert_array(_unresolved_tracks()).is_empty()
+		assert_object(_slot.skeleton()).is_same(added.get_node("Armature/Skeleton3D"))
+
+
+func test_both_mannequins_have_the_same_bones_in_the_same_places_of_the_tree() -> void:
+	var female := (load(FEMALE) as PackedScene).instantiate()
+	var male := (load(MALE) as PackedScene).instantiate()
+	add_child(female)
+	add_child(male)
+	var a := female.get_node("Armature/Skeleton3D") as Skeleton3D
+	var b := male.get_node("Armature/Skeleton3D") as Skeleton3D
+	assert_int(b.get_bone_count()).is_equal(a.get_bone_count())
+	for bone in a.get_bone_count():
+		assert_str(b.get_bone_name(bone)).is_equal(a.get_bone_name(bone))
+		assert_int(b.get_bone_parent(bone)).is_equal(a.get_bone_parent(bone))
+	female.free()
+	male.free()
+
+
 func test_the_tree_follows_the_new_model() -> void:
-	var added := await _swap(load(MANNEQUIN), "male")
+	var added := await _swap(load(MALE), "male")
 	assert_str(String(_tree.anim_player)).is_equal("../AnimationPlayer")
 	assert_object(_tree.get_node_or_null(_tree.root_node)).is_same(added)
 	assert_object(_tree.tree_root).is_not_null()
@@ -103,7 +130,7 @@ func test_the_tree_follows_the_new_model() -> void:
 
 
 func test_the_pose_moves_on_the_new_model() -> void:
-	var added := await _swap(load(MANNEQUIN), "male")
+	var added := await _swap(load(MALE), "male")
 	var skeleton := added.get_node("Armature/Skeleton3D") as Skeleton3D
 	var thigh := skeleton.find_bone(&"thigh_l")
 	var rest := skeleton.get_bone_rest(thigh).basis.get_rotation_quaternion()
@@ -129,7 +156,7 @@ func _seat_error(slot: PlayerModel) -> float:
 
 
 func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
-	var added := await _swap(load(MANNEQUIN), "male")
+	var added := await _swap(load(MALE), "male")
 	var skeleton := added.get_node("Armature/Skeleton3D") as Skeleton3D
 	var seat := _slot.get_node("PistolHeld") as BoneAttachment3D
 	assert_bool(seat.use_external_skeleton).is_true()
@@ -144,7 +171,7 @@ func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
 
 func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_to_the_same_name() -> void:
 	# The new skeleton has the old one's path, so only the connection tells the seat is stale.
-	await _swap(load(MANNEQUIN), "Mannequin")
+	await _swap(load(MALE), "Mannequin")
 	assert_float(await _walk_and_measure(_slot)).is_less(SEAT_TOLERANCE)
 
 
@@ -161,7 +188,7 @@ func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_sc
 	old.free()
 	player.get_node("AnimationPlayer").root_node = NodePath()
 	player.get_node("AnimationTree").root_node = NodePath()
-	var added := (load(MANNEQUIN) as PackedScene).instantiate() as Node3D
+	var added := (load(MALE) as PackedScene).instantiate() as Node3D
 	added.name = "male"
 	slot.add_child(added)
 	added.owner = player
@@ -201,7 +228,7 @@ func _walk_and_measure(slot: PlayerModel) -> float:
 
 func test_the_footsteps_follow_the_new_skeleton() -> void:
 	var steps := _player.get_node("Footsteps") as Footsteps
-	var added := await _swap(load(MANNEQUIN), "male")
+	var added := await _swap(load(MALE), "male")
 	assert_object(steps.model.skeleton()).is_same(added.get_node("Armature/Skeleton3D"))
 	var heard := []
 	steps.stepped.connect(func(foot: StringName, _crouched: bool) -> void: heard.append(foot))
@@ -235,7 +262,7 @@ func test_a_model_without_the_rigs_armature_gets_one_warning_and_no_model_anothe
 
 
 func test_the_player_still_turns_the_slot_to_its_heading() -> void:
-	await _swap(load(MANNEQUIN), "male")
+	await _swap(load(MALE), "male")
 	InputSim.key(KEY_D, true)
 	await InputSim.ticks(get_tree(), 30)
 	assert_float(absf(wrapf(_slot.rotation.y - _player.facing, -PI, PI))).is_less(0.2)

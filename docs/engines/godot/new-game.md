@@ -144,6 +144,12 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   suite left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in
   CI; run the pair that failed in the log's order before pushing again. **Seen:** gdstudio #836, 2026-11-08.
 
+- **Approach:** After merging main into a template branch, make a fresh game from the merged branch (`gds new game
+  --local`) rather than copying the template's files over an older one. **Watch out for:** a copy loop that skips
+  `.glb` and `.exr` files (to keep the import cache) leaves out every model or texture main added, so the copied game
+  runs new scripts against old assets and its tests fail for no fault of the change. **Seen:** gdstudio #856,
+  2026-11-09.
+
 ## With `--local` {#with-local}
 
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
@@ -173,7 +179,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius mannequin with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):

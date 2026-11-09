@@ -54,6 +54,15 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   at a deleted node). The template's `tools/editor_swap/` does this for the player's model; count the engine's
   warnings in the log (`grep -c "couldn't resolve"`). Gdstudio #844, Godot 4.7.2.
 
+- **Approach:** Prove that an exported setter of a `@tool` script drives another node in the editor with a job that sets
+  a property on one node, waits about 8 frames, and prints a property of another (a list of `[node, property, value]`
+  steps and `[node, property]` reads), then saves and diffs the scene. **Watch out for:** `node.set()` runs the setter
+  but not the inspector's undo/redo, so it proves the setter, not the inspector's write; and the save changes
+  `main.tscn` even on the untouched template (the Phantom Camera host writes the Camera's `transform`, `top_level` and
+  `tween_resource`), so diff against the old template's save, not against the committed file.
+  **Seen:** gdstudio #856, 2026-11-09 (the shoulder settings on `PlayerCamera` moved the Camera's `h_offset` and
+  `v_offset` at once).
+
 ## Changing values like the remote inspector {#remote-inspector}
 
 <!-- new section: nothing said how to check that a setter really takes the edit that the Remote tab sends -->
