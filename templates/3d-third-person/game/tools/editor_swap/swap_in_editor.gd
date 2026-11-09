@@ -7,9 +7,10 @@ extends EditorPlugin
 ## same through `gds godot` with a window for the screenshots (`SWAP_SHOT_DIR`).
 ##
 ## It opens `player.tscn`, selects the model, presses Delete in the Scene dock and confirms,
-## selects `Model` and has the dock instance `mannequin.glb` on it (the node is named `mannequin`,
-## not `Mannequin`), then selects the AnimationTree and the AnimationPlayer. It saves the scene
-## to see what is written and puts the file back.
+## selects `Model` and has the dock instance the other mannequin on it: `mannequin_male.glb`, or
+## `mannequin_female.glb` when `SWAP_MODEL=female` (the node is named after the file, not
+## `Mannequin`), then selects the AnimationTree and the AnimationPlayer. It saves the scene to see
+## what is written and puts the file back.
 ##
 ## It prints one `SWAP` line for each check and quits with 1 if one failed. The editor's own
 ## warnings (`couldn't resolve track`, `invalid root_node`) go to the output: count them there.
@@ -17,13 +18,19 @@ extends EditorPlugin
 ## tree selected.
 
 const SCENE := "res://gameplay/player/player.tscn"
-const MODEL := "res://assets/characters/mannequin/mannequin.glb"
+const FOLDER := "res://assets/characters/mannequin/"
 
 var _failed := false
+var _model_path := FOLDER + "mannequin_%s.glb" % _which()
+var _node_name := StringName(_model_path.get_file().get_basename())
 
 
 func _enter_tree() -> void:
 	_run.call_deferred()
+
+
+func _which() -> String:
+	return "female" if OS.get_environment("SWAP_MODEL") == "female" else "male"
 
 
 func _frames(count: int) -> void:
@@ -103,6 +110,7 @@ func _run() -> void:
 	_select(slot)
 	await _frames(60)
 	_shot("before")
+	print("SWAP model ", _model_path)
 
 	_select(slot.get_node("Mannequin"))
 	await _frames(10)
@@ -114,10 +122,10 @@ func _run() -> void:
 
 	_select(slot)
 	await _frames(5)
-	_dock().call("instantiate", MODEL)
+	_dock().call("instantiate", _model_path)
 	await _frames(20)
 	var rig := slot.rig()
-	_check(rig != null and rig.name == &"mannequin", "the new model is `mannequin`")
+	_check(rig != null and rig.name == _node_name, "the new model is `%s`" % _node_name)
 	_check(_unresolved(animation_player) == 0, "after: every track resolves")
 	_check(
 		rig != null and animation_player.get_node_or_null(animation_player.root_node) == rig,
@@ -134,7 +142,7 @@ func _run() -> void:
 	_check(tree.tree_root != null and not tree.anim_player.is_empty(), "the tree is built")
 	_select(slot)
 	await _frames(60)
-	_shot("swapped")
+	_shot("swapped_" + _which())
 
 	# What the maintainer did next: select the tree (which builds the cache of every clip).
 	_select(tree)
@@ -151,7 +159,7 @@ func _run() -> void:
 	for generated in ["tree_root", "anim_player", "AnimationNode"]:
 		_check(not saved.contains(generated), "the saved scene holds no `%s`" % generated)
 	_check(
-		saved.contains('root_node = NodePath("../Model/mannequin")'),
+		saved.contains('root_node = NodePath("../Model/%s")' % _node_name),
 		"the saved Root Node names the new model"
 	)
 	FileAccess.open(SCENE, FileAccess.WRITE).store_string(before_save)
