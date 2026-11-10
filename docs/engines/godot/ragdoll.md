@@ -151,11 +151,12 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   2026-11-10 (`LABPERF` runs, N = 1, 4 and 10, both engines, and the web runs).
 - **Approach:** Measure the web cost in the real game: a probe scene loads `main.tscn`, adds players, kills them in one
   tick and prints the physics time per second; export it as the main scene, read it in headless Chromium through `gds
-  quiet`, and keep only runs whose time before the deaths is the game's usual (0.5 to 1 ms). **Watch out for:** on a
-  shared machine two runs in three were noise (30 to 90 ms ticks before any death). Clean runs: one death 1.7 to 2.4 ms
-  in the first second, 0.4 to 0.9 after; four 3.1 to 3.4, then 0.7 to 1.3; ten (four limp, six clips by the cap) 4.3,
-  then 1.1 to 1.4; asleep by about 10 s. The solver steps of [Joint limits](#limits) made four deaths 5.0 ms (one clean
-  run). **Seen:** gdstudio #872, 2026-11-10 (the probe `game_perf.gd` in the task's scratch folder).
+  quiet`, and keep runs whose time before the deaths is the usual 0.5 to 1 ms. **Watch out for:** on a
+  shared machine two runs in three were noise. Clean runs: one death 1.7 to 2.4 ms in the first second, 0.4 to 0.9
+  after; four 3.1 to 3.4, then 0.7 to 1.3; ten (four limp) 4.3, then 1.1 to 1.4; asleep by about 10 s. Jolt's steps
+  30 and 4 made four deaths 5.0 ms; four hinges per elbow and knee (`hinge_passes`) cost nothing measurable (4.7 ms
+  over the first two seconds with one and with four, 0.9 then 0.8 after). **Seen:** gdstudio #872, 2026-11-10 (the
+  probe `game_perf.gd`); gdstudio #940, 2026-11-10 (four clean runs each, `passes=1` against `passes=4`).
 - **Approach:** Take a settled body out of the budget: after `settle_time` seconds with every bone asleep the node says
   `settled`, stops counting toward the cap and a game frees the body there; beyond `ragdoll_range` metres from the
   camera a death is the clip. **Watch out for:** how long a body takes to lie still depends on the pose it died in
