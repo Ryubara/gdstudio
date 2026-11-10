@@ -42,6 +42,13 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   game as no player sees it. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's recordings come from the player's camera
   with the real devices switched off).
 
+- **Approach:** For a phone-shaped window (844 x 390, a canvas of 2337 x 1080 units) save the viewport's own pixels
+  from the capture scene (`await RenderingServer.frame_post_draw`, then
+  `get_viewport().get_texture().get_image().save_png`), and keep Movie Maker for sizes whose canvas is 1920 units wide
+  or less. **Watch out for:** Movie Maker writes frames of the project's size (1920 x 1080) whatever `--resolution`
+  says and cuts a wider canvas at both sides, so the first phone captures of the menus showed the middle of every card
+  and looked like a layout fault. **Seen:** gdstudio #881, 2026-11-10 (`tools/capture/menus_tour.gd`,
+  `--shots=<folder>`).
 - **Approach:** Read frame N-1 to see the state before a change made at step N; to record at a real smaller size (a UI
   test at 720p) write an uncommitted `game/override.cfg` with `window/size/window_width_override` and
   `window_height_override` (the stretch base stays 1920 x 1080, so the UI scales as for a 720p player), and delete it

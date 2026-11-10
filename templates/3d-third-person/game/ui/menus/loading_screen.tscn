@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://addons/gds_ui/components/ui_slider.gd" id="5_slider"]
 
 [node name="LoadingScreen" type="Control"]
+script = ExtResource("1_menu")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,7 +15,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 stars = false
-script = ExtResource("1_menu")
 
 [node name="Fit" type="Control" parent="."]
 script = ExtResource("2_fit")
@@ -32,26 +32,26 @@ custom_minimum_size = Vector2(640, 0)
 theme_override_constants/separation = 24
 
 [node name="Title" type="Label" parent="Fit/Center/Column"]
+script = ExtResource("3_label")
 text = "Loading"
 horizontal_alignment = 1
 style = 2
-script = ExtResource("3_label")
 
 [node name="Bar" type="HSlider" parent="Fit/Center/Column"]
 unique_name_in_owner = true
+script = ExtResource("5_slider")
 mouse_filter = 2
 focus_mode = 0
 editable = false
-script = ExtResource("5_slider")
 
 [node name="Message" type="Label" parent="Fit/Center/Column"]
 unique_name_in_owner = true
+script = ExtResource("3_label")
 horizontal_alignment = 1
 style = 4
-script = ExtResource("3_label")
 
 [node name="BackButton" type="Button" parent="Fit/Center/Column"]
 unique_name_in_owner = true
+script = ExtResource("4_button")
 text = "Back to menu"
 variant = 1
-script = ExtResource("4_button")

@@ -1,0 +1,89 @@
+# Menus over a game: the screen host and the settings
+
+<!-- new section: UI controls covers the controls and the online case; nothing held how a solo game pauses behind its
+menus or keeps options (gdstudio #881) -->
+
+How a template game shows menus over its running world and keeps the player's options (gdstudio #881): the
+`ScreenHost` that pauses the game and gives it back, and the `Settings` autoload with rebinding. The controls the
+screens are made of, focus, and the online case (a menu over a game that must keep running) are on
+[UI controls](ui-controls.md); the template's parts and its inspector list are on
+[The 3D Third Person template](third-person-template.md#menus); the router's calls are in the addon's README
+(`godot/addons/gds_ui/README.md`).
+
+## A menu over a game that pauses: the screen host {#screen-host}
+
+<!-- new section: A menu over a live game covers the online case; nothing said how a solo game opens a pause menu, an
+inventory or a map over its running world and gives the game back (gdstudio #881) -->
+
+`ScreenHost` (`ui/menus/screen_host.gd` in the 3D Third Person template, one node in the game scene) is the way a game
+shows a screen over itself. The screens stay on the `UIRouter` stack, which runs while the tree is paused; the host
+adds what the router does not know about a game:
+
+- **Open and close.** `open(screen)` takes a `PackedScene`, a path or a `Control`, pauses the tree, lets the mouse go
+  and shows the screen; `close()` clears the stack. When the stack is empty again (a Resume button, Esc, a screen that
+  frees itself) the host unpauses, gives the mouse back if the game held it, and puts touch-to-mouse back.
+- **Bind a key.** `action_screens` maps an input action to a scene (`inventory` to `inventory.tscn`): the key opens the
+  screen and the same key closes it. The `pause` action (Esc, a pad's Start) opens `pause_screen`. Esc and a pad's B
+  step back through the router one screen at a time; Start closes everything.
+- **Give the screen `back_closes`** so Esc closes it when it is the only one: `UIRouter.pop()` stops at the root, so
+  without it a pause menu has no Esc. A screen extends `UIScreen`; `UIRouter.close()` is a pop that may empty the stack
+  and `UIRouter.clear()` frees all of it.
+- **Keep the game as a node tree, not a screen.** The router disables the screen it covers, so a game that is the
+  bottom screen stops whether it wants to or not; as plain nodes under a paused tree it stops by the tree's own
+  setting, and a game that must run on (online) turns `pause_tree` off.
+- **Web.** The host also opens the pause menu when the game had the mouse captured and no longer has it (a browser's
+  first Esc only lets the pointer lock go) or when the window loses focus
+  ([Web export](web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)), and takes the lock
+  again from Resume's click.
+
+```gdscript
+# From code, anywhere in the game:
+ScreenHost.current.open(preload("res://ui/menus/inventory.tscn"))
+```
+
+- **Approach:** Open a menu over a solo game from one host node that pauses the tree, releases the mouse, turns
+  `Input.emulate_mouse_from_touch` on and gives all three back when the router's stack is empty again, and give the
+  router a `close` that may empty the stack. **Watch out for:** the touch layer turns touch-to-mouse off while it
+  shows, so on a phone the menu's buttons heard nothing; `UIRouter.pop()` stops at the root, so Esc left the pause menu
+  up over a stopped game; the router disables the screen it covers, which is a pause for a game that is a screen and a
+  bug for one that is not; a held finger's action stayed pressed because the layer is paused and never sees the lift
+  (the host's `opened` signal calls the layer's `release()`). **Seen:** gdstudio #881, 2026-11-10 (`tests/ui/
+  test_screen_host.gd`, 18 tests through the real input path, and `tools/web_smoke/pause_smoke.py`).
+- **Approach:** Give the host seams for what a headless run cannot do (`mouse_mode_reader`, `mouse_mode_writer`,
+  `scene_changer`) and free it in the test's `after_test`, whose `_exit_tree` clears the router. **Watch out for:** a
+  headless run reads the mouse mode back as visible whatever was set, and a test that changed the scene would replace
+  the one the runner stands in; a host freed with a screen up left the tree paused and a menu on the router for every
+  suite after it. **Seen:** gdstudio #881, 2026-11-10.
+
+## Settings and rebinding {#settings-and-rebinding}
+
+<!-- new section: Deadnight's settings are in its own docs; nothing said how a template keeps options, applies them and
+lets a player rebind keys (gdstudio #881) -->
+
+The template's `Settings` autoload (`core/settings/settings.gd`, from the scene `settings.tscn`) holds the
+options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies every
+value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root viewport,
+window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse sensitivity and
+invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings screen is a
+`SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key in the
+service, a row in the scene and, if it does something, a line in `_apply`.
+
+- **Approach:** Keep the player's choices apart from the designer's: the player's volume is a gain on top of the mix
+  `AudioSettings` holds (`set_player_gain`, static, so a menu before the game and the game share it), and the player's
+  mouse sensitivity and invert are `player_sensitivity` and `player_invert_y` on the camera rig, not edits of its
+  `mouse_sensitivity` and `invert_y`. **Watch out for:** writing the slider's value into the bus or the export loses the
+  designer's tuning on the next change of either, and a saved choice then cannot tell what the game meant. **Seen:**
+  gdstudio #881, 2026-11-10.
+- **Approach:** Save a binding as data (`{"type": "key", "code": 70, "physical": true}`), check every field when it is
+  read, and keep a test run's, a capture's and an agent's options in memory. **Watch out for:** a `ConfigFile` can hold
+  an `Object`, and a file the player edits must not make the game build one; a hand-edited file with a wrong type, an
+  out-of-range number or a `NaN` must fall back value by value, not fail the load; the engine's own error is printed
+  for a file that is not a config file at all. **Seen:** gdstudio #881, 2026-11-10 (`tests/core/
+  test_settings.gd`, `test_settings_bindings.gd`, `test_input_bindings.gd`).
+- **Approach:** Rebind the first binding of the device the player pressed and leave the others (W stays beside the up
+  arrow), swap with the action that used the control, take the next real press (key, mouse button, pad button or a
+  stick or trigger past 0.6) and let Escape cancel while the screen's own back is switched off. **Watch out for:** a
+  pad's press arrives with the pad's id and must be stored for every device (`device = -1`), a held key repeats as echo
+  presses, a button's own accept press must not be the binding, and `DisplayServer.keyboard_get_keycode_from_physical`
+  prints an error on the headless display server, so use `InputEventKey.as_text_physical_keycode()` for the label.
+  **Seen:** gdstudio #881, 2026-11-10 (`tests/ui/test_settings_rebinding.gd`).

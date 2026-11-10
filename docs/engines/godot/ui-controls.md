@@ -434,6 +434,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   checks the server's tick still climbs).
 - **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
   ("Menu: the night goes on around you", not "Paused").
+- **A solo game that pauses behind its menu** opens it through one host node, not as a router screen: [Menus over a
+  game](menus.md#screen-host).
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
   replayed to a waiter that comes after it.
 

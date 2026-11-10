@@ -57,6 +57,9 @@ static var current: ScreenHost
 var mouse_mode_reader := Callable()
 ## Takes the mouse mode a screen closing gives back instead of `Input.mouse_mode` when valid.
 var mouse_mode_writer := Callable()
+## Switches to the menu scene instead of the tree's own change when valid (a `Callable` taking the
+## scene's path): a test must not replace the scene the runner stands in.
+var scene_changer := Callable()
 
 var _open := false
 var _expects_mouse := false
@@ -73,7 +76,12 @@ func _exit_tree() -> void:
 	if current == self:
 		current = null
 	if _open:
+		# Leaving with a screen up (the scene is freed, a test ends): the game is not paused for
+		# nothing and the router does not keep a menu for a game that is gone.
+		_open = false
 		get_tree().paused = false
+		Input.emulate_mouse_from_touch = _held_touch_mouse
+		UIRouter.clear(UITransition.Kind.CUT)
 
 
 func _ready() -> void:
@@ -83,14 +91,17 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _open:
+	if _open or not is_inside_tree():
 		return
 	if _mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		_expects_mouse = true
 	elif _expects_mouse:
-		_expects_mouse = false
+		# The mouse the game held is gone. `_begin` notes that it was held (to take it again on close)
+		# and clears the flag; with the pause off the flag is simply dropped.
 		if pause_on_lost_mouse:
 			open_pause()
+		else:
+			_expects_mouse = false
 
 
 func _notification(what: int) -> void:
@@ -140,7 +151,10 @@ func go_to_menu() -> void:
 	if _open:
 		_end(false)
 	_mouse_to(Input.MOUSE_MODE_VISIBLE)
-	get_tree().change_scene_to_file(menu_scene)
+	if scene_changer.is_valid():
+		scene_changer.call(menu_scene)
+	else:
+		get_tree().change_scene_to_file(menu_scene)
 
 
 func _toggle(screen: PackedScene, event: InputEvent) -> void:
@@ -174,8 +188,9 @@ func _end(restore_mouse := true) -> void:
 	if pause_tree:
 		get_tree().paused = false
 	if restore_mouse and release_mouse and _held_mouse:
+		# The mouse counts as the game's again only once it is really captured (`_process`): a browser
+		# may refuse the lock for a moment, and the menu must not open again for that.
 		_mouse_to(Input.MOUSE_MODE_CAPTURED)
-		_expects_mouse = true
 	closed.emit()
 
 

@@ -179,7 +179,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
@@ -340,7 +340,9 @@ Something every existing game must receive belongs in `templates/game/` (synced)
 `templates/repo/` or a template (copied once).
 
 An extending template replaces a file of the base whole, it does not merge: `3d-third-person` carries its own
-`project.godot` (the base's text plus the input map and the landscape setting; a kit test compares them) and its own
+`project.godot` (the base's text plus the input map, the landscape setting, Jolt, the `Settings` autoload and the menu
+scene as the main
+scene; a kit test compares them) and its own
 `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
 
 A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`

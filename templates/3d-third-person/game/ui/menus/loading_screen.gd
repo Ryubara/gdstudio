@@ -12,7 +12,7 @@ var _path := ""
 var _elapsed := 0.0
 var _failed := false
 
-@onready var _bar: ProgressBar = %Bar
+@onready var _bar: HSlider = %Bar
 @onready var _message: Label = %Message
 @onready var _back: Button = %BackButton
 
@@ -23,7 +23,11 @@ func _ready() -> void:
 	_back.hide()
 	_back.pressed.connect(_on_back)
 	_path = str(params.get("scene", ""))
-	if _path.is_empty() or ResourceLoader.load_threaded_request(_path) != OK:
+	# A path that is not there is a failure here, not a request: asking the loader for one prints
+	# engine errors and leaves an object behind at exit.
+	if _path.is_empty() or not ResourceLoader.exists(_path):
+		_fail()
+	elif ResourceLoader.load_threaded_request(_path) != OK:
 		_fail()
 
 

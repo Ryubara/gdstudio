@@ -90,8 +90,9 @@ var _page_hide_callback: JavaScriptObject
 
 
 ## The one place that decides where the options are kept: the person's file, unless this is a test
-## run (the GdUnit runner), a capture or autopilot scene of `res://tests/` or `res://tools/`, a run
-## of the kit's `gds godot` (`GDS_QUIET`) or one that asks for it (`HARNESS_ENV`).
+## run (the GdUnit runner), a capture or autopilot (a scene named on the command line: the person
+## starts the game from its main scene), a run of the kit's `gds godot` (`GDS_QUIET`) or one that
+## asks for it (`HARNESS_ENV`). Those keep them in memory.
 static func default_path() -> String:
 	return HARNESS_PATH if is_harness_run() else DEFAULT_PATH
 
@@ -100,9 +101,7 @@ static func is_harness_run() -> bool:
 	if OS.has_environment(HARNESS_ENV) or OS.get_environment("GDS_QUIET") == "1":
 		return true
 	for argument in OS.get_cmdline_args():
-		if argument.contains("gdUnit4") or argument.begins_with("res://tests/"):
-			return true
-		if argument.begins_with("res://tools/"):
+		if argument.contains("gdUnit4") or argument.ends_with(".tscn"):
 			return true
 	return false
 

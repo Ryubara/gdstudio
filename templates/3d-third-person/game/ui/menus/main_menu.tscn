@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://addons/gds_ui/components/ui_button.gd" id="5_button"]
 
 [node name="MainMenu" type="Control"]
+script = ExtResource("1_menu")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,7 +15,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 allow_back = false
-script = ExtResource("1_menu")
 
 [node name="Fit" type="Control" parent="."]
 script = ExtResource("2_fit")
@@ -28,8 +28,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Fit/Center"]
-variant = 2
 script = ExtResource("3_panel")
+variant = 2
 
 [node name="Column" type="VBoxContainer" parent="Fit/Center/Panel"]
 custom_minimum_size = Vector2(560, 0)
@@ -37,25 +37,25 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="Fit/Center/Panel/Column"]
 unique_name_in_owner = true
+script = ExtResource("4_label")
 text = "Game"
 horizontal_alignment = 1
 style = 1
-script = ExtResource("4_label")
 
 [node name="PlayButton" type="Button" parent="Fit/Center/Panel/Column"]
 unique_name_in_owner = true
+script = ExtResource("5_button")
 text = "Play"
 variant = 0
-script = ExtResource("5_button")
 
 [node name="SettingsButton" type="Button" parent="Fit/Center/Panel/Column"]
 unique_name_in_owner = true
+script = ExtResource("5_button")
 text = "Settings"
 variant = 1
-script = ExtResource("5_button")
 
 [node name="QuitButton" type="Button" parent="Fit/Center/Panel/Column"]
 unique_name_in_owner = true
+script = ExtResource("5_button")
 text = "Quit"
 variant = 1
-script = ExtResource("5_button")

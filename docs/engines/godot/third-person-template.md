@@ -19,6 +19,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
+| Menus and settings | `ui/menus/`, `core/settings/` | The project starts at a main menu; Esc, a pad's Start or the Menu button on a touch screen pauses the game to a pause menu; settings (video, audio, controls with rebinding) are saved and applied at start: [Menus and settings](#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
@@ -429,6 +430,56 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## Menus and settings {#menus}
+
+<!-- new section: the template started in the game scene; nothing held how it starts at a menu, pauses and keeps
+options (gdstudio #881) -->
+
+The project starts at `ui/menus/menu_scene.tscn`, which shows the main menu on the router (`gds_ui`). Play shows the
+loading screen, which reads `main.tscn` on a thread and switches to it; in the game a `ScreenHost` node opens the pause
+menu from Esc, a pad's Start or the touch layer's Menu button, pauses the tree and gives it back. Every screen is a
+scene of `gds_ui` controls, laid out in the editor; the scripts only wire them. How the pieces work together, and how
+to open a screen of your own from gameplay, is on [Menus over a game](menus.md#screen-host); the settings and
+rebinding are on [Settings and rebinding](menus.md#settings-and-rebinding).
+
+| Part | Where (`templates/3d-third-person/game/`) | What it does |
+| --- | --- | --- |
+| Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. |
+| Main menu | `ui/menus/main_menu.tscn` | Play, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. |
+| Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
+| Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
+| Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
+| Screen host | `ui/menus/screen_host.gd`, a `Screens` node in `main.tscn` | Opens screens over the game ([Menus over a game](menus.md#screen-host)). |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `main.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
+| Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node | Carries mouse sensitivity and invert to the camera rig. |
+| Layout | `ui/menus/menu_fit.gd` | On a phone (short side under 500 px, or a touch screen under 1000) it lays the menu out on a canvas half as big, drawn twice the size, so a button is a finger's size. |
+
+**In the inspector.** `ScreenHost`: `pause_screen`, `action_screens` (action to scene), `transition`, `pause_tree`,
+`release_mouse`, `pause_on_focus_loss`, `pause_on_lost_mouse`, `menu_scene`. `Settings` (its scene): `save_delay` and
+`presets`, three `QualityPreset` resources (`title`, `msaa`, `shadow_atlas_size`, `shadow_filter`) that Low, Medium and
+High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `force`. `SettingRow`: `key`, `format`,
+`option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
+`PauseButton`: `host`, `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`: `main_menu`, `game_scene`,
+`skip_menu`. `LoadingScreen`: `least_time`.
+
+- **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
+  before the script's own exports. **Watch out for:** a `.tscn` written by a script that put `style = 1` and
+  `title = "..."` above `script = ExtResource(...)` loaded with every one of those values dropped, silently: the
+  titles were body-sized and the rows had no words, found only by a capture. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** Capture a phone-shaped menu from the window's own pixels (`get_viewport().get_texture().get_image()`
+  after `RenderingServer.frame_post_draw`), and a desktop one with Movie Maker. **Watch out for:** Movie Maker writes
+  the project's 1920 x 1080 and crops a canvas that is wider (an 844 x 390 window is 2337 x 1080 units), so the first
+  phone captures showed the middle of every card. **Seen:** gdstudio #881, 2026-11-10
+  (`tools/capture/menus_tour.gd`, `--shots=<folder>`).
+- **Approach:** Give every sub-resource that a test or a designer edits `resource_local_to_scene = true` when the scene
+  is made more than once (the `Settings` scene's three presets). **Watch out for:** instances of one scene share its
+  sub-resources, so a test that set a preset's `msaa` changed the autoload's too. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** When the project's main scene stops being the game's, give tools a way past the menu (`--play`,
+  `?play`, `skip_menu`) and point every test and capture that wants the game at `res://main.tscn`. **Watch out for:**
+  `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
+  menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
 
 ## A route for a clip {#walkthrough}
 

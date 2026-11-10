@@ -8,8 +8,13 @@ extends UIScreen
 ## the children of `%Tabs`, the pages the children of `%Pages`, in the same order: add a tab by
 ## adding a button and a page. A page is a column of `SettingRow` nodes, or of its own controls.
 
-## The room kept above and below the card on a short screen.
-const CARD_MARGIN := 24.0
+## The card's width on a roomy screen, in units.
+const CARD_WIDTH := 1100.0
+## A canvas this high or lower (units) is a phone held sideways: the heading goes and the margins
+## thin out so the rows keep their room.
+const COMPACT_HEIGHT := 600.0
+const EDGE := 48
+const EDGE_COMPACT := 16
 
 var _tabs: Array[Button] = []
 var _pages: Array[Control] = []
@@ -17,6 +22,10 @@ var _current := -1
 
 @onready var _scroll: UIFitScroll = %Scroll
 @onready var _card: Control = %Card
+@onready var _margin: MarginContainer = %Margin
+@onready var _column: Control = %Column
+@onready var _overline: Control = %Overline
+@onready var _title: Control = %Title
 @onready var _fit: Control = %Fit
 @onready var _reset: Button = %ResetButton
 @onready var _back: Button = %BackButton
@@ -32,7 +41,7 @@ func _ready() -> void:
 		_tabs[i].pressed.connect(select_tab.bind(i))
 	_scroll.limit = _fit
 	_scroll.card = _card
-	_scroll.margin = CARD_MARGIN
+	_fit.resized.connect(fit_card)
 	_reset.pressed.connect(_on_reset)
 	_back.pressed.connect(_on_back)
 	for page in _pages:
@@ -40,6 +49,24 @@ func _ready() -> void:
 			(page as ControlsPage).listening_changed.connect(_on_listening_changed)
 	initial_focus = _tabs[0].get_path()
 	select_tab(0, false)
+	fit_card()
+
+
+## Sizes the card to the screen: as wide as it may be, and on a short screen without its heading and
+## with thinner margins, so the rows keep the height.
+func fit_card() -> void:
+	if _fit.size.x <= 0.0:
+		return
+	var compact := _fit.size.y <= COMPACT_HEIGHT
+	var edge := EDGE_COMPACT if compact else EDGE
+	for side in [&"margin_left", &"margin_right", &"margin_top", &"margin_bottom"]:
+		_margin.add_theme_constant_override(side, edge)
+	_overline.visible = not compact
+	_title.visible = not compact
+	var padding := _card.get_theme_stylebox(&"panel").get_minimum_size().x
+	_column.custom_minimum_size.x = minf(CARD_WIDTH, _fit.size.x - 2.0 * edge - padding)
+	_scroll.margin = float(edge)
+	_scroll.fit()
 
 
 ## Shows tab `index`; its rows rise in one after another unless `animate` is off.

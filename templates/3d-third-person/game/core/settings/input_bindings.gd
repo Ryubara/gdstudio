@@ -129,8 +129,7 @@ static func label_of(event: InputEvent) -> String:
 	if event is InputEventKey:
 		var key := event as InputEventKey
 		if key.physical_keycode != KEY_NONE:
-			var code := DisplayServer.keyboard_get_keycode_from_physical(key.physical_keycode)
-			return OS.get_keycode_string(code if code != KEY_NONE else key.physical_keycode)
+			return key.as_text_physical_keycode()
 		return OS.get_keycode_string(key.keycode)
 	if event is InputEventMouseButton:
 		return _mouse_label((event as InputEventMouseButton).button_index)

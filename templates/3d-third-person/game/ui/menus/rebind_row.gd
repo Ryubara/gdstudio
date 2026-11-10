@@ -37,7 +37,7 @@ func _ready() -> void:
 		button.pressed.connect(listen.bind(device))
 		holder.add_child(button)
 		_buttons.append(button)
-	set_widths(0.0, UITokens.active().control_width * 1.2, false)
+	set_widths(0.0, UITokens.active().control_width * 1.6, false)
 	set_control(holder)
 	var settings := get_node_or_null("/root/Settings") as SettingsService
 	if settings != null:
