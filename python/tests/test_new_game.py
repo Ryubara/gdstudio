@@ -4,41 +4,53 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from new_game_kit import KIT, build_kit, git_environment, is_lfs
 
 from gds_tools import cli, layout, new_game, sync
-
-KIT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(autouse=True)
 def git_identity(monkeypatch, tmp_path):
-    """Commits need a name; a test never reads or writes the person's own git configuration."""
-    for key, value in {
-        "GIT_AUTHOR_NAME": "Test",
-        "GIT_AUTHOR_EMAIL": "test@example.invalid",
-        "GIT_COMMITTER_NAME": "Test",
-        "GIT_COMMITTER_EMAIL": "test@example.invalid",
-        "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"),
-        "GIT_CONFIG_SYSTEM": str(tmp_path / "gitconfig"),
-    }.items():
-        monkeypatch.setenv(key, value)
+    git_environment(monkeypatch, tmp_path / "gitconfig")
 
 
 @pytest.fixture
-def kit(tmp_path) -> Path:
-    """A copy of the parts of the kit the command reads, so a test that records a remote writes to the copy."""
-    copy = tmp_path / "kit"
-    for rel in ("templates", "godot/addons", ".claude/agents", ".github/scripts", ".github/workflows"):
-        shutil.copytree(KIT / rel, copy / rel, ignore=shutil.ignore_patterns(".godot", "__pycache__"))
-    for rel in ("workspace.toml", "tools.toml", ".pre-commit-config.yaml"):
-        shutil.copyfile(KIT / rel, copy / rel)
-    return copy
+def kit(small_kit) -> Path:
+    """A copy of the small kit (conftest.py): the command's names, flags and refusals do not need the 21 MB of the real
+    templates, and a test that records a remote writes to the copy. The tests about the real templates use
+    `real_game` and `real_third_person_game`."""
+    return small_kit
+
+
+@pytest.fixture(scope="module")
+def real_kit(tmp_path_factory) -> Path:
+    """The kit with its real templates (21 MB), copied once for the module; the tests that use it only read."""
+    return build_kit(tmp_path_factory.mktemp("real-kit") / "kit", real_templates=True)
+
+
+def make_once(real_kit: Path, tmp_path_factory, template: str, **options) -> new_game.Made:
+    workspace = tmp_path_factory.mktemp(f"real-{template}")
+    (workspace / "repos").mkdir()
+    with pytest.MonkeyPatch.context() as patch:
+        git_environment(patch, workspace / "gitconfig")
+        return new_game.new_game(real_kit, workspace, "my-game", template, log=lambda _: None, run=quiet_run, **options)
+
+
+@pytest.fixture(scope="module")
+def real_game(real_kit, tmp_path_factory) -> new_game.Made:
+    """A game made once from the real 3D Blank template, for the tests about what that template holds. Read only."""
+    return make_once(real_kit, tmp_path_factory, "3d-blank", title="My Game", description="A test game.")
+
+
+@pytest.fixture(scope="module")
+def real_third_person_game(real_kit, tmp_path_factory) -> new_game.Made:
+    """A game made once from the real 3D Third Person template, which extends 3D Blank. Read only."""
+    return make_once(real_kit, tmp_path_factory, "3d-third-person")
 
 
 @pytest.fixture
@@ -49,8 +61,8 @@ def root(tmp_path) -> Path:
 
 
 def quiet_run(argv, *args, **kwargs):
-    """Real git, a fake `uvx` (the hooks come from the network) and no output."""
-    if argv[0] == "uvx":
+    """Real git, a fake `uvx` (the hooks come from the network), no Git LFS and no output."""
+    if argv[0] == "uvx" or is_lfs(argv):
         return subprocess.CompletedProcess(argv, 0, "", "")
     return subprocess.run(argv, *args, **kwargs)
 
@@ -69,8 +81,8 @@ def text_files(repo: Path):
             yield path
 
 
-def test_the_game_has_what_a_game_repository_has(kit, root):
-    repo = make(kit, root, title="My Game", description="A test game.").repo
+def test_the_game_has_what_a_game_repository_has(real_game):
+    repo = real_game.repo
     for rel in (
         "game/project.godot",
         "game/main.tscn",
@@ -98,8 +110,8 @@ def test_the_game_has_what_a_game_repository_has(kit, root):
     assert (repo / ".git").is_dir()
 
 
-def test_no_placeholder_is_left_and_the_names_are_filled_in(kit, root):
-    repo = make(kit, root, title="My Game", description="A test game.").repo
+def test_no_placeholder_is_left_and_the_names_are_filled_in(real_game):
+    repo = real_game.repo
     for path in text_files(repo):
         assert not new_game.PLACEHOLDER.search(path.read_text(encoding="utf-8")), path
     assert 'config/name="My Game"' in (repo / "game" / "project.godot").read_text(encoding="utf-8")
@@ -113,17 +125,17 @@ def test_the_default_title_is_the_name_capitalised(kit, root):
     assert 'config/name="My Cool Game"' in (repo / "game" / "project.godot").read_text(encoding="utf-8")
 
 
-def test_the_game_starts_in_sync_with_the_kit_and_follows_the_layout_rules(kit, root):
-    repo = make(kit, root).repo
-    assert sync.drift(kit, repo) == []
+def test_the_game_starts_in_sync_with_the_kit_and_follows_the_layout_rules(real_kit, real_game):
+    repo = real_game.repo
+    assert sync.drift(real_kit, repo) == []
     assert layout.check(repo / "game") == []
     lock = json.loads((repo / sync.LOCK).read_text(encoding="utf-8"))
     assert ".claude/hooks/launch.py" in lock["files"]
 
 
 @pytest.mark.parametrize("command", ["validate", "render --check", "check-files"])
-def test_the_conventions_and_the_files_generated_from_them_agree(kit, root, command):
-    repo = make(kit, root).repo
+def test_the_conventions_and_the_files_generated_from_them_agree(real_game, command):
+    repo = real_game.repo
     done = subprocess.run(
         [sys.executable, ".github/scripts/groundwork.py", *command.split()],
         cwd=repo,
@@ -134,8 +146,8 @@ def test_the_conventions_and_the_files_generated_from_them_agree(kit, root, comm
     assert done.returncode == 0, done.stdout + done.stderr
 
 
-def test_the_first_commit_holds_everything_with_a_title_the_conventions_accept(kit, root):
-    made = make(kit, root)
+def test_the_first_commit_holds_everything_with_a_title_the_conventions_accept(real_game, tmp_path):
+    made = real_game
     assert made.committed
     log = subprocess.run(
         ["git", "-C", str(made.repo), "log", "--format=%s"], capture_output=True, text=True, check=True
@@ -145,7 +157,7 @@ def test_the_first_commit_holds_everything_with_a_title_the_conventions_accept(k
         ["git", "-C", str(made.repo), "status", "--porcelain"], capture_output=True, text=True, check=True
     ).stdout
     assert status == ""
-    title = made.repo / "title.txt"
+    title = tmp_path / "title.txt"  # beside the game, not in it: the game is shared by the tests of this module
     title.write_text(log[0], encoding="utf-8")
     done = subprocess.run(
         [sys.executable, ".github/scripts/groundwork.py", "check-title", str(title)],
@@ -331,24 +343,32 @@ def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
                 assert len(hooks) <= 1, f"{workflow.name}: {line.strip()}"
 
 
-def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientation_and_jolt():
+def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientation_jolt_and_menus():
     """An extending template replaces a file whole, so 3D Third Person carries its own `project.godot`. It must not
-    drift from 3D Blank's: the same text, but for the input map, the landscape setting (kit #821) and Jolt
-    Physics, which the ragdoll needs (kit #846)."""
+    drift from 3D Blank's: the same text, but for the input map, the landscape setting (kit #821), Jolt
+    Physics, which the ragdoll needs (kit #846), the menus (kit #881): the menu scene is the main scene and
+    the `Settings` autoload sits beside the router, and the navigation map's 0.1 m cell height, which lets the map
+    sections' baked meshes climb a stair the way the character does (kit #885)."""
     blank = (KIT / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8")
     third = (KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text(encoding="utf-8")
     without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
     without_input = without_input.replace("window/handheld/orientation=0\n", "")
     without_input = without_input.replace('3d/physics_engine="Jolt Physics"\n', "")
+    without_input = without_input.replace('Settings="*res://core/settings/settings_service.tscn"\n', "")
+    menu_scene = 'run/main_scene="res://ui/menus/menu_scene.tscn"'
+    without_input = without_input.replace(menu_scene, 'run/main_scene="res://main.tscn"')
+    without_input = without_input.replace("[navigation]\n\n3d/default_cell_height=0.1\n\n", "")
     assert without_input.strip() == blank.strip()
     assert "[input]" in third and "window/handheld/orientation=0" in third
     assert '3d/physics_engine="Jolt Physics"' in third
+    assert 'Settings="*res://core/settings/settings_service.tscn"' in third
+    assert 'run/main_scene="res://ui/menus/menu_scene.tscn"' in third
+    assert "3d/default_cell_height=0.1" in third
 
 
-def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(kit, root):
+def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(real_third_person_game):
     """The base's files go in first and the template's on top: the made game holds both."""
-    made = new_game.new_game(kit, root, "my-game", "3d-third-person", log=lambda _: None, run=quiet_run)
-    game = made.repo / "game"
+    game = real_third_person_game.repo / "game"
     assert (game / "world" / "prototype" / "prototype_level.tscn").is_file()
     assert (game / "ui" / "touch" / "touch_controls.gd").is_file()  # the base's
     assert (game / "gameplay" / "player" / "player.gd").is_file()  # the template's

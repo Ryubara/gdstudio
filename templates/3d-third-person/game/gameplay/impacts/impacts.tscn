@@ -2,7 +2,11 @@
 
 [ext_resource type="Script" path="res://gameplay/impacts/impacts.gd" id="1_impacts"]
 [ext_resource type="Script" path="res://gameplay/impacts/impact_surface.gd" id="2_surface"]
+[ext_resource type="Script" path="res://gameplay/effects/effect_def.gd" id="4_def"]
 [ext_resource type="Material" path="res://assets/materials/impacts/impact_mark.tres" id="3_mark"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_dust.tscn" id="dust"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_splinters.tscn" id="splinters"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_sparks.tscn" id="sparks"]
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_1.ogg" id="default1"]
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_2.ogg" id="default2"]
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_3.ogg" id="default3"]
@@ -12,10 +16,6 @@
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_1.ogg" id="metal1"]
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_2.ogg" id="metal2"]
 [ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_3.ogg" id="metal3"]
-
-[sub_resource type="Curve" id="Curve_shrink"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 2
 
 [sub_resource type="AudioStreamRandomizer" id="Randomizer_default"]
 streams_count = 3
@@ -50,46 +50,29 @@ stream_1/weight = 1.0
 stream_2/stream = ExtResource("metal3")
 stream_2/weight = 1.0
 
-[sub_resource type="StandardMaterial3D" id="Paint_Default"]
-shading_mode = 0
-albedo_color = Color(0.82, 0.8, 0.74, 1)
+[sub_resource type="Resource" id="Effect_Default"]
+script = ExtResource("4_def")
+particles = ExtResource("dust")
+sound = SubResource("Randomizer_default")
+sound_volume_db = -12.0
 
-[sub_resource type="SphereMesh" id="Mesh_Default"]
-radius = 0.024
-height = 0.048
-radial_segments = 6
-rings = 3
-material = SubResource("Paint_Default")
+[sub_resource type="Resource" id="Effect_Wood"]
+script = ExtResource("4_def")
+particles = ExtResource("splinters")
+sound = SubResource("Randomizer_wood")
+sound_volume_db = -12.0
 
-[sub_resource type="StandardMaterial3D" id="Paint_Wood"]
-shading_mode = 0
-albedo_color = Color(0.66, 0.46, 0.27, 1)
+[sub_resource type="Resource" id="Effect_Metal"]
+script = ExtResource("4_def")
+particles = ExtResource("sparks")
+sound = SubResource("Randomizer_metal")
+sound_volume_db = -14.0
 
-[sub_resource type="BoxMesh" id="Mesh_Wood"]
-size = Vector3(0.03, 0.03, 0.075)
-material = SubResource("Paint_Wood")
-
-[sub_resource type="StandardMaterial3D" id="Paint_Metal"]
-shading_mode = 0
-albedo_color = Color(1, 0.72, 0.28, 1)
-
-[sub_resource type="SphereMesh" id="Mesh_Metal"]
-radius = 0.013
-height = 0.026
-radial_segments = 6
-rings = 3
-material = SubResource("Paint_Metal")
-
-[sub_resource type="StandardMaterial3D" id="Paint_Target"]
-shading_mode = 0
-albedo_color = Color(1, 0.72, 0.28, 1)
-
-[sub_resource type="SphereMesh" id="Mesh_Target"]
-radius = 0.013
-height = 0.026
-radial_segments = 6
-rings = 3
-material = SubResource("Paint_Target")
+[sub_resource type="Resource" id="Effect_Target"]
+script = ExtResource("4_def")
+particles = ExtResource("sparks")
+sound = SubResource("Randomizer_metal")
+sound_volume_db = -10.0
 
 [node name="Impacts" type="Node3D" node_paths=PackedStringArray("default_surface")]
 script = ExtResource("1_impacts")
@@ -98,115 +81,23 @@ default_surface = NodePath("Surfaces/Default")
 
 [node name="Surfaces" type="Node" parent="."]
 
-[node name="Default" type="Node" parent="Surfaces" node_paths=PackedStringArray("effect", "sound")]
+[node name="Default" type="Node" parent="Surfaces"]
 script = ExtResource("2_surface")
 surface_name = &"default"
-effect = NodePath("Effect")
-sound = NodePath("Sound")
+effect = SubResource("Effect_Default")
 
-[node name="Effect" type="CPUParticles3D" parent="Surfaces/Default"]
-emitting = false
-amount = 10
-lifetime = 0.45
-one_shot = true
-explosiveness = 0.95
-mesh = SubResource("Mesh_Default")
-direction = Vector3(0, 1, 0)
-spread = 70
-gravity = Vector3(0, -4.5, 0)
-initial_velocity_min = 0.6
-initial_velocity_max = 1.9
-scale_amount_min = 0.6
-scale_amount_max = 1.5
-scale_amount_curve = SubResource("Curve_shrink")
-
-[node name="Sound" type="AudioStreamPlayer3D" parent="Surfaces/Default"]
-stream = SubResource("Randomizer_default")
-volume_db = -12.0
-max_distance = 60.0
-bus = &"SFX"
-
-[node name="Wood" type="Node" parent="Surfaces" node_paths=PackedStringArray("effect", "sound")]
+[node name="Wood" type="Node" parent="Surfaces"]
 script = ExtResource("2_surface")
 surface_name = &"wood"
-effect = NodePath("Effect")
-sound = NodePath("Sound")
+effect = SubResource("Effect_Wood")
 
-[node name="Effect" type="CPUParticles3D" parent="Surfaces/Wood"]
-emitting = false
-amount = 7
-lifetime = 0.42
-one_shot = true
-explosiveness = 0.95
-mesh = SubResource("Mesh_Wood")
-direction = Vector3(0, 1, 0)
-spread = 60
-gravity = Vector3(0, -7.0, 0)
-initial_velocity_min = 0.8
-initial_velocity_max = 2.4
-scale_amount_min = 0.6
-scale_amount_max = 1.5
-scale_amount_curve = SubResource("Curve_shrink")
-
-[node name="Sound" type="AudioStreamPlayer3D" parent="Surfaces/Wood"]
-stream = SubResource("Randomizer_wood")
-volume_db = -12.0
-max_distance = 60.0
-bus = &"SFX"
-
-[node name="Metal" type="Node" parent="Surfaces" node_paths=PackedStringArray("effect", "sound")]
+[node name="Metal" type="Node" parent="Surfaces"]
 script = ExtResource("2_surface")
 surface_name = &"metal"
-effect = NodePath("Effect")
-sound = NodePath("Sound")
+effect = SubResource("Effect_Metal")
 
-[node name="Effect" type="CPUParticles3D" parent="Surfaces/Metal"]
-emitting = false
-amount = 10
-lifetime = 0.26
-one_shot = true
-explosiveness = 0.95
-mesh = SubResource("Mesh_Metal")
-direction = Vector3(0, 1, 0)
-spread = 50
-gravity = Vector3(0, -9.8, 0)
-initial_velocity_min = 2.0
-initial_velocity_max = 5.0
-scale_amount_min = 0.6
-scale_amount_max = 1.5
-scale_amount_curve = SubResource("Curve_shrink")
-
-[node name="Sound" type="AudioStreamPlayer3D" parent="Surfaces/Metal"]
-stream = SubResource("Randomizer_metal")
-volume_db = -14.0
-max_distance = 60.0
-bus = &"SFX"
-
-[node name="Target" type="Node" parent="Surfaces" node_paths=PackedStringArray("effect", "sound")]
+[node name="Target" type="Node" parent="Surfaces"]
 script = ExtResource("2_surface")
 surface_name = &"target"
 leaves_mark = false
-effect = NodePath("Effect")
-sound = NodePath("Sound")
-
-[node name="Effect" type="CPUParticles3D" parent="Surfaces/Target"]
-emitting = false
-amount = 10
-lifetime = 0.26
-one_shot = true
-explosiveness = 0.95
-mesh = SubResource("Mesh_Target")
-direction = Vector3(0, 1, 0)
-spread = 50
-gravity = Vector3(0, -9.8, 0)
-initial_velocity_min = 2.0
-initial_velocity_max = 5.0
-scale_amount_min = 0.6
-scale_amount_max = 1.5
-scale_amount_curve = SubResource("Curve_shrink")
-
-[node name="Sound" type="AudioStreamPlayer3D" parent="Surfaces/Target"]
-stream = SubResource("Randomizer_metal")
-volume_db = -10.0
-max_distance = 60.0
-bus = &"SFX"
+effect = SubResource("Effect_Target")

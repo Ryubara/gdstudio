@@ -118,6 +118,47 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 - Compact numbers: 5 bytes per player in a full snapshot, 3 in a delta, 12 bytes per input packet; about 0.4 KB/s up and
   0.6 to 1.0 KB/s down per client.
 
+## The template's packets (3D Third Person) {#template-packets}
+
+<!-- new section: own-protocol says what worked in Deadnight; nothing held the template's own layout, its sizes or how
+its decoders stay quiet on a hostile packet -->
+
+`templates/3d-third-person/game/gameplay/net/` (gdstudio #902) is the wire of an online game of the template, plain
+`RefCounted` code with no node, socket or clock: `NetWire` (types, `VERSION`, the HELLO, REFUSED, PING and PONG, the
+layout comment of every message, `world_hash`), `CommandCodec` (a `PlayerCommand` in 15 bytes, 27 with a shot block,
+and the `snap_*` steps), `SnapshotCodec` (TICK and WELCOME, `PlayerEntry`, `NetEvent`, `EntityEntry`), `PeerLimits` and
+`TokenBucket` (the budgets of one connection, time passed in by the caller), `NetLimits` (every shared number) and
+`NetDrops` (why each packet was dropped). A transport carries the byte arrays as they are; what the same player
+state costs against synchronizers is [below](#template-network-costs). Measured by
+`test_net_snapshot_codec.gd` (it prints the line), against the research estimates of #883:
+
+| Message | Bytes | Estimate |
+| --- | ---: | ---: |
+| HELLO with an 8-character name | 15 (7 + name; the world hash travels in it) | 3 + name |
+| WELCOME, 1 player, no world parts | 30 | about 40 |
+| WELCOME, longest (8 players with 16-byte names, 128 parts of 8 bytes) | 1783 | |
+| REFUSED | 3 | 3 |
+| COMMAND / with a shot block | 15 / 27 | 15 / 27 |
+| TICK, 8 players, no events | 107 | 107 |
+| TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
+| PING / PONG | 7 / 11 | 7 / 11 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+
+A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
+100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
+
+- **Approach:** Read every field through a reader that checks the length before each read and answers 0 with an `ok`
+  flag, validate a name's UTF-8 by hand before `get_string_from_utf8()`, and test every prefix of a valid packet and
+  a few hundred one-byte mutations for exactly one counted drop each. **Watch out for:** in Godot 4.7.2
+  `PackedByteArray.decode_u16` past the end prints an `ERROR` with a backtrace and `get_string_from_utf8` on a broken
+  sequence prints `Unicode parsing error`, both answering a value anyway: a hostile client could fill the server's log
+  with one packet a tick, and a decoder that trusts the value reads garbage. **Seen:** gdstudio #902, 2026-11-10 (a
+  probe printed both; `WireReader` and `NetWire.valid_name`).
+- **Approach:** Compare a position decoded into a `Vector3` with a tolerance (`is_equal_approx`, or the range plus
+  0.0001), and keep the limit itself a `float` constant. **Watch out for:** a `Vector3` holds float32, so the far edge
+  of the centimetre range, 327.67, reads 327.670013 and an exact `<=` against `NetLimits.POSITION_RANGE` failed 86
+  times in one run. **Seen:** gdstudio #902, 2026-11-10.
+
 ## Godot's high-level multiplayer: what to know {#godots-high-level-multiplayer-what-to-know-before-using-it}
 
 `MultiplayerSynchronizer` / `MultiplayerSpawner` / RPC work over `WebSocketMultiplayerPeer` and are quick to start

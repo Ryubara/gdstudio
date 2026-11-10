@@ -18,6 +18,17 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 - **A flash light counts against the Compatibility per-object light cap** ([Lighting in Compatibility](compat-lighting.md)):
   allow one at a time on the whole map, and keep it short in range.
 
+- **In the 3D Third Person template the flash is an `EffectDef`** played on the weapon's `Muzzle` marker by the level's
+  pooled `EffectEmitter` ([Effects](third-person-template.md#effects)): a star (one `flash_star.gdshader` quad drawn
+  by a one-shot `CPUParticles3D`, scaled and faded by the particle), a few short sparks and a 0.06 s light, so the same
+  rules apply (additive, no depth write, one light at a time on the map) and the emitter caps the lights. The marker's
+  -Z is the flash's direction, a scaled marker does not scale it, and the weapon switches it off or resizes it.
+- **Approach:** Size a flash against the weapon in a slow-motion capture from the game camera (`Engine.time_scale` 0.12
+  under Movie Maker at 30 fps, one frame every 4 ms of play), not at full speed. **Watch out for:** the first star, 0.3
+  m across, was larger than the pistol it came from and, additive over a purple body, read pink; at 0.2 m with a
+  brighter core it reads as a flash. A flash that lasts 0.07 s is one frame at 10 fps and none at 60 in a still
+  capture. **Seen:** gdstudio #888, 2026-11-10.
+
 ## Impacts {#impacts}
 
 - **Billboard in `vertex()`** for a puff that keeps its node's scale and faces the camera; it works in Compatibility:
@@ -71,7 +82,7 @@ game's page is `docs/research/hit-blood.md`).
      does on a moving body, or how a hit picks its surface -->
 
 What the 3D Third Person template does (`gameplay/impacts/`; its inspector list is on
-[the template page](third-person-template.md#impacts)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a spike
+[the impacts page](third-person-impacts.md)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a spike
 (`Decal` nodes on a floor, a wall, a cylinder and a moving box, drawn in each renderer) and in the template's own
 captures; the research with its sources is in the pull request of #875.
 
@@ -95,14 +106,17 @@ captures; the research with its sources is in the pull request of #875.
   tick.
 - **A hit picks its surface** from the first node, from the body up to the root, with the metadata `surface` (a name)
   or in a group of that name; the default surface when none says. The name is only a key: any number of `ImpactSurface`
-  nodes under the `Impacts`. Each holds its mark material, an effect node (`CPUParticles3D` or `GPUParticles3D`, one
-  shot) and an `AudioStreamPlayer3D`, so a developer restyles them in the editor.
-- **Effects are copies of the template node**, made lazily (`pool_size`), and **every hit writes the template's changed
-  properties onto the copy it uses**, so an edit made in the remote inspector shows in the next hit. A one-time
-  `duplicate()` copies once and ignores later edits; the copy step only sets a property that differs (setting a
-  particle `amount` rebuilds buffers).
+  nodes under the `Impacts`. Each holds its mark material and an `EffectDef` (a particles scene and a sound), so a
+  developer restyles them in the editor.
+- **Effects and sounds are `EffectDef`s played by the level's `EffectEmitter`**, the same pooled player the muzzle flash
+  uses ([Effects](third-person-template.md#effects)): each surface holds one (a particles scene and a sound), so there is
+  one pool, one cap and one place that frees what has ended. The first version (#875) kept a template node and a pool of
+  copies per surface and wrote the template's changed properties onto the copy it used (a one-time `duplicate()` copies
+  once and ignores later edits); #888 moved that onto the emitter, and a change to the `EffectDef` is read at the next
+  play.
 - **`CPUParticles3D` is the default effect** (8 to 10 small unshaded meshes, one shot): on the web a `GPUParticles3D`
-  adds programs of its own ([first-use hitches](first-use-hitches.md)); both work, since the surface calls `restart()`.
+  adds programs of its own ([first-use hitches](first-use-hitches.md)); both work, since the emitter calls `restart()`
+  on every particle node of the scene.
 - **The bones of the ragdoll (layer 16) take no mark**: a projectile's mask is the level (layer 1), so a shot goes
   through them and marks what is behind. A `CharacterBody3D` takes no mark either (its mesh is animated; a mark would
   stay in the air), but its surface still plays the effect and the sound. A game that wants wounds sets the body's

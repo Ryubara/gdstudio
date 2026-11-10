@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="StandardMaterial3D" id="Paint"]
+shading_mode = 0
+albedo_color = Color(0.82, 0.8, 0.74, 1)
+
+[sub_resource type="SphereMesh" id="Mesh"]
+material = SubResource("Paint")
+radius = 0.024
+height = 0.048
+radial_segments = 6
+rings = 3
+
+[node name="ImpactDust" type="CPUParticles3D"]
+emitting = false
+amount = 10
+lifetime = 0.45
+one_shot = true
+explosiveness = 0.95
+mesh = SubResource("Mesh")
+direction = Vector3(0, 1, 0)
+spread = 70.0
+gravity = Vector3(0, -4.5, 0)
+initial_velocity_min = 0.6
+initial_velocity_max = 1.9
+scale_amount_min = 0.6
+scale_amount_max = 1.5
+scale_amount_curve = SubResource("Curve_shrink")

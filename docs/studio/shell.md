@@ -19,8 +19,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   code and `tail` shows the last hook lines (`Skipped`), so a refused commit (a title verb off the list, MD013, a
   `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
   change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
-  (`--continue` hid a 155-character licence line); gdstudio, 2026-11-02 (a lint failure filtered through `grep`, then
-  committed); Deadnight #1374, 2026-11-07 (MD013 and a title verb hid, so no commit).
+  (`--continue` hid a licence line); gdstudio, 2026-11-02 (a lint failure behind `grep`); Deadnight #1374,
+  2026-11-07; gdstudio #916, 2026-11-10 (MD013 and a title verb hid, so no commit, twice).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command

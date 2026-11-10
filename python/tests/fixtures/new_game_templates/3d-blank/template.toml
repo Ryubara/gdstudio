@@ -1,0 +1,6 @@
+# A small stand-in for the 3D Blank template (kit #918): the new-game tests that are about names, flags, licences, git
+# and GitHub steps make their game from this instead of copying the 21 MB of the real templates for every test.
+# The tests that are about the real templates use the real folder (conftest.py: real_game, real_third_person_game).
+title = "3D Blank"
+description = "A fixture."
+default_description = "A new GDStudio game built from the 3D Blank template."

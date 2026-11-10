@@ -92,6 +92,14 @@ func select(index: int, emit := true) -> void:
 		selected_changed.emit(_index)
 
 
+## Sets the choice with no slide and no signal: the value a screen starts with, which must not be
+## seen arriving.
+func jump_to(index: int) -> void:
+	_index = clampi(index, 0, maxi(options.size() - 1, 0))
+	_change.snap(1.0)
+	queue_redraw()
+
+
 ## Moves by `delta` places, wrapping round the ends, and emits `selected_changed`.
 func step(delta: int) -> void:
 	if options.size() < 2:
