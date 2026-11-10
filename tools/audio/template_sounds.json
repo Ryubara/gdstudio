@@ -26,20 +26,22 @@
       "tail_db": -34.0
     },
     {
-      "name": "footstep_hard",
+      "name": "footstep_soft",
       "kind": "steps",
       "folder": "templates/3d-third-person/game/assets/audio/footsteps",
-      "prefix": "footstep_hard",
+      "prefix": "footstep_soft",
       "takes": 2,
       "seconds": 5.0,
       "influence": 0.6,
-      "prompt": "Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music.",
-      "min_seconds": 0.12,
-      "max_seconds": 0.45,
-      "min_files": 6,
-      "max_files": 10,
+      "prompt": "Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them.",
+      "min_seconds": 0.08,
+      "max_seconds": 0.3,
+      "min_files": 4,
+      "max_files": 8,
+      "highpass_hz": 110.0,
+      "tail_db": -30.0,
       "measure": "momentary",
-      "target_lufs": -29.0
+      "target_lufs": -33.0
     },
     {
       "name": "wind_soft",

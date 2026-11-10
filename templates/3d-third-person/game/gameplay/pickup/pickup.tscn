@@ -40,4 +40,5 @@ shape = SubResource("SphereShape3D_touch")
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="."]
 unique_name_in_owner = true
+volume_db = -16.0
 bus = &"SFX"

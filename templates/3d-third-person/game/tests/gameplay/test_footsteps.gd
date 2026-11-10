@@ -42,13 +42,20 @@ func _walk_for(seconds: float) -> int:
 
 func test_the_scene_holds_the_three_players_each_on_the_sfx_bus() -> void:
 	assert_array(_steps._get_configuration_warnings()).is_empty()
-	assert_int(_steps.steps.size()).is_equal(10)
+	assert_int(_steps.steps.size()).is_equal(4)
 	for part_name in ["Step", "CrouchStep", "LandStep"]:
 		var sound := _steps.get_node("%" + part_name) as AudioStreamPlayer3D
 		assert_str(String(sound.bus)).is_equal("SFX")
 	var crouch := _steps.get_node("%CrouchStep") as AudioStreamPlayer3D
 	var step := _steps.get_node("%Step") as AudioStreamPlayer3D
 	assert_float(crouch.volume_db).is_less(step.volume_db - 6.0)
+
+
+func test_the_three_players_keep_the_levels_they_were_tuned_to() -> void:
+	var levels := {&"Step": -20.0, &"CrouchStep": -29.0, &"LandStep": -15.0}
+	for part_name in levels:
+		var sound := _steps.get_node("%" + String(part_name)) as AudioStreamPlayer3D
+		assert_float(sound.volume_db).is_equal(levels[part_name])
 
 
 func test_every_export_has_its_default_pinned() -> void:
@@ -139,7 +146,8 @@ func test_a_step_picks_a_file_and_never_the_same_twice_running() -> void:
 	var distinct := {}
 	for stream in picked:
 		distinct[stream] = true
-	assert_int(distinct.size()).is_greater(5)
+	# All four takes come up in thirty steps (the order is seeded).
+	assert_int(distinct.size()).is_equal(_steps.steps.size())
 
 
 func test_the_pitch_varies_a_little_and_the_variation_is_live() -> void:

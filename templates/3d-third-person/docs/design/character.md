@@ -69,8 +69,8 @@ m/s, so the character (15 percent faster than the cube, to stay against it) walk
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The `Weapon`
 (a child of `Player`) holds the shot's numbers: fire rate, semi or full automatic, spread, aim range, the projectile's
 speed (45 m/s), size, gravity (0, so it flies straight at the crosshair), lifetime, the push it gives a body (40 N·s)
-and how many times it bounces. The sound of a shot is its `ShotSound` node, empty until a game puts a pistol sound
-there.
+and how many times it bounces. The sound of a shot is its `ShotSound` node: five pistol shots at a small random pitch
+and volume spread, three voices; a game's own shot is another `stream` there.
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
