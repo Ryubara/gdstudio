@@ -100,3 +100,7 @@ instead of the original) had no home -->
   playing and its `arrival_ended` showed the HUD again over the board; the screen connects before the night, a headless
   run has no drop, and the rules never end a night under one, so only a windowed test that forced it failed. **Seen:**
   Deadnight, 2026-11-05 (fix: `_on_arrival_ended` does nothing when the board is up).
+- **Approach:** To connect a handler that takes no arguments to a signal that carries some, read the argument count from
+  `get_signal_list()` and use `callable.unbind(count)` only when it is above zero. **Watch out for:** `unbind(0)` is an
+  error ("Amount of unbind() arguments must be 1 or greater") printed on every connect, and a connection test that
+  looks only at the result passes. **Seen:** gdstudio #880, 2026-11-10 (the HUD's `refresh_on`).

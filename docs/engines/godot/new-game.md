@@ -135,8 +135,8 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   finds the real marker, so `gds new game` wrote `repos/zz-parse` into the real `repos/`; and
   `editor_plugins/enabled` is an editor setting that `ProjectSettings` does not hold at run time, so a test reading it
   there failed with the plugin enabled; an empty folder passed as `--workspace` has no marker either, so the game was
-  made in the real `repos/` (moved out and deleted). **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted
-  at once; the test changed to `ConfigFile`); gdstudio #873, 2026-11-10 (an empty `--workspace` folder).
+  made in the real `repos/` (moved out and deleted). **Seen:** gdstudio #814, 2026-11-08; gdstudio #873, 2026-11-10 (an
+  empty `--workspace` folder); gdstudio #877 (a folder inside the real workspace: moved outside).
 
 - **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
   (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per
@@ -246,6 +246,12 @@ template cheap to change):
    with a range and a unit suffix where it has one, a `##` tooltip and a default that plays well; internals are not
    exported.
    *Why:* the inspector is where a game gets tuned, and a number in a script constant cannot be found there.
+   *Open point:* `player.gd` of 3D Third Person still holds some tuned-looking numbers in its code: the constants
+   `PUSH_CONTACT` and `PUSH_HOLD` (`:65-68`), the camera target's rise above the hips (`:382`), the analogue stick
+   thresholds and the walk and aim speed factors (`:524-530`), the foot probe's margin (`:589`), the push share and its
+   boost (`:611-614`), the walk-to-run margin (`:668`) and the fire buffer and its aim threshold (`:687-688`).
+   Whoever next works in that file moves them to `player_tuning.gd` or leaves a reason beside each; the line numbers
+   are those of main on 2026-11-10 and drift.
 2. **A change takes effect at once**, in the running game and the remote inspector: a value is read where it is used, or
    applied through a setter, and never copied once in `_enter_tree()` or `_ready()`. *Why:* tuning while the game runs
    is the fast loop, and a copy made at load silently ignores the edit.
@@ -276,8 +282,12 @@ template cheap to change):
    gate door in #845 and the pressure pad in #848).
 9. **Whatever a person sees or places is real nodes in its scene**, laid out in the editor: UI (the touch stick, look
    zone and buttons as `Control` nodes with anchors), the HUD, markers, spawn points and map pieces. Scripts hold
-   behaviour; they do not build or `_draw` visible parts at run time. *Why:* a developer opening the scene sees what is
-   there and moves or restyles it there, and an agent reads the `.tscn` text for placements as easily as code.
+   behaviour; they do not build or `_draw` visible parts at run time. *One exception:* a shape that is only a function
+   of exports and that no node draws (the HUD's `Crosshair`: a filled circle and a thin ring, `ui/hud/crosshair.gd`)
+   may be a `Control` that `_draw`s itself, as long as the node is in the scene, placed by anchors, shows in the editor
+   (`@tool`) and its look is exports; the alternative is a texture file for a shape that must scale to any size.
+   *Why:* a developer opening the scene sees what is there and moves or restyles it there, and an agent reads the
+   `.tscn` text for placements as easily as code.
 
 10. **Generated structures stay in code only where a scene could not hold them well** (the animation tree's graph, built
     in code with `@tool` so the editor shows it). Typed GDScript, short scripts, a `##` doc comment on every class,
