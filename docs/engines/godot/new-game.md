@@ -170,6 +170,12 @@ kept with `--keep`, two calls at once).
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
   fault of the change. **Seen:** gdstudio #856, 2026-11-09.
+- **Approach:** A game is made from the template folder as it is on disk, and the copy leaves out what git ignores
+  (`git ls-files --others --ignored`, with `__pycache__`, `.ruff_cache`, `.pytest_cache`, `.mypy_cache`, `.godot` as the
+  fixed fallback when the template is not in a checkout); `gds new game`, `gds template test` and the eval games share
+  that copy. **Watch out for:** a Python or ruff run in a template's tools folder (`tools/net/`) leaves ignored caches
+  there, and the old copy took them, so `gds template test` stopped at `layout: 3 problem(s)` before any suite ran;
+  deleting the caches by hand was the only way on. **Seen:** gdstudio #903 (PR #935), 2026-11-10 (fix: gdstudio #957).
 
 ## With `--local` {#with-local}
 

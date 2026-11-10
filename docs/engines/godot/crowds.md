@@ -347,3 +347,65 @@ the new one is much longer (Deadnight `ZombieSim._keeps_its_route`: a new route 
 an old end within 3.5 m of the target, more than 1 m left to walk). To find it, print a zombie's position every second
 and its path's first points: a position that moves at full speed and goes nowhere, and a path that changes its second
 point from one second to the next.
+
+## AI characters: a brain, path queries and a body, apart from drawing (kit #882) {#ai-characters}
+
+<!-- new section: the zombie spike above measured whole animated zombies with Godot Physics; nothing held what the
+brain, the path queries and a Jolt body each cost per character on the web, or where the tick falls off a cliff -->
+
+The research for kit #882 (AI characters for the templates) measured a character with a brain apart from its drawing:
+N characters drawn by one `MultiMesh` on a 120 m map with 16 boxes, each with a 10 Hz think (distance, cone, at most 2
+rays, memory, a small task stack) and a path every 0.25 s from `NavigationServer3D.map_get_path`, then the same with a
+`NavigationAgent3D` and RVO, with a `CharacterBody3D` capsule and `move_and_slide`, and at every tick instead of on the
+timer. Godot 4.7.2, Compatibility, web export single-threaded, Chrome on the fast desktop of the tables above, 60 Hz
+physics; "4x" is the same page with `Emulation.setCPUThrottlingRate` 4. The template's engine is Jolt, so the Jolt
+rows count; the option rows come from a Godot Physics build of the same project.
+
+**Microseconds per character per physics tick** (the loop that steps every character, divided by the count; the tick
+frame in brackets, ms):
+
+| Setup | 100 | 200 | 400 | 800 |
+| --- | ---: | ---: | ---: | ---: |
+| brain + staggered server queries, Jolt build | 6.4 (1.5) | 4.3 (1.6) | 4.4 (2.7) | 4.6 (5.0) |
+| the same + a Jolt body | 24 (3.3) | 22 (5.4) | 26 (11.8) | 23 (**154**) |
+| the same + a Godot Physics body (other build) | 41 (4.9) | 38 (8.6) | 45 (**151**) | 45 (**297**) |
+| brain + server query **every tick** (Godot Physics build) | 26 | 25 | 26 | |
+| agent with RVO, target on a 0.25 s timer / **every tick** (Godot Physics build) | 3.3 / 23 | 2.9 / 19 | 3.0 / 19 | |
+| 4x: brain + staggered server queries, Jolt build | 24 (4.3) | 29 (8.4) | 35 (**42**) | |
+| 4x: the same + a Jolt body | 152 (**68**) | 132 (**224**) | 120 (**405**) | |
+
+- A thinking, path-following character is **4 to 5 µs** a tick in the browser (6 to 7 µs below 100, where the loop's
+  fixed cost is shared by fewer); the queries and steering are about 3.5 µs of it, the brain 1 to 1.5 µs. Native
+  headless is about 1.5 times faster.
+- A path query every tick is **about 5 times** the staggered cost (4.3 to 5.6 times with server queries, 4 to 7 with
+  agents). A query on this mesh is roughly 20 µs in the browser: its rate matters, not the API.
+- `NavigationAgent3D` with its target on a timer costs the same as server queries; RVO adds 1 to 1.5 µs a character
+  (read in the tick frame, since it runs in the physics step) and is cheaper than a spatial-hash push in GDScript
+  (4 to 8 µs, growing with density). A node per character with its own `_physics_process` measured the same as one
+  manager loop.
+- **The body costs more than all of the AI:** `move_and_slide` adds 18 to 21 µs with Jolt and 34 to 40 µs with Godot
+  Physics. The template's player as it is costs about 200 µs headless on the desktop (#926: animation tree, ragdoll
+  bones built at spawn, strings built every frame), so an AI character made of those parts needs #926's fixes first.
+- Distance tiers cut the AI step by 25 to 33 % only when most characters are far (a 300 m map); on the 120 m map
+  they changed nothing.
+- Budget, for the AI step (brain, senses, navigation, bodies): **1 ms a tick** at the cap on the fast desktop in Chrome
+  and **5 ms at 4x**; **40 characters** on the web (a browser in a match sets it for everyone), 20 of them at the full
+  tier with a body moved every tick, the rest moved every 3rd; 120 on the desktop and a server. Count gates first:
+  one path query per character per `repath_seconds`, `think_rate` thinks, at most 2 rays a think
+  ([counts tight, time loose](performance-budgets.md#budgets-counts-tight-time-loose)).
+
+- **Approach:** Keep a test's crowd and its per-tick work under half the tick interval on the weak-machine stand-in
+  (4x throttle), and read `ticks_per_frame` beside the frame time. **Watch out for:** past the tick interval (16.7 ms at
+  60 Hz) Godot runs up to `physics/common/max_physics_steps_per_frame` (8) ticks a frame to catch up, each as slow, so
+  the frame does not grow by a little but jumps from about 10 ms to 150 to 400 ms (7.87 ticks a frame measured): bodies
+  hit it between 200 and 400 characters with Godot Physics, 400 and 800 with Jolt, and before 100 at 4x. **Seen:**
+  gdstudio #882, 2026-11-10 (the budget above keeps the cap at 5 ms throttled).
+- **Approach:** Measure a body's cost in a build with the physics engine the template ships (`3d/physics_engine` in
+  its `project.godot`), and check which engine a web export holds by searching its `.pck` for `Jolt Physics`.
+  **Watch out for:** the spike's first web export came from the project before it was switched to Jolt, so its body
+  rows read Godot Physics: twice the template's cost, and the cliff at half the count. **Seen:** gdstudio #882,
+  2026-11-10 (the matrix was run again on a Jolt export; both are in the table, named).
+- **Approach:** Write a report's summary figures last, from the table, as the ratio of the measured rows with their
+  range. **Watch out for:** the AI research's summary was drafted before the matrix ran and said a per-tick query cost
+  ten times the staggered one and left the per-character cost blank; the rows gave about 5 times (4 to 7) and 4 to
+  5 µs. **Seen:** gdstudio #882, 2026-11-10 (the summary and the drafted issues were corrected from the logs).
