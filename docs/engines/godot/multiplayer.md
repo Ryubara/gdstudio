@@ -123,10 +123,18 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 | Class | What it is |
 | --- | --- |
 | `NetLink` | The interface: `send(bytes) -> bool`, `poll()` once per physics tick, `is_open()`, `close()`, `close_code()`, `left_on_purpose()`; signals `packet_received`, `connected`, `closed`. |
-| `WebSocketLink` | The client, desktop and web: 1 MB inbound, 8192 packets, a lingering `close()`, `drop()` for tests, `server_url()` from `--connect <url>` or the page's `?url=`, and no `ws://` from an `https` page (`refusal` says why). |
-| `WsListener` | The server: ids per handshake, 1 MB outbound and `send` false when full (`refused_sends`), 64 KB inbound and a 4 KB packet cap (1009), a 3 s handshake deadline, a lingering `disconnect_peer` and a 1 s close grace, `port()` after `listen(0)`, `left_on_purpose(id)`. |
+| `WebSocketLink` | The client, desktop and web: `NetLimits.BUFFER_SIZE` inbound, 8192 packets, a lingering `close()`, `drop()` for tests, `server_url()` from `--connect <url>` or the page's `?url=`, and no `ws://` from an `https` page (`refusal` says why). |
+| `WsListener` | The server: ids per handshake, `NetLimits.BUFFER_SIZE` outbound and `send` false when full (`refused_sends`), 64 KB inbound and a 4 KB packet cap (1009), a 3 s handshake deadline, a lingering `disconnect_peer` and a 1 s close grace, `port()` after `listen(0)`, `left_on_purpose(id)`. |
 | `LoopbackLink` | `pair()`: two ends in one process; a packet sent in tick t is read in tick t+1; `close()` is a goodbye, `drop()` a network that went. |
 | `LinkConditioner` | Wraps any link: `delay`, `jitter`, `stall_chance` and `stall_seconds`, `stall_for(seconds)`, a seeded RNG and a `clock` Callable; never reorders, a stall holds everything behind it. |
+
+**One socket buffer size: `NetLimits.BUFFER_SIZE` (256 KB).** `WebSocketLink.inbound_buffer` and
+`WsListener.outbound_buffer` both start from it and neither file has a constant of its own; `test_net_limits.gd` pins
+the value and that both read it. It was 1 MB in the transport and 256 KB in the packets' limits until #934 measured it
+in the browser (`net_link_smoke.py --inbound <bytes>`, a 5 s frozen tab at 35 KB/s, so 175 KB wait): 256 KB lost
+nothing in six runs (0 `Buffer payload full` errors, every packet in order), 1 MB the same in two, and the 64 KB
+control lost packets in 7 of 9 pages (4 to 86 errors; two pages lost none, so the smoke tries the control up to three
+times). A size above that buys nothing in a freeze that short and costs 1 MB a peer each way on a full server.
 
 Measured on Windows, Godot 4.7.2: a thousand packets each way over `127.0.0.1` in order; a conditioner of 100 ms each
 way gave round trips of 217 to 250 ms on the physics-frame clock; two GdUnit runs of the suites at once on one machine
@@ -144,7 +152,7 @@ way, and with `--stall-chance 0.2 --stall-ms 300` up to 821 ms (9 stalls in 20 t
   refused (207 KB with a 16 KB buffer, 261 KB with 64 KB, 1.24 MB with 1 MB), and a native client's 64 KB inbound
   buffer never overflowed because each poll reads at most what the kernel holds, so a native test of the 64 KB default
   passed and proved nothing. **Seen:** gdstudio #903, 2026-11-10 (fix: the browser control run with `&inbound=65536`;
-  a native test pins the sizes).
+  a native test pins the sizes); #934 (one constant, `NetLimits.BUFFER_SIZE`, after two parallel copies).
 
 ## The pattern that worked (own protocol over that transport) {#own-protocol}
 

@@ -1,6 +1,7 @@
 ## Measures what the effect emitter costs while the pistol fires. The pistol shoots every physics
-## tick it is allowed to, in seven runs (nothing fired; shots with no flash and no impacts; the
-## flash without its light; the flash; flash and impacts; the same two at 30 shots a second), and
+## tick it is allowed to, in nine runs (nothing fired; shots with no flash and no impacts; the
+## flash without its light; the flash; flash and impacts; the same two at 30 shots a second; then
+## walking into the room with a probe of its own, and flash and impacts there), and
 ## for each the frame time, the draw calls, the nodes and the slowest frame are printed on lines
 ## starting `BENCH`. `first_frames_max_ms`, the slowest of the 90 frames before a run is measured,
 ## is the first-use hitch of the first run with a flash (and of the first with its light):
@@ -29,7 +30,26 @@ const RUNS: Array[Dictionary] = [
 	{"name": "flash_and_impacts_4", "rate": 4.0, "flash": true, "light": true, "impacts": true},
 	{"name": "shots_only_30", "rate": 30.0, "flash": false, "light": false, "impacts": false},
 	{"name": "flash_and_impacts_30", "rate": 30.0, "flash": true, "light": true, "impacts": true},
+	{
+		"name": "room_enter",
+		"rate": 0.0,
+		"flash": false,
+		"light": false,
+		"impacts": false,
+		"at": ROOM
+	},
+	{
+		"name": "room_flash_and_impacts_4",
+		"rate": 4.0,
+		"flash": true,
+		"light": true,
+		"impacts": true
+	},
 ]
+## Where the runs start (facing north, along -Z), and the room with a reflection probe and a lamp of
+## its own that the last runs walk into: the first time the player sees it (kit #981).
+const START := Vector3(-6.0, 0.0, 14.5)
+const ROOM := Vector3(14.0, 0.0, -12.0)
 ## How many plays the cost of one play is averaged over.
 const MICRO_PLAYS := 2000
 
@@ -52,7 +72,7 @@ var _warm_max := 0.0
 func _ready() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
-	_player.teleport(Vector3(-6.0, 0.0, 14.5), 0.0)
+	_player.teleport(START, 0.0)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.__mark && window.__mark('warm_up')")
 	if _emitter.is_warming():
@@ -101,6 +121,8 @@ func _next_run() -> void:
 		_done()
 		return
 	var spec := RUNS[_run]
+	if spec.has("at"):
+		_player.teleport(spec["at"], 0.0)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.__mark && window.__mark('%s')" % spec["name"])
 	var weapon := _player.weapon

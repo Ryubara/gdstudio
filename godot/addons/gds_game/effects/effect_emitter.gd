@@ -34,6 +34,15 @@ const GROUP := &"effect_emitter"
 const PROBE_FRAMES := 15
 ## How wide a warmed material's quad is (a mark, a decal): a speck in front of the camera.
 const QUIET_QUAD_SIZE := 0.01
+## The view the warm-up draws a probe's room into: a program does not depend on the picture's size.
+const TOUR_VIEW_SIZE := Vector2i(160, 90)
+## Its camera's field of view, and the six ways it looks inside each probe.
+const TOUR_FOV := 90.0
+## How far above the highest probe the warm-up draws the effects once more, outside every probe.
+const ABOVE_PROBES := 10.0
+const TOUR_FACINGS: Array[Vector3] = [
+	Vector3.FORWARD, Vector3.BACK, Vector3.LEFT, Vector3.RIGHT, Vector3.UP, Vector3.DOWN
+]
 
 @export_group("Effects")
 ## Off: nothing plays, as if the emitter were not there.
@@ -64,6 +73,16 @@ const QUIET_QUAD_SIZE := 0.01
 ## first shot does not stop the frame to build what drawing it needs (the web build did for 160
 ## to 340 ms each for the flash, its light and the impacts). Off: they are built when first played.
 @export var warm_up_on_start := true
+## On: the warm-up then visits every reflection probe, unseen, and draws the level, the effects,
+## the specks and the meshes of `warm_up_groups` inside it, and once more outside every probe, so
+## walking into a room with its own probe and the first shot there build nothing (about 25 frames
+## a probe; in the web build entering such a room was a 120 to 160 ms frame and its first shot 64
+## to 87 ms). Off: only what the camera sees at the start.
+@export var warm_up_every_probe := true
+## Groups whose nodes' meshes the warm-up draws inside every probe, as specks of their materials
+## (the characters, the weapons they carry): a body that walks under a probe is drawn with another
+## program there.
+@export var warm_up_groups: Array[StringName] = []
 ## Effects to warm up besides those the level's weapons and impact surfaces register themselves.
 @export var warm_up: Array[EffectDef] = []
 ## Materials the warm-up draws once on a speck of a quad, besides those registered with
@@ -280,7 +299,7 @@ func _take(effect: EffectDef) -> EffectSlot:
 
 # Waits two frames for the camera and then for the reflection probes it sees, then plays each
 # registered effect in front of it, tiny and dim, beside a speck of each registered material, and
-# frees the slots again.
+# frees the slots again. Then it does the same inside each probe the camera did not see.
 func _warm_routine() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -295,41 +314,154 @@ func _warm_routine() -> void:
 	if camera != null and enabled and warm_up_on_start and drawn:
 		# A probe draws its faces over the next frames, and everything it reaches changes program
 		# once it has begun: what is warmed before that is not what the first shot draws.
-		for _frame in probe_frames(camera):
+		var probes := _probes()
+		var begun: Array[ReflectionProbe] = []
+		for _frame in _start_probes(camera, probes, begun):
 			await get_tree().process_frame
-		var spot := camera.global_position - camera.global_basis.z * 2.0
-		var specks := _make_specks(spot, camera.global_basis)
-		# Twice: the renderer builds a different program for a surface that an omni light reaches, so
-		# every effect is drawn with the lights off and then with them on.
-		for with_lights in [false, true]:
-			if with_lights and not lights_enabled:
-				break
-			for slot in warm_slots:
-				var placed := Transform3D(Basis(), spot)
-				slot.start(slot.effect, placed, null, 1.0, true, false, with_lights, true)
-			if with_lights and warm_slots.is_empty() and not specks.is_empty():
-				specks.append(_make_speck_light(spot))
-			set_process(true)
-			await get_tree().process_frame
-			await get_tree().process_frame
-			stop_all()
-		for speck in specks:
-			speck.queue_free()
+		await _draw_warm(warm_slots, camera.global_transform)
+		if warm_up_every_probe:
+			await _tour_probes(warm_slots, probes, begun, _group_materials())
 	_warm_queue.clear()
 	_warm_materials.clear()
 	_warming = false
 	warmed.emit()
 
 
+# Plays every warm slot once at `eye` (a camera's place), two metres in front of it, with a speck of
+# each registered material and of each of `more`, and frees them again.
+func _draw_warm(
+	warm_slots: Array[EffectSlot], eye: Transform3D, more: Array[Material] = []
+) -> void:
+	var spot := eye.origin - eye.basis.z * 2.0
+	var materials := _warm_materials.duplicate()
+	for material in more:
+		if not materials.has(material):
+			materials.append(material)
+	var specks := _make_specks(spot, eye.basis, materials)
+	# Twice: the renderer builds a different program for a surface that an omni light reaches, so
+	# every effect is drawn with the lights off and then with them on.
+	for with_lights in [false, true]:
+		if with_lights and not lights_enabled:
+			break
+		for slot in warm_slots:
+			var placed := Transform3D(Basis(), spot)
+			slot.start(slot.effect, placed, null, 1.0, true, false, with_lights, true)
+		if with_lights and warm_slots.is_empty() and not specks.is_empty():
+			specks.append(_make_speck_light(spot))
+		set_process(true)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		for slot in warm_slots:
+			slot.stop(true)
+	for speck in specks:
+		speck.queue_free()
+
+
+# Visits each probe in `probes`, with a camera of its own in a small view of the same world that
+# nobody sees: it waits there for the probe to be drawn when it has not begun, looks around once
+# (the level's surfaces inside are drawn with the probe's program), and draws the effects and the
+# specks there, with one of each of `more` (the bodies that walk in). Even a probe the camera saw is
+# visited: what is drawn inside it is also under the probe around it (two probes are another
+# program). Without it walking into a room with its own probe built the character's programs, and
+# the first shot there the effects' and the mark's (kit #981).
+func _tour_probes(
+	warm_slots: Array[EffectSlot],
+	probes: Array[ReflectionProbe],
+	begun: Array[ReflectionProbe],
+	more: Array[Material]
+) -> void:
+	if probes.is_empty():
+		return
+	var view := SubViewport.new()
+	view.name = &"WarmTour"
+	view.size = TOUR_VIEW_SIZE
+	view.own_world_3d = false
+	view.msaa_3d = get_viewport().msaa_3d
+	view.positional_shadow_atlas_size = get_viewport().positional_shadow_atlas_size
+	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var eye := Camera3D.new()
+	eye.fov = TOUR_FOV
+	# Moved by hand from place to place: an interpolated camera reports (and culls with) where it was
+	# the frame before, so it saw no probe at its first place.
+	eye.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	view.add_child(eye)
+	add_child(view)
+	eye.make_current()
+	for probe in probes:
+		eye.global_transform = Transform3D(Basis(), probe.global_position)
+		for _frame in _start_probes(eye, probes, begun):
+			await get_tree().process_frame
+		for facing in TOUR_FACINGS:
+			var up := Vector3.BACK if absf(facing.y) > 0.5 else Vector3.UP
+			eye.global_basis = Basis.looking_at(facing, up)
+			await get_tree().process_frame
+		eye.global_basis = Basis()
+		await _draw_warm(warm_slots, eye.global_transform, more)
+	# And once outside every probe, above them all: a part of the level no probe reaches draws its
+	# effects without one, and so, now and then, did a shot in the room (one 26 to 45 ms program).
+	eye.global_transform = Transform3D(Basis(), _above_probes(probes))
+	await _draw_warm(warm_slots, eye.global_transform, more)
+	view.queue_free()
+
+
+# A place above every probe's box, in none of them.
+func _above_probes(probes: Array[ReflectionProbe]) -> Vector3:
+	var bounds := AABB()
+	for index in probes.size():
+		var probe := probes[index]
+		var box := probe.global_transform * AABB(-probe.size / 2.0, probe.size)
+		bounds = box if index == 0 else bounds.merge(box)
+	return bounds.get_center() + Vector3.UP * (bounds.size.y / 2.0 + ABOVE_PROBES)
+
+
+# The materials of the meshes of the nodes in `warm_up_groups`, each once.
+func _group_materials() -> Array[Material]:
+	var materials: Array[Material] = []
+	for group in warm_up_groups:
+		for member in get_tree().get_nodes_in_group(group):
+			var meshes := member.find_children("*", "MeshInstance3D", true, false)
+			if member is MeshInstance3D:
+				meshes.append(member)
+			for node in meshes:
+				var mesh := node as MeshInstance3D
+				if mesh.mesh == null:
+					continue
+				for index in mesh.get_surface_override_material_count():
+					var material := mesh.get_active_material(index)
+					if material != null and not materials.has(material):
+						materials.append(material)
+	return materials
+
+
 ## The frames the warm-up waits for the reflection probes `camera` sees to be drawn (the renderer
 ## draws only the probes in view, one at a time); none when no probe is in view.
 func probe_frames(camera: Camera3D) -> int:
-	var frames := 0
-	var planes := camera.get_frustum()
+	var begun: Array[ReflectionProbe] = []
+	return _start_probes(camera, _probes(), begun)
+
+
+# The reflection probes of the scene that are shown.
+func _probes() -> Array[ReflectionProbe]:
+	var probes: Array[ReflectionProbe] = []
 	for node in get_tree().root.find_children("*", "ReflectionProbe", true, false):
 		var probe := node as ReflectionProbe
-		if not probe.is_visible_in_tree() or not _in_view(probe, planes):
+		if probe.is_visible_in_tree():
+			probes.append(probe)
+	return probes
+
+
+# The frames to wait for the probes of `probes` that `camera` sees and that have not begun (one
+# `PROBE_FRAMES` for each that updates once, one frame for one that updates always); adds them to
+# `begun`.
+func _start_probes(
+	camera: Camera3D, probes: Array[ReflectionProbe], begun: Array[ReflectionProbe]
+) -> int:
+	var frames := 0
+	var planes := camera.get_frustum()
+	for probe in probes:
+		if begun.has(probe) or not _in_view(probe, planes):
 			continue
+		begun.append(probe)
 		var once := probe.update_mode == ReflectionProbe.UPDATE_ONCE
 		frames += PROBE_FRAMES if once else 1
 	return frames
@@ -357,15 +489,15 @@ func _in_view(probe: ReflectionProbe, planes: Array[Plane]) -> bool:
 	return true
 
 
-# A speck of a quad for each registered material at `spot`, facing the camera, casting no shadow:
+# A speck of a quad for each of `materials` at `spot`, facing the camera, casting no shadow:
 # drawing it once builds what the material's first real use needs.
-func _make_specks(spot: Vector3, facing: Basis) -> Array[Node3D]:
+func _make_specks(spot: Vector3, facing: Basis, materials: Array[Material]) -> Array[Node3D]:
 	var specks: Array[Node3D] = []
-	if _warm_materials.is_empty():
+	if materials.is_empty():
 		return specks
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * QUIET_QUAD_SIZE
-	for material in _warm_materials:
+	for material in materials:
 		var speck := MeshInstance3D.new()
 		speck.name = &"WarmSpeck"
 		speck.mesh = quad

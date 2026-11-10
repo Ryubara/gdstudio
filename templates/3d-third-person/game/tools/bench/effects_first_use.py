@@ -5,8 +5,11 @@ Serves a web export of `tools/bench/effects_cost.tscn` (export the project with 
 counts the programs WebGL links (`linkProgram`, timed at the `LINK_STATUS` read that follows it) in each run the bench
 marks. The `warm_up` mark is the level's start, the emitter's warm-up included; every later run (nothing fired, the
 flash, its light, the impacts, at 4 and 30 shots a second) must link none: a program linked there stops that frame,
-for 65 to 190 ms before kit #946. It prints each run's programs, their milliseconds, the slowest of its first frames
-(`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second argument.
+for 65 to 190 ms before kit #946. The last two runs walk into the room with a reflection probe of its own and fire
+there: 2 and 3 to 4 programs (frames of 120 to 157 and 64 to 87 ms) before the emitter's probe tour (kit #981). It
+prints each run's length (`run_ms`; the `warm_up` row's is the level's start), its programs, their milliseconds,
+the slowest of its first frames (`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second
+argument.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/effects_first_use.py build/web build/first_use.json
@@ -61,6 +64,7 @@ def per_run(marks: list, links: list, results: list) -> list[dict]:
         rows.append(
             {
                 "run": name,
+                "run_ms": round(end - start, 1) if end != float("inf") else None,
                 "programs": len(inside),
                 "link_ms": round(sum(x[1] for x in inside), 1),
                 "first_frames_max_ms": bench.get("first_frames_max_ms"),
@@ -97,7 +101,7 @@ def main() -> int:
     out.write_text(json.dumps({"runs": rows, "results": results, "console": messages}, indent=1))
     for row in rows:
         print(
-            f"{row['run']:<22} programs {row['programs']:>3} ({row['link_ms']:>7} ms)  "
+            f"{row['run']:<24} {row['run_ms']} ms  programs {row['programs']:>3} ({row['link_ms']:>7} ms)  "
             f"first frames max {row['first_frames_max_ms']} ms  mean {row['frame_ms_mean']} ms"
         )
     failed = [] if done else ["the bench did not finish"]

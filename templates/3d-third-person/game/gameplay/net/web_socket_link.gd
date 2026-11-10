@@ -24,9 +24,6 @@ extends NetLink
 
 ## The default game port (the editor's MCP bridge here is 9080: check a port before choosing one).
 const DEFAULT_PORT := 8910
-## What the socket may hold unread: the server's packets of a frozen client wait here, and what does
-## not fit is dropped, newest first (64 KB, the engine's default, overflowed in seconds).
-const INBOUND_BUFFER := 1 << 20
 ## The engine's packet count limit, for both directions.
 const MAX_QUEUED := 8192
 ## The close code `drop` ends the socket with (the private range): not a goodbye.
@@ -34,8 +31,10 @@ const DROP_CODE := 4000
 ## Seconds between `close()` and the close frame, for the server to read the last packets first.
 const CLOSE_LINGER := 0.25
 
-## Bytes the socket may hold unread (`INBOUND_BUFFER`; a test sets it before `connect_to_url`).
-var inbound_buffer := INBOUND_BUFFER
+## Bytes the socket may hold unread: the server's packets of a frozen client wait here, and what
+## does not fit is dropped, newest first (`NetLimits.BUFFER_SIZE`; a test sets it before
+## `connect_to_url`).
+var inbound_buffer := NetLimits.BUFFER_SIZE
 ## Seconds between `close()` and the close frame (`CLOSE_LINGER`; 0 closes at once).
 var close_linger := CLOSE_LINGER
 ## Seconds from game start, for the linger (empty: the real clock).

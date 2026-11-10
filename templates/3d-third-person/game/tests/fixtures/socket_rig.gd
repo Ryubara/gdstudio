@@ -35,7 +35,7 @@ func url() -> String:
 
 
 ## A link connected to the listener and open (null when it did not open in two seconds of frames).
-func connect_link(inbound_buffer := WebSocketLink.INBOUND_BUFFER) -> WebSocketLink:
+func connect_link(inbound_buffer := NetLimits.BUFFER_SIZE) -> WebSocketLink:
 	var link := WebSocketLink.new()
 	link.inbound_buffer = inbound_buffer
 	link.clock = frame_clock

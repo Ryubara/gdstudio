@@ -367,7 +367,8 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   functions and gdlint (`max-public-methods`) failed them, and a float export compared with `is_equal` failed on a
   property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; #846, 2026-11-09 (the
   ragdoll's 19 tests, two suites); #875, #879 and #881, 2026-11-10 (impacts, shake and menus split into suites per
-  part; `duplicated-load`: a `preload` constant).
+  part; `duplicated-load`: a `preload` constant); #981, 2026-11-10 (two addon exports
+  unpinned until the full run: run the class's pin suite too).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed
