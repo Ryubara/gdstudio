@@ -36,7 +36,9 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   where the file is in the pull request.
 - **Running the editor rewrites some texture `.import` files** (Deadnight #441 tracks the cause and the fix).
   Until it lands, `git checkout -- 'game/assets/**/*.import'` before committing.
-- Revert `project.godot` the same way after the run, and delete the plugin folder from the worktree.
+- Revert `project.godot` the same way after the run (`git checkout -- game/project.godot`: the windowed editor
+  rewrites it on every open; the checkout keeps the workspace's local plugins in it,
+  [Integrations](../../studio/workspace.md#integrations)), and delete the plugin folder from the worktree.
 - The same probe checks a template's scenes as a person meets them (kit docs: [the template
   checklist](new-game.md#template-checklist)): open each scene, call `_get_configuration_warnings()` on every node that
   has it (`Node.get_configuration_warnings()` is not in the script API in 4.7; the engine's own warnings, such as a
@@ -47,12 +49,12 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   again after about 20 frames. Gdstudio #831, Godot 4.7.2.
 
 - **Do what a person does in the Scene dock** with the same plugin, in a headless editor (`godot --headless --editor
-  --path game`, no window; list the plugin in `override.cfg` or `project.godot`): select the node, `grab_focus()` the
-  dock's `Tree`, `push_input` a `KEY_DELETE` press on the dock's viewport, then emit `confirmed` on the visible
-  `ConfirmationDialog`; `dock.call("instantiate", "res://x.glb")` drops a scene on the selected node. That runs the
-  editor's own undo/redo and path fixing, which `remove_child` does not (the editor empties the NodePaths that point
-  at a deleted node). The template's `tools/editor_swap/` does this for the player's model; count the engine's
-  warnings in the log (`grep -c "couldn't resolve"`). Gdstudio #844, Godot 4.7.2.
+  --path game`, no window; list the plugin in `project.godot`, since the editor ignores `override.cfg`): select the
+  node, `grab_focus()` the dock's `Tree`, `push_input` a `KEY_DELETE` press on the dock's viewport, then emit
+  `confirmed` on the visible `ConfirmationDialog`; `dock.call("instantiate", "res://x.glb")` drops a scene on the
+  selected node. That runs the editor's own undo/redo and path fixing, which `remove_child` does not (the editor empties
+  the NodePaths that point at a deleted node). The template's `tools/editor_swap/` does this for the player's model;
+  count the engine's warnings in the log (`grep -c "couldn't resolve"`). Gdstudio #844, Godot 4.7.2.
 
 - **Approach:** Prove that an exported setter of a `@tool` script drives another node in the editor with a job that sets
   a property on one node, waits about 8 frames, and prints a property of another (a list of `[node, property, value]`
@@ -66,7 +68,9 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   `project.godot` for the run and taking it out after, and have the plugin print a line in `_enter_tree` so a run
   that never started it shows. **Watch out for:** a plugin listed only in an `override.cfg` next to `project.godot`
   never entered the tree in Godot 4.7.2, headless or windowed, and the editor sat with no error until its timeout;
-  the same list in `project.godot` started it at once. **Seen:** gdstudio #885, 2026-11-10 (the map bake plugin).
+  the same list in `project.godot` started it at once: the editor skips `override.cfg` altogether. **Seen:**
+  gdstudio #885, 2026-11-10 (the map bake plugin); gdstudio #1005, 2026-11-10 (the workspace's MCP and GdUnit4
+  plugins too, now in `project.godot` behind a git filter, [Integrations](../../studio/workspace.md#integrations)).
 
 ## Changing values like the remote inspector {#remote-inspector}
 
