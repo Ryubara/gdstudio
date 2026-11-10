@@ -3,9 +3,10 @@ class_name CharacterAnimation
 extends Node
 ## Plays the clip for what the `Character` is doing, through an `AnimationTree` it builds: a state
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
-## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
-## pistol layer (the pistol sits in one hand while the arms and the spine follow the locomotion
-## clip; aiming or firing brings the arm up to aim by its look, and a shot recoils) and a
+## blends the crouch idle and walk; `prone` blends the prone idle and the crawl, with a clip
+## for going down and one for getting up; `jump`, `fall`, `land` and `push` are clips of their
+## own), a pistol layer (the pistol sits in one hand while the arms and the spine follow the
+## locomotion clip; aiming or firing brings the arm up to aim by its look, and a shot recoils) and a
 ## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
 ## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
@@ -45,6 +46,7 @@ const FALL := &"fall"
 const LAND := &"land"
 const PUSH := &"push"
 const CROUCH := &"crouch"
+const PRONE := &"prone"
 
 const _MACHINE := "Locomotion"
 const _ACTION := "Action"
@@ -71,6 +73,9 @@ const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
 const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
+const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
+const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
+const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePace/scale" % PRONE)
 
 @export_group("Nodes")
 ## The character that is animated.
@@ -144,6 +149,39 @@ const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
 		hit_clip = value
 		_rebuild()
 
+@export_group("Prone")
+## Lying still. The template's own prone clips are made in gdstudio #1009; until they land this
+## is the swim stroke held on its first pose (`prone_idle_pace` 0), laid on the ground by the
+## placeholder pose below.
+@export var prone_idle_clip: StringName = CharacterClips.SWIM:
+	set(value):
+		prone_idle_clip = value
+		_rebuild()
+## How fast the prone idle plays (1 its own pace, 0 held on its first pose).
+@export_range(0.0, 2.0, 0.05) var prone_idle_pace := 0.0
+## Crawling, blended in by ground speed up to the crawl speed (`ProneTuning.crawl_speed`).
+@export var crawl_clip: StringName = CharacterClips.SWIM:
+	set(value):
+		crawl_clip = value
+		_rebuild()
+## The ground speed the crawl clip's stride covers at its own pace, m/s: it plays at
+## `ground speed / crawl_clip_speed` of its pace, so the elbows and knees keep up with the ground
+## at any crawl speed.
+@export_range(0.1, 5.0, 0.01, "suffix:m/s") var crawl_clip_speed := 1.5
+## Going down, played over the whole body for the tuning's `enter_time`. Empty: no clip (the
+## blend into the prone idle shows the change).
+@export var to_prone_clip: StringName = &""
+## Getting up to crouch, played over the whole body for the tuning's `exit_time`. Empty: no clip.
+@export var to_crouch_clip: StringName = &""
+@export_subgroup("Placeholder pose")
+## How far the model is moved lying down, metres, in the model's own axes (x to its left, y up,
+## z ahead): puts a clip made for another stance on the ground while there is no prone clip
+## (the swim stroke floats under the water line: it is lifted). Zero with real prone clips.
+@export_custom(PROPERTY_HINT_RANGE, "-1.5,1.5,0.01,suffix:m")
+var prone_pose_offset := Vector3(0.0, 0.42, 0.6)
+## How far the model is tipped forward about its feet lying down. Zero with real prone clips.
+@export_range(-90.0, 90.0, 0.5, "suffix:deg") var prone_pose_lean := 0.0
+
 @export_group("Pistol")
 ## How the weapon is carried while the character is not aiming or firing.
 @export var carry := Carry.HAND_ONLY:
@@ -216,6 +254,7 @@ var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
 # The tuning whose speeds the blend spaces show (its `changed` is connected).
 var _tuning: CharacterTuning
+var _posed := false
 var _shoot_scale_node: AnimationNodeTimeScale
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
@@ -246,6 +285,7 @@ func _ready() -> void:
 	character.state_changed.connect(_on_state_changed)
 	character.interacted.connect(_on_interacted)
 	character.took_hit.connect(_on_hit)
+	character.prone_changed.connect(_on_prone_changed)
 	if character.weapon != null:
 		character.weapon.fired.connect(_on_shot)
 
@@ -278,6 +318,7 @@ func _process(delta: float) -> void:
 	var speed := character.ground_speed()
 	tree.set(_P_GROUND_SPEED, speed)
 	tree.set(_P_CROUCH_SPEED, speed)
+	_drive_prone(speed)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
 	if _action_was_active and not active:
@@ -285,7 +326,8 @@ func _process(delta: float) -> void:
 	_action_was_active = active
 
 
-## The body state the tree is in now (`ground`, `crouch`, `jump`, `fall`, `land` or `push`).
+## The body state the tree is in now (`ground`, `crouch`, `prone`, `jump`, `fall`, `land` or
+## `push`).
 func body_state() -> StringName:
 	return _playback.get_current_node() if _playback != null else &""
 
@@ -489,6 +531,43 @@ func _on_state_changed(state: Character.State) -> void:
 			_travel(PUSH)
 		Character.State.CROUCH:
 			_travel(CROUCH)
+		Character.State.PRONE:
+			_travel(PRONE)
+
+
+# The prone state follows the crawl: the crawl clip is blended in by ground speed up to the
+# crawl speed and plays at the pace of its stride, the idle at its own pace, and the placeholder
+# pose lays the model down by how far down the character is.
+func _drive_prone(speed: float) -> void:
+	var prone := character.prone_tuning
+	if prone == null:
+		return
+	tree.set(_P_PRONE_MOVE, clampf(speed / maxf(prone.crawl_speed, 0.01), 0.0, 1.0))
+	tree.set(_P_CRAWL_PACE, speed / maxf(crawl_clip_speed, 0.01))
+	tree.set(_P_PRONE_IDLE_PACE, prone_idle_pace)
+	_pose_prone(smoothstep(0.0, 1.0, character.prone_amount))
+
+
+# Moves and tips the model inside its slot by `lying` (0 to 1) of the placeholder pose; nothing
+# at all while the pose is zero, so a game's own offset of the model stays.
+func _pose_prone(lying: float) -> void:
+	var rig := model.rig() if model != null else null
+	if rig == null:
+		return
+	var zero := prone_pose_offset.is_zero_approx() and is_zero_approx(prone_pose_lean)
+	if zero or (lying <= 0.0 and not _posed):
+		return
+	_posed = lying > 0.0
+	rig.position = prone_pose_offset * lying
+	rig.rotation = Vector3(deg_to_rad(prone_pose_lean) * lying, 0.0, 0.0)
+
+
+func _on_prone_changed(down: bool) -> void:
+	var prone := character.prone_tuning
+	var clip := to_prone_clip if down else to_crouch_clip
+	if prone == null or clip == &"" or not animation_player.has_animation(clip):
+		return
+	play_clip(clip, prone.enter_time if down else prone.exit_time)
 
 
 func _on_interacted(_target: Node3D) -> void:
@@ -606,10 +685,11 @@ func _build_machine() -> AnimationNodeStateMachine:
 	_machine.add_node(LAND, _clip(land_clip), Vector2(400, 100))
 	_machine.add_node(PUSH, _clip(push_clip), Vector2(200, 160))
 	_machine.add_node(CROUCH, _build_crouch(), Vector2(0, 160))
+	_machine.add_node(PRONE, _build_prone(), Vector2(0, 320))
 	var start := AnimationNodeStateMachineTransition.new()
 	start.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
 	_machine.add_transition(&"Start", GROUND, start)
-	var states := [GROUND, JUMP, FALL, LAND, PUSH, CROUCH]
+	var states := [GROUND, JUMP, FALL, LAND, PUSH, CROUCH, PRONE]
 	for from: StringName in states:
 		for to: StringName in states:
 			if from != to:
@@ -647,6 +727,22 @@ func _build_crouch() -> AnimationNodeBlendSpace1D:
 	space.add_blend_point(_clip(crouch_walk_clip), tuning.crouch_speed, -1, &"walk")
 	_crouch = space
 	return space
+
+
+# The prone state: the prone idle and the crawl, each with its own pace, blended by ground speed.
+func _build_prone() -> AnimationNodeBlendTree:
+	var blend := AnimationNodeBlendTree.new()
+	blend.add_node(&"Idle", _clip(prone_idle_clip), Vector2(0, 0))
+	blend.add_node(&"IdlePace", AnimationNodeTimeScale.new(), Vector2(200, 0))
+	blend.add_node(&"Crawl", _clip(crawl_clip), Vector2(0, 200))
+	blend.add_node(&"CrawlPace", AnimationNodeTimeScale.new(), Vector2(200, 200))
+	blend.add_node(&"Move", AnimationNodeBlend2.new(), Vector2(400, 100))
+	blend.connect_node(&"IdlePace", 0, &"Idle")
+	blend.connect_node(&"CrawlPace", 0, &"Crawl")
+	blend.connect_node(&"Move", 0, &"IdlePace")
+	blend.connect_node(&"Move", 1, &"CrawlPace")
+	blend.connect_node(&"output", 0, &"Move")
+	return blend
 
 
 func _clip(clip: StringName) -> AnimationNodeAnimation:
