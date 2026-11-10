@@ -48,11 +48,12 @@ if emitter != null:
   200 effects and counts them). When the pool is full the oldest effect is cut for the new one. The emitter does nothing
   while no effect plays (`set_process(false)`). It is built to be cosmetic: made on each machine from what happened,
   never sent over the network.
-- **The muzzle flash.** `Weapon.muzzle_flash` (`gameplay/weapon/muzzle_flash.tres`) is an `EffectDef` played on the
-  `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad (`assets/shaders/effects/
-  flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight short sparks and a
-  2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that weapon,
-  `muzzle_flash_size` resizes it, and another weapon points `muzzle_flash` at its own `EffectDef`. The flash stands at
+- **The muzzle flash.** `WeaponDef.muzzle_flash` (the pistol's, `gameplay/weapon/muzzle_flash.tres`) is an `EffectDef`
+  played on the `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad
+  (`assets/shaders/effects/flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight
+  short sparks and a 2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that
+  weapon, the definition's `muzzle_flash_size` resizes it, and another weapon's definition points `muzzle_flash` at
+  its own `EffectDef`. The flash stands at
   the muzzle's position and turns with it for as long as it lasts, and a scaled muzzle does not scale it.
 - **Tests and captures.** `tests/gameplay/test_effect_emitter.gd` (placement, following, ending), `test_effect_pool.gd`
   (the cap, reuse, the oldest cut, lights, switches, node counts), `test_effect_exports.gd` (the defaults and every

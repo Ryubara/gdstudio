@@ -205,8 +205,8 @@ positive up; `crouch` is already the toggle's result; a press is true in one com
 only on a tick where a shot can leave (a press buffered or just made, or an automatic weapon held, and the weapon
 ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
-every held tick, against a budget of 2000). Flag bits 11 to 15 are free: #887's reload, next, previous and unarmed
-presses take four and raise `NetWire.VERSION`.
+every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
+the empty hands; gdstudio #887, `NetWire.VERSION` 2); bit 15 is free.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.

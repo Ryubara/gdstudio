@@ -15,10 +15,10 @@ can be replaced alone.
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
 | `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `character_dressed.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
 | `CharacterAnimation` | `gameplay/character/character_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
-| `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker along the ray its character aims by, the crosshair's for the player (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
-| `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
+| `WeaponDef`, `Weapon`, `WeaponLoadout`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: every number of a shot, the magazine, reserve and reload, its clips and sounds). A `Weapon` fires the one it holds along the ray its character aims by, the crosshair's for the player (pooled `Projectile` spheres, a hitscan ray or a blow), counts the ammunition, reloads and clicks when empty; a `WeaponLoadout` switches between the slots and the empty hands; a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. A definition names its model and muzzle under the `Model` slot, so a game adds a weapon with a `.tres` and a model node. |
+| `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `WeaponDef.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
 | `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
-| Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
+| Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, and the definition's `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size`, tune it. |
 | `Footsteps` | `gameplay/character/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
 | `Crosshair` | `ui/hud/crosshair.tscn` | A small white circle with a thin dark ring at the middle of the screen, drawn by the node itself and shown only while the player aims. |
 | `Interactor` | `gameplay/character/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
@@ -32,7 +32,8 @@ can be replaced alone.
 
 `PlayerInput` (a child of `Player`) reads actions, never devices: `move_left`, `move_right`, `move_forward`,
 `move_back`, `jump`, `sprint`,
-`walk` (a slow walk), `interact`, `crouch`, `aim`, `fire` and, for the camera, `look_left`, `look_right`, `look_up`,
+`walk` (a slow walk), `interact`, `crouch`, `aim`, `fire`, `reload`, `next_weapon`, `previous_weapon`,
+`toggle_unarmed` and, for the camera, `look_left`, `look_right`, `look_up`,
 `look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
 layer presses the same actions. Rebind them in Project Settings > Input Map.
 
@@ -47,6 +48,10 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Crouch | C (held; a toggle in the tuning) | B | the Crouch button |
 | Aim | right mouse button (held) | left trigger | the Aim button |
 | Fire | left mouse button | right trigger | the Fire button (it aims too) |
+| Reload | R | Y | the Reload button (an empty magazine with rounds in reserve also reloads by itself) |
+| Next weapon | mouse wheel down | d-pad right | the Swap button |
+| Previous weapon | mouse wheel up | d-pad left | none |
+| Empty hands and back | H | d-pad down | none |
 | Swap shoulder | Q | right stick click | none |
 | Die and get up (a testing aid) | Y (`Player`'s `ragdoll_key`; None turns it off) | none | none |
 
@@ -108,13 +113,17 @@ the steepest slope and the floor snap are applied again whenever the resource ch
 A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, grippy (friction 0.5) and pushed at 1.2
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The
-`Weapon` (a child of the `Character`) holds the shot's numbers: fire rate, semi or full automatic, spread, aim range,
-the projectile's speed (45 m/s), size, gravity (0, so it flies straight at the crosshair), lifetime, the push it gives a
-body (40 N·s) and how many times it bounces. Two more are for a weapon used without this character: `no_muzzle_offset`
-(where a shot starts when the weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far
-off the aim ray) and `self_ticking` (on: the weapon counts its own cooldown; the `Character` turns it off for its weapon
-and counts it in its step). The sound of a shot is its `ShotSound` node: five pistol shots at a small random pitch
-and volume spread, three voices; a game's own shot is another `stream` there.
+pistol's definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full
+automatic, spread, damage (10), aim range, the push it gives a body (40 N·s), the magazine (12), the reserve (36, at
+most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is empty), the switch
+(0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies straight at the
+crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two empty clicks, the
+reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m, 2.5 a second, with no
+ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`,
+as on a character with no model: beside its `shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and
+`self_ticking` (on: the weapon counts its own cooldown and reload; the `Character` turns it off and counts them in its
+step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the volume, bus and voices. The
+`Loadout` lists the slots (the pistol) and the empty hands (the fists).
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
@@ -172,7 +181,9 @@ ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built a
 `item_collected(item_id, amount, total)`, `state_changed(state)`, `teleported`, `aim_changed(aiming)` and
 `crouch_changed(crouching)`, `died`, `revived` and `fell` (it went below the tuning's fall limit; the character
 answers by starting again at a spawn point, and a game that decides where characters start connects its own answer);
-`Weapon` emits `fired(projectile)`, a `Projectile`
+`Weapon` emits `fired(projectile)` (null for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`,
+`ammo_changed(ammo)`, `reload_started(seconds)`, `reloaded`, `reload_cancelled` and `definition_changed`, the `Loadout`
+`weapon_changed`, `switch_started` and `switch_finished`, a `Projectile`
 `impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A hit comes from calling
 `player.hit(amount, source)`; the character stops for the stun time and is thrown away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
@@ -201,14 +212,15 @@ dropped on import and the clip loops) and lists all 86 in `CharacterClips.ALL`. 
 inspector setting of `CharacterAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
 no retargeting is needed.
 
-**The Pistol group of `CharacterAnimation`** (all read while the game runs; a change builds the tree again):
+**The Weapon group of `CharacterAnimation`** and the held weapon's clips (all read while the game runs; a change, on
+the node or on the `WeaponDef`, builds the tree again):
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `carry` | `Hand Only` | How the weapon is carried off aim and fire. `Hand Only`: the arms and the spine follow the locomotion and only the grip bones take the grip pose. `Held Pose`: the grip clip holds the whole upper body, both arms out in front (a weapon at the ready, a rifle). |
-| `grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). |
-| `grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
-| `aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clip` | the `Pistol_*` clips | The aim pose by pitch, and the recoil. |
+| `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
+| `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
+| `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |

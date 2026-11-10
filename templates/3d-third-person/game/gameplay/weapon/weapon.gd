@@ -400,7 +400,9 @@ func _take_projectile() -> Projectile:
 			return spare
 		if is_instance_valid(spare):
 			spare.queue_free()
-	_live = _live.filter(func(shot: Projectile) -> bool: return is_instance_valid(shot))
+	for index in range(_live.size() - 1, -1, -1):
+		if not is_instance_valid(_live[index]):
+			_live.remove_at(index)
 	if _live.size() >= projectile_cap:
 		var oldest: Projectile = _live.pop_front()
 		oldest.halt()

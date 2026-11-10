@@ -28,7 +28,7 @@ grenade or a ray gun reuses it.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
   `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
-- **On or off per weapon or projectile.** `Weapon.impacts` (its shots land without a trace when off) and
+- **On or off per weapon or projectile.** `WeaponDef.impacts` (its shots land without a trace when off) and
   `Projectile.impact_effects` (the projectile scene's own, for a game with its own projectile); a shot leaves an
   impact when both are on.
 - **What takes no mark.** A `CharacterBody3D` and a ragdoll bone (the effect and sound still play): a shot stops at a

@@ -14,8 +14,11 @@ The template has a character and the map's components:
   `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`).
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
   `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
-- `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the
-  crosshair, and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
+- `weapon/`, `projectile/`, `target/`: a weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: its numbers,
+  magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
+  hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the
+  slots and the empty hands, and a `Target` falls over when hit. They work with any model: a definition names the
+  model node it shows and its muzzle marker under the character's `Model` slot.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
   (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
 - `effects/`: the `EffectEmitter` (one in the level, `world/world.tscn` has it) plays an `EffectDef` (a particles scene,

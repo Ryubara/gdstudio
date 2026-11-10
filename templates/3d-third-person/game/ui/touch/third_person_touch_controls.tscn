@@ -34,10 +34,10 @@ label = "Crouch"
 
 [node name="Reload" parent="SafeArea/Buttons" index="5" instance=ExtResource("2_button")]
 layout_mode = 1
-offset_left = -170.0
-offset_top = -540.0
-offset_right = -30.0
-offset_bottom = -400.0
+offset_left = -780.0
+offset_top = -200.0
+offset_right = -640.0
+offset_bottom = -60.0
 action = &"reload"
 label = "Reload"
 

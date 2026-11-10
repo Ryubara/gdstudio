@@ -10,4 +10,4 @@ max_property = &"magazine_size"
 extra_property = &"reserve"
 refresh_signals = Array[StringName]([&"ammo_changed", &"fired", &"reloaded", &"definition_changed", &"weapon_changed", &"died", &"revived"])
 title = "Ammo"
-max_format = "{value} | {extra}"
+extra_format = "{value} | {extra}"
