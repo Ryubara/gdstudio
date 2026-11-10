@@ -34,6 +34,12 @@ simulator is the only node that needs to exist while the character lives: with `
   modifier, whose pose is applied after the skin update and discarded, so the bone poses of the skeleton show the
   animation while the body is limp and a test that read them found the ragdoll standing. **Seen:** gdstudio #846,
   2026-11-09.
+- **Approach:** Let the bones collide with each other: put the ragdoll's own layer in its `collision_mask` and keep
+  only each joint's two bodies apart (the engine's exclusion for jointed bodies, or
+  `physical_bones_add_collision_exception`), so an arm rests on the chest and the legs stop at each other. **Watch
+  out for:** a mask of the level only, chosen so the bones would not fight, lets limbs fall through the body: with
+  wide limits the character melts into a heap. **Seen:** gdstudio #872, 2026-11-10 (found by the maintainer on the
+  #846 ragdoll; the rework is #872).
 
 ## Joint limits {#limits}
 
@@ -42,13 +48,13 @@ simulator is the only node that needs to exist while the character lives: with `
 A ragdoll that dies in a pose its joints do not allow is snapped into range in one step, and the solver turns that
 into speed.
 
-- **Approach:** Measure the limits from the poses the game can die in (every clip the character plays, sampled on every
-  model, 10 degrees of margin) instead of from anatomy, and centre a cone on the measured mean direction of the bone.
-  **Watch out for:** a limit narrower than a pose the clips reach snaps the body into range when it dies in that
-  pose; the shoulder cones of this rig need 125 to 133 degrees of swing from the clips' own mean.
-  `tools/ragdoll/measure_joints.gd` prints the numbers for the `PlayerRagdoll.BODIES` table; run it again after
-  changing a clip, a frame or a rig. **Seen:** gdstudio #846,
-  2026-11-09.
+- **Approach:** Take the limits from a body's range of motion: elbows and knees are hinges with almost no twist or
+  sideways swing, the others cones with a small twist, the same left and right; check the clips' poses against them
+  with `tools/ragdoll/measure_joints.gd`. **Watch out for:** limits widened to hold every clip pose plus 10 degrees
+  (#846: elbows twisting through 130 degrees and swinging 54 sideways, shoulders swinging 133, left and right
+  apart) let limbs turn past what a joint can, and the body looked melted. A limit narrower than the death pose
+  snaps the body into range and can throw it; how to meet that is part of #872. **Seen:** gdstudio #846, 2026-11-09;
+  gdstudio #872, 2026-11-10 (found by the maintainer).
 - **Approach:** Know the sign: a hinge or 6DOF limit angle has the opposite sign to the turn of the child body about the
   axis, on Godot Physics and on Jolt, so write a limit as the negative of the range you measured, or test the sign
   with a probe that places a body at a known angle first. **Watch out for:** a limit written with the sign of the
