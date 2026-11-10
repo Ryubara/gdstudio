@@ -451,7 +451,7 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   2026-11-08 (`tools/web_smoke/touch_smoke.py`: 11 of 11 checks, no console error).
 - CI runs it: the kit's `template` job and a game's `web` job run `touch_smoke.py` after the export, beside the boot
   check every template gets ([the boot check](web-probes.md#boot-check)), at ratio 1 and without pictures
-  (`--ratio 1 --no-shots`). The 16 checks take 21 s on a PC and about 90 s on the runner, whose software renderer draws
+  (`--ratio 1 --no-shots`). The 17 checks take 21 s on a PC and about 90 s on the runner, whose software renderer draws
   a few frames a second, so the smoke waits on the probe's `ticks` (the game's own clock), not on seconds.
 - Test the layer headless by calling its `_input` with canvas coordinates (a node receives canvas pixels) plus one test
   through `Input.parse_input_event` with the window pixels (`get_final_transform() * canvas`): two fingers, a drag
