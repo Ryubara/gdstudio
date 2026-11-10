@@ -7,6 +7,7 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
 
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
+- [The character's clips](clips.md): the animation libraries and the template's own vault clips, with their checks.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 

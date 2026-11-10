@@ -8,15 +8,25 @@ extends Resource
 ##
 ## A number is read where it is used, every frame, so changing it in the inspector or the remote
 ## inspector works while the game runs. The few the body copies once (the capsule, the slope and
-## the floor snap) say `changed`, and `Character` applies them again.
+## the floor snap) say `changed`, and `Character` applies them again; so do the four speeds the
+## animation's blend spaces are laid out by (`CharacterAnimation`).
 
 @export_group("Ground")
 ## Speed at a walk (the move stick pushed a little, or the walk key held).
-@export_range(0.5, 6.0, 0.05, "suffix:m/s") var walk_speed := 1.7
+@export_range(0.5, 6.0, 0.05, "suffix:m/s") var walk_speed := 1.7:
+	set(value):
+		walk_speed = value
+		emit_changed()
 ## Speed at a run: the default speed with the stick or the keys held down.
-@export_range(1.0, 12.0, 0.05, "suffix:m/s") var run_speed := 4.0
+@export_range(1.0, 12.0, 0.05, "suffix:m/s") var run_speed := 4.0:
+	set(value):
+		run_speed = value
+		emit_changed()
 ## Speed while the sprint button is held.
-@export_range(1.0, 16.0, 0.05, "suffix:m/s") var sprint_speed := 6.5
+@export_range(1.0, 16.0, 0.05, "suffix:m/s") var sprint_speed := 6.5:
+	set(value):
+		sprint_speed = value
+		emit_changed()
 ## How fast the character gets up to speed.
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var acceleration := 28.0
 ## How fast the character stops when the stick is let go.
@@ -75,7 +85,10 @@ extends Resource
 		crouch_height = value
 		emit_changed()
 ## Speed at a crouch walk with the stick fully pushed.
-@export_range(0.3, 4.0, 0.05, "suffix:m/s") var crouch_speed := 1.5
+@export_range(0.3, 4.0, 0.05, "suffix:m/s") var crouch_speed := 1.5:
+	set(value):
+		crouch_speed = value
+		emit_changed()
 ## Seconds to go from standing to crouched and back.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var crouch_time := 0.2
 ## On: the crouch button switches crouching on and off. Off: the character is crouched only while

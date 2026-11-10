@@ -4,11 +4,13 @@ extends Node
 ## The character's ragdoll: physical bones on the skeleton of the model in the `Model` slot, limp
 ## while the `Character` is dead and idle (no collision, no cost) while it is alive.
 ##
-## The bones are made from the skeleton each time the model changes, because a model swap deletes
-## the old model and everything inside it. They are made in the editor too, so their shapes show
-## in the viewport (with Visible Collision Shapes on in the Debug menu, or by selecting a bone in
-## the remote tree), but they are never saved in a scene. `BODIES` lists them for the Quaternius
-## universal rig (both mannequins).
+## The bones are made from the skeleton on the character's first death (or when something asks
+## for one: `body()`, `body_count()`), and again each time the model changes after that, because a
+## model swap deletes the old model and everything inside it. A character that never dies never
+## pays for them: 16 bodies and 33 nodes it would carry from its spawn. In the editor they are made
+## at once while `editor_preview` is on, so their shapes show in the viewport (with Visible
+## Collision Shapes on in the Debug menu), but they are never saved in a scene. `BODIES` lists them
+## for the Quaternius universal rig (both mannequins).
 ##
 ## The `Character` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
 ## listens to the player's `died` and `revived`.
@@ -28,199 +30,9 @@ signal stopped
 ## from here (Jolt; Godot Physics never puts a jointed body to sleep).
 signal settled
 
-## Each physical bone: `bone` is the skeleton bone it moves, `from` and `to` the bones (or, for
-## `to`, a length along the bone, in metres) between which its capsule lies, `radius` the
-## capsule's radius in metres and `share` its share of the body's mass in per cent (the
-## Dempster/Winter segment masses). A body's frame has X along the bone and Z across it, toward
-## `side` (in the skeleton's space, which holds a T-pose facing +Z) or else up or to the right.
-##
-## `joint` is how it hangs on the body above it: `&""` (the root, no joint); `&"cone"`, a ball
-## joint that swings up to `swing` degrees from `centre` (a turn from the rest pose, Euler
-## degrees, the pose a person stands in) and twists `twist` degrees either way around the bone;
-## or `&"hinge"`, a knee or an elbow, that bends about `axis` (in the body's frame) through
-## `range` (degrees, the lowest and the highest, from the straight limb) and does nothing else.
-##
-## The limits are a person's (the sources are in docs/engines/godot/ragdoll.md#limits), the same
-## on the left and the right, but for the shoulders' twist: 45 where a person turns about 60,
-## because a shoulder the body lands on is pushed past its twist and 45 keeps it near a person's.
-## A clip can hold a joint outside them; the pose is pushed inside when the body goes limp
-## (`_clamped_world`), so no joint starts out of range and is thrown.
-## `tools/ragdoll/measure_joints.gd` prints how far the clips go past them.
-const BODIES := [
-	{
-		bone = &"pelvis",
-		from = &"pelvis",
-		to = &"spine_01",
-		radius = 0.12,
-		share = 14.2,
-		joint = &""
-	},
-	{
-		bone = &"spine_01",
-		from = &"spine_01",
-		to = &"spine_03",
-		radius = 0.12,
-		share = 13.9,
-		joint = &"cone",
-		centre = Vector3.ZERO,
-		swing = 20.0,
-		twist = 12.0
-	},
-	{
-		bone = &"spine_03",
-		from = &"spine_03",
-		to = &"neck_01",
-		radius = 0.13,
-		share = 20.1,
-		joint = &"cone",
-		centre = Vector3(0.7, -0.1, 34.6),
-		swing = 30.0,
-		twist = 20.0
-	},
-	{
-		bone = &"Head",
-		from = &"neck_01",
-		to = 0.26,
-		radius = 0.1,
-		share = 8.1,
-		joint = &"cone",
-		centre = Vector3(-0.9, -1.4, -14.7),
-		swing = 45.0,
-		twist = 60.0
-	},
-	{
-		bone = &"upperarm_l",
-		from = &"upperarm_l",
-		to = &"lowerarm_l",
-		radius = 0.05,
-		share = 2.8,
-		joint = &"cone",
-		centre = Vector3(25.8, 33.6, -31.9),
-		swing = 100.0,
-		twist = 45.0
-	},
-	{
-		bone = &"lowerarm_l",
-		from = &"lowerarm_l",
-		to = &"hand_l",
-		radius = 0.045,
-		share = 1.6,
-		side = Vector3.DOWN,
-		joint = &"hinge",
-		axis = Vector3(0.0, 0.181, 0.983),
-		range = Vector2(-5.0, 150.0)
-	},
-	{
-		bone = &"hand_l",
-		from = &"hand_l",
-		to = 0.17,
-		radius = 0.04,
-		share = 0.6,
-		joint = &"cone",
-		centre = Vector3(-10.4, -4.4, -6.4),
-		swing = 60.0,
-		twist = 60.0
-	},
-	{
-		bone = &"upperarm_r",
-		from = &"upperarm_r",
-		to = &"lowerarm_r",
-		radius = 0.05,
-		share = 2.8,
-		joint = &"cone",
-		centre = Vector3(-27.8, 39.8, 21.5),
-		swing = 100.0,
-		twist = 45.0
-	},
-	{
-		bone = &"lowerarm_r",
-		from = &"lowerarm_r",
-		to = &"hand_r",
-		radius = 0.045,
-		share = 1.6,
-		side = Vector3.UP,
-		joint = &"hinge",
-		axis = Vector3(0.0, -0.109, 0.994),
-		range = Vector2(-5.0, 150.0)
-	},
-	{
-		bone = &"hand_r",
-		from = &"hand_r",
-		to = 0.17,
-		radius = 0.04,
-		share = 0.6,
-		joint = &"cone",
-		centre = Vector3(17.6, -0.8, 10.6),
-		swing = 60.0,
-		twist = 60.0
-	},
-	{
-		bone = &"thigh_l",
-		from = &"thigh_l",
-		to = &"calf_l",
-		radius = 0.075,
-		share = 10.0,
-		joint = &"cone",
-		centre = Vector3(-8.9, -20.4, -39.2),
-		swing = 70.0,
-		twist = 35.0
-	},
-	{
-		bone = &"calf_l",
-		from = &"calf_l",
-		to = &"foot_l",
-		radius = 0.06,
-		share = 4.65,
-		side = Vector3.RIGHT,
-		joint = &"hinge",
-		axis = Vector3(0.0, 0.12, 0.993),
-		range = Vector2(-5.0, 140.0)
-	},
-	{
-		bone = &"foot_l",
-		from = &"foot_l",
-		to = &"ball_leaf_l",
-		radius = 0.045,
-		share = 1.45,
-		joint = &"cone",
-		centre = Vector3(-0.8, -5.8, -9.7),
-		swing = 35.0,
-		twist = 15.0
-	},
-	{
-		bone = &"thigh_r",
-		from = &"thigh_r",
-		to = &"calf_r",
-		radius = 0.075,
-		share = 10.0,
-		joint = &"cone",
-		centre = Vector3(6.7, 10.0, -22.5),
-		swing = 70.0,
-		twist = 35.0
-	},
-	{
-		bone = &"calf_r",
-		from = &"calf_r",
-		to = &"foot_r",
-		radius = 0.06,
-		share = 4.65,
-		side = Vector3.RIGHT,
-		joint = &"hinge",
-		axis = Vector3(0.0, -0.114, 0.994),
-		range = Vector2(-5.0, 140.0)
-	},
-	{
-		bone = &"foot_r",
-		from = &"foot_r",
-		to = &"ball_leaf_r",
-		radius = 0.045,
-		share = 1.45,
-		joint = &"cone",
-		centre = Vector3(1.2, -8.0, 14.8),
-		swing = 35.0,
-		twist = 15.0
-	},
-]
+## Each physical bone, its capsule, its share of the mass and its joint (the table and what each
+## field means are in `RagdollBodies`, a file of its own).
+const BODIES := RagdollBodies.BODIES
 
 ## The name of the node that holds the bones, under the skeleton.
 const SIMULATOR := &"RagdollBones"
@@ -342,6 +154,16 @@ static var _counted := 0
 ## the physics is saved. 0, or nobody watching (a server's body): any distance.
 @export_range(0.0, 200.0, 1.0, "suffix:m") var ragdoll_range := 0.0
 
+@export_group("Editor")
+## Makes the bones in the editor, so their capsules show in the viewport (Debug, Visible Collision
+## Shapes). The running game makes them on the first death whatever this says.
+@export var editor_preview := true:
+	set(value):
+		editor_preview = value
+		if Engine.is_editor_hint() and is_node_ready() and not value:
+			_clear()
+		_rebuild()
+
 @export_group("Collision")
 ## The physics layers the bones are on while limp. Their own layer by default (Ragdoll, 5), so
 ## what looks for the level or the characters (the camera's walls, a door, the player's capsule and
@@ -367,9 +189,8 @@ var _limp := false
 var _ignored: Array[CollisionObject3D] = []
 # Where each body is in the skeleton's space when its joint is made: the neutral pose.
 var _posed: Dictionary[StringName, Transform3D] = {}
-# Where each body was in the animated pose, this physics tick and the one before.
-var _pose_now: Dictionary[StringName, Transform3D] = {}
-var _pose_before: Dictionary[StringName, Transform3D] = {}
+# Where each bone was in the animated pose, this physics tick and the one before.
+var _pose := RagdollPose.new(BODIES)
 var _since_start := 0.0
 var _counts := false
 var _settled := false
@@ -380,7 +201,8 @@ var _braces := RagdollBraces.new()
 func _ready() -> void:
 	if model != null and not model.rig_changed.is_connected(_on_rig_changed):
 		model.rig_changed.connect(_on_rig_changed)
-	_build()
+	if Engine.is_editor_hint() and editor_preview:
+		_build()
 
 
 func _notification(what: int) -> void:
@@ -390,7 +212,7 @@ func _notification(what: int) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint() or _simulator == null:
+	if Engine.is_editor_hint():
 		return
 	if _limp:
 		_while_limp(delta)
@@ -417,14 +239,40 @@ func is_limp() -> bool:
 	return _limp
 
 
-## The physical bone that moves `bone` (`&"pelvis"`, `&"Head"`, ...), or null.
+## The physical bone that moves `bone` (`&"pelvis"`, `&"Head"`, ...), or null. Asking makes the
+## bones if they are not made yet.
 func body(bone: StringName) -> PhysicalBone3D:
+	_ensure_bones()
 	return _bones.get(bone)
 
 
-## How many physical bones the skeleton has now.
+## How many physical bones the skeleton has (asking makes them if they are not made yet).
 func body_count() -> int:
+	_ensure_bones()
 	return _bones.size()
+
+
+## True once the bones are made (the first death, or something asked for one); asks for nothing.
+func has_bones() -> bool:
+	return not _bones.is_empty()
+
+
+## The simulator that holds the bones (asking makes them if they are not made yet; null when the
+## skeleton lacks the bones): `HitReaction` runs a flinch on some of them while the body lives and
+## nothing else holds the skeleton.
+func simulator() -> PhysicalBoneSimulator3D:
+	_ensure_bones()
+	return _simulator
+
+
+## Where the body of `bone` is in the animated pose now, world space; and the nearest bone above
+## it with a body (empty for the pelvis).
+func animated_body(bone: StringName) -> Transform3D:
+	return _animated_body(model.skeleton(), bone)
+
+
+func parent_body(bone: StringName) -> StringName:
+	return _parent_body(model.skeleton(), bone) if model != null else &""
 
 
 ## The bones never collide with `other` (the player's own capsule, a vehicle it sits in).
@@ -438,7 +286,7 @@ func add_collision_exception(other: CollisionObject3D) -> void:
 ## `ragdoll_range` from the hips. When it is false the character plays its death clip. It reads
 ## no camera itself: the range is a local level of detail, and the caller knows who watches.
 func can_start(viewer := Vector3.INF) -> bool:
-	if _simulator == null:
+	if not _fits(model.skeleton() if model != null else null):
 		return false
 	if max_active > 0 and _counted >= max_active and not _counts:
 		return false
@@ -453,6 +301,9 @@ func can_start(viewer := Vector3.INF) -> bool:
 ## Returns false, and does nothing, when `can_start(viewer)` is false.
 func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
 	if not can_start(viewer):
+		return false
+	_ensure_bones()
+	if _simulator == null:
 		return false
 	var clamped := _clamped_world()
 	if _simulator.is_simulating_physics():
@@ -489,18 +340,24 @@ func stop(blend: bool = true) -> void:
 		return
 	_limp = false
 	_count(false)
-	_pose_now.clear()
-	_pose_before.clear()
+	_pose.clear()
 	if blend and get_up_time > 0.0:
 		_blend = 1.0
 	else:
 		_end()
 
 
-## Where the hips lie, in world space (the pelvis bone's body).
+## Where the hips lie, in world space (the pelvis bone's body; before the bones are made, the
+## skeleton's pelvis).
 func hips() -> Vector3:
-	var pelvis := body(&"pelvis")
-	return pelvis.global_position if pelvis != null else Vector3.ZERO
+	var pelvis: PhysicalBone3D = _bones.get(&"pelvis")
+	if pelvis != null:
+		return pelvis.global_position
+	var skeleton := model.skeleton() if model != null else null
+	var index := skeleton.find_bone(&"pelvis") if skeleton != null else -1
+	if index < 0:
+		return Vector3.ZERO
+	return (skeleton.global_transform * skeleton.get_bone_global_pose(index)).origin
 
 
 ## The way the ragdoll's chest faces, flat on the ground (a unit vector), or, lying face up or
@@ -540,9 +397,28 @@ func _on_rig_changed(_rig: Node3D) -> void:
 	_rebuild()
 
 
+# Makes the bones again after a change, if they are made (in the editor, if they are shown).
 func _rebuild() -> void:
-	if is_node_ready():
+	if not is_node_ready():
+		return
+	if _simulator != null or (Engine.is_editor_hint() and editor_preview):
 		_build()
+
+
+# Makes the bones the first time the game needs them (never in the editor: `editor_preview`).
+func _ensure_bones() -> void:
+	if _simulator == null and is_node_ready() and not Engine.is_editor_hint():
+		_build()
+
+
+# True when `skeleton` has every bone `BODIES` names.
+func _fits(skeleton: Skeleton3D) -> bool:
+	if skeleton == null or not skeleton.is_inside_tree():
+		return false
+	for entry: Dictionary in BODIES:
+		if skeleton.find_bone(entry.bone) < 0 or skeleton.find_bone(entry.from) < 0:
+			return false
+	return true
 
 
 # Takes the bones off the old skeleton (or this one) and makes them again on the model's skeleton.
@@ -555,11 +431,8 @@ func _build() -> void:
 			lying[bone_name] = _bones[bone_name].global_transform
 	_clear()
 	var skeleton := model.skeleton() if model != null else null
-	if skeleton == null or not skeleton.is_inside_tree():
+	if not _fits(skeleton):
 		return
-	for entry: Dictionary in BODIES:
-		if skeleton.find_bone(entry.bone) < 0 or skeleton.find_bone(entry.from) < 0:
-			return
 	_simulator = PhysicalBoneSimulator3D.new()
 	_simulator.name = SIMULATOR
 	_simulator.active = false
@@ -616,8 +489,8 @@ func _clear() -> void:
 	_free_braces()
 	_count(false)
 	_posed.clear()
-	_pose_now.clear()
-	_pose_before.clear()
+	# The sampled pose stays: the first death makes the bones and then reads it (a new skeleton
+	# starts the sampler again by itself).
 	if _simulator != null and is_instance_valid(_simulator):
 		if _simulator.is_inside_tree() and _simulator.is_simulating_physics():
 			_simulator.physical_bones_stop_simulation()
@@ -778,6 +651,11 @@ func _apply_materials() -> void:
 		bone.bounce = bounce
 		bone.collision_layer = collision_layer
 		bone.collision_mask = collision_mask
+		if not bone.is_simulating_physics():
+			# Out of the world until it simulates, as the engine leaves a bone that stopped: a bone
+			# never limp kept its layer, so shots and the aim ray met a living body's head (#876).
+			PhysicsServer3D.body_set_collision_layer(bone.get_rid(), 0)
+			PhysicsServer3D.body_set_collision_mask(bone.get_rid(), 0)
 
 
 # The extra joints (`hinge_passes`, `cone_passes`): Jolt's project-wide solver steps are too few
@@ -799,6 +677,7 @@ func _free_braces() -> void:
 
 ## How many hinges hold the elbows and knees now, the bones' own and the extra ones.
 func hinge_count() -> int:
+	_ensure_bones()
 	var own := 0
 	for entry: Dictionary in BODIES:
 		if entry.joint == &"hinge" and _bones.has(entry.bone):
@@ -809,6 +688,7 @@ func hinge_count() -> int:
 ## How many cones hold the shoulders, hips, spine, neck, wrists and ankles now, the bones' own and
 ## the extra ones.
 func cone_count() -> int:
+	_ensure_bones()
 	var own := 0
 	for entry: Dictionary in BODIES:
 		if entry.joint == &"cone" and _bones.has(entry.bone):
@@ -836,18 +716,14 @@ func _except_parents() -> void:
 
 
 func _pose_ready() -> bool:
-	return not _pose_before.is_empty() and _pose_now.size() == _pose_before.size()
+	return _pose.is_ready()
 
 
-# Where every body is in the pose the animation has now, in world space.
+# Reads where every bone is in the pose the animation has now (the bodies need not exist yet).
 func _sample_pose() -> void:
 	var skeleton := model.skeleton() if model != null else null
-	if skeleton == null or not skeleton.is_inside_tree():
-		return
-	_pose_before = _pose_now
-	_pose_now = {}
-	for key: StringName in _bones:
-		_pose_now[key] = _animated_body(skeleton, key)
+	if skeleton != null and skeleton.is_inside_tree():
+		_pose.sample(skeleton)
 
 
 func _animated_body(skeleton: Skeleton3D, key: StringName) -> Transform3D:
@@ -862,17 +738,11 @@ func _animated_body(skeleton: Skeleton3D, key: StringName) -> Transform3D:
 # m/s the sample is a teleport, not a motion, and the character's velocity stays.
 func _give_pose_velocity(key: StringName, bone: PhysicalBone3D) -> void:
 	var step := 1.0 / maxf(float(Engine.physics_ticks_per_second), 1.0)
-	var now: Transform3D = _pose_now[key]
-	var before: Transform3D = _pose_before[key]
-	var linear := (now.origin - before.origin) / step
-	if linear.length() > MAX_POSE_SPEED:
-		return
-	bone.linear_velocity = linear * carry_velocity
-	var turn := Quaternion(now.basis.orthonormalized() * before.basis.orthonormalized().inverse())
-	if turn.w < 0.0:
-		turn = -turn
-	if turn.get_angle() > 0.00001:
-		bone.angular_velocity = turn.get_axis() * (turn.get_angle() / step) * carry_velocity
+	var moved := _pose.body_velocity(key, bone.body_offset, step, MAX_POSE_SPEED)
+	if not moved.is_empty():
+		bone.linear_velocity = moved[0] * carry_velocity
+		if moved[1] != Vector3.ZERO:
+			bone.angular_velocity = moved[1] * carry_velocity
 
 
 # The animated pose with every joint turned inside its limits, as world transforms, chained from
@@ -970,6 +840,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	if model == null:
 		warnings.append("Set `model` to the CharacterModel that holds the character.")
-	elif model.skeleton() != null and _bones.is_empty():
+	elif model.skeleton() != null and not _fits(model.skeleton()):
 		warnings.append("The model's skeleton lacks the universal rig's bones the ragdoll needs.")
 	return warnings

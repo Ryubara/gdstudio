@@ -43,8 +43,8 @@ signal fired(projectile: Projectile)
 ## nothing is in the way.
 @export_range(5.0, 500.0, 1.0, "suffix:m") var aim_range := 100.0
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
-## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
-## shot will hit.
+## level, characters, props and ragdoll bones), so the crosshair's point is on what the shot will
+## hit.
 @export_flags_3d_physics var aim_mask := PhysicsLayers.SHOT_MASK
 
 @export_group("Projectile")
@@ -56,8 +56,11 @@ signal fired(projectile: Projectile)
 @export_range(0.0, 30.0, 0.1, "suffix:m/s²") var projectile_gravity := 0.0
 ## It disappears this long after it was fired.
 @export_range(0.2, 20.0, 0.1, "suffix:s") var projectile_lifetime := 3.0
-## The push it gives a physics body it hits (newton seconds).
+## The push it gives a physics body it hits (newton seconds), and the strength of its hit on a
+## character (what pushes the body part it hits; the `HitReaction` scales it).
 @export_range(0.0, 500.0, 0.5, "suffix:N·s") var projectile_impulse := 40.0
+## The damage of a hit before the hit zone's multiplier (a head counts more, a limb less).
+@export_range(0.0, 1000.0, 0.5, "or_greater") var projectile_damage := 34.0
 ## How many times it bounces off the level before it stops.
 @export_range(0, 8, 1) var projectile_bounces := 0
 ## The share of its speed a bounce keeps.
@@ -83,6 +86,9 @@ signal fired(projectile: Projectile)
 ## body twice in a frame, a body that is not stepped at all).
 @export var self_ticking := true
 
+## The share of `spread` a shot gets now: the character that holds the weapon sets it each
+## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
+var spread_share := 1.0
 var _cooldown := 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -135,7 +141,7 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 		toward = along
 	var heading := toward.normalized()
 	if spread > 0.0:
-		var angle := deg_to_rad(spread) * sqrt(_rng.randf())
+		var angle := deg_to_rad(spread * spread_share) * sqrt(_rng.randf())
 		var around := _rng.randf() * TAU
 		var side := heading.cross(Vector3.UP)
 		if side.length_squared() < 0.0001:
@@ -148,6 +154,7 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 	shot.gravity = projectile_gravity
 	shot.lifetime = projectile_lifetime
 	shot.impulse = projectile_impulse
+	shot.damage = projectile_damage
 	shot.bounces = projectile_bounces
 	shot.bounce_keep = projectile_bounce_keep
 	if not impacts:

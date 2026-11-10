@@ -42,6 +42,8 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"sprint_shake_amplitude": 0.0,
 		&"sprint_shake_frequency": 3.0,
 		&"sprint_shake_blend": 4.0,
+		&"slide_fov_change": 5.0,
+		&"slide_zoom_speed": 4.0,
 		&"shot_kick_amplitude": 0.0,
 		&"shot_kick_duration": 0.2,
 		&"aim_distance": 1.1,

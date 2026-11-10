@@ -36,7 +36,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
   and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875 and #903 and tether #31, 2026-11-10 (files turned CRLF again).
+  gdstudio #830, 2026-11-08; gdstudio #875, #903, #1011 and tether #31, 2026-11-10 (CRLF again).
 
 ## Scripted edits {#scripted-edits}
 
@@ -118,7 +118,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
-  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`).
+  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
+  lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went).
 
 ## Reverting and checking out {#checkout}
 

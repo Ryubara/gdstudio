@@ -24,7 +24,9 @@ const PROPS := 1 << 3
 ## The bones of a body lying limp. Shots meet them (a dead body takes shots); the camera, the
 ## player's capsule, its ground probes and trigger areas never do.
 const RAGDOLL := 1 << 4
-## The body parts a shot can hit on a living character (kit #876). Scanned only by shots.
+## The body parts a shot can hit on a living character (`HitZones`). Scanned only by a shot's
+## second test, once the shot met the character's capsule (`HIT_ZONE_MASK`); nothing moves into
+## them.
 const HIT_ZONES := 1 << 5
 ## Areas that sense something (a pickup, a trigger zone, a door's sensor), so an area or a query
 ## that looks for them can; no body lists them.
@@ -34,8 +36,11 @@ const SENSORS := 1 << 6
 const CHARACTER_MASK := WORLD | PROPS
 ## What a prop collides with: the level, the characters that push it, other props.
 const PROP_MASK := WORLD | CHARACTERS | PROPS
-## What a shot (and the aim ray that picks its point) meets.
-const SHOT_MASK := WORLD | CHARACTERS | PROPS | RAGDOLL | HIT_ZONES
+## What a shot (and the aim ray that picks its point) meets. A living character is met at its
+## capsule; the shot then looks for the body part inside it with `HIT_ZONE_MASK`.
+const SHOT_MASK := WORLD | CHARACTERS | PROPS | RAGDOLL
+## What a shot's second test looks for inside a character's capsule: its hit zones, and only them.
+const HIT_ZONE_MASK := HIT_ZONES
 ## What a limp bone falls onto: the level, props, and the other bones of the body.
 const RAGDOLL_MASK := WORLD | PROPS | RAGDOLL
 ## What pushes the camera in: the level and props, never a character or a body part.
