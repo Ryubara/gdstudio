@@ -145,7 +145,8 @@ one time a learning makes a new page. The check names the page and its size.
   keep the old page as the index with a short section per moved `{#anchor}` linking to its new place, so briefs and
   issues that cite the old anchors still resolve. **Watch out for:** a template page that every feature adds a section
   to reached 51.1 KB of 51.2 KB with six agents still adding to it, and the next one failed the check. **Seen:**
-  `engines/godot/third-person-template.md`, split in gdstudio #983.
+  `engines/godot/third-person-template.md`, split in gdstudio #983; `engines/godot/third-person/character.md`, 53 KB
+  once three branches that each passed alone were merged, split in gdstudio #1029.
 
 ## Where the entry is named {#named}
 

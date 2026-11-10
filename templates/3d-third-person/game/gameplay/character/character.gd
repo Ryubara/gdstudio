@@ -6,7 +6,8 @@ extends CharacterBody3D
 ## buffer), steers in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`,
 ## opens a `Door`, collects a `Pickup`, aims and shoots its `Weapon`, and dies into a ragdoll
 ## (`die()`, the `ragdoll` checkbox or a command's `ragdoll_pressed`) and gets up again
-## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`).
+## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`) and slides
+## when crouch is pressed at a sprint (`CharacterSlide`, tuned by its `SlideTuning`).
 ## Everything else a developer tunes is in the `CharacterTuning` resource. Other nodes
 ## connect to the signals; `CharacterAnimation` follows `state`.
 ##
@@ -71,6 +72,7 @@ enum State {
 	CROUCH,  ## Crouched, standing still or walking.
 	DEAD,  ## Dead: limp, ignoring every gameplay input; the camera still orbits.
 	PRONE,  ## Lying down, going down or getting up: still or crawling.
+	SLIDE,  ## Sliding on its momentum, low (after `PRONE` so the numbers sent before stay).
 }
 
 @export_group("Character")
@@ -106,6 +108,18 @@ enum State {
 			prone_tuning.changed.connect(_apply_tuning)
 			_apply_tuning()
 
+@export_group("Slide")
+## The slide: the least speed, the boost, the friction, slopes, the slide jump, the low capsule.
+## Empty: the defaults. Changing a number while the game runs works at once.
+@export var slide_tuning: SlideTuning:
+	set(value):
+		if slide_tuning != null and slide_tuning.changed.is_connected(_apply_tuning):
+			slide_tuning.changed.disconnect(_apply_tuning)
+		slide_tuning = value
+		if slide_tuning != null:
+			slide_tuning.changed.connect(_apply_tuning)
+			_apply_tuning()
+
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot. The character steps it: the
 ## weapon's own `self_ticking` is turned off and `step` counts its cooldown.
@@ -134,12 +148,10 @@ enum State {
 ## `ragdoll_key` sends). A testing aid: a server that steps commands from the network turns it off.
 @export var ragdoll_by_command := true
 
-## The health left (0 to `max_health`), read from the `Health` child (tune it there); the HUD
-## shows it. 0 when the character has no `Health`.
+## The health left (0 to `max_health`; 0 with no `Health` child, tuned there); the HUD shows it.
 var health: float:
 	get:
-		var part := Health.of(self)
-		return part.value if part != null else 0.0
+		return Health.of(self).value if Health.of(self) != null else 0.0
 	set(value):
 		var part := Health.of(self)
 		if part != null:
@@ -147,8 +159,7 @@ var health: float:
 ## The `Health` child's `max_value`: what the character starts and gets up with.
 var max_health: float:
 	get:
-		var part := Health.of(self)
-		return part.max_value if part != null else 0.0
+		return Health.of(self).max_value if Health.of(self) != null else 0.0
 	set(value):
 		var part := Health.of(self)
 		if part != null:
@@ -156,8 +167,7 @@ var max_health: float:
 ## The `Health` child's `enabled`: off, hits still flinch and push the body but take nothing.
 var health_enabled: bool:
 	get:
-		var part := Health.of(self)
-		return part.enabled if part != null else false
+		return Health.of(self).enabled if Health.of(self) != null else false
 	set(value):
 		var part := Health.of(self)
 		if part != null:
@@ -207,6 +217,10 @@ var view_pitch := 0.0
 ## The command of the last step, as the body used it (not finite: let go of; a push no longer
 ## than 1). Written again by every step.
 var last_command := PlayerCommand.new()
+## True while the character slides (`CharacterSlide`). Read only.
+var sliding: bool:
+	get:
+		return _slide.active
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -227,6 +241,7 @@ var _fire_buffer := 0.0
 var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
+var _slide := CharacterSlide.new()
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -238,6 +253,8 @@ func _ready() -> void:
 		tuning = CharacterTuning.new()
 	if prone_tuning == null:
 		prone_tuning = ProneTuning.new()
+	if slide_tuning == null:
+		slide_tuning = SlideTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
@@ -298,10 +315,18 @@ func step(command: PlayerCommand, delta: float) -> void:
 func _move(delta: float) -> void:
 	_tick_timers(delta)
 	_update_prone(delta)
+	var lowered := _slide.amount
+	_slide.begin_tick(self, _wants_crouch, _coyote, _action_lock > 0.0, delta)
 	_update_crouch(delta)
 	_update_aim(delta)
+	if _slide.amount != lowered:
+		_fit_body()
 	var wish := _wish_direction() if _action_lock <= 0.0 else Vector3.ZERO
-	_steer(wish, delta)
+	if _slide.active:
+		_slide.steer(self, wish, delta)
+		_present_facing()
+	else:
+		_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
@@ -342,6 +367,7 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 	else:
 		kept.weapon.clear()
 	_prone.save_step_state(kept.prone)
+	_slide.save_step_state(kept.slide)
 	return kept
 
 
@@ -355,6 +381,7 @@ func restore(kept: CharacterState) -> void:
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
 	_prone.load_step_state(kept.prone)
+	_slide.load_step_state(kept.slide)
 	_fit_body()
 	_present_facing()
 
@@ -370,6 +397,8 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	global_position = spot
 	velocity = Vector3.ZERO
 	_fallen = false
+	_slide.reset()
+	_fit_body()
 	if not is_nan(heading):
 		facing = heading
 		_present_facing()
@@ -399,6 +428,7 @@ func die(shot: HitRecord = null) -> void:
 	_jump_buffer = 0.0
 	_jump_held = false
 	_sprinting = false
+	_slide.reset()
 	aim_held = false
 	fire_held = false
 	aim_amount = 0.0
@@ -538,10 +568,10 @@ func is_sprinting() -> bool:
 
 
 ## The height of the capsule now, in metres: the standing height, or less while it crouches or
-## lies down.
+## lies down or slides.
 func body_height() -> float:
 	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var crouched := lerpf(tuning.height, _crouch_height(), shrink)
+	var crouched := minf(lerpf(tuning.height, _crouch_height(), shrink), _slide.body_height(self))
 	if prone_tuning == null or not _prone.is_prone():
 		return crouched
 	return lerpf(crouched, _prone_height(), _prone.share())
@@ -660,7 +690,9 @@ func _fit_body() -> void:
 	capsule.height = height
 	_body.position.y = height / 2.0
 	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var eye := lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink)
+	var eye := minf(
+		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink), _slide.camera_height(self)
+	)
 	if lying > 0.0:
 		eye = lerpf(eye, prone_tuning.camera_height, lying)
 	_camera_target.position.y = eye
@@ -692,9 +724,11 @@ func _update_prone(delta: float) -> void:
 func _update_crouch(delta: float) -> void:
 	_wants_crouch = last_command.crouch
 	# A lying body is crouched underneath: getting up ends crouched, and stands only with room.
-	var should := _wants_crouch or _prone.is_prone()
-	# Letting go under a low ceiling keeps the character crouched until there is room.
-	if not should and crouching and not has_room_to_stand():
+	var should := (_wants_crouch and not _slide.active) or _prone.is_prone()
+	# Letting go under a low ceiling keeps the character crouched until there is room; a slide
+	# that ends under one crouches.
+	var low := crouching or (_slide.amount > 0.0 and not _slide.active)
+	if not should and low and not has_room_to_stand():
 		should = true
 	if should != crouching:
 		crouching = should
@@ -713,6 +747,10 @@ func _update_aim(delta: float) -> void:
 		fire_held = last_command.fire and _prone_lets_fire()
 		aim_held = last_command.aim
 		wants = aim_held or fire_held
+		if _slide.active and not slide_tuning.can_shoot:
+			aim_held = false
+			fire_held = false
+			wants = false
 	else:
 		aim_held = false
 		fire_held = false
@@ -785,6 +823,7 @@ func _steer(wish: Vector3, delta: float) -> void:
 		rate = prone_tuning.acceleration if strength > 0.0 else prone_tuning.deceleration
 	if not _grounded:
 		rate *= tuning.air_control
+		goal = _slide.air_goal(self, wish, goal, delta)
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
 	flat = flat.move_toward(goal, rate * delta)
@@ -811,8 +850,14 @@ func _vertical(delta: float) -> void:
 		_fall_speed = maxf(_fall_speed, -velocity.y)
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
-	if _jump_buffer > 0.0 and _coyote > 0.0 and _action_lock <= 0.0 and not crouching:
-		velocity.y = tuning.jump_speed()
+	if (
+		_jump_buffer > 0.0
+		and _coyote > 0.0
+		and _action_lock <= 0.0
+		and not crouching
+		and (slide_tuning.jump or not _slide.active)
+	):
+		velocity.y = _slide.jump(self) if _slide.active else tuning.jump_speed()
 		_jump_buffer = 0.0
 		_coyote = 0.0
 		_jump_held = true
@@ -887,6 +932,7 @@ func _push_props(before: Vector3, delta: float) -> bool:
 
 func _after_move(wish: Vector3, _delta: float) -> void:
 	var grounded := _grounded
+	_slide.after_move(self, grounded and _was_airborne)
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
 		if _fall_speed >= tuning.land_clip_speed:
@@ -897,6 +943,7 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 		grounded
 		and not crouching
 		and not aiming
+		and not _slide.active
 		and last_command.sprint
 		and ground_speed() > tuning.run_speed
 	)
@@ -909,6 +956,8 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 	var picked := State.IDLE
 	if not grounded:
 		picked = State.JUMP if velocity.y > 0.0 else State.FALL
+	elif _slide.active:
+		picked = State.SLIDE
 	elif _land_timer > 0.0:
 		picked = State.LAND
 	elif _prone.is_prone():

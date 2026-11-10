@@ -133,7 +133,7 @@ the spread's place for `restore()`.
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
 - **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor and
-  the door's `Interactable` back against the panel's motion ([Using things](character.md#interactable)), and
+  the door's `Interactable` back against the panel's motion ([Using things](interact.md#interactable)), and
   `close_after` counts from when the last character left. **Watch out for:** a sensor that is a child of a sliding door
   rises with it and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m
   reach no longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a

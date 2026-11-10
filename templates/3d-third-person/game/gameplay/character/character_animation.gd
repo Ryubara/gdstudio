@@ -5,7 +5,8 @@ extends Node
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
 ## blends the crouch idle and walk; `prone` blends the prone idle and the crawl, with a clip
 ## for going down and one for getting up; `jump`, `fall`, `land` and `push` are clips of their
-## own), a pistol layer (the pistol sits in one hand while the arms and the spine follow the
+## own; a slide plays `slide_start` into the `slide` loop and, standing up, `slide_exit`), a
+## pistol layer (the pistol sits in one hand while the arms and the spine follow the
 ## locomotion clip; aiming or firing brings the arm up to aim by its look, and a shot recoils) and a
 ## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
 ## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
@@ -47,6 +48,9 @@ const LAND := &"land"
 const PUSH := &"push"
 const CROUCH := &"crouch"
 const PRONE := &"prone"
+const SLIDE_START := &"slide_start"
+const SLIDE := &"slide"
+const SLIDE_EXIT := &"slide_exit"
 
 const _MACHINE := "Locomotion"
 const _ACTION := "Action"
@@ -132,6 +136,21 @@ const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePac
 @export var crouch_walk_clip: StringName = CharacterClips.CROUCH_WALK:
 	set(value):
 		crouch_walk_clip = value
+		_rebuild()
+## Dropping into a slide; the slide loop follows when it ends.
+@export var slide_start_clip: StringName = CharacterClips.SLIDE_START:
+	set(value):
+		slide_start_clip = value
+		_rebuild()
+## Sliding.
+@export var slide_clip: StringName = CharacterClips.SLIDE:
+	set(value):
+		slide_clip = value
+		_rebuild()
+## Getting up out of a slide that ends standing; the ground state follows when it ends.
+@export var slide_exit_clip: StringName = CharacterClips.SLIDE_EXIT:
+	set(value):
+		slide_exit_clip = value
 		_rebuild()
 ## Walking into a prop.
 @export var push_clip: StringName = CharacterClips.PUSH:
@@ -520,7 +539,8 @@ func _on_state_changed(state: Character.State) -> void:
 		_playback.start(GROUND)
 	match state:
 		Character.State.IDLE, Character.State.WALK, Character.State.RUN:
-			_travel(GROUND)
+			var current := body_state()
+			_travel(SLIDE_EXIT if current == SLIDE or current == SLIDE_START else GROUND)
 		Character.State.JUMP:
 			_travel(JUMP)
 		Character.State.FALL:
@@ -531,6 +551,8 @@ func _on_state_changed(state: Character.State) -> void:
 			_travel(PUSH)
 		Character.State.CROUCH:
 			_travel(CROUCH)
+		Character.State.SLIDE:
+			_travel(SLIDE_START)
 		Character.State.PRONE:
 			_travel(PRONE)
 
@@ -686,13 +708,23 @@ func _build_machine() -> AnimationNodeStateMachine:
 	_machine.add_node(PUSH, _clip(push_clip), Vector2(200, 160))
 	_machine.add_node(CROUCH, _build_crouch(), Vector2(0, 160))
 	_machine.add_node(PRONE, _build_prone(), Vector2(0, 320))
+	_machine.add_node(SLIDE_START, _clip(slide_start_clip), Vector2(-200, 0))
+	_machine.add_node(SLIDE, _clip(slide_clip), Vector2(-200, 160))
+	_machine.add_node(SLIDE_EXIT, _clip(slide_exit_clip), Vector2(-200, -100))
 	var start := AnimationNodeStateMachineTransition.new()
 	start.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
 	_machine.add_transition(&"Start", GROUND, start)
-	var states := [GROUND, JUMP, FALL, LAND, PUSH, CROUCH, PRONE]
+	# A clip that plays once and goes on by itself: the slide's start into its loop, its exit
+	# into the ground.
+	var ends := {SLIDE_START: SLIDE, SLIDE_EXIT: GROUND}
+	var states := [GROUND, JUMP, FALL, LAND, PUSH, CROUCH, PRONE, SLIDE_START, SLIDE, SLIDE_EXIT]
 	for from: StringName in states:
 		for to: StringName in states:
-			if from != to:
+			if from == to:
+				continue
+			if ends.get(from, &"") == to:
+				_link_at_end(from, to)
+			else:
 				_link(from, to)
 	return _machine
 
@@ -700,6 +732,14 @@ func _build_machine() -> AnimationNodeStateMachine:
 func _link(from: StringName, to: StringName) -> void:
 	var transition := AnimationNodeStateMachineTransition.new()
 	transition.xfade_time = blend_time
+	_machine.add_transition(from, to, transition)
+
+
+func _link_at_end(from: StringName, to: StringName) -> void:
+	var transition := AnimationNodeStateMachineTransition.new()
+	transition.xfade_time = blend_time
+	transition.switch_mode = AnimationNodeStateMachineTransition.SWITCH_MODE_AT_END
+	transition.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
 	_machine.add_transition(from, to, transition)
 
 
