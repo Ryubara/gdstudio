@@ -181,3 +181,21 @@ func test_no_part_is_under_a_touch_button_or_the_resting_stick_on_a_phone() -> v
 		for part in _visible_parts():
 			for rect in blocked:
 				assert_bool(_canvas_rect(part).intersects(rect)).is_false()
+
+
+func test_the_pause_button_is_clear_of_the_minimap_and_the_parts_on_a_touch_screen() -> void:
+	var touch: TouchControls = _scene.get_node("TouchControls")
+	var button: PauseButton = _scene.get_node("MenuLayer/PauseButton")
+	var minimap: Minimap = _hud.get_node("Root/SafeArea/TopRight/MinimapSlot/Minimap")
+	_feed_the_parts()
+	touch.show_mode = TouchControls.ShowMode.ALWAYS
+	touch._set_shown(true)
+	assert_bool(button.visible).is_true()
+	for window in [Vector2i(844, 390), Vector2i(667, 375), Vector2i(1280, 720)]:
+		get_tree().root.size = window
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var others: Array[Control] = _visible_parts()
+		others.append(minimap)
+		for other in others:
+			assert_bool(_canvas_rect(button).intersects(_canvas_rect(other))).is_false()
