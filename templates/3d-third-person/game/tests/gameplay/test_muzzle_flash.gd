@@ -31,7 +31,7 @@ func after_test() -> void:
 
 
 func _shoot() -> Projectile:
-	_weapon._cooldown = 0.0
+	_weapon.make_ready()
 	return _weapon.fire()
 
 
@@ -39,7 +39,7 @@ func test_a_shot_flashes_at_the_muzzle_pointing_out_of_the_barrel() -> void:
 	assert_object(_shoot()).is_not_null()
 	assert_int(_emitter.active_count()).is_equal(1)
 	var slot := _emitter.slots()[0]
-	assert_object(slot.effect).is_same(_weapon.muzzle_flash)
+	assert_object(slot.effect).is_same(_weapon.definition.muzzle_flash)
 	assert_vector(slot.global_position).is_equal_approx(_muzzle.global_position, Vector3.ONE * 1e-4)
 	assert_vector(slot.global_basis.y).is_equal_approx(-_muzzle.global_basis.z, Vector3.ONE * 1e-3)
 	assert_bool((slot.emitters()[0] as CPUParticles3D).emitting).is_true()
@@ -52,7 +52,7 @@ func test_the_flash_follows_the_muzzle_and_is_gone_a_moment_later() -> void:
 	_muzzle.global_position = Vector3(2.0, 1.5, 0.0)
 	_emitter.advance(0.01)
 	assert_vector(slot.global_position).is_equal_approx(Vector3(2.0, 1.5, 0.0), Vector3.ONE * 1e-4)
-	assert_float(slot.light().light_energy).is_less(_weapon.muzzle_flash.light_energy)
+	assert_float(slot.light().light_energy).is_less(_weapon.definition.muzzle_flash.light_energy)
 	_emitter.advance(0.5)
 	assert_bool(slot.active).is_false()
 	assert_int(_emitter.light_count()).is_equal(0)
@@ -65,7 +65,7 @@ func test_a_burst_of_shots_reuses_the_flashs_slots() -> void:
 	assert_int(_emitter.slot_count()).is_equal(1)
 	for _shot in 12:
 		_shoot()
-	assert_int(_emitter.slot_count()).is_less_equal(_weapon.muzzle_flash.max_instances)
+	assert_int(_emitter.slot_count()).is_less_equal(_weapon.definition.muzzle_flash.max_instances)
 
 
 func test_the_flash_switches_off_for_a_weapon_and_back_on() -> void:
@@ -80,8 +80,10 @@ func test_the_flash_switches_off_for_a_weapon_and_back_on() -> void:
 func test_a_weapon_can_have_its_own_flash_effect_and_size() -> void:
 	var own := EffectProbe.def(true, false, 3.0)
 	own.light_range = 2.0
-	_weapon.muzzle_flash = own
-	_weapon.muzzle_flash_size = 2.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon.definition = _weapon.definition.duplicate()
+	_weapon.definition.muzzle_flash = own
+	_weapon.definition.muzzle_flash_size = 2.0
 	_shoot()
 	var slot := _emitter.slots()[0]
 	assert_object(slot.effect).is_same(own)
@@ -89,7 +91,9 @@ func test_a_weapon_can_have_its_own_flash_effect_and_size() -> void:
 	assert_vector((slot.emitters()[0] as CPUParticles3D).scale).is_equal_approx(
 		Vector3.ONE * 2.0, Vector3.ONE * 1e-4
 	)
-	_weapon.muzzle_flash = null
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon.definition = _weapon.definition.duplicate()
+	_weapon.definition.muzzle_flash = null
 	_emitter.stop_all()
 	_shoot()
 	assert_int(_emitter.active_count()).is_equal(0)
@@ -102,7 +106,7 @@ func test_a_weapon_in_a_level_with_no_emitter_still_shoots() -> void:
 
 
 func test_the_template_flash_is_a_burst_and_a_light_that_ends_quickly() -> void:
-	var flash := _weapon.muzzle_flash
+	var flash := _weapon.definition.muzzle_flash
 	assert_object(flash).is_not_null()
 	assert_str(flash.resource_path).is_equal("res://gameplay/weapon/muzzle_flash.tres")
 	assert_object(flash.particles).is_not_null()

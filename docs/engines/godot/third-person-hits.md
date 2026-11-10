@@ -53,8 +53,8 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 - **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
   `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
 - **On the `Character`**, the group Health: `health_enabled` (off: hits still flinch and push but take nothing) and
-  `max_health` (100). **On the `Weapon`**: `projectile_damage` (34: three chest shots, one headshot), passed to the
-  projectile's `damage`.
+  `max_health` (100). **On the `WeaponDef`** (`pistol.tres`): `damage` (34: three chest shots, one
+  headshot), passed to the projectile's `damage` and to a hitscan shot's or a blow's record.
 
 ### What it costs {#cost}
 

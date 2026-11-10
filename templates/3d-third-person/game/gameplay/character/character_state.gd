@@ -53,6 +53,12 @@ var values: Array = []
 ## place in the spread's seeded order), so a body put back shoots again on the same tick and in
 ## the same direction. Empty for a character with no weapon.
 var weapon: Array = []
+## The step state of the character's `WeaponLoadout` (`save_step_state()`: what is in the hands,
+## where a switch is, each slot's ammunition). Empty for a character with no loadout.
+var loadout: Array = []
 ## The prone stance (`CharacterProne.save_step_state()`: lying or not, how far down, the time
 ## off the ground).
 var prone: Array = []
+## The step state of the character's slide (`CharacterSlide.save_step_state()`: whether it slides,
+## for how long, how low, its cooldowns and the speed a slide jump carries).
+var slide: Array = []
