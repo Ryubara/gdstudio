@@ -172,8 +172,8 @@ func test_a_trigger_zone_and_a_pickup_never_hear_of_bones_hit_zones_shots_or_the
 
 func test_the_camera_arm_is_pushed_in_by_a_wall_and_never_by_a_body_or_a_bone() -> void:
 	var scene := scene_runner("res://main.tscn").scene()
-	var camera := scene.get_node("Camera") as Camera3D
-	var head := scene.get_node("Player/CameraTarget") as Node3D
+	var camera := scene.get_node("PlayerRig/Camera") as Camera3D
+	var head := scene.get_node("PlayerRig/Player/CameraTarget") as Node3D
 	await InputSim.ticks(get_tree(), 30)
 	var open_view := camera.global_position.distance_to(head.global_position)
 	assert_float(open_view).is_greater(1.4)
