@@ -258,3 +258,28 @@ def test_the_template_with_the_synced_addon_passes_every_rule(tmp_path):
     shutil.copytree(TEMPLATE_GAME, game)
     shutil.copytree(KIT / "godot" / "addons" / "gds_ui", game / "addons" / "gds_ui")
     assert layout.check(game) == []
+
+
+def test_a_suite_that_reads_the_wall_clock_or_waits_on_a_timer_must_say_why(tmp_path):
+    calls = {"msec": "Time.get_ticks_msec()", "usec": "Time.get_ticks_usec()", "timer": "get_tree().create_timer(1.0)"}
+    for name, call in calls.items():
+        (tmp_path / name).mkdir()
+        project = make(tmp_path / name, {"tests/test_a.gd": f"extends GdUnitTestSuite\nvar t := {call}\n"})
+        assert [(p.path, p.rule) for p in layout.check(project)] == [("tests/test_a.gd", "on-the-clock")], call
+
+
+def test_a_first_line_comment_on_the_clock_is_the_reason(tmp_path):
+    text = "# On the clock: the engine's own callback is the subject.\nextends GdUnitTestSuite\n"
+    text += "var t := Time.get_ticks_msec()\n"
+    assert layout.check(make(tmp_path, {"tests/test_a.gd": text})) == []
+
+
+def test_a_clock_call_in_a_comment_or_outside_the_tests_is_not_judged(tmp_path):
+    project = make(
+        tmp_path,
+        {
+            "tests/test_a.gd": "extends GdUnitTestSuite\n# Never Time.get_ticks_msec() here.\n",
+            "core/clock.gd": "extends Node\nvar t := Time.get_ticks_msec()\n",
+        },
+    )
+    assert layout.check(project) == []

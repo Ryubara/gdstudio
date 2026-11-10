@@ -44,9 +44,9 @@ func test_the_template_has_a_default_and_a_surface_each_for_wood_metal_and_the_t
 	assert_bool(_surface(&"target").leaves_mark).is_false()
 	for surface: ImpactSurface in _impacts.surfaces_by_name().values():
 		assert_object(surface.effect).is_not_null()
-		assert_object(surface.sound).is_not_null()
-		assert_object(surface.sound.stream).is_not_null()
-		assert_bool(surface.sound.bus == &"SFX").is_true()
+		assert_object(surface.effect.particles).is_not_null()
+		assert_object(surface.effect.sound).is_not_null()
+		assert_bool(surface.effect.sound_bus == &"SFX").is_true()
 
 
 func test_a_body_with_no_surface_gets_the_default() -> void:

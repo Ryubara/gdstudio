@@ -11,8 +11,9 @@
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
-[ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="15_ai_section"]
-[ext_resource type="PackedScene" path="res://world/prototype/pathing_section/pathing_section.tscn" id="16_pathing_section"]
+[ext_resource type="PackedScene" path="res://gameplay/effects/effect_emitter.tscn" id="15_effects"]
+[ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="17_ai_section"]
+[ext_resource type="PackedScene" path="res://world/prototype/pathing_section/pathing_section.tscn" id="18_pathing_section"]
 
 [ext_resource type="Script" path="res://ui/menus/screen_host.gd" id="20_screens"]
 [ext_resource type="PackedScene" path="res://ui/menus/pause_menu.tscn" id="21_pause"]
@@ -32,13 +33,15 @@ bus = &"Ambient"
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
 
-[node name="AISection" parent="." instance=ExtResource("15_ai_section")]
+[node name="AISection" parent="." instance=ExtResource("17_ai_section")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -9)
 
-[node name="PathingSection" parent="." instance=ExtResource("16_pathing_section")]
+[node name="PathingSection" parent="." instance=ExtResource("18_pathing_section")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
 
 [node name="Impacts" parent="." instance=ExtResource("14_impacts")]
+
+[node name="Effects" parent="." instance=ExtResource("15_effects")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
