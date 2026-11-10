@@ -1,8 +1,8 @@
 class_name InputSim
 extends RefCounted
-## Simulated input for the suites: real key, pad and touch events sent through the engine's own
+## Simulated input for the suites: real key, pad and mouse events sent through the engine's own
 ## input path (`Input.parse_input_event`), so the project's `InputMap` decides what each one
-## does.
+## does. Part of the synced `gds_game` addon: used by tests only, never by shipped code.
 
 
 static func key(code: Key, pressed: bool) -> void:
@@ -59,9 +59,9 @@ static func release_all() -> void:
 	pad_button(JOY_BUTTON_B, false)
 	mouse_button(MOUSE_BUTTON_LEFT, false)
 	mouse_button(MOUSE_BUTTON_RIGHT, false)
-	# A base suite that sends a click leaves the left button and `fire` down, and a mouse release
-	# does not clear the action: let go of the actions of the pistol directly.
-	for action: StringName in [&"fire", &"aim", &"crouch"]:
+	# A base suite that sends a click leaves the left button and its action (`fire`) down, and a
+	# mouse release does not clear the action: let go of every action of the project directly.
+	for action: StringName in InputMap.get_actions():
 		Input.action_release(action)
 	Input.flush_buffered_events()
 

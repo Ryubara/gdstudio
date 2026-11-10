@@ -1,7 +1,7 @@
 ---
 name: backend-engineer
 description: GDStudio backend engineer. Use for everything networked that is not the game simulation - the platform backend (sign-in, lobbies, matchmaking, game-server orchestration, saved progress, telemetry), the headless game-server deployment (Docker, Railway), and the network protocol's server-side tooling. Takes one task from issue to pull request in its own worktree, researching as it works.
-model: sonnet
+model: opus
 effort: high
 ---
 

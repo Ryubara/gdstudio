@@ -11,8 +11,11 @@ extends Node3D
 ## to the side and `vertical_offset` up): it writes the Camera node's own H Offset and V Offset,
 ## which shift the view without moving the camera or its wall cast, and nothing else writes
 ## them. Sprinting zooms the view out a little and can shake it; aiming and firing bring the
-## camera in to a narrower field of view. All of them blend smoothly in and out and sit on top of
-## the framing below, so `distance`, `offset` and `field_of_view` stay the resting view.
+## camera in to a narrower field of view, and a shot can kick it. All of them blend smoothly in and
+## out and sit on top of the framing below, so `distance`, `offset` and `field_of_view` stay the
+## resting view. The shakes are the game's `CameraShake` (`shaker`): this rig holds the sprint
+## shake on it, kicks it on each shot and applies its turn; anything else in the game shakes the
+## same view with `CameraShake.shake(preset, at)`.
 ##
 ## Orbit comes from the mouse (while it is captured), the right stick (`look_*` actions) and
 ## touch (`TouchControls.look_turned`, connected in the scene to `orbit()`). The character turns
@@ -62,6 +65,11 @@ const _FORWARDED: Array[StringName] = [
 	set(value):
 		camera = value
 		update_configuration_warnings()
+
+## The shake component that works out the shake: the sprint shake and the shot kick are held on it
+## and the turn it gives is put on the view. Anything may call `CameraShake.shake()` to shake it
+## too. Empty makes one at run time.
+@export var shaker: CameraShake
 
 ## The character whose sprint and aim the camera follows. Empty looks at the parent of `target`.
 @export var player: Player
@@ -133,7 +141,7 @@ const _FORWARDED: Array[StringName] = [
 ## How fast the view zooms in and out of the sprint view (1 is a second, 4 a quarter of one).
 @export_range(0.5, 20.0, 0.1, "suffix:/s") var sprint_zoom_speed := 3.0
 
-@export_subgroup("Shake")
+@export_subgroup("Sprint shake")
 ## How far the sprint rocks the view up and down, in degrees (the sideways turn and roll are
 ## smaller shares of it). Zero is off; 0.3 is subtle.
 @export_range(0.0, 2.0, 0.01, "suffix:deg") var sprint_shake_amplitude := 0.0
@@ -187,6 +195,13 @@ const _FORWARDED: Array[StringName] = [
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var fire_in_speed := 8.0
 ## How fast the view goes back out once the fire button is let go.
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var fire_out_speed := 6.0
+
+@export_subgroup("Shot kick")
+## How far one shot kicks the view, in degrees (the largest turn up and down; a burst adds up to
+## twice that, and the sideways turn and roll are smaller shares). Zero is off; 0.3 is subtle.
+@export_range(0.0, 2.0, 0.01, "suffix:deg") var shot_kick_amplitude := 0.0
+## Seconds a kick takes to die away.
+@export_range(0.05, 1.0, 0.01, "suffix:s") var shot_kick_duration := 0.2
 
 @export_group("Follow")
 ## Smooths the camera's follow of a moving target.
@@ -276,8 +291,8 @@ var _aim_blend := 0.0
 var _fire_blend := 0.0
 var _shoulder_pos := 1.0
 var _arm_ready := false
-var _shake_blend := 0.0
-var _shake_phase := 0.0
+var _sprint_shake := ShakePreset.new()
+var _shot_kick := ShakePreset.new()
 
 var _pcam: PhantomCamera3D
 var _player: Player
@@ -326,6 +341,7 @@ func _ready() -> void:
 	pitch = start_pitch
 	_shoulder_pos = _shoulder_side()
 	_player = player
+	_start_shake()
 	if target != null:
 		var heading := target.get_parent() as Node3D
 		if heading != null:
@@ -334,6 +350,8 @@ func _ready() -> void:
 			(heading as Player).teleported.connect(_pcam.teleport_position)
 			if _player == null:
 				_player = heading as Player
+	if is_instance_valid(_player) and is_instance_valid(_player.weapon):
+		_player.weapon.fired.connect(_on_shot)
 
 
 func _process(delta: float) -> void:
@@ -377,9 +395,7 @@ func advance(delta: float) -> void:
 	_shoulder_pos = move_toward(
 		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(shoulder_time, 0.001)
 	)
-	_shake_blend = move_toward(_shake_blend, 1.0 if sprinting else 0.0, sprint_shake_blend * delta)
-	if _shake_blend > 0.0:
-		_shake_phase = fmod(_shake_phase + TAU * sprint_shake_frequency * delta, TAU * 2.0)
+	_step_shake(sprinting, delta)
 	_forward_blend()
 	_apply()
 
@@ -419,21 +435,14 @@ func current_view_offset() -> Vector2:
 	if aim_shifts_shoulder:
 		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
 	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
-	return Vector2(side * width, vertical_offset)
+	var slide := shaker.view_offset() if is_instance_valid(shaker) else Vector2.ZERO
+	return Vector2(side * width, vertical_offset) + slide
 
 
-## The sprint shake right now as turns in degrees (x pitch, y yaw, z roll). Zero when
-## `sprint_shake_amplitude` is zero.
+## The shake right now as turns in degrees (x pitch, y yaw, z roll): the sprint shake and any
+## kick or `CameraShake.shake()` call together. Zero when nothing shakes.
 func current_shake() -> Vector3:
-	var strength := sprint_shake_amplitude * _eased(_shake_blend)
-	if strength <= 0.0:
-		return Vector3.ZERO
-	# One bob for each footfall, the sideways turn and the roll once for every two.
-	return Vector3(
-		sin(_shake_phase) * strength,
-		sin(_shake_phase * 0.5) * strength * 0.5,
-		cos(_shake_phase * 0.5) * strength * 0.67
-	)
+	return shaker.rotation_degrees() if is_instance_valid(shaker) else Vector3.ZERO
 
 
 ## How far into the sprint view the camera is, 0 to 1.
@@ -449,6 +458,14 @@ func aim_blend() -> float:
 ## How far into the fire view the camera is, 0 to 1.
 func fire_blend() -> float:
 	return _fire_blend
+
+
+## Kicks the view by one shot (`shot_kick_amplitude`). The player's weapon calls it through its
+## `fired` signal; a weapon of your own may call it too.
+func kick() -> void:
+	if shot_kick_amplitude > 0.0 and is_instance_valid(shaker):
+		_set_kick()
+		shaker.add(_shot_kick)
 
 
 ## The Phantom Camera that does the work (for a game that wants its other settings).
@@ -480,6 +497,46 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if camera == null:
 		warnings.append("Set `camera`: the Camera3D that draws the scene (its H and V Offset).")
 	return warnings
+
+
+func _on_shot(_projectile: Projectile) -> void:
+	kick()
+
+
+# The shake component: the one in the scene, or one made now. This rig steps it.
+func _start_shake() -> void:
+	if not is_instance_valid(shaker):
+		shaker = CameraShake.new()
+		shaker.name = &"CameraShake"
+		add_child(shaker)
+	shaker.auto_advance = false
+	_sprint_shake.wave = ShakePreset.Wave.SINE
+	_sprint_shake.exponent = 1.0
+	_shot_kick.trauma = 0.5
+	_shot_kick.exponent = 1.0
+
+
+# Holds the sprint shake at the sprint's level and steps the component. The amplitude, frequency
+# and blend are read here, so a change in the inspector works while the game runs.
+func _step_shake(sprinting: bool, delta: float) -> void:
+	if not is_instance_valid(shaker):
+		return
+	var amplitude := sprint_shake_amplitude
+	# Pitch once a footfall, yaw and roll once for two.
+	_sprint_shake.max_rotation = Vector3(amplitude, amplitude * 0.5, amplitude * 0.67)
+	_sprint_shake.frequency = sprint_shake_frequency
+	_sprint_shake.blend_speed = sprint_shake_blend
+	shaker.hold(&"sprint", _sprint_shake, 1.0 if sprinting and amplitude > 0.0 else 0.0)
+	shaker.advance(delta)
+
+
+# One shot's worth of kick: its largest turn is `shot_kick_amplitude` (a trauma of 0.5 and a
+# straight curve), with smaller sideways turn and roll.
+func _set_kick() -> void:
+	var peak := shot_kick_amplitude * 2.0
+	_shot_kick.max_rotation = Vector3(peak, peak * 0.5, peak * 0.3)
+	_shot_kick.duration = shot_kick_duration
+	_shot_kick.frequency = 18.0
 
 
 func _mouse_orbits() -> bool:
