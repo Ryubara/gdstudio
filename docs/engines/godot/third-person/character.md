@@ -217,7 +217,10 @@ A character is driven by whatever gives it a `PlayerCommand` each physics tick. 
 is true in exactly one returned command. `Player.state_snapshot(into)` and `restore(state)` take and put back what the
 next step reads (`CharacterState.FIELDS`; a test fails when the body gains a variable that is neither there nor on the
 test's list of what is not step state). A restore and the same commands gave the same path to the last digit on the
-floor and from mid-air over 120 ticks. It is for placing a body at a known state, not for replay: a step also pushes
+floor and from mid-air over 120 ticks, and the weapon's cooldown and its place in the spread's order go with it
+(`CharacterState.weapon`). A character shoots along `Player.aim_ray()`: the command's shot block, or with none (an AI,
+a test) from its eye along the command's view ([Crouch, aim and shoot](shooting.md#crouch-aim-shoot)). It is for
+placing a body at a known state, not for replay: a step also pushes
 props, uses doors, fires projectiles and collects pickups, and the engine's floor contact cannot be set from script.
 
 What it costs (`tools/bench/player_step_bench.tscn`, microseconds a body a physics tick for 1, 8 and 40 bodies; the

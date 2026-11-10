@@ -95,8 +95,13 @@ const PUSH_HOLD := 0.25
 @export var controller: CharacterController
 
 @export_group("Weapon")
-## What the character shoots with. Empty: it cannot aim or shoot.
-@export var weapon: Weapon
+## What the character shoots with. Empty: it cannot aim or shoot. The character steps it: the
+## weapon's own `self_ticking` is turned off and `step` counts its cooldown.
+@export var weapon: Weapon:
+	set(value):
+		weapon = value
+		if weapon != null and not Engine.is_editor_hint():
+			weapon.self_ticking = false
 
 @export_group("Ragdoll")
 ## The ragdoll the character goes limp into when it dies. Empty: it dies standing still.
@@ -223,12 +228,14 @@ func _physics_process(delta: float) -> void:
 ## character's own `_physics_process` calls it with its controller's command; a server or a test
 ## turns that off (`set_physics_process(false)`) and calls it itself, inside a physics frame.
 ## `delta` is the physics step (the engine moves the body by its own step, so another number
-## would split the two). A command with a number that is not finite is stepped as one that asks
-## for nothing, and a push longer than 1 as 1.
+## would split the two; a debug build stops on one). A command with a number that is not finite
+## is stepped as one that asks for nothing, and a push longer than 1 as 1. The weapon's cooldown
+## is counted at the end of every step, alive or dead.
 func step(command: PlayerCommand, delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	assert(Engine.is_in_physics_frame(), "Player.step() runs inside a physics frame.")
+	assert(_is_physics_step(delta), "Player.step() takes the physics step as its delta.")
 	if command.all_finite():
 		last_command.copy_from(command)
 		last_command.move = command.move.limit_length(1.0)
@@ -240,10 +247,17 @@ func step(command: PlayerCommand, delta: float) -> void:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
 		_dead_tick()
-		return
-	if global_position.y < tuning.fall_limit:
+	elif global_position.y < tuning.fall_limit:
 		_fall_out()
-		return
+	else:
+		_move(delta)
+	# Last, as the weapon's own tick came after the body's.
+	if weapon != null:
+		weapon.tick(delta)
+
+
+# One tick of a living body inside the map.
+func _move(delta: float) -> void:
 	_tick_timers(delta)
 	_update_crouch(delta)
 	_update_aim(delta)
@@ -268,6 +282,14 @@ func shot_wanted(command: PlayerCommand) -> bool:
 	return _fire_buffer > 0.0 or command.fire_pressed or (weapon.automatic and command.fire)
 
 
+## The ray the character aims along, from the command of its last step: where it starts and its
+## direction (length 1). It is the command's shot block when it has one (for a human, the ray
+## under the crosshair), else it goes from the character's eye point (its camera target) along
+## the command's view (`view_yaw`, `view_pitch`). The weapon is fired along it.
+func aim_ray() -> PackedVector3Array:
+	return PackedVector3Array([_aim_origin(), _aim_direction()])
+
+
 ## Everything the next step reads from this one, in `into` (or a new `CharacterState`).
 func state_snapshot(into: CharacterState = null) -> CharacterState:
 	var kept := into if into != null else CharacterState.new()
@@ -276,6 +298,10 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 	kept.values.resize(CharacterState.FIELDS.size())
 	for index in CharacterState.FIELDS.size():
 		kept.values[index] = get(CharacterState.FIELDS[index])
+	if weapon != null:
+		weapon.save_step_state(kept.weapon)
+	else:
+		kept.weapon.clear()
 	return kept
 
 
@@ -286,6 +312,8 @@ func restore(kept: CharacterState) -> void:
 	velocity = kept.velocity
 	for index in CharacterState.FIELDS.size():
 		set(CharacterState.FIELDS[index], kept.values[index])
+	if weapon != null:
+		weapon.load_step_state(kept.weapon)
 	_fit_body()
 	_present_facing()
 
@@ -450,6 +478,21 @@ func has_room_to_stand() -> bool:
 func _idle_command() -> PlayerCommand:
 	last_command.clear()
 	return last_command
+
+
+# True when `delta` is the step the engine moves this body by.
+func _is_physics_step(delta: float) -> bool:
+	return is_equal_approx(delta, get_physics_process_delta_time())
+
+
+func _aim_origin() -> Vector3:
+	return last_command.origin if last_command.has_shot else _camera_target.global_position
+
+
+func _aim_direction() -> Vector3:
+	if last_command.has_shot:
+		return CommandCodec.direction_from_angles(last_command.shot_yaw, last_command.shot_pitch)
+	return CommandCodec.direction_from_angles(view_yaw, view_pitch)
 
 
 # The model shows `facing`. Called from the physics tick, so the engine smooths the turn between
@@ -750,5 +793,5 @@ func _use_weapon(delta: float) -> void:
 	if pulled:
 		_fire_buffer = tuning.fire_buffer_time
 	if _fire_buffer > 0.0 and aiming and aim_amount >= 0.5:
-		if weapon.fire() != null:
+		if weapon.fire(_aim_origin(), _aim_direction()) != null:
 			_fire_buffer = 0.0

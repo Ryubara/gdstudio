@@ -256,18 +256,37 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	assert_float(rates["automatic"]).is_less(1400.0)
 
 
-func test_the_body_reads_no_input_and_no_camera() -> void:
+func test_the_step_takes_the_physics_step_as_its_delta() -> void:
+	# The engine moves the body by its own step whatever number is passed, so `step` asserts
+	# (in a debug build) that the two are one; this is the check it makes.
+	await get_tree().physics_frame
+	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds())).is_true()
+	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds() / 2.0)).is_false()
+	assert_bool(_player._is_physics_step(0.0)).is_false()
+	assert_bool(_player._is_physics_step(1.0 / 30.0)).is_false()
+
+
+func test_the_body_its_weapon_and_its_animation_read_no_input_and_no_camera() -> void:
 	var reads := RegEx.new()
 	reads.compile("\\bInput\\.|\\bget_camera_3d\\(|\\bget_viewport\\(")
 	var found: Array[String] = []
-	var source := FileAccess.get_file_as_string("res://gameplay/player/player.gd")
-	assert_int(source.length()).is_greater(1000)
-	var number := 0
-	for line in source.split("\n"):
-		number += 1
-		var code := line.strip_edges()
-		if code.begins_with("#"):
-			continue
-		if reads.search(code) != null:
-			found.append("%d: %s" % [number, code])
+	var sources: Array[String] = [
+		"res://gameplay/player/player.gd",
+		"res://gameplay/player/player_animation.gd",
+	]
+	for file in DirAccess.get_files_at("res://gameplay/weapon"):
+		if file.ends_with(".gd"):
+			sources.append("res://gameplay/weapon/" + file)
+	assert_bool(sources.has("res://gameplay/weapon/weapon.gd")).is_true()
+	for path in sources:
+		var source := FileAccess.get_file_as_string(path)
+		assert_int(source.length()).is_greater(1000)
+		var number := 0
+		for line in source.split("\n"):
+			number += 1
+			var code := line.strip_edges()
+			if code.begins_with("#"):
+				continue
+			if reads.search(code) != null:
+				found.append("%s:%d: %s" % [path.get_file(), number, code])
 	assert_array(found).is_empty()
