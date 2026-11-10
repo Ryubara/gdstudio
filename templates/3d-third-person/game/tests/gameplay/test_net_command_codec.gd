@@ -37,6 +37,7 @@ func _assert_same(actual: PlayerCommand, expected: PlayerCommand) -> void:
 		"sprint",
 		"walk",
 		"crouch",
+		"prone",
 		"aim",
 		"fire",
 		"jump",
@@ -65,6 +66,7 @@ func test_every_field_and_flag_comes_back() -> void:
 	command.walk = true
 	command.jump = true
 	command.interact_pressed = true
+	command.prone = true
 	var decoded := CommandCodec.decode(CommandCodec.encode(command))
 	assert_object(decoded).is_not_null()
 	assert_int(decoded.seq).is_equal(4_000_000_123)
@@ -76,7 +78,7 @@ func test_every_field_and_flag_comes_back() -> void:
 	assert_float(decoded.shot_pitch).is_equal_approx(0.2, 0.0001)
 	assert_int(decoded.view_tick).is_equal(70_001 & 0xFFFF)
 	_assert_same(decoded, CommandCodec.quantized(command))
-	for field in ["sprint", "walk", "crouch", "aim", "fire", "jump", "jump_pressed"]:
+	for field in ["sprint", "walk", "crouch", "prone", "aim", "fire", "jump", "jump_pressed"]:
 		assert_bool(decoded.get(field)).override_failure_message(field).is_true()
 	for field in ["fire_pressed", "interact_pressed", "ragdoll_pressed", "has_shot"]:
 		assert_bool(decoded.get(field)).override_failure_message(field).is_true()
@@ -87,6 +89,7 @@ func test_each_flag_travels_alone() -> void:
 		"sprint",
 		"walk",
 		"crouch",
+		"prone",
 		"aim",
 		"fire",
 		"jump",
@@ -166,7 +169,8 @@ func test_hostile_commands_are_dropped_with_a_reason() -> void:
 	var good := CommandCodec.encode(_full_command())
 	var shot := CommandCodec.encode(_with_shot(_full_command()))
 	var unknown_flag := good.duplicate()
-	unknown_flag.encode_u16(11, unknown_flag.decode_u16(11) | (1 << 15))
+	# Bit 11 is kept for gdstudio #887 and unused by this version (bit 15 is prone).
+	unknown_flag.encode_u16(11, unknown_flag.decode_u16(11) | (1 << 11))
 	var shot_flag_short := good.duplicate()
 	shot_flag_short.encode_u16(11, shot_flag_short.decode_u16(11) | CommandCodec.F_SHOT)
 	var shot_block_no_flag := shot.duplicate()

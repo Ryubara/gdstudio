@@ -6,7 +6,9 @@ extends Node
 ## Two ways, when the body has them: `input` calls the body's `_physics_process` (its controller
 ## reads the actions and the camera, then the body steps), `commands` calls `step()` with a
 ## command made here (what a server or an AI pays). A build from before the command step has only
-## the first, and the bench says so.
+## the first, and the bench says so. `prone` is `commands` with the body lying down and crawling
+## most of the time and getting up every five seconds (gdstudio #1012); a build without prone
+## leaves it out.
 ##
 ## Run it headless on the desktop:
 ## `godot --headless --fixed-fps 60 --path game res://tools/bench/player_step_bench.tscn`
@@ -42,10 +44,11 @@ func _ready() -> void:
 func _run() -> void:
 	var has_step := false
 	for count in COUNTS:
-		for mode: String in ["input", "commands"]:
+		for mode: String in ["input", "commands", "prone"]:
 			var bodies := await _spawn(count)
 			has_step = bodies[0].has_method(&"step")
-			if mode == "commands" and not has_step:
+			var has_prone := &"prone_tuning" in bodies[0]
+			if mode != "input" and not has_step or mode == "prone" and not has_prone:
 				_free(bodies)
 				continue
 			var micros := await _measure(bodies, mode)
@@ -85,7 +88,7 @@ func _free(bodies: Array[CharacterBody3D]) -> void:
 func _measure(bodies: Array[CharacterBody3D], mode: String) -> float:
 	var delta := 1.0 / Engine.physics_ticks_per_second
 	var command: RefCounted = null
-	if mode == "commands":
+	if mode != "input":
 		command = (load("res://gameplay/player/player_command.gd") as GDScript).new()
 	var spent := 0
 	for tick in WARM_TICKS + TICKS:
@@ -101,6 +104,9 @@ func _measure(bodies: Array[CharacterBody3D], mode: String) -> float:
 			command.set(&"crouch", crouch)
 			command.set(&"jump", jump)
 			command.set(&"jump_pressed", jump)
+			if mode == "prone":
+				command.set(&"prone", tick % 300 < 240)
+				command.set(&"sprint", false)
 		else:
 			_hold(&"move_forward", true)
 			_hold(&"sprint", sprint)
