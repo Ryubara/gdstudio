@@ -19,8 +19,9 @@ extends Node3D
 
 ## A shot left: `projectile` is the body that flies (null for a hitscan shot or a blow).
 signal fired(projectile: Projectile)
-## A hitscan shot or a blow hit something: `hit` has `collider`, `position`, `normal`, `from`
-## and `damage` (the small record a network sends; a projectile reports its own hit).
+## A hitscan shot or a blow hit something: `hit` has `collider`, `position`, `normal`, `from`,
+## `damage` and, on a character, `record` (the `HitRecord` its `HitZones` delivered, the small
+## record a network sends; a projectile reports its own hit).
 signal hit_scanned(hit: Dictionary)
 ## The trigger was pulled on an empty magazine.
 signal dry_fired
@@ -425,9 +426,35 @@ func _on_projectile_finished(shot: Projectile) -> void:
 		_spare.append(shot)
 
 
-# One ray from `start` along `heading`, `reach` long: the hit is pushed, told and reported.
+# One ray from `start` along `heading`, `reach` long: the hit is pushed, told and reported. A
+# character's capsule asks its `HitZones` for the part on the ray (`HitZones.shot`, the record it
+# delivers to `take_hit`); a ray that passes between the parts goes on past the capsule, as a
+# projectile does.
 func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
-	var found := _cast(start, start + heading * reach)
+	var skip: Array[RID] = []
+	var found := {}
+	var record: HitRecord = null
+	for _attempt in 3:
+		found = _cast(start, start + heading * reach, skip)
+		if found.is_empty():
+			return
+		var zones := HitZones.of(found["collider"])
+		if zones == null:
+			break
+		record = zones.shot(
+			found["collider"],
+			found["position"],
+			heading,
+			definition.damage,
+			definition.impulse,
+			shooter as Node3D,
+			found["position"]
+		)
+		if record != null:
+			zones.deliver(record)
+			break
+		skip.append((found["collider"] as CollisionObject3D).get_rid())
+		found = {}
 	if found.is_empty():
 		return
 	var collider: Object = found["collider"]
@@ -449,17 +476,20 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 				"normal": normal,
 				"from": start,
 				"damage": definition.damage,
+				"record": record,
 			}
 		)
 	)
 
 
-func _cast(start: Vector3, end: Vector3) -> Dictionary:
+func _cast(start: Vector3, end: Vector3, skip: Array[RID] = []) -> Dictionary:
 	if not is_inside_tree():
 		return {}
 	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask)
+	var excluded: Array[RID] = skip.duplicate()
 	if shooter != null:
-		query.exclude = [shooter.get_rid()]
+		excluded.append(shooter.get_rid())
+	query.exclude = excluded
 	return get_world_3d().direct_space_state.intersect_ray(query)
 
 

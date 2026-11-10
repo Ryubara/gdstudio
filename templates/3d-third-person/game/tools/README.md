@@ -25,6 +25,12 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/ragdoll_tour.tscn` runs the character, kills it mid-run with the `ragdoll` key, orbits the body,
   gets it up and runs it off the ragdoll ledge, by pressing the input actions (`RAGDOLL_MODEL=male` films the male
   mannequin).
+- `tools/capture/hit_tour.tscn` shoots three targets from the player's camera: a headshot kill, a body-shot kill, two
+  hits on a target walking past (it flinches and walks on) and shots into a body on the ground (`HIT_MODEL=male` puts
+  the male mannequin on the targets).
+- `tools/bench/hit_zones_bench.tscn` prints what a shot's second test, the zones following the bones and the flinch
+  cost for 1, 4 and 10 characters (`HIT_ZONES_BENCH`); `hit_zones_bench.py` runs its web export in headless Chrome
+  under `gds quiet`.
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).

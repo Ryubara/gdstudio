@@ -19,6 +19,11 @@ The template has a character and the map's components:
   hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the
   slots and the empty hands, and a `Target` falls over when hit. They work with any model: a definition names the
   model node it shows and its muzzle marker under the character's `Model` slot.
+- `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow
+  the skeleton when a shot needs them) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; what a
+  network sends). A `Projectile` that meets a character's capsule asks its `HitZones` which part is on its line; the
+  character's `take_hit()` takes the health and its `HitReaction` (in `character/`) flinches, throws or pushes the
+  body.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
   (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
 - `effects/`: the `EffectEmitter` (one in the level, `world/world.tscn` has it) plays an `EffectDef` (a particles scene,

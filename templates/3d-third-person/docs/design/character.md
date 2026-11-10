@@ -16,6 +16,7 @@ can be replaced alone.
 | `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `character_dressed.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
 | `CharacterAnimation` | `gameplay/character/character_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `WeaponDef`, `Weapon`, `WeaponLoadout`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: every number of a shot, the magazine, reserve and reload, its clips and sounds). A `Weapon` fires the one it holds along the ray its character aims by, the crosshair's for the player (pooled `Projectile` spheres, a hitscan ray or a blow), counts the ammunition, reloads and clicks when empty; a `WeaponLoadout` switches between the slots and the empty hands; a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. A definition names its model and muzzle under the `Model` slot, so a game adds a weapon with a `.tres` and a model node. |
+| `HitZones`, `HitReaction` | `gameplay/hit_zones/`, `gameplay/character/hit_reaction.gd`, nodes of `character_dressed.tscn` | The body parts a shot can hit (a `HitZone` shape each on a bone: `zone`, `bone`, `offset`, `damage_multiplier`, `enabled`), looked for only when a shot meets the capsule, and how the body answers a hit: `death_push`, `lying_push`, the flinch (`flinch_enabled`, `flinch_push`, `flinch_strength`, `flinch_time`, `flinch_hold`). |
 | `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `WeaponDef.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
 | `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, and the definition's `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size`, tune it. |
@@ -114,16 +115,16 @@ A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, g
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The
 pistol's definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full
-automatic, spread, damage (10), aim range, the push it gives a body (40 N·s), the magazine (12), the reserve (36, at
-most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is empty), the switch
-(0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies straight at the
-crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two empty clicks, the
-reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m, 2.5 a second, with no
-ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`,
-as on a character with no model: beside its `shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and
-`self_ticking` (on: the weapon counts its own cooldown and reload; the `Character` turns it off and counts them in its
-step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the volume, bus and voices. The
-`Loadout` lists the slots (the pistol) and the empty hands (the fists).
+automatic, spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the
+magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when
+the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
+so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
+pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
+2.5 a second, with no ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
+weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
+`projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
+turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
+volume, bus and voices. The `Loadout` lists the slots (the pistol) and the empty hands (the fists).
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
@@ -177,15 +178,21 @@ ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built a
 
 ## Events other nodes connect to
 
-`Character` (and so `Player`) emits `jumped`, `landed(impact_speed)`, `took_hit(amount, source)`, `interacted(target)`,
+`Character` (and so `Player`) emits `jumped`, `landed(impact_speed)`, `took_hit(amount, source)`,
+`health_changed(health)`, `hit_received(record)`, `interacted(target)`,
 `item_collected(item_id, amount, total)`, `state_changed(state)`, `teleported`, `aim_changed(aiming)` and
 `crouch_changed(crouching)`, `died`, `revived` and `fell` (it went below the tuning's fall limit; the character
 answers by starting again at a spawn point, and a game that decides where characters start connects its own answer);
 `Weapon` emits `fired(projectile)` (null for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`,
 `ammo_changed(ammo)`, `reload_started(seconds)`, `reloaded`, `reload_cancelled` and `definition_changed`, the `Loadout`
 `weapon_changed`, `switch_started` and `switch_finished`, a `Projectile`
-`impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A hit comes from calling
-`player.hit(amount, source)`; the character stops for the stun time and is thrown away from the source.
+`impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A shot on a character finds
+the body part in its path (`HitZones`, eleven parts with a damage multiplier each) and gives the character a
+`HitRecord` (`take_hit(record)`): it takes the health (`max_health`, 100; `health_enabled`) and dies at zero, the
+ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit part flinch (`HitReaction`), and
+a shot on a lying body pushes the bone and leaves a mark on it. The record is all a network sends for a hit
+(`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow with no point: it takes
+the health too, stops the character for the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}

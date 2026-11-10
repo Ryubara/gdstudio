@@ -178,7 +178,7 @@ func test_a_hitscan_shot_hits_what_the_ray_points_at_with_no_body_and_no_camera(
 	assert_int(_weapon.pull(aim_from, Vector3.FORWARD)).is_equal(Weapon.Pull.FIRED)
 	assert_int(hits.size()).is_equal(1)
 	assert_object(hits[0]["collider"]).is_same(target)
-	assert_float(hits[0]["damage"]).is_equal(10.0)
+	assert_float(hits[0]["damage"]).is_equal(34.0)
 	assert_bool(target.is_down()).is_true()
 	assert_array(_weapon.live_projectiles()).is_empty()
 	assert_int(_weapon.ammo).is_equal(11)

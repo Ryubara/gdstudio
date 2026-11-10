@@ -249,7 +249,8 @@ through `Pistol_Reload` too.
 A shot that lands tells the level's `Impacts` node (`world/world.tscn`, the group `impacts`): a mark on the body it hit
 (a flat quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of
 surface. `Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a
-body names its surface with and the tests are on [Bullet impacts in 3D Third Person](../third-person-impacts.md).
+body names its surface with and the tests are on [Bullet impacts in 3D Third Person](../third-person-impacts.md). A
+shot on a character finds the body part in its path and the body answers it: [Hit zones](../third-person-hits.md).
 
 ## Effects and the muzzle flash {#effects}
 

@@ -103,6 +103,27 @@ func test_a_shot_meets_a_bone_of_a_dead_body_and_not_of_a_living_one() -> void:
 	assert_object(hit).is_instanceof(PhysicalBone3D)
 
 
+func test_a_living_body_that_never_died_has_no_bone_in_the_world() -> void:
+	# The bones are made when the character is; until the body goes limp they must be out of the
+	# world, or a shot or the aim ray stops at a living body's head (it rises past the capsule).
+	var player := _arena.add_player(Vector3(0.0, 0.0, -4.0))
+	await InputSim.ticks(get_tree(), 4)
+	var space := _arena.get_world_3d().direct_space_state
+	for bone_name: StringName in [&"Head", &"spine_03", &"hand_r", &"calf_l"]:
+		var at := player.ragdoll_body.body(bone_name).global_position
+		var query := PhysicsRayQueryParameters3D.create(
+			at + Vector3(0.0, 0.0, 2.0), at, PhysicsLayers.SHOT_MASK, [player.get_rid()]
+		)
+		var found := space.intersect_ray(query)
+		(
+			assert_bool(found.is_empty())
+			. override_failure_message(
+				"%s of a living body is in the world: %s" % [bone_name, found]
+			)
+			. is_true()
+		)
+
+
 func test_the_aim_ray_finds_a_dead_body() -> void:
 	var player := _arena.add_player(Vector3(0.0, 0.0, -4.0))
 	await InputSim.ticks(get_tree(), 4)

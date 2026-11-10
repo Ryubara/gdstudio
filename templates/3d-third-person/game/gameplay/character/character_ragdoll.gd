@@ -427,6 +427,22 @@ func body_count() -> int:
 	return _bones.size()
 
 
+## The simulator that holds the bones (null before they are made): `HitReaction` runs a flinch
+## on some of them while the body lives and nothing else holds the skeleton.
+func simulator() -> PhysicalBoneSimulator3D:
+	return _simulator
+
+
+## Where the body of `bone` is in the animated pose now, world space; and the nearest bone above
+## it with a body (empty for the pelvis).
+func animated_body(bone: StringName) -> Transform3D:
+	return _animated_body(model.skeleton(), bone)
+
+
+func parent_body(bone: StringName) -> StringName:
+	return _parent_body(model.skeleton(), bone) if model != null else &""
+
+
 ## The bones never collide with `other` (the player's own capsule, a vehicle it sits in).
 func add_collision_exception(other: CollisionObject3D) -> void:
 	if other != null and not _ignored.has(other):
@@ -778,6 +794,11 @@ func _apply_materials() -> void:
 		bone.bounce = bounce
 		bone.collision_layer = collision_layer
 		bone.collision_mask = collision_mask
+		if not bone.is_simulating_physics():
+			# Out of the world until it simulates, as the engine leaves a bone that stopped: a bone
+			# never limp kept its layer, so shots and the aim ray met a living body's head (#876).
+			PhysicsServer3D.body_set_collision_layer(bone.get_rid(), 0)
+			PhysicsServer3D.body_set_collision_mask(bone.get_rid(), 0)
 
 
 # The extra joints (`hinge_passes`, `cone_passes`): Jolt's project-wide solver steps are too few

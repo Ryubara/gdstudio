@@ -41,7 +41,7 @@ enum Kind {
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
 ## What one hit takes from what it hits. The weapon hands it on (`Projectile.damage`, the hit
 ## record's `damage`); the template's `Target` counts hits, and a game's health reads this.
-@export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 10.0
+@export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 34.0
 ## How far the aim ray (and a hitscan shot) looks for something to hit.
 @export_range(5.0, 500.0, 1.0, "suffix:m") var aim_range := 100.0
 ## The push a hit gives a physics body (newton seconds).

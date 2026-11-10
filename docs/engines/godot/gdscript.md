@@ -93,11 +93,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   check noticed; only a capture and a probe that printed the property did. **Seen:** gdstudio #881, 2026-11-10 (the 3D
   Third Person menus).
 - **Approach:** Treat `project.godot` as Godot's file: change it by hand only for a real setting, keep local-only
-  settings in an untracked `override.cfg`, run `git checkout game/project.godot` after each import or run, and stage
-  files by path (never `git add -A` in a worktree where Godot has just run). **Watch out for:** Godot rewrites the
-  file in its own format and section order whenever it saves project state, so a hand-written comment vanished and two
-  engineers touching the input map conflicted on a reorder nobody meant. **Seen:** Deadnight, 2026-11-01 (fix:
-  `override.cfg` and a checkout after every run).
+  settings for a game run in an untracked `override.cfg` (the editor never reads it: an editor plugin goes in
+  `project.godot`, [Integrations](../../studio/workspace.md#integrations)), run `git checkout game/project.godot` after
+  each import or run, and stage files by path (never `git add -A` in a worktree where Godot has just run). **Watch out
+  for:** Godot rewrites the file in its own format and section order whenever it saves project state, so a hand-written
+  comment vanished and two engineers touching the input map conflicted on a reorder nobody meant. **Seen:** Deadnight,
+  2026-11-01 (fix: `override.cfg` and a checkout after every run).
 
 - **Approach:** Make input bindings in the editor, or print `InputMap.action_get_events(action)` from a probe, and add
   a test that sends the real key. **Watch out for:** Godot accepts any integer as a `physical_keycode`: codes typed
