@@ -5,14 +5,25 @@ extends RefCounted
 
 const PROJECTILE := "res://gameplay/projectile/projectile.tscn"
 const IMPACTS := "res://gameplay/impacts/impacts.tscn"
+const EMITTER := "res://gameplay/effects/effect_emitter.tscn"
 
 
-## A flat world (`PlayArena`) holding an `Impacts`; the floor's top is at y = 0.
+## A flat world (`PlayArena`) holding an `Impacts` and an `EffectEmitter`; the floor's top is at
+## y = 0.
 static func world(parent: Node) -> PlayArena:
 	var arena := PlayArena.new()
 	parent.add_child(arena)
 	arena.add_child(load(IMPACTS).instantiate())
+	arena.add_child(load(EMITTER).instantiate())
 	return arena
+
+
+## The `EffectEmitter` of a world made by `world()`.
+static func emitter_of(arena: Node) -> EffectEmitter:
+	for child in arena.get_children():
+		if child is EffectEmitter:
+			return child
+	return null
 
 
 ## The `Impacts` of a world made by `world()`.

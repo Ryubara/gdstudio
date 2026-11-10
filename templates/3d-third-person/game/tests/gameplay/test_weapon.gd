@@ -51,6 +51,9 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 		&"projectile_bounces": 0,
 		&"projectile_bounce_keep": 0.6,
 		&"impacts": true,
+		&"muzzle_flash_enabled": true,
+		&"muzzle_flash": _weapon.muzzle_flash,
+		&"muzzle_flash_size": 1.0,
 	}
 	assert_array(ExportPins.differences(_weapon, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(_weapon, pins)).is_empty()

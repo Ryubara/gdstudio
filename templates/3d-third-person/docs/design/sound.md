@@ -24,10 +24,12 @@ shot is the `ShotSound` node of `weapon.tscn` (-22 dB): an `AudioStreamRandomize
 4% and a volume spread of 1 dB, three voices, played at the muzzle. A game's own shot is another `stream` in that one
 node.
 
-A shot that lands plays the `Sound` of its surface: each `ImpactSurface` under `Impacts/Surfaces` (`Default`, `Wood`, `Metal`,
-`Target`) has an `AudioStreamPlayer3D` on `SFX` with an `AudioStreamRandomizer` of three variants, copied per hit (a
-surface's `pool_size` hits can sound at once) and played at the point. Change the `stream`, the volume or the bus on the
-surface's `Sound` node; a hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off.
+A shot that lands plays the sound of its surface: each `ImpactSurface` under `Impacts/Surfaces` (`Default`, `Wood`,
+`Metal`, `Target`) has an `effect` (an `EffectDef`) whose `sound` is an `AudioStreamRandomizer` of three variants on
+`SFX`. The level's `EffectEmitter` plays it at the point from its pool (the effect's `max_instances` hits can sound at
+once, a newer one takes the oldest's place). Change the `sound`, `sound_volume_db` or `sound_bus` in the `EffectDef`; a
+hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off, and so does the emitter's
+`sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `gameplay/effects/`.
 
 ## The sounds
 
