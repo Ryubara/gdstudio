@@ -29,7 +29,8 @@ signal health_changed(health: float)
 ## A hit reached the character, alive or lying dead: the record a game's networking sends, and
 ## what the `HitReaction` answers with a flinch, the death's push or a push on the lying body.
 signal hit_received(record: HitRecord)
-## The character used `target` (a door, a lever): the target's `interact()` was called.
+## The character used `target` (a door, a lever): the parent of the `Interactable` it found, whose
+## `interacted` was said.
 signal interacted(target: Node3D)
 ## The character took `amount` of `item_id` from a `Pickup`; `total` is how many it holds now.
 signal item_collected(item_id: StringName, amount: int, total: int)
@@ -116,20 +117,34 @@ enum State {
 ## `ragdoll_key` sends). A testing aid: a server that steps commands from the network turns it off.
 @export var ragdoll_by_command := true
 
-@export_group("Health")
-## On: hits take health and the character dies at zero. Off: hits still flinch and push the body,
-## but take nothing.
-@export var health_enabled := true
-## The health the character starts and gets up with. A hit's damage is the shot's damage times
-## its hit zone's multiplier (`HitZone.damage_multiplier`).
-@export_range(1.0, 10000.0, 1.0, "or_greater") var max_health := 100.0:
+## The health left (0 to `max_health`), read from the `Health` child (tune it there); the HUD
+## shows it. 0 when the character has no `Health`.
+var health: float:
+	get:
+		var part := Health.of(self)
+		return part.value if part != null else 0.0
 	set(value):
-		max_health = maxf(value, 1.0)
-		if health > max_health:
-			health = max_health
-
-## The health left (0 to `max_health`); the HUD shows it.
-var health := 100.0
+		var part := Health.of(self)
+		if part != null:
+			part.value = value
+## The `Health` child's `max_value`: what the character starts and gets up with.
+var max_health: float:
+	get:
+		var part := Health.of(self)
+		return part.max_value if part != null else 0.0
+	set(value):
+		var part := Health.of(self)
+		if part != null:
+			part.max_value = value
+## The `Health` child's `enabled`: off, hits still flinch and push the body but take nothing.
+var health_enabled: bool:
+	get:
+		var part := Health.of(self)
+		return part.enabled if part != null else false
+	set(value):
+		var part := Health.of(self)
+		if part != null:
+			part.enabled = value
 
 ## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
 ## declined it: the cap on limp ragdolls or the range).
@@ -195,7 +210,10 @@ func _ready() -> void:
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
-	health = max_health
+	var part := Health.of(self)
+	if part != null:
+		part.changed.connect(_on_health_changed)
+		part.died.connect(_on_health_died)
 	if model != null:
 		facing = model.rotation.y
 	view_yaw = facing - PI
@@ -352,10 +370,10 @@ func die(shot: HitRecord = null) -> void:
 		aim_changed.emit(false)
 	velocity = Vector3.ZERO
 	_body.disabled = true
-	if health > 0.0:
-		health = 0.0
-		health_changed.emit(health)
 	state = State.DEAD
+	var part := Health.of(self)
+	if part != null:
+		part.kill()
 	ragdoll = true
 	if ragdoll_body != null and not died_by_clip:
 		ragdoll_body.start(momentum, viewer)
@@ -391,8 +409,9 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	take_hit(HitRecord.blow(amount, source))
 
 
-## Takes a hit (a shot through `HitZones`, or a record a game's networking received): takes its
-## damage from the health when health is on and dies at zero, carrying the hit into the ragdoll.
+## Takes a hit (a shot through `HitZones`, or a record a game's networking received): gives it to
+## the `Health` child (`Health.apply()`), which takes the damage, and dies when that reaches zero,
+## carrying the hit into the ragdoll.
 ## A blow (`record.knockback`) also stops and throws the character. A dead character takes no
 ## damage, but the record is still said (`hit_received`): a shot pushes the lying body.
 func take_hit(record: HitRecord) -> void:
@@ -400,12 +419,11 @@ func take_hit(record: HitRecord) -> void:
 		hit_received.emit(record)
 		return
 	took_hit.emit(record.damage, record.source)
-	if health_enabled and record.damage > 0.0:
-		health = maxf(health - record.damage, 0.0)
-		health_changed.emit(health)
-		if health <= 0.0:
-			die(record)
-			return
+	var part := Health.of(self)
+	if part != null:
+		part.apply(record)
+	if state == State.DEAD:
+		return
 	if record.knockback:
 		_stagger(record.source)
 	hit_received.emit(record)
@@ -423,27 +441,44 @@ func _stagger(source: Node3D) -> void:
 	state = State.HIT
 
 
+func _on_health_changed(value: float, _max_value: float) -> void:
+	health_changed.emit(value)
+
+
+# The `Health` reached zero: the character dies, carrying the hit that killed into the ragdoll.
+func _on_health_died(record: HitRecord) -> void:
+	if state != State.DEAD:
+		die(record)
+
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings := PackedStringArray()
+	if Health.of(self) == null:
+		warnings.append("No `Health` child: hits flinch and push the body but take nothing.")
+	return warnings
+
+
 ## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
 ## node).
 func get_minimap_heading() -> Vector2:
 	return Vector2(sin(facing), cos(facing))
 
 
-## Uses the nearest usable thing in front. Returns it, or null when there is nothing to use.
+## Uses the nearest `Interactable` in front (`Interactor`). Returns the node it makes usable, or
+## null when there is nothing to use.
 func interact() -> Node3D:
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
 	var target := _interactor.find_target(forward, tuning.interact_reach)
 	if target == null or _action_lock > 0.0 or state == State.DEAD:
 		return null
-	if target.has_method(&"interact"):
-		target.call(&"interact", self)
+	target.interact(self)
 	_action_lock = tuning.interact_time
-	interacted.emit(target)
+	interacted.emit(target.usable())
 	state = State.INTERACT
-	return target
+	return target.usable()
 
 
-## Called by a `Pickup` the body touches.
+## Adds `amount` of `item_id` to `items` (a `Pickup` the body touches gives it).
 func collect(item_id: StringName, amount: int) -> void:
 	items[item_id] = items.get(item_id, 0) + amount
 	item_collected.emit(item_id, amount, items[item_id])
@@ -536,8 +571,9 @@ func _dead_tick() -> void:
 
 func _come_alive() -> void:
 	died_by_clip = false
-	health = max_health
-	health_changed.emit(health)
+	var part := Health.of(self)
+	if part != null:
+		part.reset()
 	_body.disabled = false
 	velocity = Vector3.ZERO
 	_fall_speed = 0.0
@@ -743,7 +779,8 @@ func _push_props(before: Vector3, delta: float) -> bool:
 				* tuning.push_boost
 			)
 			var want := flat.length() * clampf(share, 0.0, 1.0)
-			var slow: float = prop.get(&"push_speed") if &"push_speed" in prop else 0.0
+			var physics_prop := prop as PhysicsProp
+			var slow := physics_prop.push_speed if physics_prop != null else 0.0
 			if slow > 0.0:
 				want = slow
 				var contact := slow * tuning.push_contact

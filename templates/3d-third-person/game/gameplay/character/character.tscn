@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://gameplay/character/character.gd" id="1_character"]
 [ext_resource type="Script" path="res://gameplay/character/interactor.gd" id="2_interactor"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="3_weapon"]
+[ext_resource type="Script" path="res://addons/gds_game/hits/health.gd" id="4_health"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
@@ -34,3 +35,6 @@ script = ExtResource("2_interactor")
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("shooter") instance=ExtResource("3_weapon")]
 shooter = NodePath("..")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("4_health")

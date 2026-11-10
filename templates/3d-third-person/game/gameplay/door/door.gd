@@ -6,9 +6,11 @@ extends AnimatableBody3D
 ## the physics step with the same fixed timestep every run, so a test sees the same door a
 ## player does.
 ##
-## Its parts are nodes of `door.tscn`: `Panel` (the mesh), `Shape` (what blocks the way) and
-## `Sensor` (an area, its sphere is `auto_open_range`, drawn by the editor), so open the scene to
-## restyle the door. `panel_size` and `auto_open_range` follow the inspector live.
+## Its parts are nodes of `door.tscn`: `Panel` (the mesh), `Shape` (what blocks the way),
+## `Sensor` (an area, its sphere is `auto_open_range`, drawn by the editor) and `Interactable`
+## (where a character's interact button finds it; its `interacted` signal is connected to
+## `interact()` in the scene), so open the scene to restyle the door. `panel_size` and
+## `auto_open_range` follow the inspector live.
 
 ## The door finished opening.
 signal opened
@@ -78,8 +80,8 @@ enum Style {
 	set(value):
 		auto_open_mask = value
 		_update_sensor()
-## Lets a character open and close the door with its interact button (`Player` finds nodes of
-## the group `interactable`).
+## Lets a character open and close the door with its interact button: switches the door's
+## `Interactable` on or off.
 @export var player_can_use := true:
 	set(value):
 		player_can_use = value
@@ -89,6 +91,7 @@ var _openness := 0.0
 var _target := 0.0
 var _open_for := 0.0
 var _home := Transform3D.IDENTITY
+var _usable_home := Transform3D.IDENTITY
 # Set when the door is closed with a character in range: auto-open waits for the range to empty.
 var _held_shut := false
 
@@ -100,6 +103,9 @@ func _ready() -> void:
 		return
 	sync_to_physics = true
 	_home = transform
+	var usable := _interactable()
+	if usable != null:
+		_usable_home = usable.transform
 	_update_usable()
 	_openness = 1.0 if start_open else 0.0
 	_target = _openness
@@ -160,17 +166,10 @@ func close() -> void:
 	_held_shut = _character_near()
 
 
-## What a character's interact button calls: opens a closed door, closes an open one.
+## What the door's `Interactable` calls when a character uses it: opens a closed door, closes an
+## open one.
 func interact(_by: Node3D = null) -> void:
 	toggle()
-
-
-## Where the character measures its reach from: the closed door's place, so a gate that swings
-## away from its hinge can still be closed by the one who stands in front of it.
-func interact_point() -> Vector3:
-	var parent := get_parent() as Node3D
-	var home := parent.global_transform * _home if parent != null else _home
-	return home.origin
 
 
 func toggle() -> void:
@@ -225,6 +224,10 @@ func _apply() -> void:
 	var panel := _panel()
 	if sensor != null and panel != null:
 		sensor.transform = offset.affine_inverse() * Transform3D(Basis.IDENTITY, panel.position)
+	# So does the `Interactable`: a gate that swings away is still found where it stands closed.
+	var usable := _interactable()
+	if usable != null:
+		usable.transform = offset.affine_inverse() * _usable_home
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -235,6 +238,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 			. append(
 				"The scene needs `Panel` (MeshInstance3D), `Shape` (CollisionShape3D) and `Sensor` (Area3D)."
 			)
+		)
+	if player_can_use and _interactable() == null:
+		warnings.append(
+			"`player_can_use` is on but the door has no `Interactable` child: nobody can use it."
 		)
 	return warnings
 
@@ -249,6 +256,13 @@ func _shape() -> CollisionShape3D:
 
 func _sensor() -> Area3D:
 	return get_node_or_null("%Sensor") as Area3D
+
+
+func _interactable() -> Interactable:
+	for child in get_children():
+		if child is Interactable:
+			return child
+	return null
 
 
 # Puts `panel_size` and `panel_material` on the panel's own mesh and shape (each door has its own
@@ -280,11 +294,9 @@ func _update_sensor() -> void:
 		(ball.shape as SphereShape3D).radius = maxf(auto_open_range, 0.01)
 
 
-# A usable door is in the group a character looks in.
+# A usable door's `Interactable` is on; a character's interactor passes over one that is off.
 func _update_usable() -> void:
-	if Engine.is_editor_hint() or not is_inside_tree():
-		return
-	if player_can_use:
-		add_to_group(&"interactable")
-	else:
-		remove_from_group(&"interactable")
+	var usable := _interactable()
+	if usable != null:
+		usable.enabled = player_can_use
+	update_configuration_warnings()
