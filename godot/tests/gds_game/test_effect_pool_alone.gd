@@ -77,3 +77,26 @@ func test_an_effect_on_a_node_follows_it() -> void:
 	var slot := _emitter.play_on(_def(), marker)
 	assert_object(slot.target).is_same(marker)
 	assert_bool(slot.active).is_true()
+
+
+func test_the_warm_up_counts_the_probes_in_view_and_draws_a_listed_material() -> void:
+	var camera: Camera3D = auto_free(Camera3D.new())
+	_world.add_child(camera)
+	camera.make_current()
+	var probe: ReflectionProbe = auto_free(ReflectionProbe.new())
+	probe.size = Vector3(4.0, 4.0, 4.0)
+	_world.add_child(probe)
+	probe.global_position = Vector3(0.0, 0.0, -6.0)
+	assert_int(_emitter.probe_frames(camera)).is_equal(EffectEmitter.PROBE_FRAMES)
+	probe.global_position = Vector3(0.0, 0.0, 30.0)
+	assert_int(_emitter.probe_frames(camera)).is_equal(0)
+	var fresh: EffectEmitter = auto_free(EffectEmitter.new())
+	var material := StandardMaterial3D.new()
+	fresh.warm_up_materials = [material]
+	_world.add_child(fresh)
+	var drawn := false
+	while fresh.is_warming():
+		for speck in fresh.find_children("WarmSpeck*", "MeshInstance3D", false, false):
+			drawn = drawn or (speck as MeshInstance3D).material_override == material
+		await get_tree().process_frame
+	assert_bool(drawn).is_true()

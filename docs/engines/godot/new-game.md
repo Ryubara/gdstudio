@@ -120,7 +120,7 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 **A template's own suites run with one command**, from your worktree, whatever you changed in the template:
 
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds template test 3d-third-person
+uv run --project <your worktree>/python gds template test 3d-third-person
 ```
 
 It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
@@ -132,7 +132,8 @@ run ends, passed, failed or interrupted, and nothing else is: it refuses a folde
 code is GdUnit4's (100 failed tests, 105 a script that does not parse; 1 for a layout or parse failure, a run that ran
 no suite, or a `leaked at exit` line, which CI refuses). Options: `--suite tests/core/test_x.gd` (repeat it; one
 `-a` per suite in the order given, default all of `res://tests`), `--keep` (keep the game and print its path),
-`--fixed-fps 60` (Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)),
+`--fixed-fps N` (default 60, the clock CI runs the suites at: Godot runs a frame per tick with no waiting,
+[test-speed.md](test-speed.md#time-driven-values)) and `--real-clock` (no flag, for a check on the wall clock),
 `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined with `=`, since a bare `--flag` looks
 like an option to the command), `--timeout`. `gds template game <name>` makes the same game, imports it and keeps it,
 printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from the real workspace);
@@ -150,8 +151,10 @@ kept with `--keep`, two calls at once).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
-  dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
-  2026-11-08 (the command: gdstudio #917).
+  dropped approach stayed in it and broke every test until the game was made again); the template comes from the
+  checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
+  (the `game` line prints which checkout it used). **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917);
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -423,3 +426,10 @@ folder (`real_game`, `real_third_person_game`).
   tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
   longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
   tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
+- **Approach:** Make a repository once a session in a `scope="session"` fixture and copy it into each test with
+  `python/tests/git_seed.py` (`relocate` rewrites the paths git wrote into `config`); share one run of a command
+  between the tests that only read it (`default_flow`); leave out the step a test is not about (`kit_pr=False`); keep
+  the seed small; pass `--fixed-fps 60` to an eval test's Godot. CI runs four workers, a file to each (`-n auto
+  --maxprocesses=4 --dist loadfile`). **Watch out for:** a loaded machine moves wall time by 2x, so count processes
+  per file too; a copied file costs 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin
+  path. **Seen:** gdstudio #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on four workers).

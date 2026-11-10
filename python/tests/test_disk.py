@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import time
 from pathlib import Path
 
 import pytest
+from git_seed import slim
 
 from gds_tools import cli, disk, issues, sweep, workspace
 from gds_tools.worktrees import WorktreeError
@@ -478,18 +480,34 @@ class Github:
         return json.dumps([{key: row[key] for key in fields} for row in rows])
 
 
-def checkout(ws: Path, name: str, slug: str) -> None:
-    """A real git checkout: the guard reads the repository's name from its origin, as it does at work."""
-    path = ws / "repos" / name
-    path.mkdir(parents=True)
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
-    subprocess.run(["git", "-C", str(path), "remote", "add", "origin", f"https://github.com/{slug}.git"], check=True)
+@pytest.fixture(scope="session")
+def checkout_seed(tmp_path_factory: pytest.TempPathFactory):
+    """`seed(slug)`: a real git checkout whose origin is that repository, made once a session per slug (two git
+    processes) and copied by `checkout`."""
+    seeds: dict[str, Path] = {}
+
+    def seed(slug: str) -> Path:
+        if slug not in seeds:
+            path = tmp_path_factory.mktemp("checkout") / "repo"
+            subprocess.run(["git", "init", "-q", str(path)], check=True)
+            url = f"https://github.com/{slug}.git"
+            subprocess.run(["git", "-C", str(path), "remote", "add", "origin", url], check=True)
+            seeds[slug] = slim(path)
+        return seeds[slug]
+
+    return seed
+
+
+def checkout(ws: Path, name: str, seed: Path) -> None:
+    """A real git checkout, copied from a seed: the guard reads the repository's name from its origin, as it does at
+    work."""
+    shutil.copytree(seed, ws / "repos" / name)
 
 
 @pytest.fixture()
-def github(ws: Path) -> Github:
-    checkout(ws, "deadnight", GAME_SLUG)
-    checkout(ws, "gdstudio", KIT_SLUG)
+def github(ws: Path, checkout_seed) -> Github:
+    checkout(ws, "deadnight", checkout_seed(GAME_SLUG))
+    checkout(ws, "gdstudio", checkout_seed(KIT_SLUG))
     return Github()
 
 

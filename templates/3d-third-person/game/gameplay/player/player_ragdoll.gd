@@ -275,6 +275,14 @@ static var _counted := 0
 	set(value):
 		joint_range = value
 		_rebuild()
+## How many times the physics solver holds each elbow and knee in its range per step: 1 is the
+## joint alone, more keeps a straight or bent limb from giving way when the body lands on it (an
+## elbow folded 30 degrees past its range, or bent 50 backwards, in 10 deaths of 70 with 1). Each
+## one past the first is another hinge between the same two bones, solved only while limp.
+@export_range(1, 8, 1) var hinge_passes := 4:
+	set(value):
+		hinge_passes = value
+		_rebuild()
 ## How much the bones slow down moving through the air (0 keeps their speed).
 @export_range(0.0, 10.0, 0.01) var linear_damp := 0.1:
 	set(value):
@@ -354,6 +362,8 @@ var _pose_before: Dictionary[StringName, Transform3D] = {}
 var _since_start := 0.0
 var _counts := false
 var _settled := false
+# The extra hinges beside each elbow's and knee's own (`hinge_passes`), as physics server joints.
+var _braces: Array[RID] = []
 
 
 func _ready() -> void:
@@ -543,6 +553,10 @@ func _build() -> void:
 	_simulator.name = SIMULATOR
 	_simulator.active = false
 	skeleton.add_child(_simulator)
+	# The extra hinges are server joints between the bones' bodies: they go before the bodies do
+	# (a model swap deletes the skeleton and the bones with it), and come back with them.
+	_simulator.tree_exiting.connect(_free_braces)
+	_simulator.tree_entered.connect(_brace_hinges)
 	var rest_bodies: Dictionary[StringName, Transform3D] = {}
 	for entry: Dictionary in BODIES:
 		var bone := _make_bone(skeleton, entry)
@@ -579,6 +593,7 @@ func _build() -> void:
 		_set_joint(_bones[entry.bone], entry)
 	_apply_materials()
 	_except_parents()
+	_brace_hinges()
 	if was_limp and not Engine.is_editor_hint():
 		start()
 		for bone_name: StringName in lying:
@@ -587,6 +602,7 @@ func _build() -> void:
 
 
 func _clear() -> void:
+	_free_braces()
 	_count(false)
 	_posed.clear()
 	_pose_now.clear()
@@ -751,6 +767,57 @@ func _apply_materials() -> void:
 		bone.bounce = bounce
 		bone.collision_layer = collision_layer
 		bone.collision_mask = collision_mask
+
+
+# Jolt solves a joint `velocity_steps` times a step for the whole project (10, then 2 position
+# steps), which is too few for a light forearm under a falling trunk; 4.7.2 keeps Jolt's per-joint
+# step override out of reach of scripts. A second hinge with the same frames and limits between
+# the same bones is solved again in every step, so `hinge_passes` hinges hold the limb like that
+# many steps would, for these joints only (docs/engines/godot/ragdoll.md#limits).
+func _brace_hinges() -> void:
+	var skeleton := model.skeleton() if model != null else null
+	if skeleton == null or not _braces.is_empty() or _posed.is_empty():
+		return
+	for entry: Dictionary in BODIES:
+		if entry.joint != &"hinge":
+			continue
+		var up := _parent_body(skeleton, entry.bone)
+		var child := _bones[entry.bone]
+		var parent := _bones[up]
+		# The hinge's frame in each body, at the pose it was made in (the middle of its range).
+		var in_child := Transform3D(_joint_frame(entry), child.joint_offset.origin)
+		var in_parent: Transform3D = _posed[up].affine_inverse() * _posed[entry.bone] * in_child
+		var half := deg_to_rad(minf((entry.range.y - entry.range.x) / 2.0 * joint_range, 170.0))
+		for _copy in hinge_passes - 1:
+			var joint := PhysicsServer3D.joint_create()
+			PhysicsServer3D.joint_make_hinge(
+				joint, parent.get_rid(), in_parent, child.get_rid(), in_child
+			)
+			PhysicsServer3D.hinge_joint_set_flag(
+				joint, PhysicsServer3D.HINGE_JOINT_FLAG_USE_LIMIT, true
+			)
+			PhysicsServer3D.hinge_joint_set_param(
+				joint, PhysicsServer3D.HINGE_JOINT_LIMIT_UPPER, half
+			)
+			PhysicsServer3D.hinge_joint_set_param(
+				joint, PhysicsServer3D.HINGE_JOINT_LIMIT_LOWER, -half
+			)
+			_braces.append(joint)
+
+
+func _free_braces() -> void:
+	for joint: RID in _braces:
+		PhysicsServer3D.free_rid(joint)
+	_braces.clear()
+
+
+## How many hinges hold the elbows and knees now, the bones' own and the extra ones.
+func hinge_count() -> int:
+	var own := 0
+	for entry: Dictionary in BODIES:
+		if entry.joint == &"hinge" and _bones.has(entry.bone):
+			own += 1
+	return own + _braces.size()
 
 
 # Godot 4.7.2 gives a `PhysicalBone3D` no exception for the bone it hangs from (godot PR 70945 is
