@@ -25,6 +25,7 @@ from gds_tools import (
     scripts,
     sweep,
     sync,
+    template_test,
     workspace,
     worktrees,
 )
@@ -250,6 +251,46 @@ def _cmd_new_game(args: argparse.Namespace) -> int:
     if published and options and options.wait and not published.green:
         print("gds: the first CI run or the Pages site is not green", file=sys.stderr)
         return 1
+    return 0
+
+
+def _template_context() -> tuple[Path, Path]:
+    """The kit checkout `gds` runs from (the template files are read from it as they are on disk) and the real
+    workspace, whose marker, local file and GdUnit4 folder a throwaway workspace copies."""
+    root = workspace.require_workspace()
+    return workspace.kit_checkout() or root / "repos" / workspace.KIT, root
+
+
+def _cmd_template_test(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    result = template_test.run_template_test(
+        kit,
+        root,
+        args.name,
+        suites=args.suite,
+        keep=args.keep,
+        fixed_fps=args.fixed_fps,
+        godot_args=template_test.split_args(args.godot_args),
+        gdunit_args=template_test.split_args(args.gdunit_args),
+        timeout=args.timeout,
+    )
+    return result.code
+
+
+def _cmd_template_game(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    game = template_test.make_game(kit, root, args.name)
+    print(game)
+    print(f"remove it with `gds template clean {game}`", file=sys.stderr)
+    return 0
+
+
+def _cmd_template_clean(args: argparse.Namespace) -> int:
+    folder = template_test.throwaway_of(Path(args.path))
+    if not template_test.remove_throwaway(folder):
+        print(f"gds: could not remove {folder}; delete it by hand", file=sys.stderr)
+        return 1
+    print(f"removed {folder}")
     return 0
 
 
@@ -691,6 +732,42 @@ def build_parser() -> argparse.ArgumentParser:
     game.add_argument("--workspace", help="the workspace folder (default: the one around the current folder)")
     game.set_defaults(func=_cmd_new_game)
 
+    tpl = sub.add_parser(
+        "template", help="run a template where it can run (docs/engines/godot/new-game.md#proof)"
+    ).add_subparsers(dest="cmd", required=True)
+    tpl_test = tpl.add_parser(
+        "test",
+        help="make a game from the working tree's template in a throwaway workspace of its own, parse its scripts, run "
+        "its GdUnit4 suites and remove what was made",
+    )
+    tpl_test.add_argument("name", help="a template of the kit's templates/ (`gds new game --list`)")
+    tpl_test.add_argument(
+        "--suite",
+        action="append",
+        default=[],
+        help="a suite to run (`tests/core/test_x.gd` or `res://tests/...`); repeat for several, in the order given "
+        "(default: all of res://tests, as CI does)",
+    )
+    tpl_test.add_argument("--keep", action="store_true", help="keep the game and print its path")
+    tpl_test.add_argument(
+        "--fixed-fps", type=int, help="run Godot with --fixed-fps N: every frame is one tick, no waiting on the clock"
+    )
+    tpl_test.add_argument(
+        "--godot-args",
+        help="more arguments for Godot in one string, joined with `=` (`--godot-args='--audio-driver Dummy'`)",
+    )
+    tpl_test.add_argument("--gdunit-args", help="more arguments for GdUnit4, as --godot-args")
+    tpl_test.add_argument(
+        "--timeout", type=float, default=template_test.GDUNIT_TIMEOUT, help="seconds before the GdUnit4 run is stopped"
+    )
+    tpl_test.set_defaults(func=_cmd_template_test)
+    tpl_game = tpl.add_parser("game", help="the same game, imported and kept for captures and probes; prints its path")
+    tpl_game.add_argument("name", help="a template of the kit's templates/")
+    tpl_game.set_defaults(func=_cmd_template_game)
+    tpl_clean = tpl.add_parser("clean", help="remove a workspace made by `template test --keep` or `template game`")
+    tpl_clean.add_argument("path", help="the game's path or its workspace folder")
+    tpl_clean.set_defaults(func=_cmd_template_clean)
+
     chk_group = sub.add_parser("check", help="checks of a game's files").add_subparsers(dest="cmd", required=True)
     lay = chk_group.add_parser("layout", help="the folder, naming and dependency rules of a Godot project")
     lay.add_argument("project", nargs="?", default="game", help="the folder holding project.godot (default: game)")
@@ -866,6 +943,7 @@ def main(argv: list[str] | None = None) -> int:
         issues.IssueError,
         pr.PrCheckError,
         new_game.NewGameError,
+        template_test.TemplateTestError,
         new_game_github.GitHubError,
         scripts.ScriptCheckError,
         FileNotFoundError,
