@@ -24,6 +24,10 @@ simulator is the only node that needs to exist while the character lives: with `
   origin. A joint typed before its neighbours were posed measured its limits from the wrong frame, so the body started
   outside them and was thrown. Source: `scene/3d/physics/physical_bone_3d.cpp`. **Seen:** gdstudio #846, 2026-11-09
   (fix: `PlayerRagdoll._build` sets offsets, poses, then types).
+- **Approach:** Free a server joint made between two bones (`PhysicsServer3D.joint_create`) before the bones go: on the
+  simulator's `tree_exiting`, and make it again on `tree_entered`. **Watch out for:** a model swap deletes the skeleton
+  with the bones in it, and freeing the joint after that crashed the engine (signal 11 in `free_rid`, in the swap
+  test). **Seen:** gdstudio #940, 2026-11-10 (`PlayerRagdoll._free_braces`).
 - **Approach:** Generate the bones from the skeleton each time the model changes (the slot's `rig_changed`), name the
   simulator, give nothing an owner, and rebuild live when an export changes. **Watch out for:** bones saved in a scene
   live inside the model's glb, which a swap deletes, and the two mannequins' rests differ by up to 9 cm; Create
@@ -85,11 +89,15 @@ into speed.
   and side limits on both elbows, run after run, with an 8 degree tolerance failing 4 runs in 6. A joint started
   outside its limits is a different thing and is caught by the speed test below. **Seen:** gdstudio #846, 2026-11-09
   (`LIMIT_SLACK` in `test_ragdoll.gd`).
-- **Approach:** Judge hinge limits over many deaths: over 14 lab deaths the worst elbow or knee went 3 to 18 degrees
-  past its range, once 34 (an elbow folded to 178 under the rolling body for 0.4 s). Jolt's `simulation/velocity_steps`
-  30 and `position_steps` 4 (defaults 10, 2) cut the worst to 18. **Watch out for:** one death per setting misleads (the
-  runs are deterministic: vary the scenario), and the steps apply to every body: the template keeps the defaults (see
-  [Cost](#cost)). **Seen:** gdstudio #872, 2026-11-10 (lab sweep of four solver settings; a jog's death on the male).
+- **Approach:** Hold elbows and knees with several hinges between the same two bones (`hinge_passes`, 4: the bone's
+  own joint and three `PhysicsServer3D.joint_make_hinge` copies with its frames and limits), and judge it over many
+  deaths: over 70 lab deaths the mean worst overrun went from 12.9 to 4.1 degrees, the worst from 51 to 17, the
+  deaths past the 25 degree slack from 10 to 0. **Watch out for:** a limb the trunk lands on gives way (an elbow
+  at 178, or 50 backwards) under Jolt's project-wide 10 velocity and 2 position steps; 4.7.2 gives scripts no
+  per-joint step override. Projecting the joint back before each step, heavier forearms, more damping and less
+  `relax_gravity` did not help. **Seen:** gdstudio
+  #872, 2026-11-10 (four solver settings); gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`; 3 hinges: 5.1 and
+  22, 6: 2.4 and 12).
 
 ## Godot Physics or Jolt {#jolt}
 
@@ -176,7 +184,9 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
   Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
   body, shared out by the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints
-  swing, as a share of a person's range), `linear_damp`, `angular_damp`, `friction`, `bounce`; Death and getting up:
+  swing, as a share of a person's range), `hinge_passes` (how many hinges hold each elbow and knee, 4: one lets a limb
+  the body lands on fold past its range, [why](#limits)), `linear_damp`, `angular_damp`, `friction`, `bounce`;
+  Death and getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
   drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
   then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer` (16,
@@ -190,9 +200,10 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   65 bones works, both mannequins included. Generated, not the editor's Create Physical Skeleton: a joint's zero is the
   pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by
   up to 9 cm ([why](#building)).
-- **How the limits are set.** A person's: hinges for elbows and knees, cones for the rest, the same both sides
-  ([numbers](#limits)); a cone's centre is the clips' mean direction (`tools/ragdoll/measure_joints.gd`). The
-  pose is pushed inside the limits as the body goes limp: a joint that starts outside throws it.
+- **How the limits are set.** A person's: hinges for elbows and knees (each held by `hinge_passes` hinges), cones for
+  the rest, the same both sides ([numbers](#limits)); a cone's centre is the clips' mean direction
+  (`tools/ragdoll/measure_joints.gd`). The pose is pushed inside the limits as the body goes limp: a joint that starts
+  outside throws it.
 - **The engine is Jolt.** The template's `project.godot` sets `3d/physics_engine="Jolt Physics"`: on Godot Physics this
   ragdoll blew up in 10 to 20 percent of deaths and a lying body never sleeps. Every game made from the template gets
   it, and the maintainer should know ([why](#jolt), [cost](#cost)).
@@ -226,3 +237,10 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   bone flew, not that arms stay out of the chest; the old code gave 16.1 and 13.1 cm of overlap, 0.002 m of limb
   motion in the air and a mask of 1 in the same four tests. **Seen:** gdstudio #872, 2026-11-10
   (`test_ragdoll_natural.gd`).
+- **Approach:** Test a joint that gives way only in some deaths on a death staged on the physics clock: the test
+  fixture `RagdollStage` plays a clip on an `AnimationPlayer` in physics callback mode while it moves the mannequin,
+  and goes limp on a chosen tick, so the same death gives the same numbers every run; add a control test that the
+  same death with the fix turned off still fails, so the death keeps loading the joint. **Watch out for:** the
+  `Player`'s `AnimationTree` runs on real time, so a death through `Player.die()` is a different pose each run; and
+  editing a script the lab runs while sweeps run in the background breaks their runs (175 errors a run): copy it, or
+  wait. **Seen:** gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`).
