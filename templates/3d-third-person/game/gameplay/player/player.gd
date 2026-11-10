@@ -64,13 +64,6 @@ enum State {
 const GROUP := &"player"
 ## The input action that kills and revives the character (`ragdoll_key` is added to it).
 const RAGDOLL_ACTION := &"ragdoll"
-## How much faster than a prop's `push_speed` the character walks while it pushes the prop: the
-## prop is given the push speed, and the character stays against it and pushes it every tick
-## (equal speeds would let a gap open and the friction slow the prop between pushes).
-const PUSH_CONTACT := 1.15
-## Seconds a slow push goes on counting after the last touch: pushing a heavy prop is a series of
-## touches with a small gap between them, and the push clip and the speed limit should not flicker.
-const PUSH_HOLD := 0.25
 
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
@@ -348,12 +341,14 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 ## Kills the character: it goes limp into its ragdoll, which keeps the body's momentum, and it
 ## ignores every gameplay input until `revive()`. The camera's target follows the hips. When the
 ## ragdoll declines (`PlayerRagdoll.can_start()`: too many limp already, or too far from the
-## camera) the character plays its death clip and lies in the clip's last pose (`died_by_clip`).
+## one who watches, whom the `controller` names) the character plays its death clip and lies in
+## the clip's last pose (`died_by_clip`).
 func die() -> void:
 	if state == State.DEAD:
 		return
 	var momentum := velocity
-	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start()
+	var viewer := controller.viewer_position() if controller != null else Vector3.INF
+	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start(viewer)
 	_wants_crouch = false
 	_fire_buffer = 0.0
 	_action_lock = 0.0
@@ -372,7 +367,7 @@ func die() -> void:
 	state = State.DEAD
 	ragdoll = true
 	if ragdoll_body != null and not died_by_clip:
-		ragdoll_body.start(momentum)
+		ragdoll_body.start(momentum, viewer)
 	died.emit()
 
 
@@ -463,6 +458,8 @@ func body_height() -> float:
 
 ## True when nothing is above the character that would stop it from standing up.
 func has_room_to_stand() -> bool:
+	# Geometry, not feel: a probe a little thinner and shorter than the standing capsule, lifted
+	# off the floor, so touching a wall or the ground is not a ceiling.
 	_stand_probe.radius = maxf(tuning.radius - 0.02, 0.05)
 	_stand_probe.height = tuning.height - 0.12
 	var query := PhysicsShapeQueryParameters3D.new()
@@ -519,7 +516,7 @@ func _dead_tick() -> void:
 	if hips.y < tuning.fall_limit:
 		_fall_out()
 		return
-	_camera_target.global_position = hips + Vector3.UP * 0.25
+	_camera_target.global_position = hips + Vector3.UP * tuning.dead_camera_rise
 
 
 func _come_alive() -> void:
@@ -537,6 +534,7 @@ func _come_alive() -> void:
 
 # The floor under `spot` (a ray down from a little above it), or `spot` itself over nothing.
 func _ground_below(spot: Vector3) -> Vector3:
+	# Geometry: from just above the hips to well under the lowest a body can lie.
 	var query := PhysicsRayQueryParameters3D.create(
 		spot + Vector3.UP * 0.5, spot + Vector3.DOWN * 3.0, collision_mask, [get_rid()]
 	)
@@ -630,13 +628,13 @@ func _wish_direction() -> Vector3:
 func _target_speed(strength: float) -> float:
 	var speed := tuning.run_speed * strength
 	if crouching:
-		speed = tuning.crouch_speed * maxf(strength, 0.5)
+		speed = tuning.crouch_speed * maxf(strength, tuning.least_walk_share)
 	elif last_command.sprint and not aiming:
 		speed = tuning.sprint_speed
-	elif last_command.walk or strength < 0.45:
-		speed = tuning.walk_speed * maxf(strength, 0.5)
+	elif last_command.walk or strength < tuning.walk_below_push:
+		speed = tuning.walk_speed * maxf(strength, tuning.least_walk_share)
 	if aiming:
-		speed = minf(speed, tuning.walk_speed * 1.5) * tuning.aim_move_scale
+		speed = minf(speed, tuning.walk_speed * tuning.aim_walk_cap) * tuning.aim_move_scale
 	if _push_cap > 0.0:
 		speed = minf(speed, _push_cap)
 	return speed
@@ -694,12 +692,15 @@ func _climb(delta: float) -> void:
 	if not _grounded:
 		return
 	var motion := Vector3(velocity.x, 0.0, velocity.z) * delta
-	StepClimber.climb(self, motion, tuning.step_height, tuning.max_slope, tuning.radius + 0.06)
+	StepClimber.climb(
+		self, motion, tuning.step_height, tuning.max_slope, tuning.radius + tuning.step_probe_margin
+	)
 
 
 ## Pushes the props the body slid into this tick. True when it is pushing one it walks at. A prop
 ## with a `push_speed` is pushed at that speed and the character walks a little faster than it
-## (`PUSH_CONTACT`), and it keeps counting as pushed for `PUSH_HOLD` after the last touch.
+## (the tuning's `push_contact`), and it keeps counting as pushed for `push_hold` after the last
+## touch.
 func _push_props(before: Vector3, delta: float) -> bool:
 	var pushing := false
 	var slow_push := false
@@ -716,23 +717,27 @@ func _push_props(before: Vector3, delta: float) -> bool:
 			if along.length_squared() < 0.0001:
 				continue
 			along = along.normalized()
+			# A prop more than 60 degrees off the way the body walks is brushed past, not pushed.
 			if along.dot(flat.normalized()) < 0.5:
 				continue
 			var share := (
-				tuning.push_strength * clampf(tuning.push_mass / prop.mass, 0.15, 1.0) * 1.5
+				tuning.push_strength
+				* clampf(tuning.push_mass / prop.mass, tuning.push_least_share, 1.0)
+				* tuning.push_boost
 			)
 			var want := flat.length() * clampf(share, 0.0, 1.0)
 			var slow: float = prop.get(&"push_speed") if &"push_speed" in prop else 0.0
 			if slow > 0.0:
 				want = slow
-				cap = slow * PUSH_CONTACT if cap == 0.0 else minf(cap, slow * PUSH_CONTACT)
+				var contact := slow * tuning.push_contact
+				cap = contact if cap == 0.0 else minf(cap, contact)
 				slow_push = true
 			var gain := want - prop.linear_velocity.dot(along)
 			if gain > 0.0:
 				prop.apply_central_impulse(along * gain * prop.mass)
 			pushing = true
 	if slow_push:
-		_push_hold = PUSH_HOLD
+		_push_hold = tuning.push_hold
 		_push_cap = cap
 	else:
 		_push_hold = maxf(_push_hold - delta, 0.0)
@@ -772,7 +777,9 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 	elif _pushing and not wish.is_zero_approx():
 		picked = State.PUSH
 	elif ground_speed() >= tuning.stand_speed:
-		picked = State.WALK if ground_speed() <= tuning.walk_speed + 0.35 else State.RUN
+		picked = (
+			State.WALK if ground_speed() <= tuning.walk_speed + tuning.run_above_walk else State.RUN
+		)
 	return picked
 
 
@@ -792,6 +799,6 @@ func _use_weapon(delta: float) -> void:
 		pulled = true
 	if pulled:
 		_fire_buffer = tuning.fire_buffer_time
-	if _fire_buffer > 0.0 and aiming and aim_amount >= 0.5:
+	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount:
 		if weapon.fire(_aim_origin(), _aim_direction()) != null:
 			_fire_buffer = 0.0
