@@ -15,8 +15,8 @@ func before_test() -> void:
 	InputSim.release_all()
 	CameraShake.strength = 1.0
 	_scene = scene_runner("res://main.tscn").scene()
-	_rig = _scene.get_node("PlayerCamera")
-	_player = _scene.get_node("Player")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 

@@ -27,8 +27,8 @@ cancel are Enter and A, Esc and B, and the touch layer's buttons stand down whil
 - **Let the player rebind another action:** add its name to `actions` on the `ControlsPage` node.
 - **Open your own screen from gameplay:** make a scene that extends `UIScreen` (set `back_closes` so Esc closes it),
   then either call `ScreenHost.current.open(preload("res://ui/menus/your_screen.tscn"))` or add its input action and
-  scene to `action_screens` on the `Screens` node of `main.tscn`. The game pauses, the mouse is freed, and everything
-  is put back when the last screen closes.
+  scene to `action_screens` on the `Screens` node of `main.tscn` (`ui/menus/screen_host.tscn`). The game pauses, the
+  mouse is freed, and everything is put back when the last screen closes.
 - **Change what Low, Medium and High do:** edit the three `QualityPreset` resources in the `Settings` scene
   (`core/settings/settings_service.tscn`).
 - **Tune the mix without touching the player's choice:** the `AudioSettings` node's volumes are yours; the player's

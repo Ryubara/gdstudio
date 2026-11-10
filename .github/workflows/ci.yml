@@ -55,7 +55,9 @@ jobs:
       - run: uv run --project python --frozen ruff format --check python
       # A skip that python/tests/allowed_skips.toml does not allow for this platform fails the run, and so does an
       # allowed skip whose test ran: the skip count of each runner is its count of entries (kit #797).
-      - run: uv run --project python --frozen pytest python/tests -q -rs --allowed-skips python/tests/allowed_skips.toml
+      # Four workers, a test file to each (the module fixtures stay one per file): the tests are processes and files,
+      # not processor time, and the run took 6 min 29 s on one (kit #945).
+      - run: uv run --project python --frozen pytest python/tests -q -rs -n auto --maxprocesses=4 --dist loadfile --durations=30 --allowed-skips python/tests/allowed_skips.toml
       # The launchers themselves, from a checkout: every step printed, nothing downloaded or created.
       - name: Bootstrap dry run (Windows)
         if: runner.os == 'Windows'

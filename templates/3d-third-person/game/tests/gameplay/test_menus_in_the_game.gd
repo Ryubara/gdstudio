@@ -12,7 +12,7 @@ func before_test() -> void:
 	UIMotion.reduced = true
 	Settings.reset_defaults()
 	_scene = scene_runner("res://main.tscn").scene()
-	_rig = _scene.get_node("PlayerCamera")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
 	_host = _scene.get_node("Screens")
 	await get_tree().process_frame
 
@@ -31,12 +31,12 @@ func test_the_game_scene_holds_the_host_with_the_pause_menu_and_the_look_bridge(
 	assert_object(_host).is_not_null()
 	assert_object(_host.pause_screen).is_not_null()
 	assert_object(ScreenHost.current).is_same(_host)
-	var look: LookSettings = _scene.get_node("LookSettings")
+	var look: LookSettings = _scene.get_node("PlayerRig/LookSettings")
 	assert_object(look.camera).is_same(_rig)
 
 
 func test_escape_pauses_the_player_and_resume_gives_the_game_back() -> void:
-	var player: Player = _scene.get_node("Player")
+	var player: Player = _scene.get_node("PlayerRig/Player")
 	var was := player.global_position
 	InputSim.key(KEY_ESCAPE, true)
 	InputSim.key(KEY_ESCAPE, false)
@@ -96,7 +96,9 @@ func test_the_players_invert_flips_the_vertical_look_and_twice_flips_it_back() -
 func test_the_look_settings_are_applied_when_the_game_scene_starts() -> void:
 	Settings.set_value(SettingsService.MOUSE_SENSITIVITY, 1.5)
 	Settings.set_value(SettingsService.INVERT_Y, true)
-	var again := scene_runner("res://main.tscn").scene().get_node("PlayerCamera") as PlayerCamera
+	var again := (
+		scene_runner("res://main.tscn").scene().get_node("PlayerRig/PlayerCamera") as PlayerCamera
+	)
 	assert_float(again.player_sensitivity).is_equal_approx(1.5, 0.0001)
 	assert_bool(again.player_invert_y).is_true()
 
@@ -118,8 +120,8 @@ func _show_touch(touch: TouchControls) -> void:
 
 
 func test_the_pause_button_waits_for_a_touch_screen() -> void:
-	var button: PauseButton = _scene.get_node("MenuLayer/PauseButton")
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var button: PauseButton = _scene.get_node("PlayerRig/MenuLayer/PauseButton")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	assert_bool(button.visible).is_equal(touch.is_shown())
 	_show_touch(touch)
 	assert_bool(touch.is_shown()).is_true()
@@ -133,7 +135,7 @@ func test_the_pause_button_waits_for_a_touch_screen() -> void:
 
 
 func test_pressing_the_pause_button_opens_the_pause_menu() -> void:
-	var button: PauseButton = _scene.get_node("MenuLayer/PauseButton")
+	var button: PauseButton = _scene.get_node("PlayerRig/MenuLayer/PauseButton")
 	button.pressed.emit()
 	assert_bool(await MenuFixture.settle(get_tree())).is_true()
 	assert_object(UIRouter.top()).is_instanceof(PauseMenu)
@@ -141,7 +143,7 @@ func test_pressing_the_pause_button_opens_the_pause_menu() -> void:
 
 
 func test_the_touch_layer_lets_go_when_a_menu_opens() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	var connected := _host.opened.get_connections().any(
 		func(connection: Dictionary) -> bool:
 			var callable := connection["callable"] as Callable
@@ -157,7 +159,7 @@ func test_the_touch_layer_lets_go_when_a_menu_opens() -> void:
 
 
 func test_touch_still_presses_the_menus_buttons() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	_show_touch(touch)
 	assert_bool(Input.emulate_mouse_from_touch).is_false()
 	_host.open_pause()
@@ -169,7 +171,7 @@ func test_touch_still_presses_the_menus_buttons() -> void:
 
 
 func test_the_touch_buttons_stay_out_from_under_a_menu_and_come_back() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	_show_touch(touch)
 	assert_bool(touch.visible).is_true()
 	_host.open_pause()
@@ -181,7 +183,7 @@ func test_the_touch_buttons_stay_out_from_under_a_menu_and_come_back() -> void:
 
 
 func test_a_menu_closing_does_not_show_the_touch_layer_on_a_computer() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	assert_bool(touch.is_shown()).is_false()
 	_host.open_pause()
 	await MenuFixture.settle(get_tree())

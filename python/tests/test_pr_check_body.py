@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from git_seed import slim
 
 pytest.importorskip("yaml")
 
@@ -66,16 +67,24 @@ def game_conventions() -> str:
     pytest.skip("pull_requests.sections is not written on one line")
 
 
+@pytest.fixture(scope="session")
+def workspace_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The kit's checkout and a game's, made once a session (four git processes) and copied by each test (kit #945)."""
+    root = tmp_path_factory.mktemp("check-body-workspace") / "ws"
+    (root / "repos").mkdir(parents=True)
+    (root / ".gdstudio-workspace").write_text("", encoding="utf-8")
+    make_repo(root / "repos" / "gdstudio", "https://github.com/Ryubara/gdstudio.git")
+    make_repo(root / "repos" / "deadnight", "https://github.com/Ryubara/deadnight.git", game_conventions())
+    return slim(root)
+
+
 @pytest.fixture()
-def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
+def workspace(workspace_seed: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
     # the real kit pauses Deadnight, and `gds pr check-body` refuses a paused repository (test_paused_prs.py)
     monkeypatch.setattr(issues, "paused_repositories", lambda kit: {})
     root = tmp_path / "ws"
-    (root / "repos").mkdir(parents=True)
-    (root / ".gdstudio-workspace").write_text("", encoding="utf-8")
-    kit = make_repo(root / "repos" / "gdstudio", "https://github.com/Ryubara/gdstudio.git")
-    game = make_repo(root / "repos" / "deadnight", "https://github.com/Ryubara/deadnight.git", game_conventions())
-    return {"root": root, "kit": kit, "game": game}
+    shutil.copytree(workspace_seed, root)
+    return {"root": root, "kit": root / "repos" / "gdstudio", "game": root / "repos" / "deadnight"}
 
 
 def shell(command: str, cwd: Path) -> dict:

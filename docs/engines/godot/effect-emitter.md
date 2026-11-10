@@ -11,9 +11,9 @@ every one-shot effect follows on [Pooled and one-shot effects](one-shot-effects.
 
 ## Using it {#using-it}
 
-One `EffectEmitter` in the level (`Effects` in `main.tscn`, the group `effect_emitter`) plays every one-shot effect from
-one capped pool: the pistol's muzzle flash, each bullet impact, and anything a game adds. An effect is an `EffectDef`
-resource (a `.tres`, or a sub-resource inside a scene); the emitter plays it where it is told:
+One `EffectEmitter` in the level (`Effects` in `world/world.tscn`, the group `effect_emitter`) plays every one-shot
+effect from one capped pool: the pistol's muzzle flash, each bullet impact, and anything a game adds. An effect is an
+`EffectDef` resource (a `.tres`, or a sub-resource inside a scene); the emitter plays it where it is told:
 
 ```gdscript
 var emitter := EffectEmitter.find(self)          # null when the level has none: skip the effect
@@ -44,14 +44,14 @@ if emitter != null:
   time they are needed) is hidden, its light off and its particles stopped while it is free; an effect ends by itself
   (its particles and light and then its sound) and gives the slot back, so a long fight makes no new nodes (a test plays
   200 effects and counts them). When the pool is full the oldest effect is cut for the new one. The emitter does nothing
-  while no effect plays (`set_process(false)`). It is built to be cosmetic: made on each machine from what happened, never
-  sent over the network.
+  while no effect plays (`set_process(false)`). It is built to be cosmetic: made on each machine from what happened,
+  never sent over the network.
 - **The muzzle flash.** `Weapon.muzzle_flash` (`gameplay/weapon/muzzle_flash.tres`) is an `EffectDef` played on the
   `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad (`assets/shaders/effects/
-  flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight short sparks and a 2.5-energy
-  warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that weapon, `muzzle_flash_size`
-  resizes it, and another weapon points `muzzle_flash` at its own `EffectDef`. The flash stands at the muzzle's position
-  and turns with it for as long as it lasts, and a scaled muzzle does not scale it.
+  flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight short sparks and a
+  2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that weapon,
+  `muzzle_flash_size` resizes it, and another weapon points `muzzle_flash` at its own `EffectDef`. The flash stands at
+  the muzzle's position and turns with it for as long as it lasts, and a scaled muzzle does not scale it.
 - **Tests and captures.** `tests/gameplay/test_effect_emitter.gd` (placement, following, ending), `test_effect_pool.gd`
   (the cap, reuse, the oldest cut, lights, switches, node counts), `test_effect_exports.gd` (the defaults and every
   live change), `test_muzzle_flash.gd` and `test_muzzle_flash_in_the_map.gd`;
@@ -92,16 +92,16 @@ frames after 90 of warm-up, the character in the map, 1280 x 720, vsync off; God
 - **First use is the cost that shows on the web.** With a fresh browser profile each effect's first draw builds programs
   (counted at `linkProgram`): the flash's star and sparks 6 programs and 171 ms, its light (the lit versions of the
   surfaces it reaches) 4 and 185 ms, the first impact (marks, the dust) 5 and 125 ms; the slowest frame of each was 338,
-  219 and 161 ms. With the warm-up the star and sparks are 2 programs and 52 ms (slowest frame 64), the light still 4 and
-  163 ms (188) and the impact 5 and 120 ms (149): the warm-up removes the flash's own, not the lit programs of the
-  character and the pistol or the mark's shader, which a loading screen must draw (follow-up). The desktop built the same
-  programs in 0 to 7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms).
-- **Software rendering** (headless Chromium on SwiftShader) ran 150 to 170 ms a frame whatever the effect and cannot show
-  the difference; only the program counts are the same as on a GPU.
+  219 and 161 ms. With the warm-up the star and sparks are 2 programs and 52 ms (slowest frame 64), the light still 4
+  and 163 ms (188) and the impact 5 and 120 ms (149): the warm-up removes the flash's own, not the lit programs of the
+  character and the pistol or the mark's shader, which a loading screen must draw (follow-up). The desktop built the
+  same programs in 0 to 7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms).
+- **Software rendering** (headless Chromium on SwiftShader) ran 150 to 170 ms a frame whatever the effect and cannot
+  show the difference; only the program counts are the same as on a GPU.
 - **Approach:** Measure an effect system with the bench in both renderers and in Chrome on a real GPU, and read the
   slowest frame of the first use and the programs linked then, not only the mean. **Watch out for:** the mean frame of
   every run was within 0.2 ms of the idle one and said the flash was free, while the first flash stopped the web build
   for 338 ms and its light for 219 more, and the 90 frames of warm-up in each run hid those first frames until
-  `first_frames_max_ms` read them. Drawing an effect once to warm it builds the program of how it was drawn (a surface an
-  omni light reaches is another program): draw it with the lights off and on, and an effect drawn with a light that its
-  real use lacks does not warm the real one. **Seen:** gdstudio #888, 2026-11-10.
+  `first_frames_max_ms` read them. Drawing an effect once to warm it builds the program of how it was drawn (a surface
+  an omni light reaches is another program): draw it with the lights off and on, and an effect drawn with a light that
+  its real use lacks does not warm the real one. **Seen:** gdstudio #888, 2026-11-10.

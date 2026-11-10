@@ -7,6 +7,8 @@ const PLAYER_SCENE := "res://gameplay/player/player.tscn"
 const SCENES := [
 	"res://gameplay/player/player.tscn",
 	"res://main.tscn",
+	"res://ui/player_rig/player_rig.tscn",
+	"res://world/world.tscn",
 	"res://world/prototype/prototype_level.tscn",
 ]
 

@@ -63,6 +63,16 @@ func test_joint_range_scales_the_limits() -> void:
 	)
 
 
+func test_hinge_passes_sets_how_many_hinges_hold_each_elbow_and_knee() -> void:
+	# Four elbows and knees, each held by `hinge_passes` hinges.
+	assert_int(_ragdoll.hinge_count()).is_equal(16)
+	_ragdoll.hinge_passes = 1
+	assert_int(_ragdoll.hinge_count()).is_equal(4)
+	assert_int(_ragdoll.body_count()).is_equal(16)
+	_ragdoll.hinge_passes = 6
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
+
+
 func test_damping_friction_and_bounce_reach_every_bone() -> void:
 	_ragdoll.linear_damp = 0.7
 	_ragdoll.angular_damp = 5.0

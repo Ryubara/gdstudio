@@ -20,10 +20,10 @@ var _pathing: Node3D
 
 func before() -> void:
 	_main = load(MAIN).instantiate()
-	(_main.get_node("Player") as Player).start_at_spawn = false
+	(_main.get_node("PlayerRig/Player") as Player).start_at_spawn = false
 	add_child(_main)
-	_ai = _main.get_node("AISection")
-	_pathing = _main.get_node("PathingSection")
+	_ai = _main.get_node("World/AISection")
+	_pathing = _main.get_node("World/PathingSection")
 	for _frame in 4:
 		await get_tree().physics_frame
 	# The map takes the regions in over a few physics frames: wait until it answers.
@@ -321,7 +321,7 @@ func _sees(watcher: Node3D, target: Node3D, heights: Array) -> bool:
 func _ray(from: Vector3, to: Vector3) -> Dictionary:
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 1
-	query.exclude = [(_main.get_node("Player") as CollisionObject3D).get_rid()]
+	query.exclude = [(_main.get_node("PlayerRig/Player") as CollisionObject3D).get_rid()]
 	return _ai.get_world_3d().direct_space_state.intersect_ray(query)
 
 
@@ -336,7 +336,7 @@ func _cast_body(from: Vector3, to: Vector3) -> float:
 	query.transform = Transform3D(Basis.IDENTITY, from)
 	query.motion = to - from
 	query.collision_mask = 1
-	query.exclude = [(_main.get_node("Player") as CollisionObject3D).get_rid()]
+	query.exclude = [(_main.get_node("PlayerRig/Player") as CollisionObject3D).get_rid()]
 	var result := _ai.get_world_3d().direct_space_state.cast_motion(query)
 	return result[0]
 

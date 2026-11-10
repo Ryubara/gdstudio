@@ -5,6 +5,9 @@ extends Node
 ## `window.gdprobe`, so a script that drives the page (the canvas is one picture, with nothing
 ## to read) can tell what happened. It does nothing off the web or without `?probe`, so a
 ## player's page pays for no bridge calls.
+##
+## No scene holds a probe: the player rig calls `attach()` when it starts, and the probe is made
+## only on a page opened with `?probe`.
 
 ## Seconds between two writes.
 const PERIOD := 0.1
@@ -23,13 +26,35 @@ var _jumps := 0
 var _shots := 0
 
 
+## True on a web page opened with `?probe`.
+static func asked() -> bool:
+	return (
+		OS.has_feature("web")
+		and bool(JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('probe')"))
+	)
+
+
+## Makes a probe under `parent` that reads these nodes, when the page asked for one; null
+## otherwise (nothing is made off the web or without `?probe`).
+static func attach(
+	parent: Node, body: Player, rig: PlayerCamera, touch_layer: TouchControls
+) -> WebProbe:
+	if not asked():
+		return null
+	var probe := WebProbe.new()
+	probe.name = &"WebProbe"
+	probe.player = body
+	probe.camera_rig = rig
+	probe.touch = touch_layer
+	parent.add_child(probe)
+	return probe
+
+
 func _ready() -> void:
 	set_process(false)
 	# The menus pause the tree: the probe keeps writing, so a test can read that it is paused.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	if not OS.has_feature("web") or player == null:
-		return
-	if not JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('probe')"):
+	if not asked() or player == null:
 		return
 	_object = JavaScriptBridge.create_object("Object")
 	JavaScriptBridge.get_interface("window").gdprobe = _object
