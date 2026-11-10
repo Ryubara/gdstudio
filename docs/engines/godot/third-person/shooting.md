@@ -176,11 +176,12 @@ the spread's place for `restore()`.
      ammunition and a reload count, or how a character switches (gdstudio #887) -->
 
 A weapon is data: a `WeaponDef` resource (`gameplay/weapon/weapon_def.gd`; the template's are `pistol.tres` and
-`fists.tres` beside it) holds its name and icon, its kind (`PROJECTILE`, `HITSCAN` or `MELEE`), rate, spread, damage,
-range and push, the magazine, the reserve and its largest, the ammunition's `Pickup.item_id`, the reload's time, the
-switch's times, the projectile's numbers, the model in the hand (`view`, `muzzle`: paths under the `Model` slot), the
-clips (grip, aim level, up and down, the shots, the reload) and the sounds (shot, empty click, the reload's steps at
-their shares, the draw). A new weapon is a new `.tres`; nothing else changes.
+`fists.tres` beside it) holds its name and icon, its kind (`PROJECTILE`, `HITSCAN` or `MELEE`), rate, spread, recoil
+(its share of the camera's `shot_kick_amplitude`, cosmetic; 0 for the fists), damage, range and push, the magazine, the
+reserve and its largest, the ammunition's `Pickup.item_id`, the reload's time, the switch's times, the projectile's
+numbers, the model in the hand (`view`, `muzzle`: paths under the `Model` slot), the clips (grip, aim level, up and
+down, the shots, the reload) and the sounds (shot, empty click, the reload's steps at their shares, the draw). A new
+weapon is a new `.tres`; nothing else changes.
 
 - **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
   an empty magazine (`dry_fired`) or does nothing (cooling down, reloading, put away), and `fire()` is the same with

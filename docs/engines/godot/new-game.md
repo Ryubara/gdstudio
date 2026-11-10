@@ -179,7 +179,9 @@ kept with `--keep`, two calls at once).
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
-  fault of the change. **Seen:** gdstudio #856, 2026-11-09.
+  fault of the change. A merge resolved by hand can also keep both sides' bindings: run it before the push. **Seen:**
+  gdstudio #856, 2026-11-09; gdstudio #887, 2026-11-10 (prone and the empty hands both took d-pad down, and
+  `test_input_map.gd` failed only on the next run).
 - **Approach:** A game is made from the template folder as it is on disk, and the copy leaves out what git ignores
   (`git ls-files --others --ignored`, with `__pycache__`, `.ruff_cache`, `.pytest_cache`, `.mypy_cache`, `.godot` as the
   fixed fallback when the template is not in a checkout); `gds new game`, `gds template test` and the eval games share

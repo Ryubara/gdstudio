@@ -160,3 +160,21 @@ func test_a_slide_in_a_preset_moves_the_picture_on_top_of_the_shoulder() -> void
 	assert_float(moved).is_less_equal(0.1 * sqrt(2.0) + 0.0001)
 	_step(1.0)
 	assert_vector(_rig.current_view_offset()).is_equal_approx(shoulder, Vector2.ONE * 0.0001)
+
+
+func test_the_held_weapons_recoil_scales_its_kick() -> void:
+	_rig.shot_kick_amplitude = 0.3
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	_player.weapon.definition.recoil = 1.0
+	_shoot()
+	var normal := _step(0.1)
+	_step(0.5)
+	_player.weapon.definition.recoil = 2.0
+	_shoot()
+	var strong := _step(0.1)
+	_step(0.5)
+	_player.weapon.definition.recoil = 0.0
+	_shoot()
+	assert_float(_step(0.1)).is_equal(0.0)
+	assert_float(strong).is_greater(normal * 1.5)
+	assert_float((load("res://gameplay/weapon/fists.tres") as WeaponDef).recoil).is_equal(0.0)

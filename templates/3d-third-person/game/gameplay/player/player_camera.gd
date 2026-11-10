@@ -485,11 +485,11 @@ func fire_blend() -> float:
 	return _fire_blend
 
 
-## Kicks the view by one shot (`shot_kick_amplitude`). The player's weapon calls it through its
-## `fired` signal; a weapon of your own may call it too.
-func kick() -> void:
-	if shot_kick_amplitude > 0.0 and is_instance_valid(shaker):
-		_set_kick()
+## Kicks the view by one shot (`shot_kick_amplitude` times `share`). The player's weapon calls it
+## through its `fired` signal with its definition's `recoil`; a weapon of your own may call it too.
+func kick(share := 1.0) -> void:
+	if shot_kick_amplitude > 0.0 and share > 0.0 and is_instance_valid(shaker):
+		_set_kick(share)
 		shaker.add(_shot_kick)
 
 
@@ -525,7 +525,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _on_shot(_projectile: Projectile) -> void:
-	kick()
+	var held: WeaponDef = null
+	if is_instance_valid(_player) and is_instance_valid(_player.weapon):
+		held = _player.weapon.definition
+	kick(held.recoil if held != null else 1.0)
 
 
 # The shake component: the one in the scene, or one made now. This rig steps it.
@@ -555,10 +558,10 @@ func _step_shake(sprinting: bool, delta: float) -> void:
 	shaker.advance(delta)
 
 
-# One shot's worth of kick: its largest turn is `shot_kick_amplitude` (a trauma of 0.5 and a
-# straight curve), with smaller sideways turn and roll.
-func _set_kick() -> void:
-	var peak := shot_kick_amplitude * 2.0
+# One shot's worth of kick: its largest turn is `shot_kick_amplitude` times `share` (a trauma of
+# 0.5 and a straight curve), with smaller sideways turn and roll.
+func _set_kick(share: float) -> void:
+	var peak := shot_kick_amplitude * share * 2.0
 	_shot_kick.max_rotation = Vector3(peak, peak * 0.5, peak * 0.3)
 	_shot_kick.duration = shot_kick_duration
 	_shot_kick.frequency = 18.0

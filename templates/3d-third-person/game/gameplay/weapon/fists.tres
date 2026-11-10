@@ -20,6 +20,7 @@ script = ExtResource("1_def")
 display_name = "Fists"
 kind = 2
 fire_rate = 2.5
+recoil = 0.0
 damage = 5.0
 impulse = 25.0
 impacts = false

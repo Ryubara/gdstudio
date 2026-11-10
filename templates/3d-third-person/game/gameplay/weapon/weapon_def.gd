@@ -39,6 +39,9 @@ enum Kind {
 @export_range(0.5, 30.0, 0.1, "suffix:shots/s") var fire_rate := 4.0
 ## The shot goes off the aim by up to this angle, picked from the weapon's seeded sequence.
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
+## How hard a shot kicks the player's view: a share of the camera's `shot_kick_amplitude` (1: as
+## the camera has it, 2: twice, 0: no kick, as for the fists). The kick is cosmetic and never sent.
+@export_range(0.0, 4.0, 0.05) var recoil := 1.0
 ## What one hit takes from what it hits. The weapon hands it on (`Projectile.damage`, the hit
 ## record's `damage`); the template's `Target` counts hits, and a game's health reads this.
 @export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 34.0

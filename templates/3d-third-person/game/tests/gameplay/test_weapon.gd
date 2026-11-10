@@ -63,6 +63,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"automatic": false,
 		&"fire_rate": 4.0,
 		&"spread": 0.0,
+		&"recoil": 1.0,
 		&"damage": 34.0,
 		&"aim_range": 100.0,
 		&"impulse": 40.0,
