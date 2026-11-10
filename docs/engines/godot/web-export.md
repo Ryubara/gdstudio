@@ -210,6 +210,9 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
 - **Probe it on the page.** `tools/web_smoke/phone_layout.py` walks the menu screens in Chromium as a phone (and in
   an iframe with `--iframe`) and prints the page, canvas, factor, units and the smallest text and tap target in CSS
   px (`window.deadnight_audit`; `WebProbe`'s `layout`, `phone` and `ui_audit`). Run it through `gds quiet`.
+- **One helper for the page's height.** In 3D Third Person, `Hud.css_height()` gives the page height in CSS px (the
+  canvas element's box on the web, the window over the pixel ratio elsewhere); a part that sizes itself by the page asks
+  it rather than doing its own sums ([The template HUD](ui-layout.md#template-hud), gdstudio #880).
 
 - **A report that the game looks zoomed in on a phone is answered on the phone first.** Deadnight #1310: headless
   Chrome as a phone showed nothing wrong (canvas = page, visual viewport scale 1, a pinch and a double tap change

@@ -123,6 +123,9 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
   own: bodies that collide stand on each other in a stair.
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
+- **A bake depends on where the region sits** (its cells lie on the world grid), and the cell height decides which
+  stairs stay on the mesh: bake and compare a section at the origin, and give stairs a whole number of cells
+  ([Map sections](map-sections.md#what-the-bakes-found), gdstudio #885).
 
 ## A walk to a goal the layer never reaches {#a-walk-to-a-goal-the-layer-never-reaches}
 

@@ -6,9 +6,10 @@ pointed out in our words, with its source (the date it was recorded, the game, a
 links the topic section it updated: the entry (the approach, what to watch out for, where it was seen) is kept in
 the topic page an agent reads for that work, not here ([Learning in the topic pages](rules.md), gdstudio #769).
 
-A new correction updates its topic section and adds one line here, in the same pull request. A prompt is never quoted,
-word for word or nearly, here or anywhere in a public repository: the checks fail a row with a cell that starts with a
-quotation mark, and a row whose last cell links no section (gdstudio #780).
+A new correction updates its topic section and adds one line here, in the same pull request. A task agent updates the
+section and puts the line in its report; the coordinator adds it here, so many agents never edit this one page. A prompt
+is never quoted, word for word or nearly, here or anywhere in a public repository: the checks fail a row with a cell
+that starts with a quotation mark, and a row whose last cell links no section (gdstudio #780).
 
 ## Corrections and the checks they become {#corrections-and-the-checks-they-become}
 

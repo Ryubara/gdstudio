@@ -213,6 +213,9 @@ A character is driven by whatever gives it a `PlayerCommand` each physics tick. 
 | An owner that steps (a server, a director with a budget) | `body.set_physics_process(false)`, then `body.step(command, delta)` inside the physics frame, with the physics step. Connect `fell` to decide where the body starts again, and turn `ragdoll_by_command` off for commands from a network. |
 | A test | `tests/fixtures/command_driver.gd`: `CommandDriver.take(player)` and `run(tree, players, command, ticks)`, which steps the presses once. |
 
+Over a network the command is what crosses the wire: one per tick with a sequence number, applied once and in order by
+the server ([the pattern that worked](../multiplayer.md#own-protocol)).
+
 `sample()` hands out the controller's own command, written again on the next call (`clone()` to keep one), and a press
 is true in exactly one returned command. `Player.state_snapshot(into)` and `restore(state)` take and put back what the
 next step reads (`CharacterState.FIELDS`; a test fails when the body gains a variable that is neither there nor on the
