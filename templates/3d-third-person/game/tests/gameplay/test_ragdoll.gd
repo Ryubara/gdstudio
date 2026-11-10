@@ -79,6 +79,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"max_active": 4,
 		&"settle_time": 8.0,
 		&"ragdoll_range": 0.0,
+		&"editor_preview": true,
 		&"collision_layer": PhysicsLayers.RAGDOLL,
 		&"collision_mask": PhysicsLayers.RAGDOLL_MASK,
 	}
@@ -93,6 +94,22 @@ func test_the_scene_wires_a_ragdoll_with_sixteen_bones_that_rest_while_alive() -
 	assert_bool(_ragdoll.is_active()).is_false()
 	for bone in [&"pelvis", &"Head", &"hand_l", &"hand_r", &"foot_l", &"foot_r"]:
 		assert_object(_ragdoll.body(bone)).is_not_null()
+
+
+# A character that never dies never pays for its bones (gdstudio #926: 16 bodies and 33 nodes
+# from the spawn, about 25 microseconds a frame each): they are made on the first death.
+func test_a_living_character_carries_no_physical_bone_until_it_dies() -> void:
+	var skeleton := _player.model.skeleton()
+	await _ticks(30)
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(0)
+	_player.die()
+	await _ticks(2)
+	assert_bool(_ragdoll.is_limp()).is_true()
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(16)
+	_player.revive()
+	await _ticks(60)
+	# Made once: getting up keeps them for the next death.
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(16)
 
 
 func test_y_kills_and_revives_and_the_checkbox_follows() -> void:
