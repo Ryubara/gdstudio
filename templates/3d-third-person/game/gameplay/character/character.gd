@@ -6,7 +6,8 @@ extends CharacterBody3D
 ## buffer), steers in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`,
 ## opens a `Door`, collects a `Pickup`, aims and shoots its `Weapon`, and dies into a ragdoll
 ## (`die()`, the `ragdoll` checkbox or a command's `ragdoll_pressed`) and gets up again
-## (`revive()`). Everything a developer tunes is in the `CharacterTuning` resource. Other nodes
+## (`revive()`), and slides when crouch is pressed at a sprint (`CharacterSlide`). Everything a
+## developer tunes is in the `CharacterTuning` resource. Other nodes
 ## connect to the signals; `CharacterAnimation` follows `state`.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
@@ -60,6 +61,7 @@ enum State {
 	HIT,
 	CROUCH,  ## Crouched, standing still or walking.
 	DEAD,  ## Dead: limp, ignoring every gameplay input; the camera still orbits.
+	SLIDE,  ## Sliding on its momentum, low (after `DEAD` so the numbers sent before stay).
 }
 
 @export_group("Character")
@@ -145,6 +147,9 @@ var view_pitch := 0.0
 ## The command of the last step, as the body used it (not finite: let go of; a push no longer
 ## than 1). Written again by every step.
 var last_command := PlayerCommand.new()
+## The slide: its state is saved in `CharacterState.slide`, its numbers are the tuning's Slide
+## group.
+var slide := CharacterSlide.new()
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -227,10 +232,18 @@ func step(command: PlayerCommand, delta: float) -> void:
 # One tick of a living body inside the map.
 func _move(delta: float) -> void:
 	_tick_timers(delta)
+	var lowered := slide.amount
+	slide.begin_tick(self, _wants_crouch, _coyote, _action_lock > 0.0, delta)
 	_update_crouch(delta)
 	_update_aim(delta)
+	if slide.amount != lowered:
+		_fit_body()
 	var wish := _wish_direction() if _action_lock <= 0.0 else Vector3.ZERO
-	_steer(wish, delta)
+	if slide.active:
+		slide.steer(self, wish, delta)
+		_present_facing()
+	else:
+		_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
@@ -270,6 +283,7 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 		weapon.save_step_state(kept.weapon)
 	else:
 		kept.weapon.clear()
+	slide.save_step_state(kept.slide)
 	return kept
 
 
@@ -282,6 +296,7 @@ func restore(kept: CharacterState) -> void:
 		set(CharacterState.FIELDS[index], kept.values[index])
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
+	slide.load_step_state(kept.slide)
 	_fit_body()
 	_present_facing()
 
@@ -297,6 +312,8 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	global_position = spot
 	velocity = Vector3.ZERO
 	_fallen = false
+	slide.reset()
+	_fit_body()
 	if not is_nan(heading):
 		facing = heading
 		_present_facing()
@@ -322,6 +339,7 @@ func die() -> void:
 	_jump_buffer = 0.0
 	_jump_held = false
 	_sprinting = false
+	slide.reset()
 	aim_held = false
 	fire_held = false
 	aim_amount = 0.0
@@ -355,6 +373,11 @@ func revive() -> void:
 ## True while the character is dead.
 func is_dead() -> bool:
 	return state == State.DEAD
+
+
+## True while the character slides.
+func is_sliding() -> bool:
+	return slide.active
 
 
 ## Hurts the character: stops it for `hit_stun_time` and throws it away from `source`. A dead
@@ -416,10 +439,11 @@ func is_sprinting() -> bool:
 	return _sprinting
 
 
-## The height of the capsule now, in metres: the standing height, or less while it crouches.
+## The height of the capsule now, in metres: the standing height, or less while it crouches or
+## slides.
 func body_height() -> float:
 	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	return lerpf(tuning.height, _crouch_height(), shrink)
+	return minf(lerpf(tuning.height, _crouch_height(), shrink), slide.body_height(tuning))
 
 
 ## True when nothing is above the character that would stop it from standing up.
@@ -529,7 +553,10 @@ func _fit_body() -> void:
 	capsule.height = height
 	_body.position.y = height / 2.0
 	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	_camera_target.position.y = lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink)
+	_camera_target.position.y = minf(
+		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink),
+		slide.camera_height(tuning)
+	)
 
 
 # The shortest the capsule can be: a capsule is at least two radii tall.
@@ -539,9 +566,11 @@ func _crouch_height() -> float:
 
 func _update_crouch(delta: float) -> void:
 	_wants_crouch = last_command.crouch
-	var should := _wants_crouch
-	# Letting go under a low ceiling keeps the character crouched until there is room.
-	if not should and crouching and not has_room_to_stand():
+	var should := _wants_crouch and not slide.active
+	# Letting go under a low ceiling keeps the character crouched until there is room; a slide
+	# that ends under one crouches.
+	var low := crouching or (slide.amount > 0.0 and not slide.active)
+	if not should and low and not has_room_to_stand():
 		should = true
 	if should != crouching:
 		crouching = should
@@ -560,6 +589,10 @@ func _update_aim(delta: float) -> void:
 		fire_held = last_command.fire
 		aim_held = last_command.aim
 		wants = aim_held or fire_held
+		if slide.active and not tuning.slide_can_shoot:
+			aim_held = false
+			fire_held = false
+			wants = false
 	else:
 		aim_held = false
 		fire_held = false
@@ -613,6 +646,7 @@ func _steer(wish: Vector3, delta: float) -> void:
 	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
 	if not _grounded:
 		rate *= tuning.air_control
+		goal = slide.air_goal(self, wish, goal, delta)
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
 	flat = flat.move_toward(goal, rate * delta)
@@ -639,8 +673,14 @@ func _vertical(delta: float) -> void:
 		_fall_speed = maxf(_fall_speed, -velocity.y)
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
-	if _jump_buffer > 0.0 and _coyote > 0.0 and _action_lock <= 0.0 and not crouching:
-		velocity.y = tuning.jump_speed()
+	if (
+		_jump_buffer > 0.0
+		and _coyote > 0.0
+		and _action_lock <= 0.0
+		and not crouching
+		and (tuning.slide_jump or not slide.active)
+	):
+		velocity.y = slide.jump(self) if slide.active else tuning.jump_speed()
 		_jump_buffer = 0.0
 		_coyote = 0.0
 		_jump_held = true
@@ -714,6 +754,7 @@ func _push_props(before: Vector3, delta: float) -> bool:
 
 func _after_move(wish: Vector3, _delta: float) -> void:
 	var grounded := _grounded
+	slide.after_move(self, grounded and _was_airborne)
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
 		if _fall_speed >= tuning.land_clip_speed:
@@ -724,6 +765,7 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 		grounded
 		and not crouching
 		and not aiming
+		and not slide.active
 		and last_command.sprint
 		and ground_speed() > tuning.run_speed
 	)
@@ -736,6 +778,8 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 	var picked := State.IDLE
 	if not grounded:
 		picked = State.JUMP if velocity.y > 0.0 else State.FALL
+	elif slide.active:
+		picked = State.SLIDE
 	elif _land_timer > 0.0:
 		picked = State.LAND
 	elif crouching:

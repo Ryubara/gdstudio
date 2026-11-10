@@ -19,6 +19,7 @@ const NOT_STATE := {
 	&"died_by_clip": "how a death looks; death is not restored",
 	&"items": "what the character holds: the game's state, not the step's",
 	&"last_command": "written again by every step before it is read",
+	&"slide": "an object; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"_interactor": "a node",
