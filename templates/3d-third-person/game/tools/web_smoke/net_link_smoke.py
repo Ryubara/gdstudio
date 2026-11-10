@@ -3,7 +3,7 @@ never downgrades `wss://`.
 
 Starts `tools/net/echo_server.gd` in a headless Godot (a free port), serves the exported game
 (`build/web`), and opens it in headless Chromium with `?play&netprobe&url=ws://...` (`play` skips the
-main menu to `main.tscn`, where the `NetProbe` lives); the game's `NetProbe` writes what its
+main menu to the game, whose player rig adds the `NetProbe`); the game's `NetProbe` writes what its
 `WebSocketLink` sees to `window.gdnet`. Checks:
 
 - the link reads the server's address from the page and opens; pings come back (round trip over

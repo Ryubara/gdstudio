@@ -14,8 +14,8 @@ func before_test() -> void:
 	# Another suite may have left a button down (a base suite leaves `fire` pressed).
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
-	_touch = _scene.get_node("TouchControls")
-	_player = _scene.get_node("Player")
+	_touch = _scene.get_node("PlayerRig/TouchControls")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 

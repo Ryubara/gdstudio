@@ -120,7 +120,7 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 **A template's own suites run with one command**, from your worktree, whatever you changed in the template:
 
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds template test 3d-third-person
+uv run --project <your worktree>/python gds template test 3d-third-person
 ```
 
 It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
@@ -150,8 +150,10 @@ kept with `--keep`, two calls at once).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
-  dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
-  2026-11-08 (the command: gdstudio #917).
+  dropped approach stayed in it and broke every test until the game was made again); the template comes from the
+  checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
+  (the `game` line prints which checkout it used). **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917);
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -387,6 +389,12 @@ scene as the main
 scene; a kit test compares them) and its own
 `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
 
+- **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
+  by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
+  3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
+  that node moved into `world/world.tscn`; only the full `gds template test` run found it, a run of the suites that
+  name `main.tscn` did not. **Seen:** gdstudio #927, 2026-11-10.
+
 A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
 autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
 load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one outside a made game, copy it to a
@@ -412,3 +420,10 @@ folder (`real_game`, `real_third_person_game`).
   tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
   longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
   tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
+- **Approach:** Make a repository once a session in a `scope="session"` fixture and copy it into each test with
+  `python/tests/git_seed.py` (`relocate` rewrites the paths git wrote into `config`); share one run of a command
+  between the tests that only read it (`default_flow`); leave out the step a test is not about (`kit_pr=False`); keep
+  the seed small; pass `--fixed-fps 60` to an eval test's Godot. CI runs four workers, a file to each (`-n auto
+  --maxprocesses=4 --dist loadfile`). **Watch out for:** a loaded machine moves wall time by 2x, so count processes
+  per file too; a copied file costs 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin
+  path. **Seen:** gdstudio #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on four workers).

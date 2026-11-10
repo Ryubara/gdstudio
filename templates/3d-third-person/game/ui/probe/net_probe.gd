@@ -6,7 +6,8 @@ extends Node
 ## (`tools/web_smoke/net_link_smoke.py`) can read it: the state, a refusal, the round trips, and
 ## how many streamed packets came and whether in order. `&inbound=<bytes>` sets the link's inbound
 ## buffer, for the control run with the engine's default (65536). It does nothing off the web or
-## without `?netprobe`, so a player's page pays for nothing.
+## without `?netprobe`, so a player's page pays for nothing. The player rig adds it at run time
+## (`attach`), so no scene ships it.
 
 ## Seconds between two pings.
 const PING_EVERY := 0.5
@@ -27,11 +28,29 @@ var _last_arrival_usec := 0
 var _stream_asked := false
 
 
+## Whether this page asked for the probe: the web build opened with `?netprobe`.
+static func asked() -> bool:
+	return (
+		OS.has_feature("web")
+		and bool(
+			JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('netprobe')")
+		)
+	)
+
+
+## Adds a probe under `parent` when the page asked for one (null otherwise).
+static func attach(parent: Node) -> NetProbe:
+	if not asked():
+		return null
+	var probe := NetProbe.new()
+	probe.name = &"NetProbe"
+	parent.add_child(probe)
+	return probe
+
+
 func _ready() -> void:
 	set_physics_process(false)
-	if not OS.has_feature("web"):
-		return
-	if not JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('netprobe')"):
+	if not asked():
 		return
 	_object = JavaScriptBridge.create_object("Object")
 	JavaScriptBridge.get_interface("window").gdnet = _object

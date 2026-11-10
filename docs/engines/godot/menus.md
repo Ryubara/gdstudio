@@ -25,11 +25,11 @@ one after it.
 | Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
-| Screen host | `ui/menus/screen_host.gd`, a `Screens` node in `main.tscn` | Opens screens over the game ([Menus over a game](#screen-host)). |
-| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `main.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Screen host | `ui/menus/screen_host.gd`, `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`) | Opens screens over the game ([Menus over a game](#screen-host)). |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
-| Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node | Carries mouse sensitivity and invert to the camera rig. |
+| Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |
 | Layout | `ui/menus/menu_fit.gd` | On a phone (short side under 500 px, or a touch screen under 1000) it lays the menu out on a canvas half as big, drawn twice the size, so a button is a finger's size. |
 
 **In the inspector.** `ScreenHost`: `pause_screen`, `action_screens` (action to scene), `transition`, `pause_tree`,
@@ -37,8 +37,8 @@ one after it.
 `presets`, three `QualityPreset` resources (`title`, `msaa`, `shadow_atlas_size`, `shadow_filter`) that Low, Medium and
 High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `force`. `SettingRow`: `key`, `format`,
 `option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
-`PauseButton`: `host`, `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`: `main_menu`, `game_scene`,
-`skip_menu`. `LoadingScreen`: `least_time`.
+`PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`:
+`main_menu`, `game_scene`, `skip_menu`. `LoadingScreen`: `least_time`.
 
 - **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
   before the script's own exports. **Watch out for:** a `.tscn` written by a script that put `style = 1` and
@@ -110,13 +110,13 @@ ScreenHost.current.open(preload("res://ui/menus/inventory.tscn"))
 <!-- new section: Deadnight's settings are in its own docs; nothing said how a template keeps options, applies them and
 lets a player rebind keys (gdstudio #881) -->
 
-The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds the
-options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies every
-value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root viewport,
-window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse sensitivity and
-invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings screen is a
-`SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key in the
-service, a row in the scene and, if it does something, a line in `_apply`.
+The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds
+the options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies
+every value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root
+viewport, window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse
+sensitivity and invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings
+screen is a `SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key
+in the service, a row in the scene and, if it does something, a line in `_apply`.
 
 - **Approach:** Keep the player's choices apart from the designer's: the player's volume is a gain on top of the mix
   `AudioSettings` holds (`set_player_gain`, static, so a menu before the game and the game share it), and the player's

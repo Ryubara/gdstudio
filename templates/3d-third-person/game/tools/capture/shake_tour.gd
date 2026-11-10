@@ -16,8 +16,8 @@ var _clock := 0.0
 var _fired := 0
 var _blasted := 0
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
 
 
 func _ready() -> void:

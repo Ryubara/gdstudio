@@ -11,14 +11,14 @@ The template has a character and the map's components:
 
 - `player/`: the character (`Player`, its `PlayerTuning`, `PlayerAnimation`, `PlayerCamera`, `Interactor`,
   `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
-- `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the crosshair,
-  and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
+- `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the
+  crosshair, and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
   (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
-- `effects/`: the `EffectEmitter` (one in the level, `main.tscn` has it) plays an `EffectDef` (a particles scene, a
-  sound, a flash of light, a length) at a point or on a node from a capped pool, so a muzzle flash, an impact or your own
-  puff all share one cheap system: `EffectEmitter.find(self).play_at(effect, point, normal)` or `.play_on(effect, marker)`.
-  Everything it plays is cosmetic and never sent over the network.
+- `effects/`: the `EffectEmitter` (one in the level, `world/world.tscn` has it) plays an `EffectDef` (a particles scene,
+  a sound, a flash of light, a length) at a point or on a node from a capped pool, so a muzzle flash, an impact or your
+  own puff all share one cheap system: `EffectEmitter.find(self).play_at(effect, point, normal)` or `.play_on(effect,
+  marker)`. Everything it plays is cosmetic and never sent over the network.
 - `net/`: the bytes of an online game (`NetWire`, `CommandCodec`, `SnapshotCodec`) and the limits of one connection
   (`PeerLimits`, `NetLimits`), plain code with no node, socket or clock; `player/player_command.gd` is what one tick
   of a player asks for. The layout of every message is the comment at the top of `net/net_wire.gd`. Under them, the

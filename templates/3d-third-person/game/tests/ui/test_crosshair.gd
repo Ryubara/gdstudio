@@ -19,7 +19,7 @@ func before_test() -> void:
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
 	_crosshair = _scene.get_node("Hud/Root/Center/Crosshair")
-	_player = _scene.get_node("Player")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 

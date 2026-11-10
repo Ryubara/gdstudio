@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from git_seed import relocate, slim
 from test_issues import REPO, FakeGh
 
 from gds_tools import issues, worktrees
@@ -26,29 +27,51 @@ def git(cwd: Path, *args: str) -> str:
     return done.stdout.strip()
 
 
-@pytest.fixture
-def world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
-    """A remote with one commit (a pre-commit config in it), a checkout under repos/ and an empty worktrees/."""
+def _identity(patch: pytest.MonkeyPatch) -> None:
     for key, value in (
         ("NAME", "t"),
         ("EMAIL", "a@example.org"),
     ):  # the code under test commits as the user: CI has none
-        monkeypatch.setenv(f"GIT_AUTHOR_{key}", value)
-        monkeypatch.setenv(f"GIT_COMMITTER_{key}", value)
-    origin, root = tmp_path / "origin.git", tmp_path / "ws"
-    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
-    seed = tmp_path / "seed"
-    seed.mkdir()
-    git(seed, "init", "-q", "-b", "main")
-    (seed / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
-    git(seed, "add", "-A")
-    git(seed, "commit", "-q", "-m", "build: Add a config")
-    git(seed, "remote", "add", "origin", str(origin))
-    git(seed, "push", "-q", "origin", "main")
-    (root / "repos").mkdir(parents=True)
-    (root / "worktrees").mkdir()
-    subprocess.run(["git", "clone", "-q", str(origin), str(root / "repos" / "deadnight")], check=True)
-    return {"root": root, "seed": seed, "checkout": root / "repos" / "deadnight", "worktrees": root / "worktrees"}
+        patch.setenv(f"GIT_AUTHOR_{key}", value)
+        patch.setenv(f"GIT_COMMITTER_{key}", value)
+
+
+@pytest.fixture(scope="session")
+def world_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A remote with one commit (a pre-commit config in it), a checkout under repos/ and an empty worktrees/, made
+    once a session (about ten git processes) and copied for each test with the paths git wrote rewritten
+    (git_seed.relocate)."""
+    base = tmp_path_factory.mktemp("worktrees-world")
+    origin, root = base / "origin.git", base / "ws"
+    with pytest.MonkeyPatch.context() as patch:
+        _identity(patch)
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+        seed = base / "seed"
+        seed.mkdir()
+        git(seed, "init", "-q", "-b", "main")
+        (seed / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+        git(seed, "add", "-A")
+        git(seed, "commit", "-q", "-m", "build: Add a config")
+        git(seed, "remote", "add", "origin", str(origin))
+        git(seed, "push", "-q", "origin", "main")
+        (root / "repos").mkdir(parents=True)
+        (root / "worktrees").mkdir()
+        subprocess.run(["git", "clone", "-q", str(origin), str(root / "repos" / "deadnight")], check=True)
+    return slim(base)
+
+
+@pytest.fixture
+def world(world_seed: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
+    """A copy of the seed: a remote with one commit, a checkout under repos/ and an empty worktrees/."""
+    _identity(monkeypatch)
+    relocate(world_seed, tmp_path)
+    root = tmp_path / "ws"
+    return {
+        "root": root,
+        "seed": tmp_path / "seed",
+        "checkout": root / "repos" / "deadnight",
+        "worktrees": root / "worktrees",
+    }
 
 
 def write_hook(path: Path, text: str) -> None:

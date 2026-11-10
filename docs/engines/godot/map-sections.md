@@ -11,7 +11,7 @@ for each; this page is how they are built and proved, for any GDStudio map that 
 
 | What | How it is done | Why |
 | --- | --- | --- |
-| A section | A `Node3D` scene whose origin is the middle of its doorway on the floor, on the map wall's outer face; `main.tscn` instances it there. The map's wall gets the opening (two pieces and a lintel). | The map scene does not change when a section does, and a section is placed by its doorway. |
+| A section | A `Node3D` scene whose origin is the middle of its doorway on the floor, on the map wall's outer face; `world/world.tscn` instances it there. The map's wall gets the opening (two pieces and a lintel). | The map scene does not change when a section does, and a section is placed by its doorway. |
 | Its light | Its own `LightmapGI` with the map's settings, no sun or sky of its own: the map's sun lights it where it stands, and `tools/map_bake/` adds the map's daylight for the length of the bake. | One look across the doorway; a second sun would light it twice. |
 | Its navigation | A `NavigationRegion3D` whose children are the mesh's source (static colliders), its mesh in its own `.tres`, baked with the section's scene alone at the origin. A door, the movers and the markers are outside the region. | The mesh runs through a door that opens for whoever walks the path; obstacles that move stay out of a baked mesh. |
 | Agent size | Radius 0.5 m, height 1.8 m, climb 0.3 m, slope 45 degrees, cells 0.25 by 0.1 m (`navigation/3d/default_cell_height = 0.1` in the project), ledge spans filtered. | The agent goes where the character goes, and a stair of 0.25 m steps stays on the mesh. |
