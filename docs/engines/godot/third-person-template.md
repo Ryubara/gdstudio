@@ -421,12 +421,14 @@ while alive, a full ragdoll while dead, and a blend back to the animation on get
   Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
   body, shared out by the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints
   swing, as a share of a person's range), `linear_damp`, `angular_damp`, `friction`, `bounce`; Death and getting up:
-  `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let drop,
-  12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s, then
-  `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer` (16, the
-  ragdoll's own, layer 5) and `collision_mask` (17: the level and its own layer, so limbs rest on the body and on each
-  other, never on the bone they hang from; no player capsule, camera wall, ground probe or shot sees a bone). Every
-  one applies live, has a pinned default and a test.
+  `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
+  drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
+  then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer` (16,
+  the ragdoll's own, layer 5) and `collision_mask` (17: the level and its own layer, so limbs rest on the body and on
+  each other, never on the bone they hang from; no player capsule, camera wall, ground probe or shot sees a bone: a
+  projectile masks the level only, so a shot passes through a ragdoll and marks what is behind it, as
+  `test_impact_marks.gd` holds; hit zones (#876) need a layer of their own or a projectile mask with this one).
+  Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (pelvis, three spine bones, neck and head, arms, hands, legs,
   feet; no fingers) hang off a `PhysicalBoneSimulator3D` named `RagdollBones` under the skeleton of the `Model` slot.
   They are made from the table `PlayerRagdoll.BODIES` every time the slot's rig changes, and in the editor too (the

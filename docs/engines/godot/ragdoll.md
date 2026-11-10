@@ -41,9 +41,9 @@ simulator is the only node that needs to exist while the character lives: with `
   `PhysicsServer3D.body_add_collision_exception(a, b)` both ways, once, when the bones are built. **Watch out for:** a
   mask of the level only let limbs through the trunk (13 to 17 cm, in 80 to 90 percent of the frames of a death); the
   "fighting" was a body and its parent overlapping at their joint, and 4.7.2 gives `PhysicalBone3D` no exclusion for
-  them on either engine (godot PR 70945 is open). On layer 1 the camera's spring arm, the ground probes and a shot see
-  the bones. It costs nothing measurable. **Seen:** gdstudio #872, 2026-11-10 (found by the maintainer;
-  `test_ragdoll_natural.gd`: non-adjacent capsules overlap under 6 cm).
+  them on either engine (godot PR 70945 is open). Layer 1 would put the bones in the way of the camera's spring arm,
+  the ground probes and the shots (they mask the level only, #875). **Seen:** gdstudio #872, 2026-11-10 (found by the
+  maintainer; `test_ragdoll_natural.gd`: non-adjacent capsules overlap under 6 cm).
 - **Approach:** Start each bone with its own linear and angular velocity, read from where the animation moved it over
   the last physics frame (sample the 16 bodies' animated poses every tick while alive, then
   `(now - before) / dt` and the axis-angle of `now * before.inverse()` over `dt`, and drop a sample that moved over
@@ -85,6 +85,11 @@ into speed.
   and side limits on both elbows, run after run, with an 8 degree tolerance failing 4 runs in 6. A joint started
   outside its limits is a different thing and is caught by the speed test below. **Seen:** gdstudio #846, 2026-11-09
   (`LIMIT_SLACK` in `test_ragdoll.gd`).
+- **Approach:** Judge hinge limits over many deaths: over 14 lab deaths the worst elbow or knee went 3 to 18 degrees
+  past its range, once 34 (an elbow folded to 178 under the rolling body for 0.4 s). Jolt's `simulation/velocity_steps`
+  30 and `position_steps` 4 (defaults 10, 2) cut the worst to 18. **Watch out for:** one death per setting misleads (the
+  runs are deterministic: vary the scenario), and the steps apply to every body: the template keeps the defaults (see
+  [Cost](#cost)). **Seen:** gdstudio #872, 2026-11-10 (lab sweep of four solver settings; a jog's death on the male).
 
 ## Godot Physics or Jolt {#jolt}
 
@@ -136,6 +141,13 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   collision and 11 bodies instead of 16 changed nothing beyond the 10 to 20 percent spread, so neither is a lever;
   Godot Physics never sleeps a jointed body. The export is single-threaded and contains Jolt. **Seen:** gdstudio #872,
   2026-11-10 (`LABPERF` runs, N = 1, 4 and 10, both engines, and the web runs).
+- **Approach:** Measure the web cost in the real game: a probe scene loads `main.tscn`, adds players, kills them in one
+  tick and prints the physics time per second; export it as the main scene, read it in headless Chromium through `gds
+  quiet`, and keep only runs whose time before the deaths is the game's usual (0.5 to 1 ms). **Watch out for:** on a
+  shared machine two runs in three were noise (30 to 90 ms ticks before any death). Clean runs: one death 1.7 to 2.4 ms
+  in the first second, 0.4 to 0.9 after; four 3.1 to 3.4, then 0.7 to 1.3; ten (four limp, six clips by the cap) 4.3,
+  then 1.1 to 1.4; asleep by about 10 s. The solver steps of [Joint limits](#limits) made four deaths 5.0 ms (one clean
+  run). **Seen:** gdstudio #872, 2026-11-10 (the probe `game_perf.gd` in the task's scratch folder).
 - **Approach:** Take a settled body out of the budget: after `settle_time` seconds with every bone asleep the node says
   `settled`, stops counting toward the cap and a game frees the body there; beyond `ragdoll_range` metres from the
   camera a death is the clip. **Watch out for:** how long a body takes to lie still depends on the pose it died in
