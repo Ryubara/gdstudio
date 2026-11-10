@@ -423,12 +423,11 @@ the bench's browser rows follow the desktop ones (24 to 28 µs in Chrome against
 here differs between the two.
 
 - **Approach:** Make another move of the character its own `RefCounted` with its own step state (`FIELDS`,
-  `save_step_state`, `load_step_state`) and its own tuning resource, called from `step()` by a handful of lines, and
-  read a button's press from the command's held bit against the last tick's (`_wants_crouch`), which a snapshot already
-  holds. **Watch out for:** `Character` sits at gdlint's limit of 20 public methods: two helpers (`is_locked`,
-  `crouch_body_height`) pushed it over, so the lock goes in as an argument, the module sizes the crouch itself, and a
-  read-only property (`sliding`, as prone's `prone`) replaced `is_sliding()`; the slide was first a group of
-  `CharacterTuning`, and moved to its own `SlideTuning` when prone (#1012) landed with that shape. **Seen:** gdstudio
+  `save_step_state`, `load_step_state`) and its own tuning resource, called from `step()` by a few lines, and read a
+  press from the command's held bit against the last tick's (`_wants_crouch`). **Watch out for:** `Character` sits at
+  gdlint's 20 public methods, so pass state in as arguments and use a read-only property (`sliding`, as prone's
+  `prone`); the slide began as a `CharacterTuning` group and moved to `SlideTuning` when prone (#1012) landed that
+  way; a new `Character` export is pinned in `test_ragdoll.gd`, which only the full suite caught. **Seen:** gdstudio
   #1011, 2026-11-10.
 - **Approach:** Give friction a smaller share downhill (`downhill_friction`) instead of relying on gravity along
   the floor alone. **Watch out for:** with the flat friction of a one-second slide (3.5 m/s² and 0.3 a second), the
