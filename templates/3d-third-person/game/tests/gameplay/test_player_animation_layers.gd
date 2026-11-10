@@ -141,7 +141,7 @@ func test_a_shot_plays_the_recoil_over_the_aim() -> void:
 	_player.weapon.fire()
 	await InputSim.ticks(get_tree(), 3)
 	assert_bool(_animation.tree.get(path)).is_true()
-	await get_tree().create_timer(1.0).timeout
+	await InputSim.ticks(get_tree(), 60)
 	assert_bool(_animation.tree.get(path)).is_false()
 
 

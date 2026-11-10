@@ -99,7 +99,7 @@ jobs:
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python gds tool path godot)
-          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
+          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --fixed-fps 60 --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Upload the test report
         if: always()
