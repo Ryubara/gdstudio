@@ -20,6 +20,7 @@ script = ExtResource("11_audio")
 [node name="Wind" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("13_wind")
 autoplay = true
+volume_db = -20.0
 bus = &"Ambient"
 
 [node name="Level" parent="." instance=ExtResource("1_level")]

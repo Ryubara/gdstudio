@@ -10,13 +10,7 @@
 
 | File | Prompt | Seconds |
 | --- | --- | ---: |
-| `footstep_hard_1.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.13 |
-| `footstep_hard_2.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.13 |
-| `footstep_hard_3.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.16 |
-| `footstep_hard_4.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.14 |
-| `footstep_hard_5.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.15 |
-| `footstep_hard_6.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.16 |
-| `footstep_hard_7.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.16 |
-| `footstep_hard_8.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.14 |
-| `footstep_hard_9.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.15 |
-| `footstep_hard_10.ogg` | Footsteps of one person walking at a steady pace in hard leather shoes on a hard concrete floor, each step clear and separate with a short gap, dry, close, no echo, no voice, no music. (requested 5.0 s) | 0.19 |
+| `footstep_soft_1.ogg` | Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them. (requested 5.0 s) | 0.08 |
+| `footstep_soft_2.ogg` | Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them. (requested 5.0 s) | 0.10 |
+| `footstep_soft_3.ogg` | Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them. (requested 5.0 s) | 0.11 |
+| `footstep_soft_4.ogg` | Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them. (requested 5.0 s) | 0.13 |

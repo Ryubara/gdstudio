@@ -1,6 +1,8 @@
 # The sounds the template ships are played by something: the wind by the main scene, the coin by
-# the pickup, the steps by the footsteps. Every sound player sits on one of the template's buses
-# and every sound file in `assets/audio/` is used by a scene.
+# the pickup, the steps by the footsteps, the shot by the weapon. Every sound player sits on one of
+# the template's buses, has a stream (or is given one when it plays), and every sound file in
+# `assets/audio/` is used by a scene. The levels the maintainer tuned and the ones measured against
+# them are pinned here, with the shot's voices.
 extends GdUnitTestSuite
 
 const BUSES: Array[StringName] = [&"SFX", &"Ambient", &"UI"]
@@ -33,6 +35,12 @@ func test_the_wind_plays_from_the_start_as_a_loop_on_the_ambient_bus() -> void:
 	assert_bool((wind.stream as AudioStreamOggVorbis).loop).is_true()
 
 
+func test_the_wind_is_20_db_down_in_a_player_of_its_own() -> void:
+	# A game's own wind is another file in this one player: the level and the bus stay.
+	var wind := _scene.get_node("Wind") as AudioStreamPlayer
+	assert_float(wind.volume_db).is_equal(-20.0)
+
+
 func test_every_sound_player_is_on_a_bus_of_the_template_never_on_master() -> void:
 	var players := _players()
 	assert_int(players.size()).is_greater(8)
@@ -62,9 +70,10 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 		"res://main.tscn",
 		"res://gameplay/pickup/pickup.tscn",
 		"res://gameplay/player/footsteps.tscn",
+		"res://gameplay/weapon/weapon.tscn",
 	]:
 		text += FileAccess.get_file_as_string(path)
-	for folder in ["coin", "footsteps", "wind"]:
+	for folder in ["coin", "footsteps", "pistol", "wind"]:
 		var dir := DirAccess.open("res://assets/audio/%s" % folder)
 		assert_object(dir).is_not_null()
 		for file in dir.get_files():
@@ -76,15 +85,72 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 				)
 
 
-func test_the_weapon_has_a_slot_for_a_shot_sound_that_is_empty_until_a_game_adds_one() -> void:
+# A player with no stream is as silent as no player: every one has a stream, or is the one that is
+# given its stream when it plays (a step from the footsteps' files, a coin from the pickup's).
+func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> void:
+	for player in _players():
+		if player.get("stream") != null:
+			continue
+		var parent := player.get_parent()
+		var files = parent.get("steps") if parent.get("steps") != null else parent.get("sounds")
+		(
+			assert_bool(files is Array and not files.is_empty())
+			. override_failure_message(
+				"%s has no stream and nothing gives it one" % _scene.get_path_to(player)
+			)
+			. is_true()
+		)
+
+
+func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voices() -> void:
 	var weapon := _scene.get_node("Player/Weapon") as Weapon
 	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
-	assert_object(sound.stream).is_null()
+	var randomizer := sound.stream as AudioStreamRandomizer
+	assert_object(randomizer).is_not_null()
+	assert_int(randomizer.streams_count).is_equal(5)
+	for n in 5:
+		var path := randomizer.get_stream(n).resource_path
+		assert_str(path).is_equal("res://assets/audio/pistol/pistol_shot_%d.ogg" % (n + 1))
+	# A little spread keeps a pistol a pistol: under a semitone either way.
+	assert_float(randomizer.random_pitch).is_between(1.01, 1.06)
+	assert_float(randomizer.random_volume_offset_db).is_between(0.5, 2.0)
+	assert_int(sound.max_polyphony).is_equal(3)
 	assert_str(String(sound.bus)).is_equal("SFX")
-	# With a stream in the slot a shot plays it at the muzzle.
-	sound.stream = load("res://assets/audio/coin/coin_pickup_1.ogg")
+
+
+func test_a_shot_plays_at_the_muzzle() -> void:
+	var weapon := _scene.get_node("Player/Weapon") as Weapon
+	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
 	weapon.fire()
 	assert_bool(sound.playing).is_true()
 	assert_vector(sound.global_position).is_equal_approx(
 		weapon.muzzle.global_position, Vector3.ONE * 0.5
 	)
+
+
+# The levels. Step -20, crouch step -29, landing -15 and the wind -20 dB are the maintainer's own,
+# set by ear in a game made from the template. The coin and the shot were levelled against them by
+# measuring each through the camera, the buses and the 3D players (the loudest 400 ms at the mix:
+# step -40, crouch step -46, landing -37, coin -37, shot -31, the wind -50 LUFS integrated). A
+# 3D player's volume is not one to one with what is heard (it also darkens the sound as it falls),
+# so change a number by measuring again, never by adding dB.
+func test_the_levels_are_the_ones_measured_and_no_effect_jumps_out() -> void:
+	var pickup := (load("res://gameplay/pickup/pickup.tscn") as PackedScene).instantiate()
+	auto_free(pickup)
+	var levels := {
+		"Wind": [_scene.get_node("Wind"), -20.0],
+		"Step": [_scene.get_node("Player/Footsteps").get_node("%Step"), -20.0],
+		"CrouchStep": [_scene.get_node("Player/Footsteps").get_node("%CrouchStep"), -29.0],
+		"LandStep": [_scene.get_node("Player/Footsteps").get_node("%LandStep"), -15.0],
+		"Coin": [pickup.get_node("%Sound"), -16.0],
+		"Shot": [_scene.get_node("Player/Weapon").get_node("%ShotSound"), -22.0],
+	}
+	for label in levels:
+		var pair: Array = levels[label]
+		(
+			assert_float((pair[0] as Node).get("volume_db"))
+			. override_failure_message(
+				"%s is at %s dB" % [label, (pair[0] as Node).get("volume_db")]
+			)
+			. is_equal(pair[1])
+		)

@@ -54,20 +54,31 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   before the buses may exist, so `_ready` applies them all again. **Seen:** gdstudio #835, 2026-11-08 (the node and a
   GdUnit4 suite that sets each export and reads the bus back).
 - **Approach:** When sounds land before anything plays them, say so wherever the template is described (its design
-  page, the pull request, the report to the maintainer): which files have no player yet and the issue that wires them.
-  Search the template's scenes and scripts for `AudioStreamPlayer` before saying a template plays a sound. **Watch
-  out for:** files under `assets/audio/` and a bus layout read as working audio; a game made from 3D Third Person was
-  silent, and our own handoff said 3D Blank played its wind loop when no node did. **Seen:** gdstudio #835 and #837,
-  2026-11-08 (the wiring is #836).
+  page, the pull request, the report): which files have no player yet and the issue that wires them. Search the scenes
+  and scripts for `AudioStreamPlayer` and find where each one's `stream` comes from (the scene, or a script when it
+  plays); pin both in a test. **Watch out for:** a player with no `stream` is no sound either: #852 shipped `ShotSound`
+  empty and the report of its clip listed shots that were never heard; files under `assets/audio/` and a bus layout were
+  read as working audio (a game was silent, and our handoff said 3D Blank played a wind no node played). Check each
+  sound a report claims against the capture's track. **Seen:** gdstudio #835 and #837, 2026-11-08; #857, 2026-11-09
+  (five shots, and a test that fails on a player with nothing to play).
 
 - **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `main.tscn`,
-  `Sound` in `pickup.tscn`, `Step`, `CrouchStep` at -9 dB and `LandStep` at +3 dB in `footsteps.tscn`), and test that
-  every player is on a template bus and every file in `assets/audio/` is named by a scene. **Watch out for:** an
-  autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every GdUnit
-  run that frees the main scene), which CI's grep fails: `AudioSettings._exit_tree` stops the players under its parent
-  and waits three mixes (`drain_mixer()`), and a suite that plays a sound calls `AudioDrain.stop_all()`. **Seen:**
-  gdstudio #836, 2026-11-08 (one voice: 4 instances, 2 resources; the drain
-  takes about 0.23 s for each main scene freed in a headless run).
+  `Sound` in `pickup.tscn`, `Step`, `CrouchStep` and `LandStep` in `footsteps.tscn`, `ShotSound` in `weapon.tscn`), and
+  test that every player is on a template bus and every file in `assets/audio/` is named by a scene. **Watch out for:**
+  an autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every
+  GdUnit run that frees the main scene), which CI's grep fails: `AudioSettings._exit_tree` stops the players under its
+  parent and waits three mixes (`drain_mixer()`), and a suite that plays a sound calls `AudioDrain.stop_all()`.
+  **Seen:** gdstudio #836, 2026-11-08 (one voice: 4 instances, 2 resources; the drain takes about 0.23 s for each main
+  scene freed in a headless run).
+
+- **Approach:** Level a template's sounds against each other by playing them in a game made from it with the real
+  input under Movie Maker and reading the loudest 400 ms of each (the wind's integrated) from the track
+  ([Capturing sound](#capturing-sound)); keep the numbers set by ear fixed, move the others until none jumps out, and
+  pin every volume in a test. **Watch out for:** a 3D player's volume is not one to one with what is heard: it darkens
+  as it falls (the attenuation filter), so a bright coin lost 16 dB for 4 dB set and a pistol shot 1 dB per dB, and a
+  camera fix moved it 6 dB of setting; measure again after one. The coin at 0 dB sat 30 LU over steps turned down to
+  -20. **Seen:** gdstudio #857, 2026-11-09 (steps -40, crouch steps -46, landings -37, coin -37, shot -31 LUFS-M at
+  the mix, wind -50 integrated).
 
 ## Capturing sound {#capturing-sound}
 
