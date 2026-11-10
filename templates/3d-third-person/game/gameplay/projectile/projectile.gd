@@ -3,7 +3,8 @@ class_name Projectile
 extends CharacterBody3D
 ## A sphere that flies where the `Weapon` sent it. Each physics tick it moves along its velocity
 ## (falling by `gravity`), and when it touches something it pushes a `RigidBody3D` with `impulse`,
-## tells a body that has a `take_shot(projectile, point)` method (a `Target`), and then either
+## tells a body that has a `take_shot(projectile, point)` method (a `Target`), reports the hit to
+## the level's `Impacts` (the mark, effect and sound of the surface), and then either
 ## bounces off the level (`bounces`) or stops. It is gone after `lifetime` seconds.
 ##
 ## Its look is two nodes of `projectile.tscn`, `Mesh` and `Shape`, so open the scene to restyle
@@ -39,6 +40,12 @@ signal impacted(collider: Node, point: Vector3, normal: Vector3)
 @export_range(0, 8, 1) var bounces := 0
 ## The share of its speed a bounce keeps.
 @export_range(0.0, 1.0, 0.01) var bounce_keep := 0.6
+
+@export_group("Impact")
+## On: where it lands it tells the level's `Impacts` (a mark, an effect and a sound by the kind
+## of surface). Off: it lands without a trace. A `Weapon` turns this off for its shots when its own
+## `impacts` is off.
+@export var impact_effects := true
 
 var _age := 0.0
 var _bounces_left := 0
@@ -94,6 +101,8 @@ func _touch(collision: KinematicCollision3D) -> void:
 		collider.call(&"take_shot", self, point)
 		movable = true
 	impacted.emit(collider, point, normal)
+	if impact_effects and collider != null:
+		get_tree().call_group(&"impacts", &"impact", collider, point, normal)
 	if _bounces_left > 0 and not movable:
 		_bounces_left -= 1
 		velocity = velocity.bounce(normal) * bounce_keep
