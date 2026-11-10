@@ -236,9 +236,7 @@ func test_the_footsteps_follow_the_new_skeleton() -> void:
 	InputSim.key(KEY_W, true)
 	await InputSim.ticks(get_tree(), 40)
 	heard.clear()
-	var end := Time.get_ticks_msec() + 3000
-	while Time.get_ticks_msec() < end:
-		await get_tree().physics_frame
+	await InputSim.ticks(get_tree(), 3 * Engine.physics_ticks_per_second)
 	assert_int(heard.size()).is_greater_equal(2)
 
 

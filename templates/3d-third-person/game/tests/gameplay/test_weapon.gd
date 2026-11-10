@@ -111,7 +111,7 @@ func test_the_projectile_speed_size_gravity_and_lifetime_come_from_the_weapon() 
 	await get_tree().physics_frame
 	# It falls: the downward speed grows by gravity each tick.
 	assert_float(shot.velocity.y).is_less(-0.2)
-	await get_tree().create_timer(0.7).timeout
+	await InputSim.ticks(get_tree(), 42)
 	assert_bool(is_instance_valid(shot)).is_false()
 
 
@@ -119,7 +119,7 @@ func test_the_fire_rate_is_how_many_shots_a_second() -> void:
 	_weapon.fire_rate = 10.0
 	_weapon.fire()
 	assert_bool(_weapon.can_fire()).is_false()
-	await get_tree().create_timer(0.15).timeout
+	await InputSim.ticks(get_tree(), 9)
 	assert_bool(_weapon.can_fire()).is_true()
 
 
@@ -161,13 +161,13 @@ func test_the_impulse_pushes_a_body_it_hits_and_bounces_turn_the_shot_off_a_wall
 	var shot := _shoot()
 	var hits: Array[Node] = []
 	shot.impacted.connect(func(c: Node, _p: Vector3, _n: Vector3) -> void: hits.append(c))
-	await get_tree().create_timer(0.4).timeout
+	await InputSim.ticks(get_tree(), 24)
 	# It struck the wall once, came back at half speed, and is still flying.
 	assert_int(hits.size()).is_equal(1)
 	assert_bool(is_instance_valid(shot)).is_true()
 	assert_float(shot.velocity.z).is_greater(0.0)
 	assert_float(shot.velocity.length()).is_equal_approx(22.5, 0.5)
-	await get_tree().create_timer(0.6).timeout
+	await InputSim.ticks(get_tree(), 36)
 	assert_int(hits.size()).is_greater_equal(1)
 
 
@@ -204,9 +204,9 @@ func test_a_target_that_never_resets_stays_down() -> void:
 	board.reset_time = 0.0
 	board.drop_time = 0.05
 	board.take_shot(auto_free(load(PROJECTILE).instantiate()), Vector3.ZERO)
-	await get_tree().create_timer(0.4).timeout
+	await InputSim.ticks(get_tree(), 24)
 	assert_bool(board.is_down()).is_true()
 	assert_float(board.tilt()).is_equal_approx(board.drop_angle, 0.5)
 	board.drop_angle = 30.0
-	await get_tree().create_timer(0.3).timeout
+	await InputSim.ticks(get_tree(), 18)
 	assert_float(board.tilt()).is_equal_approx(30.0, 0.5)

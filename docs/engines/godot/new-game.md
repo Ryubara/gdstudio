@@ -128,7 +128,9 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   --workspace <throwaway>`), copy each changed file into that game, and make a second one when the template's
   committed files changed after the first. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made earlier keeps the template as it was (the old `.tres` and scene of a dropped
-  approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830, 2026-11-08.
+  approach stayed in it and broke every test until the game was made again). Run the suites with `--fixed-fps 60`, as
+  the template job and a game's own CI do ([Test speed](test-speed.md#what-makes-a-suite-run-at-the-clocks-speed)).
+  **Seen:** gdstudio #830, 2026-11-08; gdstudio #916, 2026-11-10 (a made game's first CI run is under 3 minutes of tests).
 - **Approach:** Try `gds new game` in a throwaway workspace outside the real one: a folder of its own holding a copy of
   `.gdstudio-workspace`, `gdstudio.local.toml` and the addon folders under `tools/`, and in a test of a template's
   `project.godot`, read the file with `ConfigFile`. **Watch out for:** a throwaway folder inside the real workspace
