@@ -128,7 +128,8 @@ its decoders stay quiet on a hostile packet -->
 layout comment of every message, `world_hash`), `CommandCodec` (a `PlayerCommand` in 15 bytes, 27 with a shot block,
 and the `snap_*` steps), `SnapshotCodec` (TICK and WELCOME, `PlayerEntry`, `NetEvent`, `EntityEntry`), `PeerLimits` and
 `TokenBucket` (the budgets of one connection, time passed in by the caller), `NetLimits` (every shared number) and
-`NetDrops` (why each packet was dropped). A transport carries the byte arrays as they are. Measured by
+`NetDrops` (why each packet was dropped). A transport carries the byte arrays as they are; what the same player
+state costs against synchronizers is [below](#template-network-costs). Measured by
 `test_net_snapshot_codec.gd` (it prints the line), against the research estimates of #883:
 
 | Message | Bytes | Estimate |
