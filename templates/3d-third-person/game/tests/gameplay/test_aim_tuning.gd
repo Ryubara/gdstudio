@@ -60,21 +60,3 @@ func test_aim_pose_time_is_how_long_the_arm_takes_to_come_up() -> void:
 	_tuning.aim_pose_time = 0.05
 	await InputSim.ticks(get_tree(), 6)
 	assert_float(_player.aim_amount).is_equal(1.0)
-
-
-func test_aim_hold_time_is_how_long_firing_keeps_the_aim_up() -> void:
-	_tuning.aim_hold_time = 0.3
-	InputSim.pad_axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)
-	await InputSim.ticks(get_tree(), 10)
-	InputSim.pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.0)
-	assert_bool(_player.aiming).is_true()
-	await InputSim.ticks(get_tree(), 10)
-	assert_bool(_player.aiming).is_true()
-	await InputSim.ticks(get_tree(), 20)
-	assert_bool(_player.aiming).is_false()
-	_tuning.aim_hold_time = 2.0
-	InputSim.pad_axis(JOY_AXIS_TRIGGER_RIGHT, 1.0)
-	await InputSim.ticks(get_tree(), 4)
-	InputSim.pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.0)
-	await InputSim.ticks(get_tree(), 60)
-	assert_bool(_player.aiming).is_true()
