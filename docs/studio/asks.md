@@ -31,6 +31,11 @@ average, what a word about people or defaults covers, and what already owns a jo
   out for:** a costume's default colours were read as fixed data of the costume, where a Default option in its own
   colours beside colours a player picks was meant: a phrase about the starting state was read as the whole feature.
   **Seen:** Deadnight, 2026-11-04 (fix: the maintainer corrected the plan).
+- **Approach:** A `Decision` or `Picks` part of an issue records only what the maintainer said, in our words; anything
+  the agent adds (a level, an extra take, a design change) is written as a proposal and waits for an answer. **Watch
+  out for:** an issue filed from a bug report carried a decision to drop a designed behaviour that the maintainer never
+  made, and a picks part added that the proposed levels stood when that question was still open. **Seen:** gdstudio
+  #864 and #857, 2026-11-09 (fix: #864 deleted, #857's picks rewritten to what was said).
 
 ## Proposing a new tool {#new-tools}
 
