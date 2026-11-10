@@ -4,6 +4,9 @@
 # test_ragdoll_physics.gd, the live exports of the Ragdoll node in test_ragdoll_live.gd.
 extends GdUnitTestSuite
 
+## The most ticks a dead body gets to come to rest (20 s).
+const SETTLE_TICKS := 1200
+
 var _arena: PlayArena
 var _player: Player
 var _ragdoll: PlayerRagdoll
@@ -117,7 +120,14 @@ func test_a_dead_body_ignores_every_gameplay_input() -> void:
 	var shots := [0]
 	_player.weapon.fired.connect(func(_p: Projectile) -> void: shots[0] += 1)
 	_player.die()
-	await _ticks(180)
+	# Wait until every bone sleeps, not a fixed time: the pose at death is on the real clock, so
+	# some falls are still sliding after three seconds and moved the hips with no key pressed.
+	_ragdoll.settle_time = 1.0
+	for _tick in SETTLE_TICKS:
+		if _ragdoll.is_settled():
+			break
+		await get_tree().physics_frame
+	assert_bool(_ragdoll.is_settled()).is_true()
 	var spot := _player.global_position
 	var hips := _ragdoll.hips()
 	for key in [KEY_W, KEY_SPACE, KEY_SHIFT, KEY_C, KEY_E]:
