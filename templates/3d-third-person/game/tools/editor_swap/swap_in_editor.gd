@@ -6,18 +6,19 @@ extends EditorPlugin
 ## `res://tools/editor_swap/plugin.cfg`) and run `godot --headless --editor --path game`, or the
 ## same through `gds godot` with a window for the screenshots (`SWAP_SHOT_DIR`).
 ##
-## It opens `player.tscn`, selects the model, presses Delete in the Scene dock and confirms,
-## selects `Model` and has the dock instance the other mannequin on it: `mannequin_male.glb`, or
-## `mannequin_female.glb` when `SWAP_MODEL=female` (the node is named after the file, not
-## `Mannequin`), then selects the AnimationTree and the AnimationPlayer. It saves the scene to see
-## what is written and puts the file back.
+## It opens `character_dressed.tscn` (the model every character and the player wear), selects
+## the model, presses Delete in the Scene dock and confirms, selects `Model` and has the dock
+## instance the other mannequin on it: `mannequin_male.glb`, or `mannequin_female.glb` when
+## `SWAP_MODEL=female` (the node is named after the file, not `Mannequin`), then selects the
+## AnimationTree and the AnimationPlayer. It saves the scene to see what is written and puts the
+## file back.
 ##
 ## It prints one `SWAP` line for each check and quits with 1 if one failed. The editor's own
 ## warnings (`couldn't resolve track`, `invalid root_node`) go to the output: count them there.
 ## With `SWAP_SHOT_DIR` set it saves the editor's window before the swap, after it and with the
 ## tree selected.
 
-const SCENE := "res://gameplay/player/player.tscn"
+const SCENE := "res://gameplay/character/character_dressed.tscn"
 const FOLDER := "res://assets/characters/mannequin/"
 
 var _failed := false

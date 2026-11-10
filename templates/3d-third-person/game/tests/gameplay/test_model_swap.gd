@@ -275,11 +275,12 @@ func test_nothing_between_the_player_and_the_model_has_a_unique_name() -> void:
 	assert_str(String(_tree.root_node)).is_equal(path)
 
 
-func test_only_two_lines_of_the_player_scene_name_the_mannequin() -> void:
+func test_only_two_lines_of_the_dressed_scene_name_the_mannequin() -> void:
 	# The animation player's Root Node and the pistol's seat name it, and the slot rewrites both
 	# when the model is replaced. Nothing else may: a path into a model is lost with the model.
-	var text := FileAccess.get_file_as_string("res://gameplay/player/player.tscn")
-	var header := '[node name="Model" type="Node3D" parent="."]\nscript'
+	# The model is the dressed character's (the player inherits it and names no mannequin).
+	var text := FileAccess.get_file_as_string("res://gameplay/character/character_dressed.tscn")
+	var header := '[node name="Model" type="Node3D" parent="." index="1"]\nscript'
 	assert_bool(text.contains(header)).is_true()
 	var named: Array[String] = []
 	for line in text.split("\n"):
