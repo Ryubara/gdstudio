@@ -233,6 +233,9 @@ states on every tick, and their shots fly the same way from starts within `no_mu
 (`test_character_split.gd`). The character's code reads no `Input`, camera or viewport: `test_player_step.gd` reads
 every script of `gameplay/character/` and `gameplay/weapon/`.
 
+Over a network the command is what crosses the wire: one per tick with a sequence number, applied once and in order by
+the server ([the pattern that worked](../multiplayer.md#own-protocol)).
+
 `sample()` hands out the controller's own command, written again on the next call (`clone()` to keep one), and a press
 is true in exactly one returned command. `Character.state_snapshot(into)` and `restore(state)` take and put back what
 the

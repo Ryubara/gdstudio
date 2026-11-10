@@ -246,6 +246,12 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
 
 <!-- new section: a single death proves nothing and the animation clock is real time -->
 
+**The lab is not in the template.** The "lab deaths" above come from a ragdoll lab (several variants dying at one
+moment in one pose, a viewport tile each, numbers printed: limb overlap, joints past anatomy, fastest bone) that was
+never committed: its scenes and scripts (`lab.tscn`, `lab.gd`, `game_perf.tscn`) are kept in the workspace's scratch
+folder of gdstudio #940 (`lab-src/`). Only `tools/ragdoll/measure_joints.gd` is in the template's tools. Copy the lab
+into a game made from the template to run it (`scenario=`, `variants=`, `model=` and `seconds=` after `--`).
+
 - **Approach:** Test a ragdoll with many deaths at random waits in every pose the player can be in (standing, run,
   sprint, crouch, aim) on both models, and assert the fastest bone stays under 12 m/s after landing; put the player
   back in the middle of the floor with `teleport()` between deaths. **Watch out for:** the `AnimationTree` advances on

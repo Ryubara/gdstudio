@@ -1,10 +1,11 @@
 @tool
 extends EditorPlugin
 ## Replaces the player's model the way a person does in the editor, and checks that the character
-## still works. It needs the editor, so no GdUnit test can run it: put the plugin in a git-ignored
-## `override.cfg` next to `project.godot` (`[editor_plugins]`, `enabled=` the game's plugins and
-## `res://tools/editor_swap/plugin.cfg`) and run `godot --headless --editor --path game`, or the
-## same through `gds godot` with a window for the screenshots (`SWAP_SHOT_DIR`).
+## still works. It needs the editor, so no GdUnit test can run it: add
+## `res://tools/editor_swap/plugin.cfg` to `editor_plugins/enabled` in `project.godot` for the run
+## and take it out after (an `override.cfg` does not enable an editor plugin in 4.7.2), then run
+## `godot --headless --editor --path game`, or the same through `gds godot` with a window for the
+## screenshots (`SWAP_SHOT_DIR`).
 ##
 ## It opens `character_dressed.tscn` (the model every character and the player wear), selects
 ## the model, presses Delete in the Scene dock and confirms, selects `Model` and has the dock

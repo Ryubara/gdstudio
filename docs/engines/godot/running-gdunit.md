@@ -17,7 +17,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
   1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
   Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
-  is a run that never started).
+  is a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`: unzip it
+  from the cache's `gdunit4-<version>/src.zip`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -106,6 +107,10 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   the green, and the list behind two case counts (596 against 595) was gone. **Seen:** Deadnight #987, 2026-11-04;
   Deadnight #1231, 2026-11-05 (fix: compare runs by their case lists; `SCRATCH.md` `Can go:` names a log after the
   merge).
+- **Approach:** For orphan nodes, run `gds template test <t> --keep` and read the `N orphans` count under each
+  `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
+  failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
+  it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
 
 ## Before the push {#before-the-push}
 
@@ -127,6 +132,10 @@ game](new-game.md#proof), gdstudio #830 and #917).
   of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,
   run and restore in one command: the timeout killed it between the first and the last and the worktree held main's
   files with the fix gone. **Seen:** Deadnight #987, 2026-11-04 (fix: the saved patch restored the work).
+- **Approach:** When a change renames a method or changes its signature, search the tests for its callers (`git grep
+  -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
+  for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
+  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 

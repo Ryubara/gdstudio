@@ -5,7 +5,7 @@ extends Node
 ## anything can then shake the view in one line, with a `ShakePreset` (a resource):
 ##
 ## [codeblock]
-## const BLAST := preload("res://core/camera_shake/presets/explosion.tres")
+## const BLAST := preload("res://<your presets>/explosion.tres")
 ## CameraShake.shake(BLAST, blast.global_position)
 ## [/codeblock]
 ##

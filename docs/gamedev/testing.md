@@ -124,6 +124,12 @@ player would see, and builds its situation the way the game does.
   list kept in its consumer went stale; new breaches made nodes mid-fight and broke tests that counted six. **Seen:**
   Deadnight #730, #849, 2026-11-03; Deadnight #1168, 2026-11-05 (fix: extremes or definition values,
   `ChallengeStats.CROWD`, pools made when a breach is built).
+- **Approach:** Prove what happens in the editor (a `@tool` setter moving another node, a delete in the Scene dock, a
+  scene saved with nothing generated in it) with a throwaway editor plugin run in a headless editor, the route of
+  [Godot: editor screenshots](../engines/godot/editor-screenshots.md#what-to-know), and a game-time scenario for the
+  rest. **Watch out for:** a test runner starts the game, not the editor, so a scenario there sees the scene as saved
+  and never runs the editor's undo, path fixing or save; it passes on what a person in the editor breaks. **Seen:**
+  gdstudio #844 and #856, 2026-11-09 (the model swap and the shoulder settings, proved through the editor plugin).
 
 ## Waits have an end {#bounded-waits}
 

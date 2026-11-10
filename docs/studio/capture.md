@@ -136,7 +136,8 @@ report only after reading the body back.
   plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
   refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
   reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
-  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`).
+  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`); gdstudio #880 and #886, 2026-11-10
+  (the guard of today refuses that `--repo` command with no reference: checked for gdstudio #1003).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
