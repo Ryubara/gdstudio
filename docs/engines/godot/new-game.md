@@ -120,7 +120,7 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 **A template's own suites run with one command**, from your worktree, whatever you changed in the template:
 
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds template test 3d-third-person
+uv run --project <your worktree>/python gds template test 3d-third-person
 ```
 
 It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
@@ -150,8 +150,10 @@ kept with `--keep`, two calls at once).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
-  dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
-  2026-11-08 (the command: gdstudio #917).
+  dropped approach stayed in it and broke every test until the game was made again); the template comes from the
+  checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
+  (the `game` line prints which checkout it used). **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917);
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
