@@ -22,6 +22,6 @@ func test_the_surfaces_play_their_variants_on_the_sfx_bus_near_the_shots_level()
 	add_child(shot)
 	var shot_db := (shot.get_node("%ShotSound") as AudioStreamPlayer3D).volume_db
 	for surface: ImpactSurface in impacts.surfaces_by_name().values():
-		assert_bool(surface.sound.bus == &"SFX").is_true()
-		assert_float(surface.sound.volume_db).is_less(shot_db + 14.0)
-		assert_int((surface.sound.stream as AudioStreamRandomizer).streams_count).is_equal(3)
+		assert_bool(surface.effect.sound_bus == &"SFX").is_true()
+		assert_float(surface.effect.sound_volume_db).is_less(shot_db + 14.0)
+		assert_int((surface.effect.sound as AudioStreamRandomizer).streams_count).is_equal(3)

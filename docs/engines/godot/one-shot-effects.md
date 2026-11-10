@@ -19,6 +19,12 @@ performance review (#907, #929); the lessons are linked below.
   fast (`Engine.time_scale`) for the long wait, but check the early moments (a light gone, a scorch still there) at real
   speed: one slow frame at a fast clock skips past everything.
 
+- **A template that ships to the web has one pooled player for all of it.** 3D Third Person's `EffectEmitter` plays an
+  `EffectDef` (particles, sound, light) from a capped pool (smaller on the web), cuts the oldest when it is full,
+  hides a free slot and switches its light off (so it holds no light place), and does no work while nothing plays; a
+  muzzle flash and every bullet impact use it instead of each keeping pools of their own
+  ([Effects](third-person-template.md#effects)).
+
 ## `_process` is on after ready {#process-is-on-after-ready}
 
 A script that defines `_process` has it turned on when the node is ready, *after* `_init` ran. `set_process(false)` in
