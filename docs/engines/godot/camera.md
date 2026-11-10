@@ -130,11 +130,13 @@ blend takes it to zero.
 
 <!-- new section: the page held Deadnight's shot shake and sprint sway, nothing on a shake any feature can call -->
 
-The templates share one shake, `CameraShake` with `ShakePreset` resources (3D Blank's `core/camera_shake/`, so 3D Third
-Person and every game made from the base have it). It is Deadnight's trauma shake made general: the shake is `max
-rotation x level^exponent x wave`, where `level` is the trauma of a one-shot (it drains by itself, `duration` seconds
-from 1) or the blend of a held source (it eases by `blend_speed`), and the wave is seeded noise (impacts) or a sine
-(a gait). Everything is a function of the steps it was given, so tests and captures see the same shake.
+The templates share one shake, `CameraShake` with `ShakePreset` resources: the scripts are in the synced
+`addons/gds_game/camera_shake/` ([Sync](../../studio/sync.md#gds-game)), so every game has them, and the presets are the
+game's own `.tres` files (3D Blank's `core/camera_shake/presets/`, so 3D Third Person has them too). It is Deadnight's
+trauma shake made general: the shake is `max rotation x level^exponent x wave`, where `level` is the trauma of a
+one-shot (it drains by itself, `duration` seconds from 1) or the blend of a held source (it eases by `blend_speed`), and
+the wave is seeded noise (impacts) or a sine (a gait). Everything is a function of the steps it was given, so tests and
+captures see the same shake.
 
 - **A rig owns one.** `CameraShake` is a node under the camera rig. It only works out the turn; the rig applies it on
   top of its own framing: `rotation_degrees()` (x pitch, y yaw, z roll) and `view_offset()` (a slide of the picture in
@@ -152,7 +154,8 @@ from 1) or the blend of a held source (it eases by `blend_speed`), and the wave 
   CameraShake.shake(preload("res://core/camera_shake/presets/landing.tres"))  # the player's own landing
   ```
 
-- **An impact calls it the same way.** The template's `Impacts` (`gameplay/impacts/`) reports every hit with its
+- **An impact calls it the same way.** `Impacts` (its script in `addons/gds_game/impacts/`, its scene the template's
+  `gameplay/impacts/impacts.tscn`) reports every hit with its
   `impact_made(surface, collider, point, normal)` signal, so one line from a game's own script shakes the view by it
   (`presets/impact.tres`: trauma 0.35, 0.25 s, felt to 15 m, so a hit beside the player is felt and one across the map
   is not):

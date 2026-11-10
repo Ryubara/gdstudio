@@ -25,7 +25,7 @@ one after it.
 | Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
-| Screen host | `ui/menus/screen_host.gd`, `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`) | Opens screens over the game ([Menus over a game](#screen-host)). |
+| Screen host | `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`), its script the synced `addons/gds_game/screen_host/screen_host.gd` | Opens screens over the game ([Menus over a game](#screen-host)). |
 | Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
@@ -65,9 +65,9 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 <!-- new section: A menu over a live game covers the online case; nothing said how a solo game opens a pause menu, an
 inventory or a map over its running world and gives the game back (gdstudio #881) -->
 
-`ScreenHost` (`ui/menus/screen_host.gd` in the 3D Third Person template, one node in the game scene) is the way a game
-shows a screen over itself. The screens stay on the `UIRouter` stack, which runs while the tree is paused; the host
-adds what the router does not know about a game:
+`ScreenHost` (the synced `addons/gds_game/screen_host/screen_host.gd`; in 3D Third Person the `Screens` node,
+`ui/menus/screen_host.tscn`) is the way a game shows a screen over itself. The screens stay on the `UIRouter` stack,
+which runs while the tree is paused; the host adds what the router does not know about a game:
 
 - **Open and close.** `open(screen)` takes a `PackedScene`, a path or a `Control`, pauses the tree, lets the mouse go
   and shows the screen; `close()` clears the stack. When the stack is empty again (a Resume button, Esc, a screen that
@@ -81,6 +81,8 @@ adds what the router does not know about a game:
 - **Keep the game as a node tree, not a screen.** The router disables the screen it covers, so a game that is the
   bottom screen stops whether it wants to or not; as plain nodes under a paused tree it stops by the tree's own
   setting, and a game that must run on (online) turns `pause_tree` off.
+- **Main menu.** `go_to_menu()` leaves for `menu_scene`, an export the game's host scene sets (3D Third Person's names
+  `ui/menus/menu_scene.tscn`); empty, it reads back the project's main scene, so the script names no game's path.
 - **Web.** The host also opens the pause menu when the game had the mouse captured and no longer has it (a browser's
   first Esc only lets the pointer lock go) or when the window loses focus
   ([Web export](web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)), and takes the lock
