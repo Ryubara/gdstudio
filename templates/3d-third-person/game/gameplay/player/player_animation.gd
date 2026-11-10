@@ -5,7 +5,7 @@ extends Node
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
 ## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
 ## pistol layer (the pistol sits in one hand while the arms and the spine follow the locomotion
-## clip; aiming or firing brings the arm up to aim by the camera's pitch, and a shot recoils) and a
+## clip; aiming or firing brings the arm up to aim by the player's look, and a shot recoils) and a
 ## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
 ## `play_clip()`). While the player is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
@@ -148,17 +148,17 @@ const _AIM := "Aim"
 	set(value):
 		grip_bones = value
 		_rebuild()
-## Aiming level; the aim blends to the clips below by the camera's pitch.
+## Aiming level; the aim blends to the clips below by how far up or down the player looks.
 @export var aim_clip: StringName = CharacterClips.PISTOL_AIM:
 	set(value):
 		aim_clip = value
 		_rebuild()
-## Aiming up (the camera looks `aim_pitch_range` degrees up).
+## Aiming up (the player looks `aim_pitch_range` degrees up).
 @export var aim_up_clip: StringName = CharacterClips.PISTOL_AIM_UP:
 	set(value):
 		aim_up_clip = value
 		_rebuild()
-## Aiming down (the camera looks `aim_pitch_range` degrees down).
+## Aiming down (the player looks `aim_pitch_range` degrees down).
 @export var aim_down_clip: StringName = CharacterClips.PISTOL_AIM_DOWN:
 	set(value):
 		aim_down_clip = value
@@ -174,7 +174,7 @@ const _AIM := "Aim"
 	set(value):
 		upper_body_bone = value
 		_rebuild()
-## How far the camera looks up or down for the full aim up or aim down pose.
+## How far the player looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
 		aim_pitch_range = value
@@ -211,6 +211,8 @@ var _dead := false
 var _clip_death := false
 var _shot_hold := 0.0
 var _shot_arm := 0.0
+var _pitch_before := 0.0
+var _pitch_now := 0.0
 
 
 func _ready() -> void:
@@ -244,6 +246,15 @@ func _notification(what: int) -> void:
 		tree.anim_player = NodePath()
 	elif what == NOTIFICATION_EDITOR_POST_SAVE:
 		_rebuild()
+
+
+# Keeps the look of the last two steps for the aim pose. A child is processed after its parent,
+# so this reads what the player's step of this tick left.
+func _physics_process(_delta: float) -> void:
+	if Engine.is_editor_hint() or player == null:
+		return
+	_pitch_before = _pitch_now
+	_pitch_now = player.view_pitch
 
 
 func _process(delta: float) -> void:
@@ -397,10 +408,11 @@ func _sync_ground_speeds() -> void:
 	_crouch.set_blend_point_position(1, tuning.crouch_speed)
 
 
-# The pistol layer follows the player: held (or not), how far the arm is up, and the camera's pitch
-# for the aim pose. The arm is up by the player's aim amount, or by the shot's own hold when that
-# is more: after a shot it goes on rising for `shot_hold_time` and then comes down at the speed of
-# the aim (`aim_pose_time`), so a tap of the fire button shows the arm up and never pops.
+# The pistol layer follows the player: held (or not), how far the arm is up, and how far up or
+# down the player looks (`Player.view_pitch`, never a camera) for the aim pose. The arm is up by
+# the player's aim amount, or by the shot's own hold when that is more: after a shot it goes on
+# rising for `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`), so a
+# tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
 	var armed := 1.0 if player.weapon != null else 0.0
 	var aim_time := player.tuning.aim_pose_time if player.tuning != null else 0.15
@@ -412,13 +424,17 @@ func _drive_pistol(delta: float) -> void:
 	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
 	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * armed)
 	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
-	var camera := get_viewport().get_camera_3d()
-	if camera != null:
-		var up := rad_to_deg(asin(clampf(-camera.global_basis.z.y, -1.0, 1.0)))
-		tree.set(
-			&"parameters/%s/blend_position" % _AIM_POSE,
-			clampf(up, -aim_pitch_range, aim_pitch_range)
-		)
+	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
+	tree.set(
+		&"parameters/%s/blend_position" % _AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range)
+	)
+
+
+# How far up the player looks, in degrees, `fraction` of the way from the step before the last
+# to the last one: the pose moves on every drawn frame although the body is stepped 60 times a
+# second, as the engine does for the body itself.
+func _look_up_at(fraction: float) -> float:
+	return rad_to_deg(lerpf(_pitch_before, _pitch_now, clampf(fraction, 0.0, 1.0)))
 
 
 func _on_state_changed(state: Player.State) -> void:

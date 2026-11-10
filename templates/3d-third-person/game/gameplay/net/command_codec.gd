@@ -29,6 +29,8 @@ const F_INTERACT_PRESSED := 1 << 8
 const F_RAGDOLL_PRESSED := 1 << 9
 ## A shot block follows the 15 bytes.
 const F_SHOT := 1 << 10
+# Bits 11 to 15 are free and kept for gdstudio #887: its reload, next weapon, previous weapon
+# and unarmed presses take four of them and raise `NetWire.VERSION`.
 ## Bits no build of this version sets: a command with one of them is refused.
 const F_UNUSED := 0xFFFF & ~((F_SHOT << 1) - 1)
 

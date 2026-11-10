@@ -266,3 +266,11 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   editing a script the lab runs while sweeps run in the background breaks their runs (175 errors a run): copy it, or
   wait. **Seen:** gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`); gdstudio #975, 2026-11-10
   (`test_ragdoll_cones.gd`).
+- **Approach:** Before a test asserts that a dead body lies still, wait until the ragdoll reports it
+  (`is_settled()` with a short `settle_time`, under a cap of ticks), never a fixed number of ticks; and when a case
+  fails only in the whole suite, run it once more with its input taken out before blaming the change under test.
+  **Watch out for:** `test_a_dead_body_ignores_every_gameplay_input` waited 180 ticks after `Player.die()` and then
+  allowed the hips 5 cm in 45 ticks of held keys; alone the hips moved 0.05 mm, in the whole suite on main 0, and in
+  the whole suite of a branch that added three suites 50.9 mm, with and without the keys: the fall was another one
+  (the pose at death is on the real clock) and was still sliding. Three folder bisects did not reproduce it.
+  **Seen:** gdstudio #901, 2026-11-10 (`test_ragdoll.gd` now waits for the sleep).

@@ -49,3 +49,7 @@ var position := Vector3.ZERO
 var velocity := Vector3.ZERO
 ## The members of `FIELDS`, in that order.
 var values: Array = []
+## The step state of the character's weapon (`Weapon.save_step_state()`: its cooldown and its
+## place in the spread's seeded order), so a body put back shoots again on the same tick and in
+## the same direction. Empty for a character with no weapon.
+var weapon: Array = []

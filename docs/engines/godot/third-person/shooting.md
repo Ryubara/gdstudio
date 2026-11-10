@@ -16,6 +16,16 @@ Aim button) turns the body to the camera's heading and raises the pistol; fire (
 button) aims too and shoots once the arm is half up. The numbers are in the Crouch and Aim groups of the tuning and in
 the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
+The weapon and the aim pose read no camera (gdstudio #901). `Player.aim_ray()` is the ray a character aims along, from
+the command of its last step: the command's shot block when it has one (the human's crosshair, written by
+`PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how
+an AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of
+the muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
+`no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming:
+6 mm off in the test). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
+a `Player` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
+the spread's place for `restore()`.
+
 - **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
   little narrower than the capsule and starting a hand above the floor, and prove it with a ceiling slab that ends 2 m
   ahead (let go under it, stay crouched, walk out, stand) and a tunnel 1.25 m high the standing character cannot enter.
@@ -24,7 +34,7 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
   `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
-  over it by the camera's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
+  over it by the look's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
   off aim and fire only the gripping hand (`hand_r` and what is under it) takes the grip pose, so the arms and spine
   follow the locomotion (`PlayerAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
   weight 1 the whole time a weapon was held made the character walk, jog and sprint with the pistol held out like an
@@ -57,7 +67,33 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   has a swept hit and a collision exception for the shooter. **Watch out for:** the pistol's muzzle is in
   `PistolHeld/Pistol/Pistol/Muzzle` (the glb's root and its mesh are both called `Pistol`), and a wrong path in a
   `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
-  2026-11-08.
+  2026-11-08; since gdstudio #901 the ray is an argument (`Weapon.fire(origin, direction)`) and the weapon reads no
+  camera.
+- **Approach:** Hand a weapon the ray it aims along and let the body make it from its command; prove it with a second
+  character whose target is behind the local camera's back, with a world that has no camera, and with the old
+  camera formula kept as a test fixture (`tests/fixtures/camera_aim.gd`) over a sweep of poses. **Watch out for:**
+  while `Weapon` read `get_viewport().get_camera_3d()`, a second character driven by commands dropped the human's
+  target and not its own, and with no camera every shot left along the muzzle marker, which the animation poses.
+  **Seen:** gdstudio #901, 2026-11-10 (`test_command_aim.gd`; 35 poses equal to 0.1 mm in `test_weapon_ray.gd`).
+- **Approach:** Count a cooldown in a `tick(delta)` its owner calls from the step, with an export (`self_ticking`) for
+  the weapon that stands alone, and keep it with the spread generator's state in the character's snapshot. **Watch out
+  for:** a weapon that cools in its own `_physics_process` cools once a frame however often its body is stepped (a
+  server stepping two commands, a body nobody steps), and a time stamp from a clock differs between machines; a press
+  made while more of the cooldown is left than `fire_buffer_time` (0.3 s) is dropped, which a test with two shots a
+  second read as a missing shot. **Seen:** gdstudio #901, 2026-11-10 (`test_weapon_ray.gd`,
+  `test_character_state.gd`).
+- **Approach:** Drive a pose from the value the step stored (`Player.view_pitch`) and blend the last two ticks' values
+  by `Engine.get_physics_interpolation_fraction()`; test the blend with a made-up frame rate by calling the sampling
+  and the blend by hand. **Watch out for:** read from the step alone the aim pose stands still for a frame or two and
+  then jumps (1.5 degrees at 90 degrees a second and 144 frames a second, against 0.625 blended, the same as the old
+  read of the camera on every frame); the blended pose is one tick behind the view, as the body's picture is.
+  **Seen:** gdstudio #901, 2026-11-10 (`test_aim_pose_view.gd`).
+- **Approach:** In a test that steps commands by hand, clear a press (`fire_pressed = false`) before the same command
+  is run again, assert that the body still stands on the floor before the part that matters, and compare a shot's
+  direction with a tolerance. **Watch out for:** `CommandDriver.run` clears the presses of its own copy, so the next
+  run of the same command pressed fire again (two shots); the stream of `test_command_stream.gd` walked 35 m on a 30 m
+  floor, so its shot was fired falling and nothing noticed until a target was put in front of it; and a shot starts at
+  the muzzle, which the animation holds a few millimetres apart from run to run. **Seen:** gdstudio #901, 2026-11-10.
 - **Approach:** Hang a node that belongs to the character (the pistol) on the model's slot, not on a part inside the
   glb's instance, and prove the web export, not only the tests. **Watch out for:** a node added inside an instanced
   scene is there in the editor and in a test and missing from the web export unless the instance is marked editable

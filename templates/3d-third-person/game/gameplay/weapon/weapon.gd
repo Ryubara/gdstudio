@@ -1,9 +1,13 @@
 @tool
 class_name Weapon
 extends Node3D
-## Shoots `Projectile`s from a muzzle toward the point under the screen's centre (where the
-## crosshair is). It knows nothing about the model that carries it: point `muzzle` at a marker
-## on any gun, and `Player` (or anything else) calls `fire()`.
+## Shoots `Projectile`s from a muzzle toward the point its user aims at. It knows nothing about
+## the model that carries it, and it reads no camera and no input: point `muzzle` at a marker on
+## any gun, and `Player` (or anything else) calls `fire(origin, direction)` with the ray it aims
+## along (for a human, the ray under the crosshair, which its `PlayerInput` puts in the command).
+## `fire()` with no ray shoots straight out of the muzzle. A weapon with no muzzle (a character
+## with no model, as a server has) still fires: from beside its `shooter`, `no_muzzle_offset`
+## off the ray.
 ##
 ## Every number of a shot is here, in the inspector, and read when the shot is fired, so a change
 ## while the game runs shows in the next shot. The sound of a shot is the `ShotSound` node of
@@ -20,6 +24,11 @@ signal fired(projectile: Projectile)
 @export var muzzle: Node3D
 ## The body that fires: the aim ray and the projectile skip it. Empty hits everything.
 @export var shooter: CollisionObject3D
+## Where a shot starts when there is no `muzzle`: this far from the point of the aim ray that is
+## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
+## so a negative z is out in front). The default is about where the pistol's muzzle is when the
+## character aims.
+@export var no_muzzle_offset := Vector3(0.13, -0.03, -0.7)
 
 @export_group("Fire")
 ## The projectile that is made for each shot.
@@ -67,6 +76,13 @@ signal fired(projectile: Projectile)
 ## Makes the flash bigger or smaller for this weapon (its particles and the reach of its light).
 @export_range(0.1, 4.0, 0.05, "or_greater", "suffix:x") var muzzle_flash_size := 1.0
 
+@export_group("Stepping")
+## On: the weapon counts its own cooldown down, once a physics tick. Off: whoever steps the
+## weapon calls `tick(delta)` instead. A `Player` turns it off for its weapon and ticks it at the
+## end of each `step`, so the cooldown moves exactly when the body does (a server that steps a
+## body twice in a frame, a body that is not stepped at all).
+@export var self_ticking := true
+
 var _cooldown := 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -81,29 +97,52 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if self_ticking:
+		tick(delta)
+
+
+## Moves the weapon one physics tick on: the cooldown counts down by `delta`. The cooldown is
+## counted here and nowhere else (never read from a clock), so it is the same on every machine
+## that steps the same ticks. Called by the weapon itself while `self_ticking` is on, else by
+## whoever steps it.
+func tick(delta: float) -> void:
 	_cooldown = maxf(_cooldown - delta, 0.0)
 
 
-## True when the weapon has a muzzle and a projectile and is not cooling down.
+## True when the weapon has somewhere to shoot from (a muzzle, or a shooter to stand beside)
+## and a projectile, and is not cooling down.
 func can_fire() -> bool:
-	return muzzle != null and projectile_scene != null and _cooldown <= 0.0
+	return (muzzle != null or shooter != null) and projectile_scene != null and _cooldown <= 0.0
 
 
-## Fires one projectile toward the crosshair and returns it, or null when it cannot fire yet.
-func fire() -> Projectile:
+## Fires one projectile and returns it, or null when it cannot fire yet. With a ray (`origin`
+## and `direction`, what the shooter aims along) the shot leaves the muzzle toward the first
+## thing the ray meets (`aim_point()`), or along the ray when that point is beside or behind
+## the muzzle. With no ray it flies straight out of the muzzle.
+func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 	if not can_fire():
 		return null
-	var origin := muzzle.global_position
-	var direction := _direction_from(origin)
+	var marker: Node3D = muzzle if muzzle != null else self
+	var aimed := _is_ray(origin, direction)
+	var along := direction.normalized() if aimed else -marker.global_basis.z
+	var start := marker.global_position
+	if aimed and muzzle == null:
+		start = _bare_start(origin, along)
+	var toward := aim_point(origin, direction) - start
+	# A point beside or behind the gun (a wall at the character's back) would turn the shot
+	# around: shoot along the aim instead.
+	if toward.dot(along) <= 0.0 or toward.length() < 0.2:
+		toward = along
+	var heading := toward.normalized()
 	if spread > 0.0:
 		var angle := deg_to_rad(spread) * sqrt(_rng.randf())
 		var around := _rng.randf() * TAU
-		var side := direction.cross(Vector3.UP)
+		var side := heading.cross(Vector3.UP)
 		if side.length_squared() < 0.0001:
 			side = Vector3.RIGHT
 		side = side.normalized()
-		var up := side.cross(direction).normalized()
-		direction = direction.rotated(side, sin(around) * angle).rotated(up, cos(around) * angle)
+		var up := side.cross(heading).normalized()
+		heading = heading.rotated(side, sin(around) * angle).rotated(up, cos(around) * angle)
 	var shot := projectile_scene.instantiate() as Projectile
 	shot.size = projectile_size
 	shot.gravity = projectile_gravity
@@ -115,30 +154,25 @@ func fire() -> Projectile:
 		shot.impact_effects = false
 	var world: Node = shooter.get_parent() if shooter != null else get_parent()
 	world.add_child(shot)
-	shot.launch(origin, direction, projectile_speed, shooter)
+	shot.launch(start, heading, projectile_speed, shooter)
 	_cooldown = 1.0 / fire_rate
-	_play_sound(origin)
+	_play_sound(start)
 	_flash()
 	fired.emit(shot)
 	return shot
 
 
-## The point the crosshair is over: the first thing the ray through the middle of the screen
-## hits (past the shooter), or the end of the ray when it hits nothing. With no camera it is the
-## point straight out of the muzzle.
-func aim_point() -> Vector3:
-	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
-	if camera == null:
-		var out := -muzzle.global_basis.z if muzzle != null else -global_basis.z
-		var from := muzzle.global_position if muzzle != null else global_position
-		return from + out * aim_range
-	var centre := get_viewport().get_visible_rect().size / 2.0
-	var ray := camera.project_ray_normal(centre)
-	var start := camera.project_ray_origin(centre)
-	if shooter != null:
-		# Start the ray at the shooter's depth, so a wall behind the character is not hit.
-		start += ray * maxf((shooter.global_position - start).dot(ray), 0.0)
-	var end := start + ray * aim_range
+## The point a ray aims at: the first thing it hits (past the shooter), or the end of the ray
+## (`aim_range`) when it hits nothing. The ray is looked along from the shooter's depth, so a
+## wall between a camera and its character is not what the character aims at. With no ray it is
+## the point straight out of the muzzle.
+func aim_point(origin := Vector3.INF, direction := Vector3.ZERO) -> Vector3:
+	if not _is_ray(origin, direction) or not is_inside_tree():
+		var marker: Node3D = muzzle if muzzle != null else self
+		return marker.global_position - marker.global_basis.z * aim_range
+	var along := direction.normalized()
+	var start := _at_shooter_depth(origin, along)
+	var end := start + along * aim_range
 	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask)
 	if shooter != null:
 		query.exclude = [shooter.get_rid()]
@@ -146,23 +180,47 @@ func aim_point() -> Vector3:
 	return found["position"] if not found.is_empty() else end
 
 
-func _direction_from(origin: Vector3) -> Vector3:
-	var camera := get_viewport().get_camera_3d()
-	var toward := aim_point() - origin
-	var fallback := -muzzle.global_basis.z
-	if camera != null:
-		fallback = -camera.global_basis.z
-		# A point beside or behind the gun (a wall at the character's back) would turn the shot
-		# around: shoot along the view instead.
-		if toward.dot(fallback) <= 0.0:
-			toward = fallback
-	if toward.length() < 0.2:
-		toward = fallback
-	return toward.normalized()
+## The cooldown and the place in the spread's seeded order, written into `kept`: the weapon's
+## share of a character's step state (`CharacterState.weapon`).
+func save_step_state(kept: Array) -> void:
+	kept.resize(2)
+	kept[0] = _cooldown
+	kept[1] = _rng.state
+
+
+## Puts back what `save_step_state()` wrote: the next shot leaves on the same tick and, with a
+## spread, in the same direction as it would have then.
+func load_step_state(kept: Array) -> void:
+	if kept.size() < 2:
+		return
+	_cooldown = kept[0]
+	_rng.state = kept[1]
+
+
+func _is_ray(origin: Vector3, direction: Vector3) -> bool:
+	return origin.is_finite() and direction.is_finite() and direction.length_squared() > 0.000001
+
+
+# The ray's start moved along it to the shooter's depth (never back), so nothing behind the
+# shooter is aimed at.
+func _at_shooter_depth(origin: Vector3, along: Vector3) -> Vector3:
+	if shooter == null:
+		return origin
+	return origin + along * maxf((shooter.global_position - origin).dot(along), 0.0)
+
+
+# Where a shot starts with no muzzle: `no_muzzle_offset` from the ray beside the shooter.
+func _bare_start(origin: Vector3, along: Vector3) -> Vector3:
+	var side := along.cross(Vector3.UP)
+	if side.length_squared() < 0.0001:
+		side = Vector3.RIGHT
+	side = side.normalized()
+	var up := side.cross(along).normalized()
+	return _at_shooter_depth(origin, along) + Basis(side, up, -along) * no_muzzle_offset
 
 
 func _flash() -> void:
-	if not muzzle_flash_enabled or muzzle_flash == null:
+	if not muzzle_flash_enabled or muzzle_flash == null or muzzle == null:
 		return
 	var emitter := EffectEmitter.find(self)
 	if emitter != null:
@@ -179,8 +237,13 @@ func _play_sound(at: Vector3) -> void:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
-	if muzzle == null:
-		warnings.append("Set `muzzle`: the marker the shots leave from.")
+	if muzzle == null and shooter == null:
+		(
+			warnings
+			. append(
+				"Set `muzzle` (the marker the shots leave from) or, for a body with no model, `shooter`."
+			)
+		)
 	if projectile_scene == null:
 		warnings.append("Set `projectile_scene`: the scene made for each shot.")
 	return warnings
