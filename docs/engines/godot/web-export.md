@@ -39,7 +39,10 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
   and fire while unlocked, re-lock from a button press, and have the web smoke release the lock and check the pause
   screen. **Watch out for:** in a browser the first Esc only exits pointer lock and never reaches the game, so the
   game's `pause` key never came and mouse look and fire kept running with a free cursor. **Seen:** Deadnight, 2026-11-02
-  (fix: the pause follows the lock, as above; it belongs in a web game's first design).
+  (fix: the pause follows the lock, as above; it belongs in a web game's first design); gdstudio #881, 2026-11-10 (the
+  template's `ScreenHost` does it for every game made from 3D Third Person, and `tools/web_smoke/pause_smoke.py`
+releases
+  the lock in Chromium and reads the menu up).
 
 ## Discord Activity: the proxy and the iframe {#discord-activity-the-proxy-and-the-iframe}
 

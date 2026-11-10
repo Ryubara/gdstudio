@@ -12,6 +12,11 @@
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 
+[ext_resource type="Script" path="res://ui/menus/screen_host.gd" id="20_screens"]
+[ext_resource type="PackedScene" path="res://ui/menus/pause_menu.tscn" id="21_pause"]
+[ext_resource type="Script" path="res://gameplay/player/look_settings.gd" id="22_look"]
+[ext_resource type="PackedScene" path="res://ui/menus/pause_button.tscn" id="23_pause_button"]
+
 [node name="Main" type="Node"]
 
 [node name="AudioSettings" type="Node" parent="."]
@@ -54,6 +59,20 @@ script = ExtResource("5_host")
 [node name="Hud" parent="." node_paths=PackedStringArray("touch_controls") instance=ExtResource("8_hud")]
 touch_controls = NodePath("../TouchControls")
 
+[node name="Screens" type="Node" parent="."]
+script = ExtResource("20_screens")
+pause_screen = ExtResource("21_pause")
+
+[node name="LookSettings" type="Node" parent="." node_paths=PackedStringArray("camera")]
+script = ExtResource("22_look")
+camera = NodePath("../PlayerCamera")
+
+[node name="MenuLayer" type="CanvasLayer" parent="."]
+
+[node name="PauseButton" parent="MenuLayer" node_paths=PackedStringArray("host", "touch") instance=ExtResource("23_pause_button")]
+host = NodePath("../../Screens")
+touch = NodePath("../../TouchControls")
+
 [node name="WebProbe" type="Node" parent="." node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("10_probe")
 player = NodePath("../Player")
@@ -61,3 +80,5 @@ camera_rig = NodePath("../PlayerCamera")
 touch = NodePath("../TouchControls")
 
 [connection signal="look_turned" from="TouchControls" to="PlayerCamera" method="orbit"]
+[connection signal="opened" from="Screens" to="TouchControls" method="suspend"]
+[connection signal="closed" from="Screens" to="TouchControls" method="resume"]
