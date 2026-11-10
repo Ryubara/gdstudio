@@ -18,6 +18,7 @@ game's `WebProbe` writes to `window.gdprobe`:
 
 Screenshots and `result.json` go to the second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
 
+`--no-shots` leaves the pictures out (each costs seconds on CI's software renderer; a failure still leaves `failed.png`).
 `--ratio 1` renders the page at one pixel per CSS pixel, a quarter of the pixels of the phone's 2: CI's software
 renderer draws the game too slowly at 2 for the checks that measure a distance in a few seconds, and every check reads
 the canvas's own scale, so it passes at either.
@@ -151,6 +152,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("build", type=Path, help="the web export's folder (build/web)")
     parser.add_argument("out", type=Path, help="where the screenshots and result.json go")
+    parser.add_argument("--no-shots", dest="shots", action="store_false", help="take no pictures but one after a failure")
     parser.add_argument("--ratio", type=float, default=RATIO, help="the page's device pixel ratio (default %(default)s)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -160,6 +162,11 @@ def main() -> int:
     console_errors: list[str] = []
 
     started = time.time()
+
+    def shot(name: str) -> None:
+        """A picture of the page; `--no-shots` keeps only the one a failure leaves, since each costs seconds on CI."""
+        if args.shots:
+            page.screenshot(path=str(args.out / f"{name}.png"))
 
     def check(name: str, ok: bool, detail: str) -> None:
         checks[name] = {"ok": bool(ok), "detail": detail, "at_s": round(time.time() - started, 1)}
@@ -187,7 +194,7 @@ def main() -> int:
         scale = state["canvas_h"] / PAGE_H
         css = lambda key: state[key] / scale  # noqa: E731 - a canvas pixel in CSS pixels
         check("shown at once on a touch screen", state["touch_shown"] is True, f"touch_shown={state['touch_shown']}")
-        page.screenshot(path=str(args.out / "phone_idle.png"))
+        shot("phone_idle")
         hand = Hand(page)
 
         # 1. A look drag turns the camera by the designed angle and moves nothing else.
@@ -211,7 +218,7 @@ def main() -> int:
         hand.drag({2: (stick_x, stick_y - 40)}, steps=6)
         sim_wait(page, 1.2)
         mid = probe(page)
-        page.screenshot(path=str(args.out / "phone_stick_down.png"))
+        shot("phone_stick_down")
         hand.up(2)
         sim_wait(page, 0.8)
         after = probe(page)
@@ -244,7 +251,7 @@ def main() -> int:
         # Backwards, the way the character came from: it is not at a wall.
         hand.drag({4: (stick_x, stick_y + 40), 5: (600 + 90, 200)}, steps=10)
         sim_wait(page, 0.4)
-        page.screenshot(path=str(args.out / "phone_two_fingers.png"))
+        shot("phone_two_fingers")
         both = probe(page)
         hand.up(5)
         sim_wait(page, 0.3)
@@ -262,7 +269,7 @@ def main() -> int:
         # 5. The crouch, aim and fire buttons: a finger on each does its own job.
         hand.down(6, css("button4_x"), css("button4_y"))
         state = wait_for(page, lambda s: s.get("crouching") is True, 3.0)
-        page.screenshot(path=str(args.out / "phone_crouch.png"))
+        shot("phone_crouch")
         check("the crouch button crouches", state.get("crouching") is True, f"crouching={state.get('crouching')}")
         hand.up(6)
         state = wait_for(page, lambda s: s.get("crouching") is False, 3.0)
@@ -271,11 +278,11 @@ def main() -> int:
         state = wait_for(page, lambda s: s.get("aiming") is True, 3.0)
         check("the aim button aims", state.get("aiming") is True, f"aiming={state.get('aiming')}")
         sim_wait(page, 1.0)
-        page.screenshot(path=str(args.out / "phone_aim.png"))
+        shot("phone_aim")
         before = probe(page)
         hand.down(8, css("button2_x"), css("button2_y"))
         state = wait_for(page, lambda s: s.get("shots", 0) > before.get("shots", 0), 3.0)
-        page.screenshot(path=str(args.out / "phone_fire.png"))
+        shot("phone_fire")
         check("the fire button shoots", state.get("shots", 0) == before.get("shots", 0) + 1, f"shots {before.get('shots')} to {state.get('shots')}")
         hand.up(8)
         hand.up(7)
@@ -283,6 +290,8 @@ def main() -> int:
         check("lifting the aim button lowers the arm", state.get("aiming") is False, f"aiming={state.get('aiming')}")
 
         check("no console error or page error", not console_errors, "; ".join(console_errors[:5]) or "none")
+        if problems and not args.shots:
+            page.screenshot(path=str(args.out / "failed.png"))
         browser.close()
     server.shutdown()
     result = {"checks": checks, "problems": problems, "scale": scale}

@@ -169,12 +169,12 @@ jobs:
             repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/boot --title "Web boot"
       - name: The game's own browser smoke (touch controls)
         # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a game without the script has
-        # nothing more to add. Ratio 1: the runner's software renderer draws a ratio-2 page too slowly.
+        # nothing more to add. Ratio 1 and no pictures: the runner's software renderer draws slowly.
         run: |
           smoke=repos/{GAME_SLUG}/game/tools/web_smoke/touch_smoke.py
           if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
           uv run --project repos/gdstudio/python gds quiet -- \
-            uv run --with playwright==1.64.1 python "$smoke" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/smoke --ratio 1
+            uv run --with playwright==1.64.1 python "$smoke" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/smoke --ratio 1 --no-shots
           echo "Touch smoke: every check passed" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload the browser captures
         if: always()
