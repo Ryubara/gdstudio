@@ -5,6 +5,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/coin/coin_pickup_2.ogg" id="c2"]
 [ext_resource type="AudioStream" path="res://assets/audio/coin/coin_pickup_3.ogg" id="c3"]
 [ext_resource type="AudioStream" path="res://assets/audio/coin/coin_pickup_4.ogg" id="c4"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_gem"]
 resource_local_to_scene = true
@@ -43,3 +44,9 @@ shape = SubResource("SphereShape3D_touch")
 unique_name_in_owner = true
 volume_db = -16.0
 bus = &"SFX"
+
+[node name="MinimapMarker" type="Node" parent="."]
+script = ExtResource("9_marker")
+color = Color(1, 0.78, 0.2, 1)
+size = 10.0
+kind = &"pickup"

@@ -76,6 +76,19 @@ func _enter_tree() -> void:
 		add_to_group(&"impacts")
 
 
+func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
+	# The first mark would build its material's programs at the first hit: the level's effect
+	# emitter draws each mark material once while the level starts.
+	var emitter := EffectEmitter.find(self)
+	if emitter == null:
+		return
+	emitter.warm_material(mark_material)
+	for surface: ImpactSurface in surfaces_by_name().values():
+		emitter.warm_material(surface.mark_material)
+
+
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return

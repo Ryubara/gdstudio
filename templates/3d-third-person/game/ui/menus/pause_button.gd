@@ -1,7 +1,8 @@
 class_name PauseButton
 extends UIButton
-## The way into the pause menu on a touch screen, which has no Esc key: a small button in the
-## corner that shows while the touch controls do and opens the pause menu through the host.
+## The way into the pause menu on a touch screen, which has no Esc key: a small button at the top
+## middle (the top corners hold the minimap and the HUD parts) that shows while the touch controls
+## do and opens the pause menu through the host.
 ## Put it in a `CanvasLayer` of the game scene; it takes its theme from the tokens because it is not
 ## under the router's stage.
 

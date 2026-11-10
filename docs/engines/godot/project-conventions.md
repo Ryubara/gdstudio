@@ -59,6 +59,12 @@ game/
   2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
   third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back).
 
+- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
+  the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
+  ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
+  (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
+  looked like a problem of the change. **Seen:** gdstudio #884, 2026-11-10.
+
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
   go through the menu. **Watch out for:** a screen of the router starts its work in `screen_enter`, which only the

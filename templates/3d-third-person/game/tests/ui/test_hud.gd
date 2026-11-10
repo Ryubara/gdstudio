@@ -69,7 +69,8 @@ func test_a_part_with_no_data_is_hidden_and_takes_no_room() -> void:
 			assert_bool(widget.has_data()).is_false()
 			assert_bool(widget.visible).is_false()
 	assert_float(_region(&"BottomLeft").size.y).is_equal(0.0)
-	assert_bool(_hud.minimap_slot.visible).is_false()
+	# The slot holds the template's minimap, so it shows.
+	assert_bool(_hud.minimap_slot.visible).is_true()
 
 
 func test_the_coin_counter_appears_at_the_first_coin_and_counts() -> void:
@@ -264,9 +265,14 @@ func test_every_export_of_the_hud_and_a_stat_has_its_default_pinned() -> void:
 
 
 func test_the_minimap_slot_shows_while_something_is_in_it() -> void:
+	for child in _hud.minimap_slot.get_children():
+		child.free()
+	assert_bool(_hud.minimap_slot.visible).is_false()
 	var map := Control.new()
 	_hud.minimap_slot.add_child(map)
 	assert_bool(_hud.minimap_slot.visible).is_true()
-	assert_float(_hud.minimap_slot.size.x).is_equal(_hud.minimap_slot.custom_minimum_size.x)
+	map.custom_minimum_size = Vector2(120.0, 120.0)
+	await get_tree().process_frame
+	assert_float(_hud.minimap_slot.size.x).is_equal(120.0)
 	map.free()
 	assert_bool(_hud.minimap_slot.visible).is_false()

@@ -9,6 +9,9 @@
 [ext_resource type="Script" path="res://gameplay/player/look_settings.gd" id="7_look"]
 [ext_resource type="PackedScene" path="res://ui/menus/pause_button.tscn" id="8_pause_button"]
 [ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="9_shake"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="10_marker"]
+[ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="11_arrow"]
+[ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="12_map"]
 
 [node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("1_rig")
@@ -17,6 +20,15 @@ camera_rig = NodePath("PlayerCamera")
 touch = NodePath("TouchControls")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="MinimapMarker" type="Node" parent="Player"]
+script = ExtResource("10_marker")
+icon = ExtResource("11_arrow")
+color = Color(1, 0.84, 0.3, 1)
+size = 16.0
+rotates_with_node = true
+kind = &"player"
+draw_order = 5
 
 [node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
 script = ExtResource("3_camera")
@@ -54,5 +66,7 @@ layer = 2
 
 [node name="PauseButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
 touch = NodePath("../../TouchControls")
+
+[node name="MapLayer" parent="." instance=ExtResource("12_map")]
 
 [connection signal="look_turned" from="TouchControls" to="PlayerCamera" method="orbit"]

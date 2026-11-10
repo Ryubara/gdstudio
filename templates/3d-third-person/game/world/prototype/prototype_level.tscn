@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://484hd7kq1u6j" path="res://world/lighting/graphics_profile.gd" id="gp"]
 [ext_resource type="Script" uid="uid://csjccrhj5wnx7" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="pcam"]
 [ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="pcamtween"]
+[ext_resource type="PackedScene" path="res://core/minimap/minimap_section.tscn" id="minimap_section"]
 [ext_resource type="PackedScene" path="res://gameplay/pickup/pickup.tscn" id="pickup"]
 [ext_resource type="PackedScene" path="res://gameplay/moving_platform/moving_platform.tscn" id="plat"]
 [ext_resource type="PackedScene" path="res://gameplay/physics_prop/physics_prop.tscn" id="prop"]
@@ -1705,5 +1706,10 @@ outline_modulate = Color(0.1, 0.1, 0.12, 1)
 text = "Y: ragdoll"
 font_size = 96
 outline_size = 24
+
+[node name="MinimapSection" parent="Room" instance=ExtResource("minimap_section")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.25, 2, -15)
+title = "Workshop"
+size = Vector3(12.5, 4, 10)
 
 [connection signal="activated" from="Triggers/PressurePad" to="Doors/MainDoor" method="open" unbinds=1]

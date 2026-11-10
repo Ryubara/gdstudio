@@ -26,10 +26,11 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Menus | `ui/menus/`, `core/settings/` | Main, pause and settings menus, saved options: [Menus](menus.md#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
+| Minimap | `ui/minimap/` (the widget, the full-screen map), `core/minimap/` (`MinimapMarker`, `MinimapSection`) | A round map that follows the character and a full-screen map on `M`; a marker component any node carries. [Minimap](#minimap). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
-| Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
+| Net packets and link | `gameplay/net/` (the packets; `NetLink`, `WebSocketLink`, `WsListener`, `LoopbackLink`, `LinkConditioner`), `tools/net/`, `ui/probe/net_probe.gd` | The bytes of online play ([packets](multiplayer.md#template-packets)) and the transport under them: a WebSocket client (desktop and web), the server's listener, an in-process pair and a bad network around any of them; polled each physics tick; no inspector (code objects). [The template's transport](multiplayer.md#template-transport). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
-| Physics layers | `core/physics_layers/` (in 3D Blank), `project.godot` `[layer_names]` | Seven named layers (World, Characters, Projectiles, Props, Ragdoll, Hit Zones, Sensors) and `PhysicsLayers` with the masks; characters do not block each other: [Physics layers](physics-layers.md#template-layers). |
+| Physics layers | `core/physics_layers/` | Named layers and masks: [Physics layers](physics-layers.md#template-layers). |
 | Scene map | `main.tscn`, `world/world.tscn`, `ui/player_rig/player_rig.tscn`, `ui/hud/hud.tscn`, `ui/menus/screen_host.tscn` | `main.tscn` holds four instances and three wires, nothing else; open the one scene a feature lives in. [Which scene to open](#scene-map). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, a spawn point, a camera zone and two [map sections](map-sections.md); `ProtoBlock` makes the solids. |
 
@@ -54,7 +55,7 @@ this file.
 | Open | For | Holds |
 | --- | --- | --- |
 | `world/world.tscn` | the map and what the map does by itself | `Level`, the two sections (`AISection`, `PathingSection`), `Impacts`, `Effects`, the `Wind` player and `AudioSettings` |
-| `ui/player_rig/player_rig.tscn` | one local player's body, camera and input | `Player`, `PlayerCamera` with its Phantom Camera, the `Camera` and its host, `TouchControls` (its `look_turned` turns the camera inside the scene), `LookSettings`, the pause button in `MenuLayer`; at run time a `WebProbe` on a page opened with `?probe` |
+| `ui/player_rig/player_rig.tscn` | one local player's body, camera and input | `Player`, `PlayerCamera` with its Phantom Camera, the `Camera` and its host, `TouchControls` (its `look_turned` turns the camera inside the scene), `LookSettings`, the pause button in `MenuLayer`, the full-screen map in `MapLayer`; at run time a `WebProbe` on a page opened with `?probe` |
 | `ui/hud/hud.tscn` | the heads-up display | the `Hud` and its parts; `player` names the player the parts read |
 | `ui/menus/screen_host.tscn` | the host that opens the pause menu and other screens | the `ScreenHost` with its pause screen |
 
@@ -225,9 +226,8 @@ Scene dock and checks the result.
   the camera has `require_captured_mouse` and the test turns it off. **Seen:** gdstudio #821, 2026-11-08.
 - A prop is pushed by giving it the share of the player's speed its mass allows, as an impulse along the contact normal;
   a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` counts
-  characters and props by default (its mask, and `counts` behind it) and a `Pickup` only characters (its mask, and
-  `characters_only`); a camera zone still says `player` in `required_group` so that a pushed crate does not take the
-  view. Every body is on a named layer ([Physics layers](physics-layers.md#template-layers)).
+  characters and props by default (`counts`) and a `Pickup` only characters (`characters_only`); a camera zone still
+  says `player` in `required_group` so that a pushed crate does not take the view.
 
 ## Phantom Camera in a third-person follow {#phantom-camera}
 
@@ -368,9 +368,9 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   0 is pushed as before (the spheres). **Seen:** gdstudio #836, 2026-11-08.
 
 - **Approach:** Make an area that senses "something is near" count only what should trigger it: the door's `Sensor`
-  counts a `CharacterBody3D` on `auto_open_mask` (Characters since #924, so the walls never reach it), never a wall,
-  floor, prop or the door's own body; the type test stays behind the mask for a game with its own layers. Closing the door
-  with a character in range keeps it shut until they leave and come back. **Watch out for:** an `Area3D` reports
+  counts a `CharacterBody3D` on `auto_open_mask` (Characters), never a wall, floor, prop or the door's own body; the
+  type test behind the mask serves a game with its own layers. Closing the door with a character in range keeps it
+  shut until they leave and come back. **Watch out for:** an `Area3D` reports
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
@@ -380,14 +380,13 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
   longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
   set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
-- **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
-  `TriggerZone` Characters and Props: [Physics layers](physics-layers.md#template-layers)) and a class test behind it:
-  `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies
-  on their layers: a floor, a block and an `AnimatableBody3D` beside the area must not trigger it, a character must.
-  **Watch out for:** the map's pressure pad was pressed at the start by the floor and the landing under it, so the room
-  door opened at once and the pad never released; the coins were clean only because no block touched them. A frozen
-  `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08
-  (`test_components_among_blocks.gd`).
+- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a `CharacterBody3D`
+  (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a pushed crate presses
+  a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an `AnimatableBody3D` beside the
+  area must not trigger it, a character must. **Watch out for:** the map's pressure pad was pressed at the start by the
+  floor and the landing under it, so the room door opened at once and the pad never released; the coins were clean only
+  because no block touched them. A frozen `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`).
+  **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
 
 - **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
   aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
@@ -425,6 +424,26 @@ body names its surface with and the tests are on [Bullet impacts in 3D Third Per
 One `EffectEmitter` (`Effects` in `world/world.tscn`) plays the flash, each impact and other one-shot effects from one
 pool ([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash`
 and `muzzle_flash_size`.
+
+## Minimap {#minimap}
+
+<!-- new section: #884 added the minimap; how it is built and what it costs are on [Minimap](minimap.md) -->
+
+The HUD's `MinimapSlot` holds the small `Minimap` (follows the character, turns with the camera); the rig's `MapLayer`
+holds the `MapScreen` (`M`, the whole map). The player, pickups, targets and doors carry a `MinimapMarker`; the
+workshop is a `MinimapSection`. How it works and what it costs: [Minimap](minimap.md).
+
+- **The inspector, on `Minimap`.** Nodes: `target`, `target_group`. Shape: `shape`, `map_size`, `max_screen_fraction`,
+  `corner_ratio`. View: `range_m`, `range_min`, `range_max`, `zoom_step`, `zoom_smoothing`, `rotation_mode`, `turn_smoothing`,
+  `follow_target`, `fixed_centre`, the two zoom actions. Map source: `source`, `image`, `image_world_rect`,
+  the `live_*` settings of the camera source. Look: `background_color`,
+  `border_color`, `border_width`, `edge_fade`, `opacity`, `tint_*`, `marker_scale`,
+  `show_north`, `show_self`. Markers: `default_icon`, `default_edge_icon`, `hidden_kinds`, `pool_prewarm`,
+  `max_markers`. Update: `map_update_rate`, `marker_update_rate`, `still_refresh_seconds`.
+- **On `MinimapMarker`.** Look: `icon`, `color`, `size`, `rotates_with_node`, `kind`, `draw_order`. Edge:
+  `clamp_to_edge`, `edge_inset`, `edge_icon`. Show: `active`, `rule`, `near_distance`, `revealed`, `height_fade`.
+- **On `MinimapSection`:** `title`, `size`, `level`, `map_texture`. **On `MapScreen`:** `toggle_action`, `fit_bounds`,
+  `fit_to_sections`, `fit_margin`, `fade_time`.
 
 ## Ragdoll {#ragdoll}
 
