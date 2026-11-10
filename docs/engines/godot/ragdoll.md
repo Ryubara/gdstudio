@@ -239,7 +239,8 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
   `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` on the character's first death
-  (or when a script asks for one: `body()`, `body_count()`; `has_bones()` asks nothing) and again whenever the rig
+  (or when a script asks for one: `body()`, `body_count()`, `simulator()`, which a living character's first
+  flinch (`HitReaction`) asks for; `has_bones()` asks nothing) and again whenever the rig
   changes after that, in the editor at once while `editor_preview` is on (Debug, Visible Collision Shapes), never
   saved: the glb a swap deletes would hold them. A character that never dies never carries them
   ([cost](#cost)). Any rig with these
