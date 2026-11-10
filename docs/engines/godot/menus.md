@@ -56,23 +56,6 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
   `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
   menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
 
-## The HUD {#hud}
-
-<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
-
-How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
-(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
-`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
-the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
-formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
-ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
-`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
-
-Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
-HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
-showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
-in it is sent over a network.
-
 ## A menu over a game that pauses: the screen host {#screen-host}
 
 <!-- new section: A menu over a live game covers the online case; nothing said how a solo game opens a pause menu, an
