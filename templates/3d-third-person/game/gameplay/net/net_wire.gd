@@ -36,10 +36,12 @@ enum Type { HELLO = 1, WELCOME = 2, REFUSED = 3, COMMAND = 4, TICK = 5, PING = 6
 enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 
 ## The protocol version of this build.
-const VERSION := 2
+## 2: the command's flags carry `prone` (bit 15); 3: and the weapon presses (bits 11 to 14:
+## reload, next, previous, the empty hands).
+const VERSION := 3
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 2
+const MIN_VERSION := 3
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
