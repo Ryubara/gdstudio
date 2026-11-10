@@ -7,6 +7,9 @@ extends GdUnitTestSuite
 ## be named here or in `CharacterState.FIELDS`, or the suite fails.
 const NOT_STATE := {
 	&"tuning": "an export",
+	&"prone_tuning": "an export",
+	&"prone": "read only, from _prone",
+	&"prone_amount": "read only, from _prone",
 	&"start_at_spawn": "an export",
 	&"model": "an export (a node)",
 	&"controller": "an export (a node)",
@@ -25,6 +28,7 @@ const NOT_STATE := {
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
 	&"_vault": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
+	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"_interactor": "a node",
 	&"_body": "a node",
