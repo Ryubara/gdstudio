@@ -106,7 +106,7 @@ func _land(foot: StringName) -> void:
 	if not character.is_on_floor() or character.ground_speed() < min_speed:
 		return
 	# A slide's feet do not step.
-	if character.is_sliding():
+	if character.sliding:
 		return
 	if _since < min_interval:
 		return

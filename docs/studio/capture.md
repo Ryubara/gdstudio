@@ -138,6 +138,10 @@ report only after reading the body back.
   reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
   #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`); gdstudio #880 and #886, 2026-11-10
   (the guard of today refuses that `--repo` command with no reference: checked for gdstudio #1003).
+- **Approach:** Read the `## Screenshots` section of the body file back (`sed -n '/## Screenshots/,/## AI/p'`) after
+  editing it and before the send. **Watch out for:** a scripted edit that was to add the image references matched
+  nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
+  2026-11-10.
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 

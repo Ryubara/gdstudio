@@ -9,7 +9,7 @@ can be replaced alone.
 
 | Part | Where | What it does |
 | --- | --- | --- |
-| `Character` | `gameplay/character/character.tscn`, `character_dressed.tscn` | The body, whoever drives it (a `CharacterBody3D`): walks, runs, sprints, crouches, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`, aims and shoots. Says what happens in signals. `character.tscn` is the body alone (no model: what a server loads); `character_dressed.tscn` adds the model, animation, footsteps and ragdoll, and is the scene to start an AI's character from. |
+| `Character` | `gameplay/character/character.tscn`, `character_dressed.tscn` | The body, whoever drives it (a `CharacterBody3D`): walks, runs, sprints, crouches, lies down and crawls, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`, aims and shoots. Says what happens in signals. `character.tscn` is the body alone (no model: what a server loads); `character_dressed.tscn` adds the model, animation, footsteps and ragdoll, and is the scene to start an AI's character from. |
 | `Player` | `gameplay/player/player.tscn` | The human's character: the dressed character with its `PlayerInput`. It joins the group `player` (the HUD, the minimap and camera zones look for it), starts at a `SpawnPoint` of that group and again when it falls out of the map, and holds `input_enabled` and `ragdoll_key`. |
 | `CharacterTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
@@ -25,7 +25,7 @@ can be replaced alone.
 | `Interactor` | `gameplay/character/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `PhysicsLayers` | `core/physics_layers/physics_layers.gd`, `project.godot` `[layer_names]` | The seven named layers and the masks: the player is on Characters and meets World and Props (two characters walk through each other, for networking), shots meet characters, props, the level and a dead body's bones, the camera's walls are World and Props, pickups and zones mask what they sense. Tune a body's layers in its scene's Collision group; the names show in the inspector. |
-| `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim and Crouch added here). |
+| `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim, Crouch and Prone added here). |
 | The rifle | `assets/weapons/rifle/` | An assault rifle model for the weapon work (not yet held or fired): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How a character can hold it with the clips the template has is in the folder's README. |
 | The mannequin and its clips | `assets/characters/mannequin/`, `assets/animation/universal/` | Quaternius's female and male mannequins (`mannequin_female.glb`, `mannequin_male.glb`) and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
 
@@ -33,7 +33,7 @@ can be replaced alone.
 
 `PlayerInput` (a child of `Player`) reads actions, never devices: `move_left`, `move_right`, `move_forward`,
 `move_back`, `jump`, `sprint`,
-`walk` (a slow walk), `interact`, `crouch`, `aim`, `fire` and, for the camera, `look_left`, `look_right`, `look_up`,
+`walk` (a slow walk), `interact`, `crouch`, `prone`, `aim`, `fire` and, for the camera, `look_left`, `look_right`, `look_up`,
 `look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
 layer presses the same actions. Rebind them in Project Settings > Input Map.
 
@@ -46,6 +46,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Walk | X (held) | a gentle push on the stick | a gentle push on the stick |
 | Interact | E | X | the Use button |
 | Crouch | C (held; a toggle in the tuning) | B | the Crouch button |
+| Prone | Z (a toggle; a hold, or a long hold of crouch, in the prone tuning) | d-pad down | the Prone button |
 | Slide | C at a sprint (Shift held, or any run faster than 5 m/s) | B at a sprint (left bumper) | the Crouch button with the stick at its outer ring |
 | Aim | right mouse button (held) | left trigger | the Aim button |
 | Fire | left mouse button | right trigger | the Fire button (it aims too) |
@@ -67,11 +68,11 @@ until it is out. Jump during a slide jumps 85 percent as high and keeps the slid
 9 m/s, fading by 1 m/s each second). Aim and fire work while sliding. Another slide waits 0.3 s.
 
 It is part of the body's step (`CharacterSlide`, `gameplay/character/character_slide.gd`): a bot or a server slides a
-body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in the
-Slide group of the tuning (below); the camera's slide view is on `PlayerCamera` (Slide group: 5 degrees wider over a
-quarter of a second); the clips are `CharacterAnimation`'s `slide_start_clip`, `slide_clip` and `slide_exit_clip`.
-Turn it off with `slide_enabled`. Where the numbers come from (shipped games' slides, with sources) is in the kit's
-`docs/engines/godot/third-person/character.md` (Sliding).
+body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in its
+`SlideTuning` (`gameplay/player/slide_tuning.tres`, the Player's `slide_tuning`; below); the camera's slide view is on
+`PlayerCamera` (Slide group: 5 degrees wider over a quarter of a second); the clips are `CharacterAnimation`'s
+`slide_start_clip`, `slide_clip` and `slide_exit_clip`. Turn it off with its `enabled`. Where the numbers come from
+(shipped games' slides, with sources) is in the kit's `docs/engines/godot/third-person/character.md` (Sliding).
 
 ## Commands: what moves the body {#commands}
 
@@ -82,7 +83,7 @@ A `Character` (the `Player` is one) reads no key and no camera. Once a physics t
 | --- | --- |
 | `move` | The stick in the view's own axes: x to the right, y forward, no longer than 1. |
 | `yaw`, `pitch` | Where the view looks, radians: 0 looks along -Z, a positive pitch looks up. The body turns `move` by `yaw`, and faces `yaw` while it aims. |
-| `sprint`, `walk`, `crouch`, `aim`, `fire`, `jump` | Held. `crouch` is already the result of the toggle. |
+| `sprint`, `walk`, `crouch`, `prone`, `aim`, `fire`, `jump` | Held. `crouch` and `prone` are already the result of their toggles. |
 | `jump_pressed`, `fire_pressed`, `interact_pressed`, `ragdoll_pressed` | Pressed on this tick: true in one command only. |
 | `has_shot`, `origin`, `shot_yaw`, `shot_pitch` | The crosshair's ray, on a tick where a shot may leave. |
 
@@ -115,12 +116,39 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Air | air control (0.45) |
 | Slopes and steps | max slope (48 degrees), step height (0.32 m), snap length (0.35 m), how far past the capsule the step check looks (0.06 m) |
 | Crouch | crouch height (1.1 m), crouch speed (1.5 m/s), time to crouch and stand (0.2 s), toggle or hold (hold), the camera target's height standing (1.55 m) and crouched (0.9 m), and above a dead body's hips (0.25 m) |
-| Slide | on or off (on), the least speed (5.0 m/s), sprint needed (off), while aiming (off), on landing with crouch held (on), the boost (1.5 m/s) up to (8.5 m/s) once every (2 s), friction (3.5 m/s²) and drag (0.3 per second), the fastest (11 m/s), the end speed (3.0 m/s), the longest on the flat (1.5 s; 0 lets friction end it), no limit downhill (on), slope gravity (9.8 m/s²) and the share of friction downhill (0.2), the flattest slope that counts (4 degrees), the turn rate (1.2 rad/s), the wait between slides (0.3 s), hold to continue (on), the capsule's height (0.9 m), the time to drop and rise (0.12 s), the camera target's height (0.75 m), shooting allowed (on), slide jump (on) with its height share (0.85), boost (0), most speed (9 m/s) and air drag (1 m/s²) |
 | Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up and go down (0.15 s), how long a press of fire is kept while the arm comes up (0.3 s), the fastest aimed walk in walking speeds (1.5), how far up the arm must be to shoot (0.5) |
 | Pushing | push strength (0.85), push mass (40 kg), the boost of the share (1.5) and the least share of a heavy prop (0.15), how much faster than a slow prop the body walks (1.15) and how long a slow push lasts after the last touch (0.25 s) |
 | Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip, how long the landing lasts (0.3 s), the speed under which it counts as standing (0.15 m/s) |
 | Body | capsule radius (0.34 m) and height (1.8 m) |
 | Safety | the height below which it starts again at its spawn point (-25 m) |
+
+Prone has a resource of its own, `gameplay/player/prone_tuning.tres` (`Player` > Prone > `prone_tuning`); the
+defaults come from shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#prone`:
+
+| Group | Settings (default) |
+| --- | --- |
+| Crawl | crawl speed (1.0 m/s), the share of it backwards (0.7) and sideways (0.8), acceleration (10) and deceleration (12), turn speed on the ground (3 rad/s), crawling while going down and up (off) |
+| Getting down and up | the time to lie down (0.5 s) and to get up to crouch (0.7 s), the time off a ledge before a lying body gets up (0.15 s) |
+| Body | the lying capsule's height (0.6 m) and radius (0.28 m), the camera target's height lying (0.55 m) |
+| Aim | aiming (on) and firing (on) lying down, the share of the weapon's spread (0.5), the share of the crawl kept aiming (0.5), the aim turn (6 rad/s), how far it looks up (12 degrees) and down (40) |
+| Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
+
+The slide has one too, `gameplay/player/slide_tuning.tres` (`Player` > Slide > `slide_tuning`); the defaults come from
+shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#slide`:
+
+| Group | Settings (default) |
+| --- | --- |
+| Start | on or off (on), the least speed (5.0 m/s), sprint needed (off), while aiming (off), on landing with crouch held (on), hold to continue (on), the wait between slides (0.3 s) |
+| Boost | the boost (1.5 m/s), up to (8.5 m/s), once every (2 s) |
+| Friction and end | friction (3.5 m/s²) and drag (0.3 per second), the fastest (11 m/s), the end speed (3.0 m/s), the longest on the flat (1.5 s; 0 lets friction end it) |
+| Slopes | no limit downhill (on), slope gravity (9.8 m/s²), the share of friction downhill (0.2), the flattest slope that counts (4 degrees) |
+| Steering | the turn rate (1.2 rad/s) |
+| Body and camera | the capsule's height (0.9 m), the time to drop and rise (0.12 s), the camera target's height (0.75 m) |
+| Shooting | shooting allowed (on) |
+| Slide jump | slide jump (on), its height share (0.85), boost (0), most speed (9 m/s) and air drag (1 m/s²) |
+
+The character lies down only on the ground and gets up through crouch, only when a crouched body fits above it: under
+a gap only a lying body fits under (0.8 m, say), letting go of prone keeps it down until it crawls out.
 
 Every number is read while the game runs, so you can change it in the remote inspector and see it at once; the capsule,
 the steepest slope and the floor snap are applied again whenever the resource changes. The `Interactor`'s half angle
@@ -170,8 +198,8 @@ field of view is overwritten: tune `PlayerCamera`. Anything else about it (noise
 inspector, and the addon's docs are at <https://phantom-camera.dev>.
 
 The touch layer is a scene you arrange in the 2D editor (`ui/touch/third_person_touch_controls.tscn`, which inherits 3D
-Blank's `touch_controls.tscn` and adds the Fire, Aim and Crouch buttons): drag the `TouchStick` to move where the stick
-waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new one and set its
+Blank's `touch_controls.tscn` and adds the Fire, Aim, Crouch and Prone buttons): drag the `TouchStick` to move where the
+stick waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new one and set its
 action and word), resize the `MoveZone` and `LookZone` panels that decide which finger does what. Its numbers are on
 `TouchControls` in `ui/player_rig/player_rig.tscn`: when it shows, the stick's radius, dead zone and sprint ring, the
 look sensitivity and smoothing, the opacity and the margin from the screen edge.
@@ -191,18 +219,17 @@ ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built a
 ## Events other nodes connect to
 
 `Character` (and so `Player`) emits `jumped`, `landed(impact_speed)`, `took_hit(amount, source)`,
-`health_changed(health)`, `hit_received(record)`, `interacted(target)`,
-`item_collected(item_id, amount, total)`, `state_changed(state)`, `teleported`, `aim_changed(aiming)` and
-`crouch_changed(crouching)`, `died`, `revived` and `fell` (it went below the tuning's fall limit; the character
-answers by starting again at a spawn point, and a game that decides where characters start connects its own answer);
-`Weapon` emits `fired(projectile)`, a `Projectile`
-`impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A shot on a character finds
-the body part in its path (`HitZones`, eleven parts with a damage multiplier each) and gives the character a
-`HitRecord` (`take_hit(record)`): it takes the health (`max_health`, 100; `health_enabled`) and dies at zero, the
-ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit part flinch (`HitReaction`), and
-a shot on a lying body pushes the bone and leaves a mark on it. The record is all a network sends for a hit
-(`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow with no point: it takes
-the health too, stops the character for the stun time and throws it away from the source.
+`health_changed(health)`, `hit_received(record)`, `interacted(target)`, `item_collected(item_id, amount, total)`,
+`state_changed(state)`, `teleported`, `aim_changed(aiming)` and `crouch_changed(crouching)`, `prone_changed(down)`,
+`died`, `revived` and `fell` (it went below the tuning's fall limit; the character answers by starting again at a spawn
+point, and a game that decides where characters start connects its own answer); `Weapon` emits `fired(projectile)`, a
+`Projectile` `impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A shot on a
+character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier each) and gives the
+character a `HitRecord` (`take_hit(record)`): it takes the health (`max_health`, 100; `health_enabled`) and dies at
+zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit part flinch
+(`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a network sends
+for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow with no point:
+it takes the health too, stops the character for the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
@@ -210,15 +237,19 @@ the health too, stops the character for the stun time and throws it away from th
 `CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
 in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space on ground speed: idle, walk, run, sprint),
-`crouch` (a blend space of the crouch idle and the crouch walk), `jump`, `fall`, `land`, `push` and the slide's three
-clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs
-into `ground`). Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion
-clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only
-the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm
-up over `aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`,
-`Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the
-locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for actions: interact and
-hit play there, and so does anything else:
+`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the prone idle and the crawl, blended by
+ground speed; the crawl plays at the pace of its stride, `crawl_clip_speed`), `jump`, `fall`, `land`, `push` and the
+slide's three clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends
+standing, which runs into `ground`). Until the template's own prone clips land (kit #1009), `prone` plays the swim
+stroke laid on the ground by the Animation's placeholder pose (`prone_pose_offset`, `prone_pose_lean`); with the real
+clips, set `prone_idle_clip`, `crawl_clip`, `to_prone_clip`, `to_crouch_clip` and `crawl_clip_speed`, and zero the pose.
+Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
+arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
+(the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
+`aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`, `Pistol_Aim_Neutral`,
+`Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the locomotion), and `Pistol_Shoot`
+plays for each shot. On top of everything is a one-shot layer for actions: interact and hit play there, and so does
+anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)

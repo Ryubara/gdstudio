@@ -7,6 +7,9 @@ extends GdUnitTestSuite
 ## be named here or in `CharacterState.FIELDS`, or the suite fails.
 const NOT_STATE := {
 	&"tuning": "an export",
+	&"prone_tuning": "an export",
+	&"prone": "read only, from _prone",
+	&"prone_amount": "read only, from _prone",
 	&"start_at_spawn": "an export",
 	&"model": "an export (a node)",
 	&"controller": "an export (a node)",
@@ -22,8 +25,11 @@ const NOT_STATE := {
 	&"max_health": "an export",
 	&"health": "the game's state: hits change it, the step never reads it",
 	&"last_command": "written again by every step before it is read",
-	&"slide": "an object; its step state is CharacterState.slide",
+	&"slide_tuning": "an export",
+	&"sliding": "read only, from _slide",
+	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
+	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"_interactor": "a node",
 	&"_body": "a node",

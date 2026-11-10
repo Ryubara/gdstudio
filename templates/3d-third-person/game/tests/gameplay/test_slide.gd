@@ -2,12 +2,15 @@
 # keeps its momentum, slows by friction and ends standing or crouched; a slope speeds it up or
 # slows it down, a jump out of it keeps the speed, a low gap is slid under. Keys through the
 # project's InputMap first, then commands alone (a bot, a server), then snapshots. The numbers are
-# the Slide group of the tuning.
+# `SlideTuning` (`slide_tuning.tres`).
 extends GdUnitTestSuite
+
+const SLIDE := "res://gameplay/player/slide_tuning.tres"
 
 var _arena: PlayArena
 var _player: Player
 var _tuning: CharacterTuning
+var _slide: SlideTuning
 
 
 func before_test() -> void:
@@ -18,7 +21,9 @@ func before_test() -> void:
 	_player.tuning = (
 		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
 	)
+	_player.slide_tuning = ((load(SLIDE) as SlideTuning).duplicate())
 	_tuning = _player.tuning
+	_slide = _player.slide_tuning
 	await InputSim.ticks(get_tree(), 4)
 
 
@@ -46,7 +51,7 @@ func _sprint(count: int) -> void:
 func _ticks_until_the_slide_ends(limit: int) -> int:
 	for tick in limit:
 		await InputSim.ticks(get_tree(), 1)
-		if not _player.is_sliding():
+		if not _player.sliding:
 			return tick + 1
 	return limit
 
@@ -56,16 +61,16 @@ func test_crouch_at_a_sprint_slides_low_with_a_boost() -> void:
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.sprint_speed, 0.1)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 1)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	assert_int(_player.state).is_equal(Player.State.SLIDE)
 	# The boost, less one tick of friction.
-	var boosted := minf(_tuning.sprint_speed + _tuning.slide_boost, _tuning.slide_boost_cap)
+	var boosted := minf(_tuning.sprint_speed + _slide.boost, _slide.boost_cap)
 	assert_float(_player.ground_speed()).is_equal_approx(boosted, 0.15)
 	assert_bool(_player.crouching).is_false()
 	assert_bool(_player.is_sprinting()).is_false()
 	await InputSim.ticks(get_tree(), 12)
-	assert_float(_capsule().height).is_equal_approx(_tuning.slide_height, 0.001)
-	assert_float(_target().position.y).is_equal_approx(_tuning.slide_camera_height, 0.001)
+	assert_float(_capsule().height).is_equal_approx(_slide.height, 0.001)
+	assert_float(_target().position.y).is_equal_approx(_slide.camera_height, 0.001)
 	var body := _player.get_node("%Body") as CollisionShape3D
 	assert_float(body.position.y - _capsule().height / 2.0).is_equal_approx(0.0, 0.001)
 
@@ -80,7 +85,7 @@ func test_a_flat_slide_slows_by_friction_and_ends_crouched_while_crouch_is_held(
 	var ticks := 0
 	for tick in 200:
 		await InputSim.ticks(get_tree(), 1)
-		if not _player.is_sliding():
+		if not _player.sliding:
 			ticks = tick + 1
 			break
 		speeds.append(_player.ground_speed())
@@ -88,7 +93,7 @@ func test_a_flat_slide_slows_by_friction_and_ends_crouched_while_crouch_is_held(
 	for index in range(1, speeds.size()):
 		assert_float(speeds[index]).is_less(speeds[index - 1])
 	var seconds := ticks / float(Engine.physics_ticks_per_second)
-	assert_float(seconds).is_between(0.7, _tuning.slide_max_time)
+	assert_float(seconds).is_between(0.7, _slide.max_time)
 	var travelled := Vector2(
 		_player.global_position.x - start.x, _player.global_position.z - start.z
 	)
@@ -102,10 +107,10 @@ func test_letting_go_of_crouch_ends_the_slide_and_stands() -> void:
 	await _sprint(40)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 15)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	InputSim.key(KEY_C, false)
 	await InputSim.ticks(get_tree(), 1)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	await InputSim.ticks(get_tree(), 20)
 	assert_bool(_player.crouching).is_false()
 	assert_float(_capsule().height).is_equal_approx(_tuning.height, 0.001)
@@ -113,7 +118,7 @@ func test_letting_go_of_crouch_ends_the_slide_and_stands() -> void:
 
 
 func test_off_hold_a_tap_slides_to_the_end() -> void:
-	_tuning.slide_hold_to_continue = false
+	_slide.hold_to_continue = false
 	await _sprint(40)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 2)
@@ -121,7 +126,7 @@ func test_off_hold_a_tap_slides_to_the_end() -> void:
 	InputSim.key(KEY_W, false)
 	InputSim.key(KEY_SHIFT, false)
 	await InputSim.ticks(get_tree(), 20)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	var ticks := await _ticks_until_the_slide_ends(200)
 	assert_int(ticks).is_less(200)
 	await InputSim.ticks(get_tree(), 20)
@@ -131,10 +136,10 @@ func test_off_hold_a_tap_slides_to_the_end() -> void:
 func test_a_jog_crouches_and_does_not_slide() -> void:
 	InputSim.key(KEY_W, true)
 	await InputSim.ticks(get_tree(), 40)
-	assert_float(_player.ground_speed()).is_less(_tuning.slide_min_speed)
+	assert_float(_player.ground_speed()).is_less(_slide.min_speed)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 2)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	assert_bool(_player.crouching).is_true()
 
 
@@ -147,16 +152,16 @@ func test_a_second_slide_soon_after_gets_no_boost() -> void:
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.sprint_speed, 0.1)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 1)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	assert_float(_player.ground_speed()).is_less(_tuning.sprint_speed)
 
 
 func test_slide_off_turns_crouch_back_into_a_crouch() -> void:
-	_tuning.slide_enabled = false
+	_slide.enabled = false
 	await _sprint(40)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 2)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	assert_bool(_player.crouching).is_true()
 
 
@@ -176,7 +181,7 @@ func test_a_slide_goes_under_a_gap_too_low_to_crouch_in_and_stands_past_it() -> 
 	assert_bool(_player.crouching).is_true()
 	InputSim.key(KEY_C, false)
 	await InputSim.ticks(get_tree(), 30)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	assert_bool(_player.crouching).is_false()
 	assert_float(_capsule().height).is_equal_approx(_tuning.height, 0.001)
 
@@ -189,7 +194,7 @@ func test_a_slide_that_ends_under_a_low_ceiling_stays_crouched() -> void:
 	InputSim.key(KEY_SHIFT, false)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 120)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	InputSim.key(KEY_C, false)
 	await InputSim.ticks(get_tree(), 20)
 	assert_bool(_player.has_room_to_stand()).is_false()
@@ -208,7 +213,7 @@ func test_downhill_speeds_the_slide_up_and_uphill_ends_it_sooner() -> void:
 	var flat := await _slide_on_a_ramp(0.0)
 	var up := await _slide_on_a_ramp(20.0)
 	assert_float(down["peak"]).is_greater(flat["peak"] + 0.5)
-	assert_float(down["seconds"]).is_greater(_tuning.slide_max_time)
+	assert_float(down["seconds"]).is_greater(_slide.max_time)
 	assert_float(up["seconds"]).is_less(flat["seconds"])
 
 
@@ -242,7 +247,7 @@ func _slide_on_a_ramp(degrees: float) -> Dictionary:
 		await CommandDriver.run(get_tree(), [_player], run, 1)
 		peak = maxf(peak, _player.velocity.length())
 		ticks = tick + 1
-		if not _player.is_sliding():
+		if not _player.sliding:
 			break
 	ramp.queue_free()
 	_player.teleport(Vector3(0.0, 0.0, 20.0), PI)
@@ -256,7 +261,7 @@ func test_a_jump_out_of_the_slide_keeps_its_speed_in_the_air() -> void:
 	var speed := _player.ground_speed()
 	InputSim.key(KEY_SPACE, true)
 	await InputSim.ticks(get_tree(), 2)
-	assert_bool(_player.is_sliding()).is_false()
+	assert_bool(_player.sliding).is_false()
 	assert_bool(_player.is_on_floor()).is_false()
 	var top := 0.0
 	for tick in 60:
@@ -266,12 +271,12 @@ func test_a_jump_out_of_the_slide_keeps_its_speed_in_the_air() -> void:
 			# Faster than a sprint after a third of a second in the air.
 			assert_float(_player.ground_speed()).is_greater(_tuning.sprint_speed + 0.3)
 			assert_float(_player.ground_speed()).is_less(speed + 0.01)
-	var height := _tuning.jump_height * _tuning.slide_jump_height_scale
+	var height := _tuning.jump_height * _slide.jump_height_scale
 	assert_float(top).is_equal_approx(height, 0.12)
 
 
 func test_slide_jump_off_keeps_the_body_on_the_ground() -> void:
-	_tuning.slide_jump = false
+	_slide.jump = false
 	await _sprint(40)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(get_tree(), 6)
@@ -287,7 +292,7 @@ func test_a_bot_slides_by_command_alone() -> void:
 	await CommandDriver.run(get_tree(), [_player], run, 40)
 	run.crouch = true
 	await CommandDriver.run(get_tree(), [_player], run, 3)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	assert_int(_player.state).is_equal(Player.State.SLIDE)
 
 
@@ -299,10 +304,10 @@ func test_the_stick_steers_a_slide_only_a_little() -> void:
 	var turn := CommandDriver.walking(Vector3.RIGHT)
 	turn.crouch = true
 	await CommandDriver.run(get_tree(), [_player], turn, 30)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	var heading := Vector3(_player.velocity.x, 0.0, _player.velocity.z).normalized()
 	var turned := rad_to_deg(Vector3.FORWARD.angle_to(heading))
-	var most := rad_to_deg(_tuning.slide_turn_rate) * 30.0 / Engine.physics_ticks_per_second
+	var most := rad_to_deg(_slide.turn_rate) * 30.0 / Engine.physics_ticks_per_second
 	assert_float(turned).is_between(most * 0.8, most + 1.0)
 
 
@@ -313,7 +318,7 @@ func test_a_restore_mid_slide_goes_the_same_way_again() -> void:
 	await CommandDriver.run(get_tree(), [_player], run, 40)
 	run.crouch = true
 	await CommandDriver.run(get_tree(), [_player], run, 10)
-	assert_bool(_player.is_sliding()).is_true()
+	assert_bool(_player.sliding).is_true()
 	var kept := _player.state_snapshot()
 	var first: Array[Vector3] = []
 	await CommandDriver.run(
@@ -339,7 +344,46 @@ func test_two_bodies_slide_alike_from_one_command_stream() -> void:
 	await CommandDriver.run(get_tree(), [_player, other], run, 40)
 	run.crouch = true
 	await CommandDriver.run(get_tree(), [_player, other], run, 30)
-	assert_bool(other.is_sliding()).is_equal(_player.is_sliding())
+	assert_bool(other.sliding).is_equal(_player.sliding)
 	assert_vector(other.velocity).is_equal_approx(_player.velocity, Vector3.ONE * 0.001)
 	var gap := other.global_position - _player.global_position
 	assert_vector(gap).is_equal_approx(Vector3(6.0, 0.0, 0.0), Vector3.ONE * 0.001)
+
+
+# Every slide setting is pinned, with the default the research picked (the kit's character
+# page gives the sources), on a fresh resource and in the player's file.
+func test_every_slide_setting_is_pinned() -> void:
+	var pins := {
+		&"enabled": true,
+		&"min_speed": 5.0,
+		&"needs_sprint": false,
+		&"while_aiming": false,
+		&"on_landing": true,
+		&"boost": 1.5,
+		&"boost_cap": 8.5,
+		&"boost_cooldown": 2.0,
+		&"friction": 3.5,
+		&"drag": 0.3,
+		&"max_speed": 11.0,
+		&"exit_speed": 3.0,
+		&"max_time": 1.5,
+		&"downhill_unlimited": true,
+		&"gravity": 9.8,
+		&"downhill_friction": 0.2,
+		&"flat_angle": 4.0,
+		&"turn_rate": 1.2,
+		&"cooldown": 0.3,
+		&"hold_to_continue": true,
+		&"height": 0.9,
+		&"drop_time": 0.12,
+		&"camera_height": 0.75,
+		&"can_shoot": true,
+		&"jump": true,
+		&"jump_height_scale": 0.85,
+		&"jump_boost": 0.0,
+		&"jump_max_speed": 9.0,
+		&"jump_air_drag": 1.0,
+	}
+	for tuning: SlideTuning in [SlideTuning.new(), load(SLIDE)]:
+		assert_array(ExportPins.differences(tuning, pins)).is_empty()
+		assert_array(ExportPins.wrong_values(tuning, pins)).is_empty()

@@ -94,7 +94,7 @@ func _ready() -> void:
 	)
 	add_child(ramp)
 	if OS.get_environment("SLIDE_OFF") == "1":
-		_player.tuning.slide_enabled = false
+		_player.slide_tuning.enabled = false
 	_rig.distance = DISTANCE
 	_player.teleport(START, PI / 2.0)
 
