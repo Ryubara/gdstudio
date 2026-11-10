@@ -174,12 +174,41 @@ def render(data: bytes, words: dict[str, str]) -> bytes:
     return text.encode("utf-8")
 
 
+#: Folders no copy of a template takes, whether or not a checkout can say what git ignores (new-game.md#proof).
+CACHE_FOLDERS = frozenset({".git", ".godot", "__pycache__", ".ruff_cache", ".pytest_cache", ".mypy_cache"})
+
+
+def git_ignored(source: Path) -> set[str]:
+    """The files under `source` that git ignores and does not track, as paths relative to `source`; empty when
+    `source` is not in a git checkout (the fixed `CACHE_FOLDERS` list is the fallback)."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(source), "ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", "."],
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if done.returncode != 0:
+        return set()
+    return {name for name in done.stdout.decode("utf-8", errors="replace").split("\0") if name}
+
+
 def copy_tree(source: Path, target: Path, words: dict[str, str], skip: frozenset[str] = frozenset()) -> list[str]:
-    """Copy `source` into `target` with `render`, and return the repository-relative paths written."""
+    """Copy `source` into `target` with `render`, and return the repository-relative paths written.
+
+    Git-ignored files (`__pycache__`, `.ruff_cache` ...) are not copied: the new game's layout check refuses them."""
     written = []
+    ignored = git_ignored(source)
     for path in sorted(source.rglob("*")):
         rel = path.relative_to(source)
-        if not path.is_file() or rel.as_posix() in skip or ".godot" in rel.parts:
+        if (
+            not path.is_file()
+            or rel.as_posix() in skip
+            or rel.as_posix() in ignored
+            or CACHE_FOLDERS.intersection(rel.parts)
+        ):
             continue
         data = render(path.read_bytes(), words)
         left = PLACEHOLDER.search(data.decode("utf-8", errors="ignore"))

@@ -89,6 +89,21 @@ def test_a_class_name_is_its_file_in_pascal_case(tmp_path):
     assert [p.path for p in layout.check(project)] == ["core/audio_service.gd"]
 
 
+def test_a_class_of_the_kits_synced_addon_is_declared_nowhere_else(tmp_path):
+    """A template or game copy of a part that moved into `gds_game` never gets the kit's fixes (kit #923)."""
+    project = make(
+        tmp_path,
+        {
+            "addons/gds_game/trigger_zone/trigger_zone.gd": "class_name TriggerZone\nextends Area3D\n",
+            "gameplay/trigger_zone/trigger_zone.gd": "class_name TriggerZone\nextends Area3D\n",
+            "gameplay/door/door.gd": "class_name Door\nextends Node3D\n",
+        },
+    )
+    found = [p for p in layout.check(project) if p.rule == "addon-class"]
+    assert [p.path for p in found] == ["gameplay/trigger_zone/trigger_zone.gd"]
+    assert "addons/gds_game/trigger_zone/trigger_zone.gd" in found[0].message
+
+
 def test_a_scene_and_the_script_on_its_root_share_a_folder_and_a_name(tmp_path):
     scene = (
         '[gd_scene load_steps=2 format=3]\n\n[ext_resource type="Script" path="{path}" id="1_s"]\n\n'
