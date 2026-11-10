@@ -6,8 +6,8 @@ extends CharacterBody3D
 ## in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`,
 ## collects a `Pickup`, aims and shoots its `Weapon`, and dies into a ragdoll (`die()`, the
 ## `ragdoll` checkbox or the `ragdoll` key) and gets up again (`revive()`). Everything a developer
-## tunes is in the `PlayerTuning` resource. Other nodes connect to the signals; `PlayerAnimation`
-## follows `state`.
+## tunes is in the `CharacterTuning` resource. Other nodes connect to the signals;
+## `CharacterAnimation` follows `state`.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
@@ -68,7 +68,7 @@ const RAGDOLL_ACTION := &"ragdoll"
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
 ## Changing a number while the game runs works at once.
-@export var tuning: PlayerTuning:
+@export var tuning: CharacterTuning:
 	set(value):
 		if tuning != null and tuning.changed.is_connected(_apply_tuning):
 			tuning.changed.disconnect(_apply_tuning)
@@ -81,8 +81,8 @@ const RAGDOLL_ACTION := &"ragdoll"
 ## The slot that holds the character's model; it is turned to the heading. It is the slot that is
 ## referenced (never the model inside it, which a game replaces), so it has no unique name: a
 ## unique name on the path to the model is what makes the editor's helper player lose the model
-## (see `PlayerAnimation`).
-@export var model: PlayerModel
+## (see `CharacterAnimation`).
+@export var model: CharacterModel
 ## What decides each physics tick: a `PlayerInput` for a human. Empty: the body asks for nothing
 ## (it still falls and stands), or something else steps it (`step()` with physics processing off).
 @export var controller: CharacterController
@@ -98,7 +98,7 @@ const RAGDOLL_ACTION := &"ragdoll"
 
 @export_group("Ragdoll")
 ## The ragdoll the character goes limp into when it dies. Empty: it dies standing still.
-@export var ragdoll_body: PlayerRagdoll
+@export var ragdoll_body: CharacterRagdoll
 ## Dead (on) or alive (off). Ticking it in the inspector, or in the remote inspector while the
 ## game runs, kills the character into its ragdoll; unticking it gets it up. Saved on, the
 ## character starts dead.
@@ -133,7 +133,7 @@ const RAGDOLL_ACTION := &"ragdoll"
 ## declined it: the cap on limp ragdolls or the range).
 var died_by_clip := false
 
-## What the body is doing; `PlayerAnimation` plays the clip for it.
+## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
 		if value != state:
@@ -154,7 +154,7 @@ var aiming := false
 var aim_held := false
 ## True while the fire button is held and the character can shoot.
 var fire_held := false
-## How far the arm is up, 0 (down) to 1 (aiming); `PlayerAnimation` blends the pose by it.
+## How far the arm is up, 0 (down) to 1 (aiming); `CharacterAnimation` blends the pose by it.
 var aim_amount := 0.0
 ## Where the last stepped command looked, radians: the heading (0 looks along -Z) and the look up
 ## (positive) or down. The aim pose follows `view_pitch`; a body placed from the network sets it.
@@ -190,7 +190,7 @@ var _spawn_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = PlayerTuning.new()
+		tuning = CharacterTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
@@ -340,7 +340,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 
 ## Kills the character: it goes limp into its ragdoll, which keeps the body's momentum, and it
 ## ignores every gameplay input until `revive()`. The camera's target follows the hips. When the
-## ragdoll declines (`PlayerRagdoll.can_start()`: too many limp already, or too far from the
+## ragdoll declines (`CharacterRagdoll.can_start()`: too many limp already, or too far from the
 ## one who watches, whom the `controller` names) the character plays its death clip and lies in
 ## the clip's last pose (`died_by_clip`).
 func die() -> void:

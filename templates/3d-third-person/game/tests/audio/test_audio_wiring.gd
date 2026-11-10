@@ -69,7 +69,7 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 	for path in [
 		"res://world/world.tscn",
 		"res://gameplay/pickup/pickup.tscn",
-		"res://gameplay/player/footsteps.tscn",
+		"res://gameplay/character/footsteps.tscn",
 		"res://gameplay/weapon/weapon.tscn",
 	]:
 		text += FileAccess.get_file_as_string(path)

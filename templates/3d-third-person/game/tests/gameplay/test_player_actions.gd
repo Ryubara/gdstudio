@@ -20,7 +20,7 @@ func after_test() -> void:
 	InputSim.release_all()
 
 
-func _animation() -> PlayerAnimation:
+func _animation() -> CharacterAnimation:
 	return _player.get_node("Animation")
 
 

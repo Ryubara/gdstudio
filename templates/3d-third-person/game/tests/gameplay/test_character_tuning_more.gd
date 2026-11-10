@@ -10,7 +10,7 @@ const PROP := "res://gameplay/physics_prop/physics_prop.tscn"
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 var _first_shot := -1
 var _tick := 0
 
@@ -20,7 +20,7 @@ func before_test() -> void:
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
 	# A copy: the file is a cached resource that other suites read.
-	_player.tuning = (load(TUNING) as PlayerTuning).duplicate()
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 

@@ -1,5 +1,5 @@
 @tool
-class_name PlayerRagdoll
+class_name CharacterRagdoll
 extends Node
 ## The character's ragdoll: physical bones on the skeleton of the model in the `Model` slot, limp
 ## while the `Player` is dead and idle (no collision, no cost) while it is alive.
@@ -251,7 +251,7 @@ static var _counted := 0
 
 @export_group("Nodes")
 ## The slot that holds the character's model; the bones go on its skeleton.
-@export var model: PlayerModel:
+@export var model: CharacterModel:
 	set(value):
 		if model != null and model.rig_changed.is_connected(_on_rig_changed):
 			model.rig_changed.disconnect(_on_rig_changed)
@@ -969,7 +969,7 @@ func _count(on: bool) -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	if model == null:
-		warnings.append("Set `model` to the PlayerModel that holds the character.")
+		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.skeleton() != null and _bones.is_empty():
 		warnings.append("The model's skeleton lacks the universal rig's bones the ragdoll needs.")
 	return warnings

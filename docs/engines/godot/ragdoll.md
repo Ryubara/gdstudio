@@ -23,11 +23,11 @@ simulator is the only node that needs to exist while the character lives: with `
   joint, it only moves the body back onto its bone, and the engine forces the joint's origin onto the bone's own
   origin. A joint typed before its neighbours were posed measured its limits from the wrong frame, so the body started
   outside them and was thrown. Source: `scene/3d/physics/physical_bone_3d.cpp`. **Seen:** gdstudio #846, 2026-11-09
-  (fix: `PlayerRagdoll._build` sets offsets, poses, then types).
+  (fix: `CharacterRagdoll._build` sets offsets, poses, then types).
 - **Approach:** Free a server joint made between two bones (`PhysicsServer3D.joint_create`) before the bones go: on the
   simulator's `tree_exiting`, and make it again on `tree_entered`. **Watch out for:** a model swap deletes the skeleton
   with the bones in it, and freeing the joint after that crashed the engine (signal 11 in `free_rid`, in the swap
-  test). **Seen:** gdstudio #940, 2026-11-10 (`PlayerRagdoll._free_braces`).
+  test). **Seen:** gdstudio #940, 2026-11-10 (`CharacterRagdoll._free_braces`).
 - **Approach:** Generate the bones from the skeleton each time the model changes (the slot's `rig_changed`), name the
   simulator, give nothing an owner, and rebuild live when an export changes. **Watch out for:** bones saved in a scene
   live inside the model's glb, which a swap deletes, and the two mannequins' rests differ by up to 9 cm; Create
@@ -55,7 +55,7 @@ simulator is the only node that needs to exist while the character lives: with `
   given the character's velocity and no spin keeps the pose in free fall, since gravity moves all of them alike: a
   body killed at the top of a jump stayed in its jump pose until it hit the floor, and a clip that holds a pose has no
   velocity to give (see [Going limp](#going-limp)). **Seen:** gdstudio #872, 2026-11-10 (found by the maintainer on the
-  #846 ragdoll, `PlayerRagdoll` `pose_velocity`).
+  #846 ragdoll, `CharacterRagdoll` `pose_velocity`).
 
 ## Joint limits {#limits}
 
@@ -67,18 +67,18 @@ into speed.
 - **Approach:** Take the limits from a body's range of motion: elbows -5 to 150 and knees -5 to 140 degrees as hinges,
   the others cones (spine 20 and 12, then 30 and 20; head 45 and 60; shoulder 100 and 60; hip 70 and 35; wrist 60 and
   60; ankle 35 and 15, swing then twist), the same left and right, and push the animated pose inside them when the body
-  goes limp (`PlayerRagdoll._clamped_world`; `tools/ragdoll/measure_joints.gd` shows how far the clips go past).
+  goes limp (`CharacterRagdoll._clamped_world`; `tools/ragdoll/measure_joints.gd` shows how far the clips go past).
   **Watch out for:** limits widened to hold every clip pose plus 10 degrees let an elbow lean 73 degrees and a knee 39
   in a run's death (hinges: 8, 17); a limit narrower than the death pose throws the body unless the pose is
   clamped. Sources: NASA-STD-3000, Luttgens and Hamilton; Unity, Jolt, Godot. **Seen:**
   gdstudio #846, 2026-11-09; gdstudio #872, 2026-11-10 (`test_ragdoll_natural.gd`: no hinge off its axis by 25).
 - **Approach:** Know the sign: a hinge or 6DOF limit angle has the opposite sign to the turn of the child body about the
   axis, on Godot Physics and on Jolt; make the joint at the middle of its range with the same limit each way
-  (`PlayerRagdoll` does) and the sign stops mattering, or test it with a probe that places a body at a known angle
+  (`CharacterRagdoll` does) and the sign stops mattering, or test it with a probe that places a body at a known angle
   first. **Watch out for:** a limit written with the sign of the turn you measured limits the other way, and the body
   is then outside it from the first step. **Seen:** gdstudio #846, 2026-11-09 (probed on both engines).
 - **Approach:** Make a knee or an elbow a `HINGE` joint, not a 6DOF: Z on the bend axis, X along the bone
-  (`PlayerRagdoll.hinge_frame()`), `angular_limit_upper` and `lower` in degrees. **Watch out for:** Jolt reads a 6DOF's
+  (`CharacterRagdoll.hinge_frame()`), `angular_limit_upper` and `lower` in degrees. **Watch out for:** Jolt reads a 6DOF's
   angular limits as swing-twist with a Pyramid swing (`jolt_generic_6dof_joint_3d.cpp`), so a big bend with a lean and
   a roll in it is a box, which is how #846's elbows went sideways; a hinge is exact over the whole range. Jolt ignores
   `bias`, `softness` and `relaxation` of a cone or a hinge (a warning if not default); a cone's `swing_span` is the
@@ -190,7 +190,7 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
 
 - **What it is.** `Player.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`). Dying
   stops the animation tree, turns the capsule off, ignores every gameplay input and lets the `Ragdoll` component
-  (`PlayerRagdoll`) take the pose on screen, pushed inside the joints' limits, each bone keeping the velocity the
+  (`CharacterRagdoll`) take the pose on screen, pushed inside the joints' limits, each bone keeping the velocity the
   animation gave it and the limbs let drop for a third of a second (a death in the air goes limp there). When the
   ragdoll declines (over `max_active`, or past `ragdoll_range`) the character plays `ual1/Death01`
   (`Player.died_by_clip`). The camera orbits and follows the hips. A ragdoll below the tuning's `fall_limit` respawns;
@@ -215,7 +215,7 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   mark yet, [Physics layers](physics-layers.md#shots-meet-bones); hit zones (#876) are layer 6).
   Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
-  `RagdollBones` under the `Model` slot's skeleton, made from `PlayerRagdoll.BODIES` whenever the rig changes, in the
+  `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` whenever the rig changes, in the
   editor too (Debug, Visible Collision Shapes), never saved: the glb a swap deletes would hold them. Any rig with these
   65 bones works, both mannequins included. Generated, not the editor's Create Physical Skeleton: a joint's zero is the
   pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by

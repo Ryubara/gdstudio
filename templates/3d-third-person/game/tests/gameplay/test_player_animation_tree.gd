@@ -1,4 +1,4 @@
-# The player's AnimationTree is built in code (PlayerAnimation), and the editor shows it too: the
+# The player's AnimationTree is built in code (CharacterAnimation), and the editor shows it too: the
 # script is a `@tool` script, so opening the player scene builds the tree and the node has no
 # warning. The built tree must never be written into a scene file.
 extends GdUnitTestSuite
@@ -14,7 +14,7 @@ const SCENES := [
 
 
 func test_the_script_is_a_tool_script_so_the_editor_builds_the_tree() -> void:
-	var source := FileAccess.get_file_as_string("res://gameplay/player/player_animation.gd")
+	var source := FileAccess.get_file_as_string("res://gameplay/character/character_animation.gd")
 	assert_bool(source.begins_with("@tool")).is_true()
 
 

@@ -9,7 +9,7 @@ const TUNING := "res://gameplay/player/player_tuning.tres"
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -17,7 +17,7 @@ func before_test() -> void:
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
 	# A copy: the file is a cached resource that other suites read.
-	_player.tuning = (load(TUNING) as PlayerTuning).duplicate()
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 
@@ -91,7 +91,7 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"height": 1.8,
 		&"fall_limit": -25.0,
 	}
-	var file := load(TUNING) as PlayerTuning
+	var file := load(TUNING) as CharacterTuning
 	assert_array(ExportPins.differences(file, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(file, pins)).is_empty()
 

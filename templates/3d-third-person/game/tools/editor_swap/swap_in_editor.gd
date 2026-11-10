@@ -102,7 +102,7 @@ func _run() -> void:
 	EditorInterface.open_scene_from_path(SCENE)
 	await _frames(90)
 	var root := EditorInterface.get_edited_scene_root()
-	var slot := root.get_node("Model") as PlayerModel
+	var slot := root.get_node("Model") as CharacterModel
 	var animation_player := root.get_node("AnimationPlayer") as AnimationPlayer
 	var tree := root.get_node("AnimationTree") as AnimationTree
 	_check(_unresolved(animation_player) == 0, "before: every track resolves")

@@ -1,5 +1,5 @@
 @tool
-class_name PlayerModel
+class_name CharacterModel
 extends Node3D
 ## The slot of the player's 3D model. It stays in the scene when the model is replaced, so
 ## nothing else points at the model itself: the model is one child (a `.glb` of the Quaternius
@@ -7,7 +7,7 @@ extends Node3D
 ##
 ## To swap the character in the editor, delete the old model child, drag the new `.glb` onto this
 ## node, and save. Every `BoneAttachment3D` child (the pistol in the hand) is seated on the new
-## skeleton, and `rig_changed` tells the `PlayerAnimation` to point the clips at it, so nothing
+## skeleton, and `rig_changed` tells the `CharacterAnimation` to point the clips at it, so nothing
 ## is set again by hand. The `Player` turns this node to face its heading, so the model's
 ## +Z is forward.
 

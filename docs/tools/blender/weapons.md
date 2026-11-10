@@ -146,7 +146,7 @@ Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/t
   held or shown, grep every view of it (menu, wardrobe, lobby, night), give each the night's contact test
   (`HandContact.failures`), and run the suite folder of every view for a new held model. **Watch out for:** the menu
   soldier mounted weapons with its own copy of the hold code, so the per-model grips of Deadnight #507 reached only
-  `PlayerAnimation` and the menu kept a fist (the SMG showed the rifle); later three new guns passed the night's grip
+  `CharacterAnimation` and the menu kept a fist (the SMG showed the rifle); later three new guns passed the night's grip
   test and floated 0.1 mm past the menu's limit, in a folder not run. **Seen:** Deadnight #621, 2026-11-02; Deadnight
   #793, 2026-11-03 (fix: one builder, the contact test in each view, both grip suites run for a new model).
 
@@ -309,7 +309,7 @@ on a line of its own and merge main before pushing.
 **A model before its hold.** The model batches land before the build issue adds the weapon to the catalogue and
 writes its hold file, but the model still has to be seen in the hands. Film it through the night's own builder with a
 hold made in the capture (Deadnight's `game/tests/captures/model_hands_sheet.gd`: a `WeaponHold` built from the plan's
-numbers, handed to `PlayerAnimation` the way `equip` does, beside catalogue weapons equipped the normal way), never a
+numbers, handed to `CharacterAnimation` the way `equip` does, beside catalogue weapons equipped the normal way), never a
 copy of the hold code. Solve the grip at the size the hold will use: the grip test compares each grip's `model_scale`
 with its weapon's hold, so a hold written later at another size needs the grip solved again; say the size in the pull
 request. A plan render that reads the sizes from the hold files takes the new models with their size given

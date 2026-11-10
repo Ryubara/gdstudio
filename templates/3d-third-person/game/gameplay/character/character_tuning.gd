@@ -1,5 +1,5 @@
 @tool
-class_name PlayerTuning
+class_name CharacterTuning
 extends Resource
 ## Every number a developer tunes on the character, in one resource: the player scene holds one
 ## (`player_tuning.tres`) and the inspector shows it grouped, with ranges and units. Make a copy

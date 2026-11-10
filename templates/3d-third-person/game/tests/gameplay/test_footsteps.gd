@@ -13,7 +13,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_steps = _player.get_node("Footsteps")
 	_steps.stepped.connect(
 		func(foot: StringName, crouched: bool) -> void:

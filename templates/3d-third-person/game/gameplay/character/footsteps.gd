@@ -21,7 +21,7 @@ signal stepped(foot: StringName, crouched: bool)
 ## The slot that holds the character's model: the feet are read from the skeleton it finds, so a
 ## replaced model needs nothing set here. Its +Z is forward, so a foot moving toward +Z is
 ## swinging ahead.
-@export var model: PlayerModel
+@export var model: CharacterModel
 
 @export_group("Sounds")
 ## The footstep files; one is picked for each step.

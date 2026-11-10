@@ -272,7 +272,7 @@ func test_the_body_its_weapon_and_its_animation_read_no_input_and_no_camera() ->
 	var found: Array[String] = []
 	var sources: Array[String] = [
 		"res://gameplay/player/player.gd",
-		"res://gameplay/player/player_animation.gd",
+		"res://gameplay/character/character_animation.gd",
 	]
 	for file in DirAccess.get_files_at("res://gameplay/weapon"):
 		if file.ends_with(".gd"):

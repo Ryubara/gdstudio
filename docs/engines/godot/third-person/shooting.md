@@ -36,7 +36,7 @@ the spread's place for `restore()`.
   `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
   over it by the look's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
   off aim and fire only the gripping hand (`hand_r` and what is under it) takes the grip pose, so the arms and spine
-  follow the locomotion (`PlayerAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
+  follow the locomotion (`CharacterAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
   weight 1 the whole time a weapon was held made the character walk, jog and sprint with the pistol held out like an
   aim; the pistol clips are whole-body poses, so without
   the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08; gdstudio #877, 2026-11-10 (found by the

@@ -17,7 +17,7 @@ On Linux, some scripts left behind a few of their dependencies' scripts as `Reso
 first thing loaded: loading `solve_grips.gd` and quitting leaves 12 objects and four scripts alive
 (`ObjectDB instances were leaked at exit`, `4 resources still in use`). Nothing in the script is wrong by itself: each
 class it names loads clean alone, and the leak needs the combination (`GripSolver`, `HandGrip`, `WeaponHold`,
-`PlayerAnimation`). The same scripts loaded later, after others had pulled the same classes in, left nothing, so a runner
+`CharacterAnimation`). The same scripts loaded later, after others had pulled the same classes in, left nothing, so a runner
 whose order loaded them last passed, and one whose order loaded them first failed with 250 to 1,200 leaked instances
 (fonts, shaped text, textures, audio banks: everything the leaked scripts' statics reach). It never reproduced on
 Windows, nor on a Linux machine with another directory order.
@@ -109,7 +109,7 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   exit|still in use" tests.log`, whatever the exit code; a test that needs only a script's text reads its source rather
   than loading it. **Watch out for:** the shard's last line fails on those lines, not Godot's exit code, so a log ending
   in `ObjectDB instances were leaked` exits 0 locally and fails in CI; a test that only named `WarmupManifest` (which
-  loads `PlayerAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
+  loads `CharacterAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
   log and called usual. **Seen:** Deadnight #1100, 2026-11-04 (fix: bisect with a prefix of the test file, then one line
   at a time; the test reads the source).
 

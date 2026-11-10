@@ -9,17 +9,17 @@ talk through signals and input actions, so each can be replaced alone.
 | Part | Where | What it does |
 | --- | --- | --- |
 | `Player` | `gameplay/player/player.tscn` | A `CharacterBody3D`: walks, runs, sprints, crouches, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`, aims and shoots. Says what happens in signals. |
-| `PlayerTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
+| `CharacterTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
-| `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
-| `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
+| `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
+| `CharacterAnimation` | `gameplay/character/character_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker along the ray its character aims by, the crosshair's for the player (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
 | `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
 | `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
-| `Footsteps` | `gameplay/player/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
+| `Footsteps` | `gameplay/character/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
 | `Crosshair` | `ui/hud/crosshair.tscn` | A small white circle with a thin dark ring at the middle of the screen, drawn by the node itself and shown only while the player aims. |
-| `Interactor` | `gameplay/player/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
+| `Interactor` | `gameplay/character/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `PhysicsLayers` | `core/physics_layers/physics_layers.gd`, `project.godot` `[layer_names]` | The seven named layers and the masks: the player is on Characters and meets World and Props (two characters walk through each other, for networking), shots meet characters, props, the level and a dead body's bones, the camera's walls are World and Props, pickups and zones mask what they sense. Tune a body's layers in its scene's Collision group; the names show in the inspector. |
 | `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim and Crouch added here). |
@@ -175,8 +175,8 @@ answers by starting again at a spawn point, and a game that decides where charac
 
 ## Animation {#animation}
 
-`PlayerAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open in
-the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
+`CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
+in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space
 on ground speed: idle, walk, run, sprint), `crouch` (a blend space of the crouch idle and the crouch walk), `jump`,
 `fall`, `land` and `push`. Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the
@@ -194,10 +194,10 @@ $Player/Animation.play_clip(CharacterClips.OPEN_CHEST, 1.0)  # taking 1 second
 
 `CharacterClips` names every clip (`ual1/` and `ual2/` for the two libraries; the `_Loop` of a looping clip's name is
 dropped on import and the clip loops) and lists all 86 in `CharacterClips.ALL`. The clip each state plays is an
-inspector setting of `PlayerAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
+inspector setting of `CharacterAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
 no retargeting is needed.
 
-**The Pistol group of `PlayerAnimation`** (all read while the game runs; a change builds the tree again):
+**The Pistol group of `CharacterAnimation`** (all read while the game runs; a change builds the tree again):
 
 | Setting | Default | What it does |
 | --- | --- | --- |

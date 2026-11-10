@@ -9,7 +9,7 @@ folder.
 
 The template has a character and the map's components:
 
-- `player/`: the character (`Player`, its `PlayerTuning`, `PlayerAnimation`, `PlayerCamera`, `Interactor`,
+- `player/`: the character (`Player`, its `CharacterTuning`, `CharacterAnimation`, `PlayerCamera`, `Interactor`,
   `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the
   crosshair, and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.

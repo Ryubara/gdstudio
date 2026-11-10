@@ -62,7 +62,7 @@ Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.
 
 <!-- new section: a swap of the player's glb in the editor broke the clips, the pistol and the game (gdstudio #844) -->
 
-The player's model is a **slot**: `Model` is a plain `Node3D` with the `PlayerModel` script, and the glb sits under it
+The player's model is a **slot**: `Model` is a plain `Node3D` with the `CharacterModel` script, and the glb sits under it
 (`Model/Mannequin`) with the pistol (`Model/PistolHeld`, a `BoneAttachment3D` on `hand_r`). Nothing refers to the glb
 by its name. To swap the character in the editor:
 
@@ -72,10 +72,10 @@ by its name. To swap the character in the editor:
 3. Save. The `AnimationPlayer`'s Root Node, the `AnimationTree`, the pistol's skeleton path and the footsteps follow
    the new model by themselves; nothing is set by hand. Turn the new model to face +Z if its file faces the other way.
 
-`PlayerModel.rig()` and `skeleton()` give the model and its skeleton, `rig_changed` says when they change, and the
-node warns when it holds no model or two. `PlayerAnimation` points the `AnimationPlayer` at the new model and builds the
-tree again; `Footsteps` asks the slot for the skeleton; `PlayerModel` seats every `BoneAttachment3D` child on it. A
-model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
+`CharacterModel.rig()` and `skeleton()` give the model and its skeleton, `rig_changed` says when they change, and the
+node warns when it holds no model or two. `CharacterAnimation` points the `AnimationPlayer` at the new model and builds
+the tree again; `Footsteps` asks the slot for the skeleton; `CharacterModel` seats every `BoneAttachment3D` child on it.
+A model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
 one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
 Scene dock and checks the result.
 
@@ -97,7 +97,7 @@ Scene dock and checks the result.
   stall for each rebuild; an attachment bound to a skeleton that was freed first logged "Attempt to disconnect a
   nonexistent connection ... skeleton_updated". **Seen:** gdstudio #844, 2026-11-08.
 - **Approach:** To put a `BoneAttachment3D` on the skeleton of a model swapped in at run time, do not rely on the
-  path: seat it with the steps of the next entry (`PlayerModel._seat_attachments`), and skip an attachment that
+  path: seat it with the steps of the next entry (`CharacterModel._seat_attachments`), and skip an attachment that
   already sits in the skeleton's `skeleton_updated` connections. **Watch out for:** the engine (4.7.2) connects the
   attachment to `skeleton_updated` only when it enters the tree and in the setters of `use_external_skeleton` and
   `bone_name`, and remembers that it is connected; writing the path neither connects nor disconnects. The old skeleton
@@ -246,7 +246,7 @@ headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a ma
 
 <!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->
 
-The character dies into a ragdoll and gets up again (`Player.die()`, `revive()`, the `PlayerRagdoll` component and its
+The character dies into a ragdoll and gets up again (`Player.die()`, `revive()`, the `CharacterRagdoll` component and its
 inspector). What the template does with it, every export, and why the bones are generated and the engine is Jolt are in
 [Ragdoll in 3D Third Person](../ragdoll.md#template), beside how the engine behaves.
 

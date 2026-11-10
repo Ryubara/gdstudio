@@ -43,7 +43,7 @@ func _worst(model: String, bones: Array[StringName], grip_clip: StringName) -> D
 
 
 func test_the_pistol_stays_out_of_the_body_in_every_locomotion_clip_on_both_mannequins() -> void:
-	var animation := PlayerAnimation.new()
+	var animation := CharacterAnimation.new()
 	var bones := animation.grip_bones
 	var grip_clip := animation.grip_clip
 	animation.free()

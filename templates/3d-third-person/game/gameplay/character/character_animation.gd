@@ -1,5 +1,5 @@
 @tool
-class_name PlayerAnimation
+class_name CharacterAnimation
 extends Node
 ## Plays the clip for what the `Player` is doing, through an `AnimationTree` it builds: a state
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
@@ -19,7 +19,7 @@ extends Node
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 ##
-## It follows the `PlayerModel` too: when the character's model is replaced, it points the
+## It follows the `CharacterModel` too: when the character's model is replaced, it points the
 ## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
 ## nothing set by hand (the editor empties the player's Root Node when the node it pointed at is
 ## deleted).
@@ -62,7 +62,7 @@ const _AIM := "Aim"
 ## The player that is animated.
 @export var player: Player
 ## The slot that holds the character's model; the clips are played on the model it finds.
-@export var model: PlayerModel
+@export var model: CharacterModel
 ## The `AnimationPlayer` that holds the clip libraries.
 @export var animation_player: AnimationPlayer
 ## The tree that is built and driven.
@@ -290,7 +290,7 @@ func last_action() -> StringName:
 ## `duration` above zero the clip is sped up or slowed to take that long.
 func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	if tree == null or not animation_player.has_animation(clip):
-		push_warning("PlayerAnimation: no clip called %s" % clip)
+		push_warning("CharacterAnimation: no clip called %s" % clip)
 		return
 	_action_clip = clip
 	_action_clip_node.animation = clip
@@ -364,7 +364,7 @@ func _fits(rig: Node3D) -> bool:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	if model == null:
-		warnings.append("Set `model` to the PlayerModel that holds the character.")
+		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.rig() != null and not _fits(model.rig()):
 		warnings.append(
 			"The clips name `Armature/Skeleton3D` under the model, and this one has none."
@@ -604,7 +604,7 @@ func _link(from: StringName, to: StringName) -> void:
 
 
 func _build_ground() -> AnimationNodeBlendSpace1D:
-	var tuning := player.tuning if player.tuning != null else PlayerTuning.new()
+	var tuning := player.tuning if player.tuning != null else CharacterTuning.new()
 	var space := AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = tuning.sprint_speed
@@ -619,7 +619,7 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 
 
 func _build_crouch() -> AnimationNodeBlendSpace1D:
-	var tuning := player.tuning if player.tuning != null else PlayerTuning.new()
+	var tuning := player.tuning if player.tuning != null else CharacterTuning.new()
 	var space := AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = tuning.crouch_speed

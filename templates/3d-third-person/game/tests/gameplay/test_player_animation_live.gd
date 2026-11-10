@@ -4,14 +4,16 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_animation = _player.get_node("Animation")
 	await InputSim.ticks(get_tree(), 6)
 
@@ -36,7 +38,7 @@ func _clip_of(state: StringName) -> StringName:
 
 
 func test_every_export_has_its_default_pinned() -> void:
-	var fresh := PlayerAnimation.new()
+	var fresh := CharacterAnimation.new()
 	var pins := {
 		&"player": null,
 		&"model": null,
@@ -54,7 +56,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"push_clip": CharacterClips.PUSH,
 		&"interact_clip": CharacterClips.INTERACT,
 		&"hit_clip": CharacterClips.HIT,
-		&"carry": PlayerAnimation.Carry.HAND_ONLY,
+		&"carry": CharacterAnimation.Carry.HAND_ONLY,
 		&"grip_clip": CharacterClips.PISTOL_IDLE,
 		&"grip_bones": [&"hand_r"],
 		&"aim_clip": CharacterClips.PISTOL_AIM,
@@ -90,10 +92,10 @@ func test_a_clip_changed_while_the_game_runs_is_in_the_tree_and_the_state_goes_o
 	assert_str(_ground().get_blend_point_node(0).animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(2).animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(3).animation).is_equal(CharacterClips.WALK)
-	assert_str(_clip_of(PlayerAnimation.JUMP)).is_equal(CharacterClips.WALK)
-	assert_str(_clip_of(PlayerAnimation.FALL)).is_equal(CharacterClips.IDLE)
-	assert_str(_clip_of(PlayerAnimation.LAND)).is_equal(CharacterClips.IDLE)
-	assert_str(_clip_of(PlayerAnimation.PUSH)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.JUMP)).is_equal(CharacterClips.WALK)
+	assert_str(_clip_of(CharacterAnimation.FALL)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.LAND)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.PUSH)).is_equal(CharacterClips.IDLE)
 	assert_str(_animation.body_state()).is_equal(state)
 
 
