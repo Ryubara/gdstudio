@@ -12,13 +12,14 @@
 [ext_resource type="PackedScene" path="res://gameplay/player/footsteps.tscn" id="10_footsteps"]
 [ext_resource type="Script" path="res://gameplay/player/player_model.gd" id="11_model"]
 [ext_resource type="Script" path="res://gameplay/player/player_ragdoll.gd" id="12_ragdoll"]
+[ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="13_input"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "weapon", "ragdoll_body")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "controller", "weapon", "ragdoll_body")]
 collision_layer = 2
 collision_mask = 9
 floor_stop_on_slope = true
@@ -27,6 +28,7 @@ platform_floor_layers = 9
 script = ExtResource("1_player")
 tuning = ExtResource("2_tuning")
 model = NodePath("Model")
+controller = NodePath("PlayerInput")
 weapon = NodePath("Weapon")
 ragdoll_body = NodePath("Ragdoll")
 
@@ -80,3 +82,7 @@ model = NodePath("../Model")
 [node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
 script = ExtResource("12_ragdoll")
 model = NodePath("../Model")
+
+[node name="PlayerInput" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("13_input")
+player = NodePath("..")

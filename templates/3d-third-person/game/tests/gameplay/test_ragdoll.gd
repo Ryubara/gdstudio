@@ -38,10 +38,12 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"tuning": null,
 		&"start_at_spawn": true,
 		&"model": null,
+		&"controller": null,
 		&"weapon": null,
 		&"ragdoll_body": null,
 		&"ragdoll": false,
 		&"ragdoll_key": KEY_Y,
+		&"ragdoll_by_command": true,
 		&"input_enabled": true,
 	}
 	var fresh := auto_free(load("res://gameplay/player/player.gd").new()) as Player
@@ -52,7 +54,8 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"mass": 70.0,
 		&"thickness": 1.0,
 		&"joint_range": 1.0,
-		&"hinge_passes": 4,
+		&"hinge_passes": 6,
+		&"cone_passes": 6,
 		&"linear_damp": 0.1,
 		&"angular_damp": 2.0,
 		&"friction": 0.8,

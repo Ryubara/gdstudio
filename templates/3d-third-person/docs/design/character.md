@@ -11,7 +11,7 @@ talk through signals and input actions, so each can be replaced alone.
 | `Player` | `gameplay/player/player.tscn` | A `CharacterBody3D`: walks, runs, sprints, crouches, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`, aims and shoots. Says what happens in signals. |
 | `PlayerTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
-| `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, layers and get-up time. |
+| `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
 | `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
@@ -28,7 +28,8 @@ talk through signals and input actions, so each can be replaced alone.
 
 ## Input
 
-The player reads actions, never devices: `move_left`, `move_right`, `move_forward`, `move_back`, `jump`, `sprint`,
+`PlayerInput` (a child of `Player`) reads actions, never devices: `move_left`, `move_right`, `move_forward`,
+`move_back`, `jump`, `sprint`,
 `walk` (a slow walk), `interact`, `crouch`, `aim`, `fire` and, for the camera, `look_left`, `look_right`, `look_up`,
 `look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
 layer presses the same actions. Rebind them in Project Settings > Input Map.
@@ -50,6 +51,31 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 The character moves toward where the camera looks and turns to face its movement; while it aims it faces where the
 camera looks instead, however it walks (the clips only walk forward, so a sidestep slides).
 
+## Commands: what moves the body {#commands}
+
+`Player` itself reads no key and no camera. Once a physics tick it asks its `controller` for a `PlayerCommand` and
+steps it (`Player.step(command, delta)`), and that is the only thing that moves it:
+
+| In the command | What it is |
+| --- | --- |
+| `move` | The stick in the view's own axes: x to the right, y forward, no longer than 1. |
+| `yaw`, `pitch` | Where the view looks, radians: 0 looks along -Z, a positive pitch looks up. The body turns `move` by `yaw`, and faces `yaw` while it aims. |
+| `sprint`, `walk`, `crouch`, `aim`, `fire`, `jump` | Held. `crouch` is already the result of the toggle. |
+| `jump_pressed`, `fire_pressed`, `interact_pressed`, `ragdoll_pressed` | Pressed on this tick: true in one command only. |
+| `has_shot`, `origin`, `shot_yaw`, `shot_pitch` | The crosshair's ray, on a tick where a shot may leave. |
+
+`PlayerInput` makes it from the actions and the camera that draws the view (camera shake taken out), so the game
+plays as before. To drive a character another way, give it another controller: a node that extends
+`CharacterController` and returns a command from `sample()` (`PlayerCommand.set_from_world(walk, look)` writes the
+view and the push from directions in the world), or turn the body's own stepping off (`set_physics_process(false)`)
+and call `step` yourself each physics tick, as a server does. A second `player.tscn` with its `PlayerInput` removed
+stands still while you play the first.
+
+`input_enabled` (on `Player`) turns the keys, pad and touch off; commands from anything else are stepped as they are.
+`ragdoll_by_command` (on) lets a command's `ragdoll_pressed` kill and revive, which is what the Y key sends; a game
+that steps commands from a network turns it off. `Player.state_snapshot()` and `restore()` take and put back what the
+next step reads.
+
 ## What to tune {#tuning}
 
 Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the defaults:
@@ -61,7 +87,7 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Air | air control (0.45) |
 | Slopes and steps | max slope (48 degrees), step height (0.32 m), snap length (0.35 m) |
 | Crouch | crouch height (1.1 m), crouch speed (1.5 m/s), time to crouch and stand (0.2 s), toggle or hold (hold), the camera target's height standing (1.55 m) and crouched (0.9 m) |
-| Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up and go down (0.15 s) |
+| Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up and go down (0.15 s), how long a press of fire is kept while the arm comes up (0.3 s) |
 | Pushing | push strength (0.85), push mass (40 kg) |
 | Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip, how long the landing lasts (0.3 s), the speed under which it counts as standing (0.15 m/s) |
 | Body | capsule radius (0.34 m) and height (1.8 m) |
@@ -124,14 +150,17 @@ look sensitivity and smoothing, the opacity and the margin from the screen edge.
 `player.revive()` gets it up where it lies, facing the way its chest faces, and the pose blends back to the animation.
 Ticking `ragdoll` on `Player` in the inspector (also while the game runs, in the remote inspector) or pressing Y does
 the same; `teleport()` and `respawn()` get it up at once. The physics engine is Jolt (`project.godot`): the ragdoll's
-joints are stable there and were not on Godot Physics. The prototype level has a ramp and a ledge in the south
-(`RagdollLedge`) to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ragdoll.md`.
+joints are stable there and were not on Godot Physics. Each joint is held six times a step (`hinge_passes`,
+`cone_passes`), so a limb the body lands on stays near a person's range. The prototype level has a ramp and a ledge
+in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ragdoll.md`.
 
 ## Events other nodes connect to
 
 `Player` emits `jumped`, `landed(impact_speed)`, `took_hit(amount, source)`, `interacted(target)`,
 `item_collected(item_id, amount, total)`, `state_changed(state)`, `teleported`, `aim_changed(aiming)` and
-`crouch_changed(crouching)`, `died` and `revived`; `Weapon` emits `fired(projectile)`, a `Projectile`
+`crouch_changed(crouching)`, `died`, `revived` and `fell` (it went below the tuning's fall limit; the character
+answers by starting again at a spawn point, and a game that decides where characters start connects its own answer);
+`Weapon` emits `fired(projectile)`, a `Projectile`
 `impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and `stood_up`. A hit comes from calling
 `player.hit(amount, source)`; the character stops for the stun time and is thrown away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).

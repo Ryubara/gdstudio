@@ -353,6 +353,10 @@ func _ready() -> void:
 				_player = heading as Player
 	if is_instance_valid(_player) and is_instance_valid(_player.weapon):
 		_player.weapon.fired.connect(_on_shot)
+	# The player's input takes this rig's shake out of the view it sends: a shake is for the eye.
+	var input := (_player.controller as PlayerInput) if is_instance_valid(_player) else null
+	if input != null:
+		input.camera_rig = self
 
 
 func _process(delta: float) -> void:

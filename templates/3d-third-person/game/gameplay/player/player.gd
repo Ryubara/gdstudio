@@ -12,9 +12,9 @@ extends CharacterBody3D
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
 ##
-## It reads these input actions (all devices): `move_left`, `move_right`, `move_forward`,
-## `move_back`, `jump`, `sprint`, `walk` (slows to a walk), `interact`, `crouch`, `aim`,
-## `fire` and `ragdoll` (made at run time, holding `ragdoll_key`).
+## The body is moved by `step(command, delta)` and nothing else: one `PlayerCommand` a physics
+## tick, from its `controller` (the keys and the camera, through `PlayerInput`) or from whoever
+## steps it (a server, a test). It reads no input and no camera itself.
 
 ## The body left the ground by jumping.
 signal jumped
@@ -40,6 +40,11 @@ signal crouch_changed(crouching: bool)
 signal died
 ## The character got up again, where its body lay (or was put somewhere by `teleport()`).
 signal revived
+## The body is below the tuning's `fall_limit` (or, dead, its ragdoll is): it went out of the map.
+## Said once; the step does nothing more until the body is put somewhere (`respawn()`,
+## `teleport()`). This character answers it by starting again at a spawn point; a game or a
+## server that decides where characters start connects its own answer instead.
+signal fell
 
 enum State {
 	IDLE,
@@ -85,6 +90,9 @@ const PUSH_HOLD := 0.25
 ## unique name on the path to the model is what makes the editor's helper player lose the model
 ## (see `PlayerAnimation`).
 @export var model: PlayerModel
+## What decides each physics tick: a `PlayerInput` for a human. Empty: the body asks for nothing
+## (it still falls and stands), or something else steps it (`step()` with physics processing off).
+@export var controller: CharacterController
 
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot.
@@ -111,10 +119,16 @@ const PUSH_HOLD := 0.25
 @export var ragdoll_key: Key = KEY_Y:
 	set(value):
 		ragdoll_key = value
-		_bind_ragdoll_key()
+		var input := controller as PlayerInput
+		if input != null:
+			input.bind_ragdoll_key()
+## On: a command's `ragdoll_pressed` kills and revives the character (what `ragdoll_key` sends).
+## A testing aid like the key: a server that steps commands from the network turns it off.
+@export var ragdoll_by_command := true
 
 @export_group("Input")
-## Turns the keys, pad and touch stick off (a cutscene, a menu).
+## Turns the keys, pad and touch stick off (a cutscene, a menu): the `PlayerInput` then asks for
+## nothing. Commands from anything else are stepped as they are.
 @export var input_enabled := true
 
 ## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
@@ -144,6 +158,13 @@ var aim_held := false
 var fire_held := false
 ## How far the arm is up, 0 (down) to 1 (aiming); `PlayerAnimation` blends the pose by it.
 var aim_amount := 0.0
+## Where the last stepped command looked, radians: the heading (0 looks along -Z) and the look up
+## (positive) or down. The aim pose follows `view_pitch`; a body placed from the network sets it.
+var view_yaw := 0.0
+var view_pitch := 0.0
+## The command of the last step, as the body used it (not finite: let go of; a push no longer
+## than 1). Written again by every step.
+var last_command := PlayerCommand.new()
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -151,6 +172,8 @@ var _action_lock := 0.0
 var _land_timer := 0.0
 var _fall_speed := 0.0
 var _was_airborne := false
+var _grounded := false
+var _fallen := false
 var _pushing := false
 var _push_cap := 0.0
 var _push_hold := 0.0
@@ -159,7 +182,6 @@ var _sprinting := false
 var _wants_crouch := false
 var _crouch_amount := 0.0
 var _fire_buffer := 0.0
-var _ragdoll_event: InputEventKey
 var _stand_probe := CapsuleShape3D.new()
 var _spawn_rng := RandomNumberGenerator.new()
 
@@ -177,10 +199,13 @@ func _ready() -> void:
 	add_to_group(GROUP)
 	# Fixed for a character, so a test repeats, but not shared, so two characters pick apart.
 	_spawn_rng.seed = hash(str(get_path()))
-	facing = model.rotation.y
+	if model != null:
+		facing = model.rotation.y
+	view_yaw = facing - PI
+	last_command.yaw = view_yaw
 	if ragdoll_body != null:
 		ragdoll_body.add_collision_exception(self)
-	_bind_ragdoll_key()
+	fell.connect(respawn)
 	if start_at_spawn:
 		respawn()
 	if ragdoll:
@@ -191,27 +216,78 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
-	if input_enabled and InputMap.has_action(RAGDOLL_ACTION):
-		if Input.is_action_just_pressed(RAGDOLL_ACTION):
-			ragdoll = not ragdoll
+	step(controller.sample() if controller != null else _idle_command(), delta)
+
+
+## Moves the body one physics tick as `command` asks: the only thing that moves it. The
+## character's own `_physics_process` calls it with its controller's command; a server or a test
+## turns that off (`set_physics_process(false)`) and calls it itself, inside a physics frame.
+## `delta` is the physics step (the engine moves the body by its own step, so another number
+## would split the two). A command with a number that is not finite is stepped as one that asks
+## for nothing, and a push longer than 1 as 1.
+func step(command: PlayerCommand, delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	assert(Engine.is_in_physics_frame(), "Player.step() runs inside a physics frame.")
+	if command.all_finite():
+		last_command.copy_from(command)
+		last_command.move = command.move.limit_length(1.0)
+	else:
+		last_command.clear()
+	view_yaw = last_command.yaw
+	view_pitch = last_command.pitch
+	if ragdoll_by_command and last_command.ragdoll_pressed:
+		ragdoll = not ragdoll
 	if state == State.DEAD:
 		_dead_tick()
 		return
 	if global_position.y < tuning.fall_limit:
-		respawn()
+		_fall_out()
 		return
 	_tick_timers(delta)
 	_update_crouch(delta)
 	_update_aim(delta)
-	var wish := _wish_direction() if input_enabled and _action_lock <= 0.0 else Vector3.ZERO
+	var wish := _wish_direction() if _action_lock <= 0.0 else Vector3.ZERO
 	_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
 	move_and_slide()
+	_grounded = is_on_floor()
 	_pushing = _push_props(before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
+
+
+## True when a shot may leave on the tick `command` is stepped: the fire button was just pressed
+## or is still buffered (or held, with an automatic weapon) and the weapon is ready. A controller
+## asks it to know whether the command needs the crosshair's ray (`PlayerCommand.has_shot`).
+func shot_wanted(command: PlayerCommand) -> bool:
+	if weapon == null or state == State.DEAD or not weapon.can_fire():
+		return false
+	return _fire_buffer > 0.0 or command.fire_pressed or (weapon.automatic and command.fire)
+
+
+## Everything the next step reads from this one, in `into` (or a new `CharacterState`).
+func state_snapshot(into: CharacterState = null) -> CharacterState:
+	var kept := into if into != null else CharacterState.new()
+	kept.position = global_position
+	kept.velocity = velocity
+	kept.values.resize(CharacterState.FIELDS.size())
+	for index in CharacterState.FIELDS.size():
+		kept.values[index] = get(CharacterState.FIELDS[index])
+	return kept
+
+
+## Puts the body back as `kept` holds it (a `state_snapshot()` of this character while it was
+## alive). The engine's own floor contact is found again by the next step.
+func restore(kept: CharacterState) -> void:
+	global_position = kept.position
+	velocity = kept.velocity
+	for index in CharacterState.FIELDS.size():
+		set(CharacterState.FIELDS[index], kept.values[index])
+	_fit_body()
+	_present_facing()
 
 
 ## Puts the character at a spawn point of the group `player` (the first free one), or leaves it.
@@ -233,9 +309,10 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 		_come_alive()
 	global_position = spot
 	velocity = Vector3.ZERO
+	_fallen = false
 	if not is_nan(heading):
 		facing = heading
-		model.rotation.y = facing
+		_present_facing()
 	reset_physics_interpolation()
 	teleported.emit()
 
@@ -280,7 +357,7 @@ func revive() -> void:
 		var heading := ragdoll_body.facing()
 		global_position = _ground_below(ragdoll_body.hips())
 		facing = atan2(heading.x, heading.z)
-		model.rotation.y = facing
+		_present_facing()
 		reset_physics_interpolation()
 		ragdoll_body.stop()
 	_come_alive()
@@ -369,19 +446,25 @@ func has_room_to_stand() -> bool:
 	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 
-# Puts `ragdoll_key` on the `ragdoll` action, in place of the key this player put there before.
-func _bind_ragdoll_key() -> void:
-	if Engine.is_editor_hint() or not is_inside_tree():
+# The command of a body nobody controls: it asks for nothing and looks where it looked.
+func _idle_command() -> PlayerCommand:
+	last_command.clear()
+	return last_command
+
+
+# The model shows `facing`. Called from the physics tick, so the engine smooths the turn between
+# ticks; a body with no model (a server's) only keeps the number.
+func _present_facing() -> void:
+	if model != null:
+		model.rotation.y = facing
+
+
+# Out of the map: says `fell` once and waits to be put somewhere.
+func _fall_out() -> void:
+	if _fallen:
 		return
-	if not InputMap.has_action(RAGDOLL_ACTION):
-		InputMap.add_action(RAGDOLL_ACTION)
-	if _ragdoll_event != null:
-		InputMap.action_erase_event(RAGDOLL_ACTION, _ragdoll_event)
-		_ragdoll_event = null
-	if ragdoll_key != KEY_NONE:
-		_ragdoll_event = InputEventKey.new()
-		_ragdoll_event.physical_keycode = ragdoll_key
-		InputMap.action_add_event(RAGDOLL_ACTION, _ragdoll_event)
+	_fallen = true
+	fell.emit()
 
 
 # Dead: the body stays where it died with its capsule off, the camera's target follows the hips,
@@ -391,7 +474,7 @@ func _dead_tick() -> void:
 		return
 	var hips := ragdoll_body.hips()
 	if hips.y < tuning.fall_limit:
-		respawn()
+		_fall_out()
 		return
 	_camera_target.global_position = hips + Vector3.UP * 0.25
 
@@ -448,11 +531,7 @@ func _crouch_height() -> float:
 
 
 func _update_crouch(delta: float) -> void:
-	if tuning.crouch_toggle:
-		if input_enabled and Input.is_action_just_pressed(&"crouch"):
-			_wants_crouch = not _wants_crouch
-	else:
-		_wants_crouch = input_enabled and Input.is_action_pressed(&"crouch")
+	_wants_crouch = last_command.crouch
 	var should := _wants_crouch
 	# Letting go under a low ceiling keeps the character crouched until there is room.
 	if not should and crouching and not has_room_to_stand():
@@ -470,9 +549,9 @@ func _update_crouch(delta: float) -> void:
 
 func _update_aim(delta: float) -> void:
 	var wants := false
-	if weapon != null and input_enabled and _action_lock <= 0.0:
-		fire_held = Input.is_action_pressed(&"fire")
-		aim_held = Input.is_action_pressed(&"aim")
+	if weapon != null and _action_lock <= 0.0:
+		fire_held = last_command.fire
+		aim_held = last_command.aim
 		wants = aim_held or fire_held
 	else:
 		aim_held = false
@@ -485,61 +564,33 @@ func _update_aim(delta: float) -> void:
 	)
 
 
-# The camera's heading as a facing angle, or NAN when no camera draws the scene.
-func _camera_heading() -> float:
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return NAN
-	var forward := -camera.global_basis.z
-	forward.y = 0.0
-	if forward.length_squared() < 0.0001:
-		return NAN
-	return atan2(forward.x, forward.z)
-
-
 func _tick_timers(delta: float) -> void:
 	_action_lock = maxf(_action_lock - delta, 0.0)
 	_land_timer = maxf(_land_timer - delta, 0.0)
 	_jump_buffer = maxf(_jump_buffer - delta, 0.0)
-	if is_on_floor():
+	if _grounded:
 		_coyote = tuning.coyote_time
 	else:
 		_coyote = maxf(_coyote - delta, 0.0)
-	if input_enabled and Input.is_action_just_pressed(&"jump"):
+	if last_command.jump_pressed:
 		_jump_buffer = tuning.jump_buffer_time
 
 
-## The move direction in world space, as long as the stick is pushed (0 to 1) and relative to
-## the camera that draws the scene.
+## The move direction in world space, as long as the stick is pushed (0 to 1): the command's
+## push turned by its view's heading.
 func _wish_direction() -> Vector3:
-	var pushed := Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
-	if pushed.is_zero_approx():
+	if last_command.move.is_zero_approx():
 		return Vector3.ZERO
-	var view := _view_basis()
-	var direction := view.x * pushed.x + view.z * pushed.y
-	direction.y = 0.0
-	return direction.normalized() * minf(pushed.length(), 1.0)
-
-
-func _view_basis() -> Basis:
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return Basis.IDENTITY
-	var forward := -camera.global_basis.z
-	forward.y = 0.0
-	if forward.length_squared() < 0.0001:
-		return Basis.IDENTITY
-	forward = forward.normalized()
-	return Basis(forward.cross(Vector3.UP), Vector3.UP, -forward)
+	return last_command.world_move()
 
 
 func _target_speed(strength: float) -> float:
 	var speed := tuning.run_speed * strength
 	if crouching:
 		speed = tuning.crouch_speed * maxf(strength, 0.5)
-	elif Input.is_action_pressed(&"sprint") and not aiming:
+	elif last_command.sprint and not aiming:
 		speed = tuning.sprint_speed
-	elif Input.is_action_pressed(&"walk") or strength < 0.45:
+	elif last_command.walk or strength < 0.45:
 		speed = tuning.walk_speed * maxf(strength, 0.5)
 	if aiming:
 		speed = minf(speed, tuning.walk_speed * 1.5) * tuning.aim_move_scale
@@ -553,27 +604,26 @@ func _steer(wish: Vector3, delta: float) -> void:
 	var strength := wish.length()
 	var goal := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
 	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
-	if not is_on_floor():
+	if not _grounded:
 		rate *= tuning.air_control
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
 	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
-	var heading := _camera_heading()
-	if aiming and _action_lock <= 0.0 and not is_nan(heading):
-		# Aiming turns the body to the camera's heading, however it walks.
-		facing = lerp_angle(facing, heading, clampf(tuning.aim_turn_speed * delta, 0.0, 1.0))
-		model.rotation.y = facing
+	if aiming and _action_lock <= 0.0:
+		# Aiming turns the body to the view's heading, however it walks.
+		facing = lerp_angle(facing, view_yaw + PI, clampf(tuning.aim_turn_speed * delta, 0.0, 1.0))
+		_present_facing()
 	elif strength > 0.0 and _action_lock <= 0.0:
 		facing = lerp_angle(
 			facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
 		)
-		model.rotation.y = facing
+		_present_facing()
 
 
 func _vertical(delta: float) -> void:
-	var airborne := not is_on_floor()
+	var airborne := not _grounded
 	if airborne:
 		var gravity_scale := tuning.fall_gravity_scale if velocity.y < 0.0 else 1.0
 		velocity.y = maxf(
@@ -588,7 +638,7 @@ func _vertical(delta: float) -> void:
 		_coyote = 0.0
 		_jump_held = true
 		jumped.emit()
-	if _jump_held and velocity.y > 0.0 and not Input.is_action_pressed(&"jump"):
+	if _jump_held and velocity.y > 0.0 and not last_command.jump:
 		velocity.y = minf(velocity.y, tuning.jump_speed() * tuning.short_jump_scale)
 		_jump_held = false
 	if velocity.y <= 0.0:
@@ -598,7 +648,7 @@ func _vertical(delta: float) -> void:
 
 
 func _climb(delta: float) -> void:
-	if not is_on_floor():
+	if not _grounded:
 		return
 	var motion := Vector3(velocity.x, 0.0, velocity.z) * delta
 	StepClimber.climb(self, motion, tuning.step_height, tuning.max_slope, tuning.radius + 0.06)
@@ -649,7 +699,7 @@ func _push_props(before: Vector3, delta: float) -> bool:
 
 
 func _after_move(wish: Vector3, _delta: float) -> void:
-	var grounded := is_on_floor()
+	var grounded := _grounded
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
 		if _fall_speed >= tuning.land_clip_speed:
@@ -658,10 +708,9 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 	_was_airborne = not grounded
 	_sprinting = (
 		grounded
-		and input_enabled
 		and not crouching
 		and not aiming
-		and Input.is_action_pressed(&"sprint")
+		and last_command.sprint
 		and ground_speed() > tuning.run_speed
 	)
 	state = _pick_state(grounded, wish)
@@ -685,7 +734,7 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 
 
 func _use_input(delta: float) -> void:
-	if input_enabled and Input.is_action_just_pressed(&"interact"):
+	if last_command.interact_pressed:
 		interact()
 	_use_weapon(delta)
 
@@ -693,13 +742,13 @@ func _use_input(delta: float) -> void:
 # A press of the fire button waits a moment for the arm to come up, then shoots.
 func _use_weapon(delta: float) -> void:
 	_fire_buffer = maxf(_fire_buffer - delta, 0.0)
-	if weapon == null or not input_enabled:
+	if weapon == null:
 		return
-	var pulled := Input.is_action_just_pressed(&"fire")
-	if weapon.automatic and Input.is_action_pressed(&"fire"):
+	var pulled := last_command.fire_pressed
+	if weapon.automatic and last_command.fire:
 		pulled = true
 	if pulled:
-		_fire_buffer = 0.3
+		_fire_buffer = tuning.fire_buffer_time
 	if _fire_buffer > 0.0 and aiming and aim_amount >= 0.5:
 		if weapon.fire() != null:
 			_fire_buffer = 0.0

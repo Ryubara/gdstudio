@@ -26,7 +26,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
   test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, a parameter `world_hash` beside `static func
   world_hash`: three scripts did not parse); #903 (a
-  parameter `url` and a method `url()`).
+  parameter `url` and a method `url()`); #901 (`before`).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
