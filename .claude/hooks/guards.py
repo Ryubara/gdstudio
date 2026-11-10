@@ -75,6 +75,10 @@ def split_commands(command: str) -> list[str]:
     return parts
 
 
+# `NAME=value`, with the value quoted or a `$(...)` that holds spaces (shlex leaves it one word): never a program
+_ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
+
+
 def segments(command: str) -> list[list[str]]:
     """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole)."""
     out: list[list[str]] = []
@@ -86,7 +90,7 @@ def segments(command: str) -> list[list[str]]:
             words = shlex.split(part.replace("\\", "/"), posix=True)
         except ValueError:
             words = part.split()
-        while words and (words[0] in ("&", ".", "call", "exec", "time", "sudo") or re.fullmatch(r"\w+=\S*", words[0])):
+        while words and (words[0] in ("&", ".", "call", "exec", "time", "sudo") or _ASSIGNMENT.match(words[0])):
             words = words[1:]
         if words:
             out.append(words)

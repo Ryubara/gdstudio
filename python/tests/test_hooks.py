@@ -123,6 +123,16 @@ def test_a_windowed_godot_goes_through_gds(tmp_path):
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
 
 
+def test_a_variable_assignment_is_not_the_program(tmp_path):
+    reason = "takes the keyboard focus"
+    find = "$(uv run --project python gds tool path godot)"
+    assert denied(shell(f'GODOT="{find}" && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert denied(shell(f'GODOT={find} && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert reason in denied(shell(f'GODOT="{find}" && "$GODOT" --path game', tmp_path))
+    assert reason in denied(shell(f'GODOT="{find}" "$GODOT" --path game', tmp_path))
+    assert denied(shell(f'GODOT="{find}"', tmp_path)) == ""
+
+
 def test_a_godot_with_real_audio_is_refused(tmp_path):
     reason = "agents never listen"
     pinned = '"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe"'
