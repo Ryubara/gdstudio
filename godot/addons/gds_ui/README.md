@@ -140,12 +140,15 @@ queued and run in order, and input is blocked meanwhile.
 | `push(source, kind = FADE, params = {})` | show a screen over the current one, which stays alive underneath |
 | `replace(source, kind = FADE, params = {})` | show a screen in place of the current one, which is freed |
 | `pop(kind = -1)` | go back and free the top screen; `-1` plays the transition it arrived with, mirrored |
+| `close(kind = -1)` | like `pop`, but also closes the only screen: the stack ends empty (`screen_changed(0)`) |
+| `clear(kind = FADE)` | close every screen: the top one leaves with `kind`, the rest are freed |
 | `reset(source, kind = CUT, params = {})` | free the whole stack and show one screen |
 | `depth()`, `top()`, `screens()` | the stack, root to top |
 | signals `idle`, `screen_changed(depth)`, `error_reported(message)` | the queue drained; the stack changed; a source could not be shown |
 
 `params` arrive as `UIScreen.params`. A `UIScreen` has the hooks `screen_enter`, `screen_pause` and `screen_resume`,
-an `initial_focus` path, `allow_back` (whether Esc pops it) and `stars` (the token star backdrop, per screen);
+an `initial_focus` path, `allow_back` (whether Esc pops it), `back_closes` (whether Esc also closes it when it is the
+only screen: a menu over a game that is not itself a screen) and `stars` (the token star backdrop, per screen);
 `glow` overrides the bottom of the backdrop gradient. Esc and gamepad B (`ui_cancel`) pop while more than one screen
 is on the stack.
 
