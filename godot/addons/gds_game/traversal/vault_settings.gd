@@ -36,6 +36,9 @@ enum Trigger {
 @export_group("Detection")
 ## How far past the front of the body an obstacle is looked for.
 @export_range(0.1, 3.0, 0.01, "suffix:m") var detect_distance := 0.7
+## On top of `detect_distance`, how far the body goes in this many seconds at its speed: a press a
+## moment early at a run still finds the obstacle (and a jump is not made instead).
+@export_range(0.0, 1.0, 0.01, "suffix:s") var detect_ahead_time := 0.15
 ## The widest angle between where the character goes and straight at the obstacle's face; more
 ## oblique, nothing happens (the crossing always goes square across the face).
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var max_approach_angle := 35.0
@@ -97,6 +100,11 @@ enum Trigger {
 @export_group("Body")
 ## On: aiming and firing stop for the whole vault or mantle (both hands are busy).
 @export var drop_aim := true
+
+
+## How far ahead of the body's front an obstacle is looked for at `speed` m/s.
+func detect_reach(speed: float) -> float:
+	return detect_distance + maxf(speed, 0.0) * detect_ahead_time
 
 
 ## How long a vault takes over a crossing of `distance` metres (flat) entered at `speed` m/s.

@@ -20,6 +20,8 @@ const NOT_STATE := {
 	&"items": "what the character holds: the game's state, not the step's",
 	&"last_command": "written again by every step before it is read",
 	&"_stand_probe": "a shape made for a query",
+	&"vault_settings": "an export",
+	&"_vault": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"_interactor": "a node",
 	&"_body": "a node",

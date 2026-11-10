@@ -51,7 +51,7 @@ static func measure(
 
 	# 1. The face ahead.
 	var face := _cast_ahead(
-		space, feet, flat, radius, reach, settings.detect_distance, mask, exclude
+		space, feet, flat, radius, reach, settings.detect_reach(speed), mask, exclude
 	)
 	if face.is_empty():
 		return VaultPlan.refused(VaultPlan.NOTHING_AHEAD)
