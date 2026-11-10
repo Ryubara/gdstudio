@@ -3,7 +3,7 @@ extends Node
 ## body, the animation, the footsteps and the ragdoll, what an AI character reuses), idle and
 ## walking, and the world parts a level holds many of (pickups, targets, doors, weapons).
 ##
-## Three sections, one line of JSON:
+## Four sections, one line of JSON:
 ## - `crowd`: 1, 10, 25 and 50 characters on a flat floor, idle then walking a circle; the median
 ##   frame in milliseconds (`*_ms`: wall time from one frame to the next, desktop only; `*_work_ms`:
 ##   from the frame's first physics tick to the last node processed, which a browser reads too),
@@ -12,6 +12,8 @@ extends Node
 ##   hand, timed apart: microseconds a character a frame for the body's step, the animation script,
 ##   the animation tree's own advance, the skeleton's pose update after it (read once here, so the
 ##   parts after it do not pay for it), the footsteps and the ragdoll.
+## - `death`: what the first death of a character costs (it makes the ragdoll's bones) and a later
+##   one, in milliseconds.
 ## - `world`: 100 of one world part at a time against an empty arena (the median frame's growth,
 ##   in microseconds a part, by wall and by work) and how many of their nodes process each frame.
 ##
@@ -91,6 +93,7 @@ func _run() -> void:
 	for count in CROWD:
 		report.crowd.append(await _crowd(count))
 	report.parts = await _parts(PART_CROWD)
+	report.death = await _death()
 	var empty := await _empty_frame()
 	for kind: String in WORLD_PARTS:
 		report.world.append(await _world(kind, empty))
@@ -178,6 +181,24 @@ func _parts(count: int) -> Dictionary:
 	for key: String in spent:
 		result[key + "_us"] = float(spent[key]) / (FRAMES * count)
 	return result
+
+
+# Milliseconds a death takes, the first (which makes the ragdoll's bones) and a later one.
+func _death() -> Dictionary:
+	_new_arena()
+	var body := _spawn(1)[0].get_parent() as Character
+	var spent: Array[float] = []
+	for _death_index in 2:
+		for _i in 30:
+			await get_tree().physics_frame
+		var start := Time.get_ticks_usec()
+		body.die()
+		spent.append((Time.get_ticks_usec() - start) / 1000.0)
+		for _i in 30:
+			await get_tree().physics_frame
+		body.revive()
+	_arena.free()
+	return {"first_ms": spent[0], "later_ms": spent[1]}
 
 
 func _world(kind: String, empty: Dictionary) -> Dictionary:
