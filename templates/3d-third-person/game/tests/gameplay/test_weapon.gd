@@ -37,6 +37,8 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 	var pins := {
 		&"muzzle": _muzzle,
 		&"shooter": null,
+		&"no_muzzle_offset": Vector3(0.13, -0.03, -0.7),
+		&"self_ticking": true,
 		&"projectile_scene": _weapon.projectile_scene,
 		&"fire_rate": 4.0,
 		&"automatic": false,

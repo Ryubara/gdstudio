@@ -209,8 +209,10 @@ func test_the_shot_block_is_the_crosshairs_ray_with_a_shoulder_view() -> void:
 		var ray := CommandCodec.direction_from_angles(_stepped().shot_yaw, _stepped().shot_pitch)
 		assert_vector(ray).is_equal_approx(along, Vector3.ONE * 0.0001)
 		assert_float(start.distance_to(_camera.global_position)).is_greater(0.4)
-		# It is the ray the weapon aims by: its aim point lies on it.
-		var aim_at := _player.weapon.aim_point()
+		# It is the ray the body hands its weapon: the aim point lies on it.
+		var handed := _player.aim_ray()
+		assert_vector(handed[0]).is_equal(_stepped().origin)
+		var aim_at := _player.weapon.aim_point(handed[0], handed[1])
 		var off := (aim_at - start).cross(along).length()
 		assert_float(off).is_less(0.01)
 	assert_bool(seen).is_true()

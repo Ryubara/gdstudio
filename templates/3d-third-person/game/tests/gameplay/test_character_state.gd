@@ -162,3 +162,54 @@ func test_restore_puts_back_the_crouch_the_aim_and_the_timers() -> void:
 	var capsule := (_player.get_node("%Body") as CollisionShape3D).shape as CapsuleShape3D
 	assert_float(capsule.height).is_equal_approx(height, 0.0001)
 	assert_int(_player.state).is_equal(Player.State.CROUCH)
+
+
+# Aims, presses fire on the first tick and steps `count` ticks. Returns the tick the shot left
+# on and the way it flew (x, y, z), or an empty array when none left.
+func _press_fire(count: int) -> Array:
+	var seen: Array = []
+	var tick_now: Array[int] = [0]
+	var on_shot := func(shot: Projectile) -> void:
+		seen.append(tick_now[0])
+		seen.append(shot.velocity)
+	_player.weapon.fired.connect(on_shot)
+	var command := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
+	command.aim = true
+	command.fire = true
+	command.fire_pressed = true
+	await CommandDriver.run(
+		get_tree(), _players, command, count, func(tick: int) -> void: tick_now[0] = tick + 1
+	)
+	_player.weapon.fired.disconnect(on_shot)
+	return seen
+
+
+func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -> void:
+	_player.weapon.spread = 5.0
+	var aim := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
+	aim.aim = true
+	await _run(aim, 30)
+	# A first shot, then ten ticks into its quarter second of cooldown.
+	assert_array(await _press_fire(10)).has_size(2)
+	var kept := _player.state_snapshot()
+	assert_array(kept.weapon).has_size(2)
+	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
+	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
+	var first := await _press_fire(40)
+	assert_array(first).has_size(2)
+	assert_int(first[0]).is_between(4, 8)
+	await _run(aim, 40)
+	_player.restore(kept)
+	var second := await _press_fire(40)
+	assert_array(second).has_size(2)
+	# The same tick and the same turn off the aim. The shot starts at the muzzle, which the
+	# animation holds (a few millimetres apart between the two runs), so the direction is the
+	# same to a thousandth; another place in the spread's order would be degrees away.
+	assert_int(second[0]).is_equal(first[0])
+	assert_vector(second[1]).is_equal_approx(first[1], Vector3.ONE * 0.05)
+	var third := await _press_fire(40)
+	assert_float((third[1] as Vector3).distance_to(first[1])).is_greater(0.3)
+	# A character with no weapon keeps an empty share and restores without one.
+	_player.weapon = null
+	assert_array(_player.state_snapshot(kept).weapon).is_empty()
+	_player.restore(kept)

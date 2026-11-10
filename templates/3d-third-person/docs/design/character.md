@@ -13,7 +13,7 @@ talk through signals and input actions, so each can be replaced alone.
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
 | `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, layers and get-up time. |
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
-| `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
+| `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker along the ray its character aims by, the crosshair's for the player (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
 | `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
 | `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
@@ -70,10 +70,15 @@ view and the push from directions in the world), or turn the body's own stepping
 and call `step` yourself each physics tick, as a server does. A second `player.tscn` with its `PlayerInput` removed
 stands still while you play the first.
 
+A character aims where its command looks, never where a camera does: `Player.aim_ray()` is the command's shot block
+(the crosshair's ray, for the player) or, with none, a ray from the character's eye along `yaw` and `pitch`, and the
+body fires its `Weapon` along it (`Weapon.fire(origin, direction)`). The aim pose follows the same `pitch`. So a second
+character driven by commands shoots at what it looks at, with or without a camera in the scene.
+
 `input_enabled` (on `Player`) turns the keys, pad and touch off; commands from anything else are stepped as they are.
 `ragdoll_by_command` (on) lets a command's `ragdoll_pressed` kill and revive, which is what the Y key sends; a game
 that steps commands from a network turns it off. `Player.state_snapshot()` and `restore()` take and put back what the
-next step reads.
+next step reads, the weapon's cooldown and its place in the spread among it.
 
 ## What to tune {#tuning}
 
@@ -101,7 +106,10 @@ m/s, so the character (15 percent faster than the cube, to stay against it) walk
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The `Weapon`
 (a child of `Player`) holds the shot's numbers: fire rate, semi or full automatic, spread, aim range, the projectile's
 speed (45 m/s), size, gravity (0, so it flies straight at the crosshair), lifetime, the push it gives a body (40 N·s)
-and how many times it bounces. The sound of a shot is its `ShotSound` node: five pistol shots at a small random pitch
+and how many times it bounces. Two more are for a weapon used without this character: `no_muzzle_offset` (where a
+shot starts when the weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the
+aim ray) and `self_ticking` (on: the weapon counts its own cooldown; the `Player` turns it off for its weapon and
+counts it in its step). The sound of a shot is its `ShotSound` node: five pistol shots at a small random pitch
 and volume spread, three voices; a game's own shot is another `stream` there.
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
@@ -172,10 +180,10 @@ on ground speed: idle, walk, run, sprint), `crouch` (a blend space of the crouch
 `fall`, `land` and `push`. Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the
 locomotion clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do
 unarmed) and only the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or
-firing brings the arm up over `aim_pose_time` to the aim pose by the camera's pitch (`Pistol_Aim_Down`,
-`Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the
-locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for actions: interact and
-hit play there, and so does anything else:
+firing brings the arm up over `aim_pose_time` to the aim pose by how far up or down the character looks
+(`Pistol_Aim_Down`, `Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the
+legs keep the locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for
+actions: interact and hit play there, and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -196,7 +204,7 @@ no retargeting is needed.
 | `grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
 | `aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clip` | the `Pistol_*` clips | The aim pose by pitch, and the recoil. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
-| `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | The camera pitch of the full aim up and down poses, and the recoil's speed. |
+| `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
 
 The pistol sits in the hand without sinking into the leg or the body in the locomotion, crouch, jump and push clips on
