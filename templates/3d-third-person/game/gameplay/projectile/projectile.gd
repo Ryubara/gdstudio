@@ -27,6 +27,9 @@ signal finished(projectile: Projectile)
 static var _meshes: Dictionary[float, SphereMesh] = {}
 static var _shapes: Dictionary[float, SphereShape3D] = {}
 static var _paints: Dictionary[String, Material] = {}
+# Projectiles alive: the last one to go empties the shared looks, which a static would otherwise
+# hold past the engine's exit (CI refuses a run that prints `leaked at exit`).
+static var _alive := 0
 
 @export_group("Body")
 ## The sphere's diameter.
@@ -75,6 +78,21 @@ var _flying := false
 var _base_paint: Material
 var _readied := false
 var _shooter: CollisionObject3D
+
+
+func _init() -> void:
+	_alive += 1
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_PREDELETE:
+		return
+	_alive -= 1
+	if _alive <= 0:
+		_alive = 0
+		_meshes.clear()
+		_shapes.clear()
+		_paints.clear()
 
 
 func _ready() -> void:
