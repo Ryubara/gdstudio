@@ -62,6 +62,7 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-08 | gdstudio #837 | A game made from 3D Third Person was silent: #837 committed the sounds and buses but no node plays them, and our reports had not said so | [engines/godot/audio.md#template-buses](../engines/godot/audio.md#template-buses) |
 | 2026-11-09 | gdstudio #866 | A pull request's `Model:` line and trailers named the harness that ran the session, not the model that wrote the work | [studio/pull-requests.md#body](pull-requests.md#body) |
 | 2026-11-10 | gdstudio #865 | Work done while a weaker model ran the studio fell short (a ragdoll pull request with red checks and its tests uncommitted, an issue holding a decision never made) and was redone from scratch | [studio/asks.md#decision-words](asks.md#decision-words) |
+| 2026-11-10 | gdstudio #846 | The coordinator was building a template feature itself instead of starting a godot-engineer for it | [studio/starting-work.md#starting-an-agent](starting-work.md#starting-an-agent) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 
