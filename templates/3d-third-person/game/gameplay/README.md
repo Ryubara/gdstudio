@@ -9,8 +9,11 @@ folder.
 
 The template has a character and the map's components:
 
-- `player/`: the character (`Player`, its `PlayerTuning`, `PlayerAnimation`, `PlayerCamera`, `Interactor`,
-  `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
+- `character/`: the character whoever drives it (`Character` and its scenes `character.tscn`, the body alone, and
+  `character_dressed.tscn`, with its model; `CharacterTuning`, `CharacterAnimation`, `CharacterRagdoll`, `Footsteps`,
+  `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`).
+- `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
+  `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the
   crosshair, and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface

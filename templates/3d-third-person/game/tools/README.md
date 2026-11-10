@@ -28,7 +28,7 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
-- `tools/ragdoll/measure_joints.gd` measures the joint limits of `PlayerRagdoll.BODIES` from every clip on both mannequins
+- `tools/ragdoll/measure_joints.gd` measures the joint limits of `CharacterRagdoll.BODIES` from every clip on both mannequins
   (the header says how to run it).
 - `tools/capture/muzzle_flash_tour.tscn` fires the pistol in slow motion at the orange block, with the flash on and then
   off, for a clip of the muzzle flash.

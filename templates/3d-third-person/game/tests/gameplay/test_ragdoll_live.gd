@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _ragdoll: PlayerRagdoll
+var _ragdoll: CharacterRagdoll
 
 
 func before_test() -> void:
@@ -23,7 +23,7 @@ func after_test() -> void:
 
 func _bones() -> Array[PhysicalBone3D]:
 	var found: Array[PhysicalBone3D] = []
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		found.append(_ragdoll.body(entry.bone))
 	return found
 

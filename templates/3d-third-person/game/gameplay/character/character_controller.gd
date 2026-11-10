@@ -19,3 +19,10 @@ var _command := PlayerCommand.new()
 ## The command for this physics tick.
 func sample() -> PlayerCommand:
 	return _command
+
+
+## Where the person who watches this character is (the local camera), for what only matters to
+## the eye (how far a death may be a ragdoll). `Vector3.INF`: nobody watches here (an AI on a
+## server, a test, a body stepped from the network).
+func viewer_position() -> Vector3:
+	return Vector3.INF

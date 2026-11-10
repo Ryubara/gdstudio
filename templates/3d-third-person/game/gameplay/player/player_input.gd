@@ -113,6 +113,12 @@ func sample() -> PlayerCommand:
 	return command
 
 
+## The camera that draws this node's viewport, where it is; `Vector3.INF` with none.
+func viewer_position() -> Vector3:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	return camera.global_position if camera != null else Vector3.INF
+
+
 # The view and the push. With a camera the view is the camera's and the stick is already in its
 # axes. With none the view is the way the body faces and the stick is in the world's axes (right
 # is +X, forward is -Z), as a character with no camera has always moved.

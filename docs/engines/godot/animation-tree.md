@@ -51,7 +51,7 @@ cycle: a seek is a cut.
   `NOTIFICATION_EDITOR_PRE_SAVE` and build them again on `..._POST_SAVE`; test it by reading the `.tscn` files for
   `tree_root`, `AnimationNode` and `anim_player`. **Watch out for:** a tree built in `_ready` of a non-`@tool` script
   left the editor's AnimationTree empty, with a warning and no graph. A tree dragged together by hand is saved in the
-  scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `PlayerAnimation` is `@tool`;
+  scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `CharacterAnimation` is `@tool`;
   [screenshots](editor-screenshots.md#how)).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}

@@ -35,7 +35,7 @@ const GRIP_BONES: Array[StringName] = [
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 var _camera: Camera3D
 
 
@@ -44,7 +44,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_animation = _player.get_node("Animation")
 	_camera = Camera3D.new()
 	_camera.position = Vector3(0.0, 1.3, 3.0)
@@ -159,13 +161,13 @@ func test_firing_brings_the_aim_layer_back_too() -> void:
 
 
 func test_the_held_pose_carry_holds_the_whole_upper_body_as_before() -> void:
-	_animation.carry = PlayerAnimation.Carry.HELD_POSE
+	_animation.carry = CharacterAnimation.Carry.HELD_POSE
 	await _settle()
 	for bone in [&"spine_01", &"spine_03", &"upperarm_r", &"lowerarm_l", &"hand_r", &"Head"]:
 		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(1.0)
 	for bone in [&"pelvis", &"thigh_l", &"foot_r"]:
 		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(0.0)
-	_animation.carry = PlayerAnimation.Carry.HAND_ONLY
+	_animation.carry = CharacterAnimation.Carry.HAND_ONLY
 	await _settle()
 	_assert_follows_the_clip("back to hand only")
 
@@ -193,7 +195,7 @@ func test_the_grip_clip_is_the_one_the_tree_plays_on_the_hand() -> void:
 
 func test_an_unarmed_player_carries_nothing_in_either_carry() -> void:
 	_player.weapon = null
-	for mode in [PlayerAnimation.Carry.HAND_ONLY, PlayerAnimation.Carry.HELD_POSE]:
+	for mode in [CharacterAnimation.Carry.HAND_ONLY, CharacterAnimation.Carry.HELD_POSE]:
 		_animation.carry = mode
 		await _settle()
 		assert_float(_layer(&"hand_r", "Armed")).is_equal(0.0)
