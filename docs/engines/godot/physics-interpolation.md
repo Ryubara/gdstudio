@@ -22,6 +22,9 @@ draw the blend of the last two ticks.
 - A capture camera that cuts between spots is OFF from the moment it is made: with it on, the saved frames show where
   the last ticks left it, tens of metres from the printed position, and the log has the one line `[Physics
   interpolation] Interpolated Camera3D triggered from outside physics process`.
+- A camera that renders an off-screen view and is set in `_process` (the minimap's `SubViewport` camera, a baker) is OFF
+  too: left on, it was blended with its transform a tick ago and a point unprojected through it was up to 0.65 of the
+  picture away from the maths that placed it (gdstudio #884; [Minimap](minimap.md#drawing)).
 - After you set a new transform on a node that must not slide in (a teleport, a spawn, a pooled node reused), call
   `reset_physics_interpolation()` once the transform is set.
 - Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation

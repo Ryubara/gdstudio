@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/minimap/map_screen.gd" id="1_screen"]
+[ext_resource type="PackedScene" path="res://ui/minimap/minimap.tscn" id="2_minimap"]
+
+[node name="MapScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_screen")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.03, 0.05, 0.72)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Map" parent="Center" instance=ExtResource("2_minimap")]
+unique_name_in_owner = true
+layout_mode = 2
+map_size = 780.0
+max_screen_fraction = 0.8
+shape = 1
+corner_ratio = 0.04
+range_m = 30.0
+range_min = 4.0
+range_max = 120.0
+rotation_mode = 0
+follow_target = false
+show_self = false
+edge_fade = 0.0
+border_width = 4.0
+marker_update_rate = 15.0
+pool_prewarm = 64

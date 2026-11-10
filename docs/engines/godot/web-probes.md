@@ -57,8 +57,8 @@ failed or answered 400 or more (the favicon aside), or no `ready` within 60 s, p
 `#status-notice` when there is one. It records, and never gates on, the seconds to the first frames, the longest frame
 in the 3 s after them, and the sizes of the pack, the wasm and the folder, as a table in the job summary and in
 `<out>/boot.json`; a shot of the first frames goes to `<out>/boot.png`. A template that has
-`tools/web_smoke/touch_smoke.py` runs it in the next step (3D Third Person: 17 checks), and both write their files to a
-`web-smoke` artifact.
+`tools/web_smoke/touch_smoke.py` runs it in the next step (3D Third Person: 17 checks, 21 s on a PC and about 90 s on the
+runner, at `--ratio 1 --no-shots`), and both write their files to a `web-smoke` artifact.
 
 Run the same step locally from a made game (`gds template game <template>` keeps one for probes), after
 `godot --headless --path game --export-release Web` with the pinned Godot:

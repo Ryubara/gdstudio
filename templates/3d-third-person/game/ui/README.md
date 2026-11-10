@@ -13,3 +13,9 @@ one local player brings: body, camera, touch layer, pause button; `main.tscn` in
 the screen host). `ui/menus/` holds the main menu, the loading screen, the pause menu, the settings screen and the
 `ScreenHost` that opens screens over the game (the project starts at `ui/menus/menu_scene.tscn`); the options they show
 are kept by the `Settings` autoload in `core/settings/`.
+
+`ui/minimap/` is the minimap: `minimap.tscn` (the widget: a round or square map that follows a target, turns, zooms and
+draws every `MinimapMarker`), `map_screen.tscn` (the full-screen map, `M`), `map_layer.tscn` (the full-screen map in a
+`CanvasLayer`; the small map sits in the HUD's minimap slot) and the pool, projector and baker behind them. Icons
+are the template's own white shapes in `assets/ui/minimap/`, tinted by each marker. The kit's
+`docs/engines/godot/minimap.md` says how to use and tune it.
