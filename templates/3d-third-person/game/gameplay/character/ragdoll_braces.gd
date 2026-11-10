@@ -33,16 +33,24 @@ func build(
 	cone_passes: int,
 	joint_range: float
 ) -> void:
+	# The joint's frame in each body, at the pose it was made in: worked out once a joint, not once
+	# a copy (a first death that takes a pooled set makes every copy again, gdstudio #1022).
+	var in_parents: Dictionary[StringName, Transform3D] = {}
+	var in_children: Dictionary[StringName, Transform3D] = {}
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var up: StringName = parents.get(entry.bone, &"")
+		if up != &"":
+			var in_child := bones[entry.bone].joint_offset
+			in_children[entry.bone] = in_child
+			in_parents[entry.bone] = posed[up].affine_inverse() * posed[entry.bone] * in_child
 	for round_index in maxi(hinge_passes, cone_passes) - 1:
 		for entry: Dictionary in CharacterRagdoll.BODIES:
-			var up: StringName = parents.get(entry.bone, &"")
-			if up == &"":
+			if not in_parents.has(entry.bone):
 				continue
-			var parent := bones[up]
+			var parent := bones[parents[entry.bone]]
 			var child := bones[entry.bone]
-			# The joint's frame in each body, at the pose it was made in.
-			var in_child := child.joint_offset
-			var in_parent: Transform3D = posed[up].affine_inverse() * posed[entry.bone] * in_child
+			var in_child := in_children[entry.bone]
+			var in_parent := in_parents[entry.bone]
 			if entry.joint == &"hinge" and round_index < hinge_passes - 1:
 				_joints.append(_hinge(entry, parent, in_parent, child, in_child, joint_range))
 				hinges += 1

@@ -4,13 +4,15 @@ extends Node
 ## The character's ragdoll: physical bones on the skeleton of the model in the `Model` slot, limp
 ## while the `Character` is dead and idle (no collision, no cost) while it is alive.
 ##
-## The bones are made from the skeleton on the character's first death (or when something asks
-## for one: `body()`, `body_count()`), and again each time the model changes after that, because a
-## model swap deletes the old model and everything inside it. A character that never dies never
-## pays for them: 16 bodies and 33 nodes it would carry from its spawn. In the editor they are made
-## at once while `editor_preview` is on, so their shapes show in the viewport (with Visible
-## Collision Shapes on in the Debug menu), but they are never saved in a scene. `BODIES` lists them
-## for the Quaternius universal rig (both mannequins).
+## The bones come onto the skeleton on the character's first death (or when something asks for
+## one: `body()`, `body_count()`), and are made again each time the model changes after that,
+## because a model swap deletes the old model and everything inside it. A character that never
+## dies never pays for them: 16 bodies and 33 nodes it would carry from its spawn. The first death
+## takes a set the `RagdollPool` made in the frames after the level loaded, rather than making it
+## then, and a character freed while it holds bones gives them back to the pool. In the editor
+## they are made at once while `editor_preview` is on, so their shapes show in the viewport (with
+## Visible Collision Shapes on in the Debug menu), but they are never saved in a scene. `BODIES`
+## lists them for the Quaternius universal rig (both mannequins).
 ##
 ## The `Character` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
 ## listens to the player's `died` and `revived`.
@@ -203,11 +205,18 @@ func _ready() -> void:
 		model.rig_changed.connect(_on_rig_changed)
 	if Engine.is_editor_hint() and editor_preview:
 		_build()
+	if not Engine.is_editor_hint():
+		var pool := RagdollPool.instance(get_tree())
+		if pool != null:
+			pool.ask(self)
 
 
 func _notification(what: int) -> void:
-	# The bones live under the skeleton, not under this node: take them away with it.
-	if what == NOTIFICATION_PREDELETE:
+	# The bones live under the skeleton, not under this node: take them away with it, back to the
+	# pool when the character is being freed.
+	if what == NOTIFICATION_EXIT_TREE and _being_freed():
+		_release()
+	elif what == NOTIFICATION_PREDELETE:
 		_clear()
 
 
@@ -405,10 +414,120 @@ func _rebuild() -> void:
 		_build()
 
 
-# Makes the bones the first time the game needs them (never in the editor: `editor_preview`).
+# Brings the bones the first time the game needs them, a set from the pool or else new ones (never
+# in the editor: `editor_preview`).
 func _ensure_bones() -> void:
 	if _simulator == null and is_node_ready() and not Engine.is_editor_hint():
-		_build()
+		if not _adopt():
+			_build()
+
+
+## Makes a set of bones on this skeleton for the `RagdollPool` and parks it there at once (the pool
+## calls it in the frames after the level loads). False when it cannot: the character holds bones
+## already, the skeleton lacks the rig's bones, or the pool keeps no more.
+func make_spare() -> bool:
+	if _simulator != null or Engine.is_editor_hint() or not is_node_ready():
+		return false
+	var pool := RagdollPool.instance(get_tree())
+	if pool == null or not pool.has_room() or not _fits(model.skeleton() if model else null):
+		return false
+	_build()
+	return _release()
+
+
+# Takes a set from the pool onto this skeleton and joins it as `_build` does. False when the pool
+# has none (or the skeleton lacks the rig's bones).
+func _adopt() -> bool:
+	var skeleton := model.skeleton() if model != null else null
+	var pool := RagdollPool.instance(get_tree())
+	if pool == null or not _fits(skeleton):
+		return false
+	var spare := pool.take()
+	if spare == null or not is_instance_valid(spare.simulator):
+		return false
+	_clear()
+	_simulator = spare.simulator
+	_bones = spare.bones
+	var fitted := spare.fit != _joints_key()
+	if fitted:
+		spare.braces.free_all()
+	else:
+		# The extra joints came with the set: the physics server makes them again as the bodies
+		# enter the world (`_brace_joints` keeps a set that has them).
+		_braces = spare.braces
+		_posed = spare.posed
+	_simulator.get_parent().remove_child(_simulator)
+	skeleton.add_child(_simulator)
+	_hold_braces()
+	if fitted:
+		for entry: Dictionary in BODIES:
+			_fit_bone(skeleton, _bones[entry.bone], entry)
+	_join(skeleton, fitted)
+	return true
+
+
+# Hands the bones to the pool: off the skeleton, out of the physics world, with nothing of this
+# character left on them (joints, exceptions, marks, the hit zones' tag). False, keeping them, when
+# there is no pool or it keeps no more.
+func _release() -> bool:
+	if _simulator == null or not is_instance_valid(_simulator) or Engine.is_editor_hint():
+		return false
+	var pool := RagdollPool.instance(get_tree()) if is_inside_tree() else RagdollPool._pool
+	if pool == null or not is_instance_valid(pool) or not pool.has_room():
+		return false
+	if _simulator.is_inside_tree():
+		if _simulator.is_simulating_physics():
+			_simulator.physical_bones_stop_simulation()
+		_simulator.get_tree().call_group(&"impacts", &"clear_marks_on", _simulator)
+		for ignored in _ignored:
+			if is_instance_valid(ignored):
+				_simulator.physical_bones_remove_collision_exception(ignored.get_rid())
+	_count(false)
+	# The extra joints go with the bones (the server keeps them while the bodies are parked out of
+	# the world): making them again is most of what taking a set costs.
+	_simulator.tree_exiting.disconnect(_free_braces)
+	_simulator.tree_entered.disconnect(_brace_joints)
+	for bone: PhysicalBone3D in _bones.values():
+		bone.remove_meta(&"hit_zones")
+		# A new owner makes the joint again, posed on its own skeleton.
+		bone.joint_type = PhysicalBone3D.JOINT_TYPE_NONE
+	_simulator.active = false
+	_simulator.influence = 1.0
+	_simulator.get_parent().remove_child(_simulator)
+	var spare := RagdollPool.Spare.new()
+	spare.simulator = _simulator
+	spare.bones = _bones
+	spare.posed = _posed
+	spare.braces = _braces
+	spare.fit = _joints_key()
+	pool.park(spare)
+	_simulator = null
+	_bones = {}
+	_posed = {}
+	_braces = RagdollBraces.new()
+	_limp = false
+	_blend = 0.0
+	return true
+
+
+# What a set's bodies and extra joints were made for: the model's scene (a model made in code fits
+# no other), the thickness and the joints' settings.
+func _joints_key() -> String:
+	var rig := model.rig() if model != null else null
+	var path := rig.scene_file_path if rig != null else ""
+	if path.is_empty():
+		path = str(get_instance_id())
+	return "%s|%s|%s|%d|%d" % [path, thickness, joint_range, hinge_passes, cone_passes]
+
+
+# True when this node leaves the tree because it, or the character above it, is being freed.
+func _being_freed() -> bool:
+	var node: Node = self
+	while node != null:
+		if node.is_queued_for_deletion():
+			return true
+		node = node.get_parent()
+	return false
 
 
 # True when `skeleton` has every bone `BODIES` names.
@@ -437,16 +556,38 @@ func _build() -> void:
 	_simulator.name = SIMULATOR
 	_simulator.active = false
 	skeleton.add_child(_simulator)
-	# The extra joints are server joints between the bones' bodies: they go before the bodies do
-	# (a model swap deletes the skeleton and the bones with it), and come back with them.
-	_simulator.tree_exiting.connect(_free_braces)
-	_simulator.tree_entered.connect(_brace_joints)
-	var rest_bodies: Dictionary[StringName, Transform3D] = {}
+	_hold_braces()
 	for entry: Dictionary in BODIES:
-		var bone := _make_bone(skeleton, entry)
+		var bone := PhysicalBone3D.new()
+		bone.name = String(entry.bone)
+		bone.bone_name = entry.bone
+		_fit_bone(skeleton, bone, entry)
 		_simulator.add_child(bone)
 		_bones[entry.bone] = bone
-		rest_bodies[entry.bone] = rest_body(entry.bone)
+	_join(skeleton, true)
+	if was_limp and not Engine.is_editor_hint():
+		start()
+		for bone_name: StringName in lying:
+			if _bones.has(bone_name):
+				_bones[bone_name].global_transform = lying[bone_name]
+
+
+# The extra joints are server joints between the bones' bodies: they go before the bodies do (a
+# model swap deletes the skeleton and the bones with it), and come back with them.
+func _hold_braces() -> void:
+	_simulator.tree_exiting.connect(_free_braces)
+	_simulator.tree_entered.connect(_brace_joints)
+
+
+# Joins the bodies on `skeleton` (in the tree, with every bone fitted): each joint made with its
+# body at the joint's centre, then the materials, the exceptions and the extra joints. `fitted`
+# is false for a set whose bodies were fitted to this rig before and `_posed` already holds where
+# they go.
+func _join(skeleton: Skeleton3D, fitted: bool) -> void:
+	var rest_bodies: Dictionary[StringName, Transform3D] = {}
+	if fitted:
+		for entry: Dictionary in BODIES:
+			rest_bodies[entry.bone] = rest_body(entry.bone)
 	# The engine (4.7.2) sets a joint up when its type is set, from where the two bodies are then
 	# and the joint's offset; setting the offset later only moves the body back onto its bone. So:
 	# every offset first, then every body posed at its joint's centre (a cone's `centre`, the
@@ -457,6 +598,9 @@ func _build() -> void:
 		_bones[entry.bone].joint_offset = Transform3D(_joint_frame(entry), Vector3.ZERO)
 	var posed := _posed
 	for entry: Dictionary in BODIES:
+		if not fitted:
+			_bones[entry.bone].global_transform = skeleton.global_transform * posed[entry.bone]
+			continue
 		var place: Transform3D = rest_bodies[entry.bone]
 		var parent := _parent_body(skeleton, entry.bone)
 		if parent != &"":
@@ -478,11 +622,6 @@ func _build() -> void:
 	_apply_materials()
 	_except_parents()
 	_brace_joints()
-	if was_limp and not Engine.is_editor_hint():
-		start()
-		for bone_name: StringName in lying:
-			if _bones.has(bone_name):
-				_bones[bone_name].global_transform = lying[bone_name]
 
 
 func _clear() -> void:
@@ -531,10 +670,8 @@ func _entry(bone_name: StringName) -> Dictionary:
 	return {}
 
 
-func _make_bone(skeleton: Skeleton3D, entry: Dictionary) -> PhysicalBone3D:
-	var bone := PhysicalBone3D.new()
-	bone.name = String(entry.bone)
-	bone.bone_name = entry.bone
+# Fits `bone` to `skeleton`'s rest: where its body sits on the bone and its capsule.
+func _fit_bone(skeleton: Skeleton3D, bone: PhysicalBone3D, entry: Dictionary) -> void:
 	var rest_bone := skeleton.get_bone_global_rest(skeleton.find_bone(entry.bone))
 	var body_rest := rest_body(entry.bone)
 	bone.body_offset = rest_bone.affine_inverse() * body_rest
@@ -546,16 +683,17 @@ func _make_bone(skeleton: Skeleton3D, entry: Dictionary) -> PhysicalBone3D:
 		. length()
 	)
 	var radius: float = entry.radius * thickness
-	var capsule := CapsuleShape3D.new()
+	var shape := bone.get_node_or_null(^"Shape") as CollisionShape3D
+	if shape == null:
+		shape = CollisionShape3D.new()
+		shape.name = "Shape"
+		shape.shape = CapsuleShape3D.new()
+		# A capsule stands on its Y axis; lay it along the body's X axis, the bone.
+		shape.basis = Basis(Vector3.BACK, -PI / 2.0)
+		bone.add_child(shape)
+	var capsule := shape.shape as CapsuleShape3D
 	capsule.radius = radius
 	capsule.height = maxf(length + radius, radius * 2.0 + 0.01)
-	var shape := CollisionShape3D.new()
-	shape.name = "Shape"
-	shape.shape = capsule
-	# A capsule stands on its Y axis; lay it along the body's X axis, the bone.
-	shape.basis = Basis(Vector3.BACK, -PI / 2.0)
-	bone.add_child(shape)
-	return bone
 
 
 # The joint's frame in the body's: the body's own (X along the bone: a cone's twist axis), or for a
