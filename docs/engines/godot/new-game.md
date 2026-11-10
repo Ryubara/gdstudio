@@ -137,6 +137,13 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   there failed with the plugin enabled; an empty folder passed as `--workspace` has no marker either, so the game was
   made in the real `repos/` (moved out and deleted). **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted
   at once; the test changed to `ConfigFile`); gdstudio #873, 2026-11-10 (an empty `--workspace` folder).
+- **Approach:** Give a throwaway workspace a folder no other agent can name (a fresh one from `mktemp -d` under the
+  system temp folder), and when done remove only the game you made (`repos/<your game>`), never the workspace folder.
+  **Watch out for:** the session's scratchpad folder is shared by every agent of the session; a reviewer built its
+  throwaway at `<scratchpad>/ws`, another agent made its own game in the same folder, and the reviewer's clean-up
+  (`rm -rf` of the whole workspace) deleted that game while it was in use. **Seen:** gdstudio #896, 2026-11-10 (the
+  marker, local file and addon folders were put back; the other agent made its game again; #917 makes the folder
+  itself).
 
 - **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
   (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per
