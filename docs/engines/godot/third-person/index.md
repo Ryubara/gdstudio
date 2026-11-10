@@ -10,5 +10,4 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 
-What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-
-template.md).
+What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).
