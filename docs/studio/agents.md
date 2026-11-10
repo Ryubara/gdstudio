@@ -70,6 +70,17 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   main loop busy. **Watch out for:** the pane flagged a running agent `retire` at 511k, but the agent guard acted only
   on stopped agents and no poller was configured, so nothing reached the coordinator and the agent grew to 539k.
   **Seen:** tether #27, 2026-11-10 (fix: tether #28 tells it once, and waiting notices go out at the Stop hook).
+- **Approach:** When a guard keeps its own record of what is live, check it against what the harness itself reports
+  (a hook input's `background_tasks`, a clear) and let the harness win when its report is newer. **Watch out for:**
+  Tether learned that a subagent's background task ended only from its notification or a TaskStop answer. A `/clear`
+  kills a stopped agent's shells and writes neither, so `agent_decision` refused a finished agent for good over a task
+  TaskStop called "No task found". A subagent's `SubagentStop` lists its own tasks, but the main loop's `Stop` lists
+  only the main loop's, so measure which hook carries a fact before relying on it. **Seen:** tether #30, 2026-11-10
+  (fix: tether #32 filters its record through the agent's last `SubagentStop` and the clear).
+- **Approach:** Give each event one `on()` hook without a matcher in a Tether-style plugin module: add new work as a
+  function the existing hook calls. **Watch out for:** a second `on('session.end')` made the engine refuse to load the
+  whole module, so 58 of 112 tests failed at once. **Seen:** tether #32, 2026-11-10 (fix: one hook calls both the
+  checkpoint's and the task record's clear handling).
 - **Approach:** After a Tether update is installed, restart the session (`claude --resume <session id>`), then check
   that the transcript's `tether: version <X> loaded` line names the new version before relying on its fix. **Watch
   out for:** a `/clear` keeps the loaded plugin module; alpha.33 was installed while the coordinator session ran on
