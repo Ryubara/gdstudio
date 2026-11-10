@@ -4,7 +4,7 @@
 extends GdUnitTestSuite
 
 const STEP := 1.0 / 60.0
-const BLAST := preBLAST
+const BLAST := preload("res://core/camera_shake/presets/explosion.tres")
 
 var _scene: Node
 var _rig: PlayerCamera
