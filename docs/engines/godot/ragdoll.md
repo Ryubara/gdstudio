@@ -188,24 +188,28 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
 The template's character dies into a ragdoll and gets up again, the usual hybrid: an animated `CharacterBody3D` with
 its capsule while alive, a full ragdoll while dead, and a blend back to the animation on getting up.
 
-- **What it is.** `Player.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`). Dying
+- **What it is.** `Character.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`). Dying
   stops the animation tree, turns the capsule off, ignores every gameplay input and lets the `Ragdoll` component
   (`CharacterRagdoll`) take the pose on screen, pushed inside the joints' limits, each bone keeping the velocity the
   animation gave it and the limbs let drop for a third of a second (a death in the air goes limp there). When the
-  ragdoll declines (over `max_active`, or past `ragdoll_range`) the character plays `ual1/Death01`
-  (`Player.died_by_clip`). The camera orbits and follows the hips. A ragdoll below the tuning's `fall_limit` respawns;
-  `teleport()` and `respawn()` get a dead character up at once. Getting up stands the body under the hips, facing the
+  ragdoll declines (over `max_active`, or past `ragdoll_range` from the one who watches) the character plays
+  `ual1/Death01` (`Character.died_by_clip`). The ragdoll reads no camera: `can_start(viewer)` and `start(velocity,
+  viewer)` take where the watcher is, which the character asks of its controller (`viewer_position()`: the drawn
+  camera for `PlayerInput`, `Vector3.INF` for nobody, so a body on a server or under an AI with no camera always gets
+  its ragdoll). The camera orbits and follows the hips. A ragdoll below the tuning's `fall_limit` says `fell` (the
+  `Player` starts again at its spawn point); `teleport()` and the player's `respawn()` get a dead character up at
+  once. Getting up stands the body under the hips, facing the
   chest's way, restarts the animation and fades the ragdoll's hold out over `get_up_time`. The library has no get-up
   clip; a game with one plays it with `play_clip()` from `revived`.
-- **The inspector.** On `Player`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick it in
-  the inspector or the remote inspector to kill, untick to get up) and `ragdoll_key` (Y by default; None turns the key
-  off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
-  Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
-  body, shared out by the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints
-  swing, as a share of a person's range), `hinge_passes` (how many hinges hold each elbow and knee, 6: one lets a limb
-  the body lands on fold past its range, [why](#limits)), `cone_passes` (the same for every cone, 6: one lets a
-  shoulder twist 50 to 115 degrees past a person's range), `linear_damp`, `angular_damp`, `friction`, `bounce`;
-  Death and getting up:
+- **The inspector.** On `Character`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick
+  it in the inspector or the remote inspector to kill, untick to get up) and `ragdoll_by_command`; on `Player`,
+  `ragdoll_key` (Y by default; None turns the key off). The key is added to the input action `ragdoll` when the game
+  runs, next to anything a game binds there in the Project Settings; it is a testing aid, so a game that ships without
+  it sets None. On `Ragdoll`: `mass` (the whole body, shared out by the segment masses of a person), `thickness` (the
+  capsules), `joint_range` (how far the joints swing, as a share of a person's range), `hinge_passes` (how many hinges
+  hold each elbow and knee, 6: one lets a limb the body lands on fold past its range, [why](#limits)), `cone_passes`
+  (the same for every cone, 6: one lets a shoulder twist 50 to 115 degrees past a person's range), `linear_damp`,
+  `angular_damp`, `friction`, `bounce`; Death and getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
   drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
   then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
@@ -262,7 +266,7 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   fixture `RagdollStage` plays a clip on an `AnimationPlayer` in physics callback mode while it moves the mannequin,
   and goes limp on a chosen tick, so the same death gives the same numbers every run; add a control test that the
   same death with the fix turned off still fails, so the death keeps loading the joint. **Watch out for:** the
-  `Player`'s `AnimationTree` runs on real time, so a death through `Player.die()` is a different pose each run; and
+  character's `AnimationTree` runs on real time, so a death through `Character.die()` is a different pose each run; and
   editing a script the lab runs while sweeps run in the background breaks their runs (175 errors a run): copy it, or
   wait. **Seen:** gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`); gdstudio #975, 2026-11-10
   (`test_ragdoll_cones.gd`).

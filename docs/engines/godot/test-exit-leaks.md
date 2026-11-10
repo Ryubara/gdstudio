@@ -17,7 +17,7 @@ On Linux, some scripts left behind a few of their dependencies' scripts as `Reso
 first thing loaded: loading `solve_grips.gd` and quitting leaves 12 objects and four scripts alive
 (`ObjectDB instances were leaked at exit`, `4 resources still in use`). Nothing in the script is wrong by itself: each
 class it names loads clean alone, and the leak needs the combination (`GripSolver`, `HandGrip`, `WeaponHold`,
-`CharacterAnimation`). The same scripts loaded later, after others had pulled the same classes in, left nothing, so a runner
+`PlayerAnimation`). The same scripts loaded later, after others had pulled the same classes in, left nothing, so a runner
 whose order loaded them last passed, and one whose order loaded them first failed with 250 to 1,200 leaked instances
 (fonts, shaped text, textures, audio banks: everything the leaked scripts' statics reach). It never reproduced on
 Windows, nor on a Linux machine with another directory order.
@@ -85,6 +85,12 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   properly, so a green `main` shard proves only its own deal; a wrapper named otherwise prints the usage and runs
   nothing. **Seen:** Deadnight #1231, 2026-11-05 (fix: `tools/ci/warm_GdUnitCmdTool.gd` took 911 objects to none on the
   same 55 cases; a test runs two suites through it in a child Godot and fails on a leak line).
+- **Approach:** In a kit template, judge a new suite's leak lines by the whole `gds template test` run (one process,
+  CI's condition), not by a `--suite` run of it alone; bisect only a leak the whole run shows. **Watch out for:** a new
+  suite of 3D Third Person leaked 196 objects run alone, the same with every test turned off, and main's
+  `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
+  nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
+  a leak CI never sees).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the
@@ -109,7 +115,7 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   exit|still in use" tests.log`, whatever the exit code; a test that needs only a script's text reads its source rather
   than loading it. **Watch out for:** the shard's last line fails on those lines, not Godot's exit code, so a log ending
   in `ObjectDB instances were leaked` exits 0 locally and fails in CI; a test that only named `WarmupManifest` (which
-  loads `CharacterAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
+  loads `PlayerAnimation` and the scripts under it) left them in use, and the lines had been read in the author's own
   log and called usual. **Seen:** Deadnight #1100, 2026-11-04 (fix: bisect with a prefix of the test file, then one line
   at a time; the test reads the source).
 

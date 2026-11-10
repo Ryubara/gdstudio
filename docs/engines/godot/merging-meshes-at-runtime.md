@@ -16,7 +16,7 @@ mesh per material (Deadnight #830). Godot 4.7.2, Compatibility renderer, measure
   it at exit, and the engine prints leaked meshes, materials and textures. Give the built mesh a made-up path
   (`take_over_path("res://<folder>/pile_<hash>")`) and look for it with `ResourceLoader.has_cached` and
   `get_cached_ref`: the cache holds it only while something uses it.
-- **Do not reach into a class with static state just for a constant.** Reading `CharacterAnimation.HOLDS_DIR` loaded the
+- **Do not reach into a class with static state just for a constant.** Reading `PlayerAnimation.HOLDS_DIR` loaded the
   animation script and the clips it keeps, and a tool that used it leaked them at exit; name the constant locally and
   keep a test that the two agree.
 

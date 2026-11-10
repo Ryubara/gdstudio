@@ -10,20 +10,20 @@ The 3D Third Person weapon: crouch, aim and shoot, the bullet impacts and the ef
 -->
 
 Crouch lowers the capsule from the top (the feet stay on the ground) over `crouch_time` and the camera's target with it;
-`Player.has_room_to_stand()` asks the physics space whether a capsule slightly smaller than the standing one fits
+`Character.has_room_to_stand()` asks the physics space whether a capsule slightly smaller than the standing one fits
 above, and a character that lets go under a ceiling stays crouched until it does. Aim (right mouse, left trigger, the
 Aim button) turns the body to the camera's heading and raises the pistol; fire (left mouse, right trigger, the Fire
 button) aims too and shoots once the arm is half up. The numbers are in the Crouch and Aim groups of the tuning and in
 the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
-The weapon and the aim pose read no camera (gdstudio #901). `Player.aim_ray()` is the ray a character aims along, from
+The weapon and the aim pose read no camera (gdstudio #901). `Character.aim_ray()` is the ray a character aims along, from
 the command of its last step: the command's shot block when it has one (the human's crosshair, written by
 `PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how
 an AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of
 the muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
 `no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming:
 6 mm off in the test). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
-a `Player` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
+a `Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
 the spread's place for `restore()`.
 
 - **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
@@ -82,7 +82,7 @@ the spread's place for `restore()`.
   made while more of the cooldown is left than `fire_buffer_time` (0.3 s) is dropped, which a test with two shots a
   second read as a missing shot. **Seen:** gdstudio #901, 2026-11-10 (`test_weapon_ray.gd`,
   `test_character_state.gd`).
-- **Approach:** Drive a pose from the value the step stored (`Player.view_pitch`) and blend the last two ticks' values
+- **Approach:** Drive a pose from the value the step stored (`Character.view_pitch`) and blend the last two ticks' values
   by `Engine.get_physics_interpolation_fraction()`; test the blend with a made-up frame rate by calling the sampling
   and the blend by hand. **Watch out for:** read from the step alone the aim pose stands still for a frame or two and
   then jumps (1.5 degrees at 90 degrees a second and 144 frames a second, against 0.625 blended, the same as the old
@@ -147,8 +147,8 @@ the spread's place for `restore()`.
   `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08
   (`test_components_among_blocks.gd`).
 
-- **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
-  aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
+- **Approach:** Drive the camera's zoom from the buttons (`Character.aim_held`, `fire_held`) and keep `Character.aiming`
+  (the aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
   (`fire_distance`, `fire_fov`, speeds) with a `zoom_when_firing` toggle, and aiming an `aim_shifts_shoulder` toggle
   (off). Prove it by measuring the distance over the frames after letting go. **Watch out for:** the camera read
   `Player.aiming`, true for 0.8 s after the last shot, so the view stayed zoomed about a second after a shot (aim alone
