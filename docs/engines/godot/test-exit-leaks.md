@@ -157,3 +157,19 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
   only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
   the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`).
+
+## The export leak is intermittent on CI {#the-export-leak-is-intermittent-on-ci}
+
+<!-- new section: the earlier sections cover leaks a test run makes; the template job's headless web export failed
+     with the same message on one run and passed on the next with the same code -->
+
+The template job's `--export-release Web` sometimes ends with `N resources still in use at exit` and passes on a rerun
+of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). CI now exports once more when
+the only `ERROR` lines are at-exit leaks, prints the first run's leak lines (the export runs with `--verbose`, which
+names each script) as a warning, and fails when the second run leaks too or when any other error shows.
+
+- **Approach:** Tell a flake from a real leak by rerunning the job, then by exporting early in the job (before the
+  tests) with `--verbose`: a leak that names the same script on every run and in the early export is real and is fixed
+  in that script; one that comes and goes with the same code is the flake, which the retry absorbs. **Watch out for:**
+  a retry hides a leak that happens one run in two, so read the warning's script names in the log when it shows.
+  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step).
