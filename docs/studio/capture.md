@@ -130,8 +130,9 @@ report only after reading the body back.
   bare upload address beside it, as for [sound](#sound-a-clip-you-can-listen-to); run `gds pr check-body` on the body
   read back after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
   plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
-  refuses every local `./file`, since only a `github.com/user-attachments/` address counts. **Seen:** gdstudio #847,
-  2026-11-08 (the `After:` became a contact sheet with the clip's address beside it).
+  refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
+  reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
+  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 

@@ -28,6 +28,7 @@ one after it.
 | Screen host | `ui/menus/screen_host.gd`, a `Screens` node in `main.tscn` | Opens screens over the game ([Menus over a game](#screen-host)). |
 | Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `main.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
+| Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node | Carries mouse sensitivity and invert to the camera rig. |
 | Layout | `ui/menus/menu_fit.gd` | On a phone (short side under 500 px, or a touch screen under 1000) it lays the menu out on a canvas half as big, drawn twice the size, so a button is a finger's size. |
 
