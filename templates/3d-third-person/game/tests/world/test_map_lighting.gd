@@ -76,3 +76,24 @@ func test_a_section_has_no_sun_of_its_own() -> void:
 		var scene := _scene(path)
 		assert_array(scene.find_children("*", "DirectionalLight3D", true, false)).is_empty()
 		assert_array(scene.find_children("*", "WorldEnvironment", true, false)).is_empty()
+
+
+func test_every_scenes_lightmap_holds_light() -> void:
+	# A bake that saw no light writes an atlas of black texels: the section's shaded faces then
+	# read black beside the map's. The sections were baked so once, with the map's sun added for
+	# the bake but not owned by the scene (the bake leaves out a node with no owner).
+	for path: String in SCENES:
+		var atlas := ProjectSettings.globalize_path(path.get_basename() + ".exr")
+		var image := Image.load_from_file(atlas)
+		var lit := 0
+		var count := 0
+		for y in range(0, image.get_height(), 2):
+			for x in range(0, image.get_width(), 2):
+				count += 1
+				if image.get_pixel(x, y).get_luminance() > 0.001:
+					lit += 1
+		(
+			assert_float(float(lit) / count)
+			. override_failure_message("%s: %d of %d texels lit" % [path.get_file(), lit, count])
+			. is_greater(0.1)
+		)

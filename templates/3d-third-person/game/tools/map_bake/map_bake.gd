@@ -112,6 +112,8 @@ func _bake_lightmap(root: Node, lightmap: LightmapGI, path: String) -> void:
 	if root.find_children("*", "DirectionalLight3D", true, false).is_empty():
 		sun = (load(DAYLIGHT) as PackedScene).instantiate()
 		root.add_child(sun)
+		# The bake only takes the lights of the edited scene: a node with no owner is not in it.
+		sun.owner = root
 	EditorInterface.get_selection().clear()
 	EditorInterface.get_selection().add_node(lightmap)
 	EditorInterface.edit_node(lightmap)
