@@ -39,10 +39,14 @@ func _process_modification_with_delta(_delta: float) -> void:
 		_bones.append(skeleton.find_bone(bone))
 	if _bones.has(-1):
 		return
-	var goal := skeleton.get_bone_global_pose(_bones[3]) * offset
-	var upper := skeleton.get_bone_global_pose(_bones[0])
-	var fore := skeleton.get_bone_global_pose(_bones[1])
-	var hand := skeleton.get_bone_global_pose(_bones[2])
+	# Every pose is worked out from the local ones, and only three rotations are written back.
+	var goal := HandPoseModifier.global_pose(skeleton, _bones[3]) * offset
+	var above := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_bones[0]))
+	var fore_local := skeleton.get_bone_pose(_bones[1])
+	var hand_local := skeleton.get_bone_pose(_bones[2])
+	var upper := above * skeleton.get_bone_pose(_bones[0])
+	var fore := upper * fore_local
+	var hand := fore * hand_local
 	var upper_length := upper.origin.distance_to(fore.origin)
 	var fore_length := fore.origin.distance_to(hand.origin)
 	var to_goal := goal.origin - upper.origin
@@ -63,14 +67,19 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var elbow_at := upper.origin + along * forward + pole * out
 	var wrist_at := upper.origin + along * reach
 	upper.basis = _aimed(upper.basis, fore.origin - upper.origin, elbow_at - upper.origin)
-	skeleton.set_bone_global_pose(_bones[0], upper)
-	fore = skeleton.get_bone_global_pose(_bones[1])
-	hand = skeleton.get_bone_global_pose(_bones[2])
+	fore = upper * fore_local
+	hand = fore * hand_local
 	fore.basis = _aimed(fore.basis, hand.origin - fore.origin, wrist_at - fore.origin)
-	skeleton.set_bone_global_pose(_bones[1], fore)
-	hand = skeleton.get_bone_global_pose(_bones[2])
+	hand = fore * hand_local
 	hand.basis = goal.basis.orthonormalized()
-	skeleton.set_bone_global_pose(_bones[2], hand)
+	skeleton.set_bone_pose_rotation(_bones[0], _local(above.basis, upper.basis))
+	skeleton.set_bone_pose_rotation(_bones[1], _local(upper.basis, fore.basis))
+	skeleton.set_bone_pose_rotation(_bones[2], _local(fore.basis, hand.basis))
+
+
+# A bone's rotation in its parent's space, from the two bases in the skeleton's space.
+func _local(parent: Basis, child: Basis) -> Quaternion:
+	return (parent.orthonormalized().inverse() * child.orthonormalized()).get_rotation_quaternion()
 
 
 # The basis turned the short way so that `from` points along `to`.

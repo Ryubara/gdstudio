@@ -96,29 +96,13 @@ func pose(
 					covered[bone] = true
 		_apply(grip, grip_time, covered)
 	if _carry_arm != &"" and grip != null:
-		_swing_out(skeleton.find_bone(_carry_arm))
+		HandPoseModifier.swing_out(skeleton, _carry_arm, _carry_arm_out)
 	for bone_name in _turns:
 		var bone := skeleton.find_bone(bone_name)
 		if bone >= 0:
 			skeleton.set_bone_pose_rotation(
 				bone, skeleton.get_bone_pose_rotation(bone) * _turns[bone_name]
 			)
-
-
-# The hold's swing of the weapon's arm, worked out from the local poses: with no scene running the
-# skeleton's own global poses are not the pose just set.
-func _swing_out(arm: int) -> void:
-	var end := HandPoseModifier.arm_end(skeleton, arm)
-	if arm < 0 or end == arm:
-		return
-	var globals := _globals()
-	var basis := HandPoseModifier.swung_out(
-		globals[arm], globals[end].origin, HandPoseModifier.on_left(skeleton, arm), _carry_arm_out
-	)
-	var parent := skeleton.get_bone_parent(arm)
-	if parent >= 0:
-		basis = globals[parent].basis.inverse() * basis
-	skeleton.set_bone_pose_rotation(arm, basis.get_rotation_quaternion())
 
 
 ## The deepest a pistol point is inside the body in the pose now, in metres (0 or less: clear; -1

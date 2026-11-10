@@ -58,17 +58,33 @@ func _process_modification_with_delta(_delta: float) -> void:
 
 ## Lifts `bone` (an upper arm) `degrees` away from the body, where the skeleton poses it now: it
 ## turns about its own joint so that the hand at the arm's end moves toward the side of the
-## skeleton the arm is on, however the elbow is bent. Call it while the skeleton runs its
-## modifiers: only then are its global poses the pose of this frame.
+## skeleton the arm is on, however the elbow is bent.
 static func swing_out(skeleton: Skeleton3D, bone: StringName, degrees: float) -> void:
 	var index := skeleton.find_bone(bone)
 	var end := arm_end(skeleton, index)
 	if end == index:
 		return
-	var posed := skeleton.get_bone_global_pose(index)
-	var hand := skeleton.get_bone_global_pose(end).origin
-	posed.basis = swung_out(posed, hand, on_left(skeleton, index), degrees)
-	skeleton.set_bone_global_pose(index, posed)
+	var parent := skeleton.get_bone_parent(index)
+	var above := global_pose(skeleton, parent) if parent >= 0 else Transform3D.IDENTITY
+	var posed := above * skeleton.get_bone_pose(index)
+	var hand := posed * skeleton.get_bone_pose(skeleton.get_bone_parent(end))
+	hand = hand * skeleton.get_bone_pose(end)
+	var turned := swung_out(posed, hand.origin, on_left(skeleton, index), degrees)
+	skeleton.set_bone_pose_rotation(
+		index, (above.basis.orthonormalized().inverse() * turned).get_rotation_quaternion()
+	)
+
+
+## A bone's pose in the skeleton's space, worked out from the local poses up its parents: the
+## pose so far, read without asking the skeleton to update its global poses in the middle of a
+## modifier, and right with no scene running too (a test that poses a skeleton by hand).
+static func global_pose(skeleton: Skeleton3D, bone: int) -> Transform3D:
+	var posed := skeleton.get_bone_pose(bone)
+	var parent := skeleton.get_bone_parent(bone)
+	while parent >= 0:
+		posed = skeleton.get_bone_pose(parent) * posed
+		parent = skeleton.get_bone_parent(parent)
+	return posed
 
 
 ## The bone two below `index` (an upper arm's hand), or `index` when there is none.
