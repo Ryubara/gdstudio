@@ -40,6 +40,11 @@ simulator is the only node that needs to exist while the character lives: with `
   out for:** a mask of the level only, chosen so the bones would not fight, lets limbs fall through the body: with
   wide limits the character melts into a heap. **Seen:** gdstudio #872, 2026-11-10 (found by the maintainer on the
   #846 ragdoll; the rework is #872).
+- **Approach:** Start each bone with its own linear and angular velocity, read from where the animation moved it over
+  the last physics frame, so a swinging limb keeps swinging when the body goes limp. **Watch out for:** every bone
+  given the character's velocity and no spin keeps the pose in free fall, since gravity moves all of them alike: a
+  body killed at the top of a jump stayed in its jump pose until it hit the floor. **Seen:** gdstudio #872,
+  2026-11-10 (found by the maintainer on the #846 ragdoll, `PlayerRagdoll` `carry_velocity`).
 
 ## Joint limits {#limits}
 
