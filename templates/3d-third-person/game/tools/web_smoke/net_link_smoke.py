@@ -2,8 +2,9 @@
 never downgrades `wss://`.
 
 Starts `tools/net/echo_server.gd` in a headless Godot (a free port), serves the exported game
-(`build/web`), and opens it in headless Chromium with `?netprobe&url=ws://...`; the game's `NetProbe`
-writes what its `WebSocketLink` sees to `window.gdnet`. Checks:
+(`build/web`), and opens it in headless Chromium with `?play&netprobe&url=ws://...` (`play` skips the
+main menu to `main.tscn`, where the `NetProbe` lives); the game's `NetProbe` writes what its
+`WebSocketLink` sees to `window.gdnet`. Checks:
 
 - the link reads the server's address from the page and opens; pings come back (round trip over
   loopback, and through `tools/net/relay.py` with 100 ms each way, which must read 200 ms or more);
@@ -195,7 +196,7 @@ def main() -> int:
             # 1. Over loopback: the address from the page, the link opens, pings come back.
             page = browser.new_page()
             page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-            page.goto(f"http://127.0.0.1:{http_port}/index.html?netprobe&url=ws://127.0.0.1:{ws_port}")
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe&url=ws://127.0.0.1:{ws_port}")
             opened = wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             check("opens from the page address", opened, gdnet(page))
             loopback = summary(round_trips(page, 10))
@@ -217,7 +218,7 @@ def main() -> int:
                 "console",
                 lambda message: control_errors.append(message.text) if message.type == "error" else None,
             )
-            page.goto(f"http://127.0.0.1:{http_port}/index.html?netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}")
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}")
             wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             control = frozen_tab(page, control_errors)
             result["freeze_with_64_kb"] = control
@@ -226,7 +227,7 @@ def main() -> int:
 
             # 3. Through the relay, 100 ms each way: the round trip is 200 ms or more.
             page = browser.new_page()
-            page.goto(f"http://127.0.0.1:{http_port}/index.html?netprobe&url=ws://127.0.0.1:{relay_port}")
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe&url=ws://127.0.0.1:{relay_port}")
             wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             relayed = summary(round_trips(page, 10))
             relayed["page_fps"] = gdnet(page).get("fps")
@@ -257,7 +258,7 @@ def main() -> int:
                 route.fulfill(status=200, body=path.read_bytes(), headers={"Content-Type": kind})
 
             page.route("https://game.test/**", from_build)
-            page.goto(f"https://game.test/index.html?netprobe&url=ws://127.0.0.1:{ws_port}")
+            page.goto(f"https://game.test/index.html?play&netprobe&url=ws://127.0.0.1:{ws_port}")
             refused = wait_for(page, "window.gdnet && window.gdnet.state === 'refused'", READY_TIMEOUT_S)
             seen = gdnet(page)
             check(

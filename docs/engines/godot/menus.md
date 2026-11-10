@@ -55,7 +55,10 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 - **Approach:** When the project's main scene stops being the game's, give tools a way past the menu (`--play`,
   `?play`, `skip_menu`) and point every test and capture that wants the game at `res://main.tscn`. **Watch out for:**
   `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
-  menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
+  menu; the template's `touch_smoke.py` opens `?probe&play`; a probe written on a branch from before the menu passes
+  its own CI and fails after `gds merge-main`, so rerun every web probe of the branch after the merge. **Seen:**
+  gdstudio #881, 2026-11-10; #903, 2026-11-10 (`net_link_smoke.py` waited on `window.gdnet` that never came; fix:
+  `?play&netprobe`).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 
