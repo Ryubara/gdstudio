@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/two_hand_hold.gd" id="1_hold"]
+[ext_resource type="PackedScene" path="res://assets/weapons/rifle/rifle.tscn" id="2_rifle"]
+
+[node name="RifleHeld" type="Node3D"]
+script = ExtResource("1_hold")
+
+[node name="Pivot" type="Node3D" parent="."]
+transform = Transform3D(0.9396926, 0, 0.34202012, 0.1961747, 0.81915206, -0.53898555, -0.28016648, 0.57357645, 0.76975113, -0.120263, 1.330504, 0.059772998)
+
+[node name="Rifle" parent="Pivot" instance=ExtResource("2_rifle")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.095, 0.307)
+
+[node name="RightHandTarget" type="Marker3D" parent="Pivot/Rifle"]
+transform = Transform3D(0.02087106, -0.98118913, 0.19187154, -0.081181884, 0.18967913, 0.978458, -0.9964607, -0.03597835, -0.07571644, 0.1198837, -0.034453582, -0.021177813)
+gizmo_extents = 0.05
+
+[node name="LeftHandTarget" type="Marker3D" parent="Pivot/Rifle"]
+transform = Transform3D(-0.08377854, -0.4568249, -0.8855957, 0.8530715, 0.4264487, -0.3006502, 0.5149853, -0.7806773, 0.3539174, -0.17935711, 0.042591058, 0.079519324)
+gizmo_extents = 0.05
+
+[node name="RightPole" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, -0.6, -0.4)
+gizmo_extents = 0.05
+
+[node name="LeftPole" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, -0.8, -0.2)
+gizmo_extents = 0.05

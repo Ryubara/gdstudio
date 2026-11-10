@@ -26,6 +26,22 @@
       "tail_db": -34.0
     },
     {
+      "name": "weapon_pickup",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/weapon_pickup",
+      "prefix": "weapon_pickup",
+      "takes": 2,
+      "seconds": 1.0,
+      "influence": 0.6,
+      "prompt": "A rifle snatched up off the floor: one firm metallic clack of a gun grabbed into the hands, then a quick crisp bolt pulled back and snapped forward. Short, punchy, satisfying, dry, close, no music, no voice, no gunshot.",
+      "min_seconds": 0.2,
+      "max_seconds": 0.89,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -22.0,
+      "tail_db": -34.0
+    },
+    {
       "name": "footstep_soft",
       "kind": "steps",
       "folder": "templates/3d-third-person/game/assets/audio/footsteps",
