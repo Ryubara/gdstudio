@@ -169,13 +169,14 @@ var _spawn_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	_spawn_rng.seed = 1
 	if tuning == null:
 		tuning = PlayerTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
 	add_to_group(GROUP)
+	# Fixed for a character, so a test repeats, but not shared, so two characters pick apart.
+	_spawn_rng.seed = hash(str(get_path()))
 	facing = model.rotation.y
 	if ragdoll_body != null:
 		ragdoll_body.add_collision_exception(self)
@@ -218,7 +219,7 @@ func respawn() -> void:
 	var point := SpawnPoint.pick(get_tree(), &"player", _spawn_rng)
 	if point == null:
 		return
-	var spot := point.global_transform
+	var spot := point.spawn_transform(_spawn_rng)
 	teleport(spot.origin, atan2(-spot.basis.z.x, -spot.basis.z.z))
 
 

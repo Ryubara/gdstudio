@@ -29,7 +29,7 @@ A shot that lands plays the sound of its surface: each `ImpactSurface` under `Im
 `SFX`. The level's `EffectEmitter` plays it at the point from its pool (the effect's `max_instances` hits can sound at
 once, a newer one takes the oldest's place). Change the `sound`, `sound_volume_db` or `sound_bus` in the `EffectDef`; a
 hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off, and so does the emitter's
-`sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `gameplay/effects/`.
+`sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `EffectDef` in `addons/gds_game/effects/`.
 
 ## The sounds
 

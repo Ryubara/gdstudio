@@ -15,7 +15,7 @@ talk through signals and input actions, so each can be replaced alone.
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
 | `Impacts` | `main.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
-| `EffectEmitter`, `EffectDef` | `main.tscn` (`Effects`), `gameplay/effects/` | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
+| `EffectEmitter`, `EffectDef` | `main.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
 | `Footsteps` | `gameplay/player/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
 | `Crosshair` | `ui/hud/crosshair.tscn` | A small white circle with a thin dark ring at the middle of the screen, drawn by the node itself and shown only while the player aims. |
@@ -82,16 +82,19 @@ The sample map is built for these numbers (blocks 1 m apart in height, twelve st
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
 The camera's settings are all on the `PlayerCamera` node, so you never open the Phantom Camera node: the nodes it
-works with (Nodes), distance (1.7 m), the arm's offset (`offset`, in world axes; it moves the wall cast, so keep it near
-zero sideways), field of view, near and far clip and start pitch (Framing), the **Shoulder** group, damping (Follow),
-mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera (Blending), the wall
-mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the field of view and distance
-added at a full sprint, the zoom speed, and a shake with its amplitude in degrees, frequency and blend speed, off at 0),
-Aim (the distance, the field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a
-shot fired without aiming, with `zoom_when_firing` to turn it off). The zoom follows the buttons: it starts back out on
-the next frame after aim and fire are let go, and so does the character: its walk speed, turn and clips are the
-normal ones at once and only the arm lowers over the aim pose time (a shot needs the arm half up, so a tap shorter than
-about 75 ms shoots nothing).
+works with (Nodes), distance (1.7 m), the arm's offset (`offset`, in world axes; it moves the wall cast, so keep it
+near zero sideways), field of view, near and far clip and start pitch (Framing), the **Shoulder** group, damping
+(Follow), mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera
+(Blending), the wall mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the
+field of view and distance added at a full sprint, the zoom speed, and a shake with its amplitude in degrees,
+frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Aim (the distance, the
+field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
+aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+`shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
+from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
+follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:
+its walk speed, turn and clips are the normal ones at once and only the arm lowers over the aim pose time (a shot
+needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`

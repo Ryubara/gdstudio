@@ -291,6 +291,12 @@ _UPLOADED = re.compile(r"(?:!\[[^\]]*\]\(\s*|<img[^>]*src=[\"']?|^\s*)https://(?
                        re.MULTILINE)
 
 
+def _plain_line(line: str) -> str:
+    """A line without its list marker (`- `, `* `) and bold markers, so `- Screenshots: none (why)` and
+    `- **Screenshots:** none (why)` read as the bare line the template shows."""
+    return re.sub(r"^[-*][ \t]+", "", line.strip()).replace("**", "")
+
+
 def screenshot_problems(conv: dict[str, Any], title: str, body: str) -> list[str]:
     """A pull request in a visual area (pull_requests.screenshots.areas) shows what changed: an uploaded image or
     video in its Screenshots section, or the `none` line with a reason in parentheses."""
@@ -304,8 +310,9 @@ def screenshot_problems(conv: dict[str, Any], title: str, body: str) -> list[str
     text = _COMMENT.sub("", split_sections(body).get(section, ""))
     none = rule.get("none", "Screenshots: none")
     for line in text.splitlines():
-        if line.strip().startswith(none):
-            if _reasoned(line.strip()[len(none):]):
+        line = _plain_line(line)
+        if line.startswith(none):
+            if _reasoned(line[len(none):]):
                 return []
             return [f"'{none}' needs a reason in parentheses: '{none} (why nothing visible changed)'"]
     pair = rule.get("before_after")

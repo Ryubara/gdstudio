@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="14_minimap"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="15_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="16_arrow"]
+[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="15_shake"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 [ext_resource type="PackedScene" path="res://gameplay/effects/effect_emitter.tscn" id="15_effects"]
 [ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="17_ai_section"]
@@ -57,12 +58,17 @@ rotates_with_node = true
 kind = &"player"
 draw_order = 5
 
-[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "player")]
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
 script = ExtResource("3_camera")
 target = NodePath("../Player/CameraTarget")
 follow_camera = NodePath("FollowCamera")
 camera = NodePath("../Camera")
+shaker = NodePath("CameraShake")
 player = NodePath("../Player")
+
+[node name="CameraShake" type="Node" parent="PlayerCamera"]
+script = ExtResource("15_shake")
+auto_advance = false
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")

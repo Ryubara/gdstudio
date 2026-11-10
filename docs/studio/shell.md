@@ -81,7 +81,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
   in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
-  before trusting a result).
+  before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
+  copied its branch into its game; list it, read a script first, use a subfolder).
 
 ## Background commands and processes {#background}
 
