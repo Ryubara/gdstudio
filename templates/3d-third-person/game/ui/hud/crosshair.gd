@@ -1,17 +1,14 @@
 @tool
 class_name Crosshair
-extends Control
+extends HudWidget
 ## The aiming reticle: a small filled circle in the middle of the screen with a thin, darker
 ## ring around it so it reads on bright and dark ground alike. It draws itself (no texture) and
 ## is placed by anchors, so it sits at the middle of the screen at any size; the editor always
 ## shows it, the game shows it only while the player aims.
 ##
 ## The weapon aims through the middle of the viewport, which is where this node's middle is, so
-## the circle is where the shot goes.
-
-@export_group("Nodes")
-## The player whose aim shows the reticle. Empty looks for the node in the `player` group.
-@export var player: Player
+## the circle is where the shot goes. It is a `HudWidget`, placed in the HUD's `Center` region,
+## which is the whole screen and never inset by a phone's safe area.
 
 @export_group("Look")
 ## The circle's radius.
@@ -41,21 +38,12 @@ extends Control
 @export var only_while_aiming := true:
 	set(value):
 		only_while_aiming = value
-		_show_for_aim()
-
-var _aiming := false
+		update()
 
 
 func _ready() -> void:
 	_resize()
-	if Engine.is_editor_hint():
-		return
-	if player == null:
-		player = get_tree().get_first_node_in_group(Player.GROUP) as Player
-	if player != null:
-		player.aim_changed.connect(_on_aim_changed)
-		_aiming = player.aiming
-	_show_for_aim()
+	super()
 
 
 func _draw() -> void:
@@ -67,16 +55,21 @@ func _draw() -> void:
 	draw_circle(middle, radius, color, true, -1.0, true)
 
 
-func _on_aim_changed(aiming: bool) -> void:
-	_aiming = aiming
-	_show_for_aim()
+func _on_bound(node: Node) -> void:
+	refresh_on(node, &"aim_changed")
 
 
-func _show_for_aim() -> void:
+# It has something to show while the player aims, or always when it is told not to hide. A scene
+# with no player keeps it only in the second case.
+func _has_data() -> bool:
+	return not only_while_aiming or (_bound != null and _bound.get(&"aiming") == true)
+
+
+func _apply_visibility() -> void:
 	if Engine.is_editor_hint():
 		visible = true
 		return
-	visible = _aiming or not only_while_aiming
+	super()
 
 
 # The control is a square just big enough for the circle and its ring, growing from its middle
