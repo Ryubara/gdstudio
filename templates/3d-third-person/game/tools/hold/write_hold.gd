@@ -16,9 +16,16 @@ const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 
 
 func _initialize() -> void:
-	var solved: Dictionary = JSON.parse_string(
-		FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0])
-	)
+	var arguments := OS.get_cmdline_user_args()
+	var parsed: Variant = null
+	if arguments.size() == 1 and FileAccess.file_exists(arguments[0]):
+		parsed = JSON.parse_string(FileAccess.get_file_as_string(arguments[0]))
+	if not parsed is Dictionary:
+		# A path relative to another folder reads as nothing: stop here instead of hanging.
+		printerr("write_hold: give the solved hold as one absolute path to a JSON file")
+		quit(1)
+		return
+	var solved: Dictionary = parsed
 	for key: String in POSES:
 		var pose := HandPose.new()
 		if ResourceLoader.exists(POSES[key]):

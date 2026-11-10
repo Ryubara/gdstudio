@@ -7,7 +7,9 @@ extends RefCounted
 ## `snapshot()` copies; the weapon is its triangles, split into the closed pieces it is built from
 ## (a kitbashed gun is many overlapping closed parts, so inside means inside any piece). A hand
 ## that lies over the other one (the support hand of a two-handed grip) is measured against the
-## other hand's skin too.
+## other hand's skin too, which is closed pieces as well (a capsule a finger bone, a ball a joint):
+## inside a piece is an odd number of crossings along most of three rays, never the side of the
+## nearest face, which reads a thumb lying beside the other thumb as 5 mm inside it.
 ##
 ## Call `snapshot()` inside the skeleton's `skeleton_updated` signal: only there does
 ## `get_bone_global_pose()` hold what the modifiers (the finger pose, the arm's IK) made of the
@@ -42,12 +44,12 @@ const MIN_WEIGHT := 0.5
 const MARGIN := 0.03
 const _CELL := 0.01
 const _SKIN_DEPTH := 0.02
-const _BEHIND := 0.7
 
 var _skeleton: Skeleton3D
 var _surfaces: Array[Dictionary] = []
 var _parts := {"r": {}, "l": {}}
 var _hand_triangles := {"r": PackedInt32Array(), "l": PackedInt32Array()}
+var _hand_pieces := {}
 var _poses: Array[Transform3D] = []
 var _weapon: Node3D
 var _to_weapon := Transform3D.IDENTITY
@@ -114,10 +116,12 @@ class TriangleField:
 								best_triangle = triangle
 		return [best, best_point, best_triangle]
 
-	func normal(triangle: int) -> Vector3:
-		var a := points[triangle * 3]
-		# Godot's front faces wind clockwise, so the outward normal is (c - a) x (b - a).
-		return (points[triangle * 3 + 2] - a).cross(points[triangle * 3 + 1] - a).normalized()
+
+## One hand's skin as posed: its triangles, and the closed pieces they make with their bounds.
+class HandSkin:
+	var field := TriangleField.new()
+	var pieces: Array[PackedInt32Array] = []
+	var bounds: Array[AABB] = []
 
 
 func _init(skeleton: Skeleton3D) -> void:
@@ -165,7 +169,7 @@ func set_weapon(weapon: Node3D) -> void:
 func measure(side: String, over_other_hand := false) -> Dictionary:
 	var found := {}
 	_to_weapon = _weapon.global_transform.affine_inverse() * _skeleton.global_transform
-	var other: TriangleField = null
+	var other: HandSkin = null
 	if over_other_hand:
 		other = _hand_field("l" if side == "r" else "r")
 	var cache := {}
@@ -394,33 +398,92 @@ func _skinned(surface: int, vertex: int, cache: Dictionary) -> Vector3:
 	return sum
 
 
-# The skin of one hand as posed, in the skeleton's space.
-func _hand_field(side: String) -> TriangleField:
-	var field := TriangleField.new()
+# The skin of one hand as posed, in the skeleton's space, in its closed pieces.
+func _hand_field(side: String) -> HandSkin:
+	var skin := HandSkin.new()
 	var cache := {}
 	var list: PackedInt32Array = _hand_triangles[side]
+	var piece_of := _pieces_of(side)
 	for triangle in list.size() / 6:
 		var first := triangle * 6
-		field.add(
+		var corners: Array[Vector3] = [
 			_skinned(list[first], list[first + 1], cache),
 			_skinned(list[first + 2], list[first + 3], cache),
-			_skinned(list[first + 4], list[first + 5], cache)
-		)
-	return field
+			_skinned(list[first + 4], list[first + 5], cache),
+		]
+		skin.field.add(corners[0], corners[1], corners[2])
+		var piece := piece_of[triangle]
+		while skin.pieces.size() <= piece:
+			skin.pieces.append(PackedInt32Array())
+			skin.bounds.append(AABB(corners[0], Vector3.ZERO))
+		skin.pieces[piece].append(triangle)
+		for corner in corners:
+			skin.bounds[piece] = skin.bounds[piece].expand(corner)
+	return skin
 
 
-# The signed distance to a skin: negative behind the nearest triangle. Only a point straight
-# behind a face counts as inside: beside an edge or beyond the skin's open end (the wrist) one
-# face's normal says nothing, and nothing is deeper in a hand than `_SKIN_DEPTH`.
-func _skin_distance(field: TriangleField, at: Vector3) -> float:
-	var hit := field.nearest(at)
+# The piece of each triangle of a hand: triangles that share a vertex (welded by its place in the
+# bind pose, since glTF splits a vertex at every seam) are one piece. Worked out once a side.
+func _pieces_of(side: String) -> PackedInt32Array:
+	if _hand_pieces.has(side):
+		return _hand_pieces[side]
+	var list: PackedInt32Array = _hand_triangles[side]
+	var welded := {}
+	var ids := PackedInt32Array()
+	for index in list.size() / 2:
+		var vertices: PackedVector3Array = _surfaces[list[index * 2]].vertices
+		var key := Vector3i((vertices[list[index * 2 + 1]] * 1e5).round())
+		if not welded.has(key):
+			welded[key] = welded.size()
+		ids.append(welded[key])
+	var parent := PackedInt32Array(range(welded.size()))
+	for triangle in ids.size() / 3:
+		var a := _find(parent, ids[triangle * 3])
+		for corner in [1, 2]:
+			var b := _find(parent, ids[triangle * 3 + corner])
+			if a != b:
+				parent[b] = a
+	var numbers := {}
+	var piece_of := PackedInt32Array()
+	for triangle in ids.size() / 3:
+		var root := _find(parent, ids[triangle * 3])
+		if not numbers.has(root):
+			numbers[root] = numbers.size()
+		piece_of.append(numbers[root])
+	_hand_pieces[side] = piece_of
+	return piece_of
+
+
+# The signed distance to a skin: negative inside one of its pieces, by how far it is to that
+# piece's surface. Nothing is deeper in a hand than `_SKIN_DEPTH`. Three rays vote on each piece:
+# the palm's piece is open at the wrist, and one ray may leave through that hole.
+func _skin_distance(skin: HandSkin, at: Vector3) -> float:
+	var hit := skin.field.nearest(at)
 	if hit[2] < 0:
 		return MARGIN
 	var distance: float = hit[0]
-	var outward := (at - (hit[1] as Vector3)).dot(field.normal(hit[2]))
-	if distance < _SKIN_DEPTH and outward < -_BEHIND * distance:
-		return -distance
-	return distance
+	if distance >= _SKIN_DEPTH:
+		return distance
+	var depth := 0.0
+	for piece in skin.pieces.size():
+		if not skin.bounds[piece].has_point(at):
+			continue
+		var votes := 0
+		for axis in 3:
+			votes += _crossings(skin.field.points, skin.pieces[piece], at, axis) % 2
+		if votes < 2:
+			continue
+		var to_surface := INF
+		for triangle in skin.pieces[piece]:
+			var closest := closest_on_triangle(
+				at,
+				skin.field.points[triangle * 3],
+				skin.field.points[triangle * 3 + 1],
+				skin.field.points[triangle * 3 + 2]
+			)
+			to_surface = minf(to_surface, at.distance_to(closest))
+		depth = maxf(depth, to_surface)
+	return -depth if depth > 0.0 else distance
 
 
 func _add_weapon_surface(arrays: Array, to_weapon: Transform3D) -> void:
@@ -506,18 +569,26 @@ func _gun_distance(at: Vector3) -> float:
 # Whether `at` is inside the closed piece whose triangles over this column are `list`: an odd
 # number of crossings along +Z.
 func _inside(at: Vector3, list: Array) -> bool:
+	return _crossings(_gun.points, list, at, Vector3.AXIS_Z) % 2 == 1
+
+
+# How many of the triangles `list` (indices into `points`, three corners each) a ray from `at`
+# along the positive `axis` crosses.
+static func _crossings(points: PackedVector3Array, list: Variant, at: Vector3, axis: int) -> int:
+	var i := (axis + 1) % 3
+	var j := (axis + 2) % 3
 	var crossings := 0
 	for triangle: int in list:
-		var a := _gun.points[triangle * 3]
-		var b := _gun.points[triangle * 3 + 1]
-		var c := _gun.points[triangle * 3 + 2]
-		var area := (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
+		var a := points[triangle * 3]
+		var b := points[triangle * 3 + 1]
+		var c := points[triangle * 3 + 2]
+		var area := (b[i] - a[i]) * (c[j] - a[j]) - (c[i] - a[i]) * (b[j] - a[j])
 		if absf(area) < 1e-12:
 			continue
-		var u := ((at.x - a.x) * (c.y - a.y) - (c.x - a.x) * (at.y - a.y)) / area
-		var v := ((b.x - a.x) * (at.y - a.y) - (at.x - a.x) * (b.y - a.y)) / area
+		var u := ((at[i] - a[i]) * (c[j] - a[j]) - (c[i] - a[i]) * (at[j] - a[j])) / area
+		var v := ((b[i] - a[i]) * (at[j] - a[j]) - (at[i] - a[i]) * (b[j] - a[j])) / area
 		if u < 0.0 or v < 0.0 or u + v > 1.0:
 			continue
-		if a.z + u * (b.z - a.z) + v * (c.z - a.z) > at.z:
+		if a[axis] + u * (b[axis] - a[axis]) + v * (c[axis] - a[axis]) > at[axis]:
 			crossings += 1
-	return crossings % 2 == 1
+	return crossings
