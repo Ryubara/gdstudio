@@ -28,6 +28,12 @@ signal played(effect: EffectDef, slot: EffectSlot)
 signal warmed
 
 const GROUP := &"effect_emitter"
+## Frames a reflection probe that updates once takes to be drawn: its six faces and up to eight
+## blur steps, one a frame, one probe at a time. From its first face on, what it reaches is drawn
+## with another program, so the warm-up waits this long for each probe the camera sees.
+const PROBE_FRAMES := 15
+## How wide a warmed material's quad is (a mark, a decal): a speck in front of the camera.
+const QUIET_QUAD_SIZE := 0.01
 
 @export_group("Effects")
 ## Off: nothing plays, as if the emitter were not there.
@@ -60,12 +66,16 @@ const GROUP := &"effect_emitter"
 @export var warm_up_on_start := true
 ## Effects to warm up besides those the level's weapons and impact surfaces register themselves.
 @export var warm_up: Array[EffectDef] = []
+## Materials the warm-up draws once on a speck of a quad, besides those registered with
+## `warm_material()` (the impacts' marks): anything a shot makes that is not an effect.
+@export var warm_up_materials: Array[Material] = []
 
 ## True in the web build and on phones: the pool is `web_max_effects` there.
 var compact := OS.has_feature("web") or OS.has_feature("mobile")
 
 var _slots: Array[EffectSlot] = []
 var _warm_queue: Array[EffectDef] = []
+var _warm_materials: Array[Material] = []
 var _warming := true
 
 
@@ -94,6 +104,8 @@ func _ready() -> void:
 	for def in warm_up:
 		if def != null:
 			warm(def)
+	for material in warm_up_materials:
+		warm_material(material)
 	_warm_routine()
 
 
@@ -138,6 +150,13 @@ func warm(effect: EffectDef) -> void:
 		_warm_queue.append(effect)
 	elif _slots.size() < pool_cap():
 		_make_slot().prepare(effect)
+
+
+## Adds `material` to those the warm-up draws once on a speck of a quad (the impacts register their
+## marks' materials): a shot's first mark then builds nothing. Does nothing after the warm-up.
+func warm_material(material: Material) -> void:
+	if material != null and _warming and not _warm_materials.has(material):
+		_warm_materials.append(material)
 
 
 ## True while the warm-up is drawing its effects.
@@ -259,8 +278,9 @@ func _take(effect: EffectDef) -> EffectSlot:
 	return free_other if free_other != null else oldest_any
 
 
-# Waits two frames for the camera, then plays each registered effect in front of it, tiny and dim,
-# and frees the slots again.
+# Waits two frames for the camera and then for the reflection probes it sees, then plays each
+# registered effect in front of it, tiny and dim, beside a speck of each registered material, and
+# frees the slots again.
 func _warm_routine() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -271,8 +291,14 @@ func _warm_routine() -> void:
 		if slot != null:
 			slot.prepare(def)
 			warm_slots.append(slot)
-	if camera != null and enabled and warm_up_on_start and not warm_slots.is_empty():
+	var drawn := not warm_slots.is_empty() or not _warm_materials.is_empty()
+	if camera != null and enabled and warm_up_on_start and drawn:
+		# A probe draws its faces over the next frames, and everything it reaches changes program
+		# once it has begun: what is warmed before that is not what the first shot draws.
+		for _frame in probe_frames(camera):
+			await get_tree().process_frame
 		var spot := camera.global_position - camera.global_basis.z * 2.0
+		var specks := _make_specks(spot, camera.global_basis)
 		# Twice: the renderer builds a different program for a surface that an omni light reaches, so
 		# every effect is drawn with the lights off and then with them on.
 		for with_lights in [false, true]:
@@ -281,13 +307,85 @@ func _warm_routine() -> void:
 			for slot in warm_slots:
 				var placed := Transform3D(Basis(), spot)
 				slot.start(slot.effect, placed, null, 1.0, true, false, with_lights, true)
+			if with_lights and warm_slots.is_empty() and not specks.is_empty():
+				specks.append(_make_speck_light(spot))
 			set_process(true)
 			await get_tree().process_frame
 			await get_tree().process_frame
 			stop_all()
+		for speck in specks:
+			speck.queue_free()
 	_warm_queue.clear()
+	_warm_materials.clear()
 	_warming = false
 	warmed.emit()
+
+
+## The frames the warm-up waits for the reflection probes `camera` sees to be drawn (the renderer
+## draws only the probes in view, one at a time); none when no probe is in view.
+func probe_frames(camera: Camera3D) -> int:
+	var frames := 0
+	var planes := camera.get_frustum()
+	for node in get_tree().root.find_children("*", "ReflectionProbe", true, false):
+		var probe := node as ReflectionProbe
+		if not probe.is_visible_in_tree() or not _in_view(probe, planes):
+			continue
+		var once := probe.update_mode == ReflectionProbe.UPDATE_ONCE
+		frames += PROBE_FRAMES if once else 1
+	return frames
+
+
+# True when the box of `probe` is not wholly outside one of the camera's planes.
+func _in_view(probe: ReflectionProbe, planes: Array[Plane]) -> bool:
+	var half := probe.size / 2.0
+	var corners: Array[Vector3] = []
+	for index in 8:
+		var local := Vector3(
+			half.x if index & 1 else -half.x,
+			half.y if index & 2 else -half.y,
+			half.z if index & 4 else -half.z
+		)
+		corners.append(probe.global_transform * local)
+	for plane in planes:
+		var outside := true
+		for corner in corners:
+			if not plane.is_point_over(corner):
+				outside = false
+				break
+		if outside:
+			return false
+	return true
+
+
+# A speck of a quad for each registered material at `spot`, facing the camera, casting no shadow:
+# drawing it once builds what the material's first real use needs.
+func _make_specks(spot: Vector3, facing: Basis) -> Array[Node3D]:
+	var specks: Array[Node3D] = []
+	if _warm_materials.is_empty():
+		return specks
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * QUIET_QUAD_SIZE
+	for material in _warm_materials:
+		var speck := MeshInstance3D.new()
+		speck.name = &"WarmSpeck"
+		speck.mesh = quad
+		speck.material_override = material
+		speck.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(speck)
+		speck.global_transform = Transform3D(facing, spot)
+		specks.append(speck)
+	return specks
+
+
+# The light of the second pass when no effect brings one: the specks are drawn lit too.
+func _make_speck_light(spot: Vector3) -> Node3D:
+	var light := OmniLight3D.new()
+	light.name = &"WarmLight"
+	light.light_energy = 0.01
+	light.shadow_enabled = false
+	add_child(light)
+	light.global_position = spot
+	return light
 
 
 func _make_slot() -> EffectSlot:
