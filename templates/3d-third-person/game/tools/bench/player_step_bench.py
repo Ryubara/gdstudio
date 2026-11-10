@@ -30,7 +30,7 @@ BENCH_TIMEOUT_S = 300.0
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     """Serves the export without a log line a request."""
 
-    def log_message(self, *_args: object) -> None:  # noqa: D102
+    def log_message(self, *_args: object) -> None:
         return
 
 
