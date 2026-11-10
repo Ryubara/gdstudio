@@ -97,7 +97,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   before the tests. **Watch out for:** CI's `--export-release Web` of 3D Third Person ended with 17 scripts in use
   (`gds_ui`, Phantom Camera, the audio settings), none of them changed, while every local replay was clean (Windows,
   the same Ubuntu 24.04 in WSL, tmpfs, 4 cores, CI's exact test command); writing the mask defaults as numbers, a guess
-  from the entry above, changed nothing. **Seen:** gdstudio #954, 2026-11-10.
+  from the entry above, changed nothing. The next run of the same code passed, an early export included: this leak
+  comes and goes, so one red export is not proof a change caused it; rerun before bisecting. **Seen:** gdstudio
+  #954, 2026-11-10.
 - **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
   edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
   probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled

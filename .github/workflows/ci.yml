@@ -166,16 +166,6 @@ jobs:
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           "$godot" --headless --path repos/template-check/game --import 2>&1 | tee import.log
           ! grep -E "^(SCRIPT )?ERROR" import.log
-      - name: TEMPORARY diagnostic web export before the tests (#954)
-        if: matrix.template == '3d-third-person'
-        continue-on-error: true
-        run: |
-          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
-          mkdir -p repos/template-check/build/web
-          "$godot" --headless --verbose --path repos/template-check/game --export-release Web > export-pre.log 2>&1 || true
-          grep -E "leaked at exit|still in use" export-pre.log || echo "DIAG: the export before the tests does not leak"
-          git -C repos/template-check status --short | head -40
-          touch run-marker
       - name: Every script of the game parses
         # An import and a run load only the scripts the main scene reaches; the editor and an export load them all
         # (the gds_ui demo failed to parse in every new game for want of the UIRouter autoload, kit #814).
@@ -193,13 +183,11 @@ jobs:
           "$godot" --headless --path repos/template-check/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --fixed-fps 60 --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Export the web build
-        # `--verbose` names what is still in use when the export quits, as the tests step does.
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          if [ -f run-marker ]; then echo "DIAG: files changed since the import:"; find repos/template-check -newer run-marker -type f -not -path '*/.godot/imported/*' -not -path '*/.git/*' | head -60; git -C repos/template-check status --short | head -40; fi
-          "$godot" --headless --verbose --path repos/template-check/game --export-release Web 2>&1 | tee export.log
+          "$godot" --headless --path repos/template-check/game --export-release Web 2>&1 | tee export.log
           if grep -E "ERROR" export.log; then exit 1; fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
