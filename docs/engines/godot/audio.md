@@ -121,6 +121,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   ends, and `gds godot` stops a run at 900 s (an avi encodes at about 15 ms a frame). **Seen:** Deadnight, 2026-11-01
   (the relative path); Deadnight #718, 2026-11-03 (fix: runs of one case each, three at a time; five minutes of sound
   and 40 minutes were lost to a deleted avi).
+- **Approach:** Prove a change left a sound as it was with a null test: the same scene captured before and after, both
+  tracks read by their own sample width (`<i4` for Movie Maker), the difference measured window by window (a few seconds
+  each) against each window's level, and the frames of any window that differs read to name what plays there.
+  **Watch out for:** a script that read the 32-bit track as `int16` gave every window the same -10.8 dB and looked like
+  a change; the whole action tour differed by -44 dB RMS only because its shots vary from run to run (its first 8 s),
+  while its walking differed by -70 to -83 dB (16-bit rounding) and a crowd of walkers by -65 dB. **Seen:** gdstudio
+  #1023, 2026-11-10.
 
 ## Layered gunshots and event-timed sounds {#layered-gunshots-and-event-timed-sounds}
 
