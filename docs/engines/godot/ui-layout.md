@@ -141,3 +141,8 @@ the parts' code.
   afterwards), or read rectangles through the control's global transform. **Watch out for:** a headless window is 64
   pixels square, so the HUD scaled itself by 3 as for a tiny phone, and `Control.get_global_rect()` does not apply an
   ancestor's scale to the size (the safe area read 32 px of a 96 px margin). **Seen:** gdstudio #880, 2026-11-10.
+- **Approach:** A control the game puts on the screen outside the `Hud` (the touch pause button in `MenuLayer`) keeps
+  clear of the HUD's six regions: it sits at the top middle, and `test_hud_layout.gd` checks it against every visible
+  part and the minimap at phone and desktop sizes. **Watch out for:** two pull requests that each pass their own tests
+  can still overlap once both are in main (the pause button and the minimap both took the top-right corner); only a
+  phone capture of the merged game showed it. **Seen:** gdstudio #884, 2026-11-10.

@@ -26,6 +26,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Menus | `ui/menus/`, `core/settings/` | Main, pause and settings menus, saved options: [Menus](menus.md#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
+| Minimap | `ui/minimap/` (the widget, the full-screen map), `core/minimap/` (`MinimapMarker`, `MinimapSection`) | A round map that follows the character and a full-screen map on `M`; a marker component any node carries. [Minimap](#minimap). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | Net packets and link | `gameplay/net/` (the packets; `NetLink`, `WebSocketLink`, `WsListener`, `LoopbackLink`, `LinkConditioner`), `tools/net/`, `ui/probe/net_probe.gd` | The bytes of online play ([packets](multiplayer.md#template-packets)) and the transport under them: a WebSocket client (desktop and web), the server's listener, an in-process pair and a bad network around any of them; polled each physics tick; no inspector (code objects). [The template's transport](multiplayer.md#template-transport). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
@@ -53,7 +54,7 @@ this file.
 | Open | For | Holds |
 | --- | --- | --- |
 | `world/world.tscn` | the map and what the map does by itself | `Level`, the two sections (`AISection`, `PathingSection`), `Impacts`, `Effects`, the `Wind` player and `AudioSettings` |
-| `ui/player_rig/player_rig.tscn` | one local player's body, camera and input | `Player`, `PlayerCamera` with its Phantom Camera, the `Camera` and its host, `TouchControls` (its `look_turned` turns the camera inside the scene), `LookSettings`, the pause button in `MenuLayer`; at run time a `WebProbe` on a page opened with `?probe` |
+| `ui/player_rig/player_rig.tscn` | one local player's body, camera and input | `Player`, `PlayerCamera` with its Phantom Camera, the `Camera` and its host, `TouchControls` (its `look_turned` turns the camera inside the scene), `LookSettings`, the pause button in `MenuLayer`, the full-screen map in `MapLayer`; at run time a `WebProbe` on a page opened with `?probe` |
 | `ui/hud/hud.tscn` | the heads-up display | the `Hud` and its parts; `player` names the player the parts read |
 | `ui/menus/screen_host.tscn` | the host that opens the pause menu and other screens | the `ScreenHost` with its pause screen |
 
@@ -422,6 +423,26 @@ body names its surface with and the tests are on [Bullet impacts in 3D Third Per
 One `EffectEmitter` (`Effects` in `world/world.tscn`) plays the flash, each impact and other one-shot effects from one
 pool ([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash`
 and `muzzle_flash_size`.
+
+## Minimap {#minimap}
+
+<!-- new section: #884 added the minimap; how it is built and what it costs are on [Minimap](minimap.md) -->
+
+The HUD's `MinimapSlot` holds the small `Minimap` (follows the character, turns with the camera); the rig's `MapLayer`
+holds the `MapScreen` (`M`, the whole map). The player, pickups, targets and doors carry a `MinimapMarker`; the
+workshop is a `MinimapSection`. How it works and what it costs: [Minimap](minimap.md).
+
+- **The inspector, on `Minimap`.** Nodes: `target`, `target_group`. Shape: `shape`, `map_size`, `max_screen_fraction`,
+  `corner_ratio`. View: `range_m`, `range_min`, `range_max`, `zoom_step`, `zoom_smoothing`, `rotation_mode`, `turn_smoothing`,
+  `follow_target`, `fixed_centre`, the two zoom actions. Map source: `source`, `image`, `image_world_rect`,
+  the `live_*` settings of the camera source. Look: `background_color`,
+  `border_color`, `border_width`, `edge_fade`, `opacity`, `tint_*`, `marker_scale`,
+  `show_north`, `show_self`. Markers: `default_icon`, `default_edge_icon`, `hidden_kinds`, `pool_prewarm`,
+  `max_markers`. Update: `map_update_rate`, `marker_update_rate`, `still_refresh_seconds`.
+- **On `MinimapMarker`.** Look: `icon`, `color`, `size`, `rotates_with_node`, `kind`, `draw_order`. Edge:
+  `clamp_to_edge`, `edge_inset`, `edge_icon`. Show: `active`, `rule`, `near_distance`, `revealed`, `height_fade`.
+- **On `MinimapSection`:** `title`, `size`, `level`, `map_texture`. **On `MapScreen`:** `toggle_action`, `fit_bounds`,
+  `fit_to_sections`, `fit_margin`, `fade_time`.
 
 ## Ragdoll {#ragdoll}
 

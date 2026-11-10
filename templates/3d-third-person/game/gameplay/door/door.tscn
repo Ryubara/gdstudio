@@ -1,6 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/door/door.gd" id="1_door"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
+[ext_resource type="Texture2D" path="res://assets/ui/minimap/square.png" id="9_square"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_panel"]
 resource_local_to_scene = true
@@ -36,3 +38,10 @@ monitoring = false
 [node name="SensorShape" type="CollisionShape3D" parent="Sensor"]
 unique_name_in_owner = true
 shape = SubResource("SphereShape3D_sensor")
+
+[node name="MinimapMarker" type="Node" parent="."]
+script = ExtResource("9_marker")
+icon = ExtResource("9_square")
+color = Color(0.45, 0.7, 1, 1)
+size = 10.0
+kind = &"door"

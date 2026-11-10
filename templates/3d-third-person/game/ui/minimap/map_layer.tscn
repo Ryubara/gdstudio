@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://ui/minimap/map_screen.tscn" id="1_screen"]
+
+[node name="MapLayer" type="CanvasLayer"]
+layer = 3
+
+[node name="MapScreen" parent="." instance=ExtResource("1_screen")]
