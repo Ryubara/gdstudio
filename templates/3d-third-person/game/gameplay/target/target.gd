@@ -39,11 +39,17 @@ signal stood_up
 
 @export_group("Reaction")
 ## How far the board tips back when it is down.
-@export_range(0.0, 90.0, 1.0, "suffix:deg") var drop_angle := 80.0
+@export_range(0.0, 90.0, 1.0, "suffix:deg") var drop_angle := 80.0:
+	set(value):
+		drop_angle = value
+		_wake()
 ## Seconds the board takes to tip back or to stand up.
 @export_range(0.02, 2.0, 0.01, "suffix:s") var drop_time := 0.18
 ## It stands up again after this long. Zero leaves it down.
-@export_range(0.0, 60.0, 0.1, "or_greater", "suffix:s") var reset_time := 3.0
+@export_range(0.0, 60.0, 0.1, "or_greater", "suffix:s") var reset_time := 3.0:
+	set(value):
+		reset_time = value
+		_wake()
 
 var _down := false
 var _tilt := 0.0
@@ -52,7 +58,8 @@ var _down_for := 0.0
 
 func _ready() -> void:
 	_update_look()
-	set_process(not Engine.is_editor_hint())
+	# A board that stands still costs nothing: it is processed only while it tips or waits to stand.
+	set_process(false)
 	if Engine.is_editor_hint():
 		return
 	var health := Health.of(self)
@@ -71,9 +78,12 @@ func _process(delta: float) -> void:
 	var pivot := _pivot()
 	if pivot != null:
 		pivot.rotation.x = -deg_to_rad(_tilt)
+	if _tilt == goal and not (_down and reset_time > 0.0):
+		set_process(false)
 
 
 func _on_hit_taken(hit: HitRecord) -> void:
+	_wake()
 	shot.emit(hit)
 	if _down:
 		_down_for = 0.0
@@ -104,6 +114,12 @@ func _stand() -> void:
 		health.reset()
 	_update_look()
 	stood_up.emit()
+
+
+# Processes the board again (it was shot, or a number it moves by changed while it ran).
+func _wake() -> void:
+	if is_node_ready() and not Engine.is_editor_hint():
+		set_process(true)
 
 
 func _pivot() -> Node3D:

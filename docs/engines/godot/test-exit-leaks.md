@@ -162,7 +162,8 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   initializer (`var _dummy := Node3D.new()`) that only `_ready` adds to the tree. **Watch out for:** a test that
   `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
   only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
-  the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`).
+  the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`); gdstudio #926,
+  2026-11-10 (the parts bench's frame-end node, the same way).
 
 ## The export leak is intermittent on CI {#the-export-leak-is-intermittent-on-ci}
 
