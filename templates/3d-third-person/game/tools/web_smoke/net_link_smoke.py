@@ -39,7 +39,7 @@ from pathlib import Path
 from playwright.sync_api import Page, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
-from relay import Relay  # noqa: E402
+from relay import Relay
 
 READY_TIMEOUT_S = 120.0
 STREAM_BYTES = 584  # 35 KB a second at 60 ticks.
@@ -50,7 +50,7 @@ RELAY_DELAY_S = 0.1
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     """Serves the export without a log line a request."""
 
-    def log_message(self, *_args: object) -> None:  # noqa: D102
+    def log_message(self, *_args: object) -> None:
         return
 
 
@@ -64,8 +64,19 @@ def serve(folder: Path) -> tuple[http.server.ThreadingHTTPServer, int]:
 def start_server(godot: str, project: Path) -> tuple[subprocess.Popen[str], int]:
     """The echo server in a headless Godot, and the port it listens on."""
     process = subprocess.Popen(
-        [godot, "--headless", "--path", str(project), "-s", "res://tools/net/echo_server.gd", "--",
-         "--port", "0", "--stream", str(STREAM_BYTES)],
+        [
+            godot,
+            "--headless",
+            "--path",
+            str(project),
+            "-s",
+            "res://tools/net/echo_server.gd",
+            "--",
+            "--port",
+            "0",
+            "--stream",
+            str(STREAM_BYTES),
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -119,7 +130,9 @@ def frozen_tab(page: Page, errors: list[str]) -> dict:
     page.evaluate("() => { window.gdnet.want_stream = true; }")
     wait_for(page, "window.gdnet.streamed > 60", 30)
     before = gdnet(page)["streamed"]
-    page.evaluate(f"() => {{ const end = performance.now() + {FREEZE_S * 1000}; while (performance.now() < end) {{}} }}")
+    page.evaluate(
+        f"() => {{ const end = performance.now() + {FREEZE_S * 1000}; while (performance.now() < end) {{}} }}"
+    )
     at_end = gdnet(page)["streamed"]
     time.sleep(3.0)
     after = gdnet(page)
@@ -204,9 +217,7 @@ def main() -> int:
                 "console",
                 lambda message: control_errors.append(message.text) if message.type == "error" else None,
             )
-            page.goto(
-                f"http://127.0.0.1:{http_port}/index.html?netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}"
-            )
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}")
             wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             control = frozen_tab(page, control_errors)
             result["freeze_with_64_kb"] = control
@@ -234,7 +245,7 @@ def main() -> int:
             page.on("websocket", lambda ws: sockets.append(ws.url))
             build = args.build.resolve()
 
-            def from_build(route) -> None:  # noqa: ANN001
+            def from_build(route) -> None:
                 name = route.request.url.split("?")[0].split("game.test/", 1)[1] or "index.html"
                 path = build / name
                 if not path.is_file():
