@@ -259,6 +259,10 @@ pass). Test it by changing the layout and measuring the rectangles after two idl
   boxes, but digits sit at cap height above room for a descender and the icon's art fills 0.44 to 0.46 of its cell; each
   place nudged it its own way, judged by rectangles, so the bottom-left box (icon 7 px high) was found by eye. **Seen:**
   Deadnight #1161, 2026-11-04 (fix: the helper and the pixel test).
+- **Approach:** Take the middle of a control that may sit under a scaled parent as `control.get_global_transform() *
+  (control.size * 0.5)`. **Watch out for:** `get_global_rect()` is the global position and the unscaled size, so for a
+  menu laid out at a phone's factor of 2 it gave a point half a control away from the middle and a probe tapped the
+  gap beside every button. **Seen:** gdstudio #881, 2026-11-10 (`UiProbeFields`, tapped by `menu_smoke.py`).
 
 ## A card that looks for free ground {#a-card-that-looks-for-free-ground}
 
@@ -435,6 +439,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   checks the server's tick still climbs).
 - **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
   ("Menu: the night goes on around you", not "Paused").
+- **A solo game that pauses behind its menu** opens it through one host node, not as a router screen: [Menus over a
+  game](menus.md#screen-host).
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
   replayed to a waiter that comes after it.
 

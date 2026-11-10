@@ -9,6 +9,10 @@ extends Control
 @export var initial_focus: NodePath
 ## Whether Esc / gamepad B pops this screen.
 @export var allow_back := true
+## Whether Esc / gamepad B also closes this screen when it is the only one on the stack, leaving
+## the stack empty (`UIRouter.close`). For a menu over a game that is not itself a screen: the
+## pause menu. Without it Esc stops at the root, as a main menu wants.
+@export var back_closes := false
 ## Whether this screen draws the token stars (`UITokens.star_count`); turn it off for a screen that
 ## covers the sky, or leave the count at 0 in the tokens for a game with none.
 @export var stars := true:

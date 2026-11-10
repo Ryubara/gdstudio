@@ -53,6 +53,12 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   running game, so a mix could not be tuned through the remote inspector; a setter also runs when the scene loads,
   before the buses may exist, so `_ready` applies them all again. **Seen:** gdstudio #835, 2026-11-08 (the node and a
   GdUnit4 suite that sets each export and reads the bus back).
+- **Approach:** Give the player's own volume (a settings slider) a layer of its own on top of the mix:
+  `AudioSettings.set_player_gain(bus, 0..1)` is static, remembers each bus's mix (the node's value, or the layout's
+  when no node exists yet) and writes `mix + linear_to_db(gain)`, muting at 0. **Watch out for:** a slider that writes
+  `AudioServer` directly is lost the next time the inspector or the remote inspector changes the node, and a menu
+  before the game has no node to set; the gain must outlive scenes, so it is static, and a test resets it with
+  `reset_player_gain()`. **Seen:** gdstudio #881, 2026-11-10 (`test_audio_settings.gd`, `test_settings_service.gd`).
 - **Approach:** When sounds land before anything plays them, say so wherever the template is described (its design
   page, the pull request, the report): which files have no player yet and the issue that wires them. Search the scenes
   and scripts for `AudioStreamPlayer` and find where each one's `stream` comes from (the scene, or a script when it

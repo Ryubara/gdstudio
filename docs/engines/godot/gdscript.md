@@ -79,6 +79,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   without `unbinds` fails only when the signal fires (the key is `unbinds`). **Seen:** gdstudio #788, 2026-11-08 (the
   graphics profile found no node and did nothing; fixed, with a test that applies it).
 
+- **Approach:** In a `.tscn` written by hand or by a script, put each node's `script = ExtResource(...)` line before
+  the script's own exports (`style`, `title`, `key`). **Watch out for:** properties above the `script` line are
+  dropped without a word: every label of a settings screen loaded at the body size and every row had no title, and no
+  check noticed; only a capture and a probe that printed the property did. **Seen:** gdstudio #881, 2026-11-10 (the 3D
+  Third Person menus).
 - **Approach:** Treat `project.godot` as Godot's file: change it by hand only for a real setting, keep local-only
   settings in an untracked `override.cfg`, run `git checkout game/project.godot` after each import or run, and stage
   files by path (never `git add -A` in a worktree where Godot has just run). **Watch out for:** Godot rewrites the
