@@ -26,7 +26,7 @@ one after it.
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
 | Screen host | `ui/menus/screen_host.gd`, `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`) | Opens screens over the game ([Menus over a game](#screen-host)). |
-| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |
@@ -55,7 +55,10 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 - **Approach:** When the project's main scene stops being the game's, give tools a way past the menu (`--play`,
   `?play`, `skip_menu`) and point every test and capture that wants the game at `res://main.tscn`. **Watch out for:**
   `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
-  menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
+  menu; the template's `touch_smoke.py` opens `?probe&play`; a probe written on a branch from before the menu passes
+  its own CI and fails after `gds merge-main`, so rerun every web probe of the branch after the merge. **Seen:**
+  gdstudio #881, 2026-11-10; #903, 2026-11-10 (`net_link_smoke.py` waited on `window.gdnet` that never came; fix:
+  `?play&netprobe`).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 

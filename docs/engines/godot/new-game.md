@@ -169,6 +169,11 @@ kept with `--keep`, two calls at once).
   `--suite` options. **Watch out for:** the file order differs between Windows and the Linux runner, and a base suite
   left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in CI.
   **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Copy the `.import` file of every new asset (image, sound, model) back from the kept game with its
+  `.uid` files, and before the push run `git status --porcelain` in the template after a headless `--import` there.
+  **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
+  the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
+  icons). **Seen:** gdstudio #884, 2026-11-10.
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
@@ -185,7 +190,8 @@ kept with `--keep`, two calls at once).
 Only the local steps run. The command prints the GitHub steps it left out, for whoever publishes the game later:
 create the repository and push `main`; Pages' source to GitHub Actions and the three `groundwork.py ... --apply`;
 `gh workflow run hold-sweep.yml`; `[repos.<name>]` in the kit's `workspace.toml`. The kit's CI makes its template
-check this way (`gds new game template-check --template 3d-blank --local`).
+check this way (`gds new game template-check --template 3d-blank --local`), then exports the web build and boots it in
+headless Chromium ([the boot check](web-probes.md#boot-check)).
 
 ## A double-click for people {#double-click}
 
@@ -208,8 +214,8 @@ using the command above, since the script asks questions.
 
 | Template | What it is | Status |
 | --- | --- | --- |
-| `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), a `WebProbe` that CI's [boot check](web-probes.md#boot-check) waits for, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), a minimap and a full-screen map ([Minimap](minimap.md)), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
@@ -395,7 +401,9 @@ scene; a kit test compares them) and its own
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
   that node moved into `world/world.tscn`; only the full `gds template test` run found it, a run of the suites that
-  name `main.tscn` did not. **Seen:** gdstudio #927, 2026-11-10.
+  name `main.tscn` did not; the same happened to 3D Blank's `test_web_probe.gd`, which asked `main.tscn` for its
+  `WebProbe` while 3D Third Person made its probe at run time (a base test that names a node a template removes is
+  replaced by a test of the same name in that template). **Seen:** gdstudio #927, 2026-11-10; gdstudio #921, 2026-11-10.
 
 A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
 autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
