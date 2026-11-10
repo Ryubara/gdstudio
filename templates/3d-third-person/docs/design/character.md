@@ -136,10 +136,13 @@ to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ra
 the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space
 on ground speed: idle, walk, run, sprint), `crouch` (a blend space of the crouch idle and the crouch walk), `jump`,
-`fall`, `land` and `push`. Over it, on the upper body only (the spine, arms, head and fingers; the legs keep the
-locomotion), the pistol layer holds the gun in `Pistol_Idle`, brings the arm up to the aim pose by the camera's pitch
-(`Pistol_Aim_Down`, `Pistol_Aim_Neutral`, `Pistol_Aim_Up`) and plays `Pistol_Shoot` for each shot. On top of everything
-is a one-shot layer for actions: interact and hit play there, and so does anything else:
+`fall`, `land` and `push`. Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the
+locomotion clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do
+unarmed) and only the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or
+firing brings the arm up over `aim_pose_time` to the aim pose by the camera's pitch (`Pistol_Aim_Down`,
+`Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the
+locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for actions: interact and
+hit play there, and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -150,6 +153,22 @@ $Player/Animation.play_clip(CharacterClips.OPEN_CHEST, 1.0)  # taking 1 second
 dropped on import and the clip loops) and lists all 86 in `CharacterClips.ALL`. The clip each state plays is an
 inspector setting of `PlayerAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
 no retargeting is needed.
+
+**The Pistol group of `PlayerAnimation`** (all read while the game runs; a change builds the tree again):
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `carry` | `Hand Only` | How the weapon is carried off aim and fire. `Hand Only`: the arms and the spine follow the locomotion and only the grip bones take the grip pose. `Held Pose`: the grip clip holds the whole upper body, both arms out in front (a weapon at the ready, a rifle). |
+| `grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). |
+| `grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
+| `aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clip` | the `Pistol_*` clips | The aim pose by pitch, and the recoil. |
+| `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
+| `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | The camera pitch of the full aim up and down poses, and the recoil's speed. |
+| `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
+
+The pistol sits in the hand without sinking into the leg or the body in the locomotion, crouch, jump and push clips on
+both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the skinned body, and
+`tools/carry/measure_clearance.gd` prints the numbers for another grip. If a game changes the grip, run both.
 
 ## Licences
 
