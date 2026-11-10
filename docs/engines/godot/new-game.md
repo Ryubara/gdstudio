@@ -166,6 +166,11 @@ kept with `--keep`, two calls at once).
   `--suite` options. **Watch out for:** the file order differs between Windows and the Linux runner, and a base suite
   left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in CI.
   **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Copy the `.import` file of every new asset (image, sound, model) back from the kept game with its
+  `.uid` files, and before the push run `git status --porcelain` in the template after a headless `--import` there.
+  **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
+  the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
+  icons). **Seen:** gdstudio #884, 2026-11-10.
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
