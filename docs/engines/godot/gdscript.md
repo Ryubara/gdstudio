@@ -23,8 +23,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
   `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
-  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 (a test's
-  `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, a parameter `world_hash` beside `static func
+  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
+  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, a parameter `world_hash` beside `static func
   world_hash`: three scripts did not parse).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
@@ -46,6 +46,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   only when the line runs with a live node: the unit tests of the soldier voice never reached that branch and the
   night test stopped on it. **Seen:** Deadnight #442, 2026-11-01 (fix: `is_instance_valid`; the night test is the
   check).
+
+- **Approach:** Give an `@export_enum` a name for "none" (`"Stay"`, `"None"`) and test for that string; load every new
+  script once (`gds check scripts`) before reading anything else a run prints. **Watch out for:** `@export_enum("",
+  "TopLeft", ...)` is a parse error ("Argument 1 of annotation @export_enum is empty") that was reported only as
+  "Could not resolve class" on the scripts that extend the failing one. **Seen:** gdstudio #880, 2026-11-10 (fix: a
+  `Stay` entry).
 
 - **Approach:** Fill a typed array in steps (`var paths: Array[String] = [a, b]`, then `if cond: paths = [c]`) and read
   the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
