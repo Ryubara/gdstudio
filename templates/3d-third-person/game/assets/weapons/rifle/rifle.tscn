@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://2nhhrkqrqdne" path="res://assets/weapons/rifle/rifle.glb" id="1_near"]
+[ext_resource type="PackedScene" uid="uid://b22x56j4ppcd6" path="res://assets/weapons/rifle/rifle_far.glb" id="2_far"]
+
+[node name="Rifle" type="Node3D"]
+
+[node name="Near" parent="." instance=ExtResource("1_near")]
+
+[node name="Rifle" parent="Near" index="0"]
+visibility_range_end = 10.0
+visibility_range_end_margin = 0.5
+
+[node name="Magazine" parent="Near/Rifle" index="4"]
+visibility_range_end = 10.0
+visibility_range_end_margin = 0.5
+
+[node name="Bolt" parent="Near/Rifle" index="0"]
+visibility_range_end = 10.0
+visibility_range_end_margin = 0.5
+
+[node name="Far" parent="." instance=ExtResource("2_far")]
+
+[node name="Rifle" parent="Far" index="0"]
+visibility_range_begin = 10.0
+visibility_range_begin_margin = 0.5
+
+[node name="Magazine" parent="Far/Rifle" index="4"]
+visibility_range_begin = 10.0
+visibility_range_begin_margin = 0.5
+
+[node name="Bolt" parent="Far/Rifle" index="0"]
+visibility_range_begin = 10.0
+visibility_range_begin_margin = 0.5
+
+[editable path="Near"]
+[editable path="Far"]

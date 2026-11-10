@@ -146,6 +146,13 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
   `LightmapGI.visible = false` hides it in Forward+ only (clear `light_data`); a closed room bakes near black (add a
   static `OmniLight3D`). **Seen:** gdstudio #788, 2026-11-08 (3D Blank: 50 blocks bake in 0.9 to 2.0 s, 45 KB; right
   in both renderers).
+- **Approach:** Bake a scene lit by another (a map section the map's sun lights) with that light instanced into it for
+  the bake, its `owner` set to the scene's root, taken out before the save; then check the atlas has light in it and
+  that every mesh is among the lightmap's users (`light_data.get("user_data")`, a flat list with a `NodePath` each).
+  **Watch out for:** the bake leaves out a light the edited scene does not own, with no message: two sections baked
+  with an unowned sun wrote atlases with 0 and 4% of their texels lit, and their shaded faces read black. A map's bake
+  goes stale as quietly: 13 blocks added after it (the crouch course, the ragdoll ledge) were in no lightmap.
+  **Seen:** gdstudio #885, 2026-11-10 (`tools/map_bake/`; `test_map_lighting.gd` fails on each).
 
 ## Night mood: honest judgement {#night-mood-honest-judgement}
 

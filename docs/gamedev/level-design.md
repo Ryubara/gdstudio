@@ -210,7 +210,9 @@ publish metrics list the crouch-jump apart from the jump for the same reason
 ([Valve: dimensions](https://developer.valvesoftware.com/wiki/Dimensions_(Half-Life_2_and_Counter-Strike:_Source))).
 
 **Check (a probe and a number):** the game's ledge probe runs the real body at blocks of each height, sprinting and
-walking, jumping at several moments; the highest it stands on is the reach, and a test pins it. Every perimeter wall,
+walking, jumping at several moments; the highest it stands on is the reach, and a test pins it. A carry probe runs it
+off a runway at a higher top across gaps of each width; the widest it crosses for each rise is the carry, pinned the
+same way, and every hop from one top to another is judged by it. Every perimeter wall,
 closed door and closed-area wall is above the reach plus the height of anything standable within reach of it, with the
 margin written down. A top over the reach is out of reach only by the sweep: two such blocks meeting at an inside
 corner were climbed from the floor. A thin collider is

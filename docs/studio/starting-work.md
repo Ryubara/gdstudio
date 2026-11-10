@@ -299,6 +299,11 @@ they exist.
   coordinator writing the code. **Watch out for:** the coordinator built most of a template feature itself, which
   filled its context with probe output and left the queue unattended until the maintainer asked why. **Seen:**
   gdstudio #846, 2026-11-10 (fix: the work and every finding handed to a godot-engineer with a full brief).
+- **Approach:** Write the model line in a brief as the model the agent runs as (the commit trailer and the pull
+  request's `Model:` line name it; the agent definition's `model:` sets it), or tell the agent to name the model the
+  harness says it is. **Watch out for:** the coordinator copied its own model into briefs, but the godot-engineer runs
+  another model, so an agent had to rewrite its unpushed commit messages and the others needed a correction mid-task.
+  **Seen:** gdstudio #875, 2026-11-10 (fix: briefs say to name the model the agent actually runs as).
 
 ## The report {#the-report}
 

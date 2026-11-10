@@ -26,6 +26,12 @@ do not. Merging, landing and keeping a branch fresh are in [Starting work](start
   screenshots, failed-first and lessons rules and printed `description: ok` for a body `pr-rules` refused; a wrapped
   Issues affected line is read as a second entry with no number; the history rules (a failed earlier check, a `bug`
   issue) run only in CI. **Seen:** gdstudio #607, 2026-11-04; Deadnight #1233, 2026-11-05 (fix: always `--title`).
+- **Approach:** Write the `Screenshots: none (reason)` line bare or as a list item (`- Screenshots: none (reason)`, also
+  with bold); the checker strips the list marker and bold before it compares, and a test pins each form. **Watch out
+  for:** the check once matched the line from its first character, so a listed line read as "no capture" and the
+  refusal asked for a Before and After pair, which does not fit a change with nothing visible; a listed line still
+  needs its reason in parentheses. **Seen:** gdstudio #931 (opened from #930), 2026-11-10 (fix: `_plain_line` in
+  `groundwork.py`).
 - **Approach:** When you add a commit to another agent's pull request, take a branch over or carry a commit into yours,
   name every model of its commits on the `Model:` line in the same step (`git log
   --format=%(trailers:key=Co-Authored-By) origin/main..HEAD`) and check the body before you push. **Watch out for:** the
@@ -36,7 +42,8 @@ do not. Merging, landing and keeping a branch fresh are in [Starting work](start
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
   model, the mapped model is the author. **Seen:** gdstudio #866, 2026-11-09 (fix: the line and the trailers named the
-  model).
+  model); gdstudio #873, 2026-11-10 (a brief named a model the agent was not and its commits and Model line copied it;
+  the model the harness reports wins over a brief, and merged trailers cannot be rewritten).
 
 ## Editing a description {#editing}
 
