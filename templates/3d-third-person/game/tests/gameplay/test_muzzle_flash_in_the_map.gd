@@ -13,12 +13,19 @@ func before_test() -> void:
 	add_child(_main)
 	_emitter = _main.get_node("Effects") as EffectEmitter
 	_player = _main.get_node("Player") as Player
-	await get_tree().physics_frame
+	await _emitter.warmed
 	await get_tree().physics_frame
 
 
 func after_test() -> void:
 	AudioDrain.stop_all(_main)
+
+
+func _slot_of(effect: EffectDef) -> EffectSlot:
+	for slot in _emitter.slots():
+		if slot.effect == effect:
+			return slot
+	return null
 
 
 func test_the_main_scene_holds_the_emitter_and_the_pistol_flashes_on_its_muzzle() -> void:
@@ -28,7 +35,7 @@ func test_the_main_scene_holds_the_emitter_and_the_pistol_flashes_on_its_muzzle(
 	assert_object(weapon.muzzle_flash).is_not_null()
 	assert_object(weapon.fire()).is_not_null()
 	assert_int(_emitter.active_count()).is_equal(1)
-	var slot := _emitter.slots()[0]
+	var slot := _slot_of(weapon.muzzle_flash)
 	assert_vector(slot.global_position).is_equal_approx(
 		weapon.muzzle.global_position, Vector3.ONE * 1e-3
 	)
@@ -46,7 +53,8 @@ func test_a_bullet_impact_and_the_flash_share_the_one_emitter() -> void:
 	impacts.impact(floor_body, floor_point, Vector3.UP)
 	shot.queue_free()
 	assert_int(_emitter.active_count()).is_equal(2)
-	assert_int(_emitter.slot_count()).is_equal(2)
+	assert_object(_slot_of(weapon.muzzle_flash)).is_not_null()
+	assert_bool(_slot_of(impacts.default_surface.effect).active).is_true()
 	_emitter.advance(2.0)
 	for slot in _emitter.slots():
 		if slot.sound_player() != null:

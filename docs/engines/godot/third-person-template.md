@@ -410,7 +410,7 @@ and the cost are on [the effect emitter](effect-emitter.md).
   is the `EffectDef` it plays on the `muzzle` marker (`gameplay/weapon/muzzle_flash.tres`; another weapon points it at its
   own) and `muzzle_flash_size` (1) resizes it.
 - **The inspector, on `EffectEmitter`.** `enabled`, `particles_enabled`, `sounds_enabled`, `lights_enabled`,
-  `max_effects` (24), `web_max_effects` (12), `max_lights` (2) and `warm_up`.
+  `max_effects` (24), `web_max_effects` (12), `max_lights` (2), `warm_up_on_start` (on) and `warm_up`.
 
 ## Ragdoll {#ragdoll}
 

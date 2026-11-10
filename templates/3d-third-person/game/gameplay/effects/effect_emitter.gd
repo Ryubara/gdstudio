@@ -24,6 +24,8 @@ extends Node3D
 
 ## An effect started in `slot`.
 signal played(effect: EffectDef, slot: EffectSlot)
+## The warm-up at the start of the level has drawn its effects and is over.
+signal warmed
 
 const GROUP := &"effect_emitter"
 
@@ -52,14 +54,19 @@ const GROUP := &"effect_emitter"
 @export_range(0, 8, 1) var max_lights := 2
 
 @export_group("Warm up")
-## Effects built when the level starts (their particle nodes made, no first-play hitch from
-## instancing them). Each is built once in the pool.
+## On: the first frames of the level draw every effect once, unseen, in front of the camera, so the
+## first shot does not stop the frame to build what drawing it needs (the web build did for 160
+## to 340 ms each for the flash, its light and the impacts). Off: they are built when first played.
+@export var warm_up_on_start := true
+## Effects to warm up besides those the level's weapons and impact surfaces register themselves.
 @export var warm_up: Array[EffectDef] = []
 
 ## True in the web build and on phones: the pool is `web_max_effects` there.
 var compact := OS.has_feature("web") or OS.has_feature("mobile")
 
 var _slots: Array[EffectSlot] = []
+var _warm_queue: Array[EffectDef] = []
+var _warming := true
 
 
 ## The emitter of the level `from` is in (the first in the group), or null when there is none.
@@ -86,8 +93,8 @@ func _ready() -> void:
 		return
 	for def in warm_up:
 		if def != null:
-			var slot := _make_slot()
-			slot.prepare(def)
+			warm(def)
+	_warm_routine()
 
 
 func _process(delta: float) -> void:
@@ -120,6 +127,22 @@ func play_on(
 	var base := node.global_transform.orthonormalized()
 	var placed := Transform3D(base.basis * EffectSlot.FORWARD, base.origin)
 	return _start(effect, placed, node, size_scale, with_particles, with_sound)
+
+
+## Adds `effect` to those drawn once, unseen, at the start of the level (a weapon registers its
+## flash, an impact surface its effect). After the warm-up is over it only builds the effect's slot.
+func warm(effect: EffectDef) -> void:
+	if effect == null or _warm_queue.has(effect):
+		return
+	if _warming:
+		_warm_queue.append(effect)
+	elif _slots.size() < pool_cap():
+		_make_slot().prepare(effect)
+
+
+## True while the warm-up is drawing its effects.
+func is_warming() -> bool:
+	return _warming
 
 
 ## Moves every effect on by `delta` seconds and frees the slots of those that ended. The process
@@ -234,6 +257,37 @@ func _take(effect: EffectDef) -> EffectSlot:
 	if _slots.size() < pool_cap():
 		return _make_slot()
 	return free_other if free_other != null else oldest_any
+
+
+# Waits two frames for the camera, then plays each registered effect in front of it, tiny and dim,
+# and frees the slots again.
+func _warm_routine() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var camera := get_viewport().get_camera_3d()
+	var warm_slots: Array[EffectSlot] = []
+	for def in _warm_queue:
+		var slot := _take(def) if pool_cap() > 0 else null
+		if slot != null:
+			slot.prepare(def)
+			warm_slots.append(slot)
+	if camera != null and enabled and warm_up_on_start and not warm_slots.is_empty():
+		var spot := camera.global_position - camera.global_basis.z * 2.0
+		# Twice: the renderer builds a different program for a surface that an omni light reaches, so
+		# every effect is drawn with the lights off and then with them on.
+		for with_lights in [false, true]:
+			if with_lights and not lights_enabled:
+				break
+			for slot in warm_slots:
+				var placed := Transform3D(Basis(), spot)
+				slot.start(slot.effect, placed, null, 1.0, true, false, with_lights, true)
+			set_process(true)
+			await get_tree().process_frame
+			await get_tree().process_frame
+			stop_all()
+	_warm_queue.clear()
+	_warming = false
+	warmed.emit()
 
 
 func _make_slot() -> EffectSlot:

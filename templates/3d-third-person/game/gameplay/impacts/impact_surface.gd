@@ -35,6 +35,14 @@ signal played(point: Vector3, normal: Vector3)
 @export_custom(PROPERTY_HINT_RESOURCE_TYPE, "EffectDef") var effect: Resource
 
 
+func _ready() -> void:
+	if Engine.is_editor_hint() or effect == null:
+		return
+	var emitter := EffectEmitter.find(self)
+	if emitter != null:
+		emitter.warm(effect)
+
+
 ## Plays the effect at `point`, standing on `normal`. `with_effect` and `with_sound` leave out the
 ## particles or the sound.
 func play(point: Vector3, normal: Vector3, with_effect := true, with_sound := true) -> void:

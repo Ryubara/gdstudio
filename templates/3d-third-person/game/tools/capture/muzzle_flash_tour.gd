@@ -8,32 +8,32 @@
 ## of a second takes many frames. Record it with Movie Maker through the kit (the frames land in
 ## the scratch folder; add `--rendering-method gl_compatibility` after `--` for the web look):
 ## `gds capture frames --project game --scene res://tools/capture/muzzle_flash_tour.tscn
-## --seconds 20 --fps 30`
+## --seconds 24 --fps 30`
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 enum Phase { AIM, FIRE, PAUSE }
 
 ## The speed of the game: a hundredth of a second of play is this much of a second of film.
-const SLOW := 0.12
+const SLOW := 0.15
 ## The crosshair is on the point within this many pixels.
 const AIM_PIXELS := 5.0
 ## The share of the crosshair's distance from the point that one frame turns.
 const AIM_GAIN := 0.35
 ## How long the fire button is held for a shot, and the pause after it (seconds of play).
 const SHOT_HOLD := 0.1
-const SHOT_PAUSE := 0.45
+const SHOT_PAUSE := 0.3
 ## Where the character stands and what it shoots at.
 const STAND := Vector3(-6.0, 0.0, 14.5)
 const TARGET := Vector3(-6.0, 0.9, 18.5)
 ## How many shots are fired with the flash on and then off.
-const SHOTS_ON := 5
-const SHOTS_OFF := 2
+const SHOTS_ON := 3
+const SHOTS_OFF := 1
 
 var _phase := Phase.AIM
 var _clock := 0.0
 var _shots := 0
-var _warmup := 1.0
+var _warmup := 0.4
 var _pitch_sign := 1.0
 var _last_error := INF
 var _held: Array[StringName] = []

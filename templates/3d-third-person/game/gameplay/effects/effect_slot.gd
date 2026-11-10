@@ -12,6 +12,9 @@ signal finished(slot: EffectSlot)
 
 ## Turns +Y to the node's -Z: a marker's forward is the way a flash points.
 const FORWARD := Basis(Vector3.RIGHT, -PI / 2.0)
+## How much further a warm-up light reaches than the effect's own: far enough to touch every surface
+## in view, so the renderer builds the lit version of each material now and not at the first shot.
+const QUIET_REACH := 40.0
 ## The longest a sound is waited for once everything else has ended.
 const SOUND_GRACE := 8.0
 
@@ -32,6 +35,7 @@ var _sound: AudioStreamPlayer3D
 var _light: OmniLight3D
 var _length := 0.0
 var _size := 1.0
+var _quiet := false
 
 
 func _init() -> void:
@@ -43,7 +47,8 @@ func _init() -> void:
 
 ## Plays `def` here. `world` is where the effect stands (+Y out of it) and, with `follow`, the
 ## node it keeps standing on (`FORWARD` applied, so it points out of the node's -Z). `size_scale`
-## multiplies the effect's own size.
+## multiplies the effect's own size. `quiet` plays it unseen (specks of particles, a hundredth of
+## the light) for the emitter's warm-up: the renderer still builds what drawing it needs.
 func start(
 	def: EffectDef,
 	world: Transform3D,
@@ -51,9 +56,11 @@ func start(
 	size_scale: float,
 	with_particles: bool,
 	with_sound: bool,
-	with_light: bool
+	with_light: bool,
+	quiet := false
 ) -> void:
 	stop()
+	_quiet = quiet
 	effect = def
 	target = follow
 	_placed = world
@@ -95,7 +102,7 @@ func advance(delta: float) -> bool:
 		if age >= effect.light_time:
 			_light.visible = false
 		else:
-			_light.light_energy = effect.light_energy * (1.0 - age / effect.light_time)
+			_light.light_energy = _energy() * (1.0 - age / effect.light_time)
 	if age < _length:
 		return false
 	if effect.duration > 0.0:
@@ -141,6 +148,10 @@ func light() -> OmniLight3D:
 	return _light
 
 
+func _energy() -> float:
+	return effect.light_energy * (0.01 if _quiet else 1.0)
+
+
 func _place() -> void:
 	var local := effect.local_transform()
 	if target != null:
@@ -159,7 +170,7 @@ func _start_particles(def: EffectDef, with_particles: bool) -> float:
 		_build_particles(def.particles)
 	var shown := _root as Node3D
 	shown.visible = true
-	shown.scale = Vector3.ONE * _size
+	shown.scale = Vector3.ONE * _size * (0.01 if _quiet else 1.0)
 	var longest := 0.0
 	for node in _emitters:
 		node.call(&"restart")
@@ -212,6 +223,6 @@ func _start_light(def: EffectDef, with_light: bool) -> void:
 		_light.shadow_enabled = false
 		add_child(_light)
 	_light.light_color = def.light_color
-	_light.light_energy = def.light_energy
-	_light.omni_range = def.light_range * _size
+	_light.light_energy = _energy()
+	_light.omni_range = def.light_range * _size * (QUIET_REACH if _quiet else 1.0)
 	_light.visible = true

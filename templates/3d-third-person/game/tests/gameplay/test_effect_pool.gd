@@ -159,14 +159,80 @@ func test_stop_all_ends_every_effect() -> void:
 		assert_bool(slot.visible).is_false()
 
 
-func test_warm_up_builds_the_slots_of_the_listed_effects_without_playing_them() -> void:
-	var effect := EffectProbe.def(true, true)
+func _warm_emitter(effect: EffectDef) -> EffectEmitter:
 	var fresh := auto_free(EffectEmitter.new()) as EffectEmitter
 	fresh.warm_up = [effect]
 	_world.add_child(fresh)
+	return fresh
+
+
+func test_warm_up_builds_the_slots_of_the_listed_effects_without_playing_them() -> void:
+	var effect := EffectProbe.def(true, true)
+	var fresh := _warm_emitter(effect)
+	assert_bool(fresh.is_warming()).is_true()
+	await fresh.warmed
 	assert_int(fresh.slot_count()).is_equal(1)
 	assert_int(fresh.active_count()).is_equal(0)
 	assert_int(fresh.slots()[0].emitters().size()).is_equal(1)
 	var slot := fresh.play_at(effect, Vector3.ZERO)
 	assert_object(slot).is_same(fresh.slots()[0])
 	assert_int(fresh.slot_count()).is_equal(1)
+
+
+func test_the_warm_up_draws_the_effect_unseen_in_front_of_the_camera_and_ends() -> void:
+	var camera := auto_free(Camera3D.new()) as Camera3D
+	_world.add_child(camera)
+	camera.make_current()
+	var effect := EffectProbe.def(true, true, 4.0)
+	effect.light_time = 1.0
+	var fresh := _warm_emitter(effect)
+	var seen_without_light := false
+	while fresh.light_count() == 0 and fresh.is_warming():
+		seen_without_light = seen_without_light or fresh.active_count() == 1
+		await get_tree().process_frame
+	# Drawn first without its light and then with it: a surface an omni light reaches takes another
+	# program.
+	assert_bool(seen_without_light).is_true()
+	assert_int(fresh.active_count()).is_equal(1)
+	var slot := fresh.slots()[0]
+	assert_vector(slot.global_position).is_equal_approx(Vector3(0.0, 0.0, -2.0), Vector3.ONE * 1e-3)
+	assert_float(slot.light().light_energy).is_less(0.05)
+	assert_vector((slot.emitters()[0] as CPUParticles3D).scale).is_equal_approx(
+		Vector3.ONE * 0.01, Vector3.ONE * 1e-4
+	)
+	assert_bool(slot.sound_player() == null or not slot.sound_player().playing).is_true()
+	await fresh.warmed
+	assert_int(fresh.active_count()).is_equal(0)
+	assert_int(fresh.light_count()).is_equal(0)
+	assert_bool(fresh.is_warming()).is_false()
+
+
+func test_a_level_can_turn_the_warm_up_off_and_the_slots_are_still_built() -> void:
+	var camera := auto_free(Camera3D.new()) as Camera3D
+	_world.add_child(camera)
+	camera.make_current()
+	var fresh := auto_free(EffectEmitter.new()) as EffectEmitter
+	fresh.warm_up_on_start = false
+	fresh.warm_up = [EffectProbe.def(true, false, 2.0)]
+	_world.add_child(fresh)
+	var drawn := false
+	while fresh.is_warming():
+		drawn = drawn or fresh.active_count() > 0
+		await get_tree().process_frame
+	assert_bool(drawn).is_false()
+	assert_int(fresh.slot_count()).is_equal(1)
+
+
+func test_a_weapon_and_the_impact_surfaces_register_their_effects_for_the_warm_up() -> void:
+	var weapon := auto_free(load("res://gameplay/weapon/weapon.tscn").instantiate()) as Weapon
+	var impacts := auto_free(load("res://gameplay/impacts/impacts.tscn").instantiate()) as Impacts
+	_world.add_child(weapon)
+	_world.add_child(impacts)
+	await _emitter.warmed
+	var held: Array[EffectDef] = []
+	for slot in _emitter.slots():
+		held.append(slot.effect)
+	assert_bool(held.has(weapon.muzzle_flash)).is_true()
+	for surface: ImpactSurface in impacts.surfaces_by_name().values():
+		assert_bool(held.has(surface.effect)).is_true()
+	assert_int(_emitter.active_count()).is_equal(0)

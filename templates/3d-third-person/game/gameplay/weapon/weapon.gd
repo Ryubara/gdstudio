@@ -72,6 +72,10 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_rng.seed = 1
 	set_physics_process(not Engine.is_editor_hint())
+	if not Engine.is_editor_hint() and muzzle_flash != null:
+		var emitter := EffectEmitter.find(self)
+		if emitter != null:
+			emitter.warm(muzzle_flash)
 
 
 func _physics_process(delta: float) -> void:
