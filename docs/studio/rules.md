@@ -135,6 +135,11 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   headings), and a heading cannot wrap. **Seen:** gdstudio #769, 2026-11-07 (fix: headings in crowds.md and
   web-export.md were reworded with their anchors kept, and two unlinked ones took short anchors, found by a width check
   before the report).
+- **Approach:** On a pull request's `Read first:` line, name only sections that are on `main`; a section the pull
+  request itself adds is named on `Lessons:`. **Watch out for:** `gds pr check-body` run in the worktree reads the
+  branch's docs and passes an anchor the branch adds, while the `body` check in CI refused the same line, since the
+  section does not exist on `main` yet. **Seen:** gdstudio #1016, 2026-11-10 (its reworked body named
+  `tools/blender/animation.md#contacts`, a section it adds; fix: the anchor was taken off `Read first:`).
 
 ## Page size {#size}
 
@@ -145,7 +150,8 @@ one time a learning makes a new page. The check names the page and its size.
   keep the old page as the index with a short section per moved `{#anchor}` linking to its new place, so briefs and
   issues that cite the old anchors still resolve. **Watch out for:** a template page that every feature adds a section
   to reached 51.1 KB of 51.2 KB with six agents still adding to it, and the next one failed the check. **Seen:**
-  `engines/godot/third-person-template.md`, split in gdstudio #983.
+  `engines/godot/third-person-template.md`, split in gdstudio #983; `engines/godot/third-person/character.md` stood
+  at 51.18 KB on `main` and failed on the merge into gdstudio #1016, which moved two sections to `clips.md`.
 
 ## Where the entry is named {#named}
 
