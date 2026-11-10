@@ -196,3 +196,23 @@ func test_the_camera_arm_is_pushed_in_by_a_wall_and_never_by_a_body_or_a_bone() 
 	await InputSim.ticks(get_tree(), 30)
 	assert_float(camera.global_position.distance_to(head.global_position)).is_less(0.9)
 	AudioDrain.stop_all(scene)
+
+
+# The masks the inspector shows are written as numbers (a default that names `PhysicsLayers`
+# made the web export end with scripts still in use, #954); they must still be its constants.
+func test_every_exported_mask_default_is_its_physics_layers_constant() -> void:
+	var defaults := {
+		"res://gameplay/door/door.gd": {&"auto_open_mask": PhysicsLayers.CHARACTER_SENSOR_MASK},
+		"res://gameplay/player/player_camera.gd": {&"wall_mask": PhysicsLayers.CAMERA_MASK},
+		"res://gameplay/player/player_ragdoll.gd":
+		{&"collision_layer": PhysicsLayers.RAGDOLL, &"collision_mask": PhysicsLayers.RAGDOLL_MASK},
+		"res://gameplay/weapon/weapon.gd": {&"aim_mask": PhysicsLayers.SHOT_MASK},
+	}
+	for path: String in defaults:
+		var script := load(path) as Script
+		for property: StringName in defaults[path]:
+			(
+				assert_int(script.get_property_default_value(property))
+				. override_failure_message("%s %s" % [path, property])
+				. is_equal(defaults[path][property])
+			)

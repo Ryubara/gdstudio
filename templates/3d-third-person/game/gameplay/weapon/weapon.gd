@@ -36,7 +36,7 @@ signal fired(projectile: Projectile)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
-@export_flags_3d_physics var aim_mask := PhysicsLayers.SHOT_MASK
+@export_flags_3d_physics var aim_mask: int = 59
 
 @export_group("Projectile")
 ## How fast the projectile flies.

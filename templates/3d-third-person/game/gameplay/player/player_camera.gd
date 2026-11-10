@@ -259,7 +259,7 @@ const _FORWARDED: Array[StringName] = [
 @export_group("Walls")
 ## The physics layers that push the lens in (the spring arm's mask): the level and props
 ## (`PhysicsLayers.CAMERA_MASK`), never a character, a ragdoll bone or a hit zone.
-@export_flags_3d_physics var wall_mask := PhysicsLayers.CAMERA_MASK:
+@export_flags_3d_physics var wall_mask: int = 9:
 	set(value):
 		wall_mask = value
 		_forward()
