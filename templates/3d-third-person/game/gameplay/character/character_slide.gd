@@ -239,14 +239,12 @@ func _should_end(body: Character, command: PlayerCommand) -> bool:
 	var tuning := body.tuning
 	if body.is_dead():
 		return true
-	var low := not has_room_for(body, crouch_height(tuning))
-	if low:
-		return false
-	if tuning.slide_hold_to_continue and not command.crouch:
-		return true
-	if tuning.slide_max_time > 0.0 and time >= tuning.slide_max_time:
-		return not (tuning.slide_downhill_unlimited and _downhill(body))
-	return false
+	var ends := tuning.slide_hold_to_continue and not command.crouch
+	if not ends and tuning.slide_max_time > 0.0 and time >= tuning.slide_max_time:
+		ends = not (tuning.slide_downhill_unlimited and _downhill(body))
+	# Under a gap too low to crouch in, the slide goes on until there is room (the shape query
+	# only when the slide would end).
+	return ends and has_room_for(body, crouch_height(tuning))
 
 
 # The pull of gravity along the floor (m/s²), pointing down the slope on the ground's plane: its

@@ -45,6 +45,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Walk | X (held) | a gentle push on the stick | a gentle push on the stick |
 | Interact | E | X | the Use button |
 | Crouch | C (held; a toggle in the tuning) | B | the Crouch button |
+| Slide | C at a sprint (Shift held, or any run faster than 5 m/s) | B at a sprint (left bumper) | the Crouch button with the stick at its outer ring |
 | Aim | right mouse button (held) | left trigger | the Aim button |
 | Fire | left mouse button | right trigger | the Fire button (it aims too) |
 | Swap shoulder | Q | right stick click | none |
@@ -52,6 +53,24 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 
 The character moves toward where the camera looks and turns to face its movement; while it aims it faces where the
 camera looks instead, however it walks (the clips only walk forward, so a sidestep slides).
+
+## Sliding {#slide}
+
+Crouch pressed while running at 5 m/s or more (a sprint is 6.5) starts a slide: the body drops to 0.9 m in 0.12 s, gets
+1.5 m/s more speed (at most 8.5 m/s, and only once every 2 s), and slows by friction for about a second and 5 m on the
+flat. Down a slope it speeds up (to 11 m/s at most) and has no time limit; up one it stops sooner. The stick turns it
+slowly (1.2 rad/s). It ends when it drops below 3 m/s, after 1.5 s on the flat, when crouch is let go (the default
+hold mode; off, a press slides to the end) or when the body leaves the ground; it then crouches while crouch is held
+or a ceiling is too low to stand under, and stands otherwise. Under a gap too low even to crouch in, it keeps sliding
+until it is out. Jump during a slide jumps 85 percent as high and keeps the slide's speed through the air (at most
+9 m/s, fading by 1 m/s each second). Aim and fire work while sliding. Another slide waits 0.3 s.
+
+It is part of the body's step (`CharacterSlide`, `gameplay/character/character_slide.gd`): a bot or a server slides a
+body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in the
+Slide group of the tuning (below); the camera's slide view is on `PlayerCamera` (Slide group: 5 degrees wider over a
+quarter of a second); the clips are `CharacterAnimation`'s `slide_start_clip`, `slide_clip` and `slide_exit_clip`.
+Turn it off with `slide_enabled`. Where the numbers come from (shipped games' slides, with sources) is in the kit's
+`docs/engines/godot/third-person/character.md` (Sliding).
 
 ## Commands: what moves the body {#commands}
 
@@ -95,6 +114,7 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Air | air control (0.45) |
 | Slopes and steps | max slope (48 degrees), step height (0.32 m), snap length (0.35 m), how far past the capsule the step check looks (0.06 m) |
 | Crouch | crouch height (1.1 m), crouch speed (1.5 m/s), time to crouch and stand (0.2 s), toggle or hold (hold), the camera target's height standing (1.55 m) and crouched (0.9 m), and above a dead body's hips (0.25 m) |
+| Slide | on or off (on), the least speed (5.0 m/s), sprint needed (off), while aiming (off), on landing with crouch held (on), the boost (1.5 m/s) up to (8.5 m/s) once every (2 s), friction (3.5 m/s²) and drag (0.3 per second), the fastest (11 m/s), the end speed (3.0 m/s), the longest on the flat (1.5 s; 0 lets friction end it), no limit downhill (on), slope gravity (9.8 m/s²) and the share of friction downhill (0.2), the flattest slope that counts (4 degrees), the turn rate (1.2 rad/s), the wait between slides (0.3 s), hold to continue (on), the capsule's height (0.9 m), the time to drop and rise (0.12 s), the camera target's height (0.75 m), shooting allowed (on), slide jump (on) with its height share (0.85), boost (0), most speed (9 m/s) and air drag (1 m/s²) |
 | Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up and go down (0.15 s), how long a press of fire is kept while the arm comes up (0.3 s), the fastest aimed walk in walking speeds (1.5), how far up the arm must be to shoot (0.5) |
 | Pushing | push strength (0.85), push mass (40 kg), the boost of the share (1.5) and the least share of a heavy prop (0.15), how much faster than a slow prop the body walks (1.15) and how long a slow push lasts after the last touch (0.25 s) |
 | Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip, how long the landing lasts (0.3 s), the speed under which it counts as standing (0.15 m/s) |
@@ -125,7 +145,8 @@ near zero sideways), field of view, near and far clip and start pitch (Framing),
 (Follow), mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera
 (Blending), the wall mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the
 field of view and distance added at a full sprint, the zoom speed, and a shake with its amplitude in degrees,
-frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Aim (the distance, the
+frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Slide (the field of view
+added while sliding, 5 degrees, and its speed, 4 a second; the sprint view stays through a slide), Aim (the distance, the
 field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
 aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
 `shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
@@ -181,15 +202,16 @@ answers by starting again at a spawn point, and a game that decides where charac
 
 `CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
 in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
-saved into a scene file. The body is a state machine: `ground` (a blend space
-on ground speed: idle, walk, run, sprint), `crouch` (a blend space of the crouch idle and the crouch walk), `jump`,
-`fall`, `land` and `push`. Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the
-locomotion clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do
-unarmed) and only the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or
-firing brings the arm up over `aim_pose_time` to the aim pose by how far up or down the character looks
-(`Pistol_Aim_Down`, `Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the
-legs keep the locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for
-actions: interact and hit play there, and so does anything else:
+saved into a scene file. The body is a state machine: `ground` (a blend space on ground speed: idle, walk, run, sprint),
+`crouch` (a blend space of the crouch idle and the crouch walk), `jump`, `fall`, `land`, `push` and the slide's three
+clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs
+into `ground`). Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion
+clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only
+the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm
+up over `aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`,
+`Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the
+locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for actions: interact and
+hit play there, and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
