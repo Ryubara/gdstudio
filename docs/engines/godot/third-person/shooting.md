@@ -218,9 +218,10 @@ empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side
 `tools/capture/reload_closeups.tscn` (the hands on the pistol in the grip, the aim and five moments of the reload, from
 the side, above and behind the shoulder).
 
-Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot
-39 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
-resource (the pool's 24 bodies, one mesh, one shape, one material). The shot's sound is most of a shot: with the
+Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
+µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
+resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons add 4 nodes to a living character (the
+`Loadout` and three idle sound players: 46, `test_parts_budget.gd`). The shot's sound is most of a shot: with the
 `ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
 all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
 number as a budget.

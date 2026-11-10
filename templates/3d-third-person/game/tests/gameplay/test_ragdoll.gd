@@ -42,6 +42,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 	var character_pins := {
 		&"tuning": null,
 		&"prone_tuning": null,
+		&"slide_tuning": null,
 		&"model": null,
 		&"controller": null,
 		&"weapon": null,
