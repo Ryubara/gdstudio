@@ -303,7 +303,9 @@ MUZZLE = (-0.47, 0.0, BORE)
 EJECT = (-0.03, 0.036, 0.05)  # the dust cover
 GRIP = ((0.036, 0.0, -0.085), (-0.28, 0.0, 0.96), (-1.0, 0.0, 0.0))  # origin, up the handle, front (the fingers)
 TRIGGER = (-0.018, 0.0, -0.038)
-SUPPORT = ((-0.25, 0.0, 0.03), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.6))  # the hand guard's rear, held from below
+# The left hand's handle: under the hand guard, 4 cm behind Deadnight's -0.25 so that the mannequin's arm (0.49 m from
+# shoulder to wrist) reaches it with the chest turned 30 degrees (kit #886, the hold study in the folder's README).
+SUPPORT = ((-0.21, 0.0, 0.03), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.6))
 BUTT = (0.343, 0.0, 0.01)  # the butt pad's rear face: where the stock meets the shoulder
 
 
