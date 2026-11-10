@@ -28,7 +28,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Minimap | `ui/minimap/` (the widget, the full-screen map), `core/minimap/` (`MinimapMarker`, `MinimapSection`) | A round map that follows the character and a full-screen map on `M`; a marker component any node carries. [Minimap](#minimap). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
-| Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
+| Net packets and link | `gameplay/net/` (the packets; `NetLink`, `WebSocketLink`, `WsListener`, `LoopbackLink`, `LinkConditioner`), `tools/net/`, `ui/probe/net_probe.gd` | The bytes of online play ([packets](multiplayer.md#template-packets)) and the transport under them: a WebSocket client (desktop and web), the server's listener, an in-process pair and a bad network around any of them; polled each physics tick; no inspector (code objects). [The template's transport](multiplayer.md#template-transport). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | Scene map | `main.tscn`, `world/world.tscn`, `ui/player_rig/player_rig.tscn`, `ui/hud/hud.tscn`, `ui/menus/screen_host.tscn` | `main.tscn` holds four instances and three wires, nothing else; open the one scene a feature lives in. [Which scene to open](#scene-map). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, a spawn point, a camera zone and two [map sections](map-sections.md); `ProtoBlock` makes the solids. |
@@ -428,25 +428,21 @@ and `muzzle_flash_size`.
 
 <!-- new section: #884 added the minimap; how it is built and what it costs are on [Minimap](minimap.md) -->
 
-The HUD's `MinimapSlot` holds the small `Minimap` (top right, follows the character, turns with the camera) and
-`MapLayer` (in the player rig) the `MapScreen` (`M`, north up, the whole map). The player, every pickup, target and door
-carry a `MinimapMarker` (the player's in the rig); the workshop is a `MinimapSection`.
-How it works, the sources it can draw from and the cost are in [Minimap](minimap.md).
+The HUD's `MinimapSlot` holds the small `Minimap` (follows the character, turns with the camera); the rig's `MapLayer`
+holds the `MapScreen` (`M`, the whole map). The player, pickups, targets and doors carry a `MinimapMarker`; the
+workshop is a `MinimapSection`. How it works and what it costs: [Minimap](minimap.md).
 
 - **The inspector, on `Minimap`.** Nodes: `target`, `target_group`. Shape: `shape`, `map_size`, `max_screen_fraction`,
   `corner_ratio`. View: `range_m`, `range_min`, `range_max`, `zoom_step`, `zoom_smoothing`, `rotation_mode`, `turn_smoothing`,
   `follow_target`, `fixed_centre`, the two zoom actions. Map source: `source`, `image`, `image_world_rect`,
-  `live_layers`, `live_height`, `live_depth`, `live_resolution_scale`, `live_unshaded`. Look: `background_color`,
-  `border_color`, `border_width`, `edge_fade`, `opacity`, `tint_enabled`, `tint_dark`, `tint_light`, `marker_scale`,
+  the `live_*` settings of the camera source. Look: `background_color`,
+  `border_color`, `border_width`, `edge_fade`, `opacity`, `tint_*`, `marker_scale`,
   `show_north`, `show_self`. Markers: `default_icon`, `default_edge_icon`, `hidden_kinds`, `pool_prewarm`,
   `max_markers`. Update: `map_update_rate`, `marker_update_rate`, `still_refresh_seconds`.
 - **On `MinimapMarker`.** Look: `icon`, `color`, `size`, `rotates_with_node`, `kind`, `draw_order`. Edge:
   `clamp_to_edge`, `edge_inset`, `edge_icon`. Show: `active`, `rule`, `near_distance`, `revealed`, `height_fade`.
 - **On `MinimapSection`:** `title`, `size`, `level`, `map_texture`. **On `MapScreen`:** `toggle_action`, `fit_bounds`,
   `fit_to_sections`, `fit_margin`, `fade_time`.
-- **Tests and captures.** The `test_minimap_*.gd` suites of `tests/core/` and `tests/ui/` and `test_map_screen.gd`
-  (`test_minimap_baker.gd` runs windowed only); `tools/capture/minimap_tour.tscn` records both maps,
-  `tools/bench/minimap_bench.tscn` measures the cost.
 
 ## Ragdoll {#ragdoll}
 

@@ -168,6 +168,10 @@ counts icons.
 A headless run (the CI's) has a renderer that draws nothing, so what a suite can prove about a picture is its maths and
 its nodes, and the pixels are proved in a windowed run or a capture.
 
+In 3D Third Person: the `test_minimap_*.gd` suites of `tests/core/` and `tests/ui/` and `test_map_screen.gd`
+(`test_minimap_baker.gd` runs windowed only); `tools/capture/minimap_tour.tscn` records both maps and
+`tools/bench/minimap_bench.tscn` measures the cost.
+
 - **Approach:** Prove the picture's orientation with numbers: unproject known points through the map camera (a frame
   after setting it) and compare with `MinimapProjector.snapshot_uv`, which is the sum the shader does; read the
   shader's defaults from its source text (`Shader.code`) because `RenderingServer.shader_get_parameter_default`

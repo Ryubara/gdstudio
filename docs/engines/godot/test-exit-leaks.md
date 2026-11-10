@@ -138,3 +138,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   it loads until the end of the run, so each const kept the whole lot scene, its scripts and statics in use at exit;
   the leak showed only in one shard, never in 15 local runs, and bisecting by CI runs took five pushes. **Seen:**
   Deadnight #837, 2026-11-03 (fix: the three capture scripts load in the function that runs).
+- **Approach:** Two `RefCounted` objects that must know each other (the two ends of a loopback link) hold each other
+  through `weakref()`, and an end whose other is gone treats it as closed; grep a new suite's log alone for `still in
+  use` before the pull request, even when the full run is green. **Watch out for:** `LoopbackLink.pair()` made ends
+  that held each other strongly, so every pair a test made stayed alive: 526 template tests passed with one line `4
+  resources still in use at exit`, which only a run of each suite alone traced to the loopback suite. **Seen:**
+  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end).
