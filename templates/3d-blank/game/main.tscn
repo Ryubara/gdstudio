@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/camera_3d_resource.gd" id="4_lens"]
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="5_audio"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="6_wind"]
+[ext_resource type="Script" path="res://ui/probe/web_probe.gd" id="7_probe"]
 
 [sub_resource type="Resource" id="Resource_lens"]
 script = ExtResource("4_lens")
@@ -36,3 +37,6 @@ rotation_degrees = Vector3(-18.3, 43.8, 0)
 script = ExtResource("3_pcam")
 camera_3d_resource = SubResource("Resource_lens")
 tween_on_load = false
+
+[node name="WebProbe" type="Node" parent="."]
+script = ExtResource("7_probe")
