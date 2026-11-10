@@ -124,3 +124,39 @@ func test_a_prone_command_goes_over_the_wire() -> void:
 	assert_bool(PlayerCommand.new().copy_from(command).prone).is_true()
 	command.clear()
 	assert_bool(command.prone).is_false()
+
+
+# Every prone setting is pinned, with the default the research picked (the template docs give
+# the sources), on a fresh resource and in the player's file.
+func test_every_prone_setting_is_pinned() -> void:
+	var pins := {
+		&"crawl_speed": 1.0,
+		&"backward_share": 0.7,
+		&"sideways_share": 0.8,
+		&"acceleration": 10.0,
+		&"deceleration": 12.0,
+		&"turn_speed": 3.0,
+		&"move_while_changing": false,
+		&"enter_time": 0.5,
+		&"exit_time": 0.7,
+		&"air_time": 0.15,
+		&"height": 0.6,
+		&"radius": 0.28,
+		&"camera_height": 0.55,
+		&"aim_allowed": true,
+		&"fire_allowed": true,
+		&"spread_share": 0.5,
+		&"aim_move_share": 0.5,
+		&"aim_turn_speed": 6.0,
+		&"look_up_limit": 12.0,
+		&"look_down_limit": 40.0,
+		&"input_mode": ProneTuning.InputMode.TOGGLE,
+		&"crouch_hold_time": 0.5,
+		&"jump_gets_up": true,
+		&"sprint_gets_up": true,
+	}
+	for tuning: ProneTuning in [
+		ProneTuning.new(), load("res://gameplay/player/prone_tuning.tres") as ProneTuning
+	]:
+		assert_array(ExportPins.differences(tuning, pins)).is_empty()
+		assert_array(ExportPins.wrong_values(tuning, pins)).is_empty()
