@@ -13,8 +13,10 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	AudioSettings.reset_player_gain()
 	for bus in BUSES:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), _saved[bus])
+		AudioServer.set_bus_mute(AudioServer.get_bus_index(bus), false)
 
 
 func test_the_project_has_the_four_buses_and_the_three_send_to_master() -> void:
@@ -90,3 +92,39 @@ func test_leaving_the_tree_stops_the_voices_and_waits_for_the_audio_thread() -> 
 	assert_bool(player.playing).is_false()
 	AudioSettings.stop_players(holder)
 	assert_bool(AudioSettings.drain_mixer()).is_true()
+
+
+func test_the_players_volume_sits_on_top_of_the_mix_and_a_new_mix_keeps_it() -> void:
+	var settings: AudioSettings = auto_free(AudioSettings.new())
+	settings.sfx_db = -6.0
+	AudioSettings.set_player_gain(&"SFX", 0.5)
+	assert_float(AudioSettings.bus_volume_db(&"SFX")).is_equal_approx(
+		-6.0 + linear_to_db(0.5), 0.01
+	)
+	settings.sfx_db = -10.0
+	assert_float(AudioSettings.bus_volume_db(&"SFX")).is_equal_approx(
+		-10.0 + linear_to_db(0.5), 0.01
+	)
+	assert_float(AudioSettings.player_gain(&"SFX")).is_equal(0.5)
+
+
+func test_a_player_volume_of_zero_mutes_the_bus_and_one_unmutes_it() -> void:
+	AudioSettings.set_player_gain(&"Ambient", 0.0)
+	assert_bool(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Ambient"))).is_true()
+	AudioSettings.set_player_gain(&"Ambient", 1.0)
+	assert_bool(AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Ambient"))).is_false()
+	assert_float(AudioSettings.bus_volume_db(&"Ambient")).is_equal_approx(_saved[&"Ambient"], 0.01)
+
+
+func test_a_gain_set_before_any_node_exists_starts_from_the_layouts_volume() -> void:
+	AudioSettings.set_player_gain(&"UI", 0.5)
+	assert_float(AudioSettings.bus_volume_db(&"UI")).is_equal_approx(
+		_saved[&"UI"] + linear_to_db(0.5), 0.01
+	)
+	AudioSettings.reset_player_gain()
+	assert_float(AudioSettings.bus_volume_db(&"UI")).is_equal_approx(_saved[&"UI"], 0.01)
+
+
+func test_a_bus_the_project_lacks_takes_a_gain_without_error() -> void:
+	AudioSettings.set_player_gain(&"Nope", 0.3)
+	assert_float(AudioSettings.player_gain(&"Nope")).is_equal_approx(0.3, 0.0001)

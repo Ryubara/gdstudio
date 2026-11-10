@@ -239,6 +239,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-09 | gdstudio #868 | After a shot the camera zoomed out at once but the character kept the slow aim walk and aim clips for about a second; with no aim or fire button held, nothing of aiming or firing may remain | [engines/godot/third-person-template.md#crouch-aim-shoot](../engines/godot/third-person-template.md#crouch-aim-shoot) |
 | 2026-11-10 | gdstudio #872 | The 3D Third Person ragdoll looked melted: its limbs passed through each other because the bones did not collide among themselves, and its joints turned past what a body can because the limits were widened to fit the clips instead of taken from anatomy | [engines/godot/ragdoll.md#limits](../engines/godot/ragdoll.md#limits) |
 | 2026-11-10 | gdstudio #872 | A ragdoll started in mid-air kept the animation's pose until it hit something, instead of going limp as it fell, because every bone was given the same velocity | [engines/godot/ragdoll.md#building](../engines/godot/ragdoll.md#building) |
+| 2026-11-10 | gdstudio #877 | Playing 3D Third Person, the character walked, jogged and sprinted with both arms held out as if aiming; off aim and fire the pistol should only sit in one hand while the arms follow the locomotion | [engines/godot/third-person-template.md#crouch-aim-shoot](../engines/godot/third-person-template.md#crouch-aim-shoot) |
 
 ## Start of a new game {#start-of-a-new-game}
 

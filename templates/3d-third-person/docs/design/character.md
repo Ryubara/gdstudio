@@ -14,11 +14,15 @@ talk through signals and input actions, so each can be replaced alone.
 | `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, layers and get-up time. |
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
+| `Impacts` | `main.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
+| `EffectEmitter`, `EffectDef` | `main.tscn` (`Effects`), `gameplay/effects/` | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
+| Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
 | `Footsteps` | `gameplay/player/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
 | `Crosshair` | `ui/hud/crosshair.tscn` | A small white circle with a thin dark ring at the middle of the screen, drawn by the node itself and shown only while the player aims. |
 | `Interactor` | `gameplay/player/interactor.gd` | Finds the nearest usable thing in front: a node of the group `interactable` with an `interact()` method (a `Door` joins when `player_can_use` is on). |
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim and Crouch added here). |
+| The rifle | `assets/weapons/rifle/` | An assault rifle model for the weapon work (not yet held or fired): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How a character can hold it with the clips the template has is in the folder's README. |
 | The mannequin and its clips | `assets/characters/mannequin/`, `assets/animation/universal/` | Quaternius's female and male mannequins (`mannequin_female.glb`, `mannequin_male.glb`) and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
 
 ## Input
@@ -134,10 +138,13 @@ to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ra
 the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space
 on ground speed: idle, walk, run, sprint), `crouch` (a blend space of the crouch idle and the crouch walk), `jump`,
-`fall`, `land` and `push`. Over it, on the upper body only (the spine, arms, head and fingers; the legs keep the
-locomotion), the pistol layer holds the gun in `Pistol_Idle`, brings the arm up to the aim pose by the camera's pitch
-(`Pistol_Aim_Down`, `Pistol_Aim_Neutral`, `Pistol_Aim_Up`) and plays `Pistol_Shoot` for each shot. On top of everything
-is a one-shot layer for actions: interact and hit play there, and so does anything else:
+`fall`, `land` and `push`. Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the
+locomotion clip drives the arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do
+unarmed) and only the gripping hand (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or
+firing brings the arm up over `aim_pose_time` to the aim pose by the camera's pitch (`Pistol_Aim_Down`,
+`Pistol_Aim_Neutral`, `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the
+locomotion), and `Pistol_Shoot` plays for each shot. On top of everything is a one-shot layer for actions: interact and
+hit play there, and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -149,11 +156,28 @@ dropped on import and the clip loops) and lists all 86 in `CharacterClips.ALL`. 
 inspector setting of `PlayerAnimation`. Both libraries use the Quaternius universal rig, which is both mannequins', so
 no retargeting is needed.
 
+**The Pistol group of `PlayerAnimation`** (all read while the game runs; a change builds the tree again):
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `carry` | `Hand Only` | How the weapon is carried off aim and fire. `Hand Only`: the arms and the spine follow the locomotion and only the grip bones take the grip pose. `Held Pose`: the grip clip holds the whole upper body, both arms out in front (a weapon at the ready, a rifle). |
+| `grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). |
+| `grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
+| `aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clip` | the `Pistol_*` clips | The aim pose by pitch, and the recoil. |
+| `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
+| `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | The camera pitch of the full aim up and down poses, and the recoil's speed. |
+| `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
+
+The pistol sits in the hand without sinking into the leg or the body in the locomotion, crouch, jump and push clips on
+both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the skinned body, and
+`tools/carry/measure_clearance.gd` prints the numbers for another grip. If a game changes the grip, run both.
+
 ## Licences
 
 The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
-and MIT for Phantom Camera. Give them a line on the game's Credits screen.
+and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
+(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`.
 
 ## Testing it in a browser
 

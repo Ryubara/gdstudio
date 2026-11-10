@@ -189,6 +189,13 @@ first push, where the strict build and markdownlint otherwise find it -->
   `AGENTS.md` sits at the repository root, which the site does not publish; a heading copied from the kit's page of the
   same name did not exist on the game's own page; a guessed anchor failed the build. **Seen:** gdstudio #432,
   2026-11-03; Deadnight #648, 2026-11-02; gdstudio, 2026-11-04.
+- **Approach:** Name a docs page in a docstring or a code comment only as a path that exists, and keep
+  `python/tests/test_docs_paths.py` green: it reads every `docs/...md` path in the docstrings of `python/src`,
+  `.claude/hooks` and `.github/scripts`. When a page or a comment says what a file does, check it against the file
+  when you change either. **Watch out for:** `gds_tools/cli.py` named `docs/tools.md` (the folder is `docs/tools/`), a
+  CI comment still said the `template` job builds the 3D Blank game after it became a matrix over both templates, and a
+  README said an addon names no game while its defaults are Deadnight's. **Seen:** gdstudio #920, 2026-11-10 (the #896
+  review, table 2.5).
 - **Approach:** Link a page of another repository by its full GitHub URL or name it as text, and use relative links only
   to pages of the same repository; link a page from another open pull request only after it lands, naming it in plain
   text until then; read every link of a row drafted by a game agent before it goes on a kit page. **Watch out for:** a

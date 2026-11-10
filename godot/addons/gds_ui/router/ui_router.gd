@@ -116,6 +116,19 @@ func pop(kind := -1) -> void:
 	_submit(_do_pop.bind(kind))
 
 
+## Closes the top screen even when it is the only one, so the stack can end empty (`depth() == 0`,
+## `screen_changed(0)`): a menu over a game that is not itself a screen needs it, as `pop` stops at
+## the root. With two or more screens it is `pop`. `kind` -1 plays the transition it arrived with.
+func close(kind := -1) -> void:
+	_submit(_do_close.bind(kind))
+
+
+## Closes every screen: the top one leaves with `kind`, the rest are freed behind it, and the stack
+## ends empty (`screen_changed(0)`).
+func clear(kind := UITransition.Kind.FADE) -> void:
+	_submit(_do_clear.bind(kind))
+
+
 ## Frees the whole stack and shows one screen.
 func reset(source: Variant, kind := UITransition.Kind.CUT, params := {}) -> void:
 	_submit(_do_reset.bind(source, kind, params))
@@ -133,13 +146,15 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if busy or not event.is_action_pressed(&"ui_cancel") or _stack.size() < 2:
+	if busy or not event.is_action_pressed(&"ui_cancel") or _stack.is_empty():
 		return
 	var screen := top() as UIScreen
 	if screen != null and not screen.allow_back:
 		return
+	if _stack.size() < 2 and (screen == null or not screen.back_closes):
+		return
 	UIAudio.play(&"back", self)
-	pop()
+	close()
 	get_viewport().set_input_as_handled()
 
 
@@ -221,6 +236,52 @@ func _do_pop(requested: int) -> void:
 	else:
 		_report(LOST_POP_TARGET)
 		screen_changed.emit(0)
+
+
+func _do_close(requested: int) -> void:
+	if _stack.size() >= 2:
+		await _do_pop(requested)
+		return
+	if _stack.is_empty():
+		return
+	var outgoing := _stack.pop_back() as Control
+	var kind: UITransition.Kind = (
+		_kinds.get(outgoing, UITransition.Kind.FADE) if requested < 0 else requested
+	)
+	_kinds.erase(outgoing)
+	UIAudio.play(&"pop", self)
+	await _fade_out(outgoing, kind)
+	if is_instance_valid(outgoing):
+		outgoing.queue_free()
+	screen_changed.emit(0)
+
+
+func _do_clear(kind: UITransition.Kind) -> void:
+	if _stack.is_empty():
+		return
+	var old := _stack.duplicate()
+	var outgoing := top()
+	_stack.clear()
+	_kinds.clear()
+	await _fade_out(outgoing, kind)
+	for screen in old:
+		if is_instance_valid(screen):
+			screen.queue_free()
+	screen_changed.emit(0)
+
+
+## Dims a screen that leaves with nothing behind it (a cut, or reduced motion, just goes).
+func _fade_out(screen: Control, kind: UITransition.Kind) -> void:
+	if kind == UITransition.Kind.CUT or UIMotion.reduced or not is_instance_valid(screen):
+		await get_tree().process_frame
+		return
+	if screen is UIScreen:
+		(screen as UIScreen).remember_focus()
+	var tween := _stage.create_tween()
+	UIMotion.apply_ease(tween, UITokens.Ease.EXIT)
+	tween.tween_property(screen, "modulate:a", 0.0, _tokens.dur_fast)
+	# A timer, not the tween's `finished`: a screen freed mid-fade kills its tween silently.
+	await get_tree().create_timer(_tokens.dur_fast).timeout
 
 
 func _do_reset(source: Variant, kind: UITransition.Kind, params: Dictionary) -> void:

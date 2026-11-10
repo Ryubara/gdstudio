@@ -19,8 +19,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   code and `tail` shows the last hook lines (`Skipped`), so a refused commit (a title verb off the list, MD013, a
   `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
   change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
-  (`--continue` hid a 155-character licence line); gdstudio, 2026-11-02 (a lint failure filtered through `grep`, then
-  committed); Deadnight #1374, 2026-11-07 (MD013 and a title verb hid, so no commit).
+  (`--continue` hid a licence line); gdstudio, 2026-11-02 (a lint failure behind `grep`); Deadnight #1374,
+  2026-11-07; gdstudio #916, 2026-11-10 (MD013 and a title verb hid, so no commit, twice).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command
@@ -37,7 +37,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
   and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08.
+  gdstudio #830, 2026-11-08; gdstudio #875, 2026-11-10 (a scripted replace turned two scripts CRLF again).
 
 ## Scripted edits {#scripted-edits}
 
@@ -130,4 +130,6 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   never a setting to switch off. **Watch out for:** the revert was committed on a scratch branch with `git -c
   core.hooksPath=/dev/null commit` so the title hook would not refuse `scratch:`, which is `--no-verify` by another
   name. **Seen:** Deadnight #848, 2026-11-03 (fix: `git reset --soft HEAD~1` before any push, the revert kept as
-  working-tree changes).
+  working-tree changes); tether #28, 2026-11-10 (`git stash push -- src hooks` to run the new tests on the old code
+  was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
+  copied in).

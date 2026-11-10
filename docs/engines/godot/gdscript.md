@@ -18,14 +18,14 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   compilation. **Seen:** Deadnight, 2026-11-01 (fix: `reload_weapon`); Deadnight #462, 2026-11-01 (a helper named
   `_set`).
 
-- **Approach:** Name a local variable or parameter so that it matches no member of its node class (`gravity_scale`,
-  not `scale`, in a `Node3D`; `stick_offset`, not `offset`, in a `CanvasLayer`; `earlier`, not `before`, in a GdUnit
-  suite), and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
+- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
+  `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
+  own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
   `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
-  opening 3D Third Person ("local variable "scale" is shadowing an already-declared property in the base class"), which
-  a headless run never shows; as errors, `gds check scripts` fails the script (a throwaway `var scale` gave "1 of 429 do
-  not parse"). **Seen:** gdstudio #836, 2026-11-08 (also a test helper `_body` shadowed by a
-  lambda's `_body`); #857 (a test's `for name in`, exit 105).
+  opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
+  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
+  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, a parameter `world_hash` beside `static func
+  world_hash`: three scripts did not parse).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
@@ -47,6 +47,18 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   night test stopped on it. **Seen:** Deadnight #442, 2026-11-01 (fix: `is_instance_valid`; the night test is the
   check).
 
+- **Approach:** Give an `@export_enum` a name for "none" (`"Stay"`, `"None"`) and test for that string; load every new
+  script once (`gds check scripts`) before reading anything else a run prints. **Watch out for:** `@export_enum("",
+  "TopLeft", ...)` is a parse error ("Argument 1 of annotation @export_enum is empty") that was reported only as
+  "Could not resolve class" on the scripts that extend the failing one. **Seen:** gdstudio #880, 2026-11-10 (fix: a
+  `Stay` entry).
+
+- **Approach:** Fill a typed array in steps (`var paths: Array[String] = [a, b]`, then `if cond: paths = [c]`) and read
+  the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
+  cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
+  type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
+  matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that
@@ -67,6 +79,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   without `unbinds` fails only when the signal fires (the key is `unbinds`). **Seen:** gdstudio #788, 2026-11-08 (the
   graphics profile found no node and did nothing; fixed, with a test that applies it).
 
+- **Approach:** In a `.tscn` written by hand or by a script, put each node's `script = ExtResource(...)` line before
+  the script's own exports (`style`, `title`, `key`). **Watch out for:** properties above the `script` line are
+  dropped without a word: every label of a settings screen loaded at the body size and every row had no title, and no
+  check noticed; only a capture and a probe that printed the property did. **Seen:** gdstudio #881, 2026-11-10 (the 3D
+  Third Person menus).
 - **Approach:** Treat `project.godot` as Godot's file: change it by hand only for a real setting, keep local-only
   settings in an untracked `override.cfg`, run `git checkout game/project.godot` after each import or run, and stage
   files by path (never `git add -A` in a worktree where Godot has just run). **Watch out for:** Godot rewrites the

@@ -28,6 +28,7 @@ radius = 0.5
 
 [node name="Target" type="StaticBody3D"]
 script = ExtResource("1_target")
+metadata/surface = &"target"
 
 [node name="Post" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

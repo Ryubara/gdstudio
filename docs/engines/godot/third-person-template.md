@@ -2,9 +2,9 @@
 
 <!-- new section: the new-game page lists the templates; nothing held how the character template is built -->
 
-How the template's character is built and what Godot 4.7.2 did on the way (kit issue #821): a `CharacterBody3D`
+How the template's character is built and what Godot 4.7.2 did on the way: a `CharacterBody3D`
 controller, a Phantom Camera third-person view, touch controls for phones and a Quaternius mannequin animated with the
-Universal Animation Library 1 and 2 (the female and the male one). What a game made from it holds is in its own
+Universal Animation Library 1 and 2. What a game made from it holds is in its own
 `docs/design/character.md`; the template list is [A new game from a template](new-game.md#the-templates). Measured on
 Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 
@@ -12,17 +12,23 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 
 | Part | Where (in `templates/3d-third-person/game/`, the base in `templates/3d-blank/game/`) | Notes |
 | --- | --- | --- |
-| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
+| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`, `died`, `revived`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
 | Model | `gameplay/player/player_model.gd` | `Model` is a slot (a `Node3D`) that holds the glb and the pistol seat; replace the glb under it: [Replacing the model](#replacing-the-model). |
-| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
+| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine, a pistol layer (the grip on one hand, the aim pose on the upper body) and a one-shot action layer. The carry is an inspector choice ([Crouch, aim and shoot](#crouch-aim-shoot)). `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view and a fire view blended on its framing; a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
+| Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
+| Effects | `gameplay/effects/` | One pooled player of one-shot effects (muzzle flash, impacts). [Effects](#effects). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
+| Menus | `ui/menus/`, `core/settings/` | Main, pause and settings menus, saved options: [Menus](menus.md#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
-| The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
+| Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
+| Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
+| The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, a spawn point, a camera zone and two [map sections](map-sections.md); `ProtoBlock` makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
 camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
@@ -256,11 +262,21 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
-  `filter_enabled` and a filter path for `spine_01` and every bone under it (read from the skeleton,
-  `Armature/Skeleton3D:<bone>`), the holding pose first, the aim pose over it by the camera's pitch in a blend space
-  (`Pistol_Aim_Down` -45, `Pistol_Aim_Neutral` 0, `Pistol_Aim_Up` 45) and the recoil last. **Watch out for:** the aim
-  clips are 0.17 s long and do not loop, so they hold their last pose, which is what an aim should do; the pistol clips
-  are whole-body poses, so without the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08.
+  `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
+  over it by the camera's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
+  off aim and fire only the gripping hand (`hand_r` and what is under it) takes the grip pose, so the arms and spine
+  follow the locomotion (`PlayerAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
+  weight 1 the whole time a weapon was held made the character walk, jog and sprint with the pistol held out like an
+  aim; the pistol clips are whole-body poses, so without
+  the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08; gdstudio #877, 2026-11-10 (found by the
+  maintainer).
+- **Approach:** Prove a carry by reading, per bone, the blend amount of the layer that filters it (0 on the arm and
+  spine walking, jogging, sprinting, crouch walking and jumping, 1 on the hand) and the pistol's clearance on the
+  skinned body in every clip on both mannequins (`test_pistol_carry.gd`, `test_pistol_clearance.gd`); keep the arm up
+  `shot_hold_time` after a shot. **Watch out for:** with aim released at once (#868) a tap of the fire button raised the
+  arm to half and lowered it before a shot showed; the tree is driven from `_process`, a render frame behind the physics
+  ticks a test awaits (a rebuild makes the physics catch up with no render frame), so wait for `process_frame` before
+  reading a rebuilt tree. **Seen:** gdstudio #877, 2026-11-10.
 - **Approach:** Time footsteps to the skeleton, not to a clock or a distance: a foot lands when its bone, moving toward
   the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it, after a swing of at
   least `min_stride`), read from `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and
@@ -355,53 +371,28 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
 
+## Bullet impacts {#impacts}
+
+A shot that lands tells the level's `Impacts` node (`main.tscn`, the group `impacts`): a mark on the body it hit (a flat
+quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of surface.
+`Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a body names
+its surface with and the tests are on [Bullet impacts in 3D Third Person](third-person-impacts.md).
+
+## Effects and the muzzle flash {#effects}
+
+<!-- new section: the pistol had no flash; impacts kept their own pools (gdstudio #888) -->
+
+One `EffectEmitter` (`Effects` in `main.tscn`) plays the flash, each impact and other one-shot effects from one pool
+([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash` and
+`muzzle_flash_size`.
+
 ## Ragdoll {#ragdoll}
 
 <!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->
 
-The character dies into a ragdoll and gets up again, the usual hybrid: an animated `CharacterBody3D` with its capsule
-while alive, a full ragdoll while dead, and a blend back to the animation on getting up. How the engine behaves is in
-[Ragdolls with PhysicalBone3D](ragdoll.md); this section is what the template does with it.
-
-- **What it is.** `Player.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`).
-  Dying stops the animation tree, turns the capsule off, hands every gameplay input a no-op (movement, jump, sprint,
-  crouch, aim, fire, interact and a hit are ignored in the state) and lets the `Ragdoll` component
-  (`PlayerRagdoll`) take the skeleton from the pose on screen, each bone given the body's velocity times
-  `carry_velocity` (a run keeps its momentum). The camera still orbits, and its target follows the hips. A ragdoll that
-  falls below the tuning's `fall_limit` respawns; `teleport()` and `respawn()` get a dead character up at once.
-  Getting up stands the body on the ground under the hips, facing the way the chest faces, restarts the animation at
-  the ground state and fades the ragdoll's hold on the skeleton out over `get_up_time`. The Universal Animation
-  Library has no get-up clip; a game with one plays it with `play_clip()` from `revived`.
-- **The inspector.** On `Player`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick it in
-  the inspector or the remote inspector to kill, untick to get up) and `ragdoll_key` (Y by default; None turns the key
-  off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
-  Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
-  body, shared out by bone size), `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of the
-  measured range), `linear_damp`, `angular_damp`, `friction`, `bounce`, `carry_velocity`, `get_up_time`,
-  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones meet no player capsule,
-  camera wall or shot, but also not each other, which #872 changes so limbs stop passing through the body). Every
-  one applies live, has a pinned default and a test.
-- **Why the bones are generated.** The 16 `PhysicalBone3D`s (pelvis, three spine bones, neck and head, arms, hands, legs,
-  feet; no fingers) hang off a `PhysicalBoneSimulator3D` named `RagdollBones` under the skeleton of the `Model` slot.
-  They are made from the table `PlayerRagdoll.BODIES` every time the slot's rig changes, and in the editor too (the
-  capsules show with Debug, Visible Collision Shapes), but never saved: they would sit inside the glb that a model swap
-  deletes. Any rig that has these 65 bones works, so both mannequins do, before and after a swap, at run time too.
-- **How the limits are measured.** Each joint's limits come from the clips the player plays, on both mannequins, plus
-  10 degrees: `tools/ragdoll/measure_joints.gd` (run headless from a game, header says how) prints the cone centres,
-  swings and twists and the knees' and elbows' bend, roll and side ranges for the table. A character can die in any pose
-  of any clip, and a joint that starts outside its limits throws the body. Run the tool again after a clip changes.
-- **The engine is Jolt.** The template's `project.godot` sets `3d/physics_engine="Jolt Physics"`: on Godot Physics this
-  ragdoll blew up in 10 to 20 percent of deaths. Every other suite of the template passes on Jolt. This is a change to
-  every game made from the template, and the maintainer should know ([why](ragdoll.md#jolt)).
-- **The map.** The prototype level has a `RagdollLedge` group (a ramp and a ledge, 3 m up, in the south, past the push
-  cubes): run up it and off the east edge, or press Y at the top. The blocks are new and not in the baked lightmap, so
-  they are lit by the sun and the sky until the level is baked again.
-
-- **Approach:** Prove a ragdoll in the game's own camera on both models: run, press Y mid-run, orbit the body, press Y
-  to get up, then run off the ledge; read the frames before the report. **Watch out for:** a stress test that passes
-  says no bone flew, not that the body lies on the floor in a believable pose, which only the clip shows (the
-  frames are from `tools/capture/ragdoll_tour.tscn`, run through `gds capture` as in
-  [A route for a clip](#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
+The character dies into a ragdoll and gets up again (`Player.die()`, `revive()`, the `PlayerRagdoll` component and its
+inspector). What the template does with it, every export, and why the bones are generated and the engine is Jolt are in
+[Ragdoll in 3D Third Person](ragdoll.md#template), beside how the engine behaves.
 
 ## Touch controls {#touch-controls}
 
@@ -429,6 +420,23 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A route for a clip {#walkthrough}
 

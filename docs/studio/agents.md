@@ -62,6 +62,11 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   for:** Tether's checkpoint holds on `busy` or a raw `draft !== ''`; the diagnosis blamed only `busy`, as fact, while a
   lone newline counted as a draft there and kept the session running past 950,000 tokens. **Seen:** Tether checkpoint,
   2026-11-04 (fix: the diagnosis names each term and its evidence).
+- **Approach:** Treat a flag Tether shows only in its pane as unseen by the coordinator: for each state the pane flags,
+  name the path that tells the model (a wake, the Stop hook's reason, a prompt's added context) and test it with the
+  main loop busy. **Watch out for:** the pane flagged a running agent `retire` at 511k, but the agent guard acted only
+  on stopped agents and no poller was configured, so nothing reached the coordinator and the agent grew to 539k.
+  **Seen:** tether #27, 2026-11-10 (fix: tether #28 tells it once, and waiting notices go out at the Stop hook).
 - **Approach:** Make every script given to Monitor or run in the background end on its own (a deadline, and when its
   parent goes), and count the copies after each re-arm. **Watch out for:** the coordinator's pull request monitor was a
   `while true` loop; each 30-minute expiry of the Monitor tool left it running, and 35 orphaned copies forked about 70
