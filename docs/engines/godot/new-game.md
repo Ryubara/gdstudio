@@ -391,12 +391,19 @@ what changes in `main.tscn`, not a copy of the level. The folders `game` and `re
 Something every existing game must receive belongs in `templates/game/` (synced), something only a new game needs in
 `templates/repo/` or a template (copied once).
 
-An extending template replaces a file of the base whole, it does not merge: `3d-third-person` carries its own
-`project.godot` (the base's text plus the input map, the landscape setting, Jolt, the `Settings` autoload and the menu
-scene as the main
-scene; a kit test compares them) and its own
-`main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
+An extending template replaces a file of the base whole, with one exception: `game/project.godot` is merged. The
+template's file holds only what it adds (3D Third Person: the menu scene as the main scene, the `Settings` autoload,
+the landscape setting, the input map, the navigation cell height and Jolt), and `gds new game` reads the chain base
+first and merges by section and key (`python/src/gds_tools/project_file.py`): a later key wins, the enabled plugins are
+joined, and the file is written with the sections by name, as Godot does. A setting added to the base therefore reaches
+every extending template without a copy to edit. Values are kept as the text they have, so the input map is never
+re-written. Every other file, `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd` among them, is still
+replaced whole.
 
+- **Approach:** A setting every game needs goes in 3D Blank's `project.godot` only; an extending template's file holds
+  just its additions and is merged by `gds new game`. **Watch out for:** a hand-kept full copy drifted whenever the base
+  gained a line (kit #846 failed CI that way), and a key an extending template sets must be one the base does not need to
+  change (the later one wins). **Seen:** gdstudio #928, 2026-11-10.
 - **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
