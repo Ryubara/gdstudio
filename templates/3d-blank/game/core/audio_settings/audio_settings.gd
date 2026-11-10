@@ -6,6 +6,10 @@ extends Node
 ## (the buses are the project's own, `default_bus_layout.tres`; this node never saves anything).
 ## Add one node to the main scene; a settings screen can set the same properties.
 ##
+## The player's own volume (a settings screen's slider) is a separate layer, `set_player_gain`: a
+## 0 to 1 factor a bus keeps on top of the mix set here, so a designer's tuning and the player's
+## choice never overwrite each other.
+##
 ## The buses are `Master`, then `SFX`, `Ambient` and `UI` sending to it. A bus the project does
 ## not have is skipped, so a game that renames one only loses that slider.
 
@@ -25,6 +29,11 @@ const MAX_DB := 6.0
 const DRAIN_MIX_STEPS := 3
 ## The most checks, 5 ms apart, that `drain_mixer()` makes.
 const DRAIN_MAX_POLLS := 200
+
+## What the player chose for each bus (linear, 0 to 1); a bus without an entry is at 1.
+static var _player_gain: Dictionary[StringName, float] = {}
+## The mix each bus was given (the inspector's value), which the player's gain is applied to.
+static var _mix_db: Dictionary[StringName, float] = {}
 
 @export_group("Volume")
 ## Everything, last.
@@ -94,6 +103,35 @@ static func drain_mixer() -> bool:
 	return false
 
 
+## Sets the player's volume for a bus, 0 (muted) to 1 (the mix as set), and applies it at once. It
+## outlives any scene, so a menu before the game and the game share it; a bus the project lacks is
+## skipped.
+static func set_player_gain(bus: StringName, linear: float) -> void:
+	_player_gain[bus] = clampf(linear, 0.0, 1.0)
+	var index := AudioServer.get_bus_index(bus)
+	if index < 0:
+		return
+	if not _mix_db.has(bus):
+		_mix_db[bus] = AudioServer.get_bus_volume_db(index)
+	_write(bus, _mix_db[bus])
+
+
+## What the player chose for a bus (1 when nothing was set).
+static func player_gain(bus: StringName) -> float:
+	return _player_gain.get(bus, 1.0)
+
+
+## Forgets every player's volume and puts each bus back at its mix (for a test, or a reset to the
+## defaults).
+static func reset_player_gain() -> void:
+	var buses := _player_gain.keys()
+	_player_gain.clear()
+	for bus: StringName in buses:
+		if _mix_db.has(bus):
+			_write(bus, _mix_db[bus])
+	_mix_db.clear()
+
+
 ## The volume `AudioServer` has for a bus, or `NAN` when the project has no such bus.
 static func bus_volume_db(bus: StringName) -> float:
 	var index := AudioServer.get_bus_index(bus)
@@ -101,6 +139,14 @@ static func bus_volume_db(bus: StringName) -> float:
 
 
 func _apply(bus: StringName, volume_db: float) -> void:
+	_mix_db[bus] = volume_db
+	_write(bus, volume_db)
+
+
+static func _write(bus: StringName, mix_db: float) -> void:
 	var index := AudioServer.get_bus_index(bus)
-	if index >= 0:
-		AudioServer.set_bus_volume_db(index, volume_db)
+	if index < 0:
+		return
+	var gain := player_gain(bus)
+	AudioServer.set_bus_mute(index, gain <= 0.0)
+	AudioServer.set_bus_volume_db(index, mix_db + linear_to_db(maxf(gain, 0.0001)))
