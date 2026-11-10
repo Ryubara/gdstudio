@@ -299,14 +299,14 @@ multiple of a calibration loop.
 | Chrome, after | 30 | 4.5 to 4.8 | 21 | 23 | 4.6 to 5.2 |
 
 What changed: the ragdoll's bones are made on the first death ([Ragdoll: cost](../ragdoll.md#cost)), so a living
-character is 29 nodes and one physics body instead of 62 and 17 (and the body's own step is cheaper with 16 fewer
-bodies in the space); the pose the death needs is sampled into arrays made once; the animation tree's parameter paths
-are constants and the blend spaces follow the tuning's `changed` (the four speeds say it) instead of comparing an array
-every frame. The first death costs about 1 ms on the desktop and 4.5 ms in Chrome (0.2 and 0.4 before), once a
-character. A standing `Target` is no longer processed (1 µs each before, 0 after); a `Door` keeps the characters in its
-range from its sensor's signals instead of a query a tick (1.9 to 2.1 µs each, 1.4 to 1.6 after); a `Pickup` finds its
-`Visual` once (2.2 to 2.4 µs, 1.8 to 2.0 after); a lone `Weapon` costs 0.2 to 0.3 µs (a character's is ticked by its
-step). The level holds 11 pickups, 4 targets and 2 doors, under 40 µs together.
+character is 29 nodes and one physics body instead of 62 and 17 (42 and 2 with the hit zones of #876; the body's own
+step is cheaper with 16 fewer bodies in the space); the pose the death needs is sampled into arrays made once; the
+animation tree's parameter paths are constants and the blend spaces follow the tuning's `changed` (the four speeds say
+it) instead of comparing an array every frame. The first death costs about 1 ms on the desktop and 4.5 ms in Chrome (0.2
+and 0.4 before), once a character. A standing `Target` is no longer processed (1 µs each before, 0 after); a `Door`
+keeps the characters in its range from its sensor's signals instead of a query a tick (1.9 to 2.1 µs each, 1.4 to 1.6
+after); a `Pickup` finds its `Visual` once (2.2 to 2.4 µs, 1.8 to 2.0 after); a lone `Weapon` costs 0.2 to 0.3 µs (a
+character's is ticked by its step). The level holds 11 pickups, 4 targets and 2 doors, under 40 µs together.
 
 What is left: the step, the tree and the footsteps. The footsteps' 14 µs is almost all starting a sound: a walking
 character starts about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step costs a few hundred

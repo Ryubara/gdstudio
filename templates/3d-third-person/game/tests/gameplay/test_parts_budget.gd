@@ -9,9 +9,10 @@ extends GdUnitTestSuite
 
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## A living dressed character: 62 nodes and 17 physics bodies before #926 (16 bones, their shapes
-## and their simulator were made at the spawn), 29 and 1 after.
-const NODES_ALIVE := 29
-const BODIES_ALIVE := 1
+## and their simulator were made at the spawn), 29 and 1 after; the hit zones (#876) add 13 nodes
+## and their body.
+const NODES_ALIVE := 42
+const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
 ## Ten walking characters' median frame (their scripts, the animation and the physics step), as a
