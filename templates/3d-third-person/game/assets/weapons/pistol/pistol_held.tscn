@@ -6,4 +6,7 @@
 bone_name = "hand_r"
 
 [node name="Pistol" parent="." instance=ExtResource("1_pistol")]
-transform = Transform3D(0.0234, -0.0805, -0.9965, -0.9867, 0.1585, -0.036, 0.1609, 0.9841, -0.0757, -0.0264, 0.1234, 0.0091)
+transform = Transform3D(-0.36056, -0.11119, -0.9261, -0.92443, -0.08968, 0.37065, -0.12421, 0.98979, -0.07046, -0.05343, 0.09699, -0.01223)
+
+[node name="SupportHand" type="Marker3D" parent="Pistol"]
+transform = Transform3D(0.33486, -0.9408, -0.05243, 0.02008, -0.04844, 0.99859, -0.94203, -0.33548, 0.00267, 0.04762, -0.00433, 0.09101)

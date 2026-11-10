@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="HandPose" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_j1dm4"]
+
+[resource]
+script = ExtResource("1_j1dm4")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.11062, -0.69637, -0.12279, 0.6984),
+&"index_02_r": Quaternion(0, 0, 0, 1),
+&"index_03_r": Quaternion(0, 0, 0, 1),
+&"middle_01_r": Quaternion(0.01106, -0.70431, 0.0629, 0.70702),
+&"middle_02_r": Quaternion(0.43641, -0.00066, -0.00136, 0.89975),
+&"middle_03_r": Quaternion(0.53546, 0.0006, 0.00095, 0.84456),
+&"pinky_01_r": Quaternion(0.39109, -0.60342, 0.36863, 0.58911),
+&"pinky_02_r": Quaternion(0.0654, 5e-05, 0.00083, 0.99786),
+&"pinky_03_r": Quaternion(0.5682, -0.00035, -0.0005, 0.82289),
+&"ring_01_r": Quaternion(0.35734, -0.58173, 0.40199, 0.61017),
+&"ring_02_r": Quaternion(0.15859, 0, -1e-05, 0.98734),
+&"ring_03_r": Quaternion(0.4829, 0.00052, 0.00093, 0.87567),
+&"thumb_01_r": Quaternion(-0.42777, 0.77815, 0.28545, 0.36058),
+&"thumb_02_r": Quaternion(0.0996, 0.00968, 0.09531, 0.99041),
+&"thumb_03_r": Quaternion(0.55578, 0.00023, 0.00049, 0.83133)
+})
+turns = Dictionary[StringName, Quaternion]({
+&"hand_r": Quaternion(-0.14091, 0.02189, 0.19455, 0.97047)
+})

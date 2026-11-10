@@ -10,15 +10,10 @@ extends RefCounted
 ## Used by `test_pistol_clearance.gd` and `tools/carry/measure_clearance.gd`.
 
 const PISTOL := "res://assets/weapons/pistol/pistol.glb"
-## Where the pistol sits on `hand_r`, from `pistol_held.tscn`.
-const SEAT := Transform3D(
-	Basis(
-		Vector3(0.0234, -0.9867, 0.1609),
-		Vector3(-0.0805, 0.1585, 0.9841),
-		Vector3(-0.9965, -0.036, -0.0757)
-	),
-	Vector3(-0.0264, 0.1234, 0.0091)
-)
+## The pistol on `hand_r` (its seat is the first child's transform) and the grip pose whose
+## `turns` bend the wrist under it (kit #1001).
+const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
+const GRIP_POSE := "res://gameplay/weapon/hold/pistol_grip_pose.tres"
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",
 	&"ual2": "res://assets/animation/universal/ual2.glb",
@@ -27,6 +22,8 @@ const LIBRARIES: Dictionary[StringName, String] = {
 var skeleton: Skeleton3D
 var rig: Node3D
 
+var _seat := Transform3D.IDENTITY
+var _turns: Dictionary[StringName, Quaternion] = {}
 var _body: Array[Dictionary] = []
 var _pistol: PackedVector3Array = PackedVector3Array()
 var _skip: PackedByteArray = PackedByteArray()
@@ -38,6 +35,11 @@ func _init(holder: Node, model_path: String) -> void:
 	rig = (load(model_path) as PackedScene).instantiate() as Node3D
 	holder.add_child(rig)
 	skeleton = rig.get_node("Armature/Skeleton3D") as Skeleton3D
+	var held := (load(HELD) as PackedScene).instantiate()
+	_seat = (held.get_child(0) as Node3D).transform
+	held.free()
+	if ResourceLoader.exists(GRIP_POSE):
+		_turns = (load(GRIP_POSE) as HandPose).turns
 	_collect_body()
 	_collect_pistol()
 	_skip.resize(skeleton.get_bone_count())
@@ -84,6 +86,12 @@ func pose(
 				if cursor == start and start >= 0:
 					covered[bone] = true
 		_apply(grip, grip_time, covered)
+	for bone_name in _turns:
+		var bone := skeleton.find_bone(bone_name)
+		if bone >= 0:
+			skeleton.set_bone_pose_rotation(
+				bone, skeleton.get_bone_pose_rotation(bone) * _turns[bone_name]
+			)
 
 
 ## The deepest a pistol point is inside the body in the pose now, in metres (0 or less: clear; -1
@@ -91,7 +99,7 @@ func pose(
 func depth() -> float:
 	var globals := _globals()
 	var skinned := _skin(globals)
-	var seat: Transform3D = globals[skeleton.find_bone(&"hand_r")] * SEAT
+	var seat: Transform3D = globals[skeleton.find_bone(&"hand_r")] * _seat
 	var near_body: Array[int] = []
 	for index in skinned.positions.size():
 		if seat.origin.distance_squared_to(skinned.positions[index]) < 0.2:

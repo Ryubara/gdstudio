@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://gameplay/player/player_model.gd" id="11_model"]
 [ext_resource type="Script" path="res://gameplay/player/player_ragdoll.gd" id="12_ragdoll"]
 [ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="13_input"]
+[ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="14_hold"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
@@ -86,3 +87,8 @@ model = NodePath("../Model")
 [node name="PlayerInput" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("13_input")
 player = NodePath("..")
+
+[node name="WeaponHold" parent="." node_paths=PackedStringArray("model", "seat", "animation") instance=ExtResource("14_hold")]
+model = NodePath("../Model")
+seat = NodePath("../Model/PistolHeld")
+animation = NodePath("../Animation")
