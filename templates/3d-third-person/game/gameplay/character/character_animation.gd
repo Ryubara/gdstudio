@@ -64,6 +64,23 @@ const _SHOOT_SCALE := "ShootScale"
 const _SHOOT := "Shoot"
 const _AIM := "Aim"
 
+# The tree's parameters the game sets or reads, made once (a path formatted every frame was seven
+# strings and seven name lookups a character a frame).
+const _P_PLAYBACK := StringName("parameters/%s/playback" % _MACHINE)
+const _P_GROUND_SPEED := StringName("parameters/%s/" % _MACHINE + "%s/blend_position" % GROUND)
+const _P_CROUCH_SPEED := StringName("parameters/%s/" % _MACHINE + "%s/blend_position" % CROUCH)
+const _P_ACTION_ACTIVE := StringName("parameters/%s/active" % _ACTION)
+const _P_ACTION_REQUEST := StringName("parameters/%s/request" % _ACTION)
+const _P_ACTION_SCALE := StringName("parameters/%s/scale" % _ACTION_SCALE)
+const _P_ARMED := StringName("parameters/%s/blend_amount" % _ARMED)
+const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
+const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
+const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
+const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
+const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
+const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
+const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePace/scale" % PRONE)
+
 @export_group("Nodes")
 ## The character that is animated.
 @export var character: Character
@@ -254,8 +271,9 @@ var prone_pose_offset := Vector3(0.0, 0.42, 0.6)
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
+# The tuning whose speeds the blend spaces show (its `changed` is connected).
+var _tuning: CharacterTuning
 var _posed := false
-var _ground_speeds: Array = []
 var _shoot_scale_node: AnimationNodeTimeScale
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
@@ -277,12 +295,11 @@ func _ready() -> void:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
 	_build()
-	if character.tuning != null:
-		character.tuning.changed.connect(_sync_ground_speeds)
+	_follow_tuning()
 	if Engine.is_editor_hint():
 		return
 	tree.active = true
-	_playback = tree.get(&"parameters/%s/playback" % _MACHINE)
+	_playback = tree.get(_P_PLAYBACK)
 	_playback.start(GROUND)
 	character.state_changed.connect(_on_state_changed)
 	character.interacted.connect(_on_interacted)
@@ -316,13 +333,13 @@ func _physics_process(_delta: float) -> void:
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or tree == null or not tree.active or _playback == null:
 		return
-	_sync_ground_speeds()
+	_follow_tuning()
 	var speed := character.ground_speed()
-	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, GROUND], speed)
-	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, CROUCH], speed)
+	tree.set(_P_GROUND_SPEED, speed)
+	tree.set(_P_CROUCH_SPEED, speed)
 	_drive_prone(speed)
 	_drive_pistol(delta)
-	var active: bool = tree.get(&"parameters/%s/active" % _ACTION)
+	var active: bool = tree.get(_P_ACTION_ACTIVE)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -336,7 +353,7 @@ func body_state() -> StringName:
 
 ## True while an action clip plays over the body.
 func is_acting() -> bool:
-	return tree != null and tree.get(&"parameters/%s/active" % _ACTION)
+	return tree != null and tree.get(_P_ACTION_ACTIVE)
 
 
 ## The action clip that played last.
@@ -354,8 +371,8 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	_action_clip_node.animation = clip
 	var length := animation_player.get_animation(clip).length
 	var scale := length / duration if duration > 0.0 else 1.0
-	tree.set(&"parameters/%s/scale" % _ACTION_SCALE, scale)
-	tree.set(&"parameters/%s/request" % _ACTION, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	tree.set(_P_ACTION_SCALE, scale)
+	tree.set(_P_ACTION_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	action_started.emit(clip)
 
 
@@ -364,21 +381,18 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 func pistol_weights() -> Vector2:
 	if tree == null:
 		return Vector2.ZERO
-	return Vector2(
-		tree.get(&"parameters/%s/blend_amount" % _ARMED),
-		tree.get(&"parameters/%s/blend_amount" % _AIM)
-	)
+	return Vector2(tree.get(_P_ARMED), tree.get(_P_AIM))
 
 
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
 func aim_pitch() -> float:
-	return tree.get(&"parameters/%s/blend_position" % _AIM_POSE) if tree != null else 0.0
+	return tree.get(_P_AIM_POSE) if tree != null else 0.0
 
 
 ## Stops an action clip early.
 func stop_clip() -> void:
 	if tree != null:
-		tree.set(&"parameters/%s/request" % _ACTION, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+		tree.set(_P_ACTION_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 
 
 # Points the animation player at the model the slot holds: the clips' tracks
@@ -445,20 +459,31 @@ func _rebuild() -> void:
 	_build()
 	if Engine.is_editor_hint():
 		return
-	_playback = tree.get(&"parameters/%s/playback" % _MACHINE)
+	_playback = tree.get(_P_PLAYBACK)
 	_playback.start(current if current != &"" else GROUND)
 
 
+# Listens to the character's tuning, again when the character is given another one (one compare a
+# frame), and puts its speeds on the blend spaces.
+func _follow_tuning() -> void:
+	var tuning := character.tuning if character != null else null
+	if tuning == _tuning:
+		return
+	if _tuning != null and _tuning.changed.is_connected(_sync_ground_speeds):
+		_tuning.changed.disconnect(_sync_ground_speeds)
+	_tuning = tuning
+	if tuning != null:
+		tuning.changed.connect(_sync_ground_speeds)
+	_sync_ground_speeds()
+
+
 # Moves the walk, run and sprint points of the ground blend space (and the crouch walk point) to
-# the tuning's speeds (the tuning has no `changed` for them, so the game checks every frame).
+# the tuning's speeds; the tuning says `changed` when one of them changes.
 func _sync_ground_speeds() -> void:
 	if _ground == null or character == null or character.tuning == null:
 		return
 	var tuning := character.tuning
-	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed, tuning.crouch_speed]
-	if speeds == _ground_speeds:
-		return
-	_ground_speeds = speeds
+	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed]
 	_ground.max_space = tuning.sprint_speed
 	for index in 3:
 		_ground.set_blend_point_position(index + 1, speeds[index])
@@ -479,13 +504,11 @@ func _drive_pistol(delta: float) -> void:
 		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
 	)
 	var arm := maxf(character.aim_amount, _shot_arm)
-	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
-	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * armed)
-	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
+	tree.set(_P_ARMED, armed)
+	tree.set(_P_AIM, arm * armed)
+	tree.set(_P_SHOOT_SCALE, shoot_speed)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
-	tree.set(
-		&"parameters/%s/blend_position" % _AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range)
-	)
+	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
 
 
 # How far up the character looks, in degrees, `fraction` of the way from the step before the last
@@ -541,10 +564,9 @@ func _drive_prone(speed: float) -> void:
 	var prone := character.prone_tuning
 	if prone == null:
 		return
-	var base := &"parameters/%s/%s/" % [_MACHINE, PRONE]
-	tree.set(base + "Move/blend_amount", clampf(speed / maxf(prone.crawl_speed, 0.01), 0.0, 1.0))
-	tree.set(base + "CrawlPace/scale", speed / maxf(crawl_clip_speed, 0.01))
-	tree.set(base + "IdlePace/scale", prone_idle_pace)
+	tree.set(_P_PRONE_MOVE, clampf(speed / maxf(prone.crawl_speed, 0.01), 0.0, 1.0))
+	tree.set(_P_CRAWL_PACE, speed / maxf(crawl_clip_speed, 0.01))
+	tree.set(_P_PRONE_IDLE_PACE, prone_idle_pace)
 	_pose_prone(smoothstep(0.0, 1.0, character.prone_amount))
 
 
@@ -581,7 +603,7 @@ func _on_hit(_amount: float, _source: Node3D) -> void:
 func _on_shot(_projectile: Projectile) -> void:
 	_shot_hold = shot_hold_time
 	_shot_arm = maxf(_shot_arm, character.aim_amount)
-	tree.set(&"parameters/%s/request" % _SHOOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	tree.set(_P_SHOOT_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
 func _travel(state: StringName) -> void:
@@ -732,7 +754,6 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 	space.add_blend_point(_clip(run_clip), tuning.run_speed, -1, &"run")
 	space.add_blend_point(_clip(sprint_clip), tuning.sprint_speed, -1, &"sprint")
 	_ground = space
-	_ground_speeds = [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed, tuning.crouch_speed]
 	return space
 
 

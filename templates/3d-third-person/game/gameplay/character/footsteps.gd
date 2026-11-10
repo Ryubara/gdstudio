@@ -10,7 +10,9 @@ extends Node3D
 ## over it). The sounds are three nodes of `footsteps.tscn`: `Step` for a walk, run or sprint,
 ## `CrouchStep` while the character crouches (quieter) and `LandStep` for a landing (louder). Each
 ## is an `AudioStreamPlayer3D` whose volume, bus and attenuation are the node's own. `steps` holds
-## the files, cycled in a seeded order so two steps in a row never repeat.
+## the files, cycled in a seeded order so two steps in a row never repeat. Each file is played
+## decoded (`DecodedSounds`): starting an Ogg Vorbis step set its decoder up every time, about
+## 250 µs, and a crowd starts dozens a second.
 
 ## A foot landed. `foot` is the bone's name and `crouched` says which sound player it used.
 signal stepped(foot: StringName, crouched: bool)
@@ -58,6 +60,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
+	# Decoded while the level loads, not on the first step (shared: the crowd decodes once).
+	DecodedSounds.decoded_all(steps)
 	if character != null:
 		character.landed.connect(_on_landed)
 
@@ -96,7 +100,7 @@ func play_step(foot: StringName = &"") -> void:
 	if sound == null or steps.is_empty():
 		return
 	_since = 0.0
-	sound.stream = steps[_pick()]
+	sound.stream = DecodedSounds.decoded(steps[_pick()])
 	sound.pitch_scale = 1.0 + _rng.randf_range(-pitch_variation, pitch_variation)
 	sound.play()
 	stepped.emit(foot, crouched)
@@ -118,7 +122,7 @@ func _on_landed(_impact: float) -> void:
 	if sound == null or steps.is_empty():
 		return
 	_since = 0.0
-	sound.stream = steps[_pick()]
+	sound.stream = DecodedSounds.decoded(steps[_pick()])
 	sound.pitch_scale = 0.9
 	sound.play()
 
