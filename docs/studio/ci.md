@@ -134,14 +134,14 @@ they are rerun, replayed or read from another branch -->
   1,000 with `main` green and blocked three pushes of branches that never touched it. When a push is refused for a file
   the branch never touched, read `main` first; never push past the hook. **Seen:** Deadnight #1128 and #1129,
   2026-11-04; Deadnight #1225, 2026-11-05 (fix: a piece moved out, `gdlint` added to CI).
-- **Approach:** Fetch a CI tool from a source that does not share one host with everything else (a Go tool with
-  `go install <module>@<tag>` through the module proxy, which checks the checksum database), with a short retry; when
-  an unpack fails with `not in gzip format`, ask the URL for its status (`curl -sSIL`) before suspecting the change.
-  **Watch out for:** GitHub's release downloads answered `504` with a 92-byte body, the actionlint download script had
-  no retry and piped it into `tar`, so `docs` went red on `main` after a docs-only merge; a rerun failed the same way,
-  and the first fix (nine `curl` tries over 80 s against the same host) failed too, since the outage lasted minutes.
-  **Seen:** gdstudio #823, 2026-11-08 (fix: #825 retried the release host and failed; the next built actionlint from
-  the Go module proxy).
+- **Approach:** Fetch a CI tool as its release binary, check it against a sha256 written in the workflow (from the
+  release's checksums file) and retry the download (`curl -fsSL --retry 6 --retry-all-errors --retry-delay 10`); never
+  `go install` a tool in CI. For `not in gzip format`, ask the URL for its status (`curl -sSIL`) first. **Watch out
+  for:** `go install ...actionlint@v1.7.12` needed Go 1.25, `GOTOOLCHAIN=auto` tried to fetch it and `sum.golang.org`
+  answered `404`, so `docs` went red on `main` with our code unchanged; before that, GitHub's release host answered
+  `504` and the download script had no retry. The hash is what makes a retry safe. **Seen:** gdstudio #823, 2026-11-08
+  (#825's retry failed; the next built from the Go proxy); gdstudio #962, 2026-11-10 (fix: the pinned binary in `docs.yml`
+  and the game template's `ci.yml`, whose script checked no hash).
 
 ## Workflow files {#workflows}
 
