@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from new_game_kit import KIT, build_kit, git_environment, is_lfs
 
-from gds_tools import cli, layout, new_game, sync
+from gds_tools import cli, layout, new_game, project_file, sync
 
 
 @pytest.fixture(autouse=True)
@@ -372,27 +372,129 @@ def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
                 assert len(hooks) <= 1, f"{workflow.name}: {line.strip()}"
 
 
-def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientation_jolt_and_menus():
-    """An extending template replaces a file whole, so 3D Third Person carries its own `project.godot`. It must not
-    drift from 3D Blank's: the same text, but for the input map, the landscape setting (kit #821), Jolt
-    Physics, which the ragdoll needs (kit #846), the menus (kit #881): the menu scene is the main scene and
-    the `Settings` autoload sits beside the router, and the navigation map's 0.1 m cell height, which lets the map
-    sections' baked meshes climb a stair the way the character does (kit #885)."""
-    blank = (KIT / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8")
-    third = (KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text(encoding="utf-8")
-    without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
-    without_input = without_input.replace("window/handheld/orientation=0\n", "")
-    without_input = without_input.replace('3d/physics_engine="Jolt Physics"\n', "")
-    without_input = without_input.replace('Settings="*res://core/settings/settings_service.tscn"\n', "")
-    menu_scene = 'run/main_scene="res://ui/menus/menu_scene.tscn"'
-    without_input = without_input.replace(menu_scene, 'run/main_scene="res://main.tscn"')
-    without_input = without_input.replace("[navigation]\n\n3d/default_cell_height=0.1\n\n", "")
-    assert without_input.strip() == blank.strip()
-    assert "[input]" in third and "window/handheld/orientation=0" in third
-    assert '3d/physics_engine="Jolt Physics"' in third
-    assert 'Settings="*res://core/settings/settings_service.tscn"' in third
-    assert 'run/main_scene="res://ui/menus/menu_scene.tscn"' in third
-    assert "3d/default_cell_height=0.1" in third
+BASE_PROJECT = """config_version=5
+
+[application]
+
+config/name="{GAME_TITLE}"
+run/main_scene="res://main.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/a/plugin.cfg")
+
+[input]
+
+jump={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"keycode":0)
+, Object(InputEventJoypadButton,"button_index":0)
+]
+}
+
+[physics]
+
+common/physics_interpolation=true
+"""
+
+OVER_PROJECT = """[application]
+
+run/main_scene="res://menu.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/b/plugin.cfg")
+
+[input]
+
+fire={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"keycode":1)
+]
+}
+
+[navigation]
+
+3d/default_cell_height=0.1
+"""
+
+
+def test_project_files_merge_by_section_and_key_with_the_later_one_winning():
+    merged = project_file.merge([BASE_PROJECT, OVER_PROJECT])
+    parsed = project_file.parse(merged)
+    assert parsed.top == ["config_version=5"]
+    assert parsed.sections["application"]["config/name"] == 'config/name="{GAME_TITLE}"'
+    assert parsed.sections["application"]["run/main_scene"] == 'run/main_scene="res://menu.tscn"'
+    assert parsed.sections["physics"]["common/physics_interpolation"] == "common/physics_interpolation=true"
+    assert set(parsed.sections["input"]) == {"jump", "fire"}
+    assert "Object(InputEventJoypadButton" in parsed.sections["input"]["jump"]  # a multi-line value stays whole
+    assert parsed.sections["navigation"]["3d/default_cell_height"] == "3d/default_cell_height=0.1"
+    assert parsed.sections["editor_plugins"]["enabled"] == (
+        'enabled=PackedStringArray("res://addons/a/plugin.cfg", "res://addons/b/plugin.cfg")'
+    )
+
+
+def test_a_merged_project_file_is_in_godots_order_and_merging_it_again_changes_nothing():
+    merged = project_file.merge([BASE_PROJECT, OVER_PROJECT])
+    names = re.findall(r"^\[(\w+)\]$", merged, flags=re.MULTILINE)
+    assert names == sorted(names)
+    assert merged.startswith("config_version=5\n\n[application]\n")
+    assert merged.endswith("\n") and not merged.endswith("\n\n")
+    assert project_file.merge([merged, OVER_PROJECT]) == merged
+    assert project_file.merge([merged]) == merged
+
+
+def test_one_project_file_is_returned_as_it_is_in_godots_form():
+    assert project_file.merge([BASE_PROJECT]) == BASE_PROJECT
+
+
+def test_a_template_that_extends_another_adds_only_its_own_project_keys(kit, root):
+    make_template(
+        kit,
+        "third-demo",
+        "3d-blank",
+        {
+            "game/project.godot": '[display]\n\nwindow/handheld/orientation=0\n\n[application]\n\nrun/main_scene="res://x.tscn"\n'
+        },
+    )
+    repo = new_game.new_game(kit, root, "my-game", "third-demo", log=lambda _: None, run=quiet_run).repo
+    made = project_file.parse((repo / "game" / "project.godot").read_text(encoding="utf-8"))
+    base = project_file.parse((kit / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8"))
+    assert made.sections["application"]["run/main_scene"] == 'run/main_scene="res://x.tscn"'
+    assert made.sections["display"]["window/handheld/orientation"] == "window/handheld/orientation=0"
+    assert 'config/name="My Game"' in made.sections["application"]["config/name"]
+    for section, keys in base.sections.items():
+        for key in keys:
+            assert key in made.sections[section]
+
+
+def test_the_third_person_project_file_holds_only_what_it_adds():
+    """An extending template's `project.godot` is what it adds to 3D Blank's: the menu scene as the main scene, the
+    `Settings` autoload, the landscape setting, the input map, the navigation cell height and Jolt Physics."""
+    third = project_file.parse((KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text("utf-8"))
+    assert set(third.sections) == {"application", "autoload", "display", "input", "navigation", "physics"}
+    assert list(third.sections["application"]) == ["run/main_scene"]
+    assert list(third.sections["autoload"]) == ["Settings"]
+    assert list(third.sections["display"]) == ["window/handheld/orientation"]
+    assert list(third.sections["physics"]) == ["3d/physics_engine"]
+    assert list(third.sections["navigation"]) == ["3d/default_cell_height"]
+    assert "move_left" in third.sections["input"]
+
+
+def test_the_third_person_game_project_file_has_every_blank_key_and_every_template_key(real_third_person_game):
+    kit_templates = KIT / "templates"
+    read = lambda path: project_file.parse(path.read_text(encoding="utf-8"))  # noqa: E731
+    base = read(kit_templates / "3d-blank" / "game" / "project.godot")
+    third = read(kit_templates / "3d-third-person" / "game" / "project.godot")
+    made = read(real_third_person_game.repo / "game" / "project.godot")
+    for source in (base, third):
+        for section, keys in source.sections.items():
+            for key in keys:
+                assert key in made.sections[section], (section, key)
+    assert made.sections["application"]["run/main_scene"] == third.sections["application"]["run/main_scene"]
+    assert made.sections["physics"]["3d/physics_engine"] == '3d/physics_engine="Jolt Physics"'
+    text = (real_third_person_game.repo / "game" / "project.godot").read_text(encoding="utf-8")
+    assert project_file.merge([text]) == text
 
 
 def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(real_third_person_game):
