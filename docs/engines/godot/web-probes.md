@@ -68,7 +68,7 @@ uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 pyth
 ```
 
 A game that has no probe in its main scene fails with "did not report ready": add a node that writes `ready` (the 3D
-Blank `ui/probe/web_probe.gd` is 35 lines) rather than loosening the check.
+Blank `ui/probe/web_probe.gd` is 34 lines) rather than loosening the check.
 
 - **Approach:** Time the first frames of a page with `performance.now()` read inside the `requestAnimationFrame` callback,
   never the callback's timestamp argument. **Watch out for:** the argument is when the frame began, and the engine's

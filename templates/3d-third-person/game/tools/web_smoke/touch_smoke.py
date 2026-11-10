@@ -17,6 +17,10 @@ game's `WebProbe` writes to `window.gdprobe`:
         uv run --with playwright==1.64.1 python tools/web_smoke/touch_smoke.py build/web build/smoke
 
 Screenshots and `result.json` go to the second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
+
+`--ratio 1` renders the page at one pixel per CSS pixel, a quarter of the pixels of the phone's 2: CI's software
+renderer draws the game too slowly at 2 for the checks that measure a distance in a few seconds, and every check reads
+the canvas's own scale, so it passes at either.
 """
 
 from __future__ import annotations
@@ -131,6 +135,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("build", type=Path, help="the web export's folder (build/web)")
     parser.add_argument("out", type=Path, help="where the screenshots and result.json go")
+    parser.add_argument("--ratio", type=float, default=RATIO, help="the page's device pixel ratio (default %(default)s)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     server, port = serve(args.build)
@@ -147,7 +152,7 @@ def main() -> int:
         browser = playwright.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
         context = browser.new_context(
             viewport={"width": PAGE_W, "height": PAGE_H},
-            device_scale_factor=RATIO,
+            device_scale_factor=args.ratio,
             is_mobile=True,
             has_touch=True,
         )

@@ -208,12 +208,12 @@ jobs:
             repos/template-check/build/web repos/template-check/build/boot --title "Web boot: ${{ matrix.template }}"
       - name: The template's own browser smoke (touch controls)
         # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a template without the script
-        # has nothing more to add.
+        # has nothing more to add. Ratio 1: the runner's software renderer draws a ratio-2 page too slowly.
         run: |
           smoke=repos/template-check/game/tools/web_smoke/touch_smoke.py
           if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
           uv run --project repos/gdstudio/python --frozen gds quiet -- \
-            uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/smoke
+            uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/smoke --ratio 1
           echo "Touch smoke (${{ matrix.template }}): every check passed" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload the browser captures
         if: always()
