@@ -42,9 +42,13 @@ marker and the section, which gameplay scenes may carry), `ui/minimap/` (the wid
 
 <!-- new section: nothing in the docs said how a minimap should be drawn for the web and for a map that keeps growing -->
 
-Shipped games and the Godot community do it three ways (sources are in the pull request's research notes: Godot's
-viewport and `SubViewport` pages, the community's forum threads on viewport cost in web exports, and the design
-writing on rotating against fixed maps).
+Shipped games and the Godot community do it three ways. The sources: Godot's [viewports](https://docs.godotengine.org/en/stable/tutorials/rendering/viewports.html)
+and [`SubViewport`](https://docs.godotengine.org/en/stable/classes/class_subviewport.html) pages (update modes, `Once`,
+`Never`), a [forum report](https://forum.godotengine.org/t/subviewport-rendering-performances-on-web/101434) of 3D
+viewports under 1 FPS in a Godot 4.3 web export, the [tutorial recipe](https://uhiyama-lab.com/en/notes/godot/subviewport-techniques/)
+that names update mode, resolution and `cull_mask` as the three levers, and the design writing on
+[rotating against fixed maps](https://www.gamedeveloper.com/design/minimap-rotation) (rotate for compact and linear
+levels, fix for big ones, offer both and mark north).
 
 | Way | Cost | Strong | Weak |
 | --- | --- | --- | --- |
@@ -55,11 +59,61 @@ writing on rotating against fixed maps).
 The widget does the first two and lets a game feed the second with any picture it draws itself (vector footprints
 included); a vector source of its own was left out because the template has no footprint data to draw. One shader
 cuts the shape, the background and the border and slides the last snapshot into place, so the picture moves smoothly
-even when it renders a few times a second and a rotating map does not blur (the camera, not the texture, is turned).
+even when it renders a few times a second, and a map that renders every frame does not blur when it turns (the camera,
+not the texture, is turned).
 
 ## What it costs {#cost}
 
-TODO_COST
+`tools/bench/minimap_bench.tscn` runs the template's map with a minimap over it, once for each setting, 90 frames to warm
+up and 240 measured, vsync off, and prints one JSON line a case (the header of the script says how to run it in the
+renderer you want). Frame times move by a tenth of a millisecond or two between runs on a shared machine, so the table
+gives the range of two runs.
+
+**Desktop, Compatibility** (the renderer of the web build; 1920 x 1080, an RTX 5080): the map alone is 1.05 to
+1.21 ms and 109 draw calls.
+
+| Setting | Frame ms | Draw calls | What it says |
+| --- | --- | --- | --- |
+| Live camera, every frame (lit) | 1.64 to 1.85 | 315 | +0.5 ms; the second pass draws 205 calls (the shadow map is half of them); 0.5 ms of CPU and 0.25 ms of GPU |
+| Live, 30 Hz or 15 Hz | 1.24 to 1.31 | 122 to 126 | about +0.2 ms: the pass is paid only on the frames it renders |
+| Live, view standing still | 1.24 to 1.37 | 118 | one render a second (`still_refresh_seconds`), so +0.1 to +0.3 ms |
+| Live, half the resolution | 1.53 to 1.82 | 301 | no saving: the cost is draw calls, not pixels |
+| Image source | 1.21 to 1.48 | 118 | the widget, its shader and its pool and nothing else |
+
+**Desktop, Forward+** (flat drawing, which has no lights or shadows): the live camera every frame is 1.24 ms against
+1.14 ms alone, and the second pass draws 99 calls, half of the lit one.
+
+**Markers**, pooled icons all moving every frame, on top of the image source (the "pass" is the widget's own
+`marker_pass_usec`: the rules, the maths and the icon updates in GDScript):
+
+| Markers | Frame ms added | Pass ms | Draw calls added |
+| --- | --- | --- | --- |
+| 100 | +0.4 to +0.5 | 0.35 | 31 |
+| 500 | +2.1 | 1.5 | 154 |
+| 1000 | +4.5 to +4.7 | 3.0 | 320 |
+
+About 3 microseconds a marker for the pass and 4 to 5 in the frame. The same 1000 icons drawn by one `_draw` call (a
+mock with no rules and no maths) add under 0.3 ms, so the way the icons are drawn is not what costs: the pass that
+decides where they go is, and it is the same pass for any drawing method. Sprites moved as cheaply as controls (500
+icons: 3.6 ms either way), so the icon is a `Sprite2D` for the look it can take (`minimap_icon.tscn`), not for speed.
+What brings a thousand markers down is the rate (`marker_update_rate` 15 puts them once every four frames at 60 Hz),
+`max_markers`, `hidden_kinds` and rules that drop markers before they are placed (`NEAR`, `SAME_SECTION`).
+
+**Web** (the exported build in headless Chromium on SwiftShader, 960 x 540, so it has no GPU and a frame is
+about 87 ms alone; WebAssembly runs the same GDScript): the live camera every frame adds 13 to 20 ms to that
+(94 and 87 ms alone, 107 and 116 with it: the second pass is another 205 draw calls rasterised in software), a still
+view or the image source adds 2 to 4 ms, and the rate limits cannot show here because a frame (about 100 ms) is longer
+than the interval of 15 or 30 Hz, so every frame renders; measure the rates on a real GPU. The marker pass is the
+number that is real CPU work in WebAssembly: 0.6 to 1.1 ms for 100 markers, 2.4 to 2.9 for 500 and 4.2 to 5.1 for
+1000, about 1.5 times the desktop. The run printed one page error, `currentTime` of null (the browser's audio
+context in headless Chromium), which no minimap code can raise, and no failed request. The first desktop runs used
+the unshaded draw mode that Compatibility cannot do ([below](#drawing)); the web run is the proof that the lit
+fallback draws.
+
+**What to do with it.** A web or phone build keeps the live camera if the map is small (a 220 px minimap at
+`live_resolution_scale` 1 is fine) and sets `map_update_rate` to 15 to 30; a finished level bakes its picture and uses
+the image source, which costs nothing per frame; a crowd of markers sets `marker_update_rate` and rules before it
+counts icons.
 
 ## Drawing it right {#drawing}
 
