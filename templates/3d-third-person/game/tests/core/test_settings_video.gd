@@ -3,7 +3,7 @@
 # the window mode goes to the window while a browser leaves it alone.
 extends GdUnitTestSuite
 
-const SCENE := "res://core/settings/settings.tscn"
+const SCENE := "res://core/settings/settings_service.tscn"
 
 var _service: SettingsService
 var _modes: Array[int] = []

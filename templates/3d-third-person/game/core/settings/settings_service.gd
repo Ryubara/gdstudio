@@ -1,8 +1,8 @@
 class_name SettingsService
 extends Node
 ## The player's options: loaded from `user://settings.cfg` at start, applied the moment a value
-## changes and written back shortly after. It is the autoload `Settings` (scene `settings.tscn`),
-## so the main menu, the pause menu and the game all read the same values.
+## changes and written back shortly after. It is the autoload `Settings` (the scene
+## `settings_service.tscn`), so the main menu, the pause menu and the game read the same values.
 ##
 ## Values are plain data keyed `section/name`. Every key has a default and a range, so a missing,
 ## hand-edited or wrong-typed entry falls back instead of breaking anything. What a value does:

@@ -21,7 +21,7 @@ cancel are Enter and A, Esc and B, and the touch layer's buttons stand down whil
 
 - **Start in the level while you work on it:** tick `skip_menu` on the `MenuScene` node of `ui/menus/menu_scene.tscn`,
   or run the game with `-- --play` after the engine's arguments. Untick it before you ship.
-- **Add a setting:** add a key to `core/settings/settings.gd` (a default, a range, and a line in `_apply` if it
+- **Add a setting:** add a key to `core/settings/settings_service.gd` (a default, a range, and a line in `_apply` if it
   does something), then copy a `SettingRow` in `ui/menus/settings_menu.tscn`, give it the key and put a slider, a switch
   or a selector under it. The service saves it and applies it at start.
 - **Let the player rebind another action:** add its name to `actions` on the `ControlsPage` node.
@@ -30,7 +30,7 @@ cancel are Enter and A, Esc and B, and the touch layer's buttons stand down whil
   scene to `action_screens` on the `Screens` node of `main.tscn`. The game pauses, the mouse is freed, and everything
   is put back when the last screen closes.
 - **Change what Low, Medium and High do:** edit the three `QualityPreset` resources in the `Settings` scene
-  (`core/settings/settings.tscn`).
+  (`core/settings/settings_service.tscn`).
 - **Tune the mix without touching the player's choice:** the `AudioSettings` node's volumes are yours; the player's
   sliders are a gain on top of them.
 

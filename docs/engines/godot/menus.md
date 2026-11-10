@@ -123,7 +123,7 @@ ScreenHost.current.open(preload("res://ui/menus/inventory.tscn"))
 <!-- new section: Deadnight's settings are in its own docs; nothing said how a template keeps options, applies them and
 lets a player rebind keys (gdstudio #881) -->
 
-The template's `Settings` autoload (`core/settings/settings.gd`, from the scene `settings.tscn`) holds the
+The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds the
 options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies every
 value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root viewport,
 window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse sensitivity and
@@ -142,7 +142,7 @@ service, a row in the scene and, if it does something, a line in `_apply`.
   an `Object`, and a file the player edits must not make the game build one; a hand-edited file with a wrong type, an
   out-of-range number or a `NaN` must fall back value by value, not fail the load; the engine's own error is printed
   for a file that is not a config file at all. **Seen:** gdstudio #881, 2026-11-10 (`tests/core/
-  test_settings.gd`, `test_settings_bindings.gd`, `test_input_bindings.gd`).
+  test_settings_service.gd`, `test_settings_bindings.gd`, `test_input_bindings.gd`).
 - **Approach:** Rebind the first binding of the device the player pressed and leave the others (W stays beside the up
   arrow), swap with the action that used the control, take the next real press (key, mouse button, pad button or a
   stick or trigger past 0.6) and let Escape cancel while the screen's own back is switched off. **Watch out for:** a

@@ -21,7 +21,7 @@ func test_the_quality_preset() -> void:
 
 
 func test_the_three_presets_of_the_scene_step_down_in_cost() -> void:
-	var service := (load("res://core/settings/settings.tscn") as PackedScene).instantiate()
+	var service := (load("res://core/settings/settings_service.tscn") as PackedScene).instantiate()
 	var presets: Array[QualityPreset] = (service as SettingsService).presets
 	(
 		assert_array(presets.map(func(p: QualityPreset) -> int: return p.shadow_atlas_size))

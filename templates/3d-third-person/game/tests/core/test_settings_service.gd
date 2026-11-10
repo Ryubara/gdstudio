@@ -4,7 +4,7 @@
 # autoload and the person's file are never touched.
 extends GdUnitTestSuite
 
-const SCENE := "res://core/settings/settings.tscn"
+const SCENE := "res://core/settings/settings_service.tscn"
 const TEMP_PATH := "user://settings_test.cfg"
 
 var _service: SettingsService

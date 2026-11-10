@@ -341,13 +341,13 @@ def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientati
     without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
     without_input = without_input.replace("window/handheld/orientation=0\n", "")
     without_input = without_input.replace('3d/physics_engine="Jolt Physics"\n', "")
-    without_input = without_input.replace('Settings="*res://core/settings/settings.tscn"\n', "")
+    without_input = without_input.replace('Settings="*res://core/settings/settings_service.tscn"\n', "")
     menu_scene = 'run/main_scene="res://ui/menus/menu_scene.tscn"'
     without_input = without_input.replace(menu_scene, 'run/main_scene="res://main.tscn"')
     assert without_input.strip() == blank.strip()
     assert "[input]" in third and "window/handheld/orientation=0" in third
     assert '3d/physics_engine="Jolt Physics"' in third
-    assert 'Settings="*res://core/settings/settings.tscn"' in third
+    assert 'Settings="*res://core/settings/settings_service.tscn"' in third
     assert 'run/main_scene="res://ui/menus/menu_scene.tscn"' in third
 
 

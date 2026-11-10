@@ -3,7 +3,7 @@
 # reset gives the project's own bindings back, and a damaged entry in the file is skipped.
 extends GdUnitTestSuite
 
-const SCENE := "res://core/settings/settings.tscn"
+const SCENE := "res://core/settings/settings_service.tscn"
 const TEMP_PATH := "user://settings_bindings_test.cfg"
 const AMONG: Array[StringName] = [&"jump", &"sprint", &"fire"]
 

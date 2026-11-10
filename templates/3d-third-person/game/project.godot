@@ -19,7 +19,7 @@ config/icon="res://assets/branding/icon.svg"
 [autoload]
 
 UIRouter="*res://addons/gds_ui/router/ui_router.gd"
-Settings="*res://core/settings/settings.tscn"
+Settings="*res://core/settings/settings_service.tscn"
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 
 [debug]
