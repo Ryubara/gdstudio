@@ -410,8 +410,9 @@ Open pull requests come before new work: each one left open goes stale against `
   for the maintainer.
 - **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
-  passed. Several land one at a time. On 2026-11-06 three parked pull requests landed unrefreshed and `main` went red: a
-  shorter reload met a test added after its last run.
+  passed, and new commits that look unrelated are no exception. Several land one at a time. On 2026-11-06 three parked
+  pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
+  2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
   ([Pausing a game](#paused)). Landing what you would recommend does not reach past the pause.
