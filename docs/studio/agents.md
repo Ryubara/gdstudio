@@ -12,6 +12,9 @@ has neither (the hooks refuse it). Every agent researches as part of its own wor
 | `backend-engineer` | Opus 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
 | `reviewer` | Sonnet 5.5, high | reviews a pull request it did not write (code, docs, assets, captures) and runs [structure reviews](#structure-reviews) with web search; never edits |
 
+Design and modelling work (Blender assets, level layout, visual and UI design) runs on Fable unless the maintainer
+says otherwise for a task (decided 2026-11-10 after a Fable-Opus head-to-head on a rifle and a rigged character).
+
 Definitions: `.claude/agents/*.md`. A new agent is added only when a kind of work keeps recurring that none of these
 covers well.
 
