@@ -36,7 +36,8 @@ do not. Merging, landing and keeping a branch fresh are in [Starting work](start
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
   model, the mapped model is the author. **Seen:** gdstudio #866, 2026-11-09 (fix: the line and the trailers named the
-  model).
+  model); gdstudio #873, 2026-11-10 (a brief named a model the agent was not and its commits and Model line copied it;
+  the model the harness reports wins over a brief, and merged trailers cannot be rewritten).
 
 ## Editing a description {#editing}
 

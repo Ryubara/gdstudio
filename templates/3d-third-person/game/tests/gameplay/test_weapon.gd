@@ -50,6 +50,7 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 		&"projectile_impulse": 40.0,
 		&"projectile_bounces": 0,
 		&"projectile_bounce_keep": 0.6,
+		&"impacts": true,
 	}
 	assert_array(ExportPins.differences(_weapon, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(_weapon, pins)).is_empty()
@@ -66,6 +67,7 @@ func test_every_projectile_and_target_export_has_its_default_pinned() -> void:
 		&"impulse": 40.0,
 		&"bounces": 0,
 		&"bounce_keep": 0.6,
+		&"impact_effects": true,
 	}
 	assert_array(ExportPins.differences(shot, shot_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(shot, shot_pins)).is_empty()
