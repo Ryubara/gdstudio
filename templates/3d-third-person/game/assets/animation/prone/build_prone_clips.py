@@ -13,8 +13,8 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop
-does not close, a planted elbow, hand or foot slides, the body sinks into the floor or rises over the prone height, or
-a transition does not start or end on the pose it joins.
+does not close, a planted elbow, hand or foot slides, the body sinks into the floor or rises over the prone height, a
+transition does not start or end on the pose it joins, or a limb goes more than 3 mm into another part of the body.
 """
 
 import argparse
@@ -26,6 +26,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion
+from mathutils.bvhtree import BVHTree
 
 FPS = 30
 CLIPS = (
@@ -49,6 +50,18 @@ SQUASH = (
     0.006  # how far the belly may sink into the floor (a body flattens where it lies)
 )
 
+# The forearms: how a person lies and crawls on them (the README's research). The elbows rest outside the shoulders
+# and the forearms point inward, so the hands lie near the body's centre line in front of the head; the wrist turns
+# the hand part of the way back toward straight ahead.
+IDLE_FOREARM_IN = 31.0  # degrees a lying forearm points inward of straight ahead
+IDLE_ELBOW_OUT = 0.095  # metres a lying elbow rests outside its shoulder
+IDLE_STAGGER = (
+    0.025  # metres the right elbow lies ahead of the middle and the left behind it
+)
+FOREARM_IN = 40.0  # degrees a planted forearm points inward in the crawl
+FOREARM_SWING = 14.0  # degrees it points inward at the top of its swing, so the hand passes outside the other
+HAND_BACK = 18.0  # degrees the wrist turns the hand back toward straight ahead
+
 # Crawl: one cycle is two pulls, the right elbow with the left foot and then the others.
 CRAWL_FRAMES = 28
 CRAWL_DUTY = 0.52  # the part of the cycle an elbow is planted
@@ -60,6 +73,20 @@ LEG_DRAW = 0.70  # the phase the knee starts to draw up again
 IDLE_FRAMES = 90
 TO_PRONE_FRAMES = 27
 TO_CROUCH_FRAMES = 30
+OVERLAP_LIMIT = (
+    0.003  # metres one part of the body may go into another it shares no joint with
+)
+# Coming up, where each hand and elbow wait beside the place they have in the crouch (forward, out to their own side
+# and up, in metres) while the knee comes forward under them.
+HAND_WAIT = {
+    "l": ((0.0, 0.22, 0.10), (-0.05, 0.24, 0.10)),
+    "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+}
+HAND_WAIT_FRAMES = {
+    "l": (13, 19, 26),
+    "r": (14, 19, 25),
+}  # the hand leaves the floor, waits, takes its place
+KNEE_OPEN = 0.6  # how far the front knee opens to the side going down (added to its unit direction)
 
 
 # ---- small maths ------------------------------------------------------------------------------------------------
@@ -588,18 +615,30 @@ def idle_spec(rig, phase, pelvis_up, anchor):
     for s, sign in SIDES:
         spec["clav"][s] = (8.0 + 1.5 * breath, 4.0 + 1.2 * breath)
         elbow = vec(
-            anchor["shoulder_fwd"] + 0.035,
-            sign * (anchor["shoulder_left"] + 0.075),
+            anchor["shoulder_fwd"] + 0.035 - sign * IDLE_STAGGER,
+            sign * (anchor["shoulder_left"] + IDLE_ELBOW_OUT),
             ELBOW_H,
         )
-        reach = math.radians(17.0)
+        reach = math.radians(IDLE_FOREARM_IN)
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - (ELBOW_H - WRIST_H) ** 2)
         wrist = elbow + vec(
             flat * math.cos(reach), -sign * flat * math.sin(reach), WRIST_H - ELBOW_H
         )
-        spec["arm"][s] = {"elbow": elbow, "wrist": wrist, "palm": vec(0.0, 0.0, -1.0)}
+        spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, IDLE_FOREARM_IN)
         spec["leg"][s] = lying_leg(rig, sign, anchor)
     return spec
+
+
+def forearm_on_floor(elbow, wrist, sign, inward):
+    """An arm resting on its forearm: the palm down and the fingers `HAND_BACK` degrees nearer straight ahead than
+    the forearm, which points `inward` degrees toward the body's centre line."""
+    hand = math.radians(inward - HAND_BACK)
+    return {
+        "elbow": elbow,
+        "wrist": wrist,
+        "palm": vec(0.0, 0.0, -1.0),
+        "fingers": vec(math.cos(hand), -sign * math.sin(hand), 0.0),
+    }
 
 
 def lying_leg(rig, sign, anchor, spread=0.13):
@@ -638,18 +677,22 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
         arm_phase = (phase + (0.0 if s == "r" else 0.5)) % 1.0
         leg_phase = (phase + (0.0 if s == "l" else 0.5)) % 1.0
         fwd, lift, _ = stroke(arm_phase, travel)
+        swing = (
+            lift**0.45
+        )  # the forearm opens out sooner than it rises, clear of its own shoulder
         elbow = vec(
             anchor["shoulder_fwd"] + 0.17 - travel + fwd,
-            sign * (anchor["shoulder_left"] + 0.085 + 0.03 * lift),
+            sign * (anchor["shoulder_left"] + 0.085 + 0.03 * swing),
             ELBOW_H + 0.012 + 0.05 * lift,
         )
-        reach = math.radians(30.0 - 14.0 * lift)
+        inward = FOREARM_IN - (FOREARM_IN - FOREARM_SWING) * swing
+        reach = math.radians(inward)
         rise = WRIST_H - ELBOW_H - 0.012 + 0.035 * lift
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - rise**2)
         wrist = elbow + vec(
             flat * math.cos(reach), -sign * flat * math.sin(reach), rise
         )
-        spec["arm"][s] = {"elbow": elbow, "wrist": wrist, "palm": vec(0.0, 0.0, -1.0)}
+        spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, inward)
         spec["clav"][s] = (10.0 + 8.0 * (fwd / travel - 0.5), 5.0)
         spec["curl"][s] = 2.0 + 12.0 * lift
 
@@ -737,9 +780,10 @@ def measure_anchor(rig, solver):
         )
         world = rig.world(pose["local"], pose["pelvis"])
         shoulder, hip = world["upperarm_l"][:3, 3], world["thigh_l"][:3, 3]
+        other = world["upperarm_r"][:3, 3]
         anchor = {
             "pelvis_up": pose["pelvis_up"],
-            "shoulder_fwd": -shoulder[1],
+            "shoulder_fwd": -(shoulder[1] + other[1]) / 2,
             "shoulder_left": shoulder[0],
             "hip_fwd": -hip[1],
             "hip_left": hip[0],
@@ -940,12 +984,12 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "knee": {},
         "flex": {},
         "foot_world": {},
-        "arm_w": [(0, 0.0), (7, 1.0), (n, 1.0)],
+        "arm_w": [(0, 0.0), (6, 1.0), (n, 1.0)],
         "leg_w": [(0, 0.0), (2, 1.0), (n, 1.0)],
         "anchor_w": [(0, 0.0), (21, 0.0), (n, 1.0)],
     }
     for s, sign in SIDES:
-        above = p["wrist_" + s] + vec(-0.16, sign * 0.06, 0.20)
+        above = p["wrist_" + s] + vec(-0.16, sign * 0.13, 0.22)
         keys["wrist"][s] = [
             (0, c["wrist_" + s]),
             (5, above),
@@ -954,6 +998,10 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         ]
         keys["elbow"][s] = [
             (0, c["elbow_" + s]),
+            (
+                4,
+                c["elbow_" + s] + vec(0.0, sign * 0.10, 0.06),
+            ),  # out, clear of the knee
             (9, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
             (19, p["elbow_" + s]),
             (n, p["elbow_" + s]),
@@ -983,6 +1031,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (25, p["ankle_l"]),
         (n, p["ankle_l"]),
     ]
+    # the front (left) knee opens to the side as the chest comes down, so the chest passes beside it
+    open_knee = unit(crouch_knee["l"] + vec(0.0, KNEE_OPEN, 0.0))
     for s, sign in SIDES:
         keys["knee"][s] = [
             (0, crouch_knee[s]),
@@ -991,6 +1041,12 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (20, lying_knee[s]),
             (n, lying_knee[s]),
         ]
+        if s == "l":
+            keys["knee"][s][1:2] = [
+                (4, crouch_knee[s]),
+                (8, open_knee),
+                (11, open_knee),
+            ]
         keys["foot_world"][s] = (
             c["foot_" + s],
             [
@@ -1052,26 +1108,35 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "knee": {},
         "flex": {},
         "foot_world": {},
-        "arm_w": [(0, 1.0), (14, 1.0), (24, 0.0), (n, 0.0)],
+        "arm_w": [(0, 1.0), (15, 1.0), (27, 0.0), (n, 0.0)],
         "leg_w": [(0, 1.0), (26, 1.0), (n, 0.0)],
         "anchor_w": [(0, 1.0), (4, 0.0), (n, 0.0)],
     }
     for s, sign in SIDES:
         under = vec(-p["shoulder_" + s][1] - 0.06, sign * 0.23, WRIST_H)
+        leave, wait, arrive = HAND_WAIT_FRAMES[s]
         keys["wrist"][s] = [
             (0, p["wrist_" + s]),
             (2, p["wrist_" + s]),
             (5, (p["wrist_" + s] + under) / 2 + vec(0, 0, 0.04)),
             (8, under),
-            (14, under),
-            (22, c["wrist_" + s]),
+            (leave, under),
+            (
+                wait,
+                c["wrist_" + s] + vec(*HAND_WAIT[s][0]) * np.array([sign, 1.0, 1.0]),
+            ),
+            (arrive, c["wrist_" + s]),
             (n, c["wrist_" + s]),
         ]
         keys["elbow"][s] = [
             (0, p["elbow_" + s]),
             (8, under + vec(-0.25, sign * 0.12, 0.2)),
             (15, under + vec(-0.25, sign * 0.12, 0.3)),
-            (22, c["elbow_" + s]),
+            (
+                wait,
+                c["elbow_" + s] + vec(*HAND_WAIT[s][1]) * np.array([sign, 1.0, 1.0]),
+            ),
+            (arrive, c["elbow_" + s]),
             (n, c["elbow_" + s]),
         ]
         keys["palm"][s] = [
@@ -1352,6 +1417,130 @@ def planted_slide(rig, frames, travel):
     return out, speed
 
 
+# ---- limbs through limbs ----------------------------------------------------------------------------------------
+
+
+FINGERS = ("index", "middle", "ring", "pinky", "thumb")
+PARTS = {
+    "forearm_l": ("lowerarm_l", "hand_l") + tuple(f + "_" for f in FINGERS),
+    "forearm_r": ("lowerarm_r", "hand_r") + tuple(f + "_" for f in FINGERS),
+    "upperarm_l": ("upperarm_l",),
+    "upperarm_r": ("upperarm_r",),
+    "head": ("Head", "neck_01"),
+    "trunk": ("pelvis", "spine_", "clavicle_"),
+    "thigh_l": ("thigh_l",),
+    "thigh_r": ("thigh_r",),
+    "shin_l": ("calf_l", "foot_l", "ball_l", "ball_leaf_l"),
+    "shin_r": ("calf_r", "foot_r", "ball_r", "ball_leaf_r"),
+}
+# Every pair of parts with no joint between them. A part and its neighbour over a joint (a forearm and its own
+# upper arm, an upper arm and the trunk, a thigh and the trunk or its own shin) fold into each other by design.
+PAIRS = (
+    [("forearm_l", "forearm_r"), ("upperarm_l", "upperarm_r")]
+    + [("thigh_l", "thigh_r"), ("shin_l", "shin_r")]
+    + [(f"forearm_{s}", other) for s in "lr" for other in ("head", "trunk")]
+    + [(f"forearm_{s}", f"upperarm_{o}") for s, o in (("l", "r"), ("r", "l"))]
+    + [(f"upperarm_{s}", "head") for s in "lr"]
+    + [
+        (f"{arm}_{s}", f"{leg}_{o}")
+        for arm in ("forearm", "upperarm")
+        for leg in ("thigh", "shin")
+        for s in "lr"
+        for o in "lr"
+    ]
+    + [(f"shin_{s}", f"thigh_{o}") for s, o in (("l", "r"), ("r", "l"))]
+    + [(f"shin_{s}", other) for s in "lr" for other in ("trunk", "head")]
+)
+
+
+def part_of(owner):
+    for part, prefixes in PARTS.items():
+        for prefix in prefixes:
+            if owner == prefix or (prefix.endswith("_") and owner.startswith(prefix)):
+                if part.startswith("forearm") and not owner.endswith(part[-1]):
+                    continue
+                return part
+    return None
+
+
+AXES = np.vstack([np.eye(3), -np.eye(3)])
+
+
+def under(points, tree):
+    """How far each point lies inside a part: 0 outside. A point is inside when, on at least two of the three
+    axes, a ray each way meets the part's surface from behind (a part is open where it was cut from its
+    neighbour, so one axis may look out of the cut); the depth is the distance to the nearest surface."""
+    out = np.zeros(len(points))
+    for i, p in enumerate(points):
+        shut = np.zeros(6, dtype=bool)
+        for k, axis in enumerate(AXES):
+            _, normal, _, dist = tree.ray_cast(p.tolist(), axis.tolist())
+            shut[k] = dist is not None and float(np.array(normal) @ axis) > 0.0
+        if (shut[:3] & shut[3:]).sum() >= 2:
+            out[i] = tree.find_nearest(p.tolist())[3]
+    return out
+
+
+class Overlap:
+    """Measures, on a pose's skinned mesh, how deep each pair of parts that share no joint goes into the other."""
+
+    def __init__(self, rig, mesh):
+        self.rig = rig
+        mesh.data.calc_loop_triangles()
+        tris = np.array([t.vertices[:] for t in mesh.data.loop_triangles])
+        vert_part = np.array([part_of(o) or "" for o in rig.owner])
+        self.verts, self.tris = {}, {}
+        for part in PARTS:
+            inside = vert_part == part
+            self.verts[part] = np.nonzero(inside)[0]
+            remap = np.full(len(vert_part), -1)
+            remap[self.verts[part]] = np.arange(len(self.verts[part]))
+            self.tris[part] = remap[tris[inside[tris].all(axis=1)]].tolist()
+
+    def clip(self, frames):
+        """A clip's pairs that cross (frames, deepest, the frame and the bone it is at) and each part's lowest
+        vertex with its frame."""
+        rig, pairs, lowest = self.rig, {}, {}
+        for frame_no, pose in enumerate(frames):
+            skinned = rig.skin(rig.world(pose["local"], pose["pelvis"]))
+            trees = {}
+            for part in PARTS:
+                index = self.verts[part]
+                trees[part] = BVHTree.FromPolygons(
+                    skinned[index].tolist(), self.tris[part]
+                )
+                low = float(skinned[index, 2].min())
+                if low < lowest.get(part, (9.0, 0))[0]:
+                    lowest[part] = (round(low, 4), frame_no)
+            for a, b in PAIRS:
+                if not trees[a].overlap(trees[b]):
+                    continue
+                depth, where = 0.0, ""
+                for inner, outer in ((a, b), (b, a)):
+                    deep = under(skinned[self.verts[inner]], trees[outer])
+                    if deep.max() > depth:
+                        depth = float(deep.max())
+                        where = (
+                            f"{rig.owner[self.verts[inner][deep.argmax()]]} in {outer}"
+                        )
+                entry = pairs.setdefault(
+                    f"{a} x {b}",
+                    {"frames": 0, "deepest": 0.0, "at_frame": frame_no, "where": ""},
+                )
+                entry["frames"] += 1
+                if depth > entry["deepest"]:
+                    entry.update(
+                        deepest=round(depth, 4), at_frame=frame_no, where=where
+                    )
+        deepest = max([p["deepest"] for p in pairs.values()] + [0.0])
+        return {
+            "frames": len(frames),
+            "deepest": deepest,
+            "pairs": pairs,
+            "lowest": {k: list(v) for k, v in lowest.items()},
+        }
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
@@ -1449,8 +1638,12 @@ def main():
                 rig, down, "hand_r", 10, TO_PRONE_FRAMES
             ),
             "Crouch_To_Prone foot_l 0-7": stray(rig, down, "foot_l", 0, 7),
-            "Prone_To_Crouch hand_l 8-14": stray(rig, up, "hand_l", 8, 14),
-            "Prone_To_Crouch hand_r 8-14": stray(rig, up, "hand_r", 8, 14),
+            "Prone_To_Crouch hand_l 8-13": stray(
+                rig, up, "hand_l", 8, HAND_WAIT_FRAMES["l"][0]
+            ),
+            "Prone_To_Crouch hand_r 8-14": stray(
+                rig, up, "hand_r", 8, HAND_WAIT_FRAMES["r"][0]
+            ),
             "Prone_To_Crouch foot_r 18-30": stray(
                 rig, up, "foot_r", 18, TO_CROUCH_FRAMES
             ),
@@ -1490,6 +1683,17 @@ def main():
                 per[group] = round(min(per.get(group, 9.0), low), 4)
         groups[name] = per
     report["lowest_by_part"] = groups
+    overlap = Overlap(rig, mesh)
+    report["overlap"] = {}
+    for name, frames in clips.items():
+        found = overlap.clip(frames)
+        report["overlap"][name] = {"deepest": found["deepest"], "pairs": found["pairs"]}
+        for pair, entry in found["pairs"].items():
+            if entry["deepest"] > OVERLAP_LIMIT:
+                failures.append(
+                    f"{name}: {pair} cross, {entry['deepest'] * 1000:.1f} mm deep at frame"
+                    f" {entry['at_frame']} ({entry['where']})"
+                )
 
     actions = {name: key_clip(arm, rig, name, frames) for name, frames in clips.items()}
     for name, frames in clips.items():

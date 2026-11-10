@@ -8,10 +8,13 @@ column per frame. Run it with the pinned Blender, headless, every path absolute:
 
     blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <clips.glb>
         --out <folder> [--clip <name> ...] [--frames 8] [--travel <name>=<metres per second> ...]
-        [--views side,front,top,quarter] [--tile 480x300] [--scale 2.6] [--height 0.75]
+        [--views side,front,top,quarter] [--tile 480x300] [--scale 2.6] [--height 0.75] [--ahead 0] [--wrap 0]
+        [--range 12-24]
 
 `--travel` moves the model forward at that speed while the clip plays, over a floor of 0.25 m squares, so a hand or a
-foot that is planted stays on its square.
+foot that is planted stays on its square. `--ahead` moves every camera that far toward the head and `--wrap` breaks
+each view's row after that many frames, for a close-up of the arms over a whole cycle
+(`--views top --scale 1.15 --ahead 0.62 --frames 14 --wrap 7 --tile 520x440`).
 """
 
 import argparse
@@ -54,13 +57,13 @@ def rest_local(bone):
     return bone.matrix_local.copy()
 
 
-def clip_frames(arm, action, count):
-    """The local bone matrices of a clip at `count` evenly spaced frames, and its frame range."""
+def clip_frames(arm, action, count, span=None):
+    """The local bone matrices of a clip at `count` evenly spaced frames, and its frame range (or `span`'s)."""
     arm.animation_data.action = action
     arm.animation_data.action_slot = action.slots[0]
     for track in arm.animation_data.nla_tracks:
         track.mute = True
-    first, last = (round(v) for v in action.frame_range)
+    first, last = span or (round(v) for v in action.frame_range)
     frames = sorted(
         {round(first + (last - first) * i / max(count - 1, 1)) for i in range(count)}
     )
@@ -195,6 +198,16 @@ def main():
         default=0.75,
         help="the height the side and front views centre on",
     )
+    parser.add_argument(
+        "--ahead",
+        type=float,
+        default=0.0,
+        help="metres the cameras move toward the head",
+    )
+    parser.add_argument("--range", help="first-last: the frames to spread over")
+    parser.add_argument(
+        "--wrap", type=int, default=0, help="frames in a row before a new one"
+    )
     args = parser.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -232,13 +245,15 @@ def main():
         action = bpy.data.actions.get(name)
         if action is None:
             raise SystemExit(f"no clip {name} in {args.clips}")
-        frames, (first, last) = clip_frames(clips_arm, action, args.frames)
+        span = [int(v) for v in args.range.split("-")] if args.range else None
+        frames, (first, last) = clip_frames(clips_arm, action, args.frames, span)
         rows = {view: [] for view in views}
         speed = travel.get(name, 0.0)
         for frame, pose in frames:
             apply_pose(model, pose)
             shift = -speed * (frame - first) / fps  # the model faces -Y
             model.location = (0, shift, 0)
+            shift -= args.ahead
             for view, cam in cams.items():
                 home = CAMERA_HOME[view]
                 cam.location = (home[0], home[1] + shift, home[2] + lift[view])
@@ -250,7 +265,14 @@ def main():
         for view in views:
             (out / f"_tile_{view}.png").unlink(missing_ok=True)
         target = out / f"{name}{args.suffix}.png"
-        save_sheet([rows[view] for view in views], target)
+        wrap = args.wrap or len(frames)
+        blank = np.ones_like(rows[views[0]][0])
+        sheet = []
+        for view in views:
+            for start in range(0, len(frames), wrap):
+                row = rows[view][start : start + wrap]
+                sheet.append(row + [blank] * (wrap - len(row)))
+        save_sheet(sheet, target)
         print(f"SHEET {name} frames {first}-{last} at {fps} fps -> {target}")
 
 
