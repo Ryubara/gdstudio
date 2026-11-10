@@ -4,8 +4,8 @@ extends Resource
 ## One kind of camera shake as a resource: how hard, how long, how fast and which way it turns the
 ## view. `CameraShake.shake(preset, at)` plays it once from anywhere (a shot, a landing, a blast);
 ## `CameraShake.hold_everywhere(source, preset)` keeps it going (a sprint, an engine). Save one as
-## a `.tres` (`core/camera_shake/presets/` has a few), tune it in the inspector and drop it on any
-## export that takes a `ShakePreset`.
+## a `.tres` of the game's own (3D Blank's `core/camera_shake/presets/` has a few), tune it in
+## the inspector and drop it on any export that takes a `ShakePreset`.
 ##
 ## The turn at any moment is `max_rotation * level ^ exponent * wave`, where `level` is the
 ## trauma of a one-shot (it drains by itself) or the blend of a held source, 0 to 1. The square

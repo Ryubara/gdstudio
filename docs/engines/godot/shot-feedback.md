@@ -81,9 +81,9 @@ game's page is `docs/research/hit-blood.md`).
      above are Deadnight's toon, server-driven versions, and none said how a Decal behaves in Compatibility, what a mark
      does on a moving body, or how a hit picks its surface -->
 
-What the 3D Third Person template does (`gameplay/impacts/`; its inspector list is on
-[the impacts page](third-person-impacts.md)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a spike
-(`Decal` nodes on a floor, a wall, a cylinder and a moving box, drawn in each renderer) and in the template's own
+What the 3D Third Person template does (`gameplay/impacts/`, scripts in the synced `addons/gds_game/impacts/`; its
+inspector list is on [the impacts page](third-person-impacts.md)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a
+spike (`Decal` nodes on a floor, a wall, a cylinder and a moving box, drawn in each renderer) and in the template's own
 captures; the research with its sources is in the pull request of #875.
 
 | Route | Forward+ | Compatibility (the web build) | Moving bodies | Verdict |
