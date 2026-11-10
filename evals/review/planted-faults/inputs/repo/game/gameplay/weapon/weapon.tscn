@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/weapon.gd" id="1_weapon"]
+[ext_resource type="Resource" path="res://gameplay/weapon/weapon_tuning.tres" id="2_tuning"]
+
+[node name="Weapon" type="Node3D"]
+script = ExtResource("1_weapon")
+tuning = ExtResource("2_tuning")
+
+[node name="Muzzle" type="Marker3D" parent="."]
