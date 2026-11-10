@@ -31,6 +31,7 @@ func test_every_emitter_export_has_its_default_pinned() -> void:
 		&"max_lights": 2,
 		&"warm_up_on_start": true,
 		&"warm_up": [],
+		&"warm_up_materials": [],
 	}
 	assert_array(ExportPins.differences(_emitter, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(_emitter, pins)).is_empty()

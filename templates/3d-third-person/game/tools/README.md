@@ -35,6 +35,9 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/bench/effects_cost.tscn` fires the pistol in six runs (no flash, flash, flash with impacts, at 4 and 30 shots a
   second) and prints frame time, script time, draw calls and nodes for each (`BENCH` lines; the header says how to read
   it in the browser).
+- `tools/bench/effects_first_use.py` runs a web export of that bench in headless Chrome and fails when a run after the
+  level's warm-up links a GL program (the first flash, its light or the first impact stopping the frame); run it under
+  `gds quiet`, the command and the export are in its header.
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
