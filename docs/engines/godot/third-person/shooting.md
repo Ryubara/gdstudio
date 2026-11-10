@@ -212,7 +212,25 @@ their shares, the draw). A new weapon is a new `.tres`; nothing else changes.
 
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
 the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
-empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side).
+empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side) and
+`tools/capture/reload_closeups.tscn` (the hands on the pistol in the grip, the aim and five moments of the reload, from
+the side, above and behind the shoulder).
+
+Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot
+39 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
+resource (the pool's 24 bodies, one mesh, one shape, one material). The shot's sound is most of a shot: with the
+`ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
+all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
+number as a budget.
+
+Hands on the pistol in the clips it plays (`tools/carry/measure_hand_contact.gd`, the skinned mesh against the gun, 8
+samples a clip, the seat of kit #834 that #1001 replaces): the right hand goes 9.4 mm into the grip on the female
+mannequin and 11.1 mm on the male in every pistol clip, the index finger and the thumb touch, the middle, ring and
+little fingers stand 5.1, 7.4 and 11.3 mm off (2.4, 5.3 and 8.4 on the male); the clips' left hand goes 5 to 12 mm
+into the gun in the grip, aim and shot (to 47 mm aiming up on the female and 76 to 88 mm in the male's grip and shot)
+and in the reload leaves it and comes back (7.6 mm in on the female, 49 mm on the male). The reload holds to the
+weapons page's limits only once #1001's hold (fingers on `Grip` and `Trigger`, the support hand by IK) carries it
+through `Pistol_Reload` too.
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

@@ -1,11 +1,11 @@
 extends SceneTree
 ## Measures both hands against the held pistol in every clip the pistol plays (the grip, the aim
 ## level, up and down, the shot and the reload), on both mannequins, from the skinned mesh worked
-## out on the CPU (`PistolClearance`): for the right hand the deepest skin point inside the gun and
-## each finger's gap to it (its last joint's nearest skin point), for the left hand its nearest
-## skin point (does it touch the gun at all). A point's side is read from the nearest triangle's
-## normal, so a point inside a thin part reads as outside the far face: the numbers are for
-## comparing holds, the solved-grip test is `test_pistol_hold.gd` (kit #1001).
+## out on the CPU (`PistolClearance`): for each hand the deepest skin point inside the gun, for
+## each finger of the right hand its gap to it (its last joint's nearest skin point), and for the
+## left hand the least and the most gap over the clip (does it reach the gun). A point's side is
+## read from the nearest triangle's normal, so a point inside a thin part reads as outside the far
+## face: the numbers are for comparing holds; the solved grip's own test comes with kit #1001.
 ##
 ## `godot --headless --path game -s res://tools/carry/measure_hand_contact.gd`
 ## It prints a `CONTACT` line a clip and model, in millimetres.
@@ -22,7 +22,7 @@ const CLIPS: Array[StringName] = [
 	CharacterClips.PISTOL_SHOOT,
 	CharacterClips.PISTOL_RELOAD,
 ]
-const SAMPLES := 12
+const SAMPLES := 8
 const FINGERS: Array[StringName] = [
 	&"thumb_03_r", &"index_03_r", &"middle_03_r", &"ring_03_r", &"pinky_03_r"
 ]
@@ -34,57 +34,75 @@ func _initialize() -> void:
 		get_root().add_child(holder)
 		var clearance := PistolClearance.new(holder, path)
 		var triangles := _gun_triangles()
+		var model := path.get_file().get_basename().trim_prefix("mannequin_")
 		for clip_name in CLIPS:
-			var animation := clearance.clip(clip_name)
-			var worst_in := 0.0
-			var finger_gaps := {}
-			for finger in FINGERS:
-				finger_gaps[finger] = 0.0
-			var left_near := INF
-			var left_far := 0.0
-			for step in SAMPLES:
-				clearance.pose(animation, animation.length * step / SAMPLES)
-				var globals: Array[Transform3D] = clearance._globals()
-				var seat: Transform3D = (
-					globals[clearance.skeleton.find_bone(&"hand_r")] * PistolClearance.SEAT
-				)
-				var hands := _hand_points(clearance, globals)
-				for point: Vector3 in hands["right"]:
-					var signed := _signed(seat.affine_inverse() * point, triangles)
-					worst_in = maxf(worst_in, -signed)
-				for finger in FINGERS:
-					var nearest := INF
-					for point: Vector3 in hands[finger]:
-						nearest = minf(
-							nearest, absf(_signed(seat.affine_inverse() * point, triangles))
-						)
-					finger_gaps[finger] = maxf(finger_gaps[finger], nearest)
-				var left := INF
-				for point: Vector3 in hands["left"]:
-					left = minf(left, absf(_signed(seat.affine_inverse() * point, triangles)))
-				left_near = minf(left_near, left)
-				left_far = maxf(left_far, left)
-			var gaps := PackedStringArray()
-			for finger in FINGERS:
-				gaps.append(
-					"%s %.1f" % [String(finger).get_slice("_", 0), finger_gaps[finger] * 1000.0]
-				)
-			print(
-				(
-					"CONTACT %s %s right_in %.1f finger_gap_worst [%s] left_nearest %.1f left_farthest %.1f"
-					% [
-						path.get_file().get_basename().trim_prefix("mannequin_"),
-						clip_name,
-						worst_in * 1000.0,
-						", ".join(gaps),
-						left_near * 1000.0,
-						left_far * 1000.0,
-					]
-				)
-			)
+			_measure(clearance, triangles, model, clip_name)
 		clearance.free_rig()
 		holder.free()
 	quit()
+
+
+# One clip: the worst over its samples of each hand's depth into the gun and gap to it.
+func _measure(
+	clearance: PistolClearance, triangles: PackedVector3Array, model: String, clip_name: StringName
+) -> void:
+	var animation := clearance.clip(clip_name)
+	var right_in := 0.0
+	var left_in := 0.0
+	var left_gap_least := INF
+	var left_gap_most := 0.0
+	var finger_gaps := {}
+	for finger in FINGERS:
+		finger_gaps[finger] = 0.0
+	for step in SAMPLES:
+		clearance.pose(animation, animation.length * step / SAMPLES)
+		var globals: Array[Transform3D] = clearance._globals()
+		var hand := globals[clearance.skeleton.find_bone(&"hand_r")]
+		var to_gun := (hand * PistolClearance.SEAT).affine_inverse()
+		var hands := _hand_points(clearance, globals)
+		var right := _depth_and_gap(hands["right"], to_gun, triangles)
+		right_in = maxf(right_in, right.x)
+		for finger in FINGERS:
+			var gap := _depth_and_gap(hands[finger], to_gun, triangles).y
+			finger_gaps[finger] = maxf(finger_gaps[finger], gap)
+		var left := _depth_and_gap(hands["left"], to_gun, triangles)
+		left_in = maxf(left_in, left.x)
+		left_gap_least = minf(left_gap_least, left.y)
+		left_gap_most = maxf(left_gap_most, left.y)
+	var gaps := PackedStringArray()
+	for finger in FINGERS:
+		gaps.append("%s %.1f" % [String(finger).get_slice("_", 0), finger_gaps[finger] * 1000.0])
+	print(
+		(
+			"CONTACT %s %s right: in %.1f, finger gaps [%s]; left: in %.1f, gap %.1f to %.1f"
+			% [
+				model,
+				clip_name,
+				right_in * 1000.0,
+				", ".join(gaps),
+				left_in * 1000.0,
+				left_gap_least * 1000.0,
+				left_gap_most * 1000.0,
+			]
+		)
+	)
+
+
+# The deepest of `points` inside the gun (x) and the gap of the nearest one outside it (y; 0 when
+# one is inside), in metres. Points more than 30 cm from the gun's origin are far from it anyway.
+func _depth_and_gap(
+	points: PackedVector3Array, to_gun: Transform3D, triangles: PackedVector3Array
+) -> Vector2:
+	var deepest := 0.0
+	var gap := INF
+	for point in points:
+		var local := to_gun * point
+		if local.length() > 0.3:
+			continue
+		var signed := _signed(local, triangles)
+		deepest = maxf(deepest, -signed)
+		gap = minf(gap, maxf(signed, 0.0))
+	return Vector2(deepest, gap if gap < INF else 0.3)
 
 
 # The skin points of the right hand, of each finger's last joint and of the left hand, in the
@@ -167,7 +185,8 @@ func _signed(point: Vector3, faces: PackedVector3Array) -> float:
 		var d := point.distance_squared_to(closest)
 		if d < best:
 			best = d
-			var normal := (b - a).cross(c - a).normalized()
+			# Godot's front faces wind clockwise: this normal points out of the part.
+			var normal := (c - a).cross(b - a).normalized()
 			side = 1.0 if (point - closest).dot(normal) >= 0.0 else -1.0
 	return sqrt(best) * side
 

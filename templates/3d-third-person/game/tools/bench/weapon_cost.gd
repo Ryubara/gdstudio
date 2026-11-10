@@ -63,6 +63,19 @@ func _run() -> void:
 	result["resources_after_1000_shots"] = (
 		Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT) - resources_before
 	)
+	# The same shots with no sound: what the shot costs without its audio player.
+	var silent := pistol.duplicate() as WeaponDef
+	silent.shot_sound = null
+	weapon.definition = silent
+	spent = 0
+	for _shot in SHOTS:
+		weapon.make_ready()
+		started = Time.get_ticks_usec()
+		weapon.fire()
+		spent += Time.get_ticks_usec() - started
+		await get_tree().physics_frame
+	result["projectile_shot_silent_us"] = spent / float(SHOTS)
+	weapon.definition = pistol
 	pistol.kind = WeaponDef.Kind.HITSCAN
 	spent = 0
 	for _shot in SHOTS:
