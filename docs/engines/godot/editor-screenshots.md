@@ -29,6 +29,11 @@ For a bottom panel (the AnimationTree graph): select the node with `EditorInterf
 saving the viewport's image. The same plugin can call `EditorInterface.save_scene()` and read the `.tscn` afterwards
 to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
 
+The bottom panel's own tabs (Output, Debugger, Audio, Animation and the rest) are a `TabBar` in 4.7, not a row of
+buttons: find the `EditorBottomPanel` under the base control, take its first `TabBar` and set `current_tab` to the tab
+whose `get_tab_title(i)` you want (the first `TabBar` of a fresh editor read 5 tabs, `Output` first; checked on 4.7.2 for
+gdstudio #1003). A search for a `Button` by its text finds nothing there.
+
 ## What to know {#what-to-know}
 
 - The dock is narrow and widening it from script did not work (`DockHSplitMain.split_offset` moved the viewport, not
@@ -47,11 +52,11 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   again after about 20 frames. Gdstudio #831, Godot 4.7.2.
 
 - **Do what a person does in the Scene dock** with the same plugin, in a headless editor (`godot --headless --editor
-  --path game`, no window; list the plugin in `override.cfg` or `project.godot`): select the node, `grab_focus()` the
-  dock's `Tree`, `push_input` a `KEY_DELETE` press on the dock's viewport, then emit `confirmed` on the visible
-  `ConfirmationDialog`; `dock.call("instantiate", "res://x.glb")` drops a scene on the selected node. That runs the
-  editor's own undo/redo and path fixing, which `remove_child` does not (the editor empties the NodePaths that point
-  at a deleted node). The template's `tools/editor_swap/` does this for the player's model; count the engine's
+  --path game`, no window; list the plugin in `project.godot`, [not `override.cfg`](#what-to-know)): select the node,
+  `grab_focus()` the dock's `Tree`, `push_input` a `KEY_DELETE` press on the dock's viewport, then emit `confirmed` on
+  the visible `ConfirmationDialog`; `dock.call("instantiate", "res://x.glb")` drops a scene on the selected node. That
+  runs the editor's own undo/redo and path fixing, which `remove_child` does not (the editor empties the NodePaths that
+  point at a deleted node). The template's `tools/editor_swap/` does this for the player's model; count the engine's
   warnings in the log (`grep -c "couldn't resolve"`). Gdstudio #844, Godot 4.7.2.
 
 - **Approach:** Prove that an exported setter of a `@tool` script drives another node in the editor with a job that sets
@@ -66,7 +71,9 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   `project.godot` for the run and taking it out after, and have the plugin print a line in `_enter_tree` so a run
   that never started it shows. **Watch out for:** a plugin listed only in an `override.cfg` next to `project.godot`
   never entered the tree in Godot 4.7.2, headless or windowed, and the editor sat with no error until its timeout;
-  the same list in `project.godot` started it at once. **Seen:** gdstudio #885, 2026-11-10 (the map bake plugin).
+  the same list in `project.godot` started it at once. **Seen:** gdstudio #885, 2026-11-10 (the map bake plugin);
+  gdstudio #1003, 2026-11-10 (a one-file plugin that prints in `_enter_tree`: printed from `project.godot`, silent from
+  `override.cfg`; the template's `swap_in_editor.gd` header said otherwise and was corrected).
 
 ## Changing values like the remote inspector {#remote-inspector}
 
