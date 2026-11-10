@@ -183,6 +183,7 @@ var _playback: AnimationNodeStateMachinePlayback
 var _action_clip: StringName = &""
 var _action_was_active := false
 var _dead := false
+var _clip_death := false
 
 
 func _ready() -> void:
@@ -391,9 +392,17 @@ func _on_state_changed(state: Player.State) -> void:
 		_dead = true
 		stop_clip()
 		tree.active = false
+		if player != null and player.died_by_clip:
+			# No ragdoll for this death: the clip plays on the player itself and holds its last pose.
+			_clip_death = animation_player.has_animation(CharacterClips.DEATH)
+			if _clip_death:
+				animation_player.play(CharacterClips.DEATH)
 		return
 	if _dead:
 		_dead = false
+		if _clip_death:
+			_clip_death = false
+			animation_player.stop()
 		tree.active = _fits(model.rig()) if model != null else true
 		_playback.start(GROUND)
 	match state:

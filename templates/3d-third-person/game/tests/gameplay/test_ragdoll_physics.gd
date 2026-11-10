@@ -1,11 +1,7 @@
 # How the ragdoll moves in the real physics world: it falls and comes to rest, a run's momentum
-# carries into it, its knees and elbows stay inside their limits, and deaths in every pose never
-# throw a bone. Dying, getting up and the key are in test_ragdoll.gd.
+# carries into it, and deaths in every pose never throw a bone. Dying, getting up and the key are
+# in test_ragdoll.gd, what makes it look like a body in test_ragdoll_natural.gd.
 extends GdUnitTestSuite
-
-## A joint's limit is a soft stop against a load: an arm pinned under the body's weight rests up
-## to about 17 degrees past its limit (seen on both elbows, run after run). Degrees.
-const LIMIT_SLACK := 25.0
 
 var _arena: PlayArena
 var _player: Player
@@ -70,38 +66,6 @@ func test_without_carry_the_body_drops_on_the_spot() -> void:
 	assert_float(slid.length()).is_less(0.6)
 
 
-func test_knees_and_elbows_stay_in_their_limits_and_never_bend_backward() -> void:
-	InputSim.key(KEY_W, true)
-	await _ticks(30)
-	_player.die()
-	for _step in 8:
-		await _ticks(30)
-		for entry: Dictionary in PlayerRagdoll.BODIES:
-			if entry.joint != &"bend":
-				continue
-			var angles := _bend_angles(entry)
-			var limits := Vector3(
-				(entry.bend.y - entry.bend.x) / 2.0,
-				(entry.twist.y - entry.twist.x) / 2.0,
-				(entry.side_swing.y - entry.side_swing.x) / 2.0
-			)
-			for axis in 3:
-				(
-					assert_float(absf(angles[axis]))
-					. override_failure_message(
-						(
-							"%s axis %d at %.1f, limit %.1f"
-							% [entry.bone, axis, angles[axis], limits[axis]]
-						)
-					)
-					. is_less(limits[axis] + LIMIT_SLACK)
-				)
-			# From the middle of its bend, a knee or an elbow never goes past straight.
-			assert_float(angles.x + (entry.bend.x + entry.bend.y) / 2.0).is_greater(
-				entry.bend.x - 8.0
-			)
-
-
 # Thirty deaths in every pose the player can be in (standing, running, sprinting, crouching,
 # aiming), at random moments of the animation, half on each mannequin: no bone ever flies off. A
 # joint that starts outside its limits can throw the whole body (the tool in tools/ragdoll
@@ -160,17 +124,3 @@ func _swap_to_male() -> void:
 	)
 	slot.add_child(male)
 	await _ticks(3)
-
-
-# A knee's or an elbow's angles about its bend, roll and side axes, in degrees, from the middle of
-# its ranges, as its joint reads them (`PlayerRagdoll.swing_twist` in the joint's frame).
-func _bend_angles(entry: Dictionary) -> Vector3:
-	var skeleton := _player.model.skeleton()
-	var parent: StringName = _ragdoll._parent_body(skeleton, entry.bone)
-	var rest := _ragdoll.rest_body(parent).basis.inverse() * _ragdoll.rest_body(entry.bone).basis
-	var now := _ragdoll.body(parent).global_basis.inverse() * _ragdoll.body(entry.bone).global_basis
-	var centre: Basis = _ragdoll._centre(entry)
-	var frame: Basis = _ragdoll._joint_frame(entry)
-	return PlayerRagdoll.swing_twist(
-		frame.inverse() * centre.inverse() * rest.inverse() * now * frame
-	)
