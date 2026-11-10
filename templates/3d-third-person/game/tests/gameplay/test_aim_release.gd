@@ -172,3 +172,17 @@ func test_a_short_click_still_shoots_once_and_leaves_nothing_behind() -> void:
 	await InputSim.ticks(get_tree(), 3)
 	assert_array(shots).has_size(1)
 	_assert_normal_move()
+
+
+# The arm must be half up before a shot leaves (`aim_pose_time` / 2), and the press is not kept
+# alive after the button is let go: a tap shorter than that shoots nothing, and nothing of the
+# aim is left either.
+func test_a_tap_shorter_than_the_arm_raise_shoots_nothing_and_leaves_nothing_behind() -> void:
+	var shots := _shots()
+	_fire(true)
+	await InputSim.ticks(get_tree(), 2)
+	_fire(false)
+	await get_tree().physics_frame
+	_assert_normal_move()
+	await InputSim.ticks(get_tree(), 20)
+	assert_array(shots).is_empty()
