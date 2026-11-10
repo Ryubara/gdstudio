@@ -1,0 +1,205 @@
+diff --git a/game/gameplay/weapon/ammo_pickup.gd b/game/gameplay/weapon/ammo_pickup.gd
+new file mode 100644
+--- /dev/null
++++ b/game/gameplay/weapon/ammo_pickup.gd
+@@ -0,0 +1,17 @@
++class_name AmmoPickup
++extends Area3D
++## A box of rounds on the ground. A body that can carry ammo takes it and the box goes.
++
++## Rounds in the box.
++const ROUNDS := 30
++
++
++func _ready() -> void:
++	body_entered.connect(_on_body_entered)
++
++
++func _on_body_entered(body: Node3D) -> void:
++	if not body.has_method("add_ammo"):
++		return
++	body.add_ammo(ROUNDS)
++	queue_free()
+diff --git a/game/gameplay/weapon/ammo_pickup.tscn b/game/gameplay/weapon/ammo_pickup.tscn
+new file mode 100644
+--- /dev/null
++++ b/game/gameplay/weapon/ammo_pickup.tscn
+@@ -0,0 +1,18 @@
++[gd_scene format=3]
++
++[ext_resource type="Script" path="res://gameplay/weapon/ammo_pickup.gd" id="1_pickup"]
++
++[sub_resource type="BoxShape3D" id="BoxShape3D_zone"]
++size = Vector3(1, 1, 1)
++
++[sub_resource type="BoxMesh" id="BoxMesh_crate"]
++size = Vector3(0.5, 0.3, 0.4)
++
++[node name="AmmoPickup" type="Area3D"]
++script = ExtResource("1_pickup")
++
++[node name="Zone" type="CollisionShape3D" parent="."]
++shape = SubResource("BoxShape3D_zone")
++
++[node name="Crate" type="MeshInstance3D" parent="."]
++mesh = SubResource("BoxMesh_crate")
+diff --git a/game/gameplay/weapon/weapon.gd b/game/gameplay/weapon/weapon.gd
+--- a/game/gameplay/weapon/weapon.gd
++++ b/game/gameplay/weapon/weapon.gd
+@@ -4,6 +4,8 @@
+
+ ## A round left the muzzle.
+ signal fired(ammo_left: int)
++## The magazine was refilled.
++signal reloaded(ammo: int, reserve: int)
+ ## The trigger was pulled on an empty magazine.
+ signal dry_fired
+
+@@ -15,22 +17,37 @@
+
+ ## Rounds in the magazine.
+ var ammo: int = 0
++## Rounds carried outside the magazine.
++var reserve: int = 0
+
+ var _cooldown := 0.0
+-@onready var _muzzle: Marker3D = $Muzzle
++var _reload_left := 0.0
++var _muzzle: Marker3D
+
+
+ func _ready() -> void:
++	_muzzle = get_node_or_null("Muzzle")
+ 	ammo = tuning.magazine_size
++	reserve = tuning.starting_reserve
++
++
++func _process(_delta: float) -> void:
++	var text := "Ammo: %d / %d" % [ammo, reserve]
++	for label: Label in get_tree().get_nodes_in_group("ammo_label"):
++		label.text = text
+
+
+ func _physics_process(delta: float) -> void:
+ 	_cooldown = maxf(_cooldown - delta, 0.0)
++	if _reload_left > 0.0:
++		_reload_left -= 0.016
++		if _reload_left <= 0.0:
++			_finish_reload()
+
+
+ ## Pull the trigger. Returns true when a round was fired.
+ func fire() -> bool:
+-	if _cooldown > 0.0:
++	if _reload_left > 0.0 or _cooldown > 0.0:
+ 		return false
+ 	if ammo <= 0:
+ 		dry_fired.emit()
+@@ -43,6 +60,25 @@
+ 	return true
+
+
++## Start a reload when the magazine is not full and there is reserve to put in it.
++func reload() -> void:
++	if _reload_left > 0.0 or ammo >= tuning.magazine_size or reserve <= 0:
++		return
++	_reload_left = tuning.reload_seconds
++
++
++## Add rounds to the reserve, up to the cap.
++func add_ammo(amount: int) -> void:
++	reserve = mini(reserve + amount, tuning.reserve_cap)
++
++
++func _finish_reload() -> void:
++	var needed := tuning.magazine_size - ammo
++	ammo += needed
++	reserve -= needed
++	reloaded.emit(ammo, reserve)
++
++
+ func _hit_scan(origin: Vector3) -> void:
+ 	var space := get_world_3d().direct_space_state
+ 	var query := PhysicsRayQueryParameters3D.create(origin, origin - global_basis.z * RANGE_M)
+diff --git a/game/gameplay/weapon/weapon_tuning.gd b/game/gameplay/weapon/weapon_tuning.gd
+--- a/game/gameplay/weapon/weapon_tuning.gd
++++ b/game/gameplay/weapon/weapon_tuning.gd
+@@ -4,7 +4,13 @@
+
+ ## Rounds in a full magazine.
+ @export var magazine_size: int = 12
++## Rounds carried when the weapon is first picked up.
++@export var starting_reserve: int = 36
++## The most rounds carried outside the magazine.
++@export var reserve_cap: int = 120
+ ## Seconds between shots.
+ @export var shot_interval: float = 0.25
++## Seconds a reload takes.
++@export var reload_seconds: float = 1.6
+ ## Damage of one hit.
+ @export var damage: int = 20
+diff --git a/game/net/fire_request.gd b/game/net/fire_request.gd
+new file mode 100644
+--- /dev/null
++++ b/game/net/fire_request.gd
+@@ -0,0 +1,26 @@
++class_name FireRequest
++extends Node
++## The server's side of a shot: a client asks to fire, the server decides and applies it.
++
++## The weapon this request drives.
++@export var weapon: Weapon
++## The muzzle flash every peer shows.
++@export var flash: Node3D
++
++## Client to server: pull the trigger at `aim`.
++@rpc("any_peer", "call_remote", "reliable")
++func request_fire(damage: int, aim: Vector3) -> void:
++	if not multiplayer.is_server():
++		return
++	weapon.look_at(weapon.global_position + aim)
++	weapon.tuning.damage = damage
++	if weapon.fire():
++		show_flash.rpc()
++
++
++## Server to everyone: draw the muzzle flash.
++@rpc("authority", "call_local", "reliable")
++func show_flash() -> void:
++	flash.visible = true
++	await get_tree().create_timer(0.05).timeout
++	flash.visible = false
+diff --git a/game/tests/gameplay/test_weapon.gd b/game/tests/gameplay/test_weapon.gd
+--- a/game/tests/gameplay/test_weapon.gd
++++ b/game/tests/gameplay/test_weapon.gd
+@@ -7,6 +7,11 @@
+ 	var weapon: Weapon = auto_free(load(SCENE).instantiate())
+ 	add_child(weapon)
+ 	return weapon
++
++
++func _physics_frames(count: int) -> void:
++	for i in count:
++		await get_tree().physics_frame
+
+
+ func test_fire_uses_one_round_and_waits_for_the_interval() -> void:
+@@ -24,3 +29,18 @@
+ 	weapon.dry_fired.connect(func() -> void: dry[0] += 1)
+ 	assert_bool(weapon.fire()).is_false()
+ 	assert_int(dry[0]).is_equal(1)
++
++
++func test_a_reload_refills_the_magazine() -> void:
++	var weapon := _weapon()
++	weapon.ammo = 2
++	weapon.reload()
++	await get_tree().create_timer(2.0).timeout
++	assert_int(weapon.ammo).is_equal(weapon.tuning.magazine_size)
++
++
++func test_a_reload_keeps_the_count_sane() -> void:
++	var weapon := _weapon()
++	weapon.reload()
++	await _physics_frames(120)
++	assert_int(weapon.ammo).is_greater_equal(0)

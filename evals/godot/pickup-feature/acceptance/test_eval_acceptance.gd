@@ -89,15 +89,15 @@ func test_it_spins_at_its_tuned_speed() -> void:
 	var nodes: Array[Node3D] = [pickup]
 	for child in pickup.find_children("*", "Node3D", true, false):
 		nodes.append(child)
-	var before: Array[float] = []
+	var yaw_before: Array[float] = []
 	for node in nodes:
-		before.append(node.rotation.y)
+		yaw_before.append(node.rotation.y)
 	var start := Time.get_ticks_usec()
 	await get_tree().create_timer(0.5).timeout
 	var seconds := (Time.get_ticks_usec() - start) / 1_000_000.0
 	var turned := 0.0
 	for i in nodes.size():
-		turned = maxf(turned, absf(angle_difference(before[i], nodes[i].rotation.y)))
+		turned = maxf(turned, absf(angle_difference(yaw_before[i], nodes[i].rotation.y)))
 	var expected := deg_to_rad(90.0) * seconds
 	assert_float(turned).is_between(expected * 0.7, expected * 1.3)
 
@@ -116,14 +116,24 @@ func test_main_has_five_pickups_standing_above_the_floor() -> void:
 		var from := pickup.global_position
 		var ray := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 10.0)
 		var hit := space.intersect_ray(ray)
-		assert_bool(hit.is_empty()).override_failure_message("%s has no floor under it" % pickup.name).is_false()
+		(
+			assert_bool(hit.is_empty())
+			. override_failure_message("%s has no floor under it" % pickup.name)
+			. is_false()
+		)
 		if not hit.is_empty():
 			var height: float = from.y - (hit.position as Vector3).y
-			assert_float(height).override_failure_message("%s height" % pickup.name).is_between(0.3, 2.0)
+			assert_float(height).override_failure_message("%s height" % pickup.name).is_between(
+				0.3, 2.0
+			)
 		var probe := PhysicsPointQueryParameters3D.new()
 		probe.position = from
 		var inside := space.intersect_point(probe)
-		assert_array(inside).override_failure_message("%s is inside a solid" % pickup.name).is_empty()
+		(
+			assert_array(inside)
+			. override_failure_message("%s is inside a solid" % pickup.name)
+			. is_empty()
+		)
 
 
 func test_collecting_two_in_main_scores_twenty_and_shows_it() -> void:
