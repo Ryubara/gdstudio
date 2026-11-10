@@ -22,8 +22,8 @@ a top 1.35 m higher, 4.5 m onto one 1 m higher and 5.75 m onto one at its own he
 were raised from 4 to 5 m for it. The section bakes take about 1 s each; the lightmaps are a 256 x 256 and a 256 x 512
 atlas (109 and 123 KB EXR), the navigation meshes 135 and 106 polygons. In Compatibility (RTX 5080, vsync off,
 1600 x 900, 300 frames) the view from the start draws 124 calls against 106 without the sections (0.36 against 0.34 ms
-CPU, 0.21 against 0.20 ms GPU, 0.5 MB more texture memory); inside the AI section 58 calls, inside the pathing section
-43. The only parts that move are the pathing section's door and its two movers, stepped in the physics tick.
+CPU, 0.21 against 0.20 ms GPU, 0.5 MB more texture memory); inside the AI section 58 calls, inside the pathing
+section 43. The only parts that move are the pathing section's door and its two movers, stepped in the physics tick.
 
 ## What the bakes and the walk found {#what-the-bakes-found}
 
