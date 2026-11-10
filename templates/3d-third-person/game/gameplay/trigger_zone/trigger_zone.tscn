@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://gameplay/trigger_zone/trigger_zone.gd" id="1_zone"]
+[ext_resource type="Script" path="res://addons/gds_game/trigger_zone/trigger_zone.gd" id="1_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_zone"]
 resource_local_to_scene = true

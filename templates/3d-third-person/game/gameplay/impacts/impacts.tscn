@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://gameplay/impacts/impacts.gd" id="1_impacts"]
 [ext_resource type="Script" path="res://gameplay/impacts/impact_surface.gd" id="2_surface"]
-[ext_resource type="Script" path="res://gameplay/effects/effect_def.gd" id="4_def"]
+[ext_resource type="Script" path="res://addons/gds_game/effects/effect_def.gd" id="4_def"]
 [ext_resource type="Material" path="res://assets/materials/impacts/impact_mark.tres" id="3_mark"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_dust.tscn" id="dust"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_splinters.tscn" id="splinters"]
