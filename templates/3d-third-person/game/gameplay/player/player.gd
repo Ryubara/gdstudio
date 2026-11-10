@@ -117,6 +117,10 @@ const PUSH_HOLD := 0.25
 ## Turns the keys, pad and touch stick off (a cutscene, a menu).
 @export var input_enabled := true
 
+## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
+## declined it: the cap on limp ragdolls or the range).
+var died_by_clip := false
+
 ## What the body is doing; `PlayerAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
@@ -236,11 +240,14 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 
 
 ## Kills the character: it goes limp into its ragdoll, which keeps the body's momentum, and it
-## ignores every gameplay input until `revive()`. The camera's target follows the hips.
+## ignores every gameplay input until `revive()`. The camera's target follows the hips. When the
+## ragdoll declines (`PlayerRagdoll.can_start()`: too many limp already, or too far from the
+## camera) the character plays its death clip and lies in the clip's last pose (`died_by_clip`).
 func die() -> void:
 	if state == State.DEAD:
 		return
 	var momentum := velocity
+	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start()
 	_wants_crouch = false
 	_fire_buffer = 0.0
 	_action_lock = 0.0
@@ -258,7 +265,7 @@ func die() -> void:
 	_body.disabled = true
 	state = State.DEAD
 	ragdoll = true
-	if ragdoll_body != null:
+	if ragdoll_body != null and not died_by_clip:
 		ragdoll_body.start(momentum)
 	died.emit()
 
@@ -383,6 +390,7 @@ func _dead_tick() -> void:
 
 
 func _come_alive() -> void:
+	died_by_clip = false
 	_body.disabled = false
 	velocity = Vector3.ZERO
 	_fall_speed = 0.0
