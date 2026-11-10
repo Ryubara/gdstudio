@@ -9,7 +9,7 @@ var _rig: PlayerCamera
 
 func before_test() -> void:
 	_scene = scene_runner("res://main.tscn").scene()
-	_rig = _scene.get_node("PlayerCamera")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
 	await InputSim.ticks(get_tree(), 8)
 
 
@@ -80,7 +80,7 @@ func test_every_export_has_its_default_pinned() -> void:
 func test_the_scene_sets_both_nodes_and_the_camera_has_no_warning() -> void:
 	assert_object(_rig.target).is_not_null()
 	assert_object(_rig.follow_camera).is_not_null()
-	assert_object(_rig.camera).is_same(_scene.get_node("Camera"))
+	assert_object(_rig.camera).is_same(_scene.get_node("PlayerRig/Camera"))
 	assert_array(_rig._get_configuration_warnings()).is_empty()
 	var bare := PlayerCamera.new()
 	assert_array(bare._get_configuration_warnings()).has_size(3)
@@ -149,9 +149,9 @@ func test_capture_mouse_off_leaves_the_mouse_alone_on_a_click() -> void:
 func test_start_pitch_is_where_a_new_camera_begins() -> void:
 	var packed := load("res://main.tscn") as PackedScene
 	var fresh := packed.instantiate()
-	(fresh.get_node("PlayerCamera") as PlayerCamera).start_pitch = 33.0
+	(fresh.get_node("PlayerRig/PlayerCamera") as PlayerCamera).start_pitch = 33.0
 	add_child(fresh)
-	assert_float((fresh.get_node("PlayerCamera") as PlayerCamera).pitch).is_equal(33.0)
+	assert_float((fresh.get_node("PlayerRig/PlayerCamera") as PlayerCamera).pitch).is_equal(33.0)
 	# The Phantom Camera makes its spring arm a frame later: free the scene after it did.
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -169,7 +169,7 @@ func test_the_clip_planes_reach_the_lens_and_the_real_camera() -> void:
 	_rig.far_clip = 500.0
 	assert_float(_rig.phantom_camera().camera_3d_resource.near).is_equal_approx(0.3, 0.0001)
 	await InputSim.ticks(get_tree(), 3)
-	var camera: Camera3D = _scene.get_node("Camera")
+	var camera: Camera3D = _scene.get_node("PlayerRig/Camera")
 	assert_float(camera.near).is_equal_approx(0.3, 0.001)
 	assert_float(camera.far).is_equal_approx(500.0, 0.1)
 

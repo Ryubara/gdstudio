@@ -152,6 +152,34 @@ def _classes(project: Path, entries: list[Path]) -> list[Problem]:
     return problems
 
 
+def _addon_classes(project: Path, entries: list[Path]) -> list[Problem]:
+    """A class the kit's synced addons declare is declared nowhere else: a second copy in `core/` or `gameplay/` (a
+    template's old file, a hand copy) would never get the kit's fixes, and two scripts with one `class_name` do not
+    parse."""
+    from gds_tools.sync import KIT_ADDONS  # sync names the addons; it imports nothing from here
+
+    owned: dict[str, str] = {}
+    for addon in KIT_ADDONS:
+        root = project / "addons" / addon
+        for path in sorted(root.rglob("*.gd")) if root.is_dir() else []:
+            found = _CLASS_NAME.search(_text(path))
+            if found:
+                owned[found.group(1)] = f"addons/{addon}/{path.relative_to(root).as_posix()}"
+    problems = []
+    for path in entries:
+        found = _CLASS_NAME.search(_text(path)) if path.suffix == ".gd" else None
+        if found and found.group(1) in owned:
+            problems.append(
+                Problem(
+                    _rel(project, path),
+                    "addon-class",
+                    f"class_name {found.group(1)} is the kit's ({owned[found.group(1)]}, synced by `gds sync`): "
+                    "delete this copy and use the addon's",
+                )
+            )
+    return problems
+
+
 def _scene_scripts(project: Path, entries: list[Path]) -> list[Problem]:
     """The script on a scene's root node sits beside the scene and has its name (`player.tscn`, `player.gd`)."""
     problems = []
@@ -336,6 +364,7 @@ def check(project: Path) -> list[Problem]:
         *_top_level(project),
         *_names(project, entries),
         *_classes(project, entries),
+        *_addon_classes(project, entries),
         *_scene_scripts(project, entries),
         *_uids(project, entries),
         *_dependencies(project, entries),

@@ -232,13 +232,22 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The download script comes from the same commit as the release it fetches (v1.7.12).
-      - name: Download actionlint 1.7.12
-        run: >-
-          bash <(curl -sSfL
-          https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash)
-          1.7.12
-      - run: ./actionlint -color .github/workflows/*.yml
+      # The release binary, checked against a sha256 pinned here (from the release's actionlint_1.7.12_checksums.txt).
+      # Never `go install`: actionlint 1.7.12 asks for Go 1.25, the runner's Go is older, and GOTOOLCHAIN=auto then
+      # downloads a toolchain that sum.golang.org and go.dev answered 404 for (kit #962). GitHub's release host
+      # answered 504 for minutes on 2026-11-08 (kit #823), so curl retries on any error.
+      - name: Install actionlint 1.7.12
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$archive" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/actionlint-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/actionlint-bin" actionlint
+          echo "$RUNNER_TEMP/actionlint-bin" >> "$GITHUB_PATH"
+      - run: actionlint -color .github/workflows/*.yml
 
   build-ok:
     if: always()

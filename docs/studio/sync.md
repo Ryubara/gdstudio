@@ -49,6 +49,52 @@ the committed ones with the 3D Blank template's.
   errors and was only given an exclude filter. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers both,
   layout and sync check them, and `gds check scripts` parses every script).
 
+### Gameplay code every template shares: `gds_game` {#gds-game}
+
+<!-- new section: gds_ui was the only owned addon; nothing said where a universal gameplay part lives, and three
+branches chose three homes on one day (gdstudio #923) -->
+
+`godot/addons/gds_game/` holds the gameplay code any game of any template can use (the maintainer's decision on
+gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone` and the
+suites' `ExportPins` and `InputSim`. It is scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under
+`addons/` is a global class without a plugin, so a game needs no `project.godot` line for it, and `gds sync` alone
+brings it to a game made before it existed. Its suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job
+with `gds_ui`'s.
+
+A part goes in `gds_game` when all three hold, and stays in the template otherwise:
+
+1. any game of any template can use it unchanged: it names no template class (`Player`, `Weapon`), no template path
+   (`res://gameplay/...`), no input action and no group but its own;
+2. it is code whose look and numbers come from exports, the scene it sits on or a resource the game owns;
+3. its suite proves it alone, building its nodes in code in the kit's project.
+
+Scenes (`trigger_zone.tscn`, `effect_emitter.tscn`), tuning resources and presets, levels, the character and what names
+it, the HUD and menu pages stay in the template and are the game's own; they use the addon's script by its `res://`
+path. A suite that tests a part inside the template (in the map, with the player, through the template's scene) stays
+in the template. An issue for a universal part names its home, `addons/gds_game/<folder>/`, and a branch that adds one
+puts it there, never in a template's `core/` or `gameplay/`. `gds check layout` refuses a script outside the addon that
+declares one of the addon's classes (`addon-class`), so no template or game carries a second, unsynced copy.
+
+### A file that moved into a kit addon {#moved}
+
+<!-- new section: moving template files into a synced addon leaves games made earlier with their own copies; nothing
+said how they take the move -->
+
+A template file moved into a kit addon keeps its `.uid` (`git mv` both), and every `res://` reference in the templates
+names the new path in the same commit. `MOVED` in `python/src/gds_tools/sync.py` lists each move (old `res://` path ->
+the addon's). `gds sync <game>` deletes a game's old copy and its `.uid` and rewrites `"res://<old>"` in the game's own
+`.gd`, `.tscn`, `.tres`, `.cfg` and `.godot` files (not its addons or `.godot/`); `gds sync --check` reports an old copy
+or an old path left as drift, so the game's CI fails until it is synced. A game's own change to the old file is in its
+history and the sync's pull request shows the deletion. Entries stay in `MOVED`: a game may be synced for the first time
+long after. Move a part only when no open branch has changed it (`gh pr list`, the worktrees); the next one waits.
+
+- **Approach:** Move a universal part into `gds_game` with its `.uid`, add its line to `MOVED`, rewrite the templates'
+  references, prove the script alone in `godot/tests/gds_game/` and keep the template's in-the-map suites where they
+  are. **Watch out for:** a part copied into a template is never fixed in the games made from it: `playground`, made
+  the same morning, already had 2 stale files of 43, and the template scenes name scripts by path only (no `uid=`), so a
+  move without the rewrite breaks every scene that uses the script. **Seen:** gdstudio #923, 2026-11-10 (the review of
+  #896 found the stale copies; first parts moved: the effect pool, `TriggerZone`, `ExportPins`, `InputSim`).
+
 ## Not synced: what a new game is made from {#templates}
 
 `templates/game/` is the only part of `templates/` that `gds sync` writes. `templates/repo/` and each template

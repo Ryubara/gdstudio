@@ -6,11 +6,11 @@
 
 ## The component {#component}
 
-A shot that lands tells the level's `Impacts` node (`main.tscn`; the group `impacts`, so no path): it makes a mark on
-the body, bursts the surface's effect and plays its sound. A mark is a flat quad on the body it hit, so it goes where a
-pushed crate or a moving platform goes and is freed with it; there is no `Decal` (Compatibility, which the web build
-uses, does not draw one). `Impacts.impact(collider, point, normal)` is the one call, so a game's own weapon, a grenade
-or a ray gun reuses it.
+A shot that lands tells the level's `Impacts` node (`world/world.tscn`; the group `impacts`, so no path): it makes a
+mark on the body, bursts the surface's effect and plays its sound. A mark is a flat quad on the body it hit, so it goes
+where a pushed crate or a moving platform goes and is freed with it; there is no `Decal` (Compatibility, which the web
+build uses, does not draw one). `Impacts.impact(collider, point, normal)` is the one call, so a game's own weapon, a
+grenade or a ray gun reuses it.
 
 - **The inspector, on `Impacts`.** Marks: `marks_enabled`, `max_marks` (64; the oldest goes first, a lower number
   trims at once), `mark_lifetime` (30 s, **0 keeps a mark**), `mark_fade_time` (4 s, the end of the life it fades
@@ -34,7 +34,8 @@ or a ray gun reuses it.
 - **What takes no mark.** A `CharacterBody3D` (the effect and sound still play) and the ragdoll's bones: they are on
   layer 16 and a projectile's mask is the level, so a shot passes through them and marks what is behind.
 - **Tests and captures.** `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
-  `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and `tests/audio/test_impact_sounds.gd`
-  (real projectiles in a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a
-  wall, a pushed cube and the fade (`gds capture frames`, and `--rendering-method gl_compatibility` for the web look).
-  The sounds are made by `tools/audio/impact_sounds.py` (synthesised, MIT).
+  `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and
+  `tests/audio/test_impact_sounds.gd` (real projectiles in a small arena, and in the map);
+  `tools/capture/impacts_tour.tscn` plays the pistol through a wall, a pushed cube and the fade (`gds capture frames`,
+  and `--rendering-method gl_compatibility` for the web look). The sounds are made by `tools/audio/impact_sounds.py`
+  (synthesised, MIT).

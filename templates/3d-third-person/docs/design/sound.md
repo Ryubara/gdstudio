@@ -6,13 +6,13 @@ bullet impacts.
 ## Buses
 
 `default_bus_layout.tres` has `Master` and three buses sending to it: `SFX` for effects, `Ambient` for beds and `UI`
-for menus (3 dB under the rest). An `AudioSettings` node in `main.tscn` holds each bus's volume as an inspector value
+for menus (3 dB under the rest). An `AudioSettings` node in `world/world.tscn` holds each bus's volume as an inspector value
 in dB; changing one applies to the audio server at once, in the editor and in a running game (the remote inspector),
 and a settings screen sets the same properties. Give every sound player a `bus`.
 
 ## Where they play
 
-The wind is the `Wind` player of `main.tscn` (autoplay, `Ambient`, -20 dB). **To use your own wind, change the
+The wind is the `Wind` player of `world/world.tscn` (autoplay, `Ambient`, -20 dB). **To use your own wind, change the
 `stream` of that one player** (a seamless loop; the level and the bus stay as they are). The coin is the `Sound` node of
 `pickup.tscn` (-16 dB): one of the four files each time a pickup is taken, then the pickup goes once it has played. The
 steps are `Footsteps`
@@ -29,7 +29,7 @@ A shot that lands plays the sound of its surface: each `ImpactSurface` under `Im
 `SFX`. The level's `EffectEmitter` plays it at the point from its pool (the effect's `max_instances` hits can sound at
 once, a newer one takes the oldest's place). Change the `sound`, `sound_volume_db` or `sound_bus` in the `EffectDef`; a
 hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off, and so does the emitter's
-`sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `gameplay/effects/`.
+`sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `EffectDef` in `addons/gds_game/effects/`.
 
 ## The sounds
 

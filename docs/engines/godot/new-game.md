@@ -120,7 +120,7 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 **A template's own suites run with one command**, from your worktree, whatever you changed in the template:
 
 ```text
-uv run --project <workspace>/repos/gdstudio/python gds template test 3d-third-person
+uv run --project <your worktree>/python gds template test 3d-third-person
 ```
 
 It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
@@ -150,8 +150,10 @@ kept with `--keep`, two calls at once).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
-  dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
-  2026-11-08 (the command: gdstudio #917).
+  dropped approach stayed in it and broke every test until the game was made again); the template comes from the
+  checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
+  (the `game` line prints which checkout it used). **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917);
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -170,6 +172,12 @@ kept with `--keep`, two calls at once).
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
   fault of the change. **Seen:** gdstudio #856, 2026-11-09.
+- **Approach:** A game is made from the template folder as it is on disk, and the copy leaves out what git ignores
+  (`git ls-files --others --ignored`, with `__pycache__`, `.ruff_cache`, `.pytest_cache`, `.mypy_cache`, `.godot` as the
+  fixed fallback when the template is not in a checkout); `gds new game`, `gds template test` and the eval games share
+  that copy. **Watch out for:** a Python or ruff run in a template's tools folder (`tools/net/`) leaves ignored caches
+  there, and the old copy took them, so `gds template test` stopped at `layout: 3 problem(s)` before any suite ran;
+  deleting the caches by hand was the only way on. **Seen:** gdstudio #903 (PR #935), 2026-11-10 (fix: gdstudio #957).
 
 ## With `--local` {#with-local}
 
@@ -316,9 +324,12 @@ template cheap to change):
     by hand.
 11. **Scene and resource files stay small and diff cleanly**: no editor-only state, no generated data, stable node names.
     *Why:* a review reads the diff.
-12. **Every component has tests**: each export's default is pinned (`ExportPins`, in `tests/fixtures/`) and a test
-    changes each live export at run time and checks its effect. *Why:* a pinned default is a decision someone made, and
-    a test of the change is the only proof that item 2 holds.
+12. **Every component has tests, in its home**: a component any game of any template can use unchanged is a script of
+    the synced `addons/gds_game/`, proved alone in `godot/tests/gds_game/`; the template keeps its scene, its tuning
+    and its in-the-map suites ([Sync](../../studio/sync.md#gds-game)). Each export's default is pinned (`ExportPins`,
+    in the synced `addons/gds_game/testing/`) and a test changes each live export at run time and checks its effect.
+    *Why:* a pinned default is a decision someone made, a test of the change is the only proof that item 2 holds, and a
+    universal part copied into a template is never fixed in the games made from it.
 
 How it is proved: `gds check scripts` and an editor open of a fresh game (the probe of
 [editor screenshots](editor-screenshots.md) prints each node's configuration warnings and what is empty, and saves each
@@ -379,12 +390,18 @@ scene as the main
 scene; a kit test compares them) and its own
 `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd`.
 
+- **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
+  by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
+  3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
+  that node moved into `world/world.tscn`; only the full `gds template test` run found it, a run of the suites that
+  name `main.tscn` did not. **Seen:** gdstudio #927, 2026-11-10.
+
 A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
 autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
 load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one outside a made game, copy it to a
 probe folder in scratch (for an extending template, the base's `game/` first and the template's on top), then copy the
-kit's `godot/addons/gds_ui/` to the probe's `addons/gds_ui/`; the import and a run are then clean (checked on 3D Blank
-with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
+kit's `godot/addons/gds_ui/` and `gds_game/` to the probe's `addons/`; the import and a run are then clean (checked on
+3D Blank with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
 there, so tests run in a made game: `gds template test <name>` ([Proof](#proof)).
 
 CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
@@ -404,3 +421,10 @@ folder (`real_game`, `real_third_person_game`).
   tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
   longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
   tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
+- **Approach:** Make a repository once a session in a `scope="session"` fixture and copy it into each test with
+  `python/tests/git_seed.py` (`relocate` rewrites the paths git wrote into `config`); share one run of a command
+  between the tests that only read it (`default_flow`); leave out the step a test is not about (`kit_pr=False`); keep
+  the seed small; pass `--fixed-fps 60` to an eval test's Godot. CI runs four workers, a file to each (`-n auto
+  --maxprocesses=4 --dist loadfile`). **Watch out for:** a loaded machine moves wall time by 2x, so count processes
+  per file too; a copied file costs 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin
+  path. **Seen:** gdstudio #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on four workers).

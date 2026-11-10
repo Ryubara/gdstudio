@@ -32,8 +32,8 @@ const SHOTS: Array[Dictionary] = [
 	{"name": "16_map_from_above", "above": Vector3(0, 95, 45), "look": Vector3(0, 0, -4)},
 ]
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
 @onready var _above: Camera3D = $Above
 
 
@@ -50,7 +50,7 @@ func _run() -> void:
 			_above.look_at(shot["look"])
 			_above.make_current()
 		else:
-			($Main/Camera as Camera3D).make_current()
+			($Main/PlayerRig/Camera as Camera3D).make_current()
 			_player.teleport(shot["at"], deg_to_rad(shot["yaw"]) + PI)
 			_rig.yaw = shot["yaw"]
 			_rig.pitch = shot["pitch"]

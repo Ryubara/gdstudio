@@ -2,9 +2,9 @@
 class_name EffectEmitter
 extends Node3D
 ## Plays one-shot effects from anywhere, from one pool. Put one in the level (`effect_emitter.tscn`;
-## `main.tscn` has it); it joins the group `effect_emitter`, so a weapon, an impact or a pickup
-## finds it with `EffectEmitter.find(self)` and needs no path. An `EffectDef` says what an effect
-## is (particles, sound, light flash, length); this plays it:
+## `world/world.tscn` has it); it joins the group `effect_emitter`, so a weapon, an impact or a
+## pickup finds it with `EffectEmitter.find(self)` and needs no path. An `EffectDef` says what an
+## effect is (particles, sound, light flash, length); this plays it:
 ##
 ## [codeblock]
 ## var emitter := EffectEmitter.find(self)

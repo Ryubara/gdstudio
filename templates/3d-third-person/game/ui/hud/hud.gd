@@ -60,6 +60,16 @@ const REGIONS: Array[StringName] = [
 ## The touch controls whose showing moves the parts that have a `touch_region`.
 @export var touch_controls: TouchControls
 
+@export_group("Data")
+## The player every part reads. Empty leaves each part to look for the first node of the `player`
+## group, which is right for a game with one player; a game with more than one sets this to the
+## one this screen shows (the rig's `Player`).
+@export var player: Node:
+	set(value):
+		var replaced := player
+		player = value
+		_bind_parts(replaced)
+
 @export_group("Parts")
 ## The box everything is scaled in: the screen divided by the HUD's scale.
 @export var root: Control
@@ -84,6 +94,7 @@ func _ready() -> void:
 		return
 	get_viewport().size_changed.connect(fit)
 	fit()
+	_bind_parts()
 	if touch_controls != null:
 		touch_controls.shown_changed.connect(set_touch_layout)
 		set_touch_layout(touch_controls.is_shown())
@@ -112,6 +123,7 @@ func add_widget(widget: Variant, region_name: StringName) -> Control:
 	var target := region(region_name)
 	assert(target != null, "No HUD region called %s." % region_name)
 	target.add_child(node)
+	_bind_parts()
 	return node
 
 
@@ -207,6 +219,16 @@ func set_touch_layout(on: bool) -> void:
 				widget.reparent(_homes[widget], false)
 		_homes.clear()
 	touch_layout_changed.emit(on)
+
+
+# Points the parts that have no player of their own (or had the one `player` replaced) at
+# `player`. A part given a player in the editor or in code keeps it.
+func _bind_parts(replaced: Node = null) -> void:
+	if (player == null and replaced == null) or Engine.is_editor_hint():
+		return
+	for widget in widgets():
+		if widget.player == null or widget.player == replaced:
+			widget.player = player
 
 
 func _smallest_font_size() -> float:

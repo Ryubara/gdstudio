@@ -418,6 +418,11 @@ two cannot be joined without parsing the transcript. A stall after the pull requ
 check would need `gh`. What it cannot see: a stall written as a report (a message that names a pull request and
 announces a step is let through), and a stall by an agent whose end is a tool call with no text.
 
+What the gate lets through (an agent that waits on a background task) can still end for good when that task ends
+without waking it, or when a `/clear` kills it. Tether keeps a record of the subagents it saw at work and tells the
+coordinator, once, at the next session start (new, resumed or after a clear), each one that ended without a report,
+with its last status line ([tether #31](https://github.com/Ryubara/tether/issues/31)).
+
 Both registrations already exist (`.claude/settings.json`; the game template's `launch.py` runs the same dispatcher),
 so a game gets the gate with `gds sync`; restart sessions to pick it up.
 
