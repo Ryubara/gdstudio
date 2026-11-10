@@ -4,9 +4,9 @@ extends Resource
 ##
 ## Components, shaders and the theme builder read these and nothing else, so a game restyles the
 ## whole UI by saving a UITokens resource and pointing the project setting `gds_ui/tokens` at it.
-## The defaults are the shipped drive-in skin (a night sky, an amber marquee, a film burn and a
-## projector iris); every other look is another resource. See the addon's README for the order of
-## events and how to swap the tokens while the game runs (`set_active`).
+## The defaults are Deadnight's drive-in skin (a night sky, an amber marquee, a film burn and a
+## projector iris), not a neutral look; every other look is another resource. See the addon's
+## README for the order of events and how to swap the tokens while the game runs (`set_active`).
 
 ## Named easings. UIMotion maps each one to a Godot transition and ease.
 enum Ease { STANDARD, EMPHASIZED, ENTER, EXIT, OVERSHOOT }

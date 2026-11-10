@@ -1,7 +1,8 @@
 # The kit's build and tests on the three platforms the bootstrap supports: ruff, pytest, and a dry run of the
-# bootstrap from the checkout, the gds_ui addon's Godot tests (`godot`), and a game made from the 3D Blank template and
-# built the way the game's own CI does (`template`). The final job, `build-ok`, is the one required check, so the jobs
-# can change without editing the ruleset. Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+# bootstrap from the checkout, the gds_ui addon's Godot tests (`godot`), and a game made from each template (a matrix
+# over `3d-blank` and `3d-third-person`) and built the way the game's own CI does (`template`). The final job,
+# `build-ok`, is the one required check, so the jobs can change without editing the ruleset. Actions are pinned to a
+# full commit SHA; the tag is in the comment beside it.
 name: ci
 
 on:

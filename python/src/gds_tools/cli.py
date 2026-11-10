@@ -1,4 +1,4 @@
-"""The `gds` command: GDStudio's tooling for agents and people (docs/tools.md)."""
+"""The `gds` command: GDStudio's tooling for agents and people (docs/studio/index.md)."""
 
 from __future__ import annotations
 
