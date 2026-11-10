@@ -15,7 +15,7 @@ bus = &"SFX"
 
 [node name="EmptySound" type="AudioStreamPlayer3D" parent="."]
 unique_name_in_owner = true
-volume_db = -18.0
+volume_db = -12.0
 bus = &"SFX"
 
 [node name="ReloadSound" type="AudioStreamPlayer3D" parent="."]
@@ -26,5 +26,5 @@ bus = &"SFX"
 
 [node name="DrawSound" type="AudioStreamPlayer3D" parent="."]
 unique_name_in_owner = true
-volume_db = -18.0
+volume_db = -10.0
 bus = &"SFX"

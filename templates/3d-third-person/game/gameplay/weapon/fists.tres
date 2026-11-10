@@ -33,4 +33,4 @@ melee_reach = 1.1
 grip_bones = Array[StringName]([])
 shoot_clips = Array[StringName]([&"ual1/Punch_Jab", &"ual1/Punch_Cross"])
 shot_sound = SubResource("AudioStreamRandomizer_swing")
-shot_volume_db = -16.0
+shot_volume_db = -27.0
