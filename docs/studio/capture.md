@@ -27,11 +27,15 @@ scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, nev
 | `--scene` | A scene to run instead of the main scene, e.g. `res://ui/hud.tscn`. |
 | `--seconds`, `--fps` | Length and rate; the capture is at most `ceil(seconds * fps)` frames: a scene that calls `quit()` ends it sooner, so `--seconds` is an upper bound. Defaults 5 s at 10 fps. |
 | `--name` | The folder name (default `capture`). |
+| `--out` | Write the frames to exactly this folder instead of the scratch folder below. |
 
 The frames go to `<workspace>/scratch/<repo>/<branch>/<name>/` as `<name>00000000.png`, `<name>00000001.png`, ...
 next to Movie Maker's `<name>.wav` and a `capture.json` holding the frame rate. The repository and branch come from
-the project folder with the rule the hooks use: the repository is the git top level's name (for a worktree
-`worktrees/<repo>/<branch>`, the parent folder's name) and a `/` in the branch becomes `-`. Frames from an earlier
+the folder `gds` runs in, never from `--project`, so run it from your task's worktree: a throwaway game made by
+`gds template game` is a git repository of its own, and naming the folder from it would put every agent's frames in
+the shared `scratch/template-check/main/`. The rule is the hooks' one: the repository is the git top level's name (for
+a worktree `worktrees/<repo>/<branch>`, the parent folder's name) and a `/` in the branch becomes `-`. Outside a git
+repository, pass `--out <folder>`. Frames from an earlier
 run of the same name are replaced. A project that was never imported is imported first.
 
 Frames are the project's viewport size (Godot's `--resolution` has no effect on Movie Maker); the sheet and the clip

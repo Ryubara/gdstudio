@@ -71,6 +71,30 @@ def test_scratch_folder_outside_git(tmp_path: Path) -> None:
         capture.scratch_folder(tmp_path, tmp_path, lambda cmd, cwd: Result(128, ""))
 
 
+def test_frames_folder_follows_the_caller_not_the_throwaway_game(tmp_path: Path) -> None:
+    """A throwaway game is its own git repository (`template-check`, branch `main`): its frames must not land
+    in the shared `scratch/template-check/main/`, but in the scratch folder of the worktree gds runs in."""
+    game = tmp_path / "elsewhere" / "template-check" / "game"
+    worktree = tmp_path / "worktrees" / "gdstudio" / "my-task"
+    game.mkdir(parents=True)
+    worktree.mkdir(parents=True)
+
+    def run(cmd: list[str], cwd: Path | None) -> Result:
+        top = game.parent if Path(cmd[2]) == game.resolve() else worktree
+        return git_fake(top, "main" if top == game.parent else "my-task")(cmd, cwd)
+
+    out = capture.frames_folder(game, worktree, tmp_path / "ws", "hud", None, run)
+    assert out == tmp_path / "ws" / "scratch" / "gdstudio" / "my-task" / "hud"
+
+
+def test_frames_folder_takes_an_explicit_out(tmp_path: Path) -> None:
+    explicit = tmp_path / "mine" / "clip"
+    out = capture.frames_folder(
+        tmp_path / "game", tmp_path, tmp_path / "ws", "hud", str(explicit), git_fake(tmp_path, "x")
+    )
+    assert out == explicit.resolve()
+
+
 def test_frames_command_line_and_metadata(project: Path, tmp_path: Path) -> None:
     fake = FakeGodot(frames=3)
     out = tmp_path / "scratch" / "main"
