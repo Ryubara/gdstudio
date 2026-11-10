@@ -31,8 +31,7 @@ signal health_changed(health: float)
 ## A hit reached the character, alive or lying dead: the record a game's networking sends, and
 ## what the `HitReaction` answers with a flinch, the death's push or a push on the lying body.
 signal hit_received(record: HitRecord)
-## The character used `target` (a door, a lever): the parent of the `Interactable` it found, whose
-## `interacted` was said.
+## The character used `target` (a door, a lever): the parent of the `Interactable` it found.
 signal interacted(target: Node3D)
 ## The character took `amount` of `item_id` from a `Pickup`; `total` is how many it holds now.
 signal item_collected(item_id: StringName, amount: int, total: int)
@@ -128,6 +127,10 @@ enum State {
 		weapon = value
 		if weapon != null and not Engine.is_editor_hint():
 			weapon.self_ticking = false
+## The weapons carried and the switch between them (the command's next, previous and empty-hands
+## presses). Empty: the character keeps the one weapon it has. The character steps it before the
+## weapon.
+@export var loadout: WeaponLoadout
 
 @export_group("Ragdoll")
 ## The ragdoll the character goes limp into when it dies. Empty: it dies standing still.
@@ -148,30 +151,14 @@ enum State {
 ## `ragdoll_key` sends). A testing aid: a server that steps commands from the network turns it off.
 @export var ragdoll_by_command := true
 
-## The health left (0 to `max_health`; 0 with no `Health` child, tuned there); the HUD shows it.
+## The health left (0 to `max_health`; 0 with no `Health` child): read only, the HUD shows it.
 var health: float:
 	get:
 		return Health.of(self).value if Health.of(self) != null else 0.0
-	set(value):
-		var part := Health.of(self)
-		if part != null:
-			part.value = value
-## The `Health` child's `max_value`: what the character starts and gets up with.
+## The `Health` child's `max_value` (read only: tune and set the `Health` node).
 var max_health: float:
 	get:
 		return Health.of(self).max_value if Health.of(self) != null else 0.0
-	set(value):
-		var part := Health.of(self)
-		if part != null:
-			part.max_value = value
-## The `Health` child's `enabled`: off, hits still flinch and push the body but take nothing.
-var health_enabled: bool:
-	get:
-		return Health.of(self).enabled if Health.of(self) != null else false
-	set(value):
-		var part := Health.of(self)
-		if part != null:
-			part.enabled = value
 
 ## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
 ## declined it: the cap on limp ragdolls or the range).
@@ -306,7 +293,9 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_fall_out()
 	else:
 		_move(delta)
-	# Last, as the weapon's own tick came after the body's.
+	# Last, as the weapon's own tick came after the body's; the switch before the weapon.
+	if loadout != null:
+		loadout.tick(delta)
 	if weapon != null:
 		weapon.tick(delta)
 
@@ -343,7 +332,8 @@ func _move(delta: float) -> void:
 func shot_wanted(command: PlayerCommand) -> bool:
 	if weapon == null or state == State.DEAD or not weapon.can_fire():
 		return false
-	return _fire_buffer > 0.0 or command.fire_pressed or (weapon.automatic and command.fire)
+	var automatic := weapon.definition != null and weapon.definition.automatic
+	return _fire_buffer > 0.0 or command.fire_pressed or (automatic and command.fire)
 
 
 ## The ray the character aims along, from the command of its last step: where it starts and its
@@ -366,6 +356,10 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 		weapon.save_step_state(kept.weapon)
 	else:
 		kept.weapon.clear()
+	if loadout != null:
+		loadout.save_step_state(kept.loadout)
+	else:
+		kept.loadout.clear()
 	_prone.save_step_state(kept.prone)
 	_slide.save_step_state(kept.slide)
 	return kept
@@ -378,6 +372,8 @@ func restore(kept: CharacterState) -> void:
 	velocity = kept.velocity
 	for index in CharacterState.FIELDS.size():
 		set(CharacterState.FIELDS[index], kept.values[index])
+	if loadout != null:
+		loadout.load_step_state(kept.loadout)
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
 	_prone.load_step_state(kept.prone)
@@ -423,6 +419,8 @@ func die(shot: HitRecord = null) -> void:
 		_prone.reset()
 		prone_changed.emit(false)
 	_fire_buffer = 0.0
+	if weapon != null:
+		weapon.cancel_reload()
 	_action_lock = 0.0
 	_land_timer = 0.0
 	_jump_buffer = 0.0
@@ -438,9 +436,8 @@ func die(shot: HitRecord = null) -> void:
 	velocity = Vector3.ZERO
 	_body.disabled = true
 	state = State.DEAD
-	var part := Health.of(self)
-	if part != null:
-		part.kill()
+	if Health.of(self) != null:
+		Health.of(self).kill()
 	ragdoll = true
 	if ragdoll_body != null and not died_by_clip:
 		ragdoll_body.start(momentum, viewer)
@@ -476,9 +473,8 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	take_hit(HitRecord.blow(amount, source))
 
 
-## Takes a hit (a shot through `HitZones`, or a record a game's networking received): gives it to
-## the `Health` child (`Health.apply()`), which takes the damage, and dies when that reaches zero,
-## carrying the hit into the ragdoll.
+## Takes a hit (a shot through `HitZones`, or a record a network received): the `Health` child
+## takes its damage (`Health.apply()`), and at zero the character dies carrying it into the ragdoll.
 ## A blow (`record.knockback`) also stops and throws the character. A dead character takes no
 ## damage, but the record is still said (`hit_received`): a shot pushes the lying body.
 func take_hit(record: HitRecord) -> void:
@@ -486,9 +482,8 @@ func take_hit(record: HitRecord) -> void:
 		hit_received.emit(record)
 		return
 	took_hit.emit(record.damage, record.source)
-	var part := Health.of(self)
-	if part != null:
-		part.apply(record)
+	if Health.of(self) != null:
+		Health.of(self).apply(record)
 	if state == State.DEAD:
 		return
 	if record.knockback:
@@ -519,10 +514,9 @@ func _on_health_died(record: HitRecord) -> void:
 
 
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings := PackedStringArray()
 	if Health.of(self) == null:
-		warnings.append("No `Health` child: hits flinch and push the body but take nothing.")
-	return warnings
+		return PackedStringArray(["No `Health` child: hits push the body but take nothing."])
+	return PackedStringArray()
 
 
 ## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
@@ -531,8 +525,7 @@ func get_minimap_heading() -> Vector2:
 	return Vector2(sin(facing), cos(facing))
 
 
-## Uses the nearest `Interactable` in front (`Interactor`). Returns the node it makes usable, or
-## null when there is nothing to use.
+## Uses the nearest `Interactable` in front: returns the node it makes usable, or null.
 func interact() -> Node3D:
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
 	var target := _interactor.find_target(forward, tuning.interact_reach)
@@ -644,9 +637,8 @@ func _dead_tick() -> void:
 
 func _come_alive() -> void:
 	died_by_clip = false
-	var part := Health.of(self)
-	if part != null:
-		part.reset()
+	if Health.of(self) != null:
+		Health.of(self).reset()
 	_body.disabled = false
 	velocity = Vector3.ZERO
 	_fall_speed = 0.0
@@ -979,13 +971,23 @@ func _use_input(delta: float) -> void:
 	_use_weapon(delta)
 
 
-# A press of the fire button waits a moment for the arm to come up, then shoots.
+# The weapon presses (switch, reload), then the trigger: a press of the fire button waits a moment
+# for the arm to come up, then shoots (or clicks on an empty magazine).
 func _use_weapon(delta: float) -> void:
 	_fire_buffer = maxf(_fire_buffer - delta, 0.0)
+	if loadout != null:
+		if last_command.unarmed_pressed:
+			loadout.toggle_unarmed()
+		elif last_command.next_weapon_pressed:
+			loadout.next()
+		elif last_command.previous_weapon_pressed:
+			loadout.previous()
 	if weapon == null:
 		return
+	if last_command.reload_pressed:
+		weapon.reload()
 	var pulled := last_command.fire_pressed
-	if weapon.automatic and last_command.fire:
+	if weapon.definition != null and weapon.definition.automatic and last_command.fire:
 		pulled = true
 	if not _prone_lets_fire():
 		pulled = false
@@ -993,5 +995,5 @@ func _use_weapon(delta: float) -> void:
 	if pulled:
 		_fire_buffer = tuning.fire_buffer_time
 	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount:
-		if weapon.fire(_aim_origin(), _aim_direction()) != null:
+		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
 			_fire_buffer = 0.0

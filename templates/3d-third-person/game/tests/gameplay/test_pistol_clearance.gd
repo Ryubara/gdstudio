@@ -43,10 +43,9 @@ func _worst(model: String, bones: Array[StringName], grip_clip: StringName) -> D
 
 
 func test_the_pistol_stays_out_of_the_body_in_every_locomotion_clip_on_both_mannequins() -> void:
-	var animation := CharacterAnimation.new()
-	var bones := animation.grip_bones
-	var grip_clip := animation.grip_clip
-	animation.free()
+	var pistol := load("res://gameplay/weapon/pistol.tres") as WeaponDef
+	var bones := pistol.grip_bones
+	var grip_clip := pistol.grip_clip
 	for model: String in MODELS:
 		var worst := _worst(model, bones, grip_clip)
 		for clip_name: StringName in worst:

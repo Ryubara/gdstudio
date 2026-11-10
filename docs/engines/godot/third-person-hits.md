@@ -28,14 +28,13 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `encode()` packs the sent part in about 40 bytes (`decode()` reads it back and refuses a short or non-finite one). It
   is all a game's networking sends for a hit: a peer gives it to its own copy (`take_hit(record)`) and makes the
   damage, the flinch, the push and the mark itself, so no ragdoll or flinch is ever sent (kit #906 carries it).
-- **Health.** `Character.take_hit(record)` gives the record to the character's `Health` child
-  ([below](#health)), says `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`),
-  goes limp and then says `hit_received(record)` with `killed` set. `health`, `max_health` and `health_enabled` on the
-  character read and write the `Health` node's `value`, `max_value` and `enabled`. `hit(amount,
-  source)` is still there: a blow with no point that also stops and throws the character (`hit_stun_time`,
-  `knockback_speed`), as before. A dead character takes no damage, but its `hit_received` still fires (the lying-body
-  push). Getting up gives the health back, and `die()` with no record sets it to 0. The HUD's health part reads
-  `health` and `max_health` and shows them.
+- **Health.** `Character.take_hit(record)` gives the record to the character's `Health` child ([below](#health)), says
+  `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`), goes limp and then says
+  `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
+  and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
+  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. A dead character takes no
+  damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
+  no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point
   along the shot by `death_push` times its strength; a hit on a lying body by `lying_push`. A hit that does not kill
   starts a flinch: the hit body and every body hanging from it go physical (`physical_bones_start_simulation` with that
@@ -56,8 +55,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 - **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
   `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
 - **On the character's `Health` node** (in `character.tscn`): `enabled` (off: hits still flinch and push but take
-  nothing), `max_value` (100) and the rest of [the component](#health). **On the `Weapon`**: `projectile_damage` (34:
-  three chest shots, one headshot), passed to the projectile's `damage`.
+  nothing), `max_value` (100) and the rest of [the component](#health). **On the `WeaponDef`** (`pistol.tres`):
+  `damage` (34: three chest shots, one headshot), passed to the projectile's `damage` and to a hitscan shot's or a
+  blow's record.
 
 ### What it costs {#cost}
 
