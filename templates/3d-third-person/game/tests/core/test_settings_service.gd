@@ -149,12 +149,12 @@ func test_an_idle_service_does_not_process_or_write_anything() -> void:
 	var service := _make(TEMP_PATH)
 	assert_bool(service.is_processing()).is_false()
 	service.save_delay = 0.05
-	await get_tree().create_timer(0.3, true).timeout
+	await InputSim.ticks(get_tree(), 18)
 	assert_int(service.write_count).is_zero()
 	assert_bool(FileAccess.file_exists(TEMP_PATH)).is_false()
 	service.set_value(SettingsService.VSYNC, false)
 	assert_bool(service.is_processing()).is_true()
-	await get_tree().create_timer(0.3, true).timeout
+	await InputSim.ticks(get_tree(), 18)
 	assert_bool(service.is_processing()).is_false()
 
 
@@ -165,7 +165,7 @@ func test_a_change_is_written_after_the_delay_and_a_drag_is_one_write() -> void:
 	service.set_value(SettingsService.VOLUME_SFX, 80)
 	service.set_value(SettingsService.VOLUME_SFX, 70)
 	assert_int(service.write_count).is_zero()
-	await get_tree().create_timer(0.5, true).timeout
+	await InputSim.ticks(get_tree(), 30)
 	assert_int(service.write_count).is_equal(1)
 	assert_bool(FileAccess.file_exists(TEMP_PATH)).is_true()
 
