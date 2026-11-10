@@ -56,13 +56,14 @@ game depends on it), *learn while building* (low risk: the first task that uses 
 | AnimationTree, state machines, blend spaces | player and zombie movement | known: [AnimationTree](animation-tree.md) (reading a clip's place, locking one branch to another, stepping by hand) and [crowds](crowds.md) (walk/run blend plus punch one-shot; throttle with manual advance) |
 | Skeleton3D cost, MultiMesh | 20 to 40 zombies in a browser | known: [crowds](crowds.md) (40 at most; MultiMesh not tried) |
 | BoneAttachment3D | weapons in hands | learn while building |
+| PhysicalBone3D, PhysicalBoneSimulator3D | a character that dies into a ragdoll and gets up | known: [Ragdolls with PhysicalBone3D](ragdoll.md) (build joints in the right order, limits measured from the clips, Jolt, tested by many random deaths) |
 
 ## Gameplay {#gameplay}
 
 | System | Used for | Status |
 | --- | --- | --- |
 | CharacterBody3D | the first-person player | learn while building |
-| Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building |
+| Physics (Jolt), raycasts, layers | hits, barricades, pickups | learn while building; Jolt runs the ragdoll ([why](ragdoll.md#jolt)) |
 | Physics interpolation (3D) | smooth bodies, weapons and enemies on fast screens with a fixed tick | known: [Physics interpolation](physics-interpolation.md) (on from the first build; hand-blended rigs off; measure on screen at 144 fps) |
 | NavigationServer3D, NavigationAgent3D, avoidance | zombies finding players | known: [crowds](crowds.md) (avoidance is cheap; repath on a timer) |
 | A cutscene one player sees | an arrival, an intro or a kill cam on one screen while the server's night goes on | known: [A cutscene one client plays](client-cutscene.md) (the server keeps the player safe by the client's word, with a cap; the show is a pure function of time; the camera is placed by rays; the sounds load on demand) |

@@ -331,15 +331,18 @@ def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
                 assert len(hooks) <= 1, f"{workflow.name}: {line.strip()}"
 
 
-def test_the_third_person_project_file_is_the_blank_one_plus_its_input_and_orientation():
+def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientation_and_jolt():
     """An extending template replaces a file whole, so 3D Third Person carries its own `project.godot`. It must not
-    drift from 3D Blank's: the same text, but for the input map and the landscape setting (kit #821)."""
+    drift from 3D Blank's: the same text, but for the input map, the landscape setting (kit #821) and Jolt
+    Physics, which the ragdoll needs (kit #846)."""
     blank = (KIT / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8")
     third = (KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text(encoding="utf-8")
     without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
     without_input = without_input.replace("window/handheld/orientation=0\n", "")
+    without_input = without_input.replace('3d/physics_engine="Jolt Physics"\n', "")
     assert without_input.strip() == blank.strip()
     assert "[input]" in third and "window/handheld/orientation=0" in third
+    assert '3d/physics_engine="Jolt Physics"' in third
 
 
 def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(kit, root):

@@ -315,7 +315,14 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   `wrong_values` against a dictionary of defaults) so a new export fails the suite until its default is pinned, and keep
   one suite per component under gdlint's twenty public methods. **Watch out for:** two suites went past twenty `test_`
   functions and gdlint (`max-public-methods`) failed them, and a float export compared with `is_equal` failed on a
-  property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08.
+  property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; gdstudio #846,
+  2026-11-09 (the ragdoll's 19 tests became two suites, state and physics).
+
+- **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
+  `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed
+  difference. **Watch out for:** 3D Third Person's Jolt setting (#846) failed the kit's `test` job on all three systems
+  with the template's own suite green, because the comparison only knew the input map and the orientation. **Seen:**
+  gdstudio #846, 2026-11-10 (fix: the test strips and checks the Jolt line).
 
 ## Adding a template {#adding-a-template}
 

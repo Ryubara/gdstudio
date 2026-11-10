@@ -886,6 +886,34 @@ _surfaces = [{
 "vertex_data": PackedByteArray("mpmZv2ZmZj8AAIA+mpmZP2ZmZj8AAIA+mpmZv2ZmZr8AAIA+mpmZP2ZmZr8AAIA+mpmZP2ZmZj8AAIC+mpmZv2ZmZj8AAIC+mpmZP2ZmZr8AAIC+mpmZv2ZmZr8AAIC+mpmZP2ZmZj8AAIA+mpmZP2ZmZj8AAIC+mpmZP2ZmZr8AAIA+mpmZP2ZmZr8AAIC+mpmZv2ZmZj8AAIC+mpmZv2ZmZj8AAIA+mpmZv2ZmZr8AAIC+mpmZv2ZmZr8AAIA+mpmZP2ZmZj8AAIA+mpmZv2ZmZj8AAIA+mpmZP2ZmZj8AAIC+mpmZv2ZmZj8AAIC+mpmZv2ZmZr8AAIA+mpmZP2ZmZr8AAIA+mpmZv2ZmZr8AAIC+mpmZP2ZmZr8AAIC+/3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
 
+[sub_resource type="ArrayMesh" id="ArrayMesh_wvrog"]
+lightmap_size_hint = Vector2i(34, 34)
+_surfaces = [{
+"aabb": AABB(-4, -1.5, -1.5, 8, 3, 3),
+"attribute_data": PackedByteArray("q6qqPgAAAAA8PHw/xMMDP6uqqj4AAAA/eHg4P8TDAz8AAAAAAAAAP3h4OD/x8HA8q6oqPwAAAADi4SE/Dw+PPgAAgD8AAAA/8fBwPA8Pjz6rqio/AAAAP25jDj/x8HA8q6qqPgAAAAA8PHw/Hh5eP6uqKj8AAAAAeHg4Px4eXj+rqqo+AAAAPzw8fD9aWho/q6oqPwAAAD94eDg/WloaPwAAAAAAAAA/4uEhPzw8vD6rqqo+AAAAP+LhIT/i4SE/AAAAAAAAgD/x8HA8PDy8Pquqqj4AAIA/8fBwPOLhIT+rqio/AAAAP8TDAz88PHw/AACAPwAAAD/x8HA8PDx8P6uqKj8AAIA/xMMDP3h4OD8AAIA/AACAP/HwcDx4eDg/"),
+"format": 34359742519,
+"index_count": 24,
+"index_data": PackedByteArray("AAABAAIAAwAEAAUABgAHAAgABwAJAAgACgALAAwACwANAAwADgAPABAADwARABAA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 18,
+"vertex_data": PackedByteArray("AACAQAAAwD8AAMA/AACAQAAAwL8AAMA/AACAwAAAwL8AAMA/AACAQAAAwD8AAMC/AACAwAAAwL8AAMC/AACAQAAAwL8AAMC/AACAQAAAwD8AAMA/AACAQAAAwD8AAMC/AACAQAAAwL8AAMA/AACAQAAAwL8AAMC/AACAQAAAwD8AAMC/AACAQAAAwD8AAMA/AACAwAAAwL8AAMC/AACAwAAAwL8AAMA/AACAwAAAwL8AAMA/AACAQAAAwL8AAMA/AACAwAAAwL8AAMC/AACAQAAAwL8AAMC//3//f////7//f/9/////v/9//3////+//////wAA/7//////AAD/v/////8AAP+///8AgP///////wCA////////AID///////8AgP////8VXRbd/3//vxVdFt3/f/+/FV0W3f9//78VXRbd/3//vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_21b1c"]
+lightmap_size_hint = Vector2i(34, 22)
+_surfaces = [{
+"aabb": AABB(-2, -1.5, -1.5, 4, 3, 3),
+"attribute_data": PackedByteArray("AAAAAAAAAAA8PHw/jC56P6uqqj4AAAAAeHg4P4wuej8AAAAAAAAAPzw8fD9ddBE/q6qqPgAAAD94eDg/XXQRP6uqKj8AAAAA4uEhP4wuujwAAIA/AAAAAOLhIT9GF90+q6oqPwAAAD88PLw+jC66PAAAgD8AAAA/PDy8PkYX3T6rqqo+AAAAAPHwcDxGF90+q6oqPwAAAADx8HA8jC66PKuqqj4AAAA/Dw+PPkYX3T6rqio/AAAAPw8Pjz6MLro8AAAAAAAAAD/i4SE/XXQRP6uqqj4AAAA/4uEhP4wuej8AAAAAAACAPzw8vD5ddBE/q6qqPgAAgD88PLw+jC56P6uqqj4AAAA/PDx8P0YX3T6rqio/AAAAP3h4OD9GF90+q6qqPgAAgD88PHw/jC66PKuqKj8AAIA/eHg4P4wuujyrqio/AAAAPw8Pjz6MLno/AACAPwAAAD/x8HA8jC56P6uqKj8AAIA/Dw+PPl10ET8AAIA/AACAP/HwcDxddBE/"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("AAAAwAAAwD8AAMA/AAAAQAAAwD8AAMA/AAAAwAAAwL8AAMA/AAAAQAAAwL8AAMA/AAAAQAAAwD8AAMC/AAAAwAAAwD8AAMC/AAAAQAAAwL8AAMC/AAAAwAAAwL8AAMC/AAAAQAAAwD8AAMA/AAAAQAAAwD8AAMC/AAAAQAAAwL8AAMA/AAAAQAAAwL8AAMC/AAAAwAAAwD8AAMC/AAAAwAAAwD8AAMA/AAAAwAAAwL8AAMC/AAAAwAAAwL8AAMA/AAAAQAAAwD8AAMA/AAAAwAAAwD8AAMA/AAAAQAAAwD8AAMC/AAAAwAAAwD8AAMC/AAAAwAAAwL8AAMA/AAAAQAAAwL8AAMA/AAAAwAAAwL8AAMC/AAAAQAAAwL8AAMC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
 [node name="PrototypeLevel" type="Node3D" unique_id=224543177]
 
 [node name="Daylight" parent="." unique_id=1218709681 instance=ExtResource("daylight")]
@@ -1573,5 +1601,29 @@ weight = 60.0
 grip = 0.5
 bounciness = 0.0
 push_speed = 1.2
+
+[node name="RagdollLedge" type="Node3D" parent="." unique_id=1253007482]
+
+[node name="Ramp" parent="RagdollLedge" unique_id=967659999 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 22)
+mesh = SubResource("ArrayMesh_wvrog")
+kind = 2
+size = Vector3(8, 3, 3)
+material = ExtResource("5_orange")
+
+[node name="Top" parent="RagdollLedge" unique_id=590612810 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 22)
+mesh = SubResource("ArrayMesh_21b1c")
+size = Vector3(4, 3, 3)
+material = ExtResource("5_orange")
+
+[node name="TopLabel" type="Label3D" parent="RagdollLedge" unique_id=637879293]
+transform = Transform3D(0, 1, 0, 0, 0, 1, 1, 0, 0, 6, 3.01, 22)
+pixel_size = 0.006
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "Y: ragdoll"
+font_size = 96
+outline_size = 24
 
 [connection signal="activated" from="Triggers/PressurePad" to="Doors/MainDoor" method="open" unbinds=1]

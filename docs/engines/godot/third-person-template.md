@@ -20,6 +20,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
+| Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
@@ -353,6 +354,53 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   read 1.0 m "at rest" from its south wall 1 m behind the spot, and a case with a sideways arm offset measured from the
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
+
+## Ragdoll {#ragdoll}
+
+<!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->
+
+The character dies into a ragdoll and gets up again, the usual hybrid: an animated `CharacterBody3D` with its capsule
+while alive, a full ragdoll while dead, and a blend back to the animation on getting up. How the engine behaves is in
+[Ragdolls with PhysicalBone3D](ragdoll.md); this section is what the template does with it.
+
+- **What it is.** `Player.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`).
+  Dying stops the animation tree, turns the capsule off, hands every gameplay input a no-op (movement, jump, sprint,
+  crouch, aim, fire, interact and a hit are ignored in the state) and lets the `Ragdoll` component
+  (`PlayerRagdoll`) take the skeleton from the pose on screen, each bone given the body's velocity times
+  `carry_velocity` (a run keeps its momentum). The camera still orbits, and its target follows the hips. A ragdoll that
+  falls below the tuning's `fall_limit` respawns; `teleport()` and `respawn()` get a dead character up at once.
+  Getting up stands the body on the ground under the hips, facing the way the chest faces, restarts the animation at
+  the ground state and fades the ragdoll's hold on the skeleton out over `get_up_time`. The Universal Animation
+  Library has no get-up clip; a game with one plays it with `play_clip()` from `revived`.
+- **The inspector.** On `Player`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick it in
+  the inspector or the remote inspector to kill, untick to get up) and `ragdoll_key` (Y by default; None turns the key
+  off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
+  Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
+  body, shared out by bone size), `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of the
+  measured range), `linear_damp`, `angular_damp`, `friction`, `bounce`, `carry_velocity`, `get_up_time`,
+  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones never meet each other,
+  the player's capsule, the camera's walls or a shot). Every one applies live, has a pinned default and a test.
+- **Why the bones are generated.** The 16 `PhysicalBone3D`s (pelvis, three spine bones, neck and head, arms, hands, legs,
+  feet; no fingers) hang off a `PhysicalBoneSimulator3D` named `RagdollBones` under the skeleton of the `Model` slot.
+  They are made from the table `PlayerRagdoll.BODIES` every time the slot's rig changes, and in the editor too (the
+  capsules show with Debug, Visible Collision Shapes), but never saved: they would sit inside the glb that a model swap
+  deletes. Any rig that has these 65 bones works, so both mannequins do, before and after a swap, at run time too.
+- **How the limits are measured.** Each joint's limits come from the clips the player plays, on both mannequins, plus
+  10 degrees: `tools/ragdoll/measure_joints.gd` (run headless from a game, header says how) prints the cone centres,
+  swings and twists and the knees' and elbows' bend, roll and side ranges for the table. A character can die in any pose
+  of any clip, and a joint that starts outside its limits throws the body. Run the tool again after a clip changes.
+- **The engine is Jolt.** The template's `project.godot` sets `3d/physics_engine="Jolt Physics"`: on Godot Physics this
+  ragdoll blew up in 10 to 20 percent of deaths. Every other suite of the template passes on Jolt. This is a change to
+  every game made from the template, and the maintainer should know ([why](ragdoll.md#jolt)).
+- **The map.** The prototype level has a `RagdollLedge` group (a ramp and a ledge, 3 m up, in the south, past the push
+  cubes): run up it and off the east edge, or press Y at the top. The blocks are new and not in the baked lightmap, so
+  they are lit by the sun and the sky until the level is baked again.
+
+- **Approach:** Prove a ragdoll in the game's own camera on both models: run, press Y mid-run, orbit the body, press Y
+  to get up, then run off the ledge; read the frames before the report. **Watch out for:** a stress test that passes
+  says no bone flew, not that the body lies on the floor in a believable pose, which only the clip shows (the
+  frames are from `tools/capture/ragdoll_tour.tscn`, run through `gds capture` as in
+  [A route for a clip](#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
 
 ## Touch controls {#touch-controls}
 
