@@ -31,6 +31,7 @@ radius = 0.5
 
 [node name="PhysicsProp" type="RigidBody3D"]
 script = ExtResource("1_prop")
+metadata/surface = &"wood"
 
 [node name="CrateMesh" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

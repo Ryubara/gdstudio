@@ -51,6 +51,9 @@ signal fired(projectile: Projectile)
 @export_range(0, 8, 1) var projectile_bounces := 0
 ## The share of its speed a bounce keeps.
 @export_range(0.0, 1.0, 0.01) var projectile_bounce_keep := 0.6
+## On: the shots leave marks, effects and sounds where they land (the level's `Impacts`). Off: this
+## weapon's shots land without a trace, whatever the projectile scene says.
+@export var impacts := true
 
 var _cooldown := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -92,6 +95,8 @@ func fire() -> Projectile:
 	shot.impulse = projectile_impulse
 	shot.bounces = projectile_bounces
 	shot.bounce_keep = projectile_bounce_keep
+	if not impacts:
+		shot.impact_effects = false
 	var world: Node = shooter.get_parent() if shooter != null else get_parent()
 	world.add_child(shot)
 	shot.launch(origin, direction, projectile_speed, shooter)
