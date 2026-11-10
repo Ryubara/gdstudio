@@ -97,3 +97,47 @@ had no home -->
   `tap_units` gave a fingertip half the size (places 22 CSS px, not 44) and the players' column sat 37 units lower than
   on the page, under the hints. **Seen:** Deadnight #1280, #1301, 2026-11-05 (fix: the ratio is set in the capture
   scene; numbers come from the web export in Chrome as a phone).
+
+## The template HUD: regions and widgets {#template-hud}
+
+<!-- new section: the page covers how a HUD part is placed and measured; nothing said how a template's HUD is built so that
+a part is added by dropping its scene into a region and the whole look is one resource (gdstudio #880) -->
+
+The HUD of 3D Third Person (`ui/hud/`) is a component any game reuses: a `Hud` layer that holds `HudWidget` scenes in
+regions, one theme, a phone scale and a touch layout. A later design pass restyles and rearranges it without touching
+the parts' code.
+
+- **Regions.** `Hud/Root/Center` is the whole screen and is never inset (the crosshair sits at the true middle, where
+  the weapon aims). `Hud/Root/SafeArea` is the screen less the device's safe area and `margin`, and holds six columns:
+  `TopLeft`, `TopCenter`, `TopRight`, `BottomLeft`, `BottomCenter`, `BottomRight` (a `VBoxContainer` each, growing away
+  from its corner; a hidden part takes no room). `MinimapSlot` is the first child of `TopRight`: drop the minimap scene
+  into it (it is shown only while it holds something).
+- **A part is a `HudWidget`** (a `PanelContainer`): drop its scene into a region in the editor, or `hud.add_widget(scene,
+  &"TopRight")`. It finds the player (its `player` export, else the first node of the group `player`), connects through
+  `refresh_on(source, signal)` (a signal the source lacks is passed over, and the link ends when the player leaves) and
+  overrides `_has_data()` and `_refresh()`. A part with no data is hidden; it shows the moment the data exists.
+  `rebind()` looks for the player again.
+- **Health and ammo are one script, `HudStat`**, with the scenes `hud_health.tscn` and `hud_ammo.tscn`. The player (or its
+  `weapon`) only has to make these exist: `health` and `max_health` with a signal `health_changed` for health; `ammo`
+  and `magazine_size` on the `weapon`, with `ammo_changed`, for ammo. `took_hit`, `died`, `revived`, `fired` and
+  `weapon_changed` also make a part read again, whichever of them the node has. A swapped weapon is a new source: the
+  part listens to it at the next signal. Another stat (stamina, a shield) is an instance of `hud_stat.tscn` with
+  `value_property`, `max_property`, `refresh_signals` and `title` changed.
+- **One theme.** `hud_theme.tres` holds the font sizes, the colours, the card and the bar; the parts use its type
+  variations (`HudCard`, `HudCaption`, `HudNumber`) and set no style of their own, so saving another `Theme` into `Hud.theme`
+  restyles everything.
+- **Phone and touch.** `min_text_size` (14 CSS pixels) makes the HUD grow until its smallest text is that high on the page
+  (`Hud.css_height()`: the canvas element's box on the web, the window over `pixel_ratio` elsewhere), and while the touch
+  controls show, a part with a `touch_region` (health to `TopLeft`, ammo to `TopRight`) leaves the bottom corners, which
+  are the thumbs', and returns when they go. A test lists every visible part against the touch buttons and the stick's
+  resting ring at 844 x 390, 667 x 375 and a desktop window.
+
+- **Approach:** Give a HUD part a base that binds to the player and hides itself without data, put the parts in regions
+  by dropping scenes, and test it with a stand-in that has the data (`HudSubject`) so the feature that makes the data can
+  land later without a change here. **Watch out for:** a part written against a property that does not exist yet reads
+  null, and `Object.get()` of a missing property is silent: test the part with the data missing, present and gone again.
+  **Seen:** gdstudio #880, 2026-11-10.
+- **Approach:** In a HUD suite, give the window a size first (`get_tree().root.size = Vector2i(1280, 720)`, put back
+  afterwards), or read rectangles through the control's global transform. **Watch out for:** a headless window is 64
+  pixels square, so the HUD scaled itself by 3 as for a tiny phone, and `Control.get_global_rect()` does not apply an
+  ancestor's scale to the size (the safe area read 32 px of a 96 px margin). **Seen:** gdstudio #880, 2026-11-10.

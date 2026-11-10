@@ -37,9 +37,11 @@ signal data_changed
 
 @export_group("Phone")
 ## While the touch controls show, the `Hud` moves the part to this region, which is clear of the
-## thumbs' corners (empty: it stays where it is).
-@export_enum("", "TopLeft", "TopCenter", "TopRight", "BottomLeft", "BottomCenter", "BottomRight")
-var touch_region := ""
+## thumbs' corners (Stay: it stays where it is).
+@export_enum(
+	"Stay", "TopLeft", "TopCenter", "TopRight", "BottomLeft", "BottomCenter", "BottomRight"
+)
+var touch_region := "Stay"
 
 var _bound: Node
 var _links: Array[Array] = []
@@ -100,7 +102,7 @@ func refresh_on(source: Object, signal_name: StringName) -> void:
 	for entry in source.get_signal_list():
 		if entry["name"] == signal_name:
 			arguments = (entry["args"] as Array).size()
-	var callable := update.unbind(arguments)
+	var callable := update.unbind(arguments) if arguments > 0 else update
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
 		_links.append([source, signal_name, callable])

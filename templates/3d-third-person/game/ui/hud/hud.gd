@@ -145,12 +145,27 @@ func safe_rect() -> Rect2:
 	)
 
 
+## How high the screen is for a person, in CSS pixels: a page's own height on the web (the canvas
+## element's box, so a phone's pixel ratio and an iframe do not matter), else the window's pixels
+## over `pixel_ratio` (or the device's scale).
+func css_height() -> float:
+	var window_height := float(get_window().size.y)
+	if pixel_ratio > 0.0:
+		return window_height / pixel_ratio
+	if OS.has_feature("web"):
+		var box: Variant = JavaScriptBridge.eval(
+			"document.querySelector('canvas').getBoundingClientRect().height"
+		)
+		if typeof(box) in [TYPE_FLOAT, TYPE_INT] and box > 0.0:
+			return float(box)
+	return window_height / maxf(DisplayServer.screen_get_scale(), 0.5)
+
+
 ## How much the HUD is enlarged now: 1 on a desktop, more where its smallest text would be under
 ## `min_text_size` CSS pixels.
 func text_scale() -> float:
 	var smallest := _smallest_font_size()
-	var ratio := pixel_ratio if pixel_ratio > 0.0 else DisplayServer.screen_get_scale()
-	var css_per_canvas := get_viewport().get_final_transform().get_scale().x / maxf(ratio, 0.5)
+	var css_per_canvas := css_height() / maxf(get_viewport().get_visible_rect().size.y, 1.0)
 	if smallest <= 0.0 or css_per_canvas <= 0.0:
 		return 1.0
 	return clampf(min_text_size / (smallest * css_per_canvas), 1.0, max_scale)
@@ -181,7 +196,7 @@ func set_touch_layout(on: bool) -> void:
 	touch_layout = on
 	if on:
 		for widget in widgets():
-			if widget.touch_region != "" and not _homes.has(widget):
+			if widget.touch_region != "Stay" and not _homes.has(widget):
 				var target := region(StringName(widget.touch_region))
 				if target != null and target != widget.get_parent():
 					_homes[widget] = widget.get_parent() as Control
