@@ -6,10 +6,9 @@
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="4_pcam"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="5_host"]
 [ext_resource type="PackedScene" path="res://ui/touch/third_person_touch_controls.tscn" id="6_touch"]
-[ext_resource type="PackedScene" path="res://ui/hud/item_counter.tscn" id="8_counter"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud.tscn" id="8_hud"]
 [ext_resource type="Script" path="res://ui/probe/web_probe.gd" id="10_probe"]
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
-[ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="12_crosshair"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 
@@ -52,12 +51,8 @@ script = ExtResource("5_host")
 
 [node name="TouchControls" parent="." instance=ExtResource("6_touch")]
 
-[node name="Hud" type="CanvasLayer" parent="."]
-
-[node name="ItemCounter" parent="Hud" instance=ExtResource("8_counter")]
-
-[node name="Crosshair" parent="Hud" node_paths=PackedStringArray("player") instance=ExtResource("12_crosshair")]
-player = NodePath("../../Player")
+[node name="Hud" parent="." node_paths=PackedStringArray("touch_controls") instance=ExtResource("8_hud")]
+touch_controls = NodePath("../TouchControls")
 
 [node name="WebProbe" type="Node" parent="." node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("10_probe")

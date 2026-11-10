@@ -152,14 +152,13 @@ kept with `--keep`, two calls at once).
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
   dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
   2026-11-08 (the command: gdstudio #917).
-- **Approach:** Make a game by hand (`gds new game --local --workspace <w>`) only in a workspace of its own from
-  `mktemp -d` under the system temp folder, holding copies of `.gdstudio-workspace`, `gdstudio.local.toml` and the
-  addon folders under `tools/`, and remove only that; in a test of a template's `project.godot`, read the file with
-  `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty `--workspace` folder has no marker of
-  its own, so the game landed in the real `repos/`; a fixed name in the session's shared scratchpad is shared by every
-  agent, and a reviewer's clean-up deleted another agent's game (#896); `editor_plugins/enabled` is not in
-  `ProjectSettings` at run time. **Seen:** gdstudio #814 (a stray `repos/zz-parse`, deleted; `ConfigFile`), #873 (an
-  empty folder), 2026-11-08 to 10; #917 (`gds template` makes and removes the folder itself).
+- **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
+  of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
+  `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
+  `--workspace` has no marker, so the game landed in the real `repos/`; a fixed name in the shared scratchpad let a
+  reviewer's clean-up delete another agent's game (#896); `ProjectSettings` lacks `editor_plugins/enabled` at run time.
+  **Seen:** gdstudio #814, #873, #877 (a stray `repos/zz-parse`, an empty folder, one inside the workspace: moved
+  out); #917 (`gds template` makes and removes its folder).
 
 - **Approach:** Prove a template change with `gds template test <t>`, then open the game it kept (`--keep`) in the
   editor for the Output panel; keep the new scripts' `.uid` files (copy them from the kept game back to the template;

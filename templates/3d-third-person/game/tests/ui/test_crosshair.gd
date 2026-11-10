@@ -8,18 +8,23 @@ const SCENE := "res://ui/hud/crosshair.tscn"
 var _scene: Node
 var _crosshair: Crosshair
 var _player: Player
+var _window_size: Vector2i
 
 
 func before_test() -> void:
+	# A headless window is 64 pixels square, which makes the HUD grow as on a tiny phone.
+	_window_size = get_tree().root.size
+	get_tree().root.size = Vector2i(1280, 720)
 	# Another suite may have left a button down (a base suite leaves `fire` pressed).
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
-	_crosshair = _scene.get_node("Hud/Crosshair")
+	_crosshair = _scene.get_node("Hud/Root/Center/Crosshair")
 	_player = _scene.get_node("Player")
 	await InputSim.ticks(get_tree(), 8)
 
 
 func after_test() -> void:
+	get_tree().root.size = _window_size
 	InputSim.release_all()
 	AudioDrain.stop_all(_scene)
 
@@ -28,6 +33,8 @@ func test_every_export_has_its_default_pinned() -> void:
 	var fresh := auto_free(load(SCENE).instantiate()) as Crosshair
 	var pins := {
 		&"player": null,
+		&"hide_without_data": true,
+		&"touch_region": "Stay",
 		&"radius": 6.0,
 		&"color": Color(1.0, 1.0, 1.0, 1.0),
 		&"outline_color": Color(0.04, 0.05, 0.08, 0.5),
@@ -97,8 +104,8 @@ func test_the_colours_and_the_ring_follow_the_exports() -> void:
 	assert_float(_crosshair.get_global_rect().size.x).is_equal_approx((6.0 + 0.0) * 2.0 + 2.0, 0.5)
 
 
-func test_it_sits_in_the_hud_layer_not_in_an_inset_box_and_ignores_the_mouse() -> void:
-	assert_object(_crosshair.get_parent()).is_instanceof(CanvasLayer)
+func test_it_sits_in_the_whole_screen_region_not_an_inset_box_and_ignores_the_mouse() -> void:
+	assert_str(_crosshair.get_parent().name).is_equal("Center")
 	assert_int(_crosshair.mouse_filter).is_equal(Control.MOUSE_FILTER_IGNORE)
 	assert_float(_crosshair.anchor_left).is_equal(0.5)
 	assert_float(_crosshair.anchor_right).is_equal(0.5)
