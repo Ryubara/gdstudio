@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 import pytest
+from git_seed import relocate
 
 from gds_tools import issues, sweep
 from gds_tools.sweep import Settings
@@ -47,29 +48,49 @@ class FakeGh:
         raise AssertionError(args)
 
 
-@pytest.fixture
-def world(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
+def _identity(patch: pytest.MonkeyPatch) -> None:
     for key, value in (("NAME", "t"), ("EMAIL", "a@example.org")):
-        monkeypatch.setenv(f"GIT_AUTHOR_{key}", value)
-        monkeypatch.setenv(f"GIT_COMMITTER_{key}", value)
-    origin, root = tmp_path / "origin.git", tmp_path / "ws"
-    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
-    seed = tmp_path / "seed"
-    seed.mkdir()
-    git(seed, "init", "-q", "-b", "main")
-    (seed / "README.md").write_text("proj\n", encoding="utf-8")
-    git(seed, "add", "-A")
-    git(seed, "commit", "-q", "-m", "docs: Add a readme")
-    git(seed, "remote", "add", "origin", str(origin))
-    git(seed, "push", "-q", "origin", "main")
-    (root / "repos").mkdir(parents=True)
-    (root / "worktrees" / "proj").mkdir(parents=True)
-    checkout = root / "repos" / "proj"
-    subprocess.run(["git", "clone", "-q", str(origin), str(checkout)], check=True)
-    # The slug is read from the configured url; fetches still go to the local remote.
-    git(checkout, "config", "remote.origin.url", f"https://github.com/{SLUG}.git")
-    git(checkout, "config", f"url.{origin.as_posix()}.insteadOf", f"https://github.com/{SLUG}.git")
-    return {"root": root, "checkout": checkout, "gh": FakeGh(), "origin": origin}
+        patch.setenv(f"GIT_AUTHOR_{key}", value)
+        patch.setenv(f"GIT_COMMITTER_{key}", value)
+
+
+@pytest.fixture(scope="session")
+def world_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A remote with one commit and a checkout of it under repos/, made once a session (about ten git processes) and
+    copied for each test with the paths git wrote rewritten (git_seed.relocate)."""
+    base = tmp_path_factory.mktemp("sweep-world")
+    origin, root = base / "origin.git", base / "ws"
+    with pytest.MonkeyPatch.context() as patch:
+        _identity(patch)
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+        seed = base / "seed"
+        seed.mkdir()
+        git(seed, "init", "-q", "-b", "main")
+        (seed / "README.md").write_text("proj\n", encoding="utf-8")
+        git(seed, "add", "-A")
+        git(seed, "commit", "-q", "-m", "docs: Add a readme")
+        git(seed, "remote", "add", "origin", str(origin))
+        git(seed, "push", "-q", "origin", "main")
+        (root / "repos").mkdir(parents=True)
+        (root / "worktrees" / "proj").mkdir(parents=True)
+        checkout = root / "repos" / "proj"
+        subprocess.run(["git", "clone", "-q", str(origin), str(checkout)], check=True)
+        # The slug is read from the configured url; fetches still go to the local remote.
+        git(checkout, "config", "remote.origin.url", f"https://github.com/{SLUG}.git")
+        git(checkout, "config", f"url.{origin.as_posix()}.insteadOf", f"https://github.com/{SLUG}.git")
+    return base
+
+
+@pytest.fixture
+def world(world_seed: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
+    _identity(monkeypatch)
+    relocate(world_seed, tmp_path)
+    return {
+        "root": tmp_path / "ws",
+        "checkout": tmp_path / "ws" / "repos" / "proj",
+        "gh": FakeGh(),
+        "origin": tmp_path / "origin.git",
+    }
 
 
 def add_worktree(world: dict, name: str, *, branch: bool = True, commit: bool = False, push: bool = False) -> Path:

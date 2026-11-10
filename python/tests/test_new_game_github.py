@@ -7,8 +7,10 @@ import datetime
 import json
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from git_seed import relocate
 from new_game_kit import KIT, git_environment, is_lfs
 from new_game_kit import run_git as git
 
@@ -167,8 +169,24 @@ def make(kit, root, game_origin, gh=None, run=None, options=None, fetch=lambda u
     return made, gh, run
 
 
-def test_every_step_runs_in_order_and_the_proof_is_green(kit, root, game_origin):
-    made, gh, run = make(kit, root, game_origin)
+@pytest.fixture(scope="module")
+def default_flow(small_git_kit_seed, tmp_path_factory) -> SimpleNamespace:
+    """The command with every default, run once a module: the tests that only read what it made and what it asked of
+    `gh` share it (each run is about thirty git processes, and nine tests read the same one; kit #945)."""
+    base = tmp_path_factory.mktemp("default-flow")
+    with pytest.MonkeyPatch.context() as patch:
+        git_environment(patch, base / "gitconfig")
+        kit = relocate(small_git_kit_seed, base / "git-kit") / "kit"
+        root = base / "workspace"
+        (root / "repos").mkdir(parents=True)
+        game_origin = base / "game-origin.git"
+        git("init", "--bare", "-b", "main", str(game_origin))
+        made, gh, run = make(kit, root, game_origin)
+    return SimpleNamespace(made=made, gh=gh, run=run, kit=kit, root=root, game_origin=game_origin)
+
+
+def test_every_step_runs_in_order_and_the_proof_is_green(default_flow):
+    made, gh = default_flow.made, default_flow.gh
     routes = [" ".join(c[:2]) for c in gh.calls]
     order = ["auth status", "repo view", "repo create", "api -X", "workflow run", "run list", "pr create"]
     assert [r for r in dict.fromkeys(routes) if r in order] == order
@@ -180,9 +198,8 @@ def test_every_step_runs_in_order_and_the_proof_is_green(kit, root, game_origin)
     assert made.todo == []
 
 
-def test_the_repository_is_public_by_default_with_the_pages_address_as_homepage(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin)
-    (create,) = gh.called("repo", "create")
+def test_the_repository_is_public_by_default_with_the_pages_address_as_homepage(default_flow):
+    (create,) = default_flow.gh.called("repo", "create")
     assert create[2] == FULL and "--public" in create
     assert create[create.index("--homepage") + 1] == "https://ryubara.github.io/my-game/"
 
@@ -193,17 +210,16 @@ def test_private_makes_it_private(kit, root, game_origin):
     assert "--private" in create and "--public" not in create
 
 
-def test_main_is_pushed_and_the_runs_are_those_of_the_pushed_commit(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_main_is_pushed_and_the_runs_are_those_of_the_pushed_commit(default_flow):
+    made, gh, game_origin = default_flow.made, default_flow.gh, default_flow.game_origin
     pushed = git("rev-parse", "main", cwd=game_origin)
     assert pushed == git("rev-parse", "HEAD", cwd=made.repo)
     assert git("remote", "get-url", "origin", cwd=made.repo) == str(game_origin)
     assert all(c[c.index("--commit") + 1] == pushed for c in gh.called("run", "list"))
 
 
-def test_pages_is_set_to_github_actions_before_the_push(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin)
-    (pages,) = [c for c in gh.calls if c[-1] == "build_type=workflow"]
+def test_pages_is_set_to_github_actions_before_the_push(default_flow):
+    (pages,) = [c for c in default_flow.gh.calls if c[-1] == "build_type=workflow"]
     assert pages == ["api", "-X", "POST", f"repos/{FULL}/pages", "-f", "build_type=workflow"]
 
 
@@ -227,11 +243,11 @@ def test_pages_refused_twice_stops_with_what_to_do(kit, root, game_origin):
         make(kit, root, game_origin, gh=FakeGh(pages_refusals=4))
 
 
-def test_labels_settings_and_ruleset_are_applied_to_the_new_repository(kit, root, game_origin):
-    made, _, run = make(kit, root, game_origin)
-    steps = [argv[argv.index(".github/scripts/groundwork.py") + 1] for argv in run.groundwork]
+def test_labels_settings_and_ruleset_are_applied_to_the_new_repository(default_flow):
+    groundwork = default_flow.run.groundwork
+    steps = [argv[argv.index(".github/scripts/groundwork.py") + 1] for argv in groundwork]
     assert steps == ["labels", "settings", "ruleset"]
-    for argv in run.groundwork:
+    for argv in groundwork:
         assert argv[-3:] == ["-R", FULL, "--apply"]
 
 
@@ -269,8 +285,8 @@ def test_no_wait_leaves_the_proof_as_a_step(kit, root, game_origin):
     assert any("watch the first CI run" in step for step in made.todo)
 
 
-def test_the_kit_pull_request_adds_the_game_on_its_own_branch(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_the_kit_pull_request_adds_the_game_on_its_own_branch(default_flow):
+    gh, kit, root = default_flow.gh, default_flow.kit, default_flow.root
     tree = root / "worktrees" / "gdstudio" / "workspace-add-my-game"
     assert f'[repos.my-game]\nurl = "https://github.com/{FULL}.git"\nrole = "game"' in (
         tree / "workspace.toml"
@@ -298,11 +314,10 @@ def test_no_kit_pr_opens_none(kit, root, game_origin):
     assert gh.called("pr", "create") == [] and made.published.kit_pr == ""
 
 
-def test_the_kit_pull_request_description_passes_the_kits_own_check(kit, root, game_origin):
+def test_the_kit_pull_request_description_passes_the_kits_own_check(default_flow):
     from gds_tools import pr
 
-    _, gh, _ = make(kit, root, game_origin)
-    assert pr.check_body(KIT, gh.body, "workspace: Add the my-game game", kit=KIT).ok
+    assert pr.check_body(KIT, default_flow.gh.body, "workspace: Add the my-game game", kit=KIT).ok
 
 
 def test_an_existing_repository_stops_the_command_before_a_file_is_written(kit, root, game_origin):
@@ -322,8 +337,8 @@ def test_a_remote_goes_only_with_local(kit, root, game_origin):
         make(kit, root, game_origin, remote="https://github.com/Ryubara/my-game.git")
 
 
-def test_every_new_game_is_mit_with_the_kit_owner_as_holder(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_every_new_game_is_mit_with_the_kit_owner_as_holder(default_flow):
+    made, gh = default_flow.made, default_flow.gh
     text = (made.repo / "LICENSE").read_text(encoding="utf-8")
     assert text.startswith("MIT License\n")
     assert f"Copyright (c) {datetime.date.today().year} Ryubara\n" in text

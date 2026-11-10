@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from git_seed import relocate
 from new_game_kit import GITHUB_KIT_FILES, KIT_FILES, build_kit, git_environment, run_git
 from skip_allowlist import (  # noqa: F401 - the hooks of the skip allowlist (--allowed-skips)
     pytest_addoption,
@@ -44,15 +45,21 @@ def small_kit_seed(tmp_path_factory) -> Path:
 
 
 @pytest.fixture(scope="session")
-def small_kit_git_seed(small_kit_seed, tmp_path_factory) -> Path:
-    """The small kit as a git checkout with one commit, made once; a test clones it."""
-    seed = tmp_path_factory.mktemp("small-kit-git") / "kit"
-    shutil.copytree(small_kit_seed, seed)
+def small_git_kit_seed(small_kit_seed, tmp_path_factory) -> Path:
+    """The small kit as a git checkout with one commit and an `origin` that is a local bare repository, made once
+    (`<seed>/kit` and `<seed>/kit-origin.git`); a test gets a copy with the paths rewritten (git_seed.relocate)."""
+    seed = tmp_path_factory.mktemp("small-kit-git")
+    kit, origin = seed / "kit", seed / "kit-origin.git"
+    shutil.copytree(small_kit_seed, kit)
     with pytest.MonkeyPatch.context() as patch:
-        git_environment(patch, seed.parent / "gitconfig")
-        run_git("init", "-q", "-b", "main", cwd=seed)
-        run_git("add", "-A", cwd=seed)
-        run_git("commit", "-q", "-m", "kit", cwd=seed)
+        git_environment(patch, seed / "gitconfig")
+        run_git("init", "-q", "-b", "main", cwd=kit)
+        run_git("add", "-A", cwd=kit)
+        run_git("commit", "-q", "-m", "kit", cwd=kit)
+        run_git("clone", "-q", "--bare", str(kit), str(origin))
+        run_git("remote", "add", "origin", str(origin), cwd=kit)
+        run_git("fetch", "-q", "origin", cwd=kit)
+        run_git("branch", "-q", "--set-upstream-to=origin/main", "main", cwd=kit)
     return seed
 
 
@@ -63,11 +70,7 @@ def small_kit(small_kit_seed, tmp_path) -> Path:
 
 
 @pytest.fixture
-def small_git_kit(small_kit_git_seed, tmp_path) -> Path:
-    """The small kit as a git checkout whose `origin` is a local bare repository (a clone of the seed, so no file is
-    copied, added or committed again)."""
-    copy, origin = tmp_path / "kit", tmp_path / "kit-origin.git"
-    run_git("clone", "-q", "--bare", str(small_kit_git_seed), str(origin))
-    run_git("clone", "-q", str(small_kit_git_seed), str(copy))
-    run_git("remote", "set-url", "origin", str(origin), cwd=copy)
-    return copy
+def small_git_kit(small_git_kit_seed, tmp_path) -> Path:
+    """The small kit as a git checkout whose `origin` is a local bare repository, copied from the seed with no git
+    process (it was a bare clone, a clone and a `remote set-url` for every test)."""
+    return relocate(small_git_kit_seed, tmp_path / "git-kit") / "kit"
