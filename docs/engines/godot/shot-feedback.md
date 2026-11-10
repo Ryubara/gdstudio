@@ -82,7 +82,7 @@ game's page is `docs/research/hit-blood.md`).
      does on a moving body, or how a hit picks its surface -->
 
 What the 3D Third Person template does (`gameplay/impacts/`; its inspector list is on
-[the template page](third-person-template.md#impacts)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a spike
+[the impacts page](third-person-impacts.md)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a spike
 (`Decal` nodes on a floor, a wall, a cylinder and a moving box, drawn in each renderer) and in the template's own
 captures; the research with its sources is in the pull request of #875.
 

@@ -25,6 +25,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
+| Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
@@ -371,40 +372,10 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
 ## Bullet impacts {#impacts}
 
-<!-- new section: the pistol's shots left nothing where they landed (gdstudio #875); the research and the route are in
-     [Bullet impacts and marks](shot-feedback.md#impact-marks) -->
-
-A shot that lands tells the level's `Impacts` node (`main.tscn`; the group `impacts`, so no path): it makes a mark on
-the body, bursts the surface's effect and plays its sound. A mark is a flat quad on the body it hit, so it goes where a
-pushed crate or a moving platform goes and is freed with it; there is no `Decal` (Compatibility, which the web build
-uses, does not draw one). `Impacts.impact(collider, point, normal)` is the one call, so a game's own weapon, a grenade
-or a ray gun reuses it.
-
-- **The inspector, on `Impacts`.** Marks: `marks_enabled`, `max_marks` (64; the oldest goes first, a lower number
-  trims at once), `mark_lifetime` (30 s, **0 keeps a mark**), `mark_fade_time` (4 s, the end of the life it fades
-  over), `mark_material` (the material of every mark, a `ShaderMaterial` with a hole and a ring, or a texture: its
-  `use_texture` and `mark_texture`), `mark_size` (0.12 m), `size_variation` (0.3), `random_rotation`,
-  `surface_offset` (4 mm) and `random_seed`. Effects: `effects_enabled` and `sounds_enabled`. Surfaces:
-  `default_surface`. Every one is read when used: a change shows in the next hit (marks already placed keep their
-  look; `max_marks` and `mark_lifetime` also act on them at once).
-- **One node a surface.** Under `Impacts/Surfaces` are `Default`, `Wood`, `Metal` and `Target`, each an
-  `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
-  (empty: the `Impacts`'), `mark_scale` and `effect`, an `EffectDef` (particles, sound) the `EffectEmitter` plays
-  ([Effects](#effects)); its `max_instances` is how many hits of the surface show. Add a node for a
-  new surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface
-  has.
-- **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
-  Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
-  `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
-- **On or off per weapon or projectile.** `Weapon.impacts` (its shots land without a trace when off) and
-  `Projectile.impact_effects` (the projectile scene's own, for a game with its own projectile); a shot leaves an
-  impact when both are on.
-- **What takes no mark.** A `CharacterBody3D` (the effect and sound still play) and the ragdoll's bones: they are on
-  layer 16 and a projectile's mask is the level, so a shot passes through them and marks what is behind.
-- **Tests and captures.** `tests/gameplay/test_impact*.gd` and `tests/audio/test_impact_sounds.gd` (real projectiles in
-  a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a wall, a pushed cube and
-  the fade (`gds capture frames`, `--rendering-method gl_compatibility` for the web look). The sounds are made by
-  `tools/audio/impact_sounds.py` (synthesised, MIT).
+A shot that lands tells the level's `Impacts` node (`main.tscn`, the group `impacts`): a mark on the body it hit (a flat
+quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of surface.
+`Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a body names
+its surface with and the tests are on [Bullet impacts in 3D Third Person](third-person-impacts.md).
 
 ## Effects and the muzzle flash {#effects}
 

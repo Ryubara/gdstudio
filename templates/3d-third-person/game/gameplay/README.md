@@ -19,6 +19,9 @@ The template has a character and the map's components:
   sound, a flash of light, a length) at a point or on a node from a capped pool, so a muzzle flash, an impact or your own
   puff all share one cheap system: `EffectEmitter.find(self).play_at(effect, point, normal)` or `.play_on(effect, marker)`.
   Everything it plays is cosmetic and never sent over the network.
+- `net/`: the bytes of an online game (`NetWire`, `CommandCodec`, `SnapshotCodec`) and the limits of one connection
+  (`PeerLimits`, `NetLimits`), plain code with no node, socket or clock; `player/player_command.gd` is what one tick
+  of a player asks for. The layout of every message is the comment at the top of `net/net_wire.gd`.
 - `camera_zone/`: hands the view to another Phantom Camera while the player stands in a trigger zone.
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,
