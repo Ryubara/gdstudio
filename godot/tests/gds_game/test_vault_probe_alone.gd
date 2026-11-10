@@ -68,7 +68,8 @@ func test_a_low_thin_wall_is_vaulted_at_its_measured_height_and_depth() -> void:
 		assert_float(plan.height).is_equal_approx(height, 0.01)
 		assert_float(plan.depth).is_equal_approx(0.4, 0.02)
 		assert_object(plan.collider).is_same(wall)
-		assert_bool(plan.high).is_equal(height >= _settings.high_vault_above)
+		# The high clip from its height up (a measured 1.0 m reads a hair under or over it, by engine).
+		assert_bool(plan.high).is_equal(plan.height >= _settings.high_vault_above)
 		# Lands on the floor beyond the far face, clear of it by the body's radius and the margin.
 		var land := plan.end_point()
 		assert_float(land.y).is_equal_approx(0.0, 0.01)
