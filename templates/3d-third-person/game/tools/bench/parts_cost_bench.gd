@@ -39,7 +39,7 @@ const WORLD_PARTS := {
 var _arena: Node3D
 var _works: Array[float] = []
 var _tick_start := -1
-var _frame_end := FrameEnd.new()
+var _frame_end: FrameEnd
 
 
 ## Walks a slow circle when `walking` is on, else asks for nothing: a stand-in for an AI's
@@ -71,6 +71,9 @@ class Walker:
 
 
 func _ready() -> void:
+	# Made here, not where it is declared: a script that loads the bench and frees it unrun (the
+	# tools checks) would leave a node that never joined the tree.
+	_frame_end = FrameEnd.new()
 	add_child(_frame_end)
 	var floor_body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
