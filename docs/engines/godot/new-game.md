@@ -136,8 +136,9 @@ no suite, or a `leaked at exit` line, which CI refuses). Options: `--suite tests
 [test-speed.md](test-speed.md#time-driven-values)) and `--real-clock` (no flag, for a check on the wall clock),
 `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined with `=`, since a bare `--flag` looks
 like an option to the command), `--timeout`. `gds template game <name>` makes the same game, imports it and keeps it,
-printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from the real workspace);
-`gds template clean <path>` removes it, and only a folder `gds template` made. Its tests are
+printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from your worktree:
+frames land in its scratch folder, or in `--out`); `gds template clean <path>` removes it,
+and only a folder `gds template` made. Its tests are
 `python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on every exit,
 kept with `--keep`, two calls at once).
 
@@ -257,13 +258,13 @@ What each template plays, and on which bus (the buses and the volume node are in
   run of the lightmap; fixed in `ci.yml`).
 
 - **Approach:** To capture a template change, make the game with `gds template game <t>` (it prints the path of a game
-  in a throwaway workspace, imported); it is a git repository, so run `gds capture frames --project <path>/game` from
-  the real workspace, and `gds template clean <path>` when done. A hand-built probe (base, template over it, `gds_ui`,
-  as in [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone writes into
-  the real `repos/`, and `capture frames` refuses a folder outside a git repository ("is not inside a git repository"),
-  since it names the scratch folder from the git top level (a probe with no commit lands in
-  `scratch/<parent folder>/detached/`). **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by
-  hand; the `git init` route was checked in #849); #917 (the command).
+  in a throwaway workspace, imported); run `gds capture frames --project <path>/game` from your own worktree, and
+  `gds template clean <path>` when done. A hand-built probe (base, template over it, `gds_ui`, as in
+  [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone writes into the
+  real `repos/`; `capture frames` names the scratch folder from the folder you run it in, not from the game (a git
+  repository of its own, whose frames once all landed in the shared `scratch/template-check/main/`); outside git, pass
+  `--out`. **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by hand; the `git init` route was
+  checked in #849); #917 (the command); #992 (the shared folder, from #940 and #901).
 
 ## What every template is built and reviewed against {#template-checklist}
 
