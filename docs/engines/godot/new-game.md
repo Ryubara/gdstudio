@@ -132,7 +132,8 @@ run ends, passed, failed or interrupted, and nothing else is: it refuses a folde
 code is GdUnit4's (100 failed tests, 105 a script that does not parse; 1 for a layout or parse failure, a run that ran
 no suite, or a `leaked at exit` line, which CI refuses). Options: `--suite tests/core/test_x.gd` (repeat it; one
 `-a` per suite in the order given, default all of `res://tests`), `--keep` (keep the game and print its path),
-`--fixed-fps 60` (Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)),
+`--fixed-fps N` (default 60, the clock CI runs the suites at: Godot runs a frame per tick with no waiting,
+[test-speed.md](test-speed.md#time-driven-values)) and `--real-clock` (no flag, for a check on the wall clock),
 `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined with `=`, since a bare `--flag` looks
 like an option to the command), `--timeout`. `gds template game <name>` makes the same game, imports it and keeps it,
 printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from the real workspace);
