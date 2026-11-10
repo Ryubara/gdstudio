@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="12_crosshair"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
+[ext_resource type="Script" path="res://ui/probe/net_probe.gd" id="15_net_probe"]
 
 [node name="Main" type="Node"]
 
@@ -64,5 +65,8 @@ script = ExtResource("10_probe")
 player = NodePath("../Player")
 camera_rig = NodePath("../PlayerCamera")
 touch = NodePath("../TouchControls")
+
+[node name="NetProbe" type="Node" parent="."]
+script = ExtResource("15_net_probe")
 
 [connection signal="look_turned" from="TouchControls" to="PlayerCamera" method="orbit"]
