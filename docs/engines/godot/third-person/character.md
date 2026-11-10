@@ -311,9 +311,22 @@ each, 1.4 to 1.6 after); a `Pickup` finds its `Visual` once (2.2 to 2.4 µs, 1.8
 to 0.3 µs (a character's is ticked by its step). The level holds 11 pickups, 4 targets and 2 doors, under 40 µs
 together.
 
-What is left: the step, the tree and the footsteps. The footsteps' 14 µs is almost all starting a sound: a walking
-character starts about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step costs a few hundred
-microseconds (with the step list emptied the part costs 1.6 µs).
+What is left: the step and the tree. The footsteps' 14 µs was almost all starting a sound: a walking character starts
+about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step cost about 250 µs on the desktop (the
+decoder is set up for every play; with the step list emptied the part costs 1.6 µs). Since gdstudio #1023 the steps
+play decoded to PCM once (`DecodedSounds` of `gds_game`, [Audio: starting sounds](../audio.md#starting-sounds)), and a
+WAV starts in about 1 µs:
+
+| Footsteps, µs a character a frame (25 walking) | Before #1023 | After |
+| --- | ---: | ---: |
+| Desktop | 12.9 to 13.7 | 2.25 to 2.30 |
+| Chrome | 22.1 to 22.3 | 7.0 to 7.9 |
+
+The four steps decode once for every character (shared), when the first `Footsteps` is ready: about 2 ms on the
+desktop and 7 to 16 ms in Chrome, inside the first character's spawn (65 to 68 ms before, 72 to 84 after, in Chrome).
+The samples are the decoder's own (16-bit), so the steps sound as before: Movie Maker mixes before and after differ by
+-65 dB (25 walkers) and -70 to -83 dB (the action tour's walking), 16-bit rounding; only the tour's shooting stretch
+differs, from run to run. What Chrome still pays is the WAV's own start.
 
 The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
 on a machine other agents were using; a range is the lowest and the highest run.
