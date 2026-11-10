@@ -90,6 +90,9 @@ extends Resource
 @export_range(1.0, 60.0, 0.5, "suffix:rad/s") var aim_turn_speed := 18.0
 ## Seconds the arm takes to come up to aim and to go down again.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var aim_pose_time := 0.15
+## A press of the fire button is kept this long while the arm comes up, then it shoots. Shorter
+## than half of `aim_pose_time` and a quick tap from the hip shoots nothing.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var fire_buffer_time := 0.3
 
 @export_group("Pushing")
 ## The share of its own speed the character gives a light prop it walks into: 1 moves the prop

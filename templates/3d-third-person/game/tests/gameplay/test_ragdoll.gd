@@ -38,10 +38,12 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"tuning": null,
 		&"start_at_spawn": true,
 		&"model": null,
+		&"controller": null,
 		&"weapon": null,
 		&"ragdoll_body": null,
 		&"ragdoll": false,
 		&"ragdoll_key": KEY_Y,
+		&"ragdoll_by_command": true,
 		&"input_enabled": true,
 	}
 	var fresh := auto_free(load("res://gameplay/player/player.gd").new()) as Player
