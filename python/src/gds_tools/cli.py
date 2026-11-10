@@ -269,7 +269,7 @@ def _cmd_template_test(args: argparse.Namespace) -> int:
         args.name,
         suites=args.suite,
         keep=args.keep,
-        fixed_fps=args.fixed_fps,
+        fixed_fps=None if args.real_clock else args.fixed_fps,
         godot_args=template_test.split_args(args.godot_args),
         gdunit_args=template_test.split_args(args.gdunit_args),
         timeout=args.timeout,
@@ -750,7 +750,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tpl_test.add_argument("--keep", action="store_true", help="keep the game and print its path")
     tpl_test.add_argument(
-        "--fixed-fps", type=int, help="run Godot with --fixed-fps N: every frame is one tick, no waiting on the clock"
+        "--fixed-fps",
+        type=int,
+        default=template_test.CI_FIXED_FPS,
+        help="run Godot with --fixed-fps N: every frame is one tick, no waiting on the clock "
+        f"(default {template_test.CI_FIXED_FPS}, as CI runs the suites)",
+    )
+    tpl_test.add_argument(
+        "--real-clock",
+        action="store_true",
+        help="run on the real clock, with no --fixed-fps (CI does not: a green run here may fail there)",
     )
     tpl_test.add_argument(
         "--godot-args",

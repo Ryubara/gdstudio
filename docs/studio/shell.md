@@ -37,7 +37,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
   and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875 and tether #31, 2026-11-10 (files turned CRLF again).
+  gdstudio #830, 2026-11-08; gdstudio #875 and #903 and tether #31, 2026-11-10 (files turned CRLF again).
 
 ## Scripted edits {#scripted-edits}
 
@@ -82,7 +82,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
   before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; list it, read a script first, use a subfolder).
+  copied its branch into its game; fix: a subfolder named for the issue; also #903).
 
 ## Background commands and processes {#background}
 
