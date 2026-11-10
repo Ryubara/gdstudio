@@ -110,7 +110,7 @@ func test_a_respawn_time_brings_it_back_and_zero_removes_it() -> void:
 	_pickup.respawn_time = 0.3
 	_pickup._on_body_entered(taker)
 	assert_bool(_pickup.is_available()).is_false()
-	await get_tree().create_timer(0.5).timeout
+	await InputSim.ticks(get_tree(), 30)
 	assert_bool(_pickup.is_available()).is_true()
 	_pickup.respawn_time = 0.0
 	_pickup.sounds = []
@@ -134,7 +134,7 @@ func test_collecting_plays_one_of_the_coin_sounds_on_the_sfx_bus_and_it_finishes
 	await get_tree().process_frame
 	assert_bool(is_instance_valid(_pickup)).is_true()
 	assert_bool(_pickup.is_available()).is_false()
-	await get_tree().create_timer(0.7).timeout
+	await InputSim.ticks(get_tree(), 42)
 	assert_bool(is_instance_valid(_pickup)).is_false()
 	taker.free()
 

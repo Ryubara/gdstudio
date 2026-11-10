@@ -209,19 +209,19 @@ func test_a_shot_without_aiming_keeps_the_arm_up_for_the_hold_and_never_pops() -
 	var aim_time := _player.tuning.aim_pose_time
 	assert_float(_animation.pistol_weights().y).is_equal(0.0)
 	assert_object(_player.weapon.fire()).is_not_null()
-	var started := Time.get_ticks_msec()
+	var seconds := 0.0  # game time: the sum of the frames' deltas, never the wall clock
 	var last := 0.0
 	var worst := 0.0
 	var peak := 0.0
 	var up_since := -1.0
 	var up_until := -1.0
 	var delta := 0.0
-	while Time.get_ticks_msec() - started < 1200:
+	while seconds < 1.2:
 		# `process_frame` comes before the nodes' `_process`, so the value read here was set by the
 		# frame before, with the delta that frame had.
 		await get_tree().process_frame
 		var now := _animation.pistol_weights().y
-		var seconds := (Time.get_ticks_msec() - started) / 1000.0
+		seconds += get_process_delta_time()
 		worst = maxf(worst, absf(now - last) - delta / aim_time)
 		delta = get_process_delta_time()
 		last = now
