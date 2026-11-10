@@ -16,6 +16,8 @@ var _since := 0.0
 
 func _ready() -> void:
 	set_process(false)
+	if OS.has_feature("web"):
+		get_node("/root/NotThere").queue_free()
 	if not OS.has_feature("web"):
 		return
 	if not JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('probe')"):
