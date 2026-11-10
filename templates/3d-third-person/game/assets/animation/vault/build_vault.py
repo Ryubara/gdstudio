@@ -35,6 +35,7 @@ from mathutils import Matrix, Quaternion, Vector
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent.parent
 MANNEQUIN = ASSETS / "characters" / "mannequin" / "mannequin_female.glb"
+MANNEQUIN_MALE = ASSETS / "characters" / "mannequin" / "mannequin_male.glb"
 LIBRARY = ASSETS / "animation" / "universal" / "ual1.glb"
 FPS = 24
 ## The clips this file carries, and nothing else (kit docs/tools/blender/build-scripts.md#rebuilding).
@@ -54,6 +55,9 @@ ARM_REACH = 0.94
 
 ## The most a planted hand may move the body off its keyed path from one frame to the next (m).
 PULL_STEP = 0.02
+## How deep one body part may be inside another that no joint joins it to (mm), on either mannequin, on any frame:
+## skin on skin and no more (`limb_overlap.py` measures it; the library's own clips never cross the legs at all).
+OVERLAP_LIMIT = 5.0
 
 
 FINGERS = ["thumb", "index", "middle", "ring", "pinky"]
@@ -181,6 +185,12 @@ class Rig:
         for track in self.library_arm.animation_data.nla_tracks:
             track.mute = True
         self.library_actions = list(bpy.data.actions)
+        # Both mannequins as the overlap check measures them: the clips play on the male with his own bone lengths.
+        import limb_overlap
+
+        male = limb_overlap.load_body(MANNEQUIN_MALE, "male")
+        self.library_objects += male.objects
+        self.bodies = [limb_overlap.Body(self.arm, self.mesh, "female"), male]
         self.order = [b.name for b in self.arm.data.bones]  # parents before children
         self.parent = {b.name: (b.parent.name if b.parent else None) for b in self.arm.data.bones}
         self.rest = {b.name: b.matrix_local.copy() for b in self.arm.data.bones}
@@ -284,6 +294,24 @@ class Clip:
     def turned(self, name, yaw=0.0, pitch=0.0, roll=0.0):
         """A bone's armature-space rotation: its rest turned in the rig's axes (pelvis, feet)."""
         return (R(yaw, pitch, roll) @ self.rig.rest_rot[name]).to_quaternion()
+
+    def hips_turn(self, frame):
+        """The pelvis's turn from its rest at a frame, from its keys (key the pelvis before anything given in
+        the hips' axes)."""
+        return self.channels["pelvis_rot"].at(frame).to_matrix() @ self.rig.rest_rot["pelvis"].inverted()
+
+    def hips(self, frame, left, forward, up):
+        """A point given from the pelvis bone in the hips' own axes at that frame: `left` is the body's left
+        however the body is rolled. A foot keyed with `left` above 0 and the other below it cannot cross."""
+        return self.channels["pelvis_pos"].at(frame) + self.hips_turn(frame) @ P(left, forward, up)
+
+    def hips_way(self, frame, left, forward, up):
+        """A direction given in the hips' axes at that frame (where a knee or an elbow points)."""
+        return self.hips_turn(frame) @ P(left, forward, up)
+
+    def hips_turned(self, frame, name, yaw=0.0, pitch=0.0, roll=0.0):
+        """A bone's armature-space rotation: its rest turned in the hips' axes at that frame (a foot in the air)."""
+        return (self.hips_turn(frame) @ R(yaw, pitch, roll) @ self.rig.rest_rot[name]).to_quaternion()
 
     def palm(self, side, fingers, palm):
         """A hand's armature-space rotation from where its fingers point and where its palm faces."""
@@ -413,9 +441,9 @@ def vault_low(rig):
         {
             2: c.body(2, 0.0, -0.06, 0.82),
             4: c.body(4, -0.02, -0.04, 0.95),
-            7: c.body(7, -0.07, -0.02, 1.08),
-            9: c.body(9, -0.12, 0.0, 1.13),
-            11: c.body(11, -0.09, -0.03, 1.08),
+            7: c.body(7, -0.07, -0.02, 1.12),
+            9: c.body(9, -0.12, 0.0, 1.17),
+            11: c.body(11, -0.09, -0.03, 1.10),
             13: c.body(13, -0.04, -0.05, 0.98),
         },
     )
@@ -423,9 +451,9 @@ def vault_low(rig):
         "pelvis_rot",
         {
             4: c.turned("pelvis", 0, 18, 10),
-            7: c.turned("pelvis", -5, 20, 40),
-            9: c.turned("pelvis", -8, 20, 52),
-            11: c.turned("pelvis", -5, 18, 40),
+            7: c.turned("pelvis", -5, 20, 44),
+            9: c.turned("pelvis", -8, 20, 58),
+            11: c.turned("pelvis", -5, 18, 42),
             13: c.turned("pelvis", 0, 14, 12),
         },
     )
@@ -480,20 +508,27 @@ def vault_low(rig):
     c.keys("hand_l_world", {4: 0.0, 7: 1.0, 10: 1.0, 12: 0.0})
     c.keys("curl_l", {4: 1.0, 6: 0.0, 9: 0.0, 13: 1.0})
 
-    # The right arm swings up and out for balance, away from the obstacle.
+    # The right arm is thrown up and back over the right hip for balance, away from the obstacle and clear of the
+    # right knee as it drives up.
     c.keys(
         "hand_r_pos",
         {
-            4: c.body(4, -0.40, 0.20, 1.05),
-            7: c.body(7, -0.50, 0.10, 1.20),
-            9: c.body(9, -0.56, 0.05, 1.32),
-            12: c.body(12, -0.48, 0.0, 1.25),
+            4: c.body(4, -0.42, 0.10, 1.10),
+            7: c.hips(7, -0.48, -0.20, 0.60),
+            9: c.hips(9, -0.48, -0.22, 0.62),
+            12: c.hips(12, -0.46, -0.18, 0.50),
             14: c.body(14, -0.44, -0.10, 1.20),
         },
     )
-    c.keys("hand_r_pole", {7: P(-0.6, -1.0, -0.3), 9: P(-0.5, -1.0, -0.4), 13: P(-0.6, -1.0, -0.2)})
+    c.keys(
+        "hand_r_pole",
+        {7: c.hips_way(7, -0.4, -1.0, 0.1), 9: c.hips_way(9, -0.4, -1.0, 0.1), 13: P(-0.6, -1.0, -0.2)},
+    )
 
-    # The left leg pushes off, tucks and follows the right leg over.
+    # The legs go over stacked, as in a real speed vault: the body is rolled to the left, so the right leg is the
+    # upper one and the left leg the lower, each on its own side of the hips (`hips`: left above 0 for the left
+    # foot, below 0 for the right), knees a hip's width apart. They never cross.
+    # The left leg pushes off, trails, then tucks under the right leg with its knee forward.
     stance = c.channels["foot_l_pos"].at(0)
     c.keys(
         "foot_l_pos",
@@ -501,12 +536,12 @@ def vault_low(rig):
             2: stance,
             3: stance + P(0.0, 0.03, 0.05),
             4: stance + P(0.0, 0.08, 0.17),
-            6: c.body(6, 0.04, -0.50, 0.62),
-            8: c.body(8, -0.28, -0.32, 0.98),
-            10: c.body(10, -0.50, -0.14, 1.08),
-            12: c.body(12, -0.36, -0.26, 1.04),
-            13: c.body(13, -0.18, -0.40, 0.92),
-            14: c.body(14, -0.02, -0.50, 0.72),
+            6: c.body(6, 0.08, -0.44, 0.78),
+            7: c.hips(7, 0.14, -0.20, -0.10),
+            8: c.hips(8, 0.18, 0.08, -0.09),
+            10: c.hips(10, 0.18, 0.12, -0.10),
+            12: c.hips(12, 0.13, -0.02, -0.22),
+            14: c.hips(14, 0.13, -0.28, -0.42),
         },
     )
     c.planted.append(("foot_l", 0, 2))
@@ -517,25 +552,35 @@ def vault_low(rig):
             3: c.turned("foot_l", 0, 25, 0),
             4: c.turned("foot_l", 0, 55, 0),
             6: c.turned("foot_l", -10, 60, -10),
-            10: c.turned("foot_l", -30, 40, -40),
-            13: c.turned("foot_l", -10, 60, -15),
+            8: c.hips_turned(8, "foot_l", -25, 5, 0),
+            10: c.hips_turned(10, "foot_l", -25, 5, 0),
+            13: c.hips_turned(13, "foot_l", 0, 60, 0),
         },
     )
-    c.keys("foot_l_pole", {4: P(0.0, 1.0, 0.0), 6: P(-0.2, 1.0, 0.3), 10: P(-0.5, 0.8, 0.9), 13: P(-0.2, 1.0, 0.3)})
+    c.keys(
+        "foot_l_pole",
+        {
+            4: P(0.0, 1.0, 0.0),
+            6: c.hips_way(6, 0.15, 1.0, 0.2),
+            8: c.hips_way(8, 0.15, 1.0, 0.25),
+            10: c.hips_way(10, 0.15, 1.0, 0.25),
+            13: c.hips_way(13, 0.2, 1.0, 0.1),
+        },
+    )
     c.keys(
         "ball_l",
         {2: c.spine("ball_l"), 3: c.spine("ball_l", 0, -22, 0), 4: c.spine("ball_l", 0, -45, 0), 6: c.spine("ball_l")},
     )
 
-    # The right leg leads: the knee drives up and out, the leg passes over the top and reaches down to land.
+    # The right leg leads like a hurdler's: the knee drives up, the leg reaches over the top and down to land.
     c.keys(
         "foot_r_pos",
         {
             4: c.body(4, -0.18, 0.08, 0.58),
-            6: c.body(6, -0.42, 0.34, 0.98),
-            8: c.body(8, -0.62, 0.42, 1.08),
-            10: c.body(10, -0.50, 0.48, 0.86),
-            12: c.body(12, -0.28, 0.48, 0.56),
+            6: c.hips(6, -0.30, 0.40, -0.13),
+            8: c.hips(8, -0.24, 0.55, -0.06),
+            10: c.hips(10, -0.18, 0.58, -0.26),
+            12: c.hips(12, -0.12, 0.55, -0.52),
             14: c.body(14, -0.13, 0.42, 0.28),
         },
     )
@@ -543,9 +588,9 @@ def vault_low(rig):
         "foot_r_rot",
         {
             4: c.turned("foot_r", -10, 20, 0),
-            6: c.turned("foot_r", -30, 10, -30),
-            8: c.turned("foot_r", -35, 10, -50),
-            12: c.turned("foot_r", -10, 15, -15),
+            6: c.hips_turned(6, "foot_r", 0, 10, 0),
+            8: c.hips_turned(8, "foot_r", 0, 10, 0),
+            12: c.hips_turned(12, "foot_r", 0, 10, 0),
             14: c.turned("foot_r", 0, 5, 0),
         },
     )
@@ -553,9 +598,10 @@ def vault_low(rig):
         "foot_r_pole",
         {
             4: P(-0.2, 1.0, 0.2),
-            6: P(-0.5, 0.8, 0.6),
-            8: P(-0.4, 0.6, 1.0),
-            12: P(-0.3, 1.0, 0.2),
+            6: c.hips_way(6, -0.3, 0.8, 0.8),
+            8: c.hips_way(8, -0.3, 0.6, 1.0),
+            10: c.hips_way(10, -0.25, 0.8, 0.8),
+            12: c.hips_way(12, -0.15, 1.0, 0.3),
             14: P(-0.1, 1.0, 0.0),
         },
     )
@@ -627,9 +673,9 @@ def vault_high(rig):
             8: c.body(8, 0.0, -0.05, 0.80),
             10: c.body(10, 0.0, -0.04, 0.92),
             12: c.body(12, -0.03, -0.03, 1.20),
-            14: c.body(14, -0.07, -0.02, 1.38),
-            16: c.body(16, -0.10, 0.0, 1.44),
-            18: c.body(18, -0.10, 0.0, 1.42),
+            14: c.body(14, -0.07, -0.02, 1.41),
+            16: c.body(16, -0.10, 0.0, 1.48),
+            18: c.body(18, -0.10, 0.0, 1.45),
             20: c.body(20, -0.07, -0.03, 1.28),
             22: c.body(22, -0.04, -0.05, 1.10),
             24: c.body(24, -0.02, -0.06, 0.95),
@@ -705,9 +751,9 @@ def vault_high(rig):
             10: plant_r + P(0.0, -0.12, 0.10),
             11: plant_r,
             13: plant_r,
-            15: c.body(15, -0.42, 0.12, 1.50),
-            17: c.body(17, -0.55, 0.0, 1.75),
-            20: c.body(20, -0.55, -0.05, 1.60),
+            15: c.hips(15, -0.44, 0.0, 0.55),
+            17: c.hips(17, -0.48, -0.20, 0.62),
+            20: c.hips(20, -0.46, -0.18, 0.52),
             23: c.body(23, -0.45, -0.08, 1.25),
         },
     )
@@ -719,7 +765,8 @@ def vault_high(rig):
             8: P(-0.4, -1.0, -0.8),
             11: P(-0.6, -1.0, 0.1),
             13: P(-0.8, -0.8, 0.4),
-            18: P(-0.6, -1.0, -0.3),
+            17: c.hips_way(17, -0.4, -1.0, 0.1),
+            20: c.hips_way(20, -0.4, -1.0, 0.1),
             23: P(-0.6, -1.0, -0.2),
         },
     )
@@ -756,12 +803,13 @@ def vault_high(rig):
             7: c.body(7, 0.09, -0.45, 0.45),
             9: c.body(9, 0.10, -0.12, 0.30),
             11: c.body(11, 0.08, 0.08, 0.42),
-            13: c.body(13, -0.02, -0.30, 0.85),
-            15: c.body(15, -0.30, -0.12, 1.40),
-            17: c.body(17, -0.50, 0.0, 1.52),
-            19: c.body(19, -0.45, 0.05, 1.42),
-            21: c.body(21, -0.25, -0.15, 1.10),
-            23: c.body(23, -0.05, -0.38, 0.78),
+            13: c.hips(13, 0.12, -0.25, -0.30),
+            15: c.hips(15, 0.11, -0.20, -0.12),
+            16: c.hips(16, 0.14, 0.03, -0.09),
+            17: c.hips(17, 0.18, 0.12, -0.06),
+            19: c.hips(19, 0.16, 0.08, -0.16),
+            21: c.hips(21, 0.13, -0.05, -0.32),
+            23: c.hips(23, 0.13, -0.28, -0.42),
         },
     )
     c.keys(
@@ -771,9 +819,10 @@ def vault_high(rig):
             4: c.turned("foot_l", 0, 30, 0),
             5: c.turned("foot_l", 0, 60, 0),
             9: c.turned("foot_l", 0, 30, 0),
-            13: c.turned("foot_l", -10, 40, -10),
-            17: c.turned("foot_l", -30, 40, -40),
-            22: c.turned("foot_l", -10, 60, -15),
+            13: c.hips_turned(13, "foot_l", 0, 40, 0),
+            15: c.hips_turned(15, "foot_l", -35, -10, 0),
+            19: c.hips_turned(19, "foot_l", -35, -10, 0),
+            22: c.hips_turned(22, "foot_l", 0, 60, 0),
         },
     )
     c.keys(
@@ -781,10 +830,10 @@ def vault_high(rig):
         {
             5: P(0.0, 1.0, 0.0),
             11: P(0.0, 1.0, 0.2),
-            13: P(-0.8, 0.4, 0.5),
-            15: P(-0.6, 0.6, 0.6),
-            17: P(-0.5, 0.8, 0.9),
-            22: P(-0.2, 1.0, 0.3),
+            13: c.hips_way(13, 0.15, 1.0, 0.2),
+            15: c.hips_way(15, -0.05, 1.0, 0.6),
+            19: c.hips_way(19, 0.15, 1.0, 0.25),
+            22: c.hips_way(22, 0.2, 1.0, 0.1),
         },
     )
     c.keys(
@@ -801,11 +850,11 @@ def vault_high(rig):
             10: takeoff + P(0.0, 0.03, 0.06),
             11: takeoff + P(0.0, 0.07, 0.16),
             12: takeoff + P(-0.04, 0.14, 0.36),
-            14: c.body(14, -0.40, -0.05, 1.20),
-            15: c.body(15, -0.54, 0.10, 1.42),
-            17: c.body(17, -0.68, 0.25, 1.52),
-            19: c.body(19, -0.55, 0.40, 1.25),
-            21: c.body(21, -0.35, 0.45, 0.90),
+            14: c.hips(14, -0.30, 0.0, -0.30),
+            15: c.hips(15, -0.30, 0.36, -0.14),
+            17: c.hips(17, -0.24, 0.55, -0.06),
+            19: c.hips(19, -0.18, 0.58, -0.26),
+            21: c.hips(21, -0.13, 0.55, -0.50),
             23: c.body(23, -0.18, 0.42, 0.50),
         },
     )
@@ -819,9 +868,9 @@ def vault_high(rig):
             10: c.turned("foot_r", 0, 25, 0),
             11: c.turned("foot_r", 0, 45, 0),
             12: c.turned("foot_r", 0, 60, 0),
-            15: c.turned("foot_r", -30, 20, -30),
-            17: c.turned("foot_r", -35, 10, -50),
-            21: c.turned("foot_r", -10, 15, -15),
+            15: c.hips_turned(15, "foot_r", 0, 10, 0),
+            17: c.hips_turned(17, "foot_r", 0, 10, 0),
+            21: c.hips_turned(21, "foot_r", 0, 10, 0),
             24: c.turned("foot_r", 0, 5, 0),
         },
     )
@@ -830,9 +879,10 @@ def vault_high(rig):
         {
             6: P(0.0, 1.0, 0.0),
             12: P(-0.2, 1.0, 0.2),
-            15: P(-0.5, 0.8, 0.6),
-            17: P(-0.4, 0.6, 1.0),
-            21: P(-0.3, 1.0, 0.2),
+            15: c.hips_way(15, -0.3, 0.8, 0.8),
+            17: c.hips_way(17, -0.3, 0.6, 1.0),
+            19: c.hips_way(19, -0.25, 0.8, 0.8),
+            21: c.hips_way(21, -0.15, 1.0, 0.3),
             24: P(-0.1, 1.0, 0.0),
         },
     )
@@ -970,11 +1020,42 @@ def check(rig, clip, action, worst):
             problems.append(f"the planted palm is {report['palm_gap_mm']} mm from the top")
     report["lowest"] = round(report["lowest"], 4)
     report["deepest_in_box"] = round(report["deepest_in_box"], 4)
+    # Limbs through each other, on both mannequins' skinned meshes, on every frame.
+    import limb_overlap
+
+    report["overlap_mm"] = {}
+    measured = limb_overlap.measure(arm, action, range(clip.frames + 1), rig.bodies)
+    for body, entry in measured.items():
+        report["overlap_mm"][body] = {
+            "deepest": entry["deepest_mm"],
+            "frame": entry["frame"],
+            "pair": entry["pair"],
+            "by_class": {kind: value[0] for kind, value in sorted(entry["by_class"].items())},
+        }
+        print(f"OVERLAP {clip.name} {body}: per frame {entry['frames']} {entry['by_class']} {entry['pairs']}")
+        if entry["deepest_mm"] > OVERLAP_LIMIT:
+            problems.append(
+                f"{body}: {entry['pair']} by {entry['deepest_mm']} mm at frame {entry['frame']} "
+                f"(the limit is {OVERLAP_LIMIT} mm)"
+            )
+    clip.overlap = measured
     return problems, report
 
 
-def sidecar(clips):
-    out = {"fps": FPS, "units": "metres and seconds; forward 0 is the obstacle's front face", "clips": {}}
+def sidecar(clips, path):
+    import hashlib
+
+    out = {
+        "fps": FPS,
+        "units": "metres and seconds; forward 0 is the obstacle's front face",
+        # The file the numbers below were measured on: a test fails when vault.glb is not this file any more.
+        "measured": {
+            "file": path.name,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "overlap_limit_mm": OVERLAP_LIMIT,
+        },
+        "clips": {},
+    }
     for clip in clips:
         entry = {
             "length": round(clip.frames / FPS, 4),
@@ -989,7 +1070,7 @@ def sidecar(clips):
             entry["obstacle"] = {"height": clip.box_height, "depth": clip.box_depth}
             entry["root_start"] = -clip.start
             entry["root_at"] = {name: round(clip.forward(frame), 4) for name, frame in clip.events.items()}
-            entry["contacts"] = clip.contacts
+        entry["contacts"] = clip.contacts
         out["clips"][clip.name] = entry
     return out
 
@@ -1120,11 +1201,11 @@ def main():
         assert abs(found[clip.name]["length"] - clip.frames / FPS) < 1e-3, (clip.name, found[clip.name])
         assert found[clip.name]["translation"] == ["pelvis"], found[clip.name]["translation"]
         assert found[clip.name]["channels"] == len(rig.order) + 1, found[clip.name]["channels"]
-    text = json.dumps(sidecar(clips), indent=2) + "\n"
+    text = json.dumps(sidecar(clips, path), indent=2) + "\n"
     (out / "vault_clips.json").write_text(text, encoding="utf-8", newline="\n")
     print("EXPORTED", path, json.dumps(found)[:400])
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(HERE))
+    sys.path[:0] = [str(HERE), str(HERE.parent)]
     main()

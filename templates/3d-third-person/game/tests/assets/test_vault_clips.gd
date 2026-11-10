@@ -168,3 +168,37 @@ func test_the_clips_join_the_sprint_and_each_other() -> void:
 		assert_float(_farthest(end, _pose(rig, &"vault/Vault_Land", 0.0, ENDS))).is_less(0.02)
 	var landed := _pose(rig, &"vault/Vault_Land", land.length, ENDS)
 	assert_float(_farthest(landed, left_strike)).is_less(0.02)
+
+
+# No limb passes through another: `build_vault.py` measures, on every frame of every clip and on
+# both mannequins' skinned meshes, how deep any body part is inside one no joint joins it to
+# (`assets/animation/limb_overlap.py`), and writes the deepest into the sidecar with the hash of
+# the file it measured. A vault.glb that is not that file any more has not been measured.
+func test_no_limb_passes_through_another() -> void:
+	assert_bool(_file.has("measured")).is_true()
+	if not _file.has("measured"):
+		return
+	var measured: Dictionary = _file.measured
+	(
+		assert_str(FileAccess.get_sha256(VAULT))
+		. override_failure_message(
+			"vault.glb is not the file vault_clips.json was measured on: run build_vault.py"
+		)
+		. is_equal(measured.sha256)
+	)
+	assert_float(measured.overlap_limit_mm).is_less_equal(5.0)
+	for clip in NAMES:
+		var overlap: Dictionary = _file.clips[clip].contacts.overlap_mm
+		assert_array(overlap.keys()).contains_exactly_in_any_order(["female", "male"])
+		for body: String in overlap:
+			var entry: Dictionary = overlap[body]
+			(
+				assert_float(entry.deepest)
+				. override_failure_message(
+					(
+						"%s on the %s mannequin: %s by %.1f mm at frame %s"
+						% [clip, body, entry.pair, entry.deepest, entry.frame]
+					)
+				)
+				. is_less_equal(measured.overlap_limit_mm)
+			)

@@ -1,6 +1,11 @@
 {
   "fps": 24,
   "units": "metres and seconds; forward 0 is the obstacle's front face",
+  "measured": {
+    "file": "vault.glb",
+    "sha256": "3510fd136c68431e7b8632e5257faa492556a2eb310355ba2aaab9f7ea35ddb6",
+    "overlap_limit_mm": 5.0
+  },
   "clips": {
     "Vault_Low": {
       "length": 0.6667,
@@ -44,7 +49,21 @@
         "palm_gap_mm": [
           -4.1,
           -0.3
-        ]
+        ],
+        "overlap_mm": {
+          "female": {
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
+          },
+          "male": {
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
+          }
+        }
       }
     },
     "Vault_High": {
@@ -85,15 +104,31 @@
       },
       "contacts": {
         "lowest": -0.0036,
-        "deepest_in_box": 0.0089,
+        "deepest_in_box": 0.0047,
         "foot_l_drift_mm": 0.4,
         "foot_r_drift_mm": 0.0,
         "hand_l_drift_mm": 0.0,
         "hand_r_drift_mm": 0.0,
         "palm_gap_mm": [
           -4.7,
-          8.3
-        ]
+          8.2
+        ],
+        "overlap_mm": {
+          "female": {
+            "deepest": 0.5,
+            "frame": 15,
+            "pair": "thigh_l in thigh_r",
+            "by_class": {
+              "leg/leg": 0.5
+            }
+          },
+          "male": {
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
+          }
+        }
       }
     },
     "Vault_Land": {
@@ -108,7 +143,26 @@
         "sprint": 0.4167
       },
       "landing_foot": "right",
-      "next": "Sprint at 0 s (the left foot lands)"
+      "next": "Sprint at 0 s (the left foot lands)",
+      "contacts": {
+        "lowest": -0.0036,
+        "deepest_in_box": 0.0,
+        "foot_r_drift_mm": 0.0,
+        "overlap_mm": {
+          "female": {
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
+          },
+          "male": {
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
+          }
+        }
+      }
     }
   }
 }
