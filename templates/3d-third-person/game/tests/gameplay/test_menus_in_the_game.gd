@@ -144,7 +144,8 @@ func test_the_touch_layer_lets_go_when_a_menu_opens() -> void:
 	var touch: TouchControls = _scene.get_node("TouchControls")
 	var connected := _host.opened.get_connections().any(
 		func(connection: Dictionary) -> bool:
-			return (connection["callable"] as Callable).get_object() == touch
+			var callable := connection["callable"] as Callable
+			return callable.get_object() == touch and callable.get_method() == &"suspend"
 	)
 	assert_bool(connected).is_true()
 	_show_touch(touch)
@@ -165,3 +166,25 @@ func test_touch_still_presses_the_menus_buttons() -> void:
 	_host.close()
 	await MenuFixture.settle(get_tree())
 	assert_bool(Input.emulate_mouse_from_touch).is_false()
+
+
+func test_the_touch_buttons_stay_out_from_under_a_menu_and_come_back() -> void:
+	var touch: TouchControls = _scene.get_node("TouchControls")
+	_show_touch(touch)
+	assert_bool(touch.visible).is_true()
+	_host.open_pause()
+	await MenuFixture.settle(get_tree())
+	assert_bool(touch.visible).is_false()
+	_host.close()
+	await MenuFixture.settle(get_tree())
+	assert_bool(touch.visible).is_true()
+
+
+func test_a_menu_closing_does_not_show_the_touch_layer_on_a_computer() -> void:
+	var touch: TouchControls = _scene.get_node("TouchControls")
+	assert_bool(touch.is_shown()).is_false()
+	_host.open_pause()
+	await MenuFixture.settle(get_tree())
+	_host.close()
+	await MenuFixture.settle(get_tree())
+	assert_bool(touch.visible).is_false()

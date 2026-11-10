@@ -147,7 +147,8 @@ def main() -> int:
         # 2. Letting the lock go (the browser's first Esc) opens the pause menu.
         released = time.time()
         page.evaluate("document.exitPointerLock()")
-        state = wait_for(page, lambda s: s.get("paused") is True, 3.0)
+        # The game is paused in that frame; the menu fades in over the next few (screens counts it once it is up).
+        state = wait_for(page, lambda s: s.get("paused") is True and s.get("screens") == 1 and s.get("focus_text") == "Resume", 3.0)
         opened_in = time.time() - released
         page.screenshot(path=str(args.out / "desktop_pause.png"))
         check("losing the lock opens the pause menu", state.get("paused") is True and state.get("screens") == 1, f"paused={state.get('paused')} screens={state.get('screens')} after {opened_in:.2f} s")

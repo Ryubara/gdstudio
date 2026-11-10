@@ -41,14 +41,14 @@ adds what the router does not know about a game:
 ScreenHost.current.open(preload("res://ui/menus/inventory.tscn"))
 ```
 
-- **Approach:** Open a menu over a solo game from one host node that pauses the tree, releases the mouse, turns
-  `Input.emulate_mouse_from_touch` on and gives all three back when the router's stack is empty again, and give the
-  router a `close` that may empty the stack. **Watch out for:** the touch layer turns touch-to-mouse off while it
-  shows, so on a phone the menu's buttons heard nothing; `UIRouter.pop()` stops at the root, so Esc left the pause menu
-  up over a stopped game; the router disables the screen it covers, which is a pause for a game that is a screen and a
-  bug for one that is not; a held finger's action stayed pressed because the layer is paused and never sees the lift
-  (the host's `opened` signal calls the layer's `release()`). **Seen:** gdstudio #881, 2026-11-10 (`tests/ui/
-  test_screen_host.gd`, 18 tests through the real input path, and `tools/web_smoke/pause_smoke.py`).
+- **Approach:** Open a menu over a solo game from one host node that pauses the tree, frees the mouse, turns
+  `Input.emulate_mouse_from_touch` on and gives all three back when the router's stack is empty again; give the router
+  a `close` that may empty the stack, and have the touch layer `suspend()` on `opened` and `resume()` on `closed`.
+  **Watch out for:** the touch layer turns touch-to-mouse off, so on a phone the buttons heard nothing; `pop()` stops at
+  the root, so Esc left the pause menu up; the router disables the screen it covers, a pause for a game that is a
+  screen and a bug for one that is not; a paused layer never sees a finger lift, and its buttons (the router's own
+  layer) drew over the menu. **Seen:** gdstudio #881, 2026-11-10 (`test_screen_host*.gd`, 19 tests through the real
+  input path; `pause_smoke.py` and `menu_smoke.py`: 20 and 12 checks in Chromium).
 - **Approach:** Give the host seams for what a headless run cannot do (`mouse_mode_reader`, `mouse_mode_writer`,
   `scene_changer`) and free it in the test's `after_test`, whose `_exit_tree` clears the router. **Watch out for:** a
   headless run reads the mouse mode back as visible whatever was set, and a test that changed the scene would replace

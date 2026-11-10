@@ -139,7 +139,7 @@ def main() -> int:
 
         # 2. The Menu button pauses the game.
         finger.tap(state["pause_x"] / scale, state["pause_y"] / scale)
-        state = wait_for(page, lambda s: s.get("paused") is True, 3.0)
+        state = wait_for(page, lambda s: s.get("paused") is True and s.get("screens") == 1, 3.0)
         time.sleep(0.8)
         page.screenshot(path=str(args.out / "phone_pause.png"))
         check("a tap on Menu pauses the game and opens the pause menu", state.get("paused") is True and state.get("screens") == 1, f"paused={state.get('paused')} screens={state.get('screens')}")

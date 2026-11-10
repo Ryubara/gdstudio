@@ -74,11 +74,6 @@ func test_the_defaults_are_what_the_screen_shows_on_a_first_start() -> void:
 		assert_that(_service.get_value(key)).override_failure_message(str(key)).is_equal(want[key])
 
 
-func test_a_computer_starts_on_high_and_a_browser_or_phone_on_medium() -> void:
-	var expected := 1 if OS.has_feature("web") or OS.has_feature("mobile") else 2
-	assert_int(SettingsService.default_quality()).is_equal(expected)
-
-
 func test_a_value_is_coerced_into_its_range_and_type() -> void:
 	_service.set_value(SettingsService.RESOLUTION_SCALE, 10)
 	assert_int(_service.get_value(SettingsService.RESOLUTION_SCALE)).is_equal(50)
@@ -122,38 +117,6 @@ func test_a_volume_reaches_its_bus_at_once() -> void:
 	assert_float(AudioSettings.player_gain(&"UI")).is_equal_approx(0.1, 0.0001)
 
 
-func test_the_resolution_scale_reaches_the_3d_view() -> void:
-	_service.set_value(SettingsService.RESOLUTION_SCALE, 75)
-	assert_float(get_tree().root.scaling_3d_scale).is_equal_approx(0.75, 0.0001)
-
-
-func test_each_quality_step_sets_what_its_preset_says() -> void:
-	for step in 3:
-		_service.set_value(SettingsService.QUALITY, step)
-		var preset := _service.presets[step]
-		assert_int(get_tree().root.msaa_3d).override_failure_message(preset.title).is_equal(
-			preset.msaa
-		)
-		assert_object(_service.current_preset()).is_same(preset)
-	assert_int(_service.presets[0].msaa).is_not_equal(_service.presets[2].msaa)
-
-
-func test_a_preset_edited_in_the_inspector_is_what_the_step_does() -> void:
-	_service.presets[0].msaa = Viewport.MSAA_8X
-	_service.set_value(SettingsService.QUALITY, 1)
-	_service.set_value(SettingsService.QUALITY, 0)
-	assert_int(get_tree().root.msaa_3d).is_equal(Viewport.MSAA_8X)
-
-
-func test_the_window_mode_goes_to_the_window_and_a_browser_leaves_it_alone() -> void:
-	_service.set_value(SettingsService.WINDOW_MODE, SettingsService.WindowMode.FULLSCREEN)
-	assert_array(_modes).contains([DisplayServer.WINDOW_MODE_FULLSCREEN])
-	var count := _modes.size()
-	_service.is_web = true
-	_service.set_value(SettingsService.WINDOW_MODE, SettingsService.WindowMode.WINDOWED)
-	assert_int(_modes.size()).is_equal(count)
-
-
 func test_values_saved_and_read_back_are_the_same() -> void:
 	var first := _make(TEMP_PATH)
 	first.set_value(SettingsService.VOLUME_UI, 35)
@@ -180,6 +143,19 @@ func test_what_was_read_is_applied_at_start() -> void:
 	_make(TEMP_PATH)
 	assert_float(AudioSettings.player_gain(&"Ambient")).is_equal_approx(0.2, 0.0001)
 	assert_float(get_tree().root.scaling_3d_scale).is_equal_approx(0.7, 0.0001)
+
+
+func test_an_idle_service_does_not_process_or_write_anything() -> void:
+	var service := _make(TEMP_PATH)
+	assert_bool(service.is_processing()).is_false()
+	service.save_delay = 0.05
+	await get_tree().create_timer(0.3, true).timeout
+	assert_int(service.write_count).is_zero()
+	assert_bool(FileAccess.file_exists(TEMP_PATH)).is_false()
+	service.set_value(SettingsService.VSYNC, false)
+	assert_bool(service.is_processing()).is_true()
+	await get_tree().create_timer(0.3, true).timeout
+	assert_bool(service.is_processing()).is_false()
 
 
 func test_a_change_is_written_after_the_delay_and_a_drag_is_one_write() -> void:

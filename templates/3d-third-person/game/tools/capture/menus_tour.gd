@@ -51,6 +51,10 @@ func _over_the_game() -> void:
 	await _hold()
 	UIRouter.push(SETTINGS, UITransition.Kind.SLIDE)
 	await _hold()
+	# Leave the game the way a scene change does, so its sounds are let go of before the engine quits.
+	get_tree().paused = false
+	game.free()
+	await get_tree().process_frame
 
 
 ## Waits `seconds` and, when asked for shots, saves what the window shows.

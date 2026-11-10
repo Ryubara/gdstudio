@@ -82,4 +82,5 @@ camera_rig = NodePath("../PlayerCamera")
 touch = NodePath("../TouchControls")
 
 [connection signal="look_turned" from="TouchControls" to="PlayerCamera" method="orbit"]
-[connection signal="opened" from="Screens" to="TouchControls" method="release"]
+[connection signal="opened" from="Screens" to="TouchControls" method="suspend"]
+[connection signal="closed" from="Screens" to="TouchControls" method="resume"]

@@ -132,6 +132,9 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	# A node with a `_process` has processing switched on when it is ready: nothing is waiting to be
+	# written, so off until a change schedules a save.
+	set_process(false)
 	snapshot_declared_bindings()
 	load_from_disk()
 	apply_all()

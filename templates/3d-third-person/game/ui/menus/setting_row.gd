@@ -20,6 +20,8 @@ extends UIRow
 ## Leaves the row out in a browser, which decides this setting itself (window mode, vsync).
 @export var hide_on_web := false
 
+var _shown_once := false
+
 
 func _ready() -> void:
 	super._ready()
@@ -57,7 +59,13 @@ func refresh() -> void:
 	elif control is UIToggle:
 		(control as UIToggle).set_pressed_no_signal(bool(value))
 	elif control is UIOptionSelector:
-		(control as UIOptionSelector).select(_index_of(float(value)), false)
+		var selector := control as UIOptionSelector
+		# The first time the row shows the value it is set, not slid to.
+		if _shown_once:
+			selector.select(_index_of(float(value)), false)
+		else:
+			selector.jump_to(_index_of(float(value)))
+	_shown_once = true
 
 
 func _connect_control() -> void:
