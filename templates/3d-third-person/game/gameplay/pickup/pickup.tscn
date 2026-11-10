@@ -26,7 +26,8 @@ resource_local_to_scene = true
 radius = 0.375
 
 [node name="Pickup" type="Area3D"]
-collision_layer = 0
+collision_layer = 64
+collision_mask = 2
 script = ExtResource("1_pickup")
 sounds = Array[AudioStream]([ExtResource("c1"), ExtResource("c2"), ExtResource("c3"), ExtResource("c4")])
 

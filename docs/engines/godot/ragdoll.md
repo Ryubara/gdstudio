@@ -40,14 +40,14 @@ simulator is the only node that needs to exist while the character lives: with `
   modifier, whose pose is applied after the skin update and discarded, so the bone poses of the skeleton show the
   animation while the body is limp and a test that read them found the ragdoll standing. **Seen:** gdstudio #846,
   2026-11-09.
-- **Approach:** Let the bones collide with each other: put the ragdoll's own layer (5) in its `collision_mask` (the
-  level and its own, 17), keep the bones off layer 1, and keep each body apart from the one it hangs from with
+- **Approach:** Let the bones collide with each other: put the ragdoll's own layer (5) in its `collision_mask`
+  (`PhysicsLayers.RAGDOLL_MASK`), keep the bones off layer 1, and keep each body apart from the one it hangs from with
   `PhysicsServer3D.body_add_collision_exception(a, b)` both ways, once, when the bones are built. **Watch out for:** a
   mask of the level only let limbs through the trunk (13 to 17 cm, in 80 to 90 percent of the frames of a death); the
   "fighting" was a body and its parent overlapping at their joint, and 4.7.2 gives `PhysicalBone3D` no exclusion for
-  them on either engine (godot PR 70945 is open). Layer 1 would put the bones in the way of the camera's spring arm,
-  the ground probes and the shots (they mask the level only, #875). **Seen:** gdstudio #872, 2026-11-10 (found by the
-  maintainer; `test_ragdoll_natural.gd`: non-adjacent capsules overlap under 6 cm).
+  them on either engine (godot PR 70945 is open). Layer 1 would put the bones in the way of the camera's spring arm and
+  the ground probes ([Physics layers](physics-layers.md#template-layers)). **Seen:** gdstudio #872, 2026-11-10 (found by
+  the maintainer; `test_ragdoll_natural.gd`: non-adjacent capsules overlap under 6 cm).
 - **Approach:** Start each bone with its own linear and angular velocity, read from where the animation moved it over
   the last physics frame (sample the 16 bodies' animated poses every tick while alive, then
   `(now - before) / dt` and the axis-angle of `now * before.inverse()` over `dt`, and drop a sample that moved over
@@ -208,10 +208,11 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   Death and getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
   drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
-  then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer` (16,
-  the ragdoll's own, layer 5) and `collision_mask` (17: the level and its own layer, so limbs rest on the body and on
-  each other, never on the bone they hang from; no player capsule, camera wall, ground probe or shot sees a bone: a
-  shot passes through and marks what is behind, `test_impact_marks.gd`; hit zones (#876) need their own layer).
+  then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
+  (`PhysicsLayers.RAGDOLL`, the ragdoll's own, layer 5) and `collision_mask` (`RAGDOLL_MASK`: the level, props and its
+  own layer, so limbs rest on the floor, a crate, the body and each other, never on the bone they hang from; no player
+  capsule, camera wall, ground probe or trigger area sees a bone, and a shot does: it stops at the bone, which takes no
+  mark yet, [Physics layers](physics-layers.md#shots-meet-bones); hit zones (#876) are layer 6).
   Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
   `RagdollBones` under the `Model` slot's skeleton, made from `PlayerRagdoll.BODIES` whenever the rig changes, in the

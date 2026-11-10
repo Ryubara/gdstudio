@@ -51,6 +51,8 @@ func test_a_box_that_is_not_the_player_does_not_take_the_view() -> void:
 	var shape := CollisionShape3D.new()
 	shape.shape = BoxShape3D.new()
 	crate.add_child(shape)
+	# On the Props layer, which the zone senses: the group test is what keeps it out.
+	crate.collision_layer = PhysicsLayers.PROPS
 	crate.position = Vector3(-18.0, 0.6, 11.5)
 	_scene.add_child(crate)
 	await InputSim.ticks(get_tree(), 10)

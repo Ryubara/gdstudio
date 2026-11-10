@@ -126,9 +126,9 @@ the spread's place for `restore()`.
   0 is pushed as before (the spheres). **Seen:** gdstudio #836, 2026-11-08.
 
 - **Approach:** Make an area that senses "something is near" count only what should trigger it: the door's `Sensor`
-  counts a `CharacterBody3D` on `auto_open_mask`, never a wall, floor, prop or the door's own body. A type test, not
-  named layers, so the player and a game's own layers stay as they are and the mask stays tunable. Closing the door
-  with a character in range keeps it shut until they leave and come back. **Watch out for:** an `Area3D` reports
+  counts a `CharacterBody3D` on `auto_open_mask` (Characters since #924, so the walls never reach it), never a wall,
+  floor, prop or the door's own body; the type test stays behind the mask for a game with its own layers. Closing the
+  door with a character in range keeps it shut until they leave and come back. **Watch out for:** an `Area3D` reports
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
@@ -138,13 +138,14 @@ the spread's place for `restore()`.
   and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
   longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
   set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
-- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a `CharacterBody3D`
-  (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a pushed crate presses
-  a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an `AnimatableBody3D` beside the
-  area must not trigger it, a character must. **Watch out for:** the map's pressure pad was pressed at the start by the
-  floor and the landing under it, so the room door opened at once and the pad never released; the coins were clean only
-  because no block touched them. A frozen `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`).
-  **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
+- **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
+  `TriggerZone` Characters and Props: [Physics layers](../physics-layers.md#template-layers)) and a class test behind
+  it: `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies
+  on their layers: a floor, a block and an `AnimatableBody3D` beside the area must not trigger it, a character must.
+  **Watch out for:** the map's pressure pad was pressed at the start by the floor and the landing under it, so the room
+  door opened at once and the pad never released; the coins were clean only because no block touched them. A frozen
+  `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08
+  (`test_components_among_blocks.gd`).
 
 - **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
   aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom

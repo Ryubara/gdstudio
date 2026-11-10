@@ -92,6 +92,14 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   resources), not the new code; it came with the typed export in `Weapon` or `ImpactSurface` alone, never in a minimal
   project or with `Resource`, and removing `@tool` or the exports' ranges changed nothing. **Seen:** gdstudio #888,
   2026-11-10 (`EffectDef`; Godot 4.7.2's cause not found).
+- **Approach:** When a leak at exit shows only in CI, get CI's own evidence before changing code: run the failing
+  step with `--verbose` (it names each script still in use) and add a temporary step that runs it earlier in the job,
+  before the tests. **Watch out for:** CI's `--export-release Web` of 3D Third Person ended with 17 scripts in use
+  (`gds_ui`, Phantom Camera, the audio settings), none of them changed, while every local replay was clean (Windows,
+  the same Ubuntu 24.04 in WSL, tmpfs, 4 cores, CI's exact test command); writing the mask defaults as numbers, a guess
+  from the entry above, changed nothing. The next run of the same code passed, an early export included: this leak
+  comes and goes, so one red export is not proof a change caused it; rerun before bisecting. **Seen:** gdstudio
+  #954, 2026-11-10.
 - **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
   edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
   probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled
@@ -144,3 +152,8 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   that held each other strongly, so every pair a test made stayed alive: 526 template tests passed with one line `4
   resources still in use at exit`, which only a run of each suite alone traced to the loopback suite. **Seen:**
   gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end).
+- **Approach:** A scene's script makes its nodes in `_ready` (or adds them as children at once), never in a member
+  initializer (`var _dummy := Node3D.new()`) that only `_ready` adds to the tree. **Watch out for:** a test that
+  `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
+  only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
+  the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`).

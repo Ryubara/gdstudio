@@ -71,9 +71,10 @@ enum Style {
 	set(value):
 		auto_open_range = value
 		_update_sensor()
-## Which physics layers a character must be on to open the door. A body that is not a
-## `CharacterBody3D` never opens it, whatever its layer.
-@export_flags_3d_physics var auto_open_mask := 1:
+## Which physics layers a character must be on to open the door: Characters
+## (`PhysicsLayers.CHARACTER_SENSOR_MASK`), so the sensor never hears of the walls and floor around
+## it. A body that is not a `CharacterBody3D` never opens it either, whatever its layer.
+@export_flags_3d_physics var auto_open_mask := PhysicsLayers.CHARACTER_SENSOR_MASK:
 	set(value):
 		auto_open_mask = value
 		_update_sensor()
@@ -187,8 +188,8 @@ func unlock() -> void:
 	locked = false
 
 
-# True while a character is inside the auto-open range. Only a `CharacterBody3D` counts, because
-# the sensor also overlaps the level's walls and floor and this door's own body.
+# True while a character is inside the auto-open range. The mask keeps the level out; only a
+# `CharacterBody3D` counts as well, for a game whose mask also lists the level or props.
 func _character_near() -> bool:
 	var sensor := _sensor()
 	if auto_open_range <= 0.0 or sensor == null:

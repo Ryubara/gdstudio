@@ -22,8 +22,9 @@ radius = 0.07
 
 [node name="Projectile" type="CharacterBody3D"]
 collision_layer = 4
-collision_mask = 1
+collision_mask = 59
 motion_mode = 1
+platform_floor_layers = 0
 script = ExtResource("1_projectile")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]

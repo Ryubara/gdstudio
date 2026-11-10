@@ -162,7 +162,9 @@ func clear_marks() -> void:
 
 func _place_mark(surface: ImpactSurface, collider: Object, point: Vector3, normal: Vector3) -> void:
 	var body := collider as Node3D
-	if body == null or body is CharacterBody3D or max_marks <= 0:
+	# No mark on a character, nor (until the hit zones of kit #876 keep it on the body as it gets
+	# up) on a ragdoll bone, which shots now meet: the effect and the sound still play.
+	if body == null or body is CharacterBody3D or body is PhysicalBone3D or max_marks <= 0:
 		return
 	_prune()
 	var mark: ImpactMark

@@ -13,14 +13,13 @@ that avoids it. The refusals a hook makes are in [Hooks](hooks.md); the shared-m
 
 A commit, a merge and a lint run are read whole, on their own, and the next step runs only after a look at the result.
 
-- **Approach:** Run a commit, `uvx pre-commit run` and `gds merge-main --continue` on their own and read all of the
-  output; never end them in `| tail` or `| grep`. Then check `git log --oneline -1` and `git status --short` before a
-  push, and `gh pr diff N --name-only` after opening a pull request. **Watch out for:** a pipe returns the filter's exit
-  code and `tail` shows the last hook lines (`Skipped`), so a refused commit (a title verb off the list, MD013, a
-  `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
-  change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
-  (`--continue` hid a licence line); gdstudio, 2026-11-02 (a lint failure behind `grep`); Deadnight #1374,
-  2026-11-07; gdstudio #916, 2026-11-10 (MD013 and a title verb hid, so no commit, twice).
+- **Approach:** Run a commit, `uvx pre-commit run`, `gds merge-main --continue` and a test run on their own (a test
+  run's output whole to a scratch log) and read all of it; never end them in `| tail` or `| grep`. Check `git log
+  --oneline -1` and `git status --short` before a push, and `gh pr diff N --name-only` after opening a pull request.
+  **Watch out for:** a pipe returns the filter's exit code and `tail` shows the last lines, so a refused commit (a title
+  verb, MD013, a `gdformat` roll-back) or a failed suite looked done. **Seen:** Deadnight #1003, 2026-11-04; Deadnight
+  #656, 2026-11-02 (a licence line); gdstudio, 2026-11-02 (a lint failure); Deadnight #1374, 2026-11-07; gdstudio
+  #916, 2026-11-10 (twice); gdstudio #954, 2026-11-10 (`grep | tail -6` over the template suites hid a failing one).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command
@@ -113,6 +112,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** When pre-commit names a lint in a line you did not write, run `gds merge-main` before changing the code.
   **Watch out for:** pre-commit lints whole files, so a one-word comment edit pulled in a `gdlint` fault that `main` had
   fixed since the branch began. **Seen:** Deadnight, 2026-11-04 (fix: main merged first, then the commit passed).
+- **Approach:** Before adding a function to a large script, count its lines (`gdlint` refuses a file over 1000) and put
+  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` by importing a
+  game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
+  `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
+  test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
+  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`).
 
 ## Reverting and checking out {#checkout}
 

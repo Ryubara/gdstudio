@@ -42,8 +42,10 @@ signal fired(projectile: Projectile)
 ## The aim ray looks this far for something to hit; the shot flies toward the end of the ray when
 ## nothing is in the way.
 @export_range(5.0, 500.0, 1.0, "suffix:m") var aim_range := 100.0
-## What the aim ray hits (physics layers).
-@export_flags_3d_physics var aim_mask := 1
+## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
+## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
+## shot will hit.
+@export_flags_3d_physics var aim_mask := PhysicsLayers.SHOT_MASK
 
 @export_group("Projectile")
 ## How fast the projectile flies.
