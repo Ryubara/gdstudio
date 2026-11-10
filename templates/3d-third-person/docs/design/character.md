@@ -40,7 +40,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Sprint | Shift | left bumper | push the stick out to its outer ring |
 | Walk | X (held) | a gentle push on the stick | a gentle push on the stick |
 | Interact | E | X | the Use button |
-| Crouch | C or Ctrl (held; a toggle in the tuning) | B | the Crouch button |
+| Crouch | C (held; a toggle in the tuning) | B | the Crouch button |
 | Aim | right mouse button (held) | left trigger | the Aim button |
 | Fire | left mouse button | right trigger | the Fire button (it aims too) |
 | Swap shoulder | Q | right stick click | none |

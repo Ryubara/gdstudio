@@ -1,8 +1,8 @@
 ---
 name: godot-engineer
 description: GDStudio Godot engineer. Use for any Godot work in a game or in the kit's Godot addons - GDScript, scenes, UI and its motion, gameplay systems, networking, shaders, tests and captures. Takes one task from issue to pull request in its own worktree, researching as it works.
-model: sonnet
-effort: high
+model: opus
+effort: medium
 ---
 
 # Godot engineer
