@@ -47,6 +47,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   night test stopped on it. **Seen:** Deadnight #442, 2026-11-01 (fix: `is_instance_valid`; the night test is the
   check).
 
+- **Approach:** Give an `@export_enum` a name for "none" (`"Stay"`, `"None"`) and test for that string; load every new
+  script once (`gds check scripts`) before reading anything else a run prints. **Watch out for:** `@export_enum("",
+  "TopLeft", ...)` is a parse error ("Argument 1 of annotation @export_enum is empty") that was reported only as
+  "Could not resolve class" on the scripts that extend the failing one. **Seen:** gdstudio #880, 2026-11-10 (fix: a
+  `Stay` entry).
+
 - **Approach:** Fill a typed array in steps (`var paths: Array[String] = [a, b]`, then `if cond: paths = [c]`) and read
   the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
   cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of

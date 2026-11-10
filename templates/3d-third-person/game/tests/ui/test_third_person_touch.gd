@@ -88,11 +88,11 @@ func test_a_finger_on_the_aim_button_aims_and_shows_the_crosshair() -> void:
 	_touch_event(5, at, true)
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(_player.aiming).is_true()
-	assert_bool((_scene.get_node("Hud/Crosshair") as Control).visible).is_true()
+	assert_bool((_scene.get_node("Hud/Root/Center/Crosshair") as Control).visible).is_true()
 	_touch_event(5, at, false)
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(_player.aiming).is_false()
-	assert_bool((_scene.get_node("Hud/Crosshair") as Control).visible).is_false()
+	assert_bool((_scene.get_node("Hud/Root/Center/Crosshair") as Control).visible).is_false()
 
 
 func test_a_finger_on_the_fire_button_shoots_and_two_fingers_aim_and_fire() -> void:

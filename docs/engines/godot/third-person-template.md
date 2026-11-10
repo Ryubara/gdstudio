@@ -17,6 +17,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view and a fire view blended on its framing; a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
@@ -468,6 +469,23 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A route for a clip {#walkthrough}
 
