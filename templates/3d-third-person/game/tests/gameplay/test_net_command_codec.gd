@@ -37,6 +37,7 @@ func _assert_same(actual: PlayerCommand, expected: PlayerCommand) -> void:
 		"sprint",
 		"walk",
 		"crouch",
+		"prone",
 		"aim",
 		"fire",
 		"jump",
@@ -69,6 +70,7 @@ func test_every_field_and_flag_comes_back() -> void:
 	command.walk = true
 	command.jump = true
 	command.interact_pressed = true
+	command.prone = true
 	var decoded := CommandCodec.decode(CommandCodec.encode(command))
 	assert_object(decoded).is_not_null()
 	assert_int(decoded.seq).is_equal(4_000_000_123)
@@ -80,7 +82,7 @@ func test_every_field_and_flag_comes_back() -> void:
 	assert_float(decoded.shot_pitch).is_equal_approx(0.2, 0.0001)
 	assert_int(decoded.view_tick).is_equal(70_001 & 0xFFFF)
 	_assert_same(decoded, CommandCodec.quantized(command))
-	for field in ["sprint", "walk", "crouch", "aim", "fire", "jump", "jump_pressed"]:
+	for field in ["sprint", "walk", "crouch", "prone", "aim", "fire", "jump", "jump_pressed"]:
 		assert_bool(decoded.get(field)).override_failure_message(field).is_true()
 	for field in ["fire_pressed", "interact_pressed", "ragdoll_pressed", "has_shot"]:
 		assert_bool(decoded.get(field)).override_failure_message(field).is_true()
@@ -91,6 +93,7 @@ func test_each_flag_travels_alone() -> void:
 		"sprint",
 		"walk",
 		"crouch",
+		"prone",
 		"aim",
 		"fire",
 		"jump",
@@ -109,7 +112,7 @@ func test_each_flag_travels_alone() -> void:
 		_assert_same(decoded, command)
 
 
-func test_the_weapon_presses_take_bits_11_to_14_and_bit_15_is_still_refused() -> void:
+func test_the_weapon_presses_take_bits_11_to_14_beside_prone_on_bit_15() -> void:
 	var bits := {
 		"reload_pressed": CommandCodec.F_RELOAD_PRESSED,
 		"next_weapon_pressed": CommandCodec.F_NEXT_WEAPON_PRESSED,
@@ -123,7 +126,8 @@ func test_the_weapon_presses_take_bits_11_to_14_and_bit_15_is_still_refused() ->
 		command.set(field, true)
 		assert_int(CommandCodec.encode(command).decode_u16(11)).is_equal(1 << shift)
 		shift += 1
-	assert_int(CommandCodec.F_UNUSED).is_equal(1 << 15)
+	assert_int(CommandCodec.F_PRONE).is_equal(1 << 15)
+	assert_int(CommandCodec.F_UNUSED).is_equal(0)
 	# A press survives two commands arriving together, and a repeat drops it.
 	var earlier := PlayerCommand.new()
 	earlier.reload_pressed = true
@@ -134,8 +138,8 @@ func test_the_weapon_presses_take_bits_11_to_14_and_bit_15_is_still_refused() ->
 	later.clear_edges()
 	assert_bool(later.reload_pressed or later.unarmed_pressed).is_false()
 	# The layout changed: the version went up past the first one.
-	assert_int(NetWire.VERSION).is_greater_equal(2)
-	assert_bool(NetWire.accepts(1)).is_false()
+	assert_int(NetWire.VERSION).is_greater_equal(3)
+	assert_bool(NetWire.accepts(2)).is_false()
 
 
 func test_a_quantized_command_equals_what_the_codec_decodes() -> void:
@@ -202,8 +206,7 @@ func test_a_command_with_a_number_that_is_not_finite_is_not_sent() -> void:
 func test_hostile_commands_are_dropped_with_a_reason() -> void:
 	var good := CommandCodec.encode(_full_command())
 	var shot := CommandCodec.encode(_with_shot(_full_command()))
-	var unknown_flag := good.duplicate()
-	unknown_flag.encode_u16(11, unknown_flag.decode_u16(11) | (1 << 15))
+	# Every flag bit is used now (11 to 14 the weapon presses, 15 prone): no unknown flag exists.
 	var shot_flag_short := good.duplicate()
 	shot_flag_short.encode_u16(11, shot_flag_short.decode_u16(11) | CommandCodec.F_SHOT)
 	var shot_block_no_flag := shot.duplicate()
@@ -217,7 +220,6 @@ func test_hostile_commands_are_dropped_with_a_reason() -> void:
 		NetDrops.TOO_SHORT: good.slice(0, 14),
 		NetDrops.TOO_LONG: long,
 		NetDrops.UNKNOWN_TYPE: wrong_type,
-		NetDrops.BAD_VALUE: unknown_flag,
 		NetDrops.WRONG_SIZE: shot_flag_short,
 	}
 	for reason: StringName in cases:

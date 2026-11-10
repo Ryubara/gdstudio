@@ -56,3 +56,6 @@ var weapon: Array = []
 ## The step state of the character's `WeaponLoadout` (`save_step_state()`: what is in the hands,
 ## where a switch is, each slot's ammunition). Empty for a character with no loadout.
 var loadout: Array = []
+## The prone stance (`CharacterProne.save_step_state()`: lying or not, how far down, the time
+## off the ground).
+var prone: Array = []

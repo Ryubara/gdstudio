@@ -22,6 +22,9 @@ var sprint := false
 var walk := false
 ## Held while the player is crouched (the input turns the crouch toggle into a held bit).
 var crouch := false
+## Held while the player lies down (the input turns the prone toggle, or a long hold of crouch,
+## into a held bit).
+var prone := false
 var aim := false
 var fire := false
 var jump := false
@@ -81,6 +84,7 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	sprint = other.sprint
 	walk = other.walk
 	crouch = other.crouch
+	prone = other.prone
 	aim = other.aim
 	fire = other.fire
 	jump = other.jump
@@ -112,6 +116,7 @@ func clear() -> void:
 	sprint = false
 	walk = false
 	crouch = false
+	prone = false
 	aim = false
 	fire = false
 	jump = false

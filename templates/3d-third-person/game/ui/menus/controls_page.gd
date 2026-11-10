@@ -17,6 +17,7 @@ signal listening_changed(listening: bool)
 	&"sprint",
 	&"walk",
 	&"crouch",
+	&"prone",
 	&"interact",
 	&"aim",
 	&"fire",

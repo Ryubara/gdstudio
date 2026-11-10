@@ -6,10 +6,11 @@ extends CharacterController
 ## alone, so the same body is driven by a server, a recording or an AI with another controller.
 ##
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
-## `jump`, `sprint`, `walk`, `interact`, `crouch`, `aim`, `fire`, the weapon presses `reload`,
-## `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time, holding
-## the player's `ragdoll_key`). `Player.input_enabled` off gives a command that asks for
-## nothing; the view, a crouch that was toggled on and a held jump stay.
+## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
+## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time,
+## holding the player's `ragdoll_key`). `Player.input_enabled` off gives a command that asks for
+## nothing; the view, a crouch or prone that was toggled on and a held jump stay. How prone is
+## asked for (a toggle, a hold, a long hold of crouch) is the player's `ProneTuning.input_mode`.
 ##
 ## The view in the command is the camera that draws this node's viewport, so a `CameraZone` that
 ## takes the picture also takes the directions. Camera shake is taken out again (`camera_rig`):
@@ -40,6 +41,10 @@ var _crouch_latch := false
 var _weapon_latches: Array[bool] = [false, false, false, false]
 # Each weapon action was down at the last command.
 var _weapon_down: Array[bool] = [false, false, false, false]
+var _prone_latch := false
+# Seconds crouch has been held (for `HOLD_CROUCH`), and whether this press was used already.
+var _crouch_held := 0.0
+var _crouch_press_used := false
 var _bound_key: Key = KEY_NONE
 
 
@@ -112,6 +117,8 @@ func sample() -> PlayerCommand:
 	_write_view(command, camera, stick)
 	_step_crouch(enabled)
 	command.crouch = _crouch_latch
+	_step_prone(enabled)
+	command.prone = _prone_latch
 	# As before the command: a jump held when the input is turned off still rises its full height.
 	command.jump = Input.is_action_pressed(&"jump")
 	if not enabled:
@@ -212,5 +219,51 @@ func _step_crouch(enabled: bool) -> void:
 		_crouch_latch = enabled and Input.is_action_pressed(&"crouch")
 
 
+# The prone button as a held bit, in the player's `ProneTuning.input_mode`: a press switches it,
+# or it is the button, or (`HOLD_CROUCH`) crouch held `crouch_hold_time` lies down and a press of
+# crouch while down gets up. A jump or a sprint press gets up when the tuning says so. With the
+# input off a toggled prone stays and a held one lets go.
+func _step_prone(enabled: bool) -> void:
+	var tuning := player.prone_tuning if player != null else null
+	if tuning == null:
+		_prone_latch = false
+		return
+	var mode := tuning.input_mode
+	if not enabled:
+		_crouch_held = 0.0
+		if mode == ProneTuning.InputMode.HOLD:
+			_prone_latch = false
+		return
+	if mode == ProneTuning.InputMode.HOLD:
+		_prone_latch = Input.is_action_pressed(&"prone")
+	elif Input.is_action_just_pressed(&"prone"):
+		_prone_latch = not _prone_latch
+	if mode == ProneTuning.InputMode.HOLD_CROUCH:
+		_step_crouch_hold(tuning)
+	var up := tuning.jump_gets_up and Input.is_action_just_pressed(&"jump")
+	up = up or tuning.sprint_gets_up and Input.is_action_just_pressed(&"sprint")
+	if up:
+		_prone_latch = false
+
+
+# A long hold of crouch lies down; a press of crouch while down gets up (and does not lie down
+# again while it is held).
+func _step_crouch_hold(tuning: ProneTuning) -> void:
+	if Input.is_action_just_pressed(&"crouch"):
+		_crouch_held = 0.0
+		_crouch_press_used = _prone_latch
+		_prone_latch = false
+	if not Input.is_action_pressed(&"crouch"):
+		_crouch_held = 0.0
+		return
+	if _crouch_press_used:
+		return
+	_crouch_held += get_physics_process_delta_time()
+	if _crouch_held >= tuning.crouch_hold_time:
+		_prone_latch = true
+		_crouch_press_used = true
+
+
 func _on_died() -> void:
 	_crouch_latch = false
+	_prone_latch = false

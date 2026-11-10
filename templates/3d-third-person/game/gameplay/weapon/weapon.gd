@@ -101,6 +101,9 @@ var reserve: Variant:
 	get:
 		return _reserve if _uses_ammo() else null
 
+## The share of `spread` a shot gets now: the character that holds the weapon sets it each
+## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
+var spread_share := 1.0
 var _cooldown := 0.0
 var _magazine := 0
 var _reserve := 0
@@ -362,7 +365,7 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 func _spread(heading: Vector3) -> Vector3:
 	if definition.spread <= 0.0:
 		return heading
-	var angle := deg_to_rad(definition.spread) * sqrt(_rng.randf())
+	var angle := deg_to_rad(definition.spread * spread_share) * sqrt(_rng.randf())
 	var around := _rng.randf() * TAU
 	var side := heading.cross(Vector3.UP)
 	if side.length_squared() < 0.0001:
