@@ -41,8 +41,10 @@ signal settled
 ## `range` (degrees, the lowest and the highest, from the straight limb) and does nothing else.
 ##
 ## The limits are a person's (the sources are in docs/engines/godot/ragdoll.md#limits), the same
-## on the left and the right. A clip can hold a joint outside them; the pose is pushed inside
-## when the body goes limp (`_clamped_world`), so no joint starts out of range and is thrown.
+## on the left and the right, but for the shoulders' twist: 45 where a person turns about 60,
+## because a shoulder the body lands on is pushed past its twist and 45 keeps it near a person's.
+## A clip can hold a joint outside them; the pose is pushed inside when the body goes limp
+## (`_clamped_world`), so no joint starts out of range and is thrown.
 ## `tools/ragdoll/measure_joints.gd` prints how far the clips go past them.
 const BODIES := [
 	{
@@ -95,7 +97,7 @@ const BODIES := [
 		joint = &"cone",
 		centre = Vector3(25.8, 33.6, -31.9),
 		swing = 100.0,
-		twist = 60.0
+		twist = 45.0
 	},
 	{
 		bone = &"lowerarm_l",
@@ -128,7 +130,7 @@ const BODIES := [
 		joint = &"cone",
 		centre = Vector3(-27.8, 39.8, 21.5),
 		swing = 100.0,
-		twist = 60.0
+		twist = 45.0
 	},
 	{
 		bone = &"lowerarm_r",
@@ -279,9 +281,15 @@ static var _counted := 0
 ## joint alone, more keeps a straight or bent limb from giving way when the body lands on it (an
 ## elbow folded 30 degrees past its range, or bent 50 backwards, in 10 deaths of 70 with 1). Each
 ## one past the first is another hinge between the same two bones, solved only while limp.
-@export_range(1, 8, 1) var hinge_passes := 4:
+@export_range(1, 8, 1) var hinge_passes := 6:
 	set(value):
 		hinge_passes = value
+		_rebuild()
+## The same for every cone (shoulders, hips, spine, neck, wrists, ankles): with 1 a shoulder the
+## body lands on twists 50 to 115 degrees past its range, and a hip or a wrist 30 to 70 past.
+@export_range(1, 8, 1) var cone_passes := 6:
+	set(value):
+		cone_passes = value
 		_rebuild()
 ## How much the bones slow down moving through the air (0 keeps their speed).
 @export_range(0.0, 10.0, 0.01) var linear_damp := 0.1:
@@ -362,8 +370,8 @@ var _pose_before: Dictionary[StringName, Transform3D] = {}
 var _since_start := 0.0
 var _counts := false
 var _settled := false
-# The extra hinges beside each elbow's and knee's own (`hinge_passes`), as physics server joints.
-var _braces: Array[RID] = []
+# The extra joints beside each bone's own (`hinge_passes`, `cone_passes`).
+var _braces := RagdollBraces.new()
 
 
 func _ready() -> void:
@@ -553,10 +561,10 @@ func _build() -> void:
 	_simulator.name = SIMULATOR
 	_simulator.active = false
 	skeleton.add_child(_simulator)
-	# The extra hinges are server joints between the bones' bodies: they go before the bodies do
+	# The extra joints are server joints between the bones' bodies: they go before the bodies do
 	# (a model swap deletes the skeleton and the bones with it), and come back with them.
 	_simulator.tree_exiting.connect(_free_braces)
-	_simulator.tree_entered.connect(_brace_hinges)
+	_simulator.tree_entered.connect(_brace_joints)
 	var rest_bodies: Dictionary[StringName, Transform3D] = {}
 	for entry: Dictionary in BODIES:
 		var bone := _make_bone(skeleton, entry)
@@ -593,7 +601,7 @@ func _build() -> void:
 		_set_joint(_bones[entry.bone], entry)
 	_apply_materials()
 	_except_parents()
-	_brace_hinges()
+	_brace_joints()
 	if was_limp and not Engine.is_editor_hint():
 		start()
 		for bone_name: StringName in lying:
@@ -769,46 +777,21 @@ func _apply_materials() -> void:
 		bone.collision_mask = collision_mask
 
 
-# Jolt solves a joint `velocity_steps` times a step for the whole project (10, then 2 position
-# steps), which is too few for a light forearm under a falling trunk; 4.7.2 keeps Jolt's per-joint
-# step override out of reach of scripts. A second hinge with the same frames and limits between
-# the same bones is solved again in every step, so `hinge_passes` hinges hold the limb like that
-# many steps would, for these joints only (docs/engines/godot/ragdoll.md#limits).
-func _brace_hinges() -> void:
+# The extra joints (`hinge_passes`, `cone_passes`): Jolt's project-wide solver steps are too few
+# for a light limb under a falling trunk, so each joint is made again between the same bones
+# (`RagdollBraces`, docs/engines/godot/ragdoll.md#limits).
+func _brace_joints() -> void:
 	var skeleton := model.skeleton() if model != null else null
 	if skeleton == null or not _braces.is_empty() or _posed.is_empty():
 		return
-	for entry: Dictionary in BODIES:
-		if entry.joint != &"hinge":
-			continue
-		var up := _parent_body(skeleton, entry.bone)
-		var child := _bones[entry.bone]
-		var parent := _bones[up]
-		# The hinge's frame in each body, at the pose it was made in (the middle of its range).
-		var in_child := Transform3D(_joint_frame(entry), child.joint_offset.origin)
-		var in_parent: Transform3D = _posed[up].affine_inverse() * _posed[entry.bone] * in_child
-		var half := deg_to_rad(minf((entry.range.y - entry.range.x) / 2.0 * joint_range, 170.0))
-		for _copy in hinge_passes - 1:
-			var joint := PhysicsServer3D.joint_create()
-			PhysicsServer3D.joint_make_hinge(
-				joint, parent.get_rid(), in_parent, child.get_rid(), in_child
-			)
-			PhysicsServer3D.hinge_joint_set_flag(
-				joint, PhysicsServer3D.HINGE_JOINT_FLAG_USE_LIMIT, true
-			)
-			PhysicsServer3D.hinge_joint_set_param(
-				joint, PhysicsServer3D.HINGE_JOINT_LIMIT_UPPER, half
-			)
-			PhysicsServer3D.hinge_joint_set_param(
-				joint, PhysicsServer3D.HINGE_JOINT_LIMIT_LOWER, -half
-			)
-			_braces.append(joint)
+	var parents: Dictionary[StringName, StringName] = {}
+	for key: StringName in _bones:
+		parents[key] = _parent_body(skeleton, key)
+	_braces.build(_bones, _posed, parents, hinge_passes, cone_passes, joint_range)
 
 
 func _free_braces() -> void:
-	for joint: RID in _braces:
-		PhysicsServer3D.free_rid(joint)
-	_braces.clear()
+	_braces.free_all()
 
 
 ## How many hinges hold the elbows and knees now, the bones' own and the extra ones.
@@ -817,7 +800,17 @@ func hinge_count() -> int:
 	for entry: Dictionary in BODIES:
 		if entry.joint == &"hinge" and _bones.has(entry.bone):
 			own += 1
-	return own + _braces.size()
+	return own + _braces.hinges
+
+
+## How many cones hold the shoulders, hips, spine, neck, wrists and ankles now, the bones' own and
+## the extra ones.
+func cone_count() -> int:
+	var own := 0
+	for entry: Dictionary in BODIES:
+		if entry.joint == &"cone" and _bones.has(entry.bone):
+			own += 1
+	return own + _braces.cones
 
 
 # Godot 4.7.2 gives a `PhysicalBone3D` no exception for the bone it hangs from (godot PR 70945 is

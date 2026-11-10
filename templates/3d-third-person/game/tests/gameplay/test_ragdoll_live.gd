@@ -65,11 +65,24 @@ func test_joint_range_scales_the_limits() -> void:
 
 func test_hinge_passes_sets_how_many_hinges_hold_each_elbow_and_knee() -> void:
 	# Four elbows and knees, each held by `hinge_passes` hinges.
-	assert_int(_ragdoll.hinge_count()).is_equal(16)
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
 	_ragdoll.hinge_passes = 1
 	assert_int(_ragdoll.hinge_count()).is_equal(4)
 	assert_int(_ragdoll.body_count()).is_equal(16)
-	_ragdoll.hinge_passes = 6
+	_ragdoll.hinge_passes = 3
+	assert_int(_ragdoll.hinge_count()).is_equal(12)
+
+
+func test_cone_passes_sets_how_many_cones_hold_each_ball_joint() -> void:
+	# Eleven cones (spine twice, neck, shoulders, wrists, hips, ankles), each held by `cone_passes`
+	# cones, and the hinges keep their own count.
+	assert_int(_ragdoll.cone_count()).is_equal(66)
+	_ragdoll.cone_passes = 1
+	assert_int(_ragdoll.cone_count()).is_equal(11)
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
+	assert_int(_ragdoll.body_count()).is_equal(16)
+	_ragdoll.cone_passes = 3
+	assert_int(_ragdoll.cone_count()).is_equal(33)
 	assert_int(_ragdoll.hinge_count()).is_equal(24)
 
 
