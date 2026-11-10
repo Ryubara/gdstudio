@@ -283,7 +283,7 @@ The character lies down and crawls below crouch. It is its own module beside the
 the ground) and what lying changes; `ProneTuning` (`prone_tuning.gd`, the player's `prone_tuning.tres`, the
 `Character`'s `prone_tuning` in its Prone group) holds every number. The body asks the module once a step from the
 command's held `prone` bit, so a server, a bot or a test lies a body down by sending that bit
-(`CommandCodec.F_PRONE`, bit 15; `NetWire.VERSION` 2), and the stance is saved and put back with the rest of the step
+(`CommandCodec.F_PRONE`, bit 15; `NetWire.VERSION` 3), and the stance is saved and put back with the rest of the step
 state (`CharacterState.prone`). The human's `PlayerInput` turns the `prone` action (Z, the pad's d-pad down, the
 Prone touch button) into that bit by the tuning's `input_mode`: a toggle (the default), a hold, or a long hold of
 crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint press gets up (`jump_gets_up`,

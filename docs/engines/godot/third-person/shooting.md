@@ -200,9 +200,9 @@ their shares, the draw). A new weapon is a new `.tres`; nothing else changes.
   the new one's `draw_time`; asking again during a switch goes there instead. `next()`, `previous()` (the slots, then
   the empty hands) and `toggle_unarmed()`.
 - **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
-  `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 2), from the actions `reload` (R, pad Y, the touch Reload),
-  `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
-  `toggle_unarmed` (H, d-pad down). The character steps the loadout and then the weapon at the end of each `step`, and
+  `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
+  the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
+  `toggle_unarmed` (H, d-pad up). The character steps the loadout and then the weapon at the end of each `step`, and
   both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload; `.loadout`), so a
   server and a predicting client reload and switch on the same tick. What is in the hands is gameplay; the clips, the
   sounds and the flash are cosmetic and never sent.

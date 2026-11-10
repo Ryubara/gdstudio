@@ -53,7 +53,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Reload | R | Y | the Reload button (an empty magazine with rounds in reserve also reloads by itself) |
 | Next weapon | mouse wheel down | d-pad right | the Swap button |
 | Previous weapon | mouse wheel up | d-pad left | none |
-| Empty hands and back | H | d-pad down | none |
+| Empty hands and back | H | d-pad up | none |
 | Swap shoulder | Q | right stick click | none |
 | Die and get up (a testing aid) | Y (`Player`'s `ragdoll_key`; None turns it off) | none | none |
 
