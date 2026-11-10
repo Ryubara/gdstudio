@@ -41,8 +41,10 @@ signal settled
 ## `range` (degrees, the lowest and the highest, from the straight limb) and does nothing else.
 ##
 ## The limits are a person's (the sources are in docs/engines/godot/ragdoll.md#limits), the same
-## on the left and the right. A clip can hold a joint outside them; the pose is pushed inside
-## when the body goes limp (`_clamped_world`), so no joint starts out of range and is thrown.
+## on the left and the right, but for the shoulders' twist: 45 where a person turns about 60,
+## because a shoulder the body lands on is pushed past its twist and 45 keeps it near a person's.
+## A clip can hold a joint outside them; the pose is pushed inside when the body goes limp
+## (`_clamped_world`), so no joint starts out of range and is thrown.
 ## `tools/ragdoll/measure_joints.gd` prints how far the clips go past them.
 const BODIES := [
 	{
@@ -95,7 +97,7 @@ const BODIES := [
 		joint = &"cone",
 		centre = Vector3(25.8, 33.6, -31.9),
 		swing = 100.0,
-		twist = 60.0
+		twist = 45.0
 	},
 	{
 		bone = &"lowerarm_l",
@@ -128,7 +130,7 @@ const BODIES := [
 		joint = &"cone",
 		centre = Vector3(-27.8, 39.8, 21.5),
 		swing = 100.0,
-		twist = 60.0
+		twist = 45.0
 	},
 	{
 		bone = &"lowerarm_r",
@@ -279,13 +281,13 @@ static var _counted := 0
 ## joint alone, more keeps a straight or bent limb from giving way when the body lands on it (an
 ## elbow folded 30 degrees past its range, or bent 50 backwards, in 10 deaths of 70 with 1). Each
 ## one past the first is another hinge between the same two bones, solved only while limp.
-@export_range(1, 8, 1) var hinge_passes := 4:
+@export_range(1, 8, 1) var hinge_passes := 6:
 	set(value):
 		hinge_passes = value
 		_rebuild()
 ## The same for every cone (shoulders, hips, spine, neck, wrists, ankles): with 1 a shoulder the
 ## body lands on twists 50 to 115 degrees past its range, and a hip or a wrist 30 to 70 past.
-@export_range(1, 8, 1) var cone_passes := 4:
+@export_range(1, 8, 1) var cone_passes := 6:
 	set(value):
 		cone_passes = value
 		_rebuild()

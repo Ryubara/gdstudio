@@ -94,22 +94,6 @@ func hinge_angles(entry: Dictionary) -> Vector3:
 	)
 
 
-## How far each cone joint (shoulders, hips, spine, neck, wrists, ankles) is past its limits now,
-## in degrees: x the swing past the table's `swing`, y the twist past its `twist` (the ragdoll's
-## `joint_range` applied). Keys are the bones.
-func cone_overrun() -> Dictionary:
-	var found := {}
-	for entry: Dictionary in PlayerRagdoll.BODIES:
-		if entry.joint != &"cone":
-			continue
-		var angles := cone_angles(entry)
-		found[entry.bone] = Vector2(
-			maxf(angles.x - entry.swing * ragdoll.joint_range, 0.0),
-			maxf(absf(angles.y) - entry.twist * ragdoll.joint_range, 0.0)
-		)
-	return found
-
-
 ## The angles of a cone joint from its centre, in degrees: x the swing (how far the bone points
 ## away from the centre) and y the twist about the bone, read the way Jolt reads them (the twist
 ## first, the swing of what is left).
