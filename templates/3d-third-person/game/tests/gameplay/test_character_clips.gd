@@ -55,7 +55,7 @@ func test_every_track_of_every_clip_drives_a_bone_of_the_mannequin() -> void:
 
 
 func test_the_clips_the_player_animation_uses_are_in_the_libraries() -> void:
-	var animation: PlayerAnimation = _player.get_node("Animation")
+	var animation: CharacterAnimation = _player.get_node("Animation")
 	var player: AnimationPlayer = _player.get_node("AnimationPlayer")
 	for clip in [
 		animation.idle_clip,

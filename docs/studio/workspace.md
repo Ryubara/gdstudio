@@ -229,7 +229,10 @@ job (`bootstrap.yml`) does the same on Linux and Windows every week and when the
 **The mods.** The kit's and every game's `.claude/settings.json` name two plugin marketplaces and enable their mods:
 `gdstudio-disk` from this repository (the disk guard's status line) and Tether (`Ryubara/tether`: the agents pane,
 watchers and handoffs). Claude Code asks once, when it first opens a checkout, to trust and install them. Each person's
-Tether options stay in their own user settings.
+Tether options stay in their own user settings. Tether's Watch reads its pollers from `.claude/tether.json` (or
+`TETHER_CONFIG`), and neither the kit, the games nor the workspace has one, so no poller runs here: Tether tells the
+coordinator nothing about pull requests or issues, and those reach it through `gds issue list`, the hooks and the disk
+guard's status line (checked for gdstudio #1003, from tether #27).
 
 **What stays manual.** A bootstrap cannot sign in for anyone, so `gds doctor` warns until each is done:
 
@@ -260,11 +263,30 @@ Steam or system installs are never used by the tooling: an automatic update woul
 | ffmpeg | `tools/ffmpeg-<version>/` | pinned like Godot; clips from captures (Windows build pinned; elsewhere the system package) |
 | Blender in portable mode | `tools/blender-<version>/.../portable/` | its settings and add-ons stay apart from any other Blender |
 | Blender MCP add-on | inside the pinned Blender | installed as an extension |
-| Godot MCP addon, GdUnit4 | each game's `game/addons/<name>/` and the kit's `godot/addons/<name>/` | copied in, enabled by an untracked `override.cfg` beside the `project.godot`, excluded in `.git/info/exclude`: third-party code stays out of the public repositories |
+| Godot MCP addon, GdUnit4 | each game's `game/addons/<name>/` and the kit's `godot/addons/<name>/` | copied in and excluded in `.git/info/exclude`; enabled by appending their `plugin.cfg` to the `[editor_plugins]` list of the real `project.godot`, which a local git filter (`gds-local-plugins`, set in `.git/info/attributes` and `.git/config`) takes out on the way into git and puts back on checkout where the addon is installed: no commit, diff or `git status` names them, so third-party code and its enablement stay out of the public repositories |
 | MCP servers (`godot`, `blender`) | Claude Code, per checkout | `claude mcp add -s local`, from `[mcp]` in `tools.toml`; skipped when registered or with `--no-mcp` |
 
 The Godot MCP drives a live editor and the Blender MCP a live Blender: open the pinned program with its add-on enabled
 before an agent uses them. Headless scripts and Movie Maker need neither.
+
+**How the local plugins work.** The filter's script (`python/src/gds_tools/local_plugins.sh`, copied into the
+checkout's git folder) runs with `sh` and `sed`, which every git ships, so it does not depend on a Python or a worktree
+that may be swept. `clean` drops `, "res://addons/<name>/plugin.cfg"` from the `enabled=` line; `smudge` appends it
+again only when `addons/<name>/plugin.cfg` exists beside that `project.godot`, so a fresh worktree, which has no addons
+until `gds workspace init` runs again, lists none (Godot reports a listed plugin it cannot find). A game with no
+`[editor_plugins]` list gets none added (init says so): every template commits one for `gds_ui`. `git checkout --
+game/project.godot` after an editor run puts the file back with the plugins in it. The editor rewrites
+`project.godot` in its own form on every windowed open, with or without these plugins (3D Third Person, 2026-11-10), so
+revert it after a run as before. A headless `--import` neither starts GdUnit4's plugin (it skips itself in a test
+environment) nor rewrites the file.
+
+- **Approach:** Enable an editor plugin for a local-only addon in `project.godot` itself, kept out of git by a filter
+  set in the git folder, and prove it started by what it does (the MCP bridge reaching a listener on
+  `GODOT_MCP_BRIDGE_URL`, GdUnit4's `Loading GdUnit4 Plugin success`), never by the file that lists it. **Watch out
+  for:** the Godot 4.7 editor never reads `override.cfg` (`ProjectSettings::setup` ignores it in the editor), so the
+  plugins the kit listed there never started; and git calls a filtered file modified when its size differs from the
+  index, without running the filter, so init re-adds the unchanged blob (`refresh_index`). **Seen:** gdstudio #1005,
+  2026-11-10 (no bridge connection in 100 s from `override.cfg`, four from `project.godot`).
 
 ## The kit's Godot project {#kit-godot}
 

@@ -108,7 +108,7 @@ static func release() -> void:
 
 # True when there is floor under the body's front edge, a step ahead.
 static func _floor_ahead(player: Player, direction: Vector3) -> bool:
-	var ahead := player.global_position + direction * (PlayerTuning.new().radius + 0.15)
+	var ahead := player.global_position + direction * (CharacterTuning.new().radius + 0.15)
 	var query := PhysicsRayQueryParameters3D.create(
 		ahead + Vector3.UP * 0.3,
 		ahead + Vector3.DOWN * 0.6,

@@ -21,12 +21,12 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 
 @export_group("Nodes")
 ## The slot that holds the character's model.
-@export var model: PlayerModel
+@export var model: CharacterModel
 ## The attachment that carries the weapon on the right hand; its first child is the weapon.
 @export var seat: BoneAttachment3D
 ## The animation whose pistol layer says how far the weapon is held and aimed; none for a
 ## character posed by hand (a test, a capture).
-@export var animation: PlayerAnimation
+@export var animation: CharacterAnimation
 
 @export_group("Right hand")
 ## The right hand's fingers on the grip, the index finger along the frame, and the wrist's turn.

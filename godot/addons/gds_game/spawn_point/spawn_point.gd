@@ -4,8 +4,9 @@ extends Marker3D
 ## Where something starts: a player, a team, a wave of enemies. The node's forward direction
 ## (its -Z, the blue arrow in the editor) is the way the spawned thing faces. Put several in one
 ## group and ask `SpawnPoint.pick()` for one, or read `spawn_transform()` from one you chose
-## yourself. The blue arrow is the `Marker` node of `spawn_point.tscn`: the editor shows it, and in
-## the game it is hidden unless `show_in_game`.
+## yourself. The blue arrow is the point's `%Marker` child (a `MeshInstance3D` in the scene that
+## carries this script, 3D Third Person's `spawn_point.tscn`): the editor shows it, and in the game
+## it is hidden unless `show_in_game`.
 
 @export_group("Spawn")
 ## Points with the same group name belong together (`player`, `red_team`, `wave_1`).

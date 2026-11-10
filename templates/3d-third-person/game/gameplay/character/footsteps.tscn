@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://gameplay/player/footsteps.gd" id="1_steps"]
+[ext_resource type="Script" path="res://gameplay/character/footsteps.gd" id="1_steps"]
 [ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_soft_1.ogg" id="s1"]
 [ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_soft_2.ogg" id="s2"]
 [ext_resource type="AudioStream" path="res://assets/audio/footsteps/footstep_soft_3.ogg" id="s3"]

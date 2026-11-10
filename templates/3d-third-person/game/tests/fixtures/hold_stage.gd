@@ -1,7 +1,7 @@
 class_name HoldStage
 extends Node3D
 ## A mannequin holding the pistol the way the player's scene builds it (kit #1001), posed by hand:
-## the model slot (`PlayerModel`) with a mannequin, `pistol_held.tscn` on its hand and the hold
+## the model slot (`CharacterModel`) with a mannequin, `pistol_held.tscn` on its hand and the hold
 ## scene that closes the hands on it (`weapon_hold.tscn`, when the project has one), with no
 ## `Player` and no animation tree, so a test or a capture puts an exact frame of a clip on the
 ## skeleton and measures the hands on the weapon (`HandContact`) after the hold's modifiers ran.
@@ -43,7 +43,7 @@ const LEFT_CONTACTS: Array[String] = [
 	"palm",
 ]
 
-var slot: PlayerModel
+var slot: CharacterModel
 var skeleton: Skeleton3D
 var seat: BoneAttachment3D
 var pistol: Node3D
@@ -61,7 +61,7 @@ var _updates := 0
 static func make(holder: Node, model: String, with_hold := true, measured := true) -> HoldStage:
 	var stage := HoldStage.new()
 	holder.add_child(stage)
-	stage.slot = PlayerModel.new()
+	stage.slot = CharacterModel.new()
 	stage.add_child(stage.slot)
 	stage.slot.add_child((load(MODELS[model]) as PackedScene).instantiate())
 	stage.seat = (load(PISTOL_HELD) as PackedScene).instantiate() as BoneAttachment3D

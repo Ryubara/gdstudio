@@ -154,7 +154,8 @@ kept with `--keep`, two calls at once).
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
   dropped approach stayed in it and broke every test until the game was made again); the template comes from the
   checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
-  (the `game` line prints which checkout it used). **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917);
+  (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
+  **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
@@ -282,13 +283,6 @@ template cheap to change):
    with a range and a unit suffix where it has one, a `##` tooltip and a default that plays well; internals are not
    exported.
    *Why:* the inspector is where a game gets tuned, and a number in a script constant cannot be found there.
-   *Open point:* `player.gd` of 3D Third Person still holds some tuned-looking numbers in its code: the constants
-   `PUSH_CONTACT` and `PUSH_HOLD` (`:65-68`), the camera target's rise above the hips (`:382`), the analogue stick
-   thresholds and the walk and aim speed factors (`:524-530`), the foot probe's margin (`:589`), the push share and its
-   boost (`:611-614`), the walk-to-run margin (`:668`) and the aim threshold of a shot (`:687-688`; the fire buffer
-   moved to the tuning as `fire_buffer_time` with #901).
-   Whoever next works in that file moves them to `player_tuning.gd` or leaves a reason beside each; the line numbers
-   are those of main on 2026-11-10 and drift.
 2. **A change takes effect at once**, in the running game and the remote inspector: a value is read where it is used, or
    applied through a setter, and never copied once in `_enter_tree()` or `_ready()`. *Why:* tuning while the game runs
    is the fast loop, and a copy made at load silently ignores the edit.
@@ -422,6 +416,12 @@ probe folder in scratch (for an extending template, the base's `game/` first and
 kit's `godot/addons/gds_ui/` and `gds_game/` to the probe's `addons/`; the import and a run are then clean (checked on
 3D Blank with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
 there, so tests run in a made game: `gds template test <name>` ([Proof](#proof)).
+
+- **Approach:** After copying a template over a probe folder again, add the probe's editor plugin back to
+  `editor_plugins/enabled` in its `project.godot` and look for the plugin's own line in the log before reading any
+  result. **Watch out for:** the copy brings the template's `project.godot`, whose plugin list does not name the probe,
+  so the editor opened, ran nothing and quit on its timeout with no error. **Seen:** the coordinator's handoff notes,
+  2026-11-10 (an unlisted plugin never ran on the pinned 4.7.2, checked again for gdstudio #1003).
 
 CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
 the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the

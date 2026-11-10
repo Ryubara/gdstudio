@@ -1,6 +1,6 @@
 # How high a ledge the real player body gets onto from level ground. The jump is 1.25 m
-# (`PlayerTuning.jump_height`), but the body also steps up at an edge and its capsule has a rounded
-# foot, so it climbs a little higher; a map judges its walls against the measured number
+# (`CharacterTuning.jump_height`), but the body also steps up at an edge and its capsule has a
+# rounded foot, so it climbs a little higher; a map judges its walls against the measured number
 # (`ReachBench.MEASURED_REACH`, read by `test_map_reach.gd`), never the tuning (kit
 # docs/engines/godot/map-review.md, "Measure the reach").
 extends GdUnitTestSuite

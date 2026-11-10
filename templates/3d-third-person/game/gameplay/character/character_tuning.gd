@@ -1,5 +1,5 @@
 @tool
-class_name PlayerTuning
+class_name CharacterTuning
 extends Resource
 ## Every number a developer tunes on the character, in one resource: the player scene holds one
 ## (`player_tuning.tres`) and the inspector shows it grouped, with ranges and units. Make a copy
@@ -8,7 +8,7 @@ extends Resource
 ##
 ## A number is read where it is used, every frame, so changing it in the inspector or the remote
 ## inspector works while the game runs. The few the body copies once (the capsule, the slope and
-## the floor snap) say `changed`, and `Player` applies them again.
+## the floor snap) say `changed`, and `Character` applies them again.
 
 @export_group("Ground")
 ## Speed at a walk (the move stick pushed a little, or the walk key held).
@@ -23,6 +23,13 @@ extends Resource
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var deceleration := 36.0
 ## How fast the body turns to face where it goes.
 @export_range(1.0, 40.0, 0.5, "suffix:rad/s") var turn_speed := 12.0
+## A move stick pushed less than this share of the way walks instead of running.
+@export_range(0.0, 1.0, 0.01) var walk_below_push := 0.45
+## The least share of the walking (or crouching) speed a light push of the stick gives, so a
+## nudge still moves the character at a visible pace.
+@export_range(0.0, 1.0, 0.01) var least_walk_share := 0.5
+## Ground speed above `walk_speed` by more than this counts as a run (the run clip plays).
+@export_range(0.0, 3.0, 0.01, "suffix:m/s") var run_above_walk := 0.35
 
 @export_group("Jump")
 ## How high a standing jump rises when the button is held.
@@ -58,6 +65,8 @@ extends Resource
 	set(value):
 		snap_length = value
 		emit_changed()
+## How far past the capsule's side the step check looks for an edge to climb.
+@export_range(0.0, 0.3, 0.005, "suffix:m") var step_probe_margin := 0.06
 
 @export_group("Crouch")
 ## The capsule's height while crouched (the character fits under a ceiling this low).
@@ -82,10 +91,14 @@ extends Resource
 	set(value):
 		crouch_camera_height = value
 		emit_changed()
+## Height of the camera's target above the hips of a dead body lying in its ragdoll.
+@export_range(0.0, 1.5, 0.01, "suffix:m") var dead_camera_rise := 0.25
 
 @export_group("Aim")
 ## The share of the walking speed the character keeps while aiming (1 is the full speed).
 @export_range(0.1, 1.0, 0.05) var aim_move_scale := 0.6
+## While aiming the speed is at most this many walking speeds, before `aim_move_scale`.
+@export_range(0.5, 4.0, 0.05) var aim_walk_cap := 1.5
 ## How fast the body turns to the camera's heading while aiming.
 @export_range(1.0, 60.0, 0.5, "suffix:rad/s") var aim_turn_speed := 18.0
 ## Seconds the arm takes to come up to aim and to go down again.
@@ -93,6 +106,8 @@ extends Resource
 ## A press of the fire button is kept this long while the arm comes up, then it shoots. Shorter
 ## than half of `aim_pose_time` and a quick tap from the hip shoots nothing.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var fire_buffer_time := 0.3
+## How far the arm must be up (0 down, 1 aiming) before a shot leaves.
+@export_range(0.0, 1.0, 0.01) var shot_aim_amount := 0.5
 
 @export_group("Pushing")
 ## The share of its own speed the character gives a light prop it walks into: 1 moves the prop
@@ -100,6 +115,18 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var push_strength := 0.85
 ## A prop this heavy gets half of that share; lighter ones get more, heavier ones less.
 @export_range(1.0, 500.0, 1.0, "suffix:kg") var push_mass := 40.0
+## The share given to a prop is multiplied by this before it is capped at 1, so a prop at
+## `push_mass` keeps up with a walk.
+@export_range(0.5, 4.0, 0.05) var push_boost := 1.5
+## The least the share of a heavy prop falls to, before the boost.
+@export_range(0.0, 1.0, 0.01) var push_least_share := 0.15
+## How much faster than a prop's `push_speed` the character walks while it pushes the prop: the
+## prop is given the push speed, and the character stays against it and pushes it every tick
+## (equal speeds would let a gap open and the friction slow the prop between pushes).
+@export_range(1.0, 2.0, 0.01) var push_contact := 1.15
+## Seconds a slow push goes on counting after the last touch: pushing a heavy prop is a series of
+## touches with a small gap between them, and the push clip and the speed limit should not flicker.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var push_hold := 0.25
 
 @export_group("Actions")
 ## The character cannot move for this long while it uses something.

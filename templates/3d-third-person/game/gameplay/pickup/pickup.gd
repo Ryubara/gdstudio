@@ -112,7 +112,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if not is_available() or (characters_only and not body is CharacterBody3D):
 		return
 	collected.emit(body, item_id, amount)
-	# A body that keeps count (`Player`) is told too, so no wiring is needed to carry a coin.
+	# A body that keeps count (a `Character`) is told too, so no wiring is needed to carry a coin.
 	if body.has_method(&"collect"):
 		body.call(&"collect", item_id, amount)
 	_hide_now()

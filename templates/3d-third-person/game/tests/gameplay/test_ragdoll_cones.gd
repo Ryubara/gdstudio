@@ -37,7 +37,7 @@ func _watch() -> Array:
 		await _ticks(1)
 		if tick < 6:
 			continue
-		for entry: Dictionary in PlayerRagdoll.BODIES:
+		for entry: Dictionary in CharacterRagdoll.BODIES:
 			if not entry.bone in SHOULDERS:
 				continue
 			var angles := _stage.cone_angles(entry)

@@ -5,7 +5,7 @@ extends RefCounted
 ## `ual2`, so a clip is `ual1/Idle`. The library's looping clips lose their `_Loop` suffix on
 ## import (`Idle_Loop` is `Idle`) and loop.
 ##
-## `PlayerAnimation` plays the ones a state needs; any other clip is one call away:
+## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
 ## the template uses or suggests; `ALL` lists every one, and a test checks that each name
 ## resolves.

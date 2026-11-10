@@ -8,7 +8,7 @@ const PROP := "res://gameplay/physics_prop/physics_prop.tscn"
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -16,7 +16,7 @@ func before_test() -> void:
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
 	# A copy: the file is a cached resource that other suites read.
-	_player.tuning = (load(TUNING) as PlayerTuning).duplicate()
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 
@@ -184,7 +184,7 @@ func test_fall_limit_sets_where_it_starts_again() -> void:
 
 
 func test_a_swapped_tuning_file_takes_over_at_once() -> void:
-	var heavy := PlayerTuning.new()
+	var heavy := CharacterTuning.new()
 	heavy.run_speed = 2.0
 	_player.tuning = heavy
 	InputSim.key(KEY_W, true)

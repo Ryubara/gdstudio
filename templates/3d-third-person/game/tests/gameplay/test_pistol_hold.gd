@@ -81,7 +81,7 @@ func test_both_hands_hold_the_pistol_in_the_aim_and_shoot_clips() -> void:
 
 
 func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
-	var grip := PlayerAnimation.new()
+	var grip := CharacterAnimation.new()
 	var bones := grip.grip_bones
 	var grip_clip := grip.grip_clip
 	grip.free()
@@ -139,7 +139,7 @@ func test_the_player_holds_the_pistol_in_both_hands_while_it_aims_walks_and_fire
 	assert_float(hold.aim_weight).is_equal(0.0)
 	assert_bool(hold.modifiers()[0].active).is_true()
 	assert_bool(hold.modifiers()[1].active).is_false()
-	_live_skeleton = (player.get_node("Model") as PlayerModel).skeleton()
+	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
 	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
 	_live_gaps.clear()
 	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)

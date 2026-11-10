@@ -1,94 +1,15 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://gameplay/player/player.gd" id="1_player"]
-[ext_resource type="Resource" path="res://gameplay/player/player_tuning.tres" id="2_tuning"]
-[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_female.glb" id="3_model"]
-[ext_resource type="Script" path="res://gameplay/player/interactor.gd" id="4_interactor"]
-[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
-[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
-[ext_resource type="Script" path="res://gameplay/player/player_animation.gd" id="7_animation"]
-[ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="8_pistol"]
-[ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="9_weapon"]
-[ext_resource type="PackedScene" path="res://gameplay/player/footsteps.tscn" id="10_footsteps"]
-[ext_resource type="Script" path="res://gameplay/player/player_model.gd" id="11_model"]
-[ext_resource type="Script" path="res://gameplay/player/player_ragdoll.gd" id="12_ragdoll"]
-[ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="13_input"]
-[ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="14_hold"]
+[ext_resource type="PackedScene" path="res://gameplay/character/character_dressed.tscn" id="1_dressed"]
+[ext_resource type="Script" path="res://gameplay/player/player.gd" id="2_player"]
+[ext_resource type="Resource" path="res://gameplay/player/player_tuning.tres" id="3_tuning"]
+[ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="4_input"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
-resource_local_to_scene = true
-radius = 0.34
-height = 1.8
-
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "controller", "weapon", "ragdoll_body")]
-collision_layer = 2
-collision_mask = 9
-floor_stop_on_slope = true
-floor_max_angle = 0.837758
-platform_floor_layers = 9
-script = ExtResource("1_player")
-tuning = ExtResource("2_tuning")
-model = NodePath("Model")
+[node name="Player" node_paths=PackedStringArray("controller") instance=ExtResource("1_dressed")]
+script = ExtResource("2_player")
+tuning = ExtResource("3_tuning")
 controller = NodePath("PlayerInput")
-weapon = NodePath("Weapon")
-ragdoll_body = NodePath("Ragdoll")
-
-[node name="Body" type="CollisionShape3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-shape = SubResource("CapsuleShape3D_body")
-
-[node name="Model" type="Node3D" parent="."]
-script = ExtResource("11_model")
-
-[node name="Mannequin" parent="Model" instance=ExtResource("3_model")]
-
-[node name="PistolHeld" parent="Model" instance=ExtResource("8_pistol")]
-use_external_skeleton = true
-external_skeleton = NodePath("../Mannequin/Armature/Skeleton3D")
-
-[node name="CameraTarget" type="Node3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
-
-[node name="Interactor" type="Node3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-script = ExtResource("4_interactor")
-
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-root_node = NodePath("../Model/Mannequin")
-libraries = {
-&"ual1": ExtResource("5_ual1"),
-&"ual2": ExtResource("6_ual2")
-}
-
-[node name="AnimationTree" type="AnimationTree" parent="."]
-
-[node name="Animation" type="Node" parent="." node_paths=PackedStringArray("player", "model", "animation_player", "tree")]
-script = ExtResource("7_animation")
-player = NodePath("..")
-model = NodePath("../Model")
-animation_player = NodePath("../AnimationPlayer")
-tree = NodePath("../AnimationTree")
-
-[node name="Weapon" parent="." node_paths=PackedStringArray("muzzle", "shooter") instance=ExtResource("9_weapon")]
-muzzle = NodePath("../Model/PistolHeld/Pistol/Pistol/Muzzle")
-shooter = NodePath("..")
-
-[node name="Footsteps" parent="." node_paths=PackedStringArray("player", "model") instance=ExtResource("10_footsteps")]
-player = NodePath("..")
-model = NodePath("../Model")
-
-[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
-script = ExtResource("12_ragdoll")
-model = NodePath("../Model")
 
 [node name="PlayerInput" type="Node" parent="." node_paths=PackedStringArray("player")]
-script = ExtResource("13_input")
+script = ExtResource("4_input")
 player = NodePath("..")
-
-[node name="WeaponHold" parent="." node_paths=PackedStringArray("model", "seat", "animation") instance=ExtResource("14_hold")]
-model = NodePath("../Model")
-seat = NodePath("../Model/PistolHeld")
-animation = NodePath("../Animation")
