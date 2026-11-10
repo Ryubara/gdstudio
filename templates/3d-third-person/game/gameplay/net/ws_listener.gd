@@ -5,8 +5,8 @@ extends RefCounted
 ## gets an id (1, 2, 3...). Call `poll` once per physics tick; it fires the signals. Binary frames.
 ##
 ## What it was built to survive (Deadnight #483 and its hostile-client tests):
-## - a client that stops reading: what waits for it may grow to `outbound_buffer` (1 MB, a few
-##   seconds of a busy game), then `send` returns false instead of dropping silently, so the game
+## - a client that stops reading: what waits for it may grow to `outbound_buffer`
+##   (`NetLimits.BUFFER_SIZE`), then `send` returns false instead of dropping silently, so the game
 ##   sends a whole state next rather than a change against a packet that never left;
 ## - a packet bigger than `max_packet_bytes` is never passed on and its sender is hung up on at once
 ##   (1009, too big); a frame bigger than `INBOUND_BUFFER` (64 KB) the engine refuses itself; the
@@ -27,9 +27,6 @@ signal packet_received(peer_id: int, data: PackedByteArray)
 const INBOUND_BUFFER := 1 << 16
 ## The engine's packet count limit, for both directions.
 const MAX_QUEUED := 8192
-## What may wait to be sent to a peer that is not reading: ticks of a second or two are some 15 to
-## 35 KB each second, and the engine's default of 64 KB began to drop them after a few seconds.
-const OUTBOUND_BUFFER := 1 << 20
 ## Seconds a connection has to finish its WebSocket handshake.
 const HANDSHAKE_SECONDS := 3.0
 ## Seconds a peer has to answer the closing handshake before the listener lets go of it.
@@ -52,8 +49,9 @@ var refused_sends := 0
 ## Packets over `max_packet_bytes` that were dropped (and their senders hung up on).
 var oversize_packets := 0
 
-## Bytes that may wait to be sent to a peer (`OUTBOUND_BUFFER`; set it before peers come).
-var outbound_buffer := OUTBOUND_BUFFER
+## Bytes that may wait to be sent to a peer that is not reading (`NetLimits.BUFFER_SIZE`; set it
+## before peers come).
+var outbound_buffer := NetLimits.BUFFER_SIZE
 ## Seconds a connection has to finish its handshake (`HANDSHAKE_SECONDS`).
 var handshake_seconds := HANDSHAKE_SECONDS
 ## Seconds between `disconnect_peer` and its close frame (`CLOSE_LINGER`).

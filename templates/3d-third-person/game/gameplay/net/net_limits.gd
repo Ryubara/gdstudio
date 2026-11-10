@@ -26,8 +26,9 @@ const MAX_EVENTS := 32
 const MAX_ENTITIES := 128
 ## The longest state one world part writes (an `entity` event, a WELCOME row), bytes.
 const MAX_ENTITY_STATE := 8
-## Bytes a socket buffers each way: ten seconds of the longest TICKs at the snapshot rate, so a
-## client whose page froze for a few seconds is not dropped for a full buffer.
+## Bytes a socket buffers each way, the one size the transport reads (`WebSocketLink` inbound,
+## `WsListener` outbound): 256 KB holds a 5 s frozen tab of a 35 KB/s stream (175 KB) and ten
+## seconds of the longest TICKs at the snapshot rate; the engine's 64 KB lost packets there.
 const BUFFER_SIZE := 1 << 18
 ## Seconds of a stall the per-connection command budget takes in one burst (`PeerLimits`).
 const STALL_SECONDS := 4
