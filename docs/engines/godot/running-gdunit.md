@@ -17,7 +17,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
   1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
   Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
-  is a run that never started).
+  is a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`: unzip it
+  from the cache's `gdunit4-<version>/src.zip`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
