@@ -106,7 +106,7 @@ frames after 90 of warm-up, the character in the map, 1280 x 720, vsync off; God
 
   | After the level is up | Before #946: programs, link ms, slowest first frame | After: programs, slowest first frame |
   | --- | --- | --- |
-  | nothing fired (the level under the probe) | 11, 1094 ms, 1181 ms | 0, 5.6 to 6 ms |
+  | nothing fired (the level under the probe) | 11, 1093 to 1095 ms, 1181 to 1183 ms | 0, 5.6 to 6 ms |
   | the flash without its light | 2, 59 to 65 ms, 72 to 80 ms | 0, 6.7 to 6.8 ms |
   | the flash with its light | 4, 188 to 201 ms, 220 to 235 ms | 0, 6.5 to 6.6 ms |
   | flash and impacts | 6, 157 ms, 158 to 159 ms | 0, 6.6 to 7 ms |
