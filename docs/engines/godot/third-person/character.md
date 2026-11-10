@@ -74,9 +74,12 @@ Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.
 
 <!-- new section: a swap of the player's glb in the editor broke the clips, the pistol and the game (gdstudio #844) -->
 
-The player's model is a **slot**: `Model` is a plain `Node3D` with the `PlayerModel` script, and the glb sits under it
+The player's model is a **slot**: `Model` is a plain `Node3D` with the `CharacterModel` script, and the glb sits under it
 (`Model/Mannequin`) with the pistol (`Model/PistolHeld`, a `BoneAttachment3D` on `hand_r`). Nothing refers to the glb
-by its name. To swap the character in the editor:
+by its name. The model is the dressed character's (`gameplay/character/character_dressed.tscn`): `player.tscn`
+inherits it, so there the model is greyed out and cannot be deleted. To swap the character in the editor, open
+`character_dressed.tscn` (every character and the player change), or a scene of your own that inherits
+`character.tscn` for a second look:
 
 1. In the Scene dock, select the old model (`Mannequin`) and delete it. Leave `Model` and `PistolHeld`.
 2. Drag the new `.glb` from the FileSystem dock onto `Model` (the other mannequin, or any name; a glb of the
@@ -84,10 +87,10 @@ by its name. To swap the character in the editor:
 3. Save. The `AnimationPlayer`'s Root Node, the `AnimationTree`, the pistol's skeleton path and the footsteps follow
    the new model by themselves; nothing is set by hand. Turn the new model to face +Z if its file faces the other way.
 
-`PlayerModel.rig()` and `skeleton()` give the model and its skeleton, `rig_changed` says when they change, and the
-node warns when it holds no model or two. `PlayerAnimation` points the `AnimationPlayer` at the new model and builds the
-tree again; `Footsteps` asks the slot for the skeleton; `PlayerModel` seats every `BoneAttachment3D` child on it. A
-model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
+`CharacterModel.rig()` and `skeleton()` give the model and its skeleton, `rig_changed` says when they change, and the
+node warns when it holds no model or two. `CharacterAnimation` points the `AnimationPlayer` at the new model and builds
+the tree again; `Footsteps` asks the slot for the skeleton; `CharacterModel` seats every `BoneAttachment3D` child on it.
+A model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
 one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
 Scene dock and checks the result.
 
@@ -109,7 +112,7 @@ Scene dock and checks the result.
   stall for each rebuild; an attachment bound to a skeleton that was freed first logged "Attempt to disconnect a
   nonexistent connection ... skeleton_updated". **Seen:** gdstudio #844, 2026-11-08.
 - **Approach:** To put a `BoneAttachment3D` on the skeleton of a model swapped in at run time, do not rely on the
-  path: seat it with the steps of the next entry (`PlayerModel._seat_attachments`), and skip an attachment that
+  path: seat it with the steps of the next entry (`CharacterModel._seat_attachments`), and skip an attachment that
   already sits in the skeleton's `skeleton_updated` connections. **Watch out for:** the engine (4.7.2) connects the
   attachment to `skeleton_updated` only when it enters the tree and in the setters of `use_external_skeleton` and
   `bone_name`, and remembers that it is connected; writing the path neither connects nor disconnects. The old skeleton
@@ -131,7 +134,7 @@ Scene dock and checks the result.
   the pose at the sample would explain (the CI run was not reproduced). **Seen:** gdstudio #860, 2026-11-09 (the three
   tests fail on `main` with 0.68 to 0.79 m and pass with the fix).
 - **Approach:** Keep every unique name (`%Name`) off the path from the scene's owner to the model, and reference the
-  slot from the `Player` by an export (`model`). **Watch out for:** `AnimationTree` sets its `root_node` to
+  slot from the `Character` by an export (`model`). **Watch out for:** `AnimationTree` sets its `root_node` to
   `get_path_to(model, true)` whenever its player changes, a path that starts at a unique node (`%Model/...`). Selecting
   the tree makes the editor copy it into an owner-less helper `AnimationPlayer`, which cannot resolve `%Name`: 9,632
   warnings and a freeze, in the unmodified template once the tree had filter paths (#836). **Seen:** gdstudio #844,
@@ -155,7 +158,7 @@ Scene dock and checks the result.
   opposite way and was invisible in a test that only held a key sideways. **Seen:** gdstudio #821, 2026-11-08; since
   gdstudio #901 the basis is the command's `yaw` (`PlayerCommand.world_move()`), and only `PlayerInput` reads the
   camera.
-- **Approach:** A body never reads `Input` or a camera. It is moved by `Player.step(command, delta)` alone: one
+- **Approach:** A body never reads `Input` or a camera. It moves by `Character.step(command, delta)` alone: one
   `PlayerCommand` a physics tick, pulled from its `controller` (`PlayerInput`, the one script that reads the actions
   and the camera that draws its viewport) or passed in by a server or a test. Prove it with two instances in one world,
   with one stream in two `SubViewport` worlds (one camera looking elsewhere, one none) and with a grep of the body's
@@ -170,6 +173,12 @@ Scene dock and checks the result.
   and moved to `_process` it would lose the engine's interpolation; the fall picked a spawn point with a generator
   seeded from the node path, which a server's body and a client's cannot share. **Seen:** gdstudio #901, 2026-11-10
   (the design review; `test_player_step.gd`).
+- **Approach:** Split a body from its human by inheritance at the same node paths (`character.tscn` <-
+  `character_dressed.tscn` <- `player.tscn`), give added nodes an `index=` so the tree keeps its old order, keep the
+  group and the spawn on the subclass, and rename by a script with every reference listed first; then read the doc
+  lines it changed. **Watch out for:** the class rename also rewrote six history entries about Deadnight's own
+  `PlayerAnimation` in kit pages, and pushed nine comment lines past gdlint's 100 and markdownlint's 120 columns.
+  **Seen:** gdstudio #901, 2026-11-10 (part 3; the action tour equal tick for tick against main).
 - **Approach:** Treat a command as hostile where it is stepped, not only where it is decoded: `step` replaces a command
   with a number that is not finite by one that asks for nothing, cuts a push to length 1, and reads the testing bit
   `ragdoll_pressed` only while `ragdoll_by_command` is on. A press (`jump_pressed`, `fire_pressed`,
@@ -191,10 +200,10 @@ Scene dock and checks the result.
   second character added its `ragdoll` key (ignored) and, when it left, took the first character's key with it; the
   two-character test read an empty action. **Seen:** gdstudio #901,
   2026-11-10 (`test_two_characters.gd`).
-- **Approach:** Move a moving body with `Player.teleport()` (or `respawn()`), which resets physics interpolation and
-  tells the camera to cut. **Watch out for:** setting `global_position` directly sends a damped Phantom Camera flying
-  across the map for about 0.9 s, so a test that waited 40 ticks saw the lens 5 m from where it belonged.
-  **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Move a moving body with `Character.teleport()` (or the player's `respawn()`), which resets physics
+  interpolation and tells the camera to cut. **Watch out for:** setting `global_position` directly sends a damped
+  Phantom Camera flying across the map for about 0.9 s, so a test that waited 40 ticks saw the lens 5 m from where it
+  belonged. **Seen:** gdstudio #821, 2026-11-08.
 - **Approach:** Give each character its own spawn generator (seeded from its node path, so a test repeats) and let
   `SpawnPoint.pick()` pass over a point already picked in the same physics frame; read the spot from
   `spawn_transform()` so a point's `radius` counts. **Watch out for:** every `Player` seeded its generator with 1, so
@@ -221,22 +230,39 @@ A character is driven by whatever gives it a `PlayerCommand` each physics tick. 
 
 | Who | How |
 | --- | --- |
-| A node of its own (an AI) | Extend `CharacterController`, override `sample() -> PlayerCommand`, and set it as the body's `controller`. Keep the world directions (where to walk, where to look) and build the command once in `sample()` with `set_from_world(walk_direction, look_direction, strength)`: a zero look leaves the view level along -Z and a body that is not aiming faces where it walks; with `aim` or `fire` the body turns to the look. |
+| A node of its own (an AI) | Start from `gameplay/character/character_dressed.tscn` (the body with its model; `character.tscn` is the body alone, for a server), add the controller as a child, extend `CharacterController`, override `sample() -> PlayerCommand`, and set it as the body's `controller`. Keep the world directions (where to walk, where to look) and build the command once in `sample()` with `set_from_world(walk_direction, look_direction, strength)`: a zero look leaves the view level along -Z and a body that is not aiming faces where it walks; with `aim` or `fire` the body turns to the look. |
 | An owner that steps (a server, a director with a budget) | `body.set_physics_process(false)`, then `body.step(command, delta)` inside the physics frame, with the physics step. Connect `fell` to decide where the body starts again, and turn `ragdoll_by_command` off for commands from a network. |
-| A test | `tests/fixtures/command_driver.gd`: `CommandDriver.take(player)` and `run(tree, players, command, ticks)`, which steps the presses once. |
+| A test | `tests/fixtures/command_driver.gd`: `CommandDriver.take(player)` and `run(tree, players, command, ticks)`, which steps the presses once; `tests/fixtures/route_controller.gd` is a scripted controller that walks a list of points. |
+
+`Character` (`gameplay/character/character.gd`) is the body and joins no group; `Player` extends it with what only the
+human has: the group `player`, which the HUD, the minimap and a camera zone's trigger look for (so an AI's character
+is never taken for the player), the start at a `SpawnPoint` of that group and again on `fell`, and `input_enabled` and
+`ragdoll_key`. The scenes inherit one another at the same node paths: `character.tscn` (capsule, `CameraTarget`,
+`Interactor`, a `Weapon` with no muzzle) <- `character_dressed.tscn` (the `Model` slot, `AnimationPlayer`,
+`AnimationTree`, `Animation`, `Footsteps`, `Ragdoll`, the weapon's muzzle) <- `player.tscn` (`PlayerInput`).
+`character.tscn` and `character_dressed.tscn` step one stream of commands to the same positions, velocities and
+states on every tick, and their shots fly the same way from starts within `no_muzzle_offset`
+(`test_character_split.gd`). The character's code reads no `Input`, camera or viewport: `test_player_step.gd` reads
+every script of `gameplay/character/` and `gameplay/weapon/`.
 
 Over a network the command is what crosses the wire: one per tick with a sequence number, applied once and in order by
 the server ([the pattern that worked](../multiplayer.md#own-protocol)).
 
 `sample()` hands out the controller's own command, written again on the next call (`clone()` to keep one), and a press
-is true in exactly one returned command. `Player.state_snapshot(into)` and `restore(state)` take and put back what the
+is true in exactly one returned command. `Character.state_snapshot(into)` and `restore(state)` take and put back what
+the
 next step reads (`CharacterState.FIELDS`; a test fails when the body gains a variable that is neither there nor on the
 test's list of what is not step state). A restore and the same commands gave the same path to the last digit on the
 floor and from mid-air over 120 ticks, and the weapon's cooldown and its place in the spread's order go with it
-(`CharacterState.weapon`). A character shoots along `Player.aim_ray()`: the command's shot block, or with none (an AI,
+(`CharacterState.weapon`). A character shoots along `Character.aim_ray()`: the command's shot block, or with none (an AI,
 a test) from its eye along the command's view ([Crouch, aim and shoot](shooting.md#crouch-aim-shoot)). It is for
 placing a body at a known state, not for replay: a step also pushes
 props, uses doors, fires projectiles and collects pickups, and the engine's floor contact cannot be set from script.
+
+- **Approach:** Between two runs of a body taken with `CommandDriver.take`, step it with an empty command for as long
+  as it needs to settle (the arm down, the cooldown out) and assert that it did. **Watch out for:** a taken body
+  changes only when it is stepped: awaiting 30 frames left the arm up, and the second run of a shot-threshold test
+  fired on its first tick. **Seen:** gdstudio #901, 2026-11-10 (part 3, `test_character_tuning_more.gd`).
 
 What it costs (`tools/bench/player_step_bench.tscn`, microseconds a body a physics tick for 1, 8 and 40 bodies; the
 body's own tick, with no animation or camera): stepped by commands a body costs what it did when it read the keys
@@ -261,9 +287,9 @@ headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a ma
 
 <!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->
 
-The character dies into a ragdoll and gets up again (`Player.die()`, `revive()`, the `PlayerRagdoll` component and its
-inspector). What the template does with it, every export, and why the bones are generated and the engine is Jolt are in
-[Ragdoll in 3D Third Person](../ragdoll.md#template), beside how the engine behaves.
+The character dies into a ragdoll and gets up again (`Character.die()`, `revive()`, the `CharacterRagdoll` component and
+its inspector). What the template does with it, every export, and why the bones are generated and the engine is Jolt are
+in [Ragdoll in 3D Third Person](../ragdoll.md#template), beside how the engine behaves.
 
 ## Touch controls {#touch-controls}
 

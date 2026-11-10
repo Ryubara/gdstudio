@@ -17,7 +17,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
   1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
   Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
-  is a run that never started).
+  is a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`: unzip it
+  from the cache's `gdunit4-<version>/src.zip`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -124,7 +125,8 @@ game](new-game.md#proof), gdstudio #830 and #917).
   children, by PID. **Watch out for:** a hand-over said "tests passing" and was green only on the folders its author
   guessed: `tests/world` (light cap) and `tests/tuning` (sound tables) read the whole project and failed on a new light
   and sound field, and the old runner script kept moving to the next shard and overwrote the summary. **Seen:**
-  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run).
+  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run);
+  gdstudio #901, 2026-11-10 (a test edited after the run).
 - **Approach:** To see a new test fail first, save the diff (`git diff origin/main -- <paths> > file.patch`), run the
   revert, the test and the restore as separate commands with the test under its own `timeout` (or run it in a worktree
   of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,

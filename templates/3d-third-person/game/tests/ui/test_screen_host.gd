@@ -6,6 +6,7 @@ extends GdUnitTestSuite
 
 const PAUSE := preload("res://ui/menus/pause_menu.tscn")
 const SETTINGS := preload("res://ui/menus/settings_menu.tscn")
+const HOST_SCENE := preload("res://ui/menus/screen_host.tscn")
 const OPEN_ACTION := &"test_open_screen"
 
 var _host: ScreenHost
@@ -67,10 +68,19 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"release_mouse": true,
 		&"pause_on_focus_loss": true,
 		&"pause_on_lost_mouse": true,
+		# Empty in the synced script, which reads back the project's main scene: the menu scene.
 		&"menu_scene": "res://ui/menus/menu_scene.tscn",
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()
+	# The game's own host scene names its menu scene, so the synced script names no template path.
+	var scene := auto_free(HOST_SCENE.instantiate()) as ScreenHost
+	var state := HOST_SCENE.get_state()
+	var names := range(state.get_node_property_count(0)).map(
+		func(i: int) -> StringName: return state.get_node_property_name(0, i)
+	)
+	assert_array(names).contains([&"menu_scene"])
+	assert_str(scene.menu_scene).is_equal("res://ui/menus/menu_scene.tscn")
 
 
 func test_opening_a_screen_pauses_the_game_and_lets_the_mouse_go() -> void:

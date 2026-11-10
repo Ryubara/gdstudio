@@ -16,7 +16,7 @@ The wind is the `Wind` player of `world/world.tscn` (autoplay, `Ambient`, -20 dB
 `stream` of that one player** (a seamless loop; the level and the bus stay as they are). The coin is the `Sound` node of
 `pickup.tscn` (-16 dB): one of the four files each time a pickup is taken, then the pickup goes once it has played. The
 steps are `Footsteps`
-(`gameplay/player/footsteps.tscn`, a child of `Player`): a step sounds each time a foot of the animated skeleton
+(`gameplay/character/footsteps.tscn`, a child of `Player`): a step sounds each time a foot of the animated skeleton
 lands, so it follows the walk, run, sprint and crouch-walk clips at any blend, and never when the character stands
 still or is in the air. It has three `AudioStreamPlayer3D` nodes on `SFX`, each with its own volume and bus: `Step`,
 `CrouchStep` (-29 dB against the step's -20) and `LandStep` (-15 dB, played when the character lands). The pistol's

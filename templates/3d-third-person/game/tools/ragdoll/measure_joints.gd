@@ -1,9 +1,9 @@
 ## Measures how far every joint of the ragdoll turns in the animation clips, to see how far they go
-## past the table's limits. The limits themselves are a person's (`PlayerRagdoll.BODIES`, sources in
-## docs/engines/godot/ragdoll.md#limits); a clip may hold a joint outside them, and the pose is
-## pushed inside them when the character goes limp. For each joint of the table it samples every
-## clip the player plays by default (`PlayerAnimation`'s clips) on both mannequins and prints,
-## relative to the joint's rest frame:
+## past the table's limits. The limits themselves are a person's (`CharacterRagdoll.BODIES`,
+## sources in docs/engines/godot/ragdoll.md#limits); a clip may hold a joint outside them, and the
+## pose is pushed inside them when the character goes limp. For each joint of the table it samples
+## every clip the player plays by default (`CharacterAnimation`'s clips) on both mannequins and
+## prints, relative to the joint's rest frame:
 ##   - a cone: the swing's centre (the mean direction of the bone) as a rotation, the widest swing
 ##     from it and the twist range around the bone, next to the table's swing and twist;
 ##   - a hinge (a knee or an elbow): the bend range, and the largest lean sideways and roll about
@@ -32,7 +32,7 @@ func _initialize() -> void:
 	var samples := {}
 	for path: String in MODELS:
 		_sample_model(path, samples)
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		if entry.joint == &"":
 			continue
 		var turns: Array = samples[entry.bone]
@@ -46,15 +46,15 @@ func _initialize() -> void:
 func _sample_model(path: String, samples: Dictionary) -> void:
 	var holder := Node3D.new()
 	get_root().add_child(holder)
-	var slot := PlayerModel.new()
+	var slot := CharacterModel.new()
 	holder.add_child(slot)
 	var rig := (load(path) as PackedScene).instantiate() as Node3D
 	slot.add_child(rig)
 	var skeleton := slot.skeleton()
-	var ragdoll := PlayerRagdoll.new()
+	var ragdoll := CharacterRagdoll.new()
 	ragdoll.model = slot
 	var rest := {}
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		rest[entry.bone] = _rest(ragdoll, slot, entry.bone)
 		if not samples.has(entry.bone):
 			samples[entry.bone] = []
@@ -67,7 +67,7 @@ func _sample_model(path: String, samples: Dictionary) -> void:
 		var steps := maxi(int(animation.length * RATE), 1)
 		for step in steps + 1:
 			_pose(skeleton, animation, animation.length * step / steps)
-			for entry: Dictionary in PlayerRagdoll.BODIES:
+			for entry: Dictionary in CharacterRagdoll.BODIES:
 				if entry.joint == &"":
 					continue
 				var parent := _parent_body(skeleton, entry.bone)
@@ -80,9 +80,9 @@ func _sample_model(path: String, samples: Dictionary) -> void:
 	holder.free()
 
 
-# The clips the player's `PlayerAnimation` plays by default: a character dies in one of these.
+# The clips the player's `CharacterAnimation` plays by default: a character dies in one of these.
 func _player_clips() -> Array[StringName]:
-	var animation := PlayerAnimation.new()
+	var animation := CharacterAnimation.new()
 	var found: Array[StringName] = []
 	for property in animation.get_property_list():
 		if String(property["name"]).ends_with("_clip"):
@@ -111,7 +111,7 @@ func _pose(skeleton: Skeleton3D, animation: Animation, time: float) -> void:
 				)
 
 
-func _rest(ragdoll: PlayerRagdoll, slot: PlayerModel, bone: StringName) -> Transform3D:
+func _rest(ragdoll: CharacterRagdoll, slot: CharacterModel, bone: StringName) -> Transform3D:
 	ragdoll.set(&"model", slot)
 	return ragdoll.rest_body(bone)
 
@@ -138,7 +138,7 @@ func _parent_body(skeleton: Skeleton3D, bone: StringName) -> StringName:
 	var index := skeleton.get_bone_parent(skeleton.find_bone(bone))
 	while index >= 0:
 		var name_now := skeleton.get_bone_name(index)
-		for entry: Dictionary in PlayerRagdoll.BODIES:
+		for entry: Dictionary in CharacterRagdoll.BODIES:
 			if entry.bone == name_now:
 				return name_now
 		index = skeleton.get_bone_parent(index)
@@ -182,7 +182,7 @@ func _report_cone(entry: Dictionary, turns: Array) -> void:
 func _report_hinge(entry: Dictionary, turns: Array) -> void:
 	# Each turn from the straight limb, read in the hinge's frame: the bend about Z, the lean
 	# about Y and the roll about X (small angles, as the test reads them).
-	var frame := PlayerRagdoll.hinge_frame(entry.axis)
+	var frame := CharacterRagdoll.hinge_frame(entry.axis)
 	var low := INF
 	var high := -INF
 	var lean := 0.0

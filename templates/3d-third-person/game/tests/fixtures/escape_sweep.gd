@@ -160,7 +160,7 @@ func _ensure_players(count: int) -> void:
 # (a low top, a slice of a ramp or staircase). The rounds after start where these came to rest.
 func _starts() -> Array[Vector3]:
 	var starts: Array[Vector3] = []
-	var radius := PlayerTuning.new().radius
+	var radius := CharacterTuning.new().radius
 	for block: ProtoBlock in _main.find_children("*", "ProtoBlock", true, false):
 		if block.get_parent().name == "Boundary" and block.name == "Floor":
 			continue
@@ -189,7 +189,7 @@ func _starts() -> Array[Vector3]:
 # True when a standing body fits at `spot` (its feet there) without touching a solid.
 func _clear(spot: Vector3) -> bool:
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = PlayerTuning.new().radius
+	capsule.radius = CharacterTuning.new().radius
 	capsule.height = 1.7
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = capsule

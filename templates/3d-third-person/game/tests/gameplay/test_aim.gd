@@ -10,7 +10,7 @@ const TARGET := "res://gameplay/target/target.tscn"
 var _arena: PlayArena
 var _player: Player
 var _camera: Camera3D
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -19,7 +19,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_tuning = _player.tuning
 	# A camera 3 m behind the character looking along -Z, at the height of its hands.
 	_camera = Camera3D.new()

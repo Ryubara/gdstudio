@@ -22,7 +22,7 @@ so code and the inspector say the same thing. The constants script moves to the 
 | 2 | Characters | `CHARACTERS` | the player's capsule (later AI and networked bodies) | World, Props (`CHARACTER_MASK`) |
 | 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll, Hit Zones (`SHOT_MASK`) |
 | 4 | Props | `PROPS` | `PhysicsProp` (pushed crates, balls) | World, Characters, Props (`PROP_MASK`) |
-| 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`PlayerRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
+| 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
 | 6 | Hit Zones | `HIT_ZONES` | body parts a shot hits on a living character (kit #876) | none (scanned only by shots) |
 | 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`) |
 
@@ -77,5 +77,5 @@ on the hit bone and the hit zones on layer 6.
 - **Approach:** Prove a shot meets a dead body with a real death: kill a `Player` in an arena, wait for it to lie
   still, fire a real `Projectile` at a bone's position and read the collider of `impacted` (`PhysicalBone3D`); fire
   past a living one's capsule at hand height and read the wall. **Watch out for:** the chest bone is `spine_03` (the
-  bodies are `PlayerRagdoll.BODIES`: `pelvis`, `spine_01`, `spine_03`, `Head`, ...), not `spine_02`. **Seen:**
+  bodies are `CharacterRagdoll.BODIES`: `pelvis`, `spine_01`, `spine_03`, `Head`, ...), not `spine_02`. **Seen:**
   gdstudio #924, 2026-11-10.

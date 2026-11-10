@@ -1,8 +1,8 @@
 @tool
-class_name PlayerRagdoll
+class_name CharacterRagdoll
 extends Node
 ## The character's ragdoll: physical bones on the skeleton of the model in the `Model` slot, limp
-## while the `Player` is dead and idle (no collision, no cost) while it is alive.
+## while the `Character` is dead and idle (no collision, no cost) while it is alive.
 ##
 ## The bones are made from the skeleton each time the model changes, because a model swap deletes
 ## the old model and everything inside it. They are made in the editor too, so their shapes show
@@ -10,7 +10,7 @@ extends Node
 ## the remote tree), but they are never saved in a scene. `BODIES` lists them for the Quaternius
 ## universal rig (both mannequins).
 ##
-## The `Player` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
+## The `Character` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
 ## listens to the player's `died` and `revived`.
 ##
 ## What makes it look like a body: every joint has the range of its human joint (hinges for the
@@ -251,7 +251,7 @@ static var _counted := 0
 
 @export_group("Nodes")
 ## The slot that holds the character's model; the bones go on its skeleton.
-@export var model: PlayerModel:
+@export var model: CharacterModel:
 	set(value):
 		if model != null and model.rig_changed.is_connected(_on_rig_changed):
 			model.rig_changed.disconnect(_on_rig_changed)
@@ -331,14 +331,15 @@ static var _counted := 0
 
 @export_group("Cost")
 ## How many ragdolls may lie limp at once in the whole game (one that has settled, or got up,
-## stops counting); a death over the cap is not a ragdoll (`can_start()` is false, the `Player`
+## stops counting); a death over the cap is not a ragdoll (`can_start()` is false, the `Character`
 ## plays its death clip). 0: no cap.
 @export_range(0, 32, 1) var max_active := 4
 ## Seconds after which a body whose bones are all asleep is `settled` (the signal, `is_settled()`),
 ## and stops counting toward `max_active`. A game with many bodies lying about frees them there.
 @export_range(1.0, 60.0, 0.5, "suffix:s") var settle_time := 8.0
-## A death farther than this from the camera (metres) is not a ragdoll but the death clip: nobody
-## sees the difference and the physics is saved. 0: any distance.
+## A death farther than this from whoever watches (metres; the local camera, which the character
+## passes to `can_start()`) is not a ragdoll but the death clip: nobody sees the difference and
+## the physics is saved. 0, or nobody watching (a server's body): any distance.
 @export_range(0.0, 200.0, 1.0, "suffix:m") var ragdoll_range := 0.0
 
 @export_group("Collision")
@@ -433,25 +434,25 @@ func add_collision_exception(other: CollisionObject3D) -> void:
 
 
 ## True when a death may be a ragdoll now: there are bones, fewer than `max_active` lie limp and
-## the camera is not past `ragdoll_range`. When it is false the character plays its death clip.
-func can_start() -> bool:
+## `viewer` (where the local camera is; `Vector3.INF` when nobody watches) is not farther than
+## `ragdoll_range` from the hips. When it is false the character plays its death clip. It reads
+## no camera itself: the range is a local level of detail, and the caller knows who watches.
+func can_start(viewer := Vector3.INF) -> bool:
 	if _simulator == null:
 		return false
 	if max_active > 0 and _counted >= max_active and not _counts:
 		return false
-	if ragdoll_range > 0.0 and not Engine.is_editor_hint() and is_inside_tree():
-		var camera := get_viewport().get_camera_3d()
-		var hip := hips()
-		if camera != null and camera.global_position.distance_to(hip) > ragdoll_range:
+	if ragdoll_range > 0.0 and viewer.is_finite() and is_inside_tree():
+		if viewer.distance_to(hips()) > ragdoll_range:
 			return false
 	return true
 
 
 ## The ragdoll takes over from the pose on screen: each bone leaves with the velocity the
 ## animation gave it (or, with `pose_velocity` off, all with `velocity`), times `carry_velocity`.
-## Returns false, and does nothing, when `can_start()` is false.
-func start(velocity: Vector3 = Vector3.ZERO) -> bool:
-	if not can_start():
+## Returns false, and does nothing, when `can_start(viewer)` is false.
+func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
+	if not can_start(viewer):
 		return false
 	var clamped := _clamped_world()
 	if _simulator.is_simulating_physics():
@@ -968,7 +969,7 @@ func _count(on: bool) -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	if model == null:
-		warnings.append("Set `model` to the PlayerModel that holds the character.")
+		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.skeleton() != null and _bones.is_empty():
 		warnings.append("The model's skeleton lacks the universal rig's bones the ragdoll needs.")
 	return warnings

@@ -10,7 +10,7 @@ extends RefCounted
 ## True when another block lies over the whole top of `box` lower than a standing body (a pillar
 ## under a roof): nobody stands there.
 static func _covered(root: Node, block: ProtoBlock, box: AABB) -> bool:
-	var body := PlayerTuning.new().height
+	var body := CharacterTuning.new().height
 	for other: ProtoBlock in root.find_children("*", "ProtoBlock", true, false):
 		if other == block:
 			continue
@@ -41,7 +41,7 @@ static func barriers(root: Node) -> Array[ProtoBlock]:
 ## a jump away (`hop`). A moving platform counts with the whole box it sweeps.
 static func reachable_tops(root: Node) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = []
-	var max_slope := deg_to_rad(PlayerTuning.new().max_slope)
+	var max_slope := deg_to_rad(CharacterTuning.new().max_slope)
 	for block: ProtoBlock in root.find_children("*", "ProtoBlock", true, false):
 		if block.get_parent().name == "Boundary":
 			continue
@@ -101,7 +101,7 @@ static func hop(rise: float) -> float:
 		return 0.0
 	var step := ReachBench.CARRY_STEP
 	if rise <= rises[0]:
-		var tuning := PlayerTuning.new()
+		var tuning := CharacterTuning.new()
 		var fall_gravity := tuning.gravity() * tuning.fall_gravity_scale
 		var longer := (
 			sqrt(2.0 * (tuning.jump_height - rise) / fall_gravity)

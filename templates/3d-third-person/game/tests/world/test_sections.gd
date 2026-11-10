@@ -7,7 +7,7 @@ extends GdUnitTestSuite
 const MAIN := "res://main.tscn"
 const AI_SCENE := "res://world/prototype/ai_section/ai_section.tscn"
 const PATHING_SCENE := "res://world/prototype/pathing_section/pathing_section.tscn"
-## The eye of a standing body over its feet (`PlayerTuning.camera_height`).
+## The eye of a standing body over its feet (`CharacterTuning.camera_height`).
 const EYE := 1.55
 ## A path counts as reaching a point this close to it on the ground plane (the baked surface floats
 ## 0.2 m over the floor: the baker lifts it by two cells of 0.1 m).
@@ -329,7 +329,7 @@ func _ray(from: Vector3, to: Vector3) -> Dictionary:
 # the way is clear).
 func _cast_body(from: Vector3, to: Vector3) -> float:
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = PlayerTuning.new().radius
+	capsule.radius = CharacterTuning.new().radius
 	capsule.height = 1.7
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = capsule

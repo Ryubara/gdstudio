@@ -55,8 +55,10 @@ the committed ones with the 3D Blank template's.
 branches chose three homes on one day (gdstudio #923) -->
 
 `godot/addons/gds_game/` holds the gameplay code any game of any template can use (the maintainer's decision on
-gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone` and the
-suites' `ExportPins` and `InputSim`. It is scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under
+gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone`, the
+impacts (`Impacts`, `ImpactSurface`, `ImpactMark`), `SpawnPoint`, the camera shake (`CameraShake`, `ShakePreset`),
+`ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced beside it) and the suites' `ExportPins` and `InputSim`
+(gdstudio #952 moved the second group). It is scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under
 `addons/` is a global class without a plugin, so a game needs no `project.godot` line for it, and `gds sync` alone
 brings it to a game made before it existed. Its suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job
 with `gds_ui`'s.
@@ -88,12 +90,18 @@ or an old path left as drift, so the game's CI fails until it is synced. A game'
 history and the sync's pull request shows the deletion. Entries stay in `MOVED`: a game may be synced for the first time
 long after. Move a part only when no open branch has changed it (`gh pr list`, the worktrees); the next one waits.
 
+A moved script keeps its exports as they were. A game made before the move keeps its own suites, and a suite that pins
+every export's default (`ExportPins.differences`) fails on a new export or a changed default, so a move that must drop a
+template path from a default (the screen host's `menu_scene`) keeps the old value readable without one: the export's
+default is empty, its getter reads back the project's main scene, and the template's scene sets the path.
+
 - **Approach:** Move a universal part into `gds_game` with its `.uid`, add its line to `MOVED`, rewrite the templates'
   references, prove the script alone in `godot/tests/gds_game/` and keep the template's in-the-map suites where they
   are. **Watch out for:** a part copied into a template is never fixed in the games made from it: `playground`, made
   the same morning, already had 2 stale files of 43, and the template scenes name scripts by path only (no `uid=`), so a
   move without the rewrite breaks every scene that uses the script. **Seen:** gdstudio #923, 2026-11-10 (the review of
-  #896 found the stale copies; first parts moved: the effect pool, `TriggerZone`, `ExportPins`, `InputSim`).
+  #896 found the stale copies; first parts moved: the effect pool, `TriggerZone`, `ExportPins`, `InputSim`); gdstudio
+  #952, 2026-11-10 (the impacts, `SpawnPoint`, the shake, `ScreenHost`; an older game, synced, passed every suite).
 
 ## Not synced: what a new game is made from {#templates}
 

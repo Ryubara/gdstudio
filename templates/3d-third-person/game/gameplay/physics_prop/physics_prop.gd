@@ -56,7 +56,8 @@ enum Shape {
 @export_group("Pushing")
 ## The speed the character gives this prop when it pushes it (the character walks a little
 ## faster, so it stays against it). A low number (a heavy cube pushed at 1.2 m/s) keeps the push
-## animation readable. Zero leaves it to the character's own pushing (`PlayerTuning.push_strength`).
+## animation readable. Zero leaves it to the character's own pushing
+## (`CharacterTuning.push_strength`).
 @export_range(0.0, 6.0, 0.05, "suffix:m/s") var push_speed := 0.0
 
 @export_group("Safety")

@@ -9,8 +9,11 @@ extends Node
 ## menu's buttons. When the stack is empty again it puts all three back. The screens live on the
 ## `UIRouter` stack (`addons/gds_ui`), which runs while the tree is paused.
 ##
+## The host's own input action is `pause` (it does nothing in a game without one); Esc and pad B
+## step back through the engine's `ui_cancel`.
+##
 ## To open a screen from gameplay:
-## - from code: `ScreenHost.current.open(preload("res://ui/menus/inventory.tscn"))`;
+## - from code: `ScreenHost.current.open(preload("res://<your screen>.tscn"))`;
 ## - from a key: add its input action and its scene to `action_screens` in the inspector, and the
 ##   same key opens and closes it;
 ## - the screen extends `UIScreen`; give it `back_closes` so Esc and pad B close it.
@@ -23,6 +26,9 @@ extends Node
 signal opened
 ## The last screen closed, and the game running again.
 signal closed
+
+## The input action that opens the pause menu and closes every screen.
+const PAUSE_ACTION := &"pause"
 
 ## The host in the tree, for a screen to find (`ScreenHost.current.close()`).
 static var current: ScreenHost
@@ -49,8 +55,13 @@ static var current: ScreenHost
 @export var pause_on_lost_mouse := true
 
 @export_group("Leaving")
-## The scene "Main menu" returns to.
-@export_file("*.tscn") var menu_scene := "res://ui/menus/menu_scene.tscn"
+## The scene "Main menu" returns to. Empty returns to the project's main scene (Project Settings,
+## Application > Run > Main Scene), and reading it back then gives that scene's path.
+@export_file("*.tscn") var menu_scene := "":
+	get:
+		if menu_scene.is_empty():
+			return str(ProjectSettings.get_setting("application/run/main_scene", ""))
+		return menu_scene
 
 ## Reads the mouse mode instead of `Input.mouse_mode` when valid: a headless run reads the mode
 ## back as visible whatever was set, so a test stands in a platform under the grip.
@@ -112,7 +123,7 @@ func _notification(what: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
-	if InputMap.has_action(&"pause") and event.is_action_pressed(&"pause"):
+	if InputMap.has_action(PAUSE_ACTION) and event.is_action_pressed(PAUSE_ACTION):
 		_toggle(pause_screen, event)
 		return
 	for action in action_screens:
@@ -146,15 +157,21 @@ func close(kind := UITransition.Kind.FADE) -> void:
 		UIRouter.clear(kind)
 
 
-## Leaves the game for the main menu scene.
+## Leaves the game for the main menu scene (`menu_scene`). With no scene to go to it only warns.
 func go_to_menu() -> void:
+	var target := menu_scene
+	if target.is_empty():
+		push_warning(
+			"ScreenHost: set `menu_scene` (or the project's main scene) to leave for a menu."
+		)
+		return
 	if _open:
 		_end(false)
 	_mouse_to(Input.MOUSE_MODE_VISIBLE)
 	if scene_changer.is_valid():
-		scene_changer.call(menu_scene)
+		scene_changer.call(target)
 	else:
-		get_tree().change_scene_to_file(menu_scene)
+		get_tree().change_scene_to_file(target)
 
 
 func _toggle(screen: PackedScene, event: InputEvent) -> void:

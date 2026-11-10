@@ -1,10 +1,10 @@
 class_name CharacterState
 extends RefCounted
 ## Everything a character's step reads from the tick before: where the body is, how it moves and
-## every timer and latch. `Player.state_snapshot()` fills one and `Player.restore()` puts one
+## every timer and latch. `Character.state_snapshot()` fills one and `Character.restore()` puts one
 ## back, so a test or a client that predicts can set a body to an earlier tick.
 ##
-## `values` holds the `Player` members named in `FIELDS`, in that order;
+## `values` holds the `Character` members named in `FIELDS`, in that order;
 ## `test_character_state.gd` fails when the body gains a variable that is neither in `FIELDS` nor
 ## on its list of things that are not step state. Not here on purpose: what the character holds
 ## (`items`), death (`die()` and `revive()` are events), and the engine's own floor contact, which
@@ -14,7 +14,7 @@ extends RefCounted
 ## projectile, collects a pickup), so stepping the same commands again after `restore()` repeats
 ## them: use it to put a body where the server says, not to replay.
 
-## The `Player` members a snapshot copies by name.
+## The `Character` members a snapshot copies by name.
 const FIELDS: Array[StringName] = [
 	&"state",
 	&"facing",

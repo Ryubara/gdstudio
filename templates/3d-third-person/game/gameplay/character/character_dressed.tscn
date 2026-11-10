@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/character/character.tscn" id="1_character"]
+[ext_resource type="Script" path="res://gameplay/character/character_model.gd" id="2_model"]
+[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_female.glb" id="3_mannequin"]
+[ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="4_pistol"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
+[ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
+[ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
+[ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
+
+[node name="CharacterDressed" node_paths=PackedStringArray("model", "ragdoll_body") instance=ExtResource("1_character")]
+model = NodePath("Model")
+ragdoll_body = NodePath("Ragdoll")
+
+[node name="Model" type="Node3D" parent="." index="1"]
+script = ExtResource("2_model")
+
+[node name="Mannequin" parent="Model" instance=ExtResource("3_mannequin")]
+
+[node name="PistolHeld" parent="Model" instance=ExtResource("4_pistol")]
+use_external_skeleton = true
+external_skeleton = NodePath("../Mannequin/Armature/Skeleton3D")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." index="4"]
+root_node = NodePath("../Model/Mannequin")
+libraries = {
+&"ual1": ExtResource("5_ual1"),
+&"ual2": ExtResource("6_ual2")
+}
+
+[node name="AnimationTree" type="AnimationTree" parent="." index="5"]
+
+[node name="Animation" type="Node" parent="." index="6" node_paths=PackedStringArray("character", "model", "animation_player", "tree")]
+script = ExtResource("7_animation")
+character = NodePath("..")
+model = NodePath("../Model")
+animation_player = NodePath("../AnimationPlayer")
+tree = NodePath("../AnimationTree")
+
+[node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]
+muzzle = NodePath("../Model/PistolHeld/Pistol/Pistol/Muzzle")
+
+[node name="Footsteps" parent="." node_paths=PackedStringArray("character", "model") instance=ExtResource("8_footsteps")]
+character = NodePath("..")
+model = NodePath("../Model")
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
+script = ExtResource("9_ragdoll")
+model = NodePath("../Model")
