@@ -61,6 +61,8 @@ signal respawned
 @export_range(0.0, 600.0, 0.5, "or_greater", "suffix:s") var respawn_time := 0.0
 
 var _phase := 0.0
+# The `Visual` node, found once (it was looked up by its unique name every frame).
+var _visual_node: MeshInstance3D
 var _hidden_for := -1.0
 var _rng := RandomNumberGenerator.new()
 var _last_sound := -1
@@ -77,7 +79,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_phase += delta
-	var visual := _visual()
+	if _visual_node == null:
+		_visual_node = _visual()
+	var visual := _visual_node
 	visual.rotation.y = deg_to_rad(spin_speed) * _phase
 	visual.position.y = sin(TAU * _phase / bob_period) * bob_height
 	if _hidden_for >= 0.0:
