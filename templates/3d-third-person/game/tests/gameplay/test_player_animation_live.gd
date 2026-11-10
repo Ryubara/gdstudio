@@ -40,7 +40,7 @@ func _clip_of(state: StringName) -> StringName:
 func test_every_export_has_its_default_pinned() -> void:
 	var fresh := CharacterAnimation.new()
 	var pins := {
-		&"player": null,
+		&"character": null,
 		&"model": null,
 		&"animation_player": null,
 		&"tree": null,

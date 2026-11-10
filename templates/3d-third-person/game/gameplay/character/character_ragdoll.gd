@@ -2,7 +2,7 @@
 class_name CharacterRagdoll
 extends Node
 ## The character's ragdoll: physical bones on the skeleton of the model in the `Model` slot, limp
-## while the `Player` is dead and idle (no collision, no cost) while it is alive.
+## while the `Character` is dead and idle (no collision, no cost) while it is alive.
 ##
 ## The bones are made from the skeleton each time the model changes, because a model swap deletes
 ## the old model and everything inside it. They are made in the editor too, so their shapes show
@@ -10,7 +10,7 @@ extends Node
 ## the remote tree), but they are never saved in a scene. `BODIES` lists them for the Quaternius
 ## universal rig (both mannequins).
 ##
-## The `Player` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
+## The `Character` calls `start()` when it dies and `stop()` when it gets up; the rest of the game
 ## listens to the player's `died` and `revived`.
 ##
 ## What makes it look like a body: every joint has the range of its human joint (hinges for the
@@ -331,7 +331,7 @@ static var _counted := 0
 
 @export_group("Cost")
 ## How many ragdolls may lie limp at once in the whole game (one that has settled, or got up,
-## stops counting); a death over the cap is not a ragdoll (`can_start()` is false, the `Player`
+## stops counting); a death over the cap is not a ragdoll (`can_start()` is false, the `Character`
 ## plays its death clip). 0: no cap.
 @export_range(0, 32, 1) var max_active := 4
 ## Seconds after which a body whose bones are all asleep is `settled` (the signal, `is_settled()`),

@@ -17,7 +17,7 @@ signal stepped(foot: StringName, crouched: bool)
 
 @export_group("Nodes")
 ## The character whose feet are followed.
-@export var player: Player
+@export var character: Character
 ## The slot that holds the character's model: the feet are read from the skeleton it finds, so a
 ## replaced model needs nothing set here. Its +Z is forward, so a foot moving toward +Z is
 ## swinging ahead.
@@ -58,12 +58,12 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
-	if player != null:
-		player.landed.connect(_on_landed)
+	if character != null:
+		character.landed.connect(_on_landed)
 
 
 func _process(delta: float) -> void:
-	if model == null or player == null or delta <= 0.0:
+	if model == null or character == null or delta <= 0.0:
 		return
 	var skeleton := model.skeleton()
 	if skeleton == null:
@@ -91,7 +91,7 @@ func _process(delta: float) -> void:
 
 ## Plays a step now, as if the foot `foot` landed (for a game's own animation event).
 func play_step(foot: StringName = &"") -> void:
-	var crouched := player != null and player.crouching
+	var crouched := character != null and character.crouching
 	var sound := get_node_or_null("%CrouchStep" if crouched else "%Step") as AudioStreamPlayer3D
 	if sound == null or steps.is_empty():
 		return
@@ -103,7 +103,7 @@ func play_step(foot: StringName = &"") -> void:
 
 
 func _land(foot: StringName) -> void:
-	if not player.is_on_floor() or player.ground_speed() < min_speed:
+	if not character.is_on_floor() or character.ground_speed() < min_speed:
 		return
 	if _since < min_interval:
 		return
@@ -145,8 +145,8 @@ func _pick() -> int:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
-	if player == null or model == null:
-		warnings.append("Set `player` and `model`: the feet are read from them.")
+	if character == null or model == null:
+		warnings.append("Set `character` and `model`: the feet are read from them.")
 	for part_name in ["Step", "CrouchStep", "LandStep"]:
 		if get_node_or_null("%" + part_name) == null:
 			warnings.append("The scene needs an AudioStreamPlayer3D named `%s`." % part_name)

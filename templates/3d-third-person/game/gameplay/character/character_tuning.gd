@@ -8,7 +8,7 @@ extends Resource
 ##
 ## A number is read where it is used, every frame, so changing it in the inspector or the remote
 ## inspector works while the game runs. The few the body copies once (the capsule, the slope and
-## the floor snap) say `changed`, and `Player` applies them again.
+## the floor snap) say `changed`, and `Character` applies them again.
 
 @export_group("Ground")
 ## Speed at a walk (the move stick pushed a little, or the walk key held).

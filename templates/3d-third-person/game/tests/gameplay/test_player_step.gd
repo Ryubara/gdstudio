@@ -266,21 +266,23 @@ func test_the_step_takes_the_physics_step_as_its_delta() -> void:
 	assert_bool(_player._is_physics_step(1.0 / 30.0)).is_false()
 
 
-func test_the_body_its_weapon_and_its_animation_read_no_input_and_no_camera() -> void:
+# Every script of the character (`gameplay/character/`: the body, its model, animation, ragdoll,
+# footsteps and the rest) and of the weapon reads no input and no camera: a server or an AI drives
+# the same files. Only the human's `PlayerInput` (in `gameplay/player/`) reads them.
+func test_the_character_and_its_weapon_read_no_input_and_no_camera() -> void:
 	var reads := RegEx.new()
 	reads.compile("\\bInput\\.|\\bget_camera_3d\\(|\\bget_viewport\\(")
 	var found: Array[String] = []
-	var sources: Array[String] = [
-		"res://gameplay/player/player.gd",
-		"res://gameplay/character/character_animation.gd",
-	]
-	for file in DirAccess.get_files_at("res://gameplay/weapon"):
-		if file.ends_with(".gd"):
-			sources.append("res://gameplay/weapon/" + file)
-	assert_bool(sources.has("res://gameplay/weapon/weapon.gd")).is_true()
+	var sources: Array[String] = []
+	for folder in ["res://gameplay/character", "res://gameplay/weapon"]:
+		for file in DirAccess.get_files_at(folder):
+			if file.ends_with(".gd"):
+				sources.append(folder + "/" + file)
+	for needed in ["character/character.gd", "character/character_ragdoll.gd", "weapon/weapon.gd"]:
+		assert_bool(sources.has("res://gameplay/" + needed)).is_true()
 	for path in sources:
 		var source := FileAccess.get_file_as_string(path)
-		assert_int(source.length()).is_greater(1000)
+		assert_int(source.length()).is_greater(100)
 		var number := 0
 		for line in source.split("\n"):
 			number += 1

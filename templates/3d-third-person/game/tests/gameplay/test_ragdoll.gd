@@ -38,19 +38,22 @@ func _press_y() -> void:
 	await _ticks(1)
 
 
-func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
-	var player_pins := {
+func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
+	var character_pins := {
 		&"tuning": null,
-		&"start_at_spawn": true,
 		&"model": null,
 		&"controller": null,
 		&"weapon": null,
 		&"ragdoll_body": null,
 		&"ragdoll": false,
-		&"ragdoll_key": KEY_Y,
 		&"ragdoll_by_command": true,
-		&"input_enabled": true,
 	}
+	var body := auto_free(load("res://gameplay/character/character.gd").new()) as Character
+	assert_array(ExportPins.differences(body, character_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(body, character_pins)).is_empty()
+	# The human adds its own on top of the character's.
+	var player_pins := character_pins.duplicate()
+	player_pins.merge({&"start_at_spawn": true, &"input_enabled": true, &"ragdoll_key": KEY_Y})
 	var fresh := auto_free(load("res://gameplay/player/player.gd").new()) as Player
 	assert_array(ExportPins.differences(fresh, player_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, player_pins)).is_empty()

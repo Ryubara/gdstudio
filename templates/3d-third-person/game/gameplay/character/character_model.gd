@@ -8,7 +8,7 @@ extends Node3D
 ## To swap the character in the editor, delete the old model child, drag the new `.glb` onto this
 ## node, and save. Every `BoneAttachment3D` child (the pistol in the hand) is seated on the new
 ## skeleton, and `rig_changed` tells the `CharacterAnimation` to point the clips at it, so nothing
-## is set again by hand. The `Player` turns this node to face its heading, so the model's
+## is set again by hand. The `Character` turns this node to face its heading, so the model's
 ## +Z is forward.
 
 ## The model child changed (a new one was added, or the old one left). `rig` is the new one, or

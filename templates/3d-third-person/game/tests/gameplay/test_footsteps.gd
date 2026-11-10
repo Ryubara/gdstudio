@@ -68,7 +68,7 @@ func test_the_three_players_keep_the_levels_they_were_tuned_to() -> void:
 
 func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
-		&"player": _player,
+		&"character": _player,
 		&"model": _player.get_node("Model"),
 		&"steps": _steps.steps,
 		&"pitch_variation": 0.05,

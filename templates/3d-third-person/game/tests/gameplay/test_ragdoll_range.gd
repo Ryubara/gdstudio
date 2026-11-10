@@ -68,9 +68,10 @@ func test_can_start_weighs_only_the_viewer_it_is_given() -> void:
 
 func test_the_player_input_names_its_camera_as_the_viewer() -> void:
 	_put_camera(7.0)
-	var viewer: Vector3 = _player.controller.viewer_position()
+	var viewer: Vector3 = _player.controller.call(&"viewer_position")
 	assert_vector(viewer).is_equal_approx(_camera.global_position, Vector3.ONE * 0.0001)
 	_camera.current = false
 	_camera.queue_free()
 	await InputSim.ticks(get_tree(), 1)
-	assert_bool(_player.controller.viewer_position().is_finite()).is_false()
+	var none: Vector3 = _player.controller.call(&"viewer_position")
+	assert_bool(none.is_finite()).is_false()

@@ -1,27 +1,27 @@
 @tool
 class_name CharacterAnimation
 extends Node
-## Plays the clip for what the `Player` is doing, through an `AnimationTree` it builds: a state
+## Plays the clip for what the `Character` is doing, through an `AnimationTree` it builds: a state
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
 ## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
 ## pistol layer (the pistol sits in one hand while the arms and the spine follow the locomotion
-## clip; aiming or firing brings the arm up to aim by the player's look, and a shot recoils) and a
+## clip; aiming or firing brings the arm up to aim by its look, and a shot recoils) and a
 ## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
-## `play_clip()`). While the player is dead the tree is off and the ragdoll holds the skeleton; on
+## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
 ##
 ## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
 ## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
 ## `CharacterClips` names them all.
 ##
-## It is a `@tool` script so the editor shows the tree too: opening the player scene builds the
+## It is a `@tool` script so the editor shows the tree too: opening the character scene builds the
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 ##
 ## It follows the `CharacterModel` too: when the character's model is replaced, it points the
 ## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
-## nothing set by hand (the editor empties the player's Root Node when the node it pointed at is
+## nothing set by hand (the editor empties the character's Root Node when the node it pointed at is
 ## deleted).
 
 ## An action clip started; `clip` is its name.
@@ -38,7 +38,7 @@ enum Carry {
 	HELD_POSE,
 }
 
-## The states of the tree's body machine, as `Player.State` maps onto them.
+## The states of the tree's body machine, as `Character.State` maps onto them.
 const GROUND := &"ground"
 const JUMP := &"jump"
 const FALL := &"fall"
@@ -59,8 +59,8 @@ const _SHOOT := "Shoot"
 const _AIM := "Aim"
 
 @export_group("Nodes")
-## The player that is animated.
-@export var player: Player
+## The character that is animated.
+@export var character: Character
 ## The slot that holds the character's model; the clips are played on the model it finds.
 @export var model: CharacterModel
 ## The `AnimationPlayer` that holds the clip libraries.
@@ -148,17 +148,17 @@ const _AIM := "Aim"
 	set(value):
 		grip_bones = value
 		_rebuild()
-## Aiming level; the aim blends to the clips below by how far up or down the player looks.
+## Aiming level; the aim blends to the clips below by how far up or down the character looks.
 @export var aim_clip: StringName = CharacterClips.PISTOL_AIM:
 	set(value):
 		aim_clip = value
 		_rebuild()
-## Aiming up (the player looks `aim_pitch_range` degrees up).
+## Aiming up (the character looks `aim_pitch_range` degrees up).
 @export var aim_up_clip: StringName = CharacterClips.PISTOL_AIM_UP:
 	set(value):
 		aim_up_clip = value
 		_rebuild()
-## Aiming down (the player looks `aim_pitch_range` degrees down).
+## Aiming down (the character looks `aim_pitch_range` degrees down).
 @export var aim_down_clip: StringName = CharacterClips.PISTOL_AIM_DOWN:
 	set(value):
 		aim_down_clip = value
@@ -174,7 +174,7 @@ const _AIM := "Aim"
 	set(value):
 		upper_body_bone = value
 		_rebuild()
-## How far the player looks up or down for the full aim up or aim down pose.
+## How far the character looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
 		aim_pitch_range = value
@@ -216,24 +216,24 @@ var _pitch_now := 0.0
 
 
 func _ready() -> void:
-	if player == null or animation_player == null or tree == null:
+	if character == null or animation_player == null or tree == null:
 		return
 	if model != null:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
 	_build()
-	if player.tuning != null:
-		player.tuning.changed.connect(_sync_ground_speeds)
+	if character.tuning != null:
+		character.tuning.changed.connect(_sync_ground_speeds)
 	if Engine.is_editor_hint():
 		return
 	tree.active = true
 	_playback = tree.get(&"parameters/%s/playback" % _MACHINE)
 	_playback.start(GROUND)
-	player.state_changed.connect(_on_state_changed)
-	player.interacted.connect(_on_interacted)
-	player.took_hit.connect(_on_hit)
-	if player.weapon != null:
-		player.weapon.fired.connect(_on_shot)
+	character.state_changed.connect(_on_state_changed)
+	character.interacted.connect(_on_interacted)
+	character.took_hit.connect(_on_hit)
+	if character.weapon != null:
+		character.weapon.fired.connect(_on_shot)
 
 
 func _notification(what: int) -> void:
@@ -249,19 +249,19 @@ func _notification(what: int) -> void:
 
 
 # Keeps the look of the last two steps for the aim pose. A child is processed after its parent,
-# so this reads what the player's step of this tick left.
+# so this reads what the character's step of this tick left.
 func _physics_process(_delta: float) -> void:
-	if Engine.is_editor_hint() or player == null:
+	if Engine.is_editor_hint() or character == null:
 		return
 	_pitch_before = _pitch_now
-	_pitch_now = player.view_pitch
+	_pitch_now = character.view_pitch
 
 
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or tree == null or not tree.active or _playback == null:
 		return
 	_sync_ground_speeds()
-	var speed := player.ground_speed()
+	var speed := character.ground_speed()
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, GROUND], speed)
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, CROUCH], speed)
 	_drive_pistol(delta)
@@ -325,7 +325,7 @@ func stop_clip() -> void:
 
 # Points the animation player at the model the slot holds: the clips' tracks
 # (`Armature/Skeleton3D:<bone>`) are paths from the model's root. A model that has no such path
-# gets no root at all, so the engine logs one warning for the player instead of one for every
+# gets no root at all, so the engine logs one warning for the character instead of one for every
 # bone of every clip (and the tree is switched off in the game).
 func _follow_rig() -> void:
 	if animation_player == null or model == null:
@@ -341,7 +341,7 @@ func _follow_rig() -> void:
 # The model was swapped: new root for the clips, and the tree (its root and the upper body's
 # bones) is built again from the new skeleton.
 func _on_rig_changed(_rig: Node3D) -> void:
-	if tree == null or animation_player == null or player == null:
+	if tree == null or animation_player == null or character == null:
 		return
 	update_configuration_warnings()
 	if _rig == null:
@@ -381,7 +381,7 @@ func _build() -> void:
 # the game so a clip or a blend time changed while it runs takes effect (the body goes on from the
 # state it was in).
 func _rebuild() -> void:
-	if not is_node_ready() or tree == null or animation_player == null or player == null:
+	if not is_node_ready() or tree == null or animation_player == null or character == null:
 		return
 	var current := body_state()
 	_build()
@@ -394,9 +394,9 @@ func _rebuild() -> void:
 # Moves the walk, run and sprint points of the ground blend space (and the crouch walk point) to
 # the tuning's speeds (the tuning has no `changed` for them, so the game checks every frame).
 func _sync_ground_speeds() -> void:
-	if _ground == null or player == null or player.tuning == null:
+	if _ground == null or character == null or character.tuning == null:
 		return
-	var tuning := player.tuning
+	var tuning := character.tuning
 	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed, tuning.crouch_speed]
 	if speeds == _ground_speeds:
 		return
@@ -408,19 +408,19 @@ func _sync_ground_speeds() -> void:
 	_crouch.set_blend_point_position(1, tuning.crouch_speed)
 
 
-# The pistol layer follows the player: held (or not), how far the arm is up, and how far up or
-# down the player looks (`Player.view_pitch`, never a camera) for the aim pose. The arm is up by
-# the player's aim amount, or by the shot's own hold when that is more: after a shot it goes on
+# The pistol layer follows the character: held (or not), how far the arm is up, and how far up or
+# down the character looks (`view_pitch`, never a camera) for the aim pose. The arm is up by
+# the character's aim amount, or by the shot's own hold when that is more: after a shot it goes on
 # rising for `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`), so a
 # tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
-	var armed := 1.0 if player.weapon != null else 0.0
-	var aim_time := player.tuning.aim_pose_time if player.tuning != null else 0.15
+	var armed := 1.0 if character.weapon != null else 0.0
+	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
 	_shot_hold = maxf(_shot_hold - delta, 0.0)
 	_shot_arm = move_toward(
 		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
 	)
-	var arm := maxf(player.aim_amount, _shot_arm)
+	var arm := maxf(character.aim_amount, _shot_arm)
 	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
 	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * armed)
 	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
@@ -430,21 +430,21 @@ func _drive_pistol(delta: float) -> void:
 	)
 
 
-# How far up the player looks, in degrees, `fraction` of the way from the step before the last
+# How far up the character looks, in degrees, `fraction` of the way from the step before the last
 # to the last one: the pose moves on every drawn frame although the body is stepped 60 times a
 # second, as the engine does for the body itself.
 func _look_up_at(fraction: float) -> float:
 	return rad_to_deg(lerpf(_pitch_before, _pitch_now, clampf(fraction, 0.0, 1.0)))
 
 
-func _on_state_changed(state: Player.State) -> void:
-	if state == Player.State.DEAD:
+func _on_state_changed(state: Character.State) -> void:
+	if state == Character.State.DEAD:
 		# The ragdoll takes the skeleton over from the pose the tree left on it.
 		_dead = true
 		stop_clip()
 		tree.active = false
-		if player != null and player.died_by_clip:
-			# No ragdoll for this death: the clip plays on the player itself and holds its last pose.
+		if character != null and character.died_by_clip:
+			# No ragdoll for this death: the clip plays on the character itself and holds its last pose.
 			_clip_death = animation_player.has_animation(CharacterClips.DEATH)
 			if _clip_death:
 				animation_player.play(CharacterClips.DEATH)
@@ -457,31 +457,31 @@ func _on_state_changed(state: Player.State) -> void:
 		tree.active = _fits(model.rig()) if model != null else true
 		_playback.start(GROUND)
 	match state:
-		Player.State.IDLE, Player.State.WALK, Player.State.RUN:
+		Character.State.IDLE, Character.State.WALK, Character.State.RUN:
 			_travel(GROUND)
-		Player.State.JUMP:
+		Character.State.JUMP:
 			_travel(JUMP)
-		Player.State.FALL:
+		Character.State.FALL:
 			_travel(FALL)
-		Player.State.LAND:
+		Character.State.LAND:
 			_travel(LAND)
-		Player.State.PUSH:
+		Character.State.PUSH:
 			_travel(PUSH)
-		Player.State.CROUCH:
+		Character.State.CROUCH:
 			_travel(CROUCH)
 
 
 func _on_interacted(_target: Node3D) -> void:
-	play_clip(interact_clip, player.tuning.interact_time)
+	play_clip(interact_clip, character.tuning.interact_time)
 
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
-	play_clip(hit_clip, player.tuning.hit_stun_time)
+	play_clip(hit_clip, character.tuning.hit_stun_time)
 
 
 func _on_shot(_projectile: Projectile) -> void:
 	_shot_hold = shot_hold_time
-	_shot_arm = maxf(_shot_arm, player.aim_amount)
+	_shot_arm = maxf(_shot_arm, character.aim_amount)
 	tree.set(&"parameters/%s/request" % _SHOOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
@@ -604,7 +604,7 @@ func _link(from: StringName, to: StringName) -> void:
 
 
 func _build_ground() -> AnimationNodeBlendSpace1D:
-	var tuning := player.tuning if player.tuning != null else CharacterTuning.new()
+	var tuning := character.tuning if character.tuning != null else CharacterTuning.new()
 	var space := AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = tuning.sprint_speed
@@ -619,7 +619,7 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 
 
 func _build_crouch() -> AnimationNodeBlendSpace1D:
-	var tuning := player.tuning if player.tuning != null else CharacterTuning.new()
+	var tuning := character.tuning if character.tuning != null else CharacterTuning.new()
 	var space := AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = tuning.crouch_speed
