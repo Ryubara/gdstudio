@@ -55,10 +55,10 @@ var _clock := 0.0
 var _held: Array[StringName] = []
 var _frame := 0
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
-@onready var _camera: Camera3D = $Main/Camera
-@onready var _head: Node3D = $Main/Player/CameraTarget
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
+@onready var _camera: Camera3D = $Main/PlayerRig/Camera
+@onready var _head: Node3D = $Main/PlayerRig/Player/CameraTarget
 
 
 func _physics_process(delta: float) -> void:

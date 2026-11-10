@@ -11,7 +11,7 @@ dependencies = [
 gds = "gds_tools.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "pyyaml>=6", "ruff>=0.8"]
+dev = ["pytest>=8", "pytest-xdist>=3.6", "pyyaml>=6", "ruff>=0.8"]
 
 [build-system]
 requires = ["hatchling"]

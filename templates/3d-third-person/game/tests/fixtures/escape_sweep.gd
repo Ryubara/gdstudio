@@ -49,7 +49,7 @@ var _players: Array[Player] = []
 ## Sets up the sweep on an instance of `main.tscn` that is not in the tree yet.
 func setup(main: Node) -> void:
 	_main = main
-	for part in ["Player", "PlayerCamera", "Camera", "TouchControls", "Hud", "WebProbe"]:
+	for part in ["PlayerRig", "Hud", "Screens"]:
 		var node := main.get_node_or_null(part)
 		if node != null:
 			main.remove_child(node)
@@ -196,7 +196,7 @@ func _clear(spot: Vector3) -> bool:
 	query.transform = Transform3D(Basis.IDENTITY, spot + Vector3.UP * 0.95)
 	query.collision_mask = 1
 	return (
-		(_main.get_node("Level") as Node3D)
+		(_main.get_node("World/Level") as Node3D)
 		. get_world_3d()
 		. direct_space_state
 		. intersect_shape(query, 1)

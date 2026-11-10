@@ -19,7 +19,7 @@ const PITCH := 6.0
 
 var _clock := 0.0
 
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
 
 
 func _physics_process(delta: float) -> void:

@@ -18,11 +18,13 @@ var _walker := RouteWalker.new()
 func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
-	_player = _scene.get_node("Player")
+	_player = _scene.get_node("PlayerRig/Player")
 	Engine.time_scale = TIME_SCALE
 	await InputSim.ticks(get_tree(), 10)
 	var map := _map()
-	var probe := (_scene.get_node("PathingSection/Routes/Wide/Start") as Node3D).global_position
+	var probe := (
+		(_scene.get_node("World/PathingSection/Routes/Wide/Start") as Node3D).global_position
+	)
 	for _frame in 300:
 		if NavigationServer3D.map_get_closest_point(map, probe).distance_to(probe) < 0.75:
 			break
@@ -55,7 +57,7 @@ func test_the_body_walks_from_the_start_through_each_doorway() -> void:
 
 func test_the_body_walks_every_route_of_the_pathing_section() -> void:
 	var failed: Array[String] = []
-	for route: Node3D in _scene.get_node("PathingSection/Routes").get_children():
+	for route: Node3D in _scene.get_node("World/PathingSection/Routes").get_children():
 		var from := (route.get_node("Start") as Node3D).global_position
 		var to := (route.get_node("End") as Node3D).global_position
 		_player.teleport(from + Vector3.UP * 0.1)
@@ -69,7 +71,7 @@ func test_the_body_walks_every_route_of_the_pathing_section() -> void:
 
 
 func test_the_body_walks_from_a_friendly_spawn_to_every_part_of_the_ai_section() -> void:
-	var section := _scene.get_node("AISection")
+	var section := _scene.get_node("World/AISection")
 	var start := (section.get_node("Spawns/Friendly1") as Node3D).global_position
 	var goals: Array[Node3D] = []
 	for node: Node3D in section.get_node("Perception").get_children():

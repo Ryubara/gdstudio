@@ -154,6 +154,11 @@ def test_a_prepared_game_has_the_kit_addons_the_template_registers(bare_game):
     assert "addons/gds_ui/router/ui_router.gd" in (game / "project.godot").read_text(encoding="utf-8")
 
 
+# `moving-platform` waits 17 s of game time: at 60 fixed frames a second the engine never waits for the clock
+# (engines/godot/test-speed.md#what-makes-a-suite-run-at-the-clocks-speed), so the test takes seconds, not 20 s.
+FIXED_FPS = ("--fixed-fps", "60")
+
+
 @pytest.mark.parametrize("name", ["pickup-feature", "moving-platform"])
 def test_an_acceptance_suite_parses_and_runs_every_case_against_the_bare_template(bare_game, name):
     """The eval that ran 0 acceptance cases (kit #898): the suite no longer parsed against the template it was written
@@ -163,7 +168,7 @@ def test_an_acceptance_suite_parses_and_runs_every_case_against_the_bare_templat
     suites = list((task.folder / "acceptance").glob("test_*.gd"))
     declared = sum(path.read_text(encoding="utf-8").count("\nfunc test_") for path in suites)
     assert len(suites) == 1 and declared >= 5
-    cases, failed, _own, own_failed = evals.run_acceptance(task, game, tool, lambda _l: None)
+    cases, failed, _own, own_failed = evals.run_acceptance(task, game, tool, lambda _l: None, godot_args=FIXED_FPS)
     assert (cases, own_failed) == (declared, 0)
     assert failed >= 1
     assert not (game / evals.ACCEPTANCE_DIR).exists()

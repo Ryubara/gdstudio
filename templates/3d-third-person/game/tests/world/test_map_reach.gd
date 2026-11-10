@@ -17,7 +17,7 @@ var _main: Node
 
 func before() -> void:
 	_main = load(MAIN).instantiate()
-	(_main.get_node("Player") as Player).start_at_spawn = false
+	(_main.get_node("PlayerRig/Player") as Player).start_at_spawn = false
 	add_child(_main)
 
 
@@ -61,7 +61,7 @@ func test_the_props_stacked_against_a_wall_stay_out_of_reach_of_its_top() -> voi
 func test_the_doorways_to_the_sections_are_the_only_breaks_in_the_boundary() -> void:
 	var names: Array[String] = []
 	for wall in MapReach.barriers(_main):
-		if wall.owner == _main.get_node("Level"):
+		if wall.owner == _main.get_node("World/Level"):
 			names.append(wall.name)
 	names.sort()
 	(

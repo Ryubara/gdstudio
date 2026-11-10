@@ -11,8 +11,8 @@ var _player: Player
 func before_test() -> void:
 	_main = auto_free(load("res://main.tscn").instantiate())
 	add_child(_main)
-	_emitter = _main.get_node("Effects") as EffectEmitter
-	_player = _main.get_node("Player") as Player
+	_emitter = _main.get_node("World/Effects") as EffectEmitter
+	_player = _main.get_node("PlayerRig/Player") as Player
 	await _emitter.warmed
 	await get_tree().physics_frame
 
@@ -48,8 +48,8 @@ func test_a_bullet_impact_and_the_flash_share_the_one_emitter() -> void:
 	var weapon := _player.weapon
 	var shot := weapon.fire()
 	var floor_point := Vector3(0.0, 0.0, 0.0)
-	var impacts := _main.get_node("Impacts") as Impacts
-	var floor_body := _main.get_node("Level/Boundary/WallNorth/Body") as StaticBody3D
+	var impacts := _main.get_node("World/Impacts") as Impacts
+	var floor_body := _main.get_node("World/Level/Boundary/WallNorth/Body") as StaticBody3D
 	impacts.impact(floor_body, floor_point, Vector3.UP)
 	shot.queue_free()
 	assert_int(_emitter.active_count()).is_equal(2)

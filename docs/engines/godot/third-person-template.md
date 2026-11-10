@@ -19,9 +19,9 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Camera shake | `core/camera_shake/` (`camera_shake.gd`, `shake_preset.gd`, `presets/*.tres`; in 3D Blank, for every template) | A `CameraShake` node under `PlayerCamera` and `ShakePreset` resources: `CameraShake.shake(preset, at)` shakes the view from anywhere, with falloff with distance and one global `CameraShake.strength`; the sprint shake and the shot kick are on it, 0 by default. [Camera: shake component](camera.md#shake-component). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
 | HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
-| Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
+| Impacts | `gameplay/impacts/` (`impacts.tscn` in `world/world.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
 | Effects | `gameplay/effects/effect_emitter.tscn`, scripts in the synced `addons/gds_game/effects/` | One pooled player of one-shot effects (muzzle flash, impacts). [Effects](#effects). |
-| Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
+| Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `world/world.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Menus | `ui/menus/`, `core/settings/` | Main, pause and settings menus, saved options: [Menus](menus.md#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
@@ -29,6 +29,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
+| Scene map | `main.tscn`, `world/world.tscn`, `ui/player_rig/player_rig.tscn`, `ui/hud/hud.tscn`, `ui/menus/screen_host.tscn` | `main.tscn` holds four instances and three wires, nothing else; open the one scene a feature lives in. [Which scene to open](#scene-map). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, a spawn point, a camera zone and two [map sections](map-sections.md); `ProtoBlock` makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
@@ -39,6 +40,36 @@ The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank
 0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
 difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
 frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+
+## Which scene to open {#scene-map}
+
+<!-- new section: main.tscn held every node of the game, so each feature edited the same lines (gdstudio #927);
+     nothing said where a part now lives -->
+
+`main.tscn` is the game scene the menu loads. It holds four instances and the wires between them, and a test fails when
+it holds anything else (`tests/test_main_scene.gd`), so a feature adds its node to the scene it belongs to and never to
+this file.
+
+| Open | For | Holds |
+| --- | --- | --- |
+| `world/world.tscn` | the map and what the map does by itself | `Level`, the two sections (`AISection`, `PathingSection`), `Impacts`, `Effects`, the `Wind` player and `AudioSettings` |
+| `ui/player_rig/player_rig.tscn` | one local player's body, camera and input | `Player`, `PlayerCamera` with its Phantom Camera, the `Camera` and its host, `TouchControls` (its `look_turned` turns the camera inside the scene), `LookSettings`, the pause button in `MenuLayer`; at run time a `WebProbe` on a page opened with `?probe` |
+| `ui/hud/hud.tscn` | the heads-up display | the `Hud` and its parts; `player` names the player the parts read |
+| `ui/menus/screen_host.tscn` | the host that opens the pause menu and other screens | the `ScreenHost` with its pause screen |
+
+The wires in `main.tscn`: `Hud.player` and `Hud.touch_controls` point into the rig, and the host's `opened` and `closed`
+call the touch layer's `suspend` and `resume`. A second local or networked player is a second instance of the rig. The
+rig is in `ui/` because it holds the touch layer, and a scene may only name folders at its own level or below
+([the layer rule](project-conventions.md#rules)); the world is in `world/`. A weapon puts its projectiles under the
+shooter's parent, which is the rig now, not `Main`.
+
+- **Approach:** Put a new node in the scene it belongs to (a prop or a system the map owns in `world.tscn`, a thing the
+  local player carries in `player_rig.tscn`, a HUD part in `hud.tscn`) and reach across scenes with an export or a
+  signal connection in `main.tscn`, not with a node there. **Watch out for:** a test, tour or capture that finds a node
+  by `get_node("Player")` from the game scene breaks when the node moves into an instance (16 suites and 11 tours named
+  `Player`, `Level`, `Camera` and the rest at the top); the path is now `PlayerRig/Player`, `World/Level`, and a
+  `CanvasLayer` that moves out of `main.tscn` keeps its draw order only if its `layer` is set (the pause button's
+  `MenuLayer` is layer 2, above the HUD). **Seen:** gdstudio #927, 2026-11-10.
 
 ## The animation libraries {#animation-libraries}
 
@@ -85,13 +116,13 @@ Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.
   `Skeleton3D`, so nothing may refer to either by name (the player scene's node is its own `Mannequin`); the rest
   poses of the arms differ between the two files, so a test compares the bone names and parents, not the poses.
   **Seen:** gdstudio #843, 2026-11-09.
-- **Approach:** Film each model through the scene that holds it: point `player.tscn`'s model at the other glb (what
-  the editor swap saves) and record `tools/capture/model_tour.tscn`; read the aim-pose frame, where the pistol sits in
-  the hand. **Watch out for:** swapping the model in code at run time (`remove_child`, `free`, `add_child` on `Model`)
-  left the pistol's `BoneAttachment3D` at the new skeleton's rest pose, 0.65 m from the hand, in `main.tscn` (the path
-  was right; toggling `use_external_skeleton` off and on later fixed it, doing so in `_seat_attachments` did not),
-  while GdUnit's swap and a scene saved with the male glb were right: the test passed and the capture showed the pistol
-  on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
+- **Approach:** Film each model through the scene that holds it: point `player.tscn`'s model at the other glb (what the
+  editor swap saves) and record `tools/capture/model_tour.tscn`; read the aim-pose frame, where the pistol sits in the
+  hand. **Watch out for:** swapping the model in code at run time (`remove_child`, `free`, `add_child` on `Model`) left
+  the pistol's `BoneAttachment3D` at the new skeleton's rest pose, 0.65 m from the hand, in
+  `ui/player_rig/player_rig.tscn` (the path was right; toggling `use_external_skeleton` off and on later fixed it, doing
+  so in `_seat_attachments` did not), while GdUnit's swap and a scene saved with the male glb were right: the test
+  passed and the capture showed the pistol on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
 
 ## Replacing the model {#replacing-the-model}
 
@@ -147,7 +178,7 @@ Scene dock and checks the result.
   not bound to the old index, and an empty skeleton is not connected (it logged "Index p_bone = 34 is out of bounds").
   **Seen:** gdstudio #860, 2026-11-09.
 - **Approach:** Measure a seat against its bone, not the thing hung on it, to a few centimetres, in every frame of a
-  crouch-walk after the swap, in `main.tscn` as well as in the test arena, and check that the bone moved. **Watch out
+  crouch-walk after the swap, in the game scene as well as in the test arena, and check that the bone moved. **Watch out
   for:** the first test compared the pistol (0.13 m from its seat) with the hand 4 ticks after the swap against 0.35
   m. A seat left behind sits where the old hand last was, near the new hand while the pose has not changed (1.3 cm
   while aiming, 0.62 m after a crouch in the capture), so the same bug failed locally (0.71 m) and passed in CI, which
@@ -317,10 +348,10 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   this control, so a test compares the two. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Start every suite that reads the pistol's buttons (`fire`, `aim`, `crouch`) by letting go of them with
   `Input.action_release`, and run the suites in the CI's order before pushing (`-a` once per suite, as the log lists
-  them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base touch suite leaves the
-  left mouse button and `fire` down (a mouse release event does not clear the action): the crosshair and touch suites
-  passed in every local order and failed 8 tests on the runner, where one of them ran straight after it. **Seen:**
-  gdstudio #836, 2026-11-08 (`InputSim.release_all()` lets go of the actions too).
+  them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base touch suite leaves
+  the left mouse button and `fire` down (a mouse release event does not clear the action): the crosshair and touch
+  suites passed in every local order and failed 8 tests on the runner, where one of them ran straight after it.
+  **Seen:** gdstudio #836, 2026-11-08 (`InputSim.release_all()` lets go of the actions too).
 - **Approach:** Add a template's own buttons to the base's touch layer with an inherited scene
   (`third_person_touch_controls.tscn`, root `instance=` the base's, new buttons under `SafeArea/Buttons`) and not by
   copying the base file. **Watch out for:** an extending template replaces a file of the base whole, so a copy of
@@ -347,13 +378,13 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
   longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
   set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
-- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a
-  `CharacterBody3D` (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a
-  pushed crate presses a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an
-  `AnimatableBody3D` beside the area must not trigger it, a character must. **Watch out for:** the map's pressure
-  pad was pressed at the start by the floor and the landing under it, so the room door opened at once and the pad
-  never released; the coins were clean only because no block touched them. A frozen `RigidBody3D` did not press
-  the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
+- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a `CharacterBody3D`
+  (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a pushed crate presses
+  a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an `AnimatableBody3D` beside the
+  area must not trigger it, a character must. **Watch out for:** the map's pressure pad was pressed at the start by the
+  floor and the landing under it, so the room door opened at once and the pad never released; the coins were clean only
+  because no block touched them. A frozen `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`).
+  **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
 
 - **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
   aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
@@ -379,18 +410,18 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
 ## Bullet impacts {#impacts}
 
-A shot that lands tells the level's `Impacts` node (`main.tscn`, the group `impacts`): a mark on the body it hit (a flat
-quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of surface.
-`Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a body names
-its surface with and the tests are on [Bullet impacts in 3D Third Person](third-person-impacts.md).
+A shot that lands tells the level's `Impacts` node (`world/world.tscn`, the group `impacts`): a mark on the body it hit
+(a flat quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of
+surface. `Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a
+body names its surface with and the tests are on [Bullet impacts in 3D Third Person](third-person-impacts.md).
 
 ## Effects and the muzzle flash {#effects}
 
 <!-- new section: the pistol had no flash; impacts kept their own pools (gdstudio #888) -->
 
-One `EffectEmitter` (`Effects` in `main.tscn`) plays the flash, each impact and other one-shot effects from one pool
-([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash` and
-`muzzle_flash_size`.
+One `EffectEmitter` (`Effects` in `world/world.tscn`) plays the flash, each impact and other one-shot effects from one
+pool ([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash`
+and `muzzle_flash_size`.
 
 ## Ragdoll {#ragdoll}
 
@@ -432,17 +463,22 @@ so the editor shows the controls even when `show_mode` hides them in the game.
 <!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
 
 How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
-(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
-`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
-the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
-formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
-ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
-`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`), Data (`player`) and Parts (`root`,
+`safe_area`, `minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`);
+on a `HudStat` the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`,
+`show_bar`, the two formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real
+player has no health or ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make
+`health`/`max_health` and `ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
 
 Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
 HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
 showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
 in it is sent over a network.
+
+- **Approach:** Give a part its player in one place: `Hud.player` points every part that has none (or had the old one)
+  at the rig's `Player`, and a part given its own `player` keeps it. **Watch out for:** a first version bound every part
+  to `Hud.player` on `add_widget` and overwrote the stand-in subjects the HUD tests had set, 15 of 15 cases failed; bind
+  only the parts with no player of their own. **Seen:** gdstudio #927, 2026-11-10.
 
 ## A route for a clip {#walkthrough}
 

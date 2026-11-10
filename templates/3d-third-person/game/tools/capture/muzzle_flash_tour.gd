@@ -38,9 +38,9 @@ var _pitch_sign := 1.0
 var _last_error := INF
 var _held: Array[StringName] = []
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
-@onready var _camera: Camera3D = $Main/Camera
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
+@onready var _camera: Camera3D = $Main/PlayerRig/Camera
 
 
 func _ready() -> void:
