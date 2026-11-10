@@ -163,7 +163,8 @@ player would see, and builds its situation the way the game does.
   matches nothing measures nothing and reports no fault, so a gun 59 mm off passed; a scan pattern looking for
   `NightScreen.arrival_enabled =` was satisfied by the line that puts the old value back (`= _arrival`). **Seen:**
   Deadnight #987, 2026-11-04; Deadnight, 2026-11-05 (fix: the checks were put back and the test seen red; the pattern
-  became `= (false|true)` and two deliberate breaks fail the scan).
+  became `= (false|true)` and two deliberate breaks fail the scan); gdstudio #923, 2026-11-10 (old code let go of
+  the action by a key bound to it; an unbound action failed).
 - **Approach:** Before trusting a placement in a test, print a trace (body, target, its mode) every quarter second, put
   the target where a ray from the body reaches it, and release every key in `after_test` and before each arm.
   **Watch out for:** an online test put a walking zombie 12 m ahead and the sprinting body stopped 1.3 m short, read
