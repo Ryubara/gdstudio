@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from git_seed import relocate
+from git_seed import relocate, slim
 from new_game_kit import GITHUB_KIT_FILES, KIT_FILES, build_kit, git_environment, run_git
 from skip_allowlist import (  # noqa: F401 - the hooks of the skip allowlist (--allowed-skips)
     pytest_addoption,
@@ -64,8 +64,7 @@ def small_git_kit_seed(small_kit_seed, tmp_path_factory) -> Path:
         # file of the kit (about 150) and thirteen samples.
         for repository in (kit, origin):
             run_git("repack", "-a", "-d", "-q", cwd=repository)
-        for git_dir in (kit / ".git", origin):
-            shutil.rmtree(git_dir / "hooks", ignore_errors=True)
+    slim(seed)
     return seed
 
 

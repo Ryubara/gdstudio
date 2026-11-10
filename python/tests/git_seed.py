@@ -17,6 +17,13 @@ def _spellings(path: Path) -> list[str]:
     return [given, path.as_posix(), given.replace("\\", "\\\\")]
 
 
+def slim(seed: Path) -> Path:
+    """Remove the sample hooks `git init` writes (thirteen files in every repository, which a copy would copy)."""
+    for sample in seed.rglob("*.sample"):
+        sample.unlink()
+    return seed
+
+
 def relocate(seed: Path, dest: Path) -> Path:
     """Copy the folder `seed` (repositories and all) into `dest` (which may exist) and make every path in a git
     `config` file under it that names `seed` name `dest` instead. Fails when a config still names the seed afterwards,

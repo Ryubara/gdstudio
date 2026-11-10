@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from git_seed import relocate
+from git_seed import relocate, slim
 from test_issues import REPO, FakeGh
 
 from gds_tools import issues, worktrees
@@ -57,7 +57,7 @@ def world_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
         (root / "repos").mkdir(parents=True)
         (root / "worktrees").mkdir()
         subprocess.run(["git", "clone", "-q", str(origin), str(root / "repos" / "deadnight")], check=True)
-    return base
+    return slim(base)
 
 
 @pytest.fixture

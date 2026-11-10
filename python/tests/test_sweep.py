@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 import pytest
-from git_seed import relocate
+from git_seed import relocate, slim
 
 from gds_tools import issues, sweep
 from gds_tools.sweep import Settings
@@ -78,7 +78,7 @@ def world_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
         # The slug is read from the configured url; fetches still go to the local remote.
         git(checkout, "config", "remote.origin.url", f"https://github.com/{SLUG}.git")
         git(checkout, "config", f"url.{origin.as_posix()}.insteadOf", f"https://github.com/{SLUG}.git")
-    return base
+    return slim(base)
 
 
 @pytest.fixture

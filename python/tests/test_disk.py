@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 import pytest
+from git_seed import slim
 
 from gds_tools import cli, disk, issues, sweep, workspace
 from gds_tools.worktrees import WorktreeError
@@ -491,7 +492,7 @@ def checkout_seed(tmp_path_factory: pytest.TempPathFactory):
             subprocess.run(["git", "init", "-q", str(path)], check=True)
             url = f"https://github.com/{slug}.git"
             subprocess.run(["git", "-C", str(path), "remote", "add", "origin", url], check=True)
-            seeds[slug] = path
+            seeds[slug] = slim(path)
         return seeds[slug]
 
     return seed

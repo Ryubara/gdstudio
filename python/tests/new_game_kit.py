@@ -24,7 +24,7 @@ _IGNORE = shutil.ignore_patterns(".godot", "__pycache__")
 
 
 def _small_addons(folder: str):
-    """Ignore rule of the small kit: an addon is its files at the top (`plugin.cfg`, `plugin.gd`) and `router/`, not the
+    """Ignore rule of the small kit: an addon is its files at the top (`plugin.cfg`, `plugin.gd`), not the
     93 files of `gds_ui`, which every test would copy into its kit, its game and its git index (kit #945)."""
     if folder != "godot/addons":
         return _IGNORE
@@ -32,8 +32,8 @@ def _small_addons(folder: str):
     def ignore(directory: str, names: list[str]) -> set[str]:
         skipped = set(_IGNORE(directory, names))
         parts = Path(directory).relative_to(KIT / folder).parts
-        if len(parts) == 1:  # inside an addon: keep its top-level files and `router/`
-            skipped |= {n for n in names if (Path(directory) / n).is_dir() and n != "router"}
+        if len(parts) == 1:  # inside an addon: keep its top-level files only
+            skipped |= {n for n in names if (Path(directory) / n).is_dir()}
         return skipped
 
     return ignore

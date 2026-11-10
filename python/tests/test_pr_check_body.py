@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from git_seed import slim
 
 pytest.importorskip("yaml")
 
@@ -74,7 +75,7 @@ def workspace_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
     (root / ".gdstudio-workspace").write_text("", encoding="utf-8")
     make_repo(root / "repos" / "gdstudio", "https://github.com/Ryubara/gdstudio.git")
     make_repo(root / "repos" / "deadnight", "https://github.com/Ryubara/deadnight.git", game_conventions())
-    return root
+    return slim(root)
 
 
 @pytest.fixture()
