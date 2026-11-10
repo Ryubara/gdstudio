@@ -208,6 +208,15 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   (`Camera3D.get_frustum()`, a box wholly over one plane is out) and wait 15 frames for each that updates once, one
   for each that updates always (3D Third Person's `EffectEmitter.probe_frames()`). Those frames also build the level's
   own probe programs behind the loading, which before were an 11-program, 1.2 s frame just after it.
+- **What moves under a probe is drawn with its program too, and so is what has none.** A probe in view at the start is
+  drawn then, and the walls inside it with it, but a character, an effect or a mark only builds its program for that
+  probe (or for two, `SECOND_REFLECTION_PROBE`, in a room inside the outdoor probe's box) when it is first drawn there.
+  In 3D Third Person walking into the room built the character's two lit programs (220 to 290 ms, a 120 to 157 ms
+  frame) and the first shot there three or four more (sparks, dust, the mark: 64 to 87 ms). A part of the level that no
+  probe reaches draws its effects without one, another program again. So a warm-up visits every probe and draws there
+  every material a moving thing can bring (the effects, the marks, the characters' materials), and draws them once
+  outside every probe ([the emitter's tour](effect-emitter.md#warm-up)): 0 programs in play after, for 13 more while
+  the level starts.
 
 - **Approach:** Start a warm-up only once the reflection probes in view have drawn, and draw every material a first
   use shows (effects, marks, decals), each under the same probes and lights as its real use; prove it with a fresh
@@ -216,6 +225,14 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   probe and built again at the first shot (2, 4 and 6 programs, up to 235 ms), and the bullet mark's shader was never
   drawn at all. **Seen:** gdstudio #888 and #946, 2026-11-10 (fix: `EffectEmitter` waits `probe_frames()` and draws
   `warm_material()` quads; 0 programs and 6.6 to 7 ms first frames after).
+- **Approach:** Warm up inside every probe of the level, not only those in view, and draw there what moves (effects,
+  marks, the characters' materials) as well as the level; then once outside every probe; measure with a run that walks
+  into each kind of place and fires. **Watch out for:** the probes in view at the start were drawn and their walls
+  built, so the outdoor check passed, while the character and the effects had never been drawn under the room's two
+  probes (5 to 6 programs, up to 157 ms, on entering and the first shot there); and a tour of the probes alone still
+  left an effect drawn without a probe now and then (1 program, about 35 ms) until it also drew outside them all.
+  **Seen:** gdstudio #981, 2026-11-10 (fix: `EffectEmitter` visits every probe from a `SubViewport` of its own and
+  draws `warm_up_groups` materials there; 0 programs in four runs after).
 
 ## Testing it {#testing-it}
 

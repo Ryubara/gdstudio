@@ -30,3 +30,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
 [node name="Impacts" parent="." instance=ExtResource("4_impacts")]
 
 [node name="Effects" parent="." instance=ExtResource("5_effects")]
+warm_up_groups = Array[StringName]([&"player"])

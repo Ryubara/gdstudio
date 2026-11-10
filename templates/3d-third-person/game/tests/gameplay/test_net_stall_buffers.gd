@@ -62,10 +62,10 @@ func test_the_buffers_are_the_sizes_that_held_a_frozen_client() -> void:
 	# took some 200 KB more before a send was refused (multiplayer.md#template-transport). Deadnight
 	# met it on a real network and in the browser (#483, #502), so the sizes are pinned here.
 	var link := await _rig.connect_link()
-	assert_int(link._ws.inbound_buffer_size).is_equal(1 << 20)
+	assert_int(link._ws.inbound_buffer_size).is_equal(NetLimits.BUFFER_SIZE)
 	assert_int(link._ws.max_queued_packets).is_equal(8192)
 	var server_side: WebSocketPeer = _rig.listener._peers[_rig.ids[0]]
-	assert_int(server_side.outbound_buffer_size).is_equal(1 << 20)
+	assert_int(server_side.outbound_buffer_size).is_equal(NetLimits.BUFFER_SIZE)
 	assert_int(server_side.inbound_buffer_size).is_equal(1 << 16)
 	assert_int(server_side.max_queued_packets).is_equal(8192)
 
