@@ -7,8 +7,8 @@ has neither (the hooks refuse it). Every agent researches as part of its own wor
 | --- | --- | --- |
 | Coordinator (the main session) | Opus 5.5, medium | plans, writes issues, briefs and starts agents, merges, talks to the maintainer |
 | `godot-engineer` | Sonnet 5.5, high | GDScript, scenes, UI and motion, gameplay, networking, shaders, tests, captures |
-| `blender-artist` | Opus 5.5, high | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
-| `level-designer` | Opus 5.5, high | map layout and review: loops, sightlines, spawns, pacing, landmarks, light, reach, escape and roost sweeps, phone reading ([principles](../gamedev/level-design.md)) |
+| `blender-artist` | Fable 5.2, medium | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
+| `level-designer` | Fable 5.2, medium | map layout and review: loops, sightlines, spawns, pacing, landmarks, light, reach, escape and roost sweeps, phone reading ([principles](../gamedev/level-design.md)) |
 | `backend-engineer` | Sonnet 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
 | `reviewer` | Sonnet 5.5, high | reviews a pull request it did not write (code, docs, assets, captures) and runs [structure reviews](#structure-reviews) with web search; never edits |
 
