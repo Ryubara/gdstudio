@@ -49,7 +49,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
   `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
   parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
-  first. **Seen:** gdstudio #881, 2026-11-10 (`var before := ...` in four menu suites; `was` instead).
+  first. **Seen:** gdstudio #881, 2026-11-10 (`var before := ...` in four menu suites; `was` instead); gdstudio #924,
+  2026-11-10 (once more, a camera distance named `before`).
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form

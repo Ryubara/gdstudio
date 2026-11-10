@@ -196,8 +196,9 @@ Scene dock and checks the result.
   the camera has `require_captured_mouse` and the test turns it off. **Seen:** gdstudio #821, 2026-11-08.
 - A prop is pushed by giving it the share of the player's speed its mass allows, as an impulse along the contact normal;
   a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` counts
-  characters and props by default (`counts`) and a `Pickup` only characters (`characters_only`); a camera zone still
-  says `player` in `required_group` so that a pushed crate does not take the view.
+  characters and props by default (its mask, and `counts` behind it) and a `Pickup` only characters (its mask, and
+  `characters_only`); a camera zone still says `player` in `required_group` so that a pushed crate does not take the
+  view. Every body is on a named layer ([Physics layers](../physics-layers.md#template-layers)).
 
 ## A second kind of controller {#second-controller}
 

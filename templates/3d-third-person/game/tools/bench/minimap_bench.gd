@@ -60,7 +60,8 @@ var _warm_up := 90
 var _measured := 240
 var _main: Node
 var _minimap: Minimap
-var _dummy := Node3D.new()
+## Made in `_ready`, so a scene loaded and freed outside the tree leaves no orphan.
+var _dummy: Node3D
 var _carriers: Array[Node3D] = []
 var _mock: Control
 var _case := -1
@@ -82,6 +83,7 @@ func _ready() -> void:
 	Engine.max_fps = 0
 	_main = load("res://main.tscn").instantiate()
 	add_child(_main)
+	_dummy = Node3D.new()
 	add_child(_dummy)
 	_minimap = _main.get_node("Hud/Root/SafeArea/TopRight/MinimapSlot/Minimap")
 	_minimap.target = _dummy

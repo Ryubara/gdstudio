@@ -13,14 +13,13 @@ that avoids it. The refusals a hook makes are in [Hooks](hooks.md); the shared-m
 
 A commit, a merge and a lint run are read whole, on their own, and the next step runs only after a look at the result.
 
-- **Approach:** Run a commit, `uvx pre-commit run` and `gds merge-main --continue` on their own and read all of the
-  output; never end them in `| tail` or `| grep`. Then check `git log --oneline -1` and `git status --short` before a
-  push, and `gh pr diff N --name-only` after opening a pull request. **Watch out for:** a pipe returns the filter's exit
-  code and `tail` shows the last hook lines (`Skipped`), so a refused commit (a title verb off the list, MD013, a
-  `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
-  change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
-  (`--continue` hid a licence line); gdstudio, 2026-11-02 (a lint failure behind `grep`); Deadnight #1374,
-  2026-11-07; gdstudio #916, 2026-11-10 (MD013 and a title verb hid, so no commit, twice).
+- **Approach:** Run a commit, `uvx pre-commit run`, `gds merge-main --continue` and a test run on their own (a test
+  run's output whole to a scratch log) and read all of it; never end them in `| tail` or `| grep`. Check `git log
+  --oneline -1` and `git status --short` before a push, and `gh pr diff N --name-only` after opening a pull request.
+  **Watch out for:** a pipe returns the filter's exit code and `tail` shows the last lines, so a refused commit (a title
+  verb, MD013, a `gdformat` roll-back) or a failed suite looked done. **Seen:** Deadnight #1003, 2026-11-04; Deadnight
+  #656, 2026-11-02 (a licence line); gdstudio, 2026-11-02 (a lint failure); Deadnight #1374, 2026-11-07; gdstudio
+  #916, 2026-11-10 (twice); gdstudio #954, 2026-11-10 (`grep | tail -6` over the template suites hid a failing one).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command

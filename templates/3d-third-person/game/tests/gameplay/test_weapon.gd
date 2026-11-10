@@ -42,7 +42,7 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 		&"automatic": false,
 		&"spread": 0.0,
 		&"aim_range": 100.0,
-		&"aim_mask": 1,
+		&"aim_mask": PhysicsLayers.SHOT_MASK,
 		&"projectile_speed": 45.0,
 		&"projectile_size": 0.14,
 		&"projectile_gravity": 0.0,

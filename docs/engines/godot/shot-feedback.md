@@ -117,8 +117,9 @@ captures; the research with its sources is in the pull request of #875.
 - **`CPUParticles3D` is the default effect** (8 to 10 small unshaded meshes, one shot): on the web a `GPUParticles3D`
   adds programs of its own ([first-use hitches](first-use-hitches.md)); both work, since the emitter calls `restart()`
   on every particle node of the scene.
-- **The bones of the ragdoll (layer 16) take no mark**: a projectile's mask is the level (layer 1), so a shot goes
-  through them and marks what is behind. A `CharacterBody3D` takes no mark either (its mesh is animated; a mark would
+- **The bones of the ragdoll (layer 5, Ragdoll) take no mark**: a shot stops at them since #924
+  ([Physics layers](physics-layers.md#shots-meet-bones)), and `Impacts` skips a `PhysicalBone3D` until #876 keeps a
+  mark on a body that gets up. A `CharacterBody3D` takes no mark either (its mesh is animated; a mark would
   stay in the air), but its surface still plays the effect and the sound. A game that wants wounds sets the body's
   surface (`flesh`) and gives it a blood effect: the quad cannot follow a skinned mesh.
 - **Known limits of a quad:** it is flat, so on a curved surface it touches at its middle and floats at its edge (a 12

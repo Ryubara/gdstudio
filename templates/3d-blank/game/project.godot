@@ -38,6 +38,16 @@ window/stretch/aspect="expand"
 
 enabled=PackedStringArray("res://addons/gds_ui/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/prototype_grid/plugin.cfg")
 
+[layer_names]
+
+3d_physics/layer_1="World"
+3d_physics/layer_2="Characters"
+3d_physics/layer_3="Projectiles"
+3d_physics/layer_4="Props"
+3d_physics/layer_5="Ragdoll"
+3d_physics/layer_6="Hit Zones"
+3d_physics/layer_7="Sensors"
+
 [phantom_camera]
 
 updater/updater_mode=0

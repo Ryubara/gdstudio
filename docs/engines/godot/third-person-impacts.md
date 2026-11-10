@@ -31,8 +31,9 @@ grenade or a ray gun reuses it.
 - **On or off per weapon or projectile.** `Weapon.impacts` (its shots land without a trace when off) and
   `Projectile.impact_effects` (the projectile scene's own, for a game with its own projectile); a shot leaves an
   impact when both are on.
-- **What takes no mark.** A `CharacterBody3D` (the effect and sound still play) and the ragdoll's bones: they are on
-  layer 16 and a projectile's mask is the level, so a shot passes through them and marks what is behind.
+- **What takes no mark.** A `CharacterBody3D` and a ragdoll bone (the effect and sound still play): a shot stops at a
+  dead body's bones since #924, and a mark on a bone would hang in the air once the body gets up (#876 keeps marks on
+  the body; [Physics layers](physics-layers.md#shots-meet-bones)).
 - **Tests and captures.** `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
   `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and
   `tests/audio/test_impact_sounds.gd` (real projectiles in a small arena, and in the map);
