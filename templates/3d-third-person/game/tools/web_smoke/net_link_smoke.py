@@ -218,7 +218,9 @@ def main() -> int:
                 "console",
                 lambda message: control_errors.append(message.text) if message.type == "error" else None,
             )
-            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}")
+            page.goto(
+                f"http://127.0.0.1:{http_port}/index.html?play&netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}"
+            )
             wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             control = frozen_tab(page, control_errors)
             result["freeze_with_64_kb"] = control
