@@ -1,12 +1,14 @@
 ## Plays the prone and crawl clips (`assets/animation/prone/prone.glb`, kit #1009) on the
 ## mannequin, on a floor of 0.25 m squares: the library's crouch idle, down to prone, the prone
 ## idle, a crawl at the speed the clip was made for, the prone idle again and back up to the
-## crouch. It plays the round three times: from the right side, from the front quarter and from
-## behind and above, where the game's camera sits. While it crawls the body moves forward at
+## crouch. It plays the round four times: from the right side, from the front quarter, from
+## behind and above, where the game's camera sits, and close over the arms from straight above
+## (the head at the top), where the forearms' angle and the hands passing each other are read.
+## While it crawls the body moves forward at
 ## `CRAWL_SPEED`, so a planted elbow or foot that slid would be seen moving over its square.
 ##
 ## Record it with Movie Maker through the kit:
-## `gds capture frames --project game --seconds 30 --fps 30
+## `gds capture frames --project game --seconds 39 --fps 30
 ## --scene res://tools/capture/prone_clips_tour.tscn`
 ## (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` also saves one still of each
 ## clip from the side, the front and the top).
@@ -43,6 +45,12 @@ const VIEWS: Array[Dictionary] = [
 		"from": Vector3(0.55, 2.0, -3.9),
 		"at": Vector3(0, 0.5, 0.6),
 		"fov": 60.0
+	},
+	{
+		"name": "arms from above",
+		"from": Vector3(0.0, 2.7, 0.69),
+		"at": Vector3(0, 0, 0.7),
+		"fov": 34.0
 	},
 ]
 

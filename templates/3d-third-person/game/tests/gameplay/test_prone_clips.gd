@@ -198,3 +198,58 @@ func test_the_body_stays_low_while_prone() -> void:
 				. override_failure_message("%s: %s at %.3f" % [where, lowest_bone, lowest])
 				. is_greater(floors[index])
 			)
+
+
+# The arms crawl the way people do (the README's research): a planted forearm points inward, its
+# wrist near the body's centre line in front of the head, and each hand in turn plants ahead of
+# the other. The idle lies the same way. Measured on both mannequins; the male's shoulders are
+# wider, so his wrists lie a little further out.
+func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> void:
+	var wrist_limits := [0.10, 0.14]
+	for index in MODELS.size():
+		_stage(MODELS[index])
+		var model := MODELS[index].get_file()
+		for side: Array in [["r", "l", 0.0, -1.0], ["l", "r", 0.5, 1.0]]:
+			var just_planted := _pose(&"prone/Crawl_Fwd", side[2] * CRAWL_SECONDS)
+			var elbow: Vector3 = (just_planted["lowerarm_" + side[0]] as Transform3D).origin
+			var wrist: Vector3 = (just_planted["hand_" + side[0]] as Transform3D).origin
+			var other: Vector3 = (just_planted["hand_" + side[1]] as Transform3D).origin
+			var inward := _inward(elbow, wrist, side[3])
+			var where := "%s arm on %s" % [side[0], model]
+			(
+				assert_float(inward)
+				. override_failure_message("%s: forearm %.1f degrees inward" % [where, inward])
+				. is_between(34.0, 50.0)
+			)
+			(
+				assert_float(absf(wrist.x))
+				. override_failure_message("%s: wrist %.3f m from the centre" % [where, wrist.x])
+				. is_less(wrist_limits[index])
+			)
+			# the model faces +Z: the hand that has just planted lies ahead of the other
+			(
+				assert_float(wrist.z - other.z)
+				. override_failure_message("%s: %.3f m ahead" % [where, wrist.z - other.z])
+				. is_greater(0.2)
+			)
+		var idle := _pose(&"prone/Prone_Idle", 0.0)
+		for side: Array in [["r", -1.0], ["l", 1.0]]:
+			var inward := _inward(
+				(idle["lowerarm_" + side[0]] as Transform3D).origin,
+				(idle["hand_" + side[0]] as Transform3D).origin,
+				side[1]
+			)
+			(
+				assert_float(inward)
+				. override_failure_message(
+					"idle %s arm on %s: %.1f degrees inward" % [side[0], model, inward]
+				)
+				. is_between(25.0, 45.0)
+			)
+
+
+# Degrees a forearm points toward the body's centre line, seen from above (the model faces +Z and
+# its left is +X; `side` is 1 for the left arm).
+func _inward(elbow: Vector3, wrist: Vector3, side: float) -> float:
+	var along := wrist - elbow
+	return rad_to_deg(atan2(-side * along.x, along.z))
