@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://ui/minimap/minimap_layer.tscn" id="14_minimap"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="15_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="16_arrow"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 
 [node name="Main" type="Node"]
 
@@ -27,6 +28,8 @@ volume_db = -20.0
 bus = &"Ambient"
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
+
+[node name="Impacts" parent="." instance=ExtResource("14_impacts")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
