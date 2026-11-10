@@ -63,7 +63,7 @@ enum InputMode {
 		radius = value
 		emit_changed()
 ## Height of the camera's target lying down.
-@export_range(0.1, 1.5, 0.01, "suffix:m") var camera_height := 0.45:
+@export_range(0.1, 1.5, 0.01, "suffix:m") var camera_height := 0.55:
 	set(value):
 		camera_height = value
 		emit_changed()
@@ -79,8 +79,10 @@ enum InputMode {
 @export_range(0.0, 1.0, 0.05) var aim_move_share := 0.5
 ## How fast the lying body turns to the view's heading while aiming.
 @export_range(0.5, 60.0, 0.5, "suffix:rad/s") var aim_turn_speed := 6.0
-## The highest the character looks (and the camera turns) lying down.
-@export_range(0.0, 89.0, 0.5, "suffix:deg") var look_up_limit := 25.0
+## The highest the character looks (and the camera turns) lying down. With the camera's target
+## at `camera_height` and the template's 1.7 m camera, 12 degrees keeps the lens about 0.3 m
+## over the ground; more puts it down on the floor.
+@export_range(0.0, 89.0, 0.5, "suffix:deg") var look_up_limit := 12.0
 ## The lowest the character looks (and the camera turns) lying down.
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var look_down_limit := 40.0
 

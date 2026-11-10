@@ -133,19 +133,23 @@ const _AIM := "Aim"
 		_rebuild()
 
 @export_group("Prone")
-## Lying still. The template's own prone clips are made in gdstudio #1009; until they land this is
-## the crouch idle, laid down by the placeholder pose below.
-@export var prone_idle_clip: StringName = CharacterClips.CROUCH_IDLE:
+## Lying still. The template's own prone clips are made in gdstudio #1009; until they land this
+## is the swim stroke held on its first pose (`prone_idle_pace` 0), laid on the ground by the
+## placeholder pose below.
+@export var prone_idle_clip: StringName = CharacterClips.SWIM:
 	set(value):
 		prone_idle_clip = value
 		_rebuild()
-## Crawling: the blend space puts it at the crawl speed (`ProneTuning.crawl_speed`).
-@export var crawl_clip: StringName = CharacterClips.CROUCH_WALK:
+## How fast the prone idle plays (1 its own pace, 0 held on its first pose).
+@export_range(0.0, 2.0, 0.05) var prone_idle_pace := 0.0
+## Crawling, blended in by ground speed up to the crawl speed (`ProneTuning.crawl_speed`).
+@export var crawl_clip: StringName = CharacterClips.SWIM:
 	set(value):
 		crawl_clip = value
 		_rebuild()
-## The speed the crawl clip's own stride covers at its own pace, m/s: the clip plays at
-## `crawl_speed / crawl_clip_speed` of its pace, so the hands and knees keep up with the ground.
+## The ground speed the crawl clip's stride covers at its own pace, m/s: it plays at
+## `ground speed / crawl_clip_speed` of its pace, so the elbows and knees keep up with the ground
+## at any crawl speed.
 @export_range(0.1, 5.0, 0.01, "suffix:m/s") var crawl_clip_speed := 1.5
 ## Going down, played over the whole body for the tuning's `enter_time`. Empty: no clip (the
 ## blend into the prone idle shows the change).
@@ -153,14 +157,13 @@ const _AIM := "Aim"
 ## Getting up to crouch, played over the whole body for the tuning's `exit_time`. Empty: no clip.
 @export var to_crouch_clip: StringName = &""
 @export_subgroup("Placeholder pose")
-## How far the model is tipped forward about its feet lying down, degrees: lays a standing or
-## crouching clip on the ground while there is no prone clip. 0 with real prone clips.
-@export_range(0.0, 90.0, 0.5, "suffix:deg") var prone_pose_lean := 0.0
-## How far the model is lowered lying down, metres. 0 with real prone clips.
-@export_range(0.0, 1.5, 0.01, "suffix:m") var prone_pose_drop := 0.0
-## How far the model is moved back lying down, metres, so the tipped body lies over the capsule.
-## 0 with real prone clips.
-@export_range(-1.5, 1.5, 0.01, "suffix:m") var prone_pose_back := 0.0
+## How far the model is moved lying down, metres, in the model's own axes (x to its left, y up,
+## z ahead): puts a clip made for another stance on the ground while there is no prone clip
+## (the swim stroke floats under the water line: it is lifted). Zero with real prone clips.
+@export_custom(PROPERTY_HINT_RANGE, "-1.5,1.5,0.01,suffix:m")
+var prone_pose_offset := Vector3(0.0, 0.42, 0.6)
+## How far the model is tipped forward about its feet lying down. Zero with real prone clips.
+@export_range(-90.0, 90.0, 0.5, "suffix:deg") var prone_pose_lean := 0.0
 
 @export_group("Pistol")
 ## How the weapon is carried while the character is not aiming or firing.
@@ -232,8 +235,6 @@ const _AIM := "Aim"
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
-var _prone_space: AnimationNodeBlendSpace1D
-var _crawl_point := 0.0
 var _posed := false
 var _ground_speeds: Array = []
 var _shoot_scale_node: AnimationNodeTimeScale
@@ -511,38 +512,31 @@ func _on_state_changed(state: Character.State) -> void:
 			_travel(PRONE)
 
 
-# The prone state follows the crawl: the blend space's crawl point sits at the tuning's crawl
-# speed, the clips play at the pace of the crawl clip's stride, and the placeholder pose lays the
-# model down by how far down the character is.
+# The prone state follows the crawl: the crawl clip is blended in by ground speed up to the
+# crawl speed and plays at the pace of its stride, the idle at its own pace, and the placeholder
+# pose lays the model down by how far down the character is.
 func _drive_prone(speed: float) -> void:
 	var prone := character.prone_tuning
-	if prone == null or _prone_space == null:
+	if prone == null:
 		return
-	if not is_equal_approx(_crawl_point, prone.crawl_speed):
-		_crawl_point = prone.crawl_speed
-		_prone_space.max_space = prone.crawl_speed
-		_prone_space.set_blend_point_position(1, prone.crawl_speed)
-	tree.set(&"parameters/%s/%s/Space/blend_position" % [_MACHINE, PRONE], speed)
-	tree.set(
-		&"parameters/%s/%s/Pace/scale" % [_MACHINE, PRONE],
-		prone.crawl_speed / maxf(crawl_clip_speed, 0.01)
-	)
+	var base := &"parameters/%s/%s/" % [_MACHINE, PRONE]
+	tree.set(base + "Move/blend_amount", clampf(speed / maxf(prone.crawl_speed, 0.01), 0.0, 1.0))
+	tree.set(base + "CrawlPace/scale", speed / maxf(crawl_clip_speed, 0.01))
+	tree.set(base + "IdlePace/scale", prone_idle_pace)
 	_pose_prone(smoothstep(0.0, 1.0, character.prone_amount))
 
 
-# Tips, lowers and moves the model inside its slot by `lying` (0 to 1) of the placeholder pose;
-# nothing at all while the pose is zero, so a game's own offset of the model stays.
+# Moves and tips the model inside its slot by `lying` (0 to 1) of the placeholder pose; nothing
+# at all while the pose is zero, so a game's own offset of the model stays.
 func _pose_prone(lying: float) -> void:
 	var rig := model.rig() if model != null else null
 	if rig == null:
 		return
-	var zero := (
-		is_zero_approx(prone_pose_lean + prone_pose_drop) and is_zero_approx(prone_pose_back)
-	)
+	var zero := prone_pose_offset.is_zero_approx() and is_zero_approx(prone_pose_lean)
 	if zero or (lying <= 0.0 and not _posed):
 		return
 	_posed = lying > 0.0
-	rig.position = Vector3(0.0, -prone_pose_drop, -prone_pose_back) * lying
+	rig.position = prone_pose_offset * lying
 	rig.rotation = Vector3(deg_to_rad(prone_pose_lean) * lying, 0.0, 0.0)
 
 
@@ -714,23 +708,19 @@ func _build_crouch() -> AnimationNodeBlendSpace1D:
 	return space
 
 
-# The prone state: the prone idle and the crawl in a blend space by ground speed, then a time
-# scale that plays them at the pace of the crawl clip's stride.
+# The prone state: the prone idle and the crawl, each with its own pace, blended by ground speed.
 func _build_prone() -> AnimationNodeBlendTree:
-	var prone := character.prone_tuning if character.prone_tuning != null else ProneTuning.new()
-	var space := AnimationNodeBlendSpace1D.new()
-	space.min_space = 0.0
-	space.max_space = prone.crawl_speed
-	space.sync = true
-	space.add_blend_point(_clip(prone_idle_clip), 0.0, -1, &"idle")
-	space.add_blend_point(_clip(crawl_clip), prone.crawl_speed, -1, &"crawl")
-	_prone_space = space
-	_crawl_point = prone.crawl_speed
 	var blend := AnimationNodeBlendTree.new()
-	blend.add_node(&"Space", space, Vector2(0, 0))
-	blend.add_node(&"Pace", AnimationNodeTimeScale.new(), Vector2(200, 0))
-	blend.connect_node(&"Pace", 0, &"Space")
-	blend.connect_node(&"output", 0, &"Pace")
+	blend.add_node(&"Idle", _clip(prone_idle_clip), Vector2(0, 0))
+	blend.add_node(&"IdlePace", AnimationNodeTimeScale.new(), Vector2(200, 0))
+	blend.add_node(&"Crawl", _clip(crawl_clip), Vector2(0, 200))
+	blend.add_node(&"CrawlPace", AnimationNodeTimeScale.new(), Vector2(200, 200))
+	blend.add_node(&"Move", AnimationNodeBlend2.new(), Vector2(400, 100))
+	blend.connect_node(&"IdlePace", 0, &"Idle")
+	blend.connect_node(&"CrawlPace", 0, &"Crawl")
+	blend.connect_node(&"Move", 0, &"IdlePace")
+	blend.connect_node(&"Move", 1, &"CrawlPace")
+	blend.connect_node(&"output", 0, &"Move")
 	return blend
 
 

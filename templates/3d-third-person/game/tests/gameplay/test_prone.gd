@@ -146,12 +146,22 @@ func test_standing_or_crouched_it_cannot_enter_that_gap() -> void:
 
 func test_getting_up_goes_through_crouch() -> void:
 	await _lie_down()
-	var states: Array[int] = []
-	_player.state_changed.connect(func(now: Player.State) -> void: states.append(now))
+	var heights: Array[float] = []
+	var amounts: Array[float] = []
 	await _tap(KEY_Z)
-	await InputSim.ticks(get_tree(), _ticks(_prone.exit_time + _tuning.crouch_time))
-	assert_array(states).is_equal([Player.State.CROUCH, Player.State.IDLE])
+	for tick in _ticks(_prone.exit_time + _tuning.crouch_time):
+		await InputSim.ticks(get_tree(), 1)
+		heights.append(_capsule().height)
+		amounts.append(_player.prone_amount)
+	# The tick the body is all the way up from lying, it is (about) crouched; then it stands.
+	var up := amounts.find(0.0)
+	assert_int(up).is_greater(0)
+	assert_float(heights[up]).is_equal_approx(_tuning.crouch_height, 0.03)
+	for index in range(1, heights.size()):
+		assert_float(heights[index]).is_greater_equal(heights[index - 1])
+	assert_float(heights[-1]).is_equal_approx(_tuning.height, 0.001)
 	assert_bool(_player.crouching).is_false()
+	assert_int(_player.state).is_equal(Player.State.IDLE)
 
 
 func test_getting_up_with_crouch_held_stays_crouched() -> void:

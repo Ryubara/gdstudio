@@ -39,12 +39,13 @@ func test_lying_down_draws_the_pitch_in_and_getting_up_gives_it_back() -> void:
 	assert_vector(_rig.pitch_limits()).is_equal_approx(
 		Vector2(-prone.look_up_limit, prone.look_down_limit), Vector2(0.01, 0.01)
 	)
-	# Looking up as far as the stick goes stops at the limit, and the lens is over the floor.
+	# Looking up as far as the stick goes stops at the limit, and the spring arm keeps the lens
+	# over the floor (the near plane is 5 cm).
 	_rig.orbit(Vector2(0.0, -180.0))
 	await InputSim.ticks(get_tree(), 30)
 	assert_float(_rig.pitch).is_equal_approx(-prone.look_up_limit, 0.01)
 	var floor_y := _player.global_position.y
-	assert_float(_camera.global_position.y).is_greater(floor_y + 0.15)
+	assert_float(_camera.global_position.y).is_greater(floor_y + 0.2)
 	# Looking down too.
 	_rig.orbit(Vector2(0.0, 180.0))
 	assert_float(_rig.pitch).is_equal_approx(prone.look_down_limit, 0.01)
