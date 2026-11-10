@@ -28,6 +28,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | Net packets | `gameplay/net/` | The bytes of online play, no node or socket; unused until the server lands ([packets](multiplayer.md#template-packets)). |
 | Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
+| Physics layers | `core/physics_layers/` (in 3D Blank), `project.godot` `[layer_names]` | Seven named layers (World, Characters, Projectiles, Props, Ragdoll, Hit Zones, Sensors) and `PhysicsLayers` with the masks; characters do not block each other: [Physics layers](physics-layers.md#template-layers). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, a spawn point, a camera zone and two [map sections](map-sections.md); `ProtoBlock` makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
@@ -187,8 +188,9 @@ Scene dock and checks the result.
   the camera has `require_captured_mouse` and the test turns it off. **Seen:** gdstudio #821, 2026-11-08.
 - A prop is pushed by giving it the share of the player's speed its mass allows, as an impulse along the contact normal;
   a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` counts
-  characters and props by default (`counts`) and a `Pickup` only characters (`characters_only`); a camera zone still
-  says `player` in `required_group` so that a pushed crate does not take the view.
+  characters and props by default (its mask, and `counts` behind it) and a `Pickup` only characters (its mask, and
+  `characters_only`); a camera zone still says `player` in `required_group` so that a pushed crate does not take the
+  view. Every body is on a named layer ([Physics layers](physics-layers.md#template-layers)).
 
 ## Phantom Camera in a third-person follow {#phantom-camera}
 
@@ -329,8 +331,8 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   0 is pushed as before (the spheres). **Seen:** gdstudio #836, 2026-11-08.
 
 - **Approach:** Make an area that senses "something is near" count only what should trigger it: the door's `Sensor`
-  counts a `CharacterBody3D` on `auto_open_mask`, never a wall, floor, prop or the door's own body. A type test, not
-  named layers, so the player and a game's own layers stay as they are and the mask stays tunable. Closing the door
+  counts a `CharacterBody3D` on `auto_open_mask` (Characters since #924, so the walls never reach it), never a wall,
+  floor, prop or the door's own body; the type test stays behind the mask for a game with its own layers. Closing the door
   with a character in range keeps it shut until they leave and come back. **Watch out for:** an `Area3D` reports
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
@@ -341,13 +343,14 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
   longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
   set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
-- **Approach:** Make every area that reacts to bodies say which bodies: a `Pickup` is taken only by a
-  `CharacterBody3D` (`characters_only`), a `TriggerZone` counts by `counts` (`CHARACTERS_AND_PROPS` by default, so a
-  pushed crate presses a pad) and then `required_group`. Prove it with real bodies: a floor, a block and an
-  `AnimatableBody3D` beside the area must not trigger it, a character must. **Watch out for:** the map's pressure
-  pad was pressed at the start by the floor and the landing under it, so the room door opened at once and the pad
-  never released; the coins were clean only because no block touched them. A frozen `RigidBody3D` did not press
-  the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
+- **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
+  `TriggerZone` Characters and Props: [Physics layers](physics-layers.md#template-layers)) and a class test behind it:
+  `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies
+  on their layers: a floor, a block and an `AnimatableBody3D` beside the area must not trigger it, a character must.
+  **Watch out for:** the map's pressure pad was pressed at the start by the floor and the landing under it, so the room
+  door opened at once and the pad never released; the coins were clean only because no block touched them. A frozen
+  `RigidBody3D` did not press the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08
+  (`test_components_among_blocks.gd`).
 
 - **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
   aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
