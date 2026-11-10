@@ -130,10 +130,11 @@ var facing := 0.0
 var items: Dictionary[StringName, int] = {}
 ## True while the character is crouched, or kept crouched by a ceiling it cannot stand under.
 var crouching := false
-## True while it aims: the aim button is held, or it fired a moment ago.
+## True while it aims: the aim button or the fire button is held, and only then. Walk speed, the
+## turn to the camera and the locomotion clips read it, so nothing of aiming outlasts the input.
 var aiming := false
-## True while the aim button is held (not the moment the arm stays up after a shot). The camera
-## zooms from this, so it never waits for `aim_hold_time`.
+## True while the aim button is held (firing alone does not set it). The camera's aim zoom
+## comes from this.
 var aim_held := false
 ## True while the fire button is held and the character can shoot.
 var fire_held := false
@@ -153,7 +154,6 @@ var _jump_held := false
 var _sprinting := false
 var _wants_crouch := false
 var _crouch_amount := 0.0
-var _fire_hold := 0.0
 var _fire_buffer := 0.0
 var _ragdoll_event: InputEventKey
 var _stand_probe := CapsuleShape3D.new()
@@ -242,7 +242,6 @@ func die() -> void:
 		return
 	var momentum := velocity
 	_wants_crouch = false
-	_fire_hold = 0.0
 	_fire_buffer = 0.0
 	_action_lock = 0.0
 	_land_timer = 0.0
@@ -459,13 +458,8 @@ func _update_aim(delta: float) -> void:
 	if weapon != null and input_enabled and _action_lock <= 0.0:
 		fire_held = Input.is_action_pressed(&"fire")
 		aim_held = Input.is_action_pressed(&"aim")
-		if fire_held:
-			_fire_hold = tuning.aim_hold_time
-		else:
-			_fire_hold = maxf(_fire_hold - delta, 0.0)
-		wants = aim_held or _fire_hold > 0.0
+		wants = aim_held or fire_held
 	else:
-		_fire_hold = 0.0
 		aim_held = false
 		fire_held = false
 	if wants != aiming:

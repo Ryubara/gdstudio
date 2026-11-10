@@ -66,7 +66,6 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"aim_move_scale": 0.6,
 		&"aim_turn_speed": 18.0,
 		&"aim_pose_time": 0.15,
-		&"aim_hold_time": 0.8,
 		&"push_strength": 0.85,
 		&"push_mass": 40.0,
 		&"interact_time": 0.7,
