@@ -58,6 +58,13 @@ func after_test() -> void:
 	AudioDrain.stop_all(_arena)
 
 
+# The tree is driven per render frame and a rebuild can make the physics catch up first, so wait
+# for a few render frames before reading what a changed export did.
+func _settle() -> void:
+	for _frame in 3:
+		await get_tree().process_frame
+
+
 func _root() -> AnimationNodeBlendTree:
 	return _animation.tree.tree_root as AnimationNodeBlendTree
 
@@ -146,5 +153,107 @@ func test_firing_brings_the_aim_layer_back_too() -> void:
 	assert_float(_layer(&"upperarm_r", "Aim")).is_equal(1.0)
 	assert_float(_layer(&"spine_02", "Aim")).is_equal(1.0)
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, false)
-	await InputSim.ticks(get_tree(), 30)
+	# Long enough for the arm to come down whether or not aiming is kept after a shot.
+	await InputSim.ticks(get_tree(), 80)
 	_assert_follows_the_clip("after firing")
+
+
+func test_the_held_pose_carry_holds_the_whole_upper_body_as_before() -> void:
+	_animation.carry = PlayerAnimation.Carry.HELD_POSE
+	await _settle()
+	for bone in [&"spine_01", &"spine_03", &"upperarm_r", &"lowerarm_l", &"hand_r", &"Head"]:
+		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(1.0)
+	for bone in [&"pelvis", &"thigh_l", &"foot_r"]:
+		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(0.0)
+	_animation.carry = PlayerAnimation.Carry.HAND_ONLY
+	await _settle()
+	_assert_follows_the_clip("back to hand only")
+
+
+func test_the_grip_bones_choose_which_hands_take_the_grip() -> void:
+	_animation.grip_bones = [&"hand_r", &"hand_l"]
+	await _settle()
+	for bone in [&"hand_r", &"index_02_r", &"hand_l", &"thumb_02_l", &"pinky_03_l"]:
+		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(1.0)
+	for bone in [&"lowerarm_l", &"lowerarm_r", &"spine_02"]:
+		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(0.0)
+	_animation.grip_bones = [&"hand_r", &"no_such_bone"]
+	await _settle()
+	assert_float(_layer(&"hand_r", "Armed")).is_equal(1.0)
+	assert_float(_layer(&"hand_l", "Armed")).is_equal(0.0)
+
+
+func test_the_grip_clip_is_the_one_the_tree_plays_on_the_hand() -> void:
+	var clip := _root().get_node("PistolIdle") as AnimationNodeAnimation
+	assert_str(String(clip.animation)).is_equal(String(CharacterClips.PISTOL_IDLE))
+	_animation.grip_clip = CharacterClips.PISTOL_AIM
+	clip = _root().get_node("PistolIdle") as AnimationNodeAnimation
+	assert_str(String(clip.animation)).is_equal(String(CharacterClips.PISTOL_AIM))
+
+
+func test_an_unarmed_player_carries_nothing_in_either_carry() -> void:
+	_player.weapon = null
+	for mode in [PlayerAnimation.Carry.HAND_ONLY, PlayerAnimation.Carry.HELD_POSE]:
+		_animation.carry = mode
+		await _settle()
+		assert_float(_layer(&"hand_r", "Armed")).is_equal(0.0)
+		assert_float(_layer(&"spine_01", "Armed")).is_equal(0.0)
+		assert_float(_layer(&"hand_r", "Aim")).is_equal(0.0)
+
+
+# A shot fired with no aim: the arm goes up for the shot, stays up for the shot hold and comes down
+# at the speed of the aim, and no render frame moves it further than that speed allows (the tree
+# is driven per render frame, and a physics burst can make one of them long).
+func test_a_shot_without_aiming_keeps_the_arm_up_for_the_hold_and_never_pops() -> void:
+	_animation.shot_hold_time = 0.3
+	var aim_time := _player.tuning.aim_pose_time
+	assert_float(_animation.pistol_weights().y).is_equal(0.0)
+	assert_object(_player.weapon.fire()).is_not_null()
+	var started := Time.get_ticks_msec()
+	var last := 0.0
+	var worst := 0.0
+	var peak := 0.0
+	var up_since := -1.0
+	var up_until := -1.0
+	var delta := 0.0
+	while Time.get_ticks_msec() - started < 1200:
+		# `process_frame` comes before the nodes' `_process`, so the value read here was set by the
+		# frame before, with the delta that frame had.
+		await get_tree().process_frame
+		var now := _animation.pistol_weights().y
+		var seconds := (Time.get_ticks_msec() - started) / 1000.0
+		worst = maxf(worst, absf(now - last) - delta / aim_time)
+		delta = get_process_delta_time()
+		last = now
+		peak = maxf(peak, now)
+		if now >= 0.99:
+			up_since = seconds if up_since < 0.0 else up_since
+			up_until = seconds
+	assert_float(peak).is_equal(1.0)
+	# The step of a frame never goes past the speed of the aim (a few thousandths of rounding).
+	assert_float(worst).is_less(0.01)
+	assert_float(up_until - up_since).is_greater(0.1)
+	assert_float(_animation.pistol_weights().y).is_equal(0.0)
+
+
+func test_without_a_shot_hold_a_shot_leaves_the_arm_down() -> void:
+	_animation.shot_hold_time = 0.0
+	assert_object(_player.weapon.fire()).is_not_null()
+	for _frame in 20:
+		await get_tree().process_frame
+		assert_float(_animation.pistol_weights().y).is_equal(0.0)
+
+
+# A tap of the fire button with no aim shoots, and the arm comes all the way up for it.
+func test_a_tapped_shot_without_aim_raises_the_arm_for_the_shot() -> void:
+	var shots: Array[Projectile] = []
+	_player.weapon.fired.connect(func(shot: Projectile) -> void: shots.append(shot))
+	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
+	var peak := 0.0
+	for frame in 40:
+		await get_tree().process_frame
+		if frame == 6:
+			InputSim.mouse_button(MOUSE_BUTTON_LEFT, false)
+		peak = maxf(peak, _animation.pistol_weights().y)
+	assert_array(shots).has_size(1)
+	assert_float(peak).is_equal(1.0)

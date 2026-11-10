@@ -17,7 +17,7 @@ const FLOOR_AT := Vector3(0.0, 300.0, 0.0)
 const START := Vector3(-12.0, 300.1, 0.0)
 const PITCH := 10.0
 ## The camera backs off the shoulder view's 1.7 m so the legs are in the frame.
-const DISTANCE := 4.2
+const DISTANCE := 3.4
 
 ## The tour. Each stage is a dictionary: `name` (printed when it starts), `hold` the actions held,
 ## `seconds` how long, `yaw` the camera heading in degrees (0 looks along -Z; 0 puts the
@@ -68,6 +68,14 @@ var _held: Array[StringName] = []
 
 
 func _ready() -> void:
+	var animation: PlayerAnimation = _player.get_node("Animation")
+	if OS.get_environment("CARRY_BONES") != "":
+		var bones: Array[StringName] = []
+		for bone in OS.get_environment("CARRY_BONES").split(","):
+			bones.append(StringName(bone))
+		animation.grip_bones = bones
+	if OS.get_environment("CARRY_HELD") == "1":
+		animation.carry = PlayerAnimation.Carry.HELD_POSE
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = Vector3(60.0, 1.0, 30.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)
