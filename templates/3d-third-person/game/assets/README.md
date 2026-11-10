@@ -13,6 +13,8 @@
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.
+- `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
+  frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports.
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
 - `assets/audio/coin/` (a coin pickup, four variants) and `assets/audio/footsteps/` (four soft steps) are generated

@@ -44,8 +44,9 @@ contact times. Forward 0 is the obstacle's front face.
 | `Vault_Land` | 0.417 s (10 frames) | none | 4.0 m/s (1.67 m) | | right foot down 0, off 0.208, left foot down 0.417 |
 
 - **`Vault_Low`** is a speed vault: off the left foot, the left hand flat on the top 0.12 m in from the front edge and
-  0.27 m left of the body's line, both legs swung over to the right, down on the right foot. The right hand never
-  comes nearer the obstacle than 0.45 m and keeps the sprint's fist, so it can hold the pistol; the clip does not seat
+  0.27 m left of the body's line, both legs over to the right and stacked (the right leg leads above like a
+  hurdler's, the left tucks under it; they never cross), down on the right foot. The right hand never
+  comes nearer the obstacle than 0.6 m and keeps the sprint's fist, so it can hold the pistol; the clip does not seat
   the fingers on a weapon ([Weapons](../../../tools/blender/weapons.md#hands-on-the-weapon) does that per weapon).
 - **`Vault_High`** is a two-handed side vault for what the low one cannot do: a short step, off the right foot with
   both hands on the top (0.10 m in, 0.24 m each side), the hips up over the hands, the right hand off first to let the
@@ -65,9 +66,14 @@ contact times. Forward 0 is the obstacle's front face.
   is the clip's rate. `tools/capture/vault_study.tscn` does the height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the
   clips over their boxes from four views; headless, it prints the contact numbers.
 - **The male mannequin's arms are longer** (0.54 m shoulder to wrist against the female's 0.49 m), and the clips were
-  keyed on the female, the template's default. On the male the planted wrist moves 31 mm in `Vault_Low` and 75 mm in
+  keyed on the female, the template's default. On the male the planted wrist moves 37 mm in `Vault_Low` and 76 mm in
   `Vault_High` while it should be still, and sits up to 45 mm low. The vault code puts the hand on the edge by IK if
   that shows; the clip cannot be right for both.
+- **No limb passes through another**, on either mannequin: the build measures every frame of every clip on both
+  skinned meshes (`assets/animation/limb_overlap.py`, the approach under
+  [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
+  (the thighs brushing on one frame of `Vault_High`). `vault_clips.json` carries the numbers and the hash of the
+  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off.
 
 - **Approach:** Turn the importer's animation optimizer off for a clip with a contact (`_subresources` in the
   `.import`: `"nodes": {"PATH:AnimationPlayer": {"optimizer/enabled": false}}`), and test the contact in Godot, on

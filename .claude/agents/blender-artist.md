@@ -64,6 +64,10 @@ every stage your task touches before that stage, and the page of its asset class
    `ERROR`, and measure the exported file read back, not the scene you built (`export.md#reimport`). Report triangle
    counts against the budget. Check animation in Godot yourself (a headless script that plays
    each clip and asserts bone motion, plus a capture); never hand checking to a person.
+   **A clip you keyed is measured for limbs passing through each other before anyone sees it**: every frame, every
+   model's skinned mesh, leg in leg, arm in leg and limb in torso, with the deepest overlap per clip and frame in
+   your report (`animation.md#keyframes`; on the universal rig, the 3D Third Person template's
+   `assets/animation/limb_overlap.py`), and close-ups of the frames where limbs come nearest.
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request, leave auto-merge off and hold it
    (`gds pr hold <owner/repo>#N`); only the maintainer takes `S-hold` off.

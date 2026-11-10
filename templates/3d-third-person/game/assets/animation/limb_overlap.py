@@ -33,9 +33,9 @@ import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
-## The deepest a part may be inside another (mm): skin touching skin, with room for the skin's own folding at
-## linear-blend joints. The Universal Animation Library's own locomotion measures under it (README).
-LIMIT_MM = 6.0
+## The deepest a part may be inside another (mm): skin touching skin and no more. The Universal Animation Library's
+## own Sprint, Jog and Crouch clips read 0 on both mannequins, and none of its 43 clips crosses the legs.
+LIMIT_MM = 5.0
 ## The ways a sample looks to tell inside from outside (all but one must first meet the back of a face).
 RAYS = [Vector(v) for v in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
 
@@ -202,7 +202,13 @@ class Body:
             own = coords[info["verts"]]
             local = np.array(info["local"])
             samples = np.concatenate([own, own[local].mean(axis=1), own[info["edges"]].mean(axis=1)])
-            built[part] = {"low": own.min(axis=0), "high": own.max(axis=0), "samples": samples, "own": own, "info": info}
+            built[part] = {
+                "low": own.min(axis=0),
+                "high": own.max(axis=0),
+                "samples": samples,
+                "own": own,
+                "info": info,
+            }
         out = {}
         names = sorted(built)
         for i, a in enumerate(names):
@@ -250,7 +256,15 @@ def measure(source, action, frames, bodies):
     source.animation_data.action = action
     source.animation_data.action_slot = action.slots[0]
     out = {
-        body.name: {"deepest_mm": 0.0, "frame": None, "pair": None, "place": None, "by_class": {}, "frames": [], "pairs": {}}
+        body.name: {
+            "deepest_mm": 0.0,
+            "frame": None,
+            "pair": None,
+            "place": None,
+            "by_class": {},
+            "frames": [],
+            "pairs": {},
+        }
         for body in bodies
     }
     for frame in frames:
@@ -340,7 +354,7 @@ def main():
     assert not missing, f"no clip named {sorted(missing)} in {args.clips}"
     report, failed = {}, False
     for action in sorted(own, key=lambda a: a.name):
-        first, last = (int(round(f)) for f in action.frame_range)
+        first, last = (round(f) for f in action.frame_range)
         result = measure(source, action, range(first, last + 1), bodies)
         report[action.name] = result
         for name, entry in result.items():

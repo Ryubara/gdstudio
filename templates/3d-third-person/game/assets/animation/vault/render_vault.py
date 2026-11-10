@@ -4,6 +4,11 @@ For each clip: `<clip>_side.png` (from the character's left, every frame), `<cli
 and `<clip>_top.png` (every second frame), and `<clip>_path.png` (the whole vault in one picture, the body drawn
 every second frame where the root is at that frame). The body moves forward at the clip's reference speed, so the
 box stands still as it does in a game.
+
+For a clip with an obstacle, also `<clip>_over.png`: the frames over the top (from the hand plant to five frames
+after the release), larger, from the front (upper rows) and from the character's left (lower rows), which is where
+legs that pass through each other show; and `<clip>_close_<frame>.png` for the frames in `CLOSE`, the legs from
+the front and from the right.
 """
 
 import math
@@ -14,6 +19,8 @@ from mathutils import Vector
 
 TILE = (400, 480)
 METRES_HIGH = 2.3
+## The frames looked at close: where the first version of each clip had a leg deepest in the other leg or an arm.
+CLOSE = {"Vault_Low": [7, 12], "Vault_High": [15, 20]}
 
 
 def _material(name, colour):
@@ -141,6 +148,37 @@ def render(rig, clips, actions, out):
                 _aim(camera, *place(arm.location.y), METRES_HIGH)
                 tiles.append(_shot(out / "tile.png", TILE))
             _sheet(tiles, 5, out / f"{clip.name}_{view}.png")
+
+        if clip.box_height > 0.0:
+            # Over the top, larger: the front above, the character's left below.
+            show(True, False, False)
+            first = clip.events["hand_plant"] - 1
+            last = min(clip.frames, clip.events["hand_release"] + 5)
+            rows = []
+            for view in ("front", "side"):
+                for frame in range(first, last + 1):
+                    scene.frame_set(frame)
+                    arm.location.y = -clip.forward(frame)
+                    middle = clip.box_height + 0.15
+                    y = arm.location.y
+                    place = (0, y - 6, middle) if view == "front" else (6, y, middle)
+                    _aim(camera, place, (0, y, middle), 2.1)
+                    rows.append(_shot(out / "tile.png", (480, 480)))
+                while len(rows) % 6:
+                    rows.append(np.ones_like(rows[0]))
+            _sheet(rows, 6, out / f"{clip.name}_over.png")
+            for frame in CLOSE.get(clip.name, []):
+                scene.frame_set(frame)
+                arm.location.y = -clip.forward(frame)
+                bpy.context.view_layer.update()
+                hips = arm.matrix_world @ arm.pose.bones["pelvis"].head
+                target = (hips.x - 0.25, hips.y - 0.15, hips.z - 0.05)
+                tiles = []
+                for offset in ((0, -6, 0.6), (-6, -1.5, 0.6)):
+                    place = tuple(a + b for a, b in zip(target, offset))
+                    _aim(camera, place, target, 1.25)
+                    tiles.append(_shot(out / "tile.png", (640, 640)))
+                _sheet(tiles, 2, out / f"{clip.name}_close_{frame:02d}.png")
 
         # The whole path in one picture: a copy of the skinned body where the root is, every second frame.
         show(True, True, False)

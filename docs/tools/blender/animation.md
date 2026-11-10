@@ -42,6 +42,13 @@ Planted-foot speed gives a gait's ground speed ([Gaits](gaits.md)).
   limb hanging down and one reached forward, so an arm keyed with the same sign as its own side's leg swung in step
   with it, which looks wrong at once in play and passes a check of amplitude alone. **Seen:** gdstudio #774, 2026-11-07
   (fix: the reference walk's arm signs were flipped; the `clip-walk` eval checks the correlation, not just the size).
+- **Approach:** Before a keyed clip is shown to anyone, measure on every frame, on every model's skinned mesh, how
+  deep each body part is inside another (leg in leg, arm in leg, limb in torso), and make the build fail over a few
+  millimetres: the template's `assets/animation/limb_overlap.py` does it for the universal rig (5 mm on the vault
+  clips; the library's 43 clips never cross the legs). **Watch out for:** feet and hands keyed as world positions
+  put a shin through the other thigh on frames where every contact check passes, and a sheet of small tiles hides
+  it. **Seen:** gdstudio #1016, 2026-11-10 (the maintainer found the vault clips' legs passing through each other, 75
+  mm deep; fix: the check in `build_vault.py` and `tests/assets/test_vault_clips.gd`, the legs keyed again).
 
 ## Actions, slots and the NLA {#actions}
 
@@ -81,7 +88,23 @@ reads them (the template's `assets/animation/vault/build_vault.py` and `vault_cl
 The build checks, on every frame and on the skinned mesh, before it exports: the lowest vertex against the floor, the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
-clips), and that the body is never jerked to keep a hand in reach.
+clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
+([Keyframes](#keyframes); 5 mm allowed).
+
+- **Approach:** Key the limbs that are in the air in the **hips' own axes** (a point from the pelvis bone, turned
+  with the pelvis's keys: `hips()` in `build_vault.py`), the left foot with `left` above 0 and the right below it,
+  and keep world positions for what touches the world. Take the leg paths from footage of the real move: over a
+  speed vault the body lies near level and the legs go over stacked, one above the other with a gap, knees bent.
+  **Watch out for:** with the body rolled 50 degrees, world keys that looked apart put the lower leg's foot above
+  the upper leg's, so the legs crossed for seven frames; rolling further to lift the legs drops the lower hip onto
+  the obstacle instead. **Seen:** gdstudio #1016, 2026-11-10 (fix: both vaults' legs and free arm keyed in the hips'
+  axes; the overlap check reads 0.5 mm at most).
+- **Approach:** Tell inside from outside on a part cut from a skinned mesh by closing its cut rims (a fan to each
+  rim's middle) and casting rays; measure depth to the skin, and put the lowest spine bone with the pelvis.
+  **Watch out for:** a nearest-surface test on the open part read a head beside a raised upper arm as 100 mm inside
+  it (a point beyond a limb's open end lies behind its rim), and the female mannequin's hips are skinned to
+  `spine_01`, which read the rest pose as 87 mm of chest in thigh. **Seen:** gdstudio #1016, 2026-11-10 (fix:
+  `limb_overlap.py` closes the rims; its `--self-test` reads 0 on the rest pose and a crossing on swung legs).
 
 - **Approach:** Let a planted hand pull the pelvis toward itself when the arm cannot reach, smooth that pull over a
   few frames, and keep the planted arm a little bent (0.94 of its length) so the arm takes up what the smoothing
