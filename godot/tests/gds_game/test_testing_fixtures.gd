@@ -43,12 +43,13 @@ func test_input_sim_presses_through_the_input_map() -> void:
 
 
 func test_input_sim_release_all_lets_go_of_every_action() -> void:
-	# Pressed as an action, not a key: a game's own action that no key of the list releases.
-	Input.action_press(&"ui_accept")
-	Input.action_press(&"ui_cancel")
+	# A game's own action with no key, pad button or mouse button that the fixture lets go of.
+	InputMap.add_action(&"gds_test_own_action")
+	Input.action_press(&"gds_test_own_action")
 	InputSim.release_all()
-	assert_bool(Input.is_action_pressed(&"ui_accept")).is_false()
-	assert_bool(Input.is_action_pressed(&"ui_cancel")).is_false()
+	var still_down := Input.is_action_pressed(&"gds_test_own_action")
+	InputMap.erase_action(&"gds_test_own_action")
+	assert_bool(still_down).is_false()
 
 
 func test_input_sim_waits_in_physics_ticks() -> void:
