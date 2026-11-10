@@ -271,6 +271,50 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the parts cost {#parts-cost}
+
+<!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world
+     parts cost a frame, which an AI crowd and the web build multiply -->
+
+`tools/bench/parts_cost_bench.tscn` (gdstudio #926) prints what the parts cost a frame: a crowd of
+`character_dressed.tscn` with a walking stand-in controller (an AI's body), each character part timed apart with its own
+processing off and called by hand, a first death, and 100 of each world part against an empty arena. The web numbers
+come from its export in headless Chrome (`tools/bench/parts_cost_bench.py`, under `gds quiet`). A frame's "work" is from
+its first physics tick to its last node processed (the scripts, the animation and the physics step, not the drawing).
+`tests/gameplay/test_parts_budget.gd` holds the counts tight in CI and ten walking characters' frame loosely, as a
+multiple of a calibration loop.
+
+| Median frame work, ms | 1 | 10 | 25 | 50 walking |
+| --- | ---: | ---: | ---: | ---: |
+| Desktop, before #926 | 0.22 | 0.99 to 1.01 | 2.24 to 2.39 | 5.16 to 5.59 |
+| Desktop, after | 0.21 | 0.74 to 0.84 | 1.47 to 1.54 | 3.23 to 3.28 |
+| Chrome, before | 0.3 | 1.1 to 1.2 | 2.6 to 3.2 | 6.5 to 9.4 |
+| Chrome, after | 0.3 | 0.8 to 1.0 | 1.9 | 3.8 to 4.1 |
+
+| µs a character a frame (25 walking) | Step | Animation script | Tree | Footsteps | Ragdoll |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop, before | 29 to 30 | 5.7 | 22.6 to 23.0 | 14 to 16 | 14.5 |
+| Desktop, after | 23 to 26 | 2.6 to 3.1 | 21.4 to 23.2 | 14 to 15 | 3.4 to 3.9 |
+| Chrome, before | 35 | 6.7 to 7.0 | 20 to 22 | 22 | 18 to 19 |
+| Chrome, after | 30 | 4.5 to 4.8 | 21 | 23 | 4.6 to 5.2 |
+
+What changed: the ragdoll's bones are made on the first death ([Ragdoll: cost](../ragdoll.md#cost)), so a living
+character is 29 nodes and one physics body instead of 62 and 17 (and the body's own step is cheaper with 16 fewer
+bodies in the space); the pose the death needs is sampled into arrays made once; the animation tree's parameter paths
+are constants and the blend spaces follow the tuning's `changed` (the four speeds say it) instead of comparing an array
+every frame. The first death costs about 1 ms on the desktop and 4.5 ms in Chrome (0.2 and 0.4 before), once a
+character. A standing `Target` is no longer processed (1 µs each before, 0 after); a `Door` keeps the characters in its
+range from its sensor's signals instead of a query a tick (1.9 to 2.1 µs each, 1.4 to 1.6 after); a `Pickup` finds its
+`Visual` once (2.2 to 2.4 µs, 1.8 to 2.0 after); a lone `Weapon` costs 0.2 to 0.3 µs (a character's is ticked by its
+step). The level holds 11 pickups, 4 targets and 2 doors, under 40 µs together.
+
+What is left: the step, the tree and the footsteps. The footsteps' 14 µs is almost all starting a sound: a walking
+character starts about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step costs a few hundred
+microseconds (with the step list emptied the part costs 1.6 µs).
+
+The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
+on a machine other agents were using; a range is the lowest and the highest run.
+
 ## Ragdoll {#ragdoll}
 
 <!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->

@@ -56,6 +56,14 @@ simulator is the only node that needs to exist while the character lives: with `
   body killed at the top of a jump stayed in its jump pose until it hit the floor, and a clip that holds a pose has no
   velocity to give (see [Going limp](#going-limp)). **Seen:** gdstudio #872, 2026-11-10 (found by the maintainer on the
   #846 ragdoll, `CharacterRagdoll` `pose_velocity`).
+- **Approach:** Make the bones on the first death, sample the animated pose from the skeleton while alive
+  (`RagdollPose`: indices found once, two arrays swapped, the body offset put on at the death), keep the samples when
+  the bones are made, and prove the first death with a test that needs the per-bone velocity. **Watch out for:** the
+  build clears the old bones first, and clearing the samples there too gave every first death the character's
+  velocity alone: the one-pass control of `test_ragdoll_cones.gd` read 2 degrees past a shoulder's range instead of
+  over 25, while every other ragdoll suite passed. Bodies made at the death give the death of bodies made at the spawn
+  to within Jolt's rounding (0.2 mm after half a second). **Seen:** gdstudio #926, 2026-11-10 (fix: `_clear` keeps
+  the sampler).
 
 ## Joint limits {#limits}
 
@@ -181,6 +189,14 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   the bones of a body that is never settled (Godot Physics) keep the cap's slot until it gets up. **Seen:**
   gdstudio #872, 2026-11-10.
 
+- **Approach:** Count what a ragdoll costs while its character lives, not only limp: make the bones on the first
+  death and keep the per-tick pose sample free of allocation. **Watch out for:** 16 static `PhysicalBone3D`s with
+  their shapes and simulator (33 nodes) made at the spawn cost 14 to 16 µs a character a frame with no bone moving (25
+  walking: 1.94 ms with them, 1.55 ms without), and the sample (16 `find_bone` calls and a new dictionary a tick) 11 to
+  14 µs more: a third of a walking character's frame. Made on the first death they cost it about 1 ms on the desktop
+  and 4.5 ms in the web export, once a character. **Seen:** gdstudio #926, 2026-11-10
+  ([What the parts cost](third-person/character.md#parts-cost)).
+
 ## Ragdoll in 3D Third Person {#template}
 
 <!-- new section: the template page reached its 50 KB limit, so the template's ragdoll moved here, beside the engine -->
@@ -209,7 +225,8 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   capsules), `joint_range` (how far the joints swing, as a share of a person's range), `hinge_passes` (how many hinges
   hold each elbow and knee, 6: one lets a limb the body lands on fold past its range, [why](#limits)), `cone_passes`
   (the same for every cone, 6: one lets a shoulder twist 50 to 115 degrees past a person's range), `linear_damp`,
-  `angular_damp`, `friction`, `bounce`; Death and getting up:
+  `angular_damp`, `friction`, `bounce`; Editor: `editor_preview` (the bones shown in the editor, on); Death and
+  getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
   drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
   then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
@@ -219,8 +236,11 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   mark yet, [Physics layers](physics-layers.md#shots-meet-bones); hit zones (#876) are layer 6).
   Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
-  `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` whenever the rig changes, in the
-  editor too (Debug, Visible Collision Shapes), never saved: the glb a swap deletes would hold them. Any rig with these
+  `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` on the character's first death
+  (or when a script asks for one: `body()`, `body_count()`; `has_bones()` asks nothing) and again whenever the rig
+  changes after that, in the editor at once while `editor_preview` is on (Debug, Visible Collision Shapes), never
+  saved: the glb a swap deletes would hold them. A character that never dies never carries them
+  ([cost](#cost)). Any rig with these
   65 bones works, both mannequins included. Generated, not the editor's Create Physical Skeleton: a joint's zero is the
   pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by
   up to 9 cm ([why](#building)).
