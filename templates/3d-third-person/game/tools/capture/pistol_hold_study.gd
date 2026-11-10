@@ -28,8 +28,8 @@ const POSES: Array[Dictionary] = [
 	{"tag": "carry_jump", "clip": &"ual1/Jump_Start", "times": [0.0], "carry": true},
 ]
 
-## How near the gun the left view cuts when only the right hand holds it: 5 cm off its middle.
-const _ONE_HAND_NEAR := 0.45
+## How near the gun the left view cuts when only the right hand holds it: 7.5 cm off its middle.
+const _ONE_HAND_NEAR := 0.425
 
 var _stage: HoldStage
 
