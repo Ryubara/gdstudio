@@ -546,3 +546,37 @@ def test_a_fix_names_a_section_its_branch_edits(workspace, tmp_path, capsys, cha
     body.write_text(text, encoding="utf-8", newline="\n")
     code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
     assert ("does not change that page" in err) is refused, err
+
+
+# --- a listed Screenshots none line (kit #931) -----------------------------------------------------------------------
+
+NONE_LINE = "Screenshots: none (checker code and docs only, nothing visible)"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [NONE_LINE, f"- {NONE_LINE}", f"* {NONE_LINE}", f"  - {NONE_LINE}", "- **Screenshots:** none (a text check)"],
+    ids=["bare", "dash", "star", "indented", "bold"],
+)
+def test_a_screenshots_none_line_passes_bare_or_listed(line, workspace, tmp_path, capsys):
+    """Failed first: `- Screenshots: none (reason)` was read as a missing Before:/After: pair for a `godot` title."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    assert NONE_LINE in text
+    body, title = tmp_path / "body.md", tmp_path / "title.txt"
+    body.write_text(text.replace(NONE_LINE, line), encoding="utf-8", newline="\n")
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
+    assert run_gds(args, capsys)[0] == 0
+
+
+@pytest.mark.parametrize(
+    "line", ["- Screenshots: none", "- Screenshots: none (a reason) and more", "- Screenshots: none ()"]
+)
+def test_a_listed_screenshots_none_line_still_needs_its_reason(line, workspace, tmp_path, capsys):
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    body, title = tmp_path / "body.md", tmp_path / "title.txt"
+    body.write_text(text.replace(NONE_LINE, line), encoding="utf-8", newline="\n")
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
+    code, err = run_gds(args, capsys)
+    assert code == 1 and "needs a reason in parentheses" in err
