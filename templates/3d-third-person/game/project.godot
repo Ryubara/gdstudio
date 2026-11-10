@@ -146,16 +146,6 @@ ui_cancel={
 ]
 }
 
-[layer_names]
-
-3d_physics/layer_1="World"
-3d_physics/layer_2="Characters"
-3d_physics/layer_3="Projectiles"
-3d_physics/layer_4="Props"
-3d_physics/layer_5="Ragdoll"
-3d_physics/layer_6="Hit Zones"
-3d_physics/layer_7="Sensors"
-
 [navigation]
 
 3d/default_cell_height=0.1

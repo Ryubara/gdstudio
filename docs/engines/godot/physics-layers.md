@@ -11,7 +11,7 @@ and labels the inspector's layer grid.
 
 ## The template layers {#template-layers}
 
-Both templates (3D Blank and 3D Third Person) name the same seven layers in `project.godot`, and
+3D Blank's `project.godot` names the seven layers (3D Third Person's adds only its own keys and gets them from it), and
 `core/physics_layers/physics_layers.gd` (`PhysicsLayers`, in 3D Blank, so every template has it) holds them as bits,
 so code and the inspector say the same thing. The constants script moves to the synced gameplay addon
 (`addons/gds_game/physics/physics_layers.gd`) with kit #923's second step; the names stay in each game's `project.godot`.

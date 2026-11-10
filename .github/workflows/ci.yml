@@ -183,11 +183,12 @@ jobs:
           "$godot" --headless --path repos/template-check/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --fixed-fps 60 --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Export the web build
+        # `--verbose` names what is still in use when the export quits, as the tests step does.
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          "$godot" --headless --path repos/template-check/game --export-release Web 2>&1 | tee export.log
+          "$godot" --headless --verbose --path repos/template-check/game --export-release Web 2>&1 | tee export.log
           if grep -E "ERROR" export.log; then exit 1; fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
