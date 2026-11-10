@@ -150,6 +150,14 @@ Deadnight's tools: `build_weapons.py` (`GRIPS`, `TRIGGERS`, `SUPPORTS`), `game/t
   test and floated 0.1 mm past the menu's limit, in a folder not run. **Seen:** Deadnight #621, 2026-11-02; Deadnight
   #793, 2026-11-03 (fix: one builder, the contact test in each view, both grip suites run for a new model).
 
+- **Approach:** Treat the hands on every weapon as a deliverable of their own and refine them hard: each finger closed on
+  the `Grip` and `Trigger` sockets, the support hand placed wherever the pose holds the gun with two hands, contact
+  measured on the skinned mesh in every clip the weapon plays, and close-ups from the side, the top and the player's
+  camera looked at full size, Before and After. **Watch out for:** the 3D Third Person pistol shipped on one fixed
+  seat on `hand_r` with the clips' fist (up to 9.5 mm into the grip), the index finger off the trigger and no left hand
+  when aiming; its numbers passed and the maintainer's look at the game did not. **Seen:** gdstudio #1001, 2026-11-10
+  (fix: the pistol's hold redone to these limits in #1001).
+
 ### A weapon in each hand {#a-weapon-in-each-hand}
 
 Test the rig for symmetry before solving a second hand. The kit Soldier is an **exact mirror**: each left bone's rest
