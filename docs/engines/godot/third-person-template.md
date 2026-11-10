@@ -421,7 +421,9 @@ body names its surface with and the tests are on [Bullet impacts in 3D Third Per
 
 One `EffectEmitter` (`Effects` in `world/world.tscn`) plays the flash, each impact and other one-shot effects from one
 pool ([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash`
-and `muzzle_flash_size`.
+and `muzzle_flash_size`. Its warm-up visits every reflection probe of the map (`warm_up_every_probe`) and draws the
+materials of the group `warm_up_groups` names there (`player`), so the room's first visit and first shot build nothing
+([the warm-up](effect-emitter.md#warm-up)).
 
 ## Ragdoll {#ragdoll}
 

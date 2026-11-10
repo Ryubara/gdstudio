@@ -37,6 +37,12 @@ draw the blend of the last two ticks.
   ticks by hand with interpolation off, so a smooth camera framed a body that stepped every two or three frames on a
   120-165 Hz screen, which a 60 Hz screen never shows. **Seen:** Deadnight, 2026-11-01 (fix: interpolation on, the hand
   blend off, and the 144 fps measure ([below](#measuring-it))).
+- **Approach:** Turn interpolation off on any camera a script moves from place to place (a warm-up's or a capture's),
+  in the line that makes it, and test what the camera does at its first place. **Watch out for:** an interpolated
+  camera answers `get_frustum()` (and culls) from where the last tick left it: a warm-up camera put at a probe the
+  player had not seen reported the frustum of its last place, so it found no probe there and waited for none, and only
+  the suite's frame count showed it. **Seen:** gdstudio #981, 2026-11-10 (fix: `PHYSICS_INTERPOLATION_MODE_OFF` on the
+  emitter's tour camera).
 - **Approach:** Assert `is_physics_interpolated_and_enabled()` on the real body inside the real screen. **Watch out
   for:** a setting a node inherits holds only in the tree the game builds: interpolation was measured in a test room
   under a plain `Node`, while in the game the night hangs under a `Control`, which switched it off below, and the web
