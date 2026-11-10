@@ -3,6 +3,7 @@
 # warning. The built tree must never be written into a scene file.
 extends GdUnitTestSuite
 
+const PLAYER_SCENE := "res://gameplay/player/player.tscn"
 const DRESSED_SCENE := "res://gameplay/character/character_dressed.tscn"
 const SCENES := [
 	"res://gameplay/player/player.tscn",
