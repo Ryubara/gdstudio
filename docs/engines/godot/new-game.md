@@ -406,7 +406,7 @@ folder (`real_game`, `real_third_person_game`).
 - **Approach:** Make a repository once a session in a `scope="session"` fixture and copy it into each test with
   `python/tests/git_seed.py` (`relocate` rewrites the paths git wrote into `config`); share one run of a command
   between the tests that only read it (`default_flow`); leave out the step a test is not about (`kit_pr=False`); keep
-  the seed small (packed, no sample hooks, a trimmed addon); pass `--fixed-fps 60` to an eval test's Godot.
-  **Watch out for:** a loaded machine moves wall time by 2x, so count processes per file as well; a copied file costs
-  about 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin path. **Seen:** gdstudio #945,
-  2026-11-10 (`pytest python/tests` 266 s to 157 s locally).
+  the seed small; pass `--fixed-fps 60` to an eval test's Godot. CI runs four workers, a file to each (`-n auto
+  --maxprocesses=4 --dist loadfile`). **Watch out for:** a loaded machine moves wall time by 2x, so count processes
+  per file too; a copied file costs 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin
+  path. **Seen:** gdstudio #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on four workers).
