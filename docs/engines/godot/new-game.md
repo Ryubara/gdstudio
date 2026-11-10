@@ -175,7 +175,8 @@ kept with `--keep`, two calls at once).
   `.uid` files, and before the push run `git status --porcelain` in the template after a headless `--import` there.
   **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
   the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
-  icons). **Seen:** gdstudio #884, 2026-11-10.
+  icons). **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
+another game with no `.import`: the full local run was green and CI's step failed).
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
