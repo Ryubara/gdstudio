@@ -1,6 +1,6 @@
 """The web build on a phone: real touches in a phone-sized browser drive the stick, the look drag and the buttons.
 
-Serves the exported game (`build/web`), opens it with `?probe` in Chromium with mobile emulation (844 x 390 CSS px at a
+Serves the exported game (`build/web`), opens it with `?probe&play` (the game, not the menu) in Chromium with mobile emulation (844 x 390 CSS px at a
 pixel ratio of 2, touch events sent through the DevTools protocol, `Input.dispatchTouchEvent`) and reads what the
 game's `WebProbe` writes to `window.gdprobe`:
 
@@ -154,7 +154,7 @@ def main() -> int:
         page = context.new_page()
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: console_errors.append(str(e)))
-        page.goto(f"http://127.0.0.1:{port}/index.html?probe", wait_until="load")
+        page.goto(f"http://127.0.0.1:{port}/index.html?probe&play", wait_until="load")
         state = wait_for(page, lambda s: s.get("ready") is True and s.get("touch_shown") is not None, READY_TIMEOUT_S)
         if not state.get("ready"):
             print("the game never reported ready", file=sys.stderr)

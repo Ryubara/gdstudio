@@ -65,6 +65,14 @@ parts with no chamfers, half the sides and the detail parts dropped for hard sur
 Deadnight's zombies, both levels on one skeleton); its import option `meshes/generate_lods` covers static props and map
 pieces, and it makes no levels for skinned meshes ([Crowds](../../engines/godot/crowds.md)).
 
+- **Approach:** Turn `meshes/generate_lods` off for a kitbashed hard-surface model (a weapon of separate closed parts)
+  and give it the far level built from the same description, swapped by each mesh's visibility range; look at the
+  model at 4, 8, 15 and 30 m through the game's field of view before trusting the importer's levels. **Watch out for:**
+  Godot's levels for the template rifle (1,112 triangles to 456 and 88) dropped the hand guard at 15 m and pieces of
+  the receiver at 30 m, and the lowest level kept only the barrel, the magazine and the stock; the far level (420
+  triangles) kept the outline at every distance; the pistol's levels (692 triangles) changed nothing visible there.
+  **Seen:** gdstudio #886, 2026-11-10 (fix: `generate_lods=false` and `rifle.tscn`, near to 10 m and far after it).
+
 ## Fewer meshes {#merging}
 
 Each mesh is a draw call. Join what is always drawn together (the zombie's eyelids into its body: a second mesh cost

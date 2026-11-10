@@ -392,6 +392,19 @@ func _press(action: StringName, strength: float) -> void:
 		_pressed.erase(action)
 
 
+## Lets go of every finger and every action the layer holds and hides it, for a menu that covers
+## the game: a finger may lift where the layer cannot see it, and the buttons would draw over the
+## menu. `resume` shows it again if it was showing.
+func suspend() -> void:
+	_release_all()
+	visible = false
+
+
+## Shows the layer again after `suspend` when the touch controls are in use.
+func resume() -> void:
+	visible = _shown
+
+
 func _release_all() -> void:
 	for action in _pressed.keys():
 		Input.action_release(action)

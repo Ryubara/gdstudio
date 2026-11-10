@@ -314,6 +314,19 @@ looks sealed can be skipped by a crouch under a lintel; a prop with no collider 
   **Watch out for:** two maps had eight markers and a start was `markers[bodies % 8]`, so a ninth body stood on the
   first; one marker was inside a parked car, and a seat reopened after a leave took a marker still in use. **Seen:**
   Deadnight, 2026-11-05 (fix: 15 markers a map; a test of every map in the registry, before and after bodies settle).
+- **Approach:** Measure the carry as well as the reach: the widest gap the real body sprint-jumps across onto a top
+  higher than the one it runs on, for a few rises, pinned by a test, and judge every hop between tops by it (the chain
+  of tops the body gets onto, then every wall within a hop of one). **Watch out for:** a hop worked out from the jump's
+  own arc said the body lands at most 1.25 m up; the measured body crossed 3 m onto a top 1.35 m up (its rounded foot
+  rides up the edge), so a chain through a crouch course's 3 m walls to a 4 m room and its 5 m roof, 3 m from the map's
+  wall, was a way out. A real-body sweep of 5,000 runs on the four axes did not find it: the sweep finds what it tries,
+  the measured numbers bound what it did not. **Seen:** gdstudio #885, 2026-11-10 (3D Third Person: `ReachBench`,
+  `test_map_reach.gd`, the bar wall lowered to 2.4 m and the boundary raised to 5 m).
+- **Approach:** Start a sweep's ground runs only where a standing capsule fits (a shape query at the spot) and inside
+  the floors, and prove the sweep on the unfixed map before trusting a pass. **Watch out for:** starts set 0.6 m off
+  every block's faces fell inside the boundary walls and "escaped" at once; the unfixed 4 m map failed the sweep from
+  the tower and the ragdoll ledge, which is what made its pass on the fixed map mean something. **Seen:** gdstudio #885,
+  2026-11-10.
 
 ## 7a. Objectives on the map {#7a-objectives-on-the-map}
 

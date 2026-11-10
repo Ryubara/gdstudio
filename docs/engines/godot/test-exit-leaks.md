@@ -85,6 +85,13 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   properly, so a green `main` shard proves only its own deal; a wrapper named otherwise prints the usage and runs
   nothing. **Seen:** Deadnight #1231, 2026-11-05 (fix: `tools/ci/warm_GdUnitCmdTool.gd` took 911 objects to none on the
   same 55 cases; a test runs two suites through it in a child Godot and fails on a leak line).
+- **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
+  use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
+  declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the
+  inspector. **Watch out for:** the leak named the template's old scripts (the spawn point, `gds_ui`, Phantom Camera: 15
+  resources), not the new code; it came with the typed export in `Weapon` or `ImpactSurface` alone, never in a minimal
+  project or with `Resource`, and removing `@tool` or the exports' ranges changed nothing. **Seen:** gdstudio #888,
+  2026-11-10 (`EffectDef`; Godot 4.7.2's cause not found).
 - **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
   edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
   probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled
@@ -103,6 +110,11 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 <!-- new section: the page covers the folder scan and a suite that only names a class; the causes a test creates
      itself (cycles, nodes never freed, a preloaded scene) were only in one-problem files -->
 
+- **Approach:** Ask `ResourceLoader.exists(path)` before `load_threaded_request(path)` and treat a missing path as the
+  failure it is. **Watch out for:** a request for a scene that is not there printed two engine errors and left one
+  `RefCounted` behind at exit (`1 ObjectDB instance was leaked`), which the suite's summary does not carry and CI's
+  grep fails; found by splitting the 15-test suite into 15 files of one test each. **Seen:** gdstudio #881, 2026-11-10
+  (the loading screen's failure path).
 - **Approach:** Connect methods, or callables made with `Callable(self, &"method")` or `.bind(id)`, not lambdas that
   name `self` or the object they listen to: a test captures the id (`var player_id := state.player_id`) and
   disconnects before it frees the night; a rig passes its own methods to what it owns. Run a new suite alone with

@@ -5,17 +5,17 @@ from __future__ import annotations
 
 import datetime
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from new_game_kit import KIT, git_environment, is_lfs
+from new_game_kit import run_git as git
 
 from gds_tools import cli, new_game
 from gds_tools import new_game_github as github
 from gds_tools.issues import IssueError
 
-KIT = Path(__file__).resolve().parents[2]
 FULL = "Ryubara/my-game"
 CO_AUTHOR = "Claude Opus 5.5 <noreply@anthropic.com>"
 GREEN = {"databaseId": 7, "status": "completed", "conclusion": "success", "url": "https://github.com/r/run/7"}
@@ -25,44 +25,14 @@ FAILED = {"databaseId": 8, "status": "completed", "conclusion": "failure", "url"
 
 @pytest.fixture(autouse=True)
 def git_identity(monkeypatch, tmp_path):
-    for key, value in {
-        "GIT_AUTHOR_NAME": "Test",
-        "GIT_AUTHOR_EMAIL": "test@example.invalid",
-        "GIT_COMMITTER_NAME": "Test",
-        "GIT_COMMITTER_EMAIL": "test@example.invalid",
-        "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"),
-        "GIT_CONFIG_SYSTEM": str(tmp_path / "gitconfig"),
-    }.items():
-        monkeypatch.setenv(key, value)
-
-
-def git(*args: str, cwd: Path | None = None) -> str:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+    git_environment(monkeypatch, tmp_path / "gitconfig")
 
 
 @pytest.fixture
-def kit(tmp_path) -> Path:
-    """The parts of the kit the command reads, as a git checkout whose `origin` is a local bare repository."""
-    copy = tmp_path / "kit"
-    for rel in ("templates", "godot/addons", ".claude/agents", ".github/scripts", ".github/workflows"):
-        shutil.copytree(KIT / rel, copy / rel, ignore=shutil.ignore_patterns(".godot", "__pycache__"))
-    for rel in (
-        "workspace.toml",
-        "tools.toml",
-        ".pre-commit-config.yaml",
-        ".github/conventions.yml",
-        ".github/pull_request_template.md",
-    ):
-        (copy / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(KIT / rel, copy / rel)
-    origin = tmp_path / "kit-origin.git"
-    git("init", "--bare", "-b", "main", str(origin))
-    git("init", "-b", "main", cwd=copy)
-    git("add", "-A", cwd=copy)
-    git("commit", "-q", "-m", "kit", cwd=copy)
-    git("remote", "add", "origin", str(origin), cwd=copy)
-    git("push", "-q", "origin", "main", cwd=copy)
-    return copy
+def kit(small_git_kit) -> Path:
+    """The parts of the kit the command reads, as a git checkout whose `origin` is a local bare repository: the small
+    kit of conftest.py (a stand-in for 3D Blank, not the 21 MB of the real templates, which no GitHub step reads)."""
+    return small_git_kit
 
 
 @pytest.fixture
@@ -146,14 +116,15 @@ class FakeGh:
 
 
 class Runner:
-    """Real git; a fake `uvx` (the hooks come from the network); the groundwork commands recorded, never run."""
+    """Real git, but no Git LFS; a fake `uvx` (the hooks come from the network); the groundwork commands recorded,
+    never run."""
 
     def __init__(self, fail_step: str = ""):
         self.groundwork: list[list[str]] = []
         self.fail_step = fail_step
 
     def __call__(self, argv, *args, **kwargs):
-        if argv[0] == "uvx":
+        if argv[0] == "uvx" or is_lfs(argv):
             return subprocess.CompletedProcess(argv, 0, "", "")
         if any(str(a).endswith("groundwork.py") for a in argv):
             self.groundwork.append(list(argv))

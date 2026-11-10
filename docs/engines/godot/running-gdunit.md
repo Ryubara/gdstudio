@@ -41,6 +41,16 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   (`get_script_constant_map()`). **Seen:** Deadnight, 2026-11-01 (without `-d` script errors become failures);
   Deadnight #1323, 2026-11-06 (twice 3 minutes on a `get_script()` call in a suite).
 
+- **Approach:** Add `--fixed-fps 60` to the command of a game whose tests step physics ticks (the template job, a
+  game's `ci.yml` and `templates/repo/AGENTS.md` have it). **Watch out for:** it makes each frame one tick and removes
+  the wait for the clock, so a suite that loops on `Time.get_ticks_msec()` times out; the reason and the numbers are in
+  [Test speed](test-speed.md#what-makes-a-suite-run-at-the-clocks-speed). **Seen:** gdstudio #916, 2026-11-10.
+
+- **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
+  parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
+  first. **Seen:** gdstudio #881, 2026-11-10 (`var before := ...` in four menu suites; `was` instead).
+
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass. **Seen:** Deadnight,
@@ -99,8 +109,9 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
 ## Before the push {#before-the-push}
 
 A change to a kit template is pushed only after the template's own proof has run, not just the kit's `pytest`:
-`templates/<t>/game` has no GdUnit4, so its suites run in a game made from it, with the script parse and the editor
-open of [Proving a new game](new-game.md#proof) (gdstudio #830).
+`templates/<t>/game` has no GdUnit4, so its suites run with `gds template test <t>`, which makes a game from the
+working tree in a throwaway workspace of its own, parses every script and runs the suites ([Proving a new
+game](new-game.md#proof), gdstudio #830 and #917).
 
 - **Approach:** Before pushing, run `gds merge-main`, then every folder of `game/tests` on the merged branch (or CI's
   own shard command), read the logs for `ERROR`, and ignore any earlier summary; before taking over a branch, list the

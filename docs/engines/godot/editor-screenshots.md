@@ -62,6 +62,11 @@ to prove nothing generated was saved (gdstudio #830, Godot 4.7.2).
   `tween_resource`), so diff against the old template's save, not against the committed file.
   **Seen:** gdstudio #856, 2026-11-09 (the shoulder settings on `PlayerCamera` moved the Camera's `h_offset` and
   `v_offset` at once).
+- **Approach:** Enable a run's editor plugin by adding its `plugin.cfg` to `editor_plugins/enabled` in the game's
+  `project.godot` for the run and taking it out after, and have the plugin print a line in `_enter_tree` so a run
+  that never started it shows. **Watch out for:** a plugin listed only in an `override.cfg` next to `project.godot`
+  never entered the tree in Godot 4.7.2, headless or windowed, and the editor sat with no error until its timeout;
+  the same list in `project.godot` started it at once. **Seen:** gdstudio #885, 2026-11-10 (the map bake plugin).
 
 ## Changing values like the remote inspector {#remote-inspector}
 

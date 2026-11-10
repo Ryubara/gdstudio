@@ -25,6 +25,8 @@ var _shots := 0
 
 func _ready() -> void:
 	set_process(false)
+	# The menus pause the tree: the probe keeps writing, so a test can read that it is paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	if not OS.has_feature("web") or player == null:
 		return
 	if not JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('probe')"):
@@ -55,6 +57,13 @@ func _process(delta: float) -> void:
 	_object.aiming = player.aiming
 	_object.aim_amount = player.aim_amount
 	_object.fire_held = Input.is_action_pressed(&"fire")
+	UiProbeFields.write(_object, get_viewport())
+	var pause_button := get_node_or_null("../MenuLayer/PauseButton") as Control
+	if pause_button != null:
+		var middle := pause_button.get_global_transform() * (pause_button.size * 0.5)
+		_object.pause_x = middle.x
+		_object.pause_y = middle.y
+		_object.pause_shown = pause_button.is_visible_in_tree()
 	_object.on_floor = player.is_on_floor()
 	if camera_rig != null:
 		_object.yaw = camera_rig.yaw

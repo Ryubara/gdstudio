@@ -1,8 +1,11 @@
 # gds_ui
 
-Tokens, a generated theme, drawn components, motion and a screen router. It names no game: every colour, size,
-duration, shader palette and backdrop is a token, so a second game restyles it by saving a resource. The decisions
-behind it, with the measurements, are in the game's `docs/research/ui-foundation.md`.
+Tokens, a generated theme, drawn components, motion and a screen router. No component names a game: every colour,
+size, duration, shader palette and backdrop is a token, so a second game restyles it by saving a resource. The
+**default** tokens are not neutral, though: they are Deadnight's drive-in skin (a night sky, an amber marquee, a film
+burn and a projector iris), so a game that sets no `gds_ui/tokens` resource looks like Deadnight until it saves its own
+(`demo/light_tokens.tres` is a second palette to start from). A neutral default is not made yet. The decisions behind
+it, with the measurements, are in the game's `docs/research/ui-foundation.md`.
 
 ## Contents
 
@@ -22,7 +25,7 @@ behind it, with the measurements, are in the game's `docs/research/ui-foundation
 
    | Setting | Default | What |
    | --- | --- | --- |
-   | `gds_ui/tokens` | none | Path of a saved `UITokens` resource. Empty or missing: the defaults (the shipped drive-in skin). |
+   | `gds_ui/tokens` | none | Path of a saved `UITokens` resource. Empty or missing: the defaults (Deadnight's drive-in skin). |
    | `gds_ui/accessibility/reduced_motion` | `false` | Read once by the router at startup into `UIMotion.reduced`. |
 
 3. At startup the first `UITokens.active()` loads the setting's resource. The router's `_ready` then builds the stage
@@ -140,12 +143,15 @@ queued and run in order, and input is blocked meanwhile.
 | `push(source, kind = FADE, params = {})` | show a screen over the current one, which stays alive underneath |
 | `replace(source, kind = FADE, params = {})` | show a screen in place of the current one, which is freed |
 | `pop(kind = -1)` | go back and free the top screen; `-1` plays the transition it arrived with, mirrored |
+| `close(kind = -1)` | like `pop`, but also closes the only screen: the stack ends empty (`screen_changed(0)`) |
+| `clear(kind = FADE)` | close every screen: the top one leaves with `kind`, the rest are freed |
 | `reset(source, kind = CUT, params = {})` | free the whole stack and show one screen |
 | `depth()`, `top()`, `screens()` | the stack, root to top |
 | signals `idle`, `screen_changed(depth)`, `error_reported(message)` | the queue drained; the stack changed; a source could not be shown |
 
 `params` arrive as `UIScreen.params`. A `UIScreen` has the hooks `screen_enter`, `screen_pause` and `screen_resume`,
-an `initial_focus` path, `allow_back` (whether Esc pops it) and `stars` (the token star backdrop, per screen);
+an `initial_focus` path, `allow_back` (whether Esc pops it), `back_closes` (whether Esc also closes it when it is the
+only screen: a menu over a game that is not itself a screen) and `stars` (the token star backdrop, per screen);
 `glow` overrides the bottom of the backdrop gradient. Esc and gamepad B (`ui_cancel`) pop while more than one screen
 is on the stack.
 

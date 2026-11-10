@@ -118,6 +118,47 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 - Compact numbers: 5 bytes per player in a full snapshot, 3 in a delta, 12 bytes per input packet; about 0.4 KB/s up and
   0.6 to 1.0 KB/s down per client.
 
+## The template's packets (3D Third Person) {#template-packets}
+
+<!-- new section: own-protocol says what worked in Deadnight; nothing held the template's own layout, its sizes or how
+its decoders stay quiet on a hostile packet -->
+
+`templates/3d-third-person/game/gameplay/net/` (gdstudio #902) is the wire of an online game of the template, plain
+`RefCounted` code with no node, socket or clock: `NetWire` (types, `VERSION`, the HELLO, REFUSED, PING and PONG, the
+layout comment of every message, `world_hash`), `CommandCodec` (a `PlayerCommand` in 15 bytes, 27 with a shot block,
+and the `snap_*` steps), `SnapshotCodec` (TICK and WELCOME, `PlayerEntry`, `NetEvent`, `EntityEntry`), `PeerLimits` and
+`TokenBucket` (the budgets of one connection, time passed in by the caller), `NetLimits` (every shared number) and
+`NetDrops` (why each packet was dropped). A transport carries the byte arrays as they are; what the same player
+state costs against synchronizers is [below](#template-network-costs). Measured by
+`test_net_snapshot_codec.gd` (it prints the line), against the research estimates of #883:
+
+| Message | Bytes | Estimate |
+| --- | ---: | ---: |
+| HELLO with an 8-character name | 15 (7 + name; the world hash travels in it) | 3 + name |
+| WELCOME, 1 player, no world parts | 30 | about 40 |
+| WELCOME, longest (8 players with 16-byte names, 128 parts of 8 bytes) | 1783 | |
+| REFUSED | 3 | 3 |
+| COMMAND / with a shot block | 15 / 27 | 15 / 27 |
+| TICK, 8 players, no events | 107 | 107 |
+| TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
+| PING / PONG | 7 / 11 | 7 / 11 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+
+A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
+100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
+
+- **Approach:** Read every field through a reader that checks the length before each read and answers 0 with an `ok`
+  flag, validate a name's UTF-8 by hand before `get_string_from_utf8()`, and test every prefix of a valid packet and
+  a few hundred one-byte mutations for exactly one counted drop each. **Watch out for:** in Godot 4.7.2
+  `PackedByteArray.decode_u16` past the end prints an `ERROR` with a backtrace and `get_string_from_utf8` on a broken
+  sequence prints `Unicode parsing error`, both answering a value anyway: a hostile client could fill the server's log
+  with one packet a tick, and a decoder that trusts the value reads garbage. **Seen:** gdstudio #902, 2026-11-10 (a
+  probe printed both; `WireReader` and `NetWire.valid_name`).
+- **Approach:** Compare a position decoded into a `Vector3` with a tolerance (`is_equal_approx`, or the range plus
+  0.0001), and keep the limit itself a `float` constant. **Watch out for:** a `Vector3` holds float32, so the far edge
+  of the centimetre range, 327.67, reads 327.670013 and an exact `<=` against `NetLimits.POSITION_RANGE` failed 86
+  times in one run. **Seen:** gdstudio #902, 2026-11-10.
+
 ## Godot's high-level multiplayer: what to know {#godots-high-level-multiplayer-what-to-know-before-using-it}
 
 `MultiplayerSynchronizer` / `MultiplayerSpawner` / RPC work over `WebSocketMultiplayerPeer` and are quick to start
@@ -134,6 +175,45 @@ random 31-bit numbers. Fine for a prototype; for a game with a real tick, own th
   arrive as a delta sync, which emits `delta_synchronized`; `synchronized` fires only for full syncs (`ALWAYS` and the
   spawn state), so values replicated but prediction and reconciliation never started, and a spawn packet can carry a
   stale value. **Seen:** Deadnight #38, 2026-11-01 (fix: both signals are connected in the networking spike).
+
+## What a template-sized game costs on the wire {#template-network-costs}
+
+<!-- new section: the comparison section measures 4 players and 24 zombies; nothing said what only players cost, or what
+SceneMultiplayer.send_bytes costs against a synchronizer, which decides the networking of a small template -->
+
+Measured in gdstudio #883 (`sandbox/template-net/`, Godot 4.7.2 headless, localhost, a counting TCP proxy that includes
+WebSocket framing): a server walks N players and sends their state at 20 Hz to one client over
+`WebSocketMultiplayerPeer`, five ways. KB/s down per client (bytes per tick):
+
+| Mode | 2 players | 8 players | 16 players | 16, 4 walking | 16, all standing |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| One `MultiplayerSynchronizer` per player, 5 properties, `ALWAYS` | 1.67 (83) | 6.89 (345) | 13.16 (658) | 11.98 (599) | |
+| The same, `ON_CHANGE` | 1.83 (92) | 7.38 (369) | | 3.76 (188) | 0.00 (0) |
+| One synchronizer, one `PackedByteArray` property of 11 B | 0.97 (48) | 3.72 (186) | 7.45 (372) | 7.44 (372) | |
+| One `unreliable_ordered` RPC with every player in a buffer | 0.70 (35) | 2.15 (108) | 4.10 (205) | 4.10 (205) | |
+| `SceneMultiplayer.send_bytes`, the same buffer | 0.66 (33) | 2.10 (105) | 4.06 (203) | 4.08 (204) | 4.06 (203) |
+| `send_bytes`, only the players that changed | 0.66 (33) | 2.10 (105) | 4.06 (203) | **1.14 (57)** | 0.18 (9) |
+
+- A player's state is 12 bytes as one entry (slot, position in centimetres `s16` x3, yaw `u16`, state, flags, pitch),
+  43 with five synchronized properties (Variant headers) and 23 packed in one property. A packet adds 6 bytes of
+  header and 2 of WebSocket frame. `send_bytes` costs 3 bytes a packet over the payload: the peer layer is as cheap as a
+  raw `WebSocketPeer`; the cost of the high-level API is the synchronizers.
+- `ON_CHANGE` saves nothing for walking players (position changes every tick) and everything for standing ones.
+- A client's input costs 0.57 KB/s as `send_bytes` (30 packets a second of 12 B, 19 B on the wire with the headers)
+  and 0.63 KB/s as an RPC.
+- On a WebSocket an `unreliable_ordered` transfer is accepted and every packet still arrives (reliable and ordered, it
+  is TCP); a design for this transport sends state again rather than relying on loss.
+
+- **Approach:** Choose between synchronizers and own packets for a small game by what the game needs on the wire
+  (a tick, an acknowledged command number for prediction, an interpolation clock), then check the bytes per player per
+  tick: at 8 players the gap is 6.9 against 2.1 KB/s. **Watch out for:** Deadnight's 8x gap was 24 moving zombies,
+  not players; for 2 to 16 players alone the synchronizers fit any link, and what they cannot give is the tick and the
+  ack, so a game with prediction writes its own packets next to them anyway. **Seen:** gdstudio #883, 2026-11-10
+  (the table above; the template's design is in the research report of that issue).
+- **Approach:** Pack a player's state into one buffer (about 12 bytes) before the first measurement and send all
+  players in one packet; repeat the measurement with half the players standing. **Watch out for:** a synchronizer
+  per player with `ALWAYS` sends every property of every player every interval, standing or not (16 players, 4
+  walking: 12 KB/s, the same as all walking), and Variant headers triple the entry. **Seen:** gdstudio #883, 2026-11-10.
 
 ## A room over a real socket, faster than real time (Deadnight #230) {#room-over-socket}
 
@@ -348,6 +428,14 @@ backend deployed -->
   hand-made three-key snapshot sat on the other side of `NetWire.COMPRESS_FROM` (256 bytes), so the WELCOME read 22
   bytes shorter with a new `levels` table (173 to 151): two sizes either side of a threshold are not the field's cost.
   **Seen:** Deadnight #1077, 2026-11-04 (fix: 1017 to 1052, +35 for the WELCOME, 110 to 154 for the event).
+
+- **Approach:** When a harness starts a Godot server and client from Python, send each one's output to a file and
+  read the files after, and count bytes with the 60-line asyncio proxy of `sandbox/template-net/tools/run.py` (copy it,
+  keep it throwaway); keep a first cell that reports 0 bytes as a failed run, not a result. **Watch out for:** with
+  `stdout=subprocess.PIPE` the same client never connected to a server that a shell-started client reached at once
+  (0 bytes, no error; cause not found), and the first matrix of the spike held cells from a script that failed with
+  `SCRIPT ERROR` while the process went on running. **Seen:** gdstudio #883, 2026-11-10 (fix: log files, and the
+  harness prints any `ERROR` or `WARNING` line of either log).
 
 ## Web export {#web-export}
 
