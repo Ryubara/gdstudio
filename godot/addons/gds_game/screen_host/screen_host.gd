@@ -18,6 +18,10 @@ extends Node
 ##   same key opens and closes it;
 ## - the screen extends `UIScreen`; give it `back_closes` so Esc and pad B close it.
 ##
+## A screen may keep the game running: one with a `pauses_game()` method that returns false (an
+## inventory whose player chose so) unpauses the tree while it is the top screen. The tree is paused
+## from the open until the screen has arrived, so the transition is a moment of pause.
+##
 ## In a browser the first Esc only lets the pointer lock go and never reaches the game, so the host
 ## also watches the mouse: when the game had it captured and it is gone, the pause menu opens in
 ## that same frame. A lost window focus does the same (`pause_on_focus_loss`).
@@ -214,6 +218,16 @@ func _end(restore_mouse := true) -> void:
 func _on_screen_changed(depth: int) -> void:
 	if depth == 0 and _open:
 		_end()
+	elif depth > 0 and _open and pause_tree:
+		get_tree().paused = top_pauses_game()
+
+
+## Whether the screen on top wants the game paused: its `pauses_game()` when it has one, else true.
+func top_pauses_game() -> bool:
+	var top := UIRouter.top()
+	if top != null and top.has_method(&"pauses_game"):
+		return bool(top.call(&"pauses_game"))
+	return true
 
 
 func _mouse_mode() -> Input.MouseMode:

@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/inventory/model_preview.gd" id="1_preview"]
+
+[sub_resource type="Environment" id="Environment_preview"]
+background_mode = 1
+background_color = Color(0, 0, 0, 0)
+ambient_light_source = 2
+ambient_light_color = Color(0.86, 0.84, 0.92, 1)
+ambient_light_energy = 0.7
+
+[node name="ModelPreview" type="Control"]
+custom_minimum_size = Vector2(320, 360)
+layout_mode = 3
+anchors_preset = 0
+mouse_default_cursor_shape = 6
+script = ExtResource("1_preview")
+
+[node name="Viewport" type="SubViewport" parent="."]
+unique_name_in_owner = true
+transparent_bg = true
+msaa_3d = 2
+size = Vector2i(320, 360)
+render_target_update_mode = 0
+
+[node name="Camera" type="Camera3D" parent="Viewport"]
+unique_name_in_owner = true
+cull_mask = 524288
+environment = SubResource("Environment_preview")
+current = true
+fov = 34.0
+
+[node name="Picture" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5

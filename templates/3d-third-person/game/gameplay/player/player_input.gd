@@ -8,9 +8,11 @@ extends CharacterController
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
 ## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time,
-## holding the player's `ragdoll_key`). `Player.input_enabled` off gives a command that asks for
-## nothing; the view, a crouch or prone that was toggled on and a held jump stay. How prone is
-## asked for (a toggle, a hold, a long hold of crouch) is the player's `ProneTuning.input_mode`.
+## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
+## those same weapon presses, one a tick, so a screen adds nothing to the command.
+## `Player.input_enabled` off gives a command that asks for nothing; the view, a crouch or prone
+## that was toggled on and a held jump stay. How prone is asked for (a toggle, a hold, a long hold
+## of crouch) is the player's `ProneTuning.input_mode`.
 ##
 ## The view in the command is the camera that draws this node's viewport, so a `CameraZone` that
 ## takes the picture also takes the directions. Camera shake is taken out again (`camera_rig`):
@@ -22,6 +24,11 @@ const RAGDOLL_ACTION := &"ragdoll"
 const WEAPON_ACTIONS: Array[StringName] = [
 	&"reload", &"next_weapon", &"previous_weapon", &"toggle_unarmed"
 ]
+
+## No weapon asked for by `request_weapon` (-1 is the empty hands).
+const NO_REQUEST := -2
+## The most ticks a weapon request presses for before it gives up (a slot that cannot be reached).
+const REQUEST_TICKS := 32
 
 # How many `PlayerInput` nodes hold each key on the `ragdoll` action.
 static var _key_holders: Dictionary[Key, int] = {}
@@ -46,6 +53,9 @@ var _prone_latch := false
 var _crouch_held := 0.0
 var _crouch_press_used := false
 var _bound_key: Key = KEY_NONE
+# The slot a screen asked for, and how many ticks the request has pressed.
+var _wanted_slot := NO_REQUEST
+var _request_ticks := 0
 
 
 func _ready() -> void:
@@ -65,6 +75,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		var action := WEAPON_ACTIONS[index]
 		if InputMap.has_action(action) and event.is_action_pressed(action):
 			_weapon_latches[index] = true
+
+
+## Switches to the loadout's `slot` (`WeaponLoadout.UNARMED` for the empty hands) by the weapon
+## presses a player would make, one a tick from the next command on (`WeaponChooser`). It works
+## with the input turned off (a screen is up) and while the tree is paused it waits for the game.
+func request_weapon(slot: int) -> void:
+	_wanted_slot = slot
+	_request_ticks = 0
+
+
+## The slot a request is still pressing toward, or `NO_REQUEST`.
+func weapon_request() -> int:
+	return _wanted_slot
 
 
 ## Puts the player's `ragdoll_key` on the `ragdoll` action, in place of the key this node put
@@ -124,6 +147,7 @@ func sample() -> PlayerCommand:
 	if not enabled:
 		# Read and dropped: a button held while the input was off is no press when it comes back.
 		_weapon_presses()
+		_press_requested(command)
 		return command
 	command.sprint = Input.is_action_pressed(&"sprint")
 	command.walk = Input.is_action_pressed(&"walk")
@@ -139,6 +163,7 @@ func sample() -> PlayerCommand:
 	command.next_weapon_pressed = presses[1]
 	command.previous_weapon_pressed = presses[2]
 	command.unarmed_pressed = presses[3]
+	_press_requested(command)
 	if camera != null and player != null and player.shot_wanted(command):
 		_write_shot(command, camera)
 	return command
@@ -164,6 +189,26 @@ func _weapon_presses() -> Array[bool]:
 		_weapon_down[index] = down
 	_weapon_latches.fill(false)
 	return presses
+
+
+# Adds the press a weapon request needs this tick, and ends the request once the loadout is heading
+# for the slot (or after `REQUEST_TICKS`).
+func _press_requested(command: PlayerCommand) -> void:
+	if _wanted_slot == NO_REQUEST:
+		return
+	var press := WeaponChooser.NONE
+	if player != null and player.loadout != null:
+		press = WeaponChooser.press_toward(player.loadout, _wanted_slot)
+	_request_ticks += 1
+	if press == WeaponChooser.NONE or _request_ticks > REQUEST_TICKS:
+		_wanted_slot = NO_REQUEST
+	match press:
+		WeaponChooser.NEXT:
+			command.next_weapon_pressed = true
+		WeaponChooser.PREVIOUS:
+			command.previous_weapon_pressed = true
+		WeaponChooser.UNARMED:
+			command.unarmed_pressed = true
 
 
 # The view and the push. With a camera the view is the camera's and the stick is already in its
