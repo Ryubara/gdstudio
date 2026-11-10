@@ -21,6 +21,15 @@ that play the game are still to come.
 A WebSocket is TCP: nothing is lost or reordered, so a bad network shows as a stall followed by a burst. Send state
 that a later packet can repair, not changes that must each arrive.
 
+## The command
+
+What a client will send each physics tick is a `PlayerCommand` (`game/gameplay/player/player_command.gd`), and it is
+already what moves the character offline: `Player.step(command, delta)` is the only thing that moves a body, and the
+body reads no key and no camera. A server steps the same body with the commands it receives
+(`set_physics_process(false)`, then `step`), with `ragdoll_by_command` off and its own answer to `fell`.
+`CommandCodec` writes a command in 15 bytes, 27 with the crosshair's ray, which rides only on a tick where a shot can
+leave. The fields are in [the character page](character.md#commands).
+
 ## Trying it
 
 - `game/tools/net/echo_server.gd` is a bare server that answers every packet; `game/tools/net/relay.py` adds a delay
