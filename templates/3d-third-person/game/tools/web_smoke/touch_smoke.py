@@ -159,8 +159,10 @@ def main() -> int:
     problems: list[str] = []
     console_errors: list[str] = []
 
+    started = time.time()
+
     def check(name: str, ok: bool, detail: str) -> None:
-        checks[name] = {"ok": bool(ok), "detail": detail}
+        checks[name] = {"ok": bool(ok), "detail": detail, "at_s": round(time.time() - started, 1)}
         if not ok:
             problems.append(f"{name}: {detail}")
 
@@ -286,7 +288,7 @@ def main() -> int:
     result = {"checks": checks, "problems": problems, "scale": scale}
     (args.out / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     for name, entry in checks.items():
-        print(("ok   " if entry["ok"] else "FAIL ") + name + " (" + entry["detail"] + ")")
+        print(("ok   " if entry["ok"] else "FAIL ") + name + " (" + entry["detail"] + f") at {entry['at_s']:.0f} s")
     return 1 if problems else 0
 
 

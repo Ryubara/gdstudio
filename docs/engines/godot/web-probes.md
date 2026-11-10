@@ -80,6 +80,14 @@ Blank `ui/probe/web_probe.gd` is 34 lines) rather than loosening the check.
   software GL, which is the first frames' own shader work and not a regression; read it against `main`'s runs of the
   same runner. **Seen:** gdstudio #921, 2026-11-10 (the first-shot hitch of #946 is not seen by it).
 
+- **Approach:** A smoke that measures a distance or a turn in a duration waits on the game's own clock: the probe writes
+  `ticks` (`Engine.get_physics_frames()`) and the smoke waits for N ticks (`sim_wait` in `touch_smoke.py`), and CI opens
+  a phone page at a device pixel ratio of 1 (`--ratio 1`), since every check reads the canvas's own scale. **Watch out
+  for:** on the runner's software renderer the same `time.sleep(0.8)` was a fraction of the game time, so "keeps
+  walking after the look finger lifts" read 0.28 m and then 0.56 m against 2 m on a PC, and the whole smoke took 4 min
+  16 s at ratio 2 (the page drew 1688 by 780 pixels in SwiftShader). **Seen:** gdstudio #921, 2026-11-10 (fix: ticks
+  and `--ratio 1`).
+
 ## What a probe can see {#what-a-probe-sees}
 
 - **Approach:** Give a browser test a probe node that, only when `OS.has_feature("web")` and the page asks for it
