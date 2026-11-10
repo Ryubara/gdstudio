@@ -8,13 +8,15 @@ library is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to star
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
-    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --library <ual1.glb>
-        --out <prone.glb> [--report <numbers.json>]
+    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb>
+        --library <ual1.glb> --out <prone.glb> [--report <numbers.json>]
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop
 does not close, a planted elbow, hand or foot slides, the body sinks into the floor or rises over the prone height, a
-transition does not start or end on the pose it joins, or a limb goes more than 3 mm into another part of the body.
+transition does not start or end on the pose it joins, or a limb goes more than 5 mm into another part of the body on
+either mannequin (`../limb_overlap.py`, the check every clip build of the template shares; `--male` names the other
+mannequin).
 """
 
 import argparse
@@ -26,7 +28,6 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion
-from mathutils.bvhtree import BVHTree
 
 FPS = 30
 CLIPS = (
@@ -73,9 +74,7 @@ LEG_DRAW = 0.70  # the phase the knee starts to draw up again
 IDLE_FRAMES = 90
 TO_PRONE_FRAMES = 27
 TO_CROUCH_FRAMES = 30
-OVERLAP_LIMIT = (
-    0.003  # metres one part of the body may go into another it shares no joint with
-)
+OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`, both mannequins)
 # Coming up, where each hand and elbow wait beside the place they have in the crouch (forward, out to their own side
 # and up, in metres) while the knee comes forward under them.
 HAND_WAIT = {
@@ -86,7 +85,7 @@ HAND_WAIT_FRAMES = {
     "l": (13, 19, 26),
     "r": (14, 19, 25),
 }  # the hand leaves the floor, waits, takes its place
-KNEE_OPEN = 0.6  # how far the front knee opens to the side going down (added to its unit direction)
+KNEE_OPEN = 0.45  # how far the front knee opens to the side going down (added to its unit direction)
 
 
 # ---- small maths ------------------------------------------------------------------------------------------------
@@ -984,14 +983,18 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "knee": {},
         "flex": {},
         "foot_world": {},
-        "arm_w": [(0, 0.0), (6, 1.0), (n, 1.0)],
+        "arm_w": [(0, 0.0), (4, 1.0), (n, 1.0)],
         "leg_w": [(0, 0.0), (2, 1.0), (n, 1.0)],
         "anchor_w": [(0, 0.0), (21, 0.0), (n, 1.0)],
     }
     for s, sign in SIDES:
-        above = p["wrist_" + s] + vec(-0.16, sign * 0.13, 0.22)
+        above = p["wrist_" + s] + vec(-0.24, sign * 0.20, 0.22)
         keys["wrist"][s] = [
             (0, c["wrist_" + s]),
+            (
+                3,
+                c["wrist_" + s] + vec(0.16, sign * 0.03, 0.14),
+            ),  # up and ahead, over the knee
             (5, above),
             (9, p["wrist_" + s]),
             (n, p["wrist_" + s]),
@@ -1000,7 +1003,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (0, c["elbow_" + s]),
             (
                 4,
-                c["elbow_" + s] + vec(0.0, sign * 0.10, 0.06),
+                c["elbow_" + s] + vec(-0.04, sign * 0.18, 0.14),
             ),  # out, clear of the knee
             (9, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
             (19, p["elbow_" + s]),
@@ -1043,8 +1046,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         ]
         if s == "l":
             keys["knee"][s][1:2] = [
-                (4, crouch_knee[s]),
-                (8, open_knee),
+                (2, crouch_knee[s]),
+                (6, open_knee),
                 (11, open_knee),
             ]
         keys["foot_world"][s] = (
@@ -1417,134 +1420,11 @@ def planted_slide(rig, frames, travel):
     return out, speed
 
 
-# ---- limbs through limbs ----------------------------------------------------------------------------------------
-
-
-FINGERS = ("index", "middle", "ring", "pinky", "thumb")
-PARTS = {
-    "forearm_l": ("lowerarm_l", "hand_l") + tuple(f + "_" for f in FINGERS),
-    "forearm_r": ("lowerarm_r", "hand_r") + tuple(f + "_" for f in FINGERS),
-    "upperarm_l": ("upperarm_l",),
-    "upperarm_r": ("upperarm_r",),
-    "head": ("Head", "neck_01"),
-    "trunk": ("pelvis", "spine_", "clavicle_"),
-    "thigh_l": ("thigh_l",),
-    "thigh_r": ("thigh_r",),
-    "shin_l": ("calf_l", "foot_l", "ball_l", "ball_leaf_l"),
-    "shin_r": ("calf_r", "foot_r", "ball_r", "ball_leaf_r"),
-}
-# Every pair of parts with no joint between them. A part and its neighbour over a joint (a forearm and its own
-# upper arm, an upper arm and the trunk, a thigh and the trunk or its own shin) fold into each other by design.
-PAIRS = (
-    [("forearm_l", "forearm_r"), ("upperarm_l", "upperarm_r")]
-    + [("thigh_l", "thigh_r"), ("shin_l", "shin_r")]
-    + [(f"forearm_{s}", other) for s in "lr" for other in ("head", "trunk")]
-    + [(f"forearm_{s}", f"upperarm_{o}") for s, o in (("l", "r"), ("r", "l"))]
-    + [(f"upperarm_{s}", "head") for s in "lr"]
-    + [
-        (f"{arm}_{s}", f"{leg}_{o}")
-        for arm in ("forearm", "upperarm")
-        for leg in ("thigh", "shin")
-        for s in "lr"
-        for o in "lr"
-    ]
-    + [(f"shin_{s}", f"thigh_{o}") for s, o in (("l", "r"), ("r", "l"))]
-    + [(f"shin_{s}", other) for s in "lr" for other in ("trunk", "head")]
-)
-
-
-def part_of(owner):
-    for part, prefixes in PARTS.items():
-        for prefix in prefixes:
-            if owner == prefix or (prefix.endswith("_") and owner.startswith(prefix)):
-                if part.startswith("forearm") and not owner.endswith(part[-1]):
-                    continue
-                return part
-    return None
-
-
-AXES = np.vstack([np.eye(3), -np.eye(3)])
-
-
-def under(points, tree):
-    """How far each point lies inside a part: 0 outside. A point is inside when, on at least two of the three
-    axes, a ray each way meets the part's surface from behind (a part is open where it was cut from its
-    neighbour, so one axis may look out of the cut); the depth is the distance to the nearest surface."""
-    out = np.zeros(len(points))
-    for i, p in enumerate(points):
-        shut = np.zeros(6, dtype=bool)
-        for k, axis in enumerate(AXES):
-            _, normal, _, dist = tree.ray_cast(p.tolist(), axis.tolist())
-            shut[k] = dist is not None and float(np.array(normal) @ axis) > 0.0
-        if (shut[:3] & shut[3:]).sum() >= 2:
-            out[i] = tree.find_nearest(p.tolist())[3]
-    return out
-
-
-class Overlap:
-    """Measures, on a pose's skinned mesh, how deep each pair of parts that share no joint goes into the other."""
-
-    def __init__(self, rig, mesh):
-        self.rig = rig
-        mesh.data.calc_loop_triangles()
-        tris = np.array([t.vertices[:] for t in mesh.data.loop_triangles])
-        vert_part = np.array([part_of(o) or "" for o in rig.owner])
-        self.verts, self.tris = {}, {}
-        for part in PARTS:
-            inside = vert_part == part
-            self.verts[part] = np.nonzero(inside)[0]
-            remap = np.full(len(vert_part), -1)
-            remap[self.verts[part]] = np.arange(len(self.verts[part]))
-            self.tris[part] = remap[tris[inside[tris].all(axis=1)]].tolist()
-
-    def clip(self, frames):
-        """A clip's pairs that cross (frames, deepest, the frame and the bone it is at) and each part's lowest
-        vertex with its frame."""
-        rig, pairs, lowest = self.rig, {}, {}
-        for frame_no, pose in enumerate(frames):
-            skinned = rig.skin(rig.world(pose["local"], pose["pelvis"]))
-            trees = {}
-            for part in PARTS:
-                index = self.verts[part]
-                trees[part] = BVHTree.FromPolygons(
-                    skinned[index].tolist(), self.tris[part]
-                )
-                low = float(skinned[index, 2].min())
-                if low < lowest.get(part, (9.0, 0))[0]:
-                    lowest[part] = (round(low, 4), frame_no)
-            for a, b in PAIRS:
-                if not trees[a].overlap(trees[b]):
-                    continue
-                depth, where = 0.0, ""
-                for inner, outer in ((a, b), (b, a)):
-                    deep = under(skinned[self.verts[inner]], trees[outer])
-                    if deep.max() > depth:
-                        depth = float(deep.max())
-                        where = (
-                            f"{rig.owner[self.verts[inner][deep.argmax()]]} in {outer}"
-                        )
-                entry = pairs.setdefault(
-                    f"{a} x {b}",
-                    {"frames": 0, "deepest": 0.0, "at_frame": frame_no, "where": ""},
-                )
-                entry["frames"] += 1
-                if depth > entry["deepest"]:
-                    entry.update(
-                        deepest=round(depth, 4), at_frame=frame_no, where=where
-                    )
-        deepest = max([p["deepest"] for p in pairs.values()] + [0.0])
-        return {
-            "frames": len(frames),
-            "deepest": deepest,
-            "pairs": pairs,
-            "lowest": {k: list(v) for k, v in lowest.items()},
-        }
-
-
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
+    parser.add_argument("--male", required=True)
     parser.add_argument("--library", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--report")
@@ -1683,18 +1563,6 @@ def main():
                 per[group] = round(min(per.get(group, 9.0), low), 4)
         groups[name] = per
     report["lowest_by_part"] = groups
-    overlap = Overlap(rig, mesh)
-    report["overlap"] = {}
-    for name, frames in clips.items():
-        found = overlap.clip(frames)
-        report["overlap"][name] = {"deepest": found["deepest"], "pairs": found["pairs"]}
-        for pair, entry in found["pairs"].items():
-            if entry["deepest"] > OVERLAP_LIMIT:
-                failures.append(
-                    f"{name}: {pair} cross, {entry['deepest'] * 1000:.1f} mm deep at frame"
-                    f" {entry['at_frame']} ({entry['where']})"
-                )
-
     actions = {name: key_clip(arm, rig, name, frames) for name, frames in clips.items()}
     for name, frames in clips.items():
         off = check_against_blender(
@@ -1705,6 +1573,31 @@ def main():
             failures.append(
                 f"{name}: the script's skinning is {off:.4f} m off Blender's"
             )
+    # Limbs through each other, on both mannequins' skinned meshes, on every frame of the keyed clips.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import limb_overlap
+
+    male = limb_overlap.load_body(args.male, "male")
+    bodies = [limb_overlap.Body(arm, mesh, "female"), male]
+    report["overlap_mm"] = {}
+    for name, frames in clips.items():
+        measured = limb_overlap.measure(arm, actions[name], range(len(frames)), bodies)
+        report["overlap_mm"][name] = {}
+        for body, entry in measured.items():
+            report["overlap_mm"][name][body] = {
+                "deepest": entry["deepest_mm"],
+                "frame": entry["frame"],
+                "pair": entry["pair"],
+                "pairs": entry["pairs"],
+            }
+            if entry["deepest_mm"] > OVERLAP_LIMIT:
+                failures.append(
+                    f"{name} on the {body}: {entry['pair']} by {entry['deepest_mm']} mm at frame"
+                    f" {entry['frame']} (the limit is {OVERLAP_LIMIT} mm); all: {entry['pairs']}"
+                )
+    arm.animation_data.action = None
+    for obj in male.objects:
+        bpy.data.objects.remove(obj)
     print("REPORT", json.dumps(report, indent=1))
     if args.report:
         Path(args.report).write_text(
