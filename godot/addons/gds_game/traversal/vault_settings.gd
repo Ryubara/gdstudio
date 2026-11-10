@@ -30,7 +30,8 @@ enum Trigger {
 ## The least ground speed a vault needs; slower, the obstacle is mantled instead (when it may be).
 ## 0 lets a standing character vault.
 @export_range(0.0, 15.0, 0.05, "suffix:m/s") var min_vault_speed := 0.0
-## Seconds after a vault or a mantle before the next may start.
+## Seconds after a vault or a mantle before the automatic trigger may start the next (a sprint
+## that lands against another wall does not climb it at once); a press of jump is never held.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var cooldown := 0.25
 
 @export_group("Detection")

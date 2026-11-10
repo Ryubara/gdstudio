@@ -27,6 +27,13 @@ const SLAB := 0.06
 ## How many other bodies the depth cast leaves out before it gives up (a crowded far side).
 const OTHERS := 4
 
+# The shapes the casts use, made once and resized for each cast: a shape made for every cast is a
+# new physics server resource each time, which cost about as much again as the casts themselves.
+static var _ahead_box := BoxShape3D.new()
+static var _down_sphere := SphereShape3D.new()
+static var _depth_box := BoxShape3D.new()
+static var _path_capsule := CapsuleShape3D.new()
+
 
 ## Plans a crossing for `body` with its feet at `feet`, going along `direction` (flat), at `speed`
 ## m/s on the ground. `radius` and `height` are its standing capsule's. The casts use the body's
@@ -224,7 +231,7 @@ static func _cast_ahead(
 ) -> Dictionary:
 	# From just above a floor's bumps to the top of the highest crossing.
 	var bottom := 0.1
-	var box := BoxShape3D.new()
+	var box := _ahead_box
 	box.size = Vector3((radius - SKIN) * 2.0, reach - bottom, SLAB)
 	var basis := Basis.looking_at(forward, Vector3.UP)
 	var middle := feet + Vector3.UP * (bottom + (reach - bottom) / 2.0)
@@ -251,7 +258,7 @@ static func _cast_down(
 	mask: int,
 	exclude: Array[RID]
 ) -> Dictionary:
-	var sphere := SphereShape3D.new()
+	var sphere := _down_sphere
 	sphere.radius = maxf(radius, 0.02)
 	var start := Vector3(over.x, from_y + sphere.radius, over.z)
 	var query := _query(sphere, Transform3D(Basis.IDENTITY, start), mask, exclude)
@@ -290,7 +297,7 @@ static func _depth(
 	exclude: Array[RID]
 ) -> float:
 	var look := settings.max_vault_depth + SLAB
-	var box := BoxShape3D.new()
+	var box := _depth_box
 	box.size = Vector3((radius - SKIN) * 2.0, SLAB, SLAB)
 	var basis := Basis.looking_at(forward, Vector3.UP)
 	var start := feet + forward * (near + look + SLAB / 2.0)
@@ -335,7 +342,7 @@ static func _path_clear(
 	mask: int,
 	exclude: Array[RID]
 ) -> bool:
-	var capsule := CapsuleShape3D.new()
+	var capsule := _path_capsule
 	capsule.radius = radius - SKIN
 	capsule.height = maxf(height - SKIN * 2.0, capsule.radius * 2.0 + 0.01)
 	var rise := Vector3.UP * (height / 2.0)

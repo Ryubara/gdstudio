@@ -295,7 +295,7 @@ func test_the_clip_is_the_vault_or_the_climb_and_the_obstacles_own_wins() -> voi
 	assert_str(str(animation.last_action())).is_equal(str(CharacterClips.ROLL))
 
 
-func test_the_cooldown_holds_the_next_crossing() -> void:
+func test_the_cooldown_follows_a_crossing_and_a_press_right_after_landing_chains() -> void:
 	_wall(0.9, 0.4)
 	CommandDriver.take(_player)
 	var players: Array[Player] = [_player]
@@ -311,6 +311,30 @@ func test_the_cooldown_holds_the_next_crossing() -> void:
 	await CommandDriver.run(get_tree(), players, press, 60, watch)
 	assert_array(after_end).is_not_empty()
 	assert_float(after_end[0]).is_greater(0.0)
+	# A second wall just past the landing: a press during the cooldown still vaults it (only the
+	# automatic trigger waits).
+	await _reset()
+	_wall(0.9, 0.4)
+	var second := _arena.add_block(Vector2(0.0, -(FACE + 2.3)), Vector3(4.0, 0.9, 0.4), 0.9)
+	second.add_child(Vaultable.new())
+	CommandDriver.take(_player)
+	players = [_player]
+	var started: Array[VaultPlan] = []
+	_player.vault_started.connect(func(plan: VaultPlan) -> void: started.append(plan))
+	await CommandDriver.run(get_tree(), players, walk, 30)
+	await CommandDriver.run(get_tree(), players, press, 1)
+	var motion_now := _player.vault_motion()
+	assert_bool(motion_now.is_active()).is_true()
+	for _tick in 90:
+		if not motion_now.is_active():
+			break
+		await CommandDriver.run(get_tree(), players, walk, 1)
+	# Just landed: the cooldown runs, and a press now vaults the second wall.
+	assert_float(motion_now.cooldown).is_greater(0.0)
+	# Pressed on the tick after the landing: a new plan, though the state stays `VAULT`.
+	await CommandDriver.run(get_tree(), players, press, 60)
+	assert_int(started.size()).is_equal(2)
+	assert_float(-_player.global_position.z).is_greater(FACE + 2.5)
 
 
 func test_no_settings_never_vaults() -> void:

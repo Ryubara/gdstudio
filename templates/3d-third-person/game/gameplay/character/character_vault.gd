@@ -14,7 +14,7 @@ extends RefCounted
 var plan := VaultPlan.new()
 ## Seconds into the plan.
 var elapsed := 0.0
-## Seconds until the next crossing may start.
+## Seconds until the automatic trigger may start the next crossing.
 var cooldown := 0.0
 ## The last refusal of a probe, for a test or a debug overlay (not step state).
 var last_refusal: StringName = &""
@@ -47,7 +47,7 @@ func try_start(
 	radius: float,
 	height: float
 ) -> bool:
-	if settings == null or cooldown > 0.0 or is_active():
+	if settings == null or is_active():
 		return false
 	var speed := Vector2(body.velocity.x, body.velocity.z).length()
 	if not _asked(settings, command, wants_jump, speed):
@@ -107,8 +107,11 @@ func _asked(
 	settings: VaultSettings, command: PlayerCommand, wants_jump: bool, speed: float
 ) -> bool:
 	var by_jump := wants_jump and settings.trigger != VaultSettings.Trigger.AUTO_ON_SPRINT
+	# The cooldown holds only the automatic trigger: a press is meant, and one right after a landing
+	# chains the next wall.
 	var by_sprint := (
 		settings.trigger != VaultSettings.Trigger.PRESS_JUMP
+		and cooldown <= 0.0
 		and command.sprint
 		and not command.move.is_zero_approx()
 		and speed >= settings.auto_min_speed
