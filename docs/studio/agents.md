@@ -75,6 +75,11 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   out for:** a `/clear` keeps the loaded plugin module; alpha.33 was installed while the coordinator session ran on
   and only cleared, so alpha.32 (no alert for a running agent) stayed loaded and an agent grew from 501k to 599k
   unannounced. **Seen:** tether #29, 2026-11-10 (fix: Tether logs its loaded version at each start and clear).
+- **Approach:** When two Tether pull requests run at once, grep the merged `hooks/register.tsx` for each `on('<event>'`
+  you added after every merge of main, and fold a second hook of the same event into the one main has. **Watch out
+  for:** the engine refuses a second `on()` of an event without a matcher and the whole module does not load: tether
+  #31 and #32 each added a `classic.SubagentStop` hook, and after the merge every test failed with "registered twice".
+  **Seen:** tether #31, 2026-11-10 (fix: the status-line capture joined #32's hook before the pull request landed).
 - **Approach:** Make every script given to Monitor or run in the background end on its own (a deadline, and when its
   parent goes), and count the copies after each re-arm. **Watch out for:** the coordinator's pull request monitor was a
   `while true` loop; each 30-minute expiry of the Monitor tool left it running, and 35 orphaned copies forked about 70
