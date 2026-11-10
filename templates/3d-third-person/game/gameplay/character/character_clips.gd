@@ -45,6 +45,8 @@ const OPEN_CHEST := &"ual2/Chest_Open"
 const CLIMB_UP := &"ual2/ClimbUp_1m"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
+const SLIDE_START := &"ual2/Slide_Start"
+const SLIDE_EXIT := &"ual2/Slide_Exit"
 const CARRY_WALK := &"ual2/Walk_Carry"
 const THROW := &"ual2/OverhandThrow"
 

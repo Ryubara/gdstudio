@@ -128,6 +128,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   ends, and `gds godot` stops a run at 900 s (an avi encodes at about 15 ms a frame). **Seen:** Deadnight, 2026-11-01
   (the relative path); Deadnight #718, 2026-11-03 (fix: runs of one case each, three at a time; five minutes of sound
   and 40 minutes were lost to a deleted avi).
+- **Approach:** Prove a change left a sound as it was with a null test: the same scene captured before and after, both
+  tracks read by their own sample width (`<i4` for Movie Maker), the difference measured window by window (a few seconds
+  each) against each window's level, and the frames of any window that differs read to name what plays there.
+  **Watch out for:** a script that read the 32-bit track as `int16` gave every window the same -10.8 dB and looked like
+  a change; the whole action tour differed by -44 dB RMS only because its shots vary from run to run (its first 8 s),
+  while its walking differed by -70 to -83 dB (16-bit rounding) and a crowd of walkers by -65 dB. **Seen:** gdstudio
+  #1023, 2026-11-10.
 
 ## Layered gunshots and event-timed sounds {#layered-gunshots-and-event-timed-sounds}
 
@@ -299,6 +306,19 @@ frame that starts six sounds pays six times.
   Ogg Vorbis re-reads the headers, so every shot and kill cost the single-threaded web build 6 to 8 ms while the
   resource count stayed flat and nothing looked like a leak. **Seen:** Deadnight #387, 2026-11-01 (fix: Deadnight #402,
   decode on load and a start cap; a GdUnit test counts nodes and objects over a run and fails on an allocation per kill).
+
+Measured in the 3D Third Person template (desktop, Godot 4.7.2, gdstudio #1023): `AudioStreamPlayer3D.play()` of a
+0.1 s mono Ogg Vorbis step costs about 250 µs, of the same samples as an `AudioStreamWAV` about 1 µs. `DecodedSounds`
+of `gds_game` makes the WAV (`DecodedSounds.decoded(stream)`: short, non-looping Ogg Vorbis and MP3, at the mix rate,
+16-bit, mono when the channels match, made once and shared); the template's `Footsteps` plays its steps through it.
+
+- **Approach:** Decode a short sound that is started often (steps, shots, impacts) once and share the WAV across every
+  node that plays it; warm it in `_ready` so the first play does not decode; prove the sound unchanged with a null test
+  of two Movie Maker mixes, before and after. **Watch out for:** a crowd's footsteps paid the Ogg setup on every step
+  (14 µs a walking character a frame on the desktop, 22 in Chrome: 0.35 ms a frame for 25), while the step list
+  emptied cost 1.6 µs; the decode itself is a GDScript loop, 2 ms on the desktop and up to 16 ms in Chrome for four
+  steps, so it belongs in the load, not the frame. **Seen:** gdstudio #1023, 2026-11-10 (footsteps 13 µs to 2.3 on the
+  desktop, 22 to 7 to 8 in Chrome).
 
 A capped start returns no player: Deadnight's `Audio.play` answers null both for a dropped sound (too far, over its
 voice limit) and for one put off to the next frame by the starts-per-frame cap, which then plays. Code that schedules
