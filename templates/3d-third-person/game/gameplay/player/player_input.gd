@@ -6,8 +6,9 @@ extends CharacterController
 ## alone, so the same body is driven by a server, a recording or an AI with another controller.
 ##
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
-## `jump`, `sprint`, `walk`, `interact`, `crouch`, `aim`, `fire` and `ragdoll` (made at run time,
-## holding the player's `ragdoll_key`). `Player.input_enabled` off gives a command that asks for
+## `jump`, `sprint`, `walk`, `interact`, `crouch`, `aim`, `fire`, the weapon presses `reload`,
+## `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time, holding
+## the player's `ragdoll_key`). `Player.input_enabled` off gives a command that asks for
 ## nothing; the view, a crouch that was toggled on and a held jump stay.
 ##
 ## The view in the command is the camera that draws this node's viewport, so a `CameraZone` that
@@ -16,6 +17,10 @@ extends CharacterController
 
 ## The input action that kills and revives the character (the player's `ragdoll_key` is on it).
 const RAGDOLL_ACTION := &"ragdoll"
+## The weapon presses, in the order of the command's fields.
+const WEAPON_ACTIONS: Array[StringName] = [
+	&"reload", &"next_weapon", &"previous_weapon", &"toggle_unarmed"
+]
 
 # How many `PlayerInput` nodes hold each key on the `ragdoll` action.
 static var _key_holders: Dictionary[Key, int] = {}
@@ -30,6 +35,11 @@ static var _key_holders: Dictionary[Key, int] = {}
 var camera_rig: PlayerCamera
 
 var _crouch_latch := false
+# A weapon press seen as an event since the last command (a mouse wheel's press and release
+# arrive in one frame, which `is_action_just_pressed` may not see from a physics tick).
+var _weapon_latches: Array[bool] = [false, false, false, false]
+# Each weapon action was down at the last command.
+var _weapon_down: Array[bool] = [false, false, false, false]
 var _bound_key: Key = KEY_NONE
 
 
@@ -43,6 +53,13 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_release_key()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	for index in WEAPON_ACTIONS.size():
+		var action := WEAPON_ACTIONS[index]
+		if InputMap.has_action(action) and event.is_action_pressed(action):
+			_weapon_latches[index] = true
 
 
 ## Puts the player's `ragdoll_key` on the `ragdoll` action, in place of the key this node put
@@ -98,6 +115,8 @@ func sample() -> PlayerCommand:
 	# As before the command: a jump held when the input is turned off still rises its full height.
 	command.jump = Input.is_action_pressed(&"jump")
 	if not enabled:
+		# Read and dropped: a button held while the input was off is no press when it comes back.
+		_weapon_presses()
 		return command
 	command.sprint = Input.is_action_pressed(&"sprint")
 	command.walk = Input.is_action_pressed(&"walk")
@@ -108,6 +127,11 @@ func sample() -> PlayerCommand:
 	command.interact_pressed = Input.is_action_just_pressed(&"interact")
 	# The action exists: `_ready` made it.
 	command.ragdoll_pressed = Input.is_action_just_pressed(RAGDOLL_ACTION)
+	var presses := _weapon_presses()
+	command.reload_pressed = presses[0]
+	command.next_weapon_pressed = presses[1]
+	command.previous_weapon_pressed = presses[2]
+	command.unarmed_pressed = presses[3]
 	if camera != null and player != null and player.shot_wanted(command):
 		_write_shot(command, camera)
 	return command
@@ -117,6 +141,22 @@ func sample() -> PlayerCommand:
 func viewer_position() -> Vector3:
 	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
 	return camera.global_position if camera != null else Vector3.INF
+
+
+# Each weapon action pressed since the last command, and the latches emptied. A press is the
+# action going down between two commands (a key, a pad button, a touch button's
+# `Input.action_press`), or a press seen as an event while the action is up again (a wheel notch,
+# down and up in one frame): never both for one press, whichever arrives first.
+func _weapon_presses() -> Array[bool]:
+	var presses: Array[bool] = []
+	for index in WEAPON_ACTIONS.size():
+		var action := WEAPON_ACTIONS[index]
+		var down := InputMap.has_action(action) and Input.is_action_pressed(action)
+		var went_down := down and not _weapon_down[index]
+		presses.append(went_down or (_weapon_latches[index] and not down))
+		_weapon_down[index] = down
+	_weapon_latches.fill(false)
+	return presses
 
 
 # The view and the push. With a camera the view is the camera's and the stick is already in its

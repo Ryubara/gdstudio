@@ -38,7 +38,7 @@ func _step(seconds: float) -> float:
 
 func _shoot() -> void:
 	_rig.shaker.clear()
-	_player.weapon._cooldown = 0.0
+	_player.weapon.make_ready()
 	assert_object(_player.weapon.fire()).is_not_null()
 
 

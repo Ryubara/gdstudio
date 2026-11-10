@@ -11,6 +11,7 @@ const NOT_STATE := {
 	&"model": "an export (a node)",
 	&"controller": "an export (a node)",
 	&"weapon": "an export (a node)",
+	&"loadout": "an export (a node); its own state is `CharacterState.loadout`",
 	&"ragdoll_body": "an export (a node)",
 	&"ragdoll": "an export; death is an event (die, revive), not restored",
 	&"ragdoll_key": "an export",
@@ -185,14 +186,16 @@ func _press_fire(count: int) -> Array:
 
 
 func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -> void:
-	_player.weapon.spread = 5.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	_player.weapon.definition.spread = 5.0
 	var aim := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
 	aim.aim = true
 	await _run(aim, 30)
 	# A first shot, then ten ticks into its quarter second of cooldown.
 	assert_array(await _press_fire(10)).has_size(2)
 	var kept := _player.state_snapshot()
-	assert_array(kept.weapon).has_size(2)
+	assert_array(kept.weapon).has_size(5)
 	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
 	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
 	var first := await _press_fire(40)

@@ -31,6 +31,12 @@ var jump_pressed := false
 var fire_pressed := false
 var interact_pressed := false
 var ragdoll_pressed := false
+## The reload button, the next and previous weapon buttons and the switch to the empty hands (and
+## back), pressed since the last command (`WeaponLoadout`).
+var reload_pressed := false
+var next_weapon_pressed := false
+var previous_weapon_pressed := false
+var unarmed_pressed := false
 
 # The shot block.
 ## A shot may leave the muzzle this tick (the fire button was pressed or is buffered and the weapon
@@ -82,6 +88,10 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	fire_pressed = other.fire_pressed
 	interact_pressed = other.interact_pressed
 	ragdoll_pressed = other.ragdoll_pressed
+	reload_pressed = other.reload_pressed
+	next_weapon_pressed = other.next_weapon_pressed
+	previous_weapon_pressed = other.previous_weapon_pressed
+	unarmed_pressed = other.unarmed_pressed
 	has_shot = other.has_shot
 	origin = other.origin
 	shot_yaw = other.shot_yaw
@@ -117,6 +127,10 @@ func clear_edges() -> void:
 	fire_pressed = false
 	interact_pressed = false
 	ragdoll_pressed = false
+	reload_pressed = false
+	next_weapon_pressed = false
+	previous_weapon_pressed = false
+	unarmed_pressed = false
 	has_shot = false
 	origin = Vector3.ZERO
 	shot_yaw = 0.0
@@ -132,6 +146,10 @@ func merge_edges_from(earlier: PlayerCommand) -> void:
 	fire_pressed = fire_pressed or earlier.fire_pressed
 	interact_pressed = interact_pressed or earlier.interact_pressed
 	ragdoll_pressed = ragdoll_pressed or earlier.ragdoll_pressed
+	reload_pressed = reload_pressed or earlier.reload_pressed
+	next_weapon_pressed = next_weapon_pressed or earlier.next_weapon_pressed
+	previous_weapon_pressed = previous_weapon_pressed or earlier.previous_weapon_pressed
+	unarmed_pressed = unarmed_pressed or earlier.unarmed_pressed
 	if earlier.has_shot and not has_shot:
 		has_shot = true
 		origin = earlier.origin

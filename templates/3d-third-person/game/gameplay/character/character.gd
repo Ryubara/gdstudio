@@ -91,6 +91,10 @@ enum State {
 		weapon = value
 		if weapon != null and not Engine.is_editor_hint():
 			weapon.self_ticking = false
+## The weapons carried and the switch between them (the command's next, previous and empty-hands
+## presses). Empty: the character keeps the one weapon it has. The character steps it before the
+## weapon.
+@export var loadout: WeaponLoadout
 
 @export_group("Ragdoll")
 ## The ragdoll the character goes limp into when it dies. Empty: it dies standing still.
@@ -219,7 +223,9 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_fall_out()
 	else:
 		_move(delta)
-	# Last, as the weapon's own tick came after the body's.
+	# Last, as the weapon's own tick came after the body's; the switch before the weapon.
+	if loadout != null:
+		loadout.tick(delta)
 	if weapon != null:
 		weapon.tick(delta)
 
@@ -247,7 +253,8 @@ func _move(delta: float) -> void:
 func shot_wanted(command: PlayerCommand) -> bool:
 	if weapon == null or state == State.DEAD or not weapon.can_fire():
 		return false
-	return _fire_buffer > 0.0 or command.fire_pressed or (weapon.automatic and command.fire)
+	var automatic := weapon.definition != null and weapon.definition.automatic
+	return _fire_buffer > 0.0 or command.fire_pressed or (automatic and command.fire)
 
 
 ## The ray the character aims along, from the command of its last step: where it starts and its
@@ -270,6 +277,10 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 		weapon.save_step_state(kept.weapon)
 	else:
 		kept.weapon.clear()
+	if loadout != null:
+		loadout.save_step_state(kept.loadout)
+	else:
+		kept.loadout.clear()
 	return kept
 
 
@@ -280,6 +291,8 @@ func restore(kept: CharacterState) -> void:
 	velocity = kept.velocity
 	for index in CharacterState.FIELDS.size():
 		set(CharacterState.FIELDS[index], kept.values[index])
+	if loadout != null:
+		loadout.load_step_state(kept.loadout)
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
 	_fit_body()
@@ -317,6 +330,8 @@ func die() -> void:
 	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start(viewer)
 	_wants_crouch = false
 	_fire_buffer = 0.0
+	if weapon != null:
+		weapon.cancel_reload()
 	_action_lock = 0.0
 	_land_timer = 0.0
 	_jump_buffer = 0.0
@@ -755,16 +770,26 @@ func _use_input(delta: float) -> void:
 	_use_weapon(delta)
 
 
-# A press of the fire button waits a moment for the arm to come up, then shoots.
+# The weapon presses (switch, reload), then the trigger: a press of the fire button waits a moment
+# for the arm to come up, then shoots (or clicks on an empty magazine).
 func _use_weapon(delta: float) -> void:
 	_fire_buffer = maxf(_fire_buffer - delta, 0.0)
+	if loadout != null:
+		if last_command.unarmed_pressed:
+			loadout.toggle_unarmed()
+		elif last_command.next_weapon_pressed:
+			loadout.next()
+		elif last_command.previous_weapon_pressed:
+			loadout.previous()
 	if weapon == null:
 		return
+	if last_command.reload_pressed:
+		weapon.reload()
 	var pulled := last_command.fire_pressed
-	if weapon.automatic and last_command.fire:
+	if weapon.definition != null and weapon.definition.automatic and last_command.fire:
 		pulled = true
 	if pulled:
 		_fire_buffer = tuning.fire_buffer_time
 	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount:
-		if weapon.fire(_aim_origin(), _aim_direction()) != null:
+		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
 			_fire_buffer = 0.0

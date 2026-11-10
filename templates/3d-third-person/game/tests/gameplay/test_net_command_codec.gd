@@ -44,6 +44,10 @@ func _assert_same(actual: PlayerCommand, expected: PlayerCommand) -> void:
 		"fire_pressed",
 		"interact_pressed",
 		"ragdoll_pressed",
+		"reload_pressed",
+		"next_weapon_pressed",
+		"previous_weapon_pressed",
+		"unarmed_pressed",
 		"has_shot",
 	]:
 		assert_bool(actual.get(field)).override_failure_message(field).is_equal(expected.get(field))
@@ -94,11 +98,44 @@ func test_each_flag_travels_alone() -> void:
 		"fire_pressed",
 		"interact_pressed",
 		"ragdoll_pressed",
+		"reload_pressed",
+		"next_weapon_pressed",
+		"previous_weapon_pressed",
+		"unarmed_pressed",
 	]:
 		var command := PlayerCommand.new()
 		command.set(field, true)
 		var decoded := CommandCodec.decode(CommandCodec.encode(command))
 		_assert_same(decoded, command)
+
+
+func test_the_weapon_presses_take_bits_11_to_14_and_bit_15_is_still_refused() -> void:
+	var bits := {
+		"reload_pressed": CommandCodec.F_RELOAD_PRESSED,
+		"next_weapon_pressed": CommandCodec.F_NEXT_WEAPON_PRESSED,
+		"previous_weapon_pressed": CommandCodec.F_PREVIOUS_WEAPON_PRESSED,
+		"unarmed_pressed": CommandCodec.F_UNARMED_PRESSED,
+	}
+	var shift := 11
+	for field: String in bits:
+		assert_int(bits[field]).override_failure_message(field).is_equal(1 << shift)
+		var command := PlayerCommand.new()
+		command.set(field, true)
+		assert_int(CommandCodec.encode(command).decode_u16(11)).is_equal(1 << shift)
+		shift += 1
+	assert_int(CommandCodec.F_UNUSED).is_equal(1 << 15)
+	# A press survives two commands arriving together, and a repeat drops it.
+	var earlier := PlayerCommand.new()
+	earlier.reload_pressed = true
+	earlier.unarmed_pressed = true
+	var later := PlayerCommand.new()
+	later.merge_edges_from(earlier)
+	assert_bool(later.reload_pressed and later.unarmed_pressed).is_true()
+	later.clear_edges()
+	assert_bool(later.reload_pressed or later.unarmed_pressed).is_false()
+	# The layout changed: the version went up past the first one.
+	assert_int(NetWire.VERSION).is_greater_equal(2)
+	assert_bool(NetWire.accepts(1)).is_false()
 
 
 func test_a_quantized_command_equals_what_the_codec_decodes() -> void:

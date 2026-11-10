@@ -4,9 +4,11 @@ extends Node
 ## Plays the clip for what the `Character` is doing, through an `AnimationTree` it builds: a state
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
 ## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
-## pistol layer (the pistol sits in one hand while the arms and the spine follow the locomotion
-## clip; aiming or firing brings the arm up to aim by its look, and a shot recoils) and a
-## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
+## weapon layer built from the held `WeaponDef`'s clips (the weapon sits in one hand while the
+## arms and the spine follow the locomotion clip; aiming or firing brings the arm up to aim by its
+## look, a shot recoils or a blow is thrown, a reload plays stretched to the reload's time, and a
+## switch lowers the arm and brings the next weapon up) and a one-shot layer on the whole body for
+## actions (interact, hit, and any clip a game asks for with
 ## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
 ##
@@ -57,6 +59,9 @@ const _SHOOT_CLIP := "ShootClip"
 const _SHOOT_SCALE := "ShootScale"
 const _SHOOT := "Shoot"
 const _AIM := "Aim"
+const _RELOAD_CLIP := "ReloadClip"
+const _RELOAD_SCALE := "ReloadScale"
+const _RELOAD := "Reload"
 
 @export_group("Nodes")
 ## The character that is animated.
@@ -130,43 +135,12 @@ const _AIM := "Aim"
 		hit_clip = value
 		_rebuild()
 
-@export_group("Pistol")
-## How the weapon is carried while the character is not aiming or firing.
+@export_group("Weapon")
+## How the weapon is carried while the character is not aiming or firing. The clips are the held
+## weapon's (`WeaponDef`: grip, aim level, up and down, shots, reload).
 @export var carry := Carry.HAND_ONLY:
 	set(value):
 		carry = value
-		_rebuild()
-## The grip pose: the clip whose pose the gripping hand takes while the weapon is held (and, in
-## the `HELD_POSE` carry, the whole upper body).
-@export var grip_clip: StringName = CharacterClips.PISTOL_IDLE:
-	set(value):
-		grip_clip = value
-		_rebuild()
-## The bones that take the grip pose in the `HAND_ONLY` carry: each one and every bone below it
-## (the wrist, the fingers and the thumb). Add the other hand for a two-handed weapon.
-@export var grip_bones: Array[StringName] = [&"hand_r"]:
-	set(value):
-		grip_bones = value
-		_rebuild()
-## Aiming level; the aim blends to the clips below by how far up or down the character looks.
-@export var aim_clip: StringName = CharacterClips.PISTOL_AIM:
-	set(value):
-		aim_clip = value
-		_rebuild()
-## Aiming up (the character looks `aim_pitch_range` degrees up).
-@export var aim_up_clip: StringName = CharacterClips.PISTOL_AIM_UP:
-	set(value):
-		aim_up_clip = value
-		_rebuild()
-## Aiming down (the character looks `aim_pitch_range` degrees down).
-@export var aim_down_clip: StringName = CharacterClips.PISTOL_AIM_DOWN:
-	set(value):
-		aim_down_clip = value
-		_rebuild()
-## The recoil of a shot, played on the upper body.
-@export var shoot_clip: StringName = CharacterClips.PISTOL_SHOOT:
-	set(value):
-		shoot_clip = value
 		_rebuild()
 ## The bone where the upper body starts: it and everything below it in the skeleton (spine, arms,
 ## head, fingers) take the pistol layer; the legs do not.
@@ -202,6 +176,9 @@ var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
 var _ground_speeds: Array = []
 var _shoot_scale_node: AnimationNodeTimeScale
+var _shoot_clip_node: AnimationNodeAnimation
+var _shots := 0
+var _watched_hold: WeaponDef
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
 var _playback: AnimationNodeStateMachinePlayback
@@ -234,6 +211,9 @@ func _ready() -> void:
 	character.took_hit.connect(_on_hit)
 	if character.weapon != null:
 		character.weapon.fired.connect(_on_shot)
+		character.weapon.definition_changed.connect(_on_definition_changed)
+		character.weapon.reload_started.connect(_on_reload_started)
+		character.weapon.reload_cancelled.connect(stop_reload)
 
 
 func _notification(what: int) -> void:
@@ -317,6 +297,24 @@ func aim_pitch() -> float:
 	return tree.get(&"parameters/%s/blend_position" % _AIM_POSE) if tree != null else 0.0
 
 
+## True while the reload clip plays over the upper body.
+func is_reloading() -> bool:
+	return tree != null and tree.get(&"parameters/%s/active" % _RELOAD)
+
+
+## Stops the reload clip (a switch or a death cut the reload short).
+func stop_reload() -> void:
+	if tree != null and tree.tree_root != null:
+		tree.set(&"parameters/%s/request" % _RELOAD, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+
+
+## The weapon definition whose clips the weapon layer plays, or null.
+func held_definition() -> WeaponDef:
+	if character == null or character.weapon == null:
+		return null
+	return character.weapon.definition
+
+
 ## Stops an action clip early.
 func stop_clip() -> void:
 	if tree != null:
@@ -373,8 +371,21 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _build() -> void:
+	_watch_hold()
 	tree.anim_player = tree.get_path_to(animation_player)
 	tree.tree_root = _build_root()
+
+
+# Builds the tree again when a clip of the held definition changes (tuned in the inspector).
+func _watch_hold() -> void:
+	var hold := held_definition()
+	if hold == _watched_hold:
+		return
+	if _watched_hold != null and _watched_hold.changed.is_connected(_rebuild):
+		_watched_hold.changed.disconnect(_rebuild)
+	_watched_hold = hold
+	if hold != null:
+		hold.changed.connect(_rebuild)
 
 
 # Builds the tree again from the exports: in the editor so the graph shows the change, and in
@@ -414,7 +425,12 @@ func _sync_ground_speeds() -> void:
 # rising for `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`), so a
 # tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
-	var armed := 1.0 if character.weapon != null else 0.0
+	var hold := held_definition()
+	var up_share := 1.0
+	if character.loadout != null:
+		up_share = 1.0 - character.loadout.lowered_amount()
+	var armed := up_share if hold != null and hold.grip_clip != &"" else 0.0
+	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
 	_shot_hold = maxf(_shot_hold - delta, 0.0)
 	_shot_arm = move_toward(
@@ -422,7 +438,7 @@ func _drive_pistol(delta: float) -> void:
 	)
 	var arm := maxf(character.aim_amount, _shot_arm)
 	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
-	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * armed)
+	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * aims)
 	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(
@@ -482,7 +498,28 @@ func _on_hit(_amount: float, _source: Node3D) -> void:
 func _on_shot(_projectile: Projectile) -> void:
 	_shot_hold = shot_hold_time
 	_shot_arm = maxf(_shot_arm, character.aim_amount)
+	var hold := held_definition()
+	if hold != null and hold.shoot_clips.size() > 1 and _shoot_clip_node != null:
+		# One clip after another shot by shot (a jab, then a cross).
+		_shoot_clip_node.animation = hold.shoot_clips[_shots % hold.shoot_clips.size()]
+	_shots += 1
 	tree.set(&"parameters/%s/request" % _SHOOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+func _on_definition_changed(_definition: WeaponDef) -> void:
+	_shots = 0
+	_rebuild()
+
+
+func _on_reload_started(seconds: float) -> void:
+	var hold := held_definition()
+	if hold == null or hold.reload_clip == &"":
+		return
+	if not animation_player.has_animation(hold.reload_clip):
+		return
+	var length := animation_player.get_animation(hold.reload_clip).length
+	tree.set(&"parameters/%s/scale" % _RELOAD_SCALE, length / maxf(seconds, 0.01))
+	tree.set(&"parameters/%s/request" % _RELOAD, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
 func _travel(state: StringName) -> void:
@@ -501,18 +538,24 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
-	root.add_node(_ACTION, action, Vector2(1000, 0))
+	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
-	root.connect_node(_ACTION, 0, _AIM)
+	root.connect_node(_ACTION, 0, _RELOAD)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
 
 
-# The pistol layer: `Armed` blends the grip pose over the locomotion, on the gripping hand only (or
-# on the whole upper body in the `HELD_POSE` carry), `Aim` blends the aim pose (with a recoil
-# one-shot over it) over that, on the upper body.
+# The weapon layer, from the held definition's clips: `Armed` blends the grip pose over the
+# locomotion, on the gripping hand only (or on the whole upper body in the `HELD_POSE` carry), `Aim`
+# blends the aim pose over that on the upper body, `Shoot` plays a shot's clip (a recoil, a blow)
+# over whatever is under it, and `Reload` the reload clip, both on the upper body. A clip the
+# definition leaves empty is the idle clip with no weight (`_drive_pistol`).
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
+	var hold := held_definition()
+	var grip_bones: Array[StringName] = []
+	if hold != null:
+		grip_bones = hold.grip_bones
 	var upper := _bone_paths([upper_body_bone])
 	var held := _bone_paths(grip_bones) if carry == Carry.HAND_ONLY else upper
 	var armed := AnimationNodeBlend2.new()
@@ -523,33 +566,59 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	shoot.fadein_time = 0.03
 	shoot.fadeout_time = 0.12
 	shoot.filter_enabled = true
+	var reload := AnimationNodeOneShot.new()
+	reload.fadein_time = 0.15
+	reload.fadeout_time = 0.2
+	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
 	for path in upper:
 		aim.set_filter_path(path, true)
 		shoot.set_filter_path(path, true)
+		reload.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
 	pose.min_space = -aim_pitch_range
 	pose.max_space = aim_pitch_range
 	pose.sync = true
-	pose.add_blend_point(_clip(aim_down_clip), -aim_pitch_range, -1, &"down")
-	pose.add_blend_point(_clip(aim_clip), 0.0, -1, &"level")
-	pose.add_blend_point(_clip(aim_up_clip), aim_pitch_range, -1, &"up")
+	pose.add_blend_point(_hold_clip(hold, &"aim_down_clip"), -aim_pitch_range, -1, &"down")
+	pose.add_blend_point(_hold_clip(hold, &"aim_clip"), 0.0, -1, &"level")
+	pose.add_blend_point(_hold_clip(hold, &"aim_up_clip"), aim_pitch_range, -1, &"up")
 	_shoot_scale_node = AnimationNodeTimeScale.new()
-	root.add_node(_PISTOL_IDLE, _clip(grip_clip), Vector2(200, 400))
+	var first_shot: StringName = &""
+	if hold != null and not hold.shoot_clips.is_empty():
+		first_shot = hold.shoot_clips[0]
+	_shoot_clip_node = _clip(_or_idle(first_shot))
+	root.add_node(_PISTOL_IDLE, _hold_clip(hold, &"grip_clip"), Vector2(200, 400))
 	root.add_node(_ARMED, armed, Vector2(400, 0))
-	root.add_node(_AIM_POSE, pose, Vector2(200, 600))
-	root.add_node(_SHOOT_CLIP, _clip(shoot_clip), Vector2(200, 800))
-	root.add_node(_SHOOT_SCALE, _shoot_scale_node, Vector2(400, 800))
-	root.add_node(_SHOOT, shoot, Vector2(600, 600))
-	root.add_node(_AIM, aim, Vector2(800, 0))
-	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
+	root.add_node(_AIM_POSE, pose, Vector2(400, 600))
+	root.add_node(_AIM, aim, Vector2(600, 0))
+	root.add_node(_SHOOT_CLIP, _shoot_clip_node, Vector2(400, 800))
+	root.add_node(_SHOOT_SCALE, _shoot_scale_node, Vector2(600, 800))
+	root.add_node(_SHOOT, shoot, Vector2(800, 0))
+	root.add_node(_RELOAD_CLIP, _hold_clip(hold, &"reload_clip"), Vector2(800, 1000))
+	root.add_node(_RELOAD_SCALE, AnimationNodeTimeScale.new(), Vector2(1000, 1000))
+	root.add_node(_RELOAD, reload, Vector2(1200, 0))
 	root.connect_node(_ARMED, 0, _MACHINE)
 	root.connect_node(_ARMED, 1, _PISTOL_IDLE)
-	root.connect_node(_SHOOT, 0, _AIM_POSE)
-	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
 	root.connect_node(_AIM, 0, _ARMED)
-	root.connect_node(_AIM, 1, _SHOOT)
+	root.connect_node(_AIM, 1, _AIM_POSE)
+	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
+	root.connect_node(_SHOOT, 0, _AIM)
+	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
+	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
+	root.connect_node(_RELOAD, 0, _SHOOT)
+	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
+
+
+# The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it
+# empty (its layer then has no weight).
+func _hold_clip(hold: WeaponDef, property: StringName) -> AnimationNodeAnimation:
+	var clip: StringName = hold.get(property) if hold != null else &""
+	return _clip(_or_idle(clip))
+
+
+func _or_idle(clip: StringName) -> StringName:
+	return clip if clip != &"" else idle_clip
 
 
 # The filter paths of the given bones and every bone below each of them, as the clips' tracks name

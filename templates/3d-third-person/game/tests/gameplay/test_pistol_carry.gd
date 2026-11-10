@@ -172,14 +172,22 @@ func test_the_held_pose_carry_holds_the_whole_upper_body_as_before() -> void:
 	_assert_follows_the_clip("back to hand only")
 
 
+# The pistol's definition with its own copy, so a change to its hold reaches no other suite.
+func _own_hold() -> WeaponDef:
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	await _settle()
+	return _player.weapon.definition
+
+
 func test_the_grip_bones_choose_which_hands_take_the_grip() -> void:
-	_animation.grip_bones = [&"hand_r", &"hand_l"]
+	var hold := await _own_hold()
+	hold.grip_bones = [&"hand_r", &"hand_l"]
 	await _settle()
 	for bone in [&"hand_r", &"index_02_r", &"hand_l", &"thumb_02_l", &"pinky_03_l"]:
 		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(1.0)
 	for bone in [&"lowerarm_l", &"lowerarm_r", &"spine_02"]:
 		assert_float(_layer(bone, "Armed")).override_failure_message(String(bone)).is_equal(0.0)
-	_animation.grip_bones = [&"hand_r", &"no_such_bone"]
+	hold.grip_bones = [&"hand_r", &"no_such_bone"]
 	await _settle()
 	assert_float(_layer(&"hand_r", "Armed")).is_equal(1.0)
 	assert_float(_layer(&"hand_l", "Armed")).is_equal(0.0)
@@ -188,7 +196,8 @@ func test_the_grip_bones_choose_which_hands_take_the_grip() -> void:
 func test_the_grip_clip_is_the_one_the_tree_plays_on_the_hand() -> void:
 	var clip := _root().get_node("PistolIdle") as AnimationNodeAnimation
 	assert_str(String(clip.animation)).is_equal(String(CharacterClips.PISTOL_IDLE))
-	_animation.grip_clip = CharacterClips.PISTOL_AIM
+	var hold := await _own_hold()
+	hold.grip_clip = CharacterClips.PISTOL_AIM
 	clip = _root().get_node("PistolIdle") as AnimationNodeAnimation
 	assert_str(String(clip.animation)).is_equal(String(CharacterClips.PISTOL_AIM))
 

@@ -230,7 +230,9 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	var rates: Dictionary[String, float] = {}
 	for automatic: bool in [false, true]:
 		var human := _arena.add_player(Vector3(0.0, 0.0, 6.0 if automatic else 3.0))
-		human.weapon.automatic = automatic
+		# Its own copy: the pistol's definition is shared by every weapon that holds it.
+		human.weapon.definition = human.weapon.definition.duplicate()
+		human.weapon.definition.automatic = automatic
 		var camera := Camera3D.new()
 		camera.position = Vector3(0.0, 1.3, 9.0)
 		_arena.add_child(camera)

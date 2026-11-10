@@ -138,8 +138,10 @@ func test_the_fire_button_aims_and_shoots_one_projectile_a_press() -> void:
 
 
 func test_holding_fire_shoots_over_and_over_when_the_weapon_is_automatic() -> void:
-	_weapon().automatic = true
-	_weapon().fire_rate = 10.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon().definition = _weapon().definition.duplicate()
+	_weapon().definition.automatic = true
+	_weapon().definition.fire_rate = 10.0
 	var shots: Array[Projectile] = []
 	_weapon().fired.connect(func(shot: Projectile) -> void: shots.append(shot))
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
@@ -148,7 +150,9 @@ func test_holding_fire_shoots_over_and_over_when_the_weapon_is_automatic() -> vo
 
 
 func test_the_fire_rate_spaces_the_shots() -> void:
-	_weapon().fire_rate = 2.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon().definition = _weapon().definition.duplicate()
+	_weapon().definition.fire_rate = 2.0
 	assert_object(_weapon().fire()).is_not_null()
 	assert_object(_weapon().fire()).is_null()
 	await InputSim.ticks(get_tree(), 20)
@@ -178,7 +182,9 @@ func test_a_shot_leaves_the_muzzle_and_flies_to_the_point_under_the_crosshair() 
 	# The shot's direction is from the muzzle to the aim point.
 	var want := (point - _weapon().muzzle.global_position).normalized()
 	assert_float(shot.velocity.normalized().dot(want)).is_greater(0.999)
-	assert_float(shot.velocity.length()).is_equal_approx(_weapon().projectile_speed, 0.01)
+	assert_float(shot.velocity.length()).is_equal_approx(
+		_weapon().definition.projectile_speed, 0.01
+	)
 	var hit: Array = []
 	shot.impacted.connect(
 		func(collider: Node, _p: Vector3, _n: Vector3) -> void: hit.append(collider)

@@ -34,6 +34,11 @@ enum Source {
 	set(value):
 		max_property = value
 		update()
+## A third number shown in the text as `{extra}` (the ammo's reserve). Empty, or missing: none.
+@export var extra_property: StringName = &"":
+	set(value):
+		extra_property = value
+		update()
 ## The signals that make the part read again: the number changed, the weapon was swapped, the
 ## player died or got up.
 @export
@@ -57,7 +62,8 @@ var refresh_signals: Array[StringName] = [&"health_changed", &"took_hit", &"died
 		update()
 ## The number as text: `{value}` is replaced.
 @export var value_format := "{value}"
-## The number as text when there is a largest number: `{value}` and `{max}` are replaced.
+## The number as text when there is a largest number: `{value}`, `{max}` and `{extra}` are
+## replaced.
 @export var max_format := "{value} / {max}"
 ## Below this share of the largest number the bar takes the low colour.
 @export_range(0.0, 1.0, 0.01) var low_share := 0.25
@@ -113,6 +119,8 @@ func _refresh() -> void:
 	var values := {"value": roundi(value)}
 	if largest != null:
 		values["max"] = roundi(largest)
+	var extra: Variant = _number(extra_property)
+	values["extra"] = roundi(extra) if extra != null else ""
 	if value_label != null:
 		value_label.text = (max_format if largest != null else value_format).format(values)
 	if bar != null:
