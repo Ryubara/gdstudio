@@ -1,0 +1,9 @@
+; Engine configuration file of the fixture template.
+
+config_version=5
+
+[application]
+
+config/name="{GAME_TITLE}"
+config/description="{GAME_DESCRIPTION}"
+run/main_scene="res://main.tscn"

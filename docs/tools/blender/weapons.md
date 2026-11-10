@@ -185,6 +185,34 @@ Library's six pistol clips on the `hand_r` bone.
   3 degrees at a time while the count of hand vertices more than 2 mm inside a closed part of the gun falls, the
   deepest one and the gap of the nearest 60 come down, and the barrel stays near the facing.
 
+The template's rifle (kit #886, `templates/3d-third-person/game/assets/weapons/rifle/`) is Deadnight's M4A1 at the
+real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's hold is built from IK:
+
+- **The pistol's seat gives both hands.** The right fist's place on the pistol's `Grip` (the seat times the socket,
+  inverted) moved onto the rifle's `Grip` is the right hand's target, and mirrored across the body's middle plane
+  (`Basis` M B M and M o, with M = diag(-1, 1, 1)) onto `Support` it is the left hand's. The mannequin's rig is an exact
+  mirror (left rests equal the reflected right ones to 1e-6 m and 0.04 degrees), as the Toon Shooter Soldier's
+  ([A weapon in each hand](#a-weapon-in-each-hand)).
+- **The hold is engine nodes on the skeleton:** a chest turn over the three spine bones (a short
+  `SkeletonModifier3D`), a `TwoBoneIK3D` per arm toward a `Marker3D` on the rifle with a pole marker, and a
+  `CopyTransformModifier3D` per hand that copies the target's rotation (Godot 4.7). The rifle hangs on a node in the
+  model's space with `Butt` in the right shoulder's pocket; aiming turns that node about the pocket. Over 40
+  characters the modifiers cost about 8 microseconds each on the desktop.
+- **Read the pose in `skeleton_updated`.** `get_bone_global_pose()` gives the modifiers' result only inside the
+  skeleton's `skeleton_updated` signal; outside it a probe read the clip's pose and reported a solved hand 19 cm off its
+  target. A skeleton with no modifier that dirties it (the mannequin carries an inactive `PhysicalBoneSimulator3D`)
+  never emits it, so a probe that awaits the signal there waits forever.
+- The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
+  proposal and its numbers are in the rifle folder's README.
+
+- **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
+  copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold
+  will use. **Watch out for:** Deadnight's support (0.29 m ahead of the grip, for a chibi Soldier holding the gun 1.3
+  times) left the female mannequin's 0.49 m arm 4 cm short with the chest turned 30 degrees and 13 cm short without, and
+  the pistol clip's arms keep the target 0.72 m from the shoulder even with the support moved (22.5 cm short). **Seen:**
+  gdstudio #886, 2026-11-10 (fix: the support moved 4 cm back, 0.25 m ahead of the grip; both hands then reached in
+  every hold of the study).
+
 - **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
   times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender
   with (x, y, z) to (x, -z, y), search the seat there, then capture it in Godot. **Watch out for:** the clip assigned in

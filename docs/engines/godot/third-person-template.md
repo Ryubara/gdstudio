@@ -19,12 +19,13 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
 | HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
-| Effects | `gameplay/effects/`, `gameplay/weapon/muzzle_flash.*` | One pooled player of one-shot effects for the muzzle flash and every impact. [Effects](#effects). |
+| Effects | `gameplay/effects/` | One pooled player of one-shot effects (muzzle flash, impacts). [Effects](#effects). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
+| Rifle | `assets/weapons/rifle/` | GDStudio's own (MIT, Deadnight's M4A1 build), 1,236 triangles and a 420-triangle far level, one palette material; sockets `Grip`, `Support`, `Trigger`, `Muzzle`, `Eject`, `Butt`, the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` swaps to the far level at 10 m. A model for the weapon work, not yet held: the hold proposal is in its README ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
@@ -388,10 +389,10 @@ or a ray gun reuses it.
   look; `max_marks` and `mark_lifetime` also act on them at once).
 - **One node a surface.** Under `Impacts/Surfaces` are `Default`, `Wood`, `Metal` and `Target`, each an
   `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
-  (empty: the `Impacts`'), `mark_scale`, and `effect`, an `EffectDef` (a one-shot `CPUParticles3D` scene and a
-  three-variant `sound` on `SFX`) that the level's `EffectEmitter` plays ([Effects](#effects)); its `max_instances` is
-  how many hits of the surface show at once. Add a node and a name for a new surface (`glass`, `flesh`); the default
-  is what a hit gets when the body says nothing or says a name no surface has.
+  (empty: the `Impacts`'), `mark_scale` and `effect`, an `EffectDef` (particles, sound) the `EffectEmitter` plays
+  ([Effects](#effects)); its `max_instances` is how many hits of the surface show. Add a node for a
+  new surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface
+  has.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
   `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
@@ -400,22 +401,18 @@ or a ray gun reuses it.
   impact when both are on.
 - **What takes no mark.** A `CharacterBody3D` (the effect and sound still play) and the ragdoll's bones: they are on
   layer 16 and a projectile's mask is the level, so a shot passes through them and marks what is behind.
-- **Tests and captures.** `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
-  `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and `tests/audio/test_impact_sounds.gd`
-  (real projectiles in a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a
-  wall, a pushed cube and the fade (`gds capture frames`, and `--rendering-method gl_compatibility` for the web look).
-  The sounds are made by `tools/audio/impact_sounds.py` (synthesised, MIT).
+- **Tests and captures.** `tests/gameplay/test_impact*.gd` and `tests/audio/test_impact_sounds.gd` (real projectiles in
+  a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a wall, a pushed cube and
+  the fade (`gds capture frames`, `--rendering-method gl_compatibility` for the web look). The sounds are made by
+  `tools/audio/impact_sounds.py` (synthesised, MIT).
 
 ## Effects and the muzzle flash {#effects}
 
 <!-- new section: the pistol had no flash; impacts kept their own pools (gdstudio #888) -->
 
-One `EffectEmitter` (`Effects` in `main.tscn`) plays the flash, each impact and other one-shot effects from
-one pool ([the effect emitter](effect-emitter.md)).
-
-- **`Weapon`:** `muzzle_flash_enabled`, `muzzle_flash` (an `EffectDef`), `muzzle_flash_size`.
-- **`EffectEmitter`:** `enabled`, `particles_enabled`, `sounds_enabled`, `lights_enabled`, `max_effects` (24),
-  `web_max_effects` (12), `max_lights` (2), `warm_up_on_start`, `warm_up`.
+One `EffectEmitter` (`Effects` in `main.tscn`) plays the flash, each impact and other one-shot effects from one pool
+([every inspector value](effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash` and
+`muzzle_flash_size`.
 
 ## Ragdoll {#ragdoll}
 
