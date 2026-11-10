@@ -94,7 +94,8 @@ func test_packets_of_the_wrong_size_and_unknown_types_are_hung_up_on() -> void:
 func test_flags_no_build_sets_and_commands_out_of_order_are_hung_up_on() -> void:
 	var hostile := await _greeted_hostile()
 	var unknown_flags := CommandCodec.encode(_walk)
-	unknown_flags.encode_u16(11, 0xF800)
+	# Bits 11 to 14: no build of this version sets them (bit 15 is `prone`).
+	unknown_flags.encode_u16(11, 0x7800)
 	var again := CommandCodec.encode(_walk)
 	again.encode_u32(1, 1)
 	var lies := func() -> void:

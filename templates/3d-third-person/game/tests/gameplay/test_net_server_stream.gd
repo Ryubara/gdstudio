@@ -177,3 +177,34 @@ func _replay_offline(
 				last.clear()
 			body.step(last, CommandDriver.tick_seconds())
 	return body.global_position
+
+
+func test_a_prone_command_lays_the_body_down_and_every_client_sees_it() -> void:
+	var client := await _rig.join("Ada")
+	var body := _rig.server.body_at(0)
+	var prone := PlayerCommand.new()
+	prone.prone = true
+	var crawl := prone.clone()
+	crawl.move = Vector2(0.0, 1.0)
+	var lying := func() -> bool:
+		return (
+			client.last_tick() != null
+			and client.last_tick().players[0].state == Character.State.PRONE
+		)
+	for _frame in 180:
+		client.send_command(prone.clone())
+		_rig.pump()
+		if body.prone and lying.call():
+			break
+		await get_tree().physics_frame
+	assert_bool(body.prone).is_true()
+	assert_bool(lying.call()).is_true()
+	# It crawls forward lying down, slower than a walk.
+	var start := body.global_position
+	for _frame in 60:
+		client.send_command(crawl.clone())
+		_rig.pump()
+		await get_tree().physics_frame
+	assert_int(body.state).is_equal(Character.State.PRONE)
+	var crawled := body.global_position.distance_to(start)
+	assert_float(crawled).is_between(0.05, body.tuning.walk_speed)

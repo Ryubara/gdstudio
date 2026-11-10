@@ -86,18 +86,26 @@ func test_the_ninth_is_refused_as_full_and_hung_up_on() -> void:
 func test_another_version_or_another_map_is_refused() -> void:
 	var old := await _rig.connect_client()
 	var hello := NetWire.hello("Old", _rig.server.world_hash)
-	hello[NetWire.VERSION_AT] = NetWire.VERSION + 1
+	hello[NetWire.VERSION_AT] = NetWire.VERSION - 1
 	old.link.send(hello)
+	var newer := await _rig.connect_client()
+	var newer_hello := NetWire.hello("New", _rig.server.world_hash)
+	newer_hello[NetWire.VERSION_AT] = NetWire.VERSION + 1
+	newer.link.send(newer_hello)
 	var elsewhere := await _rig.connect_client()
 	elsewhere.say_hello("Away", _rig.server.world_hash ^ 0x5A5A)
-	assert_bool(await _rig.until(func() -> bool: return old.closed and elsewhere.closed)).is_true()
+	var all_closed := func() -> bool: return old.closed and newer.closed and elsewhere.closed
+	assert_bool(await _rig.until(all_closed)).is_true()
+	# Version 2 (prone, #1012) is the oldest this server takes: a version 1 client is refused.
+	assert_int(NetWire.VERSION).is_equal(2)
 	assert_int(old.refusal).is_equal(NetWire.Refusal.VERSION)
+	assert_int(newer.refusal).is_equal(NetWire.Refusal.VERSION)
 	assert_int(elsewhere.refusal).is_equal(NetWire.Refusal.WORLD)
 	assert_int(_rig.server.player_count()).is_equal(0)
 	var reasons := _rig.lines_of("refused").map(
 		func(line: Dictionary) -> String: return line["reason"]
 	)
-	assert_array(reasons).contains_exactly_in_any_order(["version", "world"])
+	assert_array(reasons).contains_exactly_in_any_order(["version", "version", "world"])
 	# An honest client still gets in.
 	assert_object(await _rig.join("Ada")).is_not_null()
 

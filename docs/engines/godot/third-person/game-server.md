@@ -29,7 +29,7 @@ a headless process does not spin; the step is `physics_ticks_per_second` (60, pi
 
 | Message in | Answer |
 | --- | --- |
-| HELLO of a version `NetWire.accepts` refuses | `REFUSED(version)`, then the close after the listener's linger |
+| HELLO of a version `NetWire.accepts` refuses (outside `MIN_VERSION` to `VERSION`, both 2 since prone, #1012) | `REFUSED(version)`, then the close after the listener's linger |
 | HELLO whose world hash is not `NetServer.world_hash` | `REFUSED(world)` |
 | HELLO with every slot of `max_players` held | `REFUSED(full)` |
 | HELLO otherwise | the lowest free slot (0 is the first; the codec carries 0 to 7), a body, `WELCOME` (slot, tick rate, the server tick, the world hash, every player with its name), and a `joined` event to everyone else |
@@ -51,7 +51,8 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
   (the view kept). The queue holds `NetLimits.TICK_RATE * NetLimits.STALL_SECONDS` (240); past that the oldest goes and
   its presses join the next (`merge_edges_from`). A body stepped six times in one physics frame ends where one stepped
   once a frame ends (`test_net_server_stream.gd`, within 1 mm on a floor): a predicting client may replay unanswered
-  commands in one frame the same way.
+  commands in one frame the same way. A held `prone` bit lays the body down (state `PRONE`, 11, in every TICK) and it
+  crawls by the same commands (`test_net_server_stream.gd`).
 - **Spawns.** Slot n starts at the n-th enabled `SpawnPoint` of `spawn_group` (`player`) in the bodies' world, by node
   path, wrapping past the last; the spot inside the point's radius comes from a generator seeded by `spawn_seed` and the
   slot (`spawn_transform(slot)`). `SpawnPoint.pick` is random among the points free this frame, so it cannot give a
