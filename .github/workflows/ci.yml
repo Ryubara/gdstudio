@@ -37,15 +37,17 @@ jobs:
           lfs: true
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       # The windowed-Godot test of `gds quiet` (test_quiet_run.py) needs the pinned Godot, and it proves a Windows
-      # rule, so Windows fetches it from tools.toml (hash-checked, cached), as the `godot` job does on Linux.
+      # rule, so Windows fetches it from tools.toml (hash-checked, cached), as the `godot` job does on Linux. The agent
+      # evals' tests (test_evals.py) run each Godot task's acceptance suite against the bare template, which needs
+      # GdUnit4 as well (kit #898).
       - if: runner.os == 'Windows'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: cache/downloads
           key: tools-test-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
-      - name: Make the workspace and fetch the pinned Godot (Windows)
+      - name: Make the workspace and fetch the pinned Godot and GdUnit4 (Windows)
         if: runner.os == 'Windows'
-        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot
+        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot,gdunit4
       - run: uv run --project python --frozen ruff check python
       - run: uv run --project python --frozen ruff format --check python
       # A skip that python/tests/allowed_skips.toml does not allow for this platform fails the run, and so does an

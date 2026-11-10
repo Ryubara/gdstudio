@@ -506,7 +506,7 @@ def _cmd_eval_prepare(args: argparse.Namespace) -> int:
 def _cmd_eval_check(args: argparse.Namespace) -> int:
     kit, _ = _eval_context()
     task = evals.get(kit, args.name)
-    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None)
+    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None, kit)
     print(evals.table(data))
     return 0 if all(r["pass"] for r in data["rows"]) else 1
 
