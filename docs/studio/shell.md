@@ -37,7 +37,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
   and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875, 2026-11-10 (a scripted replace turned two scripts CRLF again).
+  gdstudio #830, 2026-11-08; #875 and #903, 2026-11-10 (scripted replaces turned scripts CRLF again).
 
 ## Scripted edits {#scripted-edits}
 
@@ -76,12 +76,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository); gdstudio, 2026-11-03 (a commit on the kit's
   `main`, moved to a branch before any push).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
-  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
-  shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named
-  `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
-  in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
-  before trusting a result).
+  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in a scratchpad folder named for your issue,
+  and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named `c` on the
+  current drive (`FileNotFoundError`); a `gdt.sh` under one name in the shared temp folder reported another agent's
+  pass for my branch; agents started from one session share its scratchpad, and a sibling's `sync.sh` replaced mine,
+  so a run tested its files. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read
+  the line that names the scanned folder); gdstudio #903, 2026-11-10 (fix: a folder named for the issue).
 
 ## Background commands and processes {#background}
 

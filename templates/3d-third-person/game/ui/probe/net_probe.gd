@@ -4,8 +4,9 @@ extends Node
 ## this connects a `WebSocketLink` to that server (`tools/net/echo_server.gd`), pings it twice a
 ## second and writes what it sees to `window.gdnet`, so a script that drives the page
 ## (`tools/web_smoke/net_link_smoke.py`) can read it: the state, a refusal, the round trips, and
-## how many streamed packets came and whether in order. It does nothing off the web or without
-## `?netprobe`, so a player's page pays for nothing.
+## how many streamed packets came and whether in order. `&inbound=<bytes>` sets the link's inbound
+## buffer, for the control run with the engine's default (65536). It does nothing off the web or
+## without `?netprobe`, so a player's page pays for nothing.
 
 ## Seconds between two pings.
 const PING_EVERY := 0.5
@@ -38,6 +39,11 @@ func _ready() -> void:
 	_object.refusal = ""
 	_object.want_stream = false
 	_link = WebSocketLink.new()
+	var inbound: Variant = JavaScriptBridge.eval(
+		"new URLSearchParams(window.location.search).get('inbound')"
+	)
+	if inbound != null and str(inbound).is_valid_int():
+		_link.inbound_buffer = int(str(inbound))
 	_link.packet_received.connect(_on_packet)
 	_link.connected.connect(func() -> void: _object.state = "open")
 	_link.closed.connect(_on_closed)
@@ -97,3 +103,4 @@ func _publish() -> void:
 	_object.pings = _rtts.size()
 	_object.rtt_ms = JSON.stringify(_rtts)
 	_object.bytes_in = _link.bytes_in
+	_object.fps = Engine.get_frames_per_second()

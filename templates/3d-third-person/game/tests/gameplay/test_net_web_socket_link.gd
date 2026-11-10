@@ -83,6 +83,7 @@ func test_a_conditioner_of_100_ms_each_way_delays_a_round_trip_by_200_ms_and_kee
 	assert_bool(back).is_true()
 	assert_array(order).is_equal(range(60))
 	trips.sort()
+	print("CONDITIONER_RTT %.0f to %.0f ms" % [trips[0] * 1000.0, trips[-1] * 1000.0])
 	# 200 ms of the conditioner plus the polls' rounding to the tick (each way).
 	assert_float(trips[0]).is_greater_equal(0.2)
 	assert_float(trips[-1]).is_less_equal(0.2 + 4.0 / 60.0 + 0.001)

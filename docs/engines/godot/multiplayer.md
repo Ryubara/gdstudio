@@ -99,6 +99,52 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 - `StreamPeerBuffer` is enough for a compact binary protocol: little-endian by default, `put_u8/put_8/put_16/put_u32`
   and the matching `get_*` (signed variants have no `u`). Check each packet's length before reading.
 
+- **Approach:** Let the side that closes linger: stop sending, then send the close frame a few ticks later (0.25 s), so
+  the other end reads the last packets in a poll of their own; a refusal is sent, then the server waits for the client
+  to close. **Watch out for:** Godot 4.7.2's `WebSocketPeer` throws away every packet that reaches it in the same
+  `poll` as the other end's close frame, in both directions: 20 packets sent and then `close()` arrived as 0 when the
+  receiver had not polled between them (20 when it had), so "read to the floor after the close" saves nothing and a
+  refusal sent with its close is lost. **Seen:** gdstudio #903, 2026-11-10 (fix: `WebSocketLink.close()` and
+  `WsListener.disconnect_peer()` linger; a test keeps the engine's loss without the linger, so an engine fix shows).
+- **Approach:** Give a listener its own handshake deadline (3 s, on the caller's clock) and its own packet-size cap
+  under the inbound buffer, and hang up (1009) on a packet over it. **Watch out for:** `WebSocketPeer` has no
+  `handshake_timeout` in 4.7.2 (that is `WebSocketMultiplayerPeer`'s), so a TCP connection that never sends the upgrade
+  waits forever; a frame of exactly the inbound buffer's size (65,536 bytes into 64 KB) is accepted and passed on, so a
+  flood of 64 KB frames went through until the cap; a 1 MB frame the engine refuses and closes itself. **Seen:**
+  gdstudio #903, 2026-11-10.
+
+## The template's transport (3D Third Person) {#template-transport}
+
+<!-- new section: the sections above say how to use WebSocketPeer and what Deadnight measured; nothing said what the
+     template's transport classes are, what they guarantee, or what 4.7.2 measured on localhost and in the browser -->
+
+`templates/3d-third-person/game/gameplay/net/` carries packets and never reads them (the packets are the codecs'):
+
+| Class | What it is |
+| --- | --- |
+| `NetLink` | The interface: `send(bytes) -> bool`, `poll()` once per physics tick, `is_open()`, `close()`, `close_code()`, `left_on_purpose()`; signals `packet_received`, `connected`, `closed`. |
+| `WebSocketLink` | The client, desktop and web: 1 MB inbound, 8192 packets, a lingering `close()`, `drop()` for tests, `server_url()` from `--connect <url>` or the page's `?url=`, and no `ws://` from an `https` page (`refusal` says why). |
+| `WsListener` | The server: ids per handshake, 1 MB outbound and `send` false when full (`refused_sends`), 64 KB inbound and a 4 KB packet cap (1009), a 3 s handshake deadline, a lingering `disconnect_peer` and a 1 s close grace, `port()` after `listen(0)`, `left_on_purpose(id)`. |
+| `LoopbackLink` | `pair()`: two ends in one process; a packet sent in tick t is read in tick t+1; `close()` is a goodbye, `drop()` a network that went. |
+| `LinkConditioner` | Wraps any link: `delay`, `jitter`, `stall_chance` and `stall_seconds`, `stall_for(seconds)`, a seeded RNG and a `clock` Callable; never reorders, a stall holds everything behind it. |
+
+Measured on Windows, Godot 4.7.2: a thousand packets each way over `127.0.0.1` in order; a conditioner of 100 ms each
+way gave round trips of 217 to 250 ms on the physics-frame clock; two GdUnit runs of the suites at once on one machine
+passed (`listen(0)`). In the browser (`tools/web_smoke/net_link_smoke.py`, headless Chromium, SwiftShader): the page
+opened the address from `?url=`, refused `ws://` on an `https` origin (a Playwright route) without opening a socket, and
+read every packet of a 35 KB/s stream through a 5 s busy-loop freeze with the 1 MB buffer, where the engine's 64 KB lost
+packets and logged 41 `Buffer payload full` errors. Round trips in that page are rounded to its frames (a software
+page ran at few frames a second): median 155 to 197 ms over loopback, 301 to 398 ms through `tools/net/relay.py` at
+100 ms each way.
+
+- **Approach:** Prove a socket buffer size where it overflows (the browser, or a real network), and pin the size with a
+  test; on localhost test only what the buffer guarantees (nothing lost in 5 s at 35 KB/s, `send` false when full).
+  **Watch out for:** on Windows loopback the kernel took about 200 KB beyond the listener's buffer before `send` was
+  refused (207 KB with a 16 KB buffer, 261 KB with 64 KB, 1.24 MB with 1 MB), and a native client's 64 KB inbound
+  buffer never overflowed because each poll reads at most what the kernel holds, so a native test of the 64 KB default
+  passed and proved nothing. **Seen:** gdstudio #903, 2026-11-10 (fix: the browser control run with `&inbound=65536`;
+  a native test pins the sizes).
+
 ## The pattern that worked (own protocol over that transport) {#own-protocol}
 
 - Fixed tick (30 Hz). The client sends one **input command per tick with a sequence number**, repeated redundantly (last

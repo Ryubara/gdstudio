@@ -7,6 +7,7 @@ prototype map, seen from a Phantom Camera third-person view, with touch controls
 bounded floor and walls, sky, sun and baked light). What it gave you is in [The character](character.md) and
 [Prototype level](prototype-level.md); add the game's own pillars, loop and systems here as they are decided.
 The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md).
+The network link under an online game is on [Networking](networking.md).
 
 ## Pillars
 

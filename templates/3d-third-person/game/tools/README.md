@@ -19,6 +19,13 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
   (the header says how to run it).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
+- `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints
+  `LISTENING <port>` (the header says how to run and stop it).
+- `tools/net/relay.py` is a TCP relay with a delay each way and a byte counter, for a real round trip on one machine
+  (the browser's throttling does not touch WebSockets).
+- `tools/web_smoke/net_link_smoke.py` drives the web export's `NetProbe` (`?netprobe&url=ws://...`) against the echo
+  server: the link opens from the page address, survives a 5 s frozen tab, refuses `ws://` from `https` (run it under
+  `gds quiet`; the command is in its header).
 - `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
   drops the other mannequin (`mannequin_male.glb`) on `Model` and checks that the clips, the pistol and the tree
   survive. The header of `swap_in_editor.gd` says how to run it.
