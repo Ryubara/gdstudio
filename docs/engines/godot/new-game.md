@@ -284,7 +284,8 @@ template cheap to change):
    *Open point:* `player.gd` of 3D Third Person still holds some tuned-looking numbers in its code: the constants
    `PUSH_CONTACT` and `PUSH_HOLD` (`:65-68`), the camera target's rise above the hips (`:382`), the analogue stick
    thresholds and the walk and aim speed factors (`:524-530`), the foot probe's margin (`:589`), the push share and its
-   boost (`:611-614`), the walk-to-run margin (`:668`) and the fire buffer and its aim threshold (`:687-688`).
+   boost (`:611-614`), the walk-to-run margin (`:668`) and the aim threshold of a shot (`:687-688`; the fire buffer
+   moved to the tuning as `fire_buffer_time` with #901).
    Whoever next works in that file moves them to `player_tuning.gd` or leaves a reason beside each; the line numbers
    are those of main on 2026-11-10 and drift.
 2. **A change takes effect at once**, in the running game and the remote inspector: a value is read where it is used, or

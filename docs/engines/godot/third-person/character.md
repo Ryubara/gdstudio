@@ -140,7 +140,45 @@ Scene dock and checks the result.
 - **Approach:** Make the movement direction `view.x * input.x + view.z * input.y` with the camera's flattened basis
   (`Basis(forward.cross(UP), UP, -forward)`) and an identity basis when there is no camera, and test the keys in a
   small arena with no camera first. **Watch out for:** the first version subtracted the `z` term, which pointed the
-  opposite way and was invisible in a test that only held a key sideways. **Seen:** gdstudio #821, 2026-11-08.
+  opposite way and was invisible in a test that only held a key sideways. **Seen:** gdstudio #821, 2026-11-08; since
+  gdstudio #901 the basis is the command's `yaw` (`PlayerCommand.world_move()`), and only `PlayerInput` reads the
+  camera.
+- **Approach:** A body never reads `Input` or a camera. It is moved by `Player.step(command, delta)` alone: one
+  `PlayerCommand` a physics tick, pulled from its `controller` (`PlayerInput`, the one script that reads the actions
+  and the camera that draws its viewport) or passed in by a server or a test. Prove it with two instances in one world,
+  with one stream in two `SubViewport` worlds (one camera looking elsewhere, one none) and with a grep of the body's
+  source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
+  the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
+  server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`; position, velocity and
+  state bit-equal on all 780 ticks of `test_command_stream.gd` in two Jolt spaces of one process).
+- **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
+  the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
+  the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own
+  step whatever `delta` is passed; `model.rotation.y` written in the step fails on a body with no model (a server's),
+  and moved to `_process` it would lose the engine's interpolation; the fall picked a spawn point with a generator
+  seeded from the node path, which a server's body and a client's cannot share. **Seen:** gdstudio #901, 2026-11-10
+  (the design review; `test_player_step.gd`).
+- **Approach:** Treat a command as hostile where it is stepped, not only where it is decoded: `step` replaces a command
+  with a number that is not finite by one that asks for nothing, cuts a push to length 1, and reads the testing bit
+  `ragdoll_pressed` only while `ragdoll_by_command` is on. A press (`jump_pressed`, `fire_pressed`,
+  `interact_pressed`, `ragdoll_pressed`) is true in exactly one stepped command: whoever steps a command again calls
+  `clear_edges()` first, and `merge_edges_from(earlier)` keeps the presses of a command that was never stepped.
+  **Watch out for:** a NaN `yaw` made in script would make `facing` NaN for good through `lerp_angle`, a push of length
+  1.4 moved 41 percent faster, and a command repeated with its presses jumps again on every landing (the test counts
+  more than two jumps in 150 ticks, one when cleared). **Seen:** gdstudio #901, 2026-11-10 (the review).
+- **Approach:** Take a camera's shake out of what the input sends (`PlayerInput` subtracts
+  `PlayerCamera.current_shake()` from the heading, the pitch and the shot's ray when the drawn camera is the rig's
+  own) and send the crosshair's ray as its own origin and angles. **Watch out for:** the rig turns the lens by
+  `yaw + shake`, so a sprint shake would steer the walk on every footfall and a shot kick would be in the next shot;
+  and an over-the-shoulder lens (`h_offset`, `v_offset`) starts the ray through the middle of the screen beside the
+  camera's axis (over 0.4 m in the test), so the shot block is not the view's `yaw` and `pitch`. **Seen:** gdstudio #901,
+  2026-11-10 (`test_player_input.gd`).
+- **Approach:** Share a run-time key on an `InputMap` action by counting its holders (`PlayerInput` keeps a static
+  count per key and the last holder takes the event off). **Watch out for:** `InputMap.action_add_event` does nothing
+  for an event the action already has, and `action_erase_event` removes the one event equal to the one passed, so a
+  second character added its `ragdoll` key (ignored) and, when it left, took the first character's key with it; the
+  two-character test read an empty action. The body's own binding on main did the same. **Seen:** gdstudio #901,
+  2026-11-10 (`test_two_characters.gd`).
 - **Approach:** Move a moving body with `Player.teleport()` (or `respawn()`), which resets physics interpolation and
   tells the camera to cut. **Watch out for:** setting `global_position` directly sends a damped Phantom Camera flying
   across the map for about 0.9 s, so a test that waited 40 ticks saw the lens 5 m from where it belonged.
@@ -160,6 +198,26 @@ Scene dock and checks the result.
   a test holds that a 5 kg crate moves more than twice as far as a 200 kg one in a second. A `TriggerZone` counts
   characters and props by default (`counts`) and a `Pickup` only characters (`characters_only`); a camera zone still
   says `player` in `required_group` so that a pushed crate does not take the view.
+
+## A second kind of controller {#second-controller}
+
+<!-- new section: the controller section says how the human's body moves; nothing said how anything else (an AI, a
+     server, a recording) drives the same body, which #904 and #963 build on -->
+
+A character is driven by whatever gives it a `PlayerCommand` each physics tick. Three ways, all through `step`:
+
+| Who | How |
+| --- | --- |
+| A node of its own (an AI) | Extend `CharacterController`, override `sample() -> PlayerCommand`, and set it as the body's `controller`. Keep the world directions (where to walk, where to look) and build the command once in `sample()` with `set_from_world(walk_direction, look_direction, strength)`: a zero look leaves the view level along -Z and a body that is not aiming faces where it walks; with `aim` or `fire` the body turns to the look. |
+| An owner that steps (a server, a director with a budget) | `body.set_physics_process(false)`, then `body.step(command, delta)` inside the physics frame, with the physics step. Connect `fell` to decide where the body starts again, and turn `ragdoll_by_command` off for commands from a network. |
+| A test | `tests/fixtures/command_driver.gd`: `CommandDriver.take(player)` and `run(tree, players, command, ticks)`, which steps the presses once. |
+
+`sample()` hands out the controller's own command, written again on the next call (`clone()` to keep one), and a press
+is true in exactly one returned command. `Player.state_snapshot(into)` and `restore(state)` take and put back what the
+next step reads (`CharacterState.FIELDS`; a test fails when the body gains a variable that is neither there nor on the
+test's list of what is not step state). A restore and the same commands gave the same path to the last digit on the
+floor and from mid-air over 120 ticks. It is for placing a body at a known state, not for replay: a step also pushes
+props, uses doors, fires projectiles and collects pickups, and the engine's floor contact cannot be set from script.
 
 ## Ragdoll {#ragdoll}
 

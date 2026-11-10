@@ -79,3 +79,14 @@ func test_the_ragdoll_key_kills_only_the_character_with_the_input() -> void:
 	await InputSim.ticks(get_tree(), 2)
 	assert_bool(_human.is_dead()).is_true()
 	assert_bool(_other.is_dead()).is_false()
+
+
+func test_a_second_player_input_leaving_does_not_take_the_key_from_the_first() -> void:
+	var third := _arena.add_player(Vector3(0.0, 0.0, -4.0))
+	await InputSim.ticks(get_tree(), 2)
+	third.free()
+	assert_int(InputMap.action_get_events(Player.RAGDOLL_ACTION).size()).is_equal(1)
+	InputSim.key(KEY_Y, true)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.key(KEY_Y, false)
+	assert_bool(_human.is_dead()).is_true()

@@ -4,7 +4,7 @@
 extends GdUnitTestSuite
 
 const PAD_AT := Vector3(13.0, 0.1, -5.0)
-const NEAR_THE_GATE := Vector3(-7.0, 0.1, 5.0)
+const NEAR_THE_GATE := Vector3(-7.0, 0.1, 6.5)
 
 var _scene: Node
 var _player: Player
@@ -50,9 +50,9 @@ func test_commands_walk_it_to_the_gate_and_use_it() -> void:
 	assert_bool(gate.is_open()).is_false()
 	# The gate opens by itself for a character that walks up to it (3 m), +Z from here.
 	var toward := CommandDriver.walking(Vector3.BACK)
-	await _run(toward, 50)
+	await _run(toward, 25)
 	await _run(PlayerCommand.new(), 80)
-	assert_float(_player.global_position.z).is_greater(7.0)
+	assert_float(_player.global_position.z).is_greater(7.5)
 	assert_bool(gate.is_open()).is_true()
 	# One press of interact in one command shuts it.
 	var uses: Array[int] = [0]

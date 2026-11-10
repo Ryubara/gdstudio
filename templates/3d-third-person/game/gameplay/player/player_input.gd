@@ -17,6 +17,10 @@ extends CharacterController
 ## The input action that kills and revives the character (the player's `ragdoll_key` is on it).
 const RAGDOLL_ACTION := &"ragdoll"
 
+# How many `PlayerInput` nodes hold each key on the `ragdoll` action, and the event of each key.
+static var _key_holders: Dictionary[Key, int] = {}
+static var _key_events: Dictionary[Key, InputEventKey] = {}
+
 @export_group("Nodes")
 ## The character this node makes commands for: its `input_enabled`, `ragdoll_key`, crouch mode
 ## and weapon are read here. Empty reads the parent.
@@ -27,7 +31,7 @@ const RAGDOLL_ACTION := &"ragdoll"
 var camera_rig: PlayerCamera
 
 var _crouch_latch := false
-var _ragdoll_event: InputEventKey
+var _bound_key: Key = KEY_NONE
 
 
 func _ready() -> void:
@@ -39,26 +43,43 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	if _ragdoll_event != null and InputMap.has_action(RAGDOLL_ACTION):
-		InputMap.action_erase_event(RAGDOLL_ACTION, _ragdoll_event)
-		_ragdoll_event = null
+	_release_key()
 
 
 ## Puts the player's `ragdoll_key` on the `ragdoll` action, in place of the key this node put
-## there before. The player calls it when the key changes.
+## there before. The player calls it when the key changes. The action is the project's, shared
+## by every `PlayerInput`: a key stays on it as long as one of them holds it.
 func bind_ragdoll_key() -> void:
 	if not is_inside_tree():
 		return
 	if not InputMap.has_action(RAGDOLL_ACTION):
 		InputMap.add_action(RAGDOLL_ACTION)
-	if _ragdoll_event != null:
-		InputMap.action_erase_event(RAGDOLL_ACTION, _ragdoll_event)
-		_ragdoll_event = null
-	var key: Key = player.ragdoll_key if player != null else KEY_NONE
-	if key != KEY_NONE:
-		_ragdoll_event = InputEventKey.new()
-		_ragdoll_event.physical_keycode = key
-		InputMap.action_add_event(RAGDOLL_ACTION, _ragdoll_event)
+	_release_key()
+	_bound_key = player.ragdoll_key if player != null else KEY_NONE
+	if _bound_key == KEY_NONE:
+		return
+	var holders: int = _key_holders.get(_bound_key, 0)
+	if holders == 0:
+		var event := InputEventKey.new()
+		event.physical_keycode = _bound_key
+		InputMap.action_add_event(RAGDOLL_ACTION, event)
+		_key_events[_bound_key] = event
+	_key_holders[_bound_key] = holders + 1
+
+
+# Lets go of the key this node holds on the action; the last holder takes it off.
+func _release_key() -> void:
+	if _bound_key == KEY_NONE:
+		return
+	var holders: int = _key_holders.get(_bound_key, 0) - 1
+	if holders <= 0:
+		_key_holders.erase(_bound_key)
+		if InputMap.has_action(RAGDOLL_ACTION) and _key_events.has(_bound_key):
+			InputMap.action_erase_event(RAGDOLL_ACTION, _key_events[_bound_key])
+		_key_events.erase(_bound_key)
+	else:
+		_key_holders[_bound_key] = holders
+	_bound_key = KEY_NONE
 
 
 func sample() -> PlayerCommand:

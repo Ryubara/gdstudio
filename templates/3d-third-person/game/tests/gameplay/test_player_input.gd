@@ -109,9 +109,9 @@ func test_a_press_is_in_exactly_one_command_however_long_it_is_held() -> void:
 
 
 func test_two_physics_ticks_in_one_frame_still_see_one_press() -> void:
-	var before := Engine.physics_ticks_per_second
+	var usual_rate := Engine.physics_ticks_per_second
 	# The suites run a frame per 1/60 s: twice the tick rate is two ticks in every frame.
-	Engine.physics_ticks_per_second = before * 2
+	Engine.physics_ticks_per_second = usual_rate * 2
 	var jumps: Array[int] = [0]
 	var steps: Array[int] = [0]
 	_player.jumped.connect(func() -> void: jumps[0] += 1)
@@ -126,7 +126,7 @@ func test_two_physics_ticks_in_one_frame_still_see_one_press() -> void:
 		if _stepped().interact_pressed:
 			presses += 1
 	frames = Engine.get_process_frames() - frames
-	Engine.physics_ticks_per_second = before
+	Engine.physics_ticks_per_second = usual_rate
 	InputSim.key(KEY_E, false)
 	await InputSim.ticks(get_tree(), 4)
 	assert_int(presses).is_equal(1)

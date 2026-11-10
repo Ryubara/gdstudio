@@ -191,6 +191,15 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | PING / PONG | 7 / 11 | 7 / 11 |
 | Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
 
+What the command's fields mean, fixed by gdstudio #901: `move` is the push in the view's axes (`x` right, `y`
+forward, no longer than 1), `yaw` the view's heading (0 looks along -Z, so the body's `facing` is `yaw + PI`), `pitch`
+positive up; `crouch` is already the toggle's result; a press is true in one command. The shot block (`has_shot`) rides
+only on a tick where a shot can leave (a press buffered or just made, or an automatic weapon held, and the weapon
+ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
+shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
+every held tick, against a budget of 2000). Flag bits 11 to 15 are free: #887's reload, next, previous and unarmed
+presses take four and raise `NetWire.VERSION`.
+
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
 

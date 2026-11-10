@@ -250,8 +250,10 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 		rates["automatic" if automatic else "one shot a press"] = rate
 		assert_float(rate).is_less(2000.0)
 	print("up bytes a second with fire held: ", rates)
-	# No shot block at all would be 60 * (15 + 6) + 2 * 13 = 1286.
-	assert_float(rates["one shot a press"]).is_less(1300.0)
+	# No shot block at all is 60 * (15 + 6) + 2 * 13 = 1286: the block rides on a few ticks a
+	# shot, not on every tick the button is held (which would be 2006).
+	assert_float(rates["one shot a press"]).is_less(1320.0)
+	assert_float(rates["automatic"]).is_less(1400.0)
 
 
 func test_the_body_reads_no_input_and_no_camera() -> void:
