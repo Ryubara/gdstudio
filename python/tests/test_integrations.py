@@ -10,11 +10,42 @@ from gds_tools.manifest import load_mcp, load_tools
 KIT = Path(__file__).resolve().parents[2]
 
 
+PROJECT = """config_version=5
+
+[application]
+
+config/name="Game"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gds_ui/plugin.cfg")
+
+[input]
+"""
+
+
 def make_game(tmp_path: Path) -> Path:
     project = tmp_path / "repos" / "game" / "game"
     project.mkdir(parents=True)
-    (project / "project.godot").write_text("")
+    (project / "project.godot").write_text(PROJECT, newline="\n")
     (tmp_path / "repos" / "game" / ".git" / "info").mkdir(parents=True)
+    return project
+
+
+def git(repo: Path, *args: str) -> str:
+    done = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True, check=True)
+    return done.stdout
+
+
+def make_git_game(tmp_path: Path) -> Path:
+    """A real git repository with a committed game/project.godot (the Godot 4.7 editor reads plugins only there)."""
+    repo = tmp_path / "repos" / "game"
+    project = repo / "game"
+    project.mkdir(parents=True)
+    (project / "project.godot").write_text(PROJECT, newline="\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+    git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "start")
     return project
 
 
@@ -31,9 +62,10 @@ def test_addon_installed_enabled_and_excluded_once(tmp_path):
     assert integrations.game_projects(tmp_path / "repos") == [project]
     assert integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
     assert (project / "addons" / "godot_mcp" / "plugin.cfg").exists()
-    assert '"res://addons/godot_mcp/plugin.cfg"' in (project / "override.cfg").read_text()
+    assert '"res://addons/godot_mcp/plugin.cfg"' in (project / "project.godot").read_text()
+    assert not (project / "override.cfg").exists()  # the 4.7 editor never reads it (#1005)
     exclude = (project.parent / ".git" / "info" / "exclude").read_text()
-    assert "/game/addons/godot_mcp/" in exclude and "/game/override.cfg" in exclude
+    assert "/game/addons/godot_mcp/" in exclude
     assert not integrations.install_godot_addon(
         tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None
     )  # second run: nothing to do
@@ -84,14 +116,65 @@ def test_blender_install_makes_it_portable(tmp_path):
     assert (target / "b" / "portable").is_dir()
 
 
-def test_two_plugins_share_one_override(tmp_path):
-    override = tmp_path / "override.cfg"
-    assert integrations.enable_plugin(override, "res://addons/a/plugin.cfg")
-    assert integrations.enable_plugin(override, "res://addons/b/plugin.cfg")
-    assert not integrations.enable_plugin(override, "res://addons/a/plugin.cfg")
-    text = override.read_text()
+def test_two_plugins_join_the_committed_list(tmp_path):
+    project_file = tmp_path / "project.godot"
+    project_file.write_text(PROJECT, newline="\n")
+    assert integrations.enable_plugin(project_file, "res://addons/a/plugin.cfg")
+    assert integrations.enable_plugin(project_file, "res://addons/b/plugin.cfg")
+    assert not integrations.enable_plugin(project_file, "res://addons/a/plugin.cfg")
+    text = project_file.read_text()
     assert text.count("[editor_plugins]") == 1
-    assert '"res://addons/a/plugin.cfg", "res://addons/b/plugin.cfg"' in text
+    assert '"res://addons/gds_ui/plugin.cfg", "res://addons/a/plugin.cfg", "res://addons/b/plugin.cfg")' in text
+
+
+def test_a_project_without_a_plugin_list_is_left_alone(tmp_path):
+    project_file = tmp_path / "project.godot"
+    project_file.write_text("config_version=5\n", newline="\n")
+    assert not integrations.enable_plugin(project_file, "res://addons/a/plugin.cfg")
+    assert project_file.read_text() == "config_version=5\n"
+
+
+def test_the_old_override_loses_the_plugins_it_listed(tmp_path):
+    project, tool = make_game(tmp_path), make_addon(tmp_path)
+    (project / "override.cfg").write_text(
+        '[editor_plugins]\n\nenabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")\n'
+    )
+    integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
+    assert not (project / "override.cfg").exists()
+
+
+def test_enabled_plugins_stay_out_of_commits(tmp_path):
+    """#1005: the plugins are listed in the real project.godot (the 4.7 editor ignores override.cfg), and a local clean
+    filter keeps them out of every commit, diff and status, in the checkout and in its worktrees."""
+    project, tool = make_git_game(tmp_path), make_addon(tmp_path)
+    repo = project.parent
+    gdunit = tmp_path / "tools" / "gdunit4-1"
+    (gdunit / "addons" / "gdUnit4").mkdir(parents=True)
+    (gdunit / "addons" / "gdUnit4" / "plugin.cfg").write_text("[plugin]")
+    assert integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
+    assert integrations.install_godot_addon(gdunit, "gdUnit4", "addons/gdUnit4", project, lambda _: None)
+    text = (project / "project.godot").read_text()
+    mcp, gdunit_entry = '"res://addons/godot_mcp/plugin.cfg"', '"res://addons/gdUnit4/plugin.cfg"'
+    assert f'"res://addons/gds_ui/plugin.cfg", {mcp}, {gdunit_entry})' in text
+    assert git(repo, "status", "--porcelain") == ""
+    assert git(repo, "diff") == ""
+    # a real change beside them is committed without them
+    (project / "project.godot").write_text(text.replace('config/name="Game"', 'config/name="Renamed"'), newline="\n")
+    git(repo, "add", "game/project.godot")
+    staged = git(repo, "show", ":game/project.godot")
+    assert 'config/name="Renamed"' in staged and "godot_mcp" not in staged and "gdUnit4" not in staged
+    assert '"res://addons/gds_ui/plugin.cfg")' in staged
+    git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "rename")
+    # a checkout writes them back where the addon is installed
+    (project / "project.godot").unlink()
+    git(repo, "checkout", "--", "game/project.godot")
+    assert f"{mcp}, {gdunit_entry})" in (project / "project.godot").read_text()
+    assert git(repo, "status", "--porcelain") == ""
+    # a fresh worktree has no addons yet, so it names none (Godot would report a missing plugin)
+    worktree = tmp_path / "worktrees" / "game" / "branch"
+    git(repo, "worktree", "add", "-q", "-b", "branch", str(worktree))
+    assert "godot_mcp" not in (worktree / "game" / "project.godot").read_text()
+    assert git(worktree, "status", "--porcelain") == ""
 
 
 def test_the_kits_own_godot_project_gets_the_addons_too(tmp_path):
@@ -104,4 +187,4 @@ def test_the_kits_own_godot_project_gets_the_addons_too(tmp_path):
     assert integrations.install_godot_addon(tool, "godot_mcp", "addons/godot_mcp", project, lambda _: None)
     assert (project / "addons" / "godot_mcp" / "plugin.cfg").exists()
     exclude = (project.parent / ".git" / "info" / "exclude").read_text()
-    assert "/godot/addons/godot_mcp/" in exclude and "/godot/override.cfg" in exclude
+    assert "/godot/addons/godot_mcp/" in exclude

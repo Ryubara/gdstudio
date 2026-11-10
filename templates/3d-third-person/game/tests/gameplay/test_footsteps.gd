@@ -13,7 +13,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_steps = _player.get_node("Footsteps")
 	_steps.stepped.connect(
 		func(foot: StringName, crouched: bool) -> void:
@@ -66,7 +68,7 @@ func test_the_three_players_keep_the_levels_they_were_tuned_to() -> void:
 
 func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
-		&"player": _player,
+		&"character": _player,
 		&"model": _player.get_node("Model"),
 		&"steps": _steps.steps,
 		&"pitch_variation": 0.05,

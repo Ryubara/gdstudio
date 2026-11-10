@@ -31,7 +31,7 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/vault_study.tscn` plays the vault clips (`assets/animation/vault/`) on the mannequin over each clip's
   reference box, with a sprint in and out, from four views; headless it prints how still the planted hand stays
   (`MODEL=male`, `VIEWS`, `SLOW`, `LOW_HEIGHT` and `HIGH_HEIGHT` are in the header).
-- `tools/ragdoll/measure_joints.gd` measures the joint limits of `PlayerRagdoll.BODIES` from every clip on both mannequins
+- `tools/ragdoll/measure_joints.gd` measures the joint limits of `CharacterRagdoll.BODIES` from every clip on both mannequins
   (the header says how to run it).
 - `tools/capture/muzzle_flash_tour.tscn` fires the pistol in slow motion at the orange block, with the flash on and then
   off, for a clip of the muzzle flash.

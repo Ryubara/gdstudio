@@ -12,14 +12,16 @@ const LIMIT_SLACK := 25.0
 
 var _arena: PlayArena
 var _player: Player
-var _ragdoll: PlayerRagdoll
+var _ragdoll: CharacterRagdoll
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_ragdoll = _player.ragdoll_body
 	await InputSim.ticks(get_tree(), 4)
 
@@ -83,7 +85,7 @@ func test_knees_and_elbows_stay_in_their_limits_and_never_bend_backward() -> voi
 	_player.die()
 	for _step in 8:
 		await _ticks(30)
-		for entry: Dictionary in PlayerRagdoll.BODIES:
+		for entry: Dictionary in CharacterRagdoll.BODIES:
 			if entry.joint != &"hinge":
 				continue
 			var angles := _hinge_angles(entry)
@@ -106,7 +108,7 @@ func _hinge_angles(entry: Dictionary) -> Vector3:
 	var parent: StringName = _ragdoll._parent_body(skeleton, entry.bone)
 	var rest := _ragdoll.rest_body(parent).basis.inverse() * _ragdoll.rest_body(entry.bone).basis
 	var now := _ragdoll.body(parent).global_basis.inverse() * _ragdoll.body(entry.bone).global_basis
-	var frame := PlayerRagdoll.hinge_frame(entry.axis)
+	var frame := CharacterRagdoll.hinge_frame(entry.axis)
 	var q := Quaternion(frame.inverse() * rest.inverse() * now * frame).normalized()
 	if q.w < 0.0:
 		q = -q
@@ -149,7 +151,7 @@ func test_deaths_in_every_pose_never_throw_a_bone() -> void:
 		_player.die()
 		for _tick in 60:
 			await _ticks(1)
-			for entry: Dictionary in PlayerRagdoll.BODIES:
+			for entry: Dictionary in CharacterRagdoll.BODIES:
 				var speed := _ragdoll.body(entry.bone).linear_velocity.length()
 				if speed > fastest:
 					fastest = speed

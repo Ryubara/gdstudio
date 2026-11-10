@@ -85,6 +85,12 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   properly, so a green `main` shard proves only its own deal; a wrapper named otherwise prints the usage and runs
   nothing. **Seen:** Deadnight #1231, 2026-11-05 (fix: `tools/ci/warm_GdUnitCmdTool.gd` took 911 objects to none on the
   same 55 cases; a test runs two suites through it in a child Godot and fails on a leak line).
+- **Approach:** In a kit template, judge a new suite's leak lines by the whole `gds template test` run (one process,
+  CI's condition), not by a `--suite` run of it alone; bisect only a leak the whole run shows. **Watch out for:** a new
+  suite of 3D Third Person leaked 196 objects run alone, the same with every test turned off, and main's
+  `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
+  nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
+  a leak CI never sees).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the

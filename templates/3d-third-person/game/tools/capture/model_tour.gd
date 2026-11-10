@@ -1,9 +1,9 @@
 ## Films the player's model from the front, walking toward the camera, then from behind with the
 ## pistol up, for the pull request's screenshots of each mannequin. It presses the input actions
 ## the way a player would and turns the camera with `orbit()`. It films whichever model
-## `player.tscn` holds: to film the other mannequin, make a game from the template and point the
-## scene's model at `mannequin_male.glb` the way the editor does it (the template's
-## `tools/editor_swap/` does that).
+## `character_dressed.tscn` holds (the player inherits it): to film the other mannequin, make a
+## game from the template and point the scene's model at `mannequin_male.glb` the way the
+## editor does it (the template's `tools/editor_swap/` does that).
 ##
 ## Record it with Movie Maker through the kit:
 ## `gds capture frames --project game --scene res://tools/capture/model_tour.tscn --seconds 6`

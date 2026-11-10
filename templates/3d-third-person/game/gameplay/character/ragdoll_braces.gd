@@ -1,7 +1,7 @@
 class_name RagdollBraces
 extends RefCounted
-## The extra joints that hold a `PlayerRagdoll`'s limbs in their limits: copies of each bone's own
-## joint (the same frames and limits between the same two bodies), made on the physics server.
+## The extra joints that hold a `CharacterRagdoll`'s limbs in their limits: copies of each bone's
+## own joint (the same frames and limits between the same two bodies), made on the physics server.
 ##
 ## Jolt solves every joint `velocity_steps` times a step for the whole project (10, then 2
 ## position steps), too few for a light limb under a falling trunk, and Godot 4.7.2 keeps Jolt's
@@ -22,7 +22,7 @@ func is_empty() -> bool:
 
 
 ## Makes `hinge_passes - 1` copies of every hinge and `cone_passes - 1` of every cone of
-## `PlayerRagdoll.BODIES`. `bones` are the bodies by bone, `posed` where each body was when its
+## `CharacterRagdoll.BODIES`. `bones` are the bodies by bone, `posed` where each body was when its
 ## joint was made (the skeleton's space), `parents` the body each bone hangs from (empty for the
 ## root), `joint_range` the ragdoll's share of a person's range.
 func build(
@@ -34,7 +34,7 @@ func build(
 	joint_range: float
 ) -> void:
 	for round_index in maxi(hinge_passes, cone_passes) - 1:
-		for entry: Dictionary in PlayerRagdoll.BODIES:
+		for entry: Dictionary in CharacterRagdoll.BODIES:
 			var up: StringName = parents.get(entry.bone, &"")
 			if up == &"":
 				continue

@@ -14,14 +14,16 @@ const LIMIT_SLACK := 25.0
 
 var _arena: PlayArena
 var _player: Player
-var _ragdoll: PlayerRagdoll
+var _ragdoll: CharacterRagdoll
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_ragdoll = _player.ragdoll_body
 	await InputSim.ticks(get_tree(), 4)
 
@@ -61,7 +63,7 @@ func test_limbs_do_not_pass_through_the_body_after_a_run_and_a_shove() -> void:
 	await _ticks(40)
 	_player.die()
 	# A shove from the side, harder the higher the bone, topples the body onto its side.
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		var bone := _ragdoll.body(entry.bone)
 		bone.linear_velocity += Vector3(3.5 * clampf(bone.global_position.y / 1.7, 0.0, 1.2), 0, 0)
 	var deepest := 0.0
@@ -85,7 +87,7 @@ func _deepest_overlap() -> Array:
 	var skeleton := _player.model.skeleton()
 	var deepest := 0.0
 	var worst := ""
-	var entries := PlayerRagdoll.BODIES
+	var entries := CharacterRagdoll.BODIES
 	for i in entries.size():
 		for j in range(i + 1, entries.size()):
 			var a: StringName = entries[i].bone
@@ -123,7 +125,7 @@ func _segment(bone: PhysicalBone3D) -> Array:
 
 
 func test_the_bones_have_their_own_layer_and_the_level_props_and_themselves_in_the_mask() -> void:
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		var bone := _ragdoll.body(entry.bone)
 		assert_int(bone.collision_layer).is_equal(PhysicsLayers.RAGDOLL)
 		assert_int(bone.collision_mask).is_equal(PhysicsLayers.RAGDOLL_MASK)
@@ -172,7 +174,7 @@ func test_elbows_and_knees_never_lean_sideways_or_roll_after_a_run() -> void:
 	var where := ""
 	for _step in 10:
 		await _ticks(20)
-		for entry: Dictionary in PlayerRagdoll.BODIES:
+		for entry: Dictionary in CharacterRagdoll.BODIES:
 			if entry.joint != &"hinge":
 				continue
 			var angles := _hinge_angles(entry)
@@ -192,7 +194,7 @@ func _hinge_angles(entry: Dictionary) -> Vector3:
 	var parent: StringName = _ragdoll._parent_body(skeleton, entry.bone)
 	var rest := _ragdoll.rest_body(parent).basis.inverse() * _ragdoll.rest_body(entry.bone).basis
 	var now := _ragdoll.body(parent).global_basis.inverse() * _ragdoll.body(entry.bone).global_basis
-	var frame := PlayerRagdoll.hinge_frame(entry.axis)
+	var frame := CharacterRagdoll.hinge_frame(entry.axis)
 	var q := Quaternion(frame.inverse() * rest.inverse() * now * frame).normalized()
 	if q.w < 0.0:
 		q = -q
@@ -204,14 +206,14 @@ func _hinge_angles(entry: Dictionary) -> Vector3:
 
 
 func _entry(bone: StringName) -> Dictionary:
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		if entry.bone == bone:
 			return entry
 	return {}
 
 
 func test_a_turn_is_held_inside_the_limits_of_its_joint() -> void:
-	var ragdoll := auto_free(PlayerRagdoll.new()) as PlayerRagdoll
+	var ragdoll := auto_free(CharacterRagdoll.new()) as CharacterRagdoll
 	var elbow := _entry(&"lowerarm_l")
 	var half: float = (elbow.range.y - elbow.range.x) / 2.0
 	# Too far a bend with a lean and a roll in it: the lean and roll go, the bend stops at the range.
@@ -244,7 +246,7 @@ func test_a_turn_is_held_inside_the_limits_of_its_joint() -> void:
 
 func test_the_mass_follows_the_body_segments() -> void:
 	var total := 0.0
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		total += _ragdoll.body(entry.bone).mass
 	assert_float(total).is_equal_approx(_ragdoll.mass, 0.01)
 	# Winter and Dempster: a thigh is 10 per cent of the body, a hand 0.6, the head 8.1.
@@ -317,7 +319,7 @@ func test_a_death_over_the_cap_plays_the_death_clip_and_a_free_slot_brings_the_r
 	assert_bool(third.is_dead()).is_true()
 	assert_bool(third.died_by_clip).is_true()
 	assert_bool(third.ragdoll_body.is_limp()).is_false()
-	var player_clip := third.get_node("Animation") as PlayerAnimation
+	var player_clip := third.get_node("Animation") as CharacterAnimation
 	await _ticks(10)
 	assert_str(String(player_clip.animation_player.current_animation)).is_equal(
 		String(CharacterClips.DEATH)
@@ -347,7 +349,7 @@ func test_a_settled_body_sleeps_and_says_so() -> void:
 			break
 	assert_bool(seen[0]).is_true()
 	assert_bool(_ragdoll.is_settled()).is_true()
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		var asleep: bool = PhysicsServer3D.body_get_state(
 			_ragdoll.body(entry.bone).get_rid(), PhysicsServer3D.BODY_STATE_SLEEPING
 		)

@@ -289,6 +289,12 @@ def made_before_the_move(tmp_path):
     flash.write_text('[ext_resource type="Script" path="res://gameplay/effects/effect_def.gd" id="1_def"]\n')
     (project / "tests" / "fixtures" / "README.md").write_text("fixtures\n")
     (project / "tests" / "test_zone.gd").write_text("extends GdUnitTestSuite\nvar pins := ExportPins\n")
+    # Kit #952: the presets stay the game's own beside the shake script that moved; the host scene names its script.
+    preset = project / "core" / "camera_shake" / "presets" / "impact.tres"
+    preset.parent.mkdir(parents=True)
+    preset.write_text('[ext_resource type="Script" path="res://core/camera_shake/shake_preset.gd" id="1_preset"]\n')
+    host = project / "ui" / "menus" / "screen_host.tscn"
+    host.write_text('[ext_resource type="Script" path="res://ui/menus/screen_host.gd" id="1_host"]\n')
     return game
 
 
@@ -313,6 +319,10 @@ def test_sync_moves_a_game_made_before_the_move_onto_the_addon(tmp_path):
     assert "res://addons/gds_game/effects/effect_def.gd" in (project / "gameplay/weapon/muzzle_flash.tres").read_text()
     assert (project / "tests" / "test_zone.gd").read_text().endswith("ExportPins\n")  # a class name needs no change
     assert (project / "tests" / "fixtures" / "README.md").exists()
+    preset = (project / "core" / "camera_shake" / "presets" / "impact.tres").read_text()
+    assert 'path="res://addons/gds_game/camera_shake/shake_preset.gd"' in preset
+    host = (project / "ui" / "menus" / "screen_host.tscn").read_text()
+    assert 'path="res://addons/gds_game/screen_host/screen_host.gd"' in host
     assert any("removed game/tests/fixtures/input_sim.gd (moved to" in line for line in lines)
     assert sync.drift(KIT, game) == []
     # A second sync finds nothing left to move.
