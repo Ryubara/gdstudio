@@ -89,6 +89,14 @@ Blank `ui/probe/web_probe.gd` is 34 lines) rather than loosening the check.
   16 s at ratio 2 (the page drew 1688 by 780 pixels in SwiftShader). **Seen:** gdstudio #921, 2026-11-10 (fix: ticks
   and `--ratio 1`).
 
+- **Approach:** A check that a press caused an effect waits on the game's word that it began (the probe's `jumps`),
+  then watches the effect from that sample (the rise, until it passes 0.3 m or 90 ticks), never a window of ticks
+  counted from the press. **Watch out for:** the old jump check read the height for 30 ticks from a snapshot taken
+  before the press, the jump takes about 30 ticks to its apex and the first sample after a press is 14 to 17 ticks in,
+  so a press reaching the game late left too little window, and over 30 ticks none ("jumps 0 to 1, rose 0.00 m"). A
+  page 30 times slower and a main thread held for 6 s did not reproduce it; `--throttle` and `--stall-jump` of
+  `touch_smoke.py` try it. **Seen:** gdstudio #991, 2026-11-10 (fix: waits on `jumps`; 20 of 20 runs passed).
+
 ## What a probe can see {#what-a-probe-sees}
 
 - **Approach:** Give a browser test a probe node that, only when `OS.has_feature("web")` and the page asks for it
