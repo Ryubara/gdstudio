@@ -10,6 +10,10 @@ extends RefCounted
 ## `Character.restore()` crosses on the same path. The clip is the animation's business: it reads
 ## `plan`, `duration()` and the obstacle's clip overrides from here.
 
+## A vault or a mantle began: the body follows `plan` until it ends, in the state `VAULT` or
+## `MANTLE` (the animation plays its clip from this).
+signal started(plan: VaultPlan)
+
 ## The plan being followed (or the last one, once it ended). Its kind is `NONE` while there is none.
 var plan := VaultPlan.new()
 ## Seconds into the plan.
@@ -44,6 +48,9 @@ func drive(body: Character, delta: float) -> bool:
 	if settings == null:
 		return false
 	tick_cooldown(delta)
+	# Something else took the body (it died and got up, a hit threw it): the crossing is over.
+	if is_active() and body.state != Character.State.VAULT and body.state != Character.State.MANTLE:
+		cancel()
 	if not is_active():
 		if not body._grounded or body._action_lock > 0.0:
 			return false
@@ -150,7 +157,7 @@ func _begin(body: Character, settings: VaultSettings) -> void:
 			body.aim_changed.emit(false)
 	var vaulting := plan.kind == VaultPlan.Kind.VAULT
 	body.state = Character.State.VAULT if vaulting else Character.State.MANTLE
-	body.vault_started.emit(plan)
+	started.emit(plan)
 
 
 func _asked(

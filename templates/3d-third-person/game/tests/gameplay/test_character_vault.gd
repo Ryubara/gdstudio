@@ -194,7 +194,7 @@ func test_no_room_to_land_mantles_and_with_no_mantle_is_refused() -> void:
 	await _run_and_press(_space_key)
 	assert_bool(_states.has(Character.State.VAULT)).is_false()
 	assert_bool(_states.has(Character.State.MANTLE)).is_false()
-	assert_str(_player.vault_motion().last_refusal).is_equal(VaultPlan.NO_LANDING)
+	assert_str(_player.vault_motion.last_refusal).is_equal(VaultPlan.NO_LANDING)
 
 
 func test_a_bot_vaults_by_commands_alone_and_sprinting_vaults_with_the_automatic_trigger() -> void:
@@ -304,7 +304,7 @@ func test_the_cooldown_follows_a_crossing_and_a_press_right_after_landing_chains
 	var press := walk.clone()
 	press.jump_pressed = true
 	var after_end: Array[float] = []
-	var motion := _player.vault_motion()
+	var motion := _player.vault_motion
 	var watch := func(_tick: int) -> void:
 		if _states.has(Character.State.VAULT) and not motion.is_active() and after_end.is_empty():
 			after_end.append(motion.cooldown)
@@ -320,10 +320,10 @@ func test_the_cooldown_follows_a_crossing_and_a_press_right_after_landing_chains
 	CommandDriver.take(_player)
 	players = [_player]
 	var started: Array[VaultPlan] = []
-	_player.vault_started.connect(func(plan: VaultPlan) -> void: started.append(plan))
+	_player.vault_motion.started.connect(func(plan: VaultPlan) -> void: started.append(plan))
 	await CommandDriver.run(get_tree(), players, walk, 30)
 	await CommandDriver.run(get_tree(), players, press, 1)
-	var motion_now := _player.vault_motion()
+	var motion_now := _player.vault_motion
 	assert_bool(motion_now.is_active()).is_true()
 	for _tick in 90:
 		if not motion_now.is_active():

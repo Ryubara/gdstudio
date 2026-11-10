@@ -29,12 +29,15 @@ const F_INTERACT_PRESSED := 1 << 8
 const F_RAGDOLL_PRESSED := 1 << 9
 ## A shot block follows the 15 bytes.
 const F_SHOT := 1 << 10
-# Bits 11 to 14 are free and kept for gdstudio #887: its reload, next weapon, previous weapon
-# and unarmed presses take them and raise `NetWire.VERSION`.
+## The weapon presses (gdstudio #887): reload, next weapon, previous weapon, the empty hands.
+const F_RELOAD_PRESSED := 1 << 11
+const F_NEXT_WEAPON_PRESSED := 1 << 12
+const F_PREVIOUS_WEAPON_PRESSED := 1 << 13
+const F_UNARMED_PRESSED := 1 << 14
 ## Held while lying down (gdstudio #1012).
 const F_PRONE := 1 << 15
-## Bits no build of this version sets: a command with one of them is refused.
-const F_UNUSED := 0xFFFF & ~((F_SHOT << 1) - 1) & ~F_PRONE
+## Bits no build of this version sets: a command with one of them is refused (none are left).
+const F_UNUSED := 0xFFFF & ~((F_UNARMED_PRESSED << 1) - 1) & ~F_PRONE
 
 # --- The command ---
 
@@ -106,6 +109,10 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 	result.fire_pressed = flags & F_FIRE_PRESSED != 0
 	result.interact_pressed = flags & F_INTERACT_PRESSED != 0
 	result.ragdoll_pressed = flags & F_RAGDOLL_PRESSED != 0
+	result.reload_pressed = flags & F_RELOAD_PRESSED != 0
+	result.next_weapon_pressed = flags & F_NEXT_WEAPON_PRESSED != 0
+	result.previous_weapon_pressed = flags & F_PREVIOUS_WEAPON_PRESSED != 0
+	result.unarmed_pressed = flags & F_UNARMED_PRESSED != 0
 	result.has_shot = shot
 	if shot:
 		result.origin = Vector3(
@@ -139,6 +146,10 @@ static func _flags(command: PlayerCommand) -> int:
 	flags |= F_INTERACT_PRESSED if command.interact_pressed else 0
 	flags |= F_RAGDOLL_PRESSED if command.ragdoll_pressed else 0
 	flags |= F_SHOT if command.has_shot else 0
+	flags |= F_RELOAD_PRESSED if command.reload_pressed else 0
+	flags |= F_NEXT_WEAPON_PRESSED if command.next_weapon_pressed else 0
+	flags |= F_PREVIOUS_WEAPON_PRESSED if command.previous_weapon_pressed else 0
+	flags |= F_UNARMED_PRESSED if command.unarmed_pressed else 0
 	return flags
 
 

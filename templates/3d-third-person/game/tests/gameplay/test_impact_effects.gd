@@ -161,8 +161,10 @@ func test_a_weapon_with_impacts_off_makes_shots_that_leave_nothing() -> void:
 	await ImpactShots.land(get_tree(), shot)
 	assert_int(_impacts.mark_count()).is_equal(1)
 	_impacts.clear_marks()
-	weapon.impacts = false
-	weapon._cooldown = 0.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	weapon.definition = weapon.definition.duplicate()
+	weapon.definition.impacts = false
+	weapon.make_ready()
 	shot = weapon.fire()
 	assert_bool(shot.impact_effects).is_false()
 	await ImpactShots.land(get_tree(), shot)

@@ -109,7 +109,7 @@ func _measure(bodies: Array[Player], mode: String) -> Dictionary:
 	var command := PlayerCommand.new()
 	var vaults := [0]
 	for body in bodies:
-		body.vault_started.connect(func(_plan: VaultPlan) -> void: vaults[0] += 1)
+		body.vault_motion.started.connect(func(_plan: VaultPlan) -> void: vaults[0] += 1)
 	var spent := 0
 	for tick in WARM_TICKS + TICKS:
 		await get_tree().physics_frame

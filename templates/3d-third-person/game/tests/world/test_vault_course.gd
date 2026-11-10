@@ -101,4 +101,4 @@ func test_the_wall_without_the_component_is_jumped_not_vaulted() -> void:
 	await _run_at(_block("VaultCourse/NoVault09"))
 	assert_bool(_states.has(Character.State.VAULT)).is_false()
 	assert_bool(_states.has(Character.State.JUMP)).is_true()
-	assert_str(_player.vault_motion().last_refusal).is_equal(VaultPlan.NOT_VAULTABLE)
+	assert_str(_player.vault_motion.last_refusal).is_equal(VaultPlan.NOT_VAULTABLE)

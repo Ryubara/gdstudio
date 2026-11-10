@@ -151,9 +151,9 @@ jump press): the server and a predicting client step the same plan from the same
   for:** a cooldown on every crossing ate a press made just after a landing, the press became a jump into the next
   wall and the tour stood against the mantle block for four seconds. **Seen:** gdstudio #1013, 2026-11-10 (the capture
   of `tools/capture/vault_tour.tscn`).
-- **Approach:** Count crossings by `vault_started`, not by `state_changed`. **Watch out for:** two vaults in a row
-  with no ordinary tick between them keep the state `VAULT`, so the setter says nothing and a test that counted state
-  changes saw one vault for two. **Seen:** gdstudio #1013, 2026-11-10.
+- **Approach:** Count crossings by `CharacterVault.started`, not by `state_changed`. **Watch out for:** two vaults in a
+  row with no ordinary tick between them keep the state `VAULT`, so the setter says nothing and a test that counted
+  state changes saw one vault for two. **Seen:** gdstudio #1013, 2026-11-10.
 - **Approach:** Run a `gds_game` suite in the kit's own project (`godot/`, the physics engine its CI uses) as well as
   in a game, and assert against the measured value at a threshold, never the built size. **Watch out for:** the kit's
   project runs Godot Physics and the template Jolt: a 1.0 m wall measured a hair under 1.0 in one, so a test of the

@@ -14,14 +14,14 @@ static func aim_point(weapon: Weapon) -> Vector3:
 	if camera == null:
 		var out := -muzzle.global_basis.z if muzzle != null else -weapon.global_basis.z
 		var from := muzzle.global_position if muzzle != null else weapon.global_position
-		return from + out * weapon.aim_range
+		return from + out * weapon.definition.aim_range
 	var centre := weapon.get_viewport().get_visible_rect().size / 2.0
 	var ray := camera.project_ray_normal(centre)
 	var start := camera.project_ray_origin(centre)
 	if shooter != null:
 		# Start the ray at the shooter's depth, so a wall behind the character is not hit.
 		start += ray * maxf((shooter.global_position - start).dot(ray), 0.0)
-	var end := start + ray * weapon.aim_range
+	var end := start + ray * weapon.definition.aim_range
 	var query := PhysicsRayQueryParameters3D.create(start, end, weapon.aim_mask)
 	if shooter != null:
 		query.exclude = [shooter.get_rid()]

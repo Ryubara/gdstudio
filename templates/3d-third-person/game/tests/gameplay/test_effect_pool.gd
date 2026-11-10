@@ -232,7 +232,7 @@ func test_a_weapon_and_the_impact_surfaces_register_their_effects_for_the_warm_u
 	var held: Array[EffectDef] = []
 	for slot in _emitter.slots():
 		held.append(slot.effect)
-	assert_bool(held.has(weapon.muzzle_flash)).is_true()
+	assert_bool(held.has(weapon.definition.muzzle_flash)).is_true()
 	for surface: ImpactSurface in impacts.surfaces_by_name().values():
 		assert_bool(held.has(surface.effect)).is_true()
 	assert_int(_emitter.active_count()).is_equal(0)
