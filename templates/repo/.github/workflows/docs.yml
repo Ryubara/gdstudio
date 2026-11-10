@@ -11,6 +11,9 @@ on:
 permissions:
   contents: read
 
+# cancels-on-main: a push to the default branch cancels the docs run of the commit before it. That is fine here: the
+# site is rebuilt in full from the newest commit, so a cancelled build or deploy is replaced by the next one, and the
+# pages never go back to an older commit. (Unlike `ci`, whose run on each commit is its own result.)
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
