@@ -378,8 +378,9 @@ while alive, a full ragdoll while dead, and a blend back to the animation on get
   Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
   body, shared out by bone size), `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of the
   measured range), `linear_damp`, `angular_damp`, `friction`, `bounce`, `carry_velocity`, `get_up_time`,
-  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones never meet each other,
-  the player's capsule, the camera's walls or a shot). Every one applies live, has a pinned default and a test.
+  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones meet no player capsule,
+  camera wall or shot, but also not each other, which #872 changes so limbs stop passing through the body). Every
+  one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (pelvis, three spine bones, neck and head, arms, hands, legs,
   feet; no fingers) hang off a `PhysicalBoneSimulator3D` named `RagdollBones` under the skeleton of the `Model` slot.
   They are made from the table `PlayerRagdoll.BODIES` every time the slot's rig changes, and in the editor too (the
