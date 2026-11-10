@@ -60,9 +60,9 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-08 | gdstudio #821 | Every template should ship with the Phantom Camera addon, customised at a high level in the inspector, instead of a hand-built camera | [engines/godot/camera.md#phantom-camera](../engines/godot/camera.md#phantom-camera) |
 | 2026-11-08 | gdstudio #821 | Every template with a character controller should ship simple, intuitive touch controls | [gamedev/controller.md#devices](../gamedev/controller.md#devices) |
 | 2026-11-08 | gdstudio #837 | A game made from 3D Third Person was silent: #837 committed the sounds and buses but no node plays them, and our reports had not said so | [engines/godot/audio.md#template-buses](../engines/godot/audio.md#template-buses) |
-| 2026-11-09 | gdstudio #865 | The AI-use `Model:` line of a pull request named the gateway the model ran through; the provider is machine configuration, not pull request content - the model name only | [studio/pull-requests.md#body](pull-requests.md#body) |
-| 2026-11-09 | gdstudio #865 | A work-in-progress pull request was opened, not as a draft, for a branch its agent was still working on, with a body that failed the repository's own checks; red checks on an unfinished branch are incompletion, but the body faults were avoidable | [studio/pull-requests.md#body](pull-requests.md#body) |
-| 2026-11-09 | gdstudio #866 | The `Model:` line and the commit trailers said the harness's name the session's attribution gave; a pull request names the model that wrote the work - here Qwen 3.8 27B, the model the gateway ran - and the trailers must say the same | [studio/pull-requests.md#body](pull-requests.md#body) |
+| 2026-11-09 | gdstudio #866 | A pull request's `Model:` line and trailers named the harness that ran the session, not the model that wrote the work | [studio/pull-requests.md#body](pull-requests.md#body) |
+| 2026-11-10 | gdstudio #865 | Work done while a weaker model ran the studio fell short (a ragdoll pull request with red checks and its tests uncommitted, an issue holding a decision never made) and was redone from scratch | [studio/asks.md#decision-words](asks.md#decision-words) |
+| 2026-11-10 | gdstudio #846 | The coordinator was building a template feature itself instead of starting a godot-engineer for it | [studio/starting-work.md#starting-an-agent](starting-work.md#starting-an-agent) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
 
