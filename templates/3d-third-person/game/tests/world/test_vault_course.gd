@@ -33,6 +33,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	InputSim.release_all()
+	AudioDrain.stop_all(_level)
 
 
 func _block(path: String) -> ProtoBlock:

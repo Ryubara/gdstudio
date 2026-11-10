@@ -158,3 +158,7 @@ jump press): the server and a predicting client step the same plan from the same
   in a game, and assert against the measured value at a threshold, never the built size. **Watch out for:** the kit's
   project runs Godot Physics and the template Jolt: a 1.0 m wall measured a hair under 1.0 in one, so a test of the
   high clip "from 1.0 m" passed in the game and failed in the kit. **Seen:** gdstudio #1013, 2026-11-10.
+- **Approach:** End every suite that runs the real player in a level with `AudioDrain.stop_all(<root>)` in
+  `after_test`, as the arena suites do. **Watch out for:** `test_vault_course.gd` left a footstep playing when the run
+  quit, so the run logged a leaked `AudioStreamOggVorbis` and the template command (and CI) refused it although every
+  case passed; it showed only when it ran last in a short run. **Seen:** gdstudio #1013, 2026-11-10.
