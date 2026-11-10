@@ -13,6 +13,8 @@ The template has a character and the map's components:
   `StepClimber`, `CharacterClips`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the crosshair,
   and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
+- `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
+  (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
 - `camera_zone/`: hands the view to another Phantom Camera while the player stands in a trigger zone.
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,

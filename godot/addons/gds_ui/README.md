@@ -1,8 +1,11 @@
 # gds_ui
 
-Tokens, a generated theme, drawn components, motion and a screen router. It names no game: every colour, size,
-duration, shader palette and backdrop is a token, so a second game restyles it by saving a resource. The decisions
-behind it, with the measurements, are in the game's `docs/research/ui-foundation.md`.
+Tokens, a generated theme, drawn components, motion and a screen router. No component names a game: every colour,
+size, duration, shader palette and backdrop is a token, so a second game restyles it by saving a resource. The
+**default** tokens are not neutral, though: they are Deadnight's drive-in skin (a night sky, an amber marquee, a film
+burn and a projector iris), so a game that sets no `gds_ui/tokens` resource looks like Deadnight until it saves its own
+(`demo/light_tokens.tres` is a second palette to start from). A neutral default is not made yet. The decisions behind
+it, with the measurements, are in the game's `docs/research/ui-foundation.md`.
 
 ## Contents
 
@@ -22,7 +25,7 @@ behind it, with the measurements, are in the game's `docs/research/ui-foundation
 
    | Setting | Default | What |
    | --- | --- | --- |
-   | `gds_ui/tokens` | none | Path of a saved `UITokens` resource. Empty or missing: the defaults (the shipped drive-in skin). |
+   | `gds_ui/tokens` | none | Path of a saved `UITokens` resource. Empty or missing: the defaults (Deadnight's drive-in skin). |
    | `gds_ui/accessibility/reduced_motion` | `false` | Read once by the router at startup into `UIMotion.reduced`. |
 
 3. At startup the first `UITokens.active()` loads the setting's resource. The router's `_ready` then builds the stage

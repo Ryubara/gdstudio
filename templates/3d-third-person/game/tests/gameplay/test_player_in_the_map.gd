@@ -45,7 +45,8 @@ func test_a_coin_of_the_map_is_collected_and_counted_on_screen() -> void:
 	_player.teleport(coin.global_position - Vector3(0.0, 0.7, 0.0))
 	await InputSim.ticks(get_tree(), 8)
 	assert_int(_player.count_of(&"coin")).is_equal(1)
-	assert_str((_scene.get_node("Hud/ItemCounter") as Label).text).is_equal("coin 1")
+	var counter: ItemCounter = _scene.get_node("Hud/Root/SafeArea/TopLeft/ItemCounter")
+	assert_str(counter.label.text).is_equal("coin 1")
 
 
 func test_the_shuttle_platform_carries_the_player_across_the_gap() -> void:
