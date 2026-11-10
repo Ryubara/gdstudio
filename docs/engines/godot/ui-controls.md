@@ -183,8 +183,9 @@ first. On the web, set `viewport-fit=cover` and block page scroll, zoom and the 
 and what its build showed: `docs/research/mobile-controls.md` there.
 
 A new HUD part must be tested against the touch buttons too (a list of kept cards in the layout test) and captured on a
-phone: the right thumb's corner is full, and rectangle tests between HUD parts do not see it. A HUD part's `refresh`
-must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
+phone: the right thumb's corner is full, and rectangle tests between HUD parts do not see it. The template HUD moves a
+part to its `touch_region` while the touch layer shows ([the template HUD](ui-layout.md#template-hud)). A HUD part's
+`refresh` must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
 
 A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
 its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the

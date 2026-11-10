@@ -3,12 +3,75 @@
 <!-- new section: UI controls covers the controls and the online case; nothing held how a solo game pauses behind its
 menus or keeps options (gdstudio #881) -->
 
-How a template game shows menus over its running world and keeps the player's options (gdstudio #881): the
-`ScreenHost` that pauses the game and gives it back, and the `Settings` autoload with rebinding. The controls the
-screens are made of, focus, and the online case (a menu over a game that must keep running) are on
-[UI controls](ui-controls.md); the template's parts and its inspector list are on
-[The 3D Third Person template](third-person-template.md#menus); the router's calls are in the addon's README
+How a template game shows menus over its running world and keeps the player's options (gdstudio #881): the parts the
+3D Third Person template ships with and their inspector list, the `ScreenHost` that pauses the game and gives it back,
+and the `Settings` autoload with rebinding. The controls the screens are made of, focus, and the online case (a menu
+over a game that must keep running) are on [UI controls](ui-controls.md); the router's calls are in the addon's README
 (`godot/addons/gds_ui/README.md`).
+
+## The template's menus and settings {#menus}
+
+The project starts at `ui/menus/menu_scene.tscn`, which shows the main menu on the router (`gds_ui`). Play shows the
+loading screen, which reads `main.tscn` on a thread and switches to it; in the game a `ScreenHost` node opens the pause
+menu from Esc, a pad's Start or the touch layer's Menu button, pauses the tree and gives it back. Every screen is a
+scene of `gds_ui` controls, laid out in the editor; the scripts only wire them. How the pieces work together, and how
+to open a screen of your own from gameplay, is in the next section; the settings and rebinding are in the
+one after it.
+
+| Part | Where (`templates/3d-third-person/game/`) | What it does |
+| --- | --- | --- |
+| Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. |
+| Main menu | `ui/menus/main_menu.tscn` | Play, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. |
+| Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
+| Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
+| Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
+| Screen host | `ui/menus/screen_host.gd`, a `Screens` node in `main.tscn` | Opens screens over the game ([Menus over a game](#screen-host)). |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `main.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
+| Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node | Carries mouse sensitivity and invert to the camera rig. |
+| Layout | `ui/menus/menu_fit.gd` | On a phone (short side under 500 px, or a touch screen under 1000) it lays the menu out on a canvas half as big, drawn twice the size, so a button is a finger's size. |
+
+**In the inspector.** `ScreenHost`: `pause_screen`, `action_screens` (action to scene), `transition`, `pause_tree`,
+`release_mouse`, `pause_on_focus_loss`, `pause_on_lost_mouse`, `menu_scene`. `Settings` (its scene): `save_delay` and
+`presets`, three `QualityPreset` resources (`title`, `msaa`, `shadow_atlas_size`, `shadow_filter`) that Low, Medium and
+High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `force`. `SettingRow`: `key`, `format`,
+`option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
+`PauseButton`: `host`, `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`: `main_menu`, `game_scene`,
+`skip_menu`. `LoadingScreen`: `least_time`.
+
+- **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
+  before the script's own exports. **Watch out for:** a `.tscn` written by a script that put `style = 1` and
+  `title = "..."` above `script = ExtResource(...)` loaded with every one of those values dropped, silently: the
+  titles were body-sized and the rows had no words, found only by a capture. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** Capture a phone-shaped menu from the window's own pixels (`get_viewport().get_texture().get_image()`
+  after `RenderingServer.frame_post_draw`), and a desktop one with Movie Maker. **Watch out for:** Movie Maker writes
+  the project's 1920 x 1080 and crops a canvas that is wider (an 844 x 390 window is 2337 x 1080 units), so the first
+  phone captures showed the middle of every card. **Seen:** gdstudio #881, 2026-11-10
+  (`tools/capture/menus_tour.gd`, `--shots=<folder>`).
+- **Approach:** Give every sub-resource that a test or a designer edits `resource_local_to_scene = true` when the scene
+  is made more than once (the `Settings` scene's three presets). **Watch out for:** instances of one scene share its
+  sub-resources, so a test that set a preset's `msaa` changed the autoload's too. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** When the project's main scene stops being the game's, give tools a way past the menu (`--play`,
+  `?play`, `skip_menu`) and point every test and capture that wants the game at `res://main.tscn`. **Watch out for:**
+  `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
+  menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 

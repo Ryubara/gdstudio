@@ -3,8 +3,7 @@
 The game starts at a main menu, pauses to a pause menu and keeps the player's options. Every screen is a scene of
 `gds_ui` controls under `game/ui/menus/`, laid out in the editor and skinned by the project's `UITokens` resource (see
 the addon's README for restyling); the scripts only wire them. How each part works is in the kit's
-`docs/engines/godot/third-person-template.md` (Menus and settings) and `docs/engines/godot/menus.md` (the screen host,
-settings and rebinding).
+`docs/engines/godot/menus.md` (the parts, the screen host, settings and rebinding).
 
 ## What the player sees
 
