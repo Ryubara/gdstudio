@@ -70,8 +70,11 @@ func _bake_scene(path: String) -> void:
 	await _frames(5)
 	var regions := 0
 	for region: NavigationRegion3D in root.find_children("*", "NavigationRegion3D", true, false):
-		region.bake_navigation_mesh(false)
+		# The same parse and bake the game and the tests run, so the saved mesh matches theirs.
 		var navigation_mesh := region.navigation_mesh
+		var source := NavigationMeshSourceGeometryData3D.new()
+		NavigationServer3D.parse_source_geometry_data(navigation_mesh, source, region)
+		NavigationServer3D.bake_from_source_geometry_data(navigation_mesh, source)
 		if navigation_mesh != null and navigation_mesh.resource_path.begins_with("res://"):
 			ResourceSaver.save(navigation_mesh)
 		regions += 1

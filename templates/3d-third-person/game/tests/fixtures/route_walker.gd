@@ -2,8 +2,8 @@ class_name RouteWalker
 extends RefCounted
 ## Walks the real `Player` along a list of points by pressing the move actions with the strengths
 ## a stick would give, relative to the camera that draws the scene, as a person does. It sprints
-## and jumps across a navigation link (a gap) and never moves the body itself, so arriving is proof
-## that the body can go that way.
+## at a navigation link and jumps where the floor ends ahead (a gap), and never moves the body
+## itself, so arriving is proof that the body can go that way.
 
 ## How near a point counts as reached (metres, on the ground plane).
 const REACH_POINT := 0.45
@@ -19,8 +19,9 @@ var report := ""
 var reached := 0
 
 
-## A path on the navigation map from `from` to `to`, with which points belong to a link
-## (`{"points": PackedVector3Array, "links": PackedInt32Array}`, a 1 for a link's point).
+## A path on the navigation map from `from` to `to`, with the points where a link starts
+## (`{"points": PackedVector3Array, "links": PackedInt32Array}`, a 1 for a point a link owns: the
+## query marks a link's start, and the stretch from it to the next point is the link).
 static func path_on(map: RID, from: Vector3, to: Vector3) -> Dictionary:
 	var query := NavigationPathQueryParameters3D.new()
 	query.map = map
@@ -43,8 +44,8 @@ static func length_of(points: PackedVector3Array) -> float:
 	return total
 
 
-## Walks `player` through `points` (a link's two points marked 1 in `links`, crossed with a
-## sprint and a jump). True when it reached the last point within `seconds`.
+## Walks `player` through `points` (a link's start marked 1 in `links`: the stretch after it is
+## crossed with a sprint and a jump). True when it reached the last point within `seconds`.
 func walk(
 	player: Player,
 	points: PackedVector3Array,
@@ -72,13 +73,15 @@ func walk(
 			best = INF
 			since_best = 0.0
 			continue
-		var on_link := (
-			index > 0 and index < links.size() and links[index] == 1 and links[index - 1] == 1
-		)
-		_steer(player, to.normalized(), on_link)
+		# A link's first point is the one the query marks: the stretch after it crosses the link.
+		var on_link := index > 0 and index <= links.size() and links[index - 1] == 1
+		# Run fast at a link, and jump where the floor ends ahead, as a person does at a gap.
+		var to_link := on_link or (index < links.size() and links[index] == 1)
+		_steer(player, to.normalized(), to_link)
 		if on_link and jumped_at != index and player.is_on_floor():
-			Input.action_press(&"jump")
-			jumped_at = index
+			if not _floor_ahead(player, to.normalized()):
+				Input.action_press(&"jump")
+				jumped_at = index
 		elif jumped_at == index and not player.is_on_floor():
 			Input.action_release(&"jump")
 		if to.length() < best - 0.05:
@@ -101,6 +104,18 @@ func walk(
 static func release() -> void:
 	for action in MOVE_ACTIONS:
 		Input.action_release(action)
+
+
+# True when there is floor under the body's front edge, a step ahead.
+static func _floor_ahead(player: Player, direction: Vector3) -> bool:
+	var ahead := player.global_position + direction * (PlayerTuning.new().radius + 0.15)
+	var query := PhysicsRayQueryParameters3D.create(
+		ahead + Vector3.UP * 0.3,
+		ahead + Vector3.DOWN * 0.6,
+		player.collision_mask,
+		[player.get_rid()]
+	)
+	return not player.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
 # Presses the move actions so that the camera-relative stick points along `direction`.

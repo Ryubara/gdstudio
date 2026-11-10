@@ -159,19 +159,34 @@ func test_the_watch_posts_see_the_seen_markers_and_not_the_hidden_ones() -> void
 
 
 func test_the_saved_navigation_meshes_match_a_fresh_bake() -> void:
-	# A block moved without a bake leaves the saved mesh stale: bake again and compare.
-	for section: Node3D in [_ai, _pathing]:
+	# A block moved without a bake leaves the saved mesh stale: bake again and compare. A bake
+	# depends on where the region stands (the cells lie on the world's grid), so it is made the
+	# way the bake tool makes it, with the section's scene alone at the origin.
+	for path: String in [AI_SCENE, PATHING_SCENE]:
+		var section: Node3D = auto_free(load(path).instantiate())
 		var region: NavigationRegion3D = section.get_node("Navigation")
+		region.enabled = false  # Kept off the map the other tests ask.
+		add_child(section)
 		var saved := region.navigation_mesh
 		var fresh := saved.duplicate() as NavigationMesh
 		fresh.clear()
 		var source := NavigationMeshSourceGeometryData3D.new()
 		NavigationServer3D.parse_source_geometry_data(fresh, source, region)
 		NavigationServer3D.bake_from_source_geometry_data(fresh, source)
-		assert_int(fresh.get_polygon_count()).override_failure_message(section.name).is_equal(
+		var counts := (
+			"%s: a fresh bake has %d polygons and %d vertices, the saved mesh %d and %d"
+			% [
+				section.name,
+				fresh.get_polygon_count(),
+				fresh.vertices.size(),
+				saved.get_polygon_count(),
+				saved.vertices.size()
+			]
+		)
+		assert_int(fresh.get_polygon_count()).override_failure_message(counts).is_equal(
 			saved.get_polygon_count()
 		)
-		assert_int(fresh.vertices.size()).override_failure_message(section.name).is_equal(
+		assert_int(fresh.vertices.size()).override_failure_message(counts).is_equal(
 			saved.vertices.size()
 		)
 
@@ -200,7 +215,11 @@ func test_the_routes_go_the_way_their_names_say() -> void:
 			. is_less(1.5)
 		)
 	for route_name in ["Ramp", "Stairs"]:
-		assert_float(_detour(route_name)).override_failure_message(route_name).is_less(6.0)
+		(
+			assert_float(_detour(route_name))
+			. override_failure_message("%s: %.1f m more" % [route_name, _detour(route_name)])
+			. is_less(6.0)
+		)
 	for route_name in ["Tight", "Steep"]:
 		(
 			assert_float(_detour(route_name))

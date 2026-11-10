@@ -138,6 +138,10 @@ shoulder_swap={
 ]
 }
 
+[navigation]
+
+3d/default_cell_height=0.1
+
 [phantom_camera]
 
 updater/updater_mode=0
