@@ -8,3 +8,6 @@ Screens, the HUD and their skin: `ui/<area>/` for each (`ui/hud/`, `ui/menus/`),
   buttons presses, and connect `look_turned` to whatever turns the view. It is a scene of real nodes (the stick, two
   zones, a button each) that you arrange in the 2D editor, and the editor shows it even when `show_mode` hides it in
   the game. Numbers are in the inspector (when it shows, stick, look, opacity, margin).
+- `ui/probe/` is the page's window for browser tests: `WebProbe` writes `ready` to `window.gdprobe` when the page is
+  opened with `?probe`, and the kit's web boot check (`tools/web_smoke/boot_check.py`) waits for it. A game with more
+  to say replaces the script and keeps `ready`.

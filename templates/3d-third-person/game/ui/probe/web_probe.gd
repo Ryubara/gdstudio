@@ -71,6 +71,7 @@ func _process(delta: float) -> void:
 	_since = 0.0
 	var spot := player.global_position
 	_object.ready = true
+	_object.ticks = Engine.get_physics_frames()
 	_object.x = spot.x
 	_object.y = spot.y
 	_object.z = spot.z
