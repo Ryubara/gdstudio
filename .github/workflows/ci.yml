@@ -187,8 +187,23 @@ jobs:
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          "$godot" --headless --path repos/template-check/game --export-release Web 2>&1 | tee export.log
-          if grep -E "ERROR" export.log; then exit 1; fi
+          # The at-exit leak ("N resources still in use at exit") is intermittent on CI (#954, #888) and passes on a
+          # rerun of the same code. When it is the only error, export once more; a second leak, or any other error,
+          # fails (docs/engines/godot/test-exit-leaks.md#the-export-leak-is-intermittent-on-ci).
+          export_web() { "$godot" --headless --path repos/template-check/game --verbose --export-release Web 2>&1 | tee "$1"; }
+          leak_only() { ! grep -E "ERROR" "$1" | grep -vE "still in use at exit|leaked at exit" | grep -q .; }
+          export_web export.log
+          if grep -qE "ERROR" export.log; then
+            if leak_only export.log && grep -qE "still in use at exit|leaked at exit" export.log; then
+              echo "::warning::The export ended with an at-exit leak; exporting once more. First run's leak lines:"
+              grep -E "ERROR|still in use|leaked at exit|^\s+res://" export.log || true
+              rm -rf repos/template-check/build/web && mkdir -p repos/template-check/build/web
+              export_web export-retry.log
+              if grep -E "ERROR" export-retry.log; then exit 1; fi
+            else
+              grep -E "ERROR" export.log; exit 1
+            fi
+          fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
       - name: The export holds the level and leaves the tests and tools out
