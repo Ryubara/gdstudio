@@ -294,6 +294,12 @@ they exist.
   could check or change. **Seen:** gdstudio #771, 2026-11-07 (fix: `gds brief`, the `Read:` guard on the Agent tool, the
   injection and its note removed, and `docs/lessons/areas.toml` with them).
 
+- **Approach:** The coordinator starts an agent for an issue's work (`gds issue start`, then the brief) even when the
+  maintainer asks the coordinator to redo work itself: that means the studio's own agents redo it, not the
+  coordinator writing the code. **Watch out for:** the coordinator built most of a template feature itself, which
+  filled its context with probe output and left the queue unattended until the maintainer asked why. **Seen:**
+  gdstudio #846, 2026-11-10 (fix: the work and every finding handed to a godot-engineer with a full brief).
+
 ## The report {#the-report}
 
 <!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->

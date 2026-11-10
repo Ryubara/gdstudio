@@ -32,21 +32,11 @@ do not. Merging, landing and keeping a branch fresh are in [Starting work](start
   `commits` check matches each commit's `Co-Authored-By` model against that line; a coordinator cherry-picking a Sonnet
   agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. **Seen:**
   gdstudio #207 and #208, 2026-11-02; Deadnight #553, 2026-11-02 (fix: every model listed, checked before the push).
-
-- **Approach:** The `Model:` line of a pull request names the models that wrote the commits and nothing else - never a
-  provider or a routing detail, and never the harness's name: the session's attribution line names the tool that ran
-  it, and when a gateway maps the session's alias to a different model, that mapped model is the one that wrote.
-  **Watch out for:** the gateway a model runs through (and the account behind it) is machine configuration, not pull
-  request content, so "via <provider>" in a description is a fault even when it is true; and the `commits` check
-  cross-reads each commit's `Co-Authored-By` model against the line, so a trailer and a `Model:` line that disagree
-  fail both checks. **Seen:** gdstudio #865, #866, 2026-11-09.
-- **Approach:** When the coordinator opens a pull request for a branch its agent is still working on (to protect the
-  commits before the agent's own proof), it opens it as a draft with the body as valid as the work-in-progress
-  allows: the `Model:` line matches the commit trailers, and the checklist ticks only finished work. The agent
-  completes the body (the captures attached, the rest of the checklist) and un-drafts it once every check is green.
-  **Watch out for:** a non-draft work-in-progress pull request shows red checks the moment it opens - the body and
-  commits checks fail on the unfinished body, and the CI jobs fail on the unfinished code - and the red is read as a
-  fault even when it is only incompletion. **Seen:** gdstudio #865, 2026-11-09.
+- **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
+  Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
+  attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
+  model, the mapped model is the author. **Seen:** gdstudio #866, 2026-11-09 (fix: the line and the trailers named the
+  model).
 
 ## Editing a description {#editing}
 
