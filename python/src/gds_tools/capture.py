@@ -106,6 +106,23 @@ def scratch_folder(project: Path, workspace: Path, run: Runner = run_program) ->
     return workspace / "scratch" / name / branch.replace("/", "-")
 
 
+def frames_folder(
+    project: Path, caller: Path, workspace: Path, name: str, out: str | None, run: Runner = run_program
+) -> Path:
+    """Where `gds capture frames` writes: `out` when given, else the scratch folder of the caller.
+
+    The caller is the folder gds runs in (a task's worktree), never the project: a throwaway game is a git
+    repository of its own (`template-check`, branch `main`), and naming the folder from it put every agent's
+    frames in the shared `scratch/template-check/main/`.
+    """
+    if out:
+        return Path(out).resolve()
+    try:
+        return scratch_folder(caller, workspace, run) / safe_name(name)
+    except CaptureError as error:
+        raise CaptureError(f"{error}; run gds from your worktree, or pass --out <folder>") from error
+
+
 def safe_name(name: str) -> str:
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
         raise CaptureError(f"capture name {name!r} may only use letters, digits, '_', '-' and '.'")

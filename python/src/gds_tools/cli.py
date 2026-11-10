@@ -62,7 +62,7 @@ def _cmd_refs_fetch(args: argparse.Namespace) -> int:
 def _cmd_capture_frames(args: argparse.Namespace) -> int:
     root = workspace.require_workspace()
     project = Path(args.project).resolve()
-    out = capture.scratch_folder(project, root) / capture.safe_name(args.name)
+    out = capture.frames_folder(project, Path.cwd(), root, args.name, args.out)
     frames = capture.capture_frames(
         workspace.tool_path("godot", root), project, out, args.scene, args.seconds, args.fps
     )
@@ -678,6 +678,9 @@ def build_parser() -> argparse.ArgumentParser:
     frames.add_argument("--seconds", type=float, default=5, help="length of the capture (default: 5)")
     frames.add_argument("--fps", type=int, default=capture.DEFAULT_FPS, help="frames per second (default: 10)")
     frames.add_argument("--name", default="capture", help="folder name under scratch/<repo>/<branch>/")
+    frames.add_argument(
+        "--out", help="write the frames to this folder instead (default: the scratch folder of the folder gds runs in)"
+    )
     frames.set_defaults(func=_cmd_capture_frames)
     sheet = cap.add_parser("sheet", help="tile a folder's frames into one labelled contact sheet PNG")
     sheet.add_argument("folder")
