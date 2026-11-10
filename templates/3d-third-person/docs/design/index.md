@@ -9,6 +9,7 @@ bounded floor and walls, sky, sun and baked light). What it gave you is in [The 
 pathing work; add the game's own pillars, loop and systems here as they are decided.
 The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md). The game
 starts at a main menu and pauses to a pause menu with settings: [Menus and settings](menus.md).
+The network link under an online game is on [Networking](networking.md).
 
 ## Pillars
 
