@@ -29,10 +29,12 @@ const F_INTERACT_PRESSED := 1 << 8
 const F_RAGDOLL_PRESSED := 1 << 9
 ## A shot block follows the 15 bytes.
 const F_SHOT := 1 << 10
-# Bits 11 to 15 are free and kept for gdstudio #887: its reload, next weapon, previous weapon
-# and unarmed presses take four of them and raise `NetWire.VERSION`.
+# Bits 11 to 14 are free and kept for gdstudio #887: its reload, next weapon, previous weapon
+# and unarmed presses take them and raise `NetWire.VERSION`.
+## Held while lying down (gdstudio #1012).
+const F_PRONE := 1 << 15
 ## Bits no build of this version sets: a command with one of them is refused.
-const F_UNUSED := 0xFFFF & ~((F_SHOT << 1) - 1)
+const F_UNUSED := 0xFFFF & ~((F_SHOT << 1) - 1) & ~F_PRONE
 
 # --- The command ---
 
@@ -96,6 +98,7 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 	result.sprint = flags & F_SPRINT != 0
 	result.walk = flags & F_WALK != 0
 	result.crouch = flags & F_CROUCH != 0
+	result.prone = flags & F_PRONE != 0
 	result.aim = flags & F_AIM != 0
 	result.fire = flags & F_FIRE != 0
 	result.jump = flags & F_JUMP != 0
@@ -127,6 +130,7 @@ static func _flags(command: PlayerCommand) -> int:
 	flags |= F_SPRINT if command.sprint else 0
 	flags |= F_WALK if command.walk else 0
 	flags |= F_CROUCH if command.crouch else 0
+	flags |= F_PRONE if command.prone else 0
 	flags |= F_AIM if command.aim else 0
 	flags |= F_FIRE if command.fire else 0
 	flags |= F_JUMP if command.jump else 0

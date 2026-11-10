@@ -160,11 +160,23 @@ func clear_marks() -> void:
 		_retire(mark)
 
 
+## Takes off every mark on `body` or on a node under it (a ragdoll that gets up takes the marks
+## off its bones).
+func clear_marks_on(body: Node) -> void:
+	if body == null:
+		return
+	_prune()
+	for mark in _live.duplicate():
+		if body.is_ancestor_of(mark):
+			_retire(mark)
+
+
 func _place_mark(surface: ImpactSurface, collider: Object, point: Vector3, normal: Vector3) -> void:
 	var body := collider as Node3D
-	# No mark on a character, nor (until the hit zones of kit #876 keep it on the body as it gets
-	# up) on a ragdoll bone, which shots now meet: the effect and the sound still play.
-	if body == null or body is CharacterBody3D or body is PhysicalBone3D or max_marks <= 0:
+	# No mark on a character's capsule (it is not the body that is drawn): the effect and the
+	# sound still play. A ragdoll bone takes one and carries it as the body moves; the game takes
+	# it off when the body gets up (`clear_marks_on`).
+	if body == null or body is CharacterBody3D or max_marks <= 0:
 		return
 	_prune()
 	var mark: ImpactMark

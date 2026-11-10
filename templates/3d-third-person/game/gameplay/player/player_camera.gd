@@ -379,8 +379,26 @@ func _process(delta: float) -> void:
 func orbit(degrees: Vector2) -> void:
 	yaw = wrapf(yaw - degrees.x, -180.0, 180.0)
 	var vertical := -degrees.y if invert_y != player_invert_y else degrees.y
-	pitch = clampf(pitch + vertical, min_pitch, max_pitch)
+	var limits := pitch_limits()
+	pitch = clampf(pitch + vertical, limits.x, limits.y)
 	orbited.emit(yaw, pitch)
+
+
+## The lowest and highest orbit pitch now, in degrees (positive looks down): `min_pitch` and
+## `max_pitch`, drawn in to the player's prone look limits (`ProneTuning.look_up_limit`,
+## `look_down_limit`) as it lies down, so the lens stays off the ground and the crosshair stays
+## where the lying body can aim.
+func pitch_limits() -> Vector2:
+	var limits := Vector2(min_pitch, max_pitch)
+	if not is_instance_valid(_player) or _player.prone_tuning == null:
+		return limits
+	var lying := smoothstep(0.0, 1.0, _player.prone_amount)
+	if lying <= 0.0:
+		return limits
+	var prone := _player.prone_tuning
+	limits.x = lerpf(min_pitch, maxf(min_pitch, -prone.look_up_limit), lying)
+	limits.y = lerpf(max_pitch, minf(max_pitch, prone.look_down_limit), lying)
+	return limits
 
 
 ## Moves the sprint and aim blends `delta` seconds toward where the player is (sprinting,
@@ -401,6 +419,8 @@ func advance(delta: float) -> void:
 		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(shoulder_time, 0.001)
 	)
 	_step_shake(sprinting, delta)
+	var limits := pitch_limits()
+	pitch = clampf(pitch, limits.x, limits.y)
 	_forward_blend()
 	_apply()
 

@@ -53,3 +53,6 @@ var values: Array = []
 ## place in the spread's seeded order), so a body put back shoots again on the same tick and in
 ## the same direction. Empty for a character with no weapon.
 var weapon: Array = []
+## The prone stance (`CharacterProne.save_step_state()`: lying or not, how far down, the time
+## off the ground).
+var prone: Array = []
