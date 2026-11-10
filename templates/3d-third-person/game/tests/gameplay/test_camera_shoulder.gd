@@ -13,9 +13,9 @@ var _camera: Camera3D
 func before_test() -> void:
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
-	_rig = _scene.get_node("PlayerCamera")
-	_player = _scene.get_node("Player")
-	_camera = _scene.get_node("Camera")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
+	_player = _scene.get_node("PlayerRig/Player")
+	_camera = _scene.get_node("PlayerRig/Camera")
 	await InputSim.ticks(get_tree(), 8)
 
 

@@ -6,9 +6,9 @@ the east, a course of routes, heights, gaps, a door and moving obstacles for wal
 are the places an AI is built and tested in, with their spawn points, markers and baked navigation mesh named so a test
 can ask for them.
 
-Each section is its own scene, instanced in `game/main.tscn`; work on a section changes only its folder:
+Each section is its own scene, instanced in `game/world/world.tscn`; work on a section changes only its folder:
 
-| Section | Scene | In `main.tscn` |
+| Section | Scene | In `world.tscn` |
 | --- | --- | --- |
 | AI | `game/world/prototype/ai_section/ai_section.tscn` | `AISection`, at (-25, 0, -9) |
 | Pathing | `game/world/prototype/pathing_section/pathing_section.tscn` | `PathingSection`, at (25, 0, -6) |

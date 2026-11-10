@@ -180,7 +180,7 @@ func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_to_the_same_na
 # compares the seat with the hand in every frame.
 func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_scene() -> void:
 	var scene := scene_runner("res://main.tscn").scene()
-	var player := scene.get_node("Player") as Player
+	var player := scene.get_node("PlayerRig/Player") as Player
 	var slot := player.model
 	await InputSim.ticks(get_tree(), 10)
 	var old := slot.rig()

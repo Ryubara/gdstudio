@@ -17,8 +17,8 @@ var _door: Door
 func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
-	_player = _scene.get_node("Player")
-	_door = _scene.get_node("Level/Doors/GateDoor")
+	_player = _scene.get_node("PlayerRig/Player")
+	_door = _scene.get_node("World/Level/Doors/GateDoor")
 	_door.close_after = 1.0
 	await InputSim.ticks(get_tree(), 10)
 

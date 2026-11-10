@@ -42,7 +42,7 @@ each fall, until about four mixes have landed (with a poll cap).
 
 3D Blank (and so 3D Third Person) ships `default_bus_layout.tres` with `Master` and three buses sending to it: `SFX`
 (steps, pickups, hits), `Ambient` (beds such as the wind) and `UI` (menus, -3 dB: interface sounds sit under the
-game's). A sound's player sets `bus` to one of them. The `AudioSettings` node in `main.tscn` (`core/audio_settings/`)
+game's). A sound's player sets `bus` to one of them. The `AudioSettings` node in `world/world.tscn` (`core/audio_settings/`)
 holds one `@export_range` volume in dB a bus; each setter calls `AudioServer.set_bus_volume_db` at once, so the remote
 inspector tunes the mix while the game runs, a settings screen sets the same properties, and `@tool` makes the editor's
 own mixer follow. A bus the project lacks is skipped (`AudioSettings.bus_volume_db` returns `NAN` for it), so renaming
@@ -68,7 +68,7 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   sound a report claims against the capture's track. **Seen:** gdstudio #835 and #837, 2026-11-08; #857, 2026-11-09
   (five shots, and a test that fails on a player with nothing to play).
 
-- **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `main.tscn`,
+- **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `world/world.tscn`,
   `Sound` in `pickup.tscn`, `Step`, `CrouchStep` and `LandStep` in `footsteps.tscn`, `ShotSound` in `weapon.tscn`), and
   test that every player is on a template bus and every file in `assets/audio/` is named by a scene. **Watch out for:**
   an autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every

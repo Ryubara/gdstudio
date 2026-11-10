@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/screen_host.gd" id="1_host"]
+[ext_resource type="PackedScene" path="res://ui/menus/pause_menu.tscn" id="2_pause"]
+
+[node name="ScreenHost" type="Node"]
+script = ExtResource("1_host")
+pause_screen = ExtResource("2_pause")
