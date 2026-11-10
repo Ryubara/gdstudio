@@ -1,7 +1,8 @@
 # The game's build and tests, with the same pinned Godot agents use: the runner's work folder becomes a GDStudio
 # workspace, the kit's `gds workspace init` fetches Godot and GdUnit4 from tools.toml (hash-checked, cached), and the
 # project is imported and run headless. Any engine or script error fails the job, since Godot itself exits 0 on most
-# of them. The `web` job exports the game for the browser and checks that the tests and tools stayed out of it.
+# of them. The `web` job exports the game for the browser, checks that the tests and tools stayed out of it and boots
+# the export in a headless browser.
 # `build-ok` is the required check for the build, so the jobs above it can change freely.
 # Actions are pinned to a full commit SHA; the tag is in the comment beside it.
 name: ci
@@ -154,6 +155,37 @@ jobs:
           pck=repos/{GAME_SLUG}/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The browser for the boot check
+        # Playwright's own headless Chromium, the one the local probes use (the kit's docs/engines/godot/web-probes.md).
+        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+      - name: Boot the web export in a browser
+        # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
+        # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
+        # (game/tools/web_smoke/boot_check.py, the kit's file in every game). `gds quiet` is how every browser
+        # probe runs; off Windows it starts the program as it is.
+        run: |
+          uv run --project repos/gdstudio/python gds quiet -- \
+            uv run --with playwright==1.64.1 python repos/{GAME_SLUG}/game/tools/web_smoke/boot_check.py \
+            repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/boot --title "Web boot"
+      - name: The game's own browser smoke (touch controls)
+        # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a game without the script has
+        # nothing more to add.
+        run: |
+          smoke=repos/{GAME_SLUG}/game/tools/web_smoke/touch_smoke.py
+          if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
+          uv run --project repos/gdstudio/python gds quiet -- \
+            uv run --with playwright==1.64.1 python "$smoke" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/smoke
+          echo "Touch smoke: every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the browser captures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-smoke
+          path: |
+            repos/{GAME_SLUG}/build/boot
+            repos/{GAME_SLUG}/build/smoke
+          if-no-files-found: ignore
+          retention-days: 7
 
   gdlint:
     # The commit hook itself, so its version (the `rev` in `.pre-commit-config.yaml`), its files and its settings cannot

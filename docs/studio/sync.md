@@ -7,6 +7,7 @@ Some files live in every game but belong to the kit. The kit is their one source
 | Agent definitions | `.claude/agents/*.md` | the same path |
 | The `gds_ui` Godot addon ([UI controls](../engines/godot/ui-controls.md#where)) | `godot/addons/gds_ui/` | `game/addons/gds_ui/`, the same `res://` path |
 | Hook launcher and its settings | `templates/game/.claude/` | `.claude/` |
+| The web boot check ([browser probes](../engines/godot/web-probes.md#boot-check)) | `templates/game/game/tools/web_smoke/boot_check.py` | `game/tools/web_smoke/boot_check.py` |
 | The checker for titles, messages, descriptions | `.github/scripts/groundwork.py` | the same path (it reads the game's own `.github/conventions.yml`) |
 | The hold's check and its sweep (only the label name is read from them, so one copy fits every game) | `.github/workflows/hold.yml`, `hold-sweep.yml` | the same paths |
 | The message-check hooks and the hook types to install | the blocks of `.pre-commit-config.yaml` between `# gds-sync:begin <name>` and `# gds-sync:end <name>` | the same blocks in the game's config |
