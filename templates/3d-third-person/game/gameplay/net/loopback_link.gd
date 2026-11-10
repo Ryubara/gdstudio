@@ -6,9 +6,11 @@ extends NetLink
 ## copied, so neither end can change what the other reads.
 ##
 ## `close()` reaches the other end as a clean goodbye (1000) on its next tick; `drop()` as a network
-## that went (no close frame), for tests of what a dropped player leaves.
+## that went (no close frame), for tests of what a dropped player leaves. Each end holds the other
+## weakly (two ends that held each other would never be freed), so keep both ends; an end whose
+## other was freed reads it as a network that went.
 
-var _other: LoopbackLink
+var _other_ref: WeakRef
 var _tick := 0
 var _inbox: Array[Dictionary] = []
 var _open := true
@@ -24,15 +26,15 @@ var _closed_emitted := false
 static func pair() -> Array[LoopbackLink]:
 	var a := LoopbackLink.new()
 	var b := LoopbackLink.new()
-	a._other = b
-	b._other = a
+	a._other_ref = weakref(b)
+	b._other_ref = weakref(a)
 	return [a, b]
 
 
 func send(data: PackedByteArray) -> bool:
 	if not is_open():
 		return false
-	_other._inbox.append({"tick": _tick, "data": data.duplicate()})
+	_other()._inbox.append({"tick": _tick, "data": data.duplicate()})
 	bytes_out += data.size()
 	packets_out += 1
 	return true
@@ -40,6 +42,9 @@ func send(data: PackedByteArray) -> bool:
 
 func poll() -> void:
 	_tick += 1
+	if _open and _other() == null:
+		_open = false
+		_close_code = NetLink.CLOSE_NONE
 	if _open and not _announced:
 		_announced = true
 		connected.emit()
@@ -57,7 +62,7 @@ func poll() -> void:
 
 
 func is_open() -> bool:
-	return _open and _other != null
+	return _open and _other() != null
 
 
 func close() -> void:
@@ -78,6 +83,11 @@ func _end(code: int) -> void:
 		return
 	_open = false
 	_close_code = code
-	if _other != null and _other._close_tick < 0:
-		_other._close_from_other = code
-		_other._close_tick = _tick
+	var other := _other()
+	if other != null and other._close_tick < 0:
+		other._close_from_other = code
+		other._close_tick = _tick
+
+
+func _other() -> LoopbackLink:
+	return _other_ref.get_ref() as LoopbackLink if _other_ref != null else null

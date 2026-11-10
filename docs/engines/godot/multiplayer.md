@@ -133,10 +133,10 @@ way gave round trips of 217 to 250 ms on the physics-frame clock; two GdUnit run
 passed (`listen(0)`). In the browser (`tools/web_smoke/net_link_smoke.py`, headless Chromium, SwiftShader): the page
 opened the address from `?url=`, refused `ws://` on an `https` origin (a Playwright route) without opening a socket, and
 read every packet of a 35 KB/s stream through a 5 s busy-loop freeze with the 1 MB buffer, where the engine's 64 KB lost
-packets and logged 41 `Buffer payload full` errors. Round trips in that page are rounded to its frames (a software
-page ran at few frames a second): median 155 to 197 ms over loopback, 301 to 398 ms through `tools/net/relay.py` at
-100 ms each way. The relay alone, a Python TCP echo through it: 214 to 222 ms at 100 ms each way, and with
-`--stall-chance 0.2 --stall-ms 300` up to 821 ms (9 stalls in 20 trips).
+packets out of order and logged 6 to 41 `Buffer payload full` errors (three runs). Round trips in that page are rounded
+to its frames (the SwiftShader page ran at 6 frames a second): median 148 to 197 ms over loopback, 301 to 398 ms through
+`tools/net/relay.py` at 100 ms each way. The relay alone, a Python TCP echo through it: 214 to 222 ms at 100 ms each
+way, and with `--stall-chance 0.2 --stall-ms 300` up to 821 ms (9 stalls in 20 trips).
 
 - **Approach:** Prove a socket buffer size where it overflows (the browser, or a real network), and pin the size with a
   test; on localhost test only what the buffer guarantees (nothing lost in 5 s at 35 KB/s, `send` false when full).

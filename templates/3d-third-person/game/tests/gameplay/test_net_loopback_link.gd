@@ -101,3 +101,14 @@ func test_closed_fires_once() -> void:
 		_a.poll()
 		_b.poll()
 	assert_int(count[0]).is_equal(1)
+
+
+func test_an_end_whose_other_was_freed_reads_a_network_that_went() -> void:
+	# The ends hold each other weakly: two that held each other would never be freed.
+	var ends := LoopbackLink.pair()
+	var kept: LoopbackLink = ends[0]
+	ends.clear()
+	kept.poll()
+	assert_bool(kept.is_open()).is_false()
+	assert_bool(kept.left_on_purpose()).is_false()
+	assert_bool(kept.send(PackedByteArray([1]))).is_false()
