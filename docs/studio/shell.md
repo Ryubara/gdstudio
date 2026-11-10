@@ -131,4 +131,6 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   never a setting to switch off. **Watch out for:** the revert was committed on a scratch branch with `git -c
   core.hooksPath=/dev/null commit` so the title hook would not refuse `scratch:`, which is `--no-verify` by another
   name. **Seen:** Deadnight #848, 2026-11-03 (fix: `git reset --soft HEAD~1` before any push, the revert kept as
-  working-tree changes).
+  working-tree changes); tether #28, 2026-11-10 (`git stash push -- src hooks` to run the new tests on the old code
+  was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
+  copied in).

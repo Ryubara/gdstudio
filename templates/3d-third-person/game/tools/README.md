@@ -6,6 +6,11 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
 - `tools/capture/level_tour.tscn` records the level from a few angles for a pull request's screenshots.
 - `tools/capture/model_tour.tscn` films the player's model from the front and from behind with the pistol up, for the
   screenshots of a model change (it films the model `player.tscn` holds).
+- `tools/capture/carry_tour.tscn` films how the pistol is carried, from the character's right side with the game
+  camera: stand, walk, jog, sprint, crouch walk, a jump, then aim, hip fire, aim with fire and an aim walk
+  (`CARRY_MODEL=male` films the male mannequin; `CARRY_BONES` and `CARRY_HELD=1` try another grip or the held pose).
+- `tools/carry/measure_clearance.gd` measures how deep the held pistol sinks into the body in each locomotion clip on
+  both mannequins (the header says how to run it; `tests/gameplay/test_pistol_clearance.gd` pins it at none).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
 - `tools/capture/action_tour.tscn` plays the character through the range, the crouch course and the cubes by pressing the
   input actions, for a clip with the sound.
@@ -15,6 +20,8 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
 - `tools/capture/shake_tour.tscn` sprints, aims and fires, and sets off two blasts through `CameraShake.shake()`, with the
   sprint shake and the shot kick turned up, for a clip of the shake (it prints the turn of the view each physics frame,
   lines starting `SHAKE`).
+- `tools/capture/hud_tour.tscn` films the HUD with its health and ammo parts fed by a stand-in, on a desktop or (user
+  argument `phone`) with the touch controls up on a phone-sized window.
 - `tools/capture/ragdoll_tour.tscn` runs the character, kills it mid-run with the `ragdoll` key, orbits the body,
   gets it up and runs it off the ragdoll ledge, by pressing the input actions (`RAGDOLL_MODEL=male` films the male
   mannequin).

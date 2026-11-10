@@ -14,10 +14,11 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | --- | --- | --- |
 | Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
 | Model | `gameplay/player/player_model.gd` | `Model` is a slot (a `Node3D`) that holds the glb and the pistol seat; replace the glb under it: [Replacing the model](#replacing-the-model). |
-| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
+| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine, a pistol layer (the grip on one hand, the aim pose on the upper body) and a one-shot action layer. The carry is an inspector choice ([Crouch, aim and shoot](#crouch-aim-shoot)). `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view, a fire view and a shot kick blended on its framing (the shakes are the shared `CameraShake`, next row); a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Camera shake | `core/camera_shake/` (`camera_shake.gd`, `shake_preset.gd`, `presets/*.tres`; in 3D Blank, for every template) | A `CameraShake` node under `PlayerCamera` and `ShakePreset` resources: `CameraShake.shake(preset, at)` shakes the view from anywhere, with falloff with distance and one global `CameraShake.strength`; the sprint shake and the shot kick are on it, 0 by default. [Camera: shake component](camera.md#shake-component). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
@@ -258,11 +259,21 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
-  `filter_enabled` and a filter path for `spine_01` and every bone under it (read from the skeleton,
-  `Armature/Skeleton3D:<bone>`), the holding pose first, the aim pose over it by the camera's pitch in a blend space
-  (`Pistol_Aim_Down` -45, `Pistol_Aim_Neutral` 0, `Pistol_Aim_Up` 45) and the recoil last. **Watch out for:** the aim
-  clips are 0.17 s long and do not loop, so they hold their last pose, which is what an aim should do; the pistol clips
-  are whole-body poses, so without the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08.
+  `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
+  over it by the camera's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
+  off aim and fire only the gripping hand (`hand_r` and what is under it) takes the grip pose, so the arms and spine
+  follow the locomotion (`PlayerAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
+  weight 1 the whole time a weapon was held made the character walk, jog and sprint with the pistol held out like an
+  aim; the pistol clips are whole-body poses, so without
+  the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08; gdstudio #877, 2026-11-10 (found by the
+  maintainer).
+- **Approach:** Prove a carry by reading, per bone, the blend amount of the layer that filters it (0 on the arm and
+  spine walking, jogging, sprinting, crouch walking and jumping, 1 on the hand) and the pistol's clearance on the
+  skinned body in every clip on both mannequins (`test_pistol_carry.gd`, `test_pistol_clearance.gd`); keep the arm up
+  `shot_hold_time` after a shot. **Watch out for:** with aim released at once (#868) a tap of the fire button raised the
+  arm to half and lowered it before a shot showed; the tree is driven from `_process`, a render frame behind the physics
+  ticks a test awaits (a rebuild makes the physics catch up with no render frame), so wait for `process_frame` before
+  reading a rebuilt tree. **Seen:** gdstudio #877, 2026-11-10.
 - **Approach:** Time footsteps to the skeleton, not to a clock or a distance: a foot lands when its bone, moving toward
   the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it, after a swing of at
   least `min_stride`), read from `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and
@@ -469,6 +480,23 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A route for a clip {#walkthrough}
 
