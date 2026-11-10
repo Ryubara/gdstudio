@@ -47,6 +47,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   night test stopped on it. **Seen:** Deadnight #442, 2026-11-01 (fix: `is_instance_valid`; the night test is the
   check).
 
+- **Approach:** Fill a typed array in steps (`var paths: Array[String] = [a, b]`, then `if cond: paths = [c]`) and read
+  the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
+  cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
+  type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
+  matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that
