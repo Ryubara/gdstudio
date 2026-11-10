@@ -12,9 +12,11 @@ signal closed
 
 ## The input action that opens and closes the map (and closes it again from `ui_cancel`).
 @export var toggle_action: StringName = &"map"
-## The part of the map plane the screen shows when no section says otherwise, in metres.
+## The part of the map plane the screen shows, in metres: the map the game starts with. An empty
+## rectangle leaves it to the sections.
 @export var fit_bounds := Rect2(-26.0, -26.0, 52.0, 52.0)
-## On: the screen shows the union of every `MinimapSection`'s footprint instead, when there are any.
+## On: every `MinimapSection`'s footprint is added to `fit_bounds`, so a map that grows by sections
+## is always shown whole.
 @export var fit_to_sections := true
 ## How much room around the bounds, as a multiple of them.
 @export_range(1.0, 1.5, 0.01) var fit_margin := 1.06
@@ -83,17 +85,14 @@ func close() -> void:
 ## Centres the big map on the bounds and zooms it to cover them.
 func fit() -> void:
 	var bounds := fit_bounds
+	var any := fit_bounds.has_area()
 	if fit_to_sections:
-		var union := Rect2()
-		var first := true
 		for node in get_tree().get_nodes_in_group(MinimapSection.GROUP):
 			var section := node as MinimapSection
 			if section == null:
 				continue
-			union = section.footprint() if first else union.merge(section.footprint())
-			first = false
-		if not first:
-			bounds = union
+			bounds = section.footprint() if not any else bounds.merge(section.footprint())
+			any = true
 	_map.range_max = maxf(_map.range_max, maxf(bounds.size.x, bounds.size.y))
 	_map.fixed_centre = bounds.get_center()
 	_map.jump_to_range(maxf(bounds.size.x, bounds.size.y) * 0.5 * fit_margin)

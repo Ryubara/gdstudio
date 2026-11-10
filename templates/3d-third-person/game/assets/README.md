@@ -21,3 +21,6 @@
 - `assets/audio/impacts/` is nine bullet impact sounds (default, wood and metal, three each) synthesised by the kit's
   `tools/audio/impact_sounds.py` (MIT, GDStudio's own, with a `LICENSE.md`); `assets/shaders/impacts/` and
   `assets/materials/impacts/` are the mark's shader and its default material (original).
+- `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
+  clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
+  that use them are in `ui/minimap/` and `core/minimap/`.

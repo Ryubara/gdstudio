@@ -24,6 +24,7 @@ func test_the_minimap_follows_the_character() -> void:
 	var was_at := _minimap.projector().centre
 	_player.teleport(Vector3(-12.0, 0.5, 14.0))
 	await InputSim.ticks(get_tree(), 4)
+	await _frames(3)
 	assert_vector(was_at).is_not_equal(_minimap.projector().centre)
 	assert_vector(_minimap.projector().centre).is_equal_approx(
 		Vector2(_player.global_position.x, _player.global_position.z), Vector2(0.05, 0.05)
@@ -69,6 +70,7 @@ func test_the_map_key_opens_the_whole_map() -> void:
 	await InputSim.ticks(get_tree(), 2)
 	InputSim.key(KEY_M, false)
 	await InputSim.ticks(get_tree(), 12)
+	await _frames(4)
 	assert_bool(screen.is_open()).is_true()
 	# The player's own marker shows on the big map, since it does not follow.
 	var own: MinimapMarker = null
@@ -76,3 +78,23 @@ func test_the_map_key_opens_the_whole_map() -> void:
 		if marker.kind == &"player":
 			own = marker
 	assert_object(screen.minimap().icon_for(own)).is_not_null()
+
+
+func test_the_workshop_is_a_section_that_names_the_map_and_slices_its_roof_off() -> void:
+	_player.teleport(Vector3(14.0, 0.2, -15.0))
+	await InputSim.ticks(get_tree(), 6)
+	await _frames(3)
+	assert_object(_minimap.current_section()).is_not_null()
+	assert_str((_minimap.get_node("%SectionTitle") as Label).text).is_equal("Workshop")
+	var camera := _minimap.get_node("%MapCamera") as Camera3D
+	assert_float(camera.global_position.y).is_equal_approx(4.0, 0.01)
+	_player.teleport(Vector3(-12.0, 0.5, 14.0))
+	await InputSim.ticks(get_tree(), 6)
+	await _frames(3)
+	assert_object(_minimap.current_section()).is_null()
+
+
+# The minimap updates on drawn frames, and a loaded machine can run physics ticks without one.
+func _frames(count: int) -> void:
+	for i in count:
+		await get_tree().process_frame

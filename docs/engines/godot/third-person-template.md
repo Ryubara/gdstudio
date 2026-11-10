@@ -22,6 +22,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
+| Minimap | `ui/minimap/` (the widget, the full-screen map), `core/minimap/` (`MinimapMarker`, `MinimapSection`) | A round map that follows the character and a full-screen map on `M`; a marker component any node carries. [Minimap](#minimap). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |
 | The map | `world/`, `gameplay/` (the six components) | The #788 prototype map, with a spawn point and a camera zone. Every component is a scene whose parts are nodes (`Panel`, `Shape`, `Sensor`...), and `ProtoBlock` (in 3D Blank) makes the solids. |
 
@@ -393,6 +394,31 @@ or a ray gun reuses it.
   (real projectiles in a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a
   wall, a pushed cube and the fade (`gds capture frames`, and `--rendering-method gl_compatibility` for the web look).
   The sounds are made by `tools/audio/impact_sounds.py` (synthesised, MIT).
+
+## Minimap {#minimap}
+
+<!-- new section: #884 added the minimap; how it is built and what it costs are on [Minimap](minimap.md) -->
+
+`MinimapLayer` (`main.tscn`) holds the small `Minimap` (top right, follows the character, turns with the camera) and the
+`MapScreen` (`M`, north up, the whole map). The player, every pickup, target and door carry a `MinimapMarker`; the
+workshop is a `MinimapSection`. How it works, the sources it can draw from and the cost are in [Minimap](minimap.md).
+
+- **The inspector, on `Minimap`.** Nodes: `target`, `target_group`. Shape: `shape`, `map_size`, `corner_ratio`. View:
+  `range_m`, `range_min`, `range_max`, `zoom_step`, `zoom_smoothing`, `rotation_mode`, `turn_smoothing`,
+  `follow_target`, `fixed_centre`, the two zoom actions. Map source: `source`, `image`, `image_world_rect`,
+  `live_layers`, `live_height`, `live_depth`, `live_resolution_scale`, `live_unshaded`. Look: `background_color`,
+  `border_color`, `border_width`, `edge_fade`, `opacity`, `tint_enabled`, `tint_dark`, `tint_light`, `marker_scale`,
+  `show_north`, `show_self`. Markers: `default_icon`, `default_edge_icon`, `hidden_kinds`, `pool_prewarm`,
+  `max_markers`. Update: `map_update_rate`, `marker_update_rate`, `still_refresh_seconds`.
+- **On `MinimapMarker`.** Look: `icon`, `color`, `size`, `rotates_with_node`, `kind`, `draw_order`. Edge:
+  `clamp_to_edge`, `edge_inset`, `edge_icon`. Show: `active`, `rule`, `near_distance`, `revealed`, `height_fade`.
+- **On `MinimapSection`:** `title`, `size`, `level`, `map_texture`. **On `MapScreen`:** `toggle_action`, `fit_bounds`,
+  `fit_to_sections`, `fit_margin`, `fade_time`.
+- **Tests and captures.** `tests/core/test_minimap_marker.gd`, `test_minimap_section.gd`, and in `tests/ui/`
+  `test_minimap_projector.gd`, `test_minimap_pool.gd`, `test_minimap_markers.gd`, `test_minimap_view.gd`,
+  `test_minimap_sections.gd`, `test_minimap_look.gd`, `test_map_screen.gd`, `test_minimap_baker.gd` (windowed only) and
+  `test_minimap_in_the_game.gd`; `tools/capture/minimap_tour.tscn` records the small map turning and zooming and the
+  full-screen map, `tools/bench/minimap_bench.tscn` measures the cost.
 
 ## Ragdoll {#ragdoll}
 

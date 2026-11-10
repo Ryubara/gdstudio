@@ -78,7 +78,16 @@ func test_it_fits_the_bounds_and_the_north_is_up() -> void:
 	assert_vector(map.projector().centre).is_equal(Vector2(20.0, -25.0))
 
 
-func test_it_fits_the_sections_when_there_are_some() -> void:
+func test_it_adds_the_sections_to_the_bounds() -> void:
+	_screen.fit_bounds = Rect2(-10.0, -10.0, 20.0, 20.0)
+	_section(Vector3(60.0, 0.0, 0.0), Vector3(20.0, 4.0, 20.0))
+	_screen.open()
+	assert_vector(_screen.minimap().fixed_centre).is_equal(Vector2(30.0, 0.0))
+	assert_float(_screen.minimap().current_range()).is_equal_approx(40.0 * 1.06, 0.001)
+
+
+func test_it_fits_only_the_sections_when_the_bounds_are_empty() -> void:
+	_screen.fit_bounds = Rect2()
 	_section(Vector3(0.0, 0.0, 0.0), Vector3(20.0, 4.0, 20.0))
 	_section(Vector3(60.0, 0.0, 0.0), Vector3(20.0, 4.0, 20.0))
 	_screen.open()

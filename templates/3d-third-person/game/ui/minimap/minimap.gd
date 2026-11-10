@@ -11,8 +11,9 @@ extends Control
 ## into place, so the map moves smoothly even when it is rendered a few times a second.
 ## Markers are drawn by a pool of icon nodes, `marker_update_rate` times a second.
 ##
-## 3D worlds only for the live camera; the markers and the image source also work with `Node2D`
-## targets. The map plane is (x, z) in 3D with north -Z, (x, y) in 2D with north -Y.
+## The live camera needs a 3D world; the markers, the target and the image source also work in a
+## 2D game (`Node2D` targets and markers; a map picture you draw yourself). The map plane is (x, z)
+## in 3D with north -Z, (x, y) in 2D with north -Y.
 
 ## The target went into or out of a `MinimapSection` (null when it left them all).
 signal section_changed(section: MinimapSection)
@@ -37,8 +38,8 @@ enum Source {
 }
 
 @export_group("Nodes")
-## The node the map follows. Empty: the first node in `target_group`.
-@export var target: Node3D
+## The node the map follows, a `Node3D` or a `Node2D`. Empty: the first node in `target_group`.
+@export var target: Node
 ## The group searched when `target` is empty.
 @export var target_group: StringName = &"player"
 
@@ -112,7 +113,8 @@ enum Source {
 @export_range(1.0, 200.0, 1.0, "suffix:m") var live_depth := 30.0
 ## The live render's pixels per widget pixel. Lower is cheaper and blurrier.
 @export_range(0.25, 2.0, 0.05) var live_resolution_scale := 1.0
-## On: the live camera draws flat colours with no lights and no shadows.
+## On: the live camera draws flat colours with no lights and no shadows (not in the Compatibility
+## renderer, which cannot draw that way: there the camera draws the lit scene).
 @export var live_unshaded := true:
 	set(value):
 		live_unshaded = value
@@ -191,7 +193,7 @@ enum Source {
 var _projector := MinimapProjector.new()
 var _pool: MinimapIconPool
 var _assigned: Dictionary = {}
-var _seen: Dictionary = {}
+var _pass := 0
 var _section: MinimapSection
 var _heading_angle := 0.0
 var _heading_ready := false
@@ -199,6 +201,7 @@ var _range_now := 30.0
 var _range_goal := 30.0
 var _map_clock := 0.0
 var _snapshot_count := 0
+var _marker_pass_usec := 0
 var _refresh_requested := false
 var _still_clock := 0.0
 var _view_section: MinimapSection
@@ -255,6 +258,12 @@ func _process(delta: float) -> void:
 	if not is_visible_in_tree():
 		return
 	_tick(delta)
+
+
+## True when the running renderer can draw a viewport unshaded. The Compatibility renderer (the web
+## build, phones) cannot: Godot 4.7 prints an error every frame and draws nothing.
+static func unshaded_available() -> bool:
+	return RenderingServer.get_current_rendering_method() != "gl_compatibility"
 
 
 ## The map maths of the current frame (centre, turn, scale), for a test or a game that needs to
@@ -334,6 +343,11 @@ func icon_for(marker: MinimapMarker) -> MinimapIcon:
 	return icon if is_instance_valid(icon) else null
 
 
+## The microseconds the last marker pass took (the rules, the maths and the icon updates).
+func marker_pass_usec() -> int:
+	return _marker_pass_usec
+
+
 ## How many markers were drawn on the last update.
 func shown_count() -> int:
 	return _assigned.size()
@@ -367,23 +381,41 @@ func _tick(delta: float, requested := false) -> void:
 		_place_markers(subject_plane, _section, subject)
 
 
-func _subject() -> Node3D:
+func _subject() -> Node:
 	if target != null and is_instance_valid(target):
 		return target
-	var found := get_tree().get_first_node_in_group(target_group) as Node3D
-	return found
+	return get_tree().get_first_node_in_group(target_group)
 
 
-func _plane_of(node: Node3D) -> Vector2:
+func _plane_of(node: Node) -> Vector2:
+	if node is Node3D:
+		var at := (node as Node3D).global_position
+		return Vector2(at.x, at.z)
+	if node is Node2D:
+		return (node as Node2D).global_position
+	return fixed_centre
+
+
+func _position_3d_of(node: Node, plane: Vector2) -> Vector3:
+	if node is Node3D:
+		return (node as Node3D).global_position
+	return Vector3(plane.x, 0.0, plane.y)
+
+
+# The way a node faces on the map plane: its own answer, its -Z (3D) or its rotation (2D).
+func _forward_of(node: Node) -> Vector2:
 	if node == null:
-		return fixed_centre
-	return Vector2(node.global_position.x, node.global_position.z)
-
-
-func _position_3d_of(node: Node3D, plane: Vector2) -> Vector3:
-	if node == null:
-		return Vector3(plane.x, 0.0, plane.y)
-	return node.global_position
+		return MinimapProjector.north()
+	if node.has_method(&"get_minimap_heading"):
+		return node.call(&"get_minimap_heading")
+	if node is Node3D:
+		var forward := -(node as Node3D).global_basis.z
+		var flat := Vector2(forward.x, forward.z)
+		if flat.length_squared() > 0.000001:
+			return flat.normalized()
+	elif node is Node2D:
+		return Vector2.RIGHT.rotated((node as Node2D).global_rotation)
+	return MinimapProjector.north()
 
 
 func _step_zoom(delta: float) -> void:
@@ -393,16 +425,10 @@ func _step_zoom(delta: float) -> void:
 		_range_now = lerpf(_range_now, _range_goal, 1.0 - exp(-zoom_smoothing * delta))
 
 
-func _view_heading(subject: Node3D) -> Vector2:
+func _view_heading(subject: Node) -> Vector2:
 	match rotation_mode:
 		RotationMode.TARGET_FACING:
-			if subject != null:
-				if subject.has_method(&"get_minimap_heading"):
-					return subject.call(&"get_minimap_heading")
-				var forward := -subject.global_basis.z
-				var flat := Vector2(forward.x, forward.z)
-				if flat.length_squared() > 0.000001:
-					return flat.normalized()
+			return _forward_of(subject)
 		RotationMode.CAMERA_FACING:
 			var camera := get_viewport().get_camera_3d()
 			if camera != null:
@@ -413,7 +439,7 @@ func _view_heading(subject: Node3D) -> Vector2:
 	return MinimapProjector.north()
 
 
-func _step_heading(delta: float, subject: Node3D) -> void:
+func _step_heading(delta: float, subject: Node) -> void:
 	var goal := _view_heading(subject).angle()
 	if not _heading_ready or turn_smoothing <= 0.0 or delta <= 0.0:
 		_heading_angle = goal
@@ -539,15 +565,9 @@ func _push_view() -> void:
 	shader_material.set_shader_parameter(&"view_range", _range_now)
 
 
-func _update_decorations(subject: Node3D) -> void:
+func _update_decorations(subject: Node) -> void:
 	var middle := _icons.size * 0.5
-	var heading := MinimapProjector.north()
-	if subject != null:
-		heading = (
-			subject.call(&"get_minimap_heading")
-			if subject.has_method(&"get_minimap_heading")
-			else _flat_forward(subject)
-		)
+	var heading := _forward_of(subject)
 	_self_arrow.position = middle - _self_arrow.size * 0.5
 	_self_arrow.pivot_offset = _self_arrow.size * 0.5
 	_self_arrow.rotation = _projector.icon_rotation(heading)
@@ -561,32 +581,32 @@ func _update_decorations(subject: Node3D) -> void:
 		_north.position = middle + toward - _north.size * 0.5
 
 
-func _self_shown(subject: Node3D) -> bool:
+func _self_shown(subject: Node) -> bool:
 	return show_self and follow_target and subject != null
 
 
-func _flat_forward(node: Node3D) -> Vector2:
-	var forward := -node.global_basis.z
-	var flat := Vector2(forward.x, forward.z)
-	return flat.normalized() if flat.length_squared() > 0.000001 else MinimapProjector.north()
-
-
-func _place_markers(viewer_plane: Vector2, viewer_section: MinimapSection, subject: Node3D) -> void:
+func _place_markers(viewer_plane: Vector2, viewer_section: MinimapSection, subject: Node) -> void:
+	var started := Time.get_ticks_usec()
+	_pass += 1
 	var self_shown := _self_shown(subject)
 	var middle := _icons.size * 0.5
 	var shown := 0
-	_seen.clear()
+	var turn := _projector.turn
+	var scale_px := _projector.px_per_metre
+	var centre := _projector.centre
+	var check_kinds := not hidden_kinds.is_empty()
 	for node in get_tree().get_nodes_in_group(MinimapMarker.GROUP):
 		var marker := node as MinimapMarker
 		if marker == null or not marker.active or shown >= max_markers:
 			continue
-		if not hidden_kinds.is_empty() and hidden_kinds.has(String(marker.kind)):
+		if check_kinds and hidden_kinds.has(String(marker.kind)):
 			continue
 		if self_shown and marker.get_parent() == subject:
 			continue
-		if not marker.passes_rule(viewer_plane, viewer_section):
-			continue
-		var offset := _projector.to_local(marker.plane_position())
+		if marker.rule != MinimapMarker.Rule.ALWAYS:
+			if not marker.passes_rule(viewer_plane, viewer_section):
+				continue
+		var offset := (marker.plane_position() - centre).rotated(turn) * scale_px
 		var clamped := false
 		if not _projector.contains(offset):
 			if not marker.clamp_to_edge:
@@ -594,14 +614,15 @@ func _place_markers(viewer_plane: Vector2, viewer_section: MinimapSection, subje
 			offset = _projector.clamp_to_border(offset, marker.edge_inset)
 			clamped = true
 		var id := marker.get_instance_id()
-		_seen[id] = true
 		var icon: MinimapIcon = _assigned.get(id)
 		if icon == null or not is_instance_valid(icon):
 			icon = _pool.acquire()
 			_assigned[id] = icon
+		icon.seen_in_pass = _pass
 		shown += 1
 		_place(icon, marker, offset + middle, offset, clamped)
 	_release_unseen()
+	_marker_pass_usec = Time.get_ticks_usec() - started
 
 
 func _place(
@@ -624,11 +645,10 @@ func _place(
 
 
 func _release_unseen() -> void:
-	if _assigned.size() == _seen.size():
-		return
 	var gone: Array[int] = []
 	for id: int in _assigned:
-		if not _seen.has(id):
+		var icon: MinimapIcon = _assigned[id]
+		if not is_instance_valid(icon) or icon.seen_in_pass != _pass:
 			gone.append(id)
 	for id in gone:
 		_pool.release(_assigned[id])
@@ -656,6 +676,5 @@ func _apply_look() -> void:
 func _apply_live() -> void:
 	if not is_node_ready():
 		return
-	_live_view.debug_draw = (
-		Viewport.DEBUG_DRAW_UNSHADED if live_unshaded else Viewport.DEBUG_DRAW_DISABLED
-	)
+	var flat := live_unshaded and unshaded_available()
+	_live_view.debug_draw = Viewport.DEBUG_DRAW_UNSHADED if flat else Viewport.DEBUG_DRAW_DISABLED

@@ -55,9 +55,14 @@ const GROUP := &"minimap_markers"
 ## in metres at which it is almost gone.
 @export_range(0.0, 50.0, 0.5, "suffix:m") var height_fade := 0.0
 
+var _node_3d: Node3D
+var _node_2d: Node2D
+
 
 func _enter_tree() -> void:
 	add_to_group(GROUP)
+	_node_3d = get_parent() as Node3D
+	_node_2d = get_parent() as Node2D
 
 
 func _exit_tree() -> void:
@@ -71,20 +76,18 @@ func target() -> Node:
 
 ## Where the target is on the map plane: (x, z) in 3D, (x, y) in 2D. Zero when it has no place.
 func plane_position() -> Vector2:
-	var parent := get_parent()
-	if parent is Node3D:
-		var at: Vector3 = (parent as Node3D).global_position
+	if _node_3d != null:
+		var at := _node_3d.global_position
 		return Vector2(at.x, at.z)
-	if parent is Node2D:
-		return (parent as Node2D).global_position
+	if _node_2d != null:
+		return _node_2d.global_position
 	return Vector2.ZERO
 
 
 ## The target's height (y in 3D, 0 in 2D).
 func height() -> float:
-	var parent := get_parent()
-	if parent is Node3D:
-		return (parent as Node3D).global_position.y
+	if _node_3d != null:
+		return _node_3d.global_position.y
 	return 0.0
 
 

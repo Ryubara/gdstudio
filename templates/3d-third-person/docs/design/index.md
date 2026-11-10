@@ -6,7 +6,8 @@ The game as it stands. Each subject gets one page here, updated in place as the 
 prototype map, seen from a Phantom Camera third-person view, with touch controls for phones, on the 3D Blank base (a
 bounded floor and walls, sky, sun and baked light). What it gave you is in [The character](character.md) and
 [Prototype level](prototype-level.md); add the game's own pillars, loop and systems here as they are decided.
-The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md).
+The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md); the map in the
+corner and the full-screen map are on [The minimap](minimap.md).
 
 ## Pillars
 

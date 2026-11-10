@@ -55,12 +55,12 @@ func test_the_icon_takes_the_markers_look() -> void:
 	_minimap.refresh_now()
 	var icon := _minimap.icon_for(marker)
 	assert_object(icon.texture).is_same(picture)
-	assert_vector(icon.size).is_equal(Vector2(20.0, 20.0))
+	assert_float(icon.drawn_side()).is_equal_approx(20.0, 0.001)
 	assert_int(icon.z_index).is_equal(3)
 	assert_bool(icon.modulate.is_equal_approx(Color(1.0, 0.2, 0.1, 1.0))).is_true()
 	_minimap.marker_scale = 2.0
 	_minimap.refresh_now()
-	assert_vector(icon.size).is_equal(Vector2(40.0, 40.0))
+	assert_float(icon.drawn_side()).is_equal_approx(40.0, 0.001)
 
 
 func test_a_marker_that_turns_with_its_node_turns_its_icon() -> void:
@@ -246,7 +246,7 @@ func _marker_of(carrier: Node3D) -> MinimapMarker:
 
 
 func _centre_of(icon: MinimapIcon) -> Vector2:
-	return icon.position + icon.size * 0.5
+	return icon.position
 
 
 func _section(at: Vector3, size: Vector3) -> MinimapSection:

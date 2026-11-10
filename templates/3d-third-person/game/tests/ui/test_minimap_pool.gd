@@ -22,9 +22,11 @@ func test_it_makes_an_icon_only_when_none_is_free() -> void:
 
 func test_a_released_icon_is_hidden_and_a_placed_one_shown() -> void:
 	var icon := _pool.acquire()
-	icon.place(null, Vector2(50.0, 40.0), 10.0, 0.0, Color.RED, 2)
+	var picture := load("res://assets/ui/minimap/dot.png") as Texture2D
+	icon.place(picture, Vector2(50.0, 40.0), 10.0, 0.0, Color.RED, 2)
 	assert_bool(icon.visible).is_true()
-	assert_vector(icon.position).is_equal(Vector2(45.0, 35.0))
+	assert_vector(icon.position).is_equal(Vector2(50.0, 40.0))
+	assert_float(icon.drawn_side()).is_equal_approx(10.0, 0.001)
 	assert_int(icon.z_index).is_equal(2)
 	_pool.release(icon)
 	assert_bool(icon.visible).is_false()

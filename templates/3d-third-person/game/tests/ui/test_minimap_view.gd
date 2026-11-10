@@ -224,6 +224,28 @@ func test_a_map_that_does_not_follow_stays_where_it_is_put() -> void:
 	assert_vector(_minimap.projector().centre).is_equal(Vector2(10.0, -10.0))
 
 
+func test_a_2d_game_can_follow_a_node_2d_and_mark_other_nodes_2d() -> void:
+	var player := auto_free(Node2D.new()) as Node2D
+	add_child(player)
+	player.global_position = Vector2(10.0, 20.0)
+	var coin := auto_free(Node2D.new()) as Node2D
+	add_child(coin)
+	coin.global_position = Vector2(16.0, 14.0)
+	var marker := MinimapMarker.new()
+	coin.add_child(marker)
+	_minimap.target = player
+	_minimap.rotation_mode = Minimap.RotationMode.TARGET_FACING
+	_minimap.source = Minimap.Source.IMAGE
+	player.rotation = 0.0  # facing +X: east is up
+	_minimap.refresh_now()
+	assert_vector(_minimap.projector().centre).is_equal(Vector2(10.0, 20.0))
+	# Six metres east and six north of the player, with east up: up six and left six (3.667 px a
+	# metre).
+	var at := _minimap.icon_for(marker).position - Vector2(110.0, 110.0)
+	assert_float(at.x).is_equal_approx(-22.0, 0.05)
+	assert_float(at.y).is_equal_approx(-22.0, 0.05)
+
+
 func _camera(yaw: float) -> Camera3D:
 	var camera := auto_free(Camera3D.new()) as Camera3D
 	add_child(camera)
@@ -245,4 +267,4 @@ func _marker_of(carrier: Node3D) -> MinimapMarker:
 
 
 func _centre_of(icon: MinimapIcon) -> Vector2:
-	return icon.position + icon.size * 0.5
+	return icon.position
