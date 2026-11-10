@@ -1,16 +1,17 @@
 ## The vault study (kit #1010): plays `Vault_Low` and `Vault_High` from
 ## `assets/animation/vault/vault.glb` on the mannequin over each clip's reference box, with a
-## sprint in, `Vault_Land` and a sprint out, from four views (a game-like camera, the side, the
-## front and the top). The body is moved forward at the speed `vault_clips.json` gives for the
-## clip, the way the game moves it; the clips are sought frame by frame with no blending, so a
-## join that does not fit shows.
+## sprint in, `Vault_Land` and a sprint out, from four views (a camera that follows behind the
+## left shoulder as the game's does, the side, the front and the top). The body is moved forward
+## at the speed `vault_clips.json` gives for the clip, the way the game moves it; the clips are
+## sought frame by frame with no blending, so a join that does not fit shows.
 ##
 ## Run headless, it prints one `VAULT` line a clip: how far the planted hand moves in the world
 ## while it is on the box, its height over the top, the lowest foot and how near the right hand
 ## comes to the box. Record it with Movie Maker through the kit:
 ## `gds capture frames --project game --scene res://tools/capture/vault_study.tscn --seconds 22
 ## --fps 24` (`MODEL=male` films the male mannequin, `VIEWS=side,top` only those views,
-## `SLOW=0.5` half speed).
+## `SLOW=0.5` half speed, `LOW_HEIGHT=0.5` and `HIGH_HEIGHT=1.3` another box height, with the
+## body lifted by the difference while a hand is on the top: the simplest warp).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
@@ -72,6 +73,7 @@ func _ready() -> void:
 		for clip: String in _clips:
 			if clip != LAND:
 				_plan.append({"view": view, "clip": clip})
+	_process(0.0)
 
 
 func _process(delta: float) -> void:
@@ -106,7 +108,8 @@ func pose(clip: String, time: float) -> String:
 	var ahead: float = spec.root_start + speed * minf(time, spec.length)
 	var phase := "sprint in"
 	var cycle := _player.get_animation(SPRINT).length
-	_set_box(spec.obstacle.height, spec.obstacle.depth)
+	var height := _height(clip)
+	_set_box(height, spec.obstacle.depth)
 	if time < 0.0:
 		_seek(SPRINT, fposmod(time * speed / SPRINT_SPEED, cycle))
 	elif time < spec.length:
@@ -122,8 +125,23 @@ func pose(clip: String, time: float) -> String:
 		_seek(SPRINT, fposmod(after * land.speed / SPRINT_SPEED, cycle))
 		ahead += land.speed * (land.length + after)
 		phase = "sprint out"
-	_model.position = Vector3(0.0, 0.0, ahead)
+	var lift: float = (height - spec.obstacle.height) * _raised(spec.events, time)
+	_model.position = Vector3(0.0, lift, ahead)
 	return phase
+
+
+## The height of the box under a clip: its reference height, or `LOW_HEIGHT` / `HIGH_HEIGHT`.
+func _height(clip: String) -> float:
+	var asked := OS.get_environment("LOW_HEIGHT" if clip == "Vault_Low" else "HIGH_HEIGHT")
+	return asked.to_float() if asked != "" else float(_clips[clip].obstacle.height)
+
+
+## How much of the difference to another height the body is lifted by: none on the ground, all
+## of it while a hand is on the top, none again at the landing (the simplest warp of the clip).
+func _raised(events: Dictionary, time: float) -> float:
+	var from: float = minf(events.takeoff, events.hand_plant - 0.125)
+	var up := smoothstep(from, events.hand_plant, time)
+	return up * (1.0 - smoothstep(events.hand_release, events.land, time))
 
 
 func _phase(events: Dictionary, time: float) -> String:
@@ -168,7 +186,10 @@ func _look(view: String, spec: Dictionary) -> void:
 		_:
 			_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 			_camera.fov = 55.0
-			_camera.look_at_from_position(Vector3(2.3, 1.9, -3.6), middle + Vector3(0, -0.1, 0.3))
+			var body := _model.position
+			_camera.look_at_from_position(
+				body + Vector3(1.5, 1.9, -3.3), body + Vector3(0, 1.0, 0.5)
+			)
 
 
 func _bone(bone: String) -> Vector3:
@@ -182,7 +203,7 @@ func _report(model: String) -> void:
 		if clip == LAND:
 			continue
 		var spec: Dictionary = _clips[clip]
-		var top: float = spec.obstacle.height
+		var top := _height(clip)
 		var low := Vector3(-BOX_WIDTH * 0.5, 0, 0)
 		var high := Vector3(BOX_WIDTH * 0.5, top, spec.obstacle.depth)
 		var planted: Array[Vector3] = []

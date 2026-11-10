@@ -1120,7 +1120,8 @@ def main():
         assert abs(found[clip.name]["length"] - clip.frames / FPS) < 1e-3, (clip.name, found[clip.name])
         assert found[clip.name]["translation"] == ["pelvis"], found[clip.name]["translation"]
         assert found[clip.name]["channels"] == len(rig.order) + 1, found[clip.name]["channels"]
-    (out / "vault_clips.json").write_text(json.dumps(sidecar(clips), indent=2) + "\n", encoding="utf-8")
+    text = json.dumps(sidecar(clips), indent=2) + "\n"
+    (out / "vault_clips.json").write_text(text, encoding="utf-8", newline="\n")
     print("EXPORTED", path, json.dumps(found)[:400])
 
 
