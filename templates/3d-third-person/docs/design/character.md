@@ -213,12 +213,23 @@ The pistol sits in the hand without sinking into the leg or the body in the loco
 both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the skinned body, and
 `tools/carry/measure_clearance.gd` prints the numbers for another grip. If a game changes the grip, run both.
 
+### Prone and crawl clips {#prone-clips}
+
+`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
+The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
+to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.06 m ahead of
+and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The folder's
+`README.md` has every number, how the clips are built and how to render them;
+`tools/capture/prone_clips_tour.tscn` plays them.
+
 ## Licences
 
 The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
-(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`.
+(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
+clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`).
 
 ## Testing it in a browser
 

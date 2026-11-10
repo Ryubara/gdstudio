@@ -60,15 +60,21 @@ def clip_frames(arm, action, count):
     arm.animation_data.action_slot = action.slots[0]
     for track in arm.animation_data.nla_tracks:
         track.mute = True
-    first, last = (int(round(v)) for v in action.frame_range)
-    frames = sorted({int(round(first + (last - first) * i / max(count - 1, 1))) for i in range(count)})
+    first, last = (round(v) for v in action.frame_range)
+    frames = sorted(
+        {round(first + (last - first) * i / max(count - 1, 1)) for i in range(count)}
+    )
     out = []
     for frame in frames:
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
         pose = {}
         for pb in arm.pose.bones:
-            pose[pb.name] = (pb.parent.matrix.inverted() @ pb.matrix) if pb.parent else pb.matrix.copy()
+            pose[pb.name] = (
+                (pb.parent.matrix.inverted() @ pb.matrix)
+                if pb.parent
+                else pb.matrix.copy()
+            )
         out.append((frame, pose))
     return out, (first, last)
 
@@ -109,7 +115,12 @@ def make_floor(size=14.0, square=0.25):
         for j in range(n):
             x0, y0 = -size / 2 + i * square, -size / 2 + j * square
             base = len(verts)
-            verts += [(x0, y0, 0), (x0 + square, y0, 0), (x0 + square, y0 + square, 0), (x0, y0 + square, 0)]
+            verts += [
+                (x0, y0, 0),
+                (x0 + square, y0, 0),
+                (x0 + square, y0 + square, 0),
+                (x0, y0 + square, 0),
+            ]
             faces.append((base, base + 1, base + 2, base + 3))
             mats.append((i + j) % 2)
     mesh = bpy.data.meshes.new("Floor")
@@ -147,7 +158,9 @@ def render_tile(scene, cam, path):
     scene.render.filepath = str(path)
     bpy.ops.render.render(write_still=True)
     image = bpy.data.images.load(str(path))
-    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(image.size[1], image.size[0], 4)
+    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(
+        image.size[1], image.size[0], 4
+    )
     bpy.data.images.remove(image)
     return pixels
 
@@ -176,7 +189,12 @@ def main():
     parser.add_argument("--suffix", default="")
     parser.add_argument("--views", default="side,front,top")
     parser.add_argument("--tile", default="480x300")
-    parser.add_argument("--height", type=float, default=0.75, help="the height the side and front views centre on")
+    parser.add_argument(
+        "--height",
+        type=float,
+        default=0.75,
+        help="the height the side and front views centre on",
+    )
     args = parser.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -184,12 +202,18 @@ def main():
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = setup_scene()
-    scene.render.fps = 30  # the library's rate, so a frame of the clip is a frame of the scene
-    scene.render.resolution_x, scene.render.resolution_y = (int(v) for v in args.tile.split("x"))
+    scene.render.fps = (
+        30  # the library's rate, so a frame of the clip is a frame of the scene
+    )
+    scene.render.resolution_x, scene.render.resolution_y = (
+        int(v) for v in args.tile.split("x")
+    )
     views = args.views.split(",")
     model, model_objects = import_glb(args.model)
     for obj in model_objects:
-        if obj.type == "MESH" and obj.parent is None:  # the female file carries a stray icosphere
+        if (
+            obj.type == "MESH" and obj.parent is None
+        ):  # the female file carries a stray icosphere
             bpy.data.objects.remove(obj)
     clips_arm, clip_objects = import_glb(args.clips)
     for obj in clip_objects:
@@ -197,7 +221,12 @@ def main():
     fps = scene.render.fps
     make_floor()
     cams = {view: make_camera(view, args.scale) for view in views}
-    lift = {"side": args.height, "front": args.height, "top": 0.0, "quarter": args.height}
+    lift = {
+        "side": args.height,
+        "front": args.height,
+        "top": 0.0,
+        "quarter": args.height,
+    }
     names = args.clip or sorted(a.name for a in bpy.data.actions)
     for name in names:
         action = bpy.data.actions.get(name)
@@ -215,7 +244,9 @@ def main():
                 cam.location = (home[0], home[1] + shift, home[2] + lift[view])
             bpy.context.view_layer.update()
             for view in views:
-                rows[view].append(render_tile(scene, cams[view], out / f"_tile_{view}.png"))
+                rows[view].append(
+                    render_tile(scene, cams[view], out / f"_tile_{view}.png")
+                )
         for view in views:
             (out / f"_tile_{view}.png").unlink(missing_ok=True)
         target = out / f"{name}{args.suffix}.png"

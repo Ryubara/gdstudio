@@ -28,7 +28,12 @@ import numpy as np
 from mathutils import Matrix, Quaternion
 
 FPS = 30
-CLIPS = ("Prone_Idle_Loop", "Crawl_Fwd_Loop", "Crouch_To_Prone", "Prone_To_Crouch")  # the frozen list of the file
+CLIPS = (
+    "Prone_Idle_Loop",
+    "Crawl_Fwd_Loop",
+    "Crouch_To_Prone",
+    "Prone_To_Crouch",
+)  # the frozen list of the file
 TRUNK = ("pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head")
 SIDES = (("l", 1.0), ("r", -1.0))
 
@@ -40,7 +45,9 @@ WRIST_H = 0.045  # the wrist joint over the floor when the hand lies flat
 ANKLE_H = 0.040  # the ankle joint over the floor when the foot lies on it
 KNEE_H = 0.058  # the knee joint over the floor when the knee rests on it
 TOE_H = 0.012  # the tip of the toe bone over the floor when the toes rest on it
-SQUASH = 0.006  # how far the belly may sink into the floor (a body flattens where it lies)
+SQUASH = (
+    0.006  # how far the belly may sink into the floor (a body flattens where it lies)
+)
 
 # Crawl: one cycle is two pulls, the right elbow with the left foot and then the others.
 CRAWL_FRAMES = 28
@@ -97,7 +104,11 @@ def aim_turn(aim0, side0, aim, side):
 def trunk_turn(pitch, yaw=0.0, roll=0.0):
     """A trunk bone's turn from the standing rest, in degrees: roll about the spine, pitch forward (90 lies face
     down), then yaw about the vertical (positive turns the head to the character's left)."""
-    return rot_z(math.radians(yaw)) @ rot_x(math.radians(pitch)) @ rot_z(math.radians(roll))
+    return (
+        rot_z(math.radians(yaw))
+        @ rot_x(math.radians(pitch))
+        @ rot_z(math.radians(roll))
+    )
 
 
 def to_quat(m):
@@ -119,7 +130,12 @@ def smooth(x):
 
 def hermite(p0, p1, m0, m1, t):
     t2, t3 = t * t, t * t * t
-    return (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1
+    return (
+        (2 * t3 - 3 * t2 + 1) * p0
+        + (t3 - 2 * t2 + t) * m0
+        + (-2 * t3 + 3 * t2) * p1
+        + (t3 - t2) * m1
+    )
 
 
 def keyed(keys, frame_no):
@@ -133,7 +149,12 @@ def keyed(keys, frame_no):
         return ys[-1] if len(ys[-1]) > 1 else float(ys[-1][0])
     n = len(xs)
     d = [(ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]) for i in range(n - 1)]
-    m = [d[0]] + [np.where(d[i - 1] * d[i] > 0, 2 * d[i - 1] * d[i] / (d[i - 1] + d[i] + 1e-30), 0.0) for i in range(1, n - 1)]
+    m = [d[0]] + [
+        np.where(
+            d[i - 1] * d[i] > 0, 2 * d[i - 1] * d[i] / (d[i - 1] + d[i] + 1e-30), 0.0
+        )
+        for i in range(1, n - 1)
+    ]
     m.append(d[-1])
     m[0] = np.zeros_like(m[0])
     m[-1] = np.zeros_like(m[-1])
@@ -163,7 +184,9 @@ class Rig:
     """The mannequin's rest skeleton and skin as arrays, so a pose is solved and measured without touching Blender."""
 
     def __init__(self, arm, mesh):
-        assert np.allclose(np.array(arm.matrix_world), np.eye(4), atol=1e-6), "the armature is not at the origin"
+        assert np.allclose(np.array(arm.matrix_world), np.eye(4), atol=1e-6), (
+            "the armature is not at the origin"
+        )
         bones = list(arm.data.bones)
         depth = {b.name: len(b.parent_recursive) for b in bones}
         bones.sort(key=lambda b: depth[b.name])
@@ -175,15 +198,25 @@ class Rig:
         self.local = {}
         for n in self.names:
             p = self.parent[n]
-            self.local[n] = np.linalg.inv(self.rest[p]) @ self.rest[n] if p else self.rest[n]
+            self.local[n] = (
+                np.linalg.inv(self.rest[p]) @ self.rest[n] if p else self.rest[n]
+            )
         self.local_rot = {n: m[:3, :3] for n, m in self.local.items()}
         self.local_pos = {n: m[:3, 3] for n, m in self.local.items()}
         self.len = {}
         for s, _ in SIDES:
-            self.len["upperarm_" + s] = np.linalg.norm(self.rest_pos["lowerarm_" + s] - self.rest_pos["upperarm_" + s])
-            self.len["lowerarm_" + s] = np.linalg.norm(self.rest_pos["hand_" + s] - self.rest_pos["lowerarm_" + s])
-            self.len["thigh_" + s] = np.linalg.norm(self.rest_pos["calf_" + s] - self.rest_pos["thigh_" + s])
-            self.len["calf_" + s] = np.linalg.norm(self.rest_pos["foot_" + s] - self.rest_pos["calf_" + s])
+            self.len["upperarm_" + s] = np.linalg.norm(
+                self.rest_pos["lowerarm_" + s] - self.rest_pos["upperarm_" + s]
+            )
+            self.len["lowerarm_" + s] = np.linalg.norm(
+                self.rest_pos["hand_" + s] - self.rest_pos["lowerarm_" + s]
+            )
+            self.len["thigh_" + s] = np.linalg.norm(
+                self.rest_pos["calf_" + s] - self.rest_pos["thigh_" + s]
+            )
+            self.len["calf_" + s] = np.linalg.norm(
+                self.rest_pos["foot_" + s] - self.rest_pos["calf_" + s]
+            )
         world = np.array(mesh.matrix_world)
         co = np.array([v.co[:] for v in mesh.data.vertices])
         self.verts = co @ world[:3, :3].T + world[:3, 3]
@@ -209,7 +242,11 @@ class Rig:
                 m[:3, 3] = self.local_pos[n]
             else:
                 m[:3, :3] = out[p][:3, :3] @ local_rot[n]
-                m[:3, 3] = pelvis_pos if n == "pelvis" else out[p][:3, :3] @ self.local_pos[n] + out[p][:3, 3]
+                m[:3, 3] = (
+                    pelvis_pos
+                    if n == "pelvis"
+                    else out[p][:3, :3] @ self.local_pos[n] + out[p][:3, 3]
+                )
             out[n] = m
         return out
 
@@ -278,10 +315,18 @@ class Solver:
             if name == "pelvis":
                 world[name][:3, 3] = spec["pelvis_pos"]
         for s, sign in SIDES:
-            lift, push = (math.radians(v) for v in spec.get("clav", {}).get(s, (0.0, 0.0)))
+            lift, push = (
+                math.radians(v) for v in spec.get("clav", {}).get(s, (0.0, 0.0))
+            )
             turn = axis_angle((0, -sign, 0), lift) @ axis_angle((0, 0, -sign), push)
-            self._place(world, "clavicle_" + s, turns["spine_03"] @ turn @ rig.rest_rot["clavicle_" + s])
-            self._place(world, "upperarm_" + s, world["clavicle_" + s][:3, :3])  # the place only; turned below
+            self._place(
+                world,
+                "clavicle_" + s,
+                turns["spine_03"] @ turn @ rig.rest_rot["clavicle_" + s],
+            )
+            self._place(
+                world, "upperarm_" + s, world["clavicle_" + s][:3, :3]
+            )  # the place only; turned below
         return world
 
     def _shoulder_miss(self, spec, give):
@@ -317,7 +362,9 @@ class Solver:
         len_u, len_f = rig.len[upper], rig.len[lower]
         if "elbow" in arm:
             aim_u = unit(arm["elbow"] - shoulder)
-            self.miss["elbow_" + s] = abs(np.linalg.norm(arm["elbow"] - shoulder) - len_u)
+            self.miss["elbow_" + s] = abs(
+                np.linalg.norm(arm["elbow"] - shoulder) - len_u
+            )
             elbow = shoulder + len_u * aim_u
             aim_f = unit(arm["wrist"] - elbow)
             hinge = unit(np.cross(aim_u, aim_f))
@@ -340,10 +387,22 @@ class Solver:
         palm0 = np.array([0.0, 0.0, -1.0])
         palm = unit(arm.get("palm", np.array([0.0, 0.0, -1.0])))
         fingers = arm.get("fingers")
-        fingers = unit(aim_f - palm * np.dot(aim_f, palm)) if fingers is None else unit(fingers)
-        self._place(world, upper, aim_turn(rest_u, rest_hinge, aim_u, hinge) @ rig.rest_rot[upper])
-        self._place(world, lower, aim_turn(rest_f, palm0, aim_f, palm) @ rig.rest_rot[lower])
-        self._place(world, hand, aim_turn(rest_g, palm0, fingers, palm) @ rig.rest_rot[hand])
+        fingers = (
+            unit(aim_f - palm * np.dot(aim_f, palm))
+            if fingers is None
+            else unit(fingers)
+        )
+        self._place(
+            world,
+            upper,
+            aim_turn(rest_u, rest_hinge, aim_u, hinge) @ rig.rest_rot[upper],
+        )
+        self._place(
+            world, lower, aim_turn(rest_f, palm0, aim_f, palm) @ rig.rest_rot[lower]
+        )
+        self._place(
+            world, hand, aim_turn(rest_g, palm0, fingers, palm) @ rig.rest_rot[hand]
+        )
 
     def _leg(self, world, spec, s, sign):
         rig = self.rig
@@ -359,15 +418,21 @@ class Solver:
         a = (len_t**2 - len_c**2 + dist**2) / (2 * dist)
         bend = math.sqrt(max(len_t**2 - a**2, 0.0))
         if "pole_at" in leg:
-            pole = unit(leg["pole_at"] - hip - along * np.dot(along, leg["pole_at"] - hip))
+            pole = unit(
+                leg["pole_at"] - hip - along * np.dot(along, leg["pole_at"] - hip)
+            )
         elif "pole" in leg:
             pole = unit(leg["pole"] - along * np.dot(along, leg["pole"]))
         else:
             out = unit(leg["knee_out"] - along * np.dot(along, leg["knee_out"]))
             down = np.cross(along, out)
             down = down if down[2] < 0 else -down
-            want = (leg["knee_z"] - hip[2] - a * along[2]) / (max(bend, 1e-6) * min(down[2], -1e-6))
-            drop = float(np.clip(want, -0.9, 0.9)) * smooth((bend - 0.02) / 0.10) + 0.5 * (1.0 - smooth((bend - 0.02) / 0.10))
+            want = (leg["knee_z"] - hip[2] - a * along[2]) / (
+                max(bend, 1e-6) * min(down[2], -1e-6)
+            )
+            drop = float(np.clip(want, -0.9, 0.9)) * smooth(
+                (bend - 0.02) / 0.10
+            ) + 0.5 * (1.0 - smooth((bend - 0.02) / 0.10))
             pole = unit(out * math.sqrt(max(1.0 - drop * drop, 0.0)) + down * drop)
         knee = hip + a * along + bend * pole
         aim_t = unit(knee - hip)
@@ -376,17 +441,28 @@ class Solver:
         rest_t = unit(rig.rest_pos[calf] - rig.rest_pos[thigh])
         rest_c = unit(rig.rest_pos[foot] - rig.rest_pos[calf])
         hinge0 = np.array([1.0, 0.0, 0.0])
-        self._place(world, thigh, aim_turn(rest_t, hinge0, aim_t, hinge) @ rig.rest_rot[thigh])
-        self._place(world, calf, aim_turn(rest_c, hinge0, aim_c, hinge) @ rig.rest_rot[calf])
-        cap = unit(np.cross(aim_c, hinge))  # the way the kneecap faces, square to the shin
+        self._place(
+            world, thigh, aim_turn(rest_t, hinge0, aim_t, hinge) @ rig.rest_rot[thigh]
+        )
+        self._place(
+            world, calf, aim_turn(rest_c, hinge0, aim_c, hinge) @ rig.rest_rot[calf]
+        )
+        cap = unit(
+            np.cross(aim_c, hinge)
+        )  # the way the kneecap faces, square to the shin
         flex = math.radians(leg.get("flex", 0.0))
         toe = math.cos(flex) * cap + math.sin(flex) * aim_c
         sole = -math.sin(flex) * cap + math.cos(flex) * aim_c
         if "foot_roll" in leg:
             roll = axis_angle(toe, math.radians(leg["foot_roll"]))
             sole = roll @ sole
-        turned = aim_turn(np.array([0.0, -1.0, 0.0]), np.array([0.0, 0.0, -1.0]), toe, sole) @ rig.rest_rot[foot]
-        if "foot_world" in leg:  # a foot that stands on the floor keeps its own turn while the shin moves
+        turned = (
+            aim_turn(np.array([0.0, -1.0, 0.0]), np.array([0.0, 0.0, -1.0]), toe, sole)
+            @ rig.rest_rot[foot]
+        )
+        if (
+            "foot_world" in leg
+        ):  # a foot that stands on the floor keeps its own turn while the shin moves
             held, weight = leg["foot_world"]
             turned = slerp(turned, held, weight)
         self._place(world, foot, turned)
@@ -429,21 +505,34 @@ class Solver:
         for n in rig.names:
             p = rig.parent[n]
             if n in world:
-                local[n] = world[p][:3, :3].T @ world[n][:3, :3] if p else world[n][:3, :3]
+                local[n] = (
+                    world[p][:3, :3].T @ world[n][:3, :3] if p else world[n][:3, :3]
+                )
                 continue
             rot = rig.local_rot[n]
             side = n[-1]
-            if n[:-4] in ("index", "middle", "ring", "pinky") and n[-4:-2] in ("01", "02", "03"):
+            if n[:-4] in ("index", "middle", "ring", "pinky") and n[-4:-2] in (
+                "01",
+                "02",
+                "03",
+            ):
                 rot = rot @ rot_x(math.radians(curl.get(side, 0.0)))
             elif n.startswith("thumb_0") and n[-4:-2] in ("02", "03"):
                 rot = rot @ rot_x(math.radians(curl.get(side, 0.0) * 0.5))
             elif n.startswith("thumb_01"):
                 # the rest thumb points 47 degrees under the palm: lay it out beside the palm for a hand on the floor
-                lay = rot_x(math.radians(-37.0 * spec.get("thumb_flat", {}).get(side, 0.0)))
+                lay = rot_x(
+                    math.radians(-37.0 * spec.get("thumb_flat", {}).get(side, 0.0))
+                )
                 rot = rig.rest_rot["hand_" + side].T @ lay @ rig.rest_rot[n]
             local[n] = rot
             self._place(world, n, world[p][:3, :3] @ rot)
-        return {"local": local, "pelvis": np.array(spec["pelvis_pos"], dtype=float), "miss": dict(self.miss), "give": give}
+        return {
+            "local": local,
+            "pelvis": np.array(spec["pelvis_pos"], dtype=float),
+            "miss": dict(self.miss),
+            "give": give,
+        }
 
 
 def blend(a, b, w):
@@ -498,10 +587,16 @@ def idle_spec(rig, phase, pelvis_up, anchor):
     trunk["Head"] = (17.0 - 1.6 * late, 4.0 * look, 0.6 * look)
     for s, sign in SIDES:
         spec["clav"][s] = (8.0 + 1.5 * breath, 4.0 + 1.2 * breath)
-        elbow = vec(anchor["shoulder_fwd"] + 0.035, sign * (anchor["shoulder_left"] + 0.075), ELBOW_H)
-        reach = math.radians(27.0)
+        elbow = vec(
+            anchor["shoulder_fwd"] + 0.035,
+            sign * (anchor["shoulder_left"] + 0.075),
+            ELBOW_H,
+        )
+        reach = math.radians(17.0)
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - (ELBOW_H - WRIST_H) ** 2)
-        wrist = elbow + vec(flat * math.cos(reach), -sign * flat * math.sin(reach), WRIST_H - ELBOW_H)
+        wrist = elbow + vec(
+            flat * math.cos(reach), -sign * flat * math.sin(reach), WRIST_H - ELBOW_H
+        )
         spec["arm"][s] = {"elbow": elbow, "wrist": wrist, "palm": vec(0.0, 0.0, -1.0)}
         spec["leg"][s] = lying_leg(rig, sign, anchor)
     return spec
@@ -527,7 +622,9 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
     turn = 2 * math.pi * phase
     c, s2 = math.cos(turn), math.sin(turn)
     spec = prone_base(pelvis_up)
-    spec["pelvis_pos"] = vec(PELVIS_FWD + 0.008 * math.sin(2 * turn - 0.6), -0.012 * c, pelvis_up)
+    spec["pelvis_pos"] = vec(
+        PELVIS_FWD + 0.008 * math.sin(2 * turn - 0.6), -0.012 * c, pelvis_up
+    )
     trunk = spec["trunk"]
     trunk["pelvis"] = (89.0, -6.0 * c, 5.0 * c)
     trunk["spine_01"] = (86.0, -3.0 * c, 3.0 * c)
@@ -549,14 +646,18 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
         reach = math.radians(30.0 - 14.0 * lift)
         rise = WRIST_H - ELBOW_H - 0.012 + 0.035 * lift
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - rise**2)
-        wrist = elbow + vec(flat * math.cos(reach), -sign * flat * math.sin(reach), rise)
+        wrist = elbow + vec(
+            flat * math.cos(reach), -sign * flat * math.sin(reach), rise
+        )
         spec["arm"][s] = {"elbow": elbow, "wrist": wrist, "palm": vec(0.0, 0.0, -1.0)}
         spec["clav"][s] = (10.0 + 8.0 * (fwd / travel - 0.5), 5.0)
         spec["curl"][s] = 2.0 + 12.0 * lift
 
         fwd, lift, push = leg_stroke(leg_phase)
         straight = lying_leg(rig, sign, anchor, spread=0.19)
-        ankle = straight["ankle"] + vec(fwd, sign * 0.03 * lift, 0.012 + 0.012 * lift + 0.05 * push)
+        ankle = straight["ankle"] + vec(
+            fwd, sign * 0.03 * lift, 0.012 + 0.012 * lift + 0.05 * push
+        )
         spec["leg"][s] = {
             "ankle": ankle,
             "knee_out": vec(0.0, sign, 0.0),
@@ -593,10 +694,16 @@ def leg_stroke(phase):
     if phase < LEG_DRAW:
         return 0.0, 0.0, 0.0
     t = (phase - LEG_DRAW) / (1.0 - LEG_DRAW)
-    return hermite(0.0, reach, 0.0, -speed * (1.0 - LEG_DRAW), t), math.sin(math.pi * t) ** 2, smooth((t - 0.55) / 0.45)
+    return (
+        hermite(0.0, reach, 0.0, -speed * (1.0 - LEG_DRAW), t),
+        math.sin(math.pi * t) ** 2,
+        smooth((t - 0.55) / 0.45),
+    )
 
 
-def settle(rig, solver, make, anchor, groups=("pelvis", "spine_01", "spine_02", "thigh")):
+def settle(
+    rig, solver, make, anchor, groups=("pelvis", "spine_01", "spine_02", "thigh")
+):
     """Solve a lying pose with the belly resting on the floor: the pelvis's height is moved until the lowest vertex
     of the belly and thighs sinks `SQUASH` into it."""
     up = anchor["pelvis_up"]
@@ -613,9 +720,21 @@ def settle(rig, solver, make, anchor, groups=("pelvis", "spine_01", "spine_02", 
 
 def measure_anchor(rig, solver):
     """Where the shoulders and hips are in the prone base pose: the clips place elbows and feet from them."""
-    anchor = {"pelvis_up": 0.11, "shoulder_fwd": 0.3, "shoulder_left": 0.15, "hip_fwd": PELVIS_FWD, "hip_left": 0.09, "hip_up": 0.1}
+    anchor = {
+        "pelvis_up": 0.11,
+        "shoulder_fwd": 0.3,
+        "shoulder_left": 0.15,
+        "hip_fwd": PELVIS_FWD,
+        "hip_left": 0.09,
+        "hip_up": 0.1,
+    }
     for _ in range(3):
-        pose = settle(rig, solver, lambda up: idle_spec(rig, 0.0, up, anchor), anchor)
+        pose = settle(
+            rig,
+            solver,
+            lambda up, anchor=anchor: idle_spec(rig, 0.0, up, anchor),
+            anchor,
+        )
         world = rig.world(pose["local"], pose["pelvis"])
         shoulder, hip = world["upperarm_l"][:3, 3], world["thigh_l"][:3, 3]
         anchor = {
@@ -632,22 +751,46 @@ def measure_anchor(rig, solver):
 def build_idle(rig, solver, anchor):
     frames = []
     for f in range(IDLE_FRAMES):
-        frames.append(settle(rig, solver, lambda up, f=f: idle_spec(rig, f / IDLE_FRAMES, up, anchor), anchor))
+        frames.append(
+            settle(
+                rig,
+                solver,
+                lambda up, f=f: idle_spec(rig, f / IDLE_FRAMES, up, anchor),
+                anchor,
+            )
+        )
     return frames + [frames[0]]
 
 
 def build_crawl(rig, solver, anchor):
     frames = []
     solver.warm = np.zeros(2)
-    for f in list(range(CRAWL_FRAMES)) * 2:  # twice round, so the solver's warm start is the loop's own
-        frames.append(settle(rig, solver, lambda up, f=f: crawl_spec(rig, f / CRAWL_FRAMES, up, anchor), anchor))
+    for f in (
+        list(range(CRAWL_FRAMES)) * 2
+    ):  # twice round, so the solver's warm start is the loop's own
+        frames.append(
+            settle(
+                rig,
+                solver,
+                lambda up, f=f: crawl_spec(rig, f / CRAWL_FRAMES, up, anchor),
+                anchor,
+            )
+        )
     frames = frames[CRAWL_FRAMES:]
-    for f, pose in enumerate(frames):
-        print("CRAWL", f, "give", np.round(pose["give"], 2), "miss", {k: round(v, 4) for k, v in pose["miss"].items() if v > 1e-4})
     return frames + [frames[0]]
 
 
-ARM_BONES = ("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "ring", "pinky", "thumb")
+ARM_BONES = (
+    "clavicle",
+    "upperarm",
+    "lowerarm",
+    "hand",
+    "index",
+    "middle",
+    "ring",
+    "pinky",
+    "thumb",
+)
 LEG_BONES = ("thigh", "calf", "foot", "ball")
 
 
@@ -688,21 +831,34 @@ def transition(rig, solver, count, keys, limbs_from, anchor_pose):
                 "ankle": keyed(keys["ankle"][s], f),
                 "pole": keyed(keys["knee"][s], f),
                 "flex": keyed(keys["flex"][s], f),
-                "foot_world": (keys["foot_world"][s][0], keyed(keys["foot_world"][s][1], f)),
+                "foot_world": (
+                    keys["foot_world"][s][0],
+                    keyed(keys["foot_world"][s][1], f),
+                ),
             }
         arm_w, leg_w = keyed(keys["arm_w"], f), keyed(keys["leg_w"], f)
         pose = mix_limbs(solver.solve(spec), limbs_from, arm_w, leg_w)
         # a target counts as missed only while its limb is the solved one
-        pose["miss"] = {k: v for k, v in pose["miss"].items() if (arm_w if k.startswith("wrist") else leg_w) >= 1.0}
-        frames.append(blend(pose, anchor_pose, keyed(keys["anchor_w"], f)) | {"before_anchor": pose})
-        print("STEP", f, {k: round(v, 3) for k, v in pose["miss"].items() if v > 1e-4})
+        pose["miss"] = {
+            k: v
+            for k, v in pose["miss"].items()
+            if (arm_w if k.startswith("wrist") else leg_w) >= 1.0
+        }
+        frames.append(
+            blend(pose, anchor_pose, keyed(keys["anchor_w"], f))
+            | {"before_anchor": pose}
+        )
     return frames
 
 
 def pose_points(rig, pose):
     """What the transitions read from a pose they join: joint places, trunk turns and the feet's world turns."""
     world = rig.world(pose["local"], pose["pelvis"])
-    out = {"world": world, "pelvis": pose["pelvis"].copy(), "trunk": {n: world[n][:3, :3] @ rig.rest_rot[n].T for n in TRUNK}}
+    out = {
+        "world": world,
+        "pelvis": pose["pelvis"].copy(),
+        "trunk": {n: world[n][:3, :3] @ rig.rest_rot[n].T for n in TRUNK},
+    }
     for s, _ in SIDES:
         out["shoulder_" + s] = world["upperarm_" + s][:3, 3].copy()
         out["wrist_" + s] = world["hand_" + s][:3, 3].copy()
@@ -711,8 +867,14 @@ def pose_points(rig, pose):
         out["ankle_" + s] = world["foot_" + s][:3, 3].copy()
         out["knee_" + s] = world["calf_" + s][:3, 3].copy()
         out["foot_" + s] = world["foot_" + s][:3, :3].copy()
-        out["fingers_" + s] = unit(world["middle_01_" + s][:3, 3] - world["hand_" + s][:3, 3])
-        out["palm_" + s] = world["hand_" + s][:3, :3] @ rig.rest_rot["hand_" + s].T @ np.array([0.0, 0.0, -1.0])
+        out["fingers_" + s] = unit(
+            world["middle_01_" + s][:3, 3] - world["hand_" + s][:3, 3]
+        )
+        out["palm_" + s] = (
+            world["hand_" + s][:3, :3]
+            @ rig.rest_rot["hand_" + s].T
+            @ np.array([0.0, 0.0, -1.0])
+        )
     return out
 
 
@@ -725,17 +887,46 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     down = np.array([0.0, 0.0, -1.0])
     lying_knee = {s: vec(0.0, sign * 1.0, -0.35) for s, sign in SIDES}
     crouch_knee = {s: unit(c["knee_" + s] - c["hip_" + s]) for s, _ in SIDES}
-    under_knee = {s: unit(vec(0.3, sign * 1.0, -0.25)) for s, sign in SIDES}  # a bent knee goes out to the side
+    under_knee = {
+        s: unit(vec(0.3, sign * 1.0, -0.25)) for s, sign in SIDES
+    }  # a bent knee goes out to the side
     r0, l0 = c["ankle_r"], c["ankle_l"]
 
     # ---- crouch to prone: the left foot is the front one in the crouch, the right is back on its toes
     n = TO_PRONE_FRAMES
-    dive = {"pelvis": (62, 0, 0), "spine_01": (74, 0, 0), "spine_02": (88, 0, 0), "spine_03": (102, 0, 0), "neck_01": (80, 0, 0), "Head": (52, 0, 0)}
-    land = {"pelvis": (86, 0, 0), "spine_01": (86, 0, 0), "spine_02": (80, 0, 0), "spine_03": (73, 0, 0), "neck_01": (52, 0, 0), "Head": (30, 0, 0)}
+    dive = {
+        "pelvis": (62, 0, 0),
+        "spine_01": (74, 0, 0),
+        "spine_02": (88, 0, 0),
+        "spine_03": (102, 0, 0),
+        "neck_01": (80, 0, 0),
+        "Head": (52, 0, 0),
+    }
+    land = {
+        "pelvis": (86, 0, 0),
+        "spine_01": (86, 0, 0),
+        "spine_02": (80, 0, 0),
+        "spine_03": (73, 0, 0),
+        "neck_01": (52, 0, 0),
+        "Head": (30, 0, 0),
+    }
     keys = {
-        "pelvis": [(0, c["pelvis"]), (9, vec(0.05, 0.0, 0.40)), (15, vec(0.03, 0.0, 0.33)), (20, vec(0.0, 0.0, 0.215)), (24, p["pelvis"]), (n, p["pelvis"])],
+        "pelvis": [
+            (0, c["pelvis"]),
+            (9, vec(0.08, 0.0, 0.39)),
+            (15, vec(0.03, 0.0, 0.33)),
+            (20, vec(0.0, 0.0, 0.215)),
+            (24, p["pelvis"]),
+            (n, p["pelvis"]),
+        ],
         "trunk": {
-            b: [(0, c["trunk"][b]), (9, trunk_turn(*dive[b])), (18, trunk_turn(*land[b])), (24, p["trunk"][b]), (n, p["trunk"][b])]
+            b: [
+                (0, c["trunk"][b]),
+                (9, trunk_turn(*dive[b])),
+                (18, trunk_turn(*land[b])),
+                (24, p["trunk"][b]),
+                (n, p["trunk"][b]),
+            ]
             for b in TRUNK
         },
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
@@ -755,7 +946,12 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     }
     for s, sign in SIDES:
         above = p["wrist_" + s] + vec(-0.16, sign * 0.06, 0.20)
-        keys["wrist"][s] = [(0, c["wrist_" + s]), (5, above), (9, p["wrist_" + s]), (n, p["wrist_" + s])]
+        keys["wrist"][s] = [
+            (0, c["wrist_" + s]),
+            (5, above),
+            (9, p["wrist_" + s]),
+            (n, p["wrist_" + s]),
+        ]
         keys["elbow"][s] = [
             (0, c["elbow_" + s]),
             (9, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
@@ -763,9 +959,20 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (n, p["elbow_" + s]),
         ]
         keys["palm"][s] = [(0, c["palm_" + s]), (8, down), (n, down)]
-        keys["fingers"][s] = [(0, c["fingers_" + s]), (8, p["fingers_" + s]), (n, p["fingers_" + s])]
+        keys["fingers"][s] = [
+            (0, c["fingers_" + s]),
+            (8, p["fingers_" + s]),
+            (n, p["fingers_" + s]),
+        ]
     # the right foot slides back on its toes; the left steps back after the hands have landed
-    keys["ankle"]["r"] = [(0, r0), (3, r0), (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)), (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)), (24, p["ankle_r"]), (n, p["ankle_r"])]
+    keys["ankle"]["r"] = [
+        (0, r0),
+        (3, r0),
+        (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)),
+        (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)),
+        (24, p["ankle_r"]),
+        (n, p["ankle_r"]),
+    ]
     keys["ankle"]["l"] = [
         (0, l0),
         (7, l0),
@@ -777,15 +984,43 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (n, p["ankle_l"]),
     ]
     for s, sign in SIDES:
-        keys["knee"][s] = [(0, crouch_knee[s]), (8, crouch_knee[s]), (14, under_knee[s]), (20, lying_knee[s]), (n, lying_knee[s])]
-        keys["foot_world"][s] = (c["foot_" + s], [(0, 1.0), (4 if s == "r" else 9, 1.0), (10 if s == "r" else 13, 0.0), (n, 0.0)])
+        keys["knee"][s] = [
+            (0, crouch_knee[s]),
+            (8, crouch_knee[s]),
+            (14, under_knee[s]),
+            (20, lying_knee[s]),
+            (n, lying_knee[s]),
+        ]
+        keys["foot_world"][s] = (
+            c["foot_" + s],
+            [
+                (0, 1.0),
+                (4 if s == "r" else 9, 1.0),
+                (10 if s == "r" else 13, 0.0),
+                (n, 0.0),
+            ],
+        )
     keys["flex"]["r"] = [(0, 20.0), (14, 22.0), (19, 30.0), (24, 62.0), (n, 62.0)]
-    keys["flex"]["l"] = [(0, 0.0), (13, 30.0), (17, 22.0), (20, 30.0), (25, 62.0), (n, 62.0)]
+    keys["flex"]["l"] = [
+        (0, 0.0),
+        (13, 30.0),
+        (17, 22.0),
+        (20, 30.0),
+        (25, 62.0),
+        (n, 62.0),
+    ]
     to_prone = transition(rig, solver, n, keys, crouch, idle)
 
     # ---- prone to crouch
     n = TO_CROUCH_FRAMES
-    push = {"pelvis": (66, 0, 0), "spine_01": (76, 0, 0), "spine_02": (86, 0, 0), "spine_03": (92, 0, 0), "neck_01": (70, 0, 0), "Head": (44, 0, 0)}
+    push = {
+        "pelvis": (66, 0, 0),
+        "spine_01": (76, 0, 0),
+        "spine_02": (86, 0, 0),
+        "spine_03": (92, 0, 0),
+        "neck_01": (70, 0, 0),
+        "Head": (44, 0, 0),
+    }
     keys = {
         "pelvis": [
             (0, p["pelvis"]),
@@ -797,7 +1032,13 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (n, c["pelvis"]),
         ],
         "trunk": {
-            b: [(0, p["trunk"][b]), (5, trunk_turn(*land[b])), (14, trunk_turn(*push[b])), (25, c["trunk"][b]), (n, c["trunk"][b])]
+            b: [
+                (0, p["trunk"][b]),
+                (5, trunk_turn(*land[b])),
+                (14, trunk_turn(*push[b])),
+                (25, c["trunk"][b]),
+                (n, c["trunk"][b]),
+            ]
             for b in TRUNK
         },
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
@@ -833,11 +1074,28 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (22, c["elbow_" + s]),
             (n, c["elbow_" + s]),
         ]
-        keys["palm"][s] = [(0, down), (15, down), (22, c["palm_" + s]), (n, c["palm_" + s])]
+        keys["palm"][s] = [
+            (0, down),
+            (15, down),
+            (22, c["palm_" + s]),
+            (n, c["palm_" + s]),
+        ]
         ahead = vec(1.0, -sign * 0.25, 0.0)
-        keys["fingers"][s] = [(0, p["fingers_" + s]), (8, ahead), (15, ahead), (22, c["fingers_" + s]), (n, c["fingers_" + s])]
+        keys["fingers"][s] = [
+            (0, p["fingers_" + s]),
+            (8, ahead),
+            (15, ahead),
+            (22, c["fingers_" + s]),
+            (n, c["fingers_" + s]),
+        ]
     # the right knee bends under the body on its toes first; the left foot then steps up to the front
-    keys["ankle"]["r"] = [(0, p["ankle_r"]), (4, p["ankle_r"] + vec(0.0, 0.0, 0.07)), (8, p["ankle_r"] + vec(0.0, 0.0, 0.10)), (17, r0), (n, r0)]
+    keys["ankle"]["r"] = [
+        (0, p["ankle_r"]),
+        (4, p["ankle_r"] + vec(0.0, 0.0, 0.07)),
+        (8, p["ankle_r"] + vec(0.0, 0.0, 0.10)),
+        (17, r0),
+        (n, r0),
+    ]
     keys["ankle"]["l"] = [
         (0, p["ankle_l"]),
         (5, p["ankle_l"] + vec(0.0, 0.0, 0.07)),
@@ -848,10 +1106,31 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (n, l0),
     ]
     for s, sign in SIDES:
-        keys["knee"][s] = [(0, lying_knee[s]), (6, lying_knee[s]), (13, under_knee[s]), (24, crouch_knee[s]), (n, crouch_knee[s])]
-        keys["foot_world"][s] = (c["foot_" + s], [(0, 0.0), (10 if s == "r" else 18, 0.0), (17 if s == "r" else 23, 1.0), (n, 1.0)])
+        keys["knee"][s] = [
+            (0, lying_knee[s]),
+            (6, lying_knee[s]),
+            (13, under_knee[s]),
+            (24, crouch_knee[s]),
+            (n, crouch_knee[s]),
+        ]
+        keys["foot_world"][s] = (
+            c["foot_" + s],
+            [
+                (0, 0.0),
+                (10 if s == "r" else 18, 0.0),
+                (17 if s == "r" else 23, 1.0),
+                (n, 1.0),
+            ],
+        )
     keys["flex"]["r"] = [(0, 62.0), (4, 30.0), (8, 22.0), (17, 20.0), (n, 20.0)]
-    keys["flex"]["l"] = [(0, 62.0), (5, 30.0), (11, 22.0), (17, 30.0), (22, 0.0), (n, 0.0)]
+    keys["flex"]["l"] = [
+        (0, 62.0),
+        (5, 30.0),
+        (11, 22.0),
+        (17, 30.0),
+        (22, 0.0),
+        (n, 0.0),
+    ]
     to_crouch = transition(rig, solver, n, keys, crouch, idle)
     return {"Crouch_To_Prone": to_prone, "Prone_To_Crouch": to_crouch}
 
@@ -932,7 +1211,10 @@ def check_against_blender(arm, mesh, rig, action, frames, frame_no):
     deps = bpy.context.evaluated_depsgraph_get()
     shaped = mesh.evaluated_get(deps)
     world = np.array(shaped.matrix_world)
-    co = np.array([v.co[:] for v in shaped.data.vertices]) @ world[:3, :3].T + world[:3, 3]
+    co = (
+        np.array([v.co[:] for v in shaped.data.vertices]) @ world[:3, :3].T
+        + world[:3, 3]
+    )
     pose = frames[frame_no]
     mine = rig.skin(rig.world(pose["local"], pose["pelvis"]))
     arm.animation_data.action = None
@@ -978,11 +1260,17 @@ def export(arm, path):
 
 
 def clip_numbers(rig, name, frames):
-    """What a clip measures: the lowest and highest vertex, the body's reach ahead and behind, and the solver's
-    worst miss."""
+    """What a clip measures: the lowest and highest vertex, the body's reach ahead and behind, its width, the
+    highest point of the back and thighs, and the solver's worst miss."""
     low, high, ahead, behind, miss = [], [], [], [], 0.0
+    wide, back = 0.0, 0.0
+    trunk = np.isin(
+        rig.owner, ("pelvis", "spine_01", "spine_02", "spine_03", "thigh_l", "thigh_r")
+    )
     for pose in frames:
         skinned = rig.skin(rig.world(pose["local"], pose["pelvis"]))
+        wide = max(wide, float(skinned[:, 0].max() - skinned[:, 0].min()))
+        back = max(back, float(skinned[trunk, 2].max()))
         low.append(float(skinned[:, 2].min()))
         high.append(float(skinned[:, 2].max()))
         ahead.append(float(-skinned[:, 1].min()))
@@ -995,6 +1283,8 @@ def clip_numbers(rig, name, frames):
         "highest": round(max(high), 4),
         "ahead": round(max(ahead), 3),
         "behind": round(max(behind), 3),
+        "widest": round(wide, 3),
+        "back_highest": round(back, 3),
         "solver_miss": round(miss, 5),
     }
 
@@ -1003,7 +1293,9 @@ def seam(frames):
     """The largest turn between a loop's first and last pose, in degrees."""
     worst = 0.0
     for n in frames[0]["local"]:
-        q = to_quat(frames[0]["local"][n]).rotation_difference(to_quat(frames[-1]["local"][n]))
+        q = to_quat(frames[0]["local"][n]).rotation_difference(
+            to_quat(frames[-1]["local"][n])
+        )
         worst = max(worst, math.degrees(q.angle))
     return worst
 
@@ -1012,7 +1304,12 @@ def pose_gap(a, b):
     """The largest turn between two poses, in degrees, and how far their pelvises are apart."""
     worst = 0.0
     for n in a["local"]:
-        worst = max(worst, math.degrees(to_quat(a["local"][n]).rotation_difference(to_quat(b["local"][n])).angle))
+        worst = max(
+            worst,
+            math.degrees(
+                to_quat(a["local"][n]).rotation_difference(to_quat(b["local"][n])).angle
+            ),
+        )
     return worst, float(np.linalg.norm(a["pelvis"] - b["pelvis"]))
 
 
@@ -1049,7 +1346,9 @@ def planted_slide(rig, frames, travel):
                 p[1] -= speed * (phase * count / FPS)  # the body moves along -Y
                 places.append(p)
             places = np.array(places)
-            out[joint + s] = round(float(np.linalg.norm(places - places.mean(axis=0), axis=1).max()), 5)
+            out[joint + s] = round(
+                float(np.linalg.norm(places - places.mean(axis=0), axis=1).max()), 5
+            )
     return out, speed
 
 
@@ -1060,7 +1359,11 @@ def main():
     parser.add_argument("--library", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--report")
-    parser.add_argument("--preview", action="store_true", help="export even when a check fails, to look at it")
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="export even when a check fails, to look at it",
+    )
     args = parser.parse_args(argv)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -1076,14 +1379,6 @@ def main():
     solver = Solver(rig)
     anchor = measure_anchor(rig, solver)
     print("ANCHOR", {k: round(float(v), 4) for k, v in anchor.items()})
-    cw = rig.world(crouch["local"], crouch["pelvis"])
-    for n in ("pelvis", "spine_03", "Head", "upperarm_l", "lowerarm_l", "hand_l", "hand_r", "thigh_l", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"):
-        print("CROUCH", n, np.round(cw[n][:3, 3], 3))
-    for n in TRUNK:
-        d = cw[n][:3, :3] @ rig.rest_rot[n].T
-        print("CROUCH turn", n, "up->", np.round(d @ np.array([0, 0, 1.0]), 2), "front->", np.round(d @ np.array([0, -1.0, 0]), 2))
-    sk = rig.skin(cw)
-    print("CROUCH mesh low", sk[:, 2].min(), "high", sk[:, 2].max(), "y", sk[:, 1].min(), sk[:, 1].max())
 
     clips = {}
     clips["Prone_Idle_Loop"] = build_idle(rig, solver, anchor)
@@ -1098,41 +1393,70 @@ def main():
         numbers = clip_numbers(rig, name, frames)
         report["clips"][name] = numbers
         if numbers["lowest"] < -0.02:
-            failures.append(f"{name}: the mesh goes {-numbers['lowest']:.3f} m under the floor")
+            failures.append(
+                f"{name}: the mesh goes {-numbers['lowest']:.3f} m under the floor"
+            )
         if numbers["solver_miss"] > 0.002:
-            failures.append(f"{name}: a target is missed by {numbers['solver_miss']:.4f} m")
+            failures.append(
+                f"{name}: a target is missed by {numbers['solver_miss']:.4f} m"
+            )
     for name in ("Prone_Idle_Loop", "Crawl_Fwd_Loop"):
         report["clips"][name]["seam_degrees"] = round(seam(clips[name]), 5)
         if seam(clips[name]) > 0.01:
             failures.append(f"{name}: the loop does not close")
     slide, speed = planted_slide(rig, clips["Crawl_Fwd_Loop"], CRAWL_STRIDE)
     report["clips"]["Crawl_Fwd_Loop"].update(
-        {"speed": round(speed, 4), "stride": CRAWL_STRIDE, "cycle_travel": round(speed * CRAWL_FRAMES / FPS, 4), "slide": slide}
+        {
+            "speed": round(speed, 4),
+            "stride": CRAWL_STRIDE,
+            "cycle_travel": round(speed * CRAWL_FRAMES / FPS, 4),
+            "slide": slide,
+        }
     )
     for joint, value in slide.items():
         if not joint.startswith("calf_") and value > 0.003:
-            failures.append(f"Crawl_Fwd_Loop: {joint} slides {value:.4f} m while planted")
+            failures.append(
+                f"Crawl_Fwd_Loop: {joint} slides {value:.4f} m while planted"
+            )
     if from_transitions:
         idle0 = clips["Prone_Idle_Loop"][0]
         joins = {
-            "Crouch_To_Prone starts on the crouch": pose_gap(clips["Crouch_To_Prone"][0], crouch),
-            "Crouch_To_Prone ends on the prone idle": pose_gap(clips["Crouch_To_Prone"][-1], idle0),
-            "Prone_To_Crouch starts on the prone idle": pose_gap(clips["Prone_To_Crouch"][0], idle0),
-            "Prone_To_Crouch ends on the crouch": pose_gap(clips["Prone_To_Crouch"][-1], crouch),
+            "Crouch_To_Prone starts on the crouch": pose_gap(
+                clips["Crouch_To_Prone"][0], crouch
+            ),
+            "Crouch_To_Prone ends on the prone idle": pose_gap(
+                clips["Crouch_To_Prone"][-1], idle0
+            ),
+            "Prone_To_Crouch starts on the prone idle": pose_gap(
+                clips["Prone_To_Crouch"][0], idle0
+            ),
+            "Prone_To_Crouch ends on the crouch": pose_gap(
+                clips["Prone_To_Crouch"][-1], crouch
+            ),
         }
-        report["joins"] = {k: [round(v[0], 4), round(v[1], 5)] for k, v in joins.items()}
+        report["joins"] = {
+            k: [round(v[0], 4), round(v[1], 5)] for k, v in joins.items()
+        }
         for what, (turn, apart) in joins.items():
             if turn > 0.05 or apart > 0.0005:
                 failures.append(f"{what}: off by {turn:.3f} degrees and {apart:.4f} m")
         down, up = clips["Crouch_To_Prone"], clips["Prone_To_Crouch"]
         planted = {
-            "Crouch_To_Prone hand_l 10-27": stray(rig, down, "hand_l", 10, TO_PRONE_FRAMES),
-            "Crouch_To_Prone hand_r 10-27": stray(rig, down, "hand_r", 10, TO_PRONE_FRAMES),
+            "Crouch_To_Prone hand_l 10-27": stray(
+                rig, down, "hand_l", 10, TO_PRONE_FRAMES
+            ),
+            "Crouch_To_Prone hand_r 10-27": stray(
+                rig, down, "hand_r", 10, TO_PRONE_FRAMES
+            ),
             "Crouch_To_Prone foot_l 0-7": stray(rig, down, "foot_l", 0, 7),
             "Prone_To_Crouch hand_l 8-14": stray(rig, up, "hand_l", 8, 14),
             "Prone_To_Crouch hand_r 8-14": stray(rig, up, "hand_r", 8, 14),
-            "Prone_To_Crouch foot_r 18-30": stray(rig, up, "foot_r", 18, TO_CROUCH_FRAMES),
-            "Prone_To_Crouch foot_l 25-30": stray(rig, up, "foot_l", 25, TO_CROUCH_FRAMES),
+            "Prone_To_Crouch foot_r 18-30": stray(
+                rig, up, "foot_r", 18, TO_CROUCH_FRAMES
+            ),
+            "Prone_To_Crouch foot_l 25-30": stray(
+                rig, up, "foot_l", 25, TO_CROUCH_FRAMES
+            ),
         }
         report["planted"] = planted
         for what, value in planted.items():
@@ -1141,13 +1465,27 @@ def main():
     groups = {}
     for name, frames in clips.items():
         per = {}
-        for f, pose in enumerate(frames):
+        for pose in frames:
             skinned = rig.skin(rig.world(pose["local"], pose["pelvis"]))
-            if skinned[:, 2].min() < -0.012:
-                worst = int(skinned[:, 2].argmin())
-                print("UNDER", name, f, rig.owner[worst], round(float(skinned[worst, 2]), 3))
-            for group in ("pelvis", "spine", "neck", "Head", "clavicle", "upperarm", "lowerarm", "hand", "thigh", "calf", "foot", "ball"):
-                extra = ("index", "middle", "ring", "pinky", "thumb") if group == "hand" else ()
+            for group in (
+                "pelvis",
+                "spine",
+                "neck",
+                "Head",
+                "clavicle",
+                "upperarm",
+                "lowerarm",
+                "hand",
+                "thigh",
+                "calf",
+                "foot",
+                "ball",
+            ):
+                extra = (
+                    ("index", "middle", "ring", "pinky", "thumb")
+                    if group == "hand"
+                    else ()
+                )
                 low = rig.lowest(skinned, (group,) + extra)
                 per[group] = round(min(per.get(group, 9.0), low), 4)
         groups[name] = per
@@ -1155,13 +1493,19 @@ def main():
 
     actions = {name: key_clip(arm, rig, name, frames) for name, frames in clips.items()}
     for name, frames in clips.items():
-        off = check_against_blender(arm, mesh, rig, actions[name], frames, (len(frames) - 1) // 3)
+        off = check_against_blender(
+            arm, mesh, rig, actions[name], frames, (len(frames) - 1) // 3
+        )
         report["clips"][name]["skinning_against_blender"] = round(off, 6)
         if off > 0.001:
-            failures.append(f"{name}: the script's skinning is {off:.4f} m off Blender's")
+            failures.append(
+                f"{name}: the script's skinning is {off:.4f} m off Blender's"
+            )
     print("REPORT", json.dumps(report, indent=1))
     if args.report:
-        Path(args.report).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+        Path(args.report).write_text(
+            json.dumps(report, indent=1) + "\n", encoding="utf-8"
+        )
     if sorted(clips) != sorted(CLIPS) and from_transitions:
         failures.append(f"the clip list is {sorted(clips)}, not {sorted(CLIPS)}")
     if failures:

@@ -6,7 +6,7 @@
 ## `CRAWL_SPEED`, so a planted elbow or foot that slid would be seen moving over its square.
 ##
 ## Record it with Movie Maker through the kit:
-## `gds capture frames --project game --seconds 36 --fps 30
+## `gds capture frames --project game --seconds 30 --fps 30
 ## --scene res://tools/capture/prone_clips_tour.tscn`
 ## (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` also saves one still of each
 ## clip from the side, the front and the top).
@@ -21,13 +21,13 @@ const CRAWL_SPEED := 0.618
 const BLEND := 0.25
 ## The round: a clip, its seconds and whether the body travels.
 const STEPS: Array[Dictionary] = [
-	{"clip": &"ual1/Crouch_Idle", "seconds": 0.8},
+	{"clip": &"ual1/Crouch_Idle", "seconds": 0.6},
 	{"clip": &"prone/Crouch_To_Prone", "seconds": 0.9},
-	{"clip": &"prone/Prone_Idle", "seconds": 2.0},
+	{"clip": &"prone/Prone_Idle", "seconds": 1.7},
 	{"clip": &"prone/Crawl_Fwd", "seconds": 3.7333, "travel": true, "blend": BLEND},
-	{"clip": &"prone/Prone_Idle", "seconds": 1.2, "blend": BLEND},
+	{"clip": &"prone/Prone_Idle", "seconds": 1.0, "blend": BLEND},
 	{"clip": &"prone/Prone_To_Crouch", "seconds": 1.0, "blend": 0.1},
-	{"clip": &"ual1/Crouch_Idle", "seconds": 0.8},
+	{"clip": &"ual1/Crouch_Idle", "seconds": 0.6},
 ]
 ## Where each pass's camera stands from the body (the body faces +Z), and how wide it sees.
 const VIEWS: Array[Dictionary] = [

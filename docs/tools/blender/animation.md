@@ -11,7 +11,7 @@ into Godot. Locomotion clips that keep a ground speed are on [Gaits](gaits.md); 
 
 | Rule | Value |
 | --- | --- |
-| Frame rate | 24 frames a second (the kit's and Deadnight's); glTF stores seconds, so Godot plays the same speed |
+| Frame rate | 24 frames a second (the kit's and Deadnight's); glTF stores seconds, so Godot plays the same speed. A clip made to join a pack's library keeps the library's rate (the Universal Animation Library's 30) |
 | Root motion | none: clips are in place and the game moves the body |
 | Names | bare for whole-body states (`Idle`, `Walk`, `Run`), `<Action>_<Class>` for a held class (`Aim_Rifle`, `Reload_Pistol`), `<State>_<Variant>` for a variant (`Downed_Crawl`); a kit clip keeps its name (`HitReact`, `Death`) |
 | Loops and events | not in glTF: a `clips.json` beside the model gives each clip's loop flag and event frames, and Godot adds the method tracks |
@@ -63,6 +63,57 @@ channels a clip should not drive from the glb's JSON ([Rig sharing](rig-sharing.
 
 Check a clip in Godot, not only in Blender: a headless script that plays each clip and asserts bone motion, plus a
 capture ([Godot rig sharing](../../engines/godot/rig-sharing.md)).
+
+## Clips solved from targets {#solved-clips}
+
+<!-- new section: the page covered clips derived from a kit clip; nothing said how a clip is made from nothing on a rig
+(the 3D Third Person prone and crawl clips, #1009) -->
+
+A clip with no clip to start from is solved, frame by frame, from a few targets, by a script that keys the result
+(`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
+transitions to the Universal Animation Library's crouch, on the Quaternius universal rig).
+
+- **Give each bone a world turn from its rest, not angles on its own axes.** A glTF rig's bone axes are arbitrary, so
+  a limb is aimed by mapping two rest directions (along the bone, and the joint's hinge) to where they should point;
+  the trunk is a pitch, yaw and roll from the standing rest. The script keeps the rest matrices and the skin as arrays
+  and skins the mesh itself (it must agree with Blender's evaluated mesh to a micrometre: check it on a frame of each
+  clip), so every frame can be measured without a frame change.
+- **Plant what carries weight, in the character's space.** A clip in place moves each planted point back at one speed
+  for its share of the cycle and returns it leaving and landing at that speed; the speed is stride over planted time
+  and is the number the game needs. A forearm on the floor is planted at the elbow and the hand; a pushing leg at the
+  foot, never the knee, which rolls as the leg straightens (7 cm in the crawl).
+- **Let the body give where a target leaves no freedom.** An elbow on the floor is exactly one upper arm from the
+  shoulder, so the shoulder's height follows from where the elbow is: the crawl's spine pitches and rolls each frame
+  by the amount (two unknowns, two elbows, Newton's method) that puts both shoulders at that distance, and the chest
+  rides over the planted elbows by itself. The belly rests on the floor the same way: the pelvis's height is moved
+  until the lowest vertex of the belly and thighs sinks a few millimetres.
+- **Join another clip on its exact pose.** A transition reads the pose it joins (frame 0 of the library's crouch idle:
+  joint places, trunk turns, the feet's world turns), keys its targets from those values, and mixes the solved limbs
+  with that pose's own in local space over the first frames, so frame 0 is the pose to the bit while the planted foot
+  stays put.
+- **Export the armature with a one-triangle mesh skinned to the root.** Godot makes a `Skeleton3D` from a skin, and
+  the track paths (`Armature/Skeleton3D:<bone>`) come from it; without a skinned mesh the bones import as plain nodes.
+  The stand-in keeps the mannequin's mesh out of the file (0.66 MB for four clips).
+- **The build's checks** are the clip's own: loops close, planted joints stay within a millimetre at the clip's speed,
+  the lowest vertex by body part, a transition's first and last pose against the poses it joins, and the frozen clip
+  list. A rebuild writes the same bytes, so `cmp` proves a script change did not move a clip.
+
+- **Approach:** After the first build, read the lowest vertex of each body part (hand, forearm, foot, toes, knee,
+  shoulder) on every frame, and render the pose large from the side, the top and a quarter view before tuning any
+  number. **Watch out for:** a cross product in the wrong order pointed the kneecap up, so the lying feet were upside
+  down and 3.5 cm under the floor; the rest thumb points 47 degrees under the palm and curled fingers reach 6 cm under
+  a hand laid flat; a foot on its toes needs the toe bone bent at the floor; a knee bent under a low pelvis goes
+  through the floor unless it points out to the side. One number for the whole mesh said only that something was
+  under. **Seen:** gdstudio #1009, 2026-11-10 (fix: the per-part report, the thumb laid out, the toes bent at the
+  floor, bent knees sent sideways).
+- **Approach:** Set the scene's frame rate to the clip's before importing a glb of clips, in the build and in every
+  script that renders it. **Watch out for:** Blender imports keys at seconds times the scene's rate, so a 30 frames a
+  second library read into a new scene (24) had its 46-frame clip on frames 0 to 37 and every sampled frame fell
+  between two keys. **Seen:** gdstudio #1009, 2026-11-10 (fix: `scene.render.fps = 30` before the import).
+- **Approach:** When one clip's target moves, rebuild and read every clip that joins it. **Watch out for:** moving
+  the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
+  since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss
+  check caught it; the dive was moved forward).
 
 ## The clip eval {#eval}
 

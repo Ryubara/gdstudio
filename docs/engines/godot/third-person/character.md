@@ -26,6 +26,18 @@ ragdoll and touch controls. Part of [the 3D Third Person template](../third-pers
   `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
   sha256 in the licence entry.
 
+- The template's own clips sit beside the libraries the same way: `assets/animation/prone/prone.glb` (kit #1009, a
+  prone idle, a crawl and the transitions to and from the crouch) is imported with `importer="animation_library"` and
+  added as the library `prone`. Its build, numbers and captures are in the folder's README; how such clips are made is
+  on [Animation](../../../tools/blender/animation.md#solved-clips).
+- **Approach:** Test a clip file of your own in Godot on both mannequins: every track finds its bone, a loop's last
+  pose is its first, a transition's first and last pose equal the poses it joins (bone by bone, in the model's space),
+  and a planted joint stays put while the model moves at the clip's speed. **Watch out for:** the importer keeps 57 of
+  the file's 195 channels (it drops the scale tracks and the positions that never move), an `Array[StringName]` sorts
+  by something other than the alphabet (compare `String`s), and a clip solved on the female mannequin rolls a planted
+  elbow up to 3 cm on the male, whose upper arms are 5 cm longer, so the limits are per model. **Seen:** gdstudio
+  #1009, 2026-11-10 (`tests/gameplay/test_prone_clips.gd`).
+
 ## The two mannequins {#mannequins}
 
 <!-- new section: the template shipped one mannequin under a neutral name; #843 added the other and named both -->
