@@ -1,5 +1,5 @@
 # The camera zooms from the buttons, not from the arm: it starts back out on the next frame after
-# aim and fire are let go, though the character keeps its aim pose for `aim_hold_time`. Firing
+# aim and fire are let go, and so does the character's aim (`test_aim_release.gd`). Firing
 # without aiming has its own zoom, which a toggle turns off.
 extends GdUnitTestSuite
 
@@ -80,8 +80,8 @@ func test_the_zoom_out_after_a_shot_starts_on_the_next_frame_not_after_the_aim_p
 	for _tick in 6:
 		await get_tree().physics_frame
 		distances.append(_rig.current_distance())
-	# The character still aims (the arm stays up for `aim_hold_time`), the camera does not.
-	assert_bool(_player.aiming).is_true()
+	# Neither the camera nor the character's aim waits.
+	assert_bool(_player.aiming).is_false()
 	assert_bool(_player.fire_held).is_false()
 	assert_float(distances[1]).is_greater(held + 0.005)
 	for index in range(1, distances.size()):

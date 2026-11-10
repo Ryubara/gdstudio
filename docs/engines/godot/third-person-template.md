@@ -334,20 +334,20 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   the zone in the test (use `gravity_scale = 0`). **Seen:** gdstudio #848, 2026-11-08 (`test_components_among_blocks.gd`).
 
 - **Approach:** Drive the camera's zoom from the buttons (`Player.aim_held`, `fire_held`) and keep `Player.aiming` (the
-  pose, held `aim_hold_time` after a shot) for the body and crosshair; give a shot without aiming its own zoom
+  aim or fire button held) for the body and crosshair; give a shot without aiming its own zoom
   (`fire_distance`, `fire_fov`, speeds) with a `zoom_when_firing` toggle, and aiming an `aim_shifts_shoulder` toggle
   (off). Prove it by measuring the distance over the frames after letting go. **Watch out for:** the camera read
   `Player.aiming`, true for 0.8 s after the last shot, so the view stayed zoomed about a second after a shot (aim alone
   zoomed out at once), and a shot was the same zoom as the aim button, which the controller notes say never to couple
   ([Aim and hip fire](../../gamedev/controller.md#aim)). **Seen:** gdstudio #856, 2026-11-08 (`test_camera_fire.gd`).
-- **Approach:** Let go of aim and fire and the character is back to normal on the next frame: `aiming` is the buttons
-  held (`aim_held or fire_held`), with no hold after a shot, so the walk speed, the turn and the locomotion clips are the
+- **Approach:** Let go of aim and fire and the character is back to normal on the next frame: `aiming` is
+  `aim_held or fire_held`, with no hold after a shot, so the walk speed, the turn and the locomotion clips are the
   normal ones at once and only the arm lowers over `aim_pose_time`. Prove it with simulated input (aim, fire, release;
   fire alone; walk, aim, fire, release) by reading `aiming` and the speed on the frame after release. **Watch out
-  for:** fixing one reader of a latched state leaves the others latched: #856 moved the camera to the buttons, but
-  `aiming` still stayed true `aim_hold_time` (0.8 s) after a shot and drove `aim_move_scale` and the aim clips, so the
-  character kept the slow aim walk for about a second. When a state outlives its input, list everything that reads
-  it. **Seen:** gdstudio #868, 2026-11-09.
+  for:** #856 moved the camera to the buttons, but `aiming` stayed true 0.8 s after a shot (a hold since removed) and
+  drove `aim_move_scale` and the turn, so the slow aim walk lasted about a second; the animation tree had no latch of
+  its own. List everything that reads a state that outlives its input. A tap under half the arm's raise time (about
+  75 ms) now shoots nothing. **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
 - **Approach:** Sweep the camera's yaw with aim, fire and sprint held in a four-walled room built high above the map and
   in the open, and assert the lens never nears the arm's start by less than a bound no wall can force
   (`test_camera_walls.gd`: 12 yaws and three actions, about 40 s). **Watch out for:** a first sweep stood in the map and
@@ -378,8 +378,9 @@ while alive, a full ragdoll while dead, and a blend back to the animation on get
   Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
   body, shared out by bone size), `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of the
   measured range), `linear_damp`, `angular_damp`, `friction`, `bounce`, `carry_velocity`, `get_up_time`,
-  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones never meet each other,
-  the player's capsule, the camera's walls or a shot). Every one applies live, has a pinned default and a test.
+  `collision_layer` (16, the ragdoll's own) and `collision_mask` (1, the level only: the bones meet no player capsule,
+  camera wall or shot, but also not each other, which #872 changes so limbs stop passing through the body). Every
+  one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (pelvis, three spine bones, neck and head, arms, hands, legs,
   feet; no fingers) hang off a `PhysicalBoneSimulator3D` named `RagdollBones` under the skeleton of the `Model` slot.
   They are made from the table `PlayerRagdoll.BODIES` every time the slot's rig changes, and in the editor too (the

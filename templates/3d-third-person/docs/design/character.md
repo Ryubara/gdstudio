@@ -56,7 +56,7 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Air | air control (0.45) |
 | Slopes and steps | max slope (48 degrees), step height (0.32 m), snap length (0.35 m) |
 | Crouch | crouch height (1.1 m), crouch speed (1.5 m/s), time to crouch and stand (0.2 s), toggle or hold (hold), the camera target's height standing (1.55 m) and crouched (0.9 m) |
-| Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up (0.15 s), how long firing keeps the aim (0.8 s) |
+| Aim | the share of the walk kept while aiming (0.6), turn speed to the camera (18 rad/s), the time the arm takes to come up and go down (0.15 s) |
 | Pushing | push strength (0.85), push mass (40 kg) |
 | Actions | interact time and reach, hit stun, knockback, the landing speed that plays the landing clip, how long the landing lasts (0.3 s), the speed under which it counts as standing (0.15 m/s) |
 | Body | capsule radius (0.34 m) and height (1.8 m) |
@@ -85,7 +85,9 @@ mask, shape and margin (Walls), and three views that blend on top of the framing
 added at a full sprint, the zoom speed, and a shake with its amplitude in degrees, frequency and blend speed, off at 0),
 Aim (the distance, the field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a
 shot fired without aiming, with `zoom_when_firing` to turn it off). The zoom follows the buttons: it starts back out on
-the next frame after aim and fire are let go, while the character keeps its aim pose for the tuning's 0.8 s.
+the next frame after aim and fire are let go, and so does the character: its walk speed, turn and clips are the
+normal ones at once and only the arm lowers over the aim pose time (a shot needs the arm half up, so a tap shorter than
+about 75 ms shoots nothing).
 
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
