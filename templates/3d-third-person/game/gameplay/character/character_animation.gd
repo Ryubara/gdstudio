@@ -130,6 +130,22 @@ const _AIM := "Aim"
 		hit_clip = value
 		_rebuild()
 
+@export_group("Traversal")
+## The vault over a low obstacle; it is played to last the vault's time, so its hand plant meets
+## the edge (set `VaultSettings.plant_at` and `clear_at` to the clip's own contact times). A
+## placeholder until the template's vault clips land.
+@export var vault_clip: StringName = CharacterClips.VAULT_PLACEHOLDER
+## The vault over an obstacle from `VaultSettings.high_vault_above` up (two hands).
+@export var vault_high_clip: StringName = CharacterClips.VAULT_PLACEHOLDER
+## The climb onto an obstacle; played to last the mantle's time.
+@export var mantle_clip: StringName = CharacterClips.CLIMB_UP
+## The climb onto an obstacle from `VaultSettings.high_mantle_above` up.
+@export var mantle_high_clip: StringName = CharacterClips.CLIMB_UP
+## The fastest and slowest a traversal clip is played against its own speed, so a very short or
+## very long crossing does not show a clip blurred or crawling (the body's path keeps its time; the
+## clip then ends early or is cut by the next state).
+@export var traversal_speed_range := Vector2(0.5, 2.0)
+
 @export_group("Pistol")
 ## How the weapon is carried while the character is not aiming or firing.
 @export var carry := Carry.HAND_ONLY:
@@ -232,6 +248,7 @@ func _ready() -> void:
 	character.state_changed.connect(_on_state_changed)
 	character.interacted.connect(_on_interacted)
 	character.took_hit.connect(_on_hit)
+	character.vault_started.connect(_on_vault_started)
 	if character.weapon != null:
 		character.weapon.fired.connect(_on_shot)
 
@@ -477,6 +494,31 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
+
+
+# A vault or a mantle plays its clip over the whole body for the crossing's time: the clip of the
+# obstacle's `Vaultable` when it names one, else the low or high clip for the kind.
+func _on_vault_started(plan: VaultPlan) -> void:
+	var clip := traversal_clip(plan)
+	play_clip(clip, plan.duration)
+	if tree == null or plan.duration <= 0.0 or not animation_player.has_animation(clip):
+		return
+	var length := animation_player.get_animation(clip).length
+	var speed := clampf(length / plan.duration, traversal_speed_range.x, traversal_speed_range.y)
+	tree.set(&"parameters/%s/scale" % _ACTION_SCALE, speed)
+
+
+## The clip a crossing plays: the obstacle's own override, else this node's low or high clip for
+## its kind.
+func traversal_clip(plan: VaultPlan) -> StringName:
+	var mantle := plan.kind == VaultPlan.Kind.MANTLE
+	if plan.vaultable != null:
+		var own := plan.vaultable.mantle_clip if mantle else plan.vaultable.vault_clip
+		if own != &"":
+			return own
+	if mantle:
+		return mantle_high_clip if plan.high else mantle_clip
+	return vault_high_clip if plan.high else vault_clip
 
 
 func _on_shot(_projectile: Projectile) -> void:

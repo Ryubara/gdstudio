@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://gameplay/character/character.gd" id="1_character"]
 [ext_resource type="Script" path="res://gameplay/character/interactor.gd" id="2_interactor"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="3_weapon"]
+[ext_resource type="Resource" path="res://gameplay/character/vault_settings.tres" id="4_vault"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
@@ -17,6 +18,7 @@ floor_max_angle = 0.837758
 platform_floor_layers = 9
 script = ExtResource("1_character")
 weapon = NodePath("Weapon")
+vault_settings = ExtResource("4_vault")
 
 [node name="Body" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true

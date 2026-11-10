@@ -6,8 +6,9 @@ extends CharacterBody3D
 ## buffer), steers in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`,
 ## opens a `Door`, collects a `Pickup`, aims and shoots its `Weapon`, and dies into a ragdoll
 ## (`die()`, the `ragdoll` checkbox or a command's `ragdoll_pressed`) and gets up again
-## (`revive()`). Everything a developer tunes is in the `CharacterTuning` resource. Other nodes
-## connect to the signals; `CharacterAnimation` follows `state`.
+## (`revive()`), and vaults over or mantles onto an obstacle that carries a `Vaultable`
+## (`vault_settings`). Everything a developer tunes is in the `CharacterTuning` resource. Other
+## nodes connect to the signals; `CharacterAnimation` follows `state`.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
@@ -47,6 +48,9 @@ signal revived
 ## owns the character answers it: `Player` starts again at a spawn point, and a game or a server
 ## that decides where characters start connects its own answer.
 signal fell
+## A vault or a mantle began (`plan.kind`); the body follows `plan` until it ends, and the state
+## is `VAULT` or `MANTLE` meanwhile.
+signal vault_started(plan: VaultPlan)
 
 enum State {
 	IDLE,
@@ -60,6 +64,8 @@ enum State {
 	HIT,
 	CROUCH,  ## Crouched, standing still or walking.
 	DEAD,  ## Dead: limp, ignoring every gameplay input; the camera still orbits.
+	VAULT,  ## Vaulting over an obstacle.
+	MANTLE,  ## Climbing up onto an obstacle.
 }
 
 @export_group("Character")
@@ -91,6 +97,11 @@ enum State {
 		weapon = value
 		if weapon != null and not Engine.is_editor_hint():
 			weapon.self_ticking = false
+
+@export_group("Traversal")
+## How the character vaults over and mantles onto obstacles that carry a `Vaultable`. Empty: it
+## never does.
+@export var vault_settings: VaultSettings
 
 @export_group("Ragdoll")
 ## The ragdoll the character goes limp into when it dies. Empty: it dies standing still.
@@ -163,6 +174,7 @@ var _wants_crouch := false
 var _crouch_amount := 0.0
 var _fire_buffer := 0.0
 var _stand_probe := CapsuleShape3D.new()
+var _vault := CharacterVault.new()
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -227,6 +239,8 @@ func step(command: PlayerCommand, delta: float) -> void:
 # One tick of a living body inside the map.
 func _move(delta: float) -> void:
 	_tick_timers(delta)
+	if _traverse(delta):
+		return
 	_update_crouch(delta)
 	_update_aim(delta)
 	var wish := _wish_direction() if _action_lock <= 0.0 else Vector3.ZERO
@@ -270,6 +284,7 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 		weapon.save_step_state(kept.weapon)
 	else:
 		kept.weapon.clear()
+	_vault.save_step_state(kept.vault)
 	return kept
 
 
@@ -282,6 +297,7 @@ func restore(kept: CharacterState) -> void:
 		set(CharacterState.FIELDS[index], kept.values[index])
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
+	_vault.load_step_state(kept.vault)
 	_fit_body()
 	_present_facing()
 
@@ -294,6 +310,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 		if ragdoll_body != null:
 			ragdoll_body.stop(false)
 		_come_alive()
+	_vault.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
 	_fallen = false
@@ -313,6 +330,7 @@ func die() -> void:
 	if state == State.DEAD:
 		return
 	var momentum := velocity
+	_vault.cancel()
 	var viewer := controller.viewer_position() if controller != null else Vector3.INF
 	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start(viewer)
 	_wants_crouch = false
@@ -363,6 +381,7 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	if state == State.DEAD:
 		return
 	took_hit.emit(amount, source)
+	_vault.cancel()
 	_action_lock = tuning.hit_stun_time
 	var away := Vector3.ZERO
 	if source != null:
@@ -408,6 +427,11 @@ func count_of(item_id: StringName) -> int:
 ## The ground speed, in m/s.
 func ground_speed() -> float:
 	return Vector2(velocity.x, velocity.z).length()
+
+
+## The vault and mantle of this character: the running plan, its progress and duration.
+func vault_motion() -> CharacterVault:
+	return _vault
 
 
 ## True while the sprint button is held and the character runs faster than a run on the ground
@@ -747,6 +771,46 @@ func _pick_state(grounded: bool, wish: Vector3) -> State:
 			State.WALK if ground_speed() <= tuning.walk_speed + tuning.run_above_walk else State.RUN
 		)
 	return picked
+
+
+# A vault or a mantle: starts one when the command asks and the probe finds one, and moves the body
+# along it while it runs. True while it does (the rest of the tick is skipped).
+func _traverse(delta: float) -> bool:
+	if vault_settings == null:
+		return false
+	_vault.tick_cooldown(delta)
+	if not _vault.is_active():
+		if not _grounded or _action_lock > 0.0:
+			return false
+		var direction := _wish_direction()
+		if direction.is_zero_approx():
+			direction = Vector3.BACK.rotated(Vector3.UP, facing)
+		var asked := _jump_buffer > 0.0
+		if not _vault.try_start(
+			self, vault_settings, last_command, asked, direction, tuning.radius, tuning.height
+		):
+			return false
+		_begin_traverse()
+	_vault.tick(self, vault_settings, delta)
+	aim_amount = move_toward(aim_amount, 0.0, delta / maxf(tuning.aim_pose_time, 0.001))
+	return true
+
+
+func _begin_traverse() -> void:
+	var plan := _vault.plan
+	_jump_buffer = 0.0
+	_coyote = 0.0
+	facing = atan2(plan.forward.x, plan.forward.z)
+	_present_facing()
+	if vault_settings.drop_aim:
+		_fire_buffer = 0.0
+		aim_held = false
+		fire_held = false
+		if aiming:
+			aiming = false
+			aim_changed.emit(false)
+	state = State.VAULT if plan.kind == VaultPlan.Kind.VAULT else State.MANTLE
+	vault_started.emit(plan)
 
 
 func _use_input(delta: float) -> void:
