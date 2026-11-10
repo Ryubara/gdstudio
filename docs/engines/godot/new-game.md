@@ -368,3 +368,16 @@ CI makes a game from every template on each kit change (a matrix over the templa
 the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
 web (the `template` job of the kit's `ci.yml`). `python/tests/test_new_game.py` checks the local steps without Godot,
 and `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.
+
+Those two files do not copy the real `templates/` (21 MB) for each test: a test about names, flags, licences, git and
+GitHub steps gets a kit built once a session with `templates/repo/` and a few-file stand-in for 3D Blank
+(`python/tests/fixtures/new_game_templates/`; `small_kit` and `small_git_kit` in `python/tests/conftest.py`, helpers in
+`python/tests/new_game_kit.py`), and the tests about what the real templates hold read a game made once from the real
+folder (`real_game`, `real_third_person_game`).
+
+- **Approach:** A new-game test that needs a template to exist, not the real one, uses `small_kit` or `small_git_kit`;
+  only a test that reads the real template's files uses `real_game` or `real_third_person_game`, which are made once
+  for the module and only read. **Watch out for:** the old `kit` fixture copied all of `templates/` for each of 63
+  tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
+  longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
+  tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
