@@ -19,8 +19,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   code and `tail` shows the last hook lines (`Skipped`), so a refused commit (a title verb off the list, MD013, a
   `gdformat` roll-back) looked done; the push carried the older commit, or the pull request opened with none of the
   change. **Seen:** Deadnight #1003, 2026-11-04 (fix: commits run alone, the diff read back); Deadnight #656, 2026-11-02
-  (`--continue` hid a 155-character licence line); gdstudio, 2026-11-02 (a lint failure filtered through `grep`, then
-  committed); Deadnight #1374, 2026-11-07 (MD013 and a title verb hid, so no commit).
+  (`--continue` hid a licence line); gdstudio, 2026-11-02 (a lint failure behind `grep`); Deadnight #1374,
+  2026-11-07; gdstudio #916, 2026-11-10 (MD013 and a title verb hid, so no commit, twice).
 - **Approach:** Chain a commit and the push after it with `&&`, put `|| exit 1` on every step that gates the next, and
   run a fixer (`--fix`, which exits 1 after fixing) on its own line. **Watch out for:** `;` let `gds merge-main; git
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command
@@ -76,12 +76,13 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository); gdstudio, 2026-11-03 (a commit on the kit's
   `main`, moved to a branch before any push).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
-  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in a scratchpad folder named for your issue,
-  and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named `c` on the
-  current drive (`FileNotFoundError`); a `gdt.sh` under one name in the shared temp folder reported another agent's
-  pass for my branch; agents started from one session share its scratchpad, and a sibling's `sync.sh` replaced mine,
-  so a run tested its files. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read
-  the line that names the scanned folder); gdstudio #903, 2026-11-10 (fix: a folder named for the issue).
+  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
+  shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named
+  `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
+  in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
+  gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
+  before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
+  copied its branch into its game; fix: a subfolder named for the issue; also #903).
 
 ## Background commands and processes {#background}
 

@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/sections_tour.gd" id="1_tour"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+
+[node name="SectionsTour" type="Node"]
+script = ExtResource("1_tour")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]
+
+[node name="Above" type="Camera3D" parent="."]
+fov = 55.0
+far = 400.0

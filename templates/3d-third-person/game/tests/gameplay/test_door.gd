@@ -18,8 +18,7 @@ func after_test() -> void:
 
 
 func _ticks(count: int) -> void:
-	for _tick in count:
-		await get_tree().physics_frame
+	await InputSim.ticks(get_tree(), count)
 
 
 func test_every_export_has_its_default_pinned() -> void:
