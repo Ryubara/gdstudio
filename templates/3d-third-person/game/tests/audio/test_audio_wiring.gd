@@ -71,9 +71,11 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 		"res://gameplay/pickup/pickup.tscn",
 		"res://gameplay/character/footsteps.tscn",
 		"res://gameplay/weapon/weapon.tscn",
+		"res://gameplay/weapon/pistol.tres",
+		"res://gameplay/weapon/fists.tres",
 	]:
 		text += FileAccess.get_file_as_string(path)
-	for folder in ["coin", "footsteps", "pistol", "wind"]:
+	for folder in ["coin", "footsteps", "pistol", "fists", "wind"]:
 		var dir := DirAccess.open("res://assets/audio/%s" % folder)
 		assert_object(dir).is_not_null()
 		for file in dir.get_files():
@@ -93,6 +95,9 @@ func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> voi
 			continue
 		var parent := player.get_parent()
 		var files = parent.get("steps") if parent.get("steps") != null else parent.get("sounds")
+		if parent is Weapon and player.name == &"ReloadSound":
+			# The weapon gives it each step of its definition's reload as the reload reaches it.
+			files = (parent as Weapon).definition.reload_sounds
 		(
 			assert_bool(files is Array and not files.is_empty())
 			. override_failure_message(

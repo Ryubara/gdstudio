@@ -58,7 +58,8 @@ func test_crawling_backwards_while_aiming_is_slower_still() -> void:
 
 func test_it_aims_and_shoots_lying_down_with_less_spread() -> void:
 	await _lie_down()
-	_player.weapon.spread = 4.0
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	_player.weapon.definition.spread = 4.0
 	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
 	await InputSim.ticks(get_tree(), 20)
 	assert_bool(_player.aiming).is_true()

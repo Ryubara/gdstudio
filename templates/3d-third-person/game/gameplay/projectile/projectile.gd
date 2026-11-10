@@ -10,11 +10,26 @@ extends CharacterBody3D
 ## bounces off the level (`bounces`) or stops. It is gone after `lifetime` seconds.
 ##
 ## Its look is two nodes of `projectile.tscn`, `Mesh` and `Shape`, so open the scene to restyle
-## it. `size` and `tint` follow the inspector live. `Weapon` sets every number below from its own
-## inspector when it fires, so tune the weapon, not the scene.
+## it. `size` and `tint` follow the inspector live. `Weapon` sets every number below from its
+## `WeaponDef` when it fires, so tune the definition, not the scene.
+##
+## Every projectile of one size shares one mesh and one shape, and every one of one colour one
+## material (the scene's material, tinted), so a thousand shots make three resources, not three
+## thousand. A `Weapon` keeps its projectiles in a pool: a finished one (`recycled`) parks out of
+## the physics, hidden, and says `finished` instead of freeing itself, and is fired again.
 
 ## The projectile touched `collider` at `point`; `normal` points away from the surface.
 signal impacted(collider: Node, point: Vector3, normal: Vector3)
+## The projectile ended (it hit, or its lifetime ran out) and, `recycled`, parked to be fired again.
+signal finished(projectile: Projectile)
+
+# The shared looks: one sphere mesh and one shape a size, one material a base material and colour.
+static var _meshes: Dictionary[float, SphereMesh] = {}
+static var _shapes: Dictionary[float, SphereShape3D] = {}
+static var _paints: Dictionary[String, Material] = {}
+# Projectiles alive: the last one to go empties the shared looks, which a static would otherwise
+# hold past the engine's exit (CI refuses a run that prints `leaked at exit`).
+static var _alive := 0
 
 @export_group("Body")
 ## The sphere's diameter.
@@ -51,22 +66,52 @@ signal impacted(collider: Node, point: Vector3, normal: Vector3)
 ## `impacts` is off.
 @export var impact_effects := true
 
+## On: when it ends it parks and says `finished` (a `Weapon`'s pool fires it again). Off: it frees
+## itself.
+var recycled := false
+## `impact_effects` as the scene has it, kept for a pooled projectile that a weapon set off once.
+var scene_impact_effects := true
+
 var _age := 0.0
 var _bounces_left := 0
+var _flying := false
+var _base_paint: Material
+var _readied := false
 var _shooter: CollisionObject3D
 
 
+func _init() -> void:
+	_alive += 1
+
+
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_PREDELETE:
+		return
+	_alive -= 1
+	if _alive <= 0:
+		_alive = 0
+		_meshes.clear()
+		_shapes.clear()
+		_paints.clear()
+
+
 func _ready() -> void:
+	if not _readied:
+		_readied = true
+		scene_impact_effects = impact_effects
+		var mesh_node := get_node_or_null("%Mesh") as MeshInstance3D
+		if mesh_node != null and _base_paint == null:
+			_base_paint = mesh_node.material_override
 	_bounces_left = bounces
 	_update_look()
 
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
+	if Engine.is_editor_hint() or not _flying:
 		return
 	_age += delta
 	if _age >= lifetime:
-		queue_free()
+		_end()
 		return
 	velocity.y -= gravity * delta
 	var collision := move_and_collide(velocity * delta)
@@ -83,7 +128,14 @@ func launch(
 	origin: Vector3, direction: Vector3, speed: float, shooter: CollisionObject3D = null
 ) -> void:
 	_bounces_left = bounces
+	_age = 0.0
+	_flying = true
+	process_mode = Node.PROCESS_MODE_INHERIT
+	visible = true
 	_shooter = shooter
+	# A pooled projectile flew through other characters' capsules before: it meets them again.
+	for skipped in get_collision_exceptions():
+		remove_collision_exception_with(skipped)
 	if shooter != null:
 		add_collision_exception_with(shooter)
 	global_position = origin
@@ -94,6 +146,36 @@ func launch(
 ## How long it has flown, in seconds.
 func age() -> float:
 	return _age
+
+
+## True from `launch()` until it hits or its lifetime runs out.
+func is_flying() -> bool:
+	return _flying
+
+
+## Stops it where it is, with no hit (a pool taking its oldest projectile back to fire it again).
+func halt() -> void:
+	_flying = false
+	velocity = Vector3.ZERO
+
+
+# It hit, or its time is up: it parks for its pool, or frees itself.
+func _end() -> void:
+	_flying = false
+	velocity = Vector3.ZERO
+	if not recycled:
+		queue_free()
+		return
+	visible = false
+	# Out of the physics space (the default disable mode removes the body) and out of the process,
+	# once the physics callback it ended in is over.
+	_park.call_deferred()
+	finished.emit(self)
+
+
+func _park() -> void:
+	if not _flying:
+		process_mode = Node.PROCESS_MODE_DISABLED
 
 
 # Answers a touch; true when the shot passed between a character's parts and flies on.
@@ -127,24 +209,58 @@ func _touch(collision: KinematicCollision3D) -> bool:
 		_bounces_left -= 1
 		velocity = velocity.bounce(normal) * bounce_keep
 		return false
-	queue_free()
+	_end()
 	return false
 
 
-# Puts `size` and `tint` on the nodes' own resources (each projectile has its own copies: they
-# are local to the scene).
+# Puts `size` and `tint` on the nodes through the shared resources of that size and colour.
 func _update_look() -> void:
 	var mesh_node := get_node_or_null("%Mesh") as MeshInstance3D
 	var shape_node := get_node_or_null("%Shape") as CollisionShape3D
 	if mesh_node == null or shape_node == null:
 		return
-	var sphere := mesh_node.mesh as SphereMesh
-	sphere.radius = size / 2.0
-	sphere.height = size
-	(shape_node.shape as SphereShape3D).radius = size / 2.0
-	var paint := mesh_node.material_override as StandardMaterial3D
-	paint.albedo_color = tint
-	paint.emission = tint
+	if Engine.is_editor_hint():
+		# In the editor the scene's own resources show the inspector's numbers.
+		var own := mesh_node.mesh as SphereMesh
+		if own != null:
+			own.radius = size / 2.0
+			own.height = size
+		var own_shape := shape_node.shape as SphereShape3D
+		if own_shape != null:
+			own_shape.radius = size / 2.0
+		return
+	var key := snappedf(size, 0.001)
+	if not _meshes.has(key):
+		var sphere := SphereMesh.new()
+		var template := mesh_node.mesh as SphereMesh
+		if template != null:
+			sphere.radial_segments = template.radial_segments
+			sphere.rings = template.rings
+		sphere.radius = key / 2.0
+		sphere.height = key
+		_meshes[key] = sphere
+		var ball := SphereShape3D.new()
+		ball.radius = key / 2.0
+		_shapes[key] = ball
+	mesh_node.mesh = _meshes[key]
+	shape_node.shape = _shapes[key]
+	if _base_paint == null:
+		_base_paint = mesh_node.material_override
+	mesh_node.material_override = _paint(_base_paint, tint)
+
+
+## The shared material of `base` in `tint` (made once for each pair).
+static func _paint(base: Material, colour: Color) -> Material:
+	var standard := base as StandardMaterial3D
+	if standard == null:
+		return base
+	var key := "%d:%s" % [base.get_instance_id(), colour.to_html()]
+	if not _paints.has(key):
+		var made := standard.duplicate() as StandardMaterial3D
+		made.albedo_color = colour
+		made.emission = colour
+		_paints[key] = made
+	return _paints[key]
 
 
 func _get_configuration_warnings() -> PackedStringArray:

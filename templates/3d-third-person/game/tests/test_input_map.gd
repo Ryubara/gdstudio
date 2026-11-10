@@ -19,6 +19,10 @@ const ACTIONS: Array[StringName] = [
 	&"prone",
 	&"aim",
 	&"fire",
+	&"reload",
+	&"next_weapon",
+	&"previous_weapon",
+	&"toggle_unarmed",
 ]
 
 
@@ -40,6 +44,10 @@ func test_the_move_jump_and_interact_actions_work_from_a_pad_and_a_keyboard() ->
 		&"prone",
 		&"aim",
 		&"fire",
+		&"reload",
+		&"next_weapon",
+		&"previous_weapon",
+		&"toggle_unarmed",
 	]:
 		var has_pad := false
 		var has_key := false
