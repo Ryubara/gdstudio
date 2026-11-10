@@ -47,6 +47,9 @@ LOOK_TOLERANCE = 0.2
 STEPS = 12
 PHYSICS_FPS = 60  # the project's physics ticks a second, which the probe's `ticks` counts
 STEP_PERIOD_S = 0.03
+JUMP_WAIT_S = 30.0  # wall seconds to see the jump counted after the press, however late the game gets the touch
+JUMP_MIN_RISE_M = 0.3
+JUMP_WATCH_TICKS = 90  # ticks after the jump to see it rise (the apex is about 30 ticks in)
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -154,6 +157,8 @@ def main() -> int:
     parser.add_argument("out", type=Path, help="where the screenshots and result.json go")
     parser.add_argument("--no-shots", dest="shots", action="store_false", help="take no pictures but one after a failure")
     parser.add_argument("--ratio", type=float, default=RATIO, help="the page's device pixel ratio (default %(default)s)")
+    parser.add_argument("--throttle", type=float, default=1.0, help="slow the page's CPU by this factor through the DevTools protocol (default %(default)s)")
+    parser.add_argument("--stall-jump", type=float, default=0.0, help="busy the page for this many seconds as the jump finger lands (a self-test of the jump check)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     server, port = serve(args.build)
@@ -182,6 +187,8 @@ def main() -> int:
             has_touch=True,
         )
         page = context.new_page()
+        if args.throttle > 1.0:
+            page.context.new_cdp_session(page).send("Emulation.setCPUThrottlingRate", {"rate": args.throttle})
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: console_errors.append(str(e)))
         page.goto(f"http://127.0.0.1:{port}/index.html?probe&play", wait_until="load")
@@ -233,16 +240,21 @@ def main() -> int:
 
         # 3. A tap on the jump button jumps.
         before = probe(page)
+        if args.stall_jump > 0:
+            # A self-test of the wait: the page's main thread is busy as the finger lands, so the game sees the press late.
+            page.evaluate(f"setTimeout(() => {{ const end = performance.now() + {args.stall_jump * 1000}; while (performance.now() < end); }}, 0)")
         hand.down(3, css("button0_x"), css("button0_y"))
-        peak = before["y"]
-        start_tick = before["ticks"]
-        while probe(page)["ticks"] - start_tick < 0.5 * PHYSICS_FPS:
+        jumped_state = wait_for(page, lambda s: s["jumps"] > before["jumps"], JUMP_WAIT_S)
+        peak = jumped_state["y"]
+        jumped_tick = jumped_state["ticks"]
+        # The rise is read in the ticks after the game says it jumped, not in a window counted from the press.
+        while peak - before["y"] <= JUMP_MIN_RISE_M and probe(page)["ticks"] - jumped_tick < JUMP_WATCH_TICKS:
             peak = max(peak, probe(page)["y"])
             time.sleep(0.02)
         hand.up(3)
         sim_wait(page, 1.0)
         after = probe(page)
-        check("the jump button jumps", after["jumps"] == before["jumps"] + 1 and peak - before["y"] > 0.3, f"jumps {before['jumps']} to {after['jumps']}, rose {peak - before['y']:.2f} m")
+        check("the jump button jumps", after["jumps"] == before["jumps"] + 1 and peak - before["y"] > JUMP_MIN_RISE_M, f"jumps {before['jumps']} to {after['jumps']}, rose {peak - before['y']:.2f} m")
 
         # 4. Two fingers at once: the stick and a look drag, each only its own job.
         before = probe(page)

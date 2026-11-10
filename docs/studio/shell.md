@@ -112,6 +112,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** When pre-commit names a lint in a line you did not write, run `gds merge-main` before changing the code.
   **Watch out for:** pre-commit lints whole files, so a one-word comment edit pulled in a `gdlint` fault that `main` had
   fixed since the branch began. **Seen:** Deadnight, 2026-11-04 (fix: main merged first, then the commit passed).
+- **Approach:** Before adding a function to a large script, count its lines (`gdlint` refuses a file over 1000) and put
+  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` by importing a
+  game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
+  `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
+  test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
+  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`).
 
 ## Reverting and checking out {#checkout}
 
