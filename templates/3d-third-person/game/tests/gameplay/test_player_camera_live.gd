@@ -65,7 +65,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"blend_duration": 1.2,
 		&"blend_transition": PhantomCameraTween.TransitionType.SINE,
 		&"blend_ease": PhantomCameraTween.EaseType.EASE_IN_OUT,
-		&"wall_mask": 1,
+		&"wall_mask": PhysicsLayers.CAMERA_MASK,
 		&"wall_shape": null,
 		&"wall_margin": 0.25,
 	}

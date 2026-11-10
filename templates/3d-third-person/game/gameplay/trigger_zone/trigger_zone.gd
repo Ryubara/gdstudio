@@ -5,9 +5,10 @@ extends Area3D
 ## one leaves, so a pressure plate, a checkpoint or a "door ahead" area is one node and a signal
 ## connection. It works on its own: connect `activated` and `deactivated` to anything.
 ##
-## What counts is the `counts` setting (characters and props by default) and the optional
-## `required_group`: the box also overlaps the floor and walls it stands in, and those never count
-## unless `counts` is `ANY`.
+## What it senses is its Collision > Mask: Characters and Props (`PhysicsLayers.TRIGGER_MASK`), so
+## the floor and walls it stands in never reach the script; it sits on the Sensors layer. What
+## counts among those is the `counts` setting (characters and props by default, a class test that
+## also holds when the mask lists the level) and the optional `required_group`.
 ##
 ## The box is the `Shape` node of `trigger_zone.tscn` (the editor draws it) and the optional pad
 ## is the `Plate` node; `size` and the colours follow the inspector live.
@@ -23,7 +24,8 @@ enum Counts {
 	CHARACTERS,
 	## A `CharacterBody3D` or a `RigidBody3D`: a pressure pad a pushed crate also presses.
 	CHARACTERS_AND_PROPS,
-	## Every body on the layers below, static ones too (the floor under the zone, walls, platforms).
+	## Every body on the mask's layers, static ones too when the mask lists World (the floor under
+	## the zone, walls, platforms).
 	ANY,
 }
 

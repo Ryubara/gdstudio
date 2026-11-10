@@ -122,11 +122,11 @@ func _segment(bone: PhysicalBone3D) -> Array:
 # --- layers ---
 
 
-func test_the_bones_have_their_own_layer_and_only_the_level_and_themselves_in_the_mask() -> void:
+func test_the_bones_have_their_own_layer_and_the_level_props_and_themselves_in_the_mask() -> void:
 	for entry: Dictionary in PlayerRagdoll.BODIES:
 		var bone := _ragdoll.body(entry.bone)
-		assert_int(bone.collision_layer).is_equal(16)
-		assert_int(bone.collision_mask).is_equal(17)
+		assert_int(bone.collision_layer).is_equal(PhysicsLayers.RAGDOLL)
+		assert_int(bone.collision_mask).is_equal(PhysicsLayers.RAGDOLL_MASK)
 
 
 func test_a_ray_that_looks_for_the_level_passes_through_the_lying_body() -> void:
@@ -135,12 +135,13 @@ func test_a_ray_that_looks_for_the_level_passes_through_the_lying_body() -> void
 	var from := _ragdoll.hips() + Vector3.UP * 2.0
 	var to := _ragdoll.hips() + Vector3.DOWN * 0.1
 	var space := _player.get_world_3d().direct_space_state
-	var level := PhysicsRayQueryParameters3D.create(from, to, 1)
-	var bones := PhysicsRayQueryParameters3D.create(from, to, 16)
+	var level := PhysicsRayQueryParameters3D.create(from, to, PhysicsLayers.CAMERA_MASK)
+	var bones := PhysicsRayQueryParameters3D.create(from, to, PhysicsLayers.RAGDOLL)
 	var found_by_level := space.intersect_ray(level)
 	var found_by_bones := space.intersect_ray(bones)
-	# The camera's walls, the shots and the player's ground probes all look at layer 1: they see
-	# the floor (or nothing in this arena) and never a bone.
+	# The camera's walls and the player's ground probes look at the level and props: they see the
+	# floor (or nothing in this arena) and never a bone. Shots list the Ragdoll layer too
+	# (test_physics_layers_meet.gd).
 	if not found_by_level.is_empty():
 		assert_bool(found_by_level.collider is PhysicalBone3D).is_false()
 	(

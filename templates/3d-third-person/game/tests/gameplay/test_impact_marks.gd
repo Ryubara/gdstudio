@@ -1,6 +1,6 @@
 # The look of a mark: its size, its turn about the normal (random, or upright), the seeded
 # sequence, the surface's own material and scale, and the bodies that take no mark (a character,
-# a ragdoll bone that a shot passes through).
+# a ragdoll bone, which a shot meets).
 extends GdUnitTestSuite
 
 const FLAT := Vector3.ONE * 0.001
@@ -8,9 +8,11 @@ const FLAT := Vector3.ONE * 0.001
 var _arena: PlayArena
 var _impacts: Impacts
 var _wall: StaticBody3D
+var _hit: Array[Object] = []
 
 
 func before_test() -> void:
+	_hit.clear()
 	_arena = auto_free(ImpactShots.world(self))
 	_impacts = ImpactShots.impacts_of(_arena)
 	_wall = _arena.add_block(Vector2(0.0, -5.0), Vector3(10.0, 4.0, 0.5), 4.0)
@@ -19,6 +21,10 @@ func before_test() -> void:
 
 func after_test() -> void:
 	AudioDrain.stop_all(_arena)
+
+
+func _on_impact(_surface: ImpactSurface, collider: Object, _at: Vector3, _normal: Vector3) -> void:
+	_hit.append(collider)
 
 
 func _shoot(from: Vector3, toward: Vector3) -> void:
@@ -105,11 +111,12 @@ func test_a_character_body_takes_no_mark() -> void:
 	assert_int(_impacts.mark_count()).is_equal(0)
 
 
-func test_a_ragdoll_bone_on_layer_16_is_not_hit_so_it_takes_no_mark() -> void:
-	# The ragdoll's bones are on layer 16 and a projectile's mask is the level (layer 1): the shot
-	# goes through them and marks the wall behind, never the body.
-	var bone := StaticBody3D.new()
-	bone.collision_layer = 1 << 15
+func test_a_shot_meets_a_body_on_the_ragdoll_layer_and_marks_neither_it_nor_the_wall() -> void:
+	# Shots list the Ragdoll layer (a dead body takes shots, #924): the shot stops at the bone, so
+	# the wall behind it takes no mark, and a bone takes none of its own (#876 adds marks that stay
+	# on a body as it gets up).
+	var bone := PhysicalBone3D.new()
+	bone.collision_layer = PhysicsLayers.RAGDOLL
 	bone.collision_mask = 0
 	var shape := CollisionShape3D.new()
 	shape.shape = SphereShape3D.new()
@@ -117,6 +124,7 @@ func test_a_ragdoll_bone_on_layer_16_is_not_hit_so_it_takes_no_mark() -> void:
 	bone.position = Vector3(0.0, 1.5, -2.0)
 	_arena.add_child(bone)
 	await get_tree().physics_frame
+	_impacts.impact_made.connect(_on_impact)
 	await _shoot_wall(0.0)
-	assert_int(_impacts.mark_count()).is_equal(1)
-	assert_object(_impacts.marks()[0].get_parent()).is_same(_wall)
+	assert_array(_hit).is_equal([bone])
+	assert_int(_impacts.mark_count()).is_equal(0)

@@ -2,9 +2,10 @@
 class_name Pickup
 extends Area3D
 ## Something to collect: a coin, a key, a health pack. It spins and bobs, and when a character (a
-## `CharacterBody3D` on the chosen layers, the Collision > Mask below) touches it, `collected` says
-## who took what. A wall, the floor or a pushed crate beside it never takes it (`characters_only`
-## turns that off). It does nothing else: the game decides what an item means (a body with a
+## `CharacterBody3D` on the Collision > Mask layers: Characters, so the area never even hears of a
+## wall, the floor or a crate beside it) touches it, `collected` says who took what. The area sits
+## on the Sensors layer. `characters_only` checks the class as well, for a mask that lists more.
+## It does nothing else: the game decides what an item means (a body with a
 ## `collect(item_id, amount)` method, like `Player`, is also told). It works on its own and can
 ## come back after a while.
 ##
@@ -30,9 +31,10 @@ signal respawned
 		_update_look()
 
 @export_group("Collector")
-## Only a `CharacterBody3D` can take it. The area also reports static blocks, the floor and props
-## that touch it, so a coin set against a wall would be taken at the start. Off lets any body on
-## the Collision > Mask layers take it.
+## Only a `CharacterBody3D` can take it. The mask (Characters) already keeps the level and props
+## out; this keeps them out too when the mask lists their layers (a game with its own layers, or
+## one where the level shares layer 1), where a coin set against a wall would be taken at the
+## start. Off lets any body on the Collision > Mask layers take it.
 @export var characters_only := true
 
 @export_group("Look")

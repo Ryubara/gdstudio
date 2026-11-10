@@ -326,17 +326,19 @@ static var _counted := 0
 @export_range(0.0, 200.0, 1.0, "suffix:m") var ragdoll_range := 0.0
 
 @export_group("Collision")
-## The physics layers the bones are on while limp. Their own layer by default (5), so nothing that
-## looks for the level or the characters (the camera's walls, a door, a shot, the player's own
-## ground probes) finds them. Adding layer 1 here makes all of those see the bones.
-@export_flags_3d_physics var collision_layer := 16:
+## The physics layers the bones are on while limp. Their own layer by default (Ragdoll, 5), so
+## what looks for the level or the characters (the camera's walls, a door, the player's capsule and
+## its ground probes, trigger areas) never finds them; shots list Ragdoll in their mask, so a dead
+## body takes shots. Adding World here makes all of those see the bones.
+@export_flags_3d_physics var collision_layer := PhysicsLayers.RAGDOLL:
 	set(value):
 		collision_layer = value
 		_apply_materials()
-## The layers the bones fall onto and collide with: the level (1) and their own (5), so the limbs
-## rest on the body and on each other (never on the bone they hang from, which is excepted).
-## Take the own layer out and the limbs pass through each other.
-@export_flags_3d_physics var collision_mask := 17:
+## The layers the bones fall onto and collide with: the level, props and their own
+## (`PhysicsLayers.RAGDOLL_MASK`), so the limbs rest on the floor, on a crate and on each other
+## (never on the bone they hang from, which is excepted). Take Ragdoll out and the limbs pass
+## through each other.
+@export_flags_3d_physics var collision_mask := PhysicsLayers.RAGDOLL_MASK:
 	set(value):
 		collision_mask = value
 		_apply_materials()
