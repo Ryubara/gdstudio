@@ -43,6 +43,30 @@ MP4_CRF = 26
 GIF_MAX_FPS = 12
 
 
+USER_ARGS = ("--", "++")  # Godot hands every argument after either of these to the game's scripts
+
+
+def tell_movie_end(args: list[str]) -> list[str]:
+    """`args` for Godot with a Movie Maker run's `--quit-after N` repeated to the game as a user argument.
+
+    Godot keeps its own arguments from `OS.get_cmdline_args()`, so a game cannot see where a capture ends; a voice
+    still playing then is reported as `resources still in use at exit`, because under Movie Maker the mixer steps
+    only on written frames. The game's `AudioSettings` reads `--quit-after=N` and silences the run a few frames
+    earlier (docs/engines/godot/audio.md#capturing-sound). Other runs, and one that already says it, are unchanged.
+    """
+    end = next((i for i, a in enumerate(args) if a in USER_ARGS), len(args))
+    engine, user = args[:end], args[end + 1 :]
+    if not any(a == "--write-movie" or a.startswith("--write-movie=") for a in engine):
+        return args
+    if any(a.startswith("--quit-after") for a in user):
+        return args
+    count = next((engine[i + 1] for i, a in enumerate(engine[:-1]) if a == "--quit-after"), None)
+    count = count or next((a.split("=", 1)[1] for a in engine if a.startswith("--quit-after=")), None)
+    if count is None:
+        return args
+    return [*args, f"--quit-after={count}"] if end < len(args) else [*args, "++", f"--quit-after={count}"]
+
+
 class CaptureError(Exception):
     """A capture step that cannot run or whose result is unusable."""
 
@@ -192,6 +216,7 @@ def capture_frames(
     cmd += ["--fixed-fps", str(fps), "--quit-after", str(count)]
     if scene:
         cmd.append(scene)
+    cmd = tell_movie_end(cmd)
     log(f"capturing {count} frames at {fps} fps into {out}")
     result = run(cmd, project)
     errors = [line for line in result.output.splitlines() if "ERROR" in line]
