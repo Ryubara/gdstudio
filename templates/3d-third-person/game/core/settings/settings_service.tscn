@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://core/settings/settings_service.gd" id="1_service"]
+[ext_resource type="Script" path="res://core/settings/quality_preset.gd" id="2_preset"]
+
+[sub_resource type="Resource" id="Resource_low"]
+resource_local_to_scene = true
+script = ExtResource("2_preset")
+title = "Low"
+msaa = 0
+shadow_atlas_size = 2048
+shadow_filter = 0
+
+[sub_resource type="Resource" id="Resource_medium"]
+resource_local_to_scene = true
+script = ExtResource("2_preset")
+title = "Medium"
+msaa = 1
+shadow_atlas_size = 2048
+shadow_filter = 2
+
+[sub_resource type="Resource" id="Resource_high"]
+resource_local_to_scene = true
+script = ExtResource("2_preset")
+title = "High"
+msaa = 2
+shadow_atlas_size = 4096
+shadow_filter = 4
+
+[node name="Settings" type="Node"]
+script = ExtResource("1_service")
+presets = Array[ExtResource("2_preset")]([SubResource("Resource_low"), SubResource("Resource_medium"), SubResource("Resource_high")])

@@ -24,3 +24,5 @@
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
   that use them are in `ui/minimap/` and `core/minimap/`.
+- `assets/shaders/effects/flash_star.gdshader` and `assets/materials/effects/flash_star.tres` draw the muzzle flash's
+  star (original).

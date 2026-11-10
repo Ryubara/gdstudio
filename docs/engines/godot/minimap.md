@@ -24,9 +24,12 @@ marker and the section, which gameplay scenes may carry), `ui/minimap/` (the wid
 
 ## Using it in a game {#using-it}
 
-1. **Put the widget in the HUD**: instance `ui/minimap/minimap.tscn` in a region (3D Third Person has it in
-   `ui/minimap/minimap_layer.tscn`, a `CanvasLayer` with the small map and the full-screen one, until the HUD takes
-   it). It finds its target (the first node in the `target_group`, `player`), the markers and the sections by itself.
+1. **Put the widget in the HUD**: instance `ui/minimap/minimap.tscn` in a region (3D Third Person has it in the
+   HUD's `MinimapSlot`, top right, and the full-screen map in `ui/minimap/map_layer.tscn`, a `CanvasLayer`). A slot
+   that is a container (a `MarginContainer`) takes the widget's size; a plain `Control` slot gives it none.
+   `max_screen_fraction` keeps the map to a share of the screen's short side however far its parents scale it (the
+   HUD grows 1.5 times on a phone, so a 220 px map would be 325 units of 1080 and push the ammo onto the buttons).
+   It finds its target (the first node in the `target_group`, `player`), the markers and the sections by itself.
 2. **Mark things**: add a `MinimapMarker` under a pickup, an enemy, a door, a goal. Set `kind` (`enemy`, `pickup`) and
    a minimap can hide it by kind. A parent that turns inside its node (the player turns its model) gives its facing
    with a `get_minimap_heading() -> Vector2` method; otherwise the marker uses the parent's `-Z`.
@@ -145,6 +148,12 @@ counts icons.
   transform the node last notified, which lags `global_transform` until the end of the frame. **Watch out for:** a
   test that set the map camera and unprojected a point in the same call got the previous orientation (an unturned
   camera for a turned map). **Seen:** gdstudio #884, 2026-11-10.
+- **Approach:** Drop the widget into a HUD slot that is a container (`MarginContainer`), and cap its share of the
+  screen (`max_screen_fraction`, 0.25 of the short side) instead of giving the slot a fixed size. **Watch out for:** the
+  slot was a plain `Control` with a 260 minimum, so the map in it was 0 pixels until the slot was a container; with the
+  HUD's phone scale (1.5 at 844 x 390) the map took 325 of 1080 units and the ammo part, stacked under it, ended 2
+  units over the Aim button (`test_hud_layout.gd` failed in two of three windows). **Seen:** gdstudio #884,
+  2026-11-10 (merging the HUD, #914).
 - **Approach:** When a full-screen map fits the world, add the sections' footprints to the map the game starts with
   (`fit_bounds`) and let an empty rectangle mean sections only. **Watch out for:** the first version replaced the map by
   the sections, and the template's one section (a workshop 12 m wide in a 50 m map) zoomed the whole-map view onto the

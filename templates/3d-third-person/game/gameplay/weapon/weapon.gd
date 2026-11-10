@@ -55,6 +55,16 @@ signal fired(projectile: Projectile)
 ## weapon's shots land without a trace, whatever the projectile scene says.
 @export var impacts := true
 
+@export_group("Muzzle flash")
+## On: each shot flashes at the muzzle (particles and a light). Off: no flash for this weapon.
+@export var muzzle_flash_enabled := true
+## What flashes at the muzzle: an `EffectDef` the level's `EffectEmitter` plays on the `muzzle`
+## marker, pointing out of its -Z. Give another weapon its own to change the look, its light or a
+## sound. Empty makes none. A level with no `EffectEmitter` shows no flash.
+@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "EffectDef") var muzzle_flash: Resource
+## Makes the flash bigger or smaller for this weapon (its particles and the reach of its light).
+@export_range(0.1, 4.0, 0.05, "or_greater", "suffix:x") var muzzle_flash_size := 1.0
+
 var _cooldown := 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -62,6 +72,10 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_rng.seed = 1
 	set_physics_process(not Engine.is_editor_hint())
+	if not Engine.is_editor_hint() and muzzle_flash != null:
+		var emitter := EffectEmitter.find(self)
+		if emitter != null:
+			emitter.warm(muzzle_flash)
 
 
 func _physics_process(delta: float) -> void:
@@ -102,6 +116,7 @@ func fire() -> Projectile:
 	shot.launch(origin, direction, projectile_speed, shooter)
 	_cooldown = 1.0 / fire_rate
 	_play_sound(origin)
+	_flash()
 	fired.emit(shot)
 	return shot
 
@@ -142,6 +157,14 @@ func _direction_from(origin: Vector3) -> Vector3:
 	if toward.length() < 0.2:
 		toward = fallback
 	return toward.normalized()
+
+
+func _flash() -> void:
+	if not muzzle_flash_enabled or muzzle_flash == null:
+		return
+	var emitter := EffectEmitter.find(self)
+	if emitter != null:
+		emitter.play_on(muzzle_flash, muzzle, muzzle_flash_size)
 
 
 func _play_sound(at: Vector3) -> void:

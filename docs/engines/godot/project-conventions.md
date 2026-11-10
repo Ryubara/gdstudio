@@ -31,7 +31,7 @@ game/
 | A scene beside its script | The script on a scene's root node has the scene's name and folder (`player.tscn`, `player.gd`). | `scene-script` |
 | Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. | `uid` |
 | Dependencies run one way | `addons`, `assets` < `core` < `gameplay`, `world`, `net` < `ui` < the root scene. A file refers only to folders at its own level or below: `core` never names `gameplay`, `gameplay` never names `ui`. `tests/` and `tools/` and the root scenes may use anything. | `dependency` |
-| Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. | `ships-tools`, `export` |
+| Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. A probe that the exported game itself must carry (a browser test reads `window.gdprobe` from the web build: `ui/probe/web_probe.gd`, a node of `main.tscn`) is shipped code, not a tool: it lives under `ui/probe/`, does nothing unless asked (the page has `?probe`), and names nothing in `tools/`; the script that drives it stays in `tools/web_smoke/`. | `ships-tools`, `export` |
 | An addon the kit puts in a game is registered | `gds sync` copies `gds_ui` into `addons/` and enables nothing (the 3D Blank template also commits Phantom Camera, registered the same way): the game's `project.godot` enables `res://addons/gds_ui/plugin.cfg` under `[editor_plugins]` and has `UIRouter="*res://addons/gds_ui/router/ui_router.gd"` under `[autoload]`, as the plugin does when it is enabled. Without the autoload the addon's demo and focus ring do not parse. | `addon-plugin`, `addon-autoload` (`gds sync` also warns) |
 | Generated files outside `res://` | GdUnit's reports go to a folder outside the project (`-rd ../../reports`, relative to `game/`, never an absolute `/path`: GdUnit4 reads it as `res://`); none is committed under `game/reports/`. | `generated` |
 | Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
@@ -50,11 +50,13 @@ game/
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
   own).
-- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless --import`)
-  and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had the uid and
-  the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and `template` CI
-  jobs; copy the uid files back, not only the scripts, and run `gds check layout templates/<name>/game` before the push.
-  **Seen:** gdstudio #845, 2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`).
+- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless
+  --import`) and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had
+  the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
+  `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
+  `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
+  2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
+  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
@@ -82,8 +84,9 @@ uv run --project <workspace>/repos/gdstudio/python gds check layout game
 
 It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
 beside `gds sync --check`. It reads files only. What it cannot judge, whether every script parses, is
-`gds check scripts game` ([New game](new-game.md#proof)). The rules and the order are in
-`python/src/gds_tools/layout.py`, with a test for each in `python/tests/test_layout.py`: a new rule is a kit pull
+`gds check scripts game` ([New game](new-game.md#proof)); a template's suites run with both checks in
+`gds template test <name>`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
+`python/tests/test_layout.py`: a new rule is a kit pull
 request, not a game's exception.
 
 ## Editing a file by script {#scripted-edits}

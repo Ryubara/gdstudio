@@ -38,8 +38,7 @@ func _shoot_floor(x: float) -> void:
 
 
 func _ticks(count: int) -> void:
-	for _tick in count:
-		await get_tree().physics_frame
+	await InputSim.ticks(get_tree(), count)
 
 
 func _crate_at(spot: Vector3) -> PhysicsProp:

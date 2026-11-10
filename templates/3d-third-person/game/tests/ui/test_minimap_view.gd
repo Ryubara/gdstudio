@@ -78,7 +78,7 @@ func test_zoom_moves_to_its_goal_smoothly_when_asked_to() -> void:
 	await get_tree().process_frame
 	assert_float(_minimap.current_range()).is_greater(30.0)
 	assert_float(_minimap.current_range()).is_less(39.0)
-	await get_tree().create_timer(1.5).timeout
+	await InputSim.ticks(get_tree(), 90)
 	assert_float(_minimap.current_range()).is_equal_approx(39.0, 0.1)
 
 
@@ -198,7 +198,7 @@ func test_a_still_view_renders_now_and_then_to_catch_a_moving_door() -> void:
 	_minimap.still_refresh_seconds = 0.3
 	_minimap.refresh_now()
 	var taken := _minimap.snapshots_taken()
-	await get_tree().create_timer(0.8).timeout
+	await InputSim.ticks(get_tree(), 48)
 	assert_int(_minimap.snapshots_taken()).is_greater(taken)
 	assert_int(_minimap.snapshots_taken()).is_less(taken + 5)
 

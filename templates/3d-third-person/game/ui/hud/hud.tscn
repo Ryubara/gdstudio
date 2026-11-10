@@ -1,0 +1,124 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/hud/hud.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://ui/hud/hud_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="3_crosshair"]
+[ext_resource type="PackedScene" path="res://ui/hud/item_counter.tscn" id="4_counter"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_health.tscn" id="5_health"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_ammo.tscn" id="6_ammo"]
+[ext_resource type="PackedScene" path="res://ui/minimap/minimap.tscn" id="7_minimap"]
+
+[node name="Hud" type="CanvasLayer" node_paths=PackedStringArray("root", "safe_area", "minimap_slot")]
+script = ExtResource("1_hud")
+theme = ExtResource("2_theme")
+root = NodePath("Root")
+safe_area = NodePath("Root/SafeArea")
+minimap_slot = NodePath("Root/SafeArea/TopRight/MinimapSlot")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Center" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Crosshair" parent="Root/Center" instance=ExtResource("3_crosshair")]
+layout_mode = 1
+
+[node name="SafeArea" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLeft" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="ItemCounter" parent="Root/SafeArea/TopLeft" instance=ExtResource("4_counter")]
+layout_mode = 2
+
+[node name="TopCenter" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="TopRight" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="MinimapSlot" type="MarginContainer" parent="Root/SafeArea/TopRight"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Minimap" parent="Root/SafeArea/TopRight/MinimapSlot" instance=ExtResource("7_minimap")]
+layout_mode = 2
+
+[node name="BottomLeft" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="HudHealth" parent="Root/SafeArea/BottomLeft" instance=ExtResource("5_health")]
+layout_mode = 2
+
+[node name="BottomCenter" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="BottomRight" type="VBoxContainer" parent="Root/SafeArea"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="HudAmmo" parent="Root/SafeArea/BottomRight" instance=ExtResource("6_ammo")]
+layout_mode = 2

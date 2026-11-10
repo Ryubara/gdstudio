@@ -30,6 +30,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"target_group": &"player",
 		&"shape": 0,
 		&"map_size": 220.0,
+		&"max_screen_fraction": 0.25,
 		&"corner_ratio": 0.25,
 		&"range_m": 30.0,
 		&"range_min": 12.0,
@@ -222,3 +223,19 @@ func test_the_picture_is_a_node_of_the_scene_with_its_parts_beside_it() -> void:
 		)
 		. is_true()
 	)
+
+
+func test_a_scaled_up_parent_does_not_grow_the_map_past_its_share_of_the_screen() -> void:
+	var holder := auto_free(Control.new()) as Control
+	holder.scale = Vector2(3.0, 3.0)
+	add_child(holder)
+	var map := load(SCENE).instantiate() as Minimap
+	holder.add_child(map)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var shown := map.get_viewport().get_visible_rect().size
+	var want := minf(220.0, 0.25 * minf(shown.x, shown.y) / 3.0)
+	assert_float(want).is_less(220.0)
+	assert_float(map.custom_minimum_size.x).is_equal_approx(want, 0.01)
+	map.max_screen_fraction = 0.0
+	assert_float(map.custom_minimum_size.x).is_equal(220.0)

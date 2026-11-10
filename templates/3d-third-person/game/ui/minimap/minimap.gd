@@ -53,7 +53,14 @@ enum Source {
 @export_range(64.0, 640.0, 1.0, "suffix:px") var map_size := 220.0:
 	set(value):
 		map_size = value
-		custom_minimum_size = Vector2(value, value)
+		_fit_size()
+## The most of the screen's short side the widget may take, however far its parents scale it up
+## (a HUD grows on a phone until its text reads, and a map that grew with it would cover the
+## screen). Zero leaves the size alone.
+@export_range(0.0, 0.8, 0.01) var max_screen_fraction := 0.25:
+	set(value):
+		max_screen_fraction = value
+		_fit_size()
 ## For the square: how round the corners are, 0 sharp to 1 a disc.
 @export_range(0.0, 1.0, 0.01) var corner_ratio := 0.25:
 	set(value):
@@ -226,7 +233,7 @@ var _viewer_height := 0.0
 func _ready() -> void:
 	_range_now = range_m
 	_range_goal = range_m
-	custom_minimum_size = Vector2(map_size, map_size)
+	_fit_size()
 	_pool = MinimapIconPool.new(preload("res://ui/minimap/minimap_icon.tscn"), _icons)
 	_pool.prewarm(pool_prewarm)
 	_square.resized.connect(_apply_look)
@@ -257,6 +264,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	if not is_visible_in_tree():
 		return
+	_fit_size()
 	_tick(delta)
 
 
@@ -416,6 +424,18 @@ func _forward_of(node: Node) -> Vector2:
 	elif node is Node2D:
 		return Vector2.RIGHT.rotated((node as Node2D).global_rotation)
 	return MinimapProjector.north()
+
+
+# Sets the minimum size: `map_size`, less when a scaled-up parent would take too much of the screen.
+func _fit_size() -> void:
+	var side := map_size
+	if max_screen_fraction > 0.0 and is_inside_tree():
+		var shown := get_viewport().get_visible_rect().size
+		var grown := maxf(get_global_transform().get_scale().x, 0.01)
+		side = minf(side, max_screen_fraction * minf(shown.x, shown.y) / grown)
+	var wanted := Vector2(side, side)
+	if custom_minimum_size != wanted:
+		custom_minimum_size = wanted
 
 
 func _step_zoom(delta: float) -> void:

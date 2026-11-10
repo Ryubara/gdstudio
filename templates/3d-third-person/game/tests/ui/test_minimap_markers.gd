@@ -220,7 +220,7 @@ func test_markers_are_placed_at_their_own_rate() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_vector(_centre_of(icon)).is_equal(first)
-	await get_tree().create_timer(0.6).timeout
+	await InputSim.ticks(get_tree(), 36)
 	assert_vector(_centre_of(icon)).is_not_equal(first)
 
 

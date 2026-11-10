@@ -1,0 +1,124 @@
+# The planted faults of the planted-faults eval: the answer key, which only the check reads (`inputs/` is all an agent
+# gets). A finding matches a fault when it names one of its files and a line within `tol` of the anchor (the first
+# line of that file holding the anchor text), or the same line of `pr.diff`. A finding near no fault but on a trap is a
+# false finding too; the trap only says which kind of false finding it was. A test checks that every anchor is found
+# exactly once.
+
+[[fault]]
+id = "F1"
+kind = "code"
+summary = "a reload takes the whole gap from the reserve, which can go negative and fill rounds that are not there"
+locations = [{ file = "weapon.gd", anchor = "ammo += needed", tol = 2 }]
+
+[[fault]]
+id = "F2"
+kind = "code"
+summary = "the reload timer counts down a fixed 0.016 per tick instead of the physics delta"
+locations = [{ file = "weapon.gd", anchor = "_reload_left -= 0.016", tol = 2 }]
+
+[[fault]]
+id = "F3"
+kind = "code"
+summary = "the muzzle is looked up with get_node_or_null and used without a check (it was an @onready before)"
+locations = [
+  { file = "weapon.gd", anchor = "var origin := _muzzle.global_position", tol = 1 },
+  { file = "weapon.gd", anchor = "_muzzle = get_node_or_null(\"Muzzle\")", tol = 1 },
+]
+
+[[fault]]
+id = "F4"
+kind = "code"
+summary = "the server takes the damage value from the client and writes it into the shared tuning"
+locations = [
+  { file = "fire_request.gd", anchor = "weapon.tuning.damage = damage", tol = 1 },
+  { file = "fire_request.gd", anchor = "func request_fire(damage: int, aim: Vector3)", tol = 0 },
+]
+
+[[fault]]
+id = "F5"
+kind = "code"
+summary = "a cosmetic muzzle flash is sent to every peer as a reliable RPC"
+locations = [
+  { file = "fire_request.gd", anchor = "@rpc(\"authority\", \"call_local\", \"reliable\")", tol = 1 },
+  { file = "fire_request.gd", anchor = "show_flash.rpc()", tol = 0 },
+]
+
+[[fault]]
+id = "F6"
+kind = "code"
+summary = "_process builds a string and looks nodes up in a group every frame"
+locations = [{ file = "weapon.gd", anchor = "var text := \"Ammo: %d / %d\"", tol = 2 }]
+
+[[fault]]
+id = "F7"
+kind = "code"
+summary = "the pickup checks the body for add_ammo, which is a method of the Weapon child, so the player is never given ammo"
+locations = [
+  { file = "ammo_pickup.gd", anchor = "if not body.has_method(\"add_ammo\"):", tol = 1 },
+  { file = "ammo_pickup.gd", anchor = "body.add_ammo(ROUNDS)", tol = 0 },
+]
+
+[[fault]]
+id = "F8"
+kind = "tests"
+summary = "a test asserts ammo >= 0, which cannot fail"
+locations = [{ file = "test_weapon.gd", anchor = "is_greater_equal(0)", tol = 1 }]
+
+[[fault]]
+id = "F9"
+kind = "tests"
+summary = "a test waits two real seconds on a timer instead of counting physics frames"
+locations = [{ file = "test_weapon.gd", anchor = "create_timer(2.0)", tol = 1 }]
+
+[[fault]]
+id = "F10"
+kind = "tests"
+summary = "the new AmmoPickup (and the reserve cap) has no test"
+locations = [
+  { file = "ammo_pickup.gd", anchor = "class_name AmmoPickup", tol = 3 },
+  { file = "pr.md", anchor = "Weapon suite: 4 tests", tol = 1 },
+]
+
+[[fault]]
+id = "F11"
+kind = "description"
+summary = "docs say none, but the weapon page's tuning table lacks the new tuning fields"
+locations = [
+  { file = "pr.md", anchor = "Docs: none", tol = 0 },
+  { file = "weapons.md", anchor = "| `damage` |", tol = 3 },
+  { file = "weapon_tuning.gd", anchor = "var reserve_cap", tol = 1 },
+]
+
+[[fault]]
+id = "F12"
+kind = "description"
+summary = "screenshots say none, but the pull request adds a visible ammo box"
+locations = [{ file = "pr.md", anchor = "Screenshots: none (nothing visible changed)", tol = 1 }]
+
+[[fault]]
+id = "F13"
+kind = "code"
+summary = "the rounds in a box are a constant in the script, not a tuned export"
+locations = [{ file = "ammo_pickup.gd", anchor = "const ROUNDS := 30", tol = 1 }]
+
+# Code that looks wrong and is right.
+
+[[trap]]
+id = "T1"
+summary = "the reload guard (full magazine, empty reserve) is correct"
+locations = [{ file = "weapon.gd", anchor = "or ammo >= tuning.magazine_size or reserve <= 0", tol = 0 }]
+
+[[trap]]
+id = "T2"
+summary = "has_method on the hit is the project's way to call across folders (rules.md)"
+locations = [{ file = "weapon.gd", anchor = "if target.has_method(\"take_damage\"):", tol = 0 }]
+
+[[trap]]
+id = "T3"
+summary = "forward is minus Z in Godot, so the ray goes along -basis.z"
+locations = [{ file = "weapon.gd", anchor = "origin - global_basis.z * RANGE_M", tol = 0 }]
+
+[[trap]]
+id = "T4"
+summary = "the signal's parameter names do not shadow the members"
+locations = [{ file = "weapon.gd", anchor = "signal reloaded(ammo: int, reserve: int)", tol = 0 }]

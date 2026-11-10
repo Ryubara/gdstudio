@@ -52,13 +52,13 @@ func test_thickness_scales_every_capsule() -> void:
 
 func test_joint_range_scales_the_limits() -> void:
 	var swing: float = _ragdoll.body(&"thigh_l").get(&"joint_constraints/swing_span")
-	var knee: float = _ragdoll.body(&"calf_l").get(&"joint_constraints/z/angular_limit_upper")
+	var knee: float = _ragdoll.body(&"calf_l").get(&"joint_constraints/angular_limit_upper")
 	_ragdoll.joint_range = 0.5
 	assert_float(_ragdoll.body(&"thigh_l").get(&"joint_constraints/swing_span")).is_equal_approx(
 		swing * 0.5, 0.01
 	)
 	(
-		assert_float(_ragdoll.body(&"calf_l").get(&"joint_constraints/z/angular_limit_upper"))
+		assert_float(_ragdoll.body(&"calf_l").get(&"joint_constraints/angular_limit_upper"))
 		. is_equal_approx(knee * 0.5, 0.01)
 	)
 

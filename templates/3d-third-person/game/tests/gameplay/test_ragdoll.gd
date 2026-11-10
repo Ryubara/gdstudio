@@ -57,9 +57,15 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"friction": 0.8,
 		&"bounce": 0.0,
 		&"carry_velocity": 1.0,
+		&"pose_velocity": true,
+		&"relax_gravity": 12.0,
+		&"relax_time": 0.35,
 		&"get_up_time": 0.4,
+		&"max_active": 4,
+		&"settle_time": 8.0,
+		&"ragdoll_range": 0.0,
 		&"collision_layer": 16,
-		&"collision_mask": 1,
+		&"collision_mask": 17,
 	}
 	var ragdoll := auto_free(PlayerRagdoll.new()) as PlayerRagdoll
 	assert_array(ExportPins.differences(ragdoll, ragdoll_pins)).is_empty()
