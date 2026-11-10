@@ -78,8 +78,9 @@ uv run --project <workspace>/repos/gdstudio/python gds check layout game
 
 It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
 beside `gds sync --check`. It reads files only. What it cannot judge, whether every script parses, is
-`gds check scripts game` ([New game](new-game.md#proof)). The rules and the order are in
-`python/src/gds_tools/layout.py`, with a test for each in `python/tests/test_layout.py`: a new rule is a kit pull
+`gds check scripts game` ([New game](new-game.md#proof)); a template's suites run with both checks in
+`gds template test <name>`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
+`python/tests/test_layout.py`: a new rule is a kit pull
 request, not a game's exception.
 
 ## Editing a file by script {#scripted-edits}

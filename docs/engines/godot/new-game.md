@@ -117,6 +117,29 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 `template` job run it after the import. To see what a person sees, open the made game in the editor
 (`gds godot -- --editor --path game --quit-after 200`) and read the Output panel.
 
+**A template's own suites run with one command**, from your worktree, whatever you changed in the template:
+
+```text
+uv run --project <workspace>/repos/gdstudio/python gds template test 3d-third-person
+```
+
+It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
+workspace, holding the marker, a copy of `gdstudio.local.toml` and the GdUnit4 folder), makes the game from the
+working tree's template (uncommitted changes included, so there is nothing to copy over and no game to make again),
+checks its layout, imports it and parses every script, then runs the suites with the command CI uses and prints each
+suite's cases, failures and time (a failed case with the first line of its message). The folder is removed when the
+run ends, passed, failed or interrupted, and nothing else is: it refuses a folder that is not one of its own. The exit
+code is GdUnit4's (100 failed tests, 105 a script that does not parse; 1 for a layout or parse failure, a run that ran
+no suite, or a `leaked at exit` line, which CI refuses). Options: `--suite tests/core/test_x.gd` (repeat it; one
+`-a` per suite in the order given, default all of `res://tests`), `--keep` (keep the game and print its path),
+`--fixed-fps 60` (Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)),
+`--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined with `=`, since a bare `--flag` looks
+like an option to the command), `--timeout`. `gds template game <name>` makes the same game, imports it and keeps it,
+printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from the real workspace);
+`gds template clean <path>` removes it, and only a folder `gds template` made. Its tests are
+`python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on every exit,
+kept with `--keep`, two calls at once).
+
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
@@ -124,32 +147,29 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
   plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
-- **Approach:** To run a template's own tests, make a game from it (`gds new game <name> --template <t> --local
-  --workspace <throwaway>`), copy each changed file into that game, and make a second one when the template's
-  committed files changed after the first. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
-  cannot run there, and a game made earlier keeps the template as it was (the old `.tres` and scene of a dropped
-  approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830, 2026-11-08.
-- **Approach:** Try `gds new game` in a throwaway workspace outside the real one: a folder of its own holding a copy of
-  `.gdstudio-workspace`, `gdstudio.local.toml` and the addon folders under `tools/`, and in a test of a template's
-  `project.godot`, read the file with `ConfigFile`. **Watch out for:** a throwaway folder inside the real workspace
-  finds the real marker, so `gds new game` wrote `repos/zz-parse` into the real `repos/`; and
-  `editor_plugins/enabled` is an editor setting that `ProjectSettings` does not hold at run time, so a test reading it
-  there failed with the plugin enabled; an empty folder passed as `--workspace` has no marker either, so the game was
-  made in the real `repos/` (moved out and deleted). **Seen:** gdstudio #814, 2026-11-08; gdstudio #873, 2026-11-10 (an
-  empty `--workspace` folder); gdstudio #877 (a folder inside the real workspace: moved outside).
+- **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
+  game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
+  cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
+  dropped approach stayed in it and broke every test until the game was made again). **Seen:** gdstudio #830,
+  2026-11-08 (the command: gdstudio #917).
+- **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
+  of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
+  `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
+  `--workspace` has no marker, so the game landed in the real `repos/`; a fixed name in the shared scratchpad let a
+  reviewer's clean-up delete another agent's game (#896); `ProjectSettings` lacks `editor_plugins/enabled` at run time.
+  **Seen:** gdstudio #814, #873, #877 (a stray `repos/zz-parse`, an empty folder, one inside the workspace: moved
+  out); #917 (`gds template` makes and removes its folder).
 
-- **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
-  (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per
-  suite in the order of the CI log, and keep the new scripts' `.uid` files (copy them back to the template; the layout
-  test fails without them). **Watch out for:** the file order differs between Windows and the Linux runner, and a base
-  suite left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in
-  CI; run the pair that failed in the log's order before pushing again. **Seen:** gdstudio #836, 2026-11-08.
-
-- **Approach:** After merging main into a template branch, make a fresh game from the merged branch (`gds new game
-  --local`) rather than copying the template's files over an older one. **Watch out for:** a copy loop that skips
-  `.glb` and `.exr` files (to keep the import cache) leaves out every model or texture main added, so the copied game
-  runs new scripts against old assets and its tests fail for no fault of the change. **Seen:** gdstudio #856,
-  2026-11-09.
+- **Approach:** Prove a template change with `gds template test <t>`, then open the game it kept (`--keep`) in the
+  editor for the Output panel; keep the new scripts' `.uid` files (copy them from the kept game back to the template;
+  the layout test fails without them), and run the pair that failed in the CI log in the log's order with two
+  `--suite` options. **Watch out for:** the file order differs between Windows and the Linux runner, and a base suite
+  left the left mouse button and `fire` down, so eight tests of #836 passed in every local order and failed in CI.
+  **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
+  merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
+  every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
+  fault of the change. **Seen:** gdstudio #856, 2026-11-09.
 
 ## With `--local` {#with-local}
 
@@ -221,14 +241,14 @@ What each template plays, and on which bus (the buses and the volume node are in
   repository stopped with "Git LFS upload failed: (missing) ...exr". **Seen:** gdstudio #788, 2026-11-08 (the first CI
   run of the lightmap; fixed in `ci.yml`).
 
-- **Approach:** To capture a template change, make the game in a throwaway workspace (`gds new game <n> --template <t>
-  --local --workspace <throwaway>`, set up as in [Proof](#proof)); it is a git repository, so run `gds capture frames
-  --project <throwaway>/repos/<n>/game` from the real workspace. A hand-built probe (base, template over it,
-  `gds_ui`, as in [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone
-  writes into the real `repos/`, and `capture frames` refuses a folder outside a git repository ("is not inside a git
-  repository"), since it names the scratch folder from the git top level (a probe with no commit lands in
+- **Approach:** To capture a template change, make the game with `gds template game <t>` (it prints the path of a game
+  in a throwaway workspace, imported); it is a git repository, so run `gds capture frames --project <path>/game` from
+  the real workspace, and `gds template clean <path>` when done. A hand-built probe (base, template over it, `gds_ui`,
+  as in [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone writes into
+  the real `repos/`, and `capture frames` refuses a folder outside a git repository ("is not inside a git repository"),
+  since it names the scratch folder from the git top level (a probe with no commit lands in
   `scratch/<parent folder>/detached/`). **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by
-  hand; the `git init` route was checked in #849).
+  hand; the `git init` route was checked in #849); #917 (the command).
 
 ## What every template is built and reviewed against {#template-checklist}
 
@@ -362,9 +382,22 @@ load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one 
 probe folder in scratch (for an extending template, the base's `game/` first and the template's on top), then copy the
 kit's `godot/addons/gds_ui/` to the probe's `addons/gds_ui/`; the import and a run are then clean (checked on 3D Blank
 with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
-there, so tests need a made game ([Proof](#proof)).
+there, so tests run in a made game: `gds template test <name>` ([Proof](#proof)).
 
 CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
 the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
 web (the `template` job of the kit's `ci.yml`). `python/tests/test_new_game.py` checks the local steps without Godot,
 and `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.
+
+Those two files do not copy the real `templates/` (21 MB) for each test: a test about names, flags, licences, git and
+GitHub steps gets a kit built once a session with `templates/repo/` and a few-file stand-in for 3D Blank
+(`python/tests/fixtures/new_game_templates/`; `small_kit` and `small_git_kit` in `python/tests/conftest.py`, helpers in
+`python/tests/new_game_kit.py`), and the tests about what the real templates hold read a game made once from the real
+folder (`real_game`, `real_third_person_game`).
+
+- **Approach:** A new-game test that needs a template to exist, not the real one, uses `small_kit` or `small_git_kit`;
+  only a test that reads the real template's files uses `real_game` or `real_third_person_game`, which are made once
+  for the module and only read. **Watch out for:** the old `kit` fixture copied all of `templates/` for each of 63
+  tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
+  longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
+  tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
