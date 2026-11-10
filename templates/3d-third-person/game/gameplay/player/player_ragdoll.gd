@@ -297,8 +297,8 @@ static var _counted := 0
 		_apply_materials()
 
 @export_group("Death and getting up")
-## The share of the character's velocity the body keeps when it goes limp: 1 keeps a run's
-## momentum, 0 drops on the spot.
+## The share of the velocity (the character's, or with `pose_velocity` each bone's own, spin
+## included) the body keeps when it goes limp: 1 keeps a run's momentum, 0 drops on the spot.
 @export_range(0.0, 2.0, 0.01) var carry_velocity := 1.0
 ## Every bone leaves with the velocity the animation gave it over the last physics tick (a limb
 ## swinging in a stride goes on swinging), not all with the character's. Off: one velocity for
@@ -809,7 +809,7 @@ func _give_pose_velocity(key: StringName, bone: PhysicalBone3D) -> void:
 	if turn.w < 0.0:
 		turn = -turn
 	if turn.get_angle() > 0.00001:
-		bone.angular_velocity = turn.get_axis() * (turn.get_angle() / step)
+		bone.angular_velocity = turn.get_axis() * (turn.get_angle() / step) * carry_velocity
 
 
 # The animated pose with every joint turned inside its limits, as world transforms, chained from
