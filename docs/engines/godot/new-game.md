@@ -134,8 +134,9 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   `project.godot`, read the file with `ConfigFile`. **Watch out for:** a throwaway folder inside the real workspace
   finds the real marker, so `gds new game` wrote `repos/zz-parse` into the real `repos/`; and
   `editor_plugins/enabled` is an editor setting that `ProjectSettings` does not hold at run time, so a test reading it
-  there failed with the plugin enabled. **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted at once; the
-  test changed to `ConfigFile`).
+  there failed with the plugin enabled; an empty folder passed as `--workspace` has no marker either, so the game was
+  made in the real `repos/` (moved out and deleted). **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted
+  at once; the test changed to `ConfigFile`); gdstudio #873, 2026-11-10 (an empty `--workspace` folder).
 
 - **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
   (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per
@@ -179,7 +180,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
@@ -191,6 +192,7 @@ What each template plays, and on which bus (the buses and the volume node are in
 | `3d-third-person` | footsteps (four soft thuds, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
 | `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup` at -16 dB, one file a pickup | `SFX` |
 | `3d-third-person` | a pistol shot (five files, `assets/audio/pistol/`, Deadnight's House Pistol, MIT) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -22 dB, three voices | `SFX` |
+| `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each, synthesised by `tools/audio/impact_sounds.py`, MIT) | the `Sound` of each `ImpactSurface` of `Impacts`, at -10 to -14 dB, a copy per hit | `SFX` |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
   `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`
@@ -316,9 +318,9 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   one suite per component under gdlint's twenty public methods. **Watch out for:** two suites went past twenty `test_`
   functions and gdlint (`max-public-methods`) failed them, and a float export compared with `is_equal` failed on a
   property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; gdstudio #846,
-  2026-11-09 (the ragdoll's 19 tests became two suites, state and physics); gdstudio #879, 2026-11-10 (22 shake tests
-  became two suites; gdlint's `duplicated-load` also refuses a test that `load`s one path three times: a `preload`
-  constant).
+  2026-11-09 (the ragdoll's 19 tests became two suites, state and physics); gdstudio #875, 2026-11-10 (the impact
+  tests, 19 and then 20 `test_` functions, went to separate suites: marks, their look, surfaces, effects); gdstudio
+  #879, 2026-11-10 (22 tests, two suites; `duplicated-load`: a `preload` constant).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed

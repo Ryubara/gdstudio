@@ -152,10 +152,17 @@ from 1) or the blend of a held source (it eases by `blend_speed`), and the wave 
   CameraShake.shake(preload("res://core/camera_shake/presets/landing.tres"))  # the player's own landing
   ```
 
-- **An impact calls it the same way.** A bullet impact, when the impacts component lands, adds one line where it
-  places a decal: `CameraShake.shake(IMPACT, hit_position)` with `presets/impact.tres` (trauma 0.35, 0.25 s, felt to
-  15 m), so a hit beside the player is felt and one across the map is not. The call is not wired into the
-  template yet (the impacts component was still open): the default of every shake the player causes is none.
+- **An impact calls it the same way.** The template's `Impacts` (`gameplay/impacts/`) reports every hit with its
+  `impact_made(surface, collider, point, normal)` signal, so one line from a game's own script shakes the view by it
+  (`presets/impact.tres`: trauma 0.35, 0.25 s, felt to 15 m, so a hit beside the player is felt and one across the map
+  is not):
+
+  ```gdscript
+  const IMPACT := preload("res://core/camera_shake/presets/impact.tres")
+  impacts.impact_made.connect(func(_surface, _collider, point, _normal): CameraShake.shake(IMPACT, point))
+  ```
+
+  It is not wired in the template: the default of every shake the player causes is none.
 - **A continuous source is held, not played.** `shaker.hold(&"sprint", preset, level)` every frame with the state's
   level (1 while it holds, 0 when not), or `CameraShake.hold_everywhere(source, preset, level, at)`. A held source
   eases in and out by the preset's `blend_speed`, `release(source)` lets it go, and a source at 0 that has died away is

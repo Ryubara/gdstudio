@@ -11,7 +11,8 @@
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
 [ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="12_crosshair"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
-[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="14_shake"]
+[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="15_shake"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 
 [node name="Main" type="Node"]
 
@@ -26,6 +27,8 @@ bus = &"Ambient"
 
 [node name="Level" parent="." instance=ExtResource("1_level")]
 
+[node name="Impacts" parent="." instance=ExtResource("14_impacts")]
+
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
 [node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
@@ -37,7 +40,7 @@ shaker = NodePath("CameraShake")
 player = NodePath("../Player")
 
 [node name="CameraShake" type="Node" parent="PlayerCamera"]
-script = ExtResource("14_shake")
+script = ExtResource("15_shake")
 auto_advance = false
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
