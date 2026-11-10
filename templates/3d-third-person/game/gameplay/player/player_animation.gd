@@ -6,7 +6,8 @@ extends Node
 ## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
 ## pistol layer on the upper body (the arm holds the pistol, comes up to aim by the camera's
 ## pitch, and recoils for a shot) and a one-shot layer on the whole body for actions (interact,
-## hit, and any clip a game asks for with `play_clip()`).
+## hit, and any clip a game asks for with `play_clip()`). While the player is dead the tree is
+## off and the ragdoll holds the skeleton; on getting up it starts again from the ground state.
 ##
 ## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
 ## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
@@ -181,6 +182,7 @@ var _action_scale_node: AnimationNodeTimeScale
 var _playback: AnimationNodeStateMachinePlayback
 var _action_clip: StringName = &""
 var _action_was_active := false
+var _dead := false
 
 
 func _ready() -> void:
@@ -312,7 +314,7 @@ func _on_rig_changed(_rig: Node3D) -> void:
 	_follow_rig()
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
-		tree.active = _fits(model.rig())
+		tree.active = _fits(model.rig()) and not _dead
 	_rebuild()
 
 
@@ -384,6 +386,16 @@ func _drive_pistol() -> void:
 
 
 func _on_state_changed(state: Player.State) -> void:
+	if state == Player.State.DEAD:
+		# The ragdoll takes the skeleton over from the pose the tree left on it.
+		_dead = true
+		stop_clip()
+		tree.active = false
+		return
+	if _dead:
+		_dead = false
+		tree.active = _fits(model.rig()) if model != null else true
+		_playback.start(GROUND)
 	match state:
 		Player.State.IDLE, Player.State.WALK, Player.State.RUN:
 			_travel(GROUND)

@@ -11,19 +11,21 @@
 [ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="9_weapon"]
 [ext_resource type="PackedScene" path="res://gameplay/player/footsteps.tscn" id="10_footsteps"]
 [ext_resource type="Script" path="res://gameplay/player/player_model.gd" id="11_model"]
+[ext_resource type="Script" path="res://gameplay/player/player_ragdoll.gd" id="12_ragdoll"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "weapon")]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("model", "weapon", "ragdoll_body")]
 floor_stop_on_slope = true
 floor_max_angle = 0.837758
 script = ExtResource("1_player")
 tuning = ExtResource("2_tuning")
 model = NodePath("Model")
 weapon = NodePath("Weapon")
+ragdoll_body = NodePath("Ragdoll")
 
 [node name="Body" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true
@@ -70,4 +72,8 @@ shooter = NodePath("..")
 
 [node name="Footsteps" parent="." node_paths=PackedStringArray("player", "model") instance=ExtResource("10_footsteps")]
 player = NodePath("..")
+model = NodePath("../Model")
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
+script = ExtResource("12_ragdoll")
 model = NodePath("../Model")
