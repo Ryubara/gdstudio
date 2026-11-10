@@ -141,7 +141,8 @@ func test_a_shot_on_a_lying_body_pushes_the_bone_and_leaves_a_mark_that_goes_wit
 	var at := _ragdoll.body(&"spine_03").global_position
 	var records: Array[HitRecord] = []
 	_target.hit_received.connect(func(record: HitRecord) -> void: records.append(record))
-	ImpactShots.fire(_arena, at + Vector3.UP * 3.0, at)
+	# From the side, nearly level: a shot from above pushes the body into the floor, which holds it.
+	ImpactShots.fire(_arena, at + Vector3(3.0, 0.1, 0.0), at)
 	var pushed := 0.0
 	var bone: PhysicalBone3D = null
 	for tick in 60:
