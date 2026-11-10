@@ -23,9 +23,11 @@ func after_test() -> void:
 	InputSim.release_all()
 
 
-func test_the_pad_overlaps_the_level_but_nobody_presses_it_at_the_start() -> void:
+func test_the_pad_never_hears_of_the_level_and_nobody_presses_it_at_the_start() -> void:
 	await InputSim.ticks(get_tree(), 60)
-	assert_array(_pad.get_overlapping_bodies()).is_not_empty()
+	# The pad stands in the floor and the landing; its mask (Characters and Props, #924) leaves
+	# them out, so the area does not even report them.
+	assert_array(_pad.get_overlapping_bodies()).is_empty()
 	assert_bool(_pad.is_active()).is_false()
 	assert_bool(_door.is_open() or _door.is_moving()).is_false()
 

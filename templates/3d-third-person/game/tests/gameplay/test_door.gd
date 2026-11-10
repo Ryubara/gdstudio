@@ -175,7 +175,8 @@ func test_a_door_with_a_reach_stays_closed_among_static_blocks_and_props() -> vo
 	var blocks := _door_among_blocks()
 	await _ticks(30)
 	var sensor := _door.get_node("%Sensor") as Area3D
-	assert_int(sensor.get_overlapping_bodies().size()).is_greater_equal(3)
+	# The sensor masks Characters (#924): the floor, posts, wall and crate never reach it.
+	assert_array(sensor.get_overlapping_bodies()).is_empty()
 	assert_bool(_door.is_moving() or _door.is_open()).is_false()
 	assert_float(_door.openness()).is_equal(0.0)
 	for block in blocks:
