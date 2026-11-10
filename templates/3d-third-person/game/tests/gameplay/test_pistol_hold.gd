@@ -133,18 +133,24 @@ func test_the_player_holds_the_pistol_in_both_hands_while_it_aims_walks_and_fire
 	arena.add_child(view)
 	view.make_current()
 	await InputSim.ticks(get_tree(), 20)
-	var hold := player.get_node("WeaponHold") as WeaponHold
-	assert_int(hold.modifiers().size()).is_equal(3)
-	assert_float(hold.held_weight).is_equal(1.0)
-	assert_float(hold.aim_weight).is_equal(0.0)
-	assert_bool(hold.modifiers()[0].active).is_true()
-	assert_bool(hold.modifiers()[1].active).is_false()
+	# Read by name and by property, so the suite also loads in a project that has no hold yet.
+	var hold := player.get_node_or_null("WeaponHold")
+	assert_object(hold).override_failure_message("the player has no WeaponHold").is_not_null()
+	if hold == null:
+		AudioDrain.stop_all(arena)
+		return
+	var modifiers: Array = hold.call(&"modifiers")
+	assert_int(modifiers.size()).is_equal(3)
+	assert_float(hold.get(&"held_weight")).is_equal(1.0)
+	assert_float(hold.get(&"aim_weight")).is_equal(0.0)
+	assert_bool((modifiers[0] as SkeletonModifier3D).active).is_true()
+	assert_bool((modifiers[1] as SkeletonModifier3D).active).is_false()
 	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
 	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
 	_live_gaps.clear()
 	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
 	await InputSim.ticks(get_tree(), 40)
-	assert_float(hold.aim_weight).is_equal(1.0)
+	assert_float(hold.get(&"aim_weight")).is_equal(1.0)
 	_live_skeleton.skeleton_updated.connect(_read_left_hand)
 	InputSim.key(KEY_W, true)
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
@@ -159,10 +165,10 @@ func test_the_player_holds_the_pistol_in_both_hands_while_it_aims_walks_and_fire
 		. override_failure_message("the left hand was %.1f mm from the gun" % (worst * 1e3))
 		. is_less(REACH)
 	)
-	assert_float(hold.support_shortfall()).is_equal_approx(0.0, 0.0005)
+	assert_float(hold.call(&"support_shortfall")).is_equal_approx(0.0, 0.0005)
 	InputSim.release_all()
 	await InputSim.ticks(get_tree(), 40)
-	assert_float(hold.aim_weight).is_equal(0.0)
+	assert_float(hold.get(&"aim_weight")).is_equal(0.0)
 	AudioDrain.stop_all(arena)
 
 

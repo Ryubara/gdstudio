@@ -25,7 +25,11 @@ const POSES: Array[Dictionary] = [
 	{"tag": "carry_jog", "clip": &"ual1/Jog_Fwd", "times": [0.0, 0.25, 0.5], "carry": true},
 	{"tag": "carry_sprint", "clip": &"ual1/Sprint", "times": [0.0, 0.2, 0.4], "carry": true},
 	{"tag": "carry_crouch", "clip": &"ual1/Crouch_Fwd", "times": [0.0, 0.7], "carry": true},
+	{"tag": "carry_jump", "clip": &"ual1/Jump_Start", "times": [0.0], "carry": true},
 ]
+
+## How near the gun the left view cuts when only the right hand holds it: 5 cm off its middle.
+const _ONE_HAND_NEAR := 0.45
 
 var _stage: HoldStage
 
@@ -58,7 +62,7 @@ func _run(model: String) -> void:
 			if OS.get_environment("HOLD_OBJ") != "":
 				_stage.contact.dump_obj(OS.get_environment("HOLD_OBJ").path_join(tag + ".obj"))
 			if film and index == times.size() - 1:
-				await _shoot(camera, out.path_join(spec.tag))
+				await _shoot(camera, out.path_join(spec.tag), aim > 0.0)
 	get_tree().quit()
 
 
@@ -104,7 +108,7 @@ func _light() -> void:
 # Five views of the pose: the gun's left, its right, from above (the muzzle up the picture), a
 # close-up from the player's aim camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and
 # that camera's own 50 degree view.
-func _shoot(camera: Camera3D, path: String) -> void:
+func _shoot(camera: Camera3D, path: String, two_handed: bool) -> void:
 	var gun := _stage.pistol.global_transform.orthonormalized()
 	var middle := gun * Vector3(-0.04, 0.03, 0.0)
 	var eye := _stage.global_transform * Vector3(-0.5, 1.55, -1.1)
@@ -115,8 +119,11 @@ func _shoot(camera: Camera3D, path: String) -> void:
 		"player": [eye, Vector3.UP, 13.0],
 	}
 	for view: String in views:
-		# From the sides and above, nothing nearer than the hands is drawn (a leg, the chest).
+		# From the sides and above, nothing nearer than the hands is drawn (a leg, the chest); with
+		# one hand on the gun its left is cut closer still, since the thigh is a hand away from it.
 		camera.near = 0.02 if view == "player" else 0.3
+		if view == "left" and not two_handed:
+			camera.near = _ONE_HAND_NEAR
 		camera.fov = views[view][2]
 		camera.look_at_from_position(views[view][0], middle, views[view][1])
 		for _i in 3:

@@ -14,6 +14,10 @@ extends SkeletonModifier3D
 @export var second: HandPose
 ## How far the bones `second` names are on it (0 `pose`, 1 `second`).
 @export_range(0.0, 1.0, 0.01) var second_weight := 0.0
+## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
+## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
+@export var swing_bone: StringName = &""
+@export_range(0.0, 45.0, 0.1) var swing_degrees := 0.0
 
 # The skeleton's bone index for each name of `pose`, its rotations and then its turns.
 var _bones: Dictionary[StringName, int] = {}
@@ -34,6 +38,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 			_bones[bone_name] = skeleton.find_bone(bone_name)
 		for bone_name in pose.turns:
 			_turned[bone_name] = skeleton.find_bone(bone_name)
+	if swing_bone != &"" and not is_zero_approx(swing_degrees):
+		swing_out(skeleton, swing_bone, swing_degrees)
 	for bone_name in _turned:
 		var bone := _turned[bone_name]
 		if bone >= 0:
@@ -48,3 +54,43 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if second != null and second_weight > 0.0 and second.rotations.has(bone_name):
 			turned = turned.slerp(second.rotations[bone_name], second_weight)
 		skeleton.set_bone_pose_rotation(bone, turned)
+
+
+## Lifts `bone` (an upper arm) `degrees` away from the body, where the skeleton poses it now: it
+## turns about its own joint so that the hand at the arm's end moves toward the side of the
+## skeleton the arm is on, however the elbow is bent. Call it while the skeleton runs its
+## modifiers: only then are its global poses the pose of this frame.
+static func swing_out(skeleton: Skeleton3D, bone: StringName, degrees: float) -> void:
+	var index := skeleton.find_bone(bone)
+	var end := arm_end(skeleton, index)
+	if end == index:
+		return
+	var posed := skeleton.get_bone_global_pose(index)
+	var hand := skeleton.get_bone_global_pose(end).origin
+	posed.basis = swung_out(posed, hand, on_left(skeleton, index), degrees)
+	skeleton.set_bone_global_pose(index, posed)
+
+
+## The bone two below `index` (an upper arm's hand), or `index` when there is none.
+static func arm_end(skeleton: Skeleton3D, index: int) -> int:
+	var end := index
+	for _level in 2:
+		if end < 0 or skeleton.get_bone_children(end).is_empty():
+			return index
+		end = skeleton.get_bone_children(end)[0]
+	return end
+
+
+## Whether a bone is on the skeleton's -X side at rest (the mannequin's right arm).
+static func on_left(skeleton: Skeleton3D, index: int) -> bool:
+	return skeleton.get_bone_global_rest(index).origin.x < 0.0
+
+
+## The basis of an upper arm posed at `posed` (in the skeleton's space) once it is turned `degrees`
+## about its joint so that `hand` moves toward its side (-X when `to_left`). A hand already
+## straight out to that side stays where it is.
+static func swung_out(posed: Transform3D, hand: Vector3, to_left: bool, degrees: float) -> Basis:
+	var axis := (hand - posed.origin).cross(Vector3.LEFT if to_left else Vector3.RIGHT)
+	if axis.length_squared() < 1e-8:
+		return posed.basis
+	return Basis(axis.normalized(), deg_to_rad(degrees)) * posed.basis

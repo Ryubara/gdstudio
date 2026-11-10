@@ -14,6 +14,8 @@ const PISTOL := "res://assets/weapons/pistol/pistol.glb"
 ## `turns` bend the wrist under it (kit #1001).
 const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const GRIP_POSE := "res://gameplay/weapon/hold/pistol_grip_pose.tres"
+## The hold scene, whose `carry_arm_out` holds the weapon's arm out from the thigh.
+const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",
 	&"ual2": "res://assets/animation/universal/ual2.glb",
@@ -24,6 +26,8 @@ var rig: Node3D
 
 var _seat := Transform3D.IDENTITY
 var _turns: Dictionary[StringName, Quaternion] = {}
+var _carry_arm: StringName = &""
+var _carry_arm_out := 0.0
 var _body: Array[Dictionary] = []
 var _pistol: PackedVector3Array = PackedVector3Array()
 var _skip: PackedByteArray = PackedByteArray()
@@ -40,6 +44,11 @@ func _init(holder: Node, model_path: String) -> void:
 	held.free()
 	if ResourceLoader.exists(GRIP_POSE):
 		_turns = (load(GRIP_POSE) as HandPose).turns
+	if ResourceLoader.exists(HOLD):
+		var hold := (load(HOLD) as PackedScene).instantiate()
+		_carry_arm = hold.get(&"carry_arm")
+		_carry_arm_out = hold.get(&"carry_arm_out")
+		hold.free()
 	_collect_body()
 	_collect_pistol()
 	_skip.resize(skeleton.get_bone_count())
@@ -86,12 +95,30 @@ func pose(
 				if cursor == start and start >= 0:
 					covered[bone] = true
 		_apply(grip, grip_time, covered)
+	if _carry_arm != &"" and grip != null:
+		_swing_out(skeleton.find_bone(_carry_arm))
 	for bone_name in _turns:
 		var bone := skeleton.find_bone(bone_name)
 		if bone >= 0:
 			skeleton.set_bone_pose_rotation(
 				bone, skeleton.get_bone_pose_rotation(bone) * _turns[bone_name]
 			)
+
+
+# The hold's swing of the weapon's arm, worked out from the local poses: with no scene running the
+# skeleton's own global poses are not the pose just set.
+func _swing_out(arm: int) -> void:
+	var end := HandPoseModifier.arm_end(skeleton, arm)
+	if arm < 0 or end == arm:
+		return
+	var globals := _globals()
+	var basis := HandPoseModifier.swung_out(
+		globals[arm], globals[end].origin, HandPoseModifier.on_left(skeleton, arm), _carry_arm_out
+	)
+	var parent := skeleton.get_bone_parent(arm)
+	if parent >= 0:
+		basis = globals[parent].basis.inverse() * basis
+	skeleton.set_bone_pose_rotation(arm, basis.get_rotation_quaternion())
 
 
 ## The deepest a pistol point is inside the body in the pose now, in metres (0 or less: clear; -1

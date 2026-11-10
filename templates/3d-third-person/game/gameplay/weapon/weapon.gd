@@ -28,7 +28,7 @@ signal fired(projectile: Projectile)
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is about where the pistol's muzzle is when the
 ## character aims.
-@export var no_muzzle_offset := Vector3(0.13, -0.03, -0.7)
+@export var no_muzzle_offset := Vector3(0.07, -0.09, -0.65)
 
 @export_group("Fire")
 ## The projectile that is made for each shot.

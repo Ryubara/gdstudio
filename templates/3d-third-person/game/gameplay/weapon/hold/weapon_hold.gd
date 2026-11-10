@@ -4,7 +4,8 @@ extends Node
 ## hand's bone on a `BoneAttachment3D` (`pistol_held.tscn`); this node adds what the clips lack:
 ##
 ## - the right hand's fingers on the grip and the wrist turned under it (`grip_pose`), the index
-##   finger along the frame and, as the character aims, on the trigger (`trigger_pose`);
+##   finger along the frame and, as the character aims, on the trigger (`trigger_pose`), and the
+##   arm held a little out from the thigh while the weapon is carried (`carry_arm_out`);
 ## - while aiming or firing, the left hand on the weapon: the left arm reaches the weapon's
 ##   `SupportHand` marker (`HoldArm`) and its fingers wrap over the right hand (`support_pose`).
 ##
@@ -35,6 +36,12 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 @export var trigger_pose: HandPose
 ## How far the right hand is on `grip_pose` (0 the clip's own fist).
 @export_range(0.0, 1.0, 0.01) var held_weight := 1.0
+## The arm that carries the weapon, and how many degrees it is held out from the body while the
+## weapon is carried: a hand closed on a grip is wider than the clips' open hand, and with the arm
+## hanging as the clips have it the grip's foot would be in the thigh. It goes back as the
+## character aims (the aim clips hold the weapon clear of the body).
+@export var carry_arm: StringName = &"upperarm_r"
+@export_range(0.0, 30.0, 0.5) var carry_arm_out := 8.0
 
 @export_group("Left hand")
 ## The left hand's fingers over the right hand and the grip.
@@ -76,6 +83,8 @@ func refresh() -> void:
 		return
 	_weigh(_grip, held_weight)
 	_grip.second_weight = aim_weight
+	_grip.swing_bone = carry_arm
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight)
 	if _arm == null:
 		return
 	_weigh(_arm, held_weight * aim_weight)
