@@ -9,8 +9,8 @@ const AI_SCENE := "res://world/prototype/ai_section/ai_section.tscn"
 const PATHING_SCENE := "res://world/prototype/pathing_section/pathing_section.tscn"
 ## The eye of a standing body over its feet (`PlayerTuning.camera_height`).
 const EYE := 1.55
-## A path counts as reaching a point this close to it (the baked surface floats 0.5 m over the
-## floor: the baker lifts it by twice the cell height).
+## A path counts as reaching a point this close to it on the ground plane (the baked surface floats
+## 0.2 m over the floor: the baker lifts it by two cells of 0.1 m).
 const ARRIVE := 0.75
 
 var _main: Node

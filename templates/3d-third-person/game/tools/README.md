@@ -29,3 +29,10 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
 - `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
   drops the other mannequin (`mannequin_male.glb`) on `Model` and checks that the clips, the pistol and the tree
   survive. The header of `swap_in_editor.gd` says how to run it.
+- `tools/map_bake/` is an editor plugin (never enabled in a game) that bakes what only the editor makes for the map
+  and its sections: the blocks' meshes with their lightmap UVs, the navigation meshes and the lightmaps. The header of
+  `map_bake.gd` says how to run it.
+- `tools/world/ledge_probe.gd` prints how high a ledge the character climbs from level ground, one line a height (the
+  number `tests/world/test_jump_reach.gd` pins).
+- `tools/capture/sections_tour.tscn` saves stills of the two map sections from the player's camera and from above
+  (`--debug-navigation` draws the navigation meshes); the header says how to run it.
