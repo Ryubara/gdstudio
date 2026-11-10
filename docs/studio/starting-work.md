@@ -304,6 +304,10 @@ they exist.
   harness says it is. **Watch out for:** the coordinator copied its own model into briefs, but the godot-engineer runs
   another model, so an agent had to rewrite its unpushed commit messages and the others needed a correction mid-task.
   **Seen:** gdstudio #875, 2026-11-10 (fix: briefs say to name the model the agent actually runs as).
+- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, whatever
+  the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
+  captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
+  #880 and #886, 2026-11-10.
 
 ## The report {#the-report}
 
@@ -325,6 +329,16 @@ SubagentStop holds back once a task agent's report that names a pull request wit
 ([Hooks: docs](hooks.md#docs)). The coordinator reads them: a gap the agent did not fix itself becomes a docs change or
 an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
 closes an issue names the same sections on its `Read first:` line.
+
+- **Approach:** Name a section on `Read:`, `Read first:` and `Lessons:` by its path under `docs/` in full
+  (`engines/godot/ragdoll.md#limits`), never by the page alone. **Watch out for:** the kit's body check looks each
+  section up from `docs/`, so `ragdoll.md#limits` is refused as a section that does not exist. **Seen:** gdstudio
+  #846, 2026-11-10.
+- **Approach:** List on `Read first:` and in the report's `Read:` only the sections you opened, and run `gds learn
+  <words>` for more before you start; a brief's line you skipped is left out or named as skipped. **Watch out for:**
+  the check sees that a section exists, not that it was read, so a body that copied all six `Read:` lines of its
+  brief, one of them read, passed; it came out only after the merge, and the coordinator corrected the body. **Seen:**
+  gdstudio #928 (PR #987), 2026-11-10.
 
 ## Looking {#looking}
 

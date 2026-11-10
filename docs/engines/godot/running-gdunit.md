@@ -106,6 +106,10 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   the green, and the list behind two case counts (596 against 595) was gone. **Seen:** Deadnight #987, 2026-11-04;
   Deadnight #1231, 2026-11-05 (fix: compare runs by their case lists; `SCRATCH.md` `Can go:` names a log after the
   merge).
+- **Approach:** For orphan nodes, run `gds template test <t> --keep` and read the `N orphans` count under each
+  `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
+  failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
+  it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
 
 ## Before the push {#before-the-push}
 
@@ -126,6 +130,10 @@ game](new-game.md#proof), gdstudio #830 and #917).
   of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,
   run and restore in one command: the timeout killed it between the first and the last and the worktree held main's
   files with the fix gone. **Seen:** Deadnight #987, 2026-11-04 (fix: the saved patch restored the work).
+- **Approach:** When a change renames a method or changes its signature, search the tests for its callers (`git grep
+  -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
+  for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
+  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 

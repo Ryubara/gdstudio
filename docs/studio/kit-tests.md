@@ -1,0 +1,57 @@
+# The kit's tests
+
+<!-- new section: hooks.md lists what each test file covers and new-game.md holds the speed entries of the new-game
+tests; no page said how `pytest python/tests` runs on a machine and in CI, or what its shared parts are -->
+
+The kit's Python (`gds`, the hooks, the scripts under `.github/scripts/`) is tested by `pytest python/tests`. This page
+is how that run works: the command here and in CI, the workers, the repositories the tests share, the skips CI
+allows and the tripwire against real services. What each file covers is in [Hooks: tests](hooks.md#tests) and beside
+the code it tests; a template's own GdUnit4 suites are another run ([Proving a new game](../engines/godot/new-game.md#proof)).
+
+## The command {#command}
+
+```text
+uv run --project python pytest python/tests -q -n auto --maxprocesses=4 --dist loadfile
+uv run --project python ruff check python && uv run --project python ruff format --check python
+```
+
+CI's `test` job runs the same on Ubuntu, Windows and macOS, with `-rs --durations=30 --allowed-skips
+python/tests/allowed_skips.toml` added (`.github/workflows/ci.yml`). `pytest-xdist` is in the `dev` group of
+`python/pyproject.toml`, so `uv run` has it; one file stays on one worker (`--dist loadfile`), since the fixtures a
+file makes once are shared by its tests. Four workers at most, here as in CI: the machine is shared
+([Sharing the machine](workspace.md#shared-machine)). A run of one file while you work needs no workers:
+`uv run --project python pytest python/tests/test_brief.py -q`.
+
+Run it from the checkout whose code you changed (your worktree), with `--project` naming that checkout's `python`
+folder: `uv run --project <another checkout>/python pytest` tests the other checkout's code.
+
+## What the tests share {#shared}
+
+- **Repositories made once.** A test that needs "a repository with a commit and a remote" copies a seed made once a
+  session (`python/tests/git_seed.py`: `slim` drops git's sample hooks, `relocate` copies the seed and rewrites the
+  absolute paths git wrote into each `config`, with no git process). The seeds are `scope="session"` fixtures in
+  `python/tests/conftest.py` (`small_kit_seed`, `small_git_kit_seed`); a test gets its own copy (`small_kit`,
+  `small_git_kit`) and may write to it.
+- **A small kit, not the real templates.** The new-game tests build a kit with `templates/repo/` and a few-file stand-in
+  for 3D Blank (`python/tests/new_game_kit.py`, `python/tests/fixtures/new_game_templates/`); only a test about what a
+  real template holds reads a game made once from it (`real_game`, `real_third_person_game`), and never writes to it
+  ([Adding a template](../engines/godot/new-game.md#adding-a-template) has the measured cost).
+- **No real services.** The `no_real_services` fixture makes any `gh`, PowerShell or process listing that reaches
+  `subprocess.run` fail the test; the suites that delete or post use it, so a forgotten fake fails instead of acting.
+- **Recorded answers.** `gh` answers live as JSON under `python/tests/fixtures/` (issues, pull requests, briefs).
+
+## Skips {#skips}
+
+A test may skip in CI only when `python/tests/allowed_skips.toml` names it with its platforms and the reason
+(`python/tests/skip_allowlist.py`, kit #797): a skip it does not name fails the run, and so does an entry whose test
+ran on a platform it names. Every entry is a platform fact (a junction is a Windows folder link); a tool a test needs is
+installed on the runner instead. A local run without `--allowed-skips` reports skips and does not judge them.
+
+## Speed {#speed}
+
+- **Approach:** Count the processes a test starts, not only its seconds: make a repository once a session and copy it,
+  share one run of a command between the tests that only read it, and leave out the step a test is not about (the full
+  entry is under [Adding a template](../engines/godot/new-game.md#adding-a-template)). **Watch out for:** on Windows a
+  git process costs 30 to 110 ms and a copied file 1 ms, and a loaded machine moves wall time by 2x, so a timing taken
+  once says little. **Seen:** gdstudio #918 and #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on
+  four workers; the Windows job had been the longest in CI at 13 min 35 s).

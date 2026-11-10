@@ -63,6 +63,13 @@ Pose the rig before handing it on: bend each elbow and knee 90 degrees and check
 with its parent bone and that nothing on the other side moves, then render the bent pose. A weight on the wrong bone
 shows as a vertex left behind or dragged along, which a T-pose render hides.
 
+- **Approach:** In a mirrored-weights check, compare each vertex with the mirrored weights of its mirror vertex
+  (left and right bone names swapped) and treat the centre line apart: a vertex within a millimetre of it must carry
+  left and right alike, and pieces that meet there share weights by position first. **Watch out for:** two pieces that
+  meet on the centre line put several vertices at one position, so a nearest-mirror lookup pairs a vertex with the
+  other piece's and the check fails a rig whose sides do match. **Seen:** the Blender model duel, 2026-11-10 (Fable 5.2
+  and Opus 5.5 on one character brief).
+
 ## The rig eval {#eval}
 
 The `rig-humanoid` eval ([Agent evals](../../studio/agent-evals.md)) rigs a blocky humanoid to a named 17-bone skeleton

@@ -229,7 +229,10 @@ job (`bootstrap.yml`) does the same on Linux and Windows every week and when the
 **The mods.** The kit's and every game's `.claude/settings.json` name two plugin marketplaces and enable their mods:
 `gdstudio-disk` from this repository (the disk guard's status line) and Tether (`Ryubara/tether`: the agents pane,
 watchers and handoffs). Claude Code asks once, when it first opens a checkout, to trust and install them. Each person's
-Tether options stay in their own user settings.
+Tether options stay in their own user settings. Tether's Watch reads its pollers from `.claude/tether.json` (or
+`TETHER_CONFIG`), and neither the kit, the games nor the workspace has one, so no poller runs here: Tether tells the
+coordinator nothing about pull requests or issues, and those reach it through `gds issue list`, the hooks and the disk
+guard's status line (checked for gdstudio #1003, from tether #27).
 
 **What stays manual.** A bootstrap cannot sign in for anyone, so `gds doctor` warns until each is done:
 
