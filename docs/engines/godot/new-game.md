@@ -170,6 +170,12 @@ kept with `--keep`, two calls at once).
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
   fault of the change. **Seen:** gdstudio #856, 2026-11-09.
+- **Approach:** A game is made from the template folder as it is on disk, and the copy leaves out what git ignores
+  (`git ls-files --others --ignored`, with `__pycache__`, `.ruff_cache`, `.pytest_cache`, `.mypy_cache`, `.godot` as the
+  fixed fallback when the template is not in a checkout); `gds new game`, `gds template test` and the eval games share
+  that copy. **Watch out for:** a Python or ruff run in a template's tools folder (`tools/net/`) leaves ignored caches
+  there, and the old copy took them, so `gds template test` stopped at `layout: 3 problem(s)` before any suite ran;
+  deleting the caches by hand was the only way on. **Seen:** gdstudio #903 (PR #935), 2026-11-10 (fix: gdstudio #957).
 
 ## With `--local` {#with-local}
 
@@ -315,9 +321,12 @@ template cheap to change):
     by hand.
 11. **Scene and resource files stay small and diff cleanly**: no editor-only state, no generated data, stable node names.
     *Why:* a review reads the diff.
-12. **Every component has tests**: each export's default is pinned (`ExportPins`, in `tests/fixtures/`) and a test
-    changes each live export at run time and checks its effect. *Why:* a pinned default is a decision someone made, and
-    a test of the change is the only proof that item 2 holds.
+12. **Every component has tests, in its home**: a component any game of any template can use unchanged is a script of
+    the synced `addons/gds_game/`, proved alone in `godot/tests/gds_game/`; the template keeps its scene, its tuning
+    and its in-the-map suites ([Sync](../../studio/sync.md#gds-game)). Each export's default is pinned (`ExportPins`,
+    in the synced `addons/gds_game/testing/`) and a test changes each live export at run time and checks its effect.
+    *Why:* a pinned default is a decision someone made, a test of the change is the only proof that item 2 holds, and a
+    universal part copied into a template is never fixed in the games made from it.
 
 How it is proved: `gds check scripts` and an editor open of a fresh game (the probe of
 [editor screenshots](editor-screenshots.md) prints each node's configuration warnings and what is empty, and saves each
@@ -382,8 +391,8 @@ A template folder does not open clean on its own: its `project.godot` registers 
 autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
 load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one outside a made game, copy it to a
 probe folder in scratch (for an extending template, the base's `game/` first and the template's on top), then copy the
-kit's `godot/addons/gds_ui/` to the probe's `addons/gds_ui/`; the import and a run are then clean (checked on 3D Blank
-with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
+kit's `godot/addons/gds_ui/` and `gds_game/` to the probe's `addons/`; the import and a run are then clean (checked on
+3D Blank with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
 there, so tests run in a made game: `gds template test <name>` ([Proof](#proof)).
 
 CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
