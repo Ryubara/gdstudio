@@ -96,7 +96,7 @@ clips), that the body is never jerked to keep a hand in reach, and that no limb 
   and keep world positions for what touches the world. Take the leg paths from footage of the real move: over a
   speed vault the body lies near level and the legs go over stacked, one above the other with a gap, knees bent.
   **Watch out for:** with the body rolled 50 degrees, world keys that looked apart put the lower leg's foot above
-  the upper leg's, so the legs crossed for seven frames; rolling further to lift the legs drops the lower hip onto
+  the upper leg's, so the legs crossed for eight frames; rolling further to lift the legs drops the lower hip onto
   the obstacle instead. **Seen:** gdstudio #1016, 2026-11-10 (fix: both vaults' legs and free arm keyed in the hips'
   axes; the overlap check reads 0.5 mm at most).
 - **Approach:** Tell inside from outside on a part cut from a skinned mesh by closing its cut rims (a fan to each
