@@ -48,3 +48,23 @@ func test_the_server_scene_holds_the_map_and_caps_the_frame_rate() -> void:
 	assert_int(server.port).is_equal(-1)
 	assert_str(server.body_scene.resource_path).is_equal("res://gameplay/character/character.tscn")
 	server.free()
+
+
+func test_the_server_exports_are_pinned() -> void:
+	var server := auto_free(NetServer.new()) as NetServer
+	var pins := {
+		&"port": -1,
+		&"bind_address": "*",
+		&"max_players": NetLimits.MAX_PLAYERS,
+		&"cap_frame_rate": false,
+		&"print_log": true,
+		&"body_scene": load("res://gameplay/character/character.tscn"),
+		&"players_root": null,
+		&"spawn_group": &"player",
+		&"spawn_seed": 1,
+		&"command_ticks": 30,
+		&"silent_seconds": 15.0,
+		&"hello_seconds": 10.0,
+	}
+	assert_array(ExportPins.differences(server, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(server, pins)).is_empty()
