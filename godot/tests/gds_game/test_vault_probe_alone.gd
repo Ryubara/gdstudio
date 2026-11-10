@@ -240,6 +240,55 @@ func test_a_plan_survives_its_plain_values() -> void:
 	assert_float(copy.duration).is_equal(plan.duration)
 
 
+func test_every_export_of_the_component_and_the_settings_has_its_default_pinned() -> void:
+	var marker: Vaultable = auto_free(Vaultable.new())
+	var marker_pins := {
+		&"allow_vault": true,
+		&"allow_mantle": true,
+		&"faces": Vaultable.ALL_FACES,
+		&"height_override": 0.0,
+		&"depth_override": 0.0,
+		&"vault_clip": &"",
+		&"mantle_clip": &"",
+	}
+	assert_array(ExportPins.differences(marker, marker_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(marker, marker_pins)).is_empty()
+	var settings_pins := {
+		&"trigger": VaultSettings.Trigger.PRESS_JUMP,
+		&"auto_min_speed": 5.5,
+		&"min_vault_speed": 0.0,
+		&"cooldown": 0.25,
+		&"detect_distance": 0.7,
+		&"detect_ahead_time": 0.15,
+		&"max_approach_angle": 35.0,
+		&"top_probe_radius": 0.08,
+		&"max_top_slope": 30.0,
+		&"min_vault_height": 0.45,
+		&"max_vault_height": 1.3,
+		&"high_vault_above": 1.0,
+		&"max_vault_depth": 0.9,
+		&"foot_clearance": 0.12,
+		&"landing_margin": 0.3,
+		&"max_drop": 1.2,
+		&"crossing_speed": 4.0,
+		&"min_vault_time": 0.45,
+		&"max_vault_time": 0.9,
+		&"exit_speed_share": 0.85,
+		&"plant_at": 0.3,
+		&"clear_at": 0.7,
+		&"min_mantle_height": 0.45,
+		&"max_mantle_height": 2.0,
+		&"high_mantle_above": 1.25,
+		&"mantle_base_time": 0.45,
+		&"mantle_time_per_metre": 0.5,
+		&"mantle_top_at": 0.7,
+		&"mantle_inset": 0.1,
+		&"drop_aim": true,
+	}
+	assert_array(ExportPins.differences(_settings, settings_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(_settings, settings_pins)).is_empty()
+
+
 func test_a_component_with_nothing_allowed_warns() -> void:
 	var marker: Vaultable = auto_free(Vaultable.new())
 	marker.allow_vault = false
