@@ -12,8 +12,9 @@ extends Node
 ##   hand, timed apart: microseconds a character a frame for the body's step, the animation script,
 ##   the animation tree's own advance, the skeleton's pose update after it (read once here, so the
 ##   parts after it do not pay for it), the footsteps and the ragdoll.
-## - `death`: what the first death of a character costs (it makes the ragdoll's bones) and a later
-##   one, in milliseconds.
+## - `death`: what the first death of a character costs (it takes a set of the ragdoll's bones from
+##   the `RagdollPool`, or makes them) and a later one, in milliseconds; `death_male` the same on
+##   the male mannequin, whose first death takes a set the pool made on the female and fits it.
 ## - `world`: 100 of one world part at a time against an empty arena (the median frame's growth,
 ##   in microseconds a part, by wall and by work) and how many of their nodes process each frame.
 ##
@@ -29,6 +30,7 @@ const WORLD_COUNT := 100
 const WARM_FRAMES := 60
 const FRAMES := 300
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
+const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
 const WORLD_PARTS := {
 	"pickup": "res://gameplay/pickup/pickup.tscn",
 	"target": "res://gameplay/target/target.tscn",
@@ -96,7 +98,8 @@ func _run() -> void:
 	for count in CROWD:
 		report.crowd.append(await _crowd(count))
 	report.parts = await _parts(PART_CROWD)
-	report.death = await _death()
+	report.death = await _death(false)
+	report.death_male = await _death(true)
 	var empty := await _empty_frame()
 	for kind: String in WORLD_PARTS:
 		report.world.append(await _world(kind, empty))
@@ -186,10 +189,16 @@ func _parts(count: int) -> Dictionary:
 	return result
 
 
-# Milliseconds a death takes, the first (which makes the ragdoll's bones) and a later one.
-func _death() -> Dictionary:
+# Milliseconds a death takes, the first (which brings the ragdoll's bones) and a later one, on the
+# female mannequin or the male.
+func _death(male: bool) -> Dictionary:
 	_new_arena()
 	var body := _spawn(1)[0].get_parent() as Character
+	if male:
+		var old := body.model.rig()
+		body.model.remove_child(old)
+		old.free()
+		body.model.add_child((load(MALE) as PackedScene).instantiate())
 	var spent: Array[float] = []
 	for _death_index in 2:
 		for _i in 30:
