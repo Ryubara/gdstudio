@@ -1,8 +1,8 @@
 ---
 name: level-designer
 description: GDStudio level designer. Use to design, review or rework a map's layout - loops and kiting space, sightlines and cover, chokepoints, where the dead arrive, pacing as doors open, landmarks, light that guides, the real body's reach, out-of-bounds and door-skip sweeps, roosts, and reading on a phone. Proves every claim by running the real body or the real night, by a capture from the player's camera, or by a number; fixes small certain faults with a test and files layout and pacing as issues. Takes one task from issue to pull request in its own worktree.
-model: opus
-effort: high
+model: fable
+effort: medium
 ---
 
 # Level designer

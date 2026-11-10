@@ -41,16 +41,21 @@ func test_holding_crouch_lowers_the_capsule_and_the_camera_target() -> void:
 	assert_float(body.position.y - _capsule().height / 2.0).is_equal_approx(0.0, 0.001)
 
 
-func test_the_pad_and_the_control_key_crouch_too() -> void:
+func test_the_pad_crouches_too() -> void:
 	InputSim.pad_button(JOY_BUTTON_B, true)
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(_player.crouching).is_true()
 	InputSim.pad_button(JOY_BUTTON_B, false)
 	await InputSim.ticks(get_tree(), 30)
 	assert_bool(_player.crouching).is_false()
+
+
+# Ctrl is left free: the editor's embedded game window takes Ctrl+W as its own
+# shortcut, so a W pressed while crouching on Ctrl never reached the game.
+func test_the_control_key_does_not_crouch() -> void:
 	InputSim.key(KEY_CTRL, true)
 	await InputSim.ticks(get_tree(), 10)
-	assert_bool(_player.crouching).is_true()
+	assert_bool(_player.crouching).is_false()
 
 
 func test_it_stands_up_when_the_button_is_let_go_and_there_is_room() -> void:

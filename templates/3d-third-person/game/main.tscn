@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://ui/probe/web_probe.gd" id="10_probe"]
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
+[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="15_shake"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
 [ext_resource type="PackedScene" path="res://gameplay/effects/effect_emitter.tscn" id="15_effects"]
 [ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="17_ai_section"]
@@ -45,12 +46,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
-[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "player")]
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
 script = ExtResource("3_camera")
 target = NodePath("../Player/CameraTarget")
 follow_camera = NodePath("FollowCamera")
 camera = NodePath("../Camera")
+shaker = NodePath("CameraShake")
 player = NodePath("../Player")
+
+[node name="CameraShake" type="Node" parent="PlayerCamera"]
+script = ExtResource("15_shake")
+auto_advance = false
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")

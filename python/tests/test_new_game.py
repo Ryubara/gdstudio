@@ -265,6 +265,35 @@ def test_a_placeholder_the_command_does_not_know_stops_the_copy(tmp_path):
         new_game.copy_tree(source, target, {"{GAME_TITLE}": "A"})
 
 
+def test_the_copy_skips_cache_folders_without_a_checkout(tmp_path):
+    source, target = tmp_path / "source", tmp_path / "target"
+    for rel in ("a.md", "tools/net/__pycache__/x.pyc", "tools/net/.ruff_cache/y", ".pytest_cache/z"):
+        (source / rel).parent.mkdir(parents=True, exist_ok=True)
+        (source / rel).write_text("x\n", encoding="utf-8")
+    assert new_game.copy_tree(source, target, {}) == ["a.md"]
+
+
+def test_the_copy_skips_what_git_ignores(tmp_path):
+    source, target = tmp_path / "source", tmp_path / "target"
+    source.mkdir()
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    (source / ".gitignore").write_text("*.scratch\n", encoding="utf-8")
+    (source / "a.md").write_text("x\n", encoding="utf-8")
+    (source / "note.scratch").write_text("x\n", encoding="utf-8")
+    assert sorted(new_game.copy_tree(source, target, {})) == [".gitignore", "a.md"]
+
+
+def test_ignored_caches_in_a_template_do_not_reach_the_game_or_its_layout_check(kit, tmp_path):
+    """Failed first: the planted caches were copied and `layout` reported problems (#957)."""
+    game = kit / "templates" / "3d-blank" / "game"
+    for rel in ("tools/net/__pycache__/x.pyc", "tools/net/.ruff_cache/y"):
+        (game / rel).parent.mkdir(parents=True, exist_ok=True)
+        (game / rel).write_bytes(b"cache")
+    made = make(kit, tmp_path)
+    assert not list(made.repo.rglob("__pycache__")) and not list(made.repo.rglob(".ruff_cache"))
+    assert not [p for p in layout.check(made.repo / "game") if "cache" in p.path.lower()]
+
+
 def test_the_kit_repository_comes_from_its_workspace_entry(kit):
     assert new_game.kit_repo(kit) == "Ryubara/gdstudio"
 

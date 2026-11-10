@@ -23,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gds_tools import eval_quality, eval_review, eval_service, integrations, layout, sync
+from gds_tools import eval_quality, eval_review, eval_service, integrations, layout, new_game, sync
 from gds_tools.manifest import load_tools
 
 Log = Callable[[str], None]
@@ -165,7 +165,9 @@ def prepare(task: Task, target: Path, kit: Path, tools_dir: Path, tool: Callable
     if task.kind != "godot":
         raise EvalError(f"unknown eval kind {task.kind!r}")
     game = target / "game"
-    shutil.copytree(kit / "templates" / task.template / "game", game)
+    shutil.copytree(
+        kit / "templates" / task.template / "game", game, ignore=shutil.ignore_patterns(*sorted(new_game.CACHE_FOLDERS))
+    )
     for addon in sync.KIT_ADDONS:  # what `gds sync` writes into every game: the template's autoloads name them
         shutil.copytree(kit / sync.KIT_PROJECT / "addons" / addon, game / "addons" / addon)
     for path in game.rglob("*"):
