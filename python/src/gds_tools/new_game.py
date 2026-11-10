@@ -25,13 +25,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from gds_tools import integrations, issues, sync, worktrees
+from gds_tools import integrations, issues, project_file, sync, worktrees
 from gds_tools import new_game_github as github
 from gds_tools.manifest import load_tools, load_workspace
 
 #: Folders of `templates/` that are not templates: the files `gds sync` owns, and the repository files every game has.
 SYNCED_FOLDER = "game"
 REPO_FOLDER = "repo"
+#: The one file of a template that is merged with its base's, by section and key, instead of replacing it.
+PROJECT_FILE = "game/project.godot"
 #: Kit files copied once, as a game's own afterwards (a game changes them for itself; `gds sync` does not own them).
 COPIED_FROM_KIT = (".github/scripts/pr_status.py",)
 #: The commit that holds a new game's first state. No trailer: a command wrote it, not an agent.
@@ -302,8 +304,14 @@ def new_game(
     log(f"make    repos/{name} from the {template.name} template")
     repo.mkdir(parents=True)
     count = len(copy_tree(kit / "templates" / REPO_FOLDER, repo, words))
+    merged_files = [part.path / PROJECT_FILE for part in parts if (part.path / PROJECT_FILE).is_file()]
+    own_project = frozenset() if len(merged_files) < 2 else frozenset({PROJECT_FILE})
     for part in parts:
-        count += len(copy_tree(part.path, repo, words, skip=frozenset({"template.toml"})))
+        count += len(copy_tree(part.path, repo, words, skip=frozenset({"template.toml"}) | own_project))
+    if own_project:
+        texts = [render(path.read_bytes(), words).decode("utf-8") for path in merged_files]
+        (repo / PROJECT_FILE).write_text(project_file.merge(texts), encoding="utf-8", newline="\n")
+        count += 1
     for rel in COPIED_FROM_KIT:
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(kit / rel, repo / rel)

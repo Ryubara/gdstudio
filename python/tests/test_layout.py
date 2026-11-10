@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from gds_tools import layout
+from gds_tools import layout, project_file
 
 KIT = Path(__file__).resolve().parents[2]
 TEMPLATE_GAME = KIT / "templates" / "3d-blank" / "game"
@@ -40,6 +40,11 @@ def test_the_third_person_template_on_top_of_its_base_follows_every_rule(tmp_pat
     game = tmp_path / "game"
     shutil.copytree(TEMPLATE_GAME, game)
     shutil.copytree(KIT / "templates" / "3d-third-person" / "game", game, dirs_exist_ok=True)
+    # The template's project file holds only what it adds; `gds new game` merges it into the base's.
+    project = [TEMPLATE_GAME / "project.godot", KIT / "templates" / "3d-third-person" / "game" / "project.godot"]
+    (game / "project.godot").write_text(
+        project_file.merge([path.read_text(encoding="utf-8") for path in project]), encoding="utf-8", newline="\n"
+    )
     assert layout.check(game) == []
 
 
