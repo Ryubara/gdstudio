@@ -126,6 +126,60 @@ blend takes it to zero.
 - **"Very subtle" is a number.** Deadnight settled on sway peaks of 0.3 degrees pitch, 0.15 yaw and 0.2 roll, and at
   most 0.5 degrees for any shot; a test holds each bound, and a player setting scales both to zero.
 
+### One shake component for every game {#shake-component}
+
+<!-- new section: the page held Deadnight's shot shake and sprint sway, nothing on a shake any feature can call -->
+
+The templates share one shake, `CameraShake` with `ShakePreset` resources (3D Blank's `core/camera_shake/`, so 3D Third
+Person and every game made from the base have it). It is Deadnight's trauma shake made general: the shake is `max
+rotation x level^exponent x wave`, where `level` is the trauma of a one-shot (it drains by itself, `duration` seconds
+from 1) or the blend of a held source (it eases by `blend_speed`), and the wave is seeded noise (impacts) or a sine
+(a gait). Everything is a function of the steps it was given, so tests and captures see the same shake.
+
+- **A rig owns one.** `CameraShake` is a node under the camera rig. It only works out the turn; the rig applies it on
+  top of its own framing: `rotation_degrees()` (x pitch, y yaw, z roll) and `view_offset()` (a slide of the picture in
+  metres, which moves no camera and so no wall sweep). `PlayerCamera` adds the turn to its Phantom Camera's
+  third-person rotation and the slide to the shoulder's H and V offset. A rig steps it with `advance(delta)`; one that
+  does not leaves `auto_advance` on.
+- **One line from anywhere.** `CameraShake.shake(preset, at, scale)` plays a preset once on every shaker in the tree (a
+  static function, no autoload: shakers join the group `camera_shake`). `at` is a world position for a play that
+  fades with distance from the camera (the preset's `radius`, smooth to zero at the edge), `scale` multiplies the
+  trauma, and leaving `at` out is felt in full (the player's own shot, a landing).
+
+  ```gdscript
+  const BLAST := preload("res://core/camera_shake/presets/explosion.tres")
+  CameraShake.shake(BLAST, explosion.global_position)       # a blast: fades with distance, radius 40 m
+  CameraShake.shake(preload("res://core/camera_shake/presets/landing.tres"))  # the player's own landing
+  ```
+
+- **An impact calls it the same way.** A bullet impact, when the impacts component lands, adds one line where it
+  places a decal: `CameraShake.shake(IMPACT, hit_position)` with `presets/impact.tres` (trauma 0.35, 0.25 s, felt to
+  15 m), so a hit beside the player is felt and one across the map is not. The call is not wired into the
+  template yet (the impacts component was still open): the default of every shake the player causes is none.
+- **A continuous source is held, not played.** `shaker.hold(&"sprint", preset, level)` every frame with the state's
+  level (1 while it holds, 0 when not), or `CameraShake.hold_everywhere(source, preset, level, at)`. A held source
+  eases in and out by the preset's `blend_speed`, `release(source)` lets it go, and a source at 0 that has died away is
+  forgotten. `PlayerCamera` holds `&"sprint"` this way: its `sprint_shake_amplitude` (0 by default), frequency and blend
+  stay in the Sprint group next to the sprint zoom and build a sine preset (pitch once a footfall, yaw and roll once
+  for two, 1 : 0.5 : 0.67) read every frame, so a change in the inspector works while the game runs.
+- **A shot kick is a one-shot.** `PlayerCamera.shot_kick_amplitude` (degrees, 0 by default) and `shot_kick_duration`
+  are in the Fire group. The weapon's `fired` signal calls `kick()`, which adds a preset whose largest single turn is
+  the amplitude (a trauma of 0.5 on a straight curve, so a burst stacks to at most twice that).
+- **Strength.** `CameraShake.strength` (0 to 1, static) scales every shake in the game: a settings menu sets it from the
+  player's "camera shake" option (and 0 for reduced motion), and 0 keeps no trauma at all. Each shaker also has
+  `camera_strength` and `enabled` for one camera (a cutscene's). Both apply to what is already shaking.
+- **Presets.** `core/camera_shake/presets/` has `shot`, `landing`, `impact`, `explosion` and `sprint` as `.tres`: trauma,
+  duration, wave, frequency, `max_rotation`, `max_offset`, exponent, blend speed and radius, tuned in the inspector.
+  Peaks at one play: shot 0.19 degrees of pitch, impact 0.1, landing 0.25, explosion 1.3 (at 40 m it fades out).
+- **Cheap and local.** Measured on the desktop in Compatibility (GDScript, 100,000 frames): 0.7 microseconds a frame idle,
+  3.0 with the sprint held, 5.3 with the sprint, a blast and an impact up; nothing is made while playing but one small
+  object per running preset. A shake is the local player's own view: it is never sent over a network (each client
+  decides to play it from the event it already has).
+- **Not done: an aim that ignores the shake.** The turn is on the Phantom Camera, and the weapon aims through the
+  viewport's camera, so a shake moves where the crosshair points: a shot kick at 0.3 degrees moves a shot at 50 m by
+  0.26 m. Deadnight kept an unshaken `aim_transform()` for the weapon; the template does not yet, so keep every default
+  at 0 and any kick under half a degree.
+
 - **Approach:** Key any camera motion that follows steps to the grounded state, with a test that steps it through the
   first airborne tick; capture camera numbers in a sprint, a sprint-jump and long play; restate a feel request that can
   be read two ways as a number and a visible result, and confirm it before building. **Watch out for:**
@@ -140,6 +194,13 @@ blend takes it to zero.
   camera onto the real `Camera3D` every frame, so a rotation set on that node is overwritten; turning the rig swings the
   lens about the target (2 cm at 0.3 degrees and 4.4 m). **Seen:** gdstudio #836, 2026-11-08 (sprint +6 degrees and
   +0.4 m; aim 2.4 m, 0.55 m over the shoulder, 50 degrees).
+
+- **Approach:** Give a feature that shakes the view one line, `CameraShake.shake(preset, at)` with a `ShakePreset`
+  resource, never a shake of its own (a `sin` in the camera script, a tween on the lens), and hold a state-driven shake
+  with `hold(source, preset, level)`. **Watch out for:** a shake written per feature (the template's sprint shake had its
+  own blend and phase in the camera, Deadnight's shot and sprint sway two more classes) has its own settings, none turns
+  down with the others, and the next feature (a landing, an impact, a blast) writes a fourth. **Seen:** gdstudio #879,
+  2026-11-10 (fix: `CameraShake`; the sprint shake moved onto it with its inspector settings and default unchanged).
 
 ## Projecting world points to the HUD {#projecting-world-points-to-the-hud}
 
