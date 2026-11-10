@@ -162,3 +162,7 @@ jump press): the server and a predicting client step the same plan from the same
   `after_test`, as the arena suites do. **Watch out for:** `test_vault_course.gd` left a footstep playing when the run
   quit, so the run logged a leaked `AudioStreamOggVorbis` and the template command (and CI) refused it although every
   case passed; it showed only when it ran last in a short run. **Seen:** gdstudio #1013, 2026-11-10.
+- **Approach:** Keep a move's whole tick in its own part (`CharacterVault.drive(body, delta)`) and leave one call in
+  `Character._move`. **Watch out for:** `character.gd` sits near gdlint's 1000-line cap with three moves landing in
+  it the same day; the vault's 40 lines there pushed the merge of the slide to 1028 lines and the commit was refused.
+  **Seen:** gdstudio #1013, 2026-11-10 (refreshing on top of #1019).
