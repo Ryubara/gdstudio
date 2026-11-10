@@ -293,6 +293,19 @@ frame that starts six sounds pays six times.
   resource count stayed flat and nothing looked like a leak. **Seen:** Deadnight #387, 2026-11-01 (fix: Deadnight #402,
   decode on load and a start cap; a GdUnit test counts nodes and objects over a run and fails on an allocation per kill).
 
+Measured in the 3D Third Person template (desktop, Godot 4.7.2, gdstudio #1023): `AudioStreamPlayer3D.play()` of a
+0.1 s mono Ogg Vorbis step costs about 250 µs, of the same samples as an `AudioStreamWAV` about 1 µs. `DecodedSounds`
+of `gds_game` makes the WAV (`DecodedSounds.decoded(stream)`: short, non-looping Ogg Vorbis and MP3, at the mix rate,
+16-bit, mono when the channels match, made once and shared); the template's `Footsteps` plays its steps through it.
+
+- **Approach:** Decode a short sound that is started often (steps, shots, impacts) once and share the WAV across every
+  node that plays it; warm it in `_ready` so the first play does not decode; prove the sound unchanged with a null test
+  of two Movie Maker mixes, before and after. **Watch out for:** a crowd's footsteps paid the Ogg setup on every step
+  (14 µs a walking character a frame on the desktop, 22 in Chrome: 0.35 ms a frame for 25), while the step list
+  emptied cost 1.6 µs; the decode itself is a GDScript loop, 2 ms on the desktop and up to 16 ms in Chrome for four
+  steps, so it belongs in the load, not the frame. **Seen:** gdstudio #1023, 2026-11-10 (footsteps 13 µs to 2.3 on the
+  desktop, 22 to 7 to 8 in Chrome).
+
 A capped start returns no player: Deadnight's `Audio.play` answers null both for a dropped sound (too far, over its
 voice limit) and for one put off to the next frame by the starts-per-frame cap, which then plays. Code that schedules
 from the returned player (a gust that times the next one by its length) takes null as "length unknown", never as "not
