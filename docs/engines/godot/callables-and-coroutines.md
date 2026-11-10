@@ -89,6 +89,11 @@ instead of the original) had no home -->
   `Packed*Array`. **Watch out for:** packed arrays are value types, so `var list := data.names; list.append(x)` changes
   a copy and the property stays empty, with no error: a credits list stayed empty although every line was appended.
   **Seen:** Deadnight, 2026-11-01 (fix: append to the property; a test caught it).
+- **Approach:** `duplicate()` a packed array another object keeps appending to before a coroutine reads it across
+  frames (a replay of a server's history, a list of samples). **Watch out for:** the other way round from the entry
+  above: passed to a function, `peer.history_steps` was the same array, so a replay loop that awaited a frame for each
+  entry grew with the server that went on stepping, ran 1025 frames instead of 126 and let the server drop the client
+  as silent. **Seen:** gdstudio #904, 2026-11-10 (fix: the test replays a copy taken when it read the body).
 
 ## Handlers of one signal run in the order they connected {#signal-order}
 

@@ -1,8 +1,8 @@
 # Networking
 
-What the template gives an online game so far: the **link** that carries packets between a client and a server. The
-packets themselves (what a command, a snapshot or an event holds) are a layer above, and the server and the client
-that play the game are still to come.
+What the template gives an online game so far: the **link** that carries packets between a client and a server, the
+packets above it (`NetWire`, `CommandCodec`, `SnapshotCodec`), and the **game server** that admits players and steps
+their bodies. The client that predicts its body and draws the others is still to come.
 
 ## The link
 
@@ -30,10 +30,25 @@ body reads no key and no camera. A server steps the same body with the commands 
 `CommandCodec` writes a command in 15 bytes, 27 with the crosshair's ray, which rides only on a tick where a shot can
 leave. The fields are in [the character page](character.md#commands).
 
+## The server
+
+`godot --headless --path game -- --server --port 8910` starts it: the main scene sees `--server` and opens
+`game/gameplay/net/net_server.tscn` (the map and a `NetServer`) instead of the menu. Each player who says hello gets
+the lowest free slot and a body (`character.tscn`, the body alone) at the slot's spawn point, and every client gets a
+TICK of all players thirty times a second. The server applies each client's commands once and in order; a client that
+goes quiet keeps walking for half a second, then stands, and after 15 s it is hung up on. A client of another version or
+map, or one over `max_players`, is refused; one that floods or sends what no client sends is hung up on. It prints one
+JSON line for each player who comes or goes and every 10 s its numbers (players, bytes out a second, the step's time).
+
+Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `max_players`, `command_ticks`,
+`silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene.
+
 ## Trying it
 
 - `game/tools/net/echo_server.gd` is a bare server that answers every packet; `game/tools/net/relay.py` adds a delay
   each way between a client and it. Their headers say how to run them.
+- `game/tools/net/server_bot.gd` plays bots against a server you started, and `game/tools/bench/server_bench.tscn`
+  times the server's step with eight of them; their headers say how to run them.
 - `game/tools/web_smoke/net_link_smoke.py` opens the web build against the echo server in a headless browser.
 
 The numbers and the engine behaviour the link was built around are in the kit's `docs/engines/godot/multiplayer.md`

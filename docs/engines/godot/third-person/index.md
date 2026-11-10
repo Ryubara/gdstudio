@@ -9,5 +9,6 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
   controller, the ragdoll and touch controls.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
+- [The game server](game-server.md): the headless server that admits and steps the players, its log and its cost.
 
 What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).
