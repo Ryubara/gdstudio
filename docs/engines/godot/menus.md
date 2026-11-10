@@ -26,7 +26,7 @@ one after it.
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
 | Screen host | `ui/menus/screen_host.gd`, `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`) | Opens screens over the game ([Menus over a game](#screen-host)). |
-| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |

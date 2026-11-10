@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/item_counter.tscn" id="4_counter"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_health.tscn" id="5_health"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_ammo.tscn" id="6_ammo"]
+[ext_resource type="PackedScene" path="res://ui/minimap/minimap.tscn" id="7_minimap"]
 
 [node name="Hud" type="CanvasLayer" node_paths=PackedStringArray("root", "safe_area", "minimap_slot")]
 script = ExtResource("1_hud")
@@ -73,10 +74,12 @@ grow_horizontal = 0
 mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="MinimapSlot" type="Control" parent="Root/SafeArea/TopRight"]
-custom_minimum_size = Vector2(260, 260)
+[node name="MinimapSlot" type="MarginContainer" parent="Root/SafeArea/TopRight"]
 layout_mode = 2
 mouse_filter = 2
+
+[node name="Minimap" parent="Root/SafeArea/TopRight/MinimapSlot" instance=ExtResource("7_minimap")]
+layout_mode = 2
 
 [node name="BottomLeft" type="VBoxContainer" parent="Root/SafeArea"]
 layout_mode = 1
