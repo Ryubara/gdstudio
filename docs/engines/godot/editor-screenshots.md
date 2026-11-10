@@ -41,7 +41,9 @@ gdstudio #1003). A search for a `Button` by its text finds nothing there.
   where the file is in the pull request.
 - **Running the editor rewrites some texture `.import` files** (Deadnight #441 tracks the cause and the fix).
   Until it lands, `git checkout -- 'game/assets/**/*.import'` before committing.
-- Revert `project.godot` the same way after the run, and delete the plugin folder from the worktree.
+- Revert `project.godot` the same way after the run (`git checkout -- game/project.godot`: the windowed editor
+  rewrites it on every open; the checkout keeps the workspace's local plugins in it,
+  [Integrations](../../studio/workspace.md#integrations)), and delete the plugin folder from the worktree.
 - The same probe checks a template's scenes as a person meets them (kit docs: [the template
   checklist](new-game.md#template-checklist)): open each scene, call `_get_configuration_warnings()` on every node that
   has it (`Node.get_configuration_warnings()` is not in the script API in 4.7; the engine's own warnings, such as a
@@ -72,8 +74,9 @@ gdstudio #1003). A search for a `Button` by its text finds nothing there.
   that never started it shows. **Watch out for:** a plugin listed only in an `override.cfg` next to `project.godot`
   never entered the tree in Godot 4.7.2, headless or windowed, and the editor sat with no error until its timeout;
   the same list in `project.godot` started it at once. **Seen:** gdstudio #885, 2026-11-10 (the map bake plugin);
-  gdstudio #1003, 2026-11-10 (a one-file plugin that prints in `_enter_tree`: printed from `project.godot`, silent from
-  `override.cfg`; the template's `swap_in_editor.gd` header said otherwise and was corrected).
+  gdstudio #1003, 2026-11-10 (a one-file plugin that prints in `_enter_tree`: printed from `project.godot`, silent
+  from `override.cfg`; the template's `swap_in_editor.gd` header said otherwise and was corrected); gdstudio #1005
+  (the workspace's own plugins, [Integrations](../../studio/workspace.md#integrations)).
 
 ## Changing values like the remote inspector {#remote-inspector}
 
