@@ -49,6 +49,14 @@ def roomy_disk(monkeypatch):
     monkeypatch.setattr(guards, "free_bytes", lambda path: int(FREE["gb"] * guards.GB))
 
 
+@pytest.fixture(autouse=True)
+def heads_hold_main(monkeypatch):
+    """No test asks GitHub whether a pull request is behind its base: every head holds the tip (python/tests/
+    test_merge_guard.py has the merge guard's own tests)."""
+    guards.take_warnings()
+    monkeypatch.setattr(guards, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))
+
+
 def shell(command: str, cwd: Path) -> dict:
     return {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(cwd)}
 

@@ -19,6 +19,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
+| Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Starting work](starting-work.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
@@ -63,8 +64,7 @@ opened by the guard, only placed and compared with the references ([below](#atta
 guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
 branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
 `docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([Writing checks](writing-checks.md#same-input)). The guard is a hand-merge path
-(`.claude/hooks/`): a maintainer merges changes to it.
+([Writing checks](writing-checks.md#same-input)).
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
@@ -97,15 +97,14 @@ capture is missing". Measured on 2026-11-03 with `gh` 2.102.0 (`gh issue edit --
 
 The guard before the command used to match by file name alone, so it passed the first row. Deadnight #611 and #637
 were opened that way through the Bash tool, which the guard does see: the body file was written first, `--attach` took
-absolute paths in the scratch folder, and the command ran in the worktree (the agents' transcripts; the body history
-on GitHub shows the first body with `](../before-desktop-2-solo.png)` references and the uploads appended). The same
-history shows 17 Deadnight pull requests of 2026-11-02 and 03 with a description revision that had `./` image
-references. The guard now places the reference and the `--attach` path (`file_key` in
-`.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
-file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are judged alike. A `cd` it
-cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body guard reads the same
-placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the description rules, and
-the two guards agree.
+absolute paths in the scratch folder, and the command ran in the worktree (the body history on GitHub shows the first
+body with `](../before-desktop-2-solo.png)` references and the uploads appended). 17 Deadnight pull requests of
+2026-11-02 and 03 had a description revision with `./` image references. The guard now places the reference and the
+`--attach` path (`file_key` in `.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses
+the pair that is not one file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are
+judged alike. A `cd` it cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body
+guard reads the same placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the
+description rules, and the two guards agree.
 
 Paths the guard cannot read are covered by a second line, a `PostToolUse` read-back. After a shell command that ran
 `gh pr create|edit`, or whose last output line is a pull request address (a script that runs `gh`, an alias), the
@@ -197,7 +196,6 @@ an alias made before this guard, a `gh` extension, `curl` with a token, the webs
 `gds` is the last of these and has its own rule, because it runs under the maintainer's account: `run_gh` in
 `python/src/gds_tools/issues.py` is its one way to run `gh`, and refuses what `posts_a_comment` names; a test fails
 if a second way appears. `gds issue start`, `release` and `unblock` change labels and the ledger and post nothing.
-Until 2026-11-06 they did post, and this page called it by design.
 Comments a workflow posts with `GITHUB_TOKEN` appear under `github-actions[bot]`, not under the maintainer.
 
 A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook

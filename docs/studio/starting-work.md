@@ -470,6 +470,15 @@ Open pull requests come before new work: each one left open goes stale against `
   hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
   2026-11-04.
 
+- **Approach:** Before any merge call (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`), have
+  the head contain the current tip of its base: `gds merge-main --path <worktree>`, push once, wait for the checks on
+  that head. The merge guard asks GitHub, not the local clone, to compare `base...head`, refuses when `behind_by` is
+  above 0 and names the missing commits; when GitHub cannot be asked the call goes through with a warning, so read
+  `mergeStateStatus` yourself ([Hooks](hooks.md#what-it-refuses)). **Watch out for:** a pull request can be CLEAN and
+  green on a head that never met the newest commits of `main`, and the new commits looked unrelated. **Seen:** gdstudio
+  #972 (two commits behind) and #977 (#956 and #959), 2026-11-10, merged unrefreshed; on 2026-11-06 the same turned
+  `main` red (fix: the guard, kit #982).
+
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
 Merge `origin/main` into the branch only when the pull request is DIRTY or `main` broke one of its checks: every push
