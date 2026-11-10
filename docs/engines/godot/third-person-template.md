@@ -12,13 +12,14 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 
 | Part | Where (in `templates/3d-third-person/game/`, the base in `templates/3d-blank/game/`) | Notes |
 | --- | --- | --- |
-| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
+| Controller | `gameplay/player/player.gd`, `player_tuning.gd` + `.tres`, `step_climber.gd`, `interactor.gd` | One resource holds every tuned number. Signals: `jumped`, `landed`, `took_hit`, `interacted`, `item_collected`, `state_changed`, `teleported`, `aim_changed`, `crouch_changed`, `died`, `revived`. Crouch, aim and shoot: [below](#crouch-aim-shoot). |
 | Model | `gameplay/player/player_model.gd` | `Model` is a slot (a `Node3D`) that holds the glb and the pistol seat; replace the glb under it: [Replacing the model](#replacing-the-model). |
-| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
+| Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine, a pistol layer (the grip on one hand, the aim pose on the upper body) and a one-shot action layer. The carry is an inspector choice ([Crouch, aim and shoot](#crouch-aim-shoot)). `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view and a fire view blended on its framing; a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
-| Effects | `gameplay/effects/` (`effect_emitter.tscn` as `Effects` in `main.tscn`), `gameplay/weapon/muzzle_flash.tscn` and `.tres`, `assets/shaders/effects/`, `assets/materials/effects/` | One pooled player of one-shot effects (particles, a sound, a flash of light) at a point or on a node, used by the muzzle flash and every impact. [Effects and the muzzle flash](#effects). |
+| Effects | `gameplay/effects/`, `gameplay/weapon/muzzle_flash.*` | One pooled player of one-shot effects for the muzzle flash and every impact. [Effects](#effects). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
@@ -258,11 +259,21 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
-  `filter_enabled` and a filter path for `spine_01` and every bone under it (read from the skeleton,
-  `Armature/Skeleton3D:<bone>`), the holding pose first, the aim pose over it by the camera's pitch in a blend space
-  (`Pistol_Aim_Down` -45, `Pistol_Aim_Neutral` 0, `Pistol_Aim_Up` 45) and the recoil last. **Watch out for:** the aim
-  clips are 0.17 s long and do not loop, so they hold their last pose, which is what an aim should do; the pistol clips
-  are whole-body poses, so without the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08.
+  `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
+  over it by the camera's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
+  off aim and fire only the gripping hand (`hand_r` and what is under it) takes the grip pose, so the arms and spine
+  follow the locomotion (`PlayerAnimation.carry`, `grip_clip`, `grip_bones`). **Watch out for:** the holding pose at
+  weight 1 the whole time a weapon was held made the character walk, jog and sprint with the pistol held out like an
+  aim; the pistol clips are whole-body poses, so without
+  the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08; gdstudio #877, 2026-11-10 (found by the
+  maintainer).
+- **Approach:** Prove a carry by reading, per bone, the blend amount of the layer that filters it (0 on the arm and
+  spine walking, jogging, sprinting, crouch walking and jumping, 1 on the hand) and the pistol's clearance on the
+  skinned body in every clip on both mannequins (`test_pistol_carry.gd`, `test_pistol_clearance.gd`); keep the arm up
+  `shot_hold_time` after a shot. **Watch out for:** with aim released at once (#868) a tap of the fire button raised the
+  arm to half and lowered it before a shot showed; the tree is driven from `_process`, a render frame behind the physics
+  ticks a test awaits (a rebuild makes the physics catch up with no render frame), so wait for `process_frame` before
+  reading a rebuilt tree. **Seen:** gdstudio #877, 2026-11-10.
 - **Approach:** Time footsteps to the skeleton, not to a clock or a distance: a foot lands when its bone, moving toward
   the model's +Z, turns back (its forward speed goes from above `swing_speed` to below minus it, after a swing of at
   least `min_stride`), read from `Skeleton3D.get_bone_global_pose` each frame, with a minimum gap between steps and
@@ -377,11 +388,10 @@ or a ray gun reuses it.
   look; `max_marks` and `mark_lifetime` also act on them at once).
 - **One node a surface.** Under `Impacts/Surfaces` are `Default`, `Wood`, `Metal` and `Target`, each an
   `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
-  (empty: the `Impacts`'), `mark_scale`, and `effect`, an `EffectDef`
-  played by the level's `EffectEmitter` ([Effects](#effects)): its particles scene is a one-shot `CPUParticles3D` you
-  restyle in its own scene (or swap for a `GPUParticles3D`), its `sound` an `AudioStreamRandomizer` of three variants on
-  `SFX`, and its `max_instances` is how many hits of the surface can show and sound at once. Add a node and a name for a
-  new surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
+  (empty: the `Impacts`'), `mark_scale`, and `effect`, an `EffectDef` (a one-shot `CPUParticles3D` scene and a
+  three-variant `sound` on `SFX`) that the level's `EffectEmitter` plays ([Effects](#effects)); its `max_instances` is
+  how many hits of the surface show at once. Add a node and a name for a new surface (`glass`, `flesh`); the default
+  is what a hit gets when the body says nothing or says a name no surface has.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
   `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
@@ -398,19 +408,14 @@ or a ray gun reuses it.
 
 ## Effects and the muzzle flash {#effects}
 
-<!-- new section: the pistol had no flash and the impacts kept their own pools (gdstudio #888); the details are on
-     [the effect emitter](effect-emitter.md) -->
+<!-- new section: the pistol had no flash; impacts kept their own pools (gdstudio #888) -->
 
-One `EffectEmitter` (`Effects` in `main.tscn`, the group `effect_emitter`) plays every one-shot effect from one capped
-pool: the pistol's muzzle flash, each bullet impact and anything a game adds. An effect is an `EffectDef` resource (a
-particles scene, a sound, a flash of light, a length). How to use it, every inspector value, the pool's rules, the tests
-and the cost are on [the effect emitter](effect-emitter.md).
+One `EffectEmitter` (`Effects` in `main.tscn`) plays the flash, each impact and other one-shot effects from
+one pool ([the effect emitter](effect-emitter.md)).
 
-- **The inspector, on the `Weapon`.** `muzzle_flash_enabled` (on) switches the flash off for that weapon, `muzzle_flash`
-  is the `EffectDef` it plays on the `muzzle` marker (`gameplay/weapon/muzzle_flash.tres`; another weapon points it at its
-  own) and `muzzle_flash_size` (1) resizes it.
-- **The inspector, on `EffectEmitter`.** `enabled`, `particles_enabled`, `sounds_enabled`, `lights_enabled`,
-  `max_effects` (24), `web_max_effects` (12), `max_lights` (2), `warm_up_on_start` (on) and `warm_up`.
+- **`Weapon`:** `muzzle_flash_enabled`, `muzzle_flash` (an `EffectDef`), `muzzle_flash_size`.
+- **`EffectEmitter`:** `enabled`, `particles_enabled`, `sounds_enabled`, `lights_enabled`, `max_effects` (24),
+  `web_max_effects` (12), `max_lights` (2), `warm_up_on_start`, `warm_up`.
 
 ## Ragdoll {#ragdoll}
 
@@ -486,6 +491,23 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A route for a clip {#walkthrough}
 
