@@ -21,27 +21,47 @@ const MOST_SETS := 8
 
 
 ## A set of bones off any skeleton: the simulator with its bodies, where each body was when its
-## joint was made, the extra joints between them, and what they were made for (the rig, the
-## thickness and the joints' settings).
+## joint was made, the plan of its extra joints (freed while parked: the new owner makes them again
+## after the bones' own joints, in the order Jolt needs), and what they were made for
+## (`CharacterRagdoll._set_key`: the rig and the settings of the bodies and their joints).
 class Spare:
 	extends RefCounted
 	var simulator: PhysicalBoneSimulator3D
 	var bones: Dictionary[StringName, PhysicalBone3D] = {}
 	var posed: Dictionary[StringName, Transform3D] = {}
 	var braces := RagdollBraces.new()
-	var fit := ""
+	var fit := 0
 
-	## Frees the bones and their extra joints.
-	func free_all() -> void:
+	## Takes the bones off their skeleton with nothing of the character that held them: their
+	## simulation, marks, exceptions (the character's capsule, `ignored`), the hit zones' tag, and
+	## their joints. The extra joints are freed too: the new owner makes them again after the bones'
+	## own joints, since Jolt solves joints in the order they were made and kept ones come back
+	## body by body as the bodies return to the world (a shoulder then twisted 44 degrees past a
+	## person's, gdstudio #1022).
+	func detach(ignored: Array[CollisionObject3D]) -> void:
+		if simulator.is_inside_tree():
+			if simulator.is_simulating_physics():
+				simulator.physical_bones_stop_simulation()
+			simulator.get_tree().call_group(&"impacts", &"clear_marks_on", simulator)
+			for other in ignored:
+				if is_instance_valid(other):
+					simulator.physical_bones_remove_collision_exception(other.get_rid())
 		braces.free_all()
-		if is_instance_valid(simulator):
-			simulator.free()
+		for bone: PhysicalBone3D in bones.values():
+			bone.remove_meta(&"hit_zones")
+			# A new owner makes the joint again, posed on its own skeleton.
+			bone.joint_type = PhysicalBone3D.JOINT_TYPE_NONE
+		simulator.active = false
+		simulator.influence = 1.0
+		simulator.get_parent().remove_child(simulator)
 
 
 static var _pool: RagdollPool
 
 ## How many sets to keep parked: the largest `max_active` of the ragdolls that asked.
 var wanted := 0
+## True once the first set made has been through a death and a move (`make_spare`).
+var warmed := false
 var _parked: Array[Spare] = []
 var _park: Node
 # Instance ids of the ragdolls that may make a set on their skeleton.
@@ -101,7 +121,8 @@ func park(spare: Spare) -> void:
 ## Frees every parked set (the pool makes them again for the ragdolls that ask next).
 func clear() -> void:
 	for spare in _parked:
-		spare.free_all()
+		if is_instance_valid(spare.simulator):
+			spare.simulator.free()
 	_parked.clear()
 	set_process(false)
 
@@ -128,8 +149,5 @@ func _process(_delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		for spare in _parked:
-			spare.braces.free_all()
-		if _pool == self:
-			_pool = null
+	if what == NOTIFICATION_PREDELETE and _pool == self:
+		_pool = null

@@ -198,6 +198,8 @@ var _counts := false
 var _settled := false
 # The extra joints beside each bone's own (`hinge_passes`, `cone_passes`).
 var _braces := RagdollBraces.new()
+# The instance id of the last skeleton found to have every bone `BODIES` names.
+var _fitting := 0
 
 
 func _ready() -> void:
@@ -432,7 +434,17 @@ func make_spare() -> bool:
 	if pool == null or not pool.has_room() or not _fits(model.skeleton() if model else null):
 		return false
 	_build()
-	return _release()
+	if pool.warmed:
+		return _release()
+	# The first set of the game also goes limp for no time and is taken back once, so the engine's
+	# first-time work (the bodies' first simulation, a set's first move) is paid here, behind the
+	# level's loading, and not by the first death: 1.3 ms of a browser's 2.5 (gdstudio #1022).
+	pool.warmed = true
+	_simulator.active = true
+	_simulator.physical_bones_start_simulation()
+	_simulator.physical_bones_stop_simulation()
+	_simulator.active = false
+	return _release() and _adopt() and _release()
 
 
 # Takes a set from the pool onto this skeleton and joins it as `_build` does. False when the pool
@@ -448,21 +460,17 @@ func _adopt() -> bool:
 	_clear()
 	_simulator = spare.simulator
 	_bones = spare.bones
-	var fitted := spare.fit != _joints_key()
-	if fitted:
-		spare.braces.free_all()
-	else:
-		# The extra joints came with the set: the physics server makes them again as the bodies
-		# enter the world (`_brace_joints` keeps a set that has them).
-		_braces = spare.braces
+	var fitted := spare.fit != _set_key()
+	if not fitted:
 		_posed = spare.posed
+		_braces = spare.braces
 	_simulator.get_parent().remove_child(_simulator)
 	skeleton.add_child(_simulator)
 	_hold_braces()
 	if fitted:
 		for entry: Dictionary in BODIES:
 			_fit_bone(skeleton, _bones[entry.bone], entry)
-	_join(skeleton, fitted)
+	_join(skeleton, fitted, true)
 	return true
 
 
@@ -475,31 +483,16 @@ func _release() -> bool:
 	var pool := RagdollPool.instance(get_tree()) if is_inside_tree() else RagdollPool._pool
 	if pool == null or not is_instance_valid(pool) or not pool.has_room():
 		return false
-	if _simulator.is_inside_tree():
-		if _simulator.is_simulating_physics():
-			_simulator.physical_bones_stop_simulation()
-		_simulator.get_tree().call_group(&"impacts", &"clear_marks_on", _simulator)
-		for ignored in _ignored:
-			if is_instance_valid(ignored):
-				_simulator.physical_bones_remove_collision_exception(ignored.get_rid())
 	_count(false)
-	# The extra joints go with the bones (the server keeps them while the bodies are parked out of
-	# the world): making them again is most of what taking a set costs.
 	_simulator.tree_exiting.disconnect(_free_braces)
 	_simulator.tree_entered.disconnect(_brace_joints)
-	for bone: PhysicalBone3D in _bones.values():
-		bone.remove_meta(&"hit_zones")
-		# A new owner makes the joint again, posed on its own skeleton.
-		bone.joint_type = PhysicalBone3D.JOINT_TYPE_NONE
-	_simulator.active = false
-	_simulator.influence = 1.0
-	_simulator.get_parent().remove_child(_simulator)
 	var spare := RagdollPool.Spare.new()
 	spare.simulator = _simulator
 	spare.bones = _bones
 	spare.posed = _posed
 	spare.braces = _braces
-	spare.fit = _joints_key()
+	spare.fit = _set_key()
+	spare.detach(_ignored)
 	pool.park(spare)
 	_simulator = null
 	_bones = {}
@@ -510,14 +503,16 @@ func _release() -> bool:
 	return true
 
 
-# What a set's bodies and extra joints were made for: the model's scene (a model made in code fits
-# no other), the thickness and the joints' settings.
-func _joints_key() -> String:
+# What a set's bodies, materials and extra joints were made for: the model's scene (a model made
+# in code fits no other) and every setting of the Body and Collision groups.
+func _set_key() -> int:
 	var rig := model.rig() if model != null else null
 	var path := rig.scene_file_path if rig != null else ""
 	if path.is_empty():
 		path = str(get_instance_id())
-	return "%s|%s|%s|%d|%d" % [path, thickness, joint_range, hinge_passes, cone_passes]
+	var joints := [thickness, joint_range, hinge_passes, cone_passes]
+	var materials := [mass, linear_damp, angular_damp, friction, bounce]
+	return [path, joints, materials, collision_layer, collision_mask].hash()
 
 
 # True when this node leaves the tree because it, or the character above it, is being freed.
@@ -534,9 +529,14 @@ func _being_freed() -> bool:
 func _fits(skeleton: Skeleton3D) -> bool:
 	if skeleton == null or not skeleton.is_inside_tree():
 		return false
+	# Asked at every death (and twice at a first one): a skeleton that fitted once is not looked
+	# through again.
+	if skeleton.get_instance_id() == _fitting:
+		return true
 	for entry: Dictionary in BODIES:
 		if skeleton.find_bone(entry.bone) < 0 or skeleton.find_bone(entry.from) < 0:
 			return false
+	_fitting = skeleton.get_instance_id()
 	return true
 
 
@@ -564,7 +564,7 @@ func _build() -> void:
 		_fit_bone(skeleton, bone, entry)
 		_simulator.add_child(bone)
 		_bones[entry.bone] = bone
-	_join(skeleton, true)
+	_join(skeleton, true, false)
 	if was_limp and not Engine.is_editor_hint():
 		start()
 		for bone_name: StringName in lying:
@@ -581,9 +581,10 @@ func _hold_braces() -> void:
 
 # Joins the bodies on `skeleton` (in the tree, with every bone fitted): each joint made with its
 # body at the joint's centre, then the materials, the exceptions and the extra joints. `fitted`
-# is false for a set whose bodies were fitted to this rig before and `_posed` already holds where
-# they go.
-func _join(skeleton: Skeleton3D, fitted: bool) -> void:
+# is false for a set made for this rig and these settings before (`_set_key`): its offsets and
+# materials are kept and `_posed` already holds where its bodies go. `excepted` is true for a set
+# from the pool: its bodies keep their exceptions (the server would list them twice).
+func _join(skeleton: Skeleton3D, fitted: bool, excepted: bool) -> void:
 	var rest_bodies: Dictionary[StringName, Transform3D] = {}
 	if fitted:
 		for entry: Dictionary in BODIES:
@@ -595,7 +596,8 @@ func _join(skeleton: Skeleton3D, fitted: bool) -> void:
 	# where the engine would read it as the other limit), then the types. The limits are then the
 	# measured ones, whatever the animation shows.
 	for entry: Dictionary in BODIES:
-		_bones[entry.bone].joint_offset = Transform3D(_joint_frame(entry), Vector3.ZERO)
+		if fitted:
+			_bones[entry.bone].joint_offset = Transform3D(_joint_frame(entry), Vector3.ZERO)
 	var posed := _posed
 	for entry: Dictionary in BODIES:
 		if not fitted:
@@ -619,9 +621,15 @@ func _join(skeleton: Skeleton3D, fitted: bool) -> void:
 		_bones[entry.bone].global_transform = skeleton.global_transform * place
 	for entry: Dictionary in BODIES:
 		_set_joint(_bones[entry.bone], entry)
-	_apply_materials()
-	_except_parents()
-	_brace_joints()
+	if fitted:
+		_apply_materials()
+	if not excepted:
+		_except_parents()
+	if not fitted and _braces.has_plan():
+		# A set from the pool made for this rig: its extra joints again, from their plan.
+		_braces.remake()
+	else:
+		_brace_joints()
 
 
 func _clear() -> void:
