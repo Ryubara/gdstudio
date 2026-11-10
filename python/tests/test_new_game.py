@@ -346,8 +346,9 @@ def test_every_pre_commit_run_in_the_game_workflows_names_one_hook():
 def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientation_jolt_and_menus():
     """An extending template replaces a file whole, so 3D Third Person carries its own `project.godot`. It must not
     drift from 3D Blank's: the same text, but for the input map, the landscape setting (kit #821), Jolt
-    Physics, which the ragdoll needs (kit #846), and the menus (kit #881): the menu scene is the main scene and
-    the `Settings` autoload sits beside the router."""
+    Physics, which the ragdoll needs (kit #846), the menus (kit #881): the menu scene is the main scene and
+    the `Settings` autoload sits beside the router, and the navigation map's 0.1 m cell height, which lets the map
+    sections' baked meshes climb a stair the way the character does (kit #885)."""
     blank = (KIT / "templates" / "3d-blank" / "game" / "project.godot").read_text(encoding="utf-8")
     third = (KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text(encoding="utf-8")
     without_input = re.sub(r"\[input\]\n.*?(?=\n\[)", "", third, flags=re.DOTALL).replace("\n\n\n", "\n\n")
@@ -356,11 +357,13 @@ def test_the_third_person_project_file_is_the_blank_one_plus_its_input_orientati
     without_input = without_input.replace('Settings="*res://core/settings/settings_service.tscn"\n', "")
     menu_scene = 'run/main_scene="res://ui/menus/menu_scene.tscn"'
     without_input = without_input.replace(menu_scene, 'run/main_scene="res://main.tscn"')
+    without_input = without_input.replace("[navigation]\n\n3d/default_cell_height=0.1\n\n", "")
     assert without_input.strip() == blank.strip()
     assert "[input]" in third and "window/handheld/orientation=0" in third
     assert '3d/physics_engine="Jolt Physics"' in third
     assert 'Settings="*res://core/settings/settings_service.tscn"' in third
     assert 'run/main_scene="res://ui/menus/menu_scene.tscn"' in third
+    assert "3d/default_cell_height=0.1" in third
 
 
 def test_the_third_person_game_has_every_file_of_the_blank_one_and_its_own(real_third_person_game):
