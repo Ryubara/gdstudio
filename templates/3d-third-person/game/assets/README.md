@@ -18,3 +18,6 @@
   Credits screen until then.
 - `assets/audio/pistol/` is five pistol shots synthesised by Deadnight's code (MIT, GDStudio's own, with a
   `LICENSE.md`): no attribution and nothing to replace.
+- `assets/audio/impacts/` is nine bullet impact sounds (default, wood and metal, three each) synthesised by the kit's
+  `tools/audio/impact_sounds.py` (MIT, GDStudio's own, with a `LICENSE.md`); `assets/shaders/impacts/` and
+  `assets/materials/impacts/` are the mark's shader and its default material (original).

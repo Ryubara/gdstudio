@@ -1,6 +1,7 @@
 # Sound
 
-The buses, their volumes and the sounds 3D Third Person started with: a wind, a coin, footsteps and a pistol shot.
+The buses, their volumes and the sounds 3D Third Person started with: a wind, a coin, footsteps, a pistol shot and
+bullet impacts.
 
 ## Buses
 
@@ -23,6 +24,11 @@ shot is the `ShotSound` node of `weapon.tscn` (-22 dB): an `AudioStreamRandomize
 4% and a volume spread of 1 dB, three voices, played at the muzzle. A game's own shot is another `stream` in that one
 node.
 
+A shot that lands plays the `Sound` of its surface: each `ImpactSurface` under `Impacts/Surfaces` (`Default`, `Wood`, `Metal`,
+`Target`) has an `AudioStreamPlayer3D` on `SFX` with an `AudioStreamRandomizer` of three variants, copied per hit (a
+surface's `pool_size` hits can sound at once) and played at the point. Change the `stream`, the volume or the bus on the
+surface's `Sound` node; a hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off.
+
 ## The sounds
 
 | Sound | Files | Bus | Notes |
@@ -30,6 +36,7 @@ node.
 | Wind | `assets/audio/wind/wind_soft_1.ogg` | `Ambient` | 10.5 s, a seamless loop (the import sets `loop`), -33 LUFS |
 | Coin pickup | `assets/audio/coin/coin_pickup_1..4.ogg` | `SFX` | 0.35 to 0.36 s: a shake of coins into a soft pop; four variants to cycle |
 | Footsteps | `assets/audio/footsteps/footstep_soft_1..4.ogg` | `SFX` | four soft, low thuds of 0.08 to 0.13 s that suit any character and floor, cycled in a seeded order for walk, run, crouch and landing (same files, the three players' own volumes) |
+| Bullet impacts | `assets/audio/impacts/impact_default_1..3.ogg`, `impact_wood_1..3.ogg`, `impact_metal_1..3.ogg` | `SFX` | 0.22, 0.26 and 0.45 s, synthesised by `tools/audio/impact_sounds.py` (MIT, seeded): a dry smack and thud, a hollow knock and a splinter's tick, a ping and a short ricochet whine; peak -6 dBFS, played at -10 to -14 dB |
 | Pistol shot | `assets/audio/pistol/pistol_shot_1..5.ogg` | `SFX` | five 0.10 s reports from Deadnight's House Pistol, synthesised (MIT), played with a small random pitch and volume spread |
 
 The generated files are levelled so that files of a set sit within 0.3 LU of each other (coin -20 LUFS-M, steps -33
