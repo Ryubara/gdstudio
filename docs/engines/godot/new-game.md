@@ -334,6 +334,9 @@ template cheap to change):
     *Why:* a pinned default is a decision someone made, a test of the change is the only proof that item 2 holds, and a
     universal part copied into a template is never fixed in the games made from it.
 
+A test of item 5 calls the script's own `_get_configuration_warnings()`: the engine's `get_configuration_warnings()` is
+not callable from GDScript ("Nonexistent function"), and the script's list is the one a missing component adds to.
+
 How it is proved: `gds check scripts` and an editor open of a fresh game (the probe of
 [editor screenshots](editor-screenshots.md) prints each node's configuration warnings and what is empty, and saves each
 scene to see that nothing generated is written), the suites with a pin and a live test per export, and the editor's own

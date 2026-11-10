@@ -15,12 +15,15 @@ The template has a character and the map's components:
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
   `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a `Weapon` that fires `Projectile` spheres from a muzzle marker toward the
-  crosshair, and a `Target` that falls over when hit. They work with any model: point `Weapon.muzzle` at a marker.
+  crosshair, and a `Target` that falls over when its `Health` runs out. They work with any model: point
+  `Weapon.muzzle` at a marker.
 - `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow
-  the skeleton when a shot needs them) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; what a
-  network sends). A `Projectile` that meets a character's capsule asks its `HitZones` which part is on its line; the
-  character's `take_hit()` takes the health and its `HitReaction` (in `character/`) flinches, throws or pushes the
-  body.
+  the skeleton when a shot needs them). A `Projectile` that meets a character's capsule asks its `HitZones` which part
+  is on its line and gets a `HitRecord`; the character's `take_hit()` gives it to its `Health` and its `HitReaction`
+  (in `character/`) flinches, throws or pushes the body.
+- Components from the synced `addons/gds_game/` that the parts above carry as nodes: `Health` (on every character and
+  target: anything with one takes a shot) and `Interactable` (on the door: anything with one is used by the interact
+  button). Parts find these by their type, never by a method name.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
   (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
 - `effects/`: the `EffectEmitter` (one in the level, `world/world.tscn` has it) plays an `EffectDef` (a particles scene,

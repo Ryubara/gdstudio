@@ -132,12 +132,13 @@ the spread's place for `restore()`.
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
-- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor back
-  against the panel's motion, `close_after` counts from when the last character left, and `interact_point()` tells
-  the `Interactor` where to measure from. **Watch out for:** a sensor that is a child of a sliding door rises with it
-  and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
-  longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
-  set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
+- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor and
+  the door's `Interactable` back against the panel's motion ([Using things](character.md#interactable)), and
+  `close_after` counts from when the last character left. **Watch out for:** a sensor that is a child of a sliding door
+  rises with it and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m
+  reach no longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a
+  step, so set its `position` before. **Seen:** gdstudio #845, 2026-11-08; gdstudio #925, 2026-11-10 (`interact_point()`
+  became the `Interactable` kept at the closed door's place).
 - **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
   `TriggerZone` Characters and Props: [Physics layers](../physics-layers.md#template-layers)) and a class test behind
   it: `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies

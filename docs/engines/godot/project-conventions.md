@@ -57,7 +57,8 @@ game/
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
   2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
-  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back).
+  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back); gdstudio #925,
+  2026-11-10 (a template has no project to import: a throwaway script imported in the kit's `godot/`).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx

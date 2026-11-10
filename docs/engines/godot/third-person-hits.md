@@ -9,7 +9,8 @@ A shot lands on a body part and the body answers it on each peer: a headshot sna
 the ragdoll falls along the shot; a hit that does not kill makes the hit part flinch while the legs keep their clip; a
 shot into a body already lying pushes the bone it meets and leaves an impact mark on it. Everything is in
 `gameplay/character/character_dressed.tscn` (so every character and the player have it) and the scripts are
-`gameplay/hit_zones/` (`HitZones`, `HitZone`, `HitRecord`) and `gameplay/character/hit_reaction.gd`.
+`gameplay/hit_zones/` (`HitZones`, `HitZone`), `gameplay/character/hit_reaction.gd` and, in the synced
+`addons/gds_game/hits/`, `HitRecord` and `Health` ([below](#health)).
 
 - **How a shot finds the part (two steps).** The `Projectile` flies against the character's capsule as it does against
   anything. When it touches a capsule tagged by a `HitZones` (the metadata `hit_zones`), it asks
@@ -27,8 +28,10 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `encode()` packs the sent part in about 40 bytes (`decode()` reads it back and refuses a short or non-finite one). It
   is all a game's networking sends for a hit: a peer gives it to its own copy (`take_hit(record)`) and makes the
   damage, the flinch, the push and the mark itself, so no ragdoll or flinch is ever sent (kit #906 carries it).
-- **Health.** `Character.take_hit(record)` takes the damage from `health`, says `took_hit` and `health_changed`, and at
-  zero calls `die(record)`, which goes limp and then says `hit_received(record)` with `killed` set. `hit(amount,
+- **Health.** `Character.take_hit(record)` gives the record to the character's `Health` child
+  ([below](#health)), says `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`),
+  goes limp and then says `hit_received(record)` with `killed` set. `health`, `max_health` and `health_enabled` on the
+  character read and write the `Health` node's `value`, `max_value` and `enabled`. `hit(amount,
   source)` is still there: a blow with no point that also stops and throws the character (`hit_stun_time`,
   `knockback_speed`), as before. A dead character takes no damage, but its `hit_received` still fires (the lying-body
   push). Getting up gives the health back, and `die()` with no record sets it to 0. The HUD's health part reads
@@ -52,9 +55,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   (0.6), `thigh_l`, `thigh_r`, `shin_l`, `shin_r` (0.7); the forearm capsules reach over the hands, the feet have none.
 - **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
   `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
-- **On the `Character`**, the group Health: `health_enabled` (off: hits still flinch and push but take nothing) and
-  `max_health` (100). **On the `Weapon`**: `projectile_damage` (34: three chest shots, one headshot), passed to the
-  projectile's `damage`.
+- **On the character's `Health` node** (in `character.tscn`): `enabled` (off: hits still flinch and push but take
+  nothing), `max_value` (100) and the rest of [the component](#health). **On the `Weapon`**: `projectile_damage` (34:
+  three chest shots, one headshot), passed to the projectile's `damage`.
 
 ### What it costs {#cost}
 
@@ -94,3 +97,44 @@ a flinch, a shot on a lying body pushing its bone and leaving a mark that rides 
   for:** at a capture's 10 frames a second each frame runs six physics ticks while the camera moves once, so an aim
   loop in `_physics_process` turned six times too far and swung about the target for the whole clip, firing nothing,
   while the same loop converged headless at 60. **Seen:** gdstudio #876, 2026-11-10 (`hit_tour.gd`).
+
+## The Health component {#health}
+
+<!-- new section: health was a number on the character and a target counted hits of its own, and a shot called
+     `take_shot` by its name; nothing gave an AI character (#963), a target and a prop one way to take harm (gdstudio
+     #925) -->
+
+`Health` (`addons/gds_game/hits/health.gd`, synced into every game) is a node that anything which can be hurt carries:
+`character.tscn` has one (so the player and every AI character built on `Character` do), `target.tscn` has one, and a
+crate or a barrel takes shots once one is added under it. A shot finds it by type, `Health.of(body)` (the body itself
+or its first child that is one), never by a method name; a body without one takes no harm, and its script says so in a
+configuration warning (the character, the target). The `Projectile` gives a record of its `damage` to the `Health` of
+what it touched when that has no `HitZones`; `HitZones` hands its record to a `Character`'s `take_hit()`, or to the
+`Health` of any other receiver.
+
+- **API** (for code that hurts or reads: an AI's brain, a HUD, a network peer). `apply(hit: HitRecord) -> float` takes
+  `hit.damage` off `value` (when `enabled`, not `invulnerable` and alive), sets `hit.killed` on the hit that reaches
+  zero and returns what it took. `heal(amount)`, `kill(hit = null)`, `reset()` (full again; `revived` after zero),
+  `is_dead()`, `fraction()`, `value` (settable: zero dies, above zero after zero revives), `max_value`.
+- **Signals**, in the order a hit says them: `changed(value, max_value)`, `damaged(amount, hit)`, `died(hit)` (once a
+  life; `hit` null for `kill()` or a value set to zero), `flinched(hit)` (a hit that did not kill and is at least
+  `flinch_threshold`), then `hit_taken(hit)` for every hit, also when it took nothing (off, invulnerable, already dead:
+  a lying body is still pushed). `revived` after `reset()` from zero.
+- **The inspector:** `enabled`, `max_value` (100; lowering it lowers the value), `invulnerable`; Regeneration:
+  `regeneration_per_second` (0, none) and `regeneration_delay` (0 s, the wait after the last damage); Flinch:
+  `flinch_threshold` (0: every hit that does not kill). The target's `Health` has `max_value` 1 (any shot drops it;
+  60 takes two of the weapon's 34).
+- **What it costs.** Nothing a frame unless it regenerates: `_physics_process` runs only while
+  `regeneration_per_second` is above zero and the value is below the maximum and above zero, and stops when it is full
+  or dead. A hit is a few comparisons and signals.
+- **Networking.** The replicated value is one integer: `wire_value()` (rounded up, so a body alive on one peer is alive
+  on the other) and `set_wire_value(n)` on the peer. A flinch, the blood and the ragdoll are never sent; each peer makes
+  them from the `HitRecord` (about 40 bytes) it is given.
+- **An AI character** ([#963](https://github.com/Ryubara/gdstudio/issues/963)) gets its health from the `Health` node
+  of `character.tscn`: listen to `damaged` to turn toward `hit.source`, to `flinched` to stop and react, and to
+  `died` (the `Character` already dies into its ragdoll on it); tune `max_value`, `regeneration_*`, `invulnerable` and
+  `flinch_threshold` per profile on the node, never copy the player's numbers into the AI's script.
+- **Tests:** the component alone in the kit's `godot/tests/gds_game/test_health_alone.gd` (death once, invulnerable,
+  off, the threshold, regeneration waiting its delay and no per-frame work while off, the wire, the pins); in the
+  template `tests/gameplay/test_hit_and_interact_components.gd` (a target and a character both take a real shot
+  through it, a target or character without it warns and takes nothing, no method-name lookup left in `gameplay/`).
