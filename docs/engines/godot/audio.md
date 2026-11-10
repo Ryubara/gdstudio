@@ -72,12 +72,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   scene freed in a headless run).
 
 - **Approach:** Level a template's sounds against each other by playing them in a game made from it with the real
-  input under Movie Maker and reading the loudest 400 ms of each (the wind's integrated) from the track
+  input under Movie Maker and reading the loudest 400 ms of each (the wind's integrated)
   ([Capturing sound](#capturing-sound)); keep the numbers set by ear fixed, move the others until none jumps out, and
   pin every volume in a test. **Watch out for:** a 3D player's volume is not one to one with what is heard: it darkens
-  as it falls (the attenuation filter), so a bright coin lost 16 dB for 4 dB set and a pistol shot 1 dB per dB, and a
-  camera fix moved it 6 dB of setting; measure again after one. The coin at 0 dB sat 30 LU over steps turned down to
-  -20. **Seen:** gdstudio #857, 2026-11-09 (steps -40, crouch steps -46, landings -37, coin -37, shot -31 LUFS-M at
+  as it falls (the attenuation filter), so a bright coin lost 16 dB for 4 dB set, a pistol shot 1 dB per dB, and a
+  camera fix moved it 6 dB; measure again after one. Hold a crouch with `Input.action_press`, not
+  `player.crouching`, which physics rewrites and lands. The coin at 0 dB sat 30 LU over steps at -20.
+  **Seen:** gdstudio #857, 2026-11-09 (steps -40, crouch steps -46, landings -37, coin -37, shot -31 LUFS-M at
   the mix, wind -50 integrated).
 
 ## Capturing sound {#capturing-sound}
