@@ -394,7 +394,9 @@ scene; a kit test compares them) and its own
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
   that node moved into `world/world.tscn`; only the full `gds template test` run found it, a run of the suites that
-  name `main.tscn` did not. **Seen:** gdstudio #927, 2026-11-10.
+  name `main.tscn` did not; the same happened to 3D Blank's `test_web_probe.gd`, which asked `main.tscn` for its
+  `WebProbe` while 3D Third Person made its probe at run time (a base test that names a node a template removes is
+  replaced by a test of the same name in that template). **Seen:** gdstudio #927, 2026-11-10; gdstudio #921, 2026-11-10.
 
 A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
 autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
