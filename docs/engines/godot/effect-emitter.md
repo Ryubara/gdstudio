@@ -33,8 +33,9 @@ if emitter != null:
 - **`EffectEmitter`, in the inspector.** `enabled`, `particles_enabled`, `sounds_enabled` and `lights_enabled` switch
   the whole level's effects; `max_effects` (24) and `web_max_effects` (12, used in the web build and on phones) cap the
   pool; `max_lights` (2) caps the flashes of light at once (past it an effect plays without its light: the
-  Compatibility renderer counts every light against its per-object cap); `warm_up_on_start` (on) and `warm_up` are
-  [the warm-up](#warm-up). `play_at(effect, point, direction, with_particles, with_sound, size_scale)` and
+  Compatibility renderer counts every light against its per-object cap); `warm_up_on_start` (on), `warm_up` and
+  `warm_up_materials` (materials a shot shows that are not an effect) are [the warm-up](#warm-up).
+  `play_at(effect, point, direction, with_particles, with_sound, size_scale)` and
   `play_on(effect, node, size_scale, with_particles, with_sound)` return the `EffectSlot` that plays (null when nothing
   does); `stop_all()`, `active_count()`, `light_count()` and `slot_count()` read the pool.
 
@@ -61,12 +62,16 @@ if emitter != null:
 ## The warm-up {#warm-up}
 
 A weapon registers its `muzzle_flash` and each `ImpactSurface` its effect with the emitter when the level starts
-(`warm(effect)`, and the `warm_up` list adds more). Two frames in, once the camera is current, the emitter builds each
-slot and plays every effect once, unseen, in front of the camera (the particles at a hundredth of their size, the light
-at a hundredth of its energy and forty times its reach, no sound), first with the lights off and then with them on, and
-frees the slots again; `warmed` is emitted when it is over. The Compatibility renderer builds a program the first time a
-shader is drawn and another for a surface an omni light reaches ([First-use hitches](first-use-hitches.md)), so an
-effect first drawn at the first shot stops the frame. `warm_up_on_start` turns it off.
+(`warm(effect)`, and the `warm_up` list adds more); `Impacts` registers its marks' materials (`warm_material(material)`,
+and the `warm_up_materials` list adds more). Two frames in, once the camera is current, the emitter waits for the
+reflection probes the camera sees to be drawn (`probe_frames(camera)`: `PROBE_FRAMES`, 15, for each probe in view that
+updates once, one for one that updates always), then builds each slot and plays every effect once, unseen, in front of
+the camera (the particles at a hundredth of their size, the light at a hundredth of its energy and forty times its
+reach, no sound) beside a 1 cm quad of each registered material, first with the lights off and then with them on (with
+a dim light of its own when no effect has one), and frees the slots and the quads again; `warmed` is emitted when it is
+over. The Compatibility renderer builds a program the first time a shader is drawn, another for a surface an omni light
+reaches and another for a surface a reflection probe reaches ([First-use hitches](first-use-hitches.md#reflection-probes)),
+so an effect or a mark first drawn at the first shot stops the frame. `warm_up_on_start` turns it off.
 
 ## What it costs {#cost}
 
@@ -92,10 +97,24 @@ frames after 90 of warm-up, the character in the map, 1280 x 720, vsync off; God
 - **First use is the cost that shows on the web.** With a fresh browser profile each effect's first draw builds programs
   (counted at `linkProgram`): the flash's star and sparks 6 programs and 171 ms, its light (the lit versions of the
   surfaces it reaches) 4 and 185 ms, the first impact (marks, the dust) 5 and 125 ms; the slowest frame of each was 338,
-  219 and 161 ms. With the warm-up the star and sparks are 2 programs and 52 ms (slowest frame 64), the light still 4
-  and 163 ms (188) and the impact 5 and 120 ms (149): the warm-up removes the flash's own, not the lit programs of the
-  character and the pistol or the mark's shader, which a loading screen must draw (follow-up). The desktop built the
-  same programs in 0 to 7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms).
+  219 and 161 ms. The first warm-up (kit #888) took the star and sparks to 2 programs and 52 ms (slowest frame 64) and
+  left the light at 4 and 163 ms (188) and the impact at 5 and 120 ms (149). It drew two frames into the level, before
+  the outdoor reflection probe had drawn its first face, so it built every effect without the probe and the first shot
+  drew it with one; and it never drew the impact mark's shader. Waiting for the probes in view and drawing the marks'
+  materials too (kit #946) leaves nothing to build: measured with `tools/bench/effects_first_use.py` (Chrome on the
+  GPU, a fresh profile, two runs each):
+
+  | After the level is up | Before #946: programs, link ms, slowest first frame | After: programs, slowest first frame |
+  | --- | --- | --- |
+  | nothing fired (the level under the probe) | 11, 1093 to 1095 ms, 1181 to 1183 ms | 0, 5.6 to 6 ms |
+  | the flash without its light | 2, 59 to 65 ms, 72 to 80 ms | 0, 6.7 to 6.8 ms |
+  | the flash with its light | 4, 188 to 201 ms, 220 to 235 ms | 0, 6.5 to 6.6 ms |
+  | flash and impacts | 6, 157 ms, 158 to 159 ms | 0, 6.6 to 7 ms |
+  | steady state (mean frame, every run) | 5.12 to 5.16 ms | 5.12 to 5.18 ms |
+
+  The loading frames link the rest instead: 73 programs and 9.8 to 10.2 s before, 92 and 11.1 to 11.7 s after (the
+  same programs, built while the level starts and not at the first shot). The desktop built the same programs in 0 to
+  7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms).
 - **Software rendering** (headless Chromium on SwiftShader) ran 150 to 170 ms a frame whatever the effect and cannot
   show the difference; only the program counts are the same as on a GPU.
 - **Approach:** Measure an effect system with the bench in both renderers and in Chrome on a real GPU, and read the
