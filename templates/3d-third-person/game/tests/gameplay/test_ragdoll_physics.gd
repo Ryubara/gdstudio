@@ -1,11 +1,14 @@
 # How the ragdoll moves in the real physics world: it falls and comes to rest, a run's momentum
-# carries into it, and deaths in every pose never throw a bone. Dying, getting up and the key are
-# in test_ragdoll.gd, what makes it look like a body in test_ragdoll_natural.gd.
+# carries into it, its knees and elbows stay in range, and deaths in every pose never throw a
+# bone. Dying, getting up and the key are in test_ragdoll.gd, what makes it look like a body in
+# test_ragdoll_natural.gd.
 extends GdUnitTestSuite
 
 ## The fastest a bone may move after a death, in m/s. Each bone leaves with the speed the animation
 ## gave it (a foot of a sprinting body is at 12 to 16), a body the engine throws is at 230 to 500.
 const MOST_SPEED := 20.0
+## A joint's limit is a soft stop against a load (`ragdoll.md#limits`). Degrees.
+const LIMIT_SLACK := 25.0
 
 var _arena: PlayArena
 var _player: Player
@@ -70,6 +73,48 @@ func test_without_carry_the_body_drops_on_the_spot() -> void:
 	# Not carried, the body falls where it stood (a run's carried slide is over 1 m): it topples a
 	# little, the run's lean and the limbs' spin included.
 	assert_float(slid.length()).is_less(0.9)
+
+
+func test_knees_and_elbows_stay_in_their_limits_and_never_bend_backward() -> void:
+	# Off aim the arms swing with the jog (#877), so a jogging death starts with the elbows in the
+	# clip's pose; the hinges hold them in range (#872).
+	InputSim.key(KEY_W, true)
+	await _ticks(30)
+	_player.die()
+	for _step in 8:
+		await _ticks(30)
+		for entry: Dictionary in PlayerRagdoll.BODIES:
+			if entry.joint != &"hinge":
+				continue
+			var angles := _hinge_angles(entry)
+			var bend_range: Vector2 = entry.range
+			(
+				assert_float(angles.x)
+				. override_failure_message(
+					"%s bent %.1f, range %s" % [entry.bone, angles.x, bend_range]
+				)
+				. is_between(bend_range.x - LIMIT_SLACK, bend_range.y + LIMIT_SLACK)
+			)
+			# A knee or an elbow never goes past straight.
+			assert_float(angles.x).is_greater(bend_range.x - 8.0)
+
+
+# The angles of a hinge joint from the straight limb, in degrees: x the bend (about the hinge),
+# y the sideways lean and z the roll about the bone.
+func _hinge_angles(entry: Dictionary) -> Vector3:
+	var skeleton := _player.model.skeleton()
+	var parent: StringName = _ragdoll._parent_body(skeleton, entry.bone)
+	var rest := _ragdoll.rest_body(parent).basis.inverse() * _ragdoll.rest_body(entry.bone).basis
+	var now := _ragdoll.body(parent).global_basis.inverse() * _ragdoll.body(entry.bone).global_basis
+	var frame := PlayerRagdoll.hinge_frame(entry.axis)
+	var q := Quaternion(frame.inverse() * rest.inverse() * now * frame).normalized()
+	if q.w < 0.0:
+		q = -q
+	return Vector3(
+		rad_to_deg(2.0 * atan2(q.z, q.w)),
+		rad_to_deg(2.0 * asin(clampf(q.y, -1.0, 1.0))),
+		rad_to_deg(2.0 * asin(clampf(q.x, -1.0, 1.0)))
+	)
 
 
 # Thirty deaths in every pose the player can be in (standing, running, sprinting, crouching,

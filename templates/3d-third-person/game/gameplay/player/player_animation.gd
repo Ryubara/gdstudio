@@ -4,10 +4,11 @@ extends Node
 ## Plays the clip for what the `Player` is doing, through an `AnimationTree` it builds: a state
 ## machine for the body (`ground` blends idle, walk, run and sprint by ground speed; `crouch`
 ## blends the crouch idle and walk; `jump`, `fall`, `land` and `push` are clips of their own), a
-## pistol layer on the upper body (the arm holds the pistol, comes up to aim by the camera's
-## pitch, and recoils for a shot) and a one-shot layer on the whole body for actions (interact,
-## hit, and any clip a game asks for with `play_clip()`). While the player is dead the tree is
-## off and the ragdoll holds the skeleton; on getting up it starts again from the ground state.
+## pistol layer (the pistol sits in one hand while the arms and the spine follow the locomotion
+## clip; aiming or firing brings the arm up to aim by the camera's pitch, and a shot recoils) and a
+## one-shot layer on the whole body for actions (interact, hit, and any clip a game asks for with
+## `play_clip()`). While the player is dead the tree is off and the ragdoll holds the skeleton; on
+## getting up it starts again from the ground state.
 ##
 ## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
 ## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
@@ -27,6 +28,15 @@ extends Node
 signal action_started(clip: StringName)
 ## The action clip that was playing ended.
 signal action_finished(clip: StringName)
+
+## How the weapon is carried while the character is not aiming or firing.
+enum Carry {
+	## The arms and the spine follow the locomotion clip; only the gripping hand takes the grip
+	## clip, so the pistol sits in one hand and swings with the arm.
+	HAND_ONLY,
+	## The grip clip holds the whole upper body (both arms out in front, a weapon at the ready).
+	HELD_POSE,
+}
 
 ## The states of the tree's body machine, as `Player.State` maps onto them.
 const GROUND := &"ground"
@@ -121,10 +131,22 @@ const _AIM := "Aim"
 		_rebuild()
 
 @export_group("Pistol")
-## The pose of the upper body while the character holds the pistol and is not aiming.
-@export var pistol_idle_clip: StringName = CharacterClips.PISTOL_IDLE:
+## How the weapon is carried while the character is not aiming or firing.
+@export var carry := Carry.HAND_ONLY:
 	set(value):
-		pistol_idle_clip = value
+		carry = value
+		_rebuild()
+## The grip pose: the clip whose pose the gripping hand takes while the weapon is held (and, in
+## the `HELD_POSE` carry, the whole upper body).
+@export var grip_clip: StringName = CharacterClips.PISTOL_IDLE:
+	set(value):
+		grip_clip = value
+		_rebuild()
+## The bones that take the grip pose in the `HAND_ONLY` carry: each one and every bone below it
+## (the wrist, the fingers and the thumb). Add the other hand for a two-handed weapon.
+@export var grip_bones: Array[StringName] = [&"hand_r"]:
+	set(value):
+		grip_bones = value
 		_rebuild()
 ## Aiming level; the aim blends to the clips below by the camera's pitch.
 @export var aim_clip: StringName = CharacterClips.PISTOL_AIM:
@@ -159,6 +181,9 @@ const _AIM := "Aim"
 		_rebuild()
 ## How fast the recoil plays (1 is the clip's own speed).
 @export_range(0.2, 4.0, 0.05) var shoot_speed := 1.6
+## Seconds the arm stays up after a shot, so a shot fired without aiming (a tap of the fire
+## button) is seen as one; the walk and the turn are normal as soon as the buttons are let go.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var shot_hold_time := 0.2
 
 @export_group("Blending")
 ## Seconds the body states take to blend into each other.
@@ -184,6 +209,8 @@ var _action_clip: StringName = &""
 var _action_was_active := false
 var _dead := false
 var _clip_death := false
+var _shot_hold := 0.0
+var _shot_arm := 0.0
 
 
 func _ready() -> void:
@@ -219,14 +246,14 @@ func _notification(what: int) -> void:
 		_rebuild()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or tree == null or not tree.active or _playback == null:
 		return
 	_sync_ground_speeds()
 	var speed := player.ground_speed()
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, GROUND], speed)
 	tree.set(&"parameters/%s/%s/blend_position" % [_MACHINE, CROUCH], speed)
-	_drive_pistol()
+	_drive_pistol(delta)
 	var active: bool = tree.get(&"parameters/%s/active" % _ACTION)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
@@ -371,11 +398,19 @@ func _sync_ground_speeds() -> void:
 
 
 # The pistol layer follows the player: held (or not), how far the arm is up, and the camera's pitch
-# for the aim pose.
-func _drive_pistol() -> void:
+# for the aim pose. The arm is up by the player's aim amount, or by the shot's own hold when that
+# is more: after a shot it goes on rising for `shot_hold_time` and then comes down at the speed of
+# the aim (`aim_pose_time`), so a tap of the fire button shows the arm up and never pops.
+func _drive_pistol(delta: float) -> void:
 	var armed := 1.0 if player.weapon != null else 0.0
+	var aim_time := player.tuning.aim_pose_time if player.tuning != null else 0.15
+	_shot_hold = maxf(_shot_hold - delta, 0.0)
+	_shot_arm = move_toward(
+		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
+	)
+	var arm := maxf(player.aim_amount, _shot_arm)
 	tree.set(&"parameters/%s/blend_amount" % _ARMED, armed)
-	tree.set(&"parameters/%s/blend_amount" % _AIM, player.aim_amount * armed)
+	tree.set(&"parameters/%s/blend_amount" % _AIM, arm * armed)
 	tree.set(&"parameters/%s/scale" % _SHOOT_SCALE, shoot_speed)
 	var camera := get_viewport().get_camera_3d()
 	if camera != null:
@@ -429,6 +464,8 @@ func _on_hit(_amount: float, _source: Node3D) -> void:
 
 
 func _on_shot(_projectile: Projectile) -> void:
+	_shot_hold = shot_hold_time
+	_shot_arm = maxf(_shot_arm, player.aim_amount)
 	tree.set(&"parameters/%s/request" % _SHOOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
@@ -456,10 +493,12 @@ func _build_root() -> AnimationNodeBlendTree:
 	return root
 
 
-# The pistol layer, on the upper body only: `Armed` blends the holding pose over the locomotion,
-# `Aim` blends the aim pose (with a recoil one-shot over it) over that.
+# The pistol layer: `Armed` blends the grip pose over the locomotion, on the gripping hand only (or
+# on the whole upper body in the `HELD_POSE` carry), `Aim` blends the aim pose (with a recoil
+# one-shot over it) over that, on the upper body.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
-	var upper := _upper_body_paths()
+	var upper := _bone_paths([upper_body_bone])
+	var held := _bone_paths(grip_bones) if carry == Carry.HAND_ONLY else upper
 	var armed := AnimationNodeBlend2.new()
 	armed.filter_enabled = true
 	var aim := AnimationNodeBlend2.new()
@@ -468,8 +507,9 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	shoot.fadein_time = 0.03
 	shoot.fadeout_time = 0.12
 	shoot.filter_enabled = true
-	for path in upper:
+	for path in held:
 		armed.set_filter_path(path, true)
+	for path in upper:
 		aim.set_filter_path(path, true)
 		shoot.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
@@ -480,7 +520,7 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	pose.add_blend_point(_clip(aim_clip), 0.0, -1, &"level")
 	pose.add_blend_point(_clip(aim_up_clip), aim_pitch_range, -1, &"up")
 	_shoot_scale_node = AnimationNodeTimeScale.new()
-	root.add_node(_PISTOL_IDLE, _clip(pistol_idle_clip), Vector2(200, 400))
+	root.add_node(_PISTOL_IDLE, _clip(grip_clip), Vector2(200, 400))
 	root.add_node(_ARMED, armed, Vector2(400, 0))
 	root.add_node(_AIM_POSE, pose, Vector2(200, 600))
 	root.add_node(_SHOOT_CLIP, _clip(shoot_clip), Vector2(200, 800))
@@ -496,9 +536,9 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_AIM, 1, _SHOOT)
 
 
-# The filter paths of the upper body: `upper_body_bone` and every bone below it, as the clips'
-# tracks name them (`Armature/Skeleton3D:spine_01`).
-func _upper_body_paths() -> Array[NodePath]:
+# The filter paths of the given bones and every bone below each of them, as the clips' tracks name
+# them (`Armature/Skeleton3D:spine_01`); a name the skeleton does not have is left out.
+func _bone_paths(roots: Array) -> Array[NodePath]:
 	var found: Array[NodePath] = []
 	var rig := animation_player.get_node_or_null(animation_player.root_node)
 	if rig == null:
@@ -507,15 +547,17 @@ func _upper_body_paths() -> Array[NodePath]:
 	if skeletons.is_empty():
 		return found
 	var skeleton := skeletons[0] as Skeleton3D
-	var start := skeleton.find_bone(upper_body_bone)
-	if start < 0:
-		return found
+	var starts := PackedInt32Array()
+	for root: StringName in roots:
+		var start := skeleton.find_bone(root)
+		if start >= 0:
+			starts.append(start)
 	var where := rig.get_path_to(skeleton)
 	for bone in skeleton.get_bone_count():
 		var cursor := bone
-		while cursor >= 0 and cursor != start:
+		while cursor >= 0 and not starts.has(cursor):
 			cursor = skeleton.get_bone_parent(cursor)
-		if cursor == start:
+		if cursor >= 0:
 			found.append(NodePath("%s:%s" % [where, skeleton.get_bone_name(bone)]))
 	return found
 
