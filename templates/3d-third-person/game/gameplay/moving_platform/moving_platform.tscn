@@ -21,6 +21,7 @@ shading_mode = 0
 
 [node name="MovingPlatform" type="AnimatableBody3D"]
 script = ExtResource("1_platform")
+metadata/surface = &"metal"
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

@@ -17,6 +17,8 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Animation | `gameplay/player/player_animation.gd`, `character_clips.gd` | An `AnimationTree` built in code (also in the editor, as a `@tool` script): a body state machine and a one-shot action layer. `CharacterClips.ALL` names all 86 clips. |
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view and a fire view blended on its framing; a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
+| HUD | `ui/hud/` | `hud.tscn` (regions, one theme `hud_theme.tres`), `HudWidget` (binds to the player, hides without data), the coin counter, the crosshair, health and ammo (`HudStat`: show only when the player and its weapon have the data) and a slot for the minimap. [The HUD](#hud). |
+| Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
@@ -356,6 +358,44 @@ the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
 
+## Bullet impacts {#impacts}
+
+<!-- new section: the pistol's shots left nothing where they landed (gdstudio #875); the research and the route are in
+     [Bullet impacts and marks](shot-feedback.md#impact-marks) -->
+
+A shot that lands tells the level's `Impacts` node (`main.tscn`; the group `impacts`, so no path): it makes a mark on
+the body, bursts the surface's effect and plays its sound. A mark is a flat quad on the body it hit, so it goes where a
+pushed crate or a moving platform goes and is freed with it; there is no `Decal` (Compatibility, which the web build
+uses, does not draw one). `Impacts.impact(collider, point, normal)` is the one call, so a game's own weapon, a grenade
+or a ray gun reuses it.
+
+- **The inspector, on `Impacts`.** Marks: `marks_enabled`, `max_marks` (64; the oldest goes first, a lower number
+  trims at once), `mark_lifetime` (30 s, **0 keeps a mark**), `mark_fade_time` (4 s, the end of the life it fades
+  over), `mark_material` (the material of every mark, a `ShaderMaterial` with a hole and a ring, or a texture: its
+  `use_texture` and `mark_texture`), `mark_size` (0.12 m), `size_variation` (0.3), `random_rotation`,
+  `surface_offset` (4 mm) and `random_seed`. Effects: `effects_enabled` and `sounds_enabled`. Surfaces:
+  `default_surface`. Every one is read when used: a change shows in the next hit (marks already placed keep their
+  look; `max_marks` and `mark_lifetime` also act on them at once).
+- **One node a surface.** Under `Impacts/Surfaces` are `Default`, `Wood`, `Metal` and `Target`, each an
+  `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
+  (empty: the `Impacts`'), `mark_scale`, `effect` (a one-shot `CPUParticles3D` child: restyle it in the editor, swap
+  it for a `GPUParticles3D`), `sound` (an `AudioStreamPlayer3D` child on `SFX` with an `AudioStreamRandomizer` of three
+  variants) and `pool_size` (hits of the surface that can show and sound at once). Add a node and a name for a new
+  surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
+- **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
+  Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
+  `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
+- **On or off per weapon or projectile.** `Weapon.impacts` (its shots land without a trace when off) and
+  `Projectile.impact_effects` (the projectile scene's own, for a game with its own projectile); a shot leaves an
+  impact when both are on.
+- **What takes no mark.** A `CharacterBody3D` (the effect and sound still play) and the ragdoll's bones: they are on
+  layer 16 and a projectile's mask is the level, so a shot passes through them and marks what is behind.
+- **Tests and captures.** `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
+  `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and `tests/audio/test_impact_sounds.gd`
+  (real projectiles in a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a
+  wall, a pushed cube and the fade (`gds capture frames`, and `--rendering-method gl_compatibility` for the web look).
+  The sounds are made by `tools/audio/impact_sounds.py` (synthesised, MIT).
+
 ## Ragdoll {#ragdoll}
 
 <!-- new section: the template gained death and a ragdoll (gdstudio #846) and nothing said how it is built or tuned -->
@@ -430,6 +470,23 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+
+## The HUD {#hud}
+
+<!-- new section: the HUD went from two loose nodes in a layer to regions, widgets and one theme (gdstudio #880) -->
+
+How to use and extend it is in [The template HUD](ui-layout.md#template-hud). In the inspector: on `Hud`, the group Look
+(`theme`, `margin`), Phone (`min_text_size`, `max_scale`, `pixel_ratio`, `touch_controls`) and Parts (`root`, `safe_area`,
+`minimap_slot`); on every part the group Data (`player`, `hide_without_data`) and Phone (`touch_region`); on a `HudStat`
+the Data (`source`, `value_property`, `max_property`, `refresh_signals`), Look (`title`, `show_title`, `show_bar`, the two
+formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the `separator`. The real player has no health or
+ammo yet: those parts stay hidden until the hit zones (#876) and the weapons (#887) make `health`/`max_health` and
+`ammo`/`magazine_size` exist, and `tools/capture/hud_tour.tscn` shows them fed by a stand-in.
+
+Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
+HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
+showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
+in it is sent over a network.
 
 ## A route for a clip {#walkthrough}
 
