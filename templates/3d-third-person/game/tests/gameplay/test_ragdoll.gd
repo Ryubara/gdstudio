@@ -53,6 +53,7 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"thickness": 1.0,
 		&"joint_range": 1.0,
 		&"hinge_passes": 4,
+		&"cone_passes": 4,
 		&"linear_damp": 0.1,
 		&"angular_damp": 2.0,
 		&"friction": 0.8,

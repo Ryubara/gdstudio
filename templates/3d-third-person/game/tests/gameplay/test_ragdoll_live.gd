@@ -73,6 +73,19 @@ func test_hinge_passes_sets_how_many_hinges_hold_each_elbow_and_knee() -> void:
 	assert_int(_ragdoll.hinge_count()).is_equal(24)
 
 
+func test_cone_passes_sets_how_many_cones_hold_each_ball_joint() -> void:
+	# Eleven cones (spine twice, neck, shoulders, wrists, hips, ankles), each held by `cone_passes`
+	# cones, and the hinges keep their own count.
+	assert_int(_ragdoll.cone_count()).is_equal(44)
+	_ragdoll.cone_passes = 1
+	assert_int(_ragdoll.cone_count()).is_equal(11)
+	assert_int(_ragdoll.hinge_count()).is_equal(16)
+	assert_int(_ragdoll.body_count()).is_equal(16)
+	_ragdoll.cone_passes = 6
+	assert_int(_ragdoll.cone_count()).is_equal(66)
+	assert_int(_ragdoll.hinge_count()).is_equal(16)
+
+
 func test_damping_friction_and_bounce_reach_every_bone() -> void:
 	_ragdoll.linear_damp = 0.7
 	_ragdoll.angular_damp = 5.0

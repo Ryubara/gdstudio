@@ -92,3 +92,37 @@ func hinge_angles(entry: Dictionary) -> Vector3:
 		rad_to_deg(2.0 * asin(clampf(q.y, -1.0, 1.0))),
 		rad_to_deg(2.0 * asin(clampf(q.x, -1.0, 1.0)))
 	)
+
+
+## How far each cone joint (shoulders, hips, spine, neck, wrists, ankles) is past its limits now,
+## in degrees: x the swing past the table's `swing`, y the twist past its `twist` (the ragdoll's
+## `joint_range` applied). Keys are the bones.
+func cone_overrun() -> Dictionary:
+	var found := {}
+	for entry: Dictionary in PlayerRagdoll.BODIES:
+		if entry.joint != &"cone":
+			continue
+		var angles := cone_angles(entry)
+		found[entry.bone] = Vector2(
+			maxf(angles.x - entry.swing * ragdoll.joint_range, 0.0),
+			maxf(absf(angles.y) - entry.twist * ragdoll.joint_range, 0.0)
+		)
+	return found
+
+
+## The angles of a cone joint from its centre, in degrees: x the swing (how far the bone points
+## away from the centre) and y the twist about the bone, read the way Jolt reads them (the twist
+## first, the swing of what is left).
+func cone_angles(entry: Dictionary) -> Vector2:
+	var skeleton := slot.skeleton()
+	var parent: StringName = ragdoll._parent_body(skeleton, entry.bone)
+	var rest := ragdoll.rest_body(parent).basis.inverse() * ragdoll.rest_body(entry.bone).basis
+	var now := ragdoll.body(parent).global_basis.inverse() * ragdoll.body(entry.bone).global_basis
+	var centre := Basis.from_euler(entry.centre * (PI / 180.0))
+	var q := Quaternion((centre.inverse() * rest.inverse() * now).orthonormalized())
+	if q.w < 0.0:
+		q = -q
+	var twist := Quaternion(q.x, 0.0, 0.0, q.w)
+	twist = twist.normalized() if twist.length() > 0.0001 else Quaternion.IDENTITY
+	var swing := q * twist.inverse()
+	return Vector2(rad_to_deg(swing.get_angle()), rad_to_deg(2.0 * atan2(twist.x, twist.w)))
