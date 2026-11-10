@@ -38,6 +38,8 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/bench/effects_first_use.py` runs a web export of that bench in headless Chrome and fails when a run after the
   level's warm-up links a GL program (the first flash, its light or the first impact stopping the frame); run it under
   `gds quiet`, the command and the export are in its header.
+- `tools/bench/player_step_bench.tscn` times a character's own physics tick for 1, 8 and 40 bodies, by the input and by
+  commands; `tools/bench/player_step_bench.py` reads it from a web export in headless Chrome (run it under `gds quiet`).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints

@@ -17,9 +17,8 @@ extends CharacterController
 ## The input action that kills and revives the character (the player's `ragdoll_key` is on it).
 const RAGDOLL_ACTION := &"ragdoll"
 
-# How many `PlayerInput` nodes hold each key on the `ragdoll` action, and the event of each key.
+# How many `PlayerInput` nodes hold each key on the `ragdoll` action.
 static var _key_holders: Dictionary[Key, int] = {}
-static var _key_events: Dictionary[Key, InputEventKey] = {}
 
 @export_group("Nodes")
 ## The character this node makes commands for: its `input_enabled`, `ragdoll_key`, crouch mode
@@ -60,10 +59,7 @@ func bind_ragdoll_key() -> void:
 		return
 	var holders: int = _key_holders.get(_bound_key, 0)
 	if holders == 0:
-		var event := InputEventKey.new()
-		event.physical_keycode = _bound_key
-		InputMap.action_add_event(RAGDOLL_ACTION, event)
-		_key_events[_bound_key] = event
+		InputMap.action_add_event(RAGDOLL_ACTION, _key_event(_bound_key))
 	_key_holders[_bound_key] = holders + 1
 
 
@@ -74,12 +70,18 @@ func _release_key() -> void:
 	var holders: int = _key_holders.get(_bound_key, 0) - 1
 	if holders <= 0:
 		_key_holders.erase(_bound_key)
-		if InputMap.has_action(RAGDOLL_ACTION) and _key_events.has(_bound_key):
-			InputMap.action_erase_event(RAGDOLL_ACTION, _key_events[_bound_key])
-		_key_events.erase(_bound_key)
+		if InputMap.has_action(RAGDOLL_ACTION):
+			# The action drops the event equal to this one.
+			InputMap.action_erase_event(RAGDOLL_ACTION, _key_event(_bound_key))
 	else:
 		_key_holders[_bound_key] = holders
 	_bound_key = KEY_NONE
+
+
+func _key_event(key: Key) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	return event
 
 
 func sample() -> PlayerCommand:
@@ -104,9 +106,8 @@ func sample() -> PlayerCommand:
 	command.jump_pressed = Input.is_action_just_pressed(&"jump")
 	command.fire_pressed = Input.is_action_just_pressed(&"fire")
 	command.interact_pressed = Input.is_action_just_pressed(&"interact")
-	command.ragdoll_pressed = (
-		InputMap.has_action(RAGDOLL_ACTION) and Input.is_action_just_pressed(RAGDOLL_ACTION)
-	)
+	# The action exists: `_ready` made it.
+	command.ragdoll_pressed = Input.is_action_just_pressed(RAGDOLL_ACTION)
 	if camera != null and player != null and player.shot_wanted(command):
 		_write_shot(command, camera)
 	return command
@@ -119,7 +120,7 @@ func _write_view(command: PlayerCommand, camera: Camera3D, stick: Vector2) -> vo
 	if camera != null:
 		var forward := -camera.global_basis.z
 		if Vector2(forward.x, forward.z).length_squared() >= 0.0001:
-			var shake := _shake()
+			var shake := _shake(camera)
 			command.yaw = atan2(-forward.x, -forward.z) - shake.y
 			command.pitch = asin(clampf(forward.normalized().y, -1.0, 1.0)) - shake.x
 			command.move = Vector2(stick.x, -stick.y)
@@ -137,7 +138,7 @@ func _write_view(command: PlayerCommand, camera: Camera3D, stick: Vector2) -> vo
 func _write_shot(command: PlayerCommand, camera: Camera3D) -> void:
 	var centre := get_viewport().get_visible_rect().size / 2.0
 	var angles := CommandCodec.direction_angles(camera.project_ray_normal(centre))
-	var shake := _shake()
+	var shake := _shake(camera)
 	command.has_shot = true
 	command.origin = camera.project_ray_origin(centre)
 	command.shot_yaw = angles.x - shake.y
@@ -147,8 +148,8 @@ func _write_shot(command: PlayerCommand, camera: Camera3D) -> void:
 
 # The shake of the player's own rig as turns in radians (x up, y about the up axis), when it is
 # the rig's camera that draws; zero otherwise.
-func _shake() -> Vector2:
-	if not is_instance_valid(camera_rig) or camera_rig.camera != get_viewport().get_camera_3d():
+func _shake(drawn: Camera3D) -> Vector2:
+	if camera_rig == null or not is_instance_valid(camera_rig) or camera_rig.camera != drawn:
 		return Vector2.ZERO
 	var degrees := camera_rig.current_shake()
 	return Vector2(deg_to_rad(degrees.x), deg_to_rad(degrees.y))

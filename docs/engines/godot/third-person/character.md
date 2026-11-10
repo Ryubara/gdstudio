@@ -177,7 +177,7 @@ Scene dock and checks the result.
   count per key and the last holder takes the event off). **Watch out for:** `InputMap.action_add_event` does nothing
   for an event the action already has, and `action_erase_event` removes the one event equal to the one passed, so a
   second character added its `ragdoll` key (ignored) and, when it left, took the first character's key with it; the
-  two-character test read an empty action. The body's own binding on main did the same. **Seen:** gdstudio #901,
+  two-character test read an empty action. **Seen:** gdstudio #901,
   2026-11-10 (`test_two_characters.gd`).
 - **Approach:** Move a moving body with `Player.teleport()` (or `respawn()`), which resets physics interpolation and
   tells the camera to cut. **Watch out for:** setting `global_position` directly sends a damped Phantom Camera flying
@@ -218,6 +218,25 @@ next step reads (`CharacterState.FIELDS`; a test fails when the body gains a var
 test's list of what is not step state). A restore and the same commands gave the same path to the last digit on the
 floor and from mid-air over 120 ticks. It is for placing a body at a known state, not for replay: a step also pushes
 props, uses doors, fires projectiles and collects pickups, and the engine's floor contact cannot be set from script.
+
+What it costs (`tools/bench/player_step_bench.tscn`, microseconds a body a physics tick for 1, 8 and 40 bodies; the
+body's own tick, with no animation or camera): stepped by commands a body costs what it did when it read the keys
+itself, and the sampler adds 3 to 9 µs a tick for each human.
+
+| | 1 body | 8 | 40 |
+| --- | ---: | ---: | ---: |
+| Desktop, before (the body reads `Input`) | 34 | 24 | 21 |
+| Desktop, `PlayerInput` then `step` | 40 | 27 | 24 |
+| Desktop, `step` with a command | 34 | 23 | 21 |
+| Chrome, before | 67 | 30 | 24 |
+| Chrome, `PlayerInput` then `step` | 76 | 35 | 28 |
+| Chrome, `step` with a command | 58 | 28 | 24 |
+| Chrome at a 4x CPU throttle, before | 386 | 172 | 125 |
+| Chrome 4x, `PlayerInput` then `step` | 409 | 195 | 147 |
+| Chrome 4x, `step` with a command | 354 | 164 | 119 |
+
+The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
+headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
 ## Ragdoll {#ragdoll}
 
