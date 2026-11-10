@@ -346,7 +346,7 @@ static var _counted := 0
 ## what looks for the level or the characters (the camera's walls, a door, the player's capsule and
 ## its ground probes, trigger areas) never finds them; shots list Ragdoll in their mask, so a dead
 ## body takes shots. Adding World here makes all of those see the bones.
-@export_flags_3d_physics var collision_layer: int = 16:
+@export_flags_3d_physics var collision_layer := PhysicsLayers.RAGDOLL:
 	set(value):
 		collision_layer = value
 		_apply_materials()
@@ -354,7 +354,7 @@ static var _counted := 0
 ## (`PhysicsLayers.RAGDOLL_MASK`), so the limbs rest on the floor, on a crate and on each other
 ## (never on the bone they hang from, which is excepted). Take Ragdoll out and the limbs pass
 ## through each other.
-@export_flags_3d_physics var collision_mask: int = 25:
+@export_flags_3d_physics var collision_mask := PhysicsLayers.RAGDOLL_MASK:
 	set(value):
 		collision_mask = value
 		_apply_materials()

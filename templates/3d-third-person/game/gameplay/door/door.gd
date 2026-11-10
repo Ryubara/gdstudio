@@ -74,7 +74,7 @@ enum Style {
 ## Which physics layers a character must be on to open the door: Characters
 ## (`PhysicsLayers.CHARACTER_SENSOR_MASK`), so the sensor never hears of the walls and floor around
 ## it. A body that is not a `CharacterBody3D` never opens it either, whatever its layer.
-@export_flags_3d_physics var auto_open_mask: int = 2:
+@export_flags_3d_physics var auto_open_mask := PhysicsLayers.CHARACTER_SENSOR_MASK:
 	set(value):
 		auto_open_mask = value
 		_update_sensor()

@@ -92,12 +92,12 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   resources), not the new code; it came with the typed export in `Weapon` or `ImpactSurface` alone, never in a minimal
   project or with `Resource`, and removing `@tool` or the exports' ranges changed nothing. **Seen:** gdstudio #888,
   2026-11-10 (`EffectDef`; Godot 4.7.2's cause not found).
-- **Approach:** Write an exported default as a literal (`@export_flags_3d_physics var aim_mask: int = 59`), the
-  constant it stands for named in its doc comment and pinned by a test (`Script.get_property_default_value`), never as
-  another global class's constant. Run CI's web export step with `--verbose` to get the list. **Watch out for:** five
-  defaults naming `PhysicsLayers` made only CI's `--export-release Web` end with 17 scripts still in use (`gds_ui`,
-  Phantom Camera, the audio settings), never an import, the tests or any local export on Windows or Linux, 4 cores
-  included. **Seen:** gdstudio #954, 2026-11-10.
+- **Approach:** When a leak at exit shows only in CI, get CI's own evidence before changing code: run the failing
+  step with `--verbose` (it names each script still in use) and add a temporary step that runs it earlier in the job,
+  before the tests. **Watch out for:** CI's `--export-release Web` of 3D Third Person ended with 17 scripts in use
+  (`gds_ui`, Phantom Camera, the audio settings), none of them changed, while every local replay was clean (Windows,
+  the same Ubuntu 24.04 in WSL, tmpfs, 4 cores, CI's exact test command); writing the mask defaults as numbers, a guess
+  from the entry above, changed nothing. **Seen:** gdstudio #954, 2026-11-10.
 - **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
   edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
   probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled
