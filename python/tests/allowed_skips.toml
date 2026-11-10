@@ -65,3 +65,18 @@ reason = "the cursor clip under pointer lock is a Windows call"
 test = "test_quiet_run.py::test_only_windows_of_the_started_programs_tree_are_counted"
 platforms = ["linux", "darwin"]
 reason = "window lists are read through the Windows API"
+
+[[skip]]
+test = "test_evals.py::test_a_prepared_game_has_the_kit_addons_the_template_registers"
+platforms = ["linux", "darwin"]
+reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windows runner of the test job fetches (the download is the cost; the run is the same on every platform)"
+
+[[skip]]
+test = "test_evals.py::test_an_acceptance_suite_parses_and_runs_every_case_against_the_bare_template"
+platforms = ["linux", "darwin"]
+reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windows runner of the test job fetches (the download is the cost; the run is the same on every platform)"
+
+[[skip]]
+test = "test_evals.py::test_the_arena_probe_runs_on_the_bare_template_and_reports_a_missing_arena"
+platforms = ["linux", "darwin"]
+reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windows runner of the test job fetches (the download is the cost; the run is the same on every platform)"

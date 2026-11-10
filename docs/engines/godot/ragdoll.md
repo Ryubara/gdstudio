@@ -5,7 +5,7 @@ Godot 4.7.2 builds the joints, which engine to run them on or how to test a body
 
 How `PhysicalBone3D`, `PhysicalBoneSimulator3D` and their joints behave in Godot 4.7.2, found while giving the
 Quaternius mannequins a ragdoll (the template's own section is
-[Ragdoll in 3D Third Person](third-person-template.md#ragdoll)). Measured headless on Windows with the pinned
+[Ragdoll in 3D Third Person](#template)). Measured headless on Windows with the pinned
 Godot 4.7.2, Godot Physics and Jolt, on both mannequins.
 
 ## Building the bones {#building}
@@ -154,6 +154,57 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   (3 to 6 s in the lab, the animation clock being real time), so a test waits up to 15 s and asserts the event, and
   the bones of a body that is never settled (Godot Physics) keep the cap's slot until it gets up. **Seen:**
   gdstudio #872, 2026-11-10.
+
+## Ragdoll in 3D Third Person {#template}
+
+<!-- new section: the template page reached its 50 KB limit, so the template's ragdoll moved here, beside the engine -->
+
+The template's character dies into a ragdoll and gets up again, the usual hybrid: an animated `CharacterBody3D` with
+its capsule while alive, a full ragdoll while dead, and a blend back to the animation on getting up.
+
+- **What it is.** `Player.die()` and `revive()` (`is_dead()`, the `died` and `revived` signals, `State.DEAD`). Dying
+  stops the animation tree, turns the capsule off, ignores every gameplay input and lets the `Ragdoll` component
+  (`PlayerRagdoll`) take the pose on screen, pushed inside the joints' limits, each bone keeping the velocity the
+  animation gave it and the limbs let drop for a third of a second (a death in the air goes limp there). When the
+  ragdoll declines (over `max_active`, or past `ragdoll_range`) the character plays `ual1/Death01`
+  (`Player.died_by_clip`). The camera orbits and follows the hips. A ragdoll below the tuning's `fall_limit` respawns;
+  `teleport()` and `respawn()` get a dead character up at once. Getting up stands the body under the hips, facing the
+  chest's way, restarts the animation and fades the ragdoll's hold out over `get_up_time`. The library has no get-up
+  clip; a game with one plays it with `play_clip()` from `revived`.
+- **The inspector.** On `Player`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick it in
+  the inspector or the remote inspector to kill, untick to get up) and `ragdoll_key` (Y by default; None turns the key
+  off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
+  Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
+  body, shared out by the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints
+  swing, as a share of a person's range), `linear_damp`, `angular_damp`, `friction`, `bounce`; Death and getting up:
+  `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
+  drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
+  then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer` (16,
+  the ragdoll's own, layer 5) and `collision_mask` (17: the level and its own layer, so limbs rest on the body and on
+  each other, never on the bone they hang from; no player capsule, camera wall, ground probe or shot sees a bone: a
+  shot passes through and marks what is behind, `test_impact_marks.gd`; hit zones (#876) need their own layer).
+  Every one applies live, has a pinned default and a test.
+- **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
+  `RagdollBones` under the `Model` slot's skeleton, made from `PlayerRagdoll.BODIES` whenever the rig changes, in the
+  editor too (Debug, Visible Collision Shapes), never saved: the glb a swap deletes would hold them. Any rig with these
+  65 bones works, both mannequins included. Generated, not the editor's Create Physical Skeleton: a joint's zero is the
+  pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by
+  up to 9 cm ([why](#building)).
+- **How the limits are set.** A person's: hinges for elbows and knees, cones for the rest, the same both sides
+  ([numbers](#limits)); a cone's centre is the clips' mean direction (`tools/ragdoll/measure_joints.gd`). The
+  pose is pushed inside the limits as the body goes limp: a joint that starts outside throws it.
+- **The engine is Jolt.** The template's `project.godot` sets `3d/physics_engine="Jolt Physics"`: on Godot Physics this
+  ragdoll blew up in 10 to 20 percent of deaths and a lying body never sleeps. Every game made from the template gets
+  it, and the maintainer should know ([why](#jolt), [cost](#cost)).
+- **The map.** The prototype level has a `RagdollLedge` group (a ramp and a ledge, 3 m up, in the south, past the push
+  cubes): run up it and off the east edge, or press Y at the top. The blocks are new and not in the baked lightmap, so
+  they are lit by the sun and the sky until the level is baked again.
+
+- **Approach:** Prove a ragdoll in the game's own camera on both models: run, press Y mid-run, orbit the body, press Y
+  to get up, then run off the ledge; read the frames before the report. **Watch out for:** a stress test that passes
+  says no bone flew, not that the body lies on the floor in a believable pose, which only the clip shows (the
+  frames are from `tools/capture/ragdoll_tour.tscn`, run through `gds capture` as in
+  [A route for a clip](third-person-template.md#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
 
 ## Testing a body that the engine throws {#testing}
 
