@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="12_crosshair"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
 [ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="14_impacts"]
+[ext_resource type="PackedScene" path="res://gameplay/effects/effect_emitter.tscn" id="15_effects"]
 
 [node name="Main" type="Node"]
 
@@ -27,6 +28,8 @@ bus = &"Ambient"
 [node name="Level" parent="." instance=ExtResource("1_level")]
 
 [node name="Impacts" parent="." instance=ExtResource("14_impacts")]
+
+[node name="Effects" parent="." instance=ExtResource("15_effects")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

@@ -18,6 +18,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Camera | `gameplay/player/player_camera.gd`, `gameplay/camera_zone/` | A thin wrapper on a Phantom Camera in Third Person follow mode, with a sprint zoom and shake, an aim view and a fire view blended on its framing; a zone that raises a second camera's priority. The distance is on `PlayerCamera`; the over-the-shoulder view is the `Camera` node's H and V Offset, set from `PlayerCamera`'s Shoulder group (left, center, right; Q swaps). |
 | Weapon | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair; a `Target` falls over when hit. The `Crosshair` is `ui/hud/crosshair.tscn`. |
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
+| Effects | `gameplay/effects/` (`effect_emitter.tscn` as `Effects` in `main.tscn`), `gameplay/weapon/muzzle_flash.tscn` and `.tres`, `assets/shaders/effects/`, `assets/materials/effects/` | One pooled player of one-shot effects (particles, a sound, a flash of light) at a point or on a node, used by the muzzle flash and every impact. [Effects and the muzzle flash](#effects). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
@@ -376,10 +377,11 @@ or a ray gun reuses it.
   look; `max_marks` and `mark_lifetime` also act on them at once).
 - **One node a surface.** Under `Impacts/Surfaces` are `Default`, `Wood`, `Metal` and `Target`, each an
   `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
-  (empty: the `Impacts`'), `mark_scale`, `effect` (a one-shot `CPUParticles3D` child: restyle it in the editor, swap
-  it for a `GPUParticles3D`), `sound` (an `AudioStreamPlayer3D` child on `SFX` with an `AudioStreamRandomizer` of three
-  variants) and `pool_size` (hits of the surface that can show and sound at once). Add a node and a name for a new
-  surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
+  (empty: the `Impacts`'), `mark_scale`, and `effect`, an `EffectDef`
+  played by the level's `EffectEmitter` ([Effects](#effects)): its particles scene is a one-shot `CPUParticles3D` you
+  restyle in its own scene (or swap for a `GPUParticles3D`), its `sound` an `AudioStreamRandomizer` of three variants on
+  `SFX`, and its `max_instances` is how many hits of the surface can show and sound at once. Add a node and a name for a
+  new surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
   `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
@@ -393,6 +395,22 @@ or a ray gun reuses it.
   (real projectiles in a small arena, and in the map); `tools/capture/impacts_tour.tscn` plays the pistol through a
   wall, a pushed cube and the fade (`gds capture frames`, and `--rendering-method gl_compatibility` for the web look).
   The sounds are made by `tools/audio/impact_sounds.py` (synthesised, MIT).
+
+## Effects and the muzzle flash {#effects}
+
+<!-- new section: the pistol had no flash and the impacts kept their own pools (gdstudio #888); the details are on
+     [the effect emitter](effect-emitter.md) -->
+
+One `EffectEmitter` (`Effects` in `main.tscn`, the group `effect_emitter`) plays every one-shot effect from one capped
+pool: the pistol's muzzle flash, each bullet impact and anything a game adds. An effect is an `EffectDef` resource (a
+particles scene, a sound, a flash of light, a length). How to use it, every inspector value, the pool's rules, the tests
+and the cost are on [the effect emitter](effect-emitter.md).
+
+- **The inspector, on the `Weapon`.** `muzzle_flash_enabled` (on) switches the flash off for that weapon, `muzzle_flash`
+  is the `EffectDef` it plays on the `muzzle` marker (`gameplay/weapon/muzzle_flash.tres`; another weapon points it at its
+  own) and `muzzle_flash_size` (1) resizes it.
+- **The inspector, on `EffectEmitter`.** `enabled`, `particles_enabled`, `sounds_enabled`, `lights_enabled`,
+  `max_effects` (24), `web_max_effects` (12), `max_lights` (2) and `warm_up`.
 
 ## Ragdoll {#ragdoll}
 

@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="StandardMaterial3D" id="Paint"]
+shading_mode = 0
+albedo_color = Color(0.66, 0.46, 0.27, 1)
+
+[sub_resource type="BoxMesh" id="Mesh"]
+material = SubResource("Paint")
+size = Vector3(0.03, 0.03, 0.075)
+
+[node name="ImpactSplinters" type="CPUParticles3D"]
+emitting = false
+amount = 7
+lifetime = 0.42
+one_shot = true
+explosiveness = 0.95
+mesh = SubResource("Mesh")
+direction = Vector3(0, 1, 0)
+spread = 60.0
+gravity = Vector3(0, -7, 0)
+initial_velocity_min = 0.8
+initial_velocity_max = 2.4
+scale_amount_min = 0.6
+scale_amount_max = 1.5
+scale_amount_curve = SubResource("Curve_shrink")

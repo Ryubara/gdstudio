@@ -47,8 +47,6 @@ func test_every_surface_export_has_its_default_pinned() -> void:
 		&"mark_material": null,
 		&"mark_scale": 1.0,
 		&"effect": null,
-		&"sound": null,
-		&"pool_size": 4,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()
@@ -58,10 +56,10 @@ func test_the_scene_opens_with_no_warning_and_every_surface_has_what_it_needs() 
 	assert_array(_impacts._get_configuration_warnings()).is_empty()
 	for surface: ImpactSurface in _impacts.surfaces_by_name().values():
 		assert_array(surface._get_configuration_warnings()).is_empty()
-		assert_bool(surface.effect is CPUParticles3D).is_true()
-		assert_bool((surface.effect as CPUParticles3D).one_shot).is_true()
-		assert_bool((surface.effect as CPUParticles3D).emitting).is_false()
-		assert_bool(surface.sound.autoplay).is_false()
+		var burst := surface.effect.particles.instantiate() as CPUParticles3D
+		assert_bool(burst != null and burst.one_shot).is_true()
+		assert_bool(burst.emitting).is_false()
+		burst.free()
 
 
 func test_an_impacts_with_no_surface_says_so() -> void:

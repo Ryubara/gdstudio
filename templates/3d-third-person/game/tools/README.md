@@ -1,7 +1,7 @@
 # tools
 
-Captures, benches and probes, one folder per purpose (`tools/capture/`, `tools/web_smoke/`). They are left out of the
-export, so shipped code never refers to `res://tools/`: the other way round is fine, tools may use the game.
+Captures, benches and probes, one folder per purpose (`tools/capture/`, `tools/bench/`, `tools/web_smoke/`). They are left
+out of the export, so shipped code never refers to `res://tools/`: the other way round is fine, tools may use the game.
 
 - `tools/capture/level_tour.tscn` records the level from a few angles for a pull request's screenshots.
 - `tools/capture/model_tour.tscn` films the player's model from the front and from behind with the pistol up, for the
@@ -17,6 +17,11 @@ export, so shipped code never refers to `res://tools/`: the other way round is f
   mannequin).
 - `tools/ragdoll/measure_joints.gd` measures the joint limits of `PlayerRagdoll.BODIES` from every clip on both mannequins
   (the header says how to run it).
+- `tools/capture/muzzle_flash_tour.tscn` fires the pistol in slow motion at the orange block, with the flash on and then
+  off, for a clip of the muzzle flash.
+- `tools/bench/effects_cost.tscn` fires the pistol in six runs (no flash, flash, flash with impacts, at 4 and 30 shots a
+  second) and prints frame time, script time, draw calls and nodes for each (`BENCH` lines; the header says how to read
+  it in the browser).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/editor_swap/` is an editor plugin (never enabled in a game) that deletes the player's model in the Scene dock,
