@@ -54,7 +54,9 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"push_clip": CharacterClips.PUSH,
 		&"interact_clip": CharacterClips.INTERACT,
 		&"hit_clip": CharacterClips.HIT,
-		&"pistol_idle_clip": CharacterClips.PISTOL_IDLE,
+		&"carry": PlayerAnimation.Carry.HAND_ONLY,
+		&"grip_clip": CharacterClips.PISTOL_IDLE,
+		&"grip_bones": [&"hand_r"],
 		&"aim_clip": CharacterClips.PISTOL_AIM,
 		&"aim_up_clip": CharacterClips.PISTOL_AIM_UP,
 		&"aim_down_clip": CharacterClips.PISTOL_AIM_DOWN,
@@ -62,6 +64,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"upper_body_bone": &"spine_01",
 		&"aim_pitch_range": 45.0,
 		&"shoot_speed": 1.6,
+		&"shot_hold_time": 0.2,
 		&"blend_time": 0.15,
 		&"action_blend_time": 0.1,
 	}
