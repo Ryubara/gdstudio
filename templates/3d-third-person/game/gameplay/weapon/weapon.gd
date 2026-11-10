@@ -83,6 +83,9 @@ signal fired(projectile: Projectile)
 ## body twice in a frame, a body that is not stepped at all).
 @export var self_ticking := true
 
+## The share of `spread` a shot gets now: the character that holds the weapon sets it each
+## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
+var spread_share := 1.0
 var _cooldown := 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -135,7 +138,7 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 		toward = along
 	var heading := toward.normalized()
 	if spread > 0.0:
-		var angle := deg_to_rad(spread) * sqrt(_rng.randf())
+		var angle := deg_to_rad(spread * spread_share) * sqrt(_rng.randf())
 		var around := _rng.randf() * TAU
 		var side := heading.cross(Vector3.UP)
 		if side.length_squared() < 0.0001:
