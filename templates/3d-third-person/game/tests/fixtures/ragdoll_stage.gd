@@ -11,8 +11,8 @@ const MODELS := {
 	&"male": "res://assets/characters/mannequin/mannequin_male.glb",
 }
 
-var ragdoll: PlayerRagdoll
-var slot: PlayerModel
+var ragdoll: CharacterRagdoll
+var slot: CharacterModel
 var speed := 0.0
 var _anim: AnimationPlayer
 var _limp := false
@@ -34,7 +34,7 @@ func setup(model: StringName, clip: StringName, move_speed: float) -> void:
 	root.name = "Actor"
 	root.position = Vector3(0.0, 0.0, -6.0 if speed > 0.0 else 0.0)
 	add_child(root)
-	slot = PlayerModel.new()
+	slot = CharacterModel.new()
 	root.add_child(slot)
 	var rig := (load(MODELS[model]) as PackedScene).instantiate() as Node3D
 	slot.add_child(rig)
@@ -46,7 +46,7 @@ func setup(model: StringName, clip: StringName, move_speed: float) -> void:
 	_anim.root_node = _anim.get_path_to(rig)
 	_anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	_anim.play(clip)
-	ragdoll = PlayerRagdoll.new()
+	ragdoll = CharacterRagdoll.new()
 	ragdoll.max_active = 0
 	ragdoll.model = slot
 	root.add_child(ragdoll)
@@ -67,7 +67,7 @@ func _physics_process(delta: float) -> void:
 ## `range` and the sideways lean (a hinge turns about its axis only). Keys are the bones.
 func hinge_overrun() -> Dictionary:
 	var found := {}
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		if entry.joint != &"hinge":
 			continue
 		var angles := hinge_angles(entry)
@@ -83,7 +83,7 @@ func hinge_angles(entry: Dictionary) -> Vector3:
 	var parent: StringName = ragdoll._parent_body(skeleton, entry.bone)
 	var rest := ragdoll.rest_body(parent).basis.inverse() * ragdoll.rest_body(entry.bone).basis
 	var now := ragdoll.body(parent).global_basis.inverse() * ragdoll.body(entry.bone).global_basis
-	var frame := PlayerRagdoll.hinge_frame(entry.axis)
+	var frame := CharacterRagdoll.hinge_frame(entry.axis)
 	var q := Quaternion((frame.inverse() * rest.inverse() * now * frame).orthonormalized())
 	if q.w < 0.0:
 		q = -q

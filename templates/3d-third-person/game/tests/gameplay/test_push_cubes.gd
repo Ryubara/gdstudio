@@ -70,7 +70,7 @@ func test_a_cube_is_pushed_at_its_push_speed_and_the_character_walks_that_slowly
 	assert_float(speeds / 60.0).is_between(-1.25, -0.85)
 	assert_float(_player.ground_speed()).is_less(1.5)
 	assert_int(pushing).is_greater(55)
-	var animation := _player.get_node("Animation") as PlayerAnimation
+	var animation := _player.get_node("Animation") as CharacterAnimation
 	assert_str(String(animation.body_state())).is_equal("push")
 
 

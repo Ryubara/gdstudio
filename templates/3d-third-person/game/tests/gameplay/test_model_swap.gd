@@ -15,7 +15,7 @@ const SEAT_TOLERANCE := 0.02
 
 var _arena: PlayArena
 var _player: Player
-var _slot: PlayerModel
+var _slot: CharacterModel
 var _animation_player: AnimationPlayer
 var _tree: AnimationTree
 
@@ -146,7 +146,7 @@ func test_the_pose_moves_on_the_new_model() -> void:
 
 # How far the pistol's seat (the `BoneAttachment3D` itself, not the pistol's own offset from it) is
 # from the bone it hangs on, in metres.
-func _seat_error(slot: PlayerModel) -> float:
+func _seat_error(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var seat := slot.get_node("PistolHeld") as BoneAttachment3D
 	var hand := (
@@ -200,7 +200,7 @@ func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_sc
 # Crouch-walks the player of `slot` for a second and a half and returns the largest distance the
 # pistol's seat was from the hand in any frame once the pose had updated. It also checks that the
 # hand really moved, which a seat left behind would not follow.
-func _walk_and_measure(slot: PlayerModel) -> float:
+func _walk_and_measure(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var hand := skeleton.find_bone(&"hand_r")
 	InputSim.key(KEY_X, true)
@@ -241,7 +241,7 @@ func test_the_footsteps_follow_the_new_skeleton() -> void:
 
 
 func test_a_model_without_the_rigs_armature_gets_one_warning_and_no_model_another() -> void:
-	var animation := _player.get_node("Animation") as PlayerAnimation
+	var animation := _player.get_node("Animation") as CharacterAnimation
 	assert_array(animation._get_configuration_warnings()).is_empty()
 	assert_array(_slot._get_configuration_warnings()).is_empty()
 	_remove_rig()
@@ -275,11 +275,12 @@ func test_nothing_between_the_player_and_the_model_has_a_unique_name() -> void:
 	assert_str(String(_tree.root_node)).is_equal(path)
 
 
-func test_only_two_lines_of_the_player_scene_name_the_mannequin() -> void:
+func test_only_two_lines_of_the_dressed_scene_name_the_mannequin() -> void:
 	# The animation player's Root Node and the pistol's seat name it, and the slot rewrites both
 	# when the model is replaced. Nothing else may: a path into a model is lost with the model.
-	var text := FileAccess.get_file_as_string("res://gameplay/player/player.tscn")
-	var header := '[node name="Model" type="Node3D" parent="."]\nscript'
+	# The model is the dressed character's (the player inherits it and names no mannequin).
+	var text := FileAccess.get_file_as_string("res://gameplay/character/character_dressed.tscn")
+	var header := '[node name="Model" type="Node3D" parent="." index="1"]\nscript'
 	assert_bool(text.contains(header)).is_true()
 	var named: Array[String] = []
 	for line in text.split("\n"):

@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 var _players: Array[Player] = []
 
 
@@ -17,7 +17,7 @@ func before_test() -> void:
 	_player = _arena.add_player(Vector3.ZERO)
 	CommandDriver.take(_player)
 	_players = [_player]
-	_animation = _player.get_node("Animation") as PlayerAnimation
+	_animation = _player.get_node("Animation") as CharacterAnimation
 	await InputSim.ticks(get_tree(), 4)
 
 

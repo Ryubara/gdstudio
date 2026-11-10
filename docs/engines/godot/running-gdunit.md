@@ -125,7 +125,8 @@ game](new-game.md#proof), gdstudio #830 and #917).
   children, by PID. **Watch out for:** a hand-over said "tests passing" and was green only on the folders its author
   guessed: `tests/world` (light cap) and `tests/tuning` (sound tables) read the whole project and failed on a new light
   and sound field, and the old runner script kept moving to the next shard and overwrote the summary. **Seen:**
-  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run).
+  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run);
+  gdstudio #901, 2026-11-10 (a test edited after the run).
 - **Approach:** To see a new test fail first, save the diff (`git diff origin/main -- <paths> > file.patch`), run the
   revert, the test and the restore as separate commands with the test under its own `timeout` (or run it in a worktree
   of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,

@@ -15,7 +15,7 @@ func _initialize() -> void:
 	var climbed := await bench.measure(heights)
 	for height in heights:
 		print("LEDGE %.2f climbed %s" % [height, climbed[height]])
-	var tuning := PlayerTuning.new()
+	var tuning := CharacterTuning.new()
 	print(
 		(
 			"REACH %.2f m (jump_height %.2f, step_height %.2f, radius %.2f)"
