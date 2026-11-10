@@ -135,7 +135,8 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
   finds the real marker, so `gds new game` wrote `repos/zz-parse` into the real `repos/`; and
   `editor_plugins/enabled` is an editor setting that `ProjectSettings` does not hold at run time, so a test reading it
   there failed with the plugin enabled. **Seen:** gdstudio #814, 2026-11-08 (the stray repository deleted at once; the
-  test changed to `ConfigFile`).
+  test changed to `ConfigFile`); gdstudio #877, 2026-11-10 (a throwaway workspace made as a folder of the real one, with
+  its own marker, worked but is not the rule: keep it outside the real workspace and move one made inside out).
 
 - **Approach:** Prove a template change in a game made from it: make the game, copy the changed template files over it
   (never `project.godot`, which the game keeps), import, run `gds check scripts` and the suites with one `-a` per

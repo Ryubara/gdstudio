@@ -25,7 +25,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   opening 3D Third Person ("local variable "scale" is shadowing an already-declared property in the base class"), which
   a headless run never shows; as errors, `gds check scripts` fails the script (a throwaway `var scale` gave "1 of 429 do
   not parse"). **Seen:** gdstudio #836, 2026-11-08 (also a test helper `_body` shadowed by a
-  lambda's `_body`); #857 (a test's `for name in`, exit 105).
+  lambda's `_body`); #857 (a test's `for name in`, exit 105); #877 (`for name in` again).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
