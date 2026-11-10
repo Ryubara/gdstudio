@@ -3,6 +3,8 @@ extends RefCounted
 ## A server and clients over real sockets on 127.0.0.1 for the network suites: a `WsListener` on a
 ## free port (`listen(0)`, so suites in parallel never clash), `WebSocketLink`s connected to it, and
 ## waits counted in physics frames. Every packet a peer sends to the listener is kept in `got`.
+## The listener and every link read `frame_clock` (a test may give the listener its own), so their
+## lingers, graces and deadlines pass in frames: at `--fixed-fps 60` a frame takes no wall time.
 
 var listener := WsListener.new()
 var links: Array[WebSocketLink] = []
@@ -18,6 +20,7 @@ var _tree: SceneTree
 
 func _init(tree: SceneTree) -> void:
 	_tree = tree
+	listener.clock = frame_clock
 	listener.peer_connected.connect(_on_peer)
 	listener.packet_received.connect(_on_packet)
 
@@ -35,6 +38,7 @@ func url() -> String:
 func connect_link(inbound_buffer := WebSocketLink.INBOUND_BUFFER) -> WebSocketLink:
 	var link := WebSocketLink.new()
 	link.inbound_buffer = inbound_buffer
+	link.clock = frame_clock
 	if link.connect_to_url(url()) != OK:
 		return null
 	links.append(link)
