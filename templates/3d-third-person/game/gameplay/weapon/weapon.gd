@@ -7,8 +7,9 @@ extends Node3D
 ##
 ## Every number of a shot is here, in the inspector, and read when the shot is fired, so a change
 ## while the game runs shows in the next shot. The sound of a shot is the `ShotSound` node of
-## `weapon.tscn` (its stream, volume and bus are the node's own): the template ships no pistol
-## sound, so the slot is empty and nothing plays until a game puts one there.
+## `weapon.tscn` (its stream, volume, bus and voices are the node's own): five pistol shots picked
+## at random with a small pitch and volume spread, up to three playing at once. A game swaps the
+## sound by changing that one `stream`.
 
 ## A shot left the muzzle.
 signal fired(projectile: Projectile)

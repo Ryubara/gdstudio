@@ -66,7 +66,7 @@ def test_the_data_file_keeps_the_issue_s_promises(data):
     sounds = {s["name"]: s for s in data["sounds"]}
     assert sounds["coin_pickup"]["min_seconds"] == 0.3
     assert sounds["coin_pickup"]["max_seconds"] <= 0.4
-    assert sounds["footstep_hard"]["min_files"] >= 6
+    assert sounds["footstep_soft"]["min_files"] >= 4
     assert 10 <= sounds["wind_soft"]["min_seconds"] <= sounds["wind_soft"]["max_seconds"] <= 12
     assert sounds["wind_soft"]["loop"] is True
     for sound in sounds.values():  # a length is always given: auto length costs more

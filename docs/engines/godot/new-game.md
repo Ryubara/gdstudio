@@ -187,10 +187,10 @@ What each template plays, and on which bus (the buses and the volume node are in
 | Template | Sound | Played by | Bus |
 | --- | --- | --- | --- |
 | `3d-blank` | the wind loop (`assets/audio/wind/`) | the `Wind` player of `main.tscn`, from the start | `Ambient` |
-| `3d-third-person` | the wind loop | the same `Wind` player | `Ambient` |
-| `3d-third-person` | footsteps (ten files, `assets/audio/footsteps/`) | `Footsteps` (`Step`, `CrouchStep`, `LandStep`), a step each time a foot of the animated skeleton lands | `SFX` |
-| `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup`, one file a pickup | `SFX` |
-| `3d-third-person` | a pistol shot | the `ShotSound` slot of `Weapon`, empty: no pistol sound is licensed to ship | `SFX` |
+| `3d-third-person` | the wind loop, at -20 dB (replace it by changing the `stream` of the one `Wind` player; level and bus stay) | the same `Wind` player | `Ambient` |
+| `3d-third-person` | footsteps (four soft thuds, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
+| `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup` at -16 dB, one file a pickup | `SFX` |
+| `3d-third-person` | a pistol shot (five files, `assets/audio/pistol/`, Deadnight's House Pistol, MIT) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -22 dB, three voices | `SFX` |
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
   `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`

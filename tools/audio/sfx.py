@@ -312,6 +312,21 @@ def cut_steps(x, sound: dict) -> list:
     return [p for p, pk in zip(pieces, peaks, strict=True) if pk >= 0.4 * median]
 
 
+def steps_of(x, sound: dict) -> list:
+    """The steps of one take. A sound with `highpass_hz` first loses everything under it (the generator's thuds hold
+    their energy at 20 to 35 Hz, below what a phone or laptop plays), and one with `tail_db` is trimmed again where
+    it falls that far under its peak and faded out over 50 ms, a softer end than the plain cut's."""
+    if sound.get("highpass_hz"):
+        x = highpass(x, sound["highpass_hz"])
+    pieces = cut_steps(x, sound)
+    if sound.get("tail_db") is not None:
+        pieces = [
+            fade_out(fade_in(trim(p, tail_db=sound["tail_db"])), 0.05) for p in pieces
+        ]
+        pieces = [p for p in pieces if len(p) >= sound["min_seconds"] * RATE]
+    return pieces
+
+
 def make_loop(x, seconds: float):
     """Make a take loop with no seam: the last `seconds` fade into the first (equal power), and are dropped."""
     import numpy as np
@@ -515,7 +530,7 @@ def cmd_encode(args) -> None:
             if sound["kind"] == "hit":
                 pieces.append(hit(x, sound))
             elif sound["kind"] == "steps":
-                pieces.extend(cut_steps(x, sound))
+                pieces.extend(steps_of(x, sound))
             else:
                 x = flatten(highpass(x, 40.0), sound["flatten_seconds"])
                 pieces.append(make_loop(x, sound["crossfade"]))
