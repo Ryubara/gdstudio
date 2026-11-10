@@ -146,6 +146,8 @@ captures; the research with its sources is in the pull request of #875.
 - **Read `FastNoiseLite` at an accumulated time**, not `TIME`, so the shake is the same in tests and in Movie Maker.
 - **Every amount is exported** (per weapon and on the player tuning) and a player setting scales it to zero; reduced
   motion turns it off.
+- **The templates' version is a shared component**: `CameraShake` and `ShakePreset` resources, one line to play one
+  ([Camera: shake component](camera.md#shake-component)).
 
 ## Capturing it {#capturing-it}
 

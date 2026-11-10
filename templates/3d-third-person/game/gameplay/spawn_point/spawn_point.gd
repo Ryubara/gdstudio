@@ -28,6 +28,9 @@ extends Marker3D
 		show_in_game = value
 		_update_marker()
 
+## The physics frame this point was last picked on (see `pick()`).
+var _taken_frame := -1
+
 
 func _ready() -> void:
 	add_to_group(_group_name(spawn_group))
@@ -39,16 +42,25 @@ static func _group_name(spawn_group_name: StringName) -> StringName:
 	return StringName("spawn_%s" % spawn_group_name)
 
 
-## Picks an enabled point of `group_name` at random, or null when there is none.
+## Picks an enabled point of `group_name` at random, or null when there is none. A point picked
+## earlier in this physics frame is passed over while another is free, so two characters that
+## start together do not stand on one point; with none left free the pick repeats one.
 static func pick(tree: SceneTree, group_name: StringName, rng: RandomNumberGenerator) -> SpawnPoint:
+	var frame := Engine.get_physics_frames()
 	var free: Array[SpawnPoint] = []
+	var all: Array[SpawnPoint] = []
 	for node in tree.get_nodes_in_group(_group_name(group_name)):
 		var point := node as SpawnPoint
 		if point != null and point.enabled:
-			free.append(point)
-	if free.is_empty():
+			all.append(point)
+			if point._taken_frame != frame:
+				free.append(point)
+	if all.is_empty():
 		return null
-	return free[rng.randi_range(0, free.size() - 1)]
+	var pool := free if not free.is_empty() else all
+	var chosen := pool[rng.randi_range(0, pool.size() - 1)]
+	chosen._taken_frame = frame
+	return chosen
 
 
 ## Where and how to spawn: the point's transform, moved to a random spot inside `radius` when it
