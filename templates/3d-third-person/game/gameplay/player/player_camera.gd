@@ -264,6 +264,12 @@ var yaw := 0.0
 ## The vertical orbit angle in degrees; positive looks down at the target.
 var pitch := 0.0
 
+## The player's own mouse setting (the settings screen, through `LookSettings`): a factor on
+## `mouse_sensitivity`, 1 being the value set above. The mouse only; the stick and touch keep
+## theirs.
+var player_sensitivity := 1.0
+## The player's own invert setting: flips the vertical look on top of `invert_y`.
+var player_invert_y := false
 var _arm_waited := 0
 var _sprint_blend := 0.0
 var _aim_blend := 0.0
@@ -349,7 +355,7 @@ func _process(delta: float) -> void:
 ## the touch layer all come through here.
 func orbit(degrees: Vector2) -> void:
 	yaw = wrapf(yaw - degrees.x, -180.0, 180.0)
-	var vertical := -degrees.y if invert_y else degrees.y
+	var vertical := -degrees.y if invert_y != player_invert_y else degrees.y
 	pitch = clampf(pitch + vertical, min_pitch, max_pitch)
 	orbited.emit(yaw, pitch)
 
@@ -454,12 +460,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if Engine.is_editor_hint():
 		return
 	if event is InputEventMouseMotion and _mouse_orbits():
-		orbit((event as InputEventMouseMotion).relative * mouse_sensitivity)
+		orbit((event as InputEventMouseMotion).relative * mouse_sensitivity * player_sensitivity)
 	elif event is InputEventMouseButton and capture_mouse:
 		var click := event as InputEventMouseButton
 		if click.pressed and not DisplayServer.is_touchscreen_available():
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event.is_action_pressed(&"ui_cancel"):
+	elif InputMap.has_action(&"pause") and event.is_action_pressed(&"pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif InputMap.has_action(&"shoulder_swap") and event.is_action_pressed(&"shoulder_swap"):
 		swap_shoulder()

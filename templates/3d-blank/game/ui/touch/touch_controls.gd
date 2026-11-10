@@ -392,6 +392,12 @@ func _press(action: StringName, strength: float) -> void:
 		_pressed.erase(action)
 
 
+## Lets go of every finger and every action the layer holds, as when a menu covers the game and a
+## finger may lift where the layer cannot see it.
+func release() -> void:
+	_release_all()
+
+
 func _release_all() -> void:
 	for action in _pressed.keys():
 		Input.action_release(action)

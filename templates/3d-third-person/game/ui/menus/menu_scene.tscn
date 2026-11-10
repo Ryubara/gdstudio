@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/menu_scene.gd" id="1_scene"]
+[ext_resource type="PackedScene" path="res://ui/menus/main_menu.tscn" id="2_menu"]
+
+[node name="MenuScene" type="Node"]
+script = ExtResource("1_scene")
+main_menu = ExtResource("2_menu")
