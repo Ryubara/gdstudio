@@ -140,3 +140,23 @@ func test_the_far_level_keeps_every_node_at_the_near_levels_place() -> void:
 			. is_equal_approx(a.origin, Vector3.ONE * 0.001)
 		)
 		assert_bool(b.basis.is_equal_approx(a.basis)).is_true()
+
+
+func test_the_two_level_scene_swaps_at_one_distance_and_godot_makes_no_levels() -> void:
+	var scene := _load("res://assets/weapons/rifle/rifle.tscn")
+	var near: Array[MeshInstance3D] = _meshes(scene.get_node("Near"))
+	var far: Array[MeshInstance3D] = _meshes(scene.get_node("Far"))
+	assert_int(near.size()).is_equal(1 + PARTS.size())
+	assert_int(far.size()).is_equal(1 + PARTS.size())
+	var swap := near[0].visibility_range_end
+	assert_float(swap).is_greater(0.0)
+	for mesh_instance in near:
+		assert_float(mesh_instance.visibility_range_begin).is_equal(0.0)
+		assert_float(mesh_instance.visibility_range_end).is_equal(swap)
+	for mesh_instance in far:
+		assert_float(mesh_instance.visibility_range_begin).is_equal(swap)
+		assert_float(mesh_instance.visibility_range_end).is_equal(0.0)
+	# The importer's own levels tore the kitbashed parts apart at 15 to 30 m: they stay off.
+	for mesh_instance in near + far:
+		var surface := RenderingServer.mesh_get_surface(mesh_instance.mesh.get_rid(), 0)
+		assert_array(surface.get("lods", [])).is_empty()
