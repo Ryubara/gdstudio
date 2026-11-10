@@ -5,11 +5,13 @@
 [ext_resource type="Resource" path="res://gameplay/player/player_tuning.tres" id="3_tuning"]
 [ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="4_input"]
 [ext_resource type="Resource" path="res://gameplay/player/prone_tuning.tres" id="5_prone"]
+[ext_resource type="Resource" path="res://gameplay/player/slide_tuning.tres" id="6_slide"]
 
 [node name="Player" node_paths=PackedStringArray("controller") instance=ExtResource("1_dressed")]
 script = ExtResource("2_player")
 tuning = ExtResource("3_tuning")
 prone_tuning = ExtResource("5_prone")
+slide_tuning = ExtResource("6_slide")
 controller = NodePath("PlayerInput")
 
 [node name="PlayerInput" type="Node" parent="." node_paths=PackedStringArray("player")]
