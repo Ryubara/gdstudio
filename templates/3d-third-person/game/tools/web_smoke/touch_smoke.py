@@ -44,6 +44,7 @@ READY_TIMEOUT_S = 120.0
 LOOK_SENSITIVITY_DEG_PER_PX = 0.1  # TouchControls.look_sensitivity, the scene's value.
 LOOK_TOLERANCE = 0.2
 STEPS = 12
+PHYSICS_FPS = 60  # the project's physics ticks a second, which the probe's `ticks` counts
 STEP_PERIOD_S = 0.03
 
 
@@ -127,6 +128,21 @@ def wait_for(page: Page, test, seconds: float) -> dict:
     return state
 
 
+def sim_wait(page: Page, seconds: float) -> None:
+    """Waits `seconds` of the game's own time (60 physics ticks a second), however slowly the page draws.
+
+    A check that measures a distance or a turn in a duration reads the game's clock (`ticks` in the probe), not the
+    wall's: a software renderer draws a few frames a second and the character walks a share of the distance in the
+    same wall seconds. Falls back to the wall clock for a probe without `ticks`, and gives up after 20 times as long."""
+    start = probe(page).get("ticks")
+    if start is None:
+        time.sleep(seconds)
+        return
+    end = time.time() + seconds * 20 + 5
+    while time.time() < end and probe(page).get("ticks", start) - start < seconds * PHYSICS_FPS:
+        time.sleep(0.02)
+
+
 def angle_between(a: float, b: float) -> float:
     return (b - a + 180.0) % 360.0 - 180.0
 
@@ -176,9 +192,9 @@ def main() -> int:
         before = probe(page)
         hand.down(1, 600, 200)
         hand.drag({1: (600 + 120, 200)})
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         hand.up(1)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after = probe(page)
         want = -120.0 * scale * LOOK_SENSITIVITY_DEG_PER_PX
         got = angle_between(before["yaw"], after["yaw"])
@@ -191,11 +207,11 @@ def main() -> int:
         stick_x, stick_y = css("home_x"), css("home_y")
         hand.down(2, stick_x, stick_y)
         hand.drag({2: (stick_x, stick_y - 40)}, steps=6)
-        time.sleep(1.2)
+        sim_wait(page, 1.2)
         mid = probe(page)
         page.screenshot(path=str(args.out / "phone_stick_down.png"))
         hand.up(2)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after = probe(page)
         travelled = math.dist((before["x"], before["z"]), (after["x"], after["z"]))
         forward = (-math.sin(math.radians(before["yaw"])), -math.cos(math.radians(before["yaw"])))
@@ -210,12 +226,12 @@ def main() -> int:
         before = probe(page)
         hand.down(3, css("button0_x"), css("button0_y"))
         peak = before["y"]
-        end = time.time() + 0.5
-        while time.time() < end:
+        start_tick = before["ticks"]
+        while probe(page)["ticks"] - start_tick < 0.5 * PHYSICS_FPS:
             peak = max(peak, probe(page)["y"])
-            time.sleep(0.04)
+            time.sleep(0.02)
         hand.up(3)
-        time.sleep(1.0)
+        sim_wait(page, 1.0)
         after = probe(page)
         check("the jump button jumps", after["jumps"] == before["jumps"] + 1 and peak - before["y"] > 0.3, f"jumps {before['jumps']} to {after['jumps']}, rose {peak - before['y']:.2f} m")
 
@@ -225,16 +241,16 @@ def main() -> int:
         hand.down(5, 600, 200)
         # Backwards, the way the character came from: it is not at a wall.
         hand.drag({4: (stick_x, stick_y + 40), 5: (600 + 90, 200)}, steps=10)
-        time.sleep(0.4)
+        sim_wait(page, 0.4)
         page.screenshot(path=str(args.out / "phone_two_fingers.png"))
         both = probe(page)
         hand.up(5)
-        time.sleep(0.3)
+        sim_wait(page, 0.3)
         mid_state = probe(page)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after_lift = probe(page)
         hand.up(4)
-        time.sleep(0.6)
+        sim_wait(page, 0.6)
         turned = angle_between(before["yaw"], both["yaw"])
         want = -90.0 * scale * LOOK_SENSITIVITY_DEG_PER_PX
         check("two fingers: the look finger still turns by the designed angle", abs(turned - want) <= abs(want) * LOOK_TOLERANCE, f"turned {turned:.1f} deg, designed {want:.1f}")
@@ -252,7 +268,7 @@ def main() -> int:
         hand.down(7, css("button3_x"), css("button3_y"))
         state = wait_for(page, lambda s: s.get("aiming") is True, 3.0)
         check("the aim button aims", state.get("aiming") is True, f"aiming={state.get('aiming')}")
-        time.sleep(1.0)
+        sim_wait(page, 1.0)
         page.screenshot(path=str(args.out / "phone_aim.png"))
         before = probe(page)
         hand.down(8, css("button2_x"), css("button2_y"))
