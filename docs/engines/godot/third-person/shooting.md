@@ -190,8 +190,9 @@ their shares, the draw). A new weapon is a new `.tres`; nothing else changes.
   signals `ammo_changed`, `reloaded`, `definition_changed`. A projectile comes from the weapon's pool
   (`projectile_cap`, 24): a finished one parks hidden out of the physics and is fired again, and every projectile of
   a size shares one mesh and shape and every one of a colour one material, so a hundred shots make no resource. A
-  hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage); a blow is a ray
-  of `melee_reach` from the chest.
+  hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
+  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
+  from the chest.
 - **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
   away, shows the model of the one in the hands, and fills a reserve from a pickup of its `ammo_item`. A switch takes

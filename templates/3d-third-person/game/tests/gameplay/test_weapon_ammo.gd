@@ -269,3 +269,30 @@ func test_the_reload_plays_its_steps_at_their_shares() -> void:
 		if sound.playing and (heard.is_empty() or heard.back() != sound.stream):
 			heard.append(sound.stream)
 	assert_array(heard).is_equal(_weapon.definition.reload_sounds)
+
+
+func test_a_hitscan_shot_on_a_character_hits_its_body_part_and_takes_the_damage() -> void:
+	var floor_body := StaticBody3D.new()
+	var floor_shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(20.0, 1.0, 20.0)
+	floor_shape.shape = box
+	floor_body.add_child(floor_shape)
+	floor_body.position = Vector3(0.0, -0.5, 0.0)
+	_world.add_child(floor_body)
+	var other := load("res://gameplay/character/character_dressed.tscn").instantiate() as Character
+	other.position = Vector3(0.0, 0.0, -6.0)
+	_world.add_child(other)
+	await InputSim.ticks(get_tree(), 4)
+	_weapon.definition.kind = WeaponDef.Kind.HITSCAN
+	var hits: Array[Dictionary] = []
+	_weapon.hit_scanned.connect(func(hit: Dictionary) -> void: hits.append(hit))
+	var before := other.health
+	# At the chest, 1.3 m up, from 6 m in front.
+	assert_int(_weapon.pull(Vector3(0.0, 1.3, 0.0), Vector3.FORWARD)).is_equal(Weapon.Pull.FIRED)
+	assert_int(hits.size()).is_equal(1)
+	var record := hits[0]["record"] as HitRecord
+	assert_object(record).is_not_null()
+	assert_str(String(record.zone)).is_not_empty()
+	assert_float(other.health).is_less(before)
+	assert_float(before - other.health).is_equal_approx(record.damage, 0.001)
