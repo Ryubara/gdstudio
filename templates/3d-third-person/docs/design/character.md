@@ -82,16 +82,19 @@ The sample map is built for these numbers (blocks 1 m apart in height, twelve st
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
 
 The camera's settings are all on the `PlayerCamera` node, so you never open the Phantom Camera node: the nodes it
-works with (Nodes), distance (1.7 m), the arm's offset (`offset`, in world axes; it moves the wall cast, so keep it near
-zero sideways), field of view, near and far clip and start pitch (Framing), the **Shoulder** group, damping (Follow),
-mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera (Blending), the wall
-mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the field of view and distance
-added at a full sprint, the zoom speed, and a shake with its amplitude in degrees, frequency and blend speed, off at 0),
-Aim (the distance, the field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a
-shot fired without aiming, with `zoom_when_firing` to turn it off). The zoom follows the buttons: it starts back out on
-the next frame after aim and fire are let go, and so does the character: its walk speed, turn and clips are the
-normal ones at once and only the arm lowers over the aim pose time (a shot needs the arm half up, so a tap shorter than
-about 75 ms shoots nothing).
+works with (Nodes), distance (1.7 m), the arm's offset (`offset`, in world axes; it moves the wall cast, so keep it
+near zero sideways), field of view, near and far clip and start pitch (Framing), the **Shoulder** group, damping
+(Follow), mouse, stick and pitch limits (Orbit), the priority and the blend back from a `CameraZone`'s camera
+(Blending), the wall mask, shape and margin (Walls), and three views that blend on top of the framing: Sprint (the
+field of view and distance added at a full sprint, the zoom speed, and a shake with its amplitude in degrees,
+frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Aim (the distance, the
+field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
+aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+`shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
+from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
+follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:
+its walk speed, turn and clips are the normal ones at once and only the arm lowers over the aim pose time (a shot
+needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`

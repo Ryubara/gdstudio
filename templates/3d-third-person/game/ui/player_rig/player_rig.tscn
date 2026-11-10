@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://ui/touch/third_person_touch_controls.tscn" id="6_touch"]
 [ext_resource type="Script" path="res://gameplay/player/look_settings.gd" id="7_look"]
 [ext_resource type="PackedScene" path="res://ui/menus/pause_button.tscn" id="8_pause_button"]
+[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="9_shake"]
 
 [node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("1_rig")
@@ -17,12 +18,17 @@ touch = NodePath("TouchControls")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
-[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "player")]
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
 script = ExtResource("3_camera")
 target = NodePath("../Player/CameraTarget")
 follow_camera = NodePath("FollowCamera")
 camera = NodePath("../Camera")
+shaker = NodePath("CameraShake")
 player = NodePath("../Player")
+
+[node name="CameraShake" type="Node" parent="PlayerCamera"]
+script = ExtResource("9_shake")
+auto_advance = false
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")
