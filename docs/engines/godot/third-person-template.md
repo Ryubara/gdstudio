@@ -180,6 +180,11 @@ Scene dock and checks the result.
   tells the camera to cut. **Watch out for:** setting `global_position` directly sends a damped Phantom Camera flying
   across the map for about 0.9 s, so a test that waited 40 ticks saw the lens 5 m from where it belonged.
   **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Give each character its own spawn generator (seeded from its node path, so a test repeats) and let
+  `SpawnPoint.pick()` pass over a point already picked in the same physics frame; read the spot from
+  `spawn_transform()` so a point's `radius` counts. **Watch out for:** every `Player` seeded its generator with 1, so
+  two characters in one world stood on the same point (0.00 m apart), and `respawn()` read the point's transform
+  directly, so `radius` did nothing for the player. **Seen:** gdstudio #922, 2026-11-10.
 - **Approach:** Prove an interaction against the real physics world with a few ticks of a real key, pad button or touch
   event through `Input.parse_input_event` and the project's `InputMap`, in a small arena with a floor, and keep the
   sample map's own numbers (a jump a block high, steps lower than the step height) in a test of the tuning. **Watch out
