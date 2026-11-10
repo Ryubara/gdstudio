@@ -52,11 +52,11 @@ stream_2/weight = 1.0
 
 [sub_resource type="StandardMaterial3D" id="Paint_Default"]
 shading_mode = 0
-albedo_color = Color(0.72, 0.69, 0.63, 1)
+albedo_color = Color(0.82, 0.8, 0.74, 1)
 
 [sub_resource type="SphereMesh" id="Mesh_Default"]
-radius = 0.011
-height = 0.022
+radius = 0.024
+height = 0.048
 radial_segments = 6
 rings = 3
 material = SubResource("Paint_Default")
@@ -66,7 +66,7 @@ shading_mode = 0
 albedo_color = Color(0.66, 0.46, 0.27, 1)
 
 [sub_resource type="BoxMesh" id="Mesh_Wood"]
-size = Vector3(0.016, 0.016, 0.040)
+size = Vector3(0.03, 0.03, 0.075)
 material = SubResource("Paint_Wood")
 
 [sub_resource type="StandardMaterial3D" id="Paint_Metal"]
@@ -74,8 +74,8 @@ shading_mode = 0
 albedo_color = Color(1, 0.72, 0.28, 1)
 
 [sub_resource type="SphereMesh" id="Mesh_Metal"]
-radius = 0.009
-height = 0.018
+radius = 0.013
+height = 0.026
 radial_segments = 6
 rings = 3
 material = SubResource("Paint_Metal")
@@ -85,8 +85,8 @@ shading_mode = 0
 albedo_color = Color(1, 0.72, 0.28, 1)
 
 [sub_resource type="SphereMesh" id="Mesh_Target"]
-radius = 0.009
-height = 0.018
+radius = 0.013
+height = 0.026
 radial_segments = 6
 rings = 3
 material = SubResource("Paint_Target")
@@ -106,8 +106,8 @@ sound = NodePath("Sound")
 
 [node name="Effect" type="CPUParticles3D" parent="Surfaces/Default"]
 emitting = false
-amount = 8
-lifetime = 0.38
+amount = 10
+lifetime = 0.45
 one_shot = true
 explosiveness = 0.95
 mesh = SubResource("Mesh_Default")
