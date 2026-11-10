@@ -22,7 +22,7 @@ func before_test() -> void:
 	get_tree().root.size = Vector2i(1280, 720)
 	_scene = scene_runner("res://main.tscn").scene()
 	_hud = _scene.get_node("Hud")
-	_player = _scene.get_node("Player")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 
@@ -253,6 +253,7 @@ func test_every_export_of_the_hud_and_a_stat_has_its_default_pinned() -> void:
 		&"max_scale": 3.0,
 		&"pixel_ratio": 0.0,
 		&"touch_controls": null,
+		&"player": null,
 		&"root": null,
 		&"safe_area": null,
 		&"minimap_slot": null,

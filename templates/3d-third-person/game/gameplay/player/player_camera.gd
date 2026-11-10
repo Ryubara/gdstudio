@@ -19,8 +19,8 @@ extends Node3D
 ## to its move direction on its own (`Player`), so the camera never drags it.
 ##
 ## It is a `@tool` script, so the framing, follow and wall settings move the Phantom Camera in the
-## editor too (open `main.tscn` and change `distance` or `field_of_view`). Only that setup runs
-## there, never the orbit or the input.
+## editor too (open `ui/player_rig/player_rig.tscn` and change `distance` or
+## `field_of_view`). Only that setup runs there, never the orbit or the input.
 
 ## The orbit angles changed; `yaw` and `pitch` are in degrees.
 signal orbited(yaw: float, pitch: float)

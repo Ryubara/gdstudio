@@ -53,7 +53,7 @@ func test_the_defaults_in_the_layout_and_on_the_node_agree() -> void:
 func test_the_main_scene_applies_the_node_when_it_starts() -> void:
 	var runner := scene_runner("res://main.tscn")
 	await await_idle_frame()
-	var settings: AudioSettings = runner.scene().get_node("AudioSettings")
+	var settings: AudioSettings = runner.scene().find_child("AudioSettings", true, false)
 	settings.ui_db = -9.0
 	assert_float(AudioSettings.bus_volume_db(&"UI")).is_equal_approx(-9.0, 0.001)
 
