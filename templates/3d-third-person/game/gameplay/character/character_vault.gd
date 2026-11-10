@@ -35,6 +35,37 @@ func duration() -> float:
 	return plan.duration
 
 
+## One tick of `body`'s vault, called at the top of its living step: starts a crossing when its
+## command asks and the probe finds one, and moves the body along the running one. True while a
+## crossing moves the body (the rest of the body's tick is skipped). Reads and writes the body's
+## step members as one of its parts.
+func drive(body: Character, delta: float) -> bool:
+	var settings := body.vault_settings
+	if settings == null:
+		return false
+	tick_cooldown(delta)
+	if not is_active():
+		if not body._grounded or body._action_lock > 0.0:
+			return false
+		if body._prone.is_prone() or body._slide.active:
+			return false
+		var direction := body._wish_direction()
+		if direction.is_zero_approx():
+			direction = Vector3.BACK.rotated(Vector3.UP, body.facing)
+		var tuning := body.tuning
+		var asked := body._jump_buffer > 0.0
+		if not try_start(
+			body, settings, body.last_command, asked, direction, tuning.radius, tuning.height
+		):
+			return false
+		_begin(body, settings)
+	tick(body, settings, delta)
+	body.aim_amount = move_toward(
+		body.aim_amount, 0.0, delta / maxf(body.tuning.aim_pose_time, 0.001)
+	)
+	return true
+
+
 ## Starts a crossing when `command` asks for one and the probe finds one. `wants_jump` is the
 ## body's buffered jump press; `direction` is where it is going (or facing, standing still).
 ## True when a crossing started.
@@ -101,6 +132,25 @@ func load_step_state(kept: Array) -> void:
 	elapsed = kept[0]
 	cooldown = kept[1]
 	plan = VaultPlan.new().from_array(kept[2])
+
+
+# The body turns square to the face, lets go of the jump and (with `drop_aim`) of the aim, and
+# says the crossing began.
+func _begin(body: Character, settings: VaultSettings) -> void:
+	body._jump_buffer = 0.0
+	body._coyote = 0.0
+	body.facing = atan2(plan.forward.x, plan.forward.z)
+	body._present_facing()
+	if settings.drop_aim:
+		body._fire_buffer = 0.0
+		body.aim_held = false
+		body.fire_held = false
+		if body.aiming:
+			body.aiming = false
+			body.aim_changed.emit(false)
+	var vaulting := plan.kind == VaultPlan.Kind.VAULT
+	body.state = Character.State.VAULT if vaulting else Character.State.MANTLE
+	body.vault_started.emit(plan)
 
 
 func _asked(

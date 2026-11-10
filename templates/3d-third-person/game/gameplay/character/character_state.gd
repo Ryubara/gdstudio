@@ -60,3 +60,6 @@ var vault: Array = []
 ## The prone stance (`CharacterProne.save_step_state()`: lying or not, how far down, the time
 ## off the ground).
 var prone: Array = []
+## The step state of the character's slide (`CharacterSlide.save_step_state()`: whether it slides,
+## for how long, how low, its cooldowns and the speed a slide jump carries).
+var slide: Array = []
