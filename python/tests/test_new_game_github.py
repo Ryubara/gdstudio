@@ -20,6 +20,9 @@ from gds_tools.issues import IssueError
 
 FULL = "Ryubara/my-game"
 CO_AUTHOR = "Claude Opus 5.5 <noreply@anthropic.com>"
+# Most tests are about a step of the command other than the pull request that adds the game to the kit, which is
+# a worktree, a commit, a push and a run of the body check: they leave it out (the default run and its tests cover it).
+NO_KIT_PR = github.Options(co_author=CO_AUTHOR, kit_pr=False)
 GREEN = {"databaseId": 7, "status": "completed", "conclusion": "success", "url": "https://github.com/r/run/7"}
 RUNNING = {"databaseId": 7, "status": "in_progress", "conclusion": "", "url": "https://github.com/r/run/7"}
 FAILED = {"databaseId": 8, "status": "completed", "conclusion": "failure", "url": "https://github.com/r/run/8"}
@@ -205,7 +208,7 @@ def test_the_repository_is_public_by_default_with_the_pages_address_as_homepage(
 
 
 def test_private_makes_it_private(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin, options=github.Options(private=True))
+    _, gh, _ = make(kit, root, game_origin, options=github.Options(private=True, kit_pr=False))
     (create,) = gh.called("repo", "create")
     assert "--private" in create and "--public" not in create
 
@@ -225,7 +228,7 @@ def test_pages_is_set_to_github_actions_before_the_push(default_flow):
 
 def test_pages_refused_on_the_empty_repository_is_set_after_the_push_and_the_deploy_is_rerun(kit, root, game_origin):
     gh = FakeGh(pages_refusals=2, runs={"ci.yml": [GREEN], "docs.yml": [FAILED, RUNNING, GREEN]})
-    made, gh, _ = make(kit, root, game_origin, gh=gh)
+    made, gh, _ = make(kit, root, game_origin, gh=gh, options=NO_KIT_PR)
     assert len([c for c in gh.calls if c[-1] == "build_type=workflow"]) == 3  # POST, PUT refused; POST taken
     assert gh.called("run", "rerun") == [["run", "rerun", "8", "--failed", "-R", FULL]]
     assert made.published.docs.conclusion == "success" and made.published.green
@@ -233,7 +236,7 @@ def test_pages_refused_on_the_empty_repository_is_set_after_the_push_and_the_dep
 
 def test_a_failed_deploy_is_not_rerun_when_pages_was_there_before_the_push(kit, root, game_origin):
     gh = FakeGh(runs={"ci.yml": [GREEN], "docs.yml": [FAILED]})
-    made, gh, _ = make(kit, root, game_origin, gh=gh)
+    made, gh, _ = make(kit, root, game_origin, gh=gh, options=NO_KIT_PR)
     assert gh.called("run", "rerun") == []
     assert not made.published.green and not made.published.pages_live
 
@@ -257,30 +260,30 @@ def test_a_groundwork_step_that_fails_stops_the_command(kit, root, game_origin):
 
 
 def test_the_hold_sweep_runs_once_and_is_retried_until_github_takes_it(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=2))
+    _, gh, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=2), options=NO_KIT_PR)
     assert gh.called("workflow", "run") == [["workflow", "run", "hold-sweep.yml", "-R", FULL]] * 3
 
 
 def test_a_hold_sweep_github_never_takes_is_left_as_a_step(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=99))
+    made, _, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=99), options=NO_KIT_PR)
     assert any("hold-sweep.yml" in step for step in made.todo)
 
 
 def test_a_run_that_does_not_finish_in_time_is_reported_unfinished(kit, root, game_origin):
     gh = FakeGh(runs={"ci.yml": [RUNNING], "docs.yml": [RUNNING]})
-    made, _, _ = make(kit, root, game_origin, gh=gh, options=github.Options(wait_minutes=1))
+    made, _, _ = make(kit, root, game_origin, gh=gh, options=github.Options(wait_minutes=1, kit_pr=False))
     assert made.published.ci.conclusion == "" and made.published.ci.url
     assert not made.published.green
 
 
 def test_a_site_that_does_not_answer_is_not_green(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, fetch=lambda url: False)
+    made, _, _ = make(kit, root, game_origin, fetch=lambda url: False, options=NO_KIT_PR)
     assert made.published.docs.conclusion == "success" and not made.published.pages_live
     assert not made.published.green
 
 
 def test_no_wait_leaves_the_proof_as_a_step(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin, options=github.Options(wait=False))
+    made, gh, _ = make(kit, root, game_origin, options=github.Options(wait=False, kit_pr=False))
     assert gh.called("run", "list") == []
     assert any("watch the first CI run" in step for step in made.todo)
 
@@ -346,13 +349,13 @@ def test_every_new_game_is_mit_with_the_kit_owner_as_holder(default_flow):
 
 
 def test_copyright_names_another_holder(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, holder="Someone Else")
+    made, _, _ = make(kit, root, game_origin, holder="Someone Else", options=NO_KIT_PR)
     assert "Someone Else" in (made.repo / "LICENSE").read_text(encoding="utf-8")
 
 
 def test_another_licence_comes_from_github_with_the_year_and_holder(kit, root, game_origin):
     gh = FakeGh(licences={"apache-2.0": "Apache License\nCopyright [yyyy] [name of copyright owner]\n"})
-    made, _, _ = make(kit, root, game_origin, gh=gh, licence="Apache-2.0")
+    made, _, _ = make(kit, root, game_origin, gh=gh, licence="Apache-2.0", options=NO_KIT_PR)
     text = (made.repo / "LICENSE").read_text(encoding="utf-8")
     assert text == f"Apache License\nCopyright {datetime.date.today().year} Ryubara\n"
 

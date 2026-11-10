@@ -23,11 +23,27 @@ GITHUB_KIT_FILES = (".github/conventions.yml", ".github/pull_request_template.md
 _IGNORE = shutil.ignore_patterns(".godot", "__pycache__")
 
 
+def _small_addons(folder: str):
+    """Ignore rule of the small kit: an addon is its files at the top (`plugin.cfg`, `plugin.gd`) and `router/`, not the
+    93 files of `gds_ui`, which every test would copy into its kit, its game and its git index (kit #945)."""
+    if folder != "godot/addons":
+        return _IGNORE
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        skipped = set(_IGNORE(directory, names))
+        parts = Path(directory).relative_to(KIT / folder).parts
+        if len(parts) == 1:  # inside an addon: keep its top-level files and `router/`
+            skipped |= {n for n in names if (Path(directory) / n).is_dir() and n != "router"}
+        return skipped
+
+    return ignore
+
+
 def build_kit(dest: Path, *, real_templates: bool, files: tuple[str, ...] = KIT_FILES) -> Path:
     """The parts of the kit `gds new game` reads, copied to `dest`: the real `templates/` (21 MB) or `repo/` and the
     small stand-in templates of `fixtures/new_game_templates/`."""
     for rel in KIT_FOLDERS:
-        shutil.copytree(KIT / rel, dest / rel, ignore=_IGNORE)
+        shutil.copytree(KIT / rel, dest / rel, ignore=_IGNORE if real_templates else _small_addons(rel))
     if real_templates:
         shutil.copytree(KIT / "templates", dest / "templates", ignore=_IGNORE)
     else:

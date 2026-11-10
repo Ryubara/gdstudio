@@ -60,6 +60,12 @@ def small_git_kit_seed(small_kit_seed, tmp_path_factory) -> Path:
         run_git("remote", "add", "origin", str(origin), cwd=kit)
         run_git("fetch", "-q", "origin", cwd=kit)
         run_git("branch", "-q", "--set-upstream-to=origin/main", "main", cwd=kit)
+        # A test copies these two repositories: one pack file each, no sample hooks, instead of a loose object per
+        # file of the kit (about 150) and thirteen samples.
+        for repository in (kit, origin):
+            run_git("repack", "-a", "-d", "-q", cwd=repository)
+        for git_dir in (kit / ".git", origin):
+            shutil.rmtree(git_dir / "hooks", ignore_errors=True)
     return seed
 
 
