@@ -16,7 +16,7 @@ func before_test() -> void:
 	get_tree().root.size = Vector2i(1280, 720)
 	_scene = scene_runner("res://main.tscn").scene()
 	_hud = _scene.get_node("Hud")
-	_player = _scene.get_node("Player")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 
@@ -136,7 +136,7 @@ func test_every_part_is_on_screen_and_clear_of_the_others_at_phone_and_desktop_s
 
 
 func test_the_touch_controls_move_the_bottom_parts_to_the_top_and_back() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	_feed_the_parts()
 	var health: HudStat = _region(&"BottomLeft").get_node("HudHealth")
 	var ammo: HudStat = _region(&"BottomRight").get_node("HudAmmo")
@@ -160,7 +160,7 @@ func test_the_touch_controls_move_the_bottom_parts_to_the_top_and_back() -> void
 
 
 func test_no_part_is_under_a_touch_button_or_the_resting_stick_on_a_phone() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
 	_feed_the_parts()
 	touch.show_mode = TouchControls.ShowMode.ALWAYS
 	touch._set_shown(true)
@@ -184,8 +184,8 @@ func test_no_part_is_under_a_touch_button_or_the_resting_stick_on_a_phone() -> v
 
 
 func test_the_pause_button_is_clear_of_the_minimap_and_the_parts_on_a_touch_screen() -> void:
-	var touch: TouchControls = _scene.get_node("TouchControls")
-	var button: PauseButton = _scene.get_node("MenuLayer/PauseButton")
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
+	var button: PauseButton = _scene.get_node("PlayerRig/MenuLayer/PauseButton")
 	var minimap: Minimap = _hud.get_node("Root/SafeArea/TopRight/MinimapSlot/Minimap")
 	_feed_the_parts()
 	touch.show_mode = TouchControls.ShowMode.ALWAYS

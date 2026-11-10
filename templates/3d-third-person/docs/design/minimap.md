@@ -6,7 +6,8 @@ carries.
 
 ## What is on screen
 
-- The small `Minimap` sits in the HUD's `MinimapSlot` (top right); `MapLayer` (in `main.tscn`) holds the `MapScreen`.
+- The small `Minimap` sits in the HUD's `MinimapSlot` (top right); `MapLayer` (in `ui/player_rig/player_rig.tscn`,
+  with the player's marker) holds the `MapScreen`.
   Nothing else refers to either, so a game that lays its HUD out differently moves or deletes them.
 - The small map follows the character, turns with the camera (the way the camera looks is up) and shows the letter N
   where north is. Zoom with `=` and `-` (the actions `map_zoom_in` and `map_zoom_out`).

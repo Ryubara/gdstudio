@@ -60,8 +60,8 @@ var _stuck_for := 0.0
 var _last_spot := Vector3.ZERO
 var _held: Array[StringName] = []
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
 
 
 func _physics_process(delta: float) -> void:

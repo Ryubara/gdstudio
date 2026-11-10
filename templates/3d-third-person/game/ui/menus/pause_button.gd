@@ -7,7 +7,8 @@ extends UIButton
 ## under the router's stage.
 
 @export_group("Nodes")
-## The host that opens the pause menu.
+## The host that opens the pause menu. Empty uses the one in the tree (`ScreenHost.current`), so a
+## scene that holds only the button and the touch layer needs no wire to it.
 @export var host: ScreenHost
 ## The touch layer whose visibility the button follows. Empty shows the button on any touch screen.
 @export var touch: TouchControls
@@ -42,5 +43,6 @@ func _on_touch_shown(_shown: bool) -> void:
 
 
 func _on_pressed() -> void:
-	if host != null:
-		host.open_pause()
+	var target := host if host != null else ScreenHost.current
+	if target != null:
+		target.open_pause()

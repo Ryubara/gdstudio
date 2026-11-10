@@ -44,9 +44,9 @@ var _first_printed := false
 var _flash_energy := -1.0
 var _warm_max := 0.0
 
-@onready var _player: Player = $Main/Player
-@onready var _camera: Camera3D = $Main/Camera
-@onready var _emitter: EffectEmitter = $Main/Effects
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _camera: Camera3D = $Main/PlayerRig/Camera
+@onready var _emitter: EffectEmitter = $Main/World/Effects
 
 
 func _ready() -> void:

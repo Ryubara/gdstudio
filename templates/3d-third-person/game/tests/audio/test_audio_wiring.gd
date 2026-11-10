@@ -27,7 +27,7 @@ func _players() -> Array[Node]:
 
 
 func test_the_wind_plays_from_the_start_as_a_loop_on_the_ambient_bus() -> void:
-	var wind := _scene.get_node("Wind") as AudioStreamPlayer
+	var wind := _scene.get_node("World/Wind") as AudioStreamPlayer
 	assert_bool(wind.autoplay).is_true()
 	assert_bool(wind.playing).is_true()
 	assert_str(String(wind.bus)).is_equal("Ambient")
@@ -37,7 +37,7 @@ func test_the_wind_plays_from_the_start_as_a_loop_on_the_ambient_bus() -> void:
 
 func test_the_wind_is_20_db_down_in_a_player_of_its_own() -> void:
 	# A game's own wind is another file in this one player: the level and the bus stay.
-	var wind := _scene.get_node("Wind") as AudioStreamPlayer
+	var wind := _scene.get_node("World/Wind") as AudioStreamPlayer
 	assert_float(wind.volume_db).is_equal(-20.0)
 
 
@@ -67,7 +67,7 @@ func test_steps_and_coins_are_on_sfx_and_the_wind_alone_is_ambient() -> void:
 func test_every_sound_file_is_used_by_a_scene() -> void:
 	var text := ""
 	for path in [
-		"res://main.tscn",
+		"res://world/world.tscn",
 		"res://gameplay/pickup/pickup.tscn",
 		"res://gameplay/player/footsteps.tscn",
 		"res://gameplay/weapon/weapon.tscn",
@@ -103,7 +103,7 @@ func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> voi
 
 
 func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voices() -> void:
-	var weapon := _scene.get_node("Player/Weapon") as Weapon
+	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
 	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
 	var randomizer := sound.stream as AudioStreamRandomizer
 	assert_object(randomizer).is_not_null()
@@ -119,7 +119,7 @@ func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voic
 
 
 func test_a_shot_plays_at_the_muzzle() -> void:
-	var weapon := _scene.get_node("Player/Weapon") as Weapon
+	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
 	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
 	weapon.fire()
 	assert_bool(sound.playing).is_true()
@@ -138,12 +138,13 @@ func test_the_levels_are_the_ones_measured_and_no_effect_jumps_out() -> void:
 	var pickup := (load("res://gameplay/pickup/pickup.tscn") as PackedScene).instantiate()
 	auto_free(pickup)
 	var levels := {
-		"Wind": [_scene.get_node("Wind"), -20.0],
-		"Step": [_scene.get_node("Player/Footsteps").get_node("%Step"), -20.0],
-		"CrouchStep": [_scene.get_node("Player/Footsteps").get_node("%CrouchStep"), -29.0],
-		"LandStep": [_scene.get_node("Player/Footsteps").get_node("%LandStep"), -15.0],
+		"Wind": [_scene.get_node("World/Wind"), -20.0],
+		"Step": [_scene.get_node("PlayerRig/Player/Footsteps").get_node("%Step"), -20.0],
+		"CrouchStep":
+		[_scene.get_node("PlayerRig/Player/Footsteps").get_node("%CrouchStep"), -29.0],
+		"LandStep": [_scene.get_node("PlayerRig/Player/Footsteps").get_node("%LandStep"), -15.0],
 		"Coin": [pickup.get_node("%Sound"), -16.0],
-		"Shot": [_scene.get_node("Player/Weapon").get_node("%ShotSound"), -22.0],
+		"Shot": [_scene.get_node("PlayerRig/Player/Weapon").get_node("%ShotSound"), -22.0],
 	}
 	for label in levels:
 		var pair: Array = levels[label]

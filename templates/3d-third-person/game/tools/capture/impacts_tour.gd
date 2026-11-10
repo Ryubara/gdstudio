@@ -48,7 +48,7 @@ const TOUR: Array[Dictionary] = [
 		],
 	},
 	{"do": "wait", "seconds": 0.6, "hold": []},
-	{"do": "push", "node": "Main/Level/PushCubes/PushCube1", "seconds": 1.6},
+	{"do": "push", "node": "Main/World/Level/PushCubes/PushCube1", "seconds": 1.6},
 	{"do": "wait", "seconds": 1.5, "hold": []},
 	{"do": "teleport", "at": Vector3(6.0, 0.0, 16.8)},
 	{"do": "wait", "seconds": 1.0, "hold": []},
@@ -81,10 +81,10 @@ var _phase := Phase.AIM
 var _pitch_sign := 1.0
 var _last_error := INF
 
-@onready var _player: Player = $Main/Player
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
-@onready var _impacts: Impacts = $Main/Impacts
-@onready var _camera: Camera3D = $Main/Camera
+@onready var _player: Player = $Main/PlayerRig/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
+@onready var _impacts: Impacts = $Main/World/Impacts
+@onready var _camera: Camera3D = $Main/PlayerRig/Camera
 
 
 func _physics_process(delta: float) -> void:

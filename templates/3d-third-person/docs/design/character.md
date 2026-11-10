@@ -10,12 +10,12 @@ talk through signals and input actions, so each can be replaced alone.
 | --- | --- | --- |
 | `Player` | `gameplay/player/player.tscn` | A `CharacterBody3D`: walks, runs, sprints, crouches, jumps, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`, opens a `Door`, collects a `Pickup`, aims and shoots. Says what happens in signals. |
 | `PlayerTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
-| `PlayerCamera` | `main.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
+| `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
 | `Ragdoll` | `gameplay/player/player_ragdoll.gd`, a node of `player.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, layers and get-up time. |
 | `PlayerAnimation` | `gameplay/player/player_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `Weapon`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | The pistol's shots: a `Weapon` fires `Projectile` spheres from a muzzle marker toward the crosshair (every number of a shot is its inspector's), a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. They know nothing of the pistol model, so a game reuses them with another one. |
-| `Impacts` | `main.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
-| `EffectEmitter`, `EffectDef` | `main.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
+| `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `Weapon.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
+| `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size` tune it. |
 | `Footsteps` | `gameplay/player/footsteps.tscn` | Plays a step each time a foot of the animated skeleton lands (walk, run, sprint, crouch walk), through three `AudioStreamPlayer3D` nodes on the `SFX` bus. |
 | `Crosshair` | `ui/hud/crosshair.tscn` | A small white circle with a thin dark ring at the middle of the screen, drawn by the node itself and shown only while the player aims. |
@@ -109,22 +109,22 @@ viewport. `Camera` renders and `PhantomCameraHost` copies the active Phantom Cam
 field of view is overwritten: tune `PlayerCamera`. Anything else about it (noise, tweens, dead zones) is that node's own
 inspector, and the addon's docs are at <https://phantom-camera.dev>.
 
-The touch layer is a scene you arrange in the 2D editor (`ui/touch/third_person_touch_controls.tscn`, which inherits
-3D Blank's `touch_controls.tscn` and adds the Fire, Aim and Crouch buttons): drag the `TouchStick` to
-move where the stick waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new
-one and set its action and word), resize the `MoveZone` and `LookZone` panels that decide which finger does what. Its
-numbers are on `TouchControls` in `main.tscn`: when it shows, the stick's radius, dead zone and sprint ring, the look
-sensitivity and smoothing, the opacity and the margin from the screen edge.
+The touch layer is a scene you arrange in the 2D editor (`ui/touch/third_person_touch_controls.tscn`, which inherits 3D
+Blank's `touch_controls.tscn` and adds the Fire, Aim and Crouch buttons): drag the `TouchStick` to move where the stick
+waits, drag or resize the buttons under `SafeArea/Buttons` (instance `touch_button.tscn` for a new one and set its
+action and word), resize the `MoveZone` and `LookZone` panels that decide which finger does what. Its numbers are on
+`TouchControls` in `ui/player_rig/player_rig.tscn`: when it shows, the stick's radius, dead zone and sprint ring, the
+look sensitivity and smoothing, the opacity and the margin from the screen edge.
 
 ## Dying and the ragdoll {#ragdoll}
 
-`player.die()` makes the character limp: the animation stops, the capsule turns off, every gameplay input is ignored (the
-camera still orbits, and follows the hips), and the body falls as a ragdoll keeping the momentum it had.
+`player.die()` makes the character limp: the animation stops, the capsule turns off, every gameplay input is ignored
+(the camera still orbits, and follows the hips), and the body falls as a ragdoll keeping the momentum it had.
 `player.revive()` gets it up where it lies, facing the way its chest faces, and the pose blends back to the animation.
-Ticking `ragdoll` on `Player` in the inspector (also while the game runs, in the remote inspector) or pressing Y does the
-same; `teleport()` and `respawn()` get it up at once. The physics engine is Jolt (`project.godot`): the ragdoll's joints
-are stable there and were not on Godot Physics. The prototype level has a ramp and a ledge in the south (`RagdollLedge`)
-to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ragdoll.md`.
+Ticking `ragdoll` on `Player` in the inspector (also while the game runs, in the remote inspector) or pressing Y does
+the same; `teleport()` and `respawn()` get it up at once. The physics engine is Jolt (`project.godot`): the ragdoll's
+joints are stable there and were not on Godot Physics. The prototype level has a ramp and a ledge in the south
+(`RagdollLedge`) to run off. The way it is built and tuned is in the kit's `docs/engines/godot/ragdoll.md`.
 
 ## Events other nodes connect to
 

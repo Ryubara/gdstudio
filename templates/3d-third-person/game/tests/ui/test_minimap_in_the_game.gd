@@ -11,7 +11,7 @@ func before_test() -> void:
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
 	_minimap = _scene.get_node("Hud/Root/SafeArea/TopRight/MinimapSlot/Minimap")
-	_player = _scene.get_node("Player")
+	_player = _scene.get_node("PlayerRig/Player")
 	await InputSim.ticks(get_tree(), 8)
 
 
@@ -64,7 +64,7 @@ func test_the_pickups_near_the_character_are_on_the_minimap() -> void:
 
 
 func test_the_map_key_opens_the_whole_map() -> void:
-	var screen := _scene.get_node("MapLayer/MapScreen") as MapScreen
+	var screen := _scene.get_node("PlayerRig/MapLayer/MapScreen") as MapScreen
 	assert_bool(screen.visible).is_false()
 	InputSim.key(KEY_M, true)
 	await InputSim.ticks(get_tree(), 2)

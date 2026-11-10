@@ -85,7 +85,7 @@ func _ready() -> void:
 	add_child(_dummy)
 	_minimap = _main.get_node("Hud/Root/SafeArea/TopRight/MinimapSlot/Minimap")
 	_minimap.target = _dummy
-	(_main.get_node("MapLayer/MapScreen") as Control).hide()
+	(_main.get_node("PlayerRig/MapLayer/MapScreen") as Control).hide()
 	print(
 		(
 			"BENCH_INFO renderer=%s gpu=%s"

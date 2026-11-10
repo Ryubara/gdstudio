@@ -13,8 +13,8 @@ const TURN_SPEED := 35.0
 var _time := 0.0
 var _sent := {}
 
-@onready var _rig: PlayerCamera = $Main/PlayerCamera
-@onready var _player: Player = $Main/Player
+@onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
+@onready var _player: Player = $Main/PlayerRig/Player
 
 
 func _physics_process(delta: float) -> void:

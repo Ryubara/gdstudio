@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/player_rig/player_rig.gd" id="1_rig"]
+[ext_resource type="PackedScene" path="res://gameplay/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://gameplay/player/player_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="4_pcam"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="5_host"]
+[ext_resource type="PackedScene" path="res://ui/touch/third_person_touch_controls.tscn" id="6_touch"]
+[ext_resource type="Script" path="res://gameplay/player/look_settings.gd" id="7_look"]
+[ext_resource type="PackedScene" path="res://ui/menus/pause_button.tscn" id="8_pause_button"]
+[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="9_shake"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="10_marker"]
+[ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="11_arrow"]
+[ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="12_map"]
+
+[node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
+script = ExtResource("1_rig")
+player = NodePath("Player")
+camera_rig = NodePath("PlayerCamera")
+touch = NodePath("TouchControls")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="MinimapMarker" type="Node" parent="Player"]
+script = ExtResource("10_marker")
+icon = ExtResource("11_arrow")
+color = Color(1, 0.84, 0.3, 1)
+size = 16.0
+rotates_with_node = true
+kind = &"player"
+draw_order = 5
+
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "shaker", "player")]
+script = ExtResource("3_camera")
+target = NodePath("../Player/CameraTarget")
+follow_camera = NodePath("FollowCamera")
+camera = NodePath("../Camera")
+shaker = NodePath("CameraShake")
+player = NodePath("../Player")
+
+[node name="CameraShake" type="Node" parent="PlayerCamera"]
+script = ExtResource("9_shake")
+auto_advance = false
+
+[node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
+script = ExtResource("4_pcam")
+follow_mode = 6
+follow_target = NodePath("../../Player/CameraTarget")
+tween_on_load = false
+
+[node name="Camera" type="Camera3D" parent="."]
+current = true
+fov = 62.0
+
+[node name="PhantomCameraHost" type="Node" parent="Camera"]
+script = ExtResource("5_host")
+
+[node name="TouchControls" parent="." instance=ExtResource("6_touch")]
+
+[node name="LookSettings" type="Node" parent="." node_paths=PackedStringArray("camera")]
+script = ExtResource("7_look")
+camera = NodePath("../PlayerCamera")
+
+[node name="MenuLayer" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="PauseButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
+touch = NodePath("../../TouchControls")
+
+[node name="MapLayer" parent="." instance=ExtResource("12_map")]
+
+[connection signal="look_turned" from="TouchControls" to="PlayerCamera" method="orbit"]

@@ -7,7 +7,7 @@ Maps, levels and lighting: `world/<map>/` for each map, `world/lighting/` for th
   lightmap (`prototype_level.lmbake`) is baked: after moving or resizing a block, select the `LightmapGI` node and
   press "Bake Lightmaps" (in the Forward+ editor, the project's default).
 - `world/prototype/ai_section/` and `world/prototype/pathing_section/` are the map's two sections, each its own scene
-  that `main.tscn` instances at a doorway, with its lightmap and its baked navigation mesh (the game's
+  that `world/world.tscn` instances at a doorway, with its lightmap and its baked navigation mesh (the game's
   `docs/design/map-sections.md`). After changing one, bake again with `tools/map_bake/`.
 - `world/blocks/proto_block.tscn` is a box, cylinder, ramp or staircase made from one `size`, with collision.
 - `world/lighting/graphics_profile.gd` turns on what only Forward+ draws; it does nothing on the web build.

@@ -14,13 +14,13 @@ var _subject: HudSubject
 var _weapon: HudSubjectWeapon
 
 @onready var _hud: Hud = $Main/Hud
-@onready var _player: Player = $Main/Player
+@onready var _player: Player = $Main/PlayerRig/Player
 
 
 func _ready() -> void:
 	if OS.get_cmdline_user_args().has("phone"):
 		_hud.pixel_ratio = 2.0
-		var touch: TouchControls = $Main/TouchControls
+		var touch: TouchControls = $Main/PlayerRig/TouchControls
 		touch.show_mode = TouchControls.ShowMode.ALWAYS
 		touch._set_shown(true)
 	_subject = HudSubject.new()

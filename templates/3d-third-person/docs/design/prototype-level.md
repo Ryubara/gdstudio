@@ -1,11 +1,11 @@
 # Prototype level
 
 The level in `game/world/prototype/prototype_level.tscn` is a space to build in, and a map that shows what the
-components do: a 50 m square floor with walls, shapes that answer a first prototype's questions (how high can I
-step, how steep is a ramp, how wide is a door) and a few of each component. `game/main.tscn` instances it, puts
-[the character](character.md) at its spawn point and looks at it through a third-person Phantom Camera. The shapes are
-sized for the character's default tuning: the jump blocks are a jump apart, the twelve steps are lower than its step
-height and the ramp is gentler than its slope limit.
+components do: a 50 m square floor with walls, shapes that answer a first prototype's questions (how high can I step,
+how steep is a ramp, how wide is a door) and a few of each component. `game/world/world.tscn` instances it and
+`game/main.tscn` adds [the character](character.md) (at its spawn point, seen through a third-person Phantom Camera),
+the HUD and the menus. The shapes are sized for the character's default tuning: the jump blocks are a jump apart, the
+twelve steps are lower than its step height and the ramp is gentler than its slope limit.
 
 ## What is in it
 
@@ -34,9 +34,9 @@ sets its step to the grid's cell size).
 ## Materials {#materials}
 
 The surfaces use one shader, `game/assets/shaders/prototype/prototype_grid.gdshader`, and a material per colour in
-`game/assets/materials/prototype/`. The grid is drawn in world space (a cell is 1 m on a wall, a floor and a ramp, at any
-scale), blended by the surface's normal so a slope has no seam, and fades where a pixel can no longer resolve it. There
-is no texture file: nothing to license, nothing to import, the same on the web as on the desktop.
+`game/assets/materials/prototype/`. The grid is drawn in world space (a cell is 1 m on a wall, a floor and a ramp, at
+any scale), blended by the surface's normal so a slope has no seam, and fades where a pixel can no longer resolve it.
+There is no texture file: nothing to license, nothing to import, the same on the web as on the desktop.
 
 | Material | Colour | Use it for |
 | --- | --- | --- |
