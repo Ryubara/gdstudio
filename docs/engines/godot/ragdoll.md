@@ -89,15 +89,28 @@ into speed.
   and side limits on both elbows, run after run, with an 8 degree tolerance failing 4 runs in 6. A joint started
   outside its limits is a different thing and is caught by the speed test below. **Seen:** gdstudio #846, 2026-11-09
   (`LIMIT_SLACK` in `test_ragdoll.gd`).
-- **Approach:** Hold elbows and knees with several hinges between the same two bones (`hinge_passes`, 4: the bone's
-  own joint and three `PhysicsServer3D.joint_make_hinge` copies with its frames and limits), and judge it over many
-  deaths: over 70 lab deaths the mean worst overrun went from 12.9 to 4.1 degrees, the worst from 51 to 17, the
-  deaths past the 25 degree slack from 10 to 0. **Watch out for:** a limb the trunk lands on gives way (an elbow
+- **Approach:** Hold elbows and knees with several hinges between the same two bones (`hinge_passes`, 6: the bone's
+  own joint and `PhysicsServer3D.joint_make_hinge` copies with its frames and limits), and judge it over many
+  deaths: over 70 lab deaths, with 4, the mean worst overrun went from 12.9 to 4.1 degrees, the worst from 51 to 17,
+  the deaths past the 25 degree slack from 10 to 0. **Watch out for:** a limb the trunk lands on gives way (an elbow
   at 178, or 50 backwards) under Jolt's project-wide 10 velocity and 2 position steps; 4.7.2 gives scripts no
   per-joint step override. Projecting the joint back before each step, heavier forearms, more damping and less
   `relax_gravity` did not help. **Seen:** gdstudio
   #872, 2026-11-10 (four solver settings); gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`; 3 hinges: 5.1 and
   22, 6: 2.4 and 12).
+- **Approach:** Hold the cones the same way (`cone_passes`, 6: `joint_make_cone_twist` copies, frames as the bone's own,
+  spans in radians) and take the shoulder's twist to 45 where a person turns 60. Over 70 lab deaths, against a person's
+  range: the shoulders' mean worst overrun went from 25.5 to 2.8 degrees, the worst from 114 to 24, the deaths past the
+  25 degree slack from 16 to 0; the other cones from 36.2, 70 and 55 deaths to 13.1, 31 and 3; the hinges, 6 each, 5.1
+  and 20 (none past). **Watch out for:** every cone gives way under the body, not only the shoulder (a hip or a wrist 20
+  past standing), and Jolt's steps do not reach it: 20 velocity steps left the shoulders at 25.4 and 109, 30 and 4
+  position steps at 18.5 and 78, 4 copies at 9.1 and 38. A narrower twist alone missed the worst death (40: 105).
+  **Seen:** gdstudio #975, 2026-11-10 (`test_ragdoll_cones.gd`; 27 settings).
+- **Approach:** Make the copies round by round over the whole body (`RagdollBraces`), not joint after joint, and
+  judge every count over the 70 deaths. **Watch out for:** Jolt solves joints in the order they were made and the
+  last one wins: all hinges then all cones moved the give onto the elbows (11.0 and 34, 4 deaths past), cones first
+  onto the shoulders (11.6 and 47); and the numbers are not monotone in the count (cones 8: shoulders 2.9 and 38;
+  cones 6, hinges 8: 4.2 and 34). **Seen:** gdstudio #975, 2026-11-10.
 
 ## Godot Physics or Jolt {#jolt}
 
@@ -185,8 +198,9 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   off). The key is added to the input action `ragdoll` when the game runs, next to anything a game binds there in the
   Project Settings; it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole
   body, shared out by the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints
-  swing, as a share of a person's range), `hinge_passes` (how many hinges hold each elbow and knee, 4: one lets a limb
-  the body lands on fold past its range, [why](#limits)), `linear_damp`, `angular_damp`, `friction`, `bounce`;
+  swing, as a share of a person's range), `hinge_passes` (how many hinges hold each elbow and knee, 6: one lets a limb
+  the body lands on fold past its range, [why](#limits)), `cone_passes` (the same for every cone, 6: one lets a
+  shoulder twist 50 to 115 degrees past a person's range), `linear_damp`, `angular_damp`, `friction`, `bounce`;
   Death and getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
   drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
@@ -202,7 +216,8 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by
   up to 9 cm ([why](#building)).
 - **How the limits are set.** A person's: hinges for elbows and knees (each held by `hinge_passes` hinges), cones for
-  the rest, the same both sides ([numbers](#limits)); a cone's centre is the clips' mean direction
+  the rest (each held by `cone_passes` cones; the copies are `RagdollBraces`), the same both sides, the shoulder's
+  twist 45 where a person's is 60 ([numbers](#limits)); a cone's centre is the clips' mean direction
   (`tools/ragdoll/measure_joints.gd`). The pose is pushed inside the limits as the body goes limp: a joint that starts
   outside throws it.
 - **The engine is Jolt.** The template's `project.godot` sets `3d/physics_engine="Jolt Physics"`: on Godot Physics this
@@ -244,4 +259,5 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   same death with the fix turned off still fails, so the death keeps loading the joint. **Watch out for:** the
   `Player`'s `AnimationTree` runs on real time, so a death through `Player.die()` is a different pose each run; and
   editing a script the lab runs while sweeps run in the background breaks their runs (175 errors a run): copy it, or
-  wait. **Seen:** gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`).
+  wait. **Seen:** gdstudio #940, 2026-11-10 (`test_ragdoll_hinges.gd`); gdstudio #975, 2026-11-10
+  (`test_ragdoll_cones.gd`).
