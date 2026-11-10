@@ -22,8 +22,13 @@ extends CharacterBody3D
 signal jumped
 ## The body touched the ground; `impact_speed` is how fast it was falling, in m/s.
 signal landed(impact_speed: float)
-## Something hurt the character (`hit()`).
+## Something hurt the character (`hit()`, `take_hit()`): `amount` is the damage.
 signal took_hit(amount: float, source: Node3D)
+## The character's health changed (a hit, getting up).
+signal health_changed(health: float)
+## A hit reached the character, alive or lying dead: the record a game's networking sends, and
+## what the `HitReaction` answers with a flinch, the death's push or a push on the lying body.
+signal hit_received(record: HitRecord)
 ## The character used `target` (a door, a lever): the target's `interact()` was called.
 signal interacted(target: Node3D)
 ## The character took `amount` of `item_id` from a `Pickup`; `total` is how many it holds now.
@@ -111,6 +116,21 @@ enum State {
 ## `ragdoll_key` sends). A testing aid: a server that steps commands from the network turns it off.
 @export var ragdoll_by_command := true
 
+@export_group("Health")
+## On: hits take health and the character dies at zero. Off: hits still flinch and push the body,
+## but take nothing.
+@export var health_enabled := true
+## The health the character starts and gets up with. A hit's damage is the shot's damage times
+## its hit zone's multiplier (`HitZone.damage_multiplier`).
+@export_range(1.0, 10000.0, 1.0, "or_greater") var max_health := 100.0:
+	set(value):
+		max_health = maxf(value, 1.0)
+		if health > max_health:
+			health = max_health
+
+## The health left (0 to `max_health`); the HUD shows it.
+var health := 100.0
+
 ## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
 ## declined it: the cap on limp ragdolls or the range).
 var died_by_clip := false
@@ -175,6 +195,7 @@ func _ready() -> void:
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
+	health = max_health
 	if model != null:
 		facing = model.rotation.y
 	view_yaw = facing - PI
@@ -308,8 +329,9 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 ## ignores every gameplay input until `revive()`. The camera's target follows the hips. When the
 ## ragdoll declines (`CharacterRagdoll.can_start()`: too many limp already, or too far from the
 ## one who watches, whom the `controller` names) the character plays its death clip and lies in
-## the clip's last pose (`died_by_clip`).
-func die() -> void:
+## the clip's last pose (`died_by_clip`). With `shot` (the hit that killed) the hit is said in
+## `hit_received` once the body is limp, so the `HitReaction` throws the hit bone along it.
+func die(shot: HitRecord = null) -> void:
 	if state == State.DEAD:
 		return
 	var momentum := velocity
@@ -330,11 +352,17 @@ func die() -> void:
 		aim_changed.emit(false)
 	velocity = Vector3.ZERO
 	_body.disabled = true
+	if health > 0.0:
+		health = 0.0
+		health_changed.emit(health)
 	state = State.DEAD
 	ragdoll = true
 	if ragdoll_body != null and not died_by_clip:
 		ragdoll_body.start(momentum, viewer)
 	died.emit()
+	if shot != null:
+		shot.killed = true
+		hit_received.emit(shot)
 
 
 ## Gets the character up where its body lies, facing the way its chest faces; the pose blends
@@ -357,12 +385,33 @@ func is_dead() -> bool:
 	return state == State.DEAD
 
 
-## Hurts the character: stops it for `hit_stun_time` and throws it away from `source`. A dead
-## character takes no hit.
+## Hurts the character with a blow of `amount` from `source`: takes the health, stops it for
+## `hit_stun_time` and throws it away from `source`. A dead character takes no hit.
 func hit(amount: float = 1.0, source: Node3D = null) -> void:
+	take_hit(HitRecord.blow(amount, source))
+
+
+## Takes a hit (a shot through `HitZones`, or a record a game's networking received): takes its
+## damage from the health when health is on and dies at zero, carrying the hit into the ragdoll.
+## A blow (`record.knockback`) also stops and throws the character. A dead character takes no
+## damage, but the record is still said (`hit_received`): a shot pushes the lying body.
+func take_hit(record: HitRecord) -> void:
 	if state == State.DEAD:
+		hit_received.emit(record)
 		return
-	took_hit.emit(amount, source)
+	took_hit.emit(record.damage, record.source)
+	if health_enabled and record.damage > 0.0:
+		health = maxf(health - record.damage, 0.0)
+		health_changed.emit(health)
+		if health <= 0.0:
+			die(record)
+			return
+	if record.knockback:
+		_stagger(record.source)
+	hit_received.emit(record)
+
+
+func _stagger(source: Node3D) -> void:
 	_action_lock = tuning.hit_stun_time
 	var away := Vector3.ZERO
 	if source != null:
@@ -487,6 +536,8 @@ func _dead_tick() -> void:
 
 func _come_alive() -> void:
 	died_by_clip = false
+	health = max_health
+	health_changed.emit(health)
 	_body.disabled = false
 	velocity = Vector3.ZERO
 	_fall_speed = 0.0

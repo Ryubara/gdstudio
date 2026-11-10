@@ -70,6 +70,19 @@ func test_a_character_takes_no_mark_but_the_hit_is_still_reported() -> void:
 	assert_array(_made).has_size(1)
 
 
+func test_a_ragdoll_bone_takes_a_mark_and_clearing_it_takes_only_its_marks() -> void:
+	var bone: PhysicalBone3D = auto_free(PhysicalBone3D.new())
+	add_child(bone)
+	_impacts.impact(bone, Vector3(0.0, 1.0, 0.1), Vector3.BACK)
+	_impacts.impact(_wall, Vector3(0.0, 1.0, 0.0), Vector3.BACK)
+	assert_int(_impacts.mark_count()).is_equal(2)
+	assert_object(_impacts.marks()[0].get_parent()).is_same(bone)
+	_impacts.clear_marks_on(bone)
+	await get_tree().process_frame
+	assert_int(_impacts.mark_count()).is_equal(1)
+	assert_object(_impacts.marks()[0].get_parent()).is_same(_wall)
+
+
 func test_the_cap_takes_the_oldest_mark_first() -> void:
 	_impacts.max_marks = 2
 	for x in 3:

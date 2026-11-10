@@ -3,7 +3,9 @@ class_name Projectile
 extends CharacterBody3D
 ## A sphere that flies where the `Weapon` sent it. Each physics tick it moves along its velocity
 ## (falling by `gravity`), and when it touches something it pushes a `RigidBody3D` with `impulse`,
-## tells a body that has a `take_shot(projectile, point)` method (a `Target`), reports the hit to
+## hits a character on the body part in its path (the character's `HitZones`: `damage` times the
+## part's multiplier; between the parts it flies on), tells a body that has a
+## `take_shot(projectile, point)` method (a `Target`), reports the hit to
 ## the level's `Impacts` (the mark, effect and sound of the surface), and then either
 ## bounces off the level (`bounces`) or stops. It is gone after `lifetime` seconds.
 ##
@@ -36,6 +38,8 @@ signal impacted(collider: Node, point: Vector3, normal: Vector3)
 ## The push it gives a physics body it hits, along its flight (momentum, in newton seconds: a
 ## 60 kg cube given 40 moves at about 0.7 m/s).
 @export_range(0.0, 500.0, 0.5, "suffix:N·s") var impulse := 40.0
+## The damage of a hit on a character, before its hit zone's multiplier.
+@export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 34.0
 ## How many times it bounces off the level before it stops.
 @export_range(0, 8, 1) var bounces := 0
 ## The share of its speed a bounce keeps.
@@ -49,6 +53,7 @@ signal impacted(collider: Node, point: Vector3, normal: Vector3)
 
 var _age := 0.0
 var _bounces_left := 0
+var _shooter: CollisionObject3D
 
 
 func _ready() -> void:
@@ -65,8 +70,11 @@ func _physics_process(delta: float) -> void:
 		return
 	velocity.y -= gravity * delta
 	var collision := move_and_collide(velocity * delta)
-	if collision != null:
-		_touch(collision)
+	# A shot that passes between a character's parts flies on through the capsule, this tick.
+	for attempt in 3:
+		if collision == null or not _touch(collision):
+			return
+		collision = move_and_collide(collision.get_remainder())
 
 
 ## Starts it flying from `origin` along `direction` at `speed`. Skips `shooter`, so it never hits
@@ -75,6 +83,7 @@ func launch(
 	origin: Vector3, direction: Vector3, speed: float, shooter: CollisionObject3D = null
 ) -> void:
 	_bounces_left = bounces
+	_shooter = shooter
 	if shooter != null:
 		add_collision_exception_with(shooter)
 	global_position = origin
@@ -87,12 +96,23 @@ func age() -> float:
 	return _age
 
 
-func _touch(collision: KinematicCollision3D) -> void:
+# Answers a touch; true when the shot passed between a character's parts and flies on.
+func _touch(collision: KinematicCollision3D) -> bool:
 	var collider := collision.get_collider()
 	var point := collision.get_position()
 	var normal := collision.get_normal()
 	var direction := velocity.normalized()
 	var movable := false
+	var zones := HitZones.of(collider)
+	if zones != null:
+		var record := zones.shot(
+			collider, point, direction, damage, impulse, _shooter as Node3D, global_position
+		)
+		if record == null:
+			add_collision_exception_with(collider)
+			return true
+		zones.deliver(record)
+		movable = true
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D
 		body.apply_impulse(direction * impulse, point - body.global_position)
@@ -106,8 +126,9 @@ func _touch(collision: KinematicCollision3D) -> void:
 	if _bounces_left > 0 and not movable:
 		_bounces_left -= 1
 		velocity = velocity.bounce(normal) * bounce_keep
-		return
+		return false
 	queue_free()
+	return false
 
 
 # Puts `size` and `tint` on the nodes' own resources (each projectile has its own copies: they

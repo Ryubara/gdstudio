@@ -232,8 +232,10 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
   (`PhysicsLayers.RAGDOLL`, the ragdoll's own, layer 5) and `collision_mask` (`RAGDOLL_MASK`: the level, props and its
   own layer, so limbs rest on the floor, a crate, the body and each other, never on the bone they hang from; no player
-  capsule, camera wall, ground probe or trigger area sees a bone, and a shot does: it stops at the bone, which takes no
-  mark yet, [Physics layers](physics-layers.md#shots-meet-bones); hit zones (#876) are layer 6).
+  capsule, camera wall, ground probe or trigger area sees a bone, and a shot does: it stops at the bone, pushes it and
+  leaves a mark on it, [Physics layers](physics-layers.md#shots-meet-bones); hit zones are layer 6). A shot that kills
+  throws the bone it hit, and one that does not makes the hit part flinch, a partial ragdoll on the same bones
+  ([Hit zones](third-person-hits.md)).
   Every one applies live, has a pinned default and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
   `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` on the character's first death
