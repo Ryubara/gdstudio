@@ -87,3 +87,12 @@ service, a row in the scene and, if it does something, a line in `_apply`.
   presses, a button's own accept press must not be the binding, and `DisplayServer.keyboard_get_keycode_from_physical`
   prints an error on the headless display server, so use `InputEventKey.as_text_physical_keycode()` for the label.
   **Seen:** gdstudio #881, 2026-11-10 (`tests/ui/test_settings_rebinding.gd`).
+- **Approach:** Set an option selector to the saved value with `jump_to(index)` when a screen is built and with
+  `select(index, false)` when a value changes elsewhere. **Watch out for:** the second argument of
+  `UIOptionSelector.select` is whether to emit, not whether to animate, so every settings screen showed its selectors
+  sliding from the first choice to the saved one as it appeared. **Seen:** gdstudio #881, 2026-11-10 (a capture caught
+  `Lo` and `High` on one frame).
+- **Approach:** Recognise a run that must not touch the person's file by what it was given (a GdUnit argument, a scene
+  named on the command line, `GDS_QUIET`), never by naming the folders of tests and tools in shipped code. **Watch out
+  for:** the layout check's `ships-tools` rule fails a shipped script that spells `res://tests/` or `res://tools/`,
+  and the first version of `is_harness_run` did. **Seen:** gdstudio #881, 2026-11-10.

@@ -430,6 +430,8 @@ so the editor shows the controls even when `show_mode` hides them in the game.
   button, never for a mouse, and switches `Input.emulate_mouse_from_touch` off while it shows. Buttons are 170 canvas
   pixels (122 are 44 points on a 390-point-high phone); the export's `head_include` sets `viewport-fit=cover` and
   `touch-action: none`.
+- `suspend()` lets go of every finger and action and hides the layer, `resume()` shows it again when it was in use:
+  the game's `ScreenHost` calls them as a menu opens and closes ([Menus](#menus)).
 
 ## Menus and settings {#menus}
 

@@ -316,7 +316,8 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   one suite per component under gdlint's twenty public methods. **Watch out for:** two suites went past twenty `test_`
   functions and gdlint (`max-public-methods`) failed them, and a float export compared with `is_equal` failed on a
   property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; gdstudio #846,
-  2026-11-09 (the ragdoll's 19 tests became two suites, state and physics).
+  2026-11-09 (the ragdoll's 19 tests became two suites, state and physics); gdstudio #881, 2026-11-10 (four menu
+  suites split, and the router's close tests went to a file of their own).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed
