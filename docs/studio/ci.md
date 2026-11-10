@@ -16,7 +16,10 @@ default branch -->
 - **Approach:** Use `cancel-in-progress` for pull requests only; every run on the default branch finishes. **Watch out
   for:** main's CI cancelled its run when the next merge landed, so four of five merges in three minutes were never
   checked. **Seen:** Deadnight #290, 2026-11-01 (fix: the evening review found it (Deadnight #290) and Deadnight #296
-  kept the cancel to pull requests).
+  kept the cancel to pull requests); gdstudio #919, 2026-11-10 (the kit's own `ci.yml` grouped by ref and cancelled
+  for `main` too: 4 of the last 30 runs on `main` were cancelled; fix: the group is the commit for a push, and
+  `test_workflow_concurrency.py` fails any workflow that runs on `main` and can cancel there, unless a
+  `# cancels-on-main:` comment gives the reason, as `docs.yml` does: a cancelled site build is replaced by the next).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
