@@ -11,6 +11,9 @@
 [ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="11_audio"]
 [ext_resource type="PackedScene" path="res://ui/hud/crosshair.tscn" id="12_crosshair"]
 [ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="13_wind"]
+[ext_resource type="PackedScene" path="res://ui/minimap/minimap_layer.tscn" id="14_minimap"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="15_marker"]
+[ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="16_arrow"]
 
 [node name="Main" type="Node"]
 
@@ -26,6 +29,15 @@ bus = &"Ambient"
 [node name="Level" parent="." instance=ExtResource("1_level")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="MinimapMarker" type="Node" parent="Player"]
+script = ExtResource("15_marker")
+icon = ExtResource("16_arrow")
+color = Color(1, 0.84, 0.3, 1)
+size = 16.0
+rotates_with_node = true
+kind = &"player"
+draw_order = 5
 
 [node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("target", "follow_camera", "camera", "player")]
 script = ExtResource("3_camera")
@@ -55,6 +67,8 @@ script = ExtResource("5_host")
 
 [node name="Crosshair" parent="Hud" node_paths=PackedStringArray("player") instance=ExtResource("12_crosshair")]
 player = NodePath("../../Player")
+
+[node name="MinimapLayer" parent="." instance=ExtResource("14_minimap")]
 
 [node name="WebProbe" type="Node" parent="." node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("10_probe")

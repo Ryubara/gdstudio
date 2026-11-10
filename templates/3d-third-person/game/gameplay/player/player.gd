@@ -300,6 +300,12 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	state = State.HIT
 
 
+## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
+## node).
+func get_minimap_heading() -> Vector2:
+	return Vector2(sin(facing), cos(facing))
+
+
 ## Uses the nearest usable thing in front. Returns it, or null when there is nothing to use.
 func interact() -> Node3D:
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
