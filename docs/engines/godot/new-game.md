@@ -200,7 +200,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), an assault rifle model, the first sounds, and the #788 prototype map with its components, a crouch course and a range ([The 3D Third Person template](third-person-template.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
@@ -266,6 +266,12 @@ template cheap to change):
    with a range and a unit suffix where it has one, a `##` tooltip and a default that plays well; internals are not
    exported.
    *Why:* the inspector is where a game gets tuned, and a number in a script constant cannot be found there.
+   *Open point:* `player.gd` of 3D Third Person still holds some tuned-looking numbers in its code: the constants
+   `PUSH_CONTACT` and `PUSH_HOLD` (`:65-68`), the camera target's rise above the hips (`:382`), the analogue stick
+   thresholds and the walk and aim speed factors (`:524-530`), the foot probe's margin (`:589`), the push share and its
+   boost (`:611-614`), the walk-to-run margin (`:668`) and the fire buffer and its aim threshold (`:687-688`).
+   Whoever next works in that file moves them to `player_tuning.gd` or leaves a reason beside each; the line numbers
+   are those of main on 2026-11-10 and drift.
 2. **A change takes effect at once**, in the running game and the remote inspector: a value is read where it is used, or
    applied through a setter, and never copied once in `_enter_tree()` or `_ready()`. *Why:* tuning while the game runs
    is the fast loop, and a copy made at load silently ignores the edit.
@@ -296,8 +302,12 @@ template cheap to change):
    gate door in #845 and the pressure pad in #848).
 9. **Whatever a person sees or places is real nodes in its scene**, laid out in the editor: UI (the touch stick, look
    zone and buttons as `Control` nodes with anchors), the HUD, markers, spawn points and map pieces. Scripts hold
-   behaviour; they do not build or `_draw` visible parts at run time. *Why:* a developer opening the scene sees what is
-   there and moves or restyles it there, and an agent reads the `.tscn` text for placements as easily as code.
+   behaviour; they do not build or `_draw` visible parts at run time. *One exception:* a shape that is only a function
+   of exports and that no node draws (the HUD's `Crosshair`: a filled circle and a thin ring, `ui/hud/crosshair.gd`)
+   may be a `Control` that `_draw`s itself, as long as the node is in the scene, placed by anchors, shows in the editor
+   (`@tool`) and its look is exports; the alternative is a texture file for a shape that must scale to any size.
+   *Why:* a developer opening the scene sees what is there and moves or restyles it there, and an agent reads the
+   `.tscn` text for placements as easily as code.
 
 10. **Generated structures stay in code only where a scene could not hold them well** (the animation tree's graph, built
     in code with `@tool` so the editor shows it). Typed GDScript, short scripts, a `##` doc comment on every class,
@@ -378,3 +388,16 @@ CI makes a game from every template on each kit change (a matrix over the templa
 the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
 web (the `template` job of the kit's `ci.yml`). `python/tests/test_new_game.py` checks the local steps without Godot,
 and `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.
+
+Those two files do not copy the real `templates/` (21 MB) for each test: a test about names, flags, licences, git and
+GitHub steps gets a kit built once a session with `templates/repo/` and a few-file stand-in for 3D Blank
+(`python/tests/fixtures/new_game_templates/`; `small_kit` and `small_git_kit` in `python/tests/conftest.py`, helpers in
+`python/tests/new_game_kit.py`), and the tests about what the real templates hold read a game made once from the real
+folder (`real_game`, `real_third_person_game`).
+
+- **Approach:** A new-game test that needs a template to exist, not the real one, uses `small_kit` or `small_git_kit`;
+  only a test that reads the real template's files uses `real_game` or `real_third_person_game`, which are made once
+  for the module and only read. **Watch out for:** the old `kit` fixture copied all of `templates/` for each of 63
+  tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
+  longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
+  tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
