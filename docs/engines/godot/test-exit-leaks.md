@@ -110,6 +110,11 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 <!-- new section: the page covers the folder scan and a suite that only names a class; the causes a test creates
      itself (cycles, nodes never freed, a preloaded scene) were only in one-problem files -->
 
+- **Approach:** Ask `ResourceLoader.exists(path)` before `load_threaded_request(path)` and treat a missing path as the
+  failure it is. **Watch out for:** a request for a scene that is not there printed two engine errors and left one
+  `RefCounted` behind at exit (`1 ObjectDB instance was leaked`), which the suite's summary does not carry and CI's
+  grep fails; found by splitting the 15-test suite into 15 files of one test each. **Seen:** gdstudio #881, 2026-11-10
+  (the loading screen's failure path).
 - **Approach:** Connect methods, or callables made with `Callable(self, &"method")` or `.bind(id)`, not lambdas that
   name `self` or the object they listen to: a test captures the id (`var player_id := state.player_id`) and
   disconnects before it frees the night; a rig passes its own methods to what it owns. Run a new suite alone with
