@@ -13,7 +13,9 @@ main menu to the game, whose player rig adds the `NetProbe`); the game's `NetPro
 - the same page served over `https` (a routed origin) refuses `ws://` with a reason and opens no
   socket; it would only open `wss://`;
 - the control: the same freeze with the engine's default 64 KB inbound buffer (`&inbound=65536`)
-  loses packets, which is why the link's buffer is 1 MB.
+  loses packets, which is why the link's buffer is `NetLimits.BUFFER_SIZE`.
+- `--inbound <bytes>` runs the freeze check with that inbound size (`&inbound=`) instead of the
+  game's own, to measure a size before it is chosen; the server side stays `NetLimits.BUFFER_SIZE`.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/web_smoke/net_link_smoke.py build/web build/net_smoke \\
@@ -45,6 +47,7 @@ from relay import Relay
 READY_TIMEOUT_S = 120.0
 STREAM_BYTES = 584  # 35 KB a second at 60 ticks.
 FREEZE_S = 5.0
+CONTROL_TRIES = 3
 RELAY_DELAY_S = 0.1
 
 
@@ -170,6 +173,7 @@ def main() -> int:
     parser.add_argument("out", type=Path, help="folder for result.json")
     parser.add_argument("--godot", required=True, help="the pinned Godot (console build on Windows)")
     parser.add_argument("--project", type=Path, required=True, help="the game folder (project.godot)")
+    parser.add_argument("--inbound", type=int, default=0, help="inbound buffer bytes of the freeze check (0: the game's)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -196,7 +200,8 @@ def main() -> int:
             # 1. Over loopback: the address from the page, the link opens, pings come back.
             page = browser.new_page()
             page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe&url=ws://127.0.0.1:{ws_port}")
+            inbound = f"&inbound={args.inbound}" if args.inbound else ""
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netprobe{inbound}&url=ws://127.0.0.1:{ws_port}")
             opened = wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
             check("opens from the page address", opened, gdnet(page))
             loopback = summary(round_trips(page, 10))
@@ -208,24 +213,32 @@ def main() -> int:
             # 2. A frozen tab: the server streams 35 KB/s while the page's thread is busy for 5 s.
             freeze = frozen_tab(page, errors)
             result["freeze"] = freeze
+            result["inbound_bytes"] = args.inbound or "the game's"
             check("a 5 s frozen tab loses nothing of 35 KB/s", freeze["whole"], freeze)
             page.close()
 
-            # 2b. The control: the engine's default inbound buffer, the same freeze.
-            page = browser.new_page()
-            control_errors: list[str] = []
-            page.on(
-                "console",
-                lambda message: control_errors.append(message.text) if message.type == "error" else None,
-            )
-            page.goto(
-                f"http://127.0.0.1:{http_port}/index.html?play&netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}"
-            )
-            wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
-            control = frozen_tab(page, control_errors)
-            result["freeze_with_64_kb"] = control
-            check("the control with 64 KB loses packets", not control["whole"], control)
-            page.close()
+            # 2b. The control: the engine's default inbound buffer, the same freeze. Whether the
+            # browser's own thread has read a socket before the freeze ends varies, so a run that
+            # lost nothing is tried again (up to CONTROL_TRIES pages).
+            attempts: list[dict] = []
+            for _ in range(CONTROL_TRIES):
+                page = browser.new_page()
+                control_errors: list[str] = []
+                page.on(
+                    "console",
+                    lambda message, sink=control_errors: sink.append(message.text) if message.type == "error" else None,
+                )
+                page.goto(
+                    f"http://127.0.0.1:{http_port}/index.html?play&netprobe&inbound=65536&url=ws://127.0.0.1:{ws_port}"
+                )
+                wait_for(page, "window.gdnet && window.gdnet.state === 'open'", READY_TIMEOUT_S)
+                attempts.append(frozen_tab(page, control_errors))
+                page.close()
+                if not attempts[-1]["whole"]:
+                    break
+            result["freeze_with_64_kb"] = attempts[-1]
+            result["freeze_with_64_kb_tries"] = len(attempts)
+            check("the control with 64 KB loses packets", not attempts[-1]["whole"], {"tries": len(attempts), **attempts[-1]})
 
             # 3. Through the relay, 100 ms each way: the round trip is 200 ms or more.
             page = browser.new_page()
