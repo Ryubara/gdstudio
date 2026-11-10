@@ -171,8 +171,9 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
 - **Approach:** Price extra joint copies (`hinge_passes`, `cone_passes`) with the same probe, alternating the settings
   run by run. **Watch out for:** four hinges per elbow and knee cost nothing measurable (4.7 ms over the first two
   seconds with one and with four, 0.9 then 0.8 after); six copies of every joint (90 extra joints a body) cost about
-  a fifth more in the first two seconds (7.0 to 7.5 ms against 5.9 to 6.5, on a busy machine) and 1.2 against 1.0
-  after. **Seen:** gdstudio #940, 2026-11-10 (`passes=1` against `passes=4`); gdstudio #975, 2026-11-10.
+  a sixth more in the first two seconds (6.6 to 7.6 ms, mean 7.2, against 5.9 to 6.5, mean 6.2, on a busy machine)
+  and 0.9 to 1.3 against 0.8 to 1.2 after; every body still sleeps. **Seen:** gdstudio #940, 2026-11-10 (`passes=1`
+  against `passes=4`); gdstudio #975, 2026-11-10.
 - **Approach:** Take a settled body out of the budget: after `settle_time` seconds with every bone asleep the node says
   `settled`, stops counting toward the cap and a game frees the body there; beyond `ragdoll_range` metres from the
   camera a death is the clip. **Watch out for:** how long a body takes to lie still depends on the pose it died in
