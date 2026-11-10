@@ -27,8 +27,9 @@ func test_the_follow_camera_is_the_phantom_camera_the_host_shows() -> void:
 	assert_object(follow.follow_target).is_same(scene.get_node("Player/CameraTarget"))
 
 
-func test_the_main_scene_is_the_one_the_project_runs() -> void:
+func test_the_project_starts_at_the_menu_scene_and_the_game_scene_is_main() -> void:
 	assert_str(ProjectSettings.get_setting("application/run/main_scene")).is_equal(
-		"res://main.tscn"
+		"res://ui/menus/menu_scene.tscn"
 	)
+	assert_bool(ResourceLoader.exists("res://ui/menus/menu_scene.tscn")).is_true()
 	assert_bool(ResourceLoader.exists("res://main.tscn")).is_true()

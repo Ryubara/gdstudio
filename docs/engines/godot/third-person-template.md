@@ -2,9 +2,9 @@
 
 <!-- new section: the new-game page lists the templates; nothing held how the character template is built -->
 
-How the template's character is built and what Godot 4.7.2 did on the way (kit issue #821): a `CharacterBody3D`
+How the template's character is built and what Godot 4.7.2 did on the way: a `CharacterBody3D`
 controller, a Phantom Camera third-person view, touch controls for phones and a Quaternius mannequin animated with the
-Universal Animation Library 1 and 2 (the female and the male one). What a game made from it holds is in its own
+Universal Animation Library 1 and 2. What a game made from it holds is in its own
 `docs/design/character.md`; the template list is [A new game from a template](new-game.md#the-templates). Measured on
 Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 
@@ -21,6 +21,7 @@ Windows, an RTX 5080, Godot 4.7.2, and in headless Chromium on SwiftShader.
 | Impacts | `gameplay/impacts/` (`impacts.tscn` in `main.tscn`), `assets/shaders/impacts/`, `assets/materials/impacts/`, `assets/audio/impacts/` | Where a shot lands: a mark on what it hit (it rides a moved or pushed body and goes with a freed one), an effect and a sound, picked by the kind of surface. [Bullet impacts](#impacts). |
 | Sound | `gameplay/player/footsteps.tscn`, `gameplay/pickup/pickup.tscn`, `main.tscn` | `Footsteps` follows the skeleton's feet (from the `Model` slot), a `Pickup` plays its coin, `Wind` plays the bed on `Ambient`; every player is on a bus ([Audio](audio.md#template-buses)). |
 | Touch controls | `ui/touch/` (in 3D Blank, for every template) | Real `Control` nodes in `touch_controls.tscn` (a stick, two zones, buttons you drag in the 2D editor) that press the game's actions; the script only reads their places. 3D Third Person adds the Fire, Aim and Crouch buttons in `third_person_touch_controls.tscn`, a scene that inherits the base's. |
+| Menus | `ui/menus/`, `core/settings/` | Main, pause and settings menus, saved options: [Menus](menus.md#menus). |
 | Assets | `assets/characters/mannequin/` (`mannequin_female.glb`, the default, and `mannequin_male.glb`), `assets/animation/universal/` | CC0, each folder with a `LICENSE.md`; [the two mannequins](#mannequins). |
 | Ragdoll | `gameplay/player/player_ragdoll.gd`, `Player.die()` / `revive()` | Death as a hybrid: an animated capsule while alive, physical bones generated on the model's skeleton on death, a blend back on getting up. Y or the `ragdoll` checkbox; runs on Jolt. [Ragdoll](#ragdoll). |
 | Pistol | `assets/weapons/pistol/` | GDStudio's own (MIT, from Deadnight's build script), 692 triangles, one palette material; `pistol_held.tscn` seats it on `hand_r` for the six pistol clips ([Weapons](../../tools/blender/weapons.md#the-third-person-template-pistol)). |

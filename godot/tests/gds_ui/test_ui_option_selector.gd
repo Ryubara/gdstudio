@@ -127,3 +127,14 @@ func test_the_slide_runs_on_a_spring_without_reduced_motion() -> void:
 	await _settle(_selector._change)
 	assert_bool(_selector._change.is_settled()).is_true()
 	assert_float(_selector._change.value).is_equal(1.0)
+
+
+func test_jump_to_sets_the_choice_with_no_slide_and_no_signal() -> void:
+	_selector.jump_to(2)
+	assert_int(_selector.selected).is_equal(2)
+	assert_array(_changes).is_empty()
+	assert_float(_selector._change.value).is_equal(1.0)
+	_selector.jump_to(9)
+	assert_int(_selector.selected).is_equal(2)
+	_selector.jump_to(-4)
+	assert_int(_selector.selected).is_equal(0)
