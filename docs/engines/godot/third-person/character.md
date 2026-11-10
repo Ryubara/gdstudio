@@ -323,8 +323,9 @@ WAV starts in about 1 µs:
 
 The four steps decode once for every character (shared), when the first `Footsteps` is ready: about 2 ms on the
 desktop and 7 to 16 ms in Chrome, inside the first character's spawn (65 to 68 ms before, 72 to 84 after, in Chrome).
-The samples are the decoder's own (16-bit), so the player's steps sound as before: a Movie Maker mix of the action tour
-before and after nulls out (the numbers are on the pull request). What Chrome still pays is the WAV's own start.
+The samples are the decoder's own (16-bit), so the steps sound as before: Movie Maker mixes before and after differ by
+-65 dB (25 walkers) and -70 to -83 dB (the action tour's walking), 16-bit rounding; only the tour's shooting stretch
+differs, from run to run. What Chrome still pays is the WAV's own start.
 
 The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
 on a machine other agents were using; a range is the lowest and the highest run.
