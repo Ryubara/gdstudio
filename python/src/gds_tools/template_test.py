@@ -40,6 +40,9 @@ DEFAULT_SUITES = ("res://tests",)
 #: Seconds. A suite that never ends is a stuck debugger or a wait on a clock that does not tick, not a slow run.
 IMPORT_TIMEOUT = 600
 GDUNIT_TIMEOUT = 3000
+#: The clock the template job of `ci.yml` runs the suites at (`--fixed-fps 60`); the command defaults to it so a green
+#: local run is a green CI run. A test pins that `ci.yml` passes the same number.
+CI_FIXED_FPS = 60
 #: What CI refuses in the test log (`ci.yml`, step "Run the tests (GdUnit4)").
 LEAKS = re.compile(r"leaked at exit|still in use")
 
@@ -244,7 +247,7 @@ def run_template_test(
     *,
     suites: Sequence[str] = (),
     keep: bool = False,
-    fixed_fps: int | None = None,
+    fixed_fps: int | None = CI_FIXED_FPS,
     godot_args: Sequence[str] = (),
     gdunit_args: Sequence[str] = (),
     timeout: float = GDUNIT_TIMEOUT,

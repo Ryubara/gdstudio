@@ -418,6 +418,13 @@ Open pull requests come before new work: each one left open goes stale against `
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 
+- **Approach:** After `gds merge-main`, rerun the suites the branch touches as CI runs them now (`gds template test`
+  defaults to CI's `--fixed-fps 60`; `--real-clock` opts out) and every web probe of the branch, before pushing.
+  **Watch out for:** a branch that was green meets what `main` gained meanwhile: a new clock for the suites, a new
+  main menu in front of the probe. **Seen:** gdstudio #903 (PR #935), 2026-11-10: the local run on the real clock
+  passed 876 cases while CI failed 5 socket cases, and the web probe stopped at the new menu (fix: the command
+  defaults to the CI clock, a test pins it against `ci.yml`, kit #976).
+
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
   request needs a live owner: #488's owner was moved to probes and the pull request dropped off the owner map, so its

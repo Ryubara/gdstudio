@@ -286,7 +286,21 @@ def test_all_suites_are_res_tests_as_in_ci(kit, real, base):
     run(kit, real, base, godot)
     cmd = godot.gdunit()
     assert [cmd[i + 1] for i, c in enumerate(cmd) if c == "-a"] == ["res://tests"]
-    assert "--fixed-fps" not in cmd
+    assert cmd[cmd.index("--fixed-fps") + 1] == str(template_test.CI_FIXED_FPS)
+
+
+def test_the_tool_and_ci_run_the_suites_at_the_same_clock():
+    ci = (KIT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    gdunit_lines = [line for line in ci.splitlines() if "GdUnitCmdTool.gd" in line and "template-check" in line]
+    assert gdunit_lines, "ci.yml no longer runs the template suites the way this test reads it"
+    for line in gdunit_lines:
+        assert f"--fixed-fps {template_test.CI_FIXED_FPS} " in line + " ", line
+
+
+def test_real_clock_drops_the_flag(kit, real, base):
+    godot = FakeGodot()
+    run(kit, real, base, godot, fixed_fps=None)
+    assert "--fixed-fps" not in godot.gdunit()
 
 
 def test_fixed_fps_and_the_pass_throughs_reach_the_right_program(kit, real, base):
@@ -375,6 +389,21 @@ def test_the_command_line_runs_the_test_and_returns_gdunits_code(monkeypatch, ki
     assert seen["name"] == "tiny" and seen["suites"] == ["tests/a.gd", "tests/b.gd"] and seen["keep"]
     assert seen["fixed_fps"] == 60
     assert seen["godot_args"] == ["--audio-driver", "Dummy"] and seen["gdunit_args"] == ["--selftest"]
+
+
+def test_cli_defaults_to_the_ci_clock_and_real_clock_opts_out(kit, real, monkeypatch):
+    seen = []
+
+    def fake(*a, **kw):
+        seen.append(kw["fixed_fps"])
+        return template_test.Result(code=0)
+
+    monkeypatch.setattr(workspace, "require_workspace", lambda *a: real)
+    monkeypatch.setattr(workspace, "kit_checkout", lambda: kit)
+    monkeypatch.setattr(template_test, "run_template_test", fake)
+    cli.main(["template", "test", "tiny"])
+    cli.main(["template", "test", "tiny", "--real-clock"])
+    assert seen == [template_test.CI_FIXED_FPS, None]
 
 
 def test_the_real_new_game_makes_the_game_from_the_working_tree(tmp_path, real, base, monkeypatch):
