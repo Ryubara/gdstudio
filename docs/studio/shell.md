@@ -118,7 +118,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
-  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`).
+  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
+  lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went).
 
 ## Reverting and checking out {#checkout}
 
