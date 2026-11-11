@@ -76,34 +76,38 @@ func _process_modification_with_delta(_delta: float) -> void:
 	_turn(skeleton, _heads, -deg_to_rad(side_on) * head_back)
 	var climbed := Basis(line.cross(gun_up).normalized(), deg_to_rad(kick_climb) * kick)
 	var goal := Transform3D(climbed * hand_before.basis.orthonormalized(), Vector3.ZERO)
-	var shoulder := HandPoseModifier.global_pose(skeleton, _arm[0]).origin
-	var length := arm_length(skeleton)
+	var above := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_arm[0]))
+	var shoulder := (above * skeleton.get_bone_pose(_arm[0])).origin
 	goal.origin = (
 		shoulder
-		+ line * (length * reach - kick_back * kick)
+		+ line * (arm_length(skeleton) * reach - kick_back * kick)
 		+ hand_offset
 		+ Vector3.UP * kick_up * kick
 	)
-	reach_arm(skeleton, _arm, goal, elbow)
+	reach_arm(skeleton, _arm, goal, elbow, above)
 	if free_arm != &"" and free_arm_out > 0.0:
 		HandPoseModifier.swing_out(skeleton, free_arm, free_arm_out)
 
 
-## The shooting arm's length (shoulder to elbow to wrist) in the skeleton's pose now, in metres.
+## The shooting arm's length (shoulder to elbow to wrist), in metres: the forearm's and the hand's
+## places in their parents (the rig's bones are not scaled).
 func arm_length(skeleton: Skeleton3D) -> float:
-	var upper := HandPoseModifier.global_pose(skeleton, _arm[0]).origin
-	var fore := HandPoseModifier.global_pose(skeleton, _arm[1]).origin
-	var hand := HandPoseModifier.global_pose(skeleton, _arm[2]).origin
-	return upper.distance_to(fore) + fore.distance_to(hand)
+	return (
+		skeleton.get_bone_pose_position(_arm[1]).length()
+		+ skeleton.get_bone_pose_position(_arm[2]).length()
+	)
 
 
 ## Reaches the three bones `bones` (upper arm, forearm, hand) so the hand bone is at `goal` (in
 ## the skeleton's space) with its rotation, the elbow toward `pole`; a goal out of reach is met as
-## near as the arm goes.
+## near as the arm goes. `above` is the upper arm's parent's pose in the skeleton's space.
 static func reach_arm(
-	skeleton: Skeleton3D, bones: PackedInt32Array, goal: Transform3D, pole: Vector3
+	skeleton: Skeleton3D,
+	bones: PackedInt32Array,
+	goal: Transform3D,
+	pole: Vector3,
+	above: Transform3D
 ) -> void:
-	var above := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(bones[0]))
 	var fore_local := skeleton.get_bone_pose(bones[1])
 	var hand_local := skeleton.get_bone_pose(bones[2])
 	var upper := above * skeleton.get_bone_pose(bones[0])
@@ -137,20 +141,30 @@ static func reach_arm(
 
 
 # Turns each bone of `bones` by an equal share of `angle` about the skeleton's up axis, in order
-# from the root up (each turn carries the bones above it).
+# from the root up (each turn carries the bones above it). A bone that is the last one's child
+# takes its parent's pose from the last turn instead of walking up the skeleton again.
 static func _turn(skeleton: Skeleton3D, bones: PackedInt32Array, angle: float) -> void:
 	if bones.is_empty() or is_zero_approx(angle):
 		return
 	var share := Basis(Vector3.UP, angle / bones.size())
+	var last := -1
+	var last_pose := Transform3D.IDENTITY
 	for bone in bones:
 		if bone < 0:
 			continue
 		var parent := skeleton.get_bone_parent(bone)
-		var above := (
-			HandPoseModifier.global_pose(skeleton, parent) if parent >= 0 else Transform3D.IDENTITY
-		)
-		var posed := above.basis * skeleton.get_bone_pose(bone).basis
-		skeleton.set_bone_pose_rotation(bone, _local(above.basis, share * posed))
+		var above := last_pose
+		if parent != last or last < 0:
+			above = (
+				HandPoseModifier.global_pose(skeleton, parent)
+				if parent >= 0
+				else Transform3D.IDENTITY
+			)
+		var local := skeleton.get_bone_pose(bone)
+		var turned := _local(above.basis, share * above.basis * local.basis)
+		skeleton.set_bone_pose_rotation(bone, turned)
+		last = bone
+		last_pose = above * Transform3D(Basis(turned), local.origin)
 
 
 static func _find(skeleton: Skeleton3D, names: Array[StringName]) -> PackedInt32Array:

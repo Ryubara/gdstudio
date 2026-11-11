@@ -427,9 +427,24 @@ func test_the_players_left_hand_goes_to_the_magazine_and_back_when_it_reloads() 
 # #1051: the posed stage knows no fade), its thumb's tip included while the reload fades and the
 # right trigger finger leaves the trigger beside it (kit #1079).
 func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aiming() -> void:
+	await _reload_while_aiming(false)
+
+
+# The same held in one hand (kit #1085): the left hand comes from the free arm for the reload
+# alone and goes back to it, through nothing on the way.
+func test_the_one_handed_players_left_hand_passes_through_nothing_as_it_reloads() -> void:
+	await _reload_while_aiming(true)
+
+
+func _reload_while_aiming(one_handed: bool) -> void:
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
 	var player := arena.add_player(Vector3.ZERO)
+	if one_handed:
+		var pistol := player.weapon.definition.duplicate() as WeaponDef
+		pistol.one_handed = true
+		player.loadout.slots[0] = pistol
+		player.weapon.definition = pistol
 	var view := Camera3D.new()
 	view.position = Vector3(0.0, 1.3, 3.0)
 	arena.add_child(view)

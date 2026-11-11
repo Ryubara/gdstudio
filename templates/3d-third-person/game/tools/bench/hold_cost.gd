@@ -1,9 +1,10 @@
 ## Measures what the weapon hold costs (kit #1001): 40 mannequins play the pistol's aim clip, each
-## with `pistol_held.tscn` on its hand, in one of three runs named by the user argument: `no_hold`
-## (no hold scene), `carried` (the grip's finger pose, the wrist's turn and the arm's swing) or
-## `aimed` (those and the left arm's reach and the left fingers). It prints the mean and the
-## slowest process time of a frame on a line starting `BENCH`; the hold's cost for one character
-## is a run's mean less `no_hold`'s, over 40.
+## with `pistol_held.tscn` on its hand, in one of four runs named by the user argument: `no_hold`
+## (no hold scene), `carried` (the grip's finger pose, the wrist's turn and the arm's swing),
+## `aimed` (those and the left arm's reach and the left fingers) or `one_handed` (the grip and the
+## one-handed stance of kit #1085: the chest's turn and the right arm's reach). It prints the mean
+## and the slowest process time of a frame on a line starting `BENCH`; the hold's cost for one
+## character is a run's mean less `no_hold`'s, over 40.
 ##
 ## `<godot> --headless --path game res://tools/bench/hold_cost.tscn -- carried` (the modifiers are
 ## skeleton work on the CPU, so a headless run measures them). One run a process: a second set of
@@ -19,6 +20,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"no_hold": {"hold": false, "aim": 0.0},
 	"carried": {"hold": true, "aim": 0.0},
 	"aimed": {"hold": true, "aim": 1.0},
+	"one_handed": {"hold": true, "aim": 1.0, "one_handed": true},
 }
 
 
@@ -45,6 +47,7 @@ func _bench() -> void:
 		player.play(CLIP)
 		if stage.hold != null:
 			stage.hold.set(&"aim_weight", run.aim)
+			stage.hold.set(&"one_handed", run.get("one_handed", false))
 	for _frame in WARM_FRAMES:
 		await get_tree().process_frame
 	var total := 0.0
