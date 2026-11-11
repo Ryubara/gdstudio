@@ -142,8 +142,8 @@ func test_a_client_rebuilds_the_table_from_the_bytes() -> void:
 	assert_int(server.encode_all().size()).is_equal(1 + 16)
 
 
-# The inspector contract of every part (the kit's `third-person/ai.md#relations` lists the same):
-# a new export fails here until its default is pinned.
+# The inspector contract of every part (the kit's `third-person/ai-relations.md#relations` lists
+# the same): a new export fails here until its default is pinned.
 func test_the_defaults_are_pinned() -> void:
 	var no_factions: Array[AiFaction] = []
 	var no_events: Array[AiRelationEvent] = []
