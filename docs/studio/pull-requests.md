@@ -89,51 +89,55 @@ A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), an
   delete the extra block, then `gh pr edit N --body-file <file>` without `--attach`. **Watch out for:** a report said
   the captures were uploaded because a grep count matched the appended copies, while the lines still held `./` paths and
   `pr-rules` refused them. **Seen:** Deadnight, 2026-11-02 (fix: the read-back is the check).
-- **Approach:** To check a body whose captures are still `./` paths, check a copy whose `(./name.png)` links are
-  replaced by an upload address (`sed -E`), or upload the images first on the issue the pull request fixes (`gh issue
-  edit N --body-file <file> --attach <png>`), read the URLs back and put them in the pull request body; never ask for an
-  upload through a comment. **Watch out for:** by hand `gds pr check-body` has no `--attach` and wants uploaded images
-  while the attach guard wanted `./` references, so each guard refused what the other accepted. **Seen:** Deadnight,
-  2026-11-02 and 2026-11-03 (fix: gdstudio #186, the guard reads a `./` reference to an attached file as an upload; the
-  hand check still does not); gdstudio #875, 2026-11-10.
+- **Approach:** To check a body whose captures are still `./` paths, give `gds pr check-body` the same `--attach` files
+  as `gh pr create`, run from the same folder (`cd <captures> && gds pr check-body <body> --repo <worktree> --attach
+  ./after.png`); never ask for an upload through a comment. **Watch out for:** by hand `gds pr check-body` had no
+  `--attach` and wanted uploaded images while the attach guard wanted `./` references, so each guard refused what the
+  other accepted. **Seen:** Deadnight, 2026-11-02 and 2026-11-03 (fix: gdstudio #186, the guard reads a `./` reference
+  to an attached file as an upload; the hand check still did not); gdstudio #875, 2026-11-10; gdstudio PRs #1165, #1168
+  and #1175, 2026-11-11 (fix: kit #1188, `gds pr check-body --attach`).
 
 ## Pull request bodies before they are sent {#pr-body}
 
 <!-- new section: moved from hooks.md, which had reached its 50 KB limit; the body rules live on this page -->
 
 `pr-rules` judges a description after the push, and an agent whose body failed only found out there (a `None` line
-without its reason, text after it, a missing section). `gds pr check-body <file> [--title <file>] [--repo <folder>]`
-runs the same function, `groundwork.py check-body`, on the machine and exits 1 with the reasons (2 when it cannot run:
-no conventions, not a checkout). It runs in the checkout of the repository the pull request is for and reads that
-repository's `.github/conventions.yml`, with its own `.github/scripts/groundwork.py` when it has one (a game's rules
-differ from the kit's), else the kit's. The Git/GitHub guard does the same before `gh pr create|edit` runs: it reads
-the body once, the same read `--attach` uses, runs the check in the checkout around the current folder (or the
+without its reason, text after it, a missing section). `gds pr check-body <file> [--title <file>] [--repo <folder>]
+[--attach <file>]...` runs the same function, `groundwork.py check-body`, on the machine and exits 1 with the reasons (2
+when it cannot run: no conventions, not a checkout). It runs in the checkout of the repository the pull request is for
+and reads that repository's `.github/conventions.yml`, with its own `.github/scripts/groundwork.py` when it has one (a
+game's rules differ from the kit's), else the kit's. The Git/GitHub guard does the same before `gh pr create|edit` runs:
+it reads the body once, the same read `--attach` uses, runs the check in the checkout around the current folder (or the
 `<workspace>/repos/<name>` checkout that `-R owner/name` names, when that is another repository) and refuses with the
 reasons and the command to run. `--title` on the command turns on the title rules (screenshots, failed first, lessons).
 Not judged, because they cannot be read first: a body from standard input, a file not written yet, a literal body with a
 backtick or `$(`, a `gh pr edit` without a body, and a repository with no checkout. The pull request's history is not
-asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge.
-A `](../path)` reference to a file the same command passes with `--attach` (the same file, [below](#attach-paths)) counts
-as an uploaded capture there (the guard swaps in an upload address before it asks, as `--attach` does), so one body
-satisfies both guards; a reference to a file that is not attached, or the same body without `--attach`, is refused.
-`gds pr check-body` by hand has no `--attach` and still wants uploaded captures
-([Images](#attach)). A relative `--body-file` is read
-from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd /d`, `~` and Git
-Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a glob) leaves a
-relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
-is not judged. The refusal for a missing file names the path it looked in
-([Writing checks](writing-checks.md#paths)). `--attach` paths are never
-opened by the guard, only placed and compared with the references ([below](#attach-paths)). The docs rule of
-`pr-rules` (code changed, no docs changed, no `Docs: none` line) reads the branch's files: `gds pr check-body` and the
-guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
-branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
-`docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([Writing checks](writing-checks.md#same-input)). The `Read first:` rule reads what CI reads: without the API's list of
-closed issues, the body's own `Fixes #N` lines say which issues it closes (so the rule runs on the machine at all), and
-when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/` (`check-body --docs-ref
-origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout of the base branch. A
-section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which still reads the branch
-(kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
+asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge. A `](../path)`
+reference to a file the same command passes with `--attach` (the same file, [below](#attach-paths)) counts as an
+uploaded capture there (the guard swaps in an upload address before it asks, as `--attach` does), so one body satisfies
+both guards; a reference to a file that is not attached, or the same body without `--attach`, is refused. `gds pr
+check-body --attach <file>` (once per file) judges the body the same way: run it in the folder `gh` will run in (`cd
+<captures> && gds pr check-body <body> --title <title> --repo <worktree> --attach ./after.png`), since a relative
+reference and a relative `--attach` path are read from there; an `--attach` file that does not exist is refused (`gh`
+could not upload it) and its reference stays a missing capture. The reasons are `groundwork.py`'s own lines, word for
+word what CI's `body` job prints; the guard's refusal names this command with the same `--attach` files and the folder
+to run it in (kit #1188). Without `--attach` it still wants uploaded captures ([Images](#attach)). A relative
+`--body-file` is read from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd
+/d`, `~` and Git Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a
+glob) leaves a relative body file unplaced: `--attach` is then refused with "use an absolute path", and without
+`--attach` the body is not judged. The refusal for a missing file names the path it looked in ([Writing
+checks](writing-checks.md#paths)). `--attach` paths are never opened by the guard, only placed and compared with the
+references ([below](#attach-paths)). The docs rule of `pr-rules` (code changed, no docs changed, no `Docs: none` line)
+reads the branch's files: `gds pr check-body` and the guard run the same `groundwork.py check-docs` on `git diff
+--name-only origin/main...HEAD` of the checkout. With no branch to read (no commit, a detached head, the checkout on
+`main`, no `origin/main`) `gds pr check-body` prints `docs: cannot tell` rather than `docs: ok`, and the guard lets the
+command through ([Writing checks](writing-checks.md#same-input)). The `Read first:` rule reads what CI reads: without
+the API's list of closed issues, the body's own `Fixes #N` lines say which issues it closes (so the rule runs on the
+machine at all), and when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/`
+(`check-body --docs-ref origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout
+of the base branch. A section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which
+still reads the branch (kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to
+it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -134,6 +136,53 @@ def _run_checker(repo: Path, checker: Path, arguments: list[str]) -> BodyCheck:
         raise PrCheckError((done.stderr or done.stdout).strip() or f"the checker exited with {done.returncode}")
     reasons = [line.strip()[2:] for line in done.stderr.splitlines() if line.strip().startswith("- ")]
     return BodyCheck(False, reasons or [done.stderr.strip()])
+
+
+#: Where `gh --attach` puts an upload (`github.com/user-attachments/...`); a stand-in for the check, never sent. The
+#: guard in `.claude/hooks/guards.py` keeps its own copy of this and of `as_uploaded` (a test keeps them equal).
+UPLOAD_STAND_IN = "https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000"
+_MARKDOWN_TARGET = re.compile(r"\]\(\s*([^)\s]+)\s*\)")
+_DRIVE_PATH = re.compile(r"^[A-Za-z]:/")
+_MSYS_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
+
+
+def file_key(path: str, cwd: Path, lost: bool = False) -> str | None:
+    """Which file `path` names when `gh` runs in `cwd`: its absolute, normalised path with forward slashes, or None for
+    a web address (or a relative path when `lost`). `gh --attach` swaps a `](path)` reference only when it names the
+    same file as an `--attach` path (docs/studio/hooks.md#attach-paths)."""
+    path = path.replace("\\", "/")
+    if "://" in path:
+        return None
+    if os.name == "nt" and (drive := _MSYS_DRIVE.match(path)):  # Git Bash's /c/dir is C:/dir
+        path = f"{drive.group(1).upper()}:{path[drive.end() :] or '/'}"
+    if not (path.startswith("/") or _DRIVE_PATH.match(path)):
+        if lost:
+            return None
+        path = f"{cwd.as_posix()}/{path}"
+    return os.path.normpath(path).replace("\\", "/")
+
+
+def same_file(first: str | None, second: str | None) -> bool:
+    """True when two `file_key`s name one file (a file system that ignores case ignores it here)."""
+    return first is not None and second is not None and os.path.normcase(first) == os.path.normcase(second)
+
+
+def as_uploaded(body: str, files: list[str], cwd: Path, lost: bool = False) -> str:
+    """The body as it reads after `gh pr create|edit --attach <files>` has run in `cwd`: each `](path)` reference that
+    names an attached file is the upload's address, which `pr-rules` counts as a capture. Any other reference stays a
+    local path and is still refused: `gh` leaves it alone and appends the upload at the end of the body instead."""
+    wanted = [file_key(spec, cwd, lost) for spec in files]
+
+    def swap(match: re.Match[str]) -> str:
+        here = file_key(match.group(1), cwd, lost)
+        return f"]({UPLOAD_STAND_IN})" if any(same_file(here, key) for key in wanted) else match.group(0)
+
+    return _MARKDOWN_TARGET.sub(swap, body)
+
+
+def missing_attachments(files: list[str], cwd: Path) -> list[str]:
+    """The `--attach` paths (`path#label` as given) with no file behind them in `cwd`: `gh` cannot upload those."""
+    return [spec for spec in files if not (cwd / spec.split("#", 1)[0]).is_file()]
 
 
 #: What a branch is compared to, as `pr-rules` does (the pull request's files are the branch's changes since it left

@@ -208,8 +208,8 @@ report only after reading the body back.
   the upload goes to the end of the body. **Seen:** gdstudio #847, 2026-11-08 (its first body linked
   `./gate-after.mp4`; the one sent links `./gate-after.png`, the file attached).
 - **Approach:** For an MP4, put a still or a [sheet](#sheet) on the `After:` line and the clip's bare upload address
-  beside it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run `gds pr check-body` on the body read back
-  after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
+  beside it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run `gds pr check-body` with the same
+  `--attach` files as `gh pr create`, from the same folder. **Watch out for:** `![after](./x.mp4)` becomes a
   plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
   refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
   reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
@@ -220,12 +220,13 @@ report only after reading the body back.
   nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
   2026-11-10.
 - **Approach:** Write the body file in an earlier command and name it by its absolute path when the `gh` command
-  starts with `cd <folder>`; run `gds pr check-body` by hand with `--repo <worktree>` when you stand in the scratch
-  folder, and expect it to pass only on the body read back after the upload, never on the file with `./` references.
+  starts with `cd <folder>`; run `gds pr check-body` by hand from that folder with `--repo <worktree>` and the same
+  `--attach ./<file>` arguments as `gh pr create` (kit #1188).
   **Watch out for:** a relative `--body-file` is read from the folder after the `cd`, so a path written from the
   worktree was "does not exist yet"; and the hand check, which has no `--attach`, refused the `Before:` and `After:`
   lines that the `gh pr create` guard accepted. **Seen:** gdstudio #1001 (PR #1038) and #1031 (PR #1054), 2026-11-11
-  (the body file); gdstudio #1011, #1020, #1016, #1040 and #1090, 2026-11-10 and 11 (the hand check).
+  (the body file); gdstudio #1011, #1020, #1016, #1040 and #1090, 2026-11-10 and 11, and PRs #1165, #1168 and
+  #1175, 2026-11-11 (the hand check, before it took `--attach`).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 

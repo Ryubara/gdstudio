@@ -45,7 +45,8 @@ folder.
 ## Pull request bodies before they are sent {#pr-body}
 
 Moved to [Pull requests: the body guard](pull-requests.md#pr-body): `gds pr check-body`, the guard before `gh pr
-create|edit` and what neither can judge. This page had reached its size limit.
+create|edit` and what neither can judge. This page had reached its size limit. `gds pr check-body --attach <file>`
+counts a reference to a file about to be attached as uploaded, as the guard does.
 
 ## Which paths the image guard covers {#attach-paths}
 
