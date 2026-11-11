@@ -7,8 +7,9 @@
 ##   the shooters fight back, the civilians run from the gunfire.
 ## - `cover` (10 s): a shooter at its post notices the player (who only stands) and fights from
 ##   cover, peeking.
-## - `chase` (14 s): a guard notices the player in front of it, the player runs out of the door,
-##   the guard chases after it.
+## - `chase` (16 s): a guard notices the player in front of it, the player runs out of the door
+##   and along the outer wall out of its sight, the guard comes to the doorway after it and fires
+##   from there.
 ## - `civilians` (8 s): one shot into the floor by the shed's door and the civilians inside run.
 ##
 ## The player is invulnerable. Record it with Movie Maker through the kit, from the worktree:
@@ -118,13 +119,19 @@ func _chase_step(was: float) -> void:
 		_rig.yaw += 180.0
 		Input.action_press(&"move_forward")
 		Input.action_press(&"sprint")
-	if _crossed(was, 4.1):
+	# Through the doorway, then 6 m along the outer wall, out of the guard's sight, so it chases
+	# to where it lost the player (a guard that still sees the player fights from where it stands).
+	if _crossed(was, 4.3):
+		Input.action_release(&"move_forward")
+		Input.action_press(&"move_left")
+	if _crossed(was, 5.3):
+		Input.action_release(&"move_left")
+		Input.action_press(&"move_forward")
+	# Away from the wall, so the camera sees into the doorway at an angle and not along the wall.
+	if _crossed(was, 6.5):
 		Input.action_release(&"move_forward")
 		Input.action_release(&"sprint")
-		Input.action_press(&"move_left")
-	if _crossed(was, 4.8):
-		Input.action_release(&"move_left")
-		_look_at(Vector3(-3.0, 1.0, 0.0), -15.0)
+		_look_at(Vector3(-1.0, 1.0, 0.0))
 
 
 # A shot into the floor in front of the shed's door at 2 s.

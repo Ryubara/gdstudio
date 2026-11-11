@@ -78,7 +78,23 @@ section's pilot walks the player round and shoots (deaths, respawns, civilians f
 (senses, brains, tasks, navigators, bodies), mean and p95 in µs, the living characters on average, and the median
 frame work in ms:
 
-COST_TABLE
+| Where | Row | Step mean | Step p95 | Alive | Each | Frame work |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop, native headless | watch | 385 | 628 | 10.0 | 38.5 | 1.11 |
+| Desktop, native headless | fight | 385 | 561 | 9.8 | 39.5 | 1.21 |
+| Chrome 1x | watch | 517 | 900 | 10.0 | 51.7 | 1.20 |
+| Chrome 1x | fight | 483 | 700 | 9.3 | 51.9 | 1.30 |
+| Chrome 4x | watch | 2,578 | 4,300 | 10.0 | 258 | 5.90 |
+| Chrome 4x | fight | 2,437 | 3,900 | 8.4 | 291 | 7.50 |
+
+Godot 4.7.2, Compatibility, the fast desktop of [Crowds](../crowds.md#ai-characters), 900 ticks a row after 120 of
+warm-up, kit #969 (2026-11-11, the machine shared with other agents: calibration 7.0 ms at 1x, 31.5 at 4x). The section
+fits [the budget](../crowds.md#ai-characters) with room: about half of the 1 ms a tick in Chrome and half of the 5 ms
+at 4x, the p95 under both. A character costs about 50 µs a tick in Chrome, ten times the spike's thinking capsule and
+in line with the fighting guards of [the behaviour bench](ai-behaviour.md#cost-follow-up) (the body and its aim are
+most of it): a section of this mix (half of it fighting) reaches the budget at about 20, and the fighting ones count
+by the behaviour bench's limits (12 in Chrome, 6 at 4x). The
+soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a moving fight and the respawns.
 
 ## Proof {#proof}
 
