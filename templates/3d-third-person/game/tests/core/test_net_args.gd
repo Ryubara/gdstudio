@@ -67,6 +67,7 @@ func test_the_server_exports_are_pinned() -> void:
 		&"hold_ticks": 4,
 		&"silent_seconds": 15.0,
 		&"hello_seconds": 10.0,
+		&"entity_lead_ticks": 12,
 	}
 	assert_array(ExportPins.differences(server, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(server, pins)).is_empty()

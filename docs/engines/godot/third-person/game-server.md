@@ -66,9 +66,14 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
   slot its own point; the prototype map has three (`PlayerA` to `PlayerC`).
 - **Snapshots and events.** TICKs are full (no deltas). A TICK a full socket refuses is not sent and the events wait
   for the next (`peers_stalled` in the stats); at most 32 ride on one TICK and a client keeps at most 128 waiting. An
-  event is something that happened once (`joined`, `left`); cosmetics never travel.
+  event is something that happened once (`joined`, `left`, a part's `entity` and `pickup`); cosmetics never travel.
+- **Map parts.** Each command is stepped with the doors and platforms at the command's tick (`command_tick`), and
+  the WELCOME carries the map's table; a change starts `entity_lead_ticks` (12) after it is decided
+  ([networked map parts](net-world.md#net-world)). A bot of `server_bot.gd` numbers its commands from 1, so the parts
+  are held 4 s behind for it: its body is not predicted.
 - **The world hash** is `NetServer.world_hash_of(map)`: the paths from the map node and the `net_kind` metadata of the
-  nodes under it in the group `net_part` (#907 adds them; the map has none yet). Both sides hash from the map node, the
+  nodes under it in the group `net_part` (the `NetEntity` of every door, platform and pickup,
+  [networked map parts](net-world.md#net-world)). Both sides hash from the map node, the
   `World` instance: `NetServer.world_root` (`World` in `net_server.tscn`) and `NetClient.world_root` (`World` in the
   online arena), so what holds the map (a `SubViewport`, the tree's root, a menu scene) does not change the hash. The
   map need not be in the tree: `server_bot.gd` hashes a `world.tscn` it never adds. A new client scene sets
