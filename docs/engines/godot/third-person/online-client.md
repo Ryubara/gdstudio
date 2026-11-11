@@ -141,7 +141,8 @@ TCP's loss). The browser half is `tools/web_smoke/net_play_smoke.py`: the web ex
 `NetPlayProbe` (`ui/probe/`, made by the player rig only on such a page) that plays online with a `NetClient`, walks a
 `CirclingController` and writes `NetPlayReport` to `window.gdnet`; the page's thread is frozen by a busy loop at 8, 16
 and 24 s. Both judge with `tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
-`--break reconciler` (native only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
+`--walk spawn` walks round the spawn across the dais's edge instead (gdstudio #1119); `--break reconciler` (native
+only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
 server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs after the gate.
 
 | Check | Threshold | What it guards |
@@ -218,9 +219,10 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   `by_second` (where the body stood, metres corrected, snaps, gap) and the relay's stalls near it (`WORST` lines). Count
   a snap by its cause: with up stalls, one under 4 m per up stall (`size_snaps_m`). **Watch out for:** the walk round
   the spawn crossed the dais's edge; a command repeated in an up stall took the server's body down while the client's
-  stayed up, and each quarter of the correction landed inside the dais and was pushed back on top (#1119): 141 m
-  corrected in one local run, 75.5 m and 1.65 m apart standing on 31cc1793. On the dais top, six two-core runs: 22.6
-  to 23.9 m, worst 1.0 to 1.31 m. **Seen:** gdstudio #1110, 2026-11-11 (from #1109).
+  stayed up, and each quarter of the correction was pushed back on top of the dais (141 m corrected in one local
+  run). On the dais top, six two-core runs: 22.6 to 23.9 m. #1119 fixed the client (`BodyOverlap`): the old walk
+  (`--walk spawn`), three two-core stall runs, 25.0 to 32.4 m against 28.8 to 62.2 m before.
+  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); #1119.
 
 ## Playing online {#play-online}
 

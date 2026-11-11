@@ -40,7 +40,8 @@ JITTER_MS = 30.0
 # edge. The walk round the spawn (2 m from the west edge, 3 m, sprinting every other lap) reached 5.4 m out: a command
 # repeated in an up stall walked the server's body off the edge while the client's stayed up, and each quarter of the
 # correction put the client inside the dais, which pushed it back on top, so the two fought for seconds (141 m of
-# corrections in one local run; 75.5 m, and 1.65 m apart after standing, on the runner; gdstudio #1110, #1119).
+# corrections in one local run; 75.5 m, and 1.65 m apart after standing, on the runner; gdstudio #1110). The client now
+# takes such a correction whole (`BodyOverlap`, #1119); `--walk spawn` runs the old walk to show it.
 WALK_CENTRE = "0,0"
 WALK_RADIUS_M = 2.0
 WALK_LAP_S = 3.5
