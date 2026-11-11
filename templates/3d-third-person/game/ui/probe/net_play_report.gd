@@ -23,6 +23,7 @@ static func of(
 		"rtt_ms": client.rtt_ms,
 		"corrections": reconciler.corrections,
 		"snaps": reconciler.snaps,
+		"size_snaps_m": millimetres(reconciler.size_snaps),
 		"lost": reconciler.lost,
 		"worst_error_m": snappedf(reconciler.worst_error, 0.001),
 		"worst_stall_error_m": snappedf(reconciler.worst_stall_error, 0.001),
@@ -50,6 +51,14 @@ static func gap(client: NetClient) -> float:
 		if entry.slot == client.slot:
 			return client.player.global_position.distance_to(entry.position)
 	return -1.0
+
+
+## `values` in metres, each rounded to the millimetre.
+static func millimetres(values: PackedFloat32Array) -> Array[float]:
+	var out: Array[float] = []
+	for value in values:
+		out.append(snappedf(value, 0.001))
+	return out
 
 
 ## The value at `share` (0 to 1) of `values` (the nearest rank), -1 for none.
