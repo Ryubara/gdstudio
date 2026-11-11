@@ -64,6 +64,13 @@ the server: `AiAuthority.hand_over` stops it and frees its pool).
   kit #1247, 2026-11-11 (the AI soak at `scale=4` in Chrome, kit #971;
   `test_a_corpse_does_not_count_against_the_population_cap`,
   `test_a_population_at_the_director_cap_respawns_while_its_dead_lie`).
+- **Approach:** Ready a pool's spare with `AiCharacter.warming` on (`AiPool.prewarm` sets it around its `add_child` and
+  `remove_child`), so its `_ready` joins no director; count refusals with `AiDirector.refused` and probe the web
+  build for the `refused` warning before and after a fix. **Watch out for:** without it each spare made while the
+  living sit at the cap was refused with a warning, and these were all 8 refusals of the soak at `scale=4` (the
+  `max_corpses` spares, two of each kind): the counting fix alone left the same 8 in Chrome, because the issue's guess
+  (the corpses) was not the whole cause. **Seen:** kit #1247, 2026-11-11
+  (`test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap`).
 - **Approach:** Make a pool lazily (on the approach, one a tick); a suite that runs the map but is not about the AI
   sets `enabled = false` on each spawner of `World/AISection/Population` in `before_test` (`test_section_walks.gd`).
   **Watch out for:** parked characters are out of the tree, so GdUnit counts them as orphans and the run exits 101,
