@@ -144,16 +144,19 @@ def main() -> int:
                 result["warm_up"] = warm_up(browser, warm_url, viewport, warm)
                 print(f"WARM-UP: {result['warm_up']}", flush=True)
             pages: list[Page] = []
+            join_s: list[float] = []
             for index in range(args.pages):
                 page = browser.new_context(viewport=viewport).new_page()
                 page.on("console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None)
                 page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
                 plan = "route" if index == 0 else "watch"
+                began = time.time()
                 page.goto(
                     f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
                 )
                 settled = "window.gdonline && window.gdonline.state !== 'connecting'"
                 wait_for(page, settled, READY_TIMEOUT_S)
+                join_s.append(round(time.time() - began, 1))
                 pages.append(page)
             seated = all(report_of(page)["state"] == "seated" for page in pages)
             if seated:
@@ -161,6 +164,9 @@ def main() -> int:
             else:
                 time.sleep(2.0)
             reports = [report_of(page) for page in pages]
+            # Seconds from the page's load to its seat (or its failure), as the player waits them.
+            for report, seconds in zip(reports, join_s):
+                report["join_s"] = seconds
             for index, page in enumerate(pages):
                 page.screenshot(path=str(args.out / f"page{index + 1}.png"))
             browser.close()
@@ -205,6 +211,7 @@ def main() -> int:
         keys = ("state", "players", "rtt_ms", "gap_m", "corrections", "corrected_m", "fps", "frame_us_p50")
         line = ", ".join(f"{k} {report.get(k)}" for k in keys)
         line += f", frame_us_p95 {report.get('frame_us_p95')}, puppets_us_p50 {report.get('puppets_us_p50')}"
+        line += f", join_s {report.get('join_s')}, rejoined {report.get('rejoined')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1
