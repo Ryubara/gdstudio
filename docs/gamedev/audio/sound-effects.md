@@ -239,6 +239,12 @@ copying it across repositories; only the folders its design page lists as synthe
   card a section, the sounds in order and then together, nothing normalised.
 - The credits before and after, the plan, and the sum of the requests against the budget.
 
+- **Approach:** For a Before of sounds being replaced, copy the files from a checkout of `main` (the workspace's
+  `repos/gdstudio`) or `git checkout <rev> -- <file>`, and play both sets in two games made from the two checkouts with
+  one probe scene, so each event lands at the same second in both tracks. **Watch out for:** the audio is in Git LFS:
+  `git show HEAD:<file>.ogg` writes the 130-byte pointer, which ffmpeg refuses with an exit code and no message worth
+  reading. **Seen:** gdstudio #1083, 2026-11-11 (66 events, the same times to the millisecond in both passes).
+
 ## 8. A fire sound that stays pleasant {#fire}
 
 <!-- new section: the template's pistol had an empty ShotSound and nothing said what a basic fire sound should do so it
