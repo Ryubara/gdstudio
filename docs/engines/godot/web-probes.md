@@ -39,9 +39,12 @@ command is the same there (off Windows it starts the program normally).
   `--gpu` mode on `channel="chrome"` for the multi-page smokes).
 - **Approach:** In CI, install the probe's browser so that an unreachable Ubuntu mirror cannot fail the job: try
   `playwright install --with-deps` once, then fall back to the browser alone (the runner image has Chromium's libraries;
-  `--with-deps` only adds fonts). **Watch out for:** a DNS outage of `azure.archive.ubuntu.com` failed the `template`
-  job on main and on every PR for over an hour, and a rerun failed the same way; each apt try spends about eight
-  minutes retrying. **Seen:** gdstudio #1224, 2026-11-11 (fix: the fallback in the kit's and the game template's `ci`).
+  `--with-deps` only adds fonts). Each call runs under `timeout -k 30 <seconds>` and the step has a `timeout-minutes`
+  far under the job's (12 of 40; a normal install takes about 20 s). **Watch out for:** a DNS outage of
+  `azure.archive.ubuntu.com` failed the `template` job for over an hour (apt retries about eight minutes); a fallback
+  only covers a call that returns, and apt's switch to `archive.ubuntu.com` went silent and held the step 39 minutes.
+  **Seen:** gdstudio #1224, 2026-11-11 (fix: #1226, the fallback in both `ci` files); gdstudio #1201's run
+  43062712944, 2026-11-11 (fix: #1235, the limits, pinned by `test_workflow_browser_install.py`).
 - **Approach:** When the browser tools find no connected browser, start Chrome with `--headless=new
   --remote-debugging-port=9333` and a throwaway profile and speak the DevTools protocol over Node's built-in
   `WebSocket`: `Page.captureScreenshot`, `Page.startScreencast` for a transition (about 30 frames a second),

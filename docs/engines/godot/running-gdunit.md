@@ -168,6 +168,12 @@ game](new-game.md#proof), gdstudio #830 and #917).
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
   in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
+- **Approach:** Read the run's exit code, not only its summary: free or clear in `after_test` every node a suite keeps
+  out of the tree (a pool's parked characters, a node removed with `remove_child`). **Watch out for:** GdUnit counts a
+  node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with `pipefail`, so the job
+  fails. 1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map
+  ([the spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
+  2026-11-11.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 
