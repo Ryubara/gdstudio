@@ -54,6 +54,10 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   2026-11-10; gdstudio #1087, 2026-11-11 (a camera swap suite run by hand without the flag: 6 of 15 cases about 0.8
   degrees off, all green at `--fixed-fps 60` and in `gds template test`; the command at the top of this page now has
   the flag).
+- **Approach:** Run the kit's own Godot project (`godot/`, the shared addons' suites) without `--fixed-fps`, as the
+  kit's CI does; the flag is for a game's and a template's suites. **Watch out for:** several of the kit project's
+  suites wait on the real clock, and `--fixed-fps 60` ran their frames without waiting, so they failed on a run whose
+  code was fine. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
   `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of

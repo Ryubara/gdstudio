@@ -59,7 +59,11 @@ pointer imported as a model leaves a broken `.import` behind ([Build scripts](bu
   "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
   player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
-  ([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
+  ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
+- **Approach:** When a build exports its clips from actions, use `export_animation_mode="ACTIONS"`, which names each
+  glTF animation after its action, and check the names in Godot after the import. **Watch out for:**
+  `ACTIVE_ACTIONS` writes the active actions as one animation named `Animation`, so the clip the game asks for by name
+  is not there. **Seen:** gdstudio #1035 (PR #1217), 2026-11-11.
 
 ## Reading a glb back in Blender {#reimport}
 

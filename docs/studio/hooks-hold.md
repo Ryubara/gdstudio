@@ -26,6 +26,9 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
   on; `gds workspace init` keeps the table. No session turns it on: Edit or Write of the file, a shell command that
   writes it (a redirect, a copy onto it or into the workspace, any program naming it but a reader), and any shell line
   or new file text that sets the key are refused.
+- **While it waits**, its agent merges `main` only when the pull request is DIRTY at report time; the coordinator
+  refreshes it right before it lands ([Landing](landing.md#landing): an agent merged `main` four times into a held
+  pull request, each push restarting CI).
 - **A pull request opened before the check was required** has no run on its head and stays pending: run
   `gh workflow run hold-sweep.yml` once. It reports the check through the Checks API and does not touch the pull
   request. A new game runs it once when its ruleset starts requiring `hold`.

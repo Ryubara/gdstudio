@@ -321,16 +321,31 @@ they exist.
   harness says it is. **Watch out for:** the coordinator copied its own model into briefs, but the godot-engineer runs
   another model, so an agent had to rewrite its unpushed commit messages and the others needed a correction mid-task.
   **Seen:** gdstudio #875, 2026-11-10 (fix: briefs say to name the model the agent actually runs as).
-- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, whatever
-  the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
-  captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
-  #880 and #886, 2026-11-10.
+- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, and
+  `studio/shell.md#scripted-edits` to every task that edits GDScript or Python by script, whatever the brief proposed.
+  **Watch out for:** `gds brief` ranks by the issue's words, and a feature issue rarely names how captures are
+  attached or how files are edited, so its agent met the image rules only as refusals and a failed `pr-rules`, and
+  the scripted-edit section ranked ninth for #1040, past the six a brief prints. **Seen:** gdstudio #880 and #886,
+  2026-11-10; gdstudio #1040, 2026-11-11.
 - **Approach:** Let a path the issue names pick a section only when that section's words are also close to the
   issue's (`MENTION_FLOOR` in `lessons.py`: a third of the best section's score). **Watch out for:** an issue's `Area`
   line repeats its label's folders (`game/core/`) and many sections cite a file as an example, so the one section that
   mentions such a path was named however far its subject; #909 (online play) was briefed with the voice-lines section.
   **Seen:** gdstudio #1133, 2026-11-11 (fix: the floor, tuned on 120 kit issues; the far mentions scored 0.17 to 0.31
   of the best, the fitting ones 0.35 and up).
+- **Approach:** Write a prompt's pull request instructions in the body template's own words: the issue line is
+  `Fixes #N`, put near the top of the brief where an agent reads it, not deep in a list. **Watch out for:** the body
+  check accepts only `Fixes #N`, and prompts that said `Closes #N` sent each agent to find out from a refusal; one
+  successor still wrote `Closes` after the brief was fixed, because the line was buried. **Seen:** gdstudio #1188,
+  #1183, #1184, #1189, #1190, #1192, #1193 and #970, 2026-11-11 (coordinator's mistake; the batch brief now says it).
+- **Approach:** Tell an agent with captures to run `gds pr check-body <body> --attach ./<file>` from the captures
+  folder, with the same `--attach` arguments as its `gh pr create` ([Attaching](capture.md#attaching)). **Watch out
+  for:** before #1200 the hand check had no `--attach`, refused every local capture and sent agents to the
+  `gh pr create` guard to learn the result. **Seen:** gdstudio #1188 (PR #1200), #1221, 2026-11-11.
+- **Approach:** Point a prompt at another task's work by its worktree or branch (`worktrees/<repo>/<branch>/`), which
+  exists from `gds issue start`, unless `gh pr list --search <N>` shows a pull request. **Watch out for:** a prompt
+  said to find #1037's branch with `gh pr list`, but #1037 had no pull request yet, so the agent searched for one that
+  did not exist. **Seen:** gdstudio #1221, 2026-11-11 (coordinator's mistake).
 
 ## The report {#the-report}
 
