@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="6_ai_section"]
 [ext_resource type="PackedScene" path="res://world/prototype/pathing_section/pathing_section.tscn" id="7_pathing_section"]
 [ext_resource type="Script" path="res://gameplay/ai/ai_director.gd" id="8_ai_director"]
+[ext_resource type="Script" path="res://gameplay/ai/relations/ai_factions.gd" id="ai_factions"]
+[ext_resource type="Resource" path="res://gameplay/ai/relations/ai_relations.tres" id="ai_relations"]
 
 [node name="World" type="Node"]
 
@@ -35,3 +37,7 @@ script = ExtResource("8_ai_director")
 
 [node name="Effects" parent="." instance=ExtResource("5_effects")]
 warm_up_groups = Array[StringName]([&"player"])
+
+[node name="AiFactions" type="Node" parent="."]
+script = ExtResource("ai_factions")
+relations = ExtResource("ai_relations")
