@@ -77,7 +77,8 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    print(f"written: {capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif)}")
+    clip = capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif, max_seconds=args.max_seconds)
+    print(f"written: {clip}")
     return 0
 
 
@@ -693,6 +694,12 @@ def build_parser() -> argparse.ArgumentParser:
     clip = cap.add_parser("clip", help="encode a folder's frames to an MP4 (or GIF) small enough for GitHub")
     clip.add_argument("folder")
     clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
+    clip.add_argument(
+        "--max-seconds",
+        type=float,
+        default=capture.CLIP_MAX_SECONDS,
+        help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
