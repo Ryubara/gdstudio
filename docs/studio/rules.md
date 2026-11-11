@@ -143,6 +143,13 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   headings), and a heading cannot wrap. **Seen:** gdstudio #769, 2026-11-07 (fix: headings in crowds.md and
   web-export.md were reworded with their anchors kept, and two unlinked ones took short anchors, found by a width check
   before the report).
+- **Approach:** On a pull request's `Read first:` line, name only sections that are on `main`; a section the pull
+  request itself adds is named on `Lessons:`. **Watch out for:** `gds pr check-body` run in the worktree reads the
+  branch's docs and passes an anchor the branch adds, while the `body` check in CI refused the same line, since the
+  section does not exist on `main` yet. **Seen:** gdstudio #1016, 2026-11-10 (its reworked body named
+  `tools/blender/animation.md#contacts`, a section it adds; fix: the anchor was taken off `Read first:`), and again
+  on 2026-11-11 with `clips.md#vault-clips` (the body was rebuilt from a script that listed what was read, not from
+  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending).
 
 ## Page size {#size}
 
@@ -152,11 +159,11 @@ one time a learning makes a new page. The check names the page and its size.
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
   page with a short section per moved `{#anchor}` linking to its new place. Then run `test_docs_site.py` and the strict
-  build. **Watch out for:** a page at 51.1 KB failed the next agent's change; a folder without
-  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that
-  reads the page by its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a
-  subpage titled like the one section it holds repeats its anchor, and the check refuses it. **Seen:** gdstudio #983,
-  #1029 (template pages); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
+  build. **Watch out for:** a 51.1 KB page failed the next change; a folder without `index.md` fails
+  `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that reads the page by
+  its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a subpage titled like the
+  one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
+  #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
 
 ## Where the entry is named {#named}
 
