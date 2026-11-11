@@ -316,3 +316,12 @@ def test_edited_needs_the_sections_page_among_the_changed_files():
     assert (
         groundwork.lessons_problems(conv(**rules), "net: Fix it", text, CLEAN, None) == []
     )  # no file list: not judged
+
+
+def test_the_body_closing_lines_stand_in_for_the_api_list():
+    rules = conv()
+    rules["pull_requests"]["closing"] = {"keyword": "Fixes", "form": "Fixes #N"}
+    text = body("Fixes #12", "Fixes #7", "Fixes #12", "Not Fixes #9", "Fixes 3")
+    assert groundwork.body_closes(rules, text) == [12, 7]
+    del rules["pull_requests"]["closing"]
+    assert groundwork.body_closes(rules, text) == []
