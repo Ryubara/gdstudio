@@ -52,7 +52,8 @@ Measured in Godot on the skinned meshes, on every frame, on both mannequins (`te
 | --- | --- | --- |
 | Right hand on the grip, every frame | 1.2 mm in, 2.7 mm off | 1.1 mm in, 4.4 mm off |
 | Left hand on the slide (frames 9 to 13) | 0.9 mm in, 4.1 mm off (the palm) | 1.0 mm in, on the surface |
-| Left hand on the way (deepest in the gun or the right hand) | 0.0 mm | 1.4 mm |
+| Left hand on its support grip (the ends) | 1.2 mm in, 2.3 mm off | 1.2 mm in, 3.7 mm off |
+| Left hand on the way (deepest in the gun or the right hand) | 1.2 mm | 1.4 mm |
 | Left hand's bone from its place on the slide | 0.0 mm | 0.0 mm |
 | Limbs through each other (`../limb_overlap.py`, the build) | 4.8 mm | 2.2 mm |
 
