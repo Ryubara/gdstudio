@@ -8,11 +8,10 @@ extends Node
 ## own; a slide plays `slide_start` into the `slide` loop and, standing up, `slide_exit`), a
 ## weapon layer built from the held `WeaponDef`'s clips (the weapon sits in one hand while the arms
 ## and the spine follow the locomotion clip; aiming or firing brings the arm up to aim by its look,
-## a shot recoils or a blow is thrown, a reload plays stretched to the reload's time, and a switch
-## lowers the arm and brings the next weapon up) and a one-shot layer on the whole body for actions
-## (interact, hit, and any clip a game asks for with
-## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
-## getting up it starts again from the ground state.
+## a shot kicks or a blow is thrown (`ShotLayer`), a reload plays stretched to the reload's time,
+## and a switch lowers the arm and brings the next weapon up) and a one-shot layer on the whole body
+## for actions (interact, hit, and any clip a game asks for with `play_clip()`). Dead, the tree is
+## off and the ragdoll holds the skeleton; on getting up it starts again from the ground.
 ##
 ## The clips come from the Universal Animation Library 1 and 2 and the template's own prone
 ## clips, added to the `AnimationPlayer` as the libraries `ual1`, `ual2` and `prone`. Pick another
@@ -278,6 +277,7 @@ var _prone_look := ProneAnimation.new()
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
 var _shots := 0
+var _shot_added := false
 var _watched_hold: WeaponDef
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
@@ -649,6 +649,7 @@ func _drive_pistol(delta: float) -> void:
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
+	ShotLayer.drive(tree, _shot_added)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
 
@@ -808,9 +809,8 @@ func _build_root() -> AnimationNodeBlendTree:
 
 # The weapon layer, from the held definition's clips: `Armed` blends the grip pose over the
 # locomotion, on the gripping hand only (or on the whole upper body in the `HELD_POSE` carry), `Aim`
-# blends the aim pose over that on the upper body, `Shoot` plays a shot's clip (a recoil, a blow)
-# over whatever is under it, and `Reload` the reload clip, both on the upper body. A clip the
-# definition leaves empty is the idle clip with no weight (`_drive_pistol`).
+# blends the aim pose over that on the upper body, `Shoot` plays a shot's clip over it or added to
+# it (`ShotLayer`) and `Reload` the reload clip, both on the upper body. An empty clip is idle.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	var hold := held_definition()
 	var grip_bones: Array[StringName] = []
@@ -864,7 +864,8 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_AIM, 1, _AIM_POSE)
 	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
 	root.connect_node(_SHOOT, 0, _AIM)
-	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
+	var added := hold != null and hold.shoot_additive and first_shot != &""
+	_shot_added = ShotLayer.wire(root, shoot, _SHOOT, _SHOOT_SCALE, _clip(first_shot), added)
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
