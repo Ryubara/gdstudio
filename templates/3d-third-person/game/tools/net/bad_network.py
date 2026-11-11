@@ -24,6 +24,11 @@ WORST_ERROR_M = 6.0
 # own hitches over 0.25 s): a snap more is an error past 2.5 m, a loop that does not settle.
 SNAPS_A_FREEZE = 1
 SNAPS_AT_JOIN = 1
+# A stall of the commands' way makes the server repeat the last command, and two such stalls close together put the
+# server's body 2.5 to 3.3 m ahead (the Linux runner, gdstudio #1110): an answer past `Reconciler.SNAP_DISTANCE`, which
+# the reconciler takes whole. Such a snap (`size_snaps_m`: a snap that was not a resync) is a burst, not a loop that
+# does not settle, when the run stalled the commands' way and it stays under `STALL_WORST_ERROR_M`; at most one an up
+# stall. The settled gap and the corrections still judge the loop.
 # Without freezes a stall of the network is a burst, never a wrong position: under 4 m. A stall of the commands' way
 # outlasts the hold, so the server repeats the last command (30 steps at most) and the answer after it is off by that
 # run: 1.4 to 1.6 m for one stall, 2.7 m when two came close together (with the jitter on top).
@@ -128,11 +133,17 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
         report["stalls"] >= network.freezes,
         {"stalls": report["stalls"], "skipped_ticks": report["skipped_ticks"]},
     )
-    snaps = SNAPS_AT_JOIN + SNAPS_A_FREEZE * max(network.freezes, report["stalls"])
+    bursts = up_stall_bursts(report, network)
+    snaps = SNAPS_AT_JOIN + SNAPS_A_FREEZE * max(network.freezes, report["stalls"]) + len(bursts)
     verdict.check(
-        f"at most {snaps} snaps (the join and each stall of the client)",
+        f"at most {snaps} snaps (the join, each stall of the client, each burst after an up stall)",
         report["snaps"] <= snaps,
-        {"snaps": report["snaps"], "stalls": report["stalls"], "skipped_ticks": report["skipped_ticks"]},
+        {
+            "snaps": report["snaps"],
+            "stalls": report["stalls"],
+            "skipped_ticks": report["skipped_ticks"],
+            "bursts_m": bursts,
+        },
     )
     worst = WORST_ERROR_M if network.freezes else STALL_WORST_ERROR_M
     stall_error = report.get("worst_stall_error_m", report["worst_error_m"])
@@ -166,6 +177,15 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
             },
         )
     return verdict
+
+
+def up_stall_bursts(report: dict, network: Network) -> list[float]:
+    """The snaps taken for their size (`size_snaps_m`) that a stall of the commands' way explains: none without up
+    stalls, only those under `STALL_WORST_ERROR_M`, and at most one an up stall."""
+    if network.stalls_up <= 0:
+        return []
+    bursts = [e for e in report.get("size_snaps_m", []) if e < STALL_WORST_ERROR_M]
+    return bursts[: network.stalls_up]
 
 
 def server_log(path: Path) -> dict:

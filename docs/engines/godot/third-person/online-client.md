@@ -123,9 +123,11 @@ A gate with thresholds, its native half run in the kit's `template` CI job, both
 (gdstudio #908). The native half is `tools/net/bad_network_gate.py`: the server of `--server` started by
 `tools/net/gate_server.gd` (free port; `--hold-ticks` for the teeth check), three `server_bot.gd` bots for puppets,
 `tools/net/relay.py` with 100 ms each way (each chunk up to 30 ms more, in order: a real network's jitter), and
-`predict_bot.gd` through it, in two runs of 30 s: `freeze` (the client's own thread frozen 0.5, 2 and 5 s) and
-`stalls` (1 % of the relayed chunks held 300 ms more, everything behind them waiting too: TCP's loss). The browser half
-is `tools/web_smoke/net_play_smoke.py`: the web export opened with `?play&netplay&url=ws://<relay>` gets a
+`predict_bot.gd` through it, running 2 m circles on the spawn dais's flat top, never across its 1 m edge
+(`--centre 0,0 --radius 2 --lap 3.5 --no-sprint`, #1110), in two runs of 30 s: `freeze` (the client's own thread
+frozen 0.5, 2 and 5 s) and `stalls` (1 % of the relayed chunks held 300 ms more, everything behind them waiting too:
+TCP's loss). The browser half is `tools/web_smoke/net_play_smoke.py`: the web export opened with
+`?play&netplay&url=ws://<relay>` gets a
 `NetPlayProbe` (`ui/probe/`, made by the player rig only on such a page) that plays online with a `NetClient`, walks a
 `CirclingController` and writes `NetPlayReport` to `window.gdnet`; the page's thread is frozen by a busy loop at 8, 16
 and 24 s. Both judge with `tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
@@ -135,7 +137,7 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Check | Threshold | What it guards |
 | --- | --- | --- |
 | Lost | no answer past 6 m a stall (`Reconciler.resync`: the answer after k stalls with none between may be k walk-ons long) | a loop that does not settle |
-| Snaps | one at the join and one per stall of the client's thread the stall guard saw | an error past 2.5 m outside a resync |
+| Snaps | one at the join, one per stall of the client's thread the stall guard saw, and with stalls of the commands' way one per such stall for an answer under 4 m (`size_snaps_m`, #1110) | an error past 2.5 m outside a resync |
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
 | Worst error | under 6 m a stall with freezes (`worst_stall_error_m`), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
@@ -152,12 +154,16 @@ before the relay jittered):
 | Native, relay and 30 ms jitter, freezes | about 230 ms | 54 (0.75 m) | 3 / 3 | under 3 m | under 5 mm | 0 |
 | Native, relay and jitter, 1 % stalls (17 to 19 up, 17 to 19 down) | about 240 to 270 ms | 207 to 271 (19.3 to 27.3 m) | 0 to 1 / 0 | 1.5 to 2.7 m | 2.2 to 5 mm | 669 to 714 of 5760 |
 | Native, relay, 1 % stalls (22 to 26 up, 10 to 16 down) | 234 to 248 ms | 188 to 221 (11.2 to 16.4 m) | 0 / 0 | 1.42 to 1.52 m | 2.1 to 6.1 mm | 387 to 531 of 5760 |
+| Native, relay and jitter, 1 % stalls, the walk on the dais (Linux runner, 13 runs, 26 up, 11 down) | | 20.7 to 21.1 m | 0 or 1 / 0 | 1.00 to 1.07 m | 2 to 8 mm | |
+| Native, relay and jitter, 1 % stalls, the walk on the dais (Windows, two cores, six runs, 30 up, 12 down) | 245 to 277 ms | 22.6 to 23.9 m | 0 or 1 / 0 | 1.00 to 1.31 m | 0.2 to 7 mm | |
+| Native, relay and jitter, freezes, the walk on the dais (Windows two cores, three runs; the runner 0.28 m) | | 0.25 to 0.37 m | 3 / 3 | 2.06 to 2.11 m | 4.6 to 4.7 mm | 0 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Browser, relay, freezes, judged a stall (36 to 38 fps, three runs, #1070) | 234 to 264 ms | 41 to 57 (0.97 to 2.31 m) | 7 to 8 / 10 to 12 | 4.41 to 7.60 m, 2.20 to 2.53 m a stall (3 stacked) | 3.5 to 6.2 mm | 21 to 27 of about 4000 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
 | Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
 | Teeth: native, server hold 0, with jitter (Windows; the Linux runner without jitter read 2.4 m) | about 230 ms | 831 (32.3 m) | | | | |
+| Teeth on the dais walk: hold 0 (Windows two cores; the runner) | | 58.1 m; 33.4 m | | | | |
 | Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
 
@@ -198,6 +204,13 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (`gds_ui`, `gds_game`, Phantom Camera), so the image built, the deployment read `SUCCESS`, and the server failed to
   parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
   deployment from the made game listened on `$PORT` at once).
+- **Approach:** Keep a gate's walk off every ledge the body can fall from or climb, and read a failed run by second:
+  `by_second` (where the body stood, metres corrected, snaps, gap) and the relay's stalls near it (`WORST` lines). Count
+  a snap by its cause: with up stalls, one under 4 m per up stall (`size_snaps_m`). **Watch out for:** the walk round
+  the spawn crossed the dais's edge; a command repeated in an up stall took the server's body down while the client's
+  stayed up, and each quarter of the correction landed inside the dais and was pushed back on top (#1119): 141 m
+  corrected in one local run, 75.5 m and 1.65 m apart standing on 31cc1793. On the dais top, six two-core runs: 22.6
+  to 23.9 m, worst 1.0 to 1.31 m. **Seen:** gdstudio #1110, 2026-11-11 (from #1109).
 
 ## Playing online {#play-online}
 
