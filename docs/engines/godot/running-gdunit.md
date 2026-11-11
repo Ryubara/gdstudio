@@ -92,7 +92,8 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   without a word: 193 suites passed and neither was among them. Git stores them with LF, so a fresh checkout scans
   them; the working tree that `gds template test` copies does not. **Seen:** gdstudio #1073, 2026-11-11 (`file` named
   the two; converted to LF); gdstudio #1203, 2026-11-11 (gdformat on Windows rewrote a new suite it reformatted with
-  CRLF ends; git's warning at commit named it; converted to LF before the full run).
+  CRLF ends; git's warning at commit named it; converted to LF before the full run); gdstudio #1213, 2026-11-11 (an
+  existing suite).
 
 - **Approach:** When a run ends with no failure and no tests, read the top of the log for a `Parse Error` first, fix
   the one script, and check that the executed-suite count matches the folder; before moving constants into a resource,
