@@ -167,6 +167,7 @@ func _flinch(record: HitRecord) -> void:
 	for key in bones:
 		var body := ragdoll.body(key)
 		body.global_transform = ragdoll.animated_body(key)
+		body.reset_physics_interpolation()
 		body.linear_velocity = Vector3.ZERO
 		body.angular_velocity = Vector3.ZERO
 	simulator.influence = flinch_strength

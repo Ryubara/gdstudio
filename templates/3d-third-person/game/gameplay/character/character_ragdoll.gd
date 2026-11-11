@@ -144,6 +144,9 @@ static var _counted := 0
 @export_range(0.0, 2.0, 0.01, "suffix:s") var get_up_time := 0.4
 
 @export_group("Cost")
+## Draws the skin between the last two physics ticks, as interpolation draws the rest
+## (`RagdollDrawing`). Off, a moving body steps at a frame rate over the 60 ticks.
+@export var draw_between_ticks := true
 ## How many ragdolls may lie limp at once in the whole game (one that has settled, or got up,
 ## stops counting); a death over the cap is not a ragdoll (`can_start()` is false, the `Character`
 ## plays its death clip). 0: no cap.
@@ -185,6 +188,7 @@ static var _counted := 0
 		_apply_materials()
 
 var _simulator: PhysicalBoneSimulator3D
+var _drawing: RagdollDrawing
 var _bones: Dictionary[StringName, PhysicalBone3D] = {}
 var _blend := 0.0
 var _limp := false
@@ -331,6 +335,7 @@ func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
 		# The animated pose, pushed inside the joints' limits.
 		if clamped.has(key):
 			bone.global_transform = clamped[key]
+		bone.reset_physics_interpolation()
 		bone.linear_velocity = velocity * carry_velocity
 		bone.angular_velocity = Vector3.ZERO
 		if from_pose:
@@ -340,6 +345,7 @@ func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
 	_since_start = 0.0
 	_settled = false
 	_count(true)
+	_drawing = RagdollDrawing.place(_drawing, self)
 	started.emit()
 	return true
 
@@ -570,6 +576,7 @@ func _build() -> void:
 		for bone_name: StringName in lying:
 			if _bones.has(bone_name):
 				_bones[bone_name].global_transform = lying[bone_name]
+				_bones[bone_name].reset_physics_interpolation()
 
 
 # The extra joints are server joints between the bones' bodies: they go before the bodies do (a
@@ -630,6 +637,8 @@ func _join(skeleton: Skeleton3D, fitted: bool, excepted: bool) -> void:
 		_braces.remake()
 	else:
 		_brace_joints()
+	if not Engine.is_editor_hint():
+		_drawing = RagdollDrawing.place(_drawing, self)
 
 
 func _clear() -> void:
