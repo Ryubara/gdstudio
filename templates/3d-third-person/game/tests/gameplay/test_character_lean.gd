@@ -16,6 +16,7 @@ var _signals: Array[Array] = [[], []]
 var _differences: Array[String] = []
 var _ticks := 0
 var _lean_ticks := 0
+var _lean_climbs := 0
 
 
 func before_test() -> void:
@@ -25,6 +26,7 @@ func before_test() -> void:
 	_differences.clear()
 	_ticks = 0
 	_lean_ticks = 0
+	_lean_climbs = 0
 
 
 # A body on a floor of its own world with a 0.2 m kerb across its way, facing -Z, stepped by hand.
@@ -96,10 +98,15 @@ func _run(command: PlayerCommand, count: int) -> void:
 		# What the lean body decides this tick (`step` copies the command in the same way first).
 		lean.last_command.copy_from(command)
 		lean.last_command.move = command.move.limit_length(1.0)
-		if lean.state != Character.State.DEAD and CharacterLean.can_take(lean):
-			_lean_ticks += 1
+		var took := lean.state != Character.State.DEAD and CharacterLean.can_take(lean)
+		var height := lean.global_position.y
 		for body in _bodies:
 			body.step(command, CommandDriver.tick_seconds())
+		if took:
+			_lean_ticks += 1
+			# The step climber lifted it on a lean tick (the kerb is 0.2 m).
+			if lean.global_position.y - height > 0.1:
+				_lean_climbs += 1
 		command.clear_edges()
 		_compare()
 
@@ -162,6 +169,7 @@ func test_the_lean_tick_ends_every_tick_where_the_full_tick_does() -> void:
 	# Both ticks were taken, each for a good share of the stream.
 	assert_int(_lean_ticks).is_greater(300)
 	assert_int(_ticks - _lean_ticks).is_greater(200)
+	assert_int(_lean_climbs).is_greater_equal(1)
 
 
 func test_only_an_ais_controller_asks_for_the_lean_tick() -> void:

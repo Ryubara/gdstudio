@@ -52,6 +52,9 @@ static func can_take(body: Character) -> bool:
 		return false
 	if body._slide.active or body._slide.amount > 0.0:
 		return false
+	# A move made again (after a wall, see `move`) would ride a moving floor twice.
+	if body.get_platform_velocity() != Vector3.ZERO:
+		return false
 	var settings := body.vault_settings
 	if settings != null:
 		if body.vault_motion.is_active():
@@ -87,12 +90,23 @@ static func move(body: Character, delta: float) -> void:
 	var wish := body._wish_direction()
 	_steer(body, wish, delta)
 	_vertical(body)
-	body._climb(delta)
 	var before := body.velocity
 	var ticks := roundf(delta / body.get_physics_process_delta_time())
+	# The step climber lifts the body only over a steep face in its way, which the move meets as a
+	# wall: so the move goes first, and only when it met a wall is it taken back and made again
+	# after the climber, as the full tick makes it (on open ground the climber's test, a fifth of
+	# the walk's cost, finds nothing every tick).
+	var start := body.global_transform
 	body.velocity *= ticks
 	body.move_and_slide()
 	body.velocity /= ticks
+	if body.is_on_wall():
+		body.global_transform = start
+		body.velocity = before
+		body._climb(delta)
+		body.velocity *= ticks
+		body.move_and_slide()
+		body.velocity /= ticks
 	body._grounded = body.is_on_floor()
 	body._pushing = CharacterPush.push_props(body, before, delta)
 	if body._grounded and body._was_airborne:
