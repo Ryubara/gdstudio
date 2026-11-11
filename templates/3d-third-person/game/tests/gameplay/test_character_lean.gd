@@ -208,9 +208,23 @@ func test_the_ai_controller_gives_the_command_its_channels_say_on_every_call() -
 		assert_bool(command.fire).is_true()
 		presses += 1 if command.fire_pressed else 0
 	assert_int(presses).is_equal(1)
+	# A jump that starts is a press in exactly one command too; crouch and sprint come through.
+	controller.jump = true
+	controller.sprint = true
+	var jumps := 0
+	for _call in 3:
+		var command := controller.sample()
+		assert_bool(command.jump and command.sprint).is_true()
+		jumps += 1 if command.jump_pressed else 0
+	assert_int(jumps).is_equal(1)
+	controller.crouch = true
+	assert_bool(controller.sample().crouch).is_true()
 	controller.release()
 	var still := controller.sample()
-	assert_bool(still.fire or still.aim or still.fire_pressed).is_false()
+	(
+		assert_bool(still.fire or still.aim or still.fire_pressed or still.jump or still.crouch)
+		. is_false()
+	)
 	assert_vector(still.move).is_equal(Vector2.ZERO)
 
 
