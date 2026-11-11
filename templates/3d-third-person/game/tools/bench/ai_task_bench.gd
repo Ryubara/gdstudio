@@ -61,10 +61,12 @@ func _ready() -> void:
 	result["think_tick_us_40"] = forty.us_each * 40.0 / THINK_INTERVAL
 	var line := JSON.stringify(result)
 	print("AI_TASK_BENCH ", line)
+	_free_all()
+	# A page stays open for the probe to read (quitting a web build is not a thing to measure).
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.__ai_task_bench = %s;" % line, true)
-	_free_all()
-	get_tree().quit()
+	else:
+		get_tree().quit()
 
 
 func _measure(count: int, busy: bool) -> Dictionary:
