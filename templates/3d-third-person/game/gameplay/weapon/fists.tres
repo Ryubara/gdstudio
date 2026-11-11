@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="WeaponDef" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="WeaponDef" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://gameplay/weapon/weapon_def.gd" id="1_def"]
+[ext_resource type="Texture2D" path="res://assets/ui/inventory/weapon_fists.svg" id="i1_icon"]
 [ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_1.ogg" id="s1"]
 [ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_2.ogg" id="s2"]
 [ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_3.ogg" id="s3"]
@@ -18,6 +19,7 @@ random_pitch = 1.06
 [resource]
 script = ExtResource("1_def")
 display_name = "Fists"
+icon = ExtResource("i1_icon")
 kind = 2
 fire_rate = 2.5
 recoil = 0.0

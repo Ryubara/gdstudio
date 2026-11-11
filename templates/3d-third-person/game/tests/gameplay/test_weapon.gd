@@ -58,7 +58,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 	var pistol := load(PISTOL) as WeaponDef
 	var pins := {
 		&"display_name": "Pistol",
-		&"icon": null,
+		&"icon": load("res://assets/ui/inventory/weapon_pistol.svg"),
 		&"kind": WeaponDef.Kind.PROJECTILE,
 		&"automatic": false,
 		&"fire_rate": 4.0,

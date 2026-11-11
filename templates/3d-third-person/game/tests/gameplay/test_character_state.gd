@@ -20,6 +20,7 @@ const NOT_STATE := {
 	&"ragdoll_key": "an export",
 	&"ragdoll_by_command": "an export",
 	&"input_enabled": "an export",
+	&"inventory": "an export (the bag is not stepped: a screen changes it)",
 	&"died_by_clip": "how a death looks; death is not restored",
 	&"items": "what the character holds: the game's state, not the step's",
 	&"max_health": "the Health child's, read only",

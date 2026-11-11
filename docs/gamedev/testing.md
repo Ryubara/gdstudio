@@ -295,7 +295,8 @@ finds them first -->
   stands for. **Watch out for:** a mark made a node mid-night, a default order made standing tests roam, a moved lamp
   post broke a test that wrote its cover as coordinates, and a pinned list order and a copied boss health went red in
   folders nobody ran. **Seen:** Deadnight (outline), 2026-11-02; Deadnight #641, #682, #688, #719, #938, 2026-11-03
-  (fix: those folders run before the push; cover read from the lot).
+  (fix: those folders run before the push; cover read from the lot); gdstudio #890, 2026-11-10 (a `Player` export
+  failed two other suites' pins).
 - **Approach:** After every merge of main, grep the merged tree (tests and captures included) for each field, action
   or default the branch removes or changes, run the suites of what landed meanwhile, and diff each file the branch
   shares with a merged pull request; grep again right before auto-merge. **Watch out for:** clean merges left a

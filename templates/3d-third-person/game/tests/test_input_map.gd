@@ -23,6 +23,7 @@ const ACTIONS: Array[StringName] = [
 	&"next_weapon",
 	&"previous_weapon",
 	&"toggle_unarmed",
+	&"inventory",
 ]
 
 
@@ -48,6 +49,7 @@ func test_the_move_jump_and_interact_actions_work_from_a_pad_and_a_keyboard() ->
 		&"next_weapon",
 		&"previous_weapon",
 		&"toggle_unarmed",
+		&"inventory",
 	]:
 		var has_pad := false
 		var has_key := false

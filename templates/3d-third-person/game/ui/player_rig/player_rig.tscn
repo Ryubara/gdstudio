@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="10_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="11_arrow"]
 [ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="12_map"]
+[ext_resource type="PackedScene" path="res://ui/inventory/inventory_screen.tscn" id="13_inventory"]
 
 [node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("1_rig")
@@ -66,6 +67,13 @@ layer = 2
 
 [node name="PauseButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
 touch = NodePath("../../TouchControls")
+
+[node name="BagButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
+offset_left = 100.0
+offset_right = 268.0
+text = "Bag"
+touch = NodePath("../../TouchControls")
+screen = ExtResource("13_inventory")
 
 [node name="MapLayer" parent="." instance=ExtResource("12_map")]
 
