@@ -63,6 +63,47 @@ def take_names(sound: dict) -> list[str]:
     return [f"{sound['name']}_t{n}" for n in range(1, sound["takes"] + 1)]
 
 
+def used_takes(sound: dict) -> list[str]:
+    """The takes `encode` cuts files from: `use_takes` (numbers from 1) when the data file picks some after listening
+    and measuring, else every take."""
+    names = take_names(sound)
+    if not sound.get("use_takes"):
+        return names
+    return [names[n - 1] for n in sound["use_takes"]]
+
+
+def prompt_of(sound: dict, take: str) -> str:
+    """The prompt a take is asked with: the sound's `take_prompts` entry for its number when an earlier prompt was
+    changed (the takes already made keep theirs), else `prompt`."""
+    n = take.rsplit("_t", 1)[1]
+    return sound.get("take_prompts", {}).get(n, sound["prompt"])
+
+
+def model_of(data: dict, sound: dict) -> str:
+    """The sound-effects model a sound is asked of: its own `model`, else the data file's."""
+    return sound.get("model", data["model"])
+
+
+def file_names(sound: dict, count: int) -> list[str]:
+    """The names of a sound's files: its `names` when the game wants fixed ones (`pistol_draw.ogg`), else
+    `<prefix>_<n>.ogg`."""
+    if sound.get("names"):
+        if count > len(sound["names"]):
+            raise SystemExit(
+                f"{sound['name']}: {count} pieces for {len(sound['names'])} names"
+            )
+        return list(sound["names"][:count])
+    return [f"{sound['prefix']}_{n}.ogg" for n in range(1, count + 1)]
+
+
+def licence_of(data: dict, tier: str) -> tuple[str, str | None]:
+    """(licence line, attribution or None) for the plan a take was made on: the free tier needs attribution and allows
+    no commercial use; a paid plan allows commercial use and needs no attribution (`sound-effects.md#licence`)."""
+    if tier == "free":
+        return data["licence_free"], data["attribution"]
+    return data["licence_paid"].format(tier=tier), None
+
+
 def chosen(data: dict, only: str | None) -> list[dict]:
     names = set(only.split(",")) if only else None
     sounds = [s for s in data["sounds"] if not names or s["name"] in names]
@@ -95,7 +136,7 @@ def plan_rows(data: dict, cache: Path, only: str | None = None) -> list[dict]:
                     "seconds": sound["seconds"],
                     "credits": 0 if cached else request_cost(data, sound["seconds"]),
                     "cached": cached,
-                    "prompt": sound["prompt"],
+                    "prompt": prompt_of(sound, take),
                 }
             )
     return rows
@@ -139,12 +180,12 @@ def balance() -> dict:
     }
 
 
-def request_take(data: dict, sound: dict) -> tuple[bytes, dict]:
+def request_take(data: dict, sound: dict, take: str) -> tuple[bytes, dict]:
     body = {
-        "text": sound["prompt"],
+        "text": prompt_of(sound, take),
         "duration_seconds": sound["seconds"],  # always explicit: auto length costs more
         "prompt_influence": sound["influence"],
-        "model_id": data["model"],
+        "model_id": model_of(data, sound),
     }
     if sound.get("loop"):
         body["loop"] = True
@@ -415,6 +456,12 @@ def write_ogg(ffmpeg: str, x, ogg: Path) -> None:
 
 
 def files_of(sound: dict, root: Path) -> list[Path]:
+    if sound.get("names"):
+        return [
+            root / sound["folder"] / n
+            for n in sound["names"]
+            if (root / sound["folder"] / n).exists()
+        ]
     return sorted(
         (root / sound["folder"]).glob(f"{sound['prefix']}_*.ogg"),
         key=lambda p: int(p.stem.split("_")[-1]),
@@ -459,7 +506,7 @@ def cmd_generate(args) -> None:
                 )
             print(f"requesting {take} ({sound['seconds']} s, {cost} credits)")
             try:
-                audio, info = request_take(data, sound)
+                audio, info = request_take(data, sound, take)
             except urllib.error.HTTPError as error:
                 raise SystemExit(
                     f"{take}: HTTP {error.code} {error.read()[:300]!r}"
@@ -472,7 +519,7 @@ def cmd_generate(args) -> None:
                 credits=cost,
                 tier=before["tier"],
                 date=time.strftime("%Y-%m-%d"),
-                model=data["model"],
+                model=model_of(data, sound),
             )
             (cache / f"{take}.json").write_text(
                 json.dumps(info, indent=2), encoding="utf-8"
@@ -487,34 +534,61 @@ def cmd_generate(args) -> None:
 def licence_text(
     data: dict, sounds: list[dict], root: Path, cache: Path, ffmpeg: str
 ) -> dict[str, str]:
-    """One LICENSE.md per folder: each file, its prompt, its length, the generator, model, plan and the attribution."""
+    """One LICENSE.md per folder: each generated file with its prompt and length, the generator, model, plan, the
+    licence of that plan and the attribution it asks for, then the folder's `folder_notes` (files in it that are not
+    generated, such as the pistol's synthesised shots). Every sound of the data file in the folder is listed, not only
+    those of this run, so `--only` does not drop the others."""
     out = {}
-    for sound in sounds:
-        files = files_of(sound, root)
-        if not files:
+    folders = {s["folder"] for s in sounds}
+    for folder in sorted(folders):
+        rows, infos = [], []
+        for sound in (s for s in data["sounds"] if s["folder"] == folder):
+            files = files_of(sound, root)
+            first = cache / f"{used_takes(sound)[0]}.json"
+            if not files or not first.exists():
+                continue
+            info = json.loads(first.read_text(encoding="utf-8"))
+            infos.append(info)
+            # a hit is one file a take, in the order of `used_takes`; steps are cut from every take of one prompt
+            takes = (
+                used_takes(sound)
+                if sound["kind"] == "hit"
+                else [used_takes(sound)[0]] * len(files)
+            )
+            for f, take in zip(files, takes, strict=False):
+                seconds = len(decode(ffmpeg, f)) / RATE
+                asked = json.loads((cache / f"{take}.json").read_text(encoding="utf-8"))
+                rows.append(
+                    f"| `{f.name}` | {asked['body']['text']} (requested {sound['seconds']} s, `{asked['model']}`) "
+                    f"| {seconds:.2f} |"
+                )
+        if not rows:
             continue
-        info = json.loads(
-            (cache / f"{take_names(sound)[0]}.json").read_text(encoding="utf-8")
-        )
+        tiers = sorted({i["tier"] for i in infos})
+        dates = sorted({i["date"] for i in infos})
+        licence, attribution = licence_of(data, tiers[0] if len(tiers) == 1 else "free")
         lines = [
             "# Sounds generated with ElevenLabs Sound Effects",
             "",
-            "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), model",
-            f"  `{info['model']}`, plan `{info['tier']}`, generated {info['date']} with `tools/audio/sfx.py` in the",
-            "  kit.",
-            f"- Licence: {data['licence']}",
-            f"- Attribution: {data['attribution']}",
-            "  A game's Credits screen names ElevenLabs.",
-            "",
-            "| File | Prompt | Seconds |",
-            "| --- | --- | ---: |",
+            "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), plan "
+            + ", ".join(f"`{t}`" for t in tiers)
+            + ",",
+            f"  generated {' to '.join(dict.fromkeys([dates[0], dates[-1]]))} with `tools/audio/sfx.py` in the kit (the"
+            " model of each file is in the table).",
+            f"- Licence: {licence}",
         ]
-        for f in files:
-            seconds = len(decode(ffmpeg, f)) / RATE
-            lines.append(
-                f"| `{f.name}` | {sound['prompt']} (requested {sound['seconds']} s) | {seconds:.2f} |"
-            )
-        out[sound["folder"]] = "\n".join(lines) + "\n"
+        if attribution:
+            lines += [
+                f"- Attribution: {attribution}",
+                "  A game's Credits screen names ElevenLabs.",
+            ]
+        else:
+            lines += ["- Attribution: not required."]
+        lines += ["", "| File | Prompt | Seconds |", "| --- | --- | ---: |", *rows]
+        note = data.get("folder_notes", {}).get(folder)
+        if note:
+            lines += ["", note.rstrip()]
+        out[folder] = "\n".join(lines) + "\n"
     return out
 
 
@@ -526,12 +600,14 @@ def cmd_encode(args) -> None:
         for old in files_of(sound, root):
             old.unlink()
         pieces = []
-        for take in take_names(sound):
+        for take in used_takes(sound):
             mp3 = cache / f"{take}.mp3"
             if not mp3.exists():
                 raise SystemExit(f"{take} is not in the cache; run generate")
             x = decode(ffmpeg, mp3)
             if sound["kind"] == "hit":
+                if sound.get("highpass_hz"):
+                    x = highpass(x, sound["highpass_hz"])
                 pieces.append(hit(x, sound))
             elif sound["kind"] == "steps":
                 pieces.extend(steps_of(x, sound))
@@ -544,15 +620,14 @@ def cmd_encode(args) -> None:
                 if len(pieces) <= sound["max_files"]
                 else spread(pieces, sound)
             )
-        for n, x in enumerate(pieces, 1):
+        for name, x in zip(file_names(sound, len(pieces)), pieces, strict=True):
             x, gain, limited = level(ffmpeg, x, sound)
-            name = f"{sound['prefix']}_{n}.ogg"
             write_ogg(ffmpeg, x, root / sound["folder"] / name)
             print(
                 f"{name}: {len(x) / RATE:.3f} s, gain {gain:+.1f} dB{' (peak limited)' if limited else ''}"
             )
     for folder, text in licence_text(data, sounds, root, cache, ffmpeg).items():
-        (root / folder / "LICENSE.md").write_text(text, encoding="utf-8")
+        (root / folder / "LICENSE.md").write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {folder}/LICENSE.md")
 
 
@@ -561,10 +636,11 @@ def hit(x, sound: dict):
     sound's length range (a longer one is cut with a fade, a shorter one keeps on into the take's own tail)."""
     whole = trim(x, tail_db=-60.0)
     short = trim(x, tail_db=sound["tail_db"])
-    # Vorbis pads the end by up to a frame (about 25 ms) when it encodes, so the cut leaves room for it
+    # Vorbis pads the end by up to a frame (about 25 ms) when it encodes, so the cut leaves room for it; a cut at the
+    # shortest length decodes about 3 ms short (0.300 s cut, 0.297 s read), so that end has room too
     most, least = (
         int((sound["max_seconds"] - 0.03) * RATE),
-        int(sound["min_seconds"] * RATE),
+        int((sound["min_seconds"] + 0.01) * RATE),
     )
     x = whole[: min(max(len(short), least), most)]
     return fade_out(fade_in(x), 0.06)
