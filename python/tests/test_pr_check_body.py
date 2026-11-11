@@ -589,3 +589,59 @@ def test_a_listed_screenshots_none_line_still_needs_its_reason(line, workspace, 
     args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
     code, err = run_gds(args, capsys)
     assert code == 1 and "needs a reason in parentheses" in err
+
+
+# --- Read first: sections from origin/main, as CI reads them (kit #1131) ---------------------------------------------
+
+MAIN_PAGE = "# Hooks\n\n## Docs {#docs}\n\nOn main.\n"
+BRANCH_PAGE = "# New\n\n## Fresh {#fresh}\n\nOnly on the branch.\n"
+
+
+def read_first_branch(workspace: dict[str, Path]) -> Path:
+    """The kit with docs/studio/hooks.md#docs on origin/main and a branch that adds docs/studio/new.md#fresh."""
+    page = workspace["kit"] / "docs" / "studio" / "hooks.md"
+    page.parent.mkdir(parents=True)
+    page.write_text(MAIN_PAGE, encoding="utf-8", newline="\n")
+    return branch_with(workspace["kit"], {"docs/studio/new.md": BRANCH_PAGE})
+
+
+def read_first_body(tmp_path: Path, read_first: str, lessons: str) -> tuple[Path, Path]:
+    """good.txt with its `Read first:` and `Lessons:` lines replaced, and an Add title (no lesson is required)."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    text = text.replace("Read first: studio/hooks.md#docs", f"Read first: {read_first}")
+    text = text.replace("Lessons: docs/studio/hooks.md#pr-body", f"Lessons: {lessons}")
+    body, title = tmp_path / "read-first-body.md", tmp_path / "read-first-title.txt"
+    body.write_text(text, encoding="utf-8", newline="\n")
+    title.write_text("tools: Add a section lookup\n", encoding="utf-8", newline="\n")
+    return body, title
+
+
+def test_a_read_first_section_only_the_branch_has_is_refused(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    body, title = read_first_body(tmp_path, "studio/new.md#fresh", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 1 and "do not exist" in err and "studio/new.md#fresh" in err and "origin/main" in err
+
+
+def test_a_read_first_section_on_main_and_a_lessons_section_the_branch_adds_pass(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    body, title = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 0, err
+
+
+def test_a_read_first_section_the_branch_removes_still_counts(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    (kit / "docs" / "studio" / "hooks.md").unlink()  # the author read it on main; the branch may move it
+    body, title = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 0, err
+
+
+def test_the_guard_refuses_a_read_first_section_only_the_branch_has(workspace, tmp_path):
+    kit = read_first_branch(workspace)
+    body, _ = read_first_body(tmp_path, "studio/new.md#fresh", "studio/new.md#fresh")
+    command = f'gh pr create --title "tools: Add a section lookup" --body-file {body}'
+    assert "studio/new.md#fresh" in denied(shell(command, kit))
+    ok, _ = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    assert denied(shell(f'gh pr create --title "tools: Add a section lookup" --body-file {ok}', kit)) == ""
