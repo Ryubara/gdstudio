@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="6_ai_section"]
 [ext_resource type="PackedScene" path="res://world/prototype/pathing_section/pathing_section.tscn" id="7_pathing_section"]
 [ext_resource type="Script" path="res://gameplay/ai/ai_director.gd" id="8_ai_director"]
+[ext_resource type="Script" path="res://gameplay/ai/ai_animation_throttle.gd" id="9_ai_throttle"]
 [ext_resource type="Script" path="res://gameplay/ai/relations/ai_factions.gd" id="ai_factions"]
 [ext_resource type="Resource" path="res://gameplay/ai/relations/ai_relations.tres" id="ai_relations"]
 
@@ -32,8 +33,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
 
 [node name="Impacts" parent="." instance=ExtResource("4_impacts")]
 
-[node name="AiDirector" type="Node" parent="."]
+[node name="AiDirector" type="Node" parent="." node_paths=PackedStringArray("animation_throttle")]
 script = ExtResource("8_ai_director")
+animation_throttle = NodePath("AnimationThrottle")
+
+[node name="AnimationThrottle" type="Node" parent="AiDirector"]
+script = ExtResource("9_ai_throttle")
 
 [node name="Effects" parent="." instance=ExtResource("5_effects")]
 warm_up_groups = Array[StringName]([&"player"])

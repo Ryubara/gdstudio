@@ -1,6 +1,7 @@
-# The inspector contract of the AI parts: every export of `AiProfile`, `AiDirector` and
-# `AiCharacter` with its default, so a new one fails here until it is looked at and pinned (the
-# kit's `docs/engines/godot/third-person/ai.md#inspector` lists the same).
+# The inspector contract of the AI parts: every export of `AiProfile`, `AiDirector`,
+# `AiAnimationThrottle` and `AiCharacter` with its default, so a new one fails here until it is
+# looked at and pinned (the kit's `docs/engines/godot/third-person/ai.md#inspector` lists the
+# same).
 extends GdUnitTestSuite
 
 
@@ -73,9 +74,30 @@ func test_the_director_defaults_are_pinned() -> void:
 		&"reduced_step_ticks": 4,
 		&"dormant_step_ticks": 6,
 		&"rest_step_ticks": 3,
+		&"animation_throttle": null,
 	}
 	assert_array(ExportPins.differences(director, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(director, pins)).is_empty()
+
+
+func test_the_animation_throttle_defaults_are_pinned() -> void:
+	var throttle: AiAnimationThrottle = auto_free(AiAnimationThrottle.new())
+	var pins := {
+		&"enabled": true,
+		&"near_distance": 15.0,
+		&"far_distance": 25.0,
+		&"footstep_range": 15.0,
+		&"reduced_period": 3,
+		&"far_period": 6,
+		&"freeze_unseen": true,
+		&"max_catch_up": 0.25,
+		&"hit_hold": 1.0,
+		&"recheck_frames": 4,
+		&"throttle_skeleton": true,
+		&"camera": null,
+	}
+	assert_array(ExportPins.differences(throttle, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(throttle, pins)).is_empty()
 
 
 func test_the_character_adds_only_its_ai_exports() -> void:
