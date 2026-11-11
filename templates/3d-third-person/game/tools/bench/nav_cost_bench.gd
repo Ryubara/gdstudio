@@ -255,7 +255,7 @@ func _open_point() -> Vector3:
 func _build_map() -> void:
 	_boxes.clear()
 	# Synchronous iterations from the start: the map takes the baked mesh at the next physics step
-	# (kit docs/engines/godot/navigation-in-tests.md, a thread-synced map drops meshes).
+	# (kit docs/engines/godot/navigation-in-tests.md, a small mesh of your own).
 	NavigationServer3D.map_set_use_async_iterations(_arena.get_world_3d().navigation_map, false)
 	for row in 4:
 		for column in 4:
@@ -276,6 +276,8 @@ func _build_map() -> void:
 	mesh.agent_height = 1.8
 	region.navigation_mesh = mesh
 	_arena.add_child(region)
+	# The region's polygons on the physics step too, not a worker thread (gdstudio #1075).
+	NavigationServer3D.region_set_use_async_iterations(region.get_rid(), false)
 	region.add_child(_box(Vector3(0, -0.5, 0), Vector3(HALF * 2.0, 1.0, HALF * 2.0)))
 	for box in _boxes:
 		var centre := Vector2(box.position * CELL) + Vector2(box.size * CELL) / 2.0
