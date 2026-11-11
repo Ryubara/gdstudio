@@ -1,9 +1,10 @@
 class_name HitRecord
 extends RefCounted
-## One hit on a character: how much damage, which body part, where and which way, how hard. It is
-## the whole of what a game's networking sends for a hit: every peer gives it to its own copy of
-## the character (`Character.take_hit()`), which takes the damage and makes the flinch, the
-## death push or the push on a lying body itself, so a ragdoll or a flinch is never sent.
+## One hit: how much damage, which body part, where and which way, how hard. A `Health` takes it
+## (`Health.apply(hit)`), on a character, a target or a prop alike. It is the whole of what a
+## game's networking sends for a hit: every peer gives it to its own copy of what was hit, which
+## takes the damage and makes the flinch, the death push or the push on a lying body itself, so a
+## ragdoll or a flinch is never sent.
 ##
 ## `encode()` packs the sent part into a few bytes and `decode()` reads it back; `source`,
 ## `knockback` and `killed` stay on the peer that made the record.
@@ -11,7 +12,7 @@ extends RefCounted
 ## The damage, with the zone's multiplier already applied (0: a push and no harm).
 var damage := 0.0
 ## The hit zone's name (`&"head"`, `&"chest"`, ...), empty when the hit found no zone (a body
-## with no hit zones, a lying body).
+## with no hit zones, a lying body, a target).
 var zone: StringName = &""
 ## The skeleton bone that was hit (`&"Head"`, `&"spine_03"`, ...): the ragdoll body that is
 ## pushed. Empty: the body is hit as a whole.
@@ -24,10 +25,10 @@ var direction := Vector3.ZERO
 var strength := 0.0
 ## Who or what hit (the shooter). Local only, never sent.
 var source: Node3D
-## On: the old blow (`Character.hit(amount, source)`): it stops the character for the tuning's
-## `hit_stun_time` and throws it away from `source`. A shot leaves it off. Local only.
+## On: a blow with no point (`blow()`): a character stops for a moment and is thrown away from
+## `source`. A shot leaves it off. Local only.
 var knockback := false
-## Set by the character when this hit killed it. Local only: each peer finds it from its own
+## Set by the `Health` when this hit took it to zero. Local only: each peer finds it from its own
 ## health.
 var killed := false
 
@@ -53,8 +54,8 @@ static func shot(
 	return record
 
 
-## A blow of `amount` from `by` with no point (what `Character.hit(amount, source)` makes): it
-## stops and throws the character as hits always did.
+## A blow of `amount` from `by` with no point and no direction (a character's `hit(amount,
+## source)`): it stops and throws a character.
 static func blow(amount: float, by: Node3D = null) -> HitRecord:
 	var record := HitRecord.new()
 	record.damage = amount

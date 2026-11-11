@@ -61,8 +61,8 @@ func _ready() -> void:
 	_targets["head"] = _add_target(HEAD_TARGET)
 	_targets["body"] = _add_target(BODY_TARGET)
 	_targets["walker"] = _add_target(WALK_FROM)
-	(_targets["walker"] as Character).max_health = 1000.0
-	(_targets["walker"] as Character).health = 1000.0
+	Health.of(_targets["walker"]).max_value = 1000.0
+	Health.of(_targets["walker"]).value = 1000.0
 
 
 func _add_target(spot: Vector3) -> Character:

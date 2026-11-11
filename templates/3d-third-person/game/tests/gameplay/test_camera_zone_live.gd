@@ -65,9 +65,11 @@ func test_the_interactors_half_angle_sets_what_counts_as_in_front() -> void:
 	var door := load("res://gameplay/door/door.tscn").instantiate() as Door
 	door.position = Vector3(1.0, 0.0, 0.0)
 	add_child(door)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	assert_float(interactor.half_angle).is_equal(75.0)
 	assert_object(interactor.find_target(Vector3.FORWARD, 2.0)).is_null()
 	interactor.half_angle = 120.0
-	assert_object(interactor.find_target(Vector3.FORWARD, 2.0)).is_same(door)
+	assert_object(interactor.find_target(Vector3.FORWARD, 2.0).usable()).is_same(door)
 	door.free()
 	interactor.free()

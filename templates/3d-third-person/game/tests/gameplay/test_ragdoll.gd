@@ -51,8 +51,6 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"ragdoll": false,
 		&"ragdoll_by_command": true,
 		&"vault_settings": null,
-		&"health_enabled": true,
-		&"max_health": 100.0,
 	}
 	var body := auto_free(load("res://gameplay/character/character.gd").new()) as Character
 	assert_array(ExportPins.differences(body, character_pins)).is_empty()

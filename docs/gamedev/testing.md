@@ -303,4 +303,5 @@ finds them first -->
   duplicate dictionary key, another pull request's test assuming the old default order, readers of a removed field,
   and suites that bought perks in a row against a purchase that now takes 2.5 s. **Seen:** Deadnight #676, #814,
   2026-11-03; Deadnight #959, 2026-11-04; Deadnight #1233, 2026-11-05 (fix: a shared fixture step that finishes an
-  action; the grep named in the pull request is the one after the merge).
+  action; the grep named in the pull request is the one after the merge); gdstudio #1029, 2026-11-10 (a merged
+  budget test called the removed `take_shot` and counted 42 nodes before `Health`).

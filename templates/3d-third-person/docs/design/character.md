@@ -128,7 +128,7 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Safety | the height below which it starts again at its spawn point (-25 m) |
 
 Prone has a resource of its own, `gameplay/player/prone_tuning.tres` (`Player` > Prone > `prone_tuning`); the
-defaults come from shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#prone`:
+defaults come from shipped games, with the sources in the kit's `docs/engines/godot/third-person/moves.md#prone`:
 
 | Group | Settings (default) |
 | --- | --- |
@@ -139,7 +139,7 @@ defaults come from shipped games, with the sources in the kit's `docs/engines/go
 | Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
 
 The slide has one too, `gameplay/player/slide_tuning.tres` (`Player` > Slide > `slide_tuning`); the defaults come from
-shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#slide`:
+shipped games, with the sources in the kit's `docs/engines/godot/third-person/moves.md#slide`:
 
 | Group | Settings (default) |
 | --- | --- |
@@ -267,11 +267,11 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `reloaded`, `reload_cancelled` and `definition_changed`, the `Loadout` `weapon_changed`, `switch_started` and
 `switch_finished`, a `Projectile` `impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
-each) and gives the character a `HitRecord` (`take_hit(record)`): it takes the health (`max_health`, 100;
-`health_enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes
-the hit part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is
-all a network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a
-blow with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
+`enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
+part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
+network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
+with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
