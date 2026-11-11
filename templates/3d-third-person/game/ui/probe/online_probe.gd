@@ -1,16 +1,19 @@
 class_name OnlineProbe
 extends Node
-## For the browser probe of online play (`tools/web_smoke/online.py`): a page of the online game
-## (`OnlineMain`) opened with `?onlineprobe` writes what its client measured to `window.gdonline`
-## four times a second: `state` (the `OnlineStatus` state's name, `seated` once playing), and
-## `report`, a JSON line of `NetPlayReport` (round trip, corrections, the gap between the body and
-## the server's point) with `players` (the puppets and this one), the frame time's median and 95th
-## percentile over the last `WINDOW_FRAMES` frames, and the CPU time of a frame's processing and
-## physics. It does nothing off the web or without `?onlineprobe`, so a player's page pays for
-## nothing; `OnlineMain` adds it at run time, so no scene ships it.
+## For the probe of online play (`tools/web_smoke/online.py`): the online game (`OnlineMain`)
+## opened with `?onlineprobe` writes what its client measured to `window.gdonline` four times a
+## second: `state` (`connecting`, `seated`, `refused version`, `closed`...) and `report`, a JSON
+## line of `NetPlayReport` (round trip, corrections, the gap between the body and the server's
+## point) with `players` (the puppets and this one), the overlay's `message`, the frame time's
+## median and 95th percentile over the last `WINDOW_FRAMES` frames, and the CPU time of a frame's
+## processing and physics. On the desktop `-- --onlineprobe` prints the same line once a second,
+## starting `ONLINE_PROBE`, so the browser and a native client are measured alike. It does nothing
+## without the flag, so a player pays for nothing; `OnlineMain` adds it at run time, so no scene
+## ships it.
 
-## Seconds between two writes.
+## Seconds between two writes on the web, and between two printed lines on the desktop.
 const PERIOD := 0.25
+const PRINT_PERIOD := 1.0
 ## Frames the frame-time percentiles are taken over.
 const WINDOW_FRAMES := 240
 
@@ -18,6 +21,8 @@ var client: NetClient
 var remote: RemotePlayers
 ## The overlay whose message is written as `message` (empty: none).
 var status: OnlineStatus
+## What the client is doing: `connecting`, `seated`, `refused <reason>`, `closed`.
+var state := "connecting"
 var _object: JavaScriptObject
 var _steps := 0
 var _since := 0.0
@@ -26,17 +31,16 @@ var _puppet_us := PackedInt32Array()
 var _last_frame := 0
 
 
-## True on a web page opened with `?onlineprobe`.
+## True on a web page opened with `?onlineprobe`, or a desktop game started with `--onlineprobe`.
 static func asked() -> bool:
-	return (
-		OS.has_feature("web")
-		and bool(
+	if OS.has_feature("web"):
+		return bool(
 			JavaScriptBridge.eval("new URLSearchParams(window.location.search).has('onlineprobe')")
 		)
-	)
+	return "--onlineprobe" in OS.get_cmdline_user_args()
 
 
-## Adds a probe under `parent` when the page asked for one (null otherwise).
+## Adds a probe under `parent` when it was asked for (null otherwise).
 static func attach(
 	parent: Node,
 	with_client: NetClient,
@@ -55,12 +59,13 @@ static func attach(
 
 
 func _ready() -> void:
-	_object = JavaScriptBridge.create_object("Object")
-	JavaScriptBridge.get_interface("window").gdonline = _object
-	_object.state = "connecting"
-	_object.report = "{}"
+	if OS.has_feature("web"):
+		_object = JavaScriptBridge.create_object("Object")
+		JavaScriptBridge.get_interface("window").gdonline = _object
+		_object.report = "{}"
+	_set_state("connecting")
 	client.keep_frame_times = true
-	client.welcomed.connect(func(_slot: int) -> void: _object.state = "seated")
+	client.welcomed.connect(func(_slot: int) -> void: _set_state("seated"))
 	client.refused.connect(_on_refused)
 	client.disconnected.connect(_on_disconnected)
 
@@ -71,7 +76,7 @@ func _process(delta: float) -> void:
 		_frame_us = _pushed(_frame_us, now - _last_frame)
 	_last_frame = now
 	_since += delta
-	if _since >= PERIOD:
+	if _since >= (PERIOD if _object != null else PRINT_PERIOD):
 		_since = 0.0
 		_publish()
 
@@ -83,9 +88,11 @@ func _physics_process(_delta: float) -> void:
 			_puppet_us = _pushed(_puppet_us, remote.last_frame_us)
 
 
-func _publish() -> void:
+## The report as it is written now.
+func report() -> Dictionary:
 	var line := NetPlayReport.of(client, remote, _steps, _puppet_us)
 	var puppets := remote.slots().size() if remote != null else 0
+	line["state"] = state
 	line["players"] = puppets + (1 if client.is_seated() else 0)
 	line["message"] = status.message() if status != null else ""
 	line["fps"] = Engine.get_frames_per_second()
@@ -95,20 +102,33 @@ func _publish() -> void:
 	line["physics_ms"] = snappedf(
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01
 	)
-	_object.report = JSON.stringify(line)
+	return line
+
+
+func _publish() -> void:
+	var line := JSON.stringify(report())
+	if _object != null:
+		_object.report = line
+	else:
+		print("ONLINE_PROBE " + line)
 	# The client keeps every step's time: the window is enough for a report.
 	if client.frame_times.size() > WINDOW_FRAMES * 4:
 		client.frame_times = client.frame_times.slice(-WINDOW_FRAMES)
 
 
+func _set_state(value: String) -> void:
+	state = value
+	if _object != null:
+		_object.state = value
+
+
 func _on_refused(reason: int) -> void:
-	_object.state = "refused %s" % str(NetWire.Refusal.find_key(reason)).to_lower()
+	_set_state("refused %s" % str(NetWire.Refusal.find_key(reason)).to_lower())
 
 
 func _on_disconnected() -> void:
-	if str(_object.state).begins_with("refused"):
-		return
-	_object.state = "closed"
+	if not state.begins_with("refused"):
+		_set_state("closed")
 
 
 # `values` with `value` added and the oldest dropped past `WINDOW_FRAMES`.

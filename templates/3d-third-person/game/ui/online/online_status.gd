@@ -15,7 +15,9 @@ enum State { CONNECTING, PLAYING, OLD_VERSION, FULL, OTHER_MAP, UNREACHABLE, LOS
 
 ## The scene "Back to menu" goes to.
 @export_file("*.tscn") var menu_scene := "res://ui/menus/menu_scene.tscn"
-## Seconds the link may take to open and seat the player before it counts as unreachable.
+## Seconds the link may take to open and seat the player before it counts as unreachable. Only
+## frames shorter than `StallGuard.STALL_SECONDS` count: a page that spends its first seconds
+## compiling shaders has not waited for the server.
 @export_range(1.0, 60.0, 0.5, "suffix:s") var connect_seconds := 10.0
 
 @export_group("Texts")
@@ -59,7 +61,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if state != State.CONNECTING:
 		return
-	waited += delta
+	if delta < StallGuard.STALL_SECONDS:
+		waited += delta
 	if client == null or client.link == null:
 		_show(State.NO_ADDRESS)
 	elif waited >= connect_seconds:

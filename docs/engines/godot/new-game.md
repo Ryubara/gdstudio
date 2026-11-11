@@ -148,7 +148,8 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   declared`): the template synced the addon but never registered the autoload, and #778 met the same errors in the
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
-  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
+  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template); gdstudio #909, 2026-11-11
+  (a probe's Variant `:=` broke the player rig; no suite loaded the probe).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a

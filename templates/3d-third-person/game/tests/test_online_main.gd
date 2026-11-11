@@ -164,3 +164,23 @@ func test_bot_plays_through_the_players_own_input() -> void:
 		0.3
 	)
 	assert_int(bot.stage).is_greater_equal(0)
+
+
+func test_the_probe_reports_what_the_client_measured() -> void:
+	var rig := _start_rig()
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	var probe := OnlineProbe.new()
+	probe.client = online.client
+	probe.remote = online.remote_players
+	probe.status = online.status
+	online.add_child(probe)
+	assert_str(probe.state).is_equal("connecting")
+	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	await rig.wait(60)
+	var report := probe.report()
+	assert_str(report["state"]).is_equal("seated")
+	assert_int(report["players"]).is_equal(1)
+	assert_str(report["message"]).is_empty()
+	assert_int(report["rtt_ms"]).is_greater_equal(0)
+	assert_float(report["gap_m"]).is_between(0.0, 0.05)
+	assert_int(report["frame_us_p50"]).is_greater(0)

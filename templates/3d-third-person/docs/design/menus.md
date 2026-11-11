@@ -9,7 +9,7 @@ the addon's README for restyling); the scripts only wire them. How each part wor
 
 | Screen | How it is reached | What is on it |
 | --- | --- | --- |
-| Main menu | The project starts here | Play, Settings, Quit (not in a browser) |
+| Main menu | The project starts here | Play, Play online (with an address field in a debug build), Settings, Quit (not in a browser) |
 | Loading | Play | A bar while `main.tscn` is read on a thread |
 | Pause menu | Esc, a pad's Start, the Menu button on a touch screen, or losing the mouse's pointer lock in a browser | Resume, Settings, Main menu; the game is paused behind it |
 | Inventory | I, a pad's right shoulder, the Bag button on a touch screen | The player's model, weapons and bag: [Inventory](inventory.md) |

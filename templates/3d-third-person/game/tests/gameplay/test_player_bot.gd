@@ -87,12 +87,29 @@ func test_the_watcher_turns_to_the_other_player_then_fires_at_it() -> void:
 	bot.fire_after = 1.0
 	var waiting := await _run(50)
 	assert_int(waiting["fire"]).is_zero()
-	var way := target.global_position - _rig.player.global_position
-	var heading := rad_to_deg(atan2(-way.x, -way.z))
-	assert_float(absf(wrapf(_rig.camera_rig.yaw - heading, -180.0, 180.0))).is_less(3.0)
+	# The crosshair's ray (through the middle of the screen, from the shifted lens) meets its chest.
+	var camera := _rig.camera_rig.camera
+	var centre := camera.get_viewport().get_visible_rect().size / 2.0
+	var origin := camera.project_ray_origin(centre)
+	var chest := target.global_position + Vector3.UP * PlayerBot.CHEST_HEIGHT
+	var along := camera.project_ray_normal(centre)
+	var miss := (chest - origin) - along * (chest - origin).dot(along)
+	assert_float(miss.length()).is_less(0.3)
 	var firing := await _run(120)
 	assert_int(firing["fire"]).is_greater_equal(2)
 	assert_int(firing["aim"]).is_greater(30)
+	# Aimed down the crosshair's ray (the lens sits over the shoulder), so the shots hit.
+	assert_float(target.health).is_less(target.max_health)
+
+
+func test_a_hold_the_window_let_go_of_is_pressed_again() -> void:
+	var bot := _make()
+	bot.route = PackedVector3Array([Vector3(0.0, 0.0, -20.0)])
+	await _run(20)
+	# What the engine does to every pressed action when the window loses the focus.
+	Input.action_release(&"move_forward")
+	await _run(2)
+	assert_bool(Input.is_action_pressed(&"move_forward")).is_true()
 
 
 func test_a_dead_player_lets_go_of_every_key() -> void:

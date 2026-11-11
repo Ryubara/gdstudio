@@ -39,7 +39,7 @@ const CHEST_HEIGHT := 1.2
 ## Seconds it waits after interact (the door opening).
 @export_range(0.0, 10.0, 0.1, "suffix:s") var door_wait := 1.5
 ## Where it comes back to before it shoots.
-@export var stand_at := Vector3(6.0, 0.0, -4.0)
+@export var stand_at := Vector3(1.0, 0.0, -4.0)
 ## Shots fired past the other player, and how far beside them, degrees.
 @export_range(0, 30) var shots := 3
 @export_range(0.0, 90.0, 1.0, "suffix:deg") var miss_degrees := 25.0
@@ -120,10 +120,11 @@ func nearest_other() -> Player:
 
 
 ## Turns the camera toward `point` by at most `turn_speed` degrees, with `beside` degrees added to
-## the heading; the degrees still to turn about the up axis.
+## the heading; the degrees still to turn about the up axis. The way is measured from where the
+## crosshair's ray starts (an over-the-shoulder lens is shifted to the side), so a shot fired once
+## it faces the point goes through it.
 func face(point: Vector3, beside := 0.0) -> float:
-	var eye := player.global_position + Vector3.UP * CHEST_HEIGHT
-	var way := point - eye
+	var way := point - _ray_origin()
 	var flat := Vector2(way.x, way.z).length()
 	if flat < 0.01:
 		return 0.0
@@ -205,6 +206,15 @@ func _watch_step() -> void:
 		fired += 1
 
 
+# Where the crosshair's ray starts: the camera's ray through the middle of the screen, or the
+# body's chest without a camera.
+func _ray_origin() -> Vector3:
+	var camera := camera_rig.camera
+	if camera == null or not camera.is_inside_tree():
+		return player.global_position + Vector3.UP * CHEST_HEIGHT
+	return camera.project_ray_origin(camera.get_viewport().get_visible_rect().size / 2.0)
+
+
 func _chest_of(other: Player) -> Vector3:
 	return other.global_position + Vector3.UP * CHEST_HEIGHT
 
@@ -220,10 +230,13 @@ func _wait_then_next(seconds: float) -> void:
 		_next()
 
 
+# Holds or lets go of `action`. A hold is pressed again when the action came up on its own: the
+# engine lets go of every pressed action when the window loses the focus, as a window on another
+# desktop (`gds godot`) does now and then.
 func _hold(action: StringName, down: bool) -> void:
 	if not InputMap.has_action(action):
 		return
-	if down and not _held.get(action, false):
+	if down and not (_held.get(action, false) and Input.is_action_pressed(action)):
 		Input.action_press(action)
 		_held[action] = true
 	elif not down and _held.get(action, false):
