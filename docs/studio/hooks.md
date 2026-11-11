@@ -276,13 +276,13 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
-  `origin/main`: the rule was written there. A file of `docs/lessons/` or the corrections log does not count. Otherwise
-  the agent is held back once. A task agent's report that names a pull request also needs a `Read:` line naming the
-  sections it read and a `Docs gaps:` line (`none` is fine), or it is held back once ([The
-  report](starting-work.md#the-report); `[brief] report`); a `Blocked:` end is not judged. A `Read:` or `Docs gaps:`
-  line ends a `Mistakes` section, so `Mistakes: none` above them stays empty, and a section named only on a `Read:`
-  line is one the agent read, so it never satisfies the Mistakes check. Helpers and the `reviewer` are exempt.
-  Settings: `[docs]` and `[brief]` in `hooks.toml`.
+  `origin/main`: the rule was written there. A file of `docs/lessons/` or the corrections log (its page or a page of
+  `studio/corrections-log/`) does not count. Otherwise the agent is held back once. A task agent's report that names a
+  pull request also needs a `Read:` line naming the sections it read and a `Docs gaps:` line (`none` is fine), or it is
+  held back once ([The report](starting-work.md#the-report); `[brief] report`); a `Blocked:` end is not judged. A
+  `Read:` or `Docs gaps:` line ends a `Mistakes` section, so `Mistakes: none` above them stays empty, and a section
+  named only on a `Read:` line is one the agent read, so it never satisfies the Mistakes check. Helpers and the
+  `reviewer` are exempt. Settings: `[docs]` and `[brief]` in `hooks.toml`.
 
 - **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
   (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
