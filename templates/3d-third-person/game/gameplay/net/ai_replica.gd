@@ -244,6 +244,7 @@ func _place(puppet: Character, glide: AiGlide, delta: float) -> void:
 		puppet._fit_body()
 	if puppet.state != row.state:
 		puppet.state = row.state as Character.State
+	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
 
 
 # The aim's pitch toward what the row says it is after, when this screen has it; level otherwise.
