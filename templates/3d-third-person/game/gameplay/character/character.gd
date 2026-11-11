@@ -217,6 +217,22 @@ var last_command := PlayerCommand.new()
 var sliding: bool:
 	get:
 		return _slide.active
+## How far the aim layer may turn the upper body in the move the character is in now (sliding,
+## lying, crouched or standing: each move's tuning holds its own). Read only.
+var aim_limits: AimLimits:
+	get:
+		if _slide.active and slide_tuning != null:
+			return slide_tuning.aim_limits
+		if _prone.is_prone() and prone_tuning != null:
+			return prone_tuning.aim_limits
+		if tuning == null:
+			return null
+		return tuning.crouch_aim_limits if crouching else tuning.aim_limits
+## How far the view's heading is off the way the body faces, in radians (positive to the
+## character's left): what the aim layer turns the upper body by. Read only.
+var aim_yaw: float:
+	get:
+		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
 
@@ -860,6 +876,15 @@ func _use_weapon(delta: float) -> void:
 	weapon.spread_share = prone_tuning.spread_share if _prone.is_prone() else 1.0
 	if pulled:
 		_fire_buffer = tuning.fire_buffer_time
-	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount:
+	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
 			_fire_buffer = 0.0
+
+
+# False while the weapon refuses a shot aimed past what the move lets the upper body reach.
+func _within_reach() -> bool:
+	if weapon.definition == null or aim_limits == null:
+		return true
+	if weapon.definition.past_aim_limit != WeaponDef.PastAimLimit.REFUSE_SHOT:
+		return true
+	return aim_limits.reaches_yaw(aim_yaw, AimLimits.REACH_MARGIN)

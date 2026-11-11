@@ -95,6 +95,12 @@ they are rerun, replayed or read from another branch -->
   commit is the retry" came from one case. The site stays up on the last good deploy, so a red `docs` run costs stale
   pages, not an outage. **Seen:** gdstudio #758 and #763, Deadnight #1358 and #1364, 2026-11-06 (fix: none in code; the
   cause was not found).
+- **Approach:** To clear runs stuck in the queue after an Actions outage, pick each one by its own state and jobs
+  (`status` queued and no job started, from `actions/runs/<id>/jobs`), never by `created_at`; a run that the API calls
+  completed while it shows queued takes no cancel, so a new commit on its branch (a merge of `main`) is the retry.
+  **Watch out for:** a rerun keeps the original run's `created_at`, so a sweep of "queued since before 20:40" cancelled
+  two live reruns (#1040's test job 14 minutes in, and #1239's capture rerun) and could not touch the seven stuck runs
+  it was meant for. **Seen:** gdstudio #1040, #1239 and #1245, 2026-11-11.
 
 ## Time limits and shards {#shards}
 

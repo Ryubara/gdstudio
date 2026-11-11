@@ -29,11 +29,15 @@ var _clip_node: AnimationNodeAnimation
 # a tree parameter is a lookup every frame, for every character).
 var _playing := false
 var _seen := false
+# The weapon whose blows this plays (connected once).
+var _heard: Weapon
 
 
 ## Adds the one-shot to `root`: `below` (the weapon layer's last node) under it, the clip node
-## `first` (the first blow's clip, or the idle with no weight) over it, filtered to `upper`.
+## `first` (the first blow's clip, or the idle with no weight) over it, filtered to `upper`; and
+## plays a blow of `animation`'s character's weapon (`Weapon.melee_started`) from then on.
 func add_to(
+	animation: CharacterAnimation,
 	root: AnimationNodeBlendTree,
 	below: StringName,
 	upper: Array[NodePath],
@@ -52,6 +56,11 @@ func add_to(
 	root.connect_node(SCALE, 0, CLIP)
 	root.connect_node(NODE, 0, below)
 	root.connect_node(NODE, 1, SCALE)
+	var weapon := animation.character.weapon if animation.character != null else null
+	# Once a weapon: the tree is built again on every change of the held definition.
+	if weapon != null and weapon != _heard and not Engine.is_editor_hint():
+		weapon.melee_started.connect(play.bind(animation))
+		_heard = weapon
 
 
 ## The clip a tree is built with for `hold`: its first blow's, or `&""` (the idle, no weight).
@@ -80,6 +89,13 @@ func play(blow: int, animation: CharacterAnimation) -> void:
 	tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	_playing = true
 	_seen = false
+
+
+## The weapon layer's two weights (`CharacterAnimation.pistol_weights`) from the tree's `armed`
+## and `aim` parameters: the aim is taken away as the blow holds the upper body, so the left hand
+## leaves the weapon and the finger the trigger while the clip swings the free arm.
+func weigh(tree: AnimationTree, armed: StringName, aim: StringName) -> Vector2:
+	return Vector2(tree.get(armed), float(tree.get(aim)) * (1.0 - share(tree)))
 
 
 ## True while a melee clip plays over the upper body of `tree`.

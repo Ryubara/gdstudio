@@ -117,6 +117,38 @@ func test_a_death_is_answered_by_a_spawn_after_the_delay() -> void:
 	assert_int(spawner.alive.size()).is_equal(2)
 
 
+# A population exactly at the director's cap respawns while its dead lie (kit #1247): the web
+# soak at scale 4 (40 characters, the web cap) was refused its first respawns.
+func test_a_population_at_the_director_cap_respawns_while_its_dead_lie() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": 0.2, "corpse_seconds": 60.0})
+	await _ticks(2)
+	assert_int(_director.count()).is_equal(2)
+	spawner.alive[0].die()
+	await _ticks(20)
+	assert_int(spawner.corpses.size()).is_equal(1)
+	assert_int(spawner.alive.size()).is_equal(2)
+	for character in spawner.alive:
+		assert_object(character.director).is_same(_director)
+
+
+# The pool readies a spare in the tree and takes it out again: at the director's cap that is no
+# refusal (kit #1247: the soak's spares were refused with a warning each at scale 4).
+func test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": -1.0})
+	await _ticks(2)
+	assert_int(_director.living_count()).is_equal(2)
+	var spares := AiPool.new(load(GRUNT))
+	spares.prewarm(2, 0, spawner)
+	assert_int(spares.parked()).is_equal(2)
+	assert_int(_director.refused).is_equal(0)
+	assert_int(_director.count()).is_equal(2)
+	spares.clear()
+
+
 func test_no_respawn_below_zero_and_none_past_the_cap() -> void:
 	var never := _spawner(GRUNT, {"respawn_delay": -1.0})
 	await _ticks(2)
@@ -240,6 +272,29 @@ func test_it_waits_for_a_player_within_wake_range_and_makes_its_pool_on_the_way(
 	assert_int(spawner.pool().made).is_equal(made)
 
 
+func test_a_player_in_another_world_neither_wakes_it_nor_leads_its_friendlies() -> void:
+	# A client's player in the same process as a server's map (a test, a capture): its own world,
+	# first in the group's order and within reach.
+	var view: SubViewport = auto_free(SubViewport.new())
+	view.own_world_3d = true
+	add_child(view)
+	move_child(view, 0)
+	var stranger := Node3D.new()
+	stranger.add_to_group(&"player")
+	stranger.position = Vector3(0, 0, 2)
+	view.add_child(stranger)
+	var player := _arena.viewer
+	player.position = Vector3(0, 0, 60)
+	var spawner := _spawner(ALLY, {"wake_range": 10.0, "leader_group": &"player"})
+	await _ticks(40)
+	assert_bool(spawner.awake).is_false()
+	assert_int(spawner.pool().made).is_equal(0)
+	player.position = Vector3(0, 0, 6)
+	await _ticks(40)
+	assert_bool(spawner.awake).is_true()
+	assert_object((spawner.alive[0].brain as AiBrain).leader).is_same(player)
+
+
 func test_freeing_the_spawner_frees_the_characters_it_parked() -> void:
 	var spawner := _spawner(GRUNT, {"enabled": false})
 	await _ticks(2)
@@ -275,6 +330,22 @@ func test_a_client_of_a_remote_server_spawns_nothing_and_a_server_only_when_aske
 		assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(PackedStringArray(["--server"]))))
 		. is_true()
 	)
+
+
+func test_a_map_under_a_server_spawns_only_when_asked_and_beside_a_client_never() -> void:
+	# One process holding a server's map and a client's (a test, a capture): decided by the map.
+	var tree := get_tree()
+	var server: NetServer = auto_free(NetServer.new())
+	var server_map := Node3D.new()
+	server.add_child(server_map)
+	assert_bool(AiSpawner.spawns_here(tree, false, NetArgs.new(), server_map)).is_false()
+	assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(), server_map)).is_true()
+	var arena: Node = auto_free(Node.new())
+	var client_map := Node3D.new()
+	arena.add_child(client_map)
+	assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(), client_map)).is_true()
+	arena.add_child(NetClient.new())
+	assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(), client_map)).is_false()
 
 
 func test_a_map_that_handed_its_ai_to_a_server_stops_spawning() -> void:

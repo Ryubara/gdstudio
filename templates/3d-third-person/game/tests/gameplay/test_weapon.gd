@@ -68,6 +68,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"aim_range": 100.0,
 		&"impulse": 40.0,
 		&"impacts": true,
+		&"past_aim_limit": WeaponDef.PastAimLimit.TURN_BODY,
 		&"magazine_size": 12,
 		&"start_reserve": 36,
 		&"max_reserve": 96,
