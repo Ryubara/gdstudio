@@ -135,7 +135,48 @@ What the stock tasks met once they ran in a body that moves, beside [Writing a t
 
 ## What it costs {#cost}
 
-COST_PLACEHOLDER
+`tools/bench/ai_behaviour_bench.tscn` (`ai_behaviour_bench.py` for Chrome) times the `AiDirector`'s step (the thinks
+with senses, brain and tasks, and every body's step) for `ai_guard.tscn` on a 3 m grid around two targets walking a
+6 m circle, all inside the Full range, with the shipped Full cap (12 in a browser, 60 on the desktop) and the
+animation throttle. Three modes: brains **off** (the `Brain` node taken out: senses and an empty runner), **calm**
+(brains on, the targets of the guards' own faction: the default `Guard` task and nothing to answer) and **threat**
+(the targets hostile: the guards notice, fight, chase and search). Godot 4.7.2, Compatibility, Jolt, web export
+single-threaded, Chrome on the fast desktop shared with other agents. Microseconds of the director's step a tick
+(mean; in brackets the median frame work in ms, then ticks a frame):
+
+| Director's step | 50 off | 50 calm | 50 threat | 100 off | 100 calm | 100 threat |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, native (Full cap 60), two runs | 610 to 630 (1.5) | 705 to 765 (1.6) | 2845 to 3146 (4.4) | 1204 to 1416 (3.2) | 1630 to 1730 (3.6) | 3694 to 4161 (6.3) |
+| Chrome (Full cap 12) | 1144 (2.6) | 1084 (2.2) | **2526** (3.9) | 1590 (3.7) | 1860 (4.0) | **3622** (6.5) |
+| Chrome 4x | 5617 (13.8 / 1.5) | 5603 (12.4 / 1.3) | **16034** (82 / 5.9) | 14251 (110 / 6.7) | 10676 (58 / 4.8) | 21080 (205 / 8.0) |
+
+At the web cap, 40 guards in Chrome: off 828 µs (1.8 ms), calm 837 (1.6), threat **2093** (3.2); at 4x 6368 (12.4 /
+1.6 ticks a frame), calm 7948 (a busy minute: the calibration loop read 109 ms against 42 to 50), threat **10489**
+(38.9 / 3.2).
+
+- **The brain itself is cheap.** Calm brains add nothing measurable in Chrome at 50 and 0.27 ms at 100; natively
+  about 10 µs a think for the brain and 3 µs for the guard's task (below).
+- **A fight costs what the body does, not the brain.** Against a threat the step is 2.2 to 2.3 times the calm one in
+  Chrome (+1.4 ms at 50, +1.8 ms at 100). Natively at 50 (all at Full), timed by part per tick: bodies 1.76 ms against
+  0.34 calm (46 body steps a tick against 17: a guard that aims and fires is never at rest, `rest_step_ticks` no longer
+  spreads it, and it takes the full tick, not the lean one), senses 0.53 ms against 0.13 (rays at targets in view),
+  the attack task 0.36 ms against 0.05, the brain 0.13 ms against 0.09, the navigator 0.04 ms.
+- **The budget.** 40 fighting guards in Chrome are twice the 1 ms AI budget, 50 are 2.5 times the budget of [Crowds: AI
+  characters](../crowds.md#ai-characters), and at 4x past the tick (3.2 and 5.9 ticks a frame: the catch-up
+  spiral), so a web fight holds fewer guards than the 40 the web cap allows: [the follow-up](#cost-follow-up).
+  Natively (the desktop and a server) 50 fighting at Full are about 3 ms a tick and 100 about 4 ms.
+
+### The follow-up {#cost-follow-up}
+
+Kit #1104 takes the fight's cost down (a lean tick for aiming and firing, fighters at the Reduced tier stepped less
+often, fewer sight rays at a target seen on the last think) or sets a web cap for fighting characters from this table.
+Until then no web count of fighting guards is measured to fit the budget: keep web fights small and bench them.
+
+- **Approach:** Bench reactions in three modes (brains off, on with nothing to answer, on against a threat) and time
+  the step by part (senses, brain, tasks, navigator, bodies) in a throwaway copy of the made game before naming a
+  cause. **Watch out for:** the first calm run read 3.8 ms against 0.6 off and looked like a slow brain; the
+  calibration loop read 23 ms against 11 (a busy machine), and the timed parts showed the brain at 10 µs a think and
+  a fight's cost in the bodies that stop resting. **Seen:** gdstudio #968, 2026-11-11.
 
 ## Proof {#proof}
 

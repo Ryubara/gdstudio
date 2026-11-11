@@ -396,7 +396,10 @@ frame in brackets, ms):
   defaults are **12** at the Full tier on the web and the rest moved every **4th** tick (below: the real character's
   body costs about twice the spike's capsule). The task layers (#965) cost 2.7 µs a think in Chrome (15 µs at 4x)
   with a typical stack of three tasks, 0.2 µs when empty: 17 µs a tick for 40 characters thinking at 10 Hz
-  ([the table](third-person/ai.md#task-cost)).
+  ([the table](third-person/ai.md#task-cost)). The brain (#968) adds nothing measurable when calm; a fight
+  does: 40 guards against two targets are 2.1 ms a tick in Chrome (0.84 with brains off) and 10.5 ms at 4x, over the
+  budget, mostly the bodies that aim and fire and no longer rest ([the table](third-person/ai-behaviour.md#cost),
+  kit #1104).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
