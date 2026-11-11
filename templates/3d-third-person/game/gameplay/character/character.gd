@@ -294,6 +294,8 @@ func step(command: PlayerCommand, delta: float) -> void:
 		last_command.clear()
 	view_yaw = last_command.yaw
 	view_pitch = _prone.held_pitch(prone_tuning, last_command.pitch)
+	if weapon != null:
+		weapon.shot_seq = last_command.seq
 	if ragdoll_by_command and last_command.ragdoll_pressed:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
@@ -408,6 +410,12 @@ func die(shot: HitRecord = null) -> void:
 ## from lying to standing over the ragdoll's `get_up_time`.
 func revive() -> void:
 	CharacterDeath.revive(self)
+
+
+## Gets the character up at `spot` (a server's choice, online): the body stands there at once and
+## the ragdoll's pose blends to it over `get_up_time`, so the ragdoll never decides where it stands.
+func revive_at(spot: Vector3) -> void:
+	CharacterDeath.revive_at(self, spot)
 
 
 ## True while the character is dead.

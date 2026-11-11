@@ -22,9 +22,14 @@
 ## (`states`) and how far it got (`stage`). TICKs carry no weapon state: the server's log says
 ## whether a press was refused (`kicked`, `drops`), and `test_net_server_moves.gd` what it did.
 ##
+## With `--shoot` each bot walks its circle aiming at the nearest other player in its TICKs and
+## presses fire every `SHOT_TICKS` (3.75 shots a second), with a shot block from its eye as a
+## player's input sends it (gdstudio #906); its line then counts the events it heard (`shot`,
+## `hit`, `died`, `revived`, `rejected`).
+##
 ## `<godot> --headless --path game -s res://tools/net/server_bot.gd -- --connect
-## ws://127.0.0.1:8910 --bots 2 --seconds 10 [--moves]`. It lives in tools/, which the export
-## leaves out.
+## ws://127.0.0.1:8910 --bots 2 --seconds 10 [--moves | --shoot]`. It lives in tools/, which the
+## export leaves out.
 extends SceneTree
 
 enum Stage { WEAPONS, TO_COURSE, COURSE, DONE }
@@ -57,6 +62,13 @@ const STAGE_TICKS := 900
 const SLIDE_SPEED := 5.5
 const SPEED_TICKS := 10
 const SLIDE_TICKS := 40
+## Ticks between two presses of fire with `--shoot`: a press on the 15th tick of the pistol's
+## 0.25 s cooldown finds it a hair above zero and is refused.
+const SHOT_TICKS := 16
+## Where a `--shoot` bot's eye is above its feet (`CharacterTuning.camera_height`) and where it
+## aims on the other body.
+const EYE_HEIGHT := 1.55
+const CHEST := 1.15
 
 var _links: Array[WebSocketLink] = []
 var _bots: Array[Dictionary] = []
@@ -64,6 +76,7 @@ var _tick := 0
 var _end_tick := 0
 var _closing_until := -1
 var _moves := false
+var _shoot := false
 ## The version a hello carries (`--version`), -1 for this build's.
 var _version := -1
 
@@ -71,6 +84,7 @@ var _version := -1
 func _initialize() -> void:
 	var args := NetArgs.new()
 	_moves = args.has("moves")
+	_shoot = args.has("shoot")
 	var version := args.get_string("version")
 	_version = args.get_int("version", NetWire.MIN_VERSION - 1 if version == "old" else -1)
 	var url := args.get_string("connect", "ws://127.0.0.1:%d" % WebSocketLink.DEFAULT_PORT)
@@ -106,6 +120,8 @@ func _initialize() -> void:
 					"runs": 0,
 					"slide_from": -1,
 					"states": {},
+					"others": {},
+					"heard": {},
 				}
 			)
 		)
@@ -151,6 +167,8 @@ func _report() -> void:
 		line["rtt_ms_p95"] = _rank(rtts, 0.95)
 		line["down_bytes_per_s"] = roundi(link.bytes_in / seconds)
 		line["up_bytes_per_s"] = roundi(link.bytes_out / seconds)
+		if _shoot:
+			line["heard"] = bot["heard"]
 		if _moves:
 			line["stage"] = str(Stage.find_key(bot["stage"])).to_lower()
 			line["states"] = (bot["states"] as Dictionary).keys()
@@ -196,7 +214,15 @@ func _on_packet(data: PackedByteArray, index: int) -> void:
 				bot["ticks"] += 1
 				bot["ack"] = tick.ack
 				bot["players"] = tick.players.size()
+				var heard: Dictionary = bot["heard"]
+				for event in tick.events:
+					var kind := str(NetEvent.Kind.find_key(event.kind)).to_lower()
+					heard[kind] = int(heard.get(kind, 0)) + 1
+				var others: Dictionary = bot["others"]
+				others.clear()
 				for entry in tick.players:
+					if entry.slot != bot["slot"] and not entry.dead:
+						others[entry.slot] = entry.position
 					if entry.slot == bot["slot"]:
 						var trail: Array = bot["trail"]
 						trail.append(entry.position)
@@ -221,6 +247,8 @@ func _on_packet(data: PackedByteArray, index: int) -> void:
 # The command of this tick: `ServerBench.canned_command` (a circle), or with `--moves` the moves
 # course's.
 func _move_command(bot: Dictionary, index: int) -> PlayerCommand:
+	if _shoot:
+		return _shoot_command(bot, index)
 	if not _moves or bot["stage"] == Stage.DONE:
 		return ServerBench.canned_command(index, _tick)
 	var command := PlayerCommand.new()
@@ -259,6 +287,32 @@ func _move_command(bot: Dictionary, index: int) -> PlayerCommand:
 					command.jump_pressed = true
 			if position.x >= COURSE_END_X or at >= STAGE_TICKS:
 				_next_stage(bot)
+	return command
+
+
+# `--shoot`: the circle, aiming at the nearest other player, fire pressed every `SHOT_TICKS`.
+func _shoot_command(bot: Dictionary, index: int) -> PlayerCommand:
+	var command := ServerBench.canned_command(index, _tick)
+	command.crouch = false
+	command.jump = false
+	command.jump_pressed = false
+	var position: Vector3 = bot["position"]
+	var nearest := Vector3.INF
+	for other: Vector3 in (bot["others"] as Dictionary).values():
+		if not nearest.is_finite() or position.distance_to(other) < position.distance_to(nearest):
+			nearest = other
+	if not nearest.is_finite():
+		return command
+	var eye := position + Vector3.UP * EYE_HEIGHT
+	var angles := CommandCodec.direction_angles(nearest + Vector3.UP * CHEST - eye)
+	command.yaw = angles.x
+	command.pitch = angles.y
+	command.aim = true
+	command.has_shot = true
+	command.origin = eye
+	command.shot_yaw = angles.x
+	command.shot_pitch = angles.y
+	command.fire_pressed = (_tick + index * 3) % SHOT_TICKS == 0
 	return command
 
 

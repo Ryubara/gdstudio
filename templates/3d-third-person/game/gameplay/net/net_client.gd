@@ -57,6 +57,8 @@ var clock := Callable():
 	set(value):
 		clock = value
 		stall_guard.clock = value
+## The server's shots, hits and deaths played on this screen (gdstudio #906).
+var combat := ClientCombat.new(self)
 ## The `seq` of the last command sent.
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
@@ -126,6 +128,9 @@ func _physics_process(delta: float) -> void:
 		return
 	var began := Time.get_ticks_usec()
 	link.poll()
+	if is_seated():
+		var drawn := remote_players.drawn_time() if remote_players != null else -1.0
+		combat.play_due(drawn + delta if drawn >= 0.0 else -1.0)
 	if is_seated() and link.is_open() and player != null:
 		_predict(delta)
 	_steps += 1
@@ -165,6 +170,10 @@ func _take_player() -> void:
 		player.fell.disconnect(player.respawn)
 	player.fell.connect(_on_fell)
 	player.teleported.connect(_on_teleported)
+	# Its shots are cosmetic: the server's body fires the real ones and its events say what they hit.
+	if player.weapon != null:
+		player.weapon.authoritative = false
+		player.weapon.fired.connect(combat.track)
 
 
 func _on_connected() -> void:
@@ -194,6 +203,9 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 	welcome = read
 	slot = read.slot
 	if player != null:
+		player.set_meta(NetHits.SLOT_META, slot)
+		if player.weapon != null:
+			player.weapon.seed_base = slot
 		_put_at_spawn(_entry_of(read.players, slot))
 	if remote_players != null:
 		remote_players.on_welcome(read)
@@ -215,6 +227,7 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 				remote_players.on_joined(event.slot, event.player_name)
 			NetEvent.Kind.LEFT:
 				remote_players.on_left(event.slot)
+	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:
 		reconciler.answer(tick.ack, own.position)
@@ -224,6 +237,7 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 
 func _on_closed() -> void:
 	slot = -1
+	combat.clear()
 	if remote_players != null:
 		remote_players.clear()
 	disconnected.emit()
@@ -242,6 +256,9 @@ func _put_at_spawn(entry: PlayerEntry) -> void:
 
 
 func _on_fell() -> void:
+	# A ragdoll that falls out of the map waits for the server's REVIVED: the server's rule.
+	if is_seated() and player.is_dead():
+		return
 	if is_seated():
 		_put_at_spawn(null)
 	else:
