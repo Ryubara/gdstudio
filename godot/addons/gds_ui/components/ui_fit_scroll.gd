@@ -38,6 +38,9 @@ func _ready() -> void:
 		_watch(child)
 	get_viewport().size_changed.connect(_queue_fit)
 	resized.connect(_queue_fit)
+	# The limit can change size without the viewport (a menu scaled for a phone).
+	if limit != null:
+		limit.resized.connect(_queue_fit)
 	_queue_fit()
 
 

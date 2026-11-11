@@ -32,9 +32,19 @@ var jump := false
 var crouch := false
 ## Holds sprint.
 var sprint := false
+## Holds the reload button: a reload starts on the tick it goes on (a press, as fire is).
+var reload := false
+## Holds the use button: the body uses the `Interactable` in front on the tick it goes on.
+var interact := false
+## Holds the empty-hands button: the loadout puts the weapon away for the fists (or takes it
+## back) on the tick it goes on.
+var unarmed := false
 
 var _fire_was := false
 var _jump_was := false
+var _reload_was := false
+var _interact_was := false
+var _unarmed_was := false
 var _built := false
 var _repeat := false
 var _walk_was := Vector3.ZERO
@@ -51,16 +61,27 @@ func sample() -> PlayerCommand:
 	var command := _command
 	var fire_pressed := fire and not _fire_was
 	var jump_pressed := jump and not _jump_was
+	var reload_pressed := reload and not _reload_was
+	var interact_pressed := interact and not _interact_was
+	var unarmed_pressed := unarmed and not _unarmed_was
 	_fire_was = fire
 	_jump_was = jump
+	_reload_was = reload
+	_interact_was = interact
+	_unarmed_was = unarmed
+	var other_press := reload_pressed or interact_pressed or unarmed_pressed
 	# The channels as they were at the last call, with no press then or now: the same command,
 	# not built again (an AI's channels change at its thinks, a few times a second).
 	if (
 		_built
 		and not fire_pressed
 		and not jump_pressed
+		and not other_press
 		and not command.fire_pressed
 		and not command.jump_pressed
+		and not command.reload_pressed
+		and not command.interact_pressed
+		and not command.unarmed_pressed
 		and walk_direction == _walk_was
 		and look_direction == _look_was
 		and walk_strength == _strength_was
@@ -82,6 +103,9 @@ func sample() -> PlayerCommand:
 	command.jump_pressed = jump_pressed
 	command.crouch = crouch
 	command.sprint = sprint
+	command.reload_pressed = reload_pressed
+	command.interact_pressed = interact_pressed
+	command.unarmed_pressed = unarmed_pressed
 	_built = true
 	_walk_was = walk_direction
 	_look_was = look_direction
@@ -108,3 +132,6 @@ func release() -> void:
 	jump = false
 	crouch = false
 	sprint = false
+	reload = false
+	interact = false
+	unarmed = false

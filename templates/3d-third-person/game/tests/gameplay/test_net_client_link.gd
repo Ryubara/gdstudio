@@ -92,6 +92,10 @@ func test_a_stall_resyncs_and_skips_the_catch_up_ticks() -> void:
 	# frame 11, a few microseconds apart: the first steps, the other seven are skipped.
 	now[0] += 0.5
 	assert_int(guard.check(10)).is_equal(StallGuard.Verdict.RESYNC)
+	# The server stepped 30 times without a command meanwhile (`SilenceWalk`).
+	assert_float(guard.last_gap).is_equal_approx(0.5, 0.0001)
+	assert_int(NetClient.silent_steps(guard.last_gap)).is_equal(29)
+	assert_int(NetClient.silent_steps(0.5 + 1.0 / 60.0)).is_equal(30)
 	now[0] += 0.001
 	assert_int(guard.check(11)).is_equal(StallGuard.Verdict.STEP)
 	for _tick in 7:

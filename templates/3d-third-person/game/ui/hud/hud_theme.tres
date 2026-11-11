@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=5 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 content_margin_left = 18.0
@@ -28,6 +28,57 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.05, 0.07, 0.1, 0.55)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.88, 0.95, 0.35)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_lit"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.98, 0.76, 0.3, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.93, 0.7, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+anti_aliasing_size = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_empty"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.05, 0.07, 0.1, 0.3)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.88, 0.95, 0.15)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+anti_aliasing_size = 1.0
+
 [resource]
 default_font_size = 32
 HudBare/base_type = &"PanelContainer"
@@ -39,6 +90,22 @@ HudCard/base_type = &"PanelContainer"
 HudCard/styles/panel = SubResource("StyleBoxFlat_card")
 HudNumber/base_type = &"Label"
 HudNumber/font_sizes/font_size = 44
+HudSlot/base_type = &"PanelContainer"
+HudSlot/colors/icon_color = Color(0.95, 0.96, 1, 1)
+HudSlot/styles/panel = SubResource("StyleBoxFlat_slot")
+HudSlotEmpty/base_type = &"PanelContainer"
+HudSlotEmpty/colors/icon_color = Color(0.95, 0.96, 1, 1)
+HudSlotEmpty/styles/panel = SubResource("StyleBoxFlat_slot_empty")
+HudSlotKey/base_type = &"Label"
+HudSlotKey/colors/font_color = Color(0.88, 0.9, 0.96, 1)
+HudSlotKey/font_sizes/font_size = 26
+HudSlotKeyLit/base_type = &"Label"
+HudSlotKeyLit/colors/font_color = Color(0.12, 0.09, 0.03, 1)
+HudSlotKeyLit/constants/outline_size = 0
+HudSlotKeyLit/font_sizes/font_size = 26
+HudSlotLit/base_type = &"PanelContainer"
+HudSlotLit/colors/icon_color = Color(0.12, 0.09, 0.03, 1)
+HudSlotLit/styles/panel = SubResource("StyleBoxFlat_slot_lit")
 Label/colors/font_color = Color(1, 1, 1, 1)
 Label/colors/font_outline_color = Color(0.1, 0.12, 0.16, 1)
 Label/constants/outline_size = 6

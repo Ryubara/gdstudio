@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/ai/ai_character.tscn" id="1_character"]
+[ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="2_profile"]
+[ext_resource type="Resource" path="res://gameplay/ai/behaviour/sets/hostile_guard.tres" id="3_behaviour"]
+
+[node name="AiGuard" instance=ExtResource("1_character")]
+profile = ExtResource("2_profile")
+
+[node name="Brain" parent="."]
+behaviour = ExtResource("3_behaviour")
