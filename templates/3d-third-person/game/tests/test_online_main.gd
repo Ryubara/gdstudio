@@ -64,7 +64,7 @@ func test_it_joins_shows_connecting_then_plays_and_sees_the_other_player() -> vo
 	assert_int(online.status.state).is_equal(OnlineStatus.State.CONNECTING)
 	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
 	assert_int(online.status.state).is_equal(OnlineStatus.State.PLAYING)
-	assert_bool((online.status.get_node("%Panel") as Control).visible).is_false()
+	assert_bool((online.status.get_node("%Root") as Control).visible).is_false()
 	assert_bool(online.client.player.input_enabled).is_true()
 	(
 		assert_bool(await _until(func() -> bool: return online.remote_players.slots().size() == 1))
@@ -85,7 +85,7 @@ func test_a_lost_server_shows_connection_lost_and_turns_the_input_off() -> void:
 		. is_true()
 	)
 	assert_str(online.status.message()).is_equal("Connection lost.")
-	assert_bool((online.status.get_node("%Panel") as Control).visible).is_true()
+	assert_bool((online.status.get_node("%Root") as Control).visible).is_true()
 	assert_bool((online.status.get_node("%BackButton") as Control).visible).is_true()
 	assert_bool(online.client.player.input_enabled).is_false()
 

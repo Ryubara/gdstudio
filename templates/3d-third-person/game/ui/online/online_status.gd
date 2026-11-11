@@ -4,7 +4,8 @@ extends CanvasLayer
 ## the player, then nothing; a message and a way back when the server refuses the player (it runs
 ## another version: reload; the game is full; it was built from another map), when nothing answers
 ## within `connect_seconds`, and when a seated game's connection is lost. Its `client`'s signals
-## drive it; it sends nothing. While a message shows, the player's input is off and the mouse free.
+## drive it; it sends nothing. While a message shows, the game is dimmed behind it, the player's
+## input is off and the mouse free.
 ##
 ## The texts are exports: open the scene to reword or restyle them.
 
@@ -41,7 +42,7 @@ var state := State.CONNECTING
 ## Seconds since the scene started, while connecting.
 var waited := 0.0
 
-@onready var _panel: Control = %Panel
+@onready var _root: Control = %Root
 @onready var _title: Label = %Title
 @onready var _message: Label = %Message
 @onready var _back: Button = %BackButton
@@ -100,7 +101,8 @@ func back_to_menu() -> void:
 func _show(shown: State) -> void:
 	state = shown
 	var playing := shown == State.PLAYING
-	_panel.visible = not playing
+	# The dimmed screen behind the panel also keeps a click off the game (the camera's capture).
+	_root.visible = not playing
 	_title.text = connecting_text if shown == State.CONNECTING else ""
 	_title.visible = shown == State.CONNECTING
 	_message.text = "" if shown == State.CONNECTING else text_of(shown)
