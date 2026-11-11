@@ -28,7 +28,9 @@ to find where two runs part, and what was found.
   3 to 9 physics frames after the regions were set (`map_force_update` after the regions made it 2 to 9, not
   0), a frame early or late from run to run,
   even with `map_set_use_async_iterations(map, false)`. Any "wait until it answers" loop ends at a different
-  frame in two runs, so whatever else depends on the frame count differs.
+  frame in two runs, so whatever else depends on the frame count differs. (The regions' own async iterations were
+  still on; with `region_set_use_async_iterations(region, false)` as well, a new region answered at the next tick in
+  gdstudio #1072: [navigation in tests](navigation-in-tests.md#a-small-mesh-of-your-own).)
 - **So wait for age, not for an answer.** Build the world, then wait until it has stood a fixed number of physics frames
   (Deadnight: 24, `NightWorld.LOT_MIN_FRAMES`) before the first tick. Past that age the outcome did not depend on the
   frames: delays of 0, 1, 2, 3, 5 and 9 frames gave one hash.

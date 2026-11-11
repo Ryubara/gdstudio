@@ -117,6 +117,8 @@ far character stepped every 4th tick walks the same path.
   worker thread it took 12 to 48 ticks for a section and 24 to over 300 for the test arena, as the machine's load
   moved ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)). A
   web build has no threads, so it built on the step already: the switches change the desktop and the server only.
+  The test arena (`NavArena.build()`) also turns its region's switch off by its RID, for a game that sets the
+  project's back ([a small mesh of your own](../navigation-in-tests.md#a-small-mesh-of-your-own)).
 - **Goals and routes.** An unreachable goal (the path ends more than 1 m short) is asked once more with no polygon
   limit, at the next slot, then `failed(UNREACHABLE)` and refused for 5 s without a query. Following, a path ending
   3 m or more short of a target 12 m or more away is `stranded`, said once a goal; moving the character is the

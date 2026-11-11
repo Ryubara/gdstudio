@@ -26,6 +26,10 @@ signal refused(reason: int)
 ## Said when the link closed (the server went, or a goodbye).
 signal disconnected
 
+## Ticks a command's number may trail the server tick it is expected to be stepped at before the
+## numbering moves on (`first_seq`; a stall, a slow clock).
+const SEQ_SLACK := 4
+
 @export_group("Nodes")
 ## The local body the client predicts.
 @export var player: Player
@@ -54,6 +58,9 @@ var welcome: SnapshotCodec.Welcome
 var last_tick: SnapshotCodec.Tick
 var reconciler := Reconciler.new()
 var stall_guard := StallGuard.new()
+## The map's networked parts (doors, platforms, pickups) as the server's records show them; made
+## at the WELCOME.
+var map_parts := NetWorld.new()
 ## Seconds for pings and the stall guard: empty is the machine's clock.
 var clock := Callable():
 	set(value):
@@ -65,6 +72,8 @@ var combat := ClientCombat.new(self)
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
 var rtt_ms := -1
+## Times the numbering of the commands moved on to the server's tick (after a stall).
+var renumbered := 0
 ## TICKs read, and packets the decoders refused.
 var ticks_read := 0
 var drops := NetDrops.new()
@@ -76,6 +85,8 @@ var frame_times := PackedInt32Array()
 
 var _steps := 0
 var _ping_every := NetLimits.TICK_RATE / NetLimits.PING_RATE
+# When the HELLO left (this node's clock, seconds): the WELCOME measures a first round trip.
+var _hello_at := 0.0
 
 
 func _ready() -> void:
@@ -154,6 +165,9 @@ func _predict(delta: float) -> void:
 	var wanted := player.controller.sample() if player.controller != null else PlayerCommand.new()
 	seq += 1
 	wanted.seq = seq
+	# The map's moving parts where the server will have them when it steps this command.
+	map_parts.tick = seq
+	map_parts.place(map_parts.tick)
 	if last_tick != null:
 		wanted.view_tick = last_tick.server_tick
 	var packet := CommandCodec.encode(wanted, drops)
@@ -179,8 +193,12 @@ func _take_player() -> void:
 
 
 func _on_connected() -> void:
-	var root := world_root if world_root != null else get_parent()
-	link.send(NetWire.hello(player_name, NetServer.world_hash_of(root)))
+	_hello_at = _now()
+	link.send(NetWire.hello(player_name, NetServer.world_hash_of(_map_root())))
+
+
+func _map_root() -> Node:
+	return world_root if world_root != null else get_parent()
 
 
 func _on_packet(data: PackedByteArray) -> void:
@@ -204,12 +222,16 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 		return
 	welcome = read
 	slot = read.slot
+	map_parts = NetWorld.new(_map_root(), NetEntity.Role.CLIENT)
+	map_parts.read_table(read.entities, read.server_tick)
+	seq = first_seq(read.server_tick, _now() - _hello_at)
 	if player != null:
 		player.set_meta(NetHits.SLOT_META, slot)
 		if player.weapon != null:
 			player.weapon.seed_base = slot
 		_put_at_spawn(_entry_of(read.players, slot))
 	if remote_players != null:
+		remote_players.map_parts = map_parts
 		remote_players.on_welcome(read)
 	welcomed.emit(slot)
 
@@ -221,14 +243,19 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 		return
 	last_tick = tick
 	ticks_read += 1
+	_keep_numbering(tick)
 	for event in tick.events:
-		if remote_players == null:
-			break
 		match event.kind:
 			NetEvent.Kind.JOINED:
-				remote_players.on_joined(event.slot, event.player_name)
+				if remote_players != null:
+					remote_players.on_joined(event.slot, event.player_name)
 			NetEvent.Kind.LEFT:
-				remote_players.on_left(event.slot)
+				if remote_players != null:
+					remote_players.on_left(event.slot)
+			NetEvent.Kind.ENTITY:
+				map_parts.read_event(event)
+			NetEvent.Kind.PICKUP:
+				map_parts.read_pickup(event, player if event.slot == slot else null)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:
@@ -270,6 +297,27 @@ func _on_fell() -> void:
 func _on_teleported() -> void:
 	reconciler.reset()
 	reconciler.snap_next = true
+
+
+## The number of the first command after a WELCOME of server tick `welcome_tick` that came
+## `round_trip` seconds after the HELLO: the server tick that command is expected to be stepped at
+## (the WELCOME's tick, the round trip, one step), so each command's number is the tick the map's
+## moving parts are at for it on both sides (`NetServer.command_tick`). The number before it.
+static func first_seq(welcome_tick: int, round_trip: float) -> int:
+	return welcome_tick + ceili(maxf(round_trip, 0.0) * NetLimits.TICK_RATE)
+
+
+# Commands are numbered by the server tick each is expected to be stepped at (`first_seq`): one
+# sent now reaches the server a round trip after this TICK left it. A client whose numbers trail
+# that (its stall guard skipped steps, its clock runs slow) moves them on; a number may jump, never
+# go back.
+func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
+	if rtt_ms < 0:
+		return
+	var expected := tick.server_tick + ceili(rtt_ms * NetLimits.TICK_RATE / 1000.0)
+	if seq + 1 < expected - SEQ_SLACK:
+		seq = expected - 1
+		renumbered += 1
 
 
 func _now() -> float:
