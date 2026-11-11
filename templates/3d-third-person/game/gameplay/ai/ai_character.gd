@@ -59,15 +59,15 @@ const GROUP := &"ai_characters"
 var tier := 0
 ## The work all characters of the director share in a physics tick; null without a director.
 var budget: AiBudget
+## True while a pool readies it in the tree to park it (`AiPool.prewarm`): it joins no director
+## then, so a spare made at the population cap is not refused (kit #1247).
+var warming := false
 ## The director that manages it; null when it steps itself.
 var director: AiDirector
 ## What it believes is going on.
 var situation := AiSituation.new()
 ## How many thinks it has run.
 var think_count := 0
-## True while a pool readies it in the tree to park it (`AiPool.prewarm`): it joins no director
-## then, so a spare made at the population cap is not refused (kit #1247).
-var warming := false
 
 
 func _ready() -> void:
