@@ -71,7 +71,6 @@ func _ready() -> void:
 	target.position = TARGET_AT
 	add_child(target)
 	_player.teleport(START, PI)
-	_hold = _player.model.get_node("RifleHeld") as TwoHandHold
 	(pickup as WeaponPickup).weapon_taken.connect(
 		func(_who: Node3D, what: WeaponDef, _how: int) -> void: print("TAKEN ", what.display_name)
 	)
@@ -130,12 +129,12 @@ func _physics_process(delta: float) -> void:
 			if _clock >= at and _clock < at + 0.1:
 				actions.append(action)
 	_hold_actions(actions)
-	if _clock < delta * 1.5 and _hold.visible:
+	if _clock < delta * 1.5 and _rifle_out():
 		_report.call_deferred()
 
 
 func _process(_delta: float) -> void:
-	if _close == null or not _hold.visible:
+	if _close == null or not _rifle_out():
 		return
 	# The hand's target, where the IK puts the hand: outside `skeleton_updated` the bone reads the
 	# clip's pose (the arm down).
@@ -145,6 +144,14 @@ func _process(_delta: float) -> void:
 	var up := Vector3.UP if _view != "top" else facing.z
 	_close.global_position = hand.origin + facing * (view[0] as Vector3)
 	_close.look_at(hand.origin + facing * (view[1] as Vector3), up)
+
+
+# Whether the rifle is in the hands. The loadout makes `RifleHeld` under `Model` only when the
+# character first carries the rifle (`WeaponDef.view_scene`), so it is looked up then.
+func _rifle_out() -> bool:
+	if _hold == null:
+		_hold = _player.model.get_node_or_null("RifleHeld") as TwoHandHold
+	return _hold != null and _hold.visible
 
 
 # How far each hand is from its target on the gun, read when the skeleton has its final pose.
