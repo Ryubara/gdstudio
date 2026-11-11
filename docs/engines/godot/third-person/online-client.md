@@ -228,9 +228,10 @@ with a `NetClient`, the `RemotePlayers` and an `OnlineStatus` overlay (`ui/onlin
 
 The overlay shows Connecting until the WELCOME, then hides; on `REFUSED` it names the reason (another version, with a
 Reload button on the web and "update the game" on the desktop; the game is full; another map), on a link that closes
-before the WELCOME or `connect_seconds` of frames (each under the stall guard's 0.25 s) without one it says the server
-did not answer, and on a seated link that closes, Connection lost. Every message has Back to menu, the player's input
-is off while one shows, and the texts are exports of `online_status.tscn`.
+before the WELCOME (after the new sockets of a late hello, below) or `connect_seconds` of frames (each under the stall
+guard's 0.25 s) without one it says the server did not answer, and on a seated link that closes, Connection lost.
+Every message has Back to menu, the player's input is off while one shows, and the texts are exports of
+`online_status.tscn`.
 
 `PlayerBot` (`gameplay/player/player_bot.gd`, `--bot` or `?bot`) plays through the player's own `PlayerInput`: it
 presses the input actions (`Input.action_press`) and turns the camera with `PlayerCamera.orbit`, so the server hears a
@@ -285,11 +286,29 @@ before the first of them, its `open` event ran 14 s later, and the server had hu
 same programs in 0.3 s (its longest task 2.4 s), which is why software pages always seated. The browser keeps what it
 compiled: a second page in the same browser, or the same profile started again, drew at 60 frames a second and seated
 in a second. So `online.py --gpu` plays a warm-up page for `--warm-up` seconds (20) first, and the measured pages read
-a returning player; the warm-up page itself is hung up every time. The private desktop was not the cause: the warm
-page ran on it. A player whose browser has never drawn the game meets the same hang-up (#1137). Two GPU pages after
-the warm-up seat and hold 60 frames a second; two SwiftShader pages failed four runs of four later the same day, on a
-machine busy with other agents (main's probe too, and with a warm-up): the second page hitched 2.7 to 8 s while the
-first drew, and was hung up for its hello in the same way.
+a returning player. The private desktop was not the cause: the warm page ran on it. Two GPU pages after the warm-up
+seat and hold 60 frames a second; two SwiftShader pages failed four runs of four later the same day, on a machine busy
+with other agents (main's probe too, and with a warm-up): the second page hitched 2.7 to 8 s while the first drew, and
+was hung up for its hello in the same way.
+
+**A late hello gets a new socket** (#1137). When the server hangs up before the WELCOME with
+`NetServer.CLOSE_POLICY` (1008, the hello window passed), `NetClient` opens a new socket to the same address, up to
+`rejoins` (2) times, and says nothing to the overlay meanwhile; a REFUSED, a server that is not there (no close code)
+or a seated link that closes is never retried. The page's own hang-up then costs one handshake, since the programs
+are compiled by the time the first close is read. `online.py` reports each page's `join_s` (the page's load to its
+seat, as the player waits) and the page's `rejoined` (Windows, Godot 4.7.2, RTX 5080, 2026-11-11, one page, one bot,
+relay 100 ms each way):
+
+| Browser | Before: seated, join | After: seated, join, new sockets |
+| --- | --- | --- |
+| GPU, cold profile (`--gpu --warm-up 0`) | 0 of 2 (closed at 19 s, the overlay unreachable) | 3 of 3, 21.9 to 22.2 s, 1 each |
+| GPU, after a 20 s warm-up page | seated in #1117 (not timed) | 1 of 1, 3.0 s (the warm-up page itself seated at 21.6 s) |
+| SwiftShader, cold | 2 of 2, 4.8 to 6.8 s | 2 of 2, 5.1 to 6.3 s, none |
+| SwiftShader, two pages (`--pages 2`) | 0 of 4 on a busy machine (above) | 2 of 2, the second page 16.1 to 18.4 s, none |
+
+A cold GPU page still waits about 21 s for its programs before anything plays: the compile itself, which a
+loading screen, a warm-up before the join (#1142) or Chrome's parallel compile would have to hide; the rejoin only
+keeps that wait from ending in "The server did not answer".
 
 **Jolt in wasm against Jolt on Linux.** `StepTraceProbe` (`ui/probe/`, `?steptrace` or `-- --steptrace` with
 `--play`) steps a server's body (`character.tscn`) 1800 times through the template's map with commands of the step's
@@ -326,6 +345,12 @@ Linux. The page's hitches after the join are #1106.
   7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's
   `puppets` field showed it. **Seen:** gdstudio #1117, 2026-11-11 (fixed in `online.py`'s docstring; the table's rows
   are `--bots` 1, 4 and 7).
+- **Approach:** Let a client whose hello the server refused for lateness (close 1008 before the WELCOME) open a new
+  socket by itself, a bounded number of times, and keep the overlay at Connecting. **Watch out for:** a browser holds
+  the socket's `open` event behind the page's long tasks while the server's clock runs: a cold GPU page compiled its
+  shaders for 14 s, the hello left after the server's 10 s window, and the overlay told a first-time player the server
+  did not answer, though a second try seated in a second. Never retry a REFUSED or a seated link that closes.
+  **Seen:** gdstudio #1137, 2026-11-11 (`NetClient.rejoins`; `test_online_main.gd` hangs up on every hello at once).
 - **Approach:** Count a connect timeout in frames the game really ran (each under the stall guard's 0.25 s), and show
   Back to menu while connecting. **Watch out for:** a page's first seconds are spent compiling shaders and loading the
   map; a timeout on the clock would call a server that is fine unreachable on a slow device. **Seen:** gdstudio #909,

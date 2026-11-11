@@ -19,8 +19,9 @@ puppets; with two pages, one more).
 
 `--gpu` draws with the machine's GPU (ANGLE on Direct3D 11 on Windows). A first page plays `--warm-up` seconds before
 the measured ones (20 with `--gpu`): Chrome compiles each shader program the first time it draws it, on the page's
-thread, 12 to 14 s at once on a cold start, and the server hangs up on a socket that says no hello in 10 s; the
-browser keeps what it compiled, so the measured pages read a returning player's frames. `--uncapped` turns vsync and
+thread, 12 to 14 s at once on a cold start (the server hangs up on its late hello and the client opens a new socket,
+`NetClient.rejoins`); the browser keeps what it compiled, so the measured pages read a returning player's frames.
+`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped` turns vsync and
 the frame cap off, so the frame time is the page's work and not 16.7 ms.
 
 `--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
@@ -47,9 +48,9 @@ from relay import Relay
 
 READY_TIMEOUT_S = 120.0
 # Seconds a first page plays on the GPU before the measured pages open: Chrome on ANGLE's Direct3D 11 compiles each
-# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), and the
-# server hangs up on a socket that says no hello in `NetServer.hello_seconds` (10 s). The browser keeps what it
-# compiled for its later pages, so the measured pages read a returning player's frames.
+# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), so the
+# first page's frames and join time are a first visit's (21 to 22 s, one new socket after a late hello). The browser
+# keeps what it compiled for its later pages, so the measured pages read a returning player's frames.
 GPU_WARM_UP_S = 20.0
 # Chrome's flags for frames as fast as the page can make them (`--uncapped`): with vsync a GPU page reads 16.7 ms at
 # any load, which hides what a puppet costs.
