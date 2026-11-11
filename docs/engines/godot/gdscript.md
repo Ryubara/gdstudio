@@ -67,6 +67,25 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
   matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
 
+## Script errors at run time {#runtime-errors}
+
+<!-- new section: the page held names, lambdas and files; nothing said what a call returns when the function it calls
+     hits a script error, which a watchdog depends on -->
+
+- **Approach:** To catch a script error in code another script supplies (a task's `update()`), make the value `0` of
+  the function's return enum mean "invalid" (`enum Status { INVALID, RUNNING, SUCCEEDED, FAILED }`), read the result
+  into a `Variant` and treat anything that is not a known status (0 from a typed function, `null` from an untyped one)
+  as the error. GDScript has no `try`: the caller carries on after the error. **Watch out for:** in Godot 4.7.2 a
+  function declared `-> int` that hits `Cannot call method 'x' on a null value` returns `0` to its caller, not `null`,
+  and the caller's next line runs; assigning that result to a typed enum variable hides the difference. A `-> bool`
+  returns `false`, so a check that may error should mean "not valid" by `false`. **Seen:** gdstudio #965, 2026-11-10
+  (a headless spike, then `AiTask._judge`).
+
+- **Approach:** When two `RefCounted` objects need each other (a task and the runner that owns it), keep the back
+  reference as a `WeakRef` (`weakref(runner)`, read with `get_ref()`) or pass the owner as an argument. **Watch out
+  for:** a strong reference both ways is a cycle that reference counting never frees, which shows as objects leaked
+  at exit, a line CI refuses. **Seen:** gdstudio #965, 2026-11-10 (`AiTask.runner()`).
+
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that

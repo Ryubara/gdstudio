@@ -70,6 +70,10 @@ const STEP_BUDGET_MS := 6.0
 ## Steps the last command is stepped again (without its presses) when none came, before the body
 ## stands still.
 @export_range(0, 600, 1, "suffix:steps") var command_ticks := 30
+## Steps a body waits for a late command, without stepping, before it repeats the last: two
+## machines' frames drift, so a client's command lands a step late now and then, and a repeat made
+## for it leaves the body a step off where the client predicted it. 0 repeats at once.
+@export_range(0, 30, 1, "suffix:steps") var hold_ticks := 4
 ## Seconds without a command before a seated player is hung up on (a hidden tab stops its loop).
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.
@@ -96,6 +100,7 @@ var _by_slot: Dictionary[int, PeerSlot] = {}
 var _stats_at := 0.0
 var _stats_bytes := 0
 var _stats_steps := PackedFloat32Array()
+var _process := ProcessStats.new()
 
 
 func _ready() -> void:
@@ -125,6 +130,9 @@ func _ready() -> void:
 			"players_max": max_players,
 			"tick_hz": Engine.physics_ticks_per_second,
 			"version": NetWire.VERSION,
+			# The host, since step times differ from one host to the next (kit railway.md#skew).
+			"cpu": OS.get_processor_name(),
+			"cores": OS.get_processor_count(),
 		}
 	)
 
@@ -189,9 +197,17 @@ func free_slot() -> int:
 ## radius from a generator seeded by `spawn_seed` and the slot; the origin facing -Z when the map
 ## has none.
 func spawn_transform(slot: int) -> Transform3D:
+	return spawn_transform_in(players_root, spawn_group, spawn_seed, slot)
+
+
+## The same for the map `in_world` is in, so a predicting client starts its body exactly where
+## the server put it (`NetClient`).
+static func spawn_transform_in(
+	in_world: Node3D, group: StringName, seed_value: int, slot: int
+) -> Transform3D:
 	var points: Array[SpawnPoint] = []
-	var world := players_root.get_world_3d()
-	for node in get_tree().get_nodes_in_group(StringName("spawn_%s" % spawn_group)):
+	var world := in_world.get_world_3d()
+	for node in in_world.get_tree().get_nodes_in_group(StringName("spawn_%s" % group)):
 		var point := node as SpawnPoint
 		if point != null and point.enabled and point.get_world_3d() == world:
 			points.append(point)
@@ -201,8 +217,14 @@ func spawn_transform(slot: int) -> Transform3D:
 		func(a: SpawnPoint, b: SpawnPoint) -> bool: return str(a.get_path()) < str(b.get_path())
 	)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash([spawn_seed, slot])
+	rng.seed = hash([seed_value, slot])
 	return points[slot % points.size()].spawn_transform(rng)
+
+
+## The heading a spawn transform faces (radians about the up axis), as `Character.teleport` takes
+## it.
+static func heading_of(spot: Transform3D) -> float:
+	return atan2(-spot.basis.z.x, -spot.basis.z.z)
 
 
 ## The state every client is sent of one seated player.
@@ -333,7 +355,7 @@ func _make_body(slot: int) -> Character:
 
 func _put_at_spawn(body: Character, slot: int) -> void:
 	var spot := spawn_transform(slot)
-	body.teleport(spot.origin, atan2(-spot.basis.z.x, -spot.basis.z.z))
+	body.teleport(spot.origin, heading_of(spot))
 
 
 func _refuse(peer: PeerSlot, reason: NetWire.Refusal, fields: Dictionary) -> void:
@@ -403,7 +425,7 @@ func _tell_others(peer: PeerSlot, event: NetEvent) -> void:
 func _step_bodies(delta: float) -> void:
 	for slot: int in _sorted_slots():
 		var peer := _by_slot[slot]
-		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks):
+		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
 			peer.body.step(command, delta)
 
 
@@ -439,26 +461,34 @@ func _log_stats() -> void:
 	var sorted := _stats_steps.duplicate()
 	sorted.sort()
 	var stalled := 0
+	var held := 0
+	var repeated := 0
 	for peer: PeerSlot in _by_slot.values():
 		stalled += 1 if peer.stalled else 0
 		peer.stalled = false
+		held += peer.held
+		repeated += peer.repeated
+		peer.held = 0
+		peer.repeated = 0
 	var over := 0
 	for ms in sorted:
 		over += 1 if ms > STEP_BUDGET_MS else 0
 	var seconds := STATS_SECONDS + now - _stats_at
-	_log(
-		"stats",
-		{
-			"players": _by_slot.size(),
-			"tick": server_tick,
-			"out_bytes_per_s": roundi((listener.bytes_out - _stats_bytes) / seconds),
-			"step_ms_p50": snappedf(percentile(sorted, 0.5), 0.001),
-			"step_ms_p95": snappedf(percentile(sorted, 0.95), 0.001),
-			"steps_over_budget": over,
-			"peers_stalled": stalled,
-			"kicked": kicked,
-		}
-	)
+	var fields := {
+		"players": _by_slot.size(),
+		"tick": server_tick,
+		"out_bytes_per_s": roundi((listener.bytes_out - _stats_bytes) / seconds),
+		"step_ms_p50": snappedf(percentile(sorted, 0.5), 0.001),
+		"step_ms_p95": snappedf(percentile(sorted, 0.95), 0.001),
+		"steps_over_budget": over,
+		"peers_stalled": stalled,
+		"steps_held": held,
+		"steps_repeated": repeated,
+		"kicked": kicked,
+	}
+	# The process's resident memory and processor share (Linux only: the image, Railway).
+	fields.merge(_process.sample())
+	_log("stats", fields)
 	_stats_at = now + STATS_SECONDS
 	_stats_bytes = listener.bytes_out
 	_stats_steps.clear()

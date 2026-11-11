@@ -1,4 +1,5 @@
-# A client that stops sending: the server steps its last command again for `command_ticks` steps
+# A client that stops sending: the server waits `hold_ticks` steps for a late command, then steps
+# its last command again for `command_ticks` steps
 # (the body keeps walking), then a command that asks for nothing (it stands); after
 # `silent_seconds` without a command it hangs up, and the seat is free for the next hello. Pings
 # alone keep nobody seated. The seconds are the frame clock's, so 15 s pass in frames.
@@ -26,15 +27,19 @@ func test_a_silent_client_walks_on_for_thirty_steps_then_stands() -> void:
 	assert_bool(await _rig.until(func() -> bool: return peer.ack == 1)).is_true()
 	var first := peer.history.find(1)
 	var start := body.global_position
-	await _rig.wait(_rig.server.command_ticks)
+	await _rig.wait(_rig.server.hold_ticks + _rig.server.command_ticks)
 	# It walked on while the command was repeated.
 	assert_float(body.global_position.distance_to(start)).is_greater(1.0)
 	await _rig.wait(120)
 	var later := peer.history.slice(first + 1)
-	# Thirty repeats, then it stands, whatever the timing of the first.
-	for index in _rig.server.command_ticks:
+	# Held a few steps for a late command, thirty repeats, then it stands, whatever the timing of
+	# the first.
+	var hold := _rig.server.hold_ticks
+	for index in hold:
+		assert_int(later[index]).is_equal(PeerSlot.HELD)
+	for index in range(hold, hold + _rig.server.command_ticks):
 		assert_int(later[index]).is_equal(PeerSlot.REPEATED)
-	for index in range(_rig.server.command_ticks, later.size()):
+	for index in range(hold + _rig.server.command_ticks, later.size()):
 		assert_int(later[index]).is_equal(PeerSlot.STOOD)
 	# The press was used once: one jump, not one on every landing; and the body stands.
 	assert_int(jumps[0]).is_equal(1)

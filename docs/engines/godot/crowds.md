@@ -394,7 +394,9 @@ frame in brackets, ms):
   one path query per character per `repath_seconds`, `think_rate` thinks, at most 2 rays a think
   ([counts tight, time loose](performance-budgets.md#budgets-counts-tight-time-loose)). Since #963 the template's
   defaults are **12** at the Full tier on the web and the rest moved every **4th** tick (below: the real character's
-  body costs about twice the spike's capsule).
+  body costs about twice the spike's capsule). The task layers (#965) cost 2.7 µs a think in Chrome (15 µs at 4x)
+  with a typical stack of three tasks, 0.2 µs when empty: 17 µs a tick for 40 characters thinking at 10 Hz
+  ([the table](third-person/ai.md#task-cost)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
@@ -419,9 +421,33 @@ step a tick (mean, in brackets the median whole frame's work in ms: animation, f
 - With the spike's 20 at Full, 40 walkers missed both budgets by about 30 % (1.3 ms, 6.5 ms at 4x), so the template ships
   12 at Full and the rest every 4th tick: 0.99 ms and 4.75 ms. The machine was shared with other agents (the parts
   bench's walking step read 31.7 µs against 23 to 26 µs on an idle one), so these are on the high side.
-- At 4x the whole frame of 40 walkers is 19.5 ms, past the 16.7 ms tick: the animation tree and the footsteps, outside
-  the AI budget, now decide the weak machine; the animation throttle of [the recommendation](#recommendation) is what
-  comes next. At 120 in Chrome the frame is past the tick even unthrottled, so 120 stays a desktop and server count.
+- At 4x the whole frame of 40 walkers was 19.5 ms, past the 16.7 ms tick: the animation tree and the footsteps, outside
+  the AI budget, decided the weak machine. At 120 in Chrome the frame is past the tick even unthrottled, so 120 stays a
+  desktop and server count.
+
+**With the animation throttle (#1046).** The same bench, each row without (`-`) and with (`T`) the director's
+`AiAnimationThrottle` in one Chrome run, the trees moved a frame and the calibration loop beside it (a fixed GDScript
+loop timed before each row: about 8 to 10 ms at 1x and 31 to 44 ms at 4x on this shared machine; the issue's 19.5 ms run
+had no calibration). The bench's camera looks on from 50 m, so every character is past `far_distance` (every 6th
+frame). Median frame work in ms (the director's step a tick in brackets, ms; ticks a frame after the slash):
+
+| 40 walking | without | with the throttle |
+| --- | ---: | ---: |
+| Chrome 1x | 2.8 (1.03) / 0.62 | **1.4** (0.96) / 0.31 |
+| Chrome 4x, three runs | 53 to 63 (6.4 to 6.5) / 5.1 to 5.7 | **9.0 to 10.2** (6.2 to 6.4) / 0.8 to 1.0 |
+| Chrome 1x, 20 / 120 walking | 1.8 / 14.2 | 1.3 / 4.0 |
+| Desktop native, 40 walking | 3.6 to 4.1 | 2.8 to 2.9 |
+
+- The throttle halves the 1x frame and takes 40 walkers at 4x out of the catch-up spiral (5 to 6 ticks a frame, the
+  cliff above) to one tick a frame or fewer: about 9.5 ms against 55 to 60 ms. It does not reach the 8 ms target, and
+  the rest is the walking body: the director's step alone is 6.2 to 6.5 ms of it at 4x on this machine (4.75 ms in the
+  quieter #963 run).
+- Where the rest goes, in Chrome at 1x: with every tree frozen the frame is 1.5 ms, of which the director's step is
+  1.1 to 1.15 ms and the engine's own work (the Jolt step, transforms) about 0.35 ms; the 6.7 tree advances a frame
+  the throttle still makes are about 40 µs each. A walking body's `Character.step` is **42.5 µs** in Chrome (242 µs at
+  4x), and a bare `move_and_slide` of the same body only **10 µs** (50 µs at 4x): about three quarters of the body is
+  the GDScript around the slide (the slide's tick, gravity and the jump, the step climber's `test_move`, the state),
+  which is where the next cut is (measured with 40 `ai_character.tscn` stepped by hand, 300 ticks).
 
 **The template's navigator (#967).** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) times
 every `AiNavigator.navigate()` (the queries on their timer, the steering, the body-ray checks) for characters walking
