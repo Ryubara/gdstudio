@@ -14,6 +14,11 @@ extends SkeletonModifier3D
 @export var second: HandPose
 ## How far the bones `second` names are on it (0 `pose`, 1 `second`).
 @export_range(0.0, 1.0, 0.01) var second_weight := 0.0
+## The poses the bones of `second` pass through on their way from `pose`, in order, spread evenly
+## over `second_weight` (kit #1036): a trigger finger that would go through the trigger guard on
+## the straight way between the two goes round it. Each pose names the bones `second` names.
+## Empty: the straight way.
+@export var second_way: Array[HandPose] = []
 ## A pose blended over both on the bones it names, by `open_weight`: the hand opened, as it lets
 ## go of the weapon or comes back to it.
 @export var open: HandPose
@@ -69,10 +74,24 @@ func _process_modification_with_delta(_delta: float) -> void:
 			continue
 		var turned := pose.rotations[bone_name]
 		if second != null and second_weight > 0.0 and second.rotations.has(bone_name):
-			turned = turned.slerp(second.rotations[bone_name], second_weight)
+			turned = _on_the_way(bone_name, turned)
 		if open != null and open_weight > 0.0 and open.rotations.has(bone_name):
 			turned = turned.slerp(open.rotations[bone_name], _opened(bone_name))
 		skeleton.set_bone_pose_rotation(bone, turned)
+
+
+# Where `bone_name` is on its way from `turned` (its rotation in `pose`) through `second_way` to
+# `second`, `second_weight` of the way along.
+func _on_the_way(bone_name: StringName, turned: Quaternion) -> Quaternion:
+	if second_way.is_empty():
+		return turned.slerp(second.rotations[bone_name], second_weight)
+	var legs := second_way.size() + 1
+	var leg := mini(floori(second_weight * legs), legs - 1)
+	var from := turned if leg == 0 else second_way[leg - 1].rotations[bone_name]
+	var to := (
+		second.rotations[bone_name] if leg == legs - 1 else second_way[leg].rotations[bone_name]
+	)
+	return from.slerp(to, second_weight * legs - leg)
 
 
 # How far `bone_name` is on the open pose: `open_weight`, or its part of it when some bones open

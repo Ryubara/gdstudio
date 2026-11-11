@@ -103,6 +103,9 @@ const _WAY_ON := 0.88
 @export var grip_pose: HandPose
 ## The index finger on the trigger, blended over `grip_pose` as the gun comes up to the shoulder.
 @export var trigger_pose: HandPose
+## The poses the index finger passes through between `grip_pose` and `trigger_pose`, round the
+## trigger guard (kit #1036). None: the straight way.
+@export var trigger_way: HandPoseWay
 ## The left hand's fingers cupped under the hand guard.
 @export var support_pose: HandPose
 ## The left hand's four fingers opened, as it lets go of the gun and comes back to it (the thumb
@@ -508,6 +511,8 @@ func _on_rig_changed() -> void:
 	_add_arm(right_arm, "RightArm")
 	_add_arm(left_arm, "LeftArm")
 	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")
+	if trigger_way != null:
+		_fingers[-1].second_way = trigger_way.poses
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
 	refresh()
 
