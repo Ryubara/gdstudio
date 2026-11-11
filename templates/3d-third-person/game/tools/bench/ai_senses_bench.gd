@@ -11,10 +11,10 @@ extends Node
 ##   the senses on and off: the director's step a tick (the thinks run inside it) and the
 ##   median frame work, so the pull request says what the senses add to the crowd.
 ##
-## One line of JSON, `AI_SENSES_BENCH {...}`. Desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_senses_bench.tscn`; browser:
-## a web export with this scene as `run/main_scene` and `tools/*` out of the exclude filter, read
-## by `tools/bench/ai_senses_bench.py` (`window.__ai_senses_bench`).
+## One line of JSON, `AI_SENSES_BENCH {...}`. Desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/ai_senses_bench.tscn`; browser: the web export `gds template bench-web
+## 3d-third-person ai_senses_bench` makes (kit docs/engines/godot/web-probes.md#bench-web), read by
+## `tools/bench/ai_senses_bench.py` (`window.__ai_senses_bench`).
 
 const THINK_COUNTS: Array[int] = [40, 200]
 const CROWD := 40
