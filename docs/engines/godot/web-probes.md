@@ -44,6 +44,14 @@ command is the same there (off Windows it starts the program normally).
   Chrome of the same account, so a headless session answers "Browser extension is not connected"; a gamepad cannot be
   injected this way. **Seen:** Deadnight, 2026-11-01 (fix: direct protocol, no package downloaded; the GPU still
   works through ANGLE).
+- **Approach:** Before blaming the desktop for a GPU page that stalls in its first seconds, time its WebGL calls from
+  an init script (wrap each `WebGL2RenderingContext.prototype` method, keep the calls over 50 ms) and measure a warm
+  browser, one that played the game once. **Watch out for:** a cold Chrome on ANGLE's Direct3D 11 blocked the page
+  21 s in `getProgramParameter` (Godot reads each link at once; 171 programs) where SwiftShader took 0.3 s, and a probe
+  whose socket opened meanwhile was hung up for a missing hello, which read as the private desktop starving the page.
+  Fresh Playwright browsers are always cold: a GPU probe plays a warm-up page first (`online.py --warm-up`). The
+  headless shell with `--enable-gpu` does draw on the GPU. **Seen:** gdstudio #1117, 2026-11-11 (a player's cold
+  first join: #1137).
 
 ## The boot check every template runs {#boot-check}
 
