@@ -66,9 +66,11 @@ meets:
    audio by analysis (peaks, loudness, spectra), and run web builds in Chrome. "Nobody has tried it" is unfinished.
 6. **Pull request.** `uvx pre-commit run --all-files`, commit (`area: Verb the rest`, the Co-Authored-By trailer),
    push the branch, open the pull request from the template with `Fixes #N`, and attach your captures
-   (`gh pr create --body-file <file> --attach <png>`). Turn on auto-merge (`gh pr merge --squash --auto`) unless the
-   change touches a manual path (the hooks tell you) or whoever started you holds the pull request (auto-merge left off,
-   "tell me when it is green"): a hold outranks this step. On a green pull request `--auto` merges at once, so a held
+   (`gh pr create --body-file <file> --attach <png>`); each clip is a GIF or an MP4 by the rule on
+   `studio/capture.md#gif-or-mp4` (a short silent loop of one thing is a GIF, sound or a longer clip an MP4). Turn
+   on auto-merge (`gh pr merge --squash --auto`) unless the change touches a manual path (the hooks tell you) or
+   whoever started you holds the pull request (auto-merge left off, "tell me when it is green"): a hold outranks this
+   step. On a green pull request `--auto` merges at once, so a held
    pull request also gets the label, at once: `gds pr hold <owner/repo>#N`. Only the maintainer takes `S-hold` off;
    you never do, whoever asks you to.
 7. **Report** to whoever started you: the pull request, what the captures show, anything left open (as new issues).
