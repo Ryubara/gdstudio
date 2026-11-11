@@ -131,6 +131,8 @@ var _board: AiNoise
 var _query := PhysicsRayQueryParameters3D.new()
 var _rays_left := 0
 var _heard_serial := 0
+# The serials one listen reads (kept between thinks, so a listen makes no array).
+var _heard_serials: Array[int] = []
 var _ray_at: Dictionary[int, float] = {}
 var _ray_clear: Dictionary[int, bool] = {}
 var _visible: Dictionary[int, bool] = {}
@@ -141,6 +143,8 @@ var _candidate_flags := PackedInt32Array()
 # The senses' clock of each candidate's last ray (-INF: never).
 var _candidate_ages := PackedFloat64Array()
 var _outbox: Array[Share] = []
+# The awareness rate's numbers, made once and read again at each think that sees something.
+var _rates := Rates.new()
 var _share_keys: Dictionary[int, bool] = {}
 
 
@@ -345,6 +349,13 @@ func friend_in_line_of_fire(point: Vector3, radius := 0.6) -> Node3D:
 		_member.refresh(table) if _member.table_version != table.version else _member.faction_index
 	)
 	var reach := radius * radius
+	# A chest in the way stands within `radius` (flat) of the segment, so inside its flat box grown
+	# by `radius`: four comparisons skip a friend anywhere else (behind, beyond, far to the side).
+	var margin := radius + 0.01
+	var low_x := minf(from.x, point.x) - margin
+	var high_x := maxf(from.x, point.x) + margin
+	var low_z := minf(from.z, point.z) - margin
+	var high_z := maxf(from.z, point.z) + margin
 	for group in target_groups:
 		var pool := AiSensePool.of(get_tree(), group, table)
 		for part in pool.factions.size():
@@ -354,7 +365,10 @@ func friend_in_line_of_fire(point: Vector3, radius := 0.6) -> Node3D:
 				if not is_instance_valid(node) or node == _character:
 					continue
 				var body := node as Node3D
-				var chest := body.global_position + Vector3.UP * 1.0
+				var at := body.global_position
+				if at.x < low_x or at.x > high_x or at.z < low_z or at.z > high_z:
+					continue
+				var chest := at + Vector3.UP * 1.0
 				var along := (chest - from).dot(line) / length_squared
 				if along <= 0.0 or along >= 1.0:
 					continue
@@ -443,7 +457,7 @@ func _look(profile: AiProfile, seconds: float) -> void:
 	if not _candidates.is_empty():
 		_cast_rays(origin)
 		var fresh_after := beliefs.clock - ray_fresh_seconds - 0.0001
-		var rates: Rates = null
+		var rates_read := false
 		for index in _candidates.size():
 			if _candidate_ages[index] < fresh_after:
 				continue
@@ -452,10 +466,10 @@ func _look(profile: AiProfile, seconds: float) -> void:
 			if not _ray_clear[id] or _visible.has(id):
 				continue
 			_visible[id] = true
-			if rates == null:
-				rates = Rates.new()
-				rates.read(profile, self)
-			_see(index, _candidate_points[index] - origin, look, seconds, rates)
+			if not rates_read:
+				_rates.read(profile, self)
+				rates_read = true
+			_see(index, _candidate_points[index] - origin, look, seconds, _rates)
 	_clear_seen()
 	if _ray_at.size() > 256:
 		_ray_at.clear()
@@ -564,30 +578,64 @@ func _listen(profile: AiProfile) -> void:
 			else _member.faction_index
 		)
 	var first := maxi(_heard_serial + 1, _board.oldest())
+	if first > _board.newest:
+		_heard_serial = _board.newest
+		return
 	var kept_from := _board.first_kept_frame()
-	for serial in range(first, _board.newest + 1):
-		var noise := _board.record(serial)
-		if noise == null or noise.frame < kept_from:
-			continue
-		var radius := noise.radius * ears
-		var far := me.distance_squared_to(noise.position)
-		if far > radius * radius:
-			continue
-		var source := noise.source()
-		if source == _character:
-			continue
-		# Its maker was freed since (a despawn): the record's member is gone with it.
-		if noise.maker_gone():
-			continue
-		var band := _noise_band(noise.member, table, mine)
-		if band > care_up_to:
-			continue
-		var clear := radius * _board.occlusion
-		if far > clear * clear:
-			if _line(eye_position(), noise.position + Vector3.UP * 0.3) != Line.CLEAR:
+	if table == null or _member == null or _member.holds_grudges:
+		# A grudge is held toward one maker, not a faction: every noise is read.
+		for serial in range(first, _board.newest + 1):
+			_listen_to(serial, kept_from, me, ears, table, mine, profile)
+	else:
+		# Only the factions it cares about (one band read for each), oldest first as made.
+		_heard_serials.clear()
+		var parts := 0
+		for faction: StringName in _board.by_faction:
+			if table.band_at(mine, table.index_of(faction)) > care_up_to:
 				continue
-		_hear(noise, source, band, 1.0 - sqrt(far) / maxf(radius, 0.001), profile)
+			if _board.serials_since(_board.by_faction[faction], first, _heard_serials):
+				parts += 1
+		if _board.serials_since(_board.unowned, first, _heard_serials):
+			parts += 1
+		if parts > 1:
+			_heard_serials.sort()
+		for serial in _heard_serials:
+			_listen_to(serial, kept_from, me, ears, table, mine, profile)
 	_heard_serial = _board.newest
+
+
+# Hears the noise with `serial` when it is still kept, within its radius and not muffled, and its
+# maker one the character cares about.
+func _listen_to(
+	serial: int,
+	kept_from: int,
+	me: Vector3,
+	ears: float,
+	table: AiRelations,
+	mine: int,
+	profile: AiProfile
+) -> void:
+	var noise := _board.record(serial)
+	if noise == null or noise.frame < kept_from:
+		return
+	var radius := noise.radius * ears
+	var far := me.distance_squared_to(noise.position)
+	if far > radius * radius:
+		return
+	var source := noise.source()
+	if source == _character:
+		return
+	# Its maker was freed since (a despawn): the record's member is gone with it.
+	if noise.maker_gone():
+		return
+	var band := _noise_band(noise.member, table, mine)
+	if band > care_up_to:
+		return
+	var clear := radius * _board.occlusion
+	if far > clear * clear:
+		if _line(eye_position(), noise.position + Vector3.UP * 0.3) != Line.CLEAR:
+			return
+	_hear(noise, source, band, 1.0 - sqrt(far) / maxf(radius, 0.001), profile)
 
 
 # The band toward what made a noise: Hostile for something unknown, the factions' (one byte read)

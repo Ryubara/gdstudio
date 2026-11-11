@@ -54,6 +54,12 @@ static var _runs_here := -1
 
 ## The serial of the newest noise (0: none yet). Serials only grow.
 var newest := 0
+## The serials of the noises each faction made (by the faction id of the maker's member when it
+## made them), oldest first, so a listener walks only the factions it cares about
+## (`serials_since`); read only. A list may hold serials already dropped from the board.
+var by_faction: Dictionary[StringName, Array] = {}
+## The serials of the noises made by nothing in a faction (no source, or one with no member).
+var unowned: Array[int] = []
 
 var _ring: Array[AiNoiseRecord] = []
 # The capacity the ring was made with (an edit of `capacity` applies to a board made again).
@@ -123,7 +129,37 @@ func post(
 	noise.radius = radius_of(kind) * noise.loudness
 	noise.set_source(source)
 	noise.frame = Engine.get_physics_frames()
+	_index(noise)
 	return noise
+
+
+## Adds to `into` the serials of `serials` (one list of `by_faction`, or `unowned`) from `first` on,
+## oldest first. Returns true when it added any.
+func serials_since(serials: Array, first: int, into: Array[int]) -> bool:
+	var count := serials.size()
+	if count == 0 or serials[count - 1] < first:
+		return false
+	var start := count - 1
+	while start > 0 and serials[start - 1] >= first:
+		start -= 1
+	for index in range(start, count):
+		into.append(serials[index])
+	return true
+
+
+# Files the noise under its maker's faction; a list twice the board's size keeps its newest half
+# (the board holds no more than its size).
+func _index(noise: AiNoiseRecord) -> void:
+	var serials: Array = unowned
+	if noise.member != null:
+		serials = by_faction.get(noise.faction, null)
+		if serials == null:
+			var fresh: Array[int] = []
+			serials = fresh
+			by_faction[noise.faction] = serials
+	serials.append(noise.serial)
+	if serials.size() >= _size * 2:
+		serials.assign(serials.slice(serials.size() - _size))
 
 
 ## Metres a noise of `kind` carries at loudness 1.
