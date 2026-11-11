@@ -4,6 +4,8 @@ The browser's own network throttling does not touch WebSockets, and a localhost 
 millisecond, so a probe that needs a bad network puts this between the client and the server: every
 chunk is held back `--delay-ms` in each direction and let through in order (TCP never reorders), and
 the bytes are counted both ways (WebSocket framing included, TCP/IP headers not). With
+`--jitter-ms 30` each chunk waits up to that much more (still in order: the arrival
+jitters as on a real network, which the game server's hold of four steps absorbs). With
 `--stall-chance 0.02 --stall-ms 300` a chunk now and then costs a retransmission's wait, and
 everything behind it waits too: what loss is on TCP. `--seed` makes the stalls repeat.
 
@@ -34,6 +36,7 @@ class Relay:
         stall_chance: float = 0.0,
         stall_s: float = 0.3,
         seed: int = 1,
+        jitter_s: float = 0.0,
     ) -> None:
         self.target_host = target_host
         self.target_port = target_port
@@ -41,7 +44,10 @@ class Relay:
         self.listen_port = listen_port
         self.stall_chance = stall_chance
         self.stall_s = stall_s
+        self.jitter_s = jitter_s
         self.stalls = 0
+        self.stalls_up = 0
+        self.stalls_down = 0
         self._rng = random.Random(seed)
         self.bytes_up = 0
         self.bytes_down = 0
@@ -76,9 +82,15 @@ class Relay:
                 else:
                     self.bytes_down += len(chunk)
                 due = time.perf_counter() + self.delay_s
+                if chunk and self.jitter_s > 0.0:
+                    due += self._rng.uniform(0.0, self.jitter_s)
                 if chunk and self.stall_chance > 0.0 and self._rng.random() < self.stall_chance:
                     due += self.stall_s
                     self.stalls += 1
+                    if up:
+                        self.stalls_up += 1
+                    else:
+                        self.stalls_down += 1
                 # In order: a stalled chunk holds every chunk behind it.
                 last_due = max(due, last_due)
                 await queue.put((last_due, chunk))
@@ -128,13 +140,23 @@ class Relay:
             self._loop.call_soon_threadsafe(self._server.close)
 
     def counts(self) -> str:
-        return f"connections={self.connections} up={self.bytes_up} B down={self.bytes_down} B stalls={self.stalls}"
+        return (
+            f"connections={self.connections} up={self.bytes_up} B down={self.bytes_down} B stalls={self.stalls}"
+            f" (up {self.stalls_up}, down {self.stalls_down})"
+        )
 
 
 async def _main(args: argparse.Namespace) -> None:
     host, port = args.target.rsplit(":", 1)
     relay = Relay(
-        host, int(port), args.delay_ms / 1000.0, args.listen, args.stall_chance, args.stall_ms / 1000.0, args.seed
+        host,
+        int(port),
+        args.delay_ms / 1000.0,
+        args.listen,
+        args.stall_chance,
+        args.stall_ms / 1000.0,
+        args.seed,
+        args.jitter_ms / 1000.0,
     )
     serving = asyncio.create_task(relay.serve())
     while not relay.port:
@@ -156,7 +178,8 @@ def main() -> None:
     parser.add_argument("--listen", type=int, default=0, help="port to listen on (0: a free one)")
     parser.add_argument("--stall-chance", type=float, default=0.0, help="chance a chunk stalls")
     parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
-    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls")
+    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls and the jitter")
+    parser.add_argument("--jitter-ms", type=float, default=0.0, help="up to this much more delay a chunk")
     parser.add_argument("--report-s", type=float, default=5.0, help="seconds between byte counts")
     try:
         asyncio.run(_main(parser.parse_args()))

@@ -240,6 +240,9 @@ var _slide := CharacterSlide.new()
 # The command `last_command` was last copied from (`CharacterController.repeats()`).
 var _copied: PlayerCommand
 
+# Carries the body on a platform an online world drives (offline the engine does).
+var _rider := PlatformRider.new()
+
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
 @onready var _camera_target: Node3D = %CameraTarget
@@ -300,6 +303,8 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_copied = null
 	view_yaw = last_command.yaw
 	view_pitch = _prone.held_pitch(prone_tuning, last_command.pitch)
+	if weapon != null:
+		weapon.shot_seq = last_command.seq
 	if ragdoll_by_command and last_command.ragdoll_pressed:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
@@ -343,9 +348,11 @@ func _move(delta: float) -> void:
 	var before := velocity
 	var ticks := roundf(delta / get_physics_process_delta_time())
 	velocity *= ticks
+	_rider.carry(self)
 	move_and_slide()
 	velocity /= ticks
 	_grounded = is_on_floor()
+	_rider.land(self)
 	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
@@ -395,6 +402,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
+	_rider.platform = null
 	_fallen = false
 	_slide.reset()
 	_fit_body()
@@ -419,6 +427,12 @@ func die(shot: HitRecord = null) -> void:
 ## from lying to standing over the ragdoll's `get_up_time`.
 func revive() -> void:
 	CharacterDeath.revive(self)
+
+
+## Gets the character up at `spot` (a server's choice, online): the body stands there at once and
+## the ragdoll's pose blends to it over `get_up_time`, so the ragdoll never decides where it stands.
+func revive_at(spot: Vector3) -> void:
+	CharacterDeath.revive_at(self, spot)
 
 
 ## True while the character is dead.

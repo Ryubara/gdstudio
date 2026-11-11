@@ -49,8 +49,10 @@ Measured on the skinned mesh in every pistol clip and every locomotion clip with
 part more than 2.7 mm off it on the female mannequin and 4.4 mm on the male (the limits are 2 mm and 5 mm).
 
 No number of the hold is typed by hand. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,
-`tools/hold/solve_pistol_hold.py` solves the seat, the fingers and the left hand's place on both mannequins at once,
-and `tools/hold/write_hold.gd` writes `pistol_held.tscn` and the five `HandPose` files of `gameplay/weapon/hold/`.
+`tools/hold/solve_pistol_hold.py` solves the seat, the fingers, the left hand's place and its way off the pistol
+(the opened pose and the clear line it leaves along) on both mannequins at once, and `tools/hold/write_hold.gd`
+writes `pistol_held.tscn`, the five `HandPose` files of `gameplay/weapon/hold/` and the way (`support_way` in
+`weapon_hold.tscn`).
 After a change to the model or to a mannequin's hands, run the three (each file's header has its command), then
 `tools/capture/pistol_hold_study.tscn` for the numbers and close-ups, and the test.
 

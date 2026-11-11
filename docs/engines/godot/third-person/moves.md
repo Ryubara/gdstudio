@@ -40,7 +40,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   and `to_prone_clip` and `to_crouch_clip` played over the body for the enter and exit times. Until the template's own
   clips land (gdstudio #1009), the placeholder is the library's swim stroke held on its first pose for the idle and
   played for the crawl, lifted and moved ahead by `prone_pose_offset` (the stroke floats under a water line) and
-  tipped by `prone_pose_lean`; with real clips the offset and the lean are zero.
+  tipped by `prone_pose_lean`; with real clips the offset and the lean are zero. Those clips rest the forearms on
+  their outer edges with the hands in fists and hold no weapon
+  ([how they are solved](../../../tools/blender/animation.md#solved-clips)).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

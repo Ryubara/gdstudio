@@ -253,17 +253,17 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
 - **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
   with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
   session back once, naming the branch. If GitHub cannot be asked, the hook lets go.
+- **Only its own branches.** The gate names a branch the session owns (`owned_kit_worktrees`): the worktree of its
+  `cwd`; the one its prompt names (`Worktree:`) or the ledger holds for its `Issue:` (read from the first user messages
+  of its transcript); one named in its `git commit`, `git worktree add` or `git merge` commands. A session that owns
+  none (an eval run, the coordinator) is never held for others' branches; the check below does the same.
 - **Commits after a merge.** The same list gives the tip a branch's last merged pull request landed (`headRefOid`).
-  A branch whose pull request is merged (and none is open) and which then got a commit is also named, when
-  `git cherry origin/main HEAD <tip>` still marks that commit `+`: the commits after the tip, compared to `origin/main`
-  by patch id, because a squash merge rewrites every hash. The message says to make a new branch from `origin/main`,
-  cherry-pick the commit, open a new pull request, and reset the old branch to the merged tip (so it is not named
-  again). A commit that already reached `origin/main` through a new pull request has the same patch id and is not
-  named; one squashed there with other commits has a new patch id, so each `+` commit is also read by content and is
-  stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
-  is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
-  the gap that lost a lesson twice (kit #175 and #176;
-  [Starting work](starting-work.md#landing)).
+  A merged branch (none open) that then got a commit is also named, when `git cherry origin/main HEAD <tip>` marks the
+  commit `+` (by patch id, since a squash merge rewrites every hash). The message says to make a new branch from
+  `origin/main`, cherry-pick the commit, open a new pull request, and reset the old branch. A commit
+  that reached `origin/main` through a new pull request has the same patch id and is not named; one squashed there
+  with others is read by content: stranded only if a path it touches differs from `origin/main`'s blob. If the tip is
+  unknown in the worktree (the branch was rewritten), the hook lets go ([Starting work](starting-work.md#landing)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
@@ -312,6 +312,11 @@ game's `lessons` rule without `names: section` keeps the old form.
   docs, and an agent's own fixes left none. **Seen:** Deadnight #507, gdstudio #99, 2026-11-02 (fix: the Stop and
   SubagentStop gates flag a kit branch with commits and no pull request and a report with mistakes and no section; `gds
   issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99)).
+
+- **Approach:** Judge a Stop gate against the stopping session's own work: name only the branches it owns (its `cwd`,
+  prompt, ledger entry and commands). **Watch out for:** a gate over every kit worktree held each agent, the
+  coordinator and eval runs to disclaim the others' branches, and ate an eval run's report.
+  **Seen:** gdstudio #895, 2026-11-10.
 
 ## Agent stalls {#stall}
 

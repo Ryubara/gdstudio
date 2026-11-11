@@ -83,6 +83,9 @@ The probe starts the game server as a process of its own. On Windows the console
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
+3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
+([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
@@ -197,7 +200,7 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | TICK, 8 players, no events | 107 | 107 |
 | TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
 | PING / PONG | 7 / 11 | 7 / 11 |
-| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 15, 15, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
 
 What the command's fields mean, fixed by gdstudio #901: `move` is the push in the view's axes (`x` right, `y`
 forward, no longer than 1), `yaw` the view's heading (0 looks along -Z, so the body's `facing` is `yaw + PI`), `pitch`
@@ -206,7 +209,9 @@ only on a tick where a shot can leave (a press buffered or just made, or an auto
 ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
 every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
-the empty hands; gdstudio #887) and bit 15 is prone (#1012), `NetWire.VERSION` 3; no flag bit is free.
+the empty hands; gdstudio #887) and bit 15 is prone (#1012); no flag bit is free. `NetWire.VERSION` 4 (#906): a shot
+carries the weapon and the low 16 bits of its `seq`, a hit the health it left
+([shots online](third-person/online-shots.md#template-shots)).
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -303,7 +308,8 @@ and drawings carry no collision; a solid thing is built into the world both side
 collision, so the server's bodies must not block one another either (Deadnight #760: a body on layer 1 with a mask of 1
 and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
-(`tests/net/test_world_parity.gd`).
+(`tests/net/test_world_parity.gd`). A solid thing that moves is put at the command's tick on both sides
+([networked map parts](third-person/net-world.md#net-world)).
 
 - **Approach:** Build a solid thing into the world both sides build and move it by the rules (server) and the frame
   (client); a view script adds no collision (a node it makes with `.new()` gets none), and a test joins a real client to

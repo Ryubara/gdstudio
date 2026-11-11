@@ -10,7 +10,8 @@ extends Node
 ## `suspend` and `resume`.
 ##
 ## On the web, a page opened with `?probe` gets a `WebProbe` here at run time (and one opened with
-## `?netprobe` a `NetProbe`), so no scene ships a probe node.
+## `?netprobe` a `NetProbe`, and one opened with `?netplay` a `NetPlayProbe`), so no scene ships a
+## probe node.
 
 @export_group("Nodes")
 ## The body the rig follows.
@@ -25,3 +26,4 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		WebProbe.attach(self, player, camera_rig, touch)
 		NetProbe.attach(self)
+		NetPlayProbe.attach(self, player)

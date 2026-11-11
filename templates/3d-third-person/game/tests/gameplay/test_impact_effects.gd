@@ -77,6 +77,17 @@ func test_each_surface_plays_its_own_sound_and_effect() -> void:
 	assert_int(distinct.size()).is_equal(3)
 
 
+# The voice plays the surface's takes decoded once (`DecodedSounds`), not its Ogg Vorbis files:
+# a hit's sound start cost about 300 µs before, about 4 after.
+func test_a_hit_plays_its_surface_sound_decoded() -> void:
+	var surface := _impacts.impact(_body(), Vector3(0.0, 1.0, 0.0), Vector3.UP)
+	var voice := _slots_of(surface)[0].sound_player()
+	var played := voice.stream as AudioStreamRandomizer
+	assert_object(played).is_same(DecodedSounds.decoded(surface.effect.sound))
+	for n in played.streams_count:
+		assert_object(played.get_stream(n)).is_instanceof(AudioStreamWAV)
+
+
 func test_a_burst_of_hits_reuses_the_surface_effects_slots_up_to_its_max_instances() -> void:
 	var surface := _surface(&"default")
 	surface.effect.max_instances = 2
