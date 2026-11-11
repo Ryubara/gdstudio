@@ -373,6 +373,13 @@ attribute `mismatch`, and the step first checks that the export served the list 
 list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out the check counted 23 and exited 1. When
 it fails, record the list again with `--write <list> --merge` and commit it.
 
+- **Approach:** a change that adds anything drawn to a template (a pickup, a capture scene, a level prop) records the
+  list again before its push: `gds template test <name> --keep --suite <one small suite>` makes the game, export it
+  for Web, then run the probe through `gds quiet` with `--write <the template's list> --merge`. **Watch out for:** a
+  local run can link fewer of the new programs than CI does (2 added here, 13 missed there), so check the new list
+  against a fresh export with `--list ... --max-missed 10` before you push. **Seen:** gdstudio #1258, 2026-11-11 (the
+  rifle pickup and hold).
+
 ## Testing it {#testing-it}
 
 - **No program linked after the loading screen** in a browser run (the counter above) is the real test.
