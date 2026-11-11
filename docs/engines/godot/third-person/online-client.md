@@ -24,11 +24,12 @@ player's own `_physics_process` off. Each physics step:
    skipped (the engine's catch-up ticks: no command, no step).
 3. The body moves by the correction under way (`Reconciler.take`).
 4. The controller is sampled, the command numbered (by the server tick it is expected to be stepped at:
-   `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail it, `renumbered`; the map's doors and
+   `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail the TICK's tick and the smallest of the
+   last eight round trips, `numbering_rtt_ms`, `renumbered`; the map's doors and
    platforms are put at that tick first, [networked map parts](net-world.md#net-world)) and encoded; the body steps
    once with the decoded packet (`Character.step`, the server's own step), and the point it reached is recorded for
    that number.
-5. A ping goes out twice a second.
+5. A ping goes out twice a second (`rtt_ms` is the last PONG's round trip, `rtt_samples` the last eight).
 
 Before the prediction the step plays the server's shots, hits and deaths that are due (`ClientCombat`, [shots
 online](online-shots.md#template-shots)): the local player's at once, the others' when the puppets are drawn at their
@@ -97,11 +98,7 @@ snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crou
 `aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
 and refits the capsule. `CharacterAnimation` needed nothing new.
 
-The online scene hands every puppet to its `PuppetAnimationThrottle` (`RemotePlayers.animation_throttle`, a
-`CharacterAnimationThrottle`, the AI's [animation throttle](ai.md#animation-throttle) without the tiers): within 15 m
-of the camera a puppet animates every frame and plays its footsteps, out of view past that it holds its pose, and past
-25 m it moves every sixth frame. Like every character, its meshes are on `CharacterModel.body_layers` (layer 2), which
-the minimap's live camera does not draw. What the two save: [playing online](#play-online).
+Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost).
 
 - **Approach:** Give a body placed by hand the engine's floor contact with a short move through its point (3 cm above
   it, moved down; up while the entry says it is in the air), then put it back on the point. **Watch out for:**
@@ -227,6 +224,9 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (the warm-up it joined during: below), so snaps are allowed per stall the stall guard saw. The CI runner (ubuntu,
   four cores) drew the same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
   (`net_play_smoke.py` `MIN_FPS`; the first CI run of #1077 failed on it).
+- **Approach:** Run the browser half with `--gpu` whenever the page draws AI puppets (`net_play_smoke.py --gpu --ai N`).
+  **Watch out for:** SwiftShader drew 40 puppets at 7 frames a second, far under the floor above, while the GPU page
+  passed every gate at 42. **Seen:** gdstudio #970, 2026-11-11.
 - **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
   (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
   `worst_stall_error`). **Watch out for:** every page answer past 3 m came in its first three seconds, after two to
@@ -277,6 +277,20 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   fixed the client (`BodyOverlap`): the old walk (`--walk spawn`), three two-core stall runs, 25.0 to 32.4 m against
   28.8 to 62.2 m. A branch cut before the fix fails the stall run the same way: merge main, never rerun.
   **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1); #1119.
+
+- **Approach:** Number the commands from the smallest round trip of the last eight PONGs (`NetClient.RTT_WINDOW`),
+  never the last; read the 5 s floor of `seq - server_tick` in the gate's `by_second` (a stale TICK spikes a second).
+  **Watch out for:** a number may jump, never go back (the server drops a `seq` at or under its last), so one PONG
+  held behind a stall of the network (450 to 590 ms, not 250) put the numbering 15 to 18 ticks ahead for good, and
+  the map's moving parts stood up to 0.5 s apart on the two sides. #1108's check misses that PONG, and a freeze's
+  too: it is read in the first poll after the freeze, before the stall guard's resync (main's client stood 43, 129,
+  then 310 ticks ahead after the 0.5, 2 and 5 s freezes). **Seen:** gdstudio #1116, 2026-11-11 (stall runs ended 17
+  to 27 ahead, main's 33 to 82; freeze runs 11 to 20 throughout; the held-PONG test).
+- **Approach:** Judge a change's stall runs against main's client in the same made game, interleaved run by run
+  (copy the one script in), and read the CPU load beside each. **Watch out for:** at 97 to 100 % CPU the starvation
+  check failed on both sides (main's client 441 to 597 puppet-steps, the fix 498 to 867, bounds 530 to 620); its two
+  worst runs each came with an unplanned stall of the client's thread, which the numbering does not touch.
+  **Seen:** gdstudio #1116, 2026-11-11 (eight runs of main's client, nine of the fix; the browser half passed).
 
 ## Playing online {#play-online}
 
@@ -353,11 +367,8 @@ Each puppet cost the software-drawn page about 1.5 ms a frame and the GPU page 1
 uncapped page made a frame in 1.7 to 2.2 ms; the first puppet also turns the route bot's view, so read the cost from 1
 to 7). Two pages at once share the CPU and draw at 15 there.
 
-**Where a puppet's frame went (#1138).** About three quarters of a puppet's millisecond was the minimap's live
-camera drawing every body a second time each frame; with every character's meshes on layer 2
-(`CharacterModel.body_layers`) and an animation throttle for the puppets, seven puppets on the GPU page take 3.8 to 4.2
-ms a frame (10.5 to 14.3 before) and 45.5 to 48.5 ms on SwiftShader (51.8 before). The split, the bench and the tables:
-[what a puppet costs](puppet-cost.md#puppet-cost).
+**Where a puppet's frame went (#1138):** mostly the minimap drawing every body again; seven puppets now take 3.8 to
+4.2 ms on the GPU page (10.5 to 14.3 before), [what a puppet costs](puppet-cost.md#puppet-cost).
 
 **A cold browser hangs up on its first join.** Godot's Compatibility renderer links each shader program the first time
 it draws with it and asks for the link's result at once (`getProgramParameter`), which waits until Chrome's GPU process
@@ -495,7 +506,8 @@ there), and the 60 s unread client is a client whose downlink stalls while it st
   no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
   (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
 - **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
-  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+  connection; 10 s once all are seated (`--ai 40,120` adds an AI crowd on the server: [the AI's
+  numbers](ai.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
 
 | Players | Down a client | Up a client |
 | ---: | ---: | ---: |

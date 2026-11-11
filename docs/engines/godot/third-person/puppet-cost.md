@@ -11,6 +11,12 @@ Person, where it went and what took it down. Part of [the online client](online-
 <!-- new section: online-client.md reached its size limit; the split of a puppet's frame cost (gdstudio #1138) and the
      bench that measures it had no room there -->
 
+The online scene hands every puppet to its `PuppetAnimationThrottle` (`RemotePlayers.animation_throttle`, a
+`CharacterAnimationThrottle`, the AI's [animation throttle](ai.md#animation-throttle) without the tiers): within 15 m
+of the camera a puppet animates every frame and plays its footsteps, out of view past that it holds its pose, and past
+25 m it moves every sixth frame. Like every character, its meshes are on `CharacterModel.body_layers` (layer 2), which
+the minimap's live camera does not draw. What the two save is below.
+
 Seven puppets on one GPU page, uncapped, the frame
 with one part of the puppets taken out at a time (one run each, so a millisecond either way is noise): all in, 8.6 ms;
 no puppet, 2.3; the trees frozen, 4.1; the models hidden, 4.3; the weapon hold's modifiers stopped, 7.6; the footsteps
