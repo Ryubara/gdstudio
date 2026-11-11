@@ -385,5 +385,7 @@ func test_every_slide_setting_is_pinned() -> void:
 		&"jump_air_drag": 1.0,
 	}
 	for tuning: SlideTuning in [SlideTuning.new(), load(SLIDE)]:
+		# Its values are pinned in `test_aim_layer.gd`.
+		pins[&"aim_limits"] = tuning.aim_limits
 		assert_array(ExportPins.differences(tuning, pins)).is_empty()
 		assert_array(ExportPins.wrong_values(tuning, pins)).is_empty()

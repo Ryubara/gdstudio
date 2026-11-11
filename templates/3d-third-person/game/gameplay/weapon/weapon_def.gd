@@ -11,6 +11,14 @@ extends Resource
 ## shows in the next shot. The definition is shared by every weapon that holds it (a `.tres` is
 ## loaded once): to change one character's weapon alone, give it a copy (`duplicate()`).
 
+## What a character does when it aims past what its move lets the upper body reach.
+enum PastAimLimit {
+	## The body turns, so the aim is within reach.
+	TURN_BODY,
+	## The body keeps its way and the trigger does nothing until the aim is within reach.
+	REFUSE_SHOT,
+}
+
 ## How a shot travels.
 enum Kind {
 	## A body (`projectile_scene`) flies from the muzzle and hits what it touches: it can be seen
@@ -51,6 +59,12 @@ enum Kind {
 @export_range(0.0, 500.0, 0.5, "suffix:N·s") var impulse := 40.0
 ## On: hits leave marks, effects and sounds (the level's `Impacts`). Off: they land unseen.
 @export var impacts := true
+
+@export_group("Aim")
+## What happens when the character aims past the reach of its move's `AimLimits` (a slide keeps
+## the body along the slide): the body turns so the aim is within reach again, or the shot is
+## refused until it is.
+@export var past_aim_limit := PastAimLimit.TURN_BODY
 
 @export_group("Aim and zoom")
 ## What a press of aim or fire does with this weapon in the hands. The character and the camera
