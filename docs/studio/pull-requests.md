@@ -203,3 +203,9 @@ upload is named in the answer, with the command that repairs it. It is advice, n
 exists), and `readback = false` in `[attach]` turns it off. Neither check can read a script file (`python open_pr.py`
 runs `gh` out of sight; only the read-back sees its result) or a `gh api` call that sets a body; `pr-rules` in CI
 remains the last check.
+
+- **Approach:** In a body that is about captures (a docs pull request, a report), describe a reference in words ("an
+  image reference to the local `.mp4`") rather than writing the `![name](./file)` form, even in backticks. **Watch
+  out for:** the read-back matches the form anywhere outside an HTML comment, code spans included, so a docs pull
+  request with no capture at all was reported as sent with a local image. **Seen:** gdstudio #1237 (PR #1240),
+  2026-11-11 (the Summary reworded with `gh pr edit`).
