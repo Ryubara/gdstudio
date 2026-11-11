@@ -28,11 +28,17 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   heredocs for a few lines with no apostrophe, and open text files with `newline=""` when a Python one-liner rewrites
   them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
   Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
-  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1149, 2026-11-11 (a heredoc that wrote
-  `styles.py` held "an artist's"; and a patch that matched whole lines stopped matching once `gdformat` had rewritten
-  the file with CRLF: read with `
-` folded to `
-`).
+  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
+  written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
+  patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
+  with its line ends folded to LF before matching).
+- **Approach:** Keep the probes and one-off scripts you write in your own scratch folder
+  (`<workspace>/scratch/<repo>/<branch>/probes/`) and run them from there. **Watch out for:** Python puts the
+  script's folder first on its import path, so a probe written to the machine's shared temp folder imported
+  another agent's `inspect.py` in place of the standard library's, and numpy failed to load with
+  `No module named 'bpy'`; a probe that imported a template's script left a `__pycache__` folder beside it, which
+  the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
+  moved to the scratch folder; the cache folder was deleted before the push).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
@@ -84,6 +90,12 @@ actions before it exports (its header has the command line and the limit).
   where they were made and printed a size 1 cm short (0.186 m against the file's 0.196 m), and a budget or lowest-vertex
   check would read the same stale place. **Seen:** gdstudio #834, 2026-11-08 (fix: the update in `build_pistol.py`'s
   check).
+- **Approach:** Run a new measuring script first on a clip whose answer is known (a loop the file closes exactly
+  reads a 0 mm seam; a standing clip reads no ground speed) and print one joint on the first, second and last
+  frame beside the script's number. **Watch out for:** numpy puts the axes of two index lists first when a slice
+  sits between them (`world[:, joints, :3, 3]` is joint by frame, not frame by joint), so the first audit read a
+  906 mm seam on every closed loop, the pelvis's height. **Seen:** gdstudio #1150, 2026-11-11 (fix:
+  `world[:, joints][:, :, :3, 3]` in `audit_clips.py`).
 - **Approach:** Compare two poses in a check by matrix distance (the largest difference of the two matrices' entries,
   or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
   `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two

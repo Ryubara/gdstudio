@@ -11,7 +11,8 @@ Blender, with the scripts that repeat them. **Not here:** how Godot imports and 
 on the Credits screen and with a licence entry. The plan, much later, is GDStudio's own art. So when an agent builds
 or changes art, it records the measured style (proportions, palette, silhouettes, triangle counts) in the game's docs,
 which will guide the original assets, and it prefers generated or original work where that costs the same. Nobody
-starts a replacement effort unasked.
+starts a replacement effort unasked. Animation is the first one asked for: every clip the template plays gets a
+replacement of our own ([Our own animation set](own-animation.md), kit #1150).
 
 Each stage of making an asset has a page; the asset classes and the tooling have theirs.
 
@@ -29,6 +30,7 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | The skeleton of GDStudio's own rig: bones, rest pose, twist bones, sockets, IK targets, clip rules | [The prototype mannequin rig](mannequin-rig.md) |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
 | Locomotion clips from a kit's Run, at a known ground speed | [Gaits](gaits.md) |
+| The plan to own every clip: the library's clips measured, the research, the set, checks, variants and review | [Our own animation set](own-animation.md) |
 | Modular kit pieces, props, stairs and backdrops for a map | [Modular kits](modular-kits.md) |
 | Character variants, clothes and modular parts on one rig | [Variants](variants.md) |
 | Weapons in the kit's style: axes, sockets, hands, budgets | [Weapons](weapons.md) |

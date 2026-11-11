@@ -63,3 +63,9 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
   correlation of the two legs' curves alone failed a good run whose feet moved with different shapes (a short contact,
   a long flight), since the shapes differ even when the timing is right. **Seen:** the Blender model duel, 2026-11-10
   (a correlation check failed a run whose legs did swing half a cycle apart).
+- **Approach:** Call a foot planted while its lowest skinned vertex is within a fifth of the foot's own lift of
+  the floor **and** within 25 mm of it, and report the planted speed's spread beside its mean. **Watch out for:**
+  a fifth of the lift alone is a 10 cm band on a run whose foot lifts half a metre, so the fast swing before the
+  landing and after the push counted as contact: the library's jog read 6.4 m/s with a fifth of its cycle
+  planted where the sole is on the floor for three frames at 5.9 m/s. **Seen:** gdstudio #1150, 2026-11-11
+  (`PLANT_BAND` in the template's `assets/animation/audit_clips.py`).

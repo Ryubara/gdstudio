@@ -28,7 +28,9 @@ draw the blend of the last two ticks.
 - After you set a new transform on a node that must not slide in (a teleport, a spawn, a pooled node reused), call
   `reset_physics_interpolation()` once the transform is set.
 - Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation
-  was smooth in our measure.
+  was smooth in our measure. A ragdoll's bones are written once a tick by its `PhysicalBoneSimulator3D`, so its skin
+  steps while its `PhysicalBone3D` nodes glide: draw the bones from the bodies' interpolated transforms
+  ([Drawing between ticks](ragdoll.md#drawing)).
 
 - The mode is inherited down the tree, and a `Control` is not physics-interpolated: a 3D world under a UI screen is
   drawn at the last tick whatever the project setting says. Set the world's root to `PHYSICS_INTERPOLATION_MODE_ON`
