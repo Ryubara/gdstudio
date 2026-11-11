@@ -24,9 +24,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
-  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, a parameter `world_hash` beside `static func
-  world_hash`: three scripts did not parse); #903 (a
-  parameter `url` and a method `url()`); #901 (`before`).
+  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, `world_hash` beside a function of that name);
+  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an

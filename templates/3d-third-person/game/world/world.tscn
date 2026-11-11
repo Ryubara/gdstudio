@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://gameplay/ai/ai_animation_throttle.gd" id="9_ai_throttle"]
 [ext_resource type="Script" path="res://gameplay/ai/relations/ai_factions.gd" id="ai_factions"]
 [ext_resource type="Resource" path="res://gameplay/ai/relations/ai_relations.tres" id="ai_relations"]
+[ext_resource type="Script" path="res://gameplay/ai/senses/ai_noise.gd" id="ai_noise"]
 
 [node name="World" type="Node"]
 
@@ -46,3 +47,6 @@ warm_up_groups = Array[StringName]([&"player"])
 [node name="AiFactions" type="Node" parent="."]
 script = ExtResource("ai_factions")
 relations = ExtResource("ai_relations")
+
+[node name="AiNoise" type="Node" parent="."]
+script = ExtResource("ai_noise")

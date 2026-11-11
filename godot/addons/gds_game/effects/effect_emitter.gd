@@ -98,11 +98,24 @@ var _warm_materials: Array[Material] = []
 var _warming := true
 
 
-## The emitter of the level `from` is in (the first in the group), or null when there is none.
+## The emitter of the level `from` is in (the one in its viewport, else the first in the group),
+## or null when there is none.
 static func find(from: Node) -> EffectEmitter:
 	if from == null or not from.is_inside_tree():
 		return null
-	return from.get_tree().get_first_node_in_group(GROUP) as EffectEmitter
+	# The one drawn in the same viewport as `from` (several worlds in one process: a test, a
+	# side-by-side capture of two clients); the first otherwise.
+	var viewport := from.get_viewport()
+	var first: EffectEmitter = null
+	for node in from.get_tree().get_nodes_in_group(GROUP):
+		var found := node as EffectEmitter
+		if found == null:
+			continue
+		if found.get_viewport() == viewport:
+			return found
+		if first == null:
+			first = found
+	return first
 
 
 func _init() -> void:

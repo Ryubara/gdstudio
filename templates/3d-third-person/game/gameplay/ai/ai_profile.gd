@@ -93,6 +93,9 @@ const REACTION_FLOOR := 0.2
 @export var faction := &"neutral"
 ## How far it tells its allies what it knows.
 @export_range(0.0, 100.0, 0.5, "suffix:m") var share_radius := 12.0
+## Seconds between noticing a thing and telling the allies within `share_radius` about it (a
+## shout takes a moment); each ally passes a told thing on at most once.
+@export_range(0.0, 10.0, 0.05, "suffix:s") var share_delay := 0.5
 ## 0 (ignores orders) to 1 (always obeys).
 @export_range(0.0, 1.0, 0.01) var obeys_orders := 0.5
 

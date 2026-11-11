@@ -18,5 +18,7 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
 - [The game server](game-server.md): the headless server that admits and steps the players, its log and its cost.
 - [The online client](online-client.md): the predicting client, the reconciler and stall guard, the puppets of the
   other players, and what it costs.
+- [Shots, hits and deaths online](online-shots.md): who decides a hit, the events of a shot, a hit and a death, and
+  what each screen makes itself.
 
 What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).
