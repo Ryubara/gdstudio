@@ -108,8 +108,9 @@ func test_a_hitscan_shot_draws_one_streak_from_the_muzzle_to_the_hit() -> void:
 	assert_vector(drawn[0][0]).is_equal_approx(MUZZLE_AT, Vector3.ONE * 0.001)
 	assert_float(drawn[0][1].z).is_equal_approx(WALL_FACE, 0.01)
 	assert_int(_pool.active_count()).is_equal(1)
-	assert_bool(_pool.visible).is_true()
+	# Written by the frame's step (`shown_count` writes it now), so the frame of the shot shows it.
 	assert_int(_pool.shown_count()).is_equal(1)
+	assert_bool(_pool.visible).is_true()
 	# A miss runs to the range.
 	_weapon.definition.hitscan_range = 5.0
 	_shoot()
