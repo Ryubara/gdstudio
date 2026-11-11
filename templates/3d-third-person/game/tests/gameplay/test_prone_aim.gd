@@ -2,7 +2,8 @@
 # lying body aims with the prone aim clips and no standing weapon layer, the pose follows the look
 # to the prone limits, a shot kicks it, both hands are on the pistol, a weapon with no prone aim
 # keeps the standing layer; and the camera's prone aim view keeps the shoulders, the hands and
-# the pistol in the picture, beside the head, with the lens over the floor.
+# the pistol in the picture above the HUD's bottom row, the pistol beside the head, with the lens
+# over the floor.
 extends GdUnitTestSuite
 
 const PRONE_AIM := "parameters/Locomotion/prone/Aim/blend_amount"
@@ -16,6 +17,9 @@ const IN_VIEW: Array[StringName] = [&"upperarm_l", &"upperarm_r", &"hand_l", &"h
 const ASPECT := 16.0 / 9.0
 ## How near the picture's edge a point may be, as a share of the picture's size.
 const EDGE := 0.01
+## Where the HUD's bottom row (health, ammo) starts, as a share of the picture's height: the
+## shoulders, the hands, the head and the muzzle stay above it.
+const HUD_ROW := 0.84
 ## How far the line from the lens to the pistol's muzzle passes from the middle of the head, in
 ## metres: more than the head's half width, so the pistol shows beside it.
 const BESIDE_HEAD := 0.11
@@ -271,7 +275,7 @@ func test_the_prone_aim_view_shows_the_shoulders_the_hands_and_the_pistol() -> v
 				on_screen.x > EDGE
 				and on_screen.x < 1.0 - EDGE
 				and on_screen.y > EDGE
-				and on_screen.y < 1.0 - EDGE
+				and on_screen.y < HUD_ROW
 			)
 			(
 				assert_bool(inside)

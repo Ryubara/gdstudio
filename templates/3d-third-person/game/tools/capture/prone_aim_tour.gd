@@ -4,8 +4,10 @@
 ## the same `orbit()` the mouse, the stick and the touch layer use.
 ##
 ## The picture is the player's own camera, or with `PRONE_AIM_VIEW` set a camera of the tour's
-## that rides the body: `side`, `front`, `top`, or `hands` (close on the pistol, for the hands on
-## the weapon). `PRONE_AIM_MODEL=male` swaps the mannequin.
+## that rides the body: `side`, `front`, `top`, or `hands`, `hands_left`, `hands_top` and
+## `hands_front` (close on the pistol from its right, its left, above and ahead, for the hands on
+## the weapon). `PRONE_AIM_MODEL=male` swaps the mannequin, and `PRONE_AIM_STANDING_VIEW=1` aims
+## with the camera's standing aim view (`PlayerCamera.prone_aim_view` off), to compare.
 ##
 ## `gds capture frames --project game --scene res://tools/capture/prone_aim_tour.tscn --seconds 14`
 ## It prints a `STEP` line as each step starts, with the frame, to find a moment's frame. It
@@ -17,15 +19,16 @@ const TURN_SPEED := 90.0
 ## Where the tour starts: open ground on the east side of the map.
 const START := Vector3(5.5, 0.0, 8.0)
 ## The tour's own views: where the camera is and what it looks at, in the body's space (+Z its
-## front, the origin under the lying body's middle), and its field of view.
+## front, the origin under the lying body's middle; for the `hands` views the origin is the
+## pistol's grip), and its field of view.
 const VIEWS: Dictionary = {
 	"side": [Vector3(-2.2, 0.45, 0.35), Vector3(0.0, 0.2, 0.35), 40.0],
 	"front": [Vector3(-0.9, 0.5, 2.3), Vector3(0.0, 0.2, 0.5), 40.0],
 	"top": [Vector3(0.0, 2.6, 0.45), Vector3(0.0, 0.0, 0.5), 40.0],
-	"hands": [Vector3(-0.5, 0.28, 0.9), Vector3(-0.02, 0.13, 1.08), 30.0],
-	"hands_left": [Vector3(0.5, 0.28, 0.9), Vector3(-0.02, 0.13, 1.08), 30.0],
-	"hands_top": [Vector3(-0.02, 0.7, 0.98), Vector3(-0.02, 0.1, 1.08), 30.0],
-	"hands_front": [Vector3(-0.12, 0.2, 1.75), Vector3(-0.02, 0.13, 1.08), 30.0],
+	"hands": [Vector3(-0.45, 0.12, -0.08), Vector3(0.0, 0.03, 0.02), 30.0],
+	"hands_left": [Vector3(0.45, 0.12, -0.08), Vector3(0.0, 0.03, 0.02), 30.0],
+	"hands_top": [Vector3(0.0, 0.6, -0.1), Vector3(0.0, 0.0, 0.02), 30.0],
+	"hands_front": [Vector3(-0.12, 0.1, 0.7), Vector3(0.0, 0.03, 0.0), 30.0],
 }
 
 ## The tour: `wait` holds `actions` for `seconds`; `tap` presses one action for a moment; `look`
@@ -64,6 +67,7 @@ var _held: Array[StringName] = []
 var _started := false
 var _view: Array = []
 var _camera: Camera3D
+var _on_pistol := false
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -71,6 +75,8 @@ var _camera: Camera3D
 
 func _ready() -> void:
 	_view = VIEWS.get(OS.get_environment("PRONE_AIM_VIEW"), [])
+	_rig.prone_aim_view = OS.get_environment("PRONE_AIM_STANDING_VIEW").is_empty()
+	_on_pistol = OS.get_environment("PRONE_AIM_VIEW").begins_with("hands")
 	if OS.get_environment("PRONE_AIM_MODEL") == "male":
 		var slot := _player.model
 		var old := slot.rig()
@@ -79,20 +85,39 @@ func _ready() -> void:
 		var male := load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene
 		slot.add_child(male.instantiate())
 	if not _view.is_empty():
-		_camera = Camera3D.new()
-		_camera.fov = _view[2]
-		_camera.near = 0.02
-		add_child(_camera)
+		_add_view()
+
+
+# The tour's own camera draws over the game in a viewport of its own (same world): the game's
+# camera stays the window's, since the player aims along it and would turn after any other.
+func _add_view() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	var container := SubViewportContainer.new()
+	container.stretch = true
+	container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(container)
+	var viewport := SubViewport.new()
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	container.add_child(viewport)
+	_camera = Camera3D.new()
+	_camera.fov = _view[2]
+	_camera.near = 0.02
+	_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	viewport.add_child(_camera)
+	_camera.make_current()
 
 
 func _process(_delta: float) -> void:
 	if _camera == null:
 		return
-	# The tour's own camera rides the body: placed after the game's camera host has chosen its own.
+	# The tour's own camera rides the body (or the pistol).
 	var body := Transform3D(Basis(Vector3.UP, _player.facing), _player.global_position)
+	if _on_pistol:
+		body.origin = (_player.get_node("Model/PistolHeld/Pistol") as Node3D).global_position
 	_camera.global_position = body * (_view[0] as Vector3)
 	_camera.look_at(body * (_view[1] as Vector3))
-	_camera.make_current()
 
 
 func _physics_process(delta: float) -> void:

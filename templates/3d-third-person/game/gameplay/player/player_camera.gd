@@ -229,7 +229,7 @@ const _FORWARDED: Array[StringName] = [
 ## Off: the lying body aims with the Aim group's view.
 @export var prone_aim_view := true
 ## The distance behind the target while aiming lying down.
-@export_range(0.5, 8.0, 0.05, "suffix:m") var prone_aim_distance := 1.45:
+@export_range(0.5, 8.0, 0.05, "suffix:m") var prone_aim_distance := 1.8:
 	set(value):
 		prone_aim_distance = value
 		_forward_blend()
@@ -241,7 +241,7 @@ const _FORWARDED: Array[StringName] = [
 		_forward_blend()
 ## How far that point rises while aiming lying down, so the view looks over the shoulders. The
 ## lens stays `prone_aim_distance` times the sine of the prone look-up limit under it.
-@export_range(-0.5, 1.5, 0.01, "suffix:m") var prone_aim_rise := -0.05:
+@export_range(-0.5, 1.5, 0.01, "suffix:m") var prone_aim_rise := 0.0:
 	set(value):
 		prone_aim_rise = value
 		_forward_blend()
@@ -253,7 +253,7 @@ const _FORWARDED: Array[StringName] = [
 		prone_aim_shoulder = value
 		_forward_blend()
 ## The field of view while aiming lying down.
-@export_range(20.0, 110.0, 0.5, "suffix:deg") var prone_aim_fov := 55.0:
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var prone_aim_fov := 50.0:
 	set(value):
 		prone_aim_fov = value
 		_forward_blend()
