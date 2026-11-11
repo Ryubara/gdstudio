@@ -37,7 +37,7 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 ## The most characters it manages on the desktop and on a server.
 @export_range(0, 4000) var desktop_cap := 120
 ## The most characters at the Full tier at once in a browser; the next nearest wait at Reduced.
-@export_range(0, 1000) var web_full_cap := 20
+@export_range(0, 1000) var web_full_cap := 12
 ## The most characters at the Full tier at once on the desktop and on a server.
 @export_range(0, 4000) var desktop_full_cap := 60
 ## The group of the bodies the tiers measure from (the players).
@@ -53,7 +53,7 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 
 @export_group("Steps")
 ## A Reduced character's body is stepped every this many ticks, with the missed time.
-@export_range(1, 30) var reduced_step_ticks := 3
+@export_range(1, 30) var reduced_step_ticks := 4
 ## A Dormant character's body is stepped every this many ticks, with the missed time.
 @export_range(1, 60) var dormant_step_ticks := 6
 ## A character at rest (standing still on a floor that does not move, asking for nothing, or

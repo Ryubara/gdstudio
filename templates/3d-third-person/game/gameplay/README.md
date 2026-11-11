@@ -12,6 +12,10 @@ The template has a character and the map's components:
 - `character/`: the character whoever drives it (`Character` and its scenes `character.tscn`, the body alone, and
   `character_dressed.tscn`, with its model; `CharacterTuning`, `CharacterAnimation`, `CharacterRagdoll`, `Footsteps`,
   `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`).
+- `ai/`: the AI characters' base (`AiCharacter`, `ai_character.tscn`: the dressed character driven by an
+  `AiController`), what kind each is (`AiProfile`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres`), and the
+  `AiDirector` (a node of `world/world.tscn`) that steps them, runs their thinks and sets their tiers within one
+  `AiBudget` a tick; `AiSituation` is what a character believes is going on.
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
   `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: its numbers,
