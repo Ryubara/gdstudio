@@ -45,8 +45,10 @@ func _ready() -> void:
 		"cover":
 			# North of the tall cover (which hides the post from the middle), west of the window wall.
 			_stand(Vector3(-12.0, 0.0, -6.0), -PI / 2.0)
-			# The player only stands there, so the shooter's peeks are not cut short by a death.
+			# The player only stands there, so the shooter's peeks are not cut short by a death;
+			# the camera looks past its shoulder at the post.
 			_turn_on(&"Shooters", 1, true)
+			_look_at(Vector3(-22.2, 1.0, -4.0), 10.0)
 		"chase":
 			_stand(Vector3(-6.5, 0.0, -0.5), -PI / 2.0)
 			var stops: Array[Node3D] = [_section.get_node("AiMarkers/GuardLane/Stop3")]
@@ -84,6 +86,12 @@ func _stand(spot: Vector3, heading: float) -> void:
 	_rig.pitch = -PITCH
 
 
+# Turns the camera to look at `point` (the section's space), `beside` degrees off to the right.
+func _look_at(point: Vector3, beside := 0.0) -> void:
+	var way := _section.to_global(point) - _player.global_position
+	_rig.yaw = rad_to_deg(atan2(-way.x, -way.z)) + beside
+
+
 func _turn_on(spawner_name: StringName, count: int, debug: bool) -> void:
 	var spawner := _spawners[spawner_name]
 	spawner.count = count
@@ -110,13 +118,13 @@ func _chase_step(was: float) -> void:
 		_rig.yaw += 180.0
 		Input.action_press(&"move_forward")
 		Input.action_press(&"sprint")
-	if _crossed(was, 4.6):
+	if _crossed(was, 4.1):
 		Input.action_release(&"move_forward")
 		Input.action_release(&"sprint")
 		Input.action_press(&"move_left")
-	if _crossed(was, 5.6):
+	if _crossed(was, 4.8):
 		Input.action_release(&"move_left")
-		_rig.yaw -= 150.0
+		_look_at(Vector3(-3.0, 1.0, 0.0), -15.0)
 
 
 # A shot into the floor in front of the shed's door at 2 s.
