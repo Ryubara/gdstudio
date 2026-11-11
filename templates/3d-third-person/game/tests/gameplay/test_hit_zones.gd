@@ -160,6 +160,19 @@ func _gap() -> Vector3:
 	return Vector3.INF
 
 
+func test_a_character_moved_since_the_last_shot_is_found_where_it_is_now() -> void:
+	# The zones are put on the bones only when a shot asks (`find`); a body that moved since must
+	# be met there in the same tick, not where the last shot left its zones (gdstudio #1198).
+	_zones.follow_bones()
+	await InputSim.ticks(get_tree(), 2)
+	_target.global_position += Vector3(1.5, 0.0, 0.0)
+	var chest := _target.global_position + Vector3.UP * 1.2
+	var found := _zones.find(chest + Vector3(0.0, 0.0, 2.0), chest - Vector3(0.0, 0.0, 2.0))
+	assert_bool(found.is_empty()).override_failure_message("no zone met").is_false()
+	if not found.is_empty():
+		assert_float((found.point as Vector3).x).is_equal_approx(chest.x, 0.3)
+
+
 func test_the_zones_cost_nothing_until_a_shot_reaches_the_capsule() -> void:
 	# Placed once, the zones stay where they were while the character walks on: nothing moves
 	# them every tick.

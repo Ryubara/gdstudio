@@ -73,6 +73,12 @@ A model without `Armature/Skeleton3D` gets one configuration warning on `Animati
 one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
 Scene dock and checks the result.
 
+**A second look without deleting** (kit #969): an inherited character scene cannot delete its base's model, so
+`CharacterModel.variant` takes another model of the same rig. When the game runs the slot frees the scene's model and
+puts the variant in its place at `_ready` (the seats and clips follow as for a swap); in the editor it draws the
+variant as an internal child and hides the scene's model through `RenderingServer` alone, so the scene saves nothing.
+The enemies of [the AI section](ai-characters.md#parts) set the male mannequin on the female base this way.
+
 - **Approach:** Put a part that people replace (the model, a weapon) under a stable slot node and reference only the
   slot (an export); a `@tool` script on the slot finds the part and rewrites the paths that depend on it (the
   `AnimationPlayer`'s Root Node, a `BoneAttachment3D`'s `external_skeleton`) one idle frame after a child enters or
@@ -105,6 +111,10 @@ Scene dock and checks the result.
   without an error. `bone_name = bone_name` also looks the bone up again by name: a model with another bone order is
   not bound to the old index, and an empty skeleton is not connected (it logged "Index p_bone = 34 is out of bounds").
   **Seen:** gdstudio #860, 2026-11-09.
+- **Approach:** Before seating an attachment, drop any `skeleton_updated` connection the skeleton still holds to it
+  (`CharacterModel._drop_connection`). **Watch out for:** a pooled character whose model was swapped at run time (a
+  `variant`) re-entered the tree, the attachment connected itself on entering, and the seat's setters then logged
+  "already connected" for each spawn. **Seen:** kit #969, 2026-11-11 (`test_ai_spawner.gd`, a spawn of a parked male).
 - **Approach:** Measure a seat against its bone, not the thing hung on it, to a few centimetres, in every frame of a
   crouch-walk after the swap, in the game scene as well as in the test arena, and check that the bone moved. **Watch out
   for:** the first test compared the pistol (0.13 m from its seat) with the hand 4 ticks after the swap against 0.35

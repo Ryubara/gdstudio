@@ -44,7 +44,7 @@ cycle: a seek is a cut.
   `AnimationNodeBlendSpace1D.add_blend_point` wants a name in 4.7 (a warning per point otherwise), and a one-shot clip
   node is set to the new clip by writing its `animation` before the request, with an `AnimationNodeTimeScale` in front
   to fit the clip to the time the game holds the body (the 2 s Interact clip into 0.7 s). **Seen:** gdstudio #821,
-  2026-11-08 ([The 3D Third Person template](third-person-template.md#animation-libraries)).
+  2026-11-08 ([The 3D Third Person template](third-person/clips.md#animation-libraries)).
 - **Approach:** Keep a tree in code when agents develop the project, and make the editor show it too: `@tool` on the
   builder, `tree_root` and `anim_player` built in `_ready` for editor and game, `Engine.is_editor_hint()` guards on all
   driving, and setters on the clip exports that rebuild it in the editor. Take both off the node on

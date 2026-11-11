@@ -37,6 +37,14 @@ command is the same there (off Windows it starts the program normally).
   card), a new Playwright version needs its own browser build (`playwright install chromium-headless-shell`), and
   three or four pages at once stalled the third and fourth on software GL. **Seen:** Deadnight, 2026-11-01 (fix: a
   `--gpu` mode on `channel="chrome"` for the multi-page smokes).
+- **Approach:** In CI, install the probe's browser so that an unreachable Ubuntu mirror cannot fail the job: try
+  `playwright install --with-deps` once, then fall back to the browser alone (the runner image has Chromium's libraries;
+  `--with-deps` only adds fonts). Each call runs under `timeout -k 30 <seconds>` and the step has a `timeout-minutes`
+  far under the job's (12 of 40; a normal install takes about 20 s). **Watch out for:** a DNS outage of
+  `azure.archive.ubuntu.com` failed the `template` job for over an hour (apt retries about eight minutes); a fallback
+  only covers a call that returns, and apt's switch to `archive.ubuntu.com` went silent and held the step 39 minutes.
+  **Seen:** gdstudio #1224, 2026-11-11 (fix: #1226, the fallback in both `ci` files); gdstudio #1201's run
+  43062712944, 2026-11-11 (fix: #1235, the limits, pinned by `test_workflow_browser_install.py`).
 - **Approach:** When the browser tools find no connected browser, start Chrome with `--headless=new
   --remote-debugging-port=9333` and a throwaway profile and speak the DevTools protocol over Node's built-in
   `WebSocket`: `Page.captureScreenshot`, `Page.startScreencast` for a transition (about 30 frames a second),
@@ -254,3 +262,15 @@ template changes. Its tests are `python/tests/test_bench_web.py` (the edits on t
 
 Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
 headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).
+
+- **Approach:** Count a web bench in physics ticks (`Engine.get_physics_frames()`), not in rendered frames, and run it
+  for 900 ticks or more when it reads a part's mean; to time a bench by part, add `Time.get_ticks_usec()` spans in the
+  kept game (`bench-web` without `--run`), export it again and read the means. **Watch out for:** a headless Chrome
+  page draws about three frames per physics tick at 1x, so a row of 300 frames held about 100 ticks; and the browser's
+  clock steps at 100 µs, so a span of 20 to 150 µs averages to a usable mean only over many hundreds of samples.
+  **Seen:** gdstudio #1104 (PR #1209), 2026-11-11.
+- **Approach:** For a before and after in Chrome, make two builds of the same bench: `bench-web` from your worktree
+  and from a checkout of `main` (`--project <main checkout>/python`; a bench new to the branch is copied into main's
+  kept game and exported again), then run the two probes in turns, A B A B, on a quiet machine. **Watch out for:** one
+  build measured at two times compares two machine loads, which moved rows 15 to 20 % between runs, more than most
+  changes save. **Seen:** gdstudio #1208 (PR #1219), 2026-11-11.

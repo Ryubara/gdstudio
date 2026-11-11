@@ -187,22 +187,18 @@ jobs:
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          # The at-exit leak ("N resources still in use at exit") is intermittent on CI (#954, #888) and passes on a
-          # rerun of the same code. When it is the only error, export once more; a second leak, or any other error,
-          # fails (docs/engines/godot/test-exit-leaks.md#the-export-leak-is-intermittent-on-ci).
-          export_web() { "$godot" --headless --path repos/template-check/game --verbose --export-release Web 2>&1 | tee "$1"; }
-          leak_only() { ! grep -E "ERROR" "$1" | grep -vE "still in use at exit|leaked at exit" | grep -q .; }
-          export_web export.log
-          if grep -qE "ERROR" export.log; then
-            if leak_only export.log && grep -qE "still in use at exit|leaked at exit" export.log; then
-              echo "::warning::The export ended with an at-exit leak; exporting once more. First run's leak lines:"
-              grep -E "ERROR|still in use|leaked at exit|^\s+res://" export.log || true
-              rm -rf repos/template-check/build/web && mkdir -p repos/template-check/build/web
-              export_web export-retry.log
-              if grep -E "ERROR" export-retry.log; then exit 1; fi
-            else
-              grep -E "ERROR" export.log; exit 1
-            fi
+          # The editor that exports sometimes ends with "N resources still in use at exit" and its companions
+          # ("Pages in use exist at exit", a verbose list of orphan names, some holding the word ERROR). Those
+          # lines come from the editor's own teardown after the pack is written, not from the build, which the
+          # steps after this judge: they are a warning. Any other `ERROR:` line, or Godot's own failure, fails
+          # (docs/engines/godot/test-exit-leaks.md#the-export-leak-is-intermittent-on-ci).
+          "$godot" --headless --path repos/template-check/game --verbose --export-release Web 2>&1 | tee export.log
+          if grep -E "ERROR:" export.log | grep -vE "at exit" | grep -q .; then
+            grep -E "ERROR:" export.log | grep -vE "at exit"; exit 1
+          fi
+          if grep -qE "leaked at exit|still in use at exit" export.log; then
+            echo "::warning::The export's editor ended with an at-exit leak (the build is judged by the next steps):"
+            grep -E "leaked at exit|still in use at exit|^Resource still in use" export.log || true
           fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
@@ -212,8 +208,21 @@ jobs:
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
       - name: The browser for the boot check
-        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md).
-        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md#running).
+        # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu
+        # mirror, which was unreachable for an hour on 2026-11-11 (#1224) and stalled apt for 39 minutes the same day
+        # (#1235). Each call has its own limit (a normal install takes about 20 s): the apt one is tried once, then the
+        # browser alone, twice. The step's limit stops anything those miss.
+        timeout-minutes: 12
+        run: |
+          pw=(uvx playwright@1.64.1)
+          timeout -k 30 240 "${pw[@]}" install --with-deps chromium-headless-shell && exit 0
+          echo "::warning::apt mirror unreachable or stalled; installing Chromium without its system packages"
+          for try in 1 2; do
+            timeout -k 30 180 "${pw[@]}" install chromium-headless-shell && exit 0
+            echo "::warning::Chromium download $try failed or stalled"
+          done
+          exit 1
       - name: Boot the web export in a browser
         # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
         # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
@@ -250,7 +259,7 @@ jobs:
       - name: The template's bad-network gate (native, and its teeth)
         # 3D Third Person's predicting client against its own server through a relay of 100 ms each way: freezes of
         # the client's thread, then 1 % of the chunks stalled 300 ms; thresholds in game/tools/net/bad_network.py
-        # (kit docs/engines/godot/third-person/online-client.md#bad-network-gate). Then the same freeze run with the
+        # (kit docs/engines/godot/third-person/online-gate.md#bad-network-gate). Then the same freeze run with the
         # reconciler's fix and with the server's hold taken out, each of which must fail. The browser half
         # (tools/web_smoke/net_play_smoke.py) runs on a workstation: the runner drew its page at 14 frames a second.
         run: |

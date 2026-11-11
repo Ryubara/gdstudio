@@ -19,6 +19,9 @@ func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
 	_player = _scene.get_node("PlayerRig/Player")
+	# The walks are of the body alone: the AI section's population stays out of the way.
+	for spawner: AiSpawner in _scene.get_node("World/AISection/Population").get_children():
+		spawner.enabled = false
 	Engine.time_scale = TIME_SCALE
 	await InputSim.ticks(get_tree(), 10)
 	var map := _map()
