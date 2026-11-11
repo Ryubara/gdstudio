@@ -49,6 +49,7 @@ func start() -> bool:
 func join(player_name: String, frames := 240) -> NetClient:
 	var view := _view("Client%d" % clients.size())
 	var arena := (load(ARENA_SCENE) as PackedScene).instantiate()
+	_own_cameras(arena, clients.size())
 	view.add_child(arena)
 	var client := arena.get_node("NetClient") as NetClient
 	client.player_name = player_name
@@ -91,6 +92,16 @@ func wait(frames: int) -> void:
 ## The server's body of `client`'s player.
 func server_body(client: NetClient) -> Character:
 	return server.body_at(client.slot)
+
+
+# Phantom Camera's hosts pick from every Phantom Camera in the process, whatever its viewport: give
+# each client's host and cameras a host layer of their own, or every client's screen shows the view
+# of the last camera added (camera.md#phantom-camera).
+static func _own_cameras(arena: Node, index: int) -> void:
+	var layer := 1 << (index % 32)
+	for node in arena.find_children("*", "", true, false):
+		if node is PhantomCameraHost or node is PhantomCamera3D:
+			node.set(&"host_layers", layer)
 
 
 func _view(view_name: String) -> SubViewport:

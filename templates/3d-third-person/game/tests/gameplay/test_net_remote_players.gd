@@ -37,6 +37,9 @@ func test_each_client_draws_the_other_and_keeps_its_own_camera() -> void:
 		var drawn := _rig.views[index].get_camera_3d()
 		var rig := client.player.get_parent() as PlayerRig
 		assert_object(drawn).is_same(rig.camera_rig.camera)
+		# And its host follows this client's own camera, not one of another client's view.
+		var host := rig.camera_rig.camera.get_node("PhantomCameraHost") as PhantomCameraHost
+		assert_object(host.get_active_pcam()).is_same(rig.camera_rig.phantom_camera())
 		for puppet: Player in client.remote_players.get_children():
 			assert_bool(puppet.is_in_group(Player.GROUP)).is_false()
 			assert_int(puppet.collision_layer).is_equal(0)

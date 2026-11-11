@@ -46,7 +46,9 @@ the slot's spawn point. Characters are on the Characters layer, which no charact
 each other ([Physics layers](../physics-layers.md#template-layers)).
 
 - **Commands, exactly once and in order.** A step takes up to `PeerSlot.MAX_PER_STEP` (6) queued commands and steps the
-  body once for each, so a client back from a stall catches up in a few steps; with none waiting, the last command is
+  body once for each, so a client back from a stall catches up in a few steps; with none waiting, the body waits
+  `hold_ticks` (4) steps without stepping (`HELD`: a command a step late, as two machines' frames drift, is waited for
+  rather than guessed at, [the online client](online-client.md#template-client)), then the last command is
   stepped again with its presses cleared (`clear_edges`) for `command_ticks` (30) steps, then one that asks for nothing
   (the view kept). The queue holds `NetLimits.TICK_RATE * NetLimits.STALL_SECONDS` (240); past that the oldest goes and
   its presses join the next (`merge_edges_from`). A body stepped six times in one physics frame ends where one stepped
@@ -70,7 +72,8 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
 - **The log** is one JSON object a line, said through `logged` too: `listening` (port, players_max, tick_hz,
   version), `joined` (slot, name, players), `left` (slot, reason `goodbye`, `dropped`, `silent` or `kicked`, players,
   drops), `refused` (reason, peer), `kicked` (peer, drops by reason), and every 10 s `stats` (players, tick,
-  out_bytes_per_s, step_ms_p50, step_ms_p95, steps_over_budget over 6 ms, peers_stalled, kicked).
+  out_bytes_per_s, step_ms_p50, step_ms_p95, steps_over_budget over 6 ms, peers_stalled, steps_held, steps_repeated,
+  kicked).
 - **Clocks.** The connection rules read `NetServer.clock` (the machine's when empty, the frame clock in tests), as
   [a room over a real socket](../multiplayer.md#room-over-socket) says.
 
