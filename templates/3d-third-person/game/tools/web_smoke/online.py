@@ -19,9 +19,10 @@ puppets; with two pages, one more).
 
 `--gpu` draws with the machine's GPU (ANGLE on Direct3D 11 on Windows). A first page plays `--warm-up` seconds before
 the measured ones (20 with `--gpu`): Chrome compiles each shader program the first time it draws it, on the page's
-thread, 12 to 14 s at once on a cold start, and the server hangs up on a socket that says no hello in 10 s; the
-browser keeps what it compiled, so the measured pages read a returning player's frames. `--uncapped` turns vsync and
-the frame cap off, so the frame time is the page's work and not 16.7 ms.
+thread, 12 to 14 s at once on a cold start (the server hangs up on its late hello and the client opens a new socket,
+`NetClient.rejoins`); the browser keeps what it compiled, so the measured pages read a returning player's frames.
+`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped`
+turns vsync and the frame cap off, so the frame time is the page's work and not 16.7 ms.
 
 `--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
 page shows the overlay's "another version" message. `result.json`, the logs and a screenshot of each page go to the
@@ -47,9 +48,9 @@ from relay import Relay
 
 READY_TIMEOUT_S = 120.0
 # Seconds a first page plays on the GPU before the measured pages open: Chrome on ANGLE's Direct3D 11 compiles each
-# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), and the
-# server hangs up on a socket that says no hello in `NetServer.hello_seconds` (10 s). The browser keeps what it
-# compiled for its later pages, so the measured pages read a returning player's frames.
+# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), so the
+# first page's frames and join time are a first visit's (21 to 22 s, one new socket after a late hello). The browser
+# keeps what it compiled for its later pages, so the measured pages read a returning player's frames.
 GPU_WARM_UP_S = 20.0
 # Chrome's flags for frames as fast as the page can make them (`--uncapped`): with vsync a GPU page reads 16.7 ms at
 # any load, which hides what a puppet costs.
@@ -144,16 +145,19 @@ def main() -> int:
                 result["warm_up"] = warm_up(browser, warm_url, viewport, warm)
                 print(f"WARM-UP: {result['warm_up']}", flush=True)
             pages: list[Page] = []
+            join_s: list[float] = []
             for index in range(args.pages):
                 page = browser.new_context(viewport=viewport).new_page()
                 page.on("console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None)
                 page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
                 plan = "route" if index == 0 else "watch"
+                began = time.time()
                 page.goto(
                     f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
                 )
                 settled = "window.gdonline && window.gdonline.state !== 'connecting'"
                 wait_for(page, settled, READY_TIMEOUT_S)
+                join_s.append(round(time.time() - began, 1))
                 pages.append(page)
             seated = all(report_of(page)["state"] == "seated" for page in pages)
             if seated:
@@ -161,6 +165,9 @@ def main() -> int:
             else:
                 time.sleep(2.0)
             reports = [report_of(page) for page in pages]
+            # Seconds from the page's load to its seat (or its failure), as the player waits them.
+            for report, seconds in zip(reports, join_s):
+                report["join_s"] = seconds
             for index, page in enumerate(pages):
                 page.screenshot(path=str(args.out / f"page{index + 1}.png"))
             browser.close()
@@ -205,6 +212,7 @@ def main() -> int:
         keys = ("state", "players", "rtt_ms", "gap_m", "corrections", "corrected_m", "fps", "frame_us_p50")
         line = ", ".join(f"{k} {report.get(k)}" for k in keys)
         line += f", frame_us_p95 {report.get('frame_us_p95')}, puppets_us_p50 {report.get('puppets_us_p50')}"
+        line += f", join_s {report.get('join_s')}, rejoined {report.get('rejoined')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1

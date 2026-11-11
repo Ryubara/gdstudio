@@ -25,6 +25,11 @@ file makes once are shared by its tests. Four workers at most, here as in CI: th
 Run it from the checkout whose code you changed (your worktree), with `--project` naming that checkout's `python`
 folder: `uv run --project <another checkout>/python pytest` tests the other checkout's code.
 
+- **Approach:** Name `python/tests` on every full run, as above. **Watch out for:** a bare `pytest` from the checkout's
+  root also collects the eval tasks' acceptance suites under `evals/`, which start services and fail with socket
+  timeouts that have nothing to do with your change, so the run looks red when the kit is fine. **Seen:** gdstudio
+  #1145 (2026-11-11), after a merge of main.
+
 ## What the tests share {#shared}
 
 - **Repositories made once.** A test that needs "a repository with a commit and a remote" copies a seed made once a

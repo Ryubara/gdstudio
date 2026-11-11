@@ -60,7 +60,7 @@ the two TICKs around that moment, so they walk, run, crouch, aim, jump and land 
 Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
 
 Inspector: `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`,
-`spawn_seed`; `RemotePlayers` `puppet_scene`, `delay`.
+`spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`.
 
 ## Playing online
 
@@ -78,7 +78,9 @@ Inspector: `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`
 The overlay says **Connecting** until the server seats the player, then hides. It says the server runs another version
 (reload the page, or update the game), that the game is full, that the server runs another map, that nobody answered
 within `connect_seconds`, or **Connection lost**, each with **Back to menu**; while it shows, the player's input is off.
-Its texts are exports of `online_status.tscn`.
+Its texts are exports of `online_status.tscn`. A server that hangs up on a hello that came too late (a browser
+compiling the game's shaders on its first visit holds its page for seconds) gets a new socket, up to `rejoins` times,
+while the overlay still says Connecting.
 
 `--bot route` or `--bot watch` (`?bot=route` on the web) hands the player to a `PlayerBot`, which presses the same
 actions a person would and turns the camera as the mouse does: `route` walks to the main door, opens it, comes back,
