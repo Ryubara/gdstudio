@@ -188,7 +188,9 @@ part to its `touch_region` while the touch layer shows ([the template HUD](ui-la
 `refresh` must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
 
 A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
-its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the
+its places are (in the template, `TouchControls.add_zone_source(hud)` and `Hud.touch_zones()`, `{rect, action}` boxes
+in canvas pixels, the weapon slots' and the hotbar's) and presses the action of the first that holds the finger, before
+any button, so the order of the
 list is the rule (put the narrowest place first). Measure a place against every neighbour that stands at a share of the
 screen or reads a column's height (the stick's resting ring, the challenge card, the markers) with the touch layout on,
 before building it: a fingertip-high part in a card column makes the column a fingertip taller. A word in a

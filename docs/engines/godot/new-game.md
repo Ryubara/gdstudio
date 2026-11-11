@@ -162,7 +162,9 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   (`gds template game <template>`, the argument is the template's name), copy the script in, run the pinned Godot
   headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
   for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
-  own folder cannot be opened to make one. **Seen:** gdstudio #1009, 2026-11-10.
+  own folder cannot be opened to make one. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1148, 2026-11-11 (the
+  scripts' `.uid` files were copied back but a suite written later was not: list the new `.gd` files with
+  `git status --short '*.gd'` and check each has its `.uid` before the run).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
