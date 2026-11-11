@@ -86,6 +86,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   for:** a strong reference both ways is a cycle that reference counting never frees, which shows as objects leaked
   at exit, a line CI refuses. **Seen:** gdstudio #965, 2026-11-10 (`AiTask.runner()`).
 
+- **Approach:** Pass a node that may have been freed (one that lived under a skeleton a model swap deleted) as an
+  untyped `Variant`, or check `is_instance_valid()` before the call, and test the path that frees it. **Watch out
+  for:** a typed parameter refuses a freed instance at the call (`The Object-derived class of argument 1 (previously
+  freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
+  runs; the suites of the new code passed, and only the death test that swaps to the male mannequin met it, in the
+  whole template run. **Seen:** gdstudio #1126, 2026-11-11 (`RagdollDrawing.place`).
+
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that

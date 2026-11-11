@@ -30,14 +30,16 @@ var _sleeper: PhysicalBone3D
 var _before: Array[Transform3D] = []
 
 
-## Puts `drawing` (made when null or freed with an old skeleton) on the skeleton of `of`'s bones,
-## right after its simulator, and returns it. Nothing while `of` has no bones.
-static func place(drawing: RagdollDrawing, of: CharacterRagdoll) -> RagdollDrawing:
+## Puts `current` (made again when null, or freed with an old skeleton) on the skeleton of `of`'s
+## bones, right after its simulator, and returns it. Nothing while `of` has no bones. `current` is
+## untyped: a typed argument refuses a freed object before the check could see it.
+static func place(current: Variant, of: CharacterRagdoll) -> RagdollDrawing:
+	var drawing: RagdollDrawing = current if is_instance_valid(current) else null
 	var simulator := of.simulator() if of.has_bones() else null
 	var skeleton := simulator.get_parent() as Skeleton3D if simulator != null else null
 	if skeleton == null:
 		return drawing
-	if drawing == null or not is_instance_valid(drawing):
+	if drawing == null:
 		drawing = RagdollDrawing.new()
 		drawing.name = NODE_NAME
 		drawing.active = false
