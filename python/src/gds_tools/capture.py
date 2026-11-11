@@ -24,7 +24,9 @@ from gds_tools.quiet_run import run_quiet
 
 META_FILE = "capture.json"
 SHEET_FILE = "sheet.png"
-FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<number>\d+)\.png$")
+# Movie Maker writes <name><8 digits>.png; the number takes at most 8 digits so a name ending in a digit stays the
+# prefix (`run2` gives run200000000.png, not run + 200000000)
+FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<number>\d{1,8})\.png$")
 
 DEFAULT_FPS = 10
 MAX_FRAMES = 6000  # a safety net: 10 minutes at 10 fps
@@ -289,12 +291,17 @@ def encode_clip(
     gif: bool = False,
     run: Runner = run_program,
     log: Callable[[str], None] = print,
+    max_seconds: float = CLIP_MAX_SECONDS,
 ) -> Path:
-    """Encode the frames of `folder` into `<folder>/<name>.mp4` (or .gif), at most `CLIP_MAX_SECONDS` long.
+    """Encode the frames of `folder` into `<folder>/<name>.mp4` (or .gif), at most `max_seconds` long.
+
+    Frames past `max_seconds` are left out, and a line says how many and how many seconds (#1132).
 
     The clip is encoded at the widest size in `CLIP_WIDTHS` and, while the file exceeds `CLIP_MAX_BYTES`, again at
     the next narrower one; CaptureError when even the narrowest is too big.
     """
+    if max_seconds <= 0:
+        raise CaptureError(f"--max-seconds must be more than 0, not {max_seconds:g}")
     frames = frame_files(folder)
     if not frames:
         raise no_frames_error(folder)
@@ -303,9 +310,14 @@ def encode_clip(
     digits = len(match["number"])
     pattern = folder / f"{match['prefix']}%0{digits}d.png"
     fps = read_fps(folder)
-    seconds = min(len(frames) / fps, CLIP_MAX_SECONDS)
-    if len(frames) / fps > CLIP_MAX_SECONDS:
-        log(f"clip cut to its first {CLIP_MAX_SECONDS:g} s")
+    total = len(frames) / fps
+    seconds = min(total, max_seconds)
+    if total > max_seconds:
+        left_out = len(frames) - math.ceil(max_seconds * fps)
+        log(
+            f"clip cut at {max_seconds:g} s: {left_out} frames ({total - max_seconds:g} s) of {len(frames)} left out;"
+            " --max-seconds for a longer clip"
+        )
     target = folder / f"{folder.name}.{'gif' if gif else 'mp4'}"
     for width in CLIP_WIDTHS:
         target.unlink(missing_ok=True)
