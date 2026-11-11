@@ -54,6 +54,12 @@ cycle: a seek is a cut.
   scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `CharacterAnimation` is `@tool`;
   [screenshots](editor-screenshots.md#how)).
 
+- **Approach:** Play each gait of a ground blend space at the body's ground speed over the clip's own speed, with
+  the blend points at the clips' speeds, and measure a planted foot's slide in a test. **Watch out for:** the
+  template's blend space puts each gait at a tuned speed and plays it at its own pace, so no gait's feet hold the
+  floor ([the gaits, measured](../../tools/blender/own-animation.md#audit-gaits)). **Seen:** gdstudio #1150 (PR
+  #1165), 2026-11-11 (not fixed yet: gdstudio #1158 adds the speed matching).
+
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
 `callback_mode_process = ANIMATION_CALLBACK_MODE_PROCESS_MANUAL`, the owner's `_process(delta)` then

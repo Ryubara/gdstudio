@@ -35,9 +35,9 @@ What the maintainer corrected or added that neither the coordinator nor any agen
 | 2026-11-01 | Deadnight #299 | Mouse look still did not work on the web after its fix merged, because the live site kept the old build | [engines/godot/web-export.md#live-build](../../engines/godot/web-export.md#live-build) |
 | 2026-11-01 | Deadnight | Godot windows agents opened took the cursor and then the keyboard from the maintainer | [engines/godot/no-focus.md#what-to-know](../../engines/godot/no-focus.md#what-to-know) |
 | 2026-11-01 | Deadnight | Corrections should be written into the docs, and that should be enforced | [studio/hooks.md#learning](../hooks.md#learning) |
-| 2026-11-01 | Deadnight | Pull requests opened hours earlier were still unmerged with no label saying why | [studio/starting-work.md#landing](../starting-work.md#landing) |
-| 2026-11-02 | Deadnight #402 | New pull requests kept opening while older ones stayed unmerged, one for four hours | [studio/starting-work.md#landing](../starting-work.md#landing) |
-| 2026-11-02 | Deadnight #447 | Open pull requests were backing up the queue and had to be landed first | [studio/starting-work.md#merging-main-into-a-pull-request](../starting-work.md#merging-main-into-a-pull-request) |
+| 2026-11-01 | Deadnight | Pull requests opened hours earlier were still unmerged with no label saying why | [studio/landing.md#landing](../landing.md#landing) |
+| 2026-11-02 | Deadnight #402 | New pull requests kept opening while older ones stayed unmerged, one for four hours | [studio/landing.md#landing](../landing.md#landing) |
+| 2026-11-02 | Deadnight #447 | Open pull requests were backing up the queue and had to be landed first | [studio/landing.md#merging-main-into-a-pull-request](../landing.md#merging-main-into-a-pull-request) |
 | 2026-11-02 | Deadnight #415 | Every tuned number should be an exported variable, and the docs should map the scenes and the one that loads the game | [engines/godot/project-conventions.md#rules](../../engines/godot/project-conventions.md#rules) |
 | 2026-11-06 | Deadnight #1366 | Creating a match from the lobby in the Discord Activity stuck on the loading screen with no progress | [engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe](../../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe) |
 | 2026-11-07 | gdstudio #779 | `gds new game` should finish the GitHub steps itself, with MIT as the default licence, not leave them to the maintainer | [engines/godot/new-game.md#github](../../engines/godot/new-game.md#github) |

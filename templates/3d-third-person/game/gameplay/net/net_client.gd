@@ -222,6 +222,9 @@ func _predict(delta: float) -> void:
 	var correction := reconciler.take()
 	if correction != Vector3.ZERO:
 		player.global_position += correction
+		# A part that put the body inside a ledge would be pushed back by the step: the rest whole.
+		if reconciler.pending() != Vector3.ZERO and BodyOverlap.pushed_back(player):
+			player.global_position += reconciler.take_rest()
 	var wanted := player.controller.sample() if player.controller != null else PlayerCommand.new()
 	seq += 1
 	wanted.seq = seq

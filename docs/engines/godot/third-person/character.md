@@ -214,7 +214,7 @@ Scene dock and checks the result.
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
-  | An AI's lean tick (#1059) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
+  | An AI's lean tick (#1059; the aim and the trigger since #1104) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
   | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
   | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
 

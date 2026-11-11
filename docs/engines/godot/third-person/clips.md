@@ -25,6 +25,13 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
   `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
   sha256 in the licence entry.
+- **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
+  read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
+  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
+  to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
+  2026-11-11 (the position tracks).
 
 ## The vault clips {#vault-clips}
 
