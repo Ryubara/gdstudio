@@ -359,6 +359,10 @@ func set_throttled(on: bool, skeleton_too: bool = true) -> void:
 	set_process(not on)
 	_tree_runs_itself(not on)
 	if on:
+		# A tree that has not run yet starts its state machine on its first update, and that
+		# update's time is lost: start it now, so the first advance keeps all the time it is given.
+		if tree.active:
+			tree.advance(0.0)
 		_throttled_skeleton = model.skeleton() if skeleton_too and model != null else null
 		if _throttled_skeleton != null:
 			_skeleton_mode = _throttled_skeleton.modifier_callback_mode_process

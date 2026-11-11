@@ -25,6 +25,9 @@ extends Node
 ##
 ## Cosmetic and per machine: nothing here changes what the body does or what a network sends.
 
+## Frames a new character animates as before: its tree starts by itself, and the level's camera
+## has its place (a camera still at the origin on the first frame sees nobody).
+const FIRST_FRAMES := 8
 ## The heights (m) of the body's points tested against the camera's view: feet, chest, head.
 const BODY_POINTS: Array[float] = [0.2, 1.0, 2.2]
 
@@ -87,6 +90,8 @@ class Entry:
 	var period := 1
 	var pending := 0.0
 	var hit_until := 0.0
+	## The frame it was added on: it is left alone for its first frames.
+	var since := 0
 	var on_hit: Callable
 	var on_change: Callable
 	var on_tier: Callable
@@ -119,7 +124,7 @@ func add(character: AiCharacter) -> void:
 	character.died.connect(entry.on_change)
 	character.revived.connect(entry.on_change)
 	character.tier_changed.connect(entry.on_tier)
-	_recheck(entry)
+	entry.since = frame
 
 
 ## Gives `character`'s animation back: it animates every frame again.
@@ -173,8 +178,11 @@ func _process(delta: float) -> void:
 					last_advances += 1
 
 
+# A new character keeps its tree's own clock for `FIRST_FRAMES`: it is often placed after it joins
+# the tree, the camera may not be placed yet, and a tree's first update starts its state machine,
+# so a tree throttled before it runs would start out of step with one that never was.
 func _recheck(entry: Entry) -> void:
-	if not is_instance_valid(entry.character):
+	if not is_instance_valid(entry.character) or frame - entry.since < FIRST_FRAMES:
 		return
 	_set_period(entry, _period_for(entry))
 

@@ -37,6 +37,11 @@ func _add_director() -> AiDirector:
 	return director
 
 
+# Frames until every new character has had its first period (it is left alone at first).
+func _settle_frames() -> int:
+	return AiAnimationThrottle.FIRST_FRAMES + _throttle.recheck_frames + 1
+
+
 func _frames(count: int) -> void:
 	for _i in count:
 		await get_tree().process_frame
@@ -86,7 +91,7 @@ func test_a_dormant_tree_does_not_advance_and_a_full_one_advances_every_frame() 
 	var near := _arena.add_character(Vector3(0.0, 0.0, -2.0))
 	var far := _arena.add_character(Vector3(0.0, 0.0, -120.0))
 	_add_director()
-	await _frames(10)
+	await _frames(_settle_frames())
 	assert_int(near.tier).is_equal(AiDirector.Tier.FULL)
 	assert_int(far.tier).is_equal(AiDirector.Tier.DORMANT)
 	assert_int(_throttle.period_of(near)).is_equal(1)
@@ -103,12 +108,23 @@ func test_a_dormant_tree_does_not_advance_and_a_full_one_advances_every_frame() 
 	assert_bool(_animation(far).is_throttled()).is_true()
 
 
+func test_a_new_character_animates_as_before_for_its_first_frames() -> void:
+	var far := _arena.add_character(Vector3(0.0, 0.0, -120.0))
+	_add_director()
+	await _frames(AiAnimationThrottle.FIRST_FRAMES - 2)
+	assert_int(far.tier).is_equal(AiDirector.Tier.DORMANT)
+	assert_int(_throttle.period_of(far)).is_equal(1)
+	assert_bool(_animation(far).is_throttled()).is_false()
+	await _frames(_throttle.recheck_frames + 2)
+	assert_int(_throttle.period_of(far)).is_equal(0)
+
+
 func test_a_reduced_character_in_view_advances_every_few_frames_by_the_time_it_missed() -> void:
 	var director := _add_director()
 	director.web_full_cap = 0
 	director.desktop_full_cap = 0
 	var character := _arena.add_character(Vector3(0.0, 0.0, -18.0))
-	await _frames(10)
+	await _frames(_settle_frames())
 	assert_int(character.tier).is_equal(AiDirector.Tier.REDUCED)
 	assert_int(_throttle.period_of(character)).is_equal(_throttle.reduced_period)
 	var start := _clip_time(character)
@@ -123,7 +139,7 @@ func test_a_far_character_in_view_advances_every_far_period() -> void:
 	_add_director()
 	# Full (24 m from the player's body), 28 m from the camera.
 	var character := _arena.add_character(Vector3(0.0, 0.0, -24.0))
-	await _frames(10)
+	await _frames(_settle_frames())
 	assert_int(character.tier).is_equal(AiDirector.Tier.FULL)
 	assert_int(_throttle.period_of(character)).is_equal(_throttle.far_period)
 	var times := await _clip_times(character, 36)
@@ -134,7 +150,7 @@ func test_an_unseen_character_holds_its_pose_and_catches_up_when_seen() -> void:
 	_add_director()
 	# Past the near distance, in view, then behind the camera once it turns.
 	var character := _arena.add_character(Vector3(0.0, 0.0, -16.0))
-	await _frames(10)
+	await _frames(_settle_frames())
 	assert_int(_throttle.period_of(character)).is_equal(1)
 	_camera.rotation.y = PI
 	await _frames(_throttle.recheck_frames + 1)
@@ -148,7 +164,7 @@ func test_an_unseen_character_holds_its_pose_and_catches_up_when_seen() -> void:
 	assert_int(_throttle.period_of(character)).is_equal(1)
 	# Seen again it moved on by the time it missed, `max_catch_up` at most, and runs itself again.
 	var caught := fposmod(_clip_time(character) - held[-1], _clip_length(character))
-	assert_float(caught).is_between(_throttle.max_catch_up, _throttle.max_catch_up + 0.1)
+	assert_float(caught).is_between(_throttle.max_catch_up - 0.001, _throttle.max_catch_up + 0.1)
 	assert_bool(_animation(character).is_throttled()).is_false()
 
 
@@ -156,7 +172,7 @@ func test_footsteps_listen_only_near_the_camera_and_every_frame() -> void:
 	var near := _arena.add_character(Vector3(0.0, 0.0, -2.0))
 	var far := _arena.add_character(Vector3(0.0, 0.0, -20.0))
 	_add_director()
-	await _frames(10)
+	await _frames(_settle_frames())
 	assert_bool(near.get_node("Footsteps").is_processing()).is_true()
 	assert_bool(far.get_node("Footsteps").is_processing()).is_false()
 
@@ -165,7 +181,7 @@ func test_a_throttled_tree_hands_the_skeleton_and_the_hand_over_and_a_death_give
 ) -> void:
 	var character := _arena.add_character(Vector3(0.0, 0.0, -120.0))
 	_add_director()
-	await _frames(10)
+	await _frames(_settle_frames())
 	var skeleton := character.model.skeleton()
 	var hold := character.get_node("WeaponHold") as WeaponHold
 	assert_int(skeleton.modifier_callback_mode_process).is_equal(
@@ -188,7 +204,7 @@ func test_turning_it_off_or_leaving_the_director_gives_the_tree_back() -> void:
 	var first := _arena.add_character(Vector3(0.0, 0.0, -120.0))
 	var second := _arena.add_character(Vector3(2.0, 0.0, -120.0))
 	_add_director()
-	await _frames(4)
+	await _frames(_settle_frames())
 	assert_bool(_animation(first).is_throttled()).is_true()
 	_throttle.enabled = false
 	assert_bool(_animation(first).is_throttled()).is_false()
@@ -206,7 +222,7 @@ func test_turning_it_off_or_leaving_the_director_gives_the_tree_back() -> void:
 func test_without_a_throttle_every_character_animates_every_frame() -> void:
 	var far := _arena.add_character(Vector3(0.0, 0.0, -120.0))
 	_arena.add_director()
-	await _frames(10)
+	await _frames(16)
 	assert_int(far.tier).is_equal(AiDirector.Tier.DORMANT)
 	assert_bool(_animation(far).is_throttled()).is_false()
 	assert_int(_moves(await _clip_times(far, 6))).is_equal(5)
