@@ -67,13 +67,16 @@ func size() -> int:
 ## and returns the forgotten ones (that had been noticed) so the senses can say `entity_lost`.
 func expire(memory_seconds: float) -> Array[AiBelief]:
 	var gone: Array[AiBelief] = []
-	for id in by_id.keys():
+	var stale: Array[int] = []
+	for id in by_id:
 		var belief: AiBelief = by_id[id]
-		var vanished: bool = id != 0 and belief.entity() == null
-		if vanished or clock - belief.time > memory_seconds:
-			by_id.erase(id)
-			if belief.noticed:
-				gone.append(belief)
+		if clock - belief.time > memory_seconds or (id != 0 and belief.entity() == null):
+			stale.append(id)
+	for id in stale:
+		var belief: AiBelief = by_id[id]
+		by_id.erase(id)
+		if belief.noticed:
+			gone.append(belief)
 	return gone
 
 
@@ -89,8 +92,8 @@ func most_aware() -> AiBelief:
 ## The highest awareness of any belief (0 with none): what the situation reads.
 func top_awareness() -> float:
 	var best := 0.0
-	for belief: AiBelief in by_id.values():
-		best = maxf(best, belief.awareness)
+	for id in by_id:
+		best = maxf(best, by_id[id].awareness)
 	return best
 
 

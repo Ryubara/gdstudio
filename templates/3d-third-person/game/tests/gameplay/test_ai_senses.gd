@@ -78,7 +78,11 @@ func test_a_target_stepping_out_of_cover_is_believed_no_sooner_than_notice_and_r
 	_arena.add_wall(-1.5, 1.5, -3.0)
 	var target := _arena.add_target("Player", Vector3(0.0, 0.0, -6.0))
 	var senses := _senses(character)
+	var noticed_at := [-1.0]
 	var believed_at := [-1.0]
+	senses.alerted.connect(
+		func(_entity: Node3D, _belief: AiBelief) -> void: noticed_at[0] = senses.beliefs.clock
+	)
 	senses.entity_noticed.connect(
 		func(_entity: Node3D, _belief: AiBelief) -> void: believed_at[0] = senses.beliefs.clock
 	)
@@ -94,6 +98,12 @@ func test_a_target_stepping_out_of_cover_is_believed_no_sooner_than_notice_and_r
 	assert_float(belief.first_clear_at).is_greater(0.0)
 	var least := profile.time_to_notice + profile.reaction_time
 	assert_float(believed_at[0] - belief.first_clear_at).is_greater_equal(least - 0.001)
+	# Each part on its own: the noticing takes at least `time_to_notice` of clear sight, the act
+	# waits the whole reaction delay after it.
+	assert_float(noticed_at[0] - belief.first_clear_at).is_greater_equal(
+		profile.time_to_notice - 0.001
+	)
+	assert_float(believed_at[0] - noticed_at[0]).is_greater_equal(profile.reaction_time - 0.001)
 
 
 func test_a_hit_from_behind_is_believed_at_once() -> void:

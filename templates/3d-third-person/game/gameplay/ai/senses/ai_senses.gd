@@ -17,7 +17,8 @@ extends Node
 ##   the board's `occlusion` share of the radius.
 ## - **Touch**: a hit (`Character.took_hit`) is believed at once, with awareness 1.
 ## - **Team**: a thing noticed is told to the allies within `share_radius` after `share_delay`;
-##   each ally passes one telling on at most once.
+##   an ally that did not know it believes it (after its own reaction delay) and passes the telling
+##   on once; one that knew already passes nothing on.
 ##
 ## **Awareness** of each thing rises at `1 / time_to_notice` while it is seen (slower far, to the
 ## side, still, crouched or lying down, and for an Unfriendly one), from the first clear ray; at
@@ -47,8 +48,7 @@ enum Line { CLEAR, BLOCKED, REFUSED }
 const GROUP := &"ai_senses"
 
 static var _next_share := 0
-static var _group_frame := -1
-static var _group_cache: Dictionary[StringName, Array] = {}
+static var _everyone: Array[AiSenses] = []
 
 @export_group("Senses")
 ## Looks: the cone, the near radius, the rays.
@@ -136,13 +136,57 @@ var _visible: Dictionary[int, bool] = {}
 var _candidates: Array[Node3D] = []
 var _candidate_bands := PackedInt32Array()
 var _candidate_near: Array[bool] = []
+var _candidate_members: Array[AiFactionMember] = []
+var _candidate_points := PackedVector3Array()
 var _outbox: Array[Share] = []
 var _share_keys: Dictionary[int, bool] = {}
+
+
+## The numbers of the awareness rate, read once a think from the profile and the senses.
+class Rates:
+	var base := 1.0
+	var per_metre := 0.0
+	var per_radian := 0.0
+	var per_speed := 0.0
+	var far_share := 0.3
+	var side_share := 0.5
+	var still_share := 0.7
+	var crouch_share := 0.6
+	var prone_share := 0.35
+	var unfriendly_share := 0.5
+
+	func read(profile: AiProfile, senses: AiSenses) -> void:
+		base = 1.0 / maxf(profile.time_to_notice, 0.001)
+		per_metre = 1.0 / maxf(profile.sight_range, 0.001)
+		per_radian = 1.0 / deg_to_rad(maxf(profile.half_angle, 0.001))
+		per_speed = 1.0 / maxf(profile.walk_speed, 0.01)
+		far_share = senses.far_share
+		side_share = senses.side_share
+		still_share = senses.still_share
+		crouch_share = senses.crouch_share
+		prone_share = senses.prone_share
+		unfriendly_share = senses.unfriendly_share
+
+	func rate(body: Node3D, distance: float, angle: float, band: int) -> float:
+		var value := base * lerpf(1.0, far_share, clampf(distance * per_metre, 0.0, 1.0))
+		value *= lerpf(1.0, side_share, clampf(angle * per_radian, 0.0, 1.0))
+		var character := body as Character
+		if character != null:
+			var moving := clampf(character.ground_speed() * per_speed, 0.0, 1.0)
+			value *= lerpf(still_share, 1.0, moving)
+			if character.prone:
+				value *= prone_share
+			elif character.crouching:
+				value *= crouch_share
+		if band != AiRelations.Band.HOSTILE:
+			value *= unfriendly_share
+		return value
 
 
 ## A telling on its way to the allies.
 class Share:
 	var key := 0
+	var entity_id := 0
 	var member: AiFactionMember
 	var position := Vector3.ZERO
 	var velocity := Vector3.ZERO
@@ -162,9 +206,10 @@ static func witnesses_of(actor: Node, victim: Node) -> Array:
 	var tree := victim.get_tree() if victim != null and victim.is_inside_tree() else null
 	if tree == null:
 		return found
-	for node in tree.get_nodes_in_group(GROUP):
-		var senses := node as AiSenses
-		if senses == null or senses._character == null or senses._character == victim:
+	for senses in _everyone:
+		if senses._character == null or senses._character == victim:
+			continue
+		if not senses.is_inside_tree() or senses.get_tree() != tree:
 			continue
 		var of_actor := senses.beliefs.of(actor)
 		var of_victim := senses.beliefs.of(victim)
@@ -175,6 +220,11 @@ static func witnesses_of(actor: Node, victim: Node) -> Array:
 
 func _enter_tree() -> void:
 	add_to_group(GROUP)
+	_everyone.append(self)
+
+
+func _exit_tree() -> void:
+	_everyone.erase(self)
 
 
 func _ready() -> void:
@@ -207,8 +257,8 @@ func sense(seconds: float) -> void:
 	if sight and _character.tier != AiDirector.Tier.DORMANT:
 		_look(profile, seconds)
 	else:
-		for belief: AiBelief in beliefs.by_id.values():
-			belief.seen_now = false
+		_visible.clear()
+		_clear_seen()
 	if hearing:
 		_listen(profile)
 	_settle(profile, seconds)
@@ -240,22 +290,9 @@ func eye_position() -> Vector3:
 ## Awareness a second for `body` seen at `distance`, `angle` radians off the look, in `band`:
 ## `1 / time_to_notice` scaled down far, to the side, still, crouched, lying down and Unfriendly.
 func sight_rate(body: Node3D, distance: float, angle: float, band: int) -> float:
-	var profile := _character.profile
-	var rate := 1.0 / maxf(profile.time_to_notice, 0.001)
-	rate *= lerpf(1.0, far_share, clampf(distance / maxf(profile.sight_range, 0.001), 0.0, 1.0))
-	var half := deg_to_rad(maxf(profile.half_angle, 0.001))
-	rate *= lerpf(1.0, side_share, clampf(angle / half, 0.0, 1.0))
-	var character := body as Character
-	if character != null:
-		var moving := clampf(character.ground_speed() / maxf(profile.walk_speed, 0.01), 0.0, 1.0)
-		rate *= lerpf(still_share, 1.0, moving)
-		if character.prone:
-			rate *= prone_share
-		elif character.crouching:
-			rate *= crouch_share
-	if band != AiRelations.Band.HOSTILE:
-		rate *= unfriendly_share
-	return rate
+	var rates := Rates.new()
+	rates.read(_character.profile, self)
+	return rates.rate(body, distance, angle, band)
 
 
 ## Takes a telling from an ally: the thing is believed (as told) after its own reaction delay,
@@ -265,6 +302,11 @@ func receive(share: Share) -> void:
 		return
 	_share_keys[share.key] = true
 	shares_received += 1
+	var known: AiBelief = beliefs.by_id.get(share.entity_id, null)
+	if known != null and known.believed:
+		# It knows already: nothing to learn and nothing to pass on (a crowd that all sees one
+		# thing tells nobody anything twice).
+		return
 	var node := share.entity()
 	if node == null:
 		return
@@ -297,6 +339,16 @@ func _band(other: AiFactionMember) -> int:
 
 
 func _look(profile: AiProfile, seconds: float) -> void:
+	_visible.clear()
+	_looked.clear()
+	_candidates.clear()
+	_candidate_bands.clear()
+	_candidate_near.clear()
+	_candidate_members.clear()
+	_candidate_points.clear()
+	if _factions == null or _member == null:
+		_clear_seen()
+		return
 	var me := _character.global_position
 	var origin := eye_position()
 	var look := look_direction()
@@ -305,66 +357,92 @@ func _look(profile: AiProfile, seconds: float) -> void:
 	var keep := maxf(profile.lose_sight_range, profile.sight_range)
 	var keep_reach := keep * keep
 	var near_reach := profile.near_radius * profile.near_radius
-	_looked.clear()
-	_visible.clear()
-	_candidates.clear()
-	_candidate_bands.clear()
-	_candidate_near.clear()
+	var table := _factions.relations
+	var mine := (
+		_member.refresh(table) if _member.table_version != table.version else _member.faction_index
+	)
+	var grudges := _member.holds_grudges
 	var tree := get_tree()
 	for group in target_groups:
-		for node: Node in _members_of(tree, group):
-			var body := node as Node3D
-			if body == null or body == _character or not is_instance_valid(body):
+		var pool := AiSensePool.of(tree, group, table)
+		for part in pool.factions.size():
+			var band := table.band_at(mine, pool.factions[part])
+			if band > care_up_to and not grudges:
 				continue
-			var id := body.get_instance_id()
-			if _looked.has(id):
-				continue
-			_looked[id] = true
-			var far := me.distance_squared_to(body.global_position)
-			var belief: AiBelief = beliefs.by_id.get(id, null)
-			var reach := keep_reach if belief != null and belief.seen_now else sight_reach
-			if far > reach and far > near_reach:
-				continue
-			var other := belief.member if belief != null else AiFactionMember.of(body)
-			var band := _band(other)
-			if band > care_up_to:
-				continue
-			var character := body as Character
-			if character != null and character.is_dead():
-				continue
-			var near := far <= near_reach
-			if not near and look.dot((_aim_point(body) - origin).normalized()) < cos_half:
-				continue
-			_candidates.append(body)
-			_candidate_bands.append(band)
-			_candidate_near.append(near)
+			var nodes: Array = pool.nodes[part]
+			var members: Array = pool.members[part]
+			for index in nodes.size():
+				var node: Variant = nodes[index]
+				if not is_instance_valid(node) or node == _character:
+					continue
+				var body := node as Node3D
+				var at := body.global_position
+				var far := me.distance_squared_to(at)
+				if far > keep_reach and far > near_reach:
+					continue
+				var id := body.get_instance_id()
+				var belief: AiBelief = beliefs.by_id.get(id, null)
+				if (
+					far > sight_reach
+					and far > near_reach
+					and (belief == null or not belief.seen_now)
+				):
+					continue
+				if _looked.has(id):
+					continue
+				_looked[id] = true
+				var member: AiFactionMember = members[index]
+				var felt := _band(member) if grudges else band
+				if felt > care_up_to:
+					continue
+				var character := body as Character
+				if character != null and character.is_dead():
+					continue
+				var point := at + Vector3.UP * (_height_of(character) * target_height_share)
+				var near := far <= near_reach
+				if not near and look.dot((point - origin).normalized()) < cos_half:
+					continue
+				_candidates.append(body)
+				_candidate_bands.append(felt)
+				_candidate_near.append(near)
+				_candidate_members.append(member)
+				_candidate_points.append(point)
+	if _candidates.is_empty():
+		_clear_seen()
+		return
 	_cast_rays(origin)
+	var fresh_after := beliefs.clock - ray_fresh_seconds - 0.0001
+	var rates := Rates.new()
+	rates.read(profile, self)
 	for index in _candidates.size():
 		var body := _candidates[index]
 		var id := body.get_instance_id()
-		var fresh := _ray_at.has(id) and beliefs.clock - _ray_at[id] <= ray_fresh_seconds + 0.0001
-		if fresh and _ray_clear[id]:
-			_visible[id] = true
-			_see(body, _candidate_bands[index], _candidate_near[index], origin, look, seconds)
-	for id in beliefs.by_id:
-		if not _visible.has(id):
-			beliefs.by_id[id].seen_now = false
+		if not _ray_clear.get(id, false) or _ray_at.get(id, -INF) < fresh_after:
+			continue
+		_visible[id] = true
+		_see(index, _candidate_points[index] - origin, look, seconds, rates)
+	_clear_seen()
 	if _ray_at.size() > 256:
 		_ray_at.clear()
 		_ray_clear.clear()
+
+
+# Every belief not in sight this think is no longer seen now.
+func _clear_seen() -> void:
+	for id in beliefs.by_id:
+		if not _visible.has(id):
+			beliefs.by_id[id].seen_now = false
 
 
 # Casts at most the rays left this think (and the budget allows), at the candidates whose last
 # answer is oldest, the ones at arm's reach first.
 func _cast_rays(origin: Vector3) -> void:
 	var count := _candidates.size()
-	var cast := 0
-	while _rays_left > 0 and cast < count:
+	while _rays_left > 0:
 		var best := -1
 		var oldest := INF
 		for index in count:
-			var id := _candidates[index].get_instance_id()
-			var at: float = _ray_at.get(id, -INF)
+			var at: float = _ray_at.get(_candidates[index].get_instance_id(), -INF)
 			if at >= beliefs.clock:
 				continue
 			if _candidate_near[index]:
@@ -374,13 +452,12 @@ func _cast_rays(origin: Vector3) -> void:
 				oldest = at
 		if best < 0:
 			return
-		var body := _candidates[best]
-		var line := _line(origin, _aim_point(body))
+		var line := _line(origin, _candidate_points[best])
 		if line == Line.REFUSED:
 			return
-		_ray_at[body.get_instance_id()] = beliefs.clock
-		_ray_clear[body.get_instance_id()] = line == Line.CLEAR
-		cast += 1
+		var id := _candidates[best].get_instance_id()
+		_ray_at[id] = beliefs.clock
+		_ray_clear[id] = line == Line.CLEAR
 
 
 # One line test from `from` to `to` against `sight_mask`, from this think's rays and the
@@ -399,16 +476,16 @@ func _line(from: Vector3, to: Vector3) -> Line:
 	return Line.CLEAR if hit.is_empty() else Line.BLOCKED
 
 
-func _aim_point(body: Node3D) -> Vector3:
-	var character := body as Character
-	var height := character.body_height() if character != null else 1.6
-	return body.global_position + Vector3.UP * height * target_height_share
+static func _height_of(character: Character) -> float:
+	return character.body_height() if character != null else 1.6
 
 
-func _see(
-	body: Node3D, band: int, near: bool, origin: Vector3, look: Vector3, seconds: float
-) -> void:
-	var belief := beliefs.track(body, AiFactionMember.of(body))
+func _see(index: int, toward: Vector3, look: Vector3, seconds: float, rates: Rates) -> void:
+	var body := _candidates[index]
+	var band := _candidate_bands[index]
+	var belief: AiBelief = beliefs.by_id.get(body.get_instance_id(), null)
+	if belief == null:
+		belief = beliefs.track(body, _candidate_members[index])
 	var was_seen := belief.seen_now
 	belief.band = band
 	belief.seen_now = true
@@ -420,13 +497,13 @@ func _see(
 	belief.confidence = 1.0
 	if belief.first_clear_at < 0.0:
 		belief.first_clear_at = beliefs.clock
-	if near:
+	if belief.noticed:
+		return
+	if _candidate_near[index]:
 		_raise(belief, 1.0)
 	elif was_seen:
 		# The clock starts at the first clear ray: a thing just come into view earns nothing yet.
-		var toward := _aim_point(body) - origin
-		var angle := look.angle_to(toward)
-		var rate := sight_rate(body, toward.length(), angle, band)
+		var rate := rates.rate(body, toward.length(), look.angle_to(toward), band)
 		_raise(belief, belief.awareness + rate * seconds)
 
 
@@ -437,19 +514,27 @@ func _listen(profile: AiProfile) -> void:
 			return
 	var ears := profile.hearing_range / _board.reference_hearing
 	var me := _character.global_position
+	var table := _factions.relations if _factions != null else null
+	var mine := -1
+	if table != null and _member != null:
+		mine = (
+			_member.refresh(table)
+			if _member.table_version != table.version
+			else _member.faction_index
+		)
 	var first := maxi(_heard_serial + 1, _board.oldest())
 	for serial in range(first, _board.newest + 1):
 		var noise := _board.noise_at(serial)
 		if noise == null:
 			continue
-		var source := noise.source()
-		if source == _character:
-			continue
 		var radius := noise.radius * ears
 		var far := me.distance_squared_to(noise.position)
 		if far > radius * radius:
 			continue
-		var band := _band(noise.member) if noise.member != null else AiRelations.Band.HOSTILE
+		var source := noise.source()
+		if source == _character:
+			continue
+		var band := _noise_band(noise.member, table, mine)
 		if band > care_up_to:
 			continue
 		var clear := radius * _board.occlusion
@@ -458,6 +543,21 @@ func _listen(profile: AiProfile) -> void:
 				continue
 		_hear(noise, source, band, 1.0 - sqrt(far) / maxf(radius, 0.001), profile)
 	_heard_serial = _board.newest
+
+
+# The band toward what made a noise: Hostile for something unknown, the factions' (one byte read)
+# unless the character holds grudges.
+func _noise_band(other: AiFactionMember, table: AiRelations, mine: int) -> int:
+	if other == null:
+		return AiRelations.Band.HOSTILE
+	if table == null:
+		return AiRelations.Band.NEUTRAL
+	if _member.holds_grudges:
+		return _band(other)
+	var side := (
+		other.refresh(table) if other.table_version != table.version else other.faction_index
+	)
+	return table.band_at(mine, side)
 
 
 func _hear(
@@ -542,6 +642,7 @@ func _queue_share(belief: AiBelief, key: int) -> void:
 		_share_keys[key] = true
 	var share := Share.new()
 	share.key = key
+	share.entity_id = belief.entity_id
 	share._entity = weakref(belief.entity())
 	share.member = belief.member
 	share.position = belief.last_position
@@ -562,9 +663,8 @@ func _send_shares(profile: AiProfile) -> void:
 		return
 	var reach := profile.share_radius * profile.share_radius
 	var me := _character.global_position
-	for node in get_tree().get_nodes_in_group(GROUP):
-		var other := node as AiSenses
-		if other == null or other == self or other._character == null or not other.team:
+	for other in _everyone:
+		if other == self or other._character == null or not other.team:
 			continue
 		if me.distance_squared_to(other._character.global_position) > reach:
 			continue
@@ -614,22 +714,3 @@ func _on_took_hit(_amount: float, source: Node3D) -> void:
 func _on_died() -> void:
 	beliefs.clear()
 	_outbox.clear()
-
-
-## Reads the target groups from the tree again at the next look (they are read once a physics
-## frame for every senses node): for a test or a tool that adds targets and senses in one frame.
-static func refresh_targets() -> void:
-	_group_frame = -1
-
-
-# The members of `group`, read from the tree once a physics frame for every senses node.
-static func _members_of(tree: SceneTree, group: StringName) -> Array:
-	var frame := Engine.get_physics_frames()
-	if frame != _group_frame:
-		_group_cache.clear()
-		_group_frame = frame
-	var found: Variant = _group_cache.get(group)
-	if found == null:
-		found = tree.get_nodes_in_group(group)
-		_group_cache[group] = found
-	return found
