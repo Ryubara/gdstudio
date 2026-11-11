@@ -18,6 +18,12 @@
 ## `CharacterAnimation` export the variants are played through (default `idle_clip`).
 ## `OWN_ONLY=<clip>` (`Idle_A`, or `Library`) films part 2 for that one clip and nothing else:
 ## nine seconds, short enough for a GIF.
+## A gait is filmed moving (kit #1155): `OWN_HOLD=<action>` is held with `move_forward` (`walk`
+## for the walk, `sprint` for the sprint, nothing for the jog) and `OWN_MOVE=<seconds>` is how
+## long it moves for (default 1.5; a gait wants 4), so the loop is seen over the ground at the
+## game's speed, with its start and its stop either side. `OWN_AHEAD=<metres>` starts each turn
+## that far ahead of the spawn point: the spawn pad ends 4.6 m ahead, and a body that steps off
+## it plays its fall, which is not the clip under review.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -37,6 +43,9 @@ const FRONT := 2.5
 var _clips: Array[StringName] = []
 var _library: AnimationLibrary
 var _slot := &"idle_clip"
+var _hold := &""
+var _move := WALK
+var _ahead := 0.0
 var _row: Node3D
 var _row_camera: Camera3D
 var _label: Label
@@ -51,6 +60,10 @@ func _ready() -> void:
 	var type := OS.get_environment("OWN_TYPE")
 	var slot := OS.get_environment("OWN_SLOT")
 	_slot = StringName(slot) if slot != "" else _slot
+	_hold = StringName(OS.get_environment("OWN_HOLD"))
+	var move := OS.get_environment("OWN_MOVE")
+	_move = move.to_float() if move != "" else _move
+	_ahead = OS.get_environment("OWN_AHEAD").to_float()
 	_library = _read_review(REVIEW % (type if type != "" else "idle"))
 	for clip in _library.get_animation_list():
 		_clips.append(StringName("review/" + clip))
@@ -104,7 +117,7 @@ func _film_row() -> void:
 
 # Part 2: the real player, one variant at a time, the same input for each.
 func _film_player() -> void:
-	var length := STAND + WALK + SETTLE + FRONT
+	var length := STAND + _move + SETTLE + FRONT
 	var turn := int(_clock / length)
 	if turn >= _clips.size():
 		_finish()
@@ -113,14 +126,22 @@ func _film_player() -> void:
 		_turn = turn
 		if turn > 0:
 			_rig.player.respawn()
+		if _ahead > 0.0:
+			var way := -_rig.camera_rig.camera.global_basis.z
+			way = Vector3(way.x, 0.0, way.z).normalized()
+			_rig.player.global_position += way * _ahead
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
 	var at := fmod(_clock, length)
-	if at >= STAND and at < STAND + WALK:
-		Input.action_press(&"move_forward")
-	else:
-		Input.action_release(&"move_forward")
-	_face(180.0 if at >= STAND + WALK + SETTLE else 0.0)
+	var moving := at >= STAND and at < STAND + _move
+	for action: StringName in [&"move_forward", _hold]:
+		if action == &"":
+			continue
+		if moving:
+			Input.action_press(action)
+		else:
+			Input.action_release(action)
+	_face(180.0 if at >= STAND + _move + SETTLE else 0.0)
 
 
 func _build_row() -> void:
@@ -191,6 +212,8 @@ func _face(yaw: float) -> void:
 func _finish() -> void:
 	set_physics_process(false)
 	Input.action_release(&"move_forward")
+	if _hold != &"":
+		Input.action_release(_hold)
 	AudioSettings.stop_players(get_tree().root)
 	for _frame in 8:
 		await get_tree().process_frame

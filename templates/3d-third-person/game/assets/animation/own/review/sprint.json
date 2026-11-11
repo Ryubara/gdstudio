@@ -313,7 +313,7 @@
    "frames": 18,
    "kind": "gait",
    "loop": true,
-   "reduced_to_deg": 0.1,
+   "reduced_to_deg": 0.05,
    "replaces": "ual1/Sprint",
    "seconds": 0.6,
    "speed": 6.5,

@@ -109,6 +109,18 @@
   "idle": [
    "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
    "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
+  ],
+  "walk": [
+   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the arms through 43. Shipped as gds/Walk (the recommendation).",
+   "Could not be done: a knee as straight as a person's when the heel lands (ours is 23 degrees bent, a person's about 5). The step is 0.74 m on 0.83 m legs and the body is held to 37 mm of rise, so both legs cannot be straight while both feet are down."
+  ],
+  "jog": [
+   "A person's numbers at 4.0 m/s: 180 steps a minute and a foot down 30 % (people: 178 and 32 %), the centre of mass 62 mm up and down on a free fall between contacts, the hips 12 degrees against the shoulders' 19. Shipped as gds/Jog.",
+   "Could not be done: the pelvis inside the old 60 to 90 mm with a low knee lift only; it goes 79 mm because the legs' own rise is counted by the centre of mass. The audit reads 7 mm of planted wander: the heel's skin, which the shin drags; on the foot's own skin it is 3.6."
+  ],
+  "sprint": [
+   "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint.",
+   "Could not be done: the forearm turned in across the chest as sprinters carry it (12 to 19 mm inside the chest on both bodies); it is turned 4 degrees out. A calf moves 70 degrees a frame faster in one frame as the foot leaves; the limit for the clip is declared at 80."
   ]
  }
 }

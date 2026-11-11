@@ -75,9 +75,9 @@
   "arm_back": 20.0,
   "elbow": 26.0,
   "elbow_live": 14.0,
-  "bob": 0.03,
+  "bob": 0.032,
   "kick": 0.045,
-  "uneven": 0.5
+  "uneven": 0.0
  },
  "overlap_jog": {
   "chest": [
@@ -102,16 +102,18 @@
   ]
  },
  "jog": {
-  "counter_turn": 9.0,
-  "arm_fore": 36.0,
-  "arm_back": 40.0,
+  "counter_turn": 7.0,
+  "arm_fore": 40.0,
+  "arm_back": 34.0,
   "elbow": 92.0,
-  "kick": 0.24,
-  "carry_height": 0.11,
-  "bob": 0.056,
-  "lean": 5.5,
-  "uneven": 0.5,
-  "arm_twist": 8.0
+  "kick": 0.26,
+  "carry_height": 0.13,
+  "bob": 0.052,
+  "lean": 6.5,
+  "uneven": 0.0,
+  "arm_twist": 8.0,
+  "hip_turn": 4.5,
+  "hip_tip": 2.5
  },
  "overlap_sprint": {
   "chest": [
@@ -136,22 +138,36 @@
   ]
  },
  "sprint": {
-  "lean": 10.0,
+  "lean": 11.0,
   "pelvis_pitch": 5.0,
   "kick": 0.34,
   "carry_height": 0.1,
-  "arm_fore": 54.0,
-  "arm_back": 60.0,
+  "arm_fore": 58.0,
+  "arm_back": 54.0,
   "elbow": 94.0,
-  "bob": 0.045,
-  "counter_turn": 12.0,
-  "uneven": 0.5,
-  "arm_twist": -6.0
+  "bob": 0.043,
+  "counter_turn": 10.0,
+  "uneven": 0.0,
+  "arm_twist": -6.0,
+  "hip_turn": 7.0,
+  "hip_tip": 2.5
  },
  "notes": {
   "idle": [
    "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",
    "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
+  ],
+  "walk": [
+   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 32 mm of rise), a higher step, elbows bent 26 degrees, the two halves mirror images, parts trail under a frame.",
+   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 19.8 KB a second in the file, the most of the three."
+  ],
+  "jog": [
+   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the two halves mirror images.",
+   "Not tried: a shorter contact than the grounded one's six frames (five is 25 % of the cycle, under what people run with at this speed)."
+  ],
+  "sprint": [
+   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, mirror images.",
+   "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
   ]
  }
 }

@@ -58,18 +58,30 @@ ROWS = [
     ("speed", "planted sole speed (m/s)", "the game's speed, within 2 %"),
     ("cadence", "steps a minute", ""),
     ("duty", "planted share", ""),
-    ("slide_mm", "planted sole wanders (mm)", f"at most {checks.WANDER * 1000:.0f}"),
+    ("slide_mm", "planted sole wanders, all its skin (mm)", "the heel's skin follows the shin too"),
     ("floor_mm", "lowest sole vertex (mm)", f"no more than {checks.UNDER * 1000:.0f} under"),
     ("seam_mm", "seam open (mm)", "0"),
     ("seam_step", "seam's change of speed", f"at most {checks.SEAM_STEP:.0f}"),
-    ("keys_kept", "keys a reducer keeps", f"at most {checks.KEYS_KEPT:.0%}"),
+    ("keys_kept", "keys a reducer keeps", f"at most {checks.KEYS_KEPT:.0%}, or what the clip declares"),
+    ("lean", "trunk leans forward (degrees)", ""),
+    ("thigh_swing", "thigh swings through (degrees)", ""),
+    ("arm_swing", "upper arm swings through (degrees)", ""),
+    ("arm_leg", "arm with the other side's leg", f"over {checks.ARM_LEG}"),
+    ("mirror", "halves of the cycle differ by (degrees)", ""),
+    ("lag_forearm", "forearm trails the upper arm (frames)", ""),
+    ("lag_hand", "hand trails the forearm (frames)", ""),
+    ("lag_chest", "chest trails the hips (frames)", ""),
     ("kb", "clip's bytes in its file (KB)", ""),
 ]
 ## The rows that say nothing of a clip that stands.
 GAIT_ROWS = ("speed", "cadence", "duty")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
-    (("cost", "kb_a_second"), "key bytes a second (KB)", f"at most {checks.KB_A_SECOND:.0f}"),
+    (("planted", "mannequin_female", "wander_mm"), "planted sole wanders, the foot's own skin (mm)", f"at most {checks.WANDER * 1000:.0f}"),
+    (("planted", "mannequin_female", "planted_speed"), "planted sole speed, the build's (m/s)", "clips.json's, within 2 %"),
+    (("weight", "arc_off_mm"), "in the air, off a free fall's arc (mm)", f"at most {checks.ARC * 1000:.0f}"),
+    (("limits", "knee_l"), "left knee bends (degrees)", "-5 to 140"),
+    (("cost", "kb_a_second"), "key bytes a second (KB)", f"at most {checks.KB_A_SECOND:.0f}, or what the clip declares"),
     (("reduce_error_mm",), "reduced keys off the full curve (mm)", "at most 1"),
 ]
 

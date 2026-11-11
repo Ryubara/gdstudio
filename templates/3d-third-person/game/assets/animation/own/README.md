@@ -17,7 +17,7 @@ Nothing here is copied from a library clip or from another game: a clip is a des
 
 ```sh
 uv run --with numpy python -B build_own.py self-test
-uv run --with numpy python -B build_own.py review idle --blender <the pinned Blender> [--report <json>]
+uv run --with numpy python -B build_own.py review <idle, walk, jog or sprint> --blender <the pinned Blender>
 uv run --with numpy python -B build_own.py ship locomotion --blender <the pinned Blender>
 uv run --with numpy --with pillow python -B review_sheet.py idle --blender <the pinned Blender> --out <folder>
 ```
@@ -92,3 +92,121 @@ loose, lived-in character; C for a small or stylised body seen from far.
   and a planted foot's joints stay within 1 mm (`tests/gameplay/test_own_clips.gd`).
 - It keys 52 bones' rotations and the pelvis's place; the root, the `_leaf` bones and (on the prototype rig) the
   twist bones and sockets are never keyed.
+
+## Walk, Jog, Sprint
+
+Replace `ual1/Walk`, `ual1/Jog_Fwd` and `ual1/Sprint`, which stay in the game as their stand-ins. The library's
+gaits do not hold the floor at the speeds the game moves them at (the walk's feet cover 56 % of the ground, the
+jog's sweep 48 % faster than it), its jog is in the air for 64 % of its cycle with 245 mm of bob, the run's arm
+swing is the chest turning 76 degrees, and nothing trails (the kit's
+`docs/tools/blender/own-animation.md#audit-gaits`). All three are one description, `clips/gait.py`, with a table of
+numbers per gait.
+
+### How people walk and run (the research)
+
+Read on 2026-11-11, before any number was keyed. "Opened" means the page itself was read; "summary" means only a
+search's summary of it was, so the number is a lead; where nothing was found it says so and the clip's number is a
+declared choice.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| A walk's pace | At a comfortable 1.32 m/s: 118 steps a minute, a 0.67 m step, a foot down 60.7 % of the cycle. Walking fast at 1.87 m/s: 141 steps, 0.79 m, 58.5 %. | [Shemmell et al., 2007](https://pmc.ncbi.nlm.nih.gov/articles/PMC1866234/) (summary, its table) | Between the two at the game's 1.7 m/s: 134 steps a minute and 59 %. `Walk` is 26 frames (138 steps, a 0.74 m step) with a foot down for 15 of them (58 %); the loose one is 28 frames (129). |
+| A run's pace against speed | 860 recreational runners on a treadmill at their own pace (2.75 m/s on average): 164 steps a minute (SD 9), 289 ms on the ground, a foot down 39 % of the cycle, the centre of mass 77 mm up and down (SD 12). Each m/s faster: 11 steps a minute more, 62 ms less on the ground, 5.9 points less of the cycle; the rise and fall does not change with speed. | [Reference values in recreational runners, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10588426/) (opened; the per-m/s figures are its per-km/h slopes times 3.6) | At 4.0 m/s: 178 steps a minute, 211 ms and 32 %. `Jog` is 20 frames (180 steps) with a foot down for 6 (200 ms, 30 %). Its centre of mass goes 64 mm, inside one SD of the 77. |
+| A sprint's pace | Elite sprinters at 10.6 m/s: 4.56 steps a second (274 a minute), 96 ms on the ground, 124 ms in the air, a 2.32 m step. The study above stops near 4.2 m/s and its straight lines give nonsense at 6.5. | [Stride characteristics of elite sprinters, 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC8008308/) (opened) | 6.5 m/s is between the two sets: the ground a contact covers goes from 0.84 m at 4.0 m/s to 1.02 m at 10.6, so about 0.91 m and 140 ms here, at about 210 steps a minute. `Sprint` is 18 frames (200 steps) with a foot down for 4 (133 ms, 22 %): a declared choice between two sources, not a measured figure. |
+| The joints of a running leg | The hip is about 50 degrees bent as the foot lands and 10 past straight after it leaves; the knee about 40 bent as it lands, 60 as it takes the weight, 40 again as it leaves, and up to 125 in the swing; the swing is 62 % of the cycle (40 % in a walk). | [Biomechanics of running, lecture notes](https://gyansanchay.csjmu.ac.in/wp-content/uploads/2022/02/Biomechanics-of-Running.pdf) (opened; it gives no speed and no primary source for the angles) | `Jog`'s knee: 20 degrees as the foot lands, 51 under the weight, 20 as it leaves, 109 in the swing. The landing knee is straighter than the notes': the ball of the foot lands 0.37 m ahead of the body's centre, and a deeper knee would need the hips lower than the 82 cm they sink to. |
+| A sprinter's leg | Knee 24 degrees bent at landing and 25 at take-off, 140 at its tightest in the swing, the thigh 21 degrees under level at the top of the knee lift; "a flat, active foot contact". | the elite sprinters' study above (opened) | `Sprint`: 40 at landing, 16 at take-off, 132 in the swing, the thigh 77 degrees forward of straight down (13 under level). It lands on the ball of the foot with the heel 14 degrees up, and the heel stays 5 up. Its landing knee is deeper than an elite sprinter's: a declared choice for a body that is not one. |
+| Between contacts | A body in the air is in free fall. | physics | The centre of mass of the runs is on a free fall's arc from the frame a foot leaves to the frame the other lands (the build's check reads 0 to 1.1 mm off it), and the contact in between catches and throws it. The pelvis is solved from the centre of mass on every frame. |
+| The pelvis's turn | Its range in running is 5 to 28 degrees between runners; walking pelvis and thorax turn against each other more the faster the walk. Its timing differs between walking and running: cited to Novacheck (1998), which we could not open. | [Folland et al., 2017](https://pmc.ncbi.nlm.nih.gov/articles/PMC5473370) (opened; ranges only, its table is an image); [lumbo-pelvic kinematics with speed](https://www.sciencedirect.com/science/article/abs/pii/S0268003305000902) (summary) | Hips turn 8 degrees in `Walk`, 12 in `Jog`, 18 in `Sprint`, the shoulders 8, 19 and 25 against them. In the walk the hip of the landing leg is furthest forward as it lands; in the runs the hip of the driving knee is, about as the other foot leaves. That timing is our reading of how the knee drive and the arms go together, not a sourced number. |
+| The arms | In a walk the elbow moves through 29.7 degrees (SD 10.2). In a run the elbow is held near a right angle and bends and opens twice a cycle. No page we could open gave the shoulder's swing in degrees. | [Kang et al., 2023](https://doaj.org/article/d3582d494e3a48d7b694f5b55df11067) (summary); a coaching article (summary) | `Walk`: the upper arm swings 43 degrees and the elbow gives 24. `Jog`: 79 degrees with the elbow between 66 and 97. `Sprint`: 112 with the elbow between 64 and 120. The swings' sizes are declared choices, read off the renders. |
+| The foot's landing speed | Not found in a source we could open. | | A walk's foot is at rest over the floor as it lands. A run's keeps half of the ground's speed (`land_speed`) and comes down at about 1 m/s: brought to rest in the air first, it has to reach past its landing place while the body goes on under it (11 cm in the jog and 20 in the sprint, by the path's own arithmetic), and the leg that reaches furthest sets the height of the whole cycle. |
+
+### How they are built
+
+- **Footfalls first.** The left foot lands at frame 0 and the right at half the cycle in all three; a foot is on
+  one place of the floor for a whole number of frames while the root travels at the game's speed. Cadence, planted
+  share and speed are the style's numbers, and `locomotion.json` carries them (speed, contact frames, a footstep
+  event per landing).
+- **The centre of mass is the input.** It moves at the clip's speed, sways toward the carrying foot, and goes up
+  and down as a body's does (highest over the standing leg in a walk; a free fall between a run's contacts). The
+  pelvis is solved from it, and the whole path is set as high as the furthest-stretched leg allows (`stretch`), so
+  no knee locks and no ankle is out of reach.
+- **The feet are set down on every body's skin.** The two mannequins' soles are not one shape (the male's toes are
+  24 mm longer), and the heel's skin follows the shin: each frame's ankle height is corrected until the lowest skin
+  of both bodies is nearest the floor while planted and clear of it in the swing.
+- **The swing.** The foot leaves over its toes, is drawn up behind (`kick`), passes under the body and comes down
+  onto the floor at a speed. The knee's bend is what the path leaves it, not a keyed angle.
+- **The trunk and the arms.** The pelvis turns and tips with the legs, the chest turns and leans against it, the
+  head stays level; each arm swings in its socket with the other side's leg, and goes out past the hip on its way
+  back so the hand clears it on both bodies.
+- **Overlap.** The chest, the head, the upper arms, the forearms and the hands follow through the overlap pass.
+  At a gait's pace a spring changes a swing's size and timing, so the description leads and enlarges the upper
+  arm's swing by what the spring will take, and the declared lags are the spring's at that pace.
+- **Not mirror images.** The right foot reaches 12 mm further and lifts a tenth higher, the left arm swings 8 %
+  wider and the pelvis keeps a degree of turn (`uneven`; the sharp variant sets it to 0).
+
+### The three variants of each
+
+Measured by `../audit_clips.py` on the female mannequin; the review sheets print the whole table.
+
+| | A, grounded | B, loose | C, sharp | the library's |
+| --- | --- | --- | --- | --- |
+| **Walk**: steps a minute, planted sole speed | 138, 1.71 m/s | 129, 1.71 | 138, 1.71 | 90, 0.95 |
+| Pelvis up and down, side to side | 37, 46 mm | 43, 64 | 32, 49 | 53, 71 |
+| Hips turn and tip, shoulders turn | 8 and 6, 8 degrees | 12 and 9, 12 | 6 and 5, 10 | 4 and 5, 15 |
+| Upper arm swings; forearm, hand, chest trail | 43 degrees; 1.4, 1.4, 1.3 frames | 57; 2.0, 2.1, 2.4 | 45; 0.9, 0.9, 0.8 | 33; 0.2, 2.2, 1.3 |
+| Halves differ, lowest sole vertex, seam's step | 1.0 degrees, 0.4 mm, 0.18 | 1.6, 0.3, 0.16 | 0, 0.4, 0.16 | 2.5, 14.8 under, 2.01 |
+| **Jog**: steps a minute, planted sole speed | 180, 4.07 m/s | 180, 4.07 | 180, 4.07 | 129, 5.91 |
+| Pelvis up and down, side to side | 79, 36 mm | 90, 52 | 78, 32 | 245, 36 |
+| Hips turn and tip, shoulders turn | 12 and 8, 19 degrees | 16 and 11, 25 | 9 and 5, 14 | 1 and 11, 76 |
+| Upper arm swings; forearm, hand, chest trail | 79 degrees; 0.8, 0.9, 0.8 frames | 96; 1.2, 1.4, 1.8 | 75; 0.8, 0.9, 0.8 | 86; 1.6, none, none |
+| Thigh swings, trunk leans, halves differ | 78, 7.6, 1.3 degrees | 79, 7.6, 2.2 | 86, 8.9, 0 | 117, 25.5, 3.7 |
+| **Sprint**: steps a minute, planted sole speed | 200, 6.50 m/s | 200, 6.50 | 200, 6.50 | 180, 5.79 |
+| Pelvis up and down, side to side | 87, 25 mm | 90, 27 | 86, 22 | 138, 36 |
+| Hips turn and tip, shoulders turn | 18 and 8, 25 degrees | 22 and 10, 31 | 14 and 5, 19 | 4 and 10, 47 |
+| Upper arm swings; forearm, hand, chest trail | 112 degrees; 0.9, 0.9, 0.8 frames | 125; 1.3, 1.5, 1.3 | 112; 0.9, 0.9, 0.8 | 78; 0.3, 0.1, none |
+| Thigh swings, trunk leans, halves differ | 95, 9.6, 1.5 degrees | 95, 9.1, 2.3 | 101, 12.2, 0 | 113, 39.1, 13.4 |
+| Planted sole wanders (the build, both bodies) | 4.5, 3.6, 2.3 mm (walk, jog, sprint) | 4.5, 3.6, 2.3 | 4.5, 3.6, 2.3 | 64, 10, 313 (the audit) |
+| Limbs inside limbs, female and male | 0 and 0, 0 and 3.8, 0 and 0 mm | 0 and 0, 0 and 2.0, 0 and 0 | 0 and 0, 0 and 3.3, 0 and 0 | walk: 12 mm |
+
+**A is the one shipped for all three** (`picks.json`), as the recommendation: its numbers are a person's at the
+game's speeds. B is the vision for a loose, long-limbed character; C for a small or stylised body seen from far.
+The grounded and the sharp runs trail by the same frames; what tells them apart is the trunk (hips, shoulders,
+lean), the knee lift and the mirror.
+
+### What the numbers do not say
+
+- **The walk's knee is 23 degrees bent as the heel lands** (a person's about 5) and the hips ride 2 to 6 cm under
+  the standing height: the step is 0.74 m on 0.83 m legs and the rise and fall is held to 37 mm.
+- **The runs sit low.** The pelvis goes down to 82 cm in the jog and 80 cm in the sprint (92 standing), and it is 7
+  to 12 cm behind the centre of mass in the sprint because the trunk leans.
+- **The audit reads the jog's planted sole wandering 7 mm.** It follows every vertex of the sole, and the heel's
+  skin is weighted to the shin, which swings 25 degrees a frame over the planted foot. On the skin that only the
+  foot and the toes move, the build reads 3.6 mm.
+- **The pelvis moves 2 to 5 cm fore and aft in place.** The centre of mass moves at one speed, so the pelvis gives
+  way as a leg swings forward. The game's capsule moves at one speed; the tree's issue (kit #1158) decides whether
+  the pelvis's own travel is kept.
+
+### Numbers for the code (the gaits)
+
+| | Walk | Jog | Sprint |
+| --- | --- | --- | --- |
+| Frames, seconds | 26, 0.867 | 20, 0.667 | 18, 0.6 |
+| `speed` in `locomotion.json` (the game's) | 1.7 m/s | 4.0 | 6.5 |
+| Left foot down (frames), right foot lands | 0 to 15, 13 | 0 to 6, 10 | 0 to 4, 9 |
+| Footstep events | 0 (left), 13 (right) | 0, 10 | 0, 9 |
+| In the air | never | frames 6 to 10 and 16 to 20 | 4 to 9 and 13 to 18 |
+| Tracks: bones' rotations and the pelvis's place | 52 and 1 | 52 and 1 | 52 and 1 |
+| Keys kept by the build, of every frame | 59 % | 77 % | 74 % |
+| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 31 % | 40 % | 48 % |
+| Key bytes in the file | 14.1 KB | 13.9 KB | 12.0 KB |
+
+- **Imported size:** the library file is 57.6 KB imported with all four clips (39 KB with the idle alone), 4.8 KB a
+  second over its 12.1 s, inside the 6 KB a second budget the test holds the file to. The three gaits add 18.6 KB
+  for 2.13 s, 8.7 KB a second by themselves: a short loop of fast motion has few frames a reducer can drop, and
+  the sprint is over the 40 % key budget for that reason (declared in the description, `keys_kept`).
+- **They are played at their own pace** by the ground blend space, as the library's were; since their speeds are
+  the game's own, the feet hold the floor at the three tuned speeds. Between them the blend still slides: speed
+  matching is kit #1158.
+- **Footsteps** come from the feet's height as before (`Footsteps`), now seven a three seconds in a walk.
+- **The pistol's hold** was solved on the library's gaits; `tests/gameplay/test_pistol_hold.gd` and
+  `test_pistol_clearance.gd` pass on ours without a change.
