@@ -108,6 +108,13 @@ moved by its owner every few frames by the time it missed, and handed back later
   the unthrottled one on every frame. **Seen:** gdstudio #1046, 2026-11-11 (the AI tour compared frame by frame with
   the throttle on and off: identical to run-to-run noise once new characters waited 8 frames).
 
+- **Approach:** Let a throttle that gives every tree back on its way out (`_exit_tree`) ask nothing of a character or a
+  camera that is leaving the tree with it (`CharacterAnimationThrottle._hears`). **Watch out for:** a scene freed whole
+  takes its characters out before a throttle that is a later sibling, and the footsteps' range check read their
+  `global_position`: the puppet bench printed one `get_global_transform` error a character at exit (`!is_inside_tree()`),
+  an `ERROR` that a headless run must not print. **Seen:** gdstudio #1138, 2026-11-11 (`tools/bench/puppet_bench.tscn`
+  run headless).
+
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 
 A `SkeletonModifier3D` that holds the arms (Deadnight's `WeaponHandsIK`, the gun at the shoulder) and fades its
