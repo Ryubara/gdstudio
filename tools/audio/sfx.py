@@ -573,8 +573,10 @@ def licence_text(
             "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), plan "
             + ", ".join(f"`{t}`" for t in tiers)
             + ",",
-            f"  generated {' to '.join(dict.fromkeys([dates[0], dates[-1]]))} with `tools/audio/sfx.py` in the kit (the"
-            " model of each file is in the table).",
+            (
+                f"  generated {' to '.join(dict.fromkeys([dates[0], dates[-1]]))} with `tools/audio/sfx.py` in the kit (the"
+                " model of each file is in the table)."
+            ),
             f"- Licence: {licence}",
         ]
         if attribution:

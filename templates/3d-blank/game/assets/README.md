@@ -8,6 +8,6 @@
 - `assets/shaders/prototype/` and `assets/materials/prototype/` are the template's prototype surface: one world-space
   grid shader and a material per colour.
 - `assets/audio/wind/` is a soft wind loop of 10.5 s for the `Ambient` bus, generated with ElevenLabs Sound Effects on
-  the free tier: attribution required, not licensed for commercial use. **Temporary: replace or relicense it before
-  any commercial release** (its `LICENSE.md` says how it was made; the kit's `docs/gamedev/audio/sound-effects.md`
-  has the recipe), and name ElevenLabs on the Credits screen until then.
+  the studio's paid plan: commercial use in a game allowed, no attribution required, not to be shared on its own as a
+  sound file (its `LICENSE.md` says how it was made and what the terms allow; the kit's
+  `docs/gamedev/audio/sound-effects.md` has the recipe).

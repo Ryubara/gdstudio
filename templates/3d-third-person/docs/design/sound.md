@@ -1,7 +1,7 @@
 # Sound
 
-The buses, their volumes and the sounds 3D Third Person started with: a wind, a coin, footsteps, a pistol shot and
-bullet impacts.
+The buses, their volumes and the sounds 3D Third Person ships: a wind, a coin, footsteps, a pistol (shot, empty click,
+reload and draw), the fists' swing and bullet impacts. No menu sound ships yet.
 
 ## Buses
 
@@ -35,29 +35,33 @@ hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns the
 
 | Sound | Files | Bus | Notes |
 | --- | --- | --- | --- |
-| Wind | `assets/audio/wind/wind_soft_1.ogg` | `Ambient` | 10.5 s, a seamless loop (the import sets `loop`), -33 LUFS |
-| Coin pickup | `assets/audio/coin/coin_pickup_1..4.ogg` | `SFX` | 0.35 to 0.36 s: a shake of coins into a soft pop; four variants to cycle |
-| Footsteps | `assets/audio/footsteps/footstep_soft_1..4.ogg` | `SFX` | four soft, low thuds of 0.08 to 0.13 s that suit any character and floor, cycled in a seeded order for walk, run, crouch and landing (same files, the three players' own volumes) |
-| Bullet impacts | `assets/audio/impacts/impact_default_1..3.ogg`, `impact_wood_1..3.ogg`, `impact_metal_1..3.ogg` | `SFX` | 0.22, 0.26 and 0.45 s, synthesised by `tools/audio/impact_sounds.py` (MIT, seeded): a dry smack and thud, a hollow knock and a splinter's tick, a ping and a short ricochet whine; peak -6 dBFS, played at -10 to -14 dB |
+| Wind | `assets/audio/wind/wind_soft_1.ogg` | `Ambient` | 10.5 s, a seamless loop (the import sets `loop`): an even hush of air over grass, -33 LUFS |
+| Coin pickup | `assets/audio/coin/coin_pickup_1..4.ogg` | `SFX` | 0.31 to 0.32 s: one coin's bright chime and sparkle, starting at once; four variants to cycle |
+| Footsteps | `assets/audio/footsteps/footstep_soft_1..4.ogg` | `SFX` | four soft sneaker steps on stone, 0.10 to 0.24 s, a rounded thud with a little grit that suits any character and floor, cycled in a seeded order for walk, run, crouch and landing (same files, the three players' own volumes) |
+| Fists | `assets/audio/fists/fist_swing_1..3.ogg` | `SFX` | three 0.15 to 0.17 s whooshes of a punch, the fists' `shot_sound` |
+| Bullet impacts | `assets/audio/impacts/impact_default_1..3.ogg`, `impact_wood_1..3.ogg`, `impact_metal_1..3.ogg` | `SFX` | 0.15 to 0.31 s: a dry crack and grit on stone, a hard wooden crack and knock, a bright metal ping, played at -10 to -14 dB |
 | Pistol shot | `assets/audio/pistol/pistol_shot_1..5.ogg` | `SFX` | five 0.10 s reports from Deadnight's House Pistol, synthesised (MIT), played with a small random pitch and volume spread |
+| Pistol mechanics | `assets/audio/pistol/pistol_empty_1..2.ogg`, `pistol_reload_mag_out.ogg`, `pistol_reload_mag_in.ogg`, `pistol_reload_slide.ogg`, `pistol_draw.ogg` | `SFX` | a dry-fire click, the magazine out and in, the slide racked, a draw from a holster (0.06 to 0.30 s) |
 
-The generated files are levelled so that files of a set sit within 0.3 LU of each other (coin -20 LUFS-M, steps -33
-LUFS-M) and none peaks over -1 dBFS; the pistol shots are full-scale files played at a trim.
+Everything but the pistol shots was generated with ElevenLabs Sound Effects (`eleven_text_to_sound_v3`) by the kit's
+`tools/audio/sfx.py` (kit #1083). The files of a set sit within 1 LU of each other, none peaks over -1 dBFS, and each
+set is levelled so that it is heard in the game as loud as the sound it replaced (or, for the click and the reload,
+which were hard to hear, a few LU under a shot); the pistol shots are full-scale files played at a trim.
 
 ## Levels
 
 The player volumes are the template's defaults: steps -20 dB, crouch steps -29, landing -15, wind -20 (the
 maintainer's, set by ear in a game made from the template), coin -16 and shot -22 (levelled against them by
-measurement). Measured in the game, the loudest 400 ms at the mix: step -40, crouch step -46, landing -37, coin -37,
-shot -31 LUFS-M, and the wind -50 LUFS integrated, so no effect jumps out. A 3D player's volume is not one to one with
-what is heard (it also darkens the sound as it falls), so measure again before you move one (the kit's Godot audio
-page, "The templates' buses and AudioSettings", says how).
+measurement). Measured in the game (kit #1083, a game made from the template, the real input), the loudest 400 ms
+at the mix: step -41, crouch step -47, landing -35, coin -39, shot -29, empty click -40, reload -35, draw -30, punch
+-37, impacts -41 to -44 LUFS-M, and the wind -50 LUFS integrated, so no effect jumps out. A 3D player's volume is
+not one to one with what is heard (it also darkens the sound as it falls), so measure again before you move one (the
+kit's Godot audio page, "The templates' buses and AudioSettings", says how).
 
 ## Licence of the sounds
 
 The pistol shots are GDStudio's own work (MIT, synthesised by Deadnight's code, nothing sampled): no attribution and
-nothing to replace. The coin, the steps and the wind are temporary: they were generated with ElevenLabs Sound
-Effects on the free tier, with the maintainer's agreement for now:
-**attribution is required and they are not licensed for commercial use. Replace or relicense them before any
-commercial release**, and name ElevenLabs on the Credits screen until then. Each folder's `LICENSE.md` lists its files,
-prompts, lengths, model and plan.
+nothing to replace. Every other sound was generated with ElevenLabs Sound Effects on the studio's paid plan (kit #1083),
+which allows commercial use under ElevenLabs' Sound Effects terms: the sounds may be used in a game, combined with other
+material, but not sold or shared on their own as sound files or put in a sound library. No attribution is required. Each
+folder's `LICENSE.md` lists its files, prompts, lengths, model and plan.
