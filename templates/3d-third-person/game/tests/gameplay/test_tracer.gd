@@ -74,11 +74,11 @@ func test_every_pool_and_tracer_export_has_its_default_pinned() -> void:
 	fresh.free()
 	var look_pins := {
 		&"color": Color(1.0, 0.82, 0.48),
-		&"energy": 1.6,
-		&"width": 0.025,
+		&"energy": 2.5,
+		&"width": 0.03,
 		&"speed": 320.0,
 		&"length": 3.0,
-		&"fade_time": 0.06,
+		&"fade_time": 0.1,
 		&"start_offset": 0.1,
 	}
 	assert_array(ExportPins.differences(TracerDef.new(), look_pins)).is_empty()
@@ -105,8 +105,6 @@ func test_a_hitscan_shot_draws_one_streak_from_the_muzzle_to_the_hit() -> void:
 	var nodes_before := Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
 	_shoot()
 	assert_int(drawn.size()).is_equal(1)
-	# The streak shows once it has run a frame.
-	_pool.advance(0.005)
 	assert_vector(drawn[0][0]).is_equal_approx(MUZZLE_AT, Vector3.ONE * 0.001)
 	assert_float(drawn[0][1].z).is_equal_approx(WALL_FACE, 0.01)
 	assert_int(_pool.active_count()).is_equal(1)
@@ -147,7 +145,8 @@ func test_a_streak_runs_fades_and_frees_its_place() -> void:
 	_weapon.definition.tracer = _look
 	_shoot()
 	var distance := MUZZLE_AT.distance_to(Vector3(0.0, 1.0, WALL_FACE))
-	# At first the head is near the muzzle and runs at `speed`.
+	# It shows in the frame of the shot, leaving the muzzle at its full length, and runs at `speed`.
+	assert_int(_pool.shown_count()).is_equal(1)
 	_pool.advance(0.01)
 	var head: Transform3D = _pool.shown(0)["transform"]
 	var length := head.basis.y.length()
@@ -156,8 +155,12 @@ func test_a_streak_runs_fades_and_frees_its_place() -> void:
 	# Past its run it fades, then it is gone and the pool hides and stops.
 	_pool.advance(_look.travel_time(distance))
 	_pool.advance(_look.fade_time * 0.5)
-	if _pool.active_count() > 0:
-		assert_float(_pool.shown(0)["color"].a).is_less(1.0)
+	# Its last `length` metres stay at the wall while it fades (seen in every frame at 30 fps).
+	assert_int(_pool.shown_count()).is_equal(1)
+	var fading: Transform3D = _pool.shown(0)["transform"]
+	assert_float(fading.basis.y.length()).is_equal_approx(_look.length, 0.01)
+	assert_float((fading.origin + fading.basis.y * 0.5).z).is_equal_approx(WALL_FACE, 0.01)
+	assert_float(_pool.shown(0)["color"].a).is_between(0.3, 0.7)
 	_pool.advance(_look.fade_time)
 	assert_int(_pool.active_count()).is_equal(0)
 	assert_bool(_pool.visible).is_false()

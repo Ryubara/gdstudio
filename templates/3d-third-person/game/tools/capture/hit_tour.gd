@@ -10,11 +10,15 @@
 ## `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 30`
 ## `HIT_HITSCAN=1` fires the pistol hitscan (a copy of its definition with `WeaponDef.hitscan` on,
 ## gdstudio #1252): the same shots with no round in the air, the impact at once.
+## `HIT_TRACER=1` (with `HIT_HITSCAN=1`) gives that pistol the ready-made tracer
+## (`gameplay/weapon/pistol_tracer.tres`, gdstudio #1270), and `HIT_TIME_SCALE=0.12` slows the
+## clock so a streak that lasts a tenth of a second shows over several frames.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 const DRESSED := "res://gameplay/character/character_dressed.tscn"
 const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const TRACER := "res://gameplay/weapon/pistol_tracer.tres"
 ## Where the player stands, and where the targets stand and walk (an open stretch of the map).
 const STAND := Vector3(-3.0, 0.0, 9.0)
 const HEAD_TARGET := Vector3(-4.6, 0.0, 15.5)
@@ -62,8 +66,13 @@ func _ready() -> void:
 	if OS.get_environment("HIT_HITSCAN") == "1":
 		var pistol := _player.loadout.slots[0].duplicate() as WeaponDef
 		pistol.hitscan = true
+		if OS.get_environment("HIT_TRACER") == "1":
+			pistol.tracer = load(TRACER) as TracerDef
 		_player.loadout.slots[0] = pistol
 		_player.weapon.definition = pistol
+	var time_scale := OS.get_environment("HIT_TIME_SCALE")
+	if time_scale.is_valid_float():
+		Engine.time_scale = clampf(time_scale.to_float(), 0.01, 1.0)
 	_player.teleport(STAND, 0.0)
 	_targets["head"] = _add_target(HEAD_TARGET)
 	_targets["body"] = _add_target(BODY_TARGET)

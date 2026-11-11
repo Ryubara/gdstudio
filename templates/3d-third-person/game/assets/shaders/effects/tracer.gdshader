@@ -11,7 +11,7 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // How hard the streak's edges fall off across its width: higher is a harder core.
 uniform float edge_softness : hint_range(0.5, 8.0) = 2.0;
 // How bright the tail is against the head, along the streak.
-uniform float tail_share : hint_range(0.0, 1.0) = 0.15;
+uniform float tail_share : hint_range(0.0, 1.0) = 0.35;
 
 varying float along;
 varying float energy;

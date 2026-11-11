@@ -74,10 +74,11 @@ class Line:
 	## Where the head and the tail are now (metres from `from`), and how bright it is (0 to 1).
 	func shape() -> Vector3:
 		var travel := look.travel_time(distance)
-		var head := distance if look.speed <= 0.0 else minf(look.speed * age, distance)
-		var tail := 0.0
+		# It leaves the muzzle at its full length, so even the frame of the shot shows it.
+		var head := distance
 		if look.speed > 0.0:
-			tail = maxf(look.speed * age - look.length, 0.0)
+			head = minf(look.length + look.speed * age, distance)
+		var tail := maxf(head - look.length, 0.0) if look.speed > 0.0 else 0.0
 		tail = minf(maxf(tail, look.start_offset), head)
 		var fade := 1.0
 		if age > travel:
@@ -86,9 +87,7 @@ class Line:
 
 	## True once the streak has run and faded.
 	func done() -> bool:
-		if age >= look.lifetime(distance):
-			return true
-		return look.speed > 0.0 and look.speed * age - look.length >= distance
+		return age >= look.lifetime(distance)
 
 
 ## The pool drawn in the same viewport as `from` (several worlds in one process: a test, a
