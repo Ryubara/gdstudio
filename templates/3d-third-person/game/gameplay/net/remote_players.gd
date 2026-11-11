@@ -28,6 +28,10 @@ const CLOCK_PULL := 0.1
 
 ## The local player's slot: no puppet is made for it.
 var local_slot := -1
+## The map's networked parts on this screen (`NetClient` hands them over at the WELCOME): a slab is
+## drawn at the client's predicted tick, ahead of the moment a puppet is drawn at, so a puppet that
+## stands on one is moved with it to where it is drawn.
+var map_parts: NetWorld
 ## Physics steps on which a puppet's track had no snapshot as new as the moment drawn.
 var starved := 0
 ## The microseconds the last physics step spent placing the puppets (their own animation and
@@ -56,6 +60,7 @@ func _physics_process(delta: float) -> void:
 		var track := _tracks[slot]
 		var before := track.starved
 		var moving := track.sample(at, _sample)
+		_sample.position += _platform_shift(_sample.position, at)
 		starved += 1 if track.starved > before else 0
 		_puppets[slot].puppet_to(_sample, moving, delta)
 	last_frame_us = Time.get_ticks_usec() - began
@@ -136,13 +141,29 @@ func _add(slot: int, player_name: String, entry: PlayerEntry) -> void:
 	var puppet := puppet_scene.instantiate() as Player
 	puppet.name = _node_name(slot, player_name)
 	puppet.make_puppet()
+	puppet.set_meta(NetHits.SLOT_META, slot)
 	add_child(puppet)
+	if puppet.weapon != null:
+		puppet.weapon.authoritative = false
 	PlayerPuppet.warp(puppet, entry)
 	_puppets[slot] = puppet
 	_tracks[slot] = InterpolationTrack.new()
 	if player_name != "":
 		_names[slot] = player_name
 	puppet_added.emit(slot, puppet)
+
+
+# What the slab a puppet stands on at server time `at` moves between that moment and the tick this
+# screen draws the slab at (the client's predicted command), so the puppet stands on the drawn slab.
+func _platform_shift(point: Vector3, at: float) -> Vector3:
+	if map_parts == null:
+		return Vector3.ZERO
+	var drawn_at := roundi(at * NetLimits.TICK_RATE)
+	for entity in map_parts.movers():
+		var platform := entity.part() as MovingPlatform
+		if platform != null and platform.carries(point, drawn_at):
+			return platform.position_at(map_parts.tick) - platform.position_at(drawn_at)
+	return Vector3.ZERO
 
 
 static func _node_name(slot: int, player_name: String) -> String:

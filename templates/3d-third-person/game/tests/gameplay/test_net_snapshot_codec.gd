@@ -31,7 +31,7 @@ func _all_events() -> Array[NetEvent]:
 	var events: Array[NetEvent] = [
 		NetEvent.joined(3, "Rook"),
 		NetEvent.left(5),
-		NetEvent.shot(2, 99_000, Vector3(1.0, 1.6, -2.25), Vector3(0.0, 0.1, -1.0).normalized()),
+		NetEvent.shot(2, 9_000, Vector3(1.0, 1.6, -2.25), Vector3(0.0, 0.1, -1.0).normalized()),
 		NetEvent.hit(Vector3(4.0, 0.25, -8.5), Vector3.UP, 2, 17),
 		NetEvent.died(1, Vector3(3.0, -9.5, 0.0), 1),
 		NetEvent.revived(1, Vector3(0.0, 0.0, 5.0)),
@@ -128,8 +128,8 @@ func test_each_event_size_matches_its_layout() -> void:
 	var expected := {
 		NetEvent.Kind.JOINED: 3 + 4,
 		NetEvent.Kind.LEFT: 2,
-		NetEvent.Kind.SHOT: 16,
-		NetEvent.Kind.HIT: 14,
+		NetEvent.Kind.SHOT: 15,
+		NetEvent.Kind.HIT: 15,
 		NetEvent.Kind.DIED: 9,
 		NetEvent.Kind.REVIVED: 8,
 		NetEvent.Kind.ENTITY: 8 + 3,
