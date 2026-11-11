@@ -403,16 +403,8 @@ func _assert_hand(stage: RifleStage, side: String, tag: String) -> void:
 	var contacts := (
 		RifleStage.RIFLE_RIGHT_CONTACTS if side == "r" else RifleStage.RIFLE_LEFT_CONTACTS
 	)
-	var parts := stage.contact.measure(side)
-	var fails := HandContact.failures("%s %s:" % [tag, side], parts, contacts)
+	var fails := HandContact.failures("%s %s:" % [tag, side], stage.contact.measure(side), contacts)
 	assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
-	if side == "r":
-		var off: float = parts["palm"].distance
-		(
-			assert_float(off)
-			. override_failure_message("%s r: the palm is %.1f mm off the grip" % [tag, off * 1e3])
-			. is_less(RifleStage.RIFLE_GRIP_PALM_FLOAT)
-		)
 
 
 func _tip_to_trigger(stage: RifleStage) -> float:

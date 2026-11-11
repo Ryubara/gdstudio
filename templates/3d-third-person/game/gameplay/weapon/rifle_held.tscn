@@ -25,7 +25,7 @@ transform = Transform3D(0.34202, -0.9021, -0.26311, 0, -0.28, 0.96, -0.93969, -0
 gizmo_extents = 0.05
 
 [node name="LeftHandTarget" type="Marker3D" parent="Pivot/Rifle"]
-transform = Transform3D(0, -0.6, -0.8, 1.0, 0, 0, 0, -0.8, 0.6, -0.204, 0.05146, 0.056)
+transform = Transform3D(0, -0.6, -0.8, 1.0, 0, 0, 0, -0.8, 0.6, -0.204, 0.05145, 0.056)
 gizmo_extents = 0.05
 
 [node name="MagazineHand" type="Marker3D" parent="Pivot/Rifle"]

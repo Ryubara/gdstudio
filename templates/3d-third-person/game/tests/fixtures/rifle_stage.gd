@@ -8,10 +8,7 @@ extends HoldStage
 
 const RIFLE_HELD := "res://gameplay/weapon/rifle_held.tscn"
 ## The parts that hold the rifle in each hand: none may be more than `HandContact.MAX_FLOAT` off
-## it. The right hand's index finger is one of them on the trigger and along the magazine well
-## alike. Its thumb bears on the grip's left rear by its middle bone: the grip is 4.3 cm deep, so
-## the thumb's tip lies forward past its edge (4 to 5 mm off the receiver). Its palm has a limit
-## of its own (`RIFLE_GRIP_PALM_FLOAT`).
+## it. The right hand's index finger is one of them on the trigger and along the receiver alike.
 const RIFLE_RIGHT_CONTACTS: Array[String] = [
 	"index_tip",
 	"middle_mid",
@@ -21,11 +18,9 @@ const RIFLE_RIGHT_CONTACTS: Array[String] = [
 	"pinky_mid",
 	"pinky_tip",
 	"thumb_mid",
+	"thumb_tip",
+	"palm",
 ]
-## How far the right palm's skin may be off the grip, in metres. The two mannequins' palms differ
-## by 6.5 mm on this grip (the female's is the hollower), and one place of the hand bone serves
-## both: the male's palm is pressed 1.4 mm in, the female's is then 5.1 mm off.
-const RIFLE_GRIP_PALM_FLOAT := 0.006
 const RIFLE_LEFT_CONTACTS: Array[String] = [
 	"index_mid",
 	"index_tip",
