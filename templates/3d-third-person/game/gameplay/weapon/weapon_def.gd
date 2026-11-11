@@ -119,6 +119,14 @@ enum Kind {
 	set(value):
 		grip_bones = value
 		emit_changed()
+## On: the weapon is aimed and shot in one hand (kit #1085): the body side-on, the shooting arm
+## out straight, the free arm on the locomotion clip, the shot kicking the wrist and elbow; the
+## free hand comes in only for a reload. Off: held in both hands. The character's `WeaponHold`
+## has the stance's numbers.
+@export var one_handed := false:
+	set(value):
+		one_handed = value
+		emit_changed()
 ## Aiming level; the aim blends to the clips below by how far up or down the character looks.
 ## Empty: no aim pose (the arms stay as they are while aiming).
 @export var aim_clip: StringName = &"":

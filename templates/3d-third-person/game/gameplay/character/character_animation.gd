@@ -96,6 +96,8 @@ const _P_RELOAD_AT := StringName("parameters/%s/current_position" % _RELOAD_CLIP
 const _P_RELOAD_LENGTH := StringName("parameters/%s/current_length" % _RELOAD_CLIP)
 const _RELOAD_FADE_IN := 0.15
 const _RELOAD_FADE_OUT := 0.2
+## The bone whose chain keeps the locomotion while a one-handed weapon aims and shoots (kit #1085).
+const FREE_ARM_BONE := &"clavicle_l"
 
 @export_group("Nodes")
 ## The character that is animated.
@@ -826,9 +828,11 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
+	# One-handed, the free arm hangs and swings with the locomotion; the reload still takes it.
+	var free := _bone_paths([FREE_ARM_BONE] if hold != null and hold.one_handed else [])
 	for path in upper:
-		aim.set_filter_path(path, true)
-		shoot.set_filter_path(path, true)
+		aim.set_filter_path(path, not free.has(path))
+		shoot.set_filter_path(path, not free.has(path))
 		reload.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
 	pose.min_space = -aim_pitch_range

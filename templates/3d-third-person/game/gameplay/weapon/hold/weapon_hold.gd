@@ -24,10 +24,19 @@ extends Node
 ## `pistol_held.tscn` and the left hand follows, in the running game too. Everything is a pose
 ## worked out on each machine from the aim amount the game already has: it is cosmetic and never
 ## sent over a network. With no `animation` set, `held_weight` and `aim_weight` are the caller's.
+##
+## One-handed (kit #1085, `one_handed`, the held `WeaponDef`'s when there is an `animation`): the
+## left hand stays off the weapon while it aims and comes in only for a reload, and a fourth
+## modifier (`OneHandStance`, before the grip) turns the chest side-on, reaches the right arm out
+## along the barrel and gives the shot a kick at the wrist and the elbow (the One hand group).
 
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
+const _STANCE := &"HoldOneHandStance"
+## The share of the kick's time over which a one-handed kick rises (the shot clip's own climb peaks
+## at about a fifth of it).
+const KICK_RISE := 0.08
 
 @export_group("Nodes")
 ## The slot that holds the character's model.
@@ -80,6 +89,42 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## How far the weapon is aimed: the left hand is on it by this much, and the trigger finger.
 @export_range(0.0, 1.0, 0.01) var aim_weight := 0.0
 
+@export_group("One hand")
+## On: the weapon is aimed and shot in the right hand alone, the body side-on and the left arm
+## free; the left hand comes to the weapon only for a reload. Off: the two-handed grip. With an
+## `animation`, the held definition's `WeaponDef.one_handed` sets it.
+@export var one_handed := false:
+	set(value):
+		if value == one_handed:
+			return
+		one_handed = value
+		if is_node_ready():
+			_build()
+## The arm that holds the weapon out: the upper arm, the forearm and the hand.
+@export var shooting_arm: Array[StringName] = [&"upperarm_r", &"lowerarm_r", &"hand_r"]
+## How far the chest turns side-on while aiming one-handed, in degrees (the right shoulder
+## forward); the head turns back to the target.
+@export_range(-80.0, 80.0, 0.5, "suffix:deg") var side_on := 35.0
+## How straight the right arm is: the wrist's distance from the shoulder as a share of the arm.
+@export_range(0.7, 1.0, 0.005) var one_hand_reach := 0.96
+## Where the elbow points, in the model's space (down and out to the right).
+@export var one_hand_elbow := Vector3(-0.5, -1.0, 0.0)
+## The wrist moved from the barrel's line through the shoulder, in the model's space.
+@export var one_hand_offset := Vector3.ZERO
+## How many degrees the left arm is held out from the body for balance.
+@export_range(0.0, 45.0, 0.5, "suffix:deg") var free_arm_out := 10.0
+## The shot's kick in one hand: how many degrees the muzzle climbs at the wrist, and how far the
+## wrist comes back (the elbow bends) and up, in metres, at its height.
+@export_range(0.0, 45.0, 0.5, "suffix:deg") var kick_climb := 10.0
+@export_range(0.0, 0.2, 0.005, "suffix:m") var kick_back := 0.05
+@export_range(0.0, 0.2, 0.005, "suffix:m") var kick_up := 0.03
+## How long a one-handed shot's kick lasts, in seconds (the shot clip's own climb settles in about
+## 0.4).
+@export_range(0.05, 2.0, 0.01, "suffix:s") var kick_time := 0.4
+## How far into a shot's kick the arm is (1 the shot, 0 settled): from `animation` (the time since
+## the character's weapon last fired, eased out), or the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var shot_kick := 0.0
+
 @export_group("Reload")
 ## The left hand's fingers while the heel of its palm pushes the magazine in.
 @export var magazine_pose: HandPose
@@ -111,6 +156,9 @@ var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
 var _fingers: HandPoseModifier
+var _stance: OneHandStance
+# Seconds since the character's weapon last fired, counted by the drawn frames (cosmetic).
+var _shot_age := INF
 var _marker: Node3D
 var _magazine: Node3D
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
@@ -121,9 +169,12 @@ func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_build.unbind(1))
 	_build.call_deferred()
+	if animation != null and animation.character != null and animation.character.weapon != null:
+		animation.character.weapon.fired.connect(func(_shot: Projectile) -> void: _shot_age = 0.0)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_shot_age += delta
 	refresh()
 
 
@@ -137,6 +188,9 @@ func refresh() -> void:
 		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
 		reload_weight = reload.x
 		reload_share = reload.y
+		shot_kick = kick_at(_shot_age / kick_time) if animation.tree.active else 0.0
+		var held := animation.held_definition()
+		one_handed = held != null and held.one_handed
 	if _grip == null or not is_instance_valid(_grip):
 		return
 	_weigh(_grip, held_weight)
@@ -146,6 +200,8 @@ func refresh() -> void:
 	# The reload clip brings the weapon in front of the chest, as the aim clips do: held out there,
 	# it would be out of the left arm's reach (13 mm on the male mannequin).
 	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
+	if _stance != null:
+		_pose_stance()
 	if _arm == null:
 		return
 	_plan_left()
@@ -175,6 +231,12 @@ func refresh() -> void:
 		_fingers.open_weight = _left.opened
 
 
+## How far into its kick a one-handed shot is at `share` of `kick_time`: up within its first
+## `KICK_RISE`, as the recoil is, and eased back down to its end.
+static func kick_at(share: float) -> float:
+	return smoothstep(0.0, KICK_RISE, share) * pow(1.0 - clampf(share, 0.0, 1.0), 2.0)
+
+
 ## How far the left hand is on the weapon's support marker or its way (x) and at its magazine (y)
 ## now; together at most 1, and what is left is the clip's own arm.
 func support_weights() -> Vector2:
@@ -197,12 +259,32 @@ func _plan_left() -> void:
 	_left.reach = reload_reach
 	_left.insert = reload_insert
 	_left.back = reload_return
-	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
+	# One-handed, the aim never brings the left hand on: only a reload does, as from the carry.
+	var aim := 0.0 if one_handed else aim_weight
+	_left.update(aim, reload_weight if _magazine != null else 0.0, reload_share)
 
 
-## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.
+# The one-handed stance's weight and numbers: it holds while the weapon is aimed and gives way to
+# the reload clip, which brings the weapon in front of the chest for the left hand.
+func _pose_stance() -> void:
+	_weigh(_stance, held_weight * aim_weight * (1.0 - reload_weight))
+	_stance.side_on = side_on
+	_stance.reach = one_hand_reach
+	_stance.elbow = one_hand_elbow
+	_stance.hand_offset = one_hand_offset
+	_stance.free_arm_out = free_arm_out
+	_stance.kick_climb = kick_climb
+	_stance.kick_back = kick_back
+	_stance.kick_up = kick_up
+	_stance.kick = shot_kick
+
+
+## The modifiers this node made on the skeleton now: the one-handed stance (when `one_handed`),
+## the grip, then the left arm and fingers.
 func modifiers() -> Array[SkeletonModifier3D]:
 	var found: Array[SkeletonModifier3D] = []
+	if _stance != null and is_instance_valid(_stance):
+		found.append(_stance)
 	if _grip != null and is_instance_valid(_grip):
 		found.append(_grip)
 		if _arm != null:
@@ -238,9 +320,17 @@ func _build() -> void:
 	_grip = null
 	_arm = null
 	_fingers = null
+	_stance = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:
 		return
+	if one_handed:
+		_stance = OneHandStance.new()
+		_stance.name = _STANCE
+		_stance.arm = shooting_arm
+		_stance.free_arm = support_arm[0] if not support_arm.is_empty() else &""
+		_aim_stance_along_barrel()
+		_skeleton.add_child(_stance)
 	_grip = HandPoseModifier.new()
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
@@ -264,3 +354,15 @@ func _build() -> void:
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 	refresh()
+
+
+# Tells the stance where the barrel points in the hand bone as the clip leaves it: the weapon's
+# seat on the bone (after the grip's wrist turn) taken back through that turn. The pistol's muzzle
+# is along its own -X and its up +Y.
+func _aim_stance_along_barrel() -> void:
+	var weapon := (seat.get_child(0) as Node3D).transform.basis
+	var wrist := Basis.IDENTITY
+	if grip_pose != null and grip_pose.turns.has(seat.bone_name):
+		wrist = Basis(grip_pose.turns[seat.bone_name])
+	_stance.barrel = (wrist * weapon * Vector3.LEFT).normalized()
+	_stance.weapon_up = (wrist * weapon * Vector3.UP).normalized()
