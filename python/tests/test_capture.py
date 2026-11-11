@@ -404,3 +404,114 @@ def test_clip_of_a_folder_whose_name_ends_in_a_digit(tmp_path: Path) -> None:
     clip = capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
     assert clip == folder / "run2.mp4"
     assert fake.calls[0][fake.calls[0].index("-i") + 1] == str(folder / "run2%08d.png")
+
+
+def test_clip_of_a_digit_ending_folder_numbered_by_another_tool(tmp_path: Path) -> None:
+    # Blender numbers frames <name><4 digits> from 1: `legs2` gives legs20001.png, read as `legs` and frame 20001, and
+    # ffmpeg looks for a first frame numbered 0 to 4 only, so it found none (#1016, #1190); it is told where to start
+    folder = tmp_path / "legs2"
+    folder.mkdir()
+    for i in range(1, 13):
+        Image.new("RGB", (8, 8)).save(folder / f"legs2{i:04d}.png")
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
+    cmd = fake.calls[0]
+    pattern, start = cmd[cmd.index("-i") + 1], int(cmd[cmd.index("-start_number") + 1])
+    assert cmd.index("-start_number") < cmd.index("-i")
+    assert Path(pattern.replace("%05d", f"{start:05d}")) == folder / "legs20001.png"
+
+
+def _real_ffmpeg() -> Path | None:
+    from gds_tools import workspace
+
+    try:
+        return workspace.tool_path("ffmpeg")
+    except Exception:  # noqa: BLE001 - no workspace or no ffmpeg: the test is skipped
+        return None
+
+
+@pytest.mark.skipif(_real_ffmpeg() is None, reason="the pinned ffmpeg is not installed")
+@pytest.mark.parametrize("gif", [False, True])
+def test_real_ffmpeg_encodes_a_digit_ending_folder_slowed(tmp_path: Path, gif: bool) -> None:
+    folder = tmp_path / "legs2"
+    folder.mkdir()
+    for i in range(16, 26):  # starts past 4, like a folder of frames 16.png, 17.png, ...
+        Image.new("RGB", (64, 36), (i * 10, 80, 120)).save(folder / f"legs2{i:04d}.png")
+    ffmpeg = _real_ffmpeg()
+    assert ffmpeg is not None
+    clip = capture.encode_clip(ffmpeg, folder, gif=gif, fps=10, slow=2, log=lambda m: None)
+    assert clip.exists() and clip.stat().st_size > 0
+    if gif:
+        with Image.open(clip) as image:
+            assert image.n_frames == 10 and image.info["duration"] == 200  # every frame, each 0.2 s
+    else:
+        probe = capture.run_program([str(ffmpeg), "-hide_banner", "-i", str(clip)])
+        assert "Duration: 00:00:02.00" in probe.output and " 5 fps" in probe.output
+
+
+def test_clip_fps_overrides_the_recorded_rate(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 30, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 10}', encoding="utf-8")
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None, fps=30)
+    cmd = fake.calls[0]
+    assert cmd[cmd.index("-framerate") + 1] == "30"
+    assert cmd[cmd.index("-t") + 1] == "1.000"
+
+
+@pytest.mark.parametrize(("slow", "rate", "seconds"), [(2, "5", "4.000"), (3, "10/3", "6.000"), (2.5, "4", "5.000")])
+def test_mp4_slow_plays_the_frames_n_times_slower(tmp_path: Path, slow: float, rate: str, seconds: str) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 10}', encoding="utf-8")
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None, slow=slow)
+    cmd = fake.calls[0]
+    assert cmd[cmd.index("-framerate") + 1] == rate
+    assert cmd[cmd.index("-t") + 1] == seconds
+
+
+@pytest.mark.parametrize(("fps", "slow", "graph_rate"), [(20, 4, "5"), (30, 3, "10"), (10, 3, "10/3"), (60, 2, "10")])
+def test_gif_slow_keeps_whole_hundredths(tmp_path: Path, fps: int, slow: float, graph_rate: str) -> None:
+    # 10 fps slowed 3 times is a delay of 30 hundredths, whole, so every frame is kept; 60 slowed 2 is 30 fps,
+    # which a GIF cannot play evenly, so it keeps every third frame at 10
+    folder = tmp_path / "run"
+    make_frames(folder, 12, size=(8, 8))
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, gif=True, run=fake, log=lambda m: None, fps=fps, slow=slow)
+    graph = fake.calls[0][fake.calls[0].index("-filter_complex") + 1]
+    assert graph.startswith(f"fps={graph_rate},")
+
+
+def test_slow_counts_toward_the_cut_and_the_gif_length(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 40, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 2}', encoding="utf-8")  # 20 s, 40 s slowed twice
+    lines: list[str] = []
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append, slow=2)
+    assert fake.calls[0][fake.calls[0].index("-t") + 1] == "30.000"
+    assert "clip cut at 30 s: 10 frames (10 s) of 40 left out; --max-seconds for a longer clip" in lines
+    lines.clear()
+    short = tmp_path / "short"
+    make_frames(short, 12, size=(8, 8))  # 1.2 s at 10 fps, 12 s slowed ten times
+    capture.encode_clip(Path("ffmpeg"), short, gif=True, run=FakeFfmpeg([1]), log=lines.append, slow=10)
+    assert any(line.startswith("warning:") and "12 s" in line for line in lines)
+
+
+@pytest.mark.parametrize(("fps", "slow", "message"), [(0, 1, "--fps"), (10, 0, "--slow"), (10, -2, "--slow")])
+def test_clip_rejects_a_bad_rate(tmp_path: Path, fps: int, slow: float, message: str) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 3, size=(8, 8))
+    with pytest.raises(CaptureError, match=message):
+        capture.encode_clip(Path("ffmpeg"), folder, run=FakeFfmpeg([]), fps=fps, slow=slow)
+
+
+def test_clip_cli_takes_fps_and_slow() -> None:
+    from gds_tools import cli
+
+    args = cli.build_parser().parse_args(["capture", "clip", "frames", "--fps", "60", "--slow", "4"])
+    assert (args.fps, args.slow) == (60, 4.0)
+    args = cli.build_parser().parse_args(["capture", "clip", "frames"])
+    assert (args.fps, args.slow) == (None, 1.0)

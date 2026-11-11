@@ -10,6 +10,7 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
   controller, the ragdoll and touch controls.
 - [Prone and sliding](moves.md): lying down, the crawl and the slide.
 - [Using things](interact.md): the `Interactable` component, the `Interactor` and the door's.
+- [The character's clips](clips.md): the animation libraries and the template's own vault clips, with their checks.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 - [AI characters](ai.md): the `AiCharacter` base, its `AiProfile`, the `AiDirector`'s thinks, tiers and budget, and

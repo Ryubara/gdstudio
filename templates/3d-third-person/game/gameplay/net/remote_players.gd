@@ -25,6 +25,10 @@ const CLOCK_PULL := 0.1
 ## Seconds behind the newest snapshot a puppet is drawn: three snapshots at 30 a second, so one
 ## late or lost one does not starve it.
 @export_range(0.0, 0.5, 0.01, "suffix:s") var delay := 0.1
+## Moves the puppets' animation on less often where the camera would not see it (off-screen, far),
+## so a puppet's tree and skinning cost a browser frame only when it is seen (gdstudio #1138).
+## Empty: every puppet animates every frame.
+@export var animation_throttle: CharacterAnimationThrottle
 
 ## The local player's slot: no puppet is made for it.
 var local_slot := -1
@@ -125,6 +129,8 @@ func on_left(slot: int) -> void:
 	var puppet: Player = _puppets.get(slot)
 	_puppets.erase(slot)
 	if puppet != null:
+		if animation_throttle != null and is_instance_valid(animation_throttle):
+			animation_throttle.remove(puppet)
 		puppet.queue_free()
 		puppet_removed.emit(slot)
 
@@ -147,6 +153,8 @@ func _add(slot: int, player_name: String, entry: PlayerEntry) -> void:
 	if puppet.weapon != null:
 		puppet.weapon.authoritative = false
 	PlayerPuppet.warp(puppet, entry)
+	if animation_throttle != null:
+		animation_throttle.add(puppet)
 	_puppets[slot] = puppet
 	_tracks[slot] = InterpolationTrack.new()
 	if player_name != "":

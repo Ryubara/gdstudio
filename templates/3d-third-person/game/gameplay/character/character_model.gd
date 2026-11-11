@@ -10,6 +10,11 @@ extends Node3D
 ## skeleton, and `rig_changed` tells the `CharacterAnimation` to point the clips at it, so nothing
 ## is set again by hand. The `Character` turns this node to face its heading, so the model's
 ## +Z is forward.
+##
+## Every mesh under it (the model and what its seats hold) is drawn on `body_layers`, set when the
+## game runs and again whenever a child comes or goes: a body is a marker on the minimap, whose live
+## camera draws layer 1 only (`Minimap.live_layers`), so it is never skinned and drawn a second
+## time each frame (gdstudio #1138).
 
 ## The model child changed (a new one was added, or the old one left). `rig` is the new one, or
 ## null while there is none.
@@ -26,6 +31,12 @@ signal rig_changed(rig: Node3D)
 		variant = value
 		if is_node_ready():
 			_apply_variant()
+
+## The render layers of every mesh of the body (2 by default, which the minimap's live camera
+## leaves out). The game's cameras and lights see every layer, so only a camera with a cull mask
+## (the minimap's, the inventory's preview) tells them apart. Applied when the game runs; the
+## editor keeps the model's own layers.
+@export_flags_3d_render var body_layers := 1 << 1
 
 var _rig: Node3D
 var _skeleton: Skeleton3D
@@ -129,6 +140,7 @@ func _refresh() -> void:
 	_queued = false
 	_find()
 	_seat_attachments()
+	_put_on_layers()
 	update_configuration_warnings()
 	# Compared with the last one announced, not with the last one found: `rig()` finds it too, and
 	# the editor asks for it whenever it lists the scene's warnings.
@@ -185,6 +197,17 @@ func _drop_connection(seat: BoneAttachment3D) -> void:
 		var callable: Callable = connection["callable"]
 		if callable.get_object() == seat:
 			_skeleton.disconnect(&"skeleton_updated", callable)
+
+
+# Every mesh under this node takes `body_layers` for layer 1; a layer something else added (the
+# inventory preview's) stays. At run time only: in the editor a layer set on a mesh of an imported
+# model would be saved into the scene.
+func _put_on_layers() -> void:
+	if Engine.is_editor_hint():
+		return
+	for mesh in find_children("*", "VisualInstance3D", true, false):
+		var visual := mesh as VisualInstance3D
+		visual.layers = (visual.layers & ~1) | body_layers
 
 
 # The attachment looks for this model's skeleton and is connected to its `skeleton_updated`.

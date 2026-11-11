@@ -245,8 +245,9 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 	var all := MenuFixture.focusables(screen)
 	var cells: Array[Control] = []
 	cells.append_array(screen.weapon_cells())
+	cells.append_array(screen.hotbar_cells())
 	cells.append_array(screen.item_cells())
-	assert_int(cells.size()).is_equal(3 + 16)
+	assert_int(cells.size()).is_equal(3 + 4 + 16)
 	var reached := MenuFixture.reachable(start)
 	for control in all:
 		assert_bool(control in reached).override_failure_message(str(control.name)).is_true()
@@ -257,7 +258,9 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 		)
 	for cell in cells:
 		assert_bool(cell in reached).override_failure_message(str(cell.name)).is_true()
-	# The real presses walk the same road: down to the bag, right along it, down its rows.
+	# The real presses walk the same road: down to the hotbar, the bag, right along it, its rows.
+	await _tap_pad(JOY_BUTTON_DPAD_DOWN)
+	assert_object(_focus()).is_same(screen.hotbar_cells()[0])
 	await _tap_pad(JOY_BUTTON_DPAD_DOWN)
 	assert_object(_focus()).is_same(screen.item_cells()[0])
 	await _tap_key(KEY_RIGHT)
@@ -272,6 +275,7 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 
 func test_a_stack_is_picked_up_and_put_down_with_the_keys() -> void:
 	var screen := await _open()
+	await _tap_key(KEY_DOWN)
 	await _tap_key(KEY_DOWN)
 	assert_object(_focus()).is_same(screen.item_cells()[0])
 	await _tap_key(KEY_ENTER)
@@ -386,7 +390,9 @@ func test_the_preview_draws_the_live_model_and_follows_a_mesh_put_in_the_slot() 
 	assert_bool(meshes.is_empty()).is_false()
 	for mesh: MeshInstance3D in meshes:
 		assert_int(mesh.layers & bit).override_failure_message(str(mesh.name)).is_equal(bit)
-		assert_int(mesh.layers & 1).is_equal(1)
+		# And the game's cameras still see it on the body's own layer.
+		var body := _player.model.body_layers
+		assert_int(mesh.layers & body).is_equal(body)
 	# A model swap: a mesh dropped into the slot while the screen is up is drawn too.
 	var swapped := MeshInstance3D.new()
 	swapped.mesh = BoxMesh.new()

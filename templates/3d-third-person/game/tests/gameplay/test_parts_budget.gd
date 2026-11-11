@@ -16,8 +16,12 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1;
 ## the reload's `MagazineHand` marker (#1031) 1, a `Marker3D` that is never processed; the
 ## `MinimapHeading` (#1047) 1, a plain `Node` read only when a minimap draws its arrow; the
-## `NoiseMaker` (#966) 1, which looks at the body's movement every 6th tick.
-const NODES_ALIVE := 56
+## `NoiseMaker` (#966) 1, which looks at the body's movement every 6th tick. The count takes in the
+## empty, inactive `PhysicalBoneSimulator3D` every `Skeleton3D` makes as an internal child when it
+## enters the tree (the engine's compatibility one, which `find_children` lists), not the walker
+## the test adds. A character whose skeleton made the pool's sets (the first of a game) kept its
+## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210).
+const NODES_ALIVE := 55
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
@@ -65,11 +69,19 @@ func _bodies(node: Node) -> int:
 
 
 func test_a_living_character_carries_no_ragdoll_until_it_dies() -> void:
+	# An empty pool, as in a game's first seconds: this character's skeleton makes its sets, run
+	# alone or after suites that filled it.
+	var pool := RagdollPool.instance(get_tree())
+	pool.clear()
 	var body := _spawn(0)
 	await InputSim.ticks(get_tree(), 30)
-	# The body and everything under it, less the walker the test added.
-	var nodes := body.find_children("*", "", true, false).size()
-	assert_int(nodes).is_less_equal(NODES_ALIVE)
+	assert_int(pool.parked()).is_greater(0)
+	# The body and everything under it, internal children included, less the walker the test added.
+	var nodes := body.find_children("*", "", true, false)
+	nodes.erase(body.get_node("Walker"))
+	var drawings := nodes.filter(func(node: Node) -> bool: return node is RagdollDrawing)
+	assert_int(drawings.size()).is_equal(0)
+	assert_int(nodes.size()).is_equal(NODES_ALIVE)
 	assert_int(_bodies(body)).is_equal(BODIES_ALIVE)
 	body.die()
 	await InputSim.ticks(get_tree(), 2)

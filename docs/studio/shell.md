@@ -26,6 +26,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   stops nothing (`bash <file>` honours it), so a refused description was published and the pull request marked ready; a
   fixer's exit 1 made `&&` skip the edit that followed it. **Seen:** Deadnight #1280, 2026-11-05; gdstudio #621,
   2026-11-05; Deadnight, 2026-11-03 (fix: `;` only for steps that may fail, every gate read before the next step).
+- **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
+  out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
+  locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
+  2026-11-11.
 
 ## Line endings and encodings {#line-endings}
 
@@ -34,10 +38,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
-  and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
-  to 11-10; gdstudio #1130 and #1123, 2026-11-11 (a tool's own `write_text`; 16
-  pages).
+  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
+  #1127 (a tool's `write_text`, 16 pages) and #1138, #1190 (`git diff` warned of CRLF), 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -48,7 +51,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #1005, 2026-11-10 (a heredoc broke `"\n"` in a test: the Edit tool).
+  gdstudio #1005, 2026-11-10 (a heredoc broke `"\n"` in a test: the Edit tool); gdstudio #1183.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -79,13 +82,13 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
   ran on the main checkout, which was clean).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
-  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
-  shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named
-  `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
-  in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
-  before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
+  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
+  (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
+  `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
+  `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
+  gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
+  trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
+  branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
 
 ## Background commands and processes {#background}
 
@@ -122,8 +125,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   **Watch out for:** pre-commit lints whole files, so a one-word comment edit pulled in a `gdlint` fault that `main` had
   fixed since the branch began. **Seen:** Deadnight, 2026-11-04 (fix: main merged first, then the commit passed).
 - **Approach:** Before adding a function to a large script, count its lines (`gdlint` refuses a file over 1000) and put
-  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` by importing a
-  game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
+  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` with `gds template
+  uids <template>`. **Watch out for:** a 980-line
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027

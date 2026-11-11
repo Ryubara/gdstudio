@@ -22,11 +22,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 - **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
   `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
   own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
+  `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
   test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, `world_hash` beside a function of that name);
-  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script).
+  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script); #970 (`rows`).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
@@ -91,6 +91,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   reference as a `WeakRef` (`weakref(runner)`, read with `get_ref()`) or pass the owner as an argument. **Watch out
   for:** a strong reference both ways is a cycle that reference counting never frees, which shows as objects leaked
   at exit, a line CI refuses. **Seen:** gdstudio #965, 2026-11-10 (`AiTask.runner()`).
+
+- **Approach:** Pass a node that may have been freed (one that lived under a skeleton a model swap deleted) as an
+  untyped `Variant`, or check `is_instance_valid()` before the call, and test the path that frees it. **Watch out
+  for:** a typed parameter refuses a freed instance at the call (`The Object-derived class of argument 1 (previously
+  freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
+  runs; the suites of the new code passed, and only the death test that swaps to the male mannequin met it, in the
+  whole template run. **Seen:** gdstudio #1126, 2026-11-11 (`RagdollDrawing.place`).
 
 ## Lambdas {#lambdas}
 

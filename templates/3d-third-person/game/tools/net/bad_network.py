@@ -52,12 +52,11 @@ CORRECTED_M_AN_UP_STALL = 3.0
 # commands around it come late, as around a freeze. The browser read 0.7 to 5.2 m with 7 to 9 hitches; without the
 # hold 31 m.
 CORRECTED_M_A_HITCH = 0.75
-# A browser page (24 to 35 frames a second on SwiftShader, two or three steps a frame) corrects more after each stall
-# of its thread than the native client does: 1 to 5 m in the second after a freeze, where the native client reads
-# 0.7 to 0.9 m for all three. Its hitches used to hide that (0.75 m each, 8 to 9 of them); once the page joins after
-# the level's warm-up it has none, and 11 runs with three freezes read 1.6 to 5.2 m (kit #1106). So a page is allowed
-# this much for every stall of its thread, the planned freezes included (why: #1127); without the hold it read 45 m.
-CORRECTED_M_A_PAGE_STALL = 1.5
+# A browser page's corrections are judged per stall of its thread, the planned freezes included. Before the client
+# stepped its body through the server's silence (`SilenceWalk`, kit #1127) a page corrected 1 to 5 m in the second
+# after each freeze (the snap kept the body's speed from before the stall); with it, at most 0.65 m a freeze, as a
+# hitch costs. Without the hold it read 29 to 45 m.
+CORRECTED_M_A_PAGE_STALL = 0.75
 # The puppets are drawn 100 ms behind: at a steady 100 ms each way they never starve (under 1 % of the steps,
 # issue #908). A stall of the snapshots' way (down) starves them for what it holds past that delay and no longer:
 # the stall's length less the delay, a snapshot's interval more (the burst shows the moves at once, never a wrong
@@ -176,7 +175,12 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
     verdict.check(
         f"corrected under {allowed:.2f} m",
         report["corrected_m"] < allowed,
-        {"corrected_m": report["corrected_m"], "corrections": report["corrections"], "up_stalls": network.stalls_up},
+        {
+            "corrected_m": report["corrected_m"],
+            "corrections": report["corrections"],
+            "stuck_snaps": report.get("stuck_snaps", 0),
+            "up_stalls": network.stalls_up,
+        },
     )
     if report.get("puppets", 0) > 0:
         starved = network.starved_allowed(report["steps"], report["puppets"], report["stalls"])

@@ -33,6 +33,10 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
 <!-- new section: the page covers fresh checkouts, logs and what to run before a push; nothing covered the command
      line's flags or how a parse error ends a whole run -->
 
+GdUnit4's scene runner sets the project's physics tick rate when it is made: a test that changes
+`Engine.physics_ticks_per_second` sets it after `scene_runner()` and puts it back in `after_test`
+([Test speed](test-speed.md#time-driven-values)).
+
 - **Approach:** Run GdUnit4 headless as `godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a
   res://tests -c --ignoreHeadlessMode`, without `-d`, under a short `timeout`, with the output sent to a file whose
   tail you read. **Watch out for:** GdUnit4 refuses a headless run without `--ignoreHeadlessMode` (exit 103); with the
@@ -52,12 +56,11 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   the flag).
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
-  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
-  parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
-  first. **Seen:** gdstudio #881 (`was`), #924, #887, #1013 (after reading this entry), #904 (`ticks_before`,
-  `later`), #965 (`next_up`), #1047 (after reading this), all 2026-11-10; #906, #907, #909 (after reading this),
-  2026-11-11: grep a new suite for `before` and `after` as names, and for a local named like
-  one of the script's own exports, before its first run; `gds template test` names them at parse.
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of
+  the script's exports, before its first run. **Watch out for:** the project turns a shadowed name into a parse error,
+  so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
+  (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
+  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909 and #970 after reading this.
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the

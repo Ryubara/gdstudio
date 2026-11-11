@@ -29,6 +29,7 @@ from gds_tools import (
     sweep,
     sync,
     template_test,
+    uids,
     workspace,
     worktrees,
 )
@@ -80,7 +81,14 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    clip = capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif, max_seconds=args.max_seconds)
+    clip = capture.encode_clip(
+        ffmpeg,
+        Path(args.folder).resolve(),
+        gif=args.gif,
+        max_seconds=args.max_seconds,
+        fps=args.fps,
+        slow=args.slow,
+    )
     print(f"written: {clip}")
     return 0
 
@@ -312,6 +320,35 @@ def _cmd_template_clean(args: argparse.Namespace) -> int:
         return 1
     print(f"removed {folder}")
     return 0
+
+
+def _cmd_template_uids(args: argparse.Namespace) -> int:
+    folder = Path(args.template)
+    if not folder.is_dir():
+        kit, _ = _template_context()
+        new_game.load_template(kit, args.template)  # an unknown name fails with the list of templates
+        folder = kit / "templates" / args.template
+    code = 0
+    projects = (
+        [folder] if (folder / "project.godot").is_file() else sorted(p.parent for p in folder.glob("*/project.godot"))
+    )
+    if not projects:
+        print(f"gds: {folder} holds no project.godot, nor does any folder in it", file=sys.stderr)
+        return 1
+    for project in projects:
+        result = uids.write_missing(project, replace_invalid=args.replace_invalid)
+        for path in result.written:
+            print(f"wrote {path.relative_to(folder).as_posix()}  {uids.read(path)}")
+        for path in result.invalid:
+            print(
+                f"gds: {path.relative_to(folder).as_posix()} holds {uids.read(path)!r}, a uid Godot never writes; "
+                "--replace-invalid writes a new one (a scene that names the old text then loads the file by path)",
+                file=sys.stderr,
+            )
+            code = 1
+        if not result.written and not result.invalid:
+            print(f"{project.relative_to(folder.parent).as_posix()}: every script and shader has its uid")
+    return code
 
 
 def _cmd_check_layout(args: argparse.Namespace) -> int:
@@ -741,6 +778,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=capture.CLIP_MAX_SECONDS,
         help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
     )
+    clip.add_argument(
+        "--fps",
+        type=int,
+        default=None,
+        help=f"the rate the frames were recorded at (default: capture.json's, else {capture.DEFAULT_FPS})",
+    )
+    clip.add_argument(
+        "--slow",
+        type=float,
+        default=1.0,
+        help="play the frames N times slower, every frame kept (default 1); the cut counts the slowed clip",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
@@ -827,6 +876,20 @@ def build_parser() -> argparse.ArgumentParser:
     tpl_game = tpl.add_parser("game", help="the same game, imported and kept for captures and probes; prints its path")
     tpl_game.add_argument("name", help="a template of the kit's templates/")
     tpl_game.set_defaults(func=_cmd_template_game)
+    tpl_uids = tpl.add_parser(
+        "uids",
+        help="write the missing .uid file of each script and shader of a template, as Godot writes it; an existing "
+        "valid one is never changed (docs/engines/godot/project-conventions.md#rules)",
+    )
+    tpl_uids.add_argument(
+        "template", help="a template of the kit's templates/, or any folder holding project.godot (or folders that do)"
+    )
+    tpl_uids.add_argument(
+        "--replace-invalid",
+        action="store_true",
+        help="also replace a uid file whose text Godot would not write (a `z`, a `9`, a hand-made word)",
+    )
+    tpl_uids.set_defaults(func=_cmd_template_uids)
     tpl_bench = tpl.add_parser(
         "bench-web",
         help="export a bench scene of the template to the web in a throwaway game (the bench as the main scene, "

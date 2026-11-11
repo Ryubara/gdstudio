@@ -5,7 +5,10 @@
 
 How GDStudio authors animation clips in Blender, by script, on a shared skeleton ([Rigging](rigging.md)), and gets them
 into Godot. Locomotion clips that keep a ground speed are on [Gaits](gaits.md); cleaning and exporting a kit's clips on
-[Rig sharing](rig-sharing.md); clips that hold a weapon on [Weapons](weapons.md#hands-on-the-weapon).
+[Rig sharing](rig-sharing.md); clips that hold a weapon on [Weapons](weapons.md#hands-on-the-weapon); clips with a
+hand or a foot planted on an obstacle under [A clip that touches the world](#contacts). The plan to replace every
+library clip the template plays, with the checks and the review every clip of ours goes through, is
+[Our own animation set](own-animation.md).
 
 ## The conventions {#conventions}
 
@@ -41,6 +44,13 @@ Planted-foot speed gives a gait's ground speed ([Gaits](gaits.md)).
   limb hanging down and one reached forward, so an arm keyed with the same sign as its own side's leg swung in step
   with it, which looks wrong at once in play and passes a check of amplitude alone. **Seen:** gdstudio #774, 2026-11-07
   (fix: the reference walk's arm signs were flipped; the `clip-walk` eval checks the correlation, not just the size).
+- **Approach:** Before a keyed clip is shown to anyone, measure on every frame, on every model's skinned mesh, how
+  deep each body part is inside another (leg in leg, arm in leg, limb in torso), and make the build fail over a few
+  millimetres: the template's `assets/animation/limb_overlap.py` does it for the universal rig (5 mm on the vault
+  clips; the library's 43 clips never cross the legs). **Watch out for:** feet and hands keyed as world positions
+  put a shin through the other thigh on frames where every contact check passes, and a sheet of small tiles hides
+  it. **Seen:** gdstudio #1016, 2026-11-10 (the maintainer found the vault clips' legs passing through each other, 75
+  mm deep; fix: the check in `build_vault.py` and `tests/assets/test_vault_clips.gd`, the legs keyed again).
 
 ## Actions, slots and the NLA {#actions}
 
@@ -63,6 +73,100 @@ channels a clip should not drive from the glb's JSON ([Rig sharing](rig-sharing.
 
 Check a clip in Godot, not only in Blender: a headless script that plays each clip and asserts bone motion, plus a
 capture ([Godot rig sharing](../../engines/godot/rig-sharing.md)).
+
+## A clip that touches the world {#contacts}
+
+<!-- new section: the page had loops and gaits; nothing said how a clip with a planted hand or foot on an obstacle is
+keyed, checked and handed to the code that warps it (the vault clips, kit #1010) -->
+
+A vault, a climb or a push puts a hand or a foot on something that stands still while the body moves. Key such a clip
+in the **world of a reference obstacle**, not in place: the controls (the pelvis, each wrist and ankle, where each
+elbow and knee points) get world positions, a planted hand is two keys at one place, and the body's root moves forward
+at a constant speed that is taken out again on the way to the bones, so the exported clip is in place like every
+other. A constant speed keeps a smooth curve the same in both spaces. Write the obstacle's size, the speed, where the
+root starts and each contact's time into a file beside the clip: the code that warps the clip to another obstacle
+reads them (the template's `assets/animation/vault/build_vault.py` and `vault_clips.json`).
+
+The build checks, on every frame and on the skinned mesh, before it exports: the lowest vertex against the floor, the
+deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
+palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
+clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
+([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
+on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
+an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
+together with no leg astride, folded shut, snapped or held
+([the vault clips](../../engines/godot/third-person/clips.md#vault-clips)).
+
+- **Approach:** Where a body leaves the ground, key the pelvis from the centre of mass, not by eye: write its
+  height for every frame (free fall between contacts, a curve with a height and speed at each end while a limb
+  carries it), measure in each pose how far it is above the pelvis (segment masses on the bones), key the pelvis
+  that much lower and repeat until it settles (`Clip.drive` and `Clip.settle`: three or four passes, under 0.2 mm).
+  **Watch out for:** a pelvis on a smooth curve is not a body on an arc: legs that reach down and arms that swing
+  move the pelvis the other way. **Seen:** gdstudio #1016, 2026-11-11 (both vaults within 0.3 mm of the arc; the
+  build fails over 15 mm).
+- **Approach:** Take both legs over an obstacle **together and to one side**: roll the hips onto the carrying arm (72
+  degrees in `Vault_High`), let the legs trail beside them a hip width apart with the knees near a right angle, and
+  key each foot on one smooth path from the pelvis in the world's axes. Measure it (`legs_of` in `build_vault.py`) and
+  fail the build on the knees' and ankles' spread in hip widths, the tightest knee, a leg bone under the top, an
+  ankle's change of speed in a frame and a leg held still. **Watch out for:** one leg over ahead and the other folded
+  behind the hands reads as a squat on the box (knees 3.8 hip widths apart, one knee at 14 degrees, the legs still for
+  five frames); feet keyed in the hips' axes jump 0.4 m in a frame as the hips roll and lean. **Seen:** gdstudio
+  #1016, 2026-11-11, a maintainer correction (fix: `LEGS_*` in the build).
+- **Approach:** A fault you can name in your own capture is fixed before the pull request goes to review; the list of
+  weak points holds only what was tried and could not be done, each with the number that shows it and what it would
+  take. Measure each weak point you are about to write down: one a check can express becomes a check. **Watch out
+  for:** writing down that the body is folded tight over the top and reads as a crouch on the box, sending it for
+  review, and getting the same words back as the review's fault a round later; a review that names one fault does not
+  pass the others on your list. **Seen:** gdstudio #1016, 2026-11-11 (the squat over the top stood in the weak points
+  of the second and third rework and was the fourth review's fault).
+- **Approach:** Key an arm that has let go from **its own shoulder in the world's axes** (`Clip.shoulder` in
+  `build_vault.py`), let the hand go while the elbow is still bent, and let it gain speed evenly from rest over four
+  or five frames until it travels with the body. Fail the build on the wrist's height over its shoulder, its speed in
+  the world and against the shoulder, and its change of speed in one frame. **Watch out for:** keyed in the hips' axes
+  with the body rolled 56 degrees, the wrist went 0.30 m over the shoulder, above the head, at 11 m/s within two
+  frames; a hand held until the arm is at full stretch is torn off by the shoulder; a hand that only rides with the
+  body already moves at 3.6 m/s in the world. **Seen:** gdstudio #1016, 2026-11-11, a maintainer correction (fix:
+  `Vault_High`'s right hand lets go a frame earlier; `FREE_*` in the build).
+- **Approach:** Key the limbs that are in the air in the **hips' own axes** (a point from the pelvis bone, turned
+  with the pelvis's keys: `hips()` in `build_vault.py`), the left foot with `left` above 0 and the right below it,
+  and keep world positions for what touches the world. Take the leg paths from footage of the real move: over a
+  speed vault the body lies near level and the legs go over stacked, one above the other with a gap, knees bent.
+  **Watch out for:** with the body rolled 50 degrees, world keys that looked apart put the lower leg's foot above
+  the upper leg's, so the legs crossed for eight frames; rolling further to lift the legs drops the lower hip onto
+  the obstacle instead. **Seen:** gdstudio #1016, 2026-11-10 (fix: both vaults' legs and free arm keyed in the hips'
+  axes; the overlap check reads 0.5 mm at most).
+- **Approach:** Tell inside from outside on a part cut from a skinned mesh by closing its cut rims (a fan to each
+  rim's middle) and casting rays; measure depth to the skin, and put the lowest spine bone with the pelvis.
+  **Watch out for:** a nearest-surface test on the open part read a head beside a raised upper arm as 100 mm inside
+  it (a point beyond a limb's open end lies behind its rim), and the female mannequin's hips are skinned to
+  `spine_01`, which read the rest pose as 87 mm of chest in thigh. **Seen:** gdstudio #1016, 2026-11-10 (fix:
+  `limb_overlap.py` closes the rims; its `--self-test` reads 0 on the rest pose and a crossing on swung legs).
+
+- **Approach:** Let a planted hand pull the pelvis toward itself when the arm cannot reach, smooth that pull over a
+  few frames, and keep the planted arm a little bent (0.94 of its length) so the arm takes up what the smoothing
+  leaves. **Watch out for:** a pull applied only on the frames that needed it moved the body 30 to 45 mm for single
+  frames (a jerk at 24 frames a second), and an arm allowed to its full length was straight, bent 43 degrees and
+  straight again on three frames. **Seen:** gdstudio #1010, 2026-11-10 (fix: the smoothed pull and the jerk check in
+  `build_vault.py`).
+- **Approach:** Check that a planted bone stays in place, not only that it is at the right height. **Watch out
+  for:** the first build measured the palm's gap to the top and the skin inside the box, both of which a hand sliding
+  along the top passes. **Seen:** gdstudio #1010, 2026-11-10 (fix: the drift check on every planted wrist and ankle).
+- **Approach:** Open a hand from the rest pose with the thumb lifted into the palm's plane, and measure the wrist's
+  height over a surface on the skinned mesh. **Watch out for:** the universal rig's thumb rests pointing 28 degrees
+  down, so a flat palm with rest-pose fingers put the thumb 72 mm into the box; the wrist bone rides 36 mm over a
+  surface the female mannequin's palm lies on. **Seen:** gdstudio #1010, 2026-11-10.
+- **Approach:** Solve a limb about its own hinge: the upper bone's direction to the elbow and the bend plane's normal
+  give its whole rotation, with the hinge axis read from the rest pose (on the universal rig: down for the left
+  elbow, up for the right, the body's left for both knees, as `upper x lower`). **Watch out for:** a swing from a base
+  pose leaves the twist of that pose in the upper arm, and the elbow then bends about the wrong axis.
+  **Seen:** gdstudio #1010, 2026-11-10 (`build_vault.py`, `LIMBS`).
+- **Approach:** Take the first and last poses from the loop the clip joins, and key that loop's poses two frames
+  outside the clip as well, so the curves leave and arrive at the loop's own speed. Read a library clip onto the rig
+  as each bone's rotation relative to its parent on this rig's own bone lengths: that is what Godot plays on a
+  mannequin with other proportions. **Watch out for:** the pack's clips sit on the male armature, whose upper arm is
+  5 cm longer than the female's, so a pose copied as bone matrices stretches the other model's arms. **Seen:**
+  gdstudio #1010, 2026-11-10 (the vaults start on the sprint's left foot strike and end on its right one; the joins
+  measure under 20 mm in Godot).
 
 ## Clips solved from targets {#solved-clips}
 
@@ -101,6 +205,13 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
 - **The build's checks** are the clip's own: loops close, planted joints stay within a millimetre at the clip's speed,
   the lowest vertex by body part, a transition's first and last pose against the poses it joins, and the frozen clip
   list. A rebuild writes the same bytes, so `cmp` proves a script change did not move a clip.
+- **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
+  no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
+  25, 30, 48, 50, 60 and 120 at which every key is a whole frame; `--fps` for a file that fits none), sets the scene
+  to it before the import and measures each whole frame from the first key to the last: the frames a build measures
+  when it calls `measure()` on its baked actions. Its lines name the frame, the clip's range, the rate and the
+  seconds (`at frame 26 of 0 to 44 at 30 fps, 0.867 s`), and `test_limb_overlap.py` beside it runs a clip both ways
+  at 30 and at 24 and fails on any difference.
 
 - **Approach:** After the first build, read the lowest vertex of each body part (hand, forearm, foot, toes, knee,
   shoulder) on every frame, and render the pose large from the side, the top and a quarter view before tuning any
@@ -114,6 +225,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   script that renders it. **Watch out for:** Blender imports keys at seconds times the scene's rate, so a 30 frames a
   second library read into a new scene (24) had its 46-frame clip on frames 0 to 37 and every sampled frame fell
   between two keys. **Seen:** gdstudio #1009, 2026-11-10 (fix: `scene.render.fps = 30` before the import).
+- **Approach:** A script that reads any clip file takes the frame rate from the file's key times, never a constant,
+  and prints the rate and the seconds beside every frame number. **Watch out for:** `limb_overlap.py` set 24 for
+  every file, so on the library's 30 frames a second `Roll` it measured 36 of 45 frames, read 62.4 mm for 64.7,
+  named frame 21 for frame 26, missed the chest 18.3 mm in a thigh and read the male's hand 4.5 mm in his upper arm
+  (under the 5 mm limit) for 10.2. **Seen:** gdstudio #1035, 2026-11-11 (fix: `clip_rate()` and the both-ways test
+  `test_limb_overlap.py`).
 - **Approach:** Test a clip file of your own in Godot on both mannequins: every track finds its bone, a loop's last
   pose is its first, a transition's first and last pose equal the poses it joins (bone by bone, in the model's space),
   and a planted joint stays put while the model moves at the clip's speed. **Watch out for:** the importer keeps 57 of

@@ -6,7 +6,7 @@ description and its images so that the checks pass the first time -->
 What goes into a pull request before `pr-rules` reads it: the title, the description from the template, the `Model:`
 line and the captures. [Hooks](hooks.md#what-it-refuses) says what the guards refuse; this page is what to do so they
 do not, with [the body guard](#pr-body) and [the image guard](#attach-paths) themselves. Merging, landing and keeping
-a branch fresh are in [Starting work](starting-work.md#landing).
+a branch fresh are in [Landing a pull request](landing.md#landing).
 
 ## Titles {#titles}
 
@@ -143,10 +143,11 @@ section only the branch adds is refused there and here; it belongs on the `Lesso
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
 - **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
-  before the branch (`Read first:`), the branch for what it writes (`Lessons:`). **Watch out for:** `gds pr check-body`
+  before the branch (`Read first:`), the branch for what it writes (`Lessons:`), and check that its refusal words
+  the fault as CI's does for the same body. **Watch out for:** `gds pr check-body`
   passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
   have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
-  gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`).
+  gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`; PR #1144).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
@@ -177,7 +178,7 @@ absolute paths in the scratch folder, and the command ran in the worktree (the a
 on GitHub shows the first body with `](../before-desktop-2-solo.png)` references and the uploads appended). The same
 history shows 17 Deadnight pull requests of 2026-11-02 and 03 with a description revision that had `./` image
 references. The guard now places the reference and the `--attach` path (`file_key` in
-`.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
+`.claude/hooks/guards/bodies.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
 file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are judged alike. A `cd` it
 cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body guard reads the same
 placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the description rules, and

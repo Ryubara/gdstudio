@@ -43,7 +43,10 @@ map, or one over `max_players`, is refused; one that floods or sends what no cli
 JSON line for each player who comes or goes and every 10 s its numbers (players, bytes out a second, the step's time).
 
 Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `max_players`, `hold_ticks`,
-`command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene.
+`command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene; its AI group says
+how often each client hears of each AI character by distance (`ai_rates`), where positions are measured from
+(`ai_section_origin`), which profiles map to which look (`ai_variants`), and whether the AI sees the players
+(`ai_sees_players`). The AI runs here and nowhere else.
 
 ## The client
 
@@ -51,19 +54,36 @@ A `NetClient` node (`game/gameplay/net/net_client.gd`) joins a server and plays 
 physics step it samples the player's controller, sends the command and steps the body with exactly the numbers the
 server will read, so the body moves the moment the key goes down. When a TICK says where the server's body stands after
 a command, a `Reconciler` slides the local body toward it a quarter of the way a frame (and puts it there at once when
-it is more than 2.5 m off); a `StallGuard` notices the game froze (a hidden tab) and skips the burst of catch-up steps.
+it is more than 2.5 m off, or when a quarter would put the body inside a ledge, `BodyOverlap`); a `StallGuard` notices
+the game froze (a hidden tab) and skips the burst of catch-up steps, and a `SilenceWalk` steps the body as the server
+stepped its own meanwhile (it walks on a moment, then stands), so both come out of the freeze at the same speed.
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
-Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
+A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
+the AI's puppets), so its clip plays as on the body that steps it with nothing more sent. Nothing that only looks
+(a footstep, a hand pose, a muzzle flash) crosses the network.
 
-Inspector: `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`,
-`spawn_seed`; `RemotePlayers` `puppet_scene`, `delay`.
+The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
+character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
+(`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
+dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
+animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
+event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
+is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
+farther away are sent less often (`ai_tier_rates.tres`
+on the server), and none past the interest radius. A browser among the players caps how many characters run for
+everyone.
+
+Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `join_on_ready`, `player_name`,
+`spawn_group`, `spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`, `puppets_per_frame`,
+`puppet_budget_usec`, `puppets_shown_per_frame`, `viewer`.
 
 ## Playing online
 
 `game/online_main.tscn` is the online game: the offline game (`main.tscn`, unchanged) with a `NetClient`, the
-`RemotePlayers` and an `OnlineStatus` overlay (`game/ui/online/`). Three ways in:
+`RemotePlayers`, the `AiReplica` and an `OnlineStatus` overlay (`game/ui/online/`). Three ways in:
 
 - The main menu's **Play online** loads it and joins the address under the button. That field is a developer's: it
   shows in a debug build (the editor, a debug export) and never in a release, where the menu's `server_address` is the
@@ -76,7 +96,9 @@ Inspector: `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`
 The overlay says **Connecting** until the server seats the player, then hides. It says the server runs another version
 (reload the page, or update the game), that the game is full, that the server runs another map, that nobody answered
 within `connect_seconds`, or **Connection lost**, each with **Back to menu**; while it shows, the player's input is off.
-Its texts are exports of `online_status.tscn`.
+Its texts are exports of `online_status.tscn`. A server that hangs up on a hello that came too late (a browser
+compiling the game's shaders on its first visit holds its page for seconds) gets a new socket, up to `rejoins` times,
+while the overlay still says Connecting.
 
 `--bot route` or `--bot watch` (`?bot=route` on the web) hands the player to a `PlayerBot`, which presses the same
 actions a person would and turns the camera as the mouse does: `route` walks to the main door, opens it, comes back,

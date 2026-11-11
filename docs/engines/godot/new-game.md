@@ -160,12 +160,14 @@ every exit, kept with `--keep`, two calls at once).
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
-- **Approach:** Give a new script its `.gd.uid` before `gds template test`: make the kept game
-  (`gds template game <template>`, the argument is the template's name), copy the script in, run the pinned Godot
-  headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
-  for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
-  own folder cannot be opened to make one; `gds template test` stops at that check, before it makes a game, so there
-  is no project to open either. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR #1092), 2026-11-11.
+- **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
+  <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
+  and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
+  <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
+  template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
+  hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
+  #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
+  command).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
@@ -173,7 +175,7 @@ every exit, kept with `--keep`, two calls at once).
   two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
   file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
   `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
-  checkout built main; use `--project ./python`); gdstudio #1026, 2026-11-11 (the same).
+  checkout built main; use `--project ./python`); gdstudio #1026 and #1148, 2026-11-11 (the same).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -206,6 +208,10 @@ another game with no `.import`: the full local run was green and CI's step faile
   that copy. **Watch out for:** a Python or ruff run in a template's tools folder (`tools/net/`) leaves ignored caches
   there, and the old copy took them, so `gds template test` stopped at `layout: 3 problem(s)` before any suite ran;
   deleting the caches by hand was the only way on. **Seen:** gdstudio #903 (PR #935), 2026-11-10 (fix: gdstudio #957).
+- **Approach:** Write a task's logs, reports and probe output to its own scratch folder
+  (`<workspace>/scratch/<repo>/<branch>/`) under a name of your own. **Watch out for:** a fixed name in the shared
+  session scratchpad (`full.log`) was overwritten by another agent's run, so the results read were someone else's.
+  **Seen:** gdstudio #1148 (PR #1181), 2026-11-11.
 
 ## With `--local` {#with-local}
 
@@ -280,12 +286,12 @@ What each template plays, and on which bus (the buses and the volume node are in
 
 - **Approach:** To capture a template change, make the game with `gds template game <t>` (it prints the path of a game
   in a throwaway workspace, imported); run `gds capture frames --project <path>/game` from your own worktree, and
-  `gds template clean <path>` when done. A hand-built probe (base, template over it, `gds_ui`, as in
+  `gds template clean <path>` when done and after every `--keep` run. A hand-built probe (as in
   [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone writes into the
-  real `repos/`; `capture frames` names the scratch folder from the folder you run it in, not from the game (a git
-  repository of its own, whose frames once all landed in the shared `scratch/template-check/main/`); outside git, pass
-  `--out`. **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by hand; the `git init` route was
-  checked in #849); #917 (the command); #992 (the shared folder, from #940 and #901).
+  real `repos/`; `capture frames` names the scratch folder from the folder you run it in, not from the game (whose
+  frames once all landed in the shared `scratch/template-check/main/`); outside git, pass `--out`. **Seen:** gdstudio
+  #838 and #847, 2026-11-08 (probes assembled by hand; `git init` checked in #849); #917 (the command); #992 (the
+  shared folder); #1026 (about 30 kept games left in the temp folder).
 
 ## What every template is built and reviewed against {#template-checklist}
 

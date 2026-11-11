@@ -47,14 +47,20 @@ func test_the_command_budget_holds_the_tick_rate_and_a_stall() -> void:
 
 
 func test_the_socket_buffer_holds_ten_seconds_of_the_longest_ticks() -> void:
-	var ten_seconds := NetLimits.SNAPSHOT_RATE * 10 * SnapshotCodec.MAX_TICK
-	assert_int(NetLimits.BUFFER_SIZE).is_greater_equal(ten_seconds)
+	# The longest TICK but its AI block, ten seconds; and five of a full AI snapshot of the
+	# desktop population every TICK (a 5 s frozen tab near every character; gdstudio #970).
+	var without_ai := SnapshotCodec.MAX_TICK - AiSnapshot.MAX_BLOCK + AiSnapshot.NONE_SIZE
+	var director: AiDirector = auto_free(AiDirector.new())
+	var full_ai := AiSnapshot.FULL_HEADER + director.desktop_cap * AiSnapshot.ROW_SIZE
+	var needed := NetLimits.SNAPSHOT_RATE * (10 * without_ai + 5 * full_ai)
+	assert_int(NetLimits.BUFFER_SIZE).is_greater_equal(needed)
 	assert_int(NetLimits.BUFFER_SIZE).is_greater_equal(SnapshotCodec.MAX_WELCOME)
 
 
 func test_the_transport_reads_the_one_socket_buffer_size() -> void:
-	# 256 KB, measured in the browser: a 5 s frozen tab at 35 KB/s lost nothing (64 KB did).
-	assert_int(NetLimits.BUFFER_SIZE).is_equal(256 * 1024)
+	# 1 MB since the AI rides the TICK (gdstudio #970); 256 KB was measured in the browser before
+	# it: a 5 s frozen tab at 35 KB/s lost nothing (64 KB did).
+	assert_int(NetLimits.BUFFER_SIZE).is_equal(1024 * 1024)
 	assert_int(WebSocketLink.new().inbound_buffer).is_equal(NetLimits.BUFFER_SIZE)
 	assert_int(WsListener.new().outbound_buffer).is_equal(NetLimits.BUFFER_SIZE)
 	# No second copy of the size: the transport files hold no buffer-size constant of their own
