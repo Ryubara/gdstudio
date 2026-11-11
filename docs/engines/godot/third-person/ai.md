@@ -5,8 +5,9 @@
 
 The base every enemy, friendly and civilian is made from, the resource that says what kind it is, and the one node that
 budgets them all (kit #963; the design is the research for #882, the costs [Crowds: AI
-characters](../crowds.md#ai-characters)). Relationships (#964) are [below](#relations) and the navigator (#967)
-[below](#navigator); senses, tasks and reactions come in #965 to #971, each into a slot this base leaves for it.
+characters](../crowds.md#ai-characters)). Relationships (#964) are [below](#relations), tasks (#965)
+[below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
+senses](ai-senses.md); reactions come in #968 to #971, each into a slot this base leaves for it.
 
 ## What is in it {#base}
 
@@ -20,6 +21,7 @@ characters](../crowds.md#ai-characters)). Relationships (#964) are [below](#rela
 | `AiBudget` | `gameplay/ai/ai_budget.gd` | Rays, path queries and thinks all characters together may spend in one physics tick; `take_ray()`, `take_path()`, `take_think()` refuse the one over the count. |
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
 | Relationships | `gameplay/ai/relations/`: `AiRelations`, `AiFaction`, `AiRelationEvent`, `ai_relations.tres`, `AiFactions` (a node of `world/world.tscn`), `AiFactionMember` (a child of `ai_character.tscn` and `player.tscn`) | Who is hostile to whom and how it changes (kit #964): [Factions and relationships](#relations). |
+| Senses | `gameplay/ai/senses/`: `AiSenses` (the `Senses` child of `ai_character.tscn`, its `senses` slot) with its `AiSensesView`, `AiBeliefs` and `AiBelief`, `AiSensePool`, the level's `AiNoise` board (a node of `world/world.tscn`) with `AiNoiseRecord`, and the `AiNoiseMaker` of `character.tscn` | What a character can know (kit #966): sight, hearing, touch and tellings turned into beliefs the brain reads instead of the world, on the think tick and the shared ray budget: [AI senses](ai-senses.md). |
 | Debug overlay | the `DebugLabel` (`Label3D`) of `ai_character.tscn` | The profile's name, the situation and the tier above the head, with `debug` on (off by default; written only on a change or a think while on). |
 
 The director lives in `world.tscn`, not `main.tscn`: the main scene holds only instances and wires
@@ -30,23 +32,23 @@ finds it through the group; a character with no director steps itself and never 
 ## The inspector {#inspector}
 
 - **`AiCharacter`** (group AI): `profile` (the grunt in `ai_character.tscn`), `debug`, `debug_label`; group Slots:
-  `navigator` (the `Navigator` node, an `AiNavigator`, [below](#navigator)), `senses` (empty until #966),
-  `task_runner` (the `AiTasks` node of `ai_character.tscn`, [Tasks](#tasks)). Everything `Character` has
-  (tuning, weapon, ragdoll) is there too.
+  `navigator` (the `Navigator` node, an `AiNavigator`, [below](#navigator)), `senses` (the `Senses` node of
+  `ai_character.tscn`, [AI senses](ai-senses.md#inspector)), `task_runner` (the `AiTasks` node of
+  `ai_character.tscn`, [Tasks](#tasks)). Everything `Character` has (tuning, weapon, ragdoll) is there too.
 - **`AiProfile`**: `display_name`; Movement `walk_speed` 1.6 m/s, `run_speed` 4.5 m/s, `turn_rate` 360 °/s,
   `acceleration` 12 m/s²; Senses `sight_range` 24 m, `lose_sight_range` 32 m, `half_angle` 55°, `near_radius` 2 m,
   `hearing_range` 30 m, `time_to_notice` 0.6 s, `reaction_time` 0.35 s (never under 0.2), `memory_seconds` 6,
-  `suspicious_at` 0.3, `awareness_hysteresis` 0.1; Combat `engage_range` 18 m, `preferred_range` 10 m,
-  `attack_range` 1.6 m, `fire_interval` 0.4 s, `burst_size` 3, `accuracy` 0.5, `aim_speed` 360 °/s,
-  `retreat_margin` 3 m; Nerve `courage` 0.5, `flee_below_health` 0.3, `panic_recovery_seconds` 8, `aggression` 0.5,
-  `curiosity` 0.5, `alert_hold_seconds` 10, `situation_dwell` 1 s; Social `faction`, `share_radius` 12 m,
-  `obeys_orders` 0.5; Budget `think_rate` 10 Hz, `reduced_think_rate` 2 Hz, `dormant_think_rate` 0.5 Hz,
-  `full_range` 25 m, `reduced_range` 70 m, `tier_margin` 4 m, `max_rays_per_think` 2, `repath_seconds` 0.25 s. The
-  three files change only what makes the kind: the grunt (faction `enemy`, `accuracy` 0.4), the ally (`ally`,
-  0.6, `obeys_orders` 0.9), the civilian (`civilian`, `engage_range` 0, `flee_below_health` 1, `courage` 0.1); the
-  faction names are rows of the relationships table ([Factions and relationships](#relations)).
-  Tasks (#965): `under_attack` FINISH_THEN_REACT, `task_hard_timeout` 30 s, `failure_budget` 3, `failure_window`
-  10 s, `fallback_seconds` 5 s, `commit_seconds` 0.5 s.
+  `suspicious_at` 0.3, `awareness_hysteresis` 0.1; Combat `engage_range` 18 m, `preferred_range` 10 m, `attack_range`
+  1.6 m, `fire_interval` 0.4 s, `burst_size` 3, `accuracy` 0.5, `aim_speed` 360 °/s, `retreat_margin` 3 m; Nerve
+  `courage` 0.5, `flee_below_health` 0.3, `panic_recovery_seconds` 8, `aggression` 0.5, `curiosity` 0.5,
+  `alert_hold_seconds` 10, `situation_dwell` 1 s; Social `faction`, `share_radius` 12 m, `share_delay` 0.5 s,
+  `obeys_orders` 0.5; Budget `think_rate` 10 Hz, `reduced_think_rate` 2 Hz, `dormant_think_rate` 0.5 Hz, `full_range`
+  25 m, `reduced_range` 70 m, `tier_margin` 4 m, `max_rays_per_think` 2, `repath_seconds` 0.25 s. The three files
+  change only what makes the kind: the grunt (faction `enemy`, `accuracy` 0.4), the ally (`ally`, 0.6, `obeys_orders`
+  0.9), the civilian (`civilian`, `engage_range` 0, `flee_below_health` 1, `courage` 0.1); the faction names are rows
+  of the relationships table ([Factions and relationships](#relations)). Tasks (#965): `under_attack`
+  FINISH_THEN_REACT, `task_hard_timeout` 30 s, `failure_budget` 3, `failure_window` 10 s, `fallback_seconds` 5 s,
+  `commit_seconds` 0.5 s.
 - **`AiTasks`** (a child of the character): Tasks `default_task`, `routine`, `attack_task`, `needs`; Debug `label`
   (the `TaskLabel` above the head). All empty by default: an empty runner costs one call a think.
 - **`AiTask`**: Task `id`, `layer` ROUTINE, `channels` Move; Interruption `interruptible` YES, `when_interrupted`
@@ -390,8 +392,9 @@ They call:
   grudge check only when `me` holds one, two cached faction indexes and one byte read. `factions` is
   `my_member.level()`, found once and kept.
 - `band_between(a, b)` and `is_hostile_between(a, b)` take nodes (two meta reads more), for code that has no members.
-- `factions.witness_source = func(actor, victim) -> Array`: the senses return the characters that perceived an act, so
-  a reported `attack` or `kill` moves only the factions that saw it.
+- `factions.witness_source = func(actor, victim) -> Array`: the characters that perceived an act, so a reported
+  `attack` or `kill` moves only the factions that saw it. The senses set it to `AiSenses.witnesses_of` (the victim and
+  every character that sees the actor or the victim now) when it is unset.
 - `relations.band_changed` to look again at a remembered entity whose band changed (a now-hostile entity in memory
   raises the noticed response).
 

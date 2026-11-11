@@ -37,10 +37,9 @@ func test_it_is_the_template_character_with_its_parts() -> void:
 	assert_object(character.ai_controller()).is_not_null()
 	assert_bool(character.is_in_group(AiCharacter.GROUP)).is_true()
 	assert_bool(character.is_in_group(Player.GROUP)).is_false()
+	assert_object(character.senses).is_instanceof(AiSenses)
 	assert_object(character.task_runner).is_instanceof(AiTasks)
 	assert_object(character.navigator).is_instanceof(AiNavigator)
-	for slot in [character.senses]:
-		assert_object(slot).is_null()
 
 
 func test_it_walks_where_the_movement_channel_points_and_faces_the_look_when_aiming() -> void:
