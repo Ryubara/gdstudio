@@ -263,7 +263,7 @@ Steam or system installs are never used by the tooling: an automatic update woul
 | ffmpeg | `tools/ffmpeg-<version>/` | pinned like Godot; clips from captures (Windows build pinned; elsewhere the system package) |
 | Blender in portable mode | `tools/blender-<version>/.../portable/` | its settings and add-ons stay apart from any other Blender |
 | Blender MCP add-on | inside the pinned Blender | installed as an extension |
-| Godot MCP addon, GdUnit4 | each game's `game/addons/<name>/` and the kit's `godot/addons/<name>/` | copied in and excluded in `.git/info/exclude`; enabled by appending their `plugin.cfg` to the `[editor_plugins]` list of the real `project.godot`, which a local git filter (`gds-local-plugins`, set in `.git/info/attributes` and `.git/config`) takes out on the way into git and puts back on checkout where the addon is installed: no commit, diff or `git status` names them, so third-party code and its enablement stay out of the public repositories |
+| Godot MCP addon, GdUnit4 | each game's `game/addons/<name>/` and the kit's `godot/addons/<name>/`, in the checkouts and worktrees that exist, and in each worktree `gds issue start` makes | copied in and excluded in `.git/info/exclude`; enabled by appending their `plugin.cfg` to the `[editor_plugins]` list of the real `project.godot`, which a local git filter (`gds-local-plugins`, set in `.git/info/attributes` and `.git/config`) takes out on the way into git and puts back on checkout where the addon is installed: no commit, diff or `git status` names them, so third-party code and its enablement stay out of the public repositories |
 | MCP servers (`godot`, `blender`) | Claude Code, per checkout | `claude mcp add -s local`, from `[mcp]` in `tools.toml`; skipped when registered or with `--no-mcp` |
 
 The Godot MCP drives a live editor and the Blender MCP a live Blender: open the pinned program with its add-on enabled
@@ -272,9 +272,10 @@ before an agent uses them. Headless scripts and Movie Maker need neither.
 **How the local plugins work.** The filter's script (`python/src/gds_tools/local_plugins.sh`, copied into the
 checkout's git folder) runs with `sh` and `sed`, which every git ships, so it does not depend on a Python or a worktree
 that may be swept. `clean` drops `, "res://addons/<name>/plugin.cfg"` from the `enabled=` line; `smudge` appends it
-again only when `addons/<name>/plugin.cfg` exists beside that `project.godot`, so a fresh worktree, which has no addons
-until `gds workspace init` runs again, lists none (Godot reports a listed plugin it cannot find). A game with no
-`[editor_plugins]` list gets none added (init says so): every template commits one for `gds_ui`. `git checkout --
+again only when `addons/<name>/plugin.cfg` exists beside that `project.godot`, so a worktree made by hand, which has
+no addons until `gds workspace init` runs again (`gds issue start` installs them in the worktrees it makes), lists none
+(Godot reports a listed plugin it cannot find). A game with no `[editor_plugins]` list gets none added (init says so):
+every template commits one for `gds_ui`. `git checkout --
 game/project.godot` after an editor run puts the file back with the plugins in it. The editor rewrites
 `project.godot` in its own form on every windowed open, with or without these plugins (3D Third Person, 2026-11-10), so
 revert it after a run as before. A headless `--import` neither starts GdUnit4's plugin (it skips itself in a test
@@ -292,5 +293,7 @@ environment) nor rewrites the file.
 
 `godot/` in this repository is a small Godot project of its own, not a game: it holds the Godot addons the kit owns
 (`godot/addons/gds_ui/`) and the GdUnit4 suites that prove them (`godot/tests/`). `gds workspace init` installs the
-pinned GdUnit4 into it, in the checkout and in every kit worktree, like into a game. The addon is edited only here and
+pinned GdUnit4 into it, in the checkout and in every kit worktree that exists then, like into a game, and `gds issue
+start` into the worktree it makes ([The branch and worktree](starting-work.md#worktree)), so a new kit worktree runs
+the `gds_ui` suites at once. The addon is edited only here and
 `gds sync` writes it into each game ([where `gds_ui` is edited](../engines/godot/ui-controls.md#where), [Sync](sync.md#addons)).
