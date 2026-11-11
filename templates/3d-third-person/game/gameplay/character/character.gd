@@ -238,6 +238,9 @@ var _stand_probe := CapsuleShape3D.new()
 var _prone := CharacterProne.new()
 var _slide := CharacterSlide.new()
 
+# Carries the body on a platform an online world drives (offline the engine does).
+var _rider := PlatformRider.new()
+
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
 @onready var _camera_target: Node3D = %CameraTarget
@@ -332,9 +335,11 @@ func _move(delta: float) -> void:
 	var before := velocity
 	var ticks := roundf(delta / get_physics_process_delta_time())
 	velocity *= ticks
+	_rider.carry(self)
 	move_and_slide()
 	velocity /= ticks
 	_grounded = is_on_floor()
+	_rider.land(self)
 	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
@@ -384,6 +389,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
+	_rider.platform = null
 	_fallen = false
 	_slide.reset()
 	_fit_body()
