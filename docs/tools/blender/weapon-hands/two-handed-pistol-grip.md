@@ -172,13 +172,13 @@ sent; the rounds still go in at the end of `reload_time`.
   searched that passes no deeper than the pose under the magazine itself: 1.0 and 0.9 mm).
 - **A reload cut short leaves the pistol whole**: with no reload weight the plan has the pistol's magazine in its grip
   and none in the hand, whatever share the clip was at (`SupportHandPlan.magazine_in_gun`, `magazine_in_hand`).
-- **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload, and a
-  new clip waits for the maintainer. Of the two ways left, a release by the right thumb does not fit this model: its
-  slide stop lever is on the gun's right side, under the right hand's fingers, and the right thumb lies high on the
-  left side (on the left thumb's root while both hands hold). So the `Slide` node stands back 4 cm (`slide_travel`)
-  while the pistol is empty, as a pistol's slide locks open on its last round, and runs forward when the reload's last
-  sound plays (0.85, the slide's sound): the slide released. With rounds left it stays forward and only the sound
-  plays. A rack by the left hand after the magazine is in is the change to make once a clip has one.
+- **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload; a rack
+  clip of the template's own is kit #1081. Of the two ways open until it lands, a release by the right thumb does not
+  fit this model: its slide stop lever is on the gun's right side, under the right hand's fingers, and the right thumb
+  lies high on the left side (on the left thumb's root while both hands hold). So the `Slide` node stands back 4 cm
+  (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its last round, and runs forward when
+  the reload's last sound plays (0.85, the slide's sound): the slide released. With rounds left it stays forward and
+  only the sound plays. The rack clip of #1081 can drive the same node (`slide_part`) with the left hand.
 
 Tests: `tests/gameplay/test_reload_magazine.gd` (the magazine's place, the fingers on it and the magazine against the
 gun at every hundredth of the reload on both mannequins; the drop, the cut-short reload and the slide on the live
