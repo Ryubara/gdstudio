@@ -64,6 +64,24 @@ static func revive(body: Character) -> void:
 	come_alive(body)
 
 
+## Gets `body` up at `spot` (`Character.revive_at()`): it stands there at once, facing the way its
+## ragdoll's chest faces, and the ragdoll's hold fades out from where the bones lie, so the pose
+## blends toward the spot. A body that is not dead is put there too.
+static func revive_at(body: Character, spot: Vector3) -> void:
+	var ragdoll_body := body.ragdoll_body
+	if body.state == Character.State.DEAD and ragdoll_body != null and ragdoll_body.is_limp():
+		var heading := ragdoll_body.facing()
+		body.facing = atan2(heading.x, heading.z)
+		body._present_facing()
+		ragdoll_body.stop()
+	body.global_position = spot
+	body.velocity = Vector3.ZERO
+	body._fallen = false
+	body.reset_physics_interpolation()
+	if body.state == Character.State.DEAD:
+		come_alive(body)
+
+
 ## One tick of a dead `body`: it stays where it died with its capsule off, the camera's target
 ## follows the hips, and a ragdoll that falls out of the map says `fell`.
 static func dead_tick(body: Character) -> void:

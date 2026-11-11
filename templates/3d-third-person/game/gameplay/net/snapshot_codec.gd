@@ -360,6 +360,8 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 		return NetDrops.BAD_VALUE
 	if event.id < 0 or event.id > 0xFFFF or event.code < 0 or event.code > 0xFF:
 		return NetDrops.BAD_VALUE
+	if event.amount < 0 or event.amount > 0xFF:
+		return NetDrops.BAD_VALUE
 	out.put_u8(event.kind)
 	match event.kind:
 		NetEvent.Kind.JOINED:
@@ -371,7 +373,8 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 			out.put_u8(event.slot)
 		NetEvent.Kind.SHOT:
 			out.put_u8(event.slot)
-			out.put_u32(event.seq & 0xFFFFFFFF)
+			out.put_u16(event.seq & 0xFFFF)
+			out.put_u8(event.amount)
 			_put_point(out, event.point)
 			_put_direction(out, event.direction)
 		NetEvent.Kind.HIT:
@@ -379,6 +382,7 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 			_put_direction(out, event.direction)
 			out.put_u8(event.code)
 			out.put_u16(event.id)
+			out.put_u8(event.amount)
 		NetEvent.Kind.DIED:
 			out.put_u8(event.slot)
 			_put_point(out, event.point)
@@ -423,7 +427,8 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 			event.slot = reader.u8()
 		NetEvent.Kind.SHOT:
 			event.slot = reader.u8()
-			event.seq = reader.u32()
+			event.seq = reader.u16()
+			event.amount = reader.u8()
 			event.point = _get_point(reader)
 			event.direction = _get_direction(reader)
 		NetEvent.Kind.HIT:
@@ -431,6 +436,7 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 			event.direction = _get_direction(reader)
 			event.code = reader.u8()
 			event.id = reader.u16()
+			event.amount = reader.u8()
 		NetEvent.Kind.DIED:
 			event.slot = reader.u8()
 			event.point = _get_point(reader)
