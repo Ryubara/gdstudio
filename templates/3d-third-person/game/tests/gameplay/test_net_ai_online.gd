@@ -117,8 +117,10 @@ func test_a_late_joiner_receives_the_whole_population_in_one_snapshot() -> void:
 	assert_bool(await _rig.until(func() -> bool: return cy.ticks_read > 0, 30)).is_true()
 	assert_int(cy.ai_replica.snapshot.applied).is_equal(1)
 	assert_int(cy.ai_replica.snapshot.rows.size()).is_equal(40)
-	# Its puppets are made a few a frame (gdstudio #1208), within the frames the budget needs.
-	var frames := ceili(40.0 / cy.ai_replica.puppets_per_frame) + 2
+	# Its puppets are made a few a frame (gdstudio #1208). The time budget can cut a frame to one
+	# puppet on a slow runner (at least one is always made), so wait for one a frame (gdstudio #1230);
+	# the count per frame is what the budget promises.
+	var frames := 40 + 2
 	(
 		assert_bool(await _rig.until(func() -> bool: return cy.ai_replica.count() == 40, frames))
 		. is_true()
