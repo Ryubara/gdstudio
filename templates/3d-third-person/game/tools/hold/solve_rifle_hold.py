@@ -53,9 +53,6 @@ GRID_HIGH = [0.22, 0.26, 0.11]
 GRID_STEP = 0.0015
 # Where the middle of the trigger finger's last bone sits when its pad is on the trigger, from `Trigger`.
 TRIGGER_OFF = np.array([-0.005, -0.004, 0.0])
-# How deep the finger on the trigger may go: the trigger guard leaves 12 mm ahead of the trigger and a fingertip
-# is 14 to 16 mm thick, so a finger on the trigger is in the guard's front bar by what is missing.
-TRIGGER_TOL = 0.0045
 # The index finger off the trigger lies straight along the rifle's right side, outside the trigger guard and no
 # lower than this, its tip on the magazine well's wall.
 REGISTER_Y = 0.02
@@ -86,10 +83,10 @@ STARTS = {
     "magazine": ([[0, 0, -1], [-1, 0, 0], [0, 1, 0]], [-0.115, -0.07, 0.06], -Z),
 }
 # The moves from the starts that the template ships (metres along the rifle's axes, then degrees about them).
-# The right hand sits 4 cm back and 1 cm up from the start, turned 20 degrees about the rifle's up axis so the
+# The right hand sits 4 cm back and 2 cm up from the start (its index knuckle level with the trigger), turned 20 degrees about the rifle's up axis so the
 # palm bears on the grip's right rear and the web is behind it.
 MOVES = {
-    "right": [0.04, 0.01, 0.0, 0.0, -20.0, 0.0],
+    "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
     "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 }
@@ -231,8 +228,7 @@ def finger_cost(placed, finger, angles, mode):
     base, mid, tip = hand.finger_parts(finger)
     lows = [sd[:, p].min(axis=1) for p in (base, mid, tip)]
     # A search that measures every third vertex keeps 0.4 mm in hand, so the full measure agrees.
-    allowed = TRIGGER_TOL if mode == "trigger" else TOL
-    deep = relu(-sd.min(axis=1) - (allowed if hand.stride == 1 else allowed - 0.0004))
+    deep = relu(-sd.min(axis=1) - (TOL if hand.stride == 1 else TOL - 0.0004))
     cost = 100.0 * deep
     a = np.atleast_2d(angles)
     tip_at = pts[:, tip].mean(axis=1)
@@ -462,6 +458,19 @@ def main():
             continue
         placed = Placed(rig, side, gun, sockets, name)
         params = np.array(option(name, MOVES[name]), float)
+        if "--trigger-only" in sys.argv:
+            # Only the finger on the trigger again, on the grip the output file has (its `right_angles`).
+            if name != "right":
+                continue
+            for finger, angles in out["right_angles"].items():
+                placed.hand.set(finger, angles)
+            placed.hand._apply_all()
+            placed.place(np.array(out["right_params"], float))
+            solve_finger(placed, "index", "trigger")
+            out["trigger"] = placed.hand.quaternions(["index"])
+            report(placed, "right (trigger)")
+            hands.append((name, placed))
+            continue
         if f"--search-{name}" in sys.argv or "--search" in sys.argv:
             params = search(placed, params)
         table = finish(placed, params, fast)
@@ -473,6 +482,7 @@ def main():
         out[name + "_hand"] = placed.in_gun.tolist()
         out[key] = placed.hand.quaternions()
         if name == "right":
+            out["right_angles"] = {finger: placed.hand.angles[finger].tolist() for finger in FINGERS}
             solve_finger(placed, "index", "trigger", fast)
             out["trigger"] = placed.hand.quaternions(["index"])
             report(placed, "right (trigger)")

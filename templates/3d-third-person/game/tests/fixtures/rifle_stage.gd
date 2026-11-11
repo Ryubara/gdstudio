@@ -48,8 +48,8 @@ var rifle: Node3D
 
 
 ## Builds the stage under `holder` (a node of a running tree) with the mannequin `model`
-## (`female` or `male`).
-static func make_rifle(holder: Node, model: String) -> RifleStage:
+## (`female` or `male`); `measured` off leaves the contact measure out (a bench).
+static func make_rifle(holder: Node, model: String, measured := true) -> RifleStage:
 	var stage := RifleStage.new()
 	holder.add_child(stage)
 	stage.slot = CharacterModel.new()
@@ -59,9 +59,10 @@ static func make_rifle(holder: Node, model: String) -> RifleStage:
 	stage.hold = (load(RIFLE_HELD) as PackedScene).instantiate()
 	stage.slot.add_child(stage.hold)
 	stage.rifle = stage.hold.get_node(^"Pivot/Rifle") as Node3D
-	stage.contact = HandContact.new(stage.skeleton)
-	stage.contact.set_weapon(stage.rifle.get_node(^"Near") as Node3D)
-	stage.skeleton.skeleton_updated.connect(stage._on_skeleton_updated)
+	if measured:
+		stage.contact = HandContact.new(stage.skeleton)
+		stage.contact.set_weapon(stage.rifle.get_node(^"Near") as Node3D)
+		stage.skeleton.skeleton_updated.connect(stage._on_skeleton_updated)
 	return stage
 
 

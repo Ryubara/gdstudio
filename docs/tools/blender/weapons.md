@@ -257,16 +257,10 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   never emits it, so a probe that awaits the signal there waits forever.
 - The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
   proposal and its numbers are in the rifle folder's README.
-- **The hold in the game (kit #889)** is the proposal's C and E as a component, `TwoHandHold`
-  (`gameplay/weapon/two_hand_hold.gd`; how to use it: [Weapon pickups and a two-handed
-  hold](../../engines/godot/third-person/shooting.md#weapon-pickups)): the pocket follows `spine_03`'s place in the
-  clip, so a crouch carries the gun. Measured in the game's own pose (by a rifle mode of the old
-  `tools/carry/measure_hand_contact.gd`, which #1038 replaced by `tests/fixtures/hand_contact.gd`, the probe #1036
-  uses): both hands sit on their targets (0 to 0.3 cm once settled), but the clip's fist does not fit the rifle. The
-  right hand goes 22 mm into the grip on both mannequins, its middle, ring and little fingers 8 to 17 mm, its index
-  finger stands 3.3 to 7 mm off and not on the trigger; the left hand goes 14 to 15 mm into the hand guard (45 mm on
-  the male at the low ready) with its fingers 9 to 12 mm in. That fails this page's 2 mm and 5 mm: the rifle needs
-  solved fingers on its `Grip`, `Trigger` and `Support`, which is #1001's `WeaponHold` work for the pistol.
+- **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
+  each arm with a `HoldArm` and closes the fingers with poses solved on the rifle's own `Grip`, `Trigger` and
+  `Support`, as the pistol's are. How it is built, its numbers and what went wrong on the way:
+  [The rifle in both hands](../../engines/godot/third-person/shooting.md#rifle-hands).
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold

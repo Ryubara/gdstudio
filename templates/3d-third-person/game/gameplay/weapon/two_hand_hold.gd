@@ -39,9 +39,14 @@ const _MODIFIER_PREFIX := "TwoHandHold_"
 ## The share of a magazine's way out of the gun that is straight down the magazine well.
 const _WELL_SHARE := 0.4
 ## The left hand's way from the hand guard to the magazine, as shares of it: its four fingers
-## open by the first, it is off the hand guard by the second, beside the magazine by the third
-## and on it by the fourth; the fingers close on the magazine after that.
+## open by the first (the knuckles over its first half, then the rest, as the hand starts down),
+## it is off the hand guard by the second, beside the magazine by the third and on it by the
+## fourth; the fingers close on the magazine after that.
 const _WAY_OPEN := 0.1
+## How far the left hand drops while its knuckles open, before it moves off the hand guard.
+const _LET_GO_DROP := 0.006
+## What a finger's first bone (the knuckle's) has in its name: those open first.
+const _KNUCKLE := "_01_"
 const _WAY_DOWN := 0.3
 const _WAY_BESIDE := 0.7
 const _WAY_ON := 0.88
@@ -450,9 +455,13 @@ func _place_reload() -> void:
 	# Down off the hand guard, across to beside the magazine, then onto it.
 	var below := _left_rest.translated(reload_clearance)
 	var beside := on_magazine.transform.translated(magazine_approach)
-	var hand := _left_rest.interpolate_with(
-		below, smoothstep(_WAY_OPEN * 0.5, _WAY_DOWN, to_magazine)
+	# A little straight down while the knuckles let go (the hooked fingers come off the far side
+	# clear), then down and out to the thumb's side together: a move sideways under closed fingers
+	# pushes the far side's into the hand guard, and a drop with none drags the thumb through it.
+	var hand := _left_rest.translated(
+		Vector3.DOWN * _LET_GO_DROP * smoothstep(0.0, _WAY_OPEN * 0.5, to_magazine)
 	)
+	hand = hand.interpolate_with(below, smoothstep(_WAY_OPEN * 0.5, _WAY_DOWN, to_magazine))
 	hand = hand.interpolate_with(beside, smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine))
 	hand = hand.interpolate_with(
 		on_magazine.transform, smoothstep(_WAY_BESIDE, _WAY_ON, to_magazine)
@@ -516,6 +525,11 @@ func _add_fingers(pose: HandPose, second: HandPose, open: HandPose, tag: String)
 	fingers.pose = pose
 	fingers.second = second
 	fingers.open = open
+	if open != null:
+		for bone_name in open.rotations:
+			if String(bone_name).contains(_KNUCKLE):
+				fingers.open_first.append(bone_name)
+		fingers.open_first = fingers.open_first
 	_fingers.append(fingers)
 	_add_modifier(fingers, tag)
 

@@ -125,7 +125,7 @@ func _ready() -> void:
 		container.add_child(label)
 	_state = Label.new()
 	_state.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_state.position.y = 4.0
+	_state.position.y = 34.0
 	_state.add_theme_font_size_override(&"font_size", 30)
 	_state.add_theme_color_override(&"font_color", Color.YELLOW)
 	_state.add_theme_color_override(&"font_outline_color", Color.BLACK)
