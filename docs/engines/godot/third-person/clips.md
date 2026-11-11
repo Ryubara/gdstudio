@@ -34,6 +34,14 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
   (`tools/capture/own_clips_review.gd`).
+- **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
+  floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
+  roll onto it; the ankle travels), each arm goes with the other side's leg, the
+  two feet land half a cycle apart, and the clip's `speed` is the game's. **Watch out for:** the first
+  tests held the ankle still through a contact, which a heel-to-toe roll moves, and looked for the arms
+  widest on the landing frame, which is true of a walk and not of a run; a footstep count asserted for the
+  library's walk (90 steps a minute) is wrong for ours (138). **Seen:** gdstudio #1155,
+  2026-11-11 (`tests/gameplay/test_own_clips.gd`, `test_footsteps.gd`).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,

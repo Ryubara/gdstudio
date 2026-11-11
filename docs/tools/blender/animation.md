@@ -309,6 +309,17 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b>
 3. **A line in `build_own.py`**: the type in `TYPES`, its name in its group's frozen list in `GROUPS`, and its letter
    in `picks.json` once chosen.
 
+**A new gait** is a table of numbers, not a description: `clips/gait.py` is one description for `walk`, `jog` and
+`sprint` (kit #1155), and a strafe, a backpedal or a crouched walk starts as a fourth table in it. A gait gives the
+toolkit, in this order: the footfalls (the left foot lands at frame 0, the right at half the cycle; a contact is a
+whole number of frames), the speed (the game's), the centre of mass as a point in space on every frame
+(`weight.settle` takes the point; a free fall between a run's contacts), its own swing path (`ContactPlan.state()`
+gives the planted foot, the description places the swinging one), then the trunk, the arms and the overlap numbers.
+The pelvis and the knees are what those leave, never keyed. `Gait._set_down` then corrects each frame's ankle on every
+body's skin. The ranges a gait's measured cadence, planted share and bob are held to are in `GAITS`, from
+[the feel](own-animation.md#feel). `review <type>` writes nothing unless every variant passes, so try one variant's
+numbers with a script of your own in scratch that calls `describe` and `build.build_clip` and prints the checks.
+
 | To do this | Use |
 | --- | --- |
 | Say where the feet are | `plan.ContactPlan` of `Footfall`s (which foot, the frames it lands and leaves, where the ball of the foot stands in the world, heel strike and toe-off) over a `Travel` (the root's path; `Travel.steady(speed)` for a loop). `plan.standing()` for both feet down. A leg the spec leaves out is the plan's. Contact times, speed, footstep events and the start and end foot of `clips.json` come from the plan |
@@ -325,11 +336,11 @@ skinned mesh, and writes nothing when one fails (the last line of a good build i
 rotations and the pelvis's place, and the `ik_` targets on a rig that has them. The checks are in `checks.py` with
 their limits; `selftest.py` breaks a clip for each one.
 
-**What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
-the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
-which is not a clip anyone has looked at for style. Mirroring, the placed hand, the joins and the `ik_` targets are
-written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's lean and the
-free fall's arc are tested on made-up motion only. A body whose legs differ from the reference body's is reported with
+**What is proved and what is not.** `Idle`, `Walk`, `Jog` and `Sprint` went through all of it: the contact plan, the
+foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm off it in the runs). Mirroring, the
+placed hand, the joins and the `ik_` targets are
+written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's lean is
+tested on made-up motion only. A body whose legs differ from the reference body's is reported with
 `needs_ik` and not held to the floor and planted limits.
 
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
@@ -367,6 +378,46 @@ free fall's arc are tested on made-up motion only. A body whose legs differ from
   printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
   **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
   library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
+- **Approach:** Write a direction that turns with a joint out as sines and cosines of the joint's angle
+  (`cos(bend) * bend_dir - sin(bend) * aim`), and render the hands of a first build of any pose with an elbow bent
+  past a right angle. **Watch out for:** the hanging arm's thumb direction was made square to the forearm from the
+  bend direction (`square_to(bend_dir, aim_f)`), which points the other way once the elbow passes 90 degrees: the
+  first jog's hands were turned 110 degrees, and the idle and the walk never bend that far. **Seen:** gdstudio
+  #1155, 2026-11-11 (`solve.py`; the idle rebuilds to the same bytes).
+- **Approach:** Set a foot down on every shipped body's own skin, frame by frame: measure each body's lowest sole
+  vertex at the planned ankle and correct the ankle until the lowest of them all is on the floor while planted and
+  clear of it in the swing. **Watch out for:** a heel point estimated on one body was 4.6 mm under the floor on the
+  female at an 18 degree heel strike, and the male's toes, 24 mm longer, went 8.8 mm under in the swing; one clip
+  plays on both, and neither fault showed on the body the path was tuned on. **Seen:** gdstudio #1155, 2026-11-11
+  (`Gait._sole_gaps`, `Gait._set_down`).
+- **Approach:** Land a run's foot still moving back at a share of the ground's speed (`land_speed`, half) and
+  start its swing a frame before it leaves (`swing_early`); a walk's foot may rest over the floor first.
+  **Watch out for:** a run's foot brought to rest in the air before it lands has to reach past its landing place
+  while the body goes on under it (11 cm in the jog, 20 in the sprint), and the furthest-reaching leg sets the
+  height of the whole cycle, so the hips sank; a swing starting from rest stretched the trailing leg on its first
+  frame. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** Read `audit_clips.py`'s planted numbers knowing it calls a foot planted while its sole is within
+  25 mm of the floor: give contacts whole frames, and carry a swinging foot above that near both ends
+  (`carry_height`, `leave_frames`, `land_frames`). **Watch out for:** a foot swinging low read as planted, so the
+  audit gave 57 to 460 mm of slide and a wrong planted share for clips whose own build held the sole within 5 mm;
+  fractional contact frames did the same at each end. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** Measure a planted foot's wander only on skin weighted 95 % or more to the foot and the toes, and
+  only on the patch that is on the floor on both frames compared (`checks.Played.firm`, `FIRM`). **Watch out
+  for:** the heel's skin is shared with the shin, which swings 25 degrees a frame over a planted foot in a run,
+  and a rising heel lifts its own skin: the check read 9 mm of slide in the jog while no bone of the foot moved.
+  The audit still follows every sole vertex (7 mm for the same clip), and the sheet prints both. **Seen:**
+  gdstudio #1155, 2026-11-11 (the self-test still breaks the check with a real slide).
+- **Approach:** At a gait's pace treat the overlap spring as a filter on a sine: declare the lag the spring gives
+  at that cycle length, lead and enlarge the parent's swing by what the spring will take (`_through_spring` in
+  `gait.py`), keep the overshoot at 0.2 or under, and pass a chest's lag on to its three bones once, not three
+  times (`chest_late`). **Watch out for:** an overshoot of 0.25 to 0.3 that settles nicely in an idle rings when
+  driven near its own frequency: the elbow went 21 degrees past straight and the hand turned 100 to 146 degrees
+  from the forearm, and the measured lag was not the style's number. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** Send a swinging arm out past the hip on its way back and less inward across the chest
+  (`arm_out_back`, `arm_clear` 0.19), and run limbs inside limbs on both bodies after every change to the trunk's
+  turn. **Watch out for:** an arm swung straight fore and aft put the hand up to 110 mm into the hip and the
+  chest once the hips and the shoulders wound against each other; the male's wider chest and the female's wider
+  hip need opposite room. **Seen:** gdstudio #1155, 2026-11-11 (0 mm on the female, at most 3.8 mm on the male).
 
 ## The clip eval {#eval}
 

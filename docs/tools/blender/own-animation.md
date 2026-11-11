@@ -202,10 +202,12 @@ transition ends on a gait's exact pose and speed, and is long enough to be seen 
   ([gait kinematics, OUHSC](https://ouhsc.edu/bserdac/dthompso/web/gait/knmatics/gait.htm)).
 - In walking the trunk turns 13.7 degrees against the pelvis and 6.9 against the ground: the shoulders counter the
   hips ([Chung et al., 2010](https://pmc.ncbi.nlm.nih.gov/articles/PMC2843703)).
-- With running speed the planted share falls and the step rate rises
-  ([Patoz et al., 2021](https://www.frontiersin.org/articles/625557)); we found no page we could open with a run's
-  rise, hip turn or arm swing in numbers, so the run ranges in [the feel](#feel) are working numbers that the
-  loops' issue confirms from its own research before keying.
+- Recreational runners at 2.75 m/s take 164 steps a minute with a foot down 39 % of the cycle and the centre of
+  mass going 77 mm (SD 12) up and down; each m/s faster adds 11 steps and takes 5.9 points off the share, and the
+  rise does not change ([reference values, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10588426/)). Elite
+  sprinters at 10.6 m/s take 274 steps with 96 ms on the ground
+  ([2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC8008308/)). The sprint's 6.5 m/s lies between the two sets;
+  no page we could open gave a shoulder's swing in degrees (the gaits' README has the whole table).
 - In games, anticipation is paid for in response time: keep the wind-up short on what the player does, long on
   what an enemy does, and let follow-through play out after the frame where control returns, cut only by new input
   ([Cooper](https://www.gamedeveloper.com/production/the-12-principles-of-animation-in-video-games)).
@@ -313,9 +315,9 @@ inside the ranges; a number outside one is a decision written in the variant's n
 | Measure | Walk | Jog | Sprint | Why |
 | --- | --- | --- | --- | --- |
 | Planted sole speed | the game's 1.7 m/s, within 2 % | 4.0 m/s | 6.5 m/s | the feet hold the floor at the speed the body moves |
-| Steps a minute | 125 to 140 | 165 to 180 | 190 to 215 | a person's cadence at that speed (the walk's from [research](#research-weight); the runs' are working numbers) |
-| Planted share | 0.57 to 0.62 | 0.30 to 0.40 | 0.22 to 0.30 | a walk always has a foot down; a run flies between steps |
-| Pelvis up and down | 30 to 50 mm | 60 to 90 mm | 50 to 80 mm | weight without a bounce |
+| Steps a minute | 125 to 140 | 169 to 187 | 190 to 215 | a person's cadence at that speed ([research](#research-weight); the sprint's lies between two sources) |
+| Planted share | 0.57 to 0.62 | 0.27 to 0.36 | 0.20 to 0.27 | a walk always has a foot down; a run flies between steps |
+| Pelvis up and down | 30 to 50 mm | 60 to 95 mm | 60 to 100 mm | weight without a bounce. The sourced measure is the centre of mass (77 mm, SD 12, in a run), and the pelvis moves more: ours 79 and 87 mm over 64 and 69 |
 | Hips turn, shoulders turn | 6 to 10, 6 to 10 degrees, opposed (about 14 between them) | 8 to 14, 15 to 25 | 10 to 16, 20 to 30 | the trunk winds against the legs; the arms swing in their sockets |
 | Pelvis tips toward the swinging leg | 4 to 8 degrees | 5 to 10 | 5 to 10 | the hip drops over the leg that carries nothing |
 | Trunk lean at a steady pace | 2 to 5 degrees | 4 to 8 | 6 to 12 | the rest of the lean is acceleration's, added by the lean layer |
@@ -464,7 +466,10 @@ The pull request for a clip type carries one **review sheet** per type, made by 
    the game's speed, so a foot that slides is seen sliding.
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
    five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
-   (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF).
+   (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF). Film it
+   in an imported game (`gds template test 3d-third-person --suite <one> --keep`, then `gds capture frames
+   --project game` there), never the worktree's own `game/`; a gait starts `OWN_AHEAD=6` metres into the map,
+   since the spawn pad ends 4.6 m ahead and a body that walks off it plays its fall.
 3. **The numbers:** the audit's table with one column per variant and the library's, the limits beside them.
 4. **Notes:** two lines per variant: the vision, and what was tried and could not be done, with the number that
    shows it. A fault the agent can name in its own capture is fixed before review, not listed
@@ -549,7 +554,7 @@ clip that only works on the reference fails its build.
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the gaits 8.7 KB a second, the sprint 48 % of keys, declared as `keys_kept`) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
 
@@ -563,7 +568,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | Issue | Clips |
 | --- | --- |
 | #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
-| #1155 the loops | `Walk`, `Jog`, `Sprint` |
+| #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
 | #1156 starts and stops | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; left and right |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
