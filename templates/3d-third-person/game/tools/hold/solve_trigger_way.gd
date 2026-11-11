@@ -4,14 +4,18 @@
 ## well and the trigger guard (17 mm deep): the finger lies along the well's side ahead of the
 ## guard and curls in before it is over the guard's opening. The solver measures the skinned
 ## finger of both mannequins against the rifle's triangles (`HandContact`, the right hand on its
-## place on the rifle at the low ready) and builds the way from poses:
+## place on the rifle at the low ready) and builds the way from two poses: the straight finger
+## rolled about its own length until its bend lies along the rifle's side, then bent to the
+## trigger's bend there, then turned onto the trigger (each roll in `ROLLS` is tried, the one whose
+## way goes least deep is kept).
 ##
-## - a first guess: the straight finger rolled about its own length until its bend lies along the
-##   rifle's side, then bent to the trigger's bend there (each roll in `ROLLS` is tried, the one
-##   whose two legs go least deep is kept);
-## - then, while a leg of the way goes deeper than `LIMIT` at any of its `SAMPLES` steps, the
-##   deepest step of the deepest leg is moved out of the rifle (a seeded random climb over the
-##   knuckle's turn and the two outer bones' bends) and becomes a pose of the way.
+## Nothing is written when a leg of the way goes deeper than `LIMIT` at any of its `SAMPLES` steps.
+## The way is a passing way, held to the depth a hand may pass through the weapon between two
+## places (the reload's 6 mm), not to the 2 mm of a hand that holds: the finger comes into the
+## trigger guard from the side through an opening hardly wider than the finger, and no way into
+## it found passes less than about 5.6 mm through the guard on the last stretch (inserting poses
+## at the deepest step, turned and bent every way near it, stalled there: the trigger pose sits in
+## a pocket).
 ##
 ## No number of the way is typed: change the rifle, the hold or the poses, run this again, then
 ## `tests/gameplay/test_rifle_fingers.gd`. It lives in tools/, which the export leaves out.
@@ -24,22 +28,16 @@ const GRIP := "res://gameplay/weapon/hold/rifle_grip_pose.tres"
 const TRIGGER := "res://gameplay/weapon/hold/rifle_trigger_pose.tres"
 const BONES: Array[StringName] = [&"index_01_r", &"index_02_r", &"index_03_r"]
 const PARTS: Array[String] = ["index_base", "index_mid", "index_tip"]
-## The deepest any step of the way may go into the rifle, in metres (the hold's limit is 2 mm).
-const LIMIT := 0.0015
+## The deepest any step of the way may go into the rifle, in metres: the depth a hand may pass
+## through the weapon on its way between two places (the reload's, `test_rifle_hold.gd`). Where
+## the finger holds, at either end, the hold's 2 mm stand.
+const LIMIT := 0.006
 ## The steps each leg is measured at.
 const SAMPLES := 16
 ## The rolls of the first guess, in degrees about the finger's own length.
-const ROLLS: Array[float] = [-120.0, -105.0, -90.0, -75.0, -60.0, 60.0, 75.0, 90.0, 105.0]
-## How much further than the trigger's bend the outer bones are bent on the way in.
-const TUCKS: Array[float] = [1.2, 1.4, 1.6, 1.8]
-## How many poses the way may have, and how many tries the climb has for each.
-const MOST_POSES := 12
-const TRIES := 160
-## What a radian of turn away from the way costs in the climb, in metres of depth.
-const PULL := 0.004
+const ROLLS: Array[float] = [-120.0, -105.0, -90.0, -75.0, 75.0, 90.0, 105.0, 120.0]
 
 var _stages: Array[RifleStage] = []
-var _random := RandomNumberGenerator.new()
 
 
 func _initialize() -> void:
@@ -47,7 +45,6 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_random.seed = 1036
 	var holder := Node3D.new()
 	root.add_child(holder)
 	for model: String in HoldStage.MODELS:
@@ -59,15 +56,6 @@ func _run() -> void:
 	var trigger := _pose_of(load(TRIGGER) as HandPose)
 	print("straight way: %.1f mm deep" % (_leg_depth(grip, trigger)[0] * 1e3))
 	var keys := _first_guess(grip, trigger)
-	while keys.size() - 2 < MOST_POSES:
-		var worst := _worst_leg(keys)
-		if worst[1] <= LIMIT:
-			break
-		var leg: int = worst[0]
-		var share: float = worst[2]
-		var moved := _climb(_between(keys[leg], keys[leg + 1], share))
-		keys.insert(leg + 1, moved)
-		print("pose %d added in leg %d: %.1f mm before" % [keys.size() - 2, leg, worst[1] * 1e3])
 	var report := "legs:"
 	var deepest := 0.0
 	for leg in keys.size() - 1:
@@ -101,11 +89,8 @@ func _pose_of(pose: HandPose) -> Dictionary:
 	return found
 
 
-# Grip, the straight finger rolled, the rolled finger bent, trigger: the roll whose first two
-# legs go least deep. Then the way into the trigger: the knuckle turned to the trigger's with the
-# outer bones bent further than the trigger's by each of `TUCKS` (the fingertip tucked back from
-# the guard's front), then straightened onto the trigger; the tuck whose way goes least deep is
-# kept, none when none helps.
+# Grip, the straight finger rolled, the rolled finger bent, trigger: the roll whose way goes least
+# deep.
 func _first_guess(grip: Dictionary, trigger: Dictionary) -> Array[Dictionary]:
 	var best: Array[Dictionary] = [grip, trigger]
 	var best_depth := INF
@@ -117,31 +102,12 @@ func _first_guess(grip: Dictionary, trigger: Dictionary) -> Array[Dictionary]:
 		var bent := rolled.duplicate()
 		bent[&"index_02_r"] = trigger[&"index_02_r"]
 		bent[&"index_03_r"] = trigger[&"index_03_r"]
-		var depth := maxf(_leg_depth(grip, rolled)[0], _leg_depth(rolled, bent)[0])
+		var depth := _way_depth([grip, rolled, bent, trigger])
 		print("roll %.0f: %.1f mm" % [roll, depth * 1e3])
 		if depth < best_depth:
 			best_depth = depth
 			best = [grip, rolled, bent, trigger]
-	var plain := _way_depth(best)
-	var chosen := best
-	print("into the trigger straight: %.1f mm" % (plain * 1e3))
-	for tuck in TUCKS:
-		var tucked := trigger.duplicate()
-		for bone: StringName in [&"index_02_r", &"index_03_r"]:
-			var q := trigger[bone] as Quaternion
-			tucked[bone] = Quaternion(Vector3.RIGHT, 2.0 * atan2(q.x, q.w) * tuck)
-		for share in [0.5, 1.0]:
-			var turned := tucked.duplicate()
-			turned[&"index_01_r"] = (best[2][&"index_01_r"] as Quaternion).slerp(
-				trigger[&"index_01_r"], share
-			)
-			var keys: Array[Dictionary] = [best[0], best[1], best[2], turned, trigger]
-			var depth := _way_depth(keys)
-			print("tuck %.2f, knuckle %.1f of the way: %.1f mm" % [tuck, share, depth * 1e3])
-			if depth < plain:
-				plain = depth
-				chosen = keys
-	return chosen
+	return best
 
 
 func _way_depth(keys: Array[Dictionary]) -> float:
@@ -149,16 +115,6 @@ func _way_depth(keys: Array[Dictionary]) -> float:
 	for leg in keys.size() - 1:
 		deepest = maxf(deepest, _leg_depth(keys[leg], keys[leg + 1])[0])
 	return deepest
-
-
-# [the leg, its depth, the share of it at its deepest step] of the deepest leg of the way.
-func _worst_leg(keys: Array[Dictionary]) -> Array:
-	var worst := [0, -INF, 0.5]
-	for leg in keys.size() - 1:
-		var depth := _leg_depth(keys[leg], keys[leg + 1])
-		if depth[0] > worst[1]:
-			worst = [leg, depth[0], depth[1]]
-	return worst
 
 
 # [the deepest the finger goes on the straight way from `from` to `to`, the share at it].
@@ -191,34 +147,3 @@ func _depth(rotations: Dictionary) -> float:
 		for part in PARTS:
 			deepest = maxf(deepest, -float(parts[part]))
 	return deepest
-
-
-# `start` moved out of the rifle by as little as it takes: random turns of the knuckle and bends
-# of the outer two bones, each kept when it scores better, smaller as the climb goes on. The score
-# is the depth below `LIMIT` and the turn from `start` (`PULL` metres a radian), so the pose stays
-# near the way it replaces and the legs on both sides of it stay short.
-func _climb(start: Dictionary) -> Dictionary:
-	var best := start
-	var best_score := _score(start, start)
-	for attempt in TRIES:
-		var size := lerpf(0.3, 0.02, float(attempt) / TRIES)
-		var tried := best.duplicate()
-		var turn := Vector3(_random.randfn(), _random.randfn(), _random.randfn()) * size
-		tried[&"index_01_r"] = (
-			(best[&"index_01_r"] as Quaternion) * Quaternion(turn.normalized(), turn.length())
-		)
-		for bone: StringName in [&"index_02_r", &"index_03_r"]:
-			var bend := Quaternion(Vector3.RIGHT, _random.randfn() * size)
-			tried[bone] = (best[bone] as Quaternion) * bend
-		var score := _score(tried, start)
-		if score < best_score:
-			best_score = score
-			best = tried
-	return best
-
-
-func _score(rotations: Dictionary, start: Dictionary) -> float:
-	var turned := 0.0
-	for bone in BONES:
-		turned += (rotations[bone] as Quaternion).angle_to(start[bone])
-	return maxf(_depth(rotations), LIMIT * 0.5) + PULL * turned

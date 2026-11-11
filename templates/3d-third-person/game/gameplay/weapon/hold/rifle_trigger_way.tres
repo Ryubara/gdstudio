@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HandPoseWay" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_l18dx"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose_way.gd" id="2_rumtl"]
+
+[sub_resource type="Resource" id="Resource_acp2l"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.2611826, -0.900627, -0.20072097, -0.28348857),
+&"index_02_r": Quaternion(0, 0, 0, 1),
+&"index_03_r": Quaternion(0, 0, 0, 1)
+})
+
+[sub_resource type="Resource" id="Resource_wcok0"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.2611826, -0.900627, -0.20072097, -0.28348857),
+&"index_02_r": Quaternion(0.3440713, 0, 0, 0.93894356),
+&"index_03_r": Quaternion(0.19722947, 0, 0, 0.9803574)
+})
+
+[resource]
+script = ExtResource("2_rumtl")
+poses = Array[ExtResource("1_l18dx")]([SubResource("Resource_acp2l"), SubResource("Resource_wcok0")])

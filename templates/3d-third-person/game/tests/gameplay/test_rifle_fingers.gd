@@ -6,8 +6,9 @@
 # skinned mesh worked out from the bone poses after the modifiers ran). `test_rifle_hold.gd`
 # poses the clips by hand on a stage; this suite measures what the player plays, blends and all.
 # And the trigger finger's way between the receiver and the trigger, as the rifle comes up and
-# goes down, never takes it into the rifle (the straight way between the two poses went 17 mm
-# into the magazine well and the trigger guard; `HandPoseWay`, `tools/hold/solve_trigger_way.gd`).
+# goes down, passes no deeper through the rifle than a hand may between two places (6 mm, as the
+# reload's left hand; the straight way between the two poses went 17 mm into the magazine well
+# and the trigger guard; `HandPoseWay`, `tools/hold/solve_trigger_way.gd`).
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -19,11 +20,15 @@ const SAMPLES := 3
 ## The steps of the rifle's way up at which the trigger finger is measured.
 const RAISE_STEPS := 50
 const INDEX: Array[String] = ["index_base", "index_mid", "index_tip"]
+## How deep the index finger may pass through the rifle on its way to the trigger and back, in
+## metres (the reload's moving hand has the same, `test_rifle_hold.gd`).
+const PASSING_DEPTH := 0.006
 
 var _arena: PlayArena
 var _player: Player
 var _skeleton: Skeleton3D
 var _contact: HandContact
+var _hold: TwoHandHold
 var _tag := ""
 var _sampling := false
 var _fails: Array[String] = []
@@ -75,7 +80,7 @@ func test_the_trigger_finger_goes_round_the_guard_as_the_rifle_comes_up() -> voi
 					% [model, deepest * 1e3, deepest_at]
 				)
 			)
-			. is_less_equal(HandContact.MAX_DEPTH)
+			. is_less_equal(PASSING_DEPTH)
 		)
 		stage.free()
 
@@ -96,6 +101,7 @@ func _walk_the_states(variant: String) -> void:
 	_player.loadout.give(load(RIFLE) as WeaponDef, 300)
 	await InputSim.ticks(get_tree(), 60)
 	var hold := _player.model.get_node("RifleHeld") as TwoHandHold
+	_hold = hold
 	assert_bool(hold.is_visible_in_tree()).is_true()
 	_skeleton = _player.model.skeleton()
 	_contact = HandContact.new(_skeleton)
@@ -149,9 +155,20 @@ func _on_skeleton_updated() -> void:
 	_sampling = false
 	_measured += 1
 	_contact.snapshot()
-	_fails.append_array(
-		HandContact.failures(_tag + " r", _contact.measure("r"), RifleStage.RIFLE_RIGHT_CONTACTS)
-	)
+	var right := _contact.measure("r")
+	var raised := _hold.raised_amount()
+	if raised > 0.0 and raised < 1.0:
+		# The finger on its way to the trigger or back: a passing depth, and no contact asked.
+		for part in INDEX:
+			if -float(right[part].distance) > PASSING_DEPTH:
+				_fails.append(
+					(
+						"%s r %s passing %.1f mm inside"
+						% [_tag, part, -float(right[part].distance) * 1e3]
+					)
+				)
+			right.erase(part)
+	_fails.append_array(HandContact.failures(_tag + " r", right, RifleStage.RIFLE_RIGHT_CONTACTS))
 	_fails.append_array(
 		HandContact.failures(_tag + " l", _contact.measure("l"), RifleStage.RIFLE_LEFT_CONTACTS)
 	)

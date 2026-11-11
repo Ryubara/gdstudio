@@ -7,10 +7,12 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_support_pose.tres" id="5_support"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_open_pose.tres" id="6_open"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_magazine_pose.tres" id="7_magazine"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_trigger_way.tres" id="8_way"]
 
 [node name="RifleHeld" instance=ExtResource("1_hold")]
 grip_pose = ExtResource("3_grip")
 trigger_pose = ExtResource("4_trigger")
+trigger_way = ExtResource("8_way")
 support_pose = ExtResource("5_support")
 open_pose = ExtResource("6_open")
 magazine_pose = ExtResource("7_magazine")

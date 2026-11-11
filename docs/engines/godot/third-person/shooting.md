@@ -358,6 +358,18 @@ and the old magazine taken out by hand (the model's magazine is one node, so it 
   its left), `rifle_open_pose` and `rifle_magazine_pose` for the reload. The places and the poses are written by
   `tools/hold/solve_rifle_hold.py` from the rifle's own triangles and both mannequins' skins (`dump_hold_rig.gd`, then
   `write_hold.gd -- <file> rifle`), so no number of them is typed.
+- **The trigger finger's way** (kit #1036). The straight way from along the receiver to the trigger (a slerp of the
+  two poses) took the fingertip 17 mm into the magazine well and the trigger guard: the straight finger lies along the
+  well's side ahead of the guard and curled in before it was over the guard's opening. `trigger_way` (a
+  `HandPoseWay`, `HandPoseModifier.second_way`) is the poses the finger passes through instead, spread evenly over
+  the raise: rolled about its own length so its bend lies along the rifle's side, bent there, then turned onto the
+  trigger. `tools/hold/solve_trigger_way.gd` writes it from the skinned finger of both mannequins against the rifle's
+  triangles. It is held to the depth a hand may pass through a weapon between two places (6 mm, the reload's), not
+  the 2 mm of a hand that holds: the guard's side opening is hardly wider than the finger, and no way into it found
+  passes less than about 5.6 mm through the guard on the last stretch (the roll of 120 degrees; its legs 0.8, -1.4
+  and 5.6 mm at 16 steps each, both mannequins). Poses put in at the deepest step, turned and bent every way near it,
+  stalled at 5.7 mm: the trigger pose sits in a pocket of the guard. A wider guard opening on the model would let the
+  way meet 2 mm. The ends hold as before: the finger on the receiver 1.1 mm off, on the trigger 1.2 mm in.
 - **A switch** is one sequence on the loadout's own times. Going away, the gun goes down to its stow place
   (`stow_pocket`, `stow_pitch`, `stow_yaw`) with both hands on it through the `holster_time`, is hidden in the tick
   the next weapon appears in the right hand, and the arms go from the gun's places to that weapon's pose while it
@@ -393,6 +405,9 @@ degrees up and down, on both mannequins, the right palm and thumb among the hold
 the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
 reload by its key, and a switch to the pistol and back (never two weapons, never none, the rifle never shown without
 both hands on it, the arms on its places before it shows and leaving after it hides).
+`tests/gameplay/test_rifle_fingers.gd` (kit #1036) measures every finger of both hands on the live player (its
+animation tree and the hold as they run, simulated keys and mouse, both mannequins) in standing, walking, sprinting,
+aiming, firing, crouched, crouched aiming and crouched walking, and the trigger finger's way at 50 steps of the raise.
 
 Cost, headless on the desktop (`tools/bench/hold_cost.tscn -- rifle`, 40 mannequins, the least of five runs each on
 a machine other agents were loading): the rifle's hold 77 microseconds a character a frame against 35 for the
@@ -448,6 +463,17 @@ stock's end is in the chest. A shorter stock on the model or a support place fur
   visible in the tree, so a rifle still hidden by the loadout measured as no weapon at all (every part 30 mm off); a
   parse error in a modifier's script leaves the skeleton with nothing that dirties it, `skeleton_updated` never comes
   and `HoldStage.settle()` waits for ever with no error after the first line. **Seen:** gdstudio #889, 2026-11-11.
+- **Approach:** Measure a blend between two hand poses at its in-between steps too, not only at its ends, and when the
+  straight blend goes through the weapon, give the bones a way of poses round it (`HandPoseModifier.second_way`),
+  solved against the skinned hand. **Watch out for:** the rifle's grip and trigger poses each held within 2 mm and the
+  tests sampled only aim 0 and 1; a live test caught the finger half-way after a burst, 12.6 mm inside, and the
+  straight blend was 17 mm deep through most of the raise. Poses put in at the deepest step stall when the end pose
+  sits in a pocket (the trigger in its guard): try whole first ways (a roll, a bend, a turn) before refining.
+  **Seen:** gdstudio #1036, 2026-11-11 (fix: `trigger_way`, `test_rifle_fingers.gd` sweeping the raise in 50 steps).
+- **Approach:** Film a hold from the game camera with the camera's own eye swung round the character at its own
+  distance and height, and a long lens on each hand (`tools/capture/rifle_fingers_view.tscn`). **Watch out for:**
+  straight behind, where the game camera sits, the body hides both hands of a rifle held in front of the chest, so a
+  close-up from the unswung camera showed only a back. **Seen:** gdstudio #1036, 2026-11-11.
 
 ## Bullet impacts {#impacts}
 
