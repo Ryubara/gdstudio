@@ -30,10 +30,10 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_set_is_2940_credits_and_inside_the_budget(data, tmp_path):
+def test_the_plan_of_the_set_is_3900_credits_and_inside_the_budget(data, tmp_path):
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 2940
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 2940)
+    assert sum(r["credits"] for r in rows) == 3900
+    assert sfx.check_budget(data, tmp_path, rows) == (0, 3900)
     assert data["budget"] <= 4000
 
 
@@ -53,7 +53,7 @@ def test_a_cached_take_costs_nothing_and_the_ledger_counts_what_was_billed(data,
 
 
 def test_the_ledger_falls_back_to_the_planned_cost(data, tmp_path):
-    (tmp_path / "wind_soft_t1.json").write_text(json.dumps({"credits": 480}))
+    (tmp_path / "wind_corner_t1.json").write_text(json.dumps({"credits": 480}))
     assert sfx.spent_in_cache(data, tmp_path) == 480
 
 
@@ -67,8 +67,14 @@ def test_the_data_file_keeps_the_issue_s_promises(data):
     assert sounds["coin_pickup"]["min_seconds"] == 0.3
     assert sounds["coin_pickup"]["max_seconds"] <= 0.4
     assert sounds["footstep_soft"]["min_files"] >= 4
-    assert 10 <= sounds["wind_soft"]["min_seconds"] <= sounds["wind_soft"]["max_seconds"] <= 12
-    assert sounds["wind_soft"]["loop"] is True
+    wind = sounds["wind_corner"]
+    assert wind["prefix"] == "wind_soft"  # the scenes play wind_soft_1.ogg
+    assert wind["loop"] is True
+    assert 20 <= wind["min_seconds"] <= wind["max_seconds"] <= 30  # long enough not to be heard repeating
+    # a wind is its gusts (sound-effects.md#wind): never flattened, its level must move, and it whistles in them
+    assert "flatten_seconds" not in wind and "max_spread_lu" not in wind
+    assert wind["min_spread_lu"] >= 3.0
+    assert wind["whistle"]["mix"] > 0
     for sound in sounds.values():  # a length is always given: auto length costs more
         assert sound["seconds"] >= data["min_seconds"]
         assert sound["takes"] >= 1

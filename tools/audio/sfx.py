@@ -401,6 +401,68 @@ def flatten(x, seconds: float = 0.8, limit_db: float = 14.0):
     return x * gain
 
 
+def gust_speed(x, step: int):
+    """A loop's own wind speed, 0 to 1, one value every `step` samples: its level in dB smoothed over 1 s round the
+    loop, from its 5th percentile (a lull) to its 98th (the top of a gust)."""
+    import numpy as np
+
+    blocks = len(x) // step
+    db = 20 * np.log10(np.sqrt(np.mean(x[: blocks * step].reshape(blocks, step) ** 2, axis=1)) + 1e-12)
+    k = max(1, round(RATE / step))
+    kern = np.zeros(blocks)
+    kern[:k] = 1.0 / k
+    smooth = np.roll(np.real(np.fft.ifft(np.fft.fft(db) * np.fft.fft(kern))), -(k // 2))
+    lo, hi = np.percentile(smooth, 5), np.percentile(smooth, 98)
+    return np.clip((smooth - lo) / (hi - lo + 1e-9), 0.0, 1.0)
+
+
+def whistle(x, spec: dict):
+    """Layer a soft whistle over a wind loop, driven by the loop's own gusts (`sound-effects.md#wind`): noise through a
+    resonant band-pass (`q`) whose centre rises with the speed from 0.7 to 1.6 times `hz` (an Aeolian tone's pitch is
+    proportional to the air's speed) and wanders a little, faded in from speed 0.45 to 0.9, with a fainter partner
+    2.37 times higher; its RMS at full speed is `mix` times the loop's. The filter works on 0.2 s frames round the loop
+    (75% overlap, wrapping), so the layer loops exactly as the take does; a loop's length is a whole number of 50 ms."""
+    import numpy as np
+
+    hop, frame = 2205, 8820
+    n = len(x)
+    if n % hop:
+        raise SystemExit(f"a whistled loop is a whole number of 50 ms; this one is {n} samples")
+    rng = np.random.default_rng(spec.get("seed", 1))
+    count = n // hop
+    speed = gust_speed(np.roll(x, -(frame // 2 - hop // 2)), hop)  # the speed at each frame's centre
+    phase = rng.random(4) * 2 * math.pi
+    t = np.arange(count) / count
+    wander = sum(np.sin(2 * math.pi * (k + 1) * t + phase[k]) / (k + 1) for k in range(4)) / 1.5
+    centre = spec["hz"] * (0.7 + 0.9 * speed) * 2 ** (0.08 * wander)
+    window = np.hanning(frame + 1)[:frame]
+    freqs = np.fft.rfftfreq(frame, 1 / RATE) + 1e-6
+
+    def band(noise, mult: float, q: float):
+        out = np.zeros(n)
+        idx = np.arange(frame)
+        for i in range(count):
+            at = (i * hop + idx) % n
+            fc = min(centre[i] * mult, 9000.0)
+            gain = 1.0 / np.sqrt(1.0 + q * q * (freqs / fc - fc / freqs) ** 2)
+            out[at] += np.fft.irfft(np.fft.rfft(noise[at] * window) * gain, frame) * window
+        return out / (np.sqrt(np.mean(out * out)) + 1e-12)
+
+    def fade(lo: float, hi: float):
+        u = np.clip((speed - lo) / (hi - lo), 0.0, 1.0)
+        u = u * u * (3 - 2 * u)
+        start = frame // 2 - hop // 2  # the frame i's centre, in samples
+        pos = (start + hop * np.arange(count + 1)) % n
+        order = np.argsort(pos[:-1])
+        return np.interp(np.arange(n), pos[:-1][order], u[order], period=n)
+
+    main = band(rng.standard_normal(n), 1.0, spec.get("q", 45.0))
+    upper = band(rng.standard_normal(n), 2.37, spec.get("q_upper", 70.0))
+    rms = math.sqrt(float(np.mean(x * x)))
+    layer = main * fade(0.45, 0.9) + 0.3 * upper * fade(0.65, 1.0)
+    return x + spec["mix"] * rms * layer
+
+
 def highpass(x, hz: float):
     import numpy as np
 
@@ -614,8 +676,13 @@ def cmd_encode(args) -> None:
             elif sound["kind"] == "steps":
                 pieces.extend(steps_of(x, sound))
             else:
-                x = flatten(highpass(x, 40.0), sound["flatten_seconds"])
-                pieces.append(make_loop(x, sound["crossfade"]))
+                x = highpass(x, 40.0)
+                if sound.get("flatten_seconds"):  # an even bed only: a wind's gusts are what make it wind
+                    x = flatten(x, sound["flatten_seconds"])
+                x = make_loop(x, sound["crossfade"])
+                if sound.get("whistle"):
+                    x = whistle(x, sound["whistle"])
+                pieces.append(x)
         if sound.get("max_files"):
             pieces = (
                 pieces[: sound["max_files"]]
@@ -732,9 +799,13 @@ def cmd_check(args) -> None:
                 row += f"  wrap {s['wrap_ratio']:.2f}x  edges {s['edge_db']:+.2f} dB  spread {spreadlu:.2f} LU"
                 if s["wrap_ratio"] > 3.0 or abs(s["edge_db"]) > 1.5:
                     failures.append(f"{f.name}: the loop seam shows ({row})")
-                if spreadlu > sound["max_spread_lu"]:
+                if spreadlu > sound.get("max_spread_lu", math.inf):
                     failures.append(
                         f"{f.name}: level moves {spreadlu:.2f} LU, a gust (limit {sound['max_spread_lu']})"
+                    )
+                if spreadlu < sound.get("min_spread_lu", 0.0):
+                    failures.append(
+                        f"{f.name}: level moves {spreadlu:.2f} LU, an even hiss (at least {sound['min_spread_lu']})"
                     )
             print(row)
         if loud and max(loud) - min(loud) > 1.0:

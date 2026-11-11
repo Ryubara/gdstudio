@@ -51,26 +51,31 @@
       "target_lufs": -31.8
     },
     {
-      "name": "wind_soft",
+      "name": "wind_corner",
+      "prefix": "wind_soft",
       "kind": "loop",
       "folder": "templates/3d-blank/game/assets/audio/wind",
-      "prefix": "wind_soft",
-      "takes": 3,
-      "seconds": 12.0,
+      "takes": 2,
+      "seconds": 30.0,
       "influence": 0.5,
       "loop": true,
-      "prompt": "A soft, even hush of air over open grass: a light, steady breeze with a gentle airy rustle, calm and constant from start to end, as a seamless loop.",
-      "min_seconds": 10.0,
-      "max_seconds": 12.0,
+      "min_seconds": 20.0,
+      "max_seconds": 30.0,
       "min_files": 1,
       "measure": "integrated",
       "target_lufs": -33.0,
-      "crossfade": 1.5,
-      "max_spread_lu": 3.0,
-      "flatten_seconds": 0.25,
+      "crossfade": 2.0,
+      "prompt": "Gusty wind blowing around the corners of a stone building and through long grass: a deep soft body of moving air, swirling gusts that swell and die away, and now and then a faint high whistle through the edges, natural and organic, as a seamless loop.",
       "use_takes": [
         1
-      ]
+      ],
+      "whistle": {
+        "hz": 560.0,
+        "q": 45.0,
+        "mix": 0.5,
+        "seed": 3
+      },
+      "min_spread_lu": 4.0
     },
     {
       "name": "fist_swing",
@@ -287,6 +292,7 @@
     }
   ],
   "folder_notes": {
-    "templates/3d-third-person/game/assets/audio/pistol": "## The shots: GDStudio's own work, MIT\n\nThe five shots are not ElevenLabs output and stay as they were: GDStudio's own work, synthesised by code, nothing\nsampled and nothing third-party. They are the five variants of the House Pistol's shot from Deadnight\n(`game/assets/audio/guns/shot_house_pistol_1..5.ogg`), made by Deadnight's `tools/audio/gun_recipes_2.py` (a seeded\nreport of a click, a crack, a roar, a bark and a low thump), copied here unchanged under the names below, and covered by\nthe MIT licence of the kit and of Deadnight (Copyright (c) 2026 GDStudio contributors). No attribution is required.\n\n| File | Deadnight file | Seconds |\n| --- | --- | ---: |\n| `pistol_shot_1.ogg` | `shot_house_pistol_1.ogg` | 0.10 |\n| `pistol_shot_2.ogg` | `shot_house_pistol_2.ogg` | 0.11 |\n| `pistol_shot_3.ogg` | `shot_house_pistol_3.ogg` | 0.11 |\n| `pistol_shot_4.ogg` | `shot_house_pistol_4.ogg` | 0.10 |\n| `pistol_shot_5.ogg` | `shot_house_pistol_5.ogg` | 0.11 |\n"
+    "templates/3d-third-person/game/assets/audio/pistol": "## The shots: GDStudio's own work, MIT\n\nThe five shots are not ElevenLabs output and stay as they were: GDStudio's own work, synthesised by code, nothing\nsampled and nothing third-party. They are the five variants of the House Pistol's shot from Deadnight\n(`game/assets/audio/guns/shot_house_pistol_1..5.ogg`), made by Deadnight's `tools/audio/gun_recipes_2.py` (a seeded\nreport of a click, a crack, a roar, a bark and a low thump), copied here unchanged under the names below, and covered by\nthe MIT licence of the kit and of Deadnight (Copyright (c) 2026 GDStudio contributors). No attribution is required.\n\n| File | Deadnight file | Seconds |\n| --- | --- | ---: |\n| `pistol_shot_1.ogg` | `shot_house_pistol_1.ogg` | 0.10 |\n| `pistol_shot_2.ogg` | `shot_house_pistol_2.ogg` | 0.11 |\n| `pistol_shot_3.ogg` | `shot_house_pistol_3.ogg` | 0.11 |\n| `pistol_shot_4.ogg` | `shot_house_pistol_4.ogg` | 0.10 |\n| `pistol_shot_5.ogg` | `shot_house_pistol_5.ogg` | 0.11 |\n",
+    "templates/3d-blank/game/assets/audio/wind": "## The whistle in the wind: GDStudio's own work, MIT\n\n`wind_soft_1.ogg` is the ElevenLabs take above with a soft whistle layered over its gusts by `tools/audio/sfx.py`\n(`whistle()`: seeded noise through a resonant band-pass whose pitch follows the take's own level). The layer is\nsynthesised by code, nothing sampled and nothing third-party, and is covered by the MIT licence of the kit\n(Copyright (c) 2026 GDStudio contributors); the file as a whole is used under the ElevenLabs terms above.\n"
   }
 }
