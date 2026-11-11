@@ -82,6 +82,8 @@ func start(
 ## Builds the particle nodes of `def` without playing it, so its first play does not instance them.
 func prepare(def: EffectDef) -> void:
 	effect = def
+	if def.sound != null:
+		DecodedSounds.decoded(def.sound)
 	if def.particles != null and _built != def.particles:
 		_build_particles(def.particles)
 		(_root as Node3D).visible = false
@@ -205,7 +207,8 @@ func _start_sound(def: EffectDef, with_sound: bool) -> void:
 		_sound = AudioStreamPlayer3D.new()
 		_sound.name = &"Sound"
 		add_child(_sound)
-	_sound.stream = def.sound
+	# Decoded once (`DecodedSounds`): an Ogg Vorbis start set its decoder up, about 250 µs a hit.
+	_sound.stream = DecodedSounds.decoded(def.sound)
 	_sound.volume_db = def.sound_volume_db
 	_sound.bus = def.sound_bus
 	_sound.max_distance = def.sound_max_distance
