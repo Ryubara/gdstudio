@@ -59,7 +59,9 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 	assert_array(ExportPins.wrong_values(body, character_pins)).is_empty()
 	# The human adds its own on top of the character's.
 	var player_pins := character_pins.duplicate()
-	player_pins.merge({&"start_at_spawn": true, &"input_enabled": true, &"ragdoll_key": KEY_Y})
+	player_pins.merge(
+		{&"start_at_spawn": true, &"input_enabled": true, &"ragdoll_key": KEY_Y, &"inventory": null}
+	)
 	var fresh := auto_free(load("res://gameplay/player/player.gd").new()) as Player
 	assert_array(ExportPins.differences(fresh, player_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, player_pins)).is_empty()
