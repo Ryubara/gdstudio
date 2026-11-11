@@ -104,11 +104,24 @@ func _physics_process(delta: float) -> void:
 			mark.set_fade(_fade_at(mark.age))
 
 
-## The `Impacts` of the level `from` is in (the first in the group), or null when there is none.
+## The `Impacts` of the level `from` is in (the one in its viewport, else the first in the group),
+## or null when there is none.
 static func find(from: Node) -> Impacts:
 	if from == null or not from.is_inside_tree():
 		return null
-	return from.get_tree().get_first_node_in_group(GROUP) as Impacts
+	# The one drawn in the same viewport as `from` (several worlds in one process: a test, a
+	# side-by-side capture of two clients); the first otherwise.
+	var viewport := from.get_viewport()
+	var first: Impacts = null
+	for node in from.get_tree().get_nodes_in_group(GROUP):
+		var found := node as Impacts
+		if found == null:
+			continue
+		if found.get_viewport() == viewport:
+			return found
+		if first == null:
+			first = found
+	return first
 
 
 ## A hit on `collider` at `point`, the surface facing along `normal`: makes the mark, the effect

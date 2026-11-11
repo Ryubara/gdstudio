@@ -97,6 +97,14 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 		if map_parts != null:
 			map_parts.lead_ticks = value
 
+@export_group("Shots")
+## Metres a command's shot may start from the body's eye before it is refused (`ServerCombat`).
+@export_range(0.5, 20.0, 0.1, "suffix:m") var origin_slack := 4.0
+## Seconds a dead body lies before the server gets it up (and says where, in a REVIVED event).
+@export_range(0.0, 60.0, 0.1, "suffix:s") var revive_seconds := 3.0
+## On: a body gets up at its spawn point; off: where it died.
+@export var revive_at_spawn := false
+
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
 ## The map's networked parts (doors, platforms, pickups), run by this server.
@@ -114,6 +122,8 @@ var step_times := PackedFloat32Array()
 var keep_history := false
 ## Peers hung up on for breaking `PeerLimits`.
 var kicked := 0
+## Shots, hits and deaths: the server's judge and their events (gdstudio #906).
+var combat := ServerCombat.new()
 
 var _peers: Dictionary[int, PeerSlot] = {}
 var _by_slot: Dictionary[int, PeerSlot] = {}
@@ -132,6 +142,7 @@ func _ready() -> void:
 		Engine.max_fps = NetLimits.TICK_RATE
 	world_hash = world_hash_of(_map_root())
 	_take_world(_map_root())
+	_wire_combat()
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
 	listener.peer_disconnected.connect(_on_disconnected)
@@ -380,6 +391,7 @@ func _make_body(slot: int) -> Character:
 	body.set_physics_process(false)
 	_put_at_spawn(body, slot)
 	body.fell.connect(_put_at_spawn.bind(body, slot))
+	combat.watch(slot, body)
 	return body
 
 
@@ -432,6 +444,7 @@ func _unseat(peer: PeerSlot, reason: String) -> void:
 		return
 	var slot := peer.slot
 	_by_slot.erase(slot)
+	combat.forget(slot)
 	if is_instance_valid(peer.body):
 		peer.body.queue_free()
 	peer.body = null
@@ -459,8 +472,11 @@ func _step_bodies(delta: float) -> void:
 		var peer := _by_slot[slot]
 		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
 			map_parts.place(command_tick(command.seq, map_parts.tick))
+			combat.judge(slot, peer.body, command)
 			peer.body.step(command, delta)
+			combat.stepped(slot, peer.body)
 	map_parts.place(map_parts.tick)
+	combat.step(delta)
 
 
 ## The tick the map's moving parts are at for the command numbered `seq`, stepped at server tick
@@ -498,6 +514,25 @@ func _on_entity_taken(entity: NetEntity, by: Node3D) -> void:
 func _tell_all(event: NetEvent) -> void:
 	for peer: PeerSlot in _by_slot.values():
 		peer.add_event(event)
+
+
+# The combat's events go to the players by slot; its rules are the inspector's.
+func _wire_combat() -> void:
+	combat.origin_slack = origin_slack
+	combat.revive_seconds = revive_seconds
+	combat.revive_at_spawn = revive_at_spawn
+	combat.spawn_of = spawn_transform
+	combat.tell_all = func(event: NetEvent) -> void:
+		for peer: PeerSlot in _by_slot.values():
+			peer.add_event(event)
+	combat.tell_others = func(from_slot: int, event: NetEvent) -> void:
+		for slot: int in _by_slot:
+			if slot != from_slot:
+				_by_slot[slot].add_event(event)
+	combat.tell = func(to_slot: int, event: NetEvent) -> void:
+		var peer: PeerSlot = _by_slot.get(to_slot)
+		if peer != null:
+			peer.add_event(event)
 
 
 func _send_ticks() -> void:
@@ -556,6 +591,10 @@ func _log_stats() -> void:
 		"steps_held": held,
 		"steps_repeated": repeated,
 		"kicked": kicked,
+		"shots": combat.shots,
+		"hits": combat.hits,
+		"shots_rejected": combat.rejected,
+		"deaths": combat.deaths,
 	}
 	# The process's resident memory and processor share (Linux only: the image, Railway).
 	fields.merge(_process.sample())

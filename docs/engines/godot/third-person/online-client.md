@@ -29,6 +29,10 @@ player's own `_physics_process` off. Each physics step:
    that number.
 5. A ping goes out twice a second.
 
+Before the prediction the step plays the server's shots, hits and deaths that are due (`ClientCombat`, [shots
+online](online-shots.md#template-shots)): the local player's at once, the others' when the puppets are drawn at their
+TICK.
+
 The `Reconciler` never replays (a step has side effects: [the character's snapshot](character.md#controller)): it
 measures the error of the answered command, moves the body a quarter of what is left each frame, shifts the
 remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m, and leaves
