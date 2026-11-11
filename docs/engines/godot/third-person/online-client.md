@@ -396,7 +396,8 @@ there), and the 60 s unread client is a client whose downlink stalls while it st
   no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
   (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
 - **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
-  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+  connection; 10 s once all are seated (`--ai 40,120` adds an AI crowd on the server: [the AI's
+  numbers](ai.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
 
 | Players | Down a client | Up a client |
 | ---: | ---: | ---: |

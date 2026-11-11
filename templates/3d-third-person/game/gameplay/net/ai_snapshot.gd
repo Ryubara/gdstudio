@@ -13,15 +13,15 @@ extends RefCounted
 ##          radius; the client drops every character it is not in                 4 + 14 n
 ##   DELTA  u8 seq, u8 base (the seq it applies on), u16 count, the rows that
 ##          changed, u16 move count, the moves, u16 gone count, the ids that
-##          left                                               9 + 14 n + 7 moves + 2 gone
+##          left                                               9 + 14 n + 8 moves + 2 gone
 ##
 ## A row (`AiRow`): u16 id, s16 x/y/z (cm from the section's origin), u8 yaw (256 steps), u8 speed
 ## (0.05 m/s), u8 mode (bits 0-2 the situation, 3-6 the body's state, 7 aiming), u16 target (a
 ## HIT's id, `NO_TARGET`), u8 variant. 14 bytes.
 ##
-## A move: a held character that only walked (its place moved at most 1.27 m each way, its yaw and
-## speed may have changed, nothing else did): u16 id, s8 x/y/z (cm from the place held), u8 yaw,
-## u8 speed. 7 bytes: a walking crowd costs half what its rows would.
+## A move: a held character whose target and look did not change and whose place moved at most
+## 1.27 m each way: u16 id, s8 x/y/z (cm from the place held), u8 yaw, u8 speed, u8 mode. 8 bytes:
+## a walking crowd costs little more than half what its rows would.
 ##
 ## Limits, pinned by `test_net_ai_snapshot.gd`: an id past `NetLimits.MAX_AI_ID` or a number that
 ## is not finite is refused (the block is not made); a position past
@@ -33,13 +33,15 @@ extends RefCounted
 enum Mode { NONE = 0, FULL = 1, DELTA = 2 }
 
 const ROW_SIZE := 14
-const MOVE_SIZE := 7
+const MOVE_SIZE := 8
 const NONE_SIZE := 1
 const FULL_HEADER := 4
 ## The header, the move count and the gone count.
 const DELTA_HEADER := 9
 ## The most centimetres a move carries each way.
 const MOVE_REACH := 127
+## Numbers a move takes in `Block.moves`: id, x, y, z, yaw step, speed step, mode.
+const MOVE_FIELDS := 7
 const MAX_BLOCK := DELTA_HEADER + NetLimits.MAX_AI_ROWS * (ROW_SIZE + 2)
 const YAW_STEPS := 256
 const SPEED_STEP := 0.05
@@ -69,7 +71,7 @@ class Block:
 	var seq := 0
 	var base := 0
 	var rows: Array[AiRow] = []
-	## Six numbers a move: id, x, y, z (cm), yaw step, speed step.
+	## `MOVE_FIELDS` numbers a move: id, x, y, z (cm), yaw step, speed step, mode.
 	var moves: PackedInt32Array = PackedInt32Array()
 	var gone: PackedInt32Array = PackedInt32Array()
 
@@ -172,6 +174,7 @@ static func encode(
 			out.put_8(bytes.decode_s16(at) - held.decode_s16(at))
 		out.put_u8(bytes[8])
 		out.put_u8(bytes[9])
+		out.put_u8(bytes[10])
 		view.sent[id] = bytes
 		view.sent_tick[id] = tick
 	out.put_u16(left.size())
@@ -182,10 +185,10 @@ static func encode(
 	return out.data_array
 
 
-# Whether `bytes` differs from `held` only by a walk a move can carry: the place within
-# `MOVE_REACH` cm each way, the yaw and the speed; the mode, the target and the look the same.
+# Whether a move can carry what changed from `held` to `bytes`: the place within `MOVE_REACH` cm
+# each way, the yaw, the speed and the mode; the target and the look the same.
 static func _is_move(held: PackedByteArray, bytes: PackedByteArray) -> bool:
-	for at in range(10, ROW_SIZE):
+	for at in range(11, ROW_SIZE):
 		if held[at] != bytes[at]:
 			return false
 	for at in [2, 4, 6]:
@@ -330,7 +333,7 @@ static func read_block(reader: WireReader, drops: NetDrops = null) -> Block:
 				return _drop(drops, NetDrops.BAD_VALUE)
 			seen[id] = true
 			block.moves.append_array(
-				[id, reader.s8(), reader.s8(), reader.s8(), reader.u8(), reader.u8()]
+				[id, reader.s8(), reader.s8(), reader.s8(), reader.u8(), reader.u8(), reader.u8()]
 			)
 		var gone_count := reader.u16()
 		if not reader.ok:
@@ -399,7 +402,7 @@ func apply(block: Block, drops: NetDrops = null) -> bool:
 
 # Whether every character a delta moves is held (a move is from the place held).
 func _holds_moved(block: Block) -> bool:
-	for at in range(0, block.moves.size(), 6):
+	for at in range(0, block.moves.size(), MOVE_FIELDS):
 		if not rows.has(block.moves[at]):
 			return false
 	return true
@@ -407,7 +410,7 @@ func _holds_moved(block: Block) -> bool:
 
 # Each move, from the held place in whole centimetres, as the server's held bytes moved.
 func _apply_moves(block: Block) -> void:
-	for at in range(0, block.moves.size(), 6):
+	for at in range(0, block.moves.size(), MOVE_FIELDS):
 		var id := block.moves[at]
 		var row: AiRow = rows[id].copy()
 		row.position = Vector3(
@@ -417,6 +420,10 @@ func _apply_moves(block: Block) -> void:
 		)
 		row.yaw = yaw_from_step(block.moves[at + 4])
 		row.speed = block.moves[at + 5] * SPEED_STEP
+		var mode := block.moves[at + 6]
+		row.situation = mode & SITUATION_BITS
+		row.state = (mode >> STATE_SHIFT) & STATE_BITS
+		row.aiming = mode & AIM_BIT != 0
 		rows[id] = row
 		changed.append(id)
 

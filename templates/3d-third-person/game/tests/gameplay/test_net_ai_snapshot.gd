@@ -106,7 +106,8 @@ func test_a_full_snapshot_round_trips_and_a_late_joiner_gets_everyone_in_one() -
 
 
 func test_deltas_rebuild_the_server_rows_from_the_baseline() -> void:
-	var rows := _rows(40)
+	# All within the full radius, so every change is due at once.
+	var rows := _rows(40, 0.25)
 	var rates := _rates()
 	var view := AiPeerView.new()
 	var client := AiSnapshot.new()
@@ -123,7 +124,7 @@ func test_deltas_rebuild_the_server_rows_from_the_baseline() -> void:
 	rows.append(arriving)
 	var delta := AiSnapshot.encode(rows, view, rates, 6)
 	assert_int(delta[0]).is_equal(AiSnapshot.Mode.DELTA)
-	# The five walked under 1.27 m: moves of 7 bytes; the new one a row; the one that left an id.
+	# The five walked under 1.27 m: moves of 8 bytes; the new one a row; the one that left an id.
 	var size := AiSnapshot.DELTA_HEADER + AiSnapshot.ROW_SIZE + 5 * AiSnapshot.MOVE_SIZE + 2
 	assert_int(delta.size()).is_equal(size)
 	assert_bool(client.apply_bytes(delta)).is_true()
@@ -142,16 +143,18 @@ func test_a_walk_is_a_move_and_anything_more_is_a_row() -> void:
 	var view := AiPeerView.new()
 	var client := AiSnapshot.new()
 	client.apply_bytes(AiSnapshot.encode(rows, view, rates, 2))
-	# 1.27 m each way, a turn and a new speed: a move. 1.28 m, or a new state: a row.
+	# 1.27 m each way, a turn, a new speed and state: a move. 1.28 m, or a new target: a row.
 	rows[0].position += Vector3(1.27, -1.27, 1.27)
 	rows[0].yaw += 1.0
 	rows[0].speed = 2.5
+	rows[0].state = Character.State.CROUCH
+	rows[0].aiming = not rows[0].aiming
 	rows[1].position.x += 1.28
 	rows[2].position.x += 0.1
-	rows[2].state = Character.State.CROUCH
+	rows[2].target = NetHits.AI_BASE + 3
 	var delta := AiSnapshot.encode(rows, view, rates, 4)
 	var block := AiSnapshot.read(delta)
-	assert_int(block.moves.size()).is_equal(6)
+	assert_int(block.moves.size()).is_equal(AiSnapshot.MOVE_FIELDS)
 	assert_int(block.moves[0]).is_equal(0)
 	assert_int(block.rows.size()).is_equal(2)
 	assert_bool(client.apply(block)).is_true()
@@ -160,9 +163,12 @@ func test_a_walk_is_a_move_and_anything_more_is_a_row() -> void:
 		assert_vector(held.position).is_equal_approx(row.position, Vector3.ONE * 0.005)
 		assert_float(held.speed).is_equal_approx(row.speed, 0.001)
 		assert_int(held.state).is_equal(row.state)
-	# Walked by moves for ten seconds, the client's place is still the server's to the centimetre.
+		assert_bool(held.aiming).is_equal(row.aiming)
+		assert_int(held.target).is_equal(row.target)
+	# Walked by moves for ten seconds (within the full radius), the client's place is still the
+	# server's to the centimetre.
 	for step in NetLimits.SNAPSHOT_RATE * 10:
-		rows[3].position += Vector3(0.0333, 0.0, -0.0217)
+		rows[3].position += Vector3(0.0133, 0.0, -0.0117)
 		client.apply_bytes(AiSnapshot.encode(rows, view, rates, 6 + step * 2))
 	assert_vector(client.rows[3].position).is_equal_approx(rows[3].position, Vector3.ONE * 0.005)
 

@@ -10,7 +10,7 @@ enum Tier { FULL, REDUCED, DORMANT, OUT }
 
 @export_group("Distances")
 ## Metres from a client's body within which a character is sent at `full_hz`.
-@export_range(0.0, 500.0, 0.5, "suffix:m") var full_radius := 20.0
+@export_range(0.0, 500.0, 0.5, "suffix:m") var full_radius := 12.0
 ## Metres within which it is sent at `reduced_hz` (past `full_radius`).
 @export_range(0.0, 500.0, 0.5, "suffix:m") var reduced_radius := 40.0
 ## Metres within which it is sent at all, at `dormant_hz` past `reduced_radius`: the interest
@@ -21,7 +21,7 @@ enum Tier { FULL, REDUCED, DORMANT, OUT }
 ## Sends a second of a near character (at most the TICK rate, 30).
 @export_range(0.5, 30.0, 0.5, "suffix:Hz") var full_hz := 30.0
 ## Sends a second of a character past `full_radius`.
-@export_range(0.5, 30.0, 0.5, "suffix:Hz") var reduced_hz := 7.5
+@export_range(0.5, 30.0, 0.5, "suffix:Hz") var reduced_hz := 10.0
 ## Sends a second of a character past `reduced_radius`.
 @export_range(0.1, 30.0, 0.1, "suffix:Hz") var dormant_hz := 1.0
 ## Seconds between two full snapshots to a client, which mend anything a lost delta left wrong;

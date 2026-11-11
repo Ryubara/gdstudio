@@ -116,6 +116,10 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [web export](../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe)).
 - Plan: events the server causes alone reach every client
   ([multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop)).
+- Plan: the AI runs on the server only, and a crowd's rows have a compact form for what a crowd mostly does (walk),
+  measured with every character moving near every player before the layout is fixed; any manager a map owns (a
+  director) is found by its viewport, since a test or a capture holds a server's and its clients' maps in one process
+  ([the AI online](../engines/godot/third-person/ai.md#replication)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
   ([row](corrections-log/found-by-playing.md)).
 - Plan: every player feature is specified and tested from another player's view: a two-client test over the real
