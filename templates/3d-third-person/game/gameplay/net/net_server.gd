@@ -126,6 +126,9 @@ func _ready() -> void:
 			"players_max": max_players,
 			"tick_hz": Engine.physics_ticks_per_second,
 			"version": NetWire.VERSION,
+			# The host, since step times differ from one host to the next (kit railway.md#skew).
+			"cpu": OS.get_processor_name(),
+			"cores": OS.get_processor_count(),
 		}
 	)
 
