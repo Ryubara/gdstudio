@@ -517,7 +517,9 @@ func _on_projectile_finished(shot: Projectile) -> void:
 # With `shot_rewind`, the AI characters near the ray are met where the shooter's screen drew them
 # (`ShotRewind.nearer`) and left out of the physics query.
 func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewind = null) -> void:
-	var skip: Array[RID] = shot_rewind.excluded() if shot_rewind != null else []
+	var skip: Array[RID] = []
+	if shot_rewind != null:
+		skip = shot_rewind.excluded()
 	var found := {}
 	var record: HitRecord = null
 	for _attempt in 3:
