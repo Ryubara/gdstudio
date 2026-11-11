@@ -55,6 +55,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   `gds quiet`, the command and the export are in its header.
 - `tools/bench/player_step_bench.tscn` times a character's own physics tick for 1, 8 and 40 bodies, by the input and by
   commands; `tools/bench/player_step_bench.py` reads it from a web export in headless Chrome (run it under `gds quiet`).
+- `tools/bench/parts_cost_bench.tscn` prints what the parts cost a frame: 1 to 50 dressed characters idle and walking,
+  each character part timed apart, a first and a later death on each mannequin, and 100 of each world part
+  (`PARTS_COST_BENCH` line); `tools/bench/parts_cost_bench.py` reads it from a web export in headless Chrome (under
+  `gds quiet`).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints

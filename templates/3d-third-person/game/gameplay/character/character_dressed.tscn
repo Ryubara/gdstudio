@@ -89,6 +89,9 @@ tree = NodePath("../AnimationTree")
 [node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]
 muzzle = NodePath("../Model/PistolHeld/Pistol/Pistol/Muzzle")
 
+[node name="Loadout" parent="." node_paths=PackedStringArray("model")]
+model = NodePath("../Model")
+
 [node name="Footsteps" parent="." node_paths=PackedStringArray("character", "model") instance=ExtResource("8_footsteps")]
 character = NodePath("..")
 model = NodePath("../Model")

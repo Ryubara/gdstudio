@@ -35,7 +35,7 @@ func _weapon() -> Weapon:
 
 
 func _ready_to_fire() -> void:
-	_weapon()._cooldown = 0.0
+	_weapon().make_ready()
 
 
 # A weapon of its own in the arena, with no muzzle.
@@ -114,7 +114,7 @@ func test_with_no_ray_the_shot_goes_straight_out_of_the_muzzle_whatever_a_camera
 	assert_float(shot.velocity.normalized().dot(out)).is_greater(0.9999)
 	var marker := _weapon().muzzle
 	assert_vector(_weapon().aim_point()).is_equal_approx(
-		marker.global_position + out * _weapon().aim_range, Vector3.ONE * 0.001
+		marker.global_position + out * _weapon().definition.aim_range, Vector3.ONE * 0.001
 	)
 
 
@@ -168,12 +168,12 @@ func test_the_no_muzzle_offset_is_read_by_the_next_shot_and_turns_with_the_ray()
 	assert_vector(shot.global_position).is_equal_approx(
 		Vector3(1.0, 1.75, 0.5), Vector3.ONE * 0.0001
 	)
-	weapon._cooldown = 0.0
+	weapon.make_ready()
 	weapon.no_muzzle_offset = Vector3.ZERO
 	shot = weapon.fire(start, Vector3.RIGHT)
 	assert_vector(shot.global_position).is_equal_approx(start, Vector3.ONE * 0.0001)
 	# A ray that starts behind the shooter (a camera's) is moved up to the shooter's depth.
-	weapon._cooldown = 0.0
+	weapon.make_ready()
 	shot = weapon.fire(Vector3(-4.0, 1.5, 0.0), Vector3.RIGHT)
 	assert_vector(shot.global_position).is_equal_approx(start, Vector3.ONE * 0.0001)
 
@@ -197,7 +197,9 @@ func test_a_weapon_on_its_own_counts_its_cooldown_and_stops_when_told() -> void:
 	var weapon := _bare_weapon()
 	weapon.shooter = _player
 	assert_bool(weapon.self_ticking).is_true()
-	weapon.fire_rate = 10.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	weapon.definition = weapon.definition.duplicate()
+	weapon.definition.fire_rate = 10.0
 	weapon.fire()
 	await InputSim.ticks(get_tree(), 9)
 	assert_bool(weapon.can_fire()).is_true()
@@ -215,7 +217,9 @@ func test_the_cooldown_is_counted_in_ticks_never_read_from_a_clock() -> void:
 	var weapon := _bare_weapon()
 	weapon.shooter = _player
 	weapon.self_ticking = false
-	weapon.fire_rate = 4.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	weapon.definition = weapon.definition.duplicate()
+	weapon.definition.fire_rate = 4.0
 	weapon.fire()
 	# Half a second of frames and of real time: nothing ticked it, so it has not cooled.
 	await InputSim.ticks(get_tree(), 30)
@@ -231,7 +235,9 @@ func test_the_cooldown_is_counted_in_ticks_never_read_from_a_clock() -> void:
 
 func test_a_characters_weapon_cools_only_when_the_character_is_stepped() -> void:
 	assert_bool(_weapon().self_ticking).is_false()
-	_weapon().fire_rate = 4.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon().definition = _weapon().definition.duplicate()
+	_weapon().definition.fire_rate = 4.0
 	_ready_to_fire()
 	assert_object(_weapon().fire()).is_not_null()
 	# The body is not stepped (the driver took it): its weapon waits with it.
@@ -258,25 +264,27 @@ func test_the_step_state_puts_back_the_cooldown_and_the_spreads_place() -> void:
 	var weapon := _bare_weapon()
 	weapon.shooter = _player
 	weapon.self_ticking = false
-	weapon.spread = 6.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	weapon.definition = weapon.definition.duplicate()
+	weapon.definition.spread = 6.0
 	weapon.fire()
 	weapon.tick(0.1)
 	var kept: Array = []
 	weapon.save_step_state(kept)
-	assert_array(kept).has_size(2)
+	assert_array(kept).has_size(5)
 	assert_float(kept[0]).is_equal_approx(0.15, 0.0001)
-	weapon._cooldown = 0.0
+	weapon.make_ready()
 	var first := weapon.fire().velocity
-	weapon._cooldown = 0.0
+	weapon.make_ready()
 	var second := weapon.fire().velocity
 	assert_bool(first.is_equal_approx(second)).is_false()
 	weapon.load_step_state(kept)
 	assert_float(weapon._cooldown).is_equal_approx(0.15, 0.0001)
-	weapon._cooldown = 0.0
+	weapon.make_ready()
 	assert_vector(weapon.fire().velocity).is_equal(first)
 	# The same array is written again, not a new one.
 	weapon.save_step_state(kept)
-	assert_array(kept).has_size(2)
+	assert_array(kept).has_size(5)
 	# An empty state (a character that had no weapon) changes nothing.
 	var cooling := weapon._cooldown
 	weapon.load_step_state([])
