@@ -16,8 +16,13 @@ extends Node3D
 const WARM_UP := 20
 const HELD := 20
 const AFTER := 16
-## Where the camera is from the right hand, in the character's space (+Z its front, +X its left).
-const VIEW := Vector3(0.5, 0.08, 0.12)
+## Where the camera is from the right hand, in the character's space (+Z its front, +X its left):
+## `CLOSEUP_VIEW` picks one (`left` when it is not set).
+const VIEWS: Dictionary = {
+	"left": Vector3(0.6, 0.1, 0.3),
+	"below": Vector3(0.25, -0.6, 0.3),
+	"front": Vector3(0.2, 0.1, 0.8),
+}
 
 var _frame := -1
 var _player: Player
@@ -47,6 +52,8 @@ func _ready() -> void:
 	_camera = Camera3D.new()
 	_camera.fov = 34.0
 	_camera.near = 0.3
+	# The body is drawn between two physics ticks; a camera that was too would trail the hand.
+	_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(_camera)
 	_camera.make_current()
 
@@ -65,15 +72,24 @@ func _process(_delta: float) -> void:
 	var skeleton := _player.model.skeleton()
 	if skeleton == null:
 		return
-	var hand := (
-		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
-	)
-	var model_basis := _player.model.global_basis
-	_camera.global_position = hand.origin + model_basis * VIEW
-	_camera.look_at(hand.origin + model_basis * Vector3(0.0, 0.02, 0.1), Vector3.UP)
+	# The camera follows the hand as the modifiers leave it in this frame, where it is drawn: read
+	# in `_process` the pose is the frame before's, and the hand moves centimetres a frame.
+	if not skeleton.skeleton_updated.is_connected(_follow):
+		skeleton.skeleton_updated.connect(_follow.bind(skeleton))
 	var hold := _player.get_node_or_null(^"WeaponHold")
 	if hold != null:
 		var backed := 0.0
 		if hold.has_method(&"support_backed"):
 			backed = hold.call(&"support_backed")
 		print("AIM %d aim %.2f backed %.1f mm" % [_frame, hold.get(&"aim_weight"), backed * 1e3])
+
+
+func _follow(skeleton: Skeleton3D) -> void:
+	var hand := (
+		skeleton.get_global_transform_interpolated()
+		* skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	)
+	var model_basis := _player.model.get_global_transform_interpolated().basis.orthonormalized()
+	var view: Vector3 = VIEWS.get(OS.get_environment("CLOSEUP_VIEW"), VIEWS["left"])
+	_camera.global_position = hand.origin + model_basis * view
+	_camera.look_at(hand.origin + model_basis * Vector3(0.05, 0.0, 0.1), Vector3.UP)
