@@ -168,7 +168,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
   only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
   the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`); gdstudio #926,
-  2026-11-10 (the parts bench's frame-end node, the same way); gdstudio #966 (the senses tour's walker).
+  2026-11-10 (the parts bench's frame-end node, the same way); gdstudio #966 (the senses tour's walker); gdstudio
+  #1075, 2026-11-11 (the navigation sync bench's probe: every suite passed locally, and only CI's exit 101 named
+  it; grep a new bench or tour for `:= .*\.new()` on a `var` line before the push).
 - **Approach:** A cache of resources shared by every instance of a class (`static var _meshes: Dictionary[float,
   SphereMesh]`) is emptied when the last instance goes: count instances in `_init` and `NOTIFICATION_PREDELETE`, and
   clear the dictionaries at zero. **Watch out for:** a static holds its resources until the script unloads, after the

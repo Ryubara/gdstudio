@@ -34,7 +34,9 @@ const ARRIVE := 0.75
 
 var _late_usec := 0
 var _after_physics: Array[float] = []
-var _probe := _ProcessProbe.new()
+# Made in `_ready`, never at `new()`: a scene loaded and never run (a test that opens
+# every scene) would leave it an orphan.
+var _probe: _ProcessProbe
 
 
 ## Reads the after-physics time at the start of each frame's idle step.
@@ -52,6 +54,7 @@ class _ProcessProbe:
 
 func _ready() -> void:
 	process_physics_priority = 1000
+	_probe = _ProcessProbe.new()
 	_probe.bench = self
 	add_child(_probe)
 	_run.call_deferred()
