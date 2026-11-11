@@ -136,7 +136,10 @@ func _add(slot: int, player_name: String, entry: PlayerEntry) -> void:
 	var puppet := puppet_scene.instantiate() as Player
 	puppet.name = _node_name(slot, player_name)
 	puppet.make_puppet()
+	puppet.set_meta(NetHits.SLOT_META, slot)
 	add_child(puppet)
+	if puppet.weapon != null:
+		puppet.weapon.authoritative = false
 	PlayerPuppet.warp(puppet, entry)
 	_puppets[slot] = puppet
 	_tracks[slot] = InterpolationTrack.new()

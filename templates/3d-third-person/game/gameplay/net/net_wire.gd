@@ -1,6 +1,6 @@
 class_name NetWire
 extends RefCounted
-## The bytes of an online game of this template (protocol version 2): one message to a WebSocket
+## The bytes of an online game of this template (protocol version 4): one message to a WebSocket
 ## frame, a type byte first, then fixed fields, little-endian. Plain code with no node, socket or
 ## clock, so a server, a client, a test and a tool share one definition. The transport (a
 ## `WebSocketPeer`, a loopback) carries the arrays as they are.
@@ -37,11 +37,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 
 ## The protocol version of this build.
 ## 2: the command's flags carry `prone` (bit 15); 3: and the weapon presses (bits 11 to 14:
-## reload, next, previous, the empty hands).
-const VERSION := 3
+## reload, next, previous, the empty hands); 4: a SHOT carries the weapon and a HIT the health
+## it left (gdstudio #906).
+const VERSION := 4
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 3
+const MIN_VERSION := 4
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
