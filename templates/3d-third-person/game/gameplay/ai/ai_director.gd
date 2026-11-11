@@ -14,7 +14,9 @@ extends Node
 ##   character walks as far.
 ##
 ## It gives a character its `tier` and its `budget` and nothing else; what a think decides is the
-## character's. `last_step_usec` is what the whole step cost on the last tick.
+## character's. `last_step_usec` is what the whole step cost on the last tick. It also holds the
+## fight's attack `slots` (`AiAttackSlots`, kit #1203), which the fighting tasks ask before they
+## fire.
 
 enum Tier { FULL, REDUCED, DORMANT }
 
@@ -65,8 +67,25 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 ## character it manages is handed to it. Empty: every character animates every frame.
 @export var animation_throttle: AiAnimationThrottle
 
+@export_group("Attack slots")
+## The most characters that engage one target at once in a browser; the rest hold and wait for a
+## slot. A fighting body costs two to three times a calm one: 6 fit the 4x budget in Chrome.
+@export_range(0, 1000) var web_attack_slots := 6
+## The most characters that engage one target at once on the desktop and on a server.
+@export_range(0, 4000) var desktop_attack_slots := 16
+## The most characters that engage at once in a browser, all targets together (12 fit the 1 ms
+## budget in Chrome).
+@export_range(0, 1000) var web_fight_cap := 12
+## The most characters that engage at once on the desktop and on a server, all targets together.
+@export_range(0, 4000) var desktop_fight_cap := 48
+## Seconds a slot is kept without its holder asking again (a fallback: a holder frees its slot when
+## its fight ends, it loses sight or it dies).
+@export_range(0.5, 30.0, 0.5, "suffix:s") var slot_lease_seconds := 3.0
+
 ## The work the characters share this tick.
 var budget := AiBudget.new()
+## The fight's attack slots (counts from the inspector, set each tick).
+var slots := AiAttackSlots.new()
 ## Physics ticks since the director started.
 var tick := 0
 ## Bodies stepped since the director started (a count for tests and benches).
@@ -119,6 +138,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	_apply_slot_counts()
 	_refresh_viewers()
 	for node in get_tree().get_nodes_in_group(AiCharacter.GROUP):
 		register(node as AiCharacter)
@@ -132,6 +152,21 @@ func population_cap() -> int:
 ## The most characters at the Full tier at once here.
 func full_cap() -> int:
 	return web_full_cap if OS.has_feature("web") else desktop_full_cap
+
+
+## The most characters that engage one target at once here.
+func attack_slots_per_target() -> int:
+	return web_attack_slots if OS.has_feature("web") else desktop_attack_slots
+
+
+## The most characters that engage at once here, all targets together.
+func fight_cap() -> int:
+	return web_fight_cap if OS.has_feature("web") else desktop_fight_cap
+
+
+## Asks for an attack slot on `target` for `character` (`AiAttackSlots.claim`).
+func claim_attack_slot(character: Node, target: Node) -> bool:
+	return slots.claim(character, target, tick)
 
 
 ## How many characters it manages.
@@ -187,6 +222,7 @@ func unregister(character: AiCharacter) -> void:
 	if character.tier == Tier.FULL:
 		_full_count -= 1
 	_entries.remove_at(index)
+	slots.release(character)
 	character.director = null
 	character.budget = null
 	character.set_physics_process(true)
@@ -201,6 +237,7 @@ func _physics_process(delta: float) -> void:
 	budget.paths_per_tick = paths_per_tick
 	budget.thinks_per_tick = thinks_per_tick
 	budget.reset()
+	_apply_slot_counts()
 	if tick % TIER_PERIOD == 0:
 		_refresh_viewers()
 	# Starts one further along each tick, so a think the budget put off is not put off again.
@@ -213,6 +250,13 @@ func _physics_process(delta: float) -> void:
 			_think(entry, delta)
 		_step(entry, delta)
 	last_step_usec = Time.get_ticks_usec() - start
+
+
+# The slot counts from the inspector (read each tick, so an edit applies live).
+func _apply_slot_counts() -> void:
+	slots.per_target = attack_slots_per_target()
+	slots.total = fight_cap()
+	slots.lease_ticks = roundi(slot_lease_seconds * Engine.physics_ticks_per_second)
 
 
 func _think(entry: Entry, delta: float) -> void:

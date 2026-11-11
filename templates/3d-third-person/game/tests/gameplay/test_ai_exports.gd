@@ -81,6 +81,11 @@ func test_the_director_defaults_are_pinned() -> void:
 		&"dormant_step_ticks": 6,
 		&"rest_step_ticks": 3,
 		&"animation_throttle": null,
+		&"web_attack_slots": 6,
+		&"desktop_attack_slots": 16,
+		&"web_fight_cap": 12,
+		&"desktop_fight_cap": 48,
+		&"slot_lease_seconds": 3.0,
 	}
 	assert_array(ExportPins.differences(director, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(director, pins)).is_empty()
