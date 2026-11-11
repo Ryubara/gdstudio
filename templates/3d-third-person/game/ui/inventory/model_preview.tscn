@@ -7,7 +7,7 @@ background_mode = 1
 background_color = Color(0, 0, 0, 0)
 ambient_light_source = 2
 ambient_light_color = Color(0.86, 0.84, 0.92, 1)
-ambient_light_energy = 0.7
+ambient_light_energy = 0.4
 
 [node name="ModelPreview" type="Control"]
 custom_minimum_size = Vector2(320, 360)
@@ -29,6 +29,14 @@ cull_mask = 524288
 environment = SubResource("Environment_preview")
 current = true
 fov = 34.0
+
+[node name="KeyLight" type="DirectionalLight3D" parent="Viewport/Camera"]
+unique_name_in_owner = true
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 0, 0)
+layers = 524288
+light_energy = 1.1
+light_cull_mask = 524288
+sky_mode = 1
 
 [node name="Picture" type="TextureRect" parent="."]
 unique_name_in_owner = true

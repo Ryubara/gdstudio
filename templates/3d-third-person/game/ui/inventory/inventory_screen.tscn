@@ -70,9 +70,9 @@ size_flags_vertical = 3
 [node name="TurnHint" type="Label" parent="Fit/Margin/Center/Card/Row/PreviewColumn"]
 layout_mode = 2
 script = ExtResource("4_label")
-text = "Drag or use the right stick to turn"
+text = "Drag to turn"
 horizontal_alignment = 1
-style = 4
+style = 3
 
 [node name="CloseButton" type="Button" parent="Fit/Margin/Center/Card/Row/PreviewColumn"]
 unique_name_in_owner = true
@@ -93,9 +93,9 @@ style = 5
 
 [node name="WeaponsMargin" type="MarginContainer" parent="Fit/Margin/Center/Card/Row/Side"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
+theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
+theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 8
 
 [node name="Weapons" type="HBoxContainer" parent="Fit/Margin/Center/Card/Row/Side/WeaponsMargin"]
@@ -121,14 +121,7 @@ limit = NodePath("../../../../../..")
 margin = 24.0
 least = 124.0
 
-[node name="GridMargin" type="MarginContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll"]
-layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="Grid" type="GridContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll/GridMargin"]
+[node name="Grid" type="GridContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 12
@@ -154,12 +147,12 @@ style = 3
 
 [node name="DetailText" type="Label" parent="Fit/Margin/Center/Card/Row/Side/DetailRow/Detail"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 script = ExtResource("4_label")
 text = "Choose a weapon or an item."
 autowrap_mode = 3
-style = 4
+style = 3
 
 [node name="DropButton" type="Button" parent="Fit/Margin/Center/Card/Row/Side/DetailRow"]
 unique_name_in_owner = true

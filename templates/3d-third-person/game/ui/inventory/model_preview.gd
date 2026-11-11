@@ -4,7 +4,9 @@ extends Control
 ## whose `Camera` sees only the render layer `preview_layer`, which this node adds to every mesh
 ## under the character's `Model` slot while it shows. So the picture is the live model with the
 ## weapon in its hand, it follows a model swap (a mesh added under the slot is flagged at once), and
-## nothing else of the map is drawn: the card behind shows through the clear background.
+## nothing else of the map is drawn: the card behind shows through the clear background. The
+## camera's `KeyLight` lights only that layer and is the preview's one light: the camera's cull
+## mask culls the map's sun too (it brightens the model in the game view while the screen is up).
 ##
 ## Drag across it (mouse or finger) or push the right stick (`look_left`, `look_right`) to turn the
 ## view around the character. The viewport renders only while the preview is visible, at the
@@ -66,6 +68,7 @@ var _dragging := false
 @onready var _viewport: SubViewport = %Viewport
 @onready var _camera: Camera3D = %Camera
 @onready var _picture: TextureRect = %Picture
+@onready var _key_light: DirectionalLight3D = %KeyLight
 
 
 func _ready() -> void:
@@ -140,6 +143,10 @@ func _place_camera() -> void:
 		return
 	_camera.fov = field_of_view
 	_camera.cull_mask = 1 << (preview_layer - 1)
+	# A camera's cull mask also culls lights by their own layers: the sun (layer 1) never reaches
+	# this camera, so the key light is on the preview's layer.
+	_key_light.layers = _camera.cull_mask
+	_key_light.light_cull_mask = _camera.cull_mask
 	var feet := model_slot.global_position
 	# The model faces +Z turned by its yaw (a `Character`'s `facing`).
 	var front := model_slot.global_basis.z
@@ -167,6 +174,7 @@ func _on_visibility_changed() -> void:
 		SubViewport.UPDATE_ALWAYS if shown else SubViewport.UPDATE_DISABLED
 	)
 	set_process(shown)
+	_key_light.visible = shown
 	_watch(shown)
 	if shown:
 		_flag_all()

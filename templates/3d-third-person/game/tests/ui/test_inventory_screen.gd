@@ -338,6 +338,11 @@ func test_the_preview_draws_the_live_model_and_follows_a_mesh_put_in_the_slot() 
 	var preview := screen.preview()
 	var bit := 1 << 19
 	assert_int(preview.camera().cull_mask).is_equal(bit)
+	# The camera's mask culls lights by their layers too: the preview's key light is on its layer.
+	var key_light := preview.camera().get_node("KeyLight") as DirectionalLight3D
+	assert_int(key_light.layers).is_equal(bit)
+	assert_int(key_light.light_cull_mask).is_equal(bit)
+	assert_bool(key_light.visible).is_true()
 	assert_int(preview.viewport().render_target_update_mode).is_equal(SubViewport.UPDATE_ALWAYS)
 	var meshes := _player.model.find_children("*", "MeshInstance3D", true, false)
 	assert_bool(meshes.is_empty()).is_false()
