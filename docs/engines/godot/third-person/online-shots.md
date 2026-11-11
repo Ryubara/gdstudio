@@ -50,8 +50,8 @@ the ragdoll, from the pose the body is in and the event's velocity; the get-up, 
 at once and the pose blending there over `get_up_time` (`Character.revive_at`). Events about the local player play at
 once; the rest wait until the puppets are drawn at their TICK's time (`RemotePlayers.drawn_time`), so a puppet's
 shot leaves where the puppet is drawn and its hit lands as the round gets there. A dead puppet is left to its ragdoll
-(`PlayerPuppet.place`); a ragdoll that falls out of the map waits for the server's `REVIVED`. No camera shake is made
-for a hit near the player yet (#1068).
+(`PlayerPuppet.place`); a ragdoll that falls out of the map waits for the server's `REVIVED`. A HIT near this screen's camera
+shakes it (`NearHitShake` on the rig, from the impact; [the near-hit shake](../camera.md#shake-component), #1068).
 
 - **Approach:** Name a thing a client must find again by its place among its kind in the same viewport
   (`get_viewport() ==`), and find a level's one-of-a-kind node (`Impacts`, `EffectEmitter`) the same way, whenever one

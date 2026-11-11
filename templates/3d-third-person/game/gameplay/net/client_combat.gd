@@ -10,7 +10,8 @@ extends RefCounted
 ## - HIT: the impact of the surface at the server's point (`Impacts`: the mark, the effect, the
 ##   sound), a cosmetic projectile on its way there ends there, the health the server left is put
 ##   on the player or target hit (`Health.set_wire_value`: a target at zero falls), and a player hit
-##   flinches on the part this screen finds at the point.
+##   flinches on the part this screen finds at the point. A camera near the point shakes
+##   (`NearHitShake`, from the impact or, with no surface found, called here); never sent.
 ## - DIED: the body takes the event's velocity and dies into its own ragdoll from the pose it is
 ##   in. REVIVED: it gets up where the server says (`Character.revive_at`), the pose blending there.
 ## - REJECTED: counted and said (`shot_rejected`); the shooter's own cosmetic shot changed nothing.
@@ -197,7 +198,10 @@ func _play_hit(event: NetEvent) -> void:
 	_stop_cosmetic_at(event.point)
 	var impacts := Impacts.find(client)
 	if impacts != null and collider != null:
+		# The impact's `impact_made` also shakes a camera near the point (`NearHitShake`).
 		impacts.impact(collider, event.point, event.direction)
+	else:
+		NearHitShake.play_near(client, event.point)
 	hit_played.emit(event, collider)
 
 
