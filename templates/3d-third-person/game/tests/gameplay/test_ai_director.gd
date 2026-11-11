@@ -254,3 +254,20 @@ func test_a_far_character_stepped_less_often_walks_as_far() -> void:
 	assert_float(walked[1]).is_equal_approx(walked[0], walked[0] * 0.15)
 	assert_float(walked[2]).is_equal_approx(walked[0], walked[0] * 0.25)
 	assert_int(director.count()).is_equal(3)
+
+
+func test_a_character_at_rest_is_stepped_every_third_tick_and_a_walking_one_every_tick() -> void:
+	var characters := _row(4)
+	var director := _arena.add_director()
+	await _ticks(30)
+	var standing := director.body_steps
+	await _ticks(60)
+	standing = director.body_steps - standing
+	# 4 at rest for 60 ticks, every 3rd tick: 80 steps, not 240.
+	assert_int(standing).is_between(76, 84)
+	for character in characters:
+		character.ai_controller().walk_direction = Vector3.FORWARD
+	await _ticks(3)
+	var walking := director.body_steps
+	await _ticks(60)
+	assert_int(director.body_steps - walking).is_equal(240)

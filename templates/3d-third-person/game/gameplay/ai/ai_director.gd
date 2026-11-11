@@ -24,6 +24,8 @@ const GROUP := &"ai_director"
 const TIER_PERIOD := 8
 ## Ticks the think schedule looks ahead (an interval longer than this is cut to it).
 const RING := 1024
+## Below this speed (m/s) a body counts as standing still.
+const REST_SPEED := 0.01
 
 ## The tier names, for the debug overlay and logs.
 const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
@@ -54,11 +56,16 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 @export_range(1, 30) var reduced_step_ticks := 3
 ## A Dormant character's body is stepped every this many ticks, with the missed time.
 @export_range(1, 60) var dormant_step_ticks := 6
+## A character at rest (standing still on a floor that does not move, asking for nothing, or
+## dead) is stepped every this many ticks at most, whatever its tier; 1 steps it every tick.
+@export_range(1, 30) var rest_step_ticks := 3
 
 ## The work the characters share this tick.
 var budget := AiBudget.new()
 ## Physics ticks since the director started.
 var tick := 0
+## Bodies stepped since the director started (a count for tests and benches).
+var body_steps := 0
 ## Microseconds the last tick's step (tiers, thinks and bodies) took.
 var last_step_usec := 0
 
@@ -226,6 +233,8 @@ func _step(entry: Entry, delta: float) -> void:
 			every = reduced_step_ticks
 		Tier.DORMANT:
 			every = dormant_step_ticks
+	if every < rest_step_ticks and _at_rest(entry.character):
+		every = rest_step_ticks
 	var missed := tick - entry.last_step
 	if missed < every and (tick + entry.slot) % every != 0:
 		return
@@ -233,11 +242,27 @@ func _step(entry: Entry, delta: float) -> void:
 		return
 	missed = mini(missed, maxi(reduced_step_ticks, dormant_step_ticks))
 	entry.last_step = tick
+	body_steps += 1
 	var character := entry.character
 	var command := (
 		character.controller.sample() if character.controller != null else _still_command()
 	)
 	character.step(command, delta * missed)
+
+
+# True when stepping the body less often changes nothing: it is dead, or it stands on a floor that
+# does not move, still, and its controller asks for nothing.
+func _at_rest(character: AiCharacter) -> bool:
+	if character.is_dead():
+		return true
+	var controller := character.controller as AiController
+	return (
+		controller != null
+		and controller.is_still()
+		and character.velocity.length_squared() < REST_SPEED * REST_SPEED
+		and character.is_on_floor()
+		and character.get_platform_velocity() == Vector3.ZERO
+	)
 
 
 # Ticks between two thinks at the character's tier, from its profile now (so a change applies at

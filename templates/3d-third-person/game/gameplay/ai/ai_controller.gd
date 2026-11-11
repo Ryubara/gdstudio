@@ -39,6 +39,11 @@ func sample() -> PlayerCommand:
 	return command
 
 
+## True when it asks for nothing: no walk, no aim, no trigger.
+func is_still() -> bool:
+	return walk_direction == Vector3.ZERO and not aim and not fire
+
+
 ## Lets go of everything: stands still, looks level, no aim, no trigger.
 func release() -> void:
 	walk_direction = Vector3.ZERO
