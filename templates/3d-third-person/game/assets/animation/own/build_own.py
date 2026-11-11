@@ -48,7 +48,7 @@ TYPES = {
     "sprint": ("Sprint", gait.sprint),
 }
 ## The shipped files: the frozen list of clips each carries.
-GROUPS = {"locomotion": ["Idle"]}
+GROUPS = {"locomotion": ["Idle", "Walk", "Jog", "Sprint"]}
 ## The deepest a limb may be inside another part of the body, on every body (mm).
 OVERLAP_MM = 5.0
 

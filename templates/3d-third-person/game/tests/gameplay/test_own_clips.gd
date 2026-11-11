@@ -1,9 +1,10 @@
 # GDStudio's own clips (`assets/animation/own/`, kit #1154) import as the library `gds` beside the
 # Universal Animation Library and play on both mannequins: the file holds exactly the clips its
 # `clips.json` freezes, every track finds its bone, a clip keys rotations and the pelvis's place
-# and nothing else, the loops close bone by bone, a planted foot stays on its place on the floor,
-# the player plays our clip where the library's played, the library clip still plays as a
-# stand-in, and the imported library stays inside the budget.
+# and nothing else, the loops close bone by bone, a planted foot stays on its place on the floor
+# while the model travels along the clip's travel curve, the gaits (kit #1155) hold the floor at
+# the game's own speeds and share a phase, the player plays our clip where the library's played,
+# the library clip still plays as a stand-in, and the imported library stays inside the budget.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
@@ -15,6 +16,17 @@ const MODELS: Array[String] = [
 ## The furthest a planted foot's joints may move on the floor over a clip, in metres (the build
 ## holds the sole to 5 mm; the joints move less, and the import must not add to it).
 const PLANTED := 0.001
+## The same for the toes' joint of a gait's foot (m): it rides a millimetre on the pad of the toes
+## as the heel comes up, because the build sets the skin of the sole on the floor, not the joint.
+const ROLLING := 0.002
+## The share of a gait's contact its foot takes to roll down onto the floor.
+const ROLL_ON := 0.25
+## The gaits, the speed the game moves each at (`CharacterTuning`) and the clip each replaced.
+const GAITS := {
+	"Walk": [&"walk_speed", &"ual1/Walk"],
+	"Jog": [&"run_speed", &"ual1/Jog_Fwd"],
+	"Sprint": [&"sprint_speed", &"ual1/Sprint"],
+}
 ## The imported library's bytes for a second of clip (the plan's budget is 6 KB a second).
 const BYTES_A_SECOND := 6144.0
 
@@ -155,18 +167,28 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 						% [clip, side, model_path.get_file(), worst * 1000.0]
 					)
 					print(where)
-					assert_float(worst).override_failure_message(where).is_less(PLANTED)
+					var limit := ROLLING if record.kind == "gait" else PLANTED
+					assert_float(worst).override_failure_message(where).is_less(limit)
 
 
 # The furthest a foot's joints get from where they were when the contact began, on the floor the
-# body travels over (the clip is in place: the travel curve of `clips.json` puts it back).
+# body travels over (the clip is in place: the travel curve of `clips.json` puts it back). A
+# standing foot is held at the ankle and the toes. A gait's foot rolls: it lands on its heel
+# and leaves over its toes, so the ankle travels and what stays put is the toes' joint, from
+# the frame the foot is down (the first quarter of the contact is the roll onto it).
 func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> float:
 	var start := {}
 	var worst := 0.0
-	for frame in range(ceili(contact[0]), floori(contact[1]) + 1):
+	var first := ceili(contact[0])
+	var last := mini(floori(contact[1]), int(record.frames))
+	var bones: Array[String] = ["foot_" + side, "ball_" + side]
+	if record.kind == "gait":
+		first += ceili(ROLL_ON * (contact[1] - contact[0]))
+		bones = ["ball_" + side]
+	for frame in range(first, last + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
 		var travel := _travel_at(record, frame)
-		for bone: String in ["foot_" + side, "ball_" + side]:
+		for bone: String in bones:
 			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
 			if not start.has(bone):
 				start[bone] = place
@@ -184,6 +206,89 @@ func _travel_at(record: Dictionary, frame: int) -> Vector3:
 			var share: float = (frame - a[0]) / maxf(b[0] - a[0], 1.0)
 			return Vector3(lerpf(a[2], b[2], share), 0.0, lerpf(a[1], b[1], share))
 	return Vector3.ZERO
+
+
+func test_the_gaits_hold_the_floor_at_the_game_s_speeds_and_share_a_phase() -> void:
+	# The library's walk covered 56 % of the ground the game moved it over and its jog swept
+	# 48 % faster than it (the audit, kit #1150). Ours carry the game's speeds, within 2 %, and
+	# the left foot lands at 0 and the right at half the cycle in all three, so a blend between
+	# them stays in step.
+	var records := _records()
+	var tuning := CharacterTuning.new()
+	for clip: String in GAITS:
+		var record: Dictionary = records.clips[clip]
+		var speed: float = tuning.get(GAITS[clip][0])
+		(
+			assert_float(record.speed)
+			. override_failure_message("%s: %.3f m/s for %.2f" % [clip, record.speed, speed])
+			. is_equal_approx(speed, 0.02 * speed)
+		)
+		assert_str(record.kind).is_equal("gait")
+		assert_str(record.replaces).is_equal(String(GAITS[clip][1]))
+		assert_float(record.contacts.l[0][0]).override_failure_message(clip).is_equal(0.0)
+		var right_lands := INF
+		for contact: Array in record.contacts.r:
+			if contact[0] > 0.0:
+				right_lands = minf(right_lands, contact[0])
+		assert_float(right_lands).override_failure_message(clip).is_equal(record.frames / 2.0)
+		var steps: Array = record.events.filter(
+			func(event: Dictionary) -> bool: return event.name == "footstep"
+		)
+		assert_int(steps.size()).override_failure_message(clip).is_equal(2)
+		assert_str(steps[0].foot).is_equal("l")
+		assert_str(steps[1].foot).is_equal("r")
+		# The travel curve is the speed: the root is one cycle's ground further at the end.
+		var travel: Array = record.travel
+		assert_float(travel[-1][1] - travel[0][1]).override_failure_message(clip).is_equal_approx(
+			speed * record.seconds, 0.02 * speed * record.seconds
+		)
+
+
+func test_a_gait_swings_each_arm_with_the_other_side_s_leg() -> void:
+	# As a foot leaves the floor the other leg's knee is ahead of its own, and so is the hand
+	# of its own side: each arm swings with the other side's leg, in the walk and in the runs
+	# (whose arms are widest apart as the foot leaves, not as it lands).
+	var records := _records()
+	for model_path in MODELS:
+		_stage(model_path)
+		for clip: String in GAITS:
+			var record: Dictionary = records.clips[clip]
+			for side: String in ["l", "r"]:
+				var other := "r" if side == "l" else "l"
+				var lift: float = record.contacts[side][-1][1]
+				var pose := _pose(StringName("gds/" + clip), fmod(lift, record.frames) / 30.0)
+				var knee: Transform3D = pose["calf_" + other]
+				var own_knee: Transform3D = pose["calf_" + side]
+				var hand: Transform3D = pose["hand_" + side]
+				var other_hand: Transform3D = pose["hand_" + other]
+				var where := "%s as the %s foot leaves, on %s" % [clip, side, model_path.get_file()]
+				(
+					assert_float(knee.origin.z - own_knee.origin.z)
+					. override_failure_message(where)
+					. is_greater(0.1)
+				)
+				(
+					assert_float(hand.origin.z - other_hand.origin.z)
+					. override_failure_message(where)
+					. is_greater(0.1)
+				)
+
+
+func test_the_player_plays_our_gaits_where_the_library_s_played() -> void:
+	var player := _spawn_player()
+	var animation: CharacterAnimation = player.get_node("Animation")
+	var clips: AnimationPlayer = player.get_node("AnimationPlayer")
+	var slots := {&"walk_clip": "gds/Walk", &"run_clip": "gds/Jog", &"sprint_clip": "gds/Sprint"}
+	for slot: StringName in slots:
+		assert_str(String(animation.get(slot))).is_equal(slots[slot])
+		assert_bool(clips.has_animation(animation.get(slot))).is_true()
+	assert_str(String(CharacterClips.WALK)).is_equal("gds/Walk")
+	assert_str(String(CharacterClips.RUN)).is_equal("gds/Jog")
+	assert_str(String(CharacterClips.SPRINT)).is_equal("gds/Sprint")
+	# The library's gait goes back in through the inspector's export.
+	animation.run_clip = CharacterClips.stand_in(CharacterClips.RUN)
+	await await_idle_frame()
+	assert_str(String(animation.run_clip)).is_equal("ual1/Jog_Fwd")
 
 
 func test_the_idle_is_alive() -> void:
@@ -234,8 +339,8 @@ func test_every_stand_in_is_a_library_clip_that_still_plays() -> void:
 	animation.idle_clip = CharacterClips.stand_in(CharacterClips.IDLE)
 	await await_idle_frame()
 	assert_str(String(animation.idle_clip)).is_equal("ual1/Idle")
-	assert_str(String(CharacterClips.stand_in(CharacterClips.WALK))).is_equal(
-		String(CharacterClips.WALK)
+	assert_str(String(CharacterClips.stand_in(CharacterClips.CROUCH_WALK))).is_equal(
+		String(CharacterClips.CROUCH_WALK)
 	)
 
 

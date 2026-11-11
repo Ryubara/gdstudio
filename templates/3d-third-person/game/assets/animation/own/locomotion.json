@@ -102,11 +102,360 @@
      0.0
     ]
    ]
+  },
+  "Jog": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      6.0
+     ]
+    ],
+    "r": [
+     [
+      10.0,
+      16.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 10.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 20,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.05,
+   "replaces": "ual1/Jog_Fwd",
+   "seconds": 0.6667,
+   "speed": 4.0,
+   "start_foot": "l",
+   "style": "A",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     20,
+     2.6667,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     20,
+     0.0
+    ]
+   ]
+  },
+  "Sprint": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      4.0
+     ]
+    ],
+    "r": [
+     [
+      9.0,
+      13.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 9.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 18,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.1,
+   "replaces": "ual1/Sprint",
+   "seconds": 0.6,
+   "speed": 6.5,
+   "start_foot": "l",
+   "style": "A",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     18,
+     3.9,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     18,
+     0.0
+    ]
+   ]
+  },
+  "Walk": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      15.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      2.0
+     ],
+     [
+      13.0,
+      26.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 13.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 26,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.05,
+   "replaces": "ual1/Walk",
+   "seconds": 0.8667,
+   "speed": 1.7,
+   "start_foot": "l",
+   "style": "A",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     26,
+     1.4733,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     26,
+     0.0
+    ]
+   ]
   }
  },
  "fps": 30,
  "frozen": [
-  "Idle"
+  "Idle",
+  "Walk",
+  "Jog",
+  "Sprint"
  ],
  "reference_hips": 0.9167,
  "rig": "mannequin_female.glb"

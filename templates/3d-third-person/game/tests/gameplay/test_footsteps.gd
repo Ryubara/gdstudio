@@ -91,8 +91,8 @@ func test_a_walk_steps_at_the_walk_clips_two_feet_a_cycle() -> void:
 	InputSim.key(KEY_W, true)
 	await InputSim.ticks(get_tree(), 40)
 	var count := await _walk_for(3.0)
-	# The walk clip is 1.33 s with two landings: three steps a 2 s... four and a half in 3 s.
-	assert_int(count).is_between(3, 6)
+	# The walk clip (ours since kit #1155) is 0.87 s with two landings: seven steps in 3 s.
+	assert_int(count).is_between(5, 8)
 	var feet := {}
 	for step in _heard:
 		feet[step["foot"]] = true

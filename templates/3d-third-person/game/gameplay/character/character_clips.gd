@@ -23,9 +23,9 @@ const LIBRARY_OWN := &"gds"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"gds/Idle"
-const WALK := &"ual1/Walk"
-const RUN := &"ual1/Jog_Fwd"
-const SPRINT := &"ual1/Sprint"
+const WALK := &"gds/Walk"
+const RUN := &"gds/Jog"
+const SPRINT := &"gds/Sprint"
 const JUMP_START := &"ual1/Jump_Start"
 const AIR := &"ual1/Jump"
 const LAND := &"ual1/Jump_Land"
@@ -69,6 +69,9 @@ const TO_CROUCH := &"prone/Prone_To_Crouch"
 ## The library clip each clip of our own replaced, kept as a stand-in.
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
+	&"gds/Walk": &"ual1/Walk",
+	&"gds/Jog": &"ual1/Jog_Fwd",
+	&"gds/Sprint": &"ual1/Sprint",
 }
 
 ## Every clip of the four libraries, with its library.
@@ -164,6 +167,9 @@ const ALL: Array[StringName] = [
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
 	&"gds/Idle",
+	&"gds/Jog",
+	&"gds/Sprint",
+	&"gds/Walk",
 ]
 
 

@@ -142,11 +142,11 @@
   "carry_height": 0.1,
   "arm_fore": 54.0,
   "arm_back": 60.0,
-  "elbow": 88.0,
+  "elbow": 94.0,
   "bob": 0.045,
   "counter_turn": 12.0,
   "uneven": 0.5,
-  "arm_twist": 3.0
+  "arm_twist": -6.0
  },
  "notes": {
   "idle": [
