@@ -219,3 +219,25 @@ calibrated on that spread, and what it cannot see needs a count that does not mo
   28 runs it was set from already had it, and the decode is about 4 s of 40 against a spread of 2.2 to 4.6, so a ratio
   absorbs the runner's speed, not a small real cost. **Seen:** Deadnight #873, 2026-11-03; Deadnight #828, 2026-11-03
   (fix: the gate catches about an 80 % growth; `test_load_cost.gd` caps seconds decoded behind the bar).
+
+## A bench's web export {#bench-web}
+
+<!-- new section: every bench under a template's tools/bench/ repeated in its header how to put it in a web build, and
+each bench author worked it out again (#963, #1059, #1062) -->
+
+A template's benches (`tools/bench/<name>.tscn`, with a `<name>.py` that reads the result in Chrome) measure in the web
+build what the desktop numbers cannot. The web build ships neither `tools/` nor the bench as its main scene, so a bench
+runs from a throwaway game (one command for it is gdstudio #1130):
+
+1. Make a game from your branch with `gds template game <template>` (the template's name; it keeps the game and
+   prints its path); never export from `templates/<t>/game`, which has no addons and is the committed template.
+2. In that game, set `run/main_scene` in `project.godot` to the bench's scene, and take `tools/*` out of the Web
+   preset's `exclude_filter` in `export_presets.cfg` (keep `tests/*` out).
+3. Export it headless with the pinned Godot: `godot --headless --path <game> --export-release Web build/web/index.html`,
+   and read the output for `ERROR`.
+4. Run the bench's script from the game folder through `gds quiet` (it serves the build cross-origin isolated, so the
+   page's clock reads microseconds): `gds quiet -- uv run --with playwright==<pin> python tools/bench/<name>.py
+   build/web [throttle]`, with 4 as the weak-machine throttle. Its header names the page's query and what it prints.
+
+Nothing of this is committed: the game is removed afterwards and the template keeps its menu as the main scene and
+`tools/*` out of the export.

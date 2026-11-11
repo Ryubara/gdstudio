@@ -208,6 +208,13 @@ other projects on the machine -->
   PID, put a timeout on every long command, and warn the neighbouring projects before a long load test. **Watch out
   for:** load tests had no limit, and 93 Godot processes held the CPU at 100% for a neighbouring project. **Seen:**
   Deadnight, 2026-11-01 (fix: the caps above).
+- **Approach:** Free Docker space only from what your task made: remove your own images by name or label
+  (`docker image rm <tag>`, `docker image prune --filter label=<yours>`) and keep a build cache apart on a builder of
+  your own (`docker buildx create --name <yours>`, then `docker buildx prune --builder <yours>`), never `docker
+  builder prune -af` or `docker system prune -a`. **Watch out for:** Docker's images and build cache are one store for
+  every project on the machine, so an unfiltered prune emptied Deadnight's build cache, and its next server image built
+  from nothing.
+  **Seen:** gdstudio #910 (PR #1056), 2026-11-11.
 
 ## Bootstrap {#bootstrap}
 
@@ -292,5 +299,7 @@ environment) nor rewrites the file.
 
 `godot/` in this repository is a small Godot project of its own, not a game: it holds the Godot addons the kit owns
 (`godot/addons/gds_ui/`) and the GdUnit4 suites that prove them (`godot/tests/`). `gds workspace init` installs the
-pinned GdUnit4 into it, in the checkout and in every kit worktree, like into a game. The addon is edited only here and
+pinned GdUnit4 into it, in the checkout and in every kit worktree there is at the time, like into a game; a worktree
+`gds issue start` makes later has none until `gds workspace init` runs again (or the addon is unzipped from the cache,
+[a fresh checkout](../engines/godot/running-gdunit.md#fresh-checkout); gdstudio #1128). The addon is edited only here and
 `gds sync` writes it into each game ([where `gds_ui` is edited](../engines/godot/ui-controls.md#where), [Sync](sync.md#addons)).

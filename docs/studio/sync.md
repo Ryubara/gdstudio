@@ -63,7 +63,11 @@ beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the sec
 `Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is
 scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under `addons/` is a global class without a plugin,
 so a game needs no `project.godot` line for it, and `gds sync` alone brings it to a game made before it existed. Its
-suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s.
+suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s. The kit's project sets no
+physics engine, so those suites run on Godot Physics while 3D Third Person runs Jolt: a part whose suite moves bodies or
+reads contacts passes on both, and a branch runs its `gds_game` suites in `godot/` as well as the template's
+(gdstudio #1013). A kit worktree made by `gds issue start` has no GdUnit4 in `godot/addons/` yet
+([a fresh checkout](../engines/godot/running-gdunit.md#fresh-checkout)).
 
 A part goes in `gds_game` when all three hold, and stays in the template otherwise:
 
