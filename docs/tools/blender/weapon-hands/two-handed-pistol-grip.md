@@ -49,12 +49,12 @@ is kit #1001's and did not move, since the rifle's hold is derived from it. Rebu
 | Part | In the template | Measured (female, male) |
 | --- | --- | --- |
 | Support hand, cant | Its knuckle line is 43 degrees from the gun's own down (16 before, the right hand mirrored); the wrist is 4 cm higher, level with the frame | `test_the_two_hands_hold_the_pistol_together`: 25 to 50 degrees |
-| Support hand, four fingers | Over the right hand's ring and little fingers and round the front of the grip, their tips on the gun's right | each middle and last bone within 5 mm of the right hand's skin (NUM_OVER) |
-| Support hand, index finger | Under the trigger guard, on the gun | NUM_GUARD off the guard |
-| Support hand, palm | On the right hand's fingertips, which cover the left panel; the heel reaches the bare panel on the male mannequin only (0.8 mm; the female's thinner palm is 13 mm off it) | NUM_PALM off the right hand |
-| Support hand, thumb | Forward along the frame above the trigger guard, under the slide, its tip NUM_AHEAD ahead of the right thumb's | NUM_LTHUMB off the gun |
-| Shooting hand, thumb | Lifted off the frame onto the root of the left thumb while the left hand is on the gun (`pistol_thumb_pose.tres`); on the frame when the gun is held in one hand | NUM_RTHUMB off the left hand |
-| Depth | Each hand against the gun and against the other hand, both ways | at most NUM_DEPTH in |
+| Support hand, four fingers | Over the right hand's ring and little fingers and round the front of the grip, their tips on the gun's right | each middle and last bone within 5 mm of the right hand's skin (at most 1.4 mm off it) |
+| Support hand, index finger | Under the trigger guard, on the gun | at most 1.9 mm off the guard |
+| Support hand, palm | On the right hand's fingertips, which cover the left panel; the heel reaches the bare panel on the male mannequin only (0.8 mm; the female's thinner palm is 13 mm off it) | 2.4 mm (female) and 1.8 mm (male) off the right hand |
+| Support hand, thumb | Forward along the frame above the trigger guard, under the slide, its last joint 108 mm ahead of the right thumb's | 1.1 mm off the gun (female), 0.9 mm in (male) |
+| Shooting hand, thumb | Lifted off the frame onto the root of the left thumb while the left hand is on the gun (`pistol_thumb_pose.tres`); on the frame when the gun is held in one hand | 0.4 to 2.0 mm off the left hand, 4 to 9 mm from the skin of its thumb root |
+| Depth | Each hand against the gun and against the other hand, both ways | at most 1.6 mm in |
 
 What the rig cannot do, and where it differs from the taught grip:
 
@@ -62,10 +62,10 @@ What the rig cannot do, and where it differs from the taught grip:
   front (kit #1001's seat: the web is under the tang, and the mannequin's hand is 41 mm from the web to the top of the
   middle finger where the gun is 63 mm from the tang to the guard's underside). The support index finger is under the
   guard all the same, over the right ring finger. A lower or canted seat would put the middle finger under the guard;
-  it would also move the rifle's hold (kit #SEAT_ISSUE).
+  it would also move the rifle's hold (kit #1213).
 - **The trigger finger grazes the guard on its way to the trigger** (3.7 mm at the guard's front strut, for a few
   twentieths of the way): the finger's last bone is 20 mm thick and the guard's opening 21 mm long, so no way in is
-  clear, with the knuckle free to 40 degrees back either (kit #GUARD_ISSUE). It no longer touches the left hand.
+  clear, with the knuckle free to 40 degrees back either (kit #1212). It no longer touches the left hand.
 
 ## Between the poses {#between-the-poses}
 
@@ -84,12 +84,16 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
   far end of its way (the plan's `on` to 0.3), the hand waits there while the thumb moves (0.3 to 0.6), then comes in
   (0.6 to 1); the way's far end is solved clear of the thumb everywhere between its two poses, and the thumb's own
-  blend passes 1.4 mm through the gun at most.
+  blend passes 1.9 mm through the gun at most (the solver holds the half-way pose to a holding finger's depth).
+- **The left hand's fingers press the right hand as they open and close** over it: 2.1 mm at the right little
+  finger's tip on both mannequins, for two hundredths of a reload (it is 1.5 mm in the palm that lies on it while both
+  hold). The test allows 2.5 mm there by name (`LEFT_HAND_PASSING`), and only while the fingers are between their
+  two poses.
 - **An arm too short backs the hand off along its way** (kit #1078, `HoldArm.retreat`). While the aim comes up the
   gun is still out to the side and the left arm 6 to 16 cm short of the hand's place; the hand stopped short with the
   place's turn, its fingers 13 to 18 mm through the gun and the right hand. The arm now puts the hand on the line of
   its way, at the first place it reaches, opened (`HoldArm.backed_off`), so it comes in only as far as the arm
-  reaches: NUM_AIM at most on the live player, every update, both mannequins.
+  reaches: 0.8 mm (female) and 0.9 mm (male) deep at most on the live player, every update, both mannequins.
 - **The gun is not held out during a reload.** `carry_arm_out` (8 degrees, for the thigh) stayed on through a reload
   started with the gun carried and took the gun 13 mm out of the male mannequin's reach from the new place; it now
   fades with the reload's weight as it does with the aim's.
@@ -156,6 +160,20 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   there), and the shooting thumb crossed to the gun's far side to lie on the support hand's fingertips, a place it
   could only reach through the gun. **Seen:** gdstudio #1084, 2026-11-11 (fix: the support fingers' last bones on the
   gun's far side, the thumb's on its own).
+- **Approach:** Close a hand's skin where its selection ends before counting a point inside or out of it, each
+  ring of open edges joined to its own middle, in the solver and in the game's measure alike, and look at the hold
+  from above after every solve. **Watch out for:** the palm's piece is open at the wrist, and the shooting thumb
+  turned sideways behind the gun and put its tip in that opening: the solver read it 0.7 mm off, the game's measure
+  2.2 mm off in the level aim and 19.4 mm in once the aim turned the hands up (two of its three rays left through
+  the hole). One fan for all the hand's open edges joins its pieces into one, where a point inside two counts as
+  outside. **Seen:** gdstudio #1084, 2026-11-11 (fix: `wrist_cap`, `HandContact._open_rings`; the test checks the
+  thumb's tip within 12 mm of the left thumb's root).
+- **Approach:** Search a finger's pose from many starts (the grid, then some thousands of random ones, the best four
+  refined each on its own), and aim it at a place a wide search proved it reaches. **Watch out for:** refined from the
+  grid's best start alone, four different targets gave the same sideways thumb; a target the thumb could not reach
+  (3 cm ahead of where its joints end) pulled it there as well. Its root is behind the grip, so its tip gets no
+  further forward than the left thumb's root joint. **Seen:** gdstudio #1084, 2026-11-11 (fix: `solve_finger`'s
+  `wide`, `THUMB_OVER`).
 - **Approach:** Trace every blend the game plays between two solved poses at twentieths against the gun and the
   other hand before wiring it, and give a part that must move through another's place a step of the plan in which
   that other is away. **Watch out for:** the thumb's straight blend between its two poses passed 16.9 mm through the
@@ -164,7 +182,7 @@ A solved pose is clear where it holds; the blend the game plays between two of t
 - **Approach:** Measure a way's room before promising it clear: the part's thickness against the opening it enters.
   **Watch out for:** the trigger finger (20 mm) into the guard's opening (21 mm) grazes the guard's strut by 3.6 mm
   whatever pose it goes by; four searches (other trigger poses, a wider knuckle) found the same. **Seen:** gdstudio
-  #1079, 2026-11-11 (the test allows that graze by name; the guard is #GUARD_ISSUE).
+  #1079, 2026-11-11 (the test allows that graze by name; the guard is #1212).
 - **Approach:** Measure the other arm's reach on each mannequin's own skeleton, in the reload clip's first pose as
   well as the aim poses, after moving a hand's place. **Watch out for:** the solver's merged rig is the female
   skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of

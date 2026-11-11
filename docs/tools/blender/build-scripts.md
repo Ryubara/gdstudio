@@ -32,7 +32,11 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
-  **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+  A patch chained before a solve in one background command fails the same way: its assert stopped the patch, the
+  solve ran the old code for 13 minutes and gave the old pose to the last digit. Patch in the foreground, read its
+  result, then start the run; and format a file only with the repository's settings (a bare `ruff format` rewrapped
+  the template's solver at 88 columns). **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale
+  file was committed); gdstudio #1084, 2026-11-11 (fix: the patch run alone, the solver reformatted at 120).
 
 ## Rebuilding a committed file {#rebuilding}
 

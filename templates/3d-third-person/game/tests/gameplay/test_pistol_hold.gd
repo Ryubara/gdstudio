@@ -53,7 +53,7 @@ const TRIGGER_WAY_STEPS := 20
 ## How deep the trigger finger may graze the trigger guard between its two places, in metres: the
 ## mannequin's finger is as thick as the guard's opening is long (20 mm in 21), and the best way
 ## in the solver found passes 3.7 mm through the guard's front strut (kit #1079; the guard's
-## opening is kit #GUARD_ISSUE). At its two places and against the left hand the limit is the
+## opening is kit #1212). At its two places and against the left hand the limit is the
 ## usual one.
 const TRIGGER_GUARD_GRAZE := 0.004
 ## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).

@@ -46,7 +46,7 @@ closes the hands on it:
   thigh.
 
 Measured on the skinned mesh in every pistol clip and every locomotion clip with the pistol out
-(`tests/gameplay/test_pistol_hold.gd`): no skin more than 1.2 mm inside the pistol or the other hand, and no holding
+(`tests/gameplay/test_pistol_hold.gd`): no skin more than 1.6 mm inside the pistol or the other hand, and no holding
 part more than 2.7 mm off it on the female mannequin and 4.4 mm on the male (the limits are 2 mm and 5 mm).
 
 No number of the hold is typed by hand. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,

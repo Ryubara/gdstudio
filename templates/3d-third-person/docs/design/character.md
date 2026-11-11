@@ -356,7 +356,7 @@ hand. Everything is tuned in its inspector while the game runs:
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
 | `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims or reloads. |
-| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.018, -0.03, 0.049) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
+| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.019, -0.039, 0.042) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
 | `magazine_pose` | `pistol_magazine_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in. |
 | `magazine_marker` | `MagazineHand` | The weapon's child the left hand's bone is brought to while the magazine goes in. |
 | `magazine_approach`, `return_clearance` | (0, -0.1, 0), (0, -0.04, 0.04) | In the weapon's space: where the hand starts from under the magazine (a magazine's length down the grip), and how far it bows out half-way from under the magazine to the far end of `support_way`, round the grip's foot. |

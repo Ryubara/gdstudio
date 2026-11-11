@@ -164,7 +164,7 @@ Library's six pistol clips on the `hand_r` bone.
   11 mm off it on the two mannequins, with the left hand 8 to 20 mm inside the right one in the aim and shoot clips.
   The rule now: no skin more than 2 mm inside the pistol (or the other hand) and no holding part more than 5 mm off
   it, on the skinned mesh, in every pistol clip and every locomotion clip with the pistol out, on both mannequins.
-  The hold that ships measures at most 1.2 mm in on both, and at most 2.7 mm off on the female and 4.4 mm off on the
+  The hold that ships measures at most 1.6 mm in on both, and at most 2.7 mm off on the female and 4.4 mm off on the
   male (`tests/gameplay/test_pistol_hold.gd`, which fails on the clips' fist).
 - **What the hold is.** `gameplay/weapon/hold/weapon_hold.tscn` (`WeaponHold`) makes three modifiers under the model's
   `Skeleton3D`: the right hand's `HandPose` (three fingers round the grip, the thumb high on the left side, the index
