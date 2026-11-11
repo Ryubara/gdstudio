@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/puppet_vault_tour.gd" id="1_tour"]
+
+[node name="PuppetVaultTour" type="Node"]
+script = ExtResource("1_tour")

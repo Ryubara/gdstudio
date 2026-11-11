@@ -68,6 +68,11 @@ func test_connecting_reads_clear_of_the_bulbs_on_a_desktop_and_a_phone() -> void
 	await _assert_clear_of_the_bulbs(OnlineStatus.State.CONNECTING, true)
 
 
+func test_loading_reads_clear_of_the_bulbs_on_a_desktop_and_a_phone() -> void:
+	await _assert_clear_of_the_bulbs(OnlineStatus.State.LOADING, false)
+	await _assert_clear_of_the_bulbs(OnlineStatus.State.LOADING, true)
+
+
 func test_a_message_with_back_to_menu_reads_clear_of_the_bulbs() -> void:
 	for state: OnlineStatus.State in [
 		OnlineStatus.State.UNREACHABLE, OnlineStatus.State.OLD_VERSION, OnlineStatus.State.LOST

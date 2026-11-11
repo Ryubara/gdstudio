@@ -108,3 +108,7 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   before starting that agent; the conversation is kept. **Watch out for:** Claude Code loads project agents when a
   session starts, so an agent written mid-session failed with "agent type not found". **Seen:** gdstudio, 2026-11-01
   (fix: the resume).
+- **Approach:** After a message arrives while a wait runs (a SendMessage, a notice), read the state again (`gh pr
+  checks <n>`, `gh pr view <n> --json state`) instead of waiting for the wait's own answer. **Watch out for:** a
+  foreground wait for CI was moved to the background when a SendMessage arrived, and its result never reached the
+  agent, so the wait-for-CI step ended with no answer. **Seen:** gdstudio #1149 (PR #1172), 2026-11-11.
