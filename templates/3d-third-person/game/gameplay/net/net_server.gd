@@ -91,7 +91,11 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 ## Steps between a change of a map part the server decides (a door opened, a platform sent) and
 ## its start, so a client hears of it before its predicted commands reach it: about the round trip
 ## and the hold of the slowest client it plays well with, in steps (12: 200 ms at 60 a second).
-@export_range(0, 255, 1, "suffix:steps") var entity_lead_ticks := 12
+@export_range(0, 255, 1, "suffix:steps") var entity_lead_ticks := 12:
+	set(value):
+		entity_lead_ticks = value
+		if map_parts != null:
+			map_parts.lead_ticks = value
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
