@@ -4,16 +4,16 @@ extends Node
 ## crowd of `ai_guard.tscn` (the hostile guard set) with its brains off, on and calm, and on
 ## against a threat.
 ##
-## The guards stand on a grid 3 m apart around two hostile targets (stand-ins for players, in the
-## group `player`, faction `player`) that walk a circle among them, so most guards see one and the
-## rest hear the shots (in the `threat` rows; in `calm` the targets are of the guards' own
-## faction, `enemy`, so nothing is perceived): the guard set's whole stack (noticed, engage,
-## chase, search, barks, the
-## threat reminder, the play state) runs. Brains off removes each guard's `Brain` node before it
-## enters the tree: the senses and the empty task runner still run, so the difference is what the
-## reactions add (the brain's thinks, the tasks it places, and what those tasks make the body
-## do: turn, aim, fire, walk). The director's web caps are the count, its Full cap the shipped one
-## (12 in a browser, 60 on the desktop), and the animation throttle is on, as `world.tscn` has it.
+## The guards stand on a grid 3 m apart around two targets (stand-ins for players, in the group
+## `player`) that walk a circle among them. In the `threat` rows the targets are of the faction
+## `player`, so most guards see one and the rest hear the shots, and the guard set's whole stack
+## runs (noticed, engage, chase, search, barks, the threat reminder, the play state); in `calm`
+## they are of the guards' own faction, `enemy`, so nothing is perceived. Brains off removes each
+## guard's `Brain` node before it enters the tree: the senses and the empty task runner still
+## run, so the difference is what the reactions add (the brain's thinks, the tasks it places,
+## and what those tasks make the body do: turn, aim, fire, walk). The director's web caps are
+## the count, its Full cap the shipped one (12 in a browser, 60 on the desktop), and the
+## animation throttle is on, as `world.tscn` has it.
 ##
 ## One line of JSON, `AI_BEHAVIOUR_BENCH {...}`: for each count and mode the director's step a
 ## tick (`step_mean_us`, `step_p95_us`, `us_each`), the median frame work in milliseconds, ticks a
