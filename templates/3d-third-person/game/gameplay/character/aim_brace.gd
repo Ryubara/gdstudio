@@ -73,23 +73,25 @@ static func stance_of(
 ## only: the crouch, the air and the other states keep the aim on their own pelvis.
 class Driver:
 	extends RefCounted
-	## The brace on the model's skeleton now, or null (no model, no weapon with an aim clip).
+	## The brace on the model's skeleton now, or null: it is made the first time the character
+	## aims, so a character that never aims (most of a crowd) carries no node for it.
 	var modifier: AimBrace
 
 	# How far the body is on the ground state's clips, whose stance the aim poses were made on.
 	var _share := 1.0
 
-	## Makes the brace on the skeleton of `animation`'s model, first of its modifiers (the hands
-	## close on the weapon after it), from the held definition's aim clip; called whenever the
-	## tree is built, never in the editor.
-	func build(animation: CharacterAnimation) -> void:
-		if Engine.is_editor_hint():
-			return
+	## Frees the brace, so the next aim makes it again from the model, the bone and the aim clip
+	## there are then; called whenever the tree is built.
+	func build(_animation: CharacterAnimation) -> void:
 		if is_instance_valid(modifier):
 			# Out of the tree at once, so the new one can take the name.
 			modifier.get_parent().remove_child(modifier)
 			modifier.queue_free()
 		modifier = null
+
+	# Makes the brace on the skeleton of `animation`'s model, first of its modifiers (the hands
+	# close on the weapon after it), from the held definition's aim clip.
+	func _make(animation: CharacterAnimation) -> void:
 		var hold := animation.held_definition()
 		var model := animation.model
 		var skeleton := model.skeleton() if is_instance_valid(model) else null
@@ -118,7 +120,10 @@ class Driver:
 	func drive(animation: CharacterAnimation, aim: float, delta: float) -> void:
 		var standing := 1.0 if animation.body_state() == CharacterAnimation.GROUND else 0.0
 		_share = move_toward(_share, standing, delta / maxf(animation.blend_time, 0.001))
-		weigh(aim * _share if animation.aim_brace else 0.0)
+		var weight := aim * _share if animation.aim_brace else 0.0
+		if weight > 0.0 and not is_instance_valid(modifier):
+			_make(animation)
+		weigh(weight)
 
 	## The brace's weight; written only when it changes, since the setters make the skeleton
 	## work.

@@ -70,7 +70,7 @@ func test_without_the_brace_the_pistol_turns_with_the_pelvis() -> void:
 	# The fault the brace is for, so the test above measures it.
 	_animation.aim_brace = false
 	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
-	assert_bool(_brace().active).is_false()
+	assert_object(_brace()).is_null()
 	assert_float(absf(_off_the_view().x)).is_greater(10.0)
 	_animation.aim_brace = true
 	await CommandDriver.run(get_tree(), _players, _aiming(), 4)
@@ -94,20 +94,23 @@ func test_over_the_stance_the_poses_were_made_on_the_brace_changes_little() -> v
 
 
 func test_the_brace_weighs_what_the_aim_weighs_on_the_ground_and_nothing_in_a_crouch() -> void:
+	# Not aiming: there is no brace yet (a character that never aims carries no node for it).
+	await CommandDriver.run(get_tree(), _players, CommandDriver.walking(Vector3.ZERO), 10)
+	assert_object(_brace()).is_null()
+	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
 	var brace := _brace()
 	assert_object(brace).is_not_null()
-	# Not aiming: off, and no work for the skeleton.
-	await CommandDriver.run(get_tree(), _players, CommandDriver.walking(Vector3.ZERO), 10)
-	assert_bool(brace.active).is_false()
-	assert_float(brace.influence).is_equal(0.0)
+	assert_bool(brace.active).is_true()
 	# It runs before the hands close on the weapon.
-	var skeleton := brace.get_skeleton()
-	for child in skeleton.get_children():
+	for child in brace.get_skeleton().get_children():
 		if child is SkeletonModifier3D:
 			assert_object(child).is_same(brace)
 			break
+	# The aim let go: off, and no work for the skeleton.
+	await CommandDriver.run(get_tree(), _players, CommandDriver.walking(Vector3.ZERO), 40)
+	assert_bool(brace.active).is_false()
+	assert_float(brace.influence).is_equal(0.0)
 	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
-	assert_bool(brace.active).is_true()
 	assert_float(brace.influence).is_equal_approx(_animation.pistol_weights().y, 0.001)
 	assert_float(brace.influence).is_greater(0.99)
 	# Crouched, the aim leans with the crouch as it did before: the brace lets go.
