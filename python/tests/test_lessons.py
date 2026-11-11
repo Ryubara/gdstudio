@@ -477,6 +477,23 @@ def test_propose_takes_a_pull_requests_changed_files_and_its_labels(brief_kit):
     assert lessons.propose(brief_kit, "zzz qqq") == []
 
 
+def test_propose_skips_a_path_mention_in_a_section_far_from_the_issues_words(brief_kit):
+    """A section that only mentions a path the issue names in passing (gdstudio #1133: the `Area` line's `game/core/`
+    named the voice-lines section for an online-play task) is not named when its words are far from the issue's."""
+    (brief_kit / "docs" / "studio" / "voices.md").write_text(
+        "# Voices\n\n## Voice lines {#voice-lines}\n\nRecorded barks and announcer lines, cut per speaker and kept "
+        "under `game/core/` beside the bus they play on.\n",
+        encoding="utf-8",
+    )
+    found = lessons.propose(
+        brief_kit, "hooks: Fix the agent guard prompt", "The guard misreads a prompt. Area: `game/core/`.", limit=6
+    )
+    assert refs_of(found)[0] == "studio/hooks.md#agent-guard"
+    assert not any(p.why == "mentions game/core/" for p in found)  # a tiny kit may still list it by words, last
+    close = lessons.propose(brief_kit, "audio: Add voice lines", "Barks for each speaker under `game/core/`.", limit=6)
+    assert [p.why for p in close if p.section.ref == "studio/voices.md#voice-lines"] == ["mentions game/core/"]
+
+
 def test_brief_text_and_missing_refs(brief_kit):
     found = lessons.propose(brief_kit, "the disk guard", limit=1)
     assert lessons.brief_text(found) == "Read: studio/hooks.md#disk"
@@ -491,3 +508,17 @@ def test_the_kit_proposes_real_sections_for_this_issue():
     )
     assert "studio/starting-work.md#starting-an-agent" in refs_of(found)
     assert lessons.missing_refs(KIT, "\n".join(p.line for p in found)) == []
+
+
+def test_the_kit_does_not_name_voice_lines_for_online_play():
+    """gdstudio #909 (online play with a web probe) was briefed with `gamedev/audio/voice-lines.md#voice-lines`,
+    because its `Area` line names `game/core/` and only that section mentions it (gdstudio #1133)."""
+    body = (Path(__file__).parent / "fixtures" / "issue_bodies" / "gdstudio-909.txt").read_text(encoding="utf-8")
+    found = refs_of(
+        lessons.propose(
+            KIT, "godot: Add online play and a web probe to 3D Third Person", body, {"A-godot": "", "task": ""}
+        )
+    )
+    assert not any(r.startswith("gamedev/audio/voice-lines.md") for r in found)
+    assert "engines/godot/multiplayer.md#web-export" in found
+    assert "engines/godot/third-person/online-client.md#play-online" in found
