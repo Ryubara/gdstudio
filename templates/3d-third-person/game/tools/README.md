@@ -45,6 +45,9 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
+- `tools/capture/vault_study.tscn` plays the vault clips (`assets/animation/vault/`) on the mannequin over each clip's
+  reference box, with a sprint in and out, from four views; headless it prints how still the planted hand stays
+  (`MODEL=male`, `VIEWS`, `SLOW`, `LOW_HEIGHT` and `HIGH_HEIGHT` are in the header).
 - `tools/capture/prone_clips_tour.tscn` plays the prone and crawl clips (`assets/animation/prone/`) on the mannequin
   over a floor of 0.25 m squares, from the side, the front quarter and the game camera's place, crawling at the clip's
   speed (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` saves side, front and top stills of each clip).
