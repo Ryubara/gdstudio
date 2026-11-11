@@ -12,10 +12,10 @@ slider.
 
 ## The wind
 
-`assets/audio/wind/wind_soft_1.ogg`: a soft, even hush of air over grass, 10.5 s, a seamless loop (the import sets
-`loop`), levelled to -33 LUFS so it stays a background under the effects. The `Wind` player of `main.tscn` plays it from
-the start on the `Ambient` bus (its volume and bus are the node's own, and the `Ambient` slider of `AudioSettings` sets
-the whole bed).
+`assets/audio/wind/wind_soft_1.ogg`: gusty wind round a building and through grass, its gusts rising and falling about
+every 7 s with a soft whistle in them, 28 s, a seamless loop (the import sets `loop`), levelled to -33 LUFS so it stays
+a background under the effects. The `Wind` player of `main.tscn` plays it from the start on the `Ambient` bus (its
+volume and bus are the node's own, and the `Ambient` slider of `AudioSettings` sets the whole bed).
 
 When the game quits, `AudioSettings` stops the players under its parent and waits for the audio thread to let go of them;
 without that, a sound still playing at exit is reported as a leak (`ObjectDB instances were leaked at exit`), which a

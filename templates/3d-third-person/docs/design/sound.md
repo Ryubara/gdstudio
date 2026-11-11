@@ -35,7 +35,7 @@ hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns the
 
 | Sound | Files | Bus | Notes |
 | --- | --- | --- | --- |
-| Wind | `assets/audio/wind/wind_soft_1.ogg` | `Ambient` | 10.5 s, a seamless loop (the import sets `loop`): an even hush of air over grass, -33 LUFS |
+| Wind | `assets/audio/wind/wind_soft_1.ogg` | `Ambient` | 28 s, a seamless loop (the import sets `loop`): gusty wind round a building and through grass, gusts about every 7 s with a soft whistle in them, -33 LUFS |
 | Coin pickup | `assets/audio/coin/coin_pickup_1..4.ogg` | `SFX` | 0.31 to 0.32 s: one coin's bright chime and sparkle, starting at once; four variants to cycle |
 | Footsteps | `assets/audio/footsteps/footstep_soft_1..4.ogg` | `SFX` | four soft sneaker steps on stone, 0.10 to 0.24 s, a rounded thud with a little grit that suits any character and floor, cycled in a seeded order for walk, run, crouch and landing (same files, the three players' own volumes) |
 | Fists | `assets/audio/fists/fist_swing_1..3.ogg` | `SFX` | three 0.15 to 0.17 s whooshes of a punch, the fists' `shot_sound` |
