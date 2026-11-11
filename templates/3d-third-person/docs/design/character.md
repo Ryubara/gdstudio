@@ -288,12 +288,15 @@ with no point: it takes the health too, stops the character for the stun time an
 `CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
 in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space on ground speed: idle, walk, run, sprint),
-`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the prone idle and the crawl, blended by
-ground speed; the crawl plays at the pace of its stride, `crawl_clip_speed`), `jump`, `fall`, `land`, `push` and the
-slide's three clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends
-standing, which runs into `ground`). Until the template's own prone clips land (kit #1009), `prone` plays the swim
-stroke laid on the ground by the Animation's placeholder pose (`prone_pose_offset`, `prone_pose_lean`); with the real
-clips, set `prone_idle_clip`, `crawl_clip`, `to_prone_clip`, `to_crouch_clip` and `crawl_clip_speed`, and zero the pose.
+`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the template's own prone idle and crawl,
+`prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
+as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
+body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`,
+which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`).
+Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
+`prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
+fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
