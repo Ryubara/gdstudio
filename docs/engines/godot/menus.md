@@ -160,3 +160,8 @@ in the service, a row in the scene and, if it does something, a line in `_apply`
   the saved value. **Watch out for:** a service made in a test applies every value at `_ready`, so a suite that leaves
   the option at 0 turns the shake off for every suite after it in the run, and a camera test then passes or fails by
   the order of the suites. **Seen:** gdstudio #1091, 2026-11-11 (`tests/core/test_settings_camera_shake.gd`).
+- **Approach:** A new row on a settings tab also changes the focus count `test_menu_navigation.gd` pins for the
+  Controls tab: update that count and its comment with the row, and run the whole template suite before opening the
+  pull request, not only the settings suites. **Watch out for:** the settings suites alone all pass while the
+  navigation suite fails on the count. **Seen:** gdstudio #1091, 2026-11-11 (caught by the full `gds template test`
+  after the pull request was open).
