@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from datetime import datetime
@@ -15,6 +16,7 @@ from gds_tools import (
     capture,
     disk,
     evals,
+    integrations,
     issues,
     layout,
     lessons,
@@ -380,9 +382,30 @@ def _prepare_worktree(
                 ]
         except worktrees.WorktreeError as error:
             raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
+        lines += _install_addons(root, made.path)
         return issues.Prepared(branch=made.branch, path=made.path.as_posix(), lines=lines, undo=undo)
 
     return prepare
+
+
+def _install_addons(root: Path, tree: Path) -> list[str]:
+    """The pinned Godot addons (GdUnit4, the MCP addon) installed into the Godot project of a worktree `gds issue start`
+    made or reused, untracked as `gds workspace init` installs them (docs/studio/workspace.md#integrations); the lines
+    say what was done. A failure here only says so: the worktree is made, and `gds workspace init` installs them too."""
+    projects = integrations.checkout_projects(tree)
+    if not projects:
+        return []
+    done: list[str] = []
+    try:
+        kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+        missing = integrations.install_pinned_addons(
+            load_tools(kit / "tools.toml").values(), root / "tools", projects, done.append
+        )
+    except (ManifestError, OSError, subprocess.CalledProcessError) as error:
+        return [f"addons: not installed ({error}); run `gds workspace init`"]
+    if missing:
+        done.append(f"addons: {', '.join(missing)} not fetched; run `gds workspace init` to fetch and install them")
+    return done
 
 
 def _cmd_issue_start(args: argparse.Namespace) -> int:
