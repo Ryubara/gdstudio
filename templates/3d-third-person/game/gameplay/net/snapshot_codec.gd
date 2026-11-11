@@ -363,6 +363,11 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	return player
 
 
+## The bytes `player`'s entry takes on the wire.
+static func player_size(player: PlayerEntry) -> int:
+	return MAX_PLAYER_SIZE if player.aim else PLAYER_SIZE
+
+
 ## The entry as a client reads it (the decode of the encode), or null when it cannot travel.
 static func snap_player(player: PlayerEntry) -> PlayerEntry:
 	var out := StreamPeerBuffer.new()
