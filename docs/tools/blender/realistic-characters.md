@@ -532,6 +532,7 @@ style, the skin is dry and has a face's detail, and the arms are smooth in Godot
 | Peach fuzz is a rim term, not hair | time | cards of vellus hair along the jaw and the forearms, on the hair atlas |
 | Hair is cards along computed paths: no clumps of clumps, no hand-placed layers, the long style's ends are cut straight, and neither style moves | skill and time | a strand groom with Blender's hair curves, cards generated from its clumps; spring bones for the tail and the long locks |
 | The hair's two highlights are tuned by eye; the skin shader has one specular lobe | time | a flow map for the hair; a second skin lobe |
+| In Compatibility the eyes go dark (the occlusion shell and the highlight shell over them blend differently) and the hair cards show darker gaps; in both renderers the hair on the back of the head is much darker in shadow than the lit tail | time: seen in the last captures of the rework, not fixed | an eye occlusion drawn in the eye's own shader; alpha to coverage for the cards; a little light through the hair |
 | Clothes are body shells with noise folds; the trousers are tight; no seams, hems or stitching | tool: no drape by script | drape each garment with Blender's cloth simulator from a sewn pattern, then retopologise and bake |
 | Gear is bevelled boxes | time | model each piece as a real hard-surface asset, high to low |
 | Eyes have no refraction or caustics in Godot, sparse lashes | time | a parallax iris shader; lash cards from a denser strip |
