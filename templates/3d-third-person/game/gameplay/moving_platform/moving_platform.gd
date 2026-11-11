@@ -231,7 +231,10 @@ func is_online() -> bool:
 ## Puts the slab where it is at `tick`, at once for the physics queries of this frame.
 func net_place(tick: int) -> void:
 	placed_tick = tick
-	transform = transform_at(tick)
+	var place := transform_at(tick)
+	if place == transform:
+		return
+	transform = place
 	force_update_transform()
 
 

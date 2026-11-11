@@ -152,6 +152,18 @@ func test_the_map_table_and_the_events_fit_the_wire() -> void:
 	assert_int(pickup_bytes - no_events).is_equal(4)
 
 
+func test_putting_the_moving_parts_at_a_tick_costs_little() -> void:
+	# The server puts the doors and the platform at each command's tick before it steps the body
+	# (eight players: eight times a step, and once more for the step), a client once a step.
+	var parts := _rig.server.map_parts
+	var began := Time.get_ticks_usec()
+	for index in 1000:
+		parts.place(index * 7)
+	var each := (Time.get_ticks_usec() - began) / 1000.0
+	prints("map parts: %d moving, %.1f us to put them at a tick" % [parts.movers().size(), each])
+	assert_float(each).is_less(200.0)
+
+
 # Puts the client's body and its server body at one spot (a test's shortcut for a walk there).
 func _place(client: NetClient, at: Vector3, facing: float) -> void:
 	client.player.teleport(at, facing)

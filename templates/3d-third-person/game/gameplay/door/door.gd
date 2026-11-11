@@ -100,6 +100,8 @@ var _was_target := 0.0
 var _tick := 0
 # The openness the last step showed (the signals fire when it reaches an end).
 var _shown := 0.0
+# The openness `net_place` last put the panel at (a door at rest costs nothing to place).
+var _placed := -1.0
 var _open_for := 0.0
 var _home := Transform3D.IDENTITY
 var _usable_home := Transform3D.IDENTITY
@@ -247,7 +249,11 @@ func net_set_role(role: NetEntity.Role) -> void:
 
 ## Puts the panel where it is at `tick`, at once for the physics queries of this frame.
 func net_place(tick: int) -> void:
-	_apply(openness_at(tick))
+	var value := openness_at(tick)
+	if value == _placed:
+		return
+	_placed = value
+	_apply(value)
 	force_update_transform()
 
 
@@ -331,6 +337,7 @@ func _on_sensor_exited(body: Node3D) -> void:
 
 # Moves the panel to where the new motion settings put it, while the game runs.
 func _apply_live() -> void:
+	_placed = -1.0
 	if is_node_ready() and not Engine.is_editor_hint():
 		_apply(openness())
 
