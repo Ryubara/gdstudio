@@ -12,7 +12,9 @@
 ##   `--shots=<dir>` after the engine's `--`: each step's real window pixels are saved as a PNG:
 ##   `gds godot -- --path game --resolution 844x390 res://tools/capture/inventory_tour.tscn --
 ##   --shots=out`
-## It lives in tools/, which the export leaves out.
+## `--measure` after the engine's `--` prints the preview viewport's size and its render time (CPU
+## and GPU, the mean of 120 frames) with the screen open. It lives in tools/, which the export
+## leaves out.
 extends Node
 
 const STEP := 0.9
@@ -34,6 +36,8 @@ func _ready() -> void:
 	_press(&"inventory")
 	await _hold()
 	var screen := UIRouter.top() as InventoryScreen
+	if "--measure" in OS.get_cmdline_user_args():
+		await _measure(screen.preview().viewport())
 	var cells := screen.item_cells()
 	cells[0].grab_focus()
 	await _hold()
@@ -66,6 +70,21 @@ func _ready() -> void:
 	game.free()
 	await get_tree().process_frame
 	get_tree().quit()
+
+
+# Prints the preview viewport's size and its mean render time over 120 frames.
+func _measure(viewport: SubViewport) -> void:
+	var rid := viewport.get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(rid, true)
+	for _frame in 30:
+		await RenderingServer.frame_post_draw
+	var cpu := 0.0
+	var gpu := 0.0
+	for _frame in 120:
+		await RenderingServer.frame_post_draw
+		cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
+		gpu += RenderingServer.viewport_get_measured_render_time_gpu(rid)
+	print("preview %s px: %.3f ms CPU, %.3f ms GPU" % [viewport.size, cpu / 120.0, gpu / 120.0])
 
 
 # Presses and lets go of an action's first key through the input path, as a player would.

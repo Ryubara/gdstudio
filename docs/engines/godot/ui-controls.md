@@ -405,11 +405,15 @@ line under it.
 
 ## 3D in a menu {#3d-in-a-menu}
 
+A menu that shows the character standing in the game (not a stage of its own) draws the game's world through a camera
+that sees one render layer: [Inventory: a live model in a menu](inventory.md#live-model).
+
 - **A menu's 3D stage is drawn at the window's pixels.** With the canvas stretch a `Control` is 1920 x 1080 whatever the
   window, and a `SubViewportContainer` makes its viewport that size (stretch on) or grows to the viewport's (off):
   1920 x 1080 stretched into a 2560 x 1440 window, soft and stair-stepped. Use a `Control`, a `SubViewport` child and a
-  `TextureRect` on its texture, and size the viewport from `get_viewport().get_final_transform().get_scale()` times the
-  control's size (cap it, 1440 high), again on `size_changed` of the root.
+  `TextureRect` on its texture, and size the viewport from the scale of
+  `get_viewport().get_final_transform() * get_global_transform_with_canvas()` times the control's size (cap it, 1440
+  high), checked each frame it shows: a scale above the control (a phone's `MenuFit`) changes without a resize.
 - **A `SubViewport` has its own `msaa_3d`** (the project setting does not reach it): choose it for the look (4x for a
   portrait or a stage; on a phone the pixels are fewer at the real size, so 4x cost less than the old 2x there).
 - **An adaptive-quality fallback needs a way back.** Judge over more than one window, climb back when frames recover
@@ -420,6 +424,11 @@ line under it.
   backoff, before it ships. **Watch out for:** a stretched `SubViewportContainer` drew the stage at the 1920 x 1080
   canvas, not the window's pixels, its `msaa_3d` was its own, and the governor dropped to half resolution after one slow
   window for the whole session. **Seen:** Deadnight #893, 2026-11-03 (fix: deadnight #920 and gdstudio #439).
+- **Approach:** Size a menu's viewport from the control's whole transform to the window, the final transform times
+  `get_global_transform_with_canvas()`, and print it at a phone size. **Watch out for:** the final transform alone
+  leaves out a parent's own scale: under the phone layout's `MenuFit` (1.75 times) the inventory's preview rendered at
+  137 x 101 px and was stretched to 240 x 177. **Seen:** gdstudio #890, 2026-11-10 (`ModelPreview._fit_viewport`, the
+  tour's `--measure`).
 
 ## A part at a scale of its own inside a screen {#a-part-at-a-scale-of-its-own-inside-a-screen}
 

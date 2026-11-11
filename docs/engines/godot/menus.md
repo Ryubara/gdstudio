@@ -26,7 +26,7 @@ one after it.
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
 | Screen host | `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`), its script the synced `addons/gds_game/screen_host/screen_host.gd` | Opens screens over the game ([Menus over a game](#screen-host)). |
-| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. With a `screen` it opens that screen instead: the `BagButton` beside it opens the [inventory](inventory.md#template-screen). |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |
@@ -37,7 +37,8 @@ one after it.
 `presets`, three `QualityPreset` resources (`title`, `msaa`, `shadow_atlas_size`, `shadow_filter`) that Low, Medium and
 High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `force`. `SettingRow`: `key`, `format`,
 `option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
-`PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`:
+`PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `screen` (empty: the pause menu), `always_shown`.
+`LookSettings`: `camera`. `MenuScene`:
 `main_menu`, `game_scene`, `skip_menu`. `LoadingScreen`: `least_time`.
 
 - **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
@@ -78,6 +79,10 @@ which runs while the tree is paused; the host adds what the router does not know
 - **Give the screen `back_closes`** so Esc closes it when it is the only one: `UIRouter.pop()` stops at the root, so
   without it a pause menu has no Esc. A screen extends `UIScreen`; `UIRouter.close()` is a pop that may empty the stack
   and `UIRouter.clear()` frees all of it.
+- **Let a screen keep the game running.** A screen with a `pauses_game()` method that returns false (the inventory,
+  when the player turned Settings > Controls > Pause in the inventory off) unpauses the tree while it is on top: the
+  host asks the top screen on every change of the stack (`top_pauses_game()`), so a pause menu pushed over it stops the
+  game and going back runs it again. The tree is paused from the open until the screen has arrived.
 - **Keep the game as a node tree, not a screen.** The router disables the screen it covers, so a game that is the
   bottom screen stops whether it wants to or not; as plain nodes under a paused tree it stops by the tree's own
   setting, and a game that must run on (online) turns `pause_tree` off.

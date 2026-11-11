@@ -110,6 +110,19 @@ func _click(control: Control) -> void:
 	await get_tree().process_frame
 
 
+func _tap(control: Control) -> void:
+	var at := control.get_global_transform_with_canvas() * (control.size / 2.0)
+	for pressed in [true, false]:
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.pressed = pressed
+		touch.position = at
+		Input.parse_input_event(touch)
+		Input.flush_buffered_events()
+		await get_tree().process_frame
+	await get_tree().process_frame
+
+
 func _bag() -> Inventory:
 	return _player.inventory
 
@@ -280,6 +293,17 @@ func test_mouse_clicks_move_a_stack_onto_another_of_its_kind() -> void:
 	assert_bool(_bag().is_empty(1)).is_true()
 
 
+func test_a_finger_picks_a_stack_up_and_puts_it_down() -> void:
+	var screen := await _open()
+	# The host turns touch-to-mouse on while a screen is up: a tap is a click on the slot.
+	assert_bool(Input.emulate_mouse_from_touch).is_true()
+	await _tap(screen.item_cells()[0])
+	assert_int(screen.picked()).is_equal(0)
+	await _tap(screen.item_cells()[7])
+	assert_int(_bag().count_at(7)).is_equal(3)
+	assert_bool(_bag().is_empty(0)).is_true()
+
+
 func test_drop_leaves_a_pickup_in_front_of_the_player_and_a_coin_cannot_be_dropped() -> void:
 	_player.collect(&"coin", 4)
 	assert_int(_bag().count_of_id(&"coin")).is_equal(4)
@@ -371,6 +395,22 @@ func test_the_preview_draws_the_live_model_and_follows_a_mesh_put_in_the_slot() 
 	for mesh: MeshInstance3D in meshes:
 		assert_int(mesh.layers & bit).is_zero()
 	assert_int(swapped.layers & bit).is_zero()
+
+
+func test_the_preview_draws_at_the_windows_pixels_under_the_phone_layout() -> void:
+	var screen := await _open()
+	var fit := screen.get_node("Fit") as MenuFit
+	var preview := screen.preview()
+	# The window is the design size: one unit is one pixel, so the viewport is the control's size.
+	fit.force = 1
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_int(preview.viewport().size.y).is_equal(roundi(preview.size.y))
+	# The phone layout draws the menu 1.75 times bigger: the viewport follows, so it is not blurred.
+	fit.force = 2
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_int(preview.viewport().size.y).is_equal(roundi(preview.size.y * fit.phone_factor))
 
 
 func test_the_bag_button_opens_the_inventory_on_a_touch_screen() -> void:

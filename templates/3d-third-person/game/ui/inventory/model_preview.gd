@@ -93,6 +93,8 @@ func _process(delta: float) -> void:
 		push = Input.get_axis(&"look_left", &"look_right")
 	if push != 0.0:
 		turn(push * stick_turn * delta)
+	# A scale above can change without a resize of this control (the menu fits itself to a phone).
+	_fit_viewport()
 	_place_camera()
 
 
@@ -162,10 +164,14 @@ func _place_camera() -> void:
 func _fit_viewport() -> void:
 	if _viewport == null or not is_inside_tree():
 		return
-	var pixels := size * get_viewport().get_final_transform().get_scale()
+	# The window's stretch and every scale above (a phone's `MenuFit` draws the menu bigger).
+	var to_window := get_viewport().get_final_transform() * get_global_transform_with_canvas()
+	var pixels := size * to_window.get_scale().abs()
 	if pixels.y > max_height:
 		pixels *= max_height / pixels.y
-	_viewport.size = Vector2i(maxi(int(pixels.x), 2), maxi(int(pixels.y), 2))
+	var wanted := Vector2i(maxi(roundi(pixels.x), 2), maxi(roundi(pixels.y), 2))
+	if _viewport.size != wanted:
+		_viewport.size = wanted
 
 
 func _on_visibility_changed() -> void:
