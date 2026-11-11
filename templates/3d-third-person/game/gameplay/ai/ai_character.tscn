@@ -4,15 +4,20 @@
 [ext_resource type="Script" path="res://gameplay/ai/ai_character.gd" id="2_ai"]
 [ext_resource type="Script" path="res://gameplay/ai/ai_controller.gd" id="3_controller"]
 [ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="4_grunt"]
+[ext_resource type="Script" path="res://gameplay/ai/navigation/ai_navigator.gd" id="5_navigator"]
 
-[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label") instance=ExtResource("1_dressed")]
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "navigator") instance=ExtResource("1_dressed")]
 script = ExtResource("2_ai")
 profile = ExtResource("4_grunt")
 debug_label = NodePath("DebugLabel")
 controller = NodePath("AiController")
+navigator = NodePath("Navigator")
 
 [node name="AiController" type="Node" parent="."]
 script = ExtResource("3_controller")
+
+[node name="Navigator" type="Node" parent="."]
+script = ExtResource("5_navigator")
 
 [node name="DebugLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)

@@ -84,6 +84,20 @@ func _exit_tree() -> void:
 		director.unregister(self)
 
 
+# With no director, the body steps itself: the navigator writes the controller first.
+func _physics_process(delta: float) -> void:
+	if not Engine.is_editor_hint():
+		before_step(delta)
+	super(delta)
+
+
+## Called before every step of the body, `seconds` after the last (the director's missed ticks
+## included): the navigator writes the controller's movement channel for the step.
+func before_step(seconds: float) -> void:
+	if navigator is AiNavigator:
+		(navigator as AiNavigator).navigate(seconds)
+
+
 ## The controller the parts write to (`AiController`), or null when another kind drives it.
 func ai_controller() -> AiController:
 	return controller as AiController
