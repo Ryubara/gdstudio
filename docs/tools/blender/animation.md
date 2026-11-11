@@ -81,7 +81,9 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
 - **Plant what carries weight, in the character's space.** A clip in place moves each planted point back at one speed
   for its share of the cycle and returns it leaving and landing at that speed; the speed is stride over planted time
   and is the number the game needs. A forearm on the floor is planted at the elbow and the hand; a pushing leg at the
-  foot, never the knee, which rolls as the leg straightens (7 cm in the crawl).
+  foot, never the knee, which rolls as the leg straightens (7 cm in the crawl). A forearm planted whole cannot turn
+  while it is planted, so its angle to the body is chosen once, for the whole pull, from how people place it (the
+  crawl's research is in the clips' README: `templates/3d-third-person/game/assets/animation/prone/README.md`).
 - **Let the body give where a target leaves no freedom.** An elbow on the floor is exactly one upper arm from the
   shoulder, so the shoulder's height follows from where the elbow is: the crawl's spine pitches and rolls each frame
   by the amount (two unknowns, two elbows, Newton's method) that puts both shoulders at that distance, and the chest
@@ -110,6 +112,21 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   script that renders it. **Watch out for:** Blender imports keys at seconds times the scene's rate, so a 30 frames a
   second library read into a new scene (24) had its 46-frame clip on frames 0 to 37 and every sampled frame fell
   between two keys. **Seen:** gdstudio #1009, 2026-11-10 (fix: `scene.render.fps = 30` before the import).
+- **Approach:** Before keying a gait or a move the library has no clip of, research how real limbs do it, not only
+  its speed: a manual or coaching text, a motion study and a dozen photographs. Write down, with sources, each
+  limb's angle to the body, where hands and feet land, which limbs move together and each joint's path; build to
+  those numbers and test them in Godot. **Watch out for:** the first crawl was researched for its speed and limb
+  pairing only, so both forearms pointed almost straight ahead, shoulder-width apart, where every photograph of a
+  crawling soldier has the forearms 45 to 80 degrees inward and the hands under the chin; every check passed and
+  the pose was still wrong. **Seen:** gdstudio #1020, 2026-11-10, a maintainer correction (fix: the research table
+  in the clips' README, forearms 40 degrees inward, a hand planting 0.29 m ahead of the other, and a Godot test).
+- **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
+  the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
+  passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the
+  thigh coming up; opening the knee to clear the chest put it into the male's longer arm (35 mm), and a pole
+  target is only a hint; wider elbows in the crawl sank the chest 2.2 cm into the floor. **Seen:** gdstudio #1020,
+  2026-11-10 (fix: the hands go up and over the knee by frame 3 and the knee opens from frame 2 to 6; coming up
+  the left hand waits outside the knee until frame 19; at most 2.6 mm on both mannequins, the build fails over 5).
 - **Approach:** When one clip's target moves, rebuild and read every clip that joins it. **Watch out for:** moving
   the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
   since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss
