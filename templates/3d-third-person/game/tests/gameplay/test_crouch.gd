@@ -6,14 +6,16 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 
@@ -74,7 +76,7 @@ func test_a_crouch_walk_is_slower_and_plays_the_crouch_state() -> void:
 	await InputSim.ticks(get_tree(), 40)
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.crouch_speed, 0.05)
 	assert_int(_player.state).is_equal(Player.State.CROUCH)
-	var animation := _player.get_node("Animation") as PlayerAnimation
+	var animation := _player.get_node("Animation") as CharacterAnimation
 	assert_str(String(animation.body_state())).is_equal("crouch")
 
 

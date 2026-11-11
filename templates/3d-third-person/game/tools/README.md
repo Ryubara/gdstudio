@@ -11,6 +11,15 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   (`CARRY_MODEL=male` films the male mannequin; `CARRY_BONES` and `CARRY_HELD=1` try another grip or the held pose).
 - `tools/carry/measure_clearance.gd` measures how deep the held pistol sinks into the body in each locomotion clip on
   both mannequins (the header says how to run it; `tests/gameplay/test_pistol_clearance.gd` pins it at none).
+- `tools/capture/pistol_hold_study.tscn` poses a mannequin in every pistol clip and the locomotion clips with the
+  pistol out, prints how each hand meets the pistol (lines starting `HOLD`) and, with a window and `HOLD_OUT`, saves
+  close-ups from the gun's left, its right, above and the player's camera (`MODEL=male`; `HOLD_OFF=1` is the clips'
+  own fist).
+- `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
+  `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
+  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
+- `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
+  user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
 - `tools/capture/action_tour.tscn` plays the character through the range, the crouch course and the cubes by pressing the
   input actions, for a clip with the sound.
@@ -20,30 +29,57 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/shake_tour.tscn` sprints, aims and fires, and sets off two blasts through `CameraShake.shake()`, with the
   sprint shake and the shot kick turned up, for a clip of the shake (it prints the turn of the view each physics frame,
   lines starting `SHAKE`).
+- `tools/capture/near_hit_tour.tscn` lands rounds from an unseen shooter beside the standing character, then one 20 m
+  away, for a clip of the near-hit shake (lines starting `SHAKE`, and `HIT` with each hit's distance from the camera).
 - `tools/capture/hud_tour.tscn` films the HUD with its health and ammo parts fed by a stand-in, on a desktop or (user
   argument `phone`) with the touch controls up on a phone-sized window.
 - `tools/capture/ragdoll_tour.tscn` runs the character, kills it mid-run with the `ragdoll` key, orbits the body,
   gets it up and runs it off the ragdoll ledge, by pressing the input actions (`RAGDOLL_MODEL=male` films the male
   mannequin).
+- `tools/capture/hit_tour.tscn` shoots three targets from the player's camera: a headshot kill, a body-shot kill, two
+  hits on a target walking past (it flinches and walks on) and shots into a body on the ground (`HIT_MODEL=male` puts
+  the male mannequin on the targets).
+- `tools/bench/hit_zones_bench.tscn` prints what a shot's second test, the zones following the bones and the flinch
+  cost for 1, 4 and 10 characters (`HIT_ZONES_BENCH`); `hit_zones_bench.py` runs its web export in headless Chrome
+  under `gds quiet`.
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
-- `tools/ragdoll/measure_joints.gd` measures the joint limits of `PlayerRagdoll.BODIES` from every clip on both mannequins
+- `tools/ragdoll/measure_joints.gd` measures the joint limits of `CharacterRagdoll.BODIES` from every clip on both mannequins
   (the header says how to run it).
 - `tools/capture/muzzle_flash_tour.tscn` fires the pistol in slow motion at the orange block, with the flash on and then
   off, for a clip of the muzzle flash.
 - `tools/bench/effects_cost.tscn` fires the pistol in six runs (no flash, flash, flash with impacts, at 4 and 30 shots a
   second) and prints frame time, script time, draw calls and nodes for each (`BENCH` lines; the header says how to read
   it in the browser).
+- `tools/bench/sound_start_bench.tscn` prints what starting a sound costs (`SOUND_START` lines): the pistol's shot
+  as an Ogg randomizer, one take as Ogg, PCM and QOA, 3D and flat, the weapon's `ShotSound` and an impact through the
+  emitter, and the decode the level's load pays; `tools/bench/sound_start_bench.py` reads it from a web export in
+  headless Chrome under `gds quiet` and counts the browser samples and the output's peak per case.
 - `tools/bench/effects_first_use.py` runs a web export of that bench in headless Chrome and fails when a run after the
   level's warm-up links a GL program (the first flash, its light or the first impact stopping the frame); run it under
   `gds quiet`, the command and the export are in its header.
 - `tools/bench/player_step_bench.tscn` times a character's own physics tick for 1, 8 and 40 bodies, by the input and by
   commands; `tools/bench/player_step_bench.py` reads it from a web export in headless Chrome (run it under `gds quiet`).
+- `tools/bench/parts_cost_bench.tscn` prints what the parts cost a frame: 1 to 50 dressed characters idle and walking,
+  each character part timed apart, a first and a later death on each mannequin, and 100 of each world part
+  (`PARTS_COST_BENCH` line); `tools/bench/parts_cost_bench.py` reads it from a web export in headless Chrome (under
+  `gds quiet`).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints
   `LISTENING <port>` (the header says how to run and stop it).
+- `tools/bench/server_bench.tscn` times the game server's step with 1 to 8 bots on real sockets in the map and counts
+  the bytes each way (`-- --bodies=8 --ticks=1200`; prints `SERVER_BENCH`).
+- `tools/net/server_bot.gd` plays bots against a running server (`-- --server`) in another process and prints what
+  each saw (`SERVER_BOT`: slot, TICKs, players, ack, round trip, bytes); with `--moves` each runs the weapon presses, a
+  slide and the map's vault course and lists the states the server sent it; the header has the command.
+- `tools/net/predict_bot.gd` is a predicting client (`NetClient`, the map, `RemotePlayers`) against a running server:
+  circles, sprints and jumps, optional `--delay-ms` and `--freeze s:ms,...`, and prints `PREDICT_BOT` (corrections,
+  snaps, worst error, end gap, stalls, puppets, starved steps, round trip, microseconds a step); the header has the
+  command.
+- `tools/capture/online_tour.tscn` records a server and two clients in one process side by side: Ada's own screen
+  and Bo's, where she is drawn from the server (`gds capture frames --scene res://tools/capture/online_tour.tscn`).
 - `tools/net/relay.py` is a TCP relay with a delay each way and a byte counter, for a real round trip on one machine
   (the browser's throttling does not touch WebSockets).
 - `tools/web_smoke/net_link_smoke.py` drives the web export's `NetProbe` (`?netprobe&url=ws://...`) against the echo

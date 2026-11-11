@@ -29,3 +29,7 @@ folder, but on Windows it takes the folder from the `APPDATA` environment variab
   `camera_shake=0` through the `Settings` autoload into the player's real `user://settings.cfg`; the game lost its
   camera shake and two agents fixed it by editing the real file. **Seen:** Deadnight #418 and #446, 2026-11-01 (fix:
   tests and captures use their own settings store, and a test fails if a suite run changes the real file).
+- **Approach:** A suite that has to write a file names it by process id and deletes it before and after each test
+  (`TempUserFile.path` in the 3D Third Person template), as [Running more than one](running-gdunit.md#parallel) says.
+  **Watch out for:** a fixed name such as `user://settings_test.cfg` is shared by every run of the game at the same
+  time, the throwaway games of `gds template test` included. **Seen:** gdstudio #1043, 2026-11-10.

@@ -36,7 +36,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
   and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875 and #903 and tether #31, 2026-11-10 (files turned CRLF again).
+  gdstudio #830, 2026-11-08; gdstudio #875, #903, #1011 and tether #31, 2026-11-10 (CRLF again).
 
 ## Scripted edits {#scripted-edits}
 
@@ -46,7 +46,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   the Python literal, so `\n` became a real line break inside a GDScript string (which still parsed), `\b` and `\t`
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
-  straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool).
+  straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
+  gdstudio #1005, 2026-11-10 (a heredoc broke `"\n"` in a test: the Edit tool).
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -81,7 +82,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
   before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903).
+  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
 
 ## Background commands and processes {#background}
 
@@ -99,6 +100,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   pre-commit run; stopping a background task ends the shell, not the `timeout` and Godot under it, which kept writing to
   the same log beside the new run. **Seen:** Deadnight, 2026-11-01; Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06
   (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run).
+- **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
+  running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
+  it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
+  the run's last step (the older client's hello) never ran and printed nothing, no failure either. **Seen:** gdstudio
+  #910, 2026-11-11 (the 2-bot run of the deployed series; the 4 and 8 bot runs checked the refusal).
 
 ## Before committing {#before-commit}
 
@@ -117,7 +123,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
-  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`).
+  (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
+  lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
+  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red).
 
 ## Reverting and checking out {#checkout}
 

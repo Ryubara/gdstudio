@@ -135,12 +135,13 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 				. override_failure_message(property["name"])
 				. is_equal(command.get(property["name"]))
 			)
-	assert_int(fields).is_equal(19)
+	assert_int(fields).is_equal(24)
 	copy.clear()
 	assert_float(copy.yaw).is_equal(command.yaw)
 	assert_float(copy.pitch).is_equal(command.pitch)
 	assert_vector(copy.move).is_equal(Vector2.ZERO)
 	assert_bool(copy.sprint or copy.aim or copy.fire or copy.jump or copy.crouch).is_false()
+	assert_bool(copy.prone).is_false()
 	assert_bool(copy.walk or copy.has_shot or copy.jump_pressed).is_false()
 
 
@@ -230,7 +231,9 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	var rates: Dictionary[String, float] = {}
 	for automatic: bool in [false, true]:
 		var human := _arena.add_player(Vector3(0.0, 0.0, 6.0 if automatic else 3.0))
-		human.weapon.automatic = automatic
+		# Its own copy: the pistol's definition is shared by every weapon that holds it.
+		human.weapon.definition = human.weapon.definition.duplicate()
+		human.weapon.definition.automatic = automatic
 		var camera := Camera3D.new()
 		camera.position = Vector3(0.0, 1.3, 9.0)
 		_arena.add_child(camera)
@@ -258,29 +261,34 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 
 func test_the_step_takes_the_physics_step_as_its_delta() -> void:
 	# The engine moves the body by its own step whatever number is passed, so `step` asserts
-	# (in a debug build) that the two are one; this is the check it makes.
+	# (in a debug build) that `delta` is a whole number of them (a far AI character is stepped
+	# every few ticks with their time, and its move is scaled to match); this is the check it makes.
 	await get_tree().physics_frame
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds())).is_true()
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds() / 2.0)).is_false()
+	var tick := CommandDriver.tick_seconds()
+	assert_bool(_player._is_physics_step(tick)).is_true()
+	assert_bool(_player._is_physics_step(tick * 4.0)).is_true()
+	assert_bool(_player._is_physics_step(tick / 2.0)).is_false()
+	assert_bool(_player._is_physics_step(tick * 1.5)).is_false()
 	assert_bool(_player._is_physics_step(0.0)).is_false()
-	assert_bool(_player._is_physics_step(1.0 / 30.0)).is_false()
 
 
-func test_the_body_its_weapon_and_its_animation_read_no_input_and_no_camera() -> void:
+# Every script of the character (`gameplay/character/`: the body, its model, animation, ragdoll,
+# footsteps and the rest) and of the weapon reads no input and no camera: a server or an AI drives
+# the same files. Only the human's `PlayerInput` (in `gameplay/player/`) reads them.
+func test_the_character_and_its_weapon_read_no_input_and_no_camera() -> void:
 	var reads := RegEx.new()
 	reads.compile("\\bInput\\.|\\bget_camera_3d\\(|\\bget_viewport\\(")
 	var found: Array[String] = []
-	var sources: Array[String] = [
-		"res://gameplay/player/player.gd",
-		"res://gameplay/player/player_animation.gd",
-	]
-	for file in DirAccess.get_files_at("res://gameplay/weapon"):
-		if file.ends_with(".gd"):
-			sources.append("res://gameplay/weapon/" + file)
-	assert_bool(sources.has("res://gameplay/weapon/weapon.gd")).is_true()
+	var sources: Array[String] = []
+	for folder in ["res://gameplay/character", "res://gameplay/weapon"]:
+		for file in DirAccess.get_files_at(folder):
+			if file.ends_with(".gd"):
+				sources.append(folder + "/" + file)
+	for needed in ["character/character.gd", "character/character_ragdoll.gd", "weapon/weapon.gd"]:
+		assert_bool(sources.has("res://gameplay/" + needed)).is_true()
 	for path in sources:
 		var source := FileAccess.get_file_as_string(path)
-		assert_int(source.length()).is_greater(1000)
+		assert_int(source.length()).is_greater(100)
 		var number := 0
 		for line in source.split("\n"):
 			number += 1

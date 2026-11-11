@@ -23,18 +23,21 @@ grenade or a ray gun reuses it.
   `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
   (empty: the `Impacts`'), `mark_scale` and `effect`, an `EffectDef` (a one-shot `CPUParticles3D` scene and a
   three-variant `sound` on `SFX`) that the level's `EffectEmitter` plays ([Effects](third-person-template.md#effects));
-  its `max_instances` is how many hits of the surface can show and sound at once. Add a node and a name for a new
+  its `max_instances` is how many hits of the surface can show and sound at once. The slot plays the sound's takes
+  decoded once to PCM (`DecodedSounds`), so a hit's sound starts in a few microseconds, not the 300 of an Ogg take
+  ([Audio: starting sounds](audio.md#starting-sounds)). Add a node and a name for a new
   surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
   `moving_platform.tscn` `metal`, `target.tscn` `target`; the map's floor and walls are untagged and so the default.
-- **On or off per weapon or projectile.** `Weapon.impacts` (its shots land without a trace when off) and
+- **On or off per weapon or projectile.** `WeaponDef.impacts` (its shots land without a trace when off) and
   `Projectile.impact_effects` (the projectile scene's own, for a game with its own projectile); a shot leaves an
   impact when both are on.
-- **What takes no mark.** A `CharacterBody3D` and a ragdoll bone (the effect and sound still play): a shot stops at a
-  dead body's bones since #924, and a mark on a bone would hang in the air once the body gets up (#876 keeps marks on
-  the body; [Physics layers](physics-layers.md#shots-meet-bones)).
-- **Tests and captures.** `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
+- **What takes no mark.** A `CharacterBody3D` (a living character's capsule; the effect and sound still play). A ragdoll
+  bone takes one and carries it as the body moves, and `clear_marks_on(node)` takes off every mark on a node or under
+  it: the character's `HitReaction` clears the bones when the body gets up ([Hit zones](third-person-hits.md)).
+- **Tests and captures.** The scripts alone: the kit's `godot/tests/gds_game/test_impacts_alone.gd`. In the template:
+  `tests/gameplay/test_impacts.gd`, `test_impact_marks.gd`, `test_impact_surfaces.gd`,
   `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and
   `tests/audio/test_impact_sounds.gd` (real projectiles in a small arena, and in the map);
   `tools/capture/impacts_tour.tscn` plays the pistol through a wall, a pushed cube and the fade (`gds capture frames`,

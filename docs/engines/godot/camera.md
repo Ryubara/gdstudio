@@ -130,11 +130,13 @@ blend takes it to zero.
 
 <!-- new section: the page held Deadnight's shot shake and sprint sway, nothing on a shake any feature can call -->
 
-The templates share one shake, `CameraShake` with `ShakePreset` resources (3D Blank's `core/camera_shake/`, so 3D Third
-Person and every game made from the base have it). It is Deadnight's trauma shake made general: the shake is `max
-rotation x level^exponent x wave`, where `level` is the trauma of a one-shot (it drains by itself, `duration` seconds
-from 1) or the blend of a held source (it eases by `blend_speed`), and the wave is seeded noise (impacts) or a sine
-(a gait). Everything is a function of the steps it was given, so tests and captures see the same shake.
+The templates share one shake, `CameraShake` with `ShakePreset` resources: the scripts are in the synced
+`addons/gds_game/camera_shake/` ([Sync](../../studio/sync.md#gds-game)), so every game has them, and the presets are the
+game's own `.tres` files (3D Blank's `core/camera_shake/presets/`, so 3D Third Person has them too). It is Deadnight's
+trauma shake made general: the shake is `max rotation x level^exponent x wave`, where `level` is the trauma of a
+one-shot (it drains by itself, `duration` seconds from 1) or the blend of a held source (it eases by `blend_speed`), and
+the wave is seeded noise (impacts) or a sine (a gait). Everything is a function of the steps it was given, so tests and
+captures see the same shake.
 
 - **A rig owns one.** `CameraShake` is a node under the camera rig. It only works out the turn; the rig applies it on
   top of its own framing: `rotation_degrees()` (x pitch, y yaw, z roll) and `view_offset()` (a slide of the picture in
@@ -152,7 +154,8 @@ from 1) or the blend of a held source (it eases by `blend_speed`), and the wave 
   CameraShake.shake(preload("res://core/camera_shake/presets/landing.tres"))  # the player's own landing
   ```
 
-- **An impact calls it the same way.** The template's `Impacts` (`gameplay/impacts/`) reports every hit with its
+- **An impact calls it the same way.** `Impacts` (its script in `addons/gds_game/impacts/`, its scene the template's
+  `gameplay/impacts/impacts.tscn`) reports every hit with its
   `impact_made(surface, collider, point, normal)` signal, so one line from a game's own script shakes the view by it
   (`presets/impact.tres`: trauma 0.35, 0.25 s, felt to 15 m, so a hit beside the player is felt and one across the map
   is not):
@@ -162,7 +165,18 @@ from 1) or the blend of a held source (it eases by `blend_speed`), and the wave 
   impacts.impact_made.connect(func(_surface, _collider, point, _normal): CameraShake.shake(IMPACT, point))
   ```
 
-  It is not wired in the template: the default of every shake the player causes is none.
+  3D Third Person wires it for hits near the player (next bullet); any other use is one line like this.
+- **A hit near the player shakes the view.** 3D Third Person's rig has a `NearHitShake` (`gameplay/player/`, under
+  `PlayerCamera` in `ui/player_rig/player_rig.tscn`): it listens to the level's `Impacts.impact_made` and plays its
+  `preset` (`core/camera_shake/presets/near_hit.tres`: trauma 0.6, 0.35 s, felt to 12 m) on the rig's own shaker at the
+  hit's point, so it fades with the distance from the camera and is gone past the radius. A round on the floor 3.6 m
+  away peaks at 0.07 degrees (the template's `near_hit_tour.tscn`); one 20 m away adds nothing. Inspector: `enabled`,
+  `preset`, `strength` (a share of the preset's trauma, on top of `CameraShake.strength`), `shaker`, `impacts`. It plays
+  on its own rig's shaker, not through the static `shake()`, so in a process with several worlds (the online tests) a
+  hit shakes only the camera of its world. Online, `ClientCombat` plays each HIT through the same `Impacts`, so every
+  peer shakes its own view from the event it has; where the screen finds no surface at the point it calls
+  `NearHitShake.play_near(client, point)` itself. The player's own rounds landing close shake it too, by the same
+  falloff (a HIT names no shooter).
 - **A continuous source is held, not played.** `shaker.hold(&"sprint", preset, level)` every frame with the state's
   level (1 while it holds, 0 when not), or `CameraShake.hold_everywhere(source, preset, level, at)`. A held source
   eases in and out by the preset's `blend_speed`, `release(source)` lets it go, and a source at 0 that has died away is
@@ -257,7 +271,9 @@ From Deadnight #702 (a bot's body had the view):
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
   its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty
   capture scripts as `make_current()`, and tests read the person's camera node, never the viewport's. **Seen:**
-  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above).
+  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above); gdstudio #905, 2026-11-11 (clients in
+  one process: each viewport's camera was its own while every Phantom Camera host followed the last client's camera;
+  ask the host's `get_active_pcam()` too, [the online client](third-person/online-client.md#puppets)).
 
 ## A rig no one looks through {#a-rig-no-one-looks-through}
 

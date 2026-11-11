@@ -48,11 +48,12 @@ if emitter != null:
   200 effects and counts them). When the pool is full the oldest effect is cut for the new one. The emitter does nothing
   while no effect plays (`set_process(false)`). It is built to be cosmetic: made on each machine from what happened,
   never sent over the network.
-- **The muzzle flash.** `Weapon.muzzle_flash` (`gameplay/weapon/muzzle_flash.tres`) is an `EffectDef` played on the
-  `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad (`assets/shaders/effects/
-  flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight short sparks and a
-  2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that weapon,
-  `muzzle_flash_size` resizes it, and another weapon points `muzzle_flash` at its own `EffectDef`. The flash stands at
+- **The muzzle flash.** `WeaponDef.muzzle_flash` (the pistol's, `gameplay/weapon/muzzle_flash.tres`) is an `EffectDef`
+  played on the `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad
+  (`assets/shaders/effects/flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight
+  short sparks and a 2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that
+  weapon, the definition's `muzzle_flash_size` resizes it, and another weapon's definition points `muzzle_flash` at
+  its own `EffectDef`. The flash stands at
   the muzzle's position and turns with it for as long as it lasts, and a scaled muzzle does not scale it.
 - **Tests and captures.** `tests/gameplay/test_effect_emitter.gd` (placement, following, ending), `test_effect_pool.gd`
   (the cap, reuse, the oldest cut, lights, switches, node counts), `test_effect_exports.gd` (the defaults and every
@@ -123,7 +124,9 @@ frames after 90 of warm-up, the character in the map, 1280 x 720, vsync off; God
 
   The loading frames link the rest instead: 73 programs and 9.8 to 10.2 s before, 92 and 11.1 to 11.7 s after (the
   same programs, built while the level starts and not at the first shot). The desktop built the same programs in 0 to
-  7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms).
+  7 ms once its shader cache existed (the very first desktop run had one frame of 274 ms). How to export the bench for
+  the browser and run the script (through `gds quiet`, with its Playwright pin) is in the header of
+  `tools/bench/effects_first_use.py` in the template.
 - **A room with a probe of its own** (kit #981): the bench's last two runs walk the character into the room and fire
   there. Before the probe tour the room's probe was drawn while the level started (the camera's view held its box),
   but the character and the effects had never been drawn under two probes: measured with `effects_first_use.py`

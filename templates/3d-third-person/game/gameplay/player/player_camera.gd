@@ -150,6 +150,17 @@ const _FORWARDED: Array[StringName] = [
 ## How fast the shake builds up and dies down (1 is a second).
 @export_range(0.5, 20.0, 0.1, "suffix:/s") var sprint_shake_blend := 4.0
 
+@export_group("Slide")
+## How much wider the field of view gets while the character slides, on top of the sprint view
+## (Titanfall 2 widens its view by a tenth over a quarter of a second). The camera's height
+## follows the character's target, which the tuning's `slide_camera_height` lowers.
+@export_range(-20.0, 30.0, 0.5, "suffix:deg") var slide_fov_change := 5.0:
+	set(value):
+		slide_fov_change = value
+		_forward_blend()
+## How fast the view widens into the slide and back (4 is a quarter of a second).
+@export_range(0.5, 20.0, 0.1, "suffix:/s") var slide_zoom_speed := 4.0
+
 @export_group("Aim")
 ## How far behind the target the lens sits while aiming.
 @export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 1.1:
@@ -288,6 +299,7 @@ var player_sensitivity := 1.0
 var player_invert_y := false
 var _arm_waited := 0
 var _sprint_blend := 0.0
+var _slide_blend := 0.0
 var _aim_blend := 0.0
 var _fire_blend := 0.0
 var _shoulder_pos := 1.0
@@ -379,20 +391,41 @@ func _process(delta: float) -> void:
 func orbit(degrees: Vector2) -> void:
 	yaw = wrapf(yaw - degrees.x, -180.0, 180.0)
 	var vertical := -degrees.y if invert_y != player_invert_y else degrees.y
-	pitch = clampf(pitch + vertical, min_pitch, max_pitch)
+	var limits := pitch_limits()
+	pitch = clampf(pitch + vertical, limits.x, limits.y)
 	orbited.emit(yaw, pitch)
+
+
+## The lowest and highest orbit pitch now, in degrees (positive looks down): `min_pitch` and
+## `max_pitch`, drawn in to the player's prone look limits (`ProneTuning.look_up_limit`,
+## `look_down_limit`) as it lies down, so the lens stays off the ground and the crosshair stays
+## where the lying body can aim.
+func pitch_limits() -> Vector2:
+	var limits := Vector2(min_pitch, max_pitch)
+	if not is_instance_valid(_player) or _player.prone_tuning == null:
+		return limits
+	var lying := smoothstep(0.0, 1.0, _player.prone_amount)
+	if lying <= 0.0:
+		return limits
+	var prone := _player.prone_tuning
+	limits.x = lerpf(min_pitch, maxf(min_pitch, -prone.look_up_limit), lying)
+	limits.y = lerpf(max_pitch, minf(max_pitch, prone.look_down_limit), lying)
+	return limits
 
 
 ## Moves the sprint and aim blends `delta` seconds toward where the player is (sprinting,
 ## aiming), puts the blended view on the Phantom Camera and turns it. `_process` calls it every
 ## frame; a test calls it with the time it wants.
 func advance(delta: float) -> void:
-	var sprinting := is_instance_valid(_player) and _player.is_sprinting()
+	var sliding := is_instance_valid(_player) and _player.sliding
+	# A slide keeps the sprint view: the speed is still there.
+	var sprinting := is_instance_valid(_player) and (_player.is_sprinting() or sliding)
 	# The zoom follows the buttons, not the arm: the character keeps its aim pose for a moment
 	# after a shot, and the camera must not wait for that.
 	var aiming := is_instance_valid(_player) and _player.aim_held
 	var firing := is_instance_valid(_player) and _player.fire_held and zoom_when_firing
 	_sprint_blend = move_toward(_sprint_blend, 1.0 if sprinting else 0.0, sprint_zoom_speed * delta)
+	_slide_blend = move_toward(_slide_blend, 1.0 if sliding else 0.0, slide_zoom_speed * delta)
 	var aim_speed := aim_in_speed if aiming else aim_out_speed
 	_aim_blend = move_toward(_aim_blend, 1.0 if aiming else 0.0, aim_speed * delta)
 	var fire_speed := fire_in_speed if firing else fire_out_speed
@@ -400,7 +433,9 @@ func advance(delta: float) -> void:
 	_shoulder_pos = move_toward(
 		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(shoulder_time, 0.001)
 	)
-	_step_shake(sprinting, delta)
+	_step_shake(sprinting and not sliding, delta)
+	var limits := pitch_limits()
+	pitch = clampf(pitch, limits.x, limits.y)
 	_forward_blend()
 	_apply()
 
@@ -419,10 +454,14 @@ func current_distance() -> float:
 	return lerpf(fire, aim_distance, _eased(_aim_blend))
 
 
-## The field of view now: `field_of_view`, wider while sprinting, `fire_fov` while firing,
-## `aim_fov` while aiming.
+## The field of view now: `field_of_view`, wider while sprinting and sliding, `fire_fov` while
+## firing, `aim_fov` while aiming.
 func current_fov() -> float:
-	var sprint := field_of_view + sprint_fov_change * _eased(_sprint_blend)
+	var sprint := (
+		field_of_view
+		+ sprint_fov_change * _eased(_sprint_blend)
+		+ slide_fov_change * _eased(_slide_blend)
+	)
 	var fire := lerpf(sprint, fire_fov, _eased(_fire_blend))
 	return lerpf(fire, aim_fov, _eased(_aim_blend))
 
@@ -450,6 +489,11 @@ func current_shake() -> Vector3:
 	return shaker.rotation_degrees() if is_instance_valid(shaker) else Vector3.ZERO
 
 
+## How far into the slide view the camera is, 0 to 1.
+func slide_blend() -> float:
+	return _slide_blend
+
+
 ## How far into the sprint view the camera is, 0 to 1.
 func sprint_blend() -> float:
 	return _sprint_blend
@@ -465,11 +509,11 @@ func fire_blend() -> float:
 	return _fire_blend
 
 
-## Kicks the view by one shot (`shot_kick_amplitude`). The player's weapon calls it through its
-## `fired` signal; a weapon of your own may call it too.
-func kick() -> void:
-	if shot_kick_amplitude > 0.0 and is_instance_valid(shaker):
-		_set_kick()
+## Kicks the view by one shot (`shot_kick_amplitude` times `share`). The player's weapon calls it
+## through its `fired` signal with its definition's `recoil`; a weapon of your own may call it too.
+func kick(share := 1.0) -> void:
+	if shot_kick_amplitude > 0.0 and share > 0.0 and is_instance_valid(shaker):
+		_set_kick(share)
 		shaker.add(_shot_kick)
 
 
@@ -505,7 +549,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _on_shot(_projectile: Projectile) -> void:
-	kick()
+	var held: WeaponDef = null
+	if is_instance_valid(_player) and is_instance_valid(_player.weapon):
+		held = _player.weapon.definition
+	kick(held.recoil if held != null else 1.0)
 
 
 # The shake component: the one in the scene, or one made now. This rig steps it.
@@ -535,10 +582,10 @@ func _step_shake(sprinting: bool, delta: float) -> void:
 	shaker.advance(delta)
 
 
-# One shot's worth of kick: its largest turn is `shot_kick_amplitude` (a trauma of 0.5 and a
-# straight curve), with smaller sideways turn and roll.
-func _set_kick() -> void:
-	var peak := shot_kick_amplitude * 2.0
+# One shot's worth of kick: its largest turn is `shot_kick_amplitude` times `share` (a trauma of
+# 0.5 and a straight curve), with smaller sideways turn and roll.
+func _set_kick(share: float) -> void:
+	var peak := shot_kick_amplitude * share * 2.0
 	_shot_kick.max_rotation = Vector3(peak, peak * 0.5, peak * 0.3)
 	_shot_kick.duration = shot_kick_duration
 	_shot_kick.frequency = 18.0

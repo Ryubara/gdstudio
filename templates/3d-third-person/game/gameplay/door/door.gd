@@ -2,13 +2,16 @@
 class_name Door
 extends AnimatableBody3D
 ## A door that slides or swings open. It works on its own: open it from a signal (`open()`),
-## from a trigger, or let it open when a body comes near (`auto_open_range`). The panel moves in
-## the physics step with the same fixed timestep every run, so a test sees the same door a
-## player does.
+## from a trigger, or let it open when a body comes near (`auto_open_range`). The panel is a pure
+## function of the physics tick (`openness_at`): each change starts a motion at a tick, so a test
+## sees the same door a player does, and in an online game the server and a predicting client put
+## the panel at the same place for the same tick (its `NetEntity`, `NetWorld`).
 ##
-## Its parts are nodes of `door.tscn`: `Panel` (the mesh), `Shape` (what blocks the way) and
-## `Sensor` (an area, its sphere is `auto_open_range`, drawn by the editor), so open the scene to
-## restyle the door. `panel_size` and `auto_open_range` follow the inspector live.
+## Its parts are nodes of `door.tscn`: `Panel` (the mesh), `Shape` (what blocks the way),
+## `Sensor` (an area, its sphere is `auto_open_range`, drawn by the editor) and `Interactable`
+## (where a character's interact button finds it; its `interacted` signal is connected to
+## `interact()` in the scene), so open the scene to restyle the door. `panel_size` and
+## `auto_open_range` follow the inspector live.
 
 ## The door finished opening.
 signal opened
@@ -78,19 +81,36 @@ enum Style {
 	set(value):
 		auto_open_mask = value
 		_update_sensor()
-## Lets a character open and close the door with its interact button (`Player` finds nodes of
-## the group `interactable`).
+## Lets a character open and close the door with its interact button: switches the door's
+## `Interactable` on or off.
 @export var player_can_use := true:
 	set(value):
 		player_can_use = value
 		_update_usable()
 
-var _openness := 0.0
+# The motion under way: from `_from` toward `_target` from tick `_start`; before `_start`, the
+# motion before it (`_was_*`).
+var _start := 0
+var _from := 0.0
 var _target := 0.0
+var _was_start := 0
+var _was_from := 0.0
+var _was_target := 0.0
+# The ticks this door has stepped: its clock when no server drives it.
+var _tick := 0
+# The openness the last step showed (the signals fire when it reaches an end).
+var _shown := 0.0
+# The openness `net_place` last put the panel at (a door at rest costs nothing to place).
+var _placed := -1.0
 var _open_for := 0.0
 var _home := Transform3D.IDENTITY
+var _usable_home := Transform3D.IDENTITY
 # Set when the door is closed with a character in range: auto-open waits for the range to empty.
 var _held_shut := false
+# The characters inside the auto-open range, kept by the sensor's signals (no query a tick).
+var _near: Array[CharacterBody3D] = []
+# The door's place in an online game (its `NetEntity` child), or null.
+var _net: NetEntity
 
 
 func _ready() -> void:
@@ -98,79 +118,102 @@ func _ready() -> void:
 	_update_sensor()
 	if Engine.is_editor_hint():
 		return
+	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, net_place)
+	var sensor := _sensor()
+	if sensor != null:
+		sensor.body_entered.connect(_on_sensor_entered)
+		sensor.body_exited.connect(_on_sensor_exited)
 	sync_to_physics = true
 	_home = transform
+	var usable := _interactable()
+	if usable != null:
+		_usable_home = usable.transform
 	_update_usable()
-	_openness = 1.0 if start_open else 0.0
-	_target = _openness
-	_apply()
+	_from = 1.0 if start_open else 0.0
+	_target = _from
+	_was_from = _from
+	_was_target = _from
+	_shown = _from
+	_apply(_from)
 
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
+		return
+	if _net == null or not _net.is_online():
+		_tick += 1
+	var value := openness()
+	if not _is_online():
+		_apply(value)
+	if value != _shown:
+		_shown = value
+		if value == 1.0:
+			opened.emit()
+		elif value == 0.0:
+			closed.emit()
+	if _is_remote():
 		return
 	if auto_open_range > 0.0:
 		if not _character_near():
 			_held_shut = false
 		elif not locked and not _held_shut:
 			open()
-	if _target > _openness:
-		_openness = minf(_openness + delta / open_time, _target)
-		_apply()
-		if _openness == 1.0:
-			opened.emit()
-	elif _target < _openness:
-		_openness = maxf(_openness - delta / open_time, _target)
-		_apply()
-		if _openness == 0.0:
-			closed.emit()
-	elif _openness == 1.0 and close_after > 0.0:
+	if not is_moving() and value == 1.0 and close_after > 0.0:
 		_open_for = 0.0 if _character_near() else _open_for + delta
 		if _open_for >= close_after:
 			close()
 
 
+## How open the panel is at physics tick `tick` (0 closed, 1 open): the motion under way, or the
+## one before it for a tick before its start.
+func openness_at(tick: int) -> float:
+	if tick < _start:
+		return _along(_was_from, _was_target, tick - _was_start)
+	return _along(_from, _target, tick - _start)
+
+
 ## True once the door is fully open.
 func is_open() -> bool:
-	return _openness >= 1.0
+	return openness() >= 1.0
 
 
-## True while the door is moving.
+## True while the door is moving, or about to (a change the server decided starts a moment later).
 func is_moving() -> bool:
-	return _openness != _target
+	var now := _now()
+	return now < _start or openness_at(now) != _target
 
 
 ## 0 when closed, 1 when open.
 func openness() -> float:
-	return _openness
+	return openness_at(_now())
 
 
+## Opens the door (on a client of an online game only the server opens it: nothing happens).
 func open() -> void:
+	if _is_remote():
+		return
 	if locked:
 		blocked.emit()
 		return
 	_open_for = 0.0
 	_held_shut = false
-	_target = 1.0
+	_move_to(1.0)
 
 
-## Closes the door. With a character in the auto-open range it stays shut until the range empties.
+## Closes the door. With a character in range it stays shut until the range empties.
 func close() -> void:
-	_target = 0.0
+	if _is_remote():
+		return
+	_move_to(0.0)
 	_held_shut = _character_near()
 
 
-## What a character's interact button calls: opens a closed door, closes an open one.
+## What the door's `Interactable` calls when a character uses it: opens a closed door, closes an
+## open one.
 func interact(_by: Node3D = null) -> void:
 	toggle()
-
-
-## Where the character measures its reach from: the closed door's place, so a gate that swings
-## away from its hinge can still be closed by the one who stands in front of it.
-func interact_point() -> Vector3:
-	var parent := get_parent() as Node3D
-	var home := parent.global_transform * _home if parent != null else _home
-	return home.origin
 
 
 func toggle() -> void:
@@ -181,43 +224,138 @@ func toggle() -> void:
 
 
 func lock() -> void:
-	locked = true
+	if not _is_remote():
+		locked = true
+		_report()
 
 
 func unlock() -> void:
-	locked = false
+	if not _is_remote():
+		locked = false
+		_report()
+
+
+# --- Online (NetEntity) ---
+
+
+## Who runs the door (`NetWorld` sets it). Online the panel is a static body that the world puts
+## at each tick's place (`net_place`), so a body stepped in the same frame meets it at once: a
+## kinematic body moves only in the next physics step (third-person/net-world.md).
+func net_set_role(role: NetEntity.Role) -> void:
+	if role == NetEntity.Role.OFFLINE:
+		return
+	sync_to_physics = false
+	PhysicsServer3D.body_set_mode(get_rid(), PhysicsServer3D.BODY_MODE_STATIC)
+	_update_sensor()
+
+
+## Puts the panel where it is at `tick`, at once for the physics queries of this frame.
+func net_place(tick: int) -> void:
+	var value := openness_at(tick)
+	if value == _placed:
+		return
+	_placed = value
+	_apply(value)
+	force_update_transform()
+
+
+## The state as at server tick `at_tick`: u8 flags (1 opening, 2 locked), u16 the openness the
+## motion starts from (of 65535), u8 the ticks from `at_tick` to its start. 4 bytes.
+func net_write(at_tick: int) -> PackedByteArray:
+	var from := _from if _start > at_tick else openness_at(at_tick)
+	var out := PackedByteArray([0, 0, 0, clampi(_start - at_tick, 0, 255)])
+	out[0] = (1 if _target > 0.5 else 0) | (2 if locked else 0)
+	out.encode_u16(1, roundi(clampf(from, 0.0, 1.0) * 65535.0))
+	return out
+
+
+## Reads a state written as at `at_tick` (false for one that is not a door's).
+func net_read(state: PackedByteArray, at_tick: int) -> bool:
+	if state.size() != 4:
+		return false
+	locked = state[0] & 2 != 0
+	_begin(at_tick + state[3], state.decode_u16(1) / 65535.0, 1.0 if state[0] & 1 else 0.0)
+	return true
+
+
+func _now() -> int:
+	return _net.now() if _is_online() else _tick
+
+
+func _is_online() -> bool:
+	return _net != null and _net.is_online()
+
+
+# A client of an online game: the server's records move this door.
+func _is_remote() -> bool:
+	return _net != null and _net.role == NetEntity.Role.CLIENT
+
+
+# A motion toward `target` from the tick a change starts at: this tick offline, the server's tick
+# and its lead online (where the openness starts is rounded as the wire carries it).
+func _move_to(target: float) -> void:
+	var start := _net.start_tick() if _is_online() else _tick
+	var from := openness_at(start)
+	if _is_online():
+		from = roundi(from * 65535.0) / 65535.0
+	_begin(start, from, target)
+	_report()
+
+
+func _begin(start: int, from: float, target: float) -> void:
+	_was_start = _start
+	_was_from = _from
+	_was_target = _target
+	_start = start
+	_from = from
+	_target = target
+
+
+func _report() -> void:
+	if _net != null:
+		_net.report()
+
+
+func _along(from: float, target: float, ticks: int) -> float:
+	if ticks <= 0:
+		return from
+	return move_toward(from, target, ticks / (open_time * Engine.physics_ticks_per_second))
 
 
 # True while a character is inside the auto-open range. The mask keeps the level out; only a
 # `CharacterBody3D` counts as well, for a game whose mask also lists the level or props.
 func _character_near() -> bool:
-	var sensor := _sensor()
-	if auto_open_range <= 0.0 or sensor == null:
-		return false
-	for body in sensor.get_overlapping_bodies():
-		if body is CharacterBody3D:
-			return true
-	return false
+	return auto_open_range > 0.0 and not _near.is_empty()
+
+
+func _on_sensor_entered(body: Node3D) -> void:
+	if body is CharacterBody3D and not _near.has(body):
+		_near.append(body)
+
+
+func _on_sensor_exited(body: Node3D) -> void:
+	_near.erase(body)
 
 
 # Moves the panel to where the new motion settings put it, while the game runs.
 func _apply_live() -> void:
+	_placed = -1.0
 	if is_node_ready() and not Engine.is_editor_hint():
-		_apply()
+		_apply(openness())
 
 
-func _apply() -> void:
+func _apply(value: float) -> void:
 	var offset := Transform3D.IDENTITY
 	match style:
 		Style.SLIDE_UP:
 			var rise := slide_distance if slide_distance > 0.0 else panel_size.y
-			offset.origin = Vector3.UP * rise * _openness
+			offset.origin = Vector3.UP * rise * value
 		Style.SLIDE_SIDE:
 			var run := slide_distance if slide_distance > 0.0 else panel_size.x
-			offset.origin = Vector3.RIGHT * run * _openness
+			offset.origin = Vector3.RIGHT * run * value
 		Style.SWING:
 			var hinge := Vector3(-panel_size.x / 2.0, 0.0, 0.0)
-			var turn := Basis(Vector3.UP, deg_to_rad(-swing_angle) * _openness)
+			var turn := Basis(Vector3.UP, deg_to_rad(-swing_angle) * value)
 			offset = Transform3D(turn, hinge - turn * hinge)
 	transform = _home * offset
 	# The sensor measures from where the closed door stands, so it does not ride up with the panel.
@@ -225,6 +363,10 @@ func _apply() -> void:
 	var panel := _panel()
 	if sensor != null and panel != null:
 		sensor.transform = offset.affine_inverse() * Transform3D(Basis.IDENTITY, panel.position)
+	# So does the `Interactable`: a gate that swings away is still found where it stands closed.
+	var usable := _interactable()
+	if usable != null:
+		usable.transform = offset.affine_inverse() * _usable_home
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -235,6 +377,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 			. append(
 				"The scene needs `Panel` (MeshInstance3D), `Shape` (CollisionShape3D) and `Sensor` (Area3D)."
 			)
+		)
+	if player_can_use and _interactable() == null:
+		warnings.append(
+			"`player_can_use` is on but the door has no `Interactable` child: nobody can use it."
 		)
 	return warnings
 
@@ -249,6 +395,13 @@ func _shape() -> CollisionShape3D:
 
 func _sensor() -> Area3D:
 	return get_node_or_null("%Sensor") as Area3D
+
+
+func _interactable() -> Interactable:
+	for child in get_children():
+		if child is Interactable:
+			return child
+	return null
 
 
 # Puts `panel_size` and `panel_material` on the panel's own mesh and shape (each door has its own
@@ -274,17 +427,17 @@ func _update_sensor() -> void:
 	if sensor == null:
 		return
 	sensor.collision_mask = auto_open_mask
-	sensor.monitoring = auto_open_range > 0.0 and not Engine.is_editor_hint()
+	sensor.monitoring = auto_open_range > 0.0 and not Engine.is_editor_hint() and not _is_remote()
+	if not sensor.monitoring:
+		_near.clear()
 	var ball := sensor.get_node_or_null("%SensorShape") as CollisionShape3D
 	if ball != null:
 		(ball.shape as SphereShape3D).radius = maxf(auto_open_range, 0.01)
 
 
-# A usable door is in the group a character looks in.
+# A usable door's `Interactable` is on; a character's interactor passes over one that is off.
 func _update_usable() -> void:
-	if Engine.is_editor_hint() or not is_inside_tree():
-		return
-	if player_can_use:
-		add_to_group(&"interactable")
-	else:
-		remove_from_group(&"interactable")
+	var usable := _interactable()
+	if usable != null:
+		usable.enabled = player_can_use
+	update_configuration_warnings()

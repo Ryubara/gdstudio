@@ -15,12 +15,15 @@ const SEAT_TOLERANCE := 0.02
 
 var _arena: PlayArena
 var _player: Player
-var _slot: PlayerModel
+var _slot: CharacterModel
 var _animation_player: AnimationPlayer
 var _tree: AnimationTree
+## The right hand's pose as each watched skeleton last updated it, by the skeleton's instance id.
+var _hands := {}
 
 
 func before_test() -> void:
+	_hands.clear()
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 25.0))
@@ -146,13 +149,31 @@ func test_the_pose_moves_on_the_new_model() -> void:
 
 # How far the pistol's seat (the `BoneAttachment3D` itself, not the pistol's own offset from it) is
 # from the bone it hangs on, in metres.
-func _seat_error(slot: PlayerModel) -> float:
+func _seat_error(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var seat := slot.get_node("PistolHeld") as BoneAttachment3D
-	var hand := (
-		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	var hand := skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	# The hold's modifiers move the arm after the clip, and the seat follows their result, which
+	# the skeleton only gives in its update: `_watch()` copied it there.
+	if _hands.has(skeleton.get_instance_id()):
+		hand = _hands[skeleton.get_instance_id()]
+	return seat.global_position.distance_to((skeleton.global_transform * hand).origin)
+
+
+# Copies the right hand's pose in every update of the skeleton of `slot` from now on.
+func _watch(slot: CharacterModel) -> void:
+	var skeleton := slot.skeleton()
+	if not _hands.has(skeleton.get_instance_id()):
+		_hands[skeleton.get_instance_id()] = skeleton.get_bone_global_pose(
+			skeleton.find_bone(&"hand_r")
+		)
+		skeleton.skeleton_updated.connect(_copy_hand.bind(skeleton))
+
+
+func _copy_hand(skeleton: Skeleton3D) -> void:
+	_hands[skeleton.get_instance_id()] = skeleton.get_bone_global_pose(
+		skeleton.find_bone(&"hand_r")
 	)
-	return seat.global_position.distance_to(hand.origin)
 
 
 func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
@@ -161,6 +182,7 @@ func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
 	var seat := _slot.get_node("PistolHeld") as BoneAttachment3D
 	assert_bool(seat.use_external_skeleton).is_true()
 	assert_object(seat.get_node(seat.get_external_skeleton())).is_same(skeleton)
+	_watch(_slot)
 	await InputSim.ticks(get_tree(), 4)
 	assert_float(_seat_error(_slot)).is_less(SEAT_TOLERANCE)
 	var pistol := seat.get_node("Pistol") as Node3D
@@ -200,9 +222,10 @@ func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_sc
 # Crouch-walks the player of `slot` for a second and a half and returns the largest distance the
 # pistol's seat was from the hand in any frame once the pose had updated. It also checks that the
 # hand really moved, which a seat left behind would not follow.
-func _walk_and_measure(slot: PlayerModel) -> float:
+func _walk_and_measure(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var hand := skeleton.find_bone(&"hand_r")
+	_watch(slot)
 	InputSim.key(KEY_X, true)
 	InputSim.key(KEY_W, true)
 	await InputSim.ticks(get_tree(), 3)
@@ -241,7 +264,7 @@ func test_the_footsteps_follow_the_new_skeleton() -> void:
 
 
 func test_a_model_without_the_rigs_armature_gets_one_warning_and_no_model_another() -> void:
-	var animation := _player.get_node("Animation") as PlayerAnimation
+	var animation := _player.get_node("Animation") as CharacterAnimation
 	assert_array(animation._get_configuration_warnings()).is_empty()
 	assert_array(_slot._get_configuration_warnings()).is_empty()
 	_remove_rig()
@@ -275,11 +298,12 @@ func test_nothing_between_the_player_and_the_model_has_a_unique_name() -> void:
 	assert_str(String(_tree.root_node)).is_equal(path)
 
 
-func test_only_two_lines_of_the_player_scene_name_the_mannequin() -> void:
+func test_only_two_lines_of_the_dressed_scene_name_the_mannequin() -> void:
 	# The animation player's Root Node and the pistol's seat name it, and the slot rewrites both
 	# when the model is replaced. Nothing else may: a path into a model is lost with the model.
-	var text := FileAccess.get_file_as_string("res://gameplay/player/player.tscn")
-	var header := '[node name="Model" type="Node3D" parent="."]\nscript'
+	# The model is the dressed character's (the player inherits it and names no mannequin).
+	var text := FileAccess.get_file_as_string("res://gameplay/character/character_dressed.tscn")
+	var header := '[node name="Model" type="Node3D" parent="." index="1"]\nscript'
 	assert_bool(text.contains(header)).is_true()
 	var named: Array[String] = []
 	for line in text.split("\n"):

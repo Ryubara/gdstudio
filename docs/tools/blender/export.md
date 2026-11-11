@@ -62,7 +62,8 @@ an armature brings an extra object.
   at the rig) instead of every mesh in the scene, or delete the collection `glTF_not_exported`. **Watch out for:**
   Blender 5.2's importer adds an `Icosphere` of radius 1, unparented, as every bone's custom shape, so a lowest-vertex
   or triangle count over the scene's meshes reads a sphere reaching 1 m under the floor. **Seen:** gdstudio #774,
-  2026-11-07 (fix: the `clip-walk` baseline run deleted it; the eval checks read only skinned meshes).
+  2026-11-07 (fix: the `clip-walk` baseline run deleted it; the eval checks read only skinned meshes); the Blender
+  model duel, 2026-11-10 (an entry's triangle count of its rigged character counted the sphere).
 
 ## In the evals {#eval}
 

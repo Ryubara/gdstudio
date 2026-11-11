@@ -7,23 +7,39 @@ extends GdUnitTestSuite
 ## be named here or in `CharacterState.FIELDS`, or the suite fails.
 const NOT_STATE := {
 	&"tuning": "an export",
+	&"prone_tuning": "an export",
+	&"prone": "read only, from _prone",
+	&"prone_amount": "read only, from _prone",
 	&"start_at_spawn": "an export",
 	&"model": "an export (a node)",
 	&"controller": "an export (a node)",
 	&"weapon": "an export (a node)",
+	&"loadout": "an export (a node); its own state is `CharacterState.loadout`",
 	&"ragdoll_body": "an export (a node)",
 	&"ragdoll": "an export; death is an event (die, revive), not restored",
 	&"ragdoll_key": "an export",
 	&"ragdoll_by_command": "an export",
 	&"input_enabled": "an export",
+	&"inventory": "an export (the bag is not stepped: a screen changes it)",
 	&"died_by_clip": "how a death looks; death is not restored",
 	&"items": "what the character holds: the game's state, not the step's",
+	&"max_health": "the Health child's, read only",
+	&"health": "the Health child's value: hits change it, the step never reads it",
 	&"last_command": "written again by every step before it is read",
+	&"_copied": "which command `last_command` was copied from, so a repeat is not copied again",
+	&"slide_tuning": "an export",
+	&"sliding": "read only, from _slide",
+	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
+	&"vault_settings": "an export",
+	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
+	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
+	&"is_puppet": "set once by make_puppet() before the body enters the tree; a puppet never steps",
 	&"_interactor": "a node",
 	&"_body": "a node",
 	&"_camera_target": "a node",
+	&"_rider": "the online platform under it after its last move, found again by the next",
 }
 
 var _arena: PlayArena
@@ -185,14 +201,16 @@ func _press_fire(count: int) -> Array:
 
 
 func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -> void:
-	_player.weapon.spread = 5.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	_player.weapon.definition.spread = 5.0
 	var aim := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
 	aim.aim = true
 	await _run(aim, 30)
 	# A first shot, then ten ticks into its quarter second of cooldown.
 	assert_array(await _press_fire(10)).has_size(2)
 	var kept := _player.state_snapshot()
-	assert_array(kept.weapon).has_size(2)
+	assert_array(kept.weapon).has_size(5)
 	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
 	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
 	var first := await _press_fire(40)

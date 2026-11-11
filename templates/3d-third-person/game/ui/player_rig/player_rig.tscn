@@ -8,10 +8,13 @@
 [ext_resource type="PackedScene" path="res://ui/touch/third_person_touch_controls.tscn" id="6_touch"]
 [ext_resource type="Script" path="res://gameplay/player/look_settings.gd" id="7_look"]
 [ext_resource type="PackedScene" path="res://ui/menus/pause_button.tscn" id="8_pause_button"]
-[ext_resource type="Script" path="res://core/camera_shake/camera_shake.gd" id="9_shake"]
+[ext_resource type="Script" path="res://addons/gds_game/camera_shake/camera_shake.gd" id="9_shake"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="10_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="11_arrow"]
 [ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="12_map"]
+[ext_resource type="PackedScene" path="res://ui/inventory/inventory_screen.tscn" id="13_inventory"]
+[ext_resource type="Script" path="res://gameplay/player/near_hit_shake.gd" id="14_near_hit"]
+[ext_resource type="Resource" path="res://core/camera_shake/presets/near_hit.tres" id="15_near_hit_preset"]
 
 [node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("1_rig")
@@ -42,6 +45,11 @@ player = NodePath("../Player")
 script = ExtResource("9_shake")
 auto_advance = false
 
+[node name="NearHitShake" type="Node" parent="PlayerCamera" node_paths=PackedStringArray("shaker")]
+script = ExtResource("14_near_hit")
+preset = ExtResource("15_near_hit_preset")
+shaker = NodePath("../CameraShake")
+
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")
 follow_mode = 6
@@ -66,6 +74,13 @@ layer = 2
 
 [node name="PauseButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
 touch = NodePath("../../TouchControls")
+
+[node name="BagButton" parent="MenuLayer" node_paths=PackedStringArray("touch") instance=ExtResource("8_pause_button")]
+offset_left = 100.0
+offset_right = 268.0
+text = "Bag"
+touch = NodePath("../../TouchControls")
+screen = ExtResource("13_inventory")
 
 [node name="MapLayer" parent="." instance=ExtResource("12_map")]
 

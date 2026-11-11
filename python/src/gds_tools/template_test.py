@@ -265,6 +265,8 @@ def run_template_test(
     folder = make_throwaway(real, kit, base)
     result = Result(code=1, workspace=folder, kept=keep)
     try:
+        # The source first: the checkout whose `gds` runs (its module path), never the current folder (kit #1048).
+        log(f"kit       {kit} ({workspace.describe_kit(kit)})")
         log(f"workspace {folder}")
         started = time.monotonic()
         game = (maker or default_maker())(kit, folder, GAME_NAME, template)
@@ -352,6 +354,7 @@ def make_game(
     new_game.load_template(kit, template)
     godot = workspace.tool_path("godot", real)
     folder = make_throwaway(real, kit, base)
+    log(f"kit       {kit} ({workspace.describe_kit(kit)})")
     try:
         game = (maker or default_maker())(kit, folder, GAME_NAME, template)
         code, output = runner(

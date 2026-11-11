@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://gameplay/spawn_point/spawn_point.gd" id="1_spawn"]
+[ext_resource type="Script" path="res://addons/gds_game/spawn_point/spawn_point.gd" id="1_spawn"]
 
 [sub_resource type="PrismMesh" id="PrismMesh_arrow"]
 size = Vector3(0.6, 0.6, 0.1)

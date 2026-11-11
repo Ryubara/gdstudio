@@ -5,14 +5,18 @@ extends Area3D
 ## `CharacterBody3D` on the Collision > Mask layers: Characters, so the area never even hears of a
 ## wall, the floor or a crate beside it) touches it, `collected` says who took what. The area sits
 ## on the Sensors layer. `characters_only` checks the class as well, for a mask that lists more.
-## It does nothing else: the game decides what an item means (a body with a
-## `collect(item_id, amount)` method, like `Player`, is also told). It works on its own and can
+## It does nothing else: the game decides what an item means (a `Character`, the player among
+## them, is also given it with `Character.collect()`). It works on its own and can
 ## come back after a while.
 ##
 ## Its look is two nodes of `pickup.tscn`, `Visual` (the mesh) and `Shape` (what a body touches),
 ## so open the scene to restyle it. `tint` and `item_size` follow the inspector live. Its sound is
 ## the `Sound` node (an `AudioStreamPlayer3D`: volume, bus and distance are its own); a pickup
 ## with no `respawn_time` waits for the sound to end before it goes.
+##
+## In an online game (its `NetEntity`) only the server's copy is taken, by the first server body to
+## touch it; a client's copy never senses a body, and hides, plays its sound and gives the local
+## player the item when the server says who took it (`net_take`).
 
 ## A body took the pickup. `item_id` and `amount` are the inspector's values.
 signal collected(collector: Node3D, item_id: StringName, amount: int)
@@ -61,9 +65,14 @@ signal respawned
 @export_range(0.0, 600.0, 0.5, "or_greater", "suffix:s") var respawn_time := 0.0
 
 var _phase := 0.0
+# The `Visual` node, found once (it was looked up by its unique name every frame).
+var _visual_node: MeshInstance3D
 var _hidden_for := -1.0
 var _rng := RandomNumberGenerator.new()
 var _last_sound := -1
+var _available := true
+# The pickup's place in an online game (its `NetEntity` child), or null.
+var _net: NetEntity
 
 
 func _ready() -> void:
@@ -72,23 +81,67 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
+	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, Callable(), net_take)
 	body_entered.connect(_on_body_entered)
 
 
 func _process(delta: float) -> void:
 	_phase += delta
-	var visual := _visual()
+	if _visual_node == null:
+		_visual_node = _visual()
+	var visual := _visual_node
 	visual.rotation.y = deg_to_rad(spin_speed) * _phase
 	visual.position.y = sin(TAU * _phase / bob_period) * bob_height
 	if _hidden_for >= 0.0:
 		_hidden_for += delta
-		if respawn_time > 0.0 and _hidden_for >= respawn_time:
+		if respawn_time > 0.0 and _hidden_for >= respawn_time and not _is_remote():
 			_show_again()
+			if _net != null:
+				_net.report()
 
 
 ## True while the item can be taken.
 func is_available() -> bool:
-	return monitoring and _visual().visible
+	return _available
+
+
+## Who runs the pickup (`NetWorld` sets it): a client's copy senses no body.
+func net_set_role(role: NetEntity.Role) -> void:
+	if role == NetEntity.Role.CLIENT:
+		set_deferred("monitoring", false)
+
+
+## The state: u8 1 while it can be taken. 1 byte.
+func net_write(_at_tick: int) -> PackedByteArray:
+	return PackedByteArray([1 if _available else 0])
+
+
+## Reads a state (false for one that is not a pickup's): it shows or hides, quietly.
+func net_read(state: PackedByteArray, _at_tick: int) -> bool:
+	if state.size() != 1:
+		return false
+	if state[0] != 0 and not _available:
+		_show_again()
+	elif state[0] == 0 and _available:
+		_hide_now()
+	return true
+
+
+## The server says the pickup was taken: it hides and plays its sound, and `by` (the local player,
+## when this client took it; null for another player) is given the item and `collected` says so.
+func net_take(by: Node3D) -> void:
+	if not _available:
+		return
+	if by != null:
+		_give(by)
+	_hide_now()
+	_play_sound()
+
+
+func _is_remote() -> bool:
+	return _net != null and _net.role == NetEntity.Role.CLIENT
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -111,17 +164,28 @@ func _shape() -> CollisionShape3D:
 func _on_body_entered(body: Node3D) -> void:
 	if not is_available() or (characters_only and not body is CharacterBody3D):
 		return
-	collected.emit(body, item_id, amount)
-	# A body that keeps count (`Player`) is told too, so no wiring is needed to carry a coin.
-	if body.has_method(&"collect"):
-		body.call(&"collect", item_id, amount)
+	if _is_remote():
+		return
+	_give(body)
 	_hide_now()
 	var length := _play_sound()
+	if _net != null and _net.is_online():
+		# Online the part stays (its id is its place in the map) and the server says who took it.
+		_net.report_taken(body)
+		return
 	if respawn_time <= 0.0:
 		if length > 0.0:
 			get_tree().create_timer(length).timeout.connect(queue_free)
 		else:
 			queue_free()
+
+
+func _give(body: Node3D) -> void:
+	collected.emit(body, item_id, amount)
+	# A character keeps count, so no wiring is needed to carry a coin.
+	var character := body as Character
+	if character != null:
+		character.collect(item_id, amount)
 
 
 # Plays one of the sounds and returns how long it lasts (zero when there is nothing to play).
@@ -140,14 +204,16 @@ func _play_sound() -> float:
 
 
 func _hide_now() -> void:
+	_available = false
 	_visual().visible = false
 	set_deferred("monitoring", false)
 	_hidden_for = 0.0
 
 
 func _show_again() -> void:
+	_available = true
 	_visual().visible = true
-	monitoring = true
+	monitoring = not _is_remote()
 	_hidden_for = -1.0
 	respawned.emit()
 

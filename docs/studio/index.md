@@ -28,4 +28,5 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [What to plan from the start](plan-from-the-start.md) | A day-one checklist for the next game, from every gap nobody planned for on Deadnight. |
 | [Reading an ask](asks.md) | Numbers, defaults and words about people in an ask; who owns a job already. |
 | [Railway](railway.md) | Deploying and testing a service with the CLI: which project a command acts on, service settings, services that deploy apart. |
+| [The kit's tests](kit-tests.md) | How `pytest python/tests` runs here and in CI: workers, seeded repositories, allowed skips, no real services. |
 | [CI and deploys](ci.md) | How runs on the default branch finish and how a merge reaches the live deploy. |

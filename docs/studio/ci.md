@@ -64,6 +64,19 @@ they are rerun, replayed or read from another branch -->
   limit from the branch's own `ci.yml`, so two pull requests rerun, then closed and reopened, after `main` raised the
   `godot` limit from 20 to 30 minutes were still cancelled at 20. **Seen:** Deadnight #501, #507 and #525, 2026-11-02
   (fix: main merged into each branch).
+- **Approach:** When a push shows `pr`, `hold` and `pr-status` but no `ci`, `conventions` or `docs`, read `gh pr view N
+  --json mergeable`: on `CONFLICTING` run `gds merge-main` and push; on `MERGEABLE` wait five minutes for the late runs
+  before closing and reopening. **Watch out for:** `pull_request` workflows run on the merge commit GitHub builds,
+  `pull_request_target` ones on the base, so a conflict starts no `ci` at all and a slow merge build delays it, while
+  the base-side checks run at once; a close and reopen raced the late run and one cancelled the other (one group per
+  pull request). **Seen:** gdstudio #912 and #951, 2026-11-10 (clean merges; `ci` came 2 and 4 minutes late, after the
+  reopen); gdstudio #988 (opened in conflict: no `ci` until a merge of main). Found for gdstudio #1003 in the run list.
+- **Approach:** Before you wait on a check that `gh pr checks` still shows as pending, read its run (`gh run view <id>
+  --json status,conclusion,headSha`); when that run is `completed` and `success` on the pull request's head, and
+  another entry of the same name passed, the check is done. **Watch out for:** after `gh pr edit` a second `title` entry
+  stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
+  that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
+  42893048440).
 
 ## Reruns {#reruns}
 

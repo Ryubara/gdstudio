@@ -20,11 +20,11 @@ so code and the inspector say the same thing. The constants script moves to the 
 | --- | --- | --- | --- | --- |
 | 1 | World | `WORLD` | floors, walls, `ProtoBlock`s, doors, moving platforms, targets | none needed (static) |
 | 2 | Characters | `CHARACTERS` | the player's capsule (later AI and networked bodies) | World, Props (`CHARACTER_MASK`) |
-| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll, Hit Zones (`SHOT_MASK`) |
+| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll (`SHOT_MASK`); then Hit Zones inside a capsule it met (`HIT_ZONE_MASK`) |
 | 4 | Props | `PROPS` | `PhysicsProp` (pushed crates, balls) | World, Characters, Props (`PROP_MASK`) |
-| 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`PlayerRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
-| 6 | Hit Zones | `HIT_ZONES` | body parts a shot hits on a living character (kit #876) | none (scanned only by shots) |
-| 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`) |
+| 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
+| 6 | Hit Zones | `HIT_ZONES` | the `HitZones` body of a character (its parts, [Hit zones](third-person-hits.md)) | none (scanned only by a shot's second test) |
+| 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor`, an `Interactable` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`); an `Interactable` none (an `Interactor`'s query on `SENSORS` finds it) |
 
 Rays and other masks: the camera's spring arm (`PlayerCamera.wall_mask`) is World and Props (`CAMERA_MASK`); the
 weapon's aim ray (`Weapon.aim_mask`) is `SHOT_MASK`, so the crosshair's point is on what the shot will hit; the
@@ -68,14 +68,21 @@ shot still meets a character either way (Characters is in `SHOT_MASK`).
 shots hit the bones of a dead body, and the layer change is where that starts -->
 
 `SHOT_MASK` lists Ragdoll, so a shot (and the aim ray) stops at a limp bone instead of passing through the body.
-While the character is alive its bones are not in the physics world (the simulator is stopped), so a shot past the
-capsule, at the height of the hand, still reaches the wall behind, and the shooter's own shots never meet its own
-bones. The bone gets no impact mark yet (`Impacts` skips a `PhysicalBone3D`, as it skips a `CharacterBody3D`): a mark
-parented to a bone would hang in the air once the body gets up; kit #876 adds marks that stay on the body, the push
-on the hit bone and the hit zones on layer 6.
+While the character is alive its bones are out of the physics world (layer and mask 0 in the server: the engine does
+it when a bone stops simulating, and `CharacterRagdoll` does it for bones that never did), so a shot past the capsule
+still reaches the wall behind and the shooter's own shots and aim ray never meet its own bones. The bone takes the
+shot's mark and push ([Hit zones](third-person-hits.md)). `SHOT_MASK` leaves Hit Zones out: a living character is met
+at its capsule, and only then are its zones looked for (`HIT_ZONE_MASK`).
 
 - **Approach:** Prove a shot meets a dead body with a real death: kill a `Player` in an arena, wait for it to lie
   still, fire a real `Projectile` at a bone's position and read the collider of `impacted` (`PhysicalBone3D`); fire
   past a living one's capsule at hand height and read the wall. **Watch out for:** the chest bone is `spine_03` (the
-  bodies are `PlayerRagdoll.BODIES`: `pelvis`, `spine_01`, `spine_03`, `Head`, ...), not `spine_02`. **Seen:**
+  bodies are `CharacterRagdoll.BODIES`: `pelvis`, `spine_01`, `spine_03`, `Head`, ...), not `spine_02`. **Seen:**
   gdstudio #924, 2026-11-10.
+- **Approach:** Prove that a living body has no bone in the world with a ray of `SHOT_MASK` at each bone of a
+  character that never died (`test_a_living_body_that_never_died_has_no_bone_in_the_world`). **Watch out for:** 4.7.2
+  zeroes a `PhysicalBone3D`'s server layer only when it stops simulating; a bone made with its layer set and never
+  limp stays a static body on that layer, following the skeleton a tick late, so a ray at a living head met the
+  `Head` bone. The #924 test fired beside the capsule at hand height, where no bone was, and passed. Fix: after
+  setting the layers, `PhysicsServer3D.body_set_collision_layer(rid, 0)` (and the mask) for every bone not simulating.
+  **Seen:** gdstudio #876, 2026-11-10 (found by the hit-zone suite's ray of every other mask through the head).

@@ -45,6 +45,21 @@ One row a second, from the running night, in a node that costs nothing when it i
   client's apply, the bots, the views), added to the frame's total and written beside it. A label that nests in
   another is read as part of it, not added to it. Add a label before guessing which system is slow.
 
+- **Approach:** Time one frame's work as the span from the frame's first `physics_frame` signal to the `_process` of a
+  node whose `process_priority` is the highest (it runs after every other node), and take the median of a few hundred
+  frames; the same code reads it headless and in a browser. **Watch out for:** in 4.7.2 `Performance.TIME_PROCESS` plus
+  `TIME_PHYSICS_PROCESS` read every frame gave 0 to 189 ms for frames of 0.2 to 5 ms (they are not the frame's own
+  times), `RenderingServer.frame_pre_draw` is never emitted headless, and a browser's frame-to-frame wall time is the
+  display's 16.7 ms whatever the work. **Seen:** gdstudio #926, 2026-11-10 (`tools/bench/parts_cost_bench.gd`,
+  `tests/gameplay/test_parts_budget.gd`).
+- **Approach:** Profile a per-character step by module with a copy of the step cut into its parts, each part run over
+  the whole crowd before the next and timed once, beside the real step in alternating blocks (its sum should match),
+  and serve the web export with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
+  require-corp` so `performance.now()` steps 5 µs (the single-threaded export runs the same). **Watch out for:** one
+  module of one body is 0.5 to 12 µs in Chrome, under the page's 100 µs clock step when it is not cross-origin
+  isolated, and the copy drifts from the real step when the step changes: print both. **Seen:** gdstudio #1059,
+  2026-11-11 (`tools/bench/ai_step_profile.gd`: the sum read 40.4 µs against a real 42.3).
+
 ## A timed function must not hold what it is handed {#a-timed-function-must-not-hold-what-it-is-handed}
 
 A reference to an event kept between calls (the last frame, a snapshot) makes the *next* call release the old one, and

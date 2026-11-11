@@ -16,8 +16,14 @@ const ACTIONS: Array[StringName] = [
 	&"walk",
 	&"interact",
 	&"crouch",
+	&"prone",
 	&"aim",
 	&"fire",
+	&"reload",
+	&"next_weapon",
+	&"previous_weapon",
+	&"toggle_unarmed",
+	&"inventory",
 ]
 
 
@@ -30,7 +36,20 @@ func test_every_action_exists_and_is_bound_for_every_device() -> void:
 
 func test_the_move_jump_and_interact_actions_work_from_a_pad_and_a_keyboard() -> void:
 	for action: StringName in [
-		&"move_left", &"move_forward", &"jump", &"interact", &"sprint", &"crouch", &"aim", &"fire"
+		&"move_left",
+		&"move_forward",
+		&"jump",
+		&"interact",
+		&"sprint",
+		&"crouch",
+		&"prone",
+		&"aim",
+		&"fire",
+		&"reload",
+		&"next_weapon",
+		&"previous_weapon",
+		&"toggle_unarmed",
+		&"inventory",
 	]:
 		var has_pad := false
 		var has_key := false

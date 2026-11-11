@@ -83,6 +83,9 @@ The probe starts the game server as a process of its own. On Windows the console
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
+3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
+([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
@@ -197,7 +200,7 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | TICK, 8 players, no events | 107 | 107 |
 | TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
 | PING / PONG | 7 / 11 | 7 / 11 |
-| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 15, 15, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
 
 What the command's fields mean, fixed by gdstudio #901: `move` is the push in the view's axes (`x` right, `y`
 forward, no longer than 1), `yaw` the view's heading (0 looks along -Z, so the body's `facing` is `yaw + PI`), `pitch`
@@ -205,8 +208,10 @@ positive up; `crouch` is already the toggle's result; a press is true in one com
 only on a tick where a shot can leave (a press buffered or just made, or an automatic weapon held, and the weapon
 ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
-every held tick, against a budget of 2000). Flag bits 11 to 15 are free: #887's reload, next, previous and unarmed
-presses take four and raise `NetWire.VERSION`.
+every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
+the empty hands; gdstudio #887) and bit 15 is prone (#1012); no flag bit is free. `NetWire.VERSION` 4 (#906): a shot
+carries the weapon and the low 16 bits of its `seq`, a hit the health it left
+([shots online](third-person/online-shots.md#template-shots)).
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -303,7 +308,8 @@ and drawings carry no collision; a solid thing is built into the world both side
 collision, so the server's bodies must not block one another either (Deadnight #760: a body on layer 1 with a mask of 1
 and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
-(`tests/net/test_world_parity.gd`).
+(`tests/net/test_world_parity.gd`). A solid thing that moves is put at the command's tick on both sides
+([networked map parts](third-person/net-world.md#net-world)).
 
 - **Approach:** Build a solid thing into the world both sides build and move it by the rules (server) and the frame
   (client); a view script adds no collision (a node it makes with `.new()` gets none), and a test joins a real client to
@@ -346,7 +352,7 @@ client -->
   and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
   remote bodies are the same scene as local ones (a puppet `Player`), the frame gains `aim` and `pitch`, captures come
   from the second client (Deadnight #548); code that works through a node type (`as Player`) turns "no such body" into
-  a silent skip, so say it loudly).
+  a silent skip, so say it loudly); gdstudio #905 (online-client.md#puppets).
 
 ## Events reach a client only through its command loop {#events-reach-a-client-only-through-its-command-loop}
 
@@ -515,13 +521,22 @@ backend deployed -->
 `tools.toml`), copy the project, run `godot --headless --path /app --import` once **at build time**, then
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
-Deploying and testing it on Railway: [Railway](../../studio/railway.md).
+Process 1 is `tini`, which passes the platform's SIGTERM on (Godot as process 1 ignores it and is killed after the
+grace period). Deploying and testing it on Railway: [Railway](../../studio/railway.md). The 3D Third Person server
+starts with `godot --headless --path game -- --server` ([The game server](third-person/game-server.md#template-server))
+and its image, deploy and numbers are the template's `server/` ([The server image](third-person/game-server.md#server-image)).
 
 - **Approach:** Read a procfs file with `get_line()` (it is one line), treat an empty result as no data, and test
   Linux-only paths in the Docker image. **Watch out for:** procfs files report a length of 0 and
   `FileAccess.get_as_text()` reads `get_length()` bytes, so `/proc/self/stat` came back empty and a headless server
   logged `Out of bounds get index '11'` every 5 s; on Windows the path does not exist, so it showed only in the
   container. **Seen:** Deadnight, 2026-11-01 (fix: `get_line()` and an empty check).
+- **Approach:** Cap Godot's worker pool in a server image (`threading/worker_pool/max_threads=2` in an `override.cfg`
+  the Dockerfile writes) and read the process's processor share beside the step time. **Watch out for:** the pool has
+  a thread a core and Jolt hands every physics step to all of them: an idle 3D Third Person server took 24% of a core
+  on a 16-core machine (16 workers at 1.1% each) and 30% with 8 bots while its step read 0.6 ms; two threads gave 1.9%
+  and 6.7% with the same step times, and Railway's hosts have 48 cores. **Seen:** gdstudio #910, 2026-11-11 (the
+  template's `server/Dockerfile`).
 
 ## Small things that cost time {#small-things-that-cost-time}
 

@@ -1,0 +1,211 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/character/character.tscn" id="1_character"]
+[ext_resource type="Script" path="res://gameplay/character/character_model.gd" id="2_model"]
+[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_female.glb" id="3_mannequin"]
+[ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="4_pistol"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
+[ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
+[ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
+[ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
+[ext_resource type="Script" path="res://gameplay/hit_zones/hit_zones.gd" id="10_hit_zones"]
+[ext_resource type="Script" path="res://gameplay/hit_zones/hit_zone.gd" id="11_hit_zone"]
+[ext_resource type="Script" path="res://gameplay/character/hit_reaction.gd" id="12_hit_reaction"]
+[ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="13_hold"]
+[ext_resource type="Script" path="res://core/minimap/minimap_heading.gd" id="14_heading"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_head"]
+radius = 0.12
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_chest"]
+radius = 0.15
+height = 0.44
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pelvis"]
+radius = 0.15
+height = 0.36
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_upperarml"]
+radius = 0.06
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_forearml"]
+radius = 0.055
+height = 0.42
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_upperarmr"]
+radius = 0.06
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_forearmr"]
+radius = 0.055
+height = 0.42
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_thighl"]
+radius = 0.085
+height = 0.46
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shinl"]
+radius = 0.07
+height = 0.46
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_thighr"]
+radius = 0.085
+height = 0.46
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shinr"]
+radius = 0.07
+height = 0.46
+
+[node name="CharacterDressed" node_paths=PackedStringArray("model", "ragdoll_body") instance=ExtResource("1_character")]
+model = NodePath("Model")
+ragdoll_body = NodePath("Ragdoll")
+
+[node name="Model" type="Node3D" parent="." index="1"]
+script = ExtResource("2_model")
+
+[node name="Mannequin" parent="Model" instance=ExtResource("3_mannequin")]
+
+[node name="PistolHeld" parent="Model" instance=ExtResource("4_pistol")]
+use_external_skeleton = true
+external_skeleton = NodePath("../Mannequin/Armature/Skeleton3D")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." index="4"]
+root_node = NodePath("../Model/Mannequin")
+libraries = {
+&"ual1": ExtResource("5_ual1"),
+&"ual2": ExtResource("6_ual2")
+}
+
+[node name="AnimationTree" type="AnimationTree" parent="." index="5"]
+
+[node name="Animation" type="Node" parent="." index="6" node_paths=PackedStringArray("character", "model", "animation_player", "tree")]
+script = ExtResource("7_animation")
+character = NodePath("..")
+model = NodePath("../Model")
+animation_player = NodePath("../AnimationPlayer")
+tree = NodePath("../AnimationTree")
+
+[node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]
+muzzle = NodePath("../Model/PistolHeld/Pistol/Pistol/Muzzle")
+
+[node name="Loadout" parent="." node_paths=PackedStringArray("model")]
+model = NodePath("../Model")
+
+[node name="Footsteps" parent="." node_paths=PackedStringArray("character", "model") instance=ExtResource("8_footsteps")]
+character = NodePath("..")
+model = NodePath("../Model")
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
+script = ExtResource("9_ragdoll")
+model = NodePath("../Model")
+
+[node name="HitZones" type="StaticBody3D" parent="." node_paths=PackedStringArray("receiver", "model", "ragdoll")]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("10_hit_zones")
+receiver = NodePath("..")
+model = NodePath("../Model")
+ragdoll = NodePath("../Ragdoll")
+
+[node name="Head" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("SphereShape3D_head")
+script = ExtResource("11_hit_zone")
+zone = &"head"
+bone = &"Head"
+offset = Vector3(0, 0.1, 0.02)
+damage_multiplier = 3
+
+[node name="Chest" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_chest")
+script = ExtResource("11_hit_zone")
+zone = &"chest"
+bone = &"spine_03"
+offset = Vector3(0, 0.03, 0)
+
+[node name="Pelvis" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_pelvis")
+script = ExtResource("11_hit_zone")
+zone = &"pelvis"
+bone = &"pelvis"
+offset = Vector3(0, 0.05, 0)
+
+[node name="UpperArmL" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_upperarml")
+script = ExtResource("11_hit_zone")
+zone = &"arm_l"
+bone = &"upperarm_l"
+offset = Vector3(0, 0.12, 0)
+damage_multiplier = 0.6
+
+[node name="ForearmL" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_forearml")
+script = ExtResource("11_hit_zone")
+zone = &"forearm_l"
+bone = &"lowerarm_l"
+offset = Vector3(0, 0.2, 0)
+damage_multiplier = 0.6
+
+[node name="UpperArmR" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_upperarmr")
+script = ExtResource("11_hit_zone")
+zone = &"arm_r"
+bone = &"upperarm_r"
+offset = Vector3(0, 0.12, 0)
+damage_multiplier = 0.6
+
+[node name="ForearmR" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_forearmr")
+script = ExtResource("11_hit_zone")
+zone = &"forearm_r"
+bone = &"lowerarm_r"
+offset = Vector3(0, 0.2, 0)
+damage_multiplier = 0.6
+
+[node name="ThighL" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_thighl")
+script = ExtResource("11_hit_zone")
+zone = &"thigh_l"
+bone = &"thigh_l"
+offset = Vector3(0, 0.2, 0)
+damage_multiplier = 0.7
+
+[node name="ShinL" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_shinl")
+script = ExtResource("11_hit_zone")
+zone = &"shin_l"
+bone = &"calf_l"
+offset = Vector3(0, 0.21, 0)
+damage_multiplier = 0.7
+
+[node name="ThighR" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_thighr")
+script = ExtResource("11_hit_zone")
+zone = &"thigh_r"
+bone = &"thigh_r"
+offset = Vector3(0, 0.2, 0)
+damage_multiplier = 0.7
+
+[node name="ShinR" type="CollisionShape3D" parent="HitZones"]
+shape = SubResource("CapsuleShape3D_shinr")
+script = ExtResource("11_hit_zone")
+zone = &"shin_r"
+bone = &"calf_r"
+offset = Vector3(0, 0.21, 0)
+damage_multiplier = 0.7
+
+[node name="HitReaction" type="Node" parent="." node_paths=PackedStringArray("character", "ragdoll")]
+script = ExtResource("12_hit_reaction")
+character = NodePath("..")
+ragdoll = NodePath("../Ragdoll")
+
+[node name="WeaponHold" parent="." node_paths=PackedStringArray("model", "seat", "animation") instance=ExtResource("13_hold")]
+model = NodePath("../Model")
+seat = NodePath("../Model/PistolHeld")
+animation = NodePath("../Animation")
+
+[node name="MinimapHeading" type="Node" parent="." node_paths=PackedStringArray("turns")]
+script = ExtResource("14_heading")
+turns = NodePath("../Model")
+front = 1

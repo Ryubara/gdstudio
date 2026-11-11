@@ -51,7 +51,7 @@ cycle: a seek is a cut.
   `NOTIFICATION_EDITOR_PRE_SAVE` and build them again on `..._POST_SAVE`; test it by reading the `.tscn` files for
   `tree_root`, `AnimationNode` and `anim_player`. **Watch out for:** a tree built in `_ready` of a non-`@tool` script
   left the editor's AnimationTree empty, with a warning and no graph. A tree dragged together by hand is saved in the
-  scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `PlayerAnimation` is `@tool`;
+  scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `CharacterAnimation` is `@tool`;
   [screenshots](editor-screenshots.md#how)).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
@@ -72,6 +72,30 @@ cycle: a seek is a cut.
   so readings made after two awaited physics frames came from a later pose (a knee moved up to 6 cm) and one pose gave
   0.144, 0.142 and 0.1348; it failed two of three pull requests that touched no character file. **Seen:** Deadnight
   #1143, 2026-11-04 (fix: `_player.pause()` after the sample; eight repeats gave 0.1348 each).
+
+## Throttling a tree that is already running {#throttling-a-running-tree}
+
+<!-- new section: the page covered a tree stepped by hand from the start (tests); nothing covered taking a running tree's
+     clock away and giving it back, which the AI crowd's animation throttle does (gdstudio #1046) -->
+
+`AnimationMixer.advance(delta)` moves a tree in any callback mode, so a tree whose own processing is stopped can be
+moved by its owner every few frames by the time it missed, and handed back later. The 3D Third Person template's
+`CharacterAnimation.set_throttled()` and `advance()` do this for the `AiAnimationThrottle`
+([AI characters: the animation throttle](third-person/ai.md#animation-throttle)).
+
+- **Approach:** Stop a running tree's own update with `set_process_internal(false)` (and
+  `set_physics_process_internal(false)` for the physics mode), move it with `advance(delta)`, and give it back with the
+  same calls; keep its `callback_mode_process`. **Watch out for:** setting `callback_mode_process` on an active tree
+  turns it off and on, and the next update starts its state machine over from the first state at time 0: every
+  character that moved between throttled and not jumped to a new pose. A tree switched on again (`active`) turns its own
+  update back on, so check it before each hand-made advance. **Seen:** gdstudio #1046, 2026-11-11 (a test held an
+  out-of-view character and read its clip back at 0 once seen).
+- **Approach:** Leave a new tree to its own clock for its first frames before taking it over, and give
+  `tree.advance(0.0)` to a tree taken over before it ever ran. **Watch out for:** a tree's first update starts its state
+  machine and the time of that update is lost, so a character throttled from the frame it spawned started a frame (or,
+  frozen, up to the whole catch-up) out of step with one that never was, and the capture near the camera differed from
+  the unthrottled one on every frame. **Seen:** gdstudio #1046, 2026-11-11 (the AI tour compared frame by frame with
+  the throttle on and off: identical to run-to-run noise once new characters waited 8 frames).
 
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 

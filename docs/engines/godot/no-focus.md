@@ -213,3 +213,9 @@ script), and the Godot editor opened by a person or by the MCP add-on.
 - **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
   person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
   runs of the same capture script differed).
+- **Approach:** Keep the pinned Godot's path in a variable whose name does not start with `godot` (`G="$(gds tool path
+  godot)"; "$G" --headless ...`), use `export GODOT=...`, or start it from a script file. **Watch out for:** the window
+  guard reads the first word of each command, and a bare assignment `GODOT="$(... gds tool path godot)"` reads as a
+  program named `godot=...` with no `--headless`, so the line is refused as a windowed start even when the Godot after
+  it is headless. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`; the fix is
+  gdstudio #1004).
