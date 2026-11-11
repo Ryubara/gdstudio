@@ -474,6 +474,24 @@ The lean tick (`CharacterLean`, taken when the controller's `lean_step` is on an
 every tick where the full tick does: `test_character_lean.gd` steps a lean and a full body through walking, a kerb,
 running, sprinting, a jump, crouch, aim and fire, prone, a slide and presses, and compares their snapshots each tick.
 
+The director's bench, 40 walking with the animation throttle, a build of `main` (before) against the lean tick
+(after), runs interleaved; three sessions, because the machine's load changed through the day (step a tick and median
+frame work, ms; ticks a frame after the slash):
+
+| 40 walking, three runs each | before | after |
+| --- | ---: | ---: |
+| Chrome 4x, lean and the command cache only | 6.2 to 6.8, work 9.5 to 10.4 / 0.81 to 0.92 | 5.35 to 5.5, work **8.7 to 8.9** / 0.75 to 0.77 |
+| Chrome 4x, with the climber after a wall | 5.8 to 6.1, work 8.5 to 9.1 / 0.73 to 0.80 | 4.4 to 4.7, work **7.2 to 8.1** / 0.62 to 0.69 |
+| Chrome 4x, all of it, a busy hour | 7.3 to 7.8, work 10.8 to 16.6 / 1.14 to 1.62 | 5.1 to 6.1, work 8.7 to 11.6 / 0.81 to 1.33 |
+| Chrome 1x, all of it, the same hour | 1.20 to 1.41, work 1.9 to 2.4 | 0.88 to 0.99, work 1.6 to 1.8 |
+
+- The director's step is 22 to 30 % shorter in every session, and the body's step is about **23 µs** in Chrome at Full
+  and Reduced together (29 to 35 before). The 4x frame is under 8 ms in two of three runs of a quiet session and
+  over it when the machine is busy: the rest of the frame (about 3 ms: the trees the throttle still moves, the
+  Jolt step, the thinks) is no longer the body's.
+- What is left in a walking body is the engine's (`move_and_slide` 12 µs of about 25 in Chrome) and the step's
+  prologue; the next cut is the frame's other 3 ms or fewer bodies stepped every tick, not the body's script.
+
 - **Approach:** Put off work that a per-tick budget refuses fairly: start the loop over the characters one further
   along each tick, and test the refusal with more characters wanting the work every tick than the budget allows.
   **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the
