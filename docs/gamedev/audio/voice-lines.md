@@ -239,8 +239,11 @@ voices of 139) move with it.
   `text-to-speech` characters, so a later change cannot overspend silently. Read `credits` (`GET /v1/user/subscription`)
   before and after, and put both numbers in the pull request.
 - The free tier allows no commercial use and needs attribution: the game records it in the folder's `LICENSE.md` and
-  on its Credits screen, and relicensing before a commercial release is the maintainer's call.
-- **Generated sounds from the free tier go into a template only with the maintainer's yes and a replace note.** A
+  on its Credits screen, and relicensing before a commercial release is the maintainer's call. The studio is now on a
+  paid plan (Starter, kit #889), whose output is licensed for commercial use: read `tier` and record it, and the
+  route is the one on [Sound effects](sound-effects.md#paid-plan).
+- **Generated sounds from the free tier go into a template only with the maintainer's yes and a replace note** (a
+  `tier` other than `free` needs neither: [Sound effects](sound-effects.md#paid-plan)). A
   template is copied into every game, so a non-commercial sound there is every game's problem: read the plan first
   (`GET /v1/user/subscription`), stop on `free` and ask; the first set (kit #835, 2026-11-08) went in with a yes, marked
   temporary, a `LICENSE.md` per folder and the line "Replace or relicense before any commercial release" on the

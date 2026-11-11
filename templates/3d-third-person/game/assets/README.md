@@ -16,6 +16,8 @@
   with ElevenLabs Sound Effects on the free tier, like the base's wind: attribution required, not licensed for
   commercial use. **Temporary: replace or relicense them before any commercial release**, and name ElevenLabs on the
   Credits screen until then.
+- `assets/audio/weapon_pickup/` (the weapon pickup, two variants) is generated with ElevenLabs Sound Effects on a
+  paid plan: licensed for commercial use, no attribution required and nothing to replace (its `LICENSE.md`).
 - `assets/audio/pistol/` is five pistol shots synthesised by Deadnight's code (MIT, GDStudio's own, with a
   `LICENSE.md`): no attribution and nothing to replace.
 - `assets/audio/impacts/` is nine bullet impact sounds (default, wood and metal, three each) synthesised by the kit's

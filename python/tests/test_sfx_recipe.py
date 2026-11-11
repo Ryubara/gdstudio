@@ -30,11 +30,11 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_set_is_1040_credits_and_inside_the_budget(data, tmp_path):
-    # The first set's 960 and the weapon pickup's two takes of 1 s (#889).
+def test_the_plan_of_the_set_is_1120_credits_and_inside_the_budget(data, tmp_path):
+    # The first set's 960 and the weapon pickup's four takes of 1 s (#889, on the paid plan).
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 1040
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 1040)
+    assert sum(r["credits"] for r in rows) == 1120
+    assert sfx.check_budget(data, tmp_path, rows) == (0, 1120)
     assert data["budget"] <= 1200
 
 
@@ -75,3 +75,20 @@ def test_the_data_file_keeps_the_issue_s_promises(data):
         assert sound["takes"] >= 1
     for sound in sounds.values():
         assert (ROOT / sound["folder"]).parts[-4:-1] == ("game", "assets", "audio")
+
+
+def test_the_licence_follows_the_plan_the_take_was_made_on(data):
+    free, paid = sfx.licence_of(data, "free"), sfx.licence_of(data, "starter")
+    assert "not licensed for commercial use" in free["text"]
+    assert "commercial use" in paid["text"] and "not licensed" not in paid["text"]
+    assert sfx.licence_of(data, "creator") == paid
+    assert "none required" in paid["attribution"]
+
+
+def test_a_sound_names_its_own_model_and_the_takes_it_keeps(data):
+    pickup = next(s for s in data["sounds"] if s["name"] == "weapon_pickup")
+    coin = next(s for s in data["sounds"] if s["name"] == "coin_pickup")
+    assert sfx.model_of(data, pickup) == "eleven_text_to_sound_v3"
+    assert sfx.model_of(data, coin) == data["model"]
+    assert sfx.kept_takes(pickup) == ["weapon_pickup_t4", "weapon_pickup_t1"]
+    assert sfx.kept_takes(coin) == sfx.take_names(coin)

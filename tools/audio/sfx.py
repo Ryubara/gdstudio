@@ -63,6 +63,22 @@ def take_names(sound: dict) -> list[str]:
     return [f"{sound['name']}_t{n}" for n in range(1, sound["takes"] + 1)]
 
 
+def kept_takes(sound: dict) -> list[str]:
+    """The takes `encode` makes files of: the ones `keep` names (numbers from 1, after listening), else every take."""
+    names = take_names(sound)
+    return [names[n - 1] for n in sound["keep"]] if sound.get("keep") else names
+
+
+def model_of(data: dict, sound: dict) -> str:
+    """The sound's own `model` (the newest the API takes for it), else the data file's."""
+    return sound.get("model", data["model"])
+
+
+def licence_of(data: dict, tier: str) -> dict:
+    """What the plan a take was made on allows: `free` needs attribution and is not commercial; any paid plan is."""
+    return data["licences"]["free" if tier == "free" else "paid"]
+
+
 def chosen(data: dict, only: str | None) -> list[dict]:
     names = set(only.split(",")) if only else None
     sounds = [s for s in data["sounds"] if not names or s["name"] in names]
@@ -144,7 +160,7 @@ def request_take(data: dict, sound: dict) -> tuple[bytes, dict]:
         "text": sound["prompt"],
         "duration_seconds": sound["seconds"],  # always explicit: auto length costs more
         "prompt_influence": sound["influence"],
-        "model_id": data["model"],
+        "model_id": model_of(data, sound),
     }
     if sound.get("loop"):
         body["loop"] = True
@@ -472,7 +488,7 @@ def cmd_generate(args) -> None:
                 credits=cost,
                 tier=before["tier"],
                 date=time.strftime("%Y-%m-%d"),
-                model=data["model"],
+                model=model_of(data, sound),
             )
             (cache / f"{take}.json").write_text(
                 json.dumps(info, indent=2), encoding="utf-8"
@@ -494,17 +510,17 @@ def licence_text(
         if not files:
             continue
         info = json.loads(
-            (cache / f"{take_names(sound)[0]}.json").read_text(encoding="utf-8")
+            (cache / f"{kept_takes(sound)[0]}.json").read_text(encoding="utf-8")
         )
+        licence = licence_of(data, info["tier"])
         lines = [
             "# Sounds generated with ElevenLabs Sound Effects",
             "",
             "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), model",
             f"  `{info['model']}`, plan `{info['tier']}`, generated {info['date']} with `tools/audio/sfx.py` in the",
             "  kit.",
-            f"- Licence: {data['licence']}",
-            f"- Attribution: {data['attribution']}",
-            "  A game's Credits screen names ElevenLabs.",
+            f"- Licence: {licence['text']}",
+            f"- Attribution: {licence['attribution']}",
             "",
             "| File | Prompt | Seconds |",
             "| --- | --- | ---: |",
@@ -526,7 +542,7 @@ def cmd_encode(args) -> None:
         for old in files_of(sound, root):
             old.unlink()
         pieces = []
-        for take in take_names(sound):
+        for take in kept_takes(sound):
             mp3 = cache / f"{take}.mp3"
             if not mp3.exists():
                 raise SystemExit(f"{take} is not in the cache; run generate")
@@ -552,7 +568,10 @@ def cmd_encode(args) -> None:
                 f"{name}: {len(x) / RATE:.3f} s, gain {gain:+.1f} dB{' (peak limited)' if limited else ''}"
             )
     for folder, text in licence_text(data, sounds, root, cache, ffmpeg).items():
-        (root / folder / "LICENSE.md").write_text(text, encoding="utf-8")
+        (root / folder / "LICENSE.md").write_text(
+            text, encoding="utf-8", newline="
+"
+        )
         print(f"wrote {folder}/LICENSE.md")
 
 

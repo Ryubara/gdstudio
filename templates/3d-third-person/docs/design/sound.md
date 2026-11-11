@@ -61,3 +61,6 @@ Effects on the free tier, with the maintainer's agreement for now:
 **attribution is required and they are not licensed for commercial use. Replace or relicense them before any
 commercial release**, and name ElevenLabs on the Credits screen until then. Each folder's `LICENSE.md` lists its files,
 prompts, lengths, model and plan.
+
+The weapon pickup's two sounds were generated with ElevenLabs Sound Effects on the studio's paid plan: they are
+licensed for commercial use, need no attribution and stay in a released game.

@@ -365,8 +365,7 @@ func _link() -> void:
 	if _loadout != null:
 		_loadout.weapon_changed.connect(_on_loadout_changed)
 		_loadout.switch_started.connect(_on_loadout_changed)
-		if _loadout.has_signal(&"slots_changed"):
-			_loadout.connect(&"slots_changed", refresh)
+		_loadout.slots_changed.connect(refresh)
 	if _loadout != null and _loadout.weapon != null:
 		_loadout.weapon.ammo_changed.connect(_on_ammo_changed)
 
@@ -378,14 +377,10 @@ func _unlink() -> void:
 		for pair: Array in [
 			[_loadout.weapon_changed, _on_loadout_changed],
 			[_loadout.switch_started, _on_loadout_changed],
+			[_loadout.slots_changed, refresh],
 		]:
 			if (pair[0] as Signal).is_connected(pair[1]):
 				(pair[0] as Signal).disconnect(pair[1])
-		if (
-			_loadout.has_signal(&"slots_changed")
-			and _loadout.is_connected(&"slots_changed", refresh)
-		):
-			_loadout.disconnect(&"slots_changed", refresh)
 		if _loadout.weapon != null and _loadout.weapon.ammo_changed.is_connected(_on_ammo_changed):
 			_loadout.weapon.ammo_changed.disconnect(_on_ammo_changed)
 

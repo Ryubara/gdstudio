@@ -6,8 +6,16 @@
   "min_seconds": 0.5,
   "max_seconds": 30.0,
   "budget": 1200,
-  "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).",
-  "licence": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
+  "licences": {
+    "free": {
+      "text": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
+      "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).\n  A game's Credits screen names ElevenLabs."
+    },
+    "paid": {
+      "text": "Generated on a paid ElevenLabs plan, which grants commercial use of the output. No attribution is\n  required and nothing needs replacing before a commercial release.",
+      "attribution": "none required; a game's Credits screen may name ElevenLabs."
+    }
+  },
   "sounds": [
     {
       "name": "coin_pickup",
@@ -30,7 +38,7 @@
       "kind": "hit",
       "folder": "templates/3d-third-person/game/assets/audio/weapon_pickup",
       "prefix": "weapon_pickup",
-      "takes": 2,
+      "takes": 4,
       "seconds": 1.0,
       "influence": 0.6,
       "prompt": "A rifle snatched up off the floor: one firm metallic clack of a gun grabbed into the hands, then a quick crisp bolt pulled back and snapped forward. Short, punchy, satisfying, dry, close, no music, no voice, no gunshot.",
@@ -38,8 +46,10 @@
       "max_seconds": 0.89,
       "min_files": 1,
       "measure": "momentary",
-      "target_lufs": -22.0,
-      "tail_db": -34.0
+      "target_lufs": -23.5,
+      "tail_db": -34.0,
+      "model": "eleven_text_to_sound_v3",
+      "keep": [4, 1]
     },
     {
       "name": "footstep_soft",
