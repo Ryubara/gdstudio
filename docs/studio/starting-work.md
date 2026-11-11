@@ -440,6 +440,12 @@ Open pull requests come before new work: each one left open goes stale against `
   passed 876 cases while CI failed 5 socket cases, and the web probe stopped at the new menu (fix: the command
   defaults to the CI clock, a test pins it against `ci.yml`, kit #976).
 
+- **Approach:** Read the open `CI failing on the default branch` issue in a command of its own, and run the merge
+  only in the next one, after reading that the list is empty. **Watch out for:** a landing command that printed the
+  issue count and then merged in one line read `1` after the pull request had already landed: main was red with a
+  known flake whose fix was still open, and the rule says wait for it. **Seen:** gdstudio #1073 (PR #1099),
+  2026-11-11 (merged while #1125 was open; its own checks, the bad-network gate included, had passed).
+
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
   request needs a live owner: #488's owner was moved to probes and the pull request dropped off the owner map, so its
