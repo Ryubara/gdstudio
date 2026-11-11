@@ -551,6 +551,13 @@ and 2 at 4x on a machine other agents were using; "before" is #967's navigator w
   against 9 ms in Chrome's release export, so "native" is no faster than the browser here and the browser rows are
   the ones the budget holds.
 
+**The cost gate and the web probe (#971).** `tests/gameplay/test_ai_cost_gate.gd` holds the counts above exactly at
+50, 100 and 200 characters (paths a `repath_seconds`, thinks a `think_rate`, 2 rays a think, the shared budget) and the
+step, a think and the server's hit history (`ai_history_us`) as ratios of a calibration loop; `tools/web_smoke/ai.py`
+reads the soak's web export at 10 to 40 fighting characters, 1x and 4x: the section's 10 hold both budgets (0.57 ms,
+3.1 ms at 4x), 20 and more fighting fall off the tick cliff at 4x (3.7 to 6.7 ticks a frame). The tables:
+[the cost gate](third-person/ai-characters.md#cost-gate).
+
 - **Approach:** Make a cost bench report what its crowd did beside the cost (the share of the time walking, arrivals,
   failures) and check it before reading the cost. **Watch out for:** #967's navigator bench never had a mesh: a
   crowd whose every goal fails costs a query and the goal rules a step and nothing else, and its table (1.1 µs native,

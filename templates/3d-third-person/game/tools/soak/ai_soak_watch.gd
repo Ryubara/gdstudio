@@ -80,7 +80,7 @@ const GOAL_GAP_SECONDS := 1.0
 
 @export_group("Think cost")
 ## The 99th percentile of a think, microseconds, on the machine the budget was set on.
-@export_range(10.0, 100000.0, 10.0, "suffix:us") var think_p99_us := 1000.0
+@export_range(10.0, 100000.0, 10.0, "suffix:us") var think_p99_us := 2000.0
 ## The calibration loop's time on that machine, milliseconds.
 @export_range(0.1, 1000.0, 0.1, "suffix:ms") var calibration_reference_ms := 11.0
 ## Thinks the percentile needs before it is judged.

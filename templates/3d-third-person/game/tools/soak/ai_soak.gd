@@ -225,6 +225,7 @@ func _on_tick() -> void:
 	_round_check -= delta
 	if _round_check <= 0.0:
 		_round_check = ROUND_CHECK_SECONDS
+		_refill_pilot()
 		_tend_round()
 	if _clock > warm_seconds:
 		var director := AiDirector.find(get_tree())
@@ -300,6 +301,15 @@ func _hash_commands() -> void:
 	if _ticks % HASH_TICKS == 0:
 		_hash = hash([_hash, hash(_hash_values)])
 		_hash_values.clear()
+
+
+# The player never runs dry: a soak of the AI must not end its rounds by the pilot's ammunition.
+func _refill_pilot() -> void:
+	var weapon := _player.weapon
+	if weapon == null or weapon.definition == null or weapon.definition.magazine_size <= 0:
+		return
+	if int(weapon.reserve) < weapon.definition.magazine_size:
+		weapon.set_ammo(int(weapon.ammo), weapon.definition.start_reserve)
 
 
 # The round: the hostiles alive at its start must all die; past `round_seconds` the pilot walks to
