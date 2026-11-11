@@ -186,3 +186,44 @@ func test_a_limit_holds_the_turn() -> void:
 	var heading := -muzzle.global_basis.z
 	var off := rad_to_deg(Vector2(heading.x, heading.z).angle_to(Vector2(ALONG.x, ALONG.z)))
 	assert_float(absf(off)).is_less(TOLERANCE)
+
+
+func test_every_aim_limit_is_pinned() -> void:
+	var tuning := load("res://gameplay/player/player_tuning.tres") as CharacterTuning
+	var slide := load("res://gameplay/player/slide_tuning.tres") as SlideTuning
+	var prone := load("res://gameplay/player/prone_tuning.tres") as ProneTuning
+	var standing := {
+		&"enabled": true,
+		&"yaw_left": 70.0,
+		&"yaw_right": 70.0,
+		&"pitch_up": 45.0,
+		&"pitch_down": 45.0,
+	}
+	var sliding := standing.duplicate()
+	sliding.merge(
+		{&"yaw_left": 75.0, &"yaw_right": 75.0, &"pitch_up": 50.0, &"pitch_down": 70.0}, true
+	)
+	var pinned := [
+		[tuning.aim_limits, standing],
+		[tuning.crouch_aim_limits, standing],
+		[CharacterTuning.new().aim_limits, standing],
+		[prone.aim_limits, standing],
+		[slide.aim_limits, sliding],
+		[SlideTuning.new().aim_limits, sliding],
+	]
+	for pair: Array in pinned:
+		assert_array(ExportPins.differences(pair[0], pair[1])).is_empty()
+		assert_array(ExportPins.wrong_values(pair[0], pair[1])).is_empty()
+	var layer := {
+		&"character": _player,
+		&"model": _player.model,
+		&"animation": _player.get_node("Animation"),
+		&"hold": _player.get_node("WeaponHold"),
+		&"chain": [&"spine_01", &"spine_02", &"spine_03"] as Array[StringName],
+		&"chain_weights": PackedFloat32Array([0.3, 0.3, 0.4]),
+		&"converge_distance": 15.0,
+		&"release_time": 0.12,
+		&"disabled": false,
+	}
+	assert_array(ExportPins.differences(_layer, layer)).is_empty()
+	assert_array(ExportPins.wrong_values(_layer, layer)).is_empty()
