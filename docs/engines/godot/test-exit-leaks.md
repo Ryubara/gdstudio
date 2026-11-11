@@ -138,6 +138,10 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   fails on `resources still in use at exit`, which the summary line does not carry (576 tests green, 6 instances and 3
   resources leaked). **Seen:** Deadnight #207, #225, #432, 2026-11-01..02; Deadnight #1074, 2026-11-05 (fix: ids
   captured, disconnect in `after_test`); gdstudio #964, 2026-11-10 (a lambda on the emitter's own signal).
+- **Approach:** Give a `RefCounted` test helper that listens to an object it owns (a client and its link) a
+  `release()` that disconnects its handlers, and call it from the fixture's `_exit_tree`. **Watch out for:** nothing
+  frees two `RefCounted` that hold each other: a test client's lambda on its own link's `closed` left 4 instances and
+  7 scripts in use at exit while both cases passed. **Seen:** gdstudio #904, 2026-11-10 (`HandClient.release()`).
 
 - **Approach:** Free what a test makes or removes: `remove_child(node)` then `node.free()`,
   `auto_free(SomeNode.new())` (even for a node made only to read `get_property_list()`), or leave the node in the

@@ -515,7 +515,8 @@ backend deployed -->
 `tools.toml`), copy the project, run `godot --headless --path /app --import` once **at build time**, then
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
-Deploying and testing it on Railway: [Railway](../../studio/railway.md).
+Deploying and testing it on Railway: [Railway](../../studio/railway.md). The 3D Third Person server starts with
+`godot --headless --path game -- --server` ([The game server](third-person/game-server.md#template-server)).
 
 - **Approach:** Read a procfs file with `get_line()` (it is one line), treat an empty result as no data, and test
   Linux-only paths in the Docker image. **Watch out for:** procfs files report a length of 0 and
