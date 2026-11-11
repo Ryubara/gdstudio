@@ -72,20 +72,20 @@ func test_every_export_has_its_default_pinned() -> void:
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()
 	# The preset's numbers: felt beside the player, gone past 12 m, a tenth of a degree at most.
 	var preset := load(NEAR_HIT) as ShakePreset
-	assert_float(preset.trauma).is_equal(0.4)
-	assert_float(preset.duration).is_equal(0.3)
+	assert_float(preset.trauma).is_equal(0.6)
+	assert_float(preset.duration).is_equal(0.35)
 	assert_float(preset.radius).is_equal(12.0)
 	assert_vector(preset.max_rotation).is_equal(Vector3(0.8, 0.8, 0.4))
 
 
 func test_a_hit_2_m_from_the_camera_shakes_it() -> void:
 	_hit_at(_ahead(2.0))
-	assert_float(_rig.shaker.trauma_of(_shake.preset)).is_greater(0.35)
+	assert_float(_rig.shaker.trauma_of(_shake.preset)).is_greater(0.5)
 	var peak := _step(0.2)
 	assert_float(peak).is_greater(0.01)
 	# Subtle: a tenth of a degree or so, so the crosshair barely moves.
 	assert_float(peak).is_less(0.2)
-	_step(0.3)
+	_step(0.4)
 	assert_bool(_rig.shaker.is_shaking()).is_false()
 
 

@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_preset")
-trauma = 0.4
-duration = 0.3
+trauma = 0.6
+duration = 0.35
 wave = 0
 frequency = 16.0
 max_rotation = Vector3(0.8, 0.8, 0.4)
