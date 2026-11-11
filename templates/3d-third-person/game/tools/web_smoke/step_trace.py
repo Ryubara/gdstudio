@@ -32,9 +32,7 @@ TIMEOUT_S = 180.0
 
 def parse(text: str) -> list[tuple[float, float, float]]:
     """The positions of a `STEP_TRACE` line, or of its JSON."""
-    text = text.strip()
-    if text.startswith("STEP_TRACE "):
-        text = text[len("STEP_TRACE ") :]
+    text = text.strip().removeprefix("STEP_TRACE ")
     data = json.loads(text)
     return [tuple(float(n) for n in point.split(",")) for point in data["trace"]]
 
