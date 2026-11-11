@@ -93,13 +93,13 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
   beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
 
-- **Approach:** Give `gds capture frames --project` a game that has been imported: for a template, the kept game
-  of `gds template test <template> --suite <one suite> --keep` (run from that game's folder with `--out` into your
-  scratch folder, and remove the kept folder afterwards), and look at a frame of the first seconds before filming
-  the rest. **Watch out for:** a worktree's own `templates/<t>/game/` has never been opened by the editor, so the
-  run logged 547 errors, wrote a `.godot` folder and touched `.import` files in the worktree; and in the 3D Third
-  Person map the spawn pad ends 4.6 m ahead, so every body filmed walking off it played its fall, not its gait
-  (`OWN_AHEAD` starts them further in). **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** Give `gds capture frames --project` an imported game: for a template, the kept game of `gds template
+  test <template> --suite <one suite> --keep` (run from its folder with `--out` into your scratch folder; remove the
+  kept folder afterwards), and look at a frame of every variant's turn before making the clip. **Watch out for:** a
+  worktree's own `templates/<t>/game/` was never opened by the editor, so the run logged 547 errors and wrote
+  `.godot` and `.import` files into the worktree; the 3D Third Person spawn pad ends 4.6 m ahead, so bodies filmed
+  walking off it played their fall (`OWN_AHEAD`); and that offset, read from the camera at each turn's start while
+  it still looked back at the body, put later variants 6 m behind the spawn. **Seen:** gdstudio #1155, 2026-11-11.
 
 ## sheet {#sheet}
 

@@ -46,6 +46,7 @@ var _slot := &"idle_clip"
 var _hold := &""
 var _move := WALK
 var _ahead := 0.0
+var _way := Vector3.ZERO
 var _row: Node3D
 var _row_camera: Camera3D
 var _label: Label
@@ -127,9 +128,11 @@ func _film_player() -> void:
 		if turn > 0:
 			_rig.player.respawn()
 		if _ahead > 0.0:
-			var way := -_rig.camera_rig.camera.global_basis.z
-			way = Vector3(way.x, 0.0, way.z).normalized()
-			_rig.player.global_position += way * _ahead
+			# The way is read once: later turns begin with the camera still in front.
+			if _way == Vector3.ZERO:
+				var way := -_rig.camera_rig.camera.global_basis.z
+				_way = Vector3(way.x, 0.0, way.z).normalized()
+			_rig.player.global_position += _way * _ahead
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
 	var at := fmod(_clock, length)
