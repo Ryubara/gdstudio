@@ -19,8 +19,9 @@ player's own `_physics_process` off. Each physics step:
    WELCOME's centimetres. A TICK gives the `Reconciler` the server's point for the last command applied (`ack`), and
    gives every other entry, `joined` and `left` to `RemotePlayers`.
 2. `StallGuard` judges the step: more than 0.25 s since the last on the machine's clock is a resync (the reconciler
-   forgets its points and takes the next answer whole), and for 0.5 s after it every tick that is not the first of its
-   process frame is skipped (the engine's catch-up ticks: no command, no step).
+   forgets its points and takes the next answer whole, and the body first steps as the server stepped its own through
+   the silence: `SilenceWalk`, below), and for 0.5 s after it every tick that is not the first of its process frame is
+   skipped (the engine's catch-up ticks: no command, no step).
 3. The body moves by the correction under way (`Reconciler.take`).
 4. The controller is sampled, the command numbered (by the server tick it is expected to be stepped at:
    `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail it, `renumbered`; the map's doors and
@@ -39,6 +40,14 @@ remembered points of the unanswered commands by every correction, snaps past 2.5
 stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
 alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
 `Player.teleport()` and reset it.
+
+`SilenceWalk` (`gameplay/net/silence_walk.gd`) is the client's half of the server's silence rule: a server whose
+client sends nothing holds the body `NetServer.HOLD_TICKS` (4) steps, steps the last command again without its presses
+for `COMMAND_TICKS` (30), then stands it (`PeerSlot.take`). On a resync the client steps its own body the same way at
+once, for every tick of the stall but the one that ends it (`NetClient.silent_steps`), the standing steps until the
+body is at rest on the floor (two seconds at most), so the two bodies come out of a stall with the same point and the
+same speed. The snap alone puts the point right and keeps the speed the body had before the stall ([the
+gate](#bad-network-gate) has the trace).
 
 `RemotePlayers` (`gameplay/net/remote_players.gd`) makes one puppet `Player` a slot from `player.tscn`
 (`Player.make_puppet()`, then `PlayerPuppet`), draws each `delay` (0.1 s) behind its clock, between the two snapshots
@@ -187,6 +196,14 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   the walk-ons add up (four at 4 m/s, 7.1 m). Per stall the page reads 2.2 to 2.5 m, the native client 2.6 to 3.0 m.
   A PONG read after a freeze measured the freeze (5.2 s) and put the numbering 5 s ahead; it is now ignored
   (`NetClient.resync`). **Seen:** gdstudio #1070, 2026-11-11 (hitches: #1106).
+- **Approach:** After a stall of the client's thread, step its body as the server stepped its own through the silence
+  (`SilenceWalk`), and judge it by the speed gap of the first commands after the stall (each command's velocity on both
+  sides), not by corrections. **Watch out for:** the snap put the point right but kept the body's speed from before
+  the stall; the bodies then stepped the same commands at the same capped acceleration, so the gap lasted and every
+  answer corrected the drift (a page's first freeze: a 0.70 m snap, then answers of 0.2 to 0.6 m, speeds 1.0 to 1.4
+  m/s apart). Native sprints hit the speed cap sooner. Six page runs: 0.8 to 7 m/s apart, 1.1 to 4.2 m corrected in
+  the 2 s after three freezes; walked 0.0 m/s in 13 of 14 freezes, 0.03 to 1.95 m; native 0.04 to 0.25 m a run, was
+  0.7 to 0.9. **Seen:** gdstudio #1127, 2026-11-11 (the rest: late commands on a loaded machine).
 - **Approach:** Give a teeth check a condition the broken part cannot pass on any machine: the relay jitters each
   chunk up to 30 ms (in order), which the server's hold of four steps absorbs and a server without it turns into
   repeated commands. **Watch out for:** without jitter, the hold-0 run read 16 to 18 m of corrections on Windows but
