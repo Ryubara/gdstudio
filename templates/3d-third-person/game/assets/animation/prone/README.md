@@ -140,6 +140,88 @@ blender -b --factory-startup -P build_prone_aim_clips.py -- --model <mannequin_f
 `tools/capture/prone_aim_tour.tscn` plays the aim in the game from the player's camera, or from the side, the front,
 above and close on the hands (`PRONE_AIM_VIEW`).
 
+## Prone reload clip
+
+One more clip of GDStudio's own, made from nothing (kit #1185), in `prone_reload.glb`: the `AnimationPlayer`'s
+library `prone_reload`. `Prone_Reload_Pistol` (1.67 s, 50 frames, plays once) reloads the template's pistol lying
+down and is named on the pistol's `WeaponDef` (`prone_reload_clip`); the game plays it on the reload layer from
+`spine_01` up, stretched to the weapon's `reload_time`, in place of the library's standing `Pistol_Reload`, which
+folds the arms under a lying chest.
+
+| Share of the clip | What happens |
+| --- | --- |
+| 0 | The first pose of `Prone_Aim_Neutral_Loop`, to the bit. |
+| 0 to 0.22 | The chest rolls 11 degrees onto the right side and the left shoulder lifts. The right elbow comes down to the floor ahead of and outside its shoulder and props the arm; the forearm rises 20 degrees and brings the pistol back 15 cm and up, in front of the face, the muzzle 24 degrees up and 8 to the left, the magazine well canted 45 degrees toward the left hand (the grip's foot 0.18 m over the floor). The left hand opens and lets go by 0.10, as the game's hold has it. |
+| 0.10 to 0.26 | The left hand swings round the outside of its shoulder, back along the body to the belt at the left hip (there from 0.22 to 0.26), and closes on the new magazine. |
+| 0.26 to 0.40 | It swings back the same way to the line under the grip, a magazine's length (10 cm) down it. |
+| 0.40 to 0.54 | The heel of the palm pushes the magazine up into the grip; the head tips 7 degrees toward the well. At 0.54 the pistol gives 6 mm as the magazine seats. |
+| 0.71 to 0.88 | The left hand drops off the magazine, goes round the grip's foot and takes its place on the pistol. |
+| 0.74 to 0.96 | Both arms stretch out, the chest rolls back flat. |
+| 1 | The first pose of the prone aim again. |
+
+Numbers, measured by the build on the female mannequin (`build_prone_reload_clip.py --report`):
+
+- **It joins the prone aim.** The first and the last pose are the aim's first pose (0.0 degrees, against this
+  build's own solve and against the first frame of `prone_aim.glb`), and the lower body is the prone idle's on
+  every frame, so the game's filter from `spine_01` up joins it lying still or crawling.
+- **The left hand is where the game's hold wants it.** The shares are the standing reload's, read from `WeaponHold`
+  (`tools/hold/dump_aim_seat.gd` writes them with the `MagazineHand` marker, the hand's way off the weapon and the
+  approach under the magazine); `ReloadHold.plan` is `SupportHandPlan` in Python. Wherever the hold has the hand
+  all the way (to 0.064 and from 0.40) the clip's bone is on the hold's place (0.0 mm in the build; in the game the
+  hold moves the female's hand under 4 mm and her elbow under 10). Between, the clip's own arm goes to the belt.
+- **The propped elbow** stays within 1 mm of its place while the pistol is reloaded (0.22 to 0.74), 4.7 cm over
+  the floor at the joint.
+- **Over the floor.** The pistol's foot is 2.2 cm up at the ends and 17.7 cm while it is reloaded, the muzzle
+  16.7 to 35.8 cm; the female's hands get 3.9 mm into the floor at most (frame 48, the left hand coming back onto
+  the pistol as it comes down; the limit is 5).
+- **The wrists** are bent 21 to 24 degrees (right) and at most 60 (left, in mid-swing; 45 under the magazine, 28
+  at the belt). The left arm is at most 0.97 of its length (the aim's own).
+- **Nothing passes through anything:** 0.0 mm on both mannequins on all 51 frames (`../limb_overlap.py`; the two
+  hands on each other are the game's hold, measured there), and the left hand is never within 5 cm of the
+  barrel's line ahead of the muzzle.
+- **In the game** (`tests/gameplay/test_prone_reload_hold.gd`, the skinned mesh of both mannequins after the hold's
+  modifiers): the right hand holds within 2 mm in and 5 mm off at every 2 hundredths, the left hand on the pistol
+  at the ends and under the magazine from 0.54 to 0.71 within the same limits and no deeper than 2 mm in anything
+  on the way, at every hundredth it moves near the pistol.
+- **On the male mannequin** the same clip plays inside the same limits: his upper arms are 5 cm longer, so his
+  propped arm carries the pistol 7 to 9 cm from where the clip's left hand goes, which the hold's reach takes up;
+  without the hold his left hand would be 13 mm into the floor as it lets go.
+
+How a pistol is reloaded lying down (read before the clip was made):
+
+| Source | What it says |
+| --- | --- |
+| US Marine Corps, Pistol Marksmanship (MCRP 3-01B), chapter 2, reloading the pistol (<https://gutenberg.org/ebooks/75995>) | The firing grip stays; the pistol is pulled in close to the body with the magazine well canted inboard about 45 degrees; the left hand takes a filled magazine from the ammunition pocket, the index finger along its front, turns it up to the well, and the heel of the hand seats it; both hands roll back into the two-handed grip and the pistol is presented again. |
+| The same manual, chapter 4, the prone positions, and chapter 8, the one-handed reload lying down | Lying flat (isosceles prone) or rolled onto the firing side with the other knee drawn up; the head may rest against the firing arm. For the reload with one hand the shooter rolls onto a side and puts the pistol down or between the knees, the well facing out. |
+| US Army, FM 3-23.35, appendix B (<https://www.globalsecurity.org/military/library/policy/army/fm/3-23-35/appb.htm>; read as a search summary, not the page) | A prone firing table with two five-round magazines and a rapid magazine change between them, in the position. |
+| Shooting Illustrated, handgun reloads (<https://www.shootingillustrated.com/content/handgun-reloads-how-to-expert-tips>) | Lists reloads lying on the belly and on the back among the positions to practise (read as a search summary, not the page). |
+
+What the clip takes from it: the right hand never leaves the grip; the pistol comes back close, canted 45 degrees
+toward the left hand; the body rolls onto the firing side, which frees the left hip; the left hand goes to the belt
+at the left hip, comes up under the grip and seats the magazine with the heel of the palm; both hands take the grip
+again and the pistol goes back out. No source gives joint angles for it lying down: the prop on the right elbow,
+the 11 degrees of roll and the muzzle's 24 degrees follow from the floor (the hand needs a magazine's length under
+the grip) and from the hold's limits. The clip has no magazine in the hand and no slide to rack (the pistol's
+`Magazine` does not move yet, as in the standing reload).
+
+`build_prone_reload_clip.py` imports `build_prone_aim_clips.py` (the hold) and through it `build_prone_clips.py`. It
+fails before it exports when the first or the last pose is not the prone aim's, a target is missed, the left hand
+is more than 0.5 mm off the hold's place where the hold has it, the propped elbow moves more than 4 mm, the lower
+body differs from the prone idle's, a hand or forearm of the female is more than 5 mm under the floor or the
+pistol's foot or muzzle at it, the left hand is within 5 cm of the barrel's line ahead of the muzzle, a wrist is
+bent more than 75 degrees, an arm is past 0.992 of its length, or a part of the body goes more than 5 mm into
+another on either mannequin on any frame.
+
+```text
+godot --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <aim_seat.json>
+blender -b --factory-startup -P build_prone_reload_clip.py -- --model <mannequin_female.glb>
+    --male <mannequin_male.glb> --hold <aim_seat.json> --aim <prone_aim.glb> --out <prone_reload.glb>
+```
+
+Run the dump and the build again after the seat, a marker, the hold's way or a share of its Reload group changes,
+and after `prone_aim.glb` is rebuilt. `tools/capture/prone_aim_tour.tscn` with `PRONE_AIM_TOUR=reload` plays a shot
+and the reload in the game, from the player's camera or the tour's own views.
+
 ## How they are made
 
 `build_prone_clips.py` solves every frame from a few targets (where the pelvis lies, how the spine arches, where each
@@ -196,7 +278,8 @@ What the clips take from it:
 ## Where it comes from
 
 The motion is GDStudio's own work, under this repository's licence; nothing in it is copied from another game, pack or
-capture. The skeleton in `prone.glb` and `prone_aim.glb` (bone names, parents and rest pose) is the Quaternius
+capture. The skeleton in `prone.glb`, `prone_aim.glb` and `prone_reload.glb` (bone names, parents and rest pose) is
+the Quaternius
 universal rig's, CC0, taken
 from `assets/characters/mannequin/mannequin_female.glb` (its `LICENSE.md` has the source). The timing was set after
 studying how shipped games and the army's low crawl are described (kit pull request of #1009).

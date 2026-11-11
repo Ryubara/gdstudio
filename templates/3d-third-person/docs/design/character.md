@@ -304,8 +304,13 @@ Aiming lying down plays the held weapon's prone aim clips inside the prone state
 clips are made for (25 and 20 degrees; past them the pose stays on the clip). While the body lies, the standing grip
 and aim layers below have no weight. A shot lying down plays no shot clip: it kicks the look the pose is on by the
 Animation's `prone_shot_kick` (7 degrees), which settles over `prone_shot_kick_time` (0.22 s). A weapon whose
-`prone_aim_clip` is empty aims lying down with its standing clips. A reload lying down keeps the prone aim (the
-standing reload clip is not played on a lying body; a prone reload clip is kit #1185). The camera frames it with its
+`prone_aim_clip` is empty aims lying down with its standing clips. A reload lying down plays the weapon's
+`prone_reload_clip` (the pistol's is `prone_reload/Prone_Reload_Pistol`) on the reload layer, never the standing
+`reload_clip`: the body rolls a little onto its right side, the right arm props on its elbow with the pistol canted
+in front of the face, and the left hand fetches the magazine at the belt, pushes it in and takes the pistol again,
+at the standing reload's shares, so the `WeaponHold` follows it as it is. A reload with the pistol put away brings
+it out for the reload, a body that gets up stops the lying clip, and a weapon with no `prone_reload_clip` shows no
+clip lying down. The camera frames it with its
 Prone aim group
 (`PlayerCamera`: `prone_aim_view`, `prone_aim_distance` 1.8 m, `prone_aim_ahead` 0.55 m, `prone_aim_rise` 0 m,
 `prone_aim_shoulder` 0.7 m, `prone_aim_fov` 50 degrees): the view turns about the shoulders, not the hips, and sits
@@ -396,7 +401,8 @@ a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn`
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
 `Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
-The dressed character's `AnimationPlayer` holds the library as `prone`, and `prone_aim.glb` beside it as `prone_aim`:
+The dressed character's `AnimationPlayer` holds the library as `prone`, `prone_reload.glb` as `prone_reload` (the
+pistol's reload lying down, `Prone_Reload_Pistol`, 1.67 s), and `prone_aim.glb` beside it as `prone_aim`:
 three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
 flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
 with its elbows and feet planted, the body lies 1.07 m ahead of

@@ -276,6 +276,20 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   (`import build_prone_clips`) reuses its rig, solver, keying and export, and a subclass adds what differs; the
   importer's key tolerance moves a pistol at the end of two stretched arms 2 to 4 mm through a breath the build
   holds to 0.5 mm. **Seen:** gdstudio #1111, 2026-11-11 (`build_prone_aim_clips.py`, `test_prone_aim_hold.gd`).
+- **Approach:** Solve a clip that shares a hand with a game modifier from the modifier's own plan (ported, its
+  numbers dumped from Godot): the bone on the modifier's place where its weight is 1, and a pose right by itself
+  where the weight is between, since the game blends the two there. **Watch out for:** the clip kept a fist until
+  the hold let go, and the blend with the hold's opened hand put a fingertip 2.5 mm into the pistol at share 0.08;
+  the hold's way off the pistol leads down, into the floor under a lying body (26 mm) unless the pistol rises
+  first. **Seen:** gdstudio #1185, 2026-11-11 (`build_prone_reload_clip.py`, `test_prone_reload_hold.gd`).
+- **Approach:** Take a free hand between two far places on a curve round the body, let the hand follow the forearm
+  in mid-swing, and place a hand beside the body from the skin's width where the whole hand lies, with its fingers
+  as curled as the clip will have them. **Watch out for:** a straight line from the belt to the pistol passed
+  through the hand's own shoulder and the head (34 to 59 mm inside); a hand's world turn blended between the two
+  ends while the forearm swung half a turn bent the wrist 154 degrees; a wrist placed 3 cm outside the waist had
+  its curled fingers 50 to 105 mm inside the pelvis and the thigh, which is wider than the waist. **Seen:** gdstudio
+  #1185, 2026-11-11 (`BELT_SWING`, `hand_free`, the belt measured over the hand's span; the limb check found all
+  three before any render).
 - **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
   blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
   places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12

@@ -217,7 +217,8 @@ weapon is a new `.tres`; nothing else changes.
   gameplay; the clips, the sounds and the flash are cosmetic and never sent.
 - **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
-  reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
+  reload is a one-shot on the upper body stretched to `reload_time` (`reload_clip`, or `prone_reload_clip` on a
+  body that lies with a prone aim: [the prone reload](moves.md#prone)); a switch lowers the grip and the aim by
   `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
 
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in

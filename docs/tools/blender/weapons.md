@@ -231,6 +231,15 @@ shooting page once that work lands).
   (`support_keep_elbow`, from `CharacterAnimation.prone_hold_share()`). Within the 2 mm and 5 mm on both
   mannequins in the three clips (`tests/gameplay/test_prone_aim_hold.gd`). After a change of the seat or the
   marker, run the dump and `assets/animation/prone/build_prone_aim_clips.py` again.
+- **Lying down the left hand follows the reload the same way** (kit #1185). The prone reload clip
+  (`assets/animation/prone/build_prone_reload_clip.py`) is solved from the hold's own reload: the dump also writes
+  the `MagazineHand` marker, `support_way`, `magazine_approach`, `return_clearance` and the four pairs of shares,
+  the build works `SupportHandPlan` out in Python, and wherever the hold has the left hand the clip has its bone on
+  that place, so the hold moves the female's hand under 4 mm (the male's 7 to 9 cm, his upper arms being 5 cm
+  longer, which the reach takes up). The right arm props on its elbow with the pistol canted 45 degrees and the
+  muzzle 24 degrees up, so the 10 cm approach under the magazine is over the floor. Within the 2 mm and 5 mm on
+  both mannequins at every hundredth the hand moves near the pistol (`tests/gameplay/test_prone_reload_hold.gd`).
+  After a change of a marker, the way or a share, run the dump and the build again.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
