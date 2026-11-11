@@ -74,7 +74,8 @@ every stage your task touches before that stage, and the page of its asset class
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request, leave auto-merge off and hold it
    (`gds pr hold <owner/repo>#N`); only the maintainer takes `S-hold` off.
-7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back.
+7. **Pull request** with the captures attached (`gh pr create --attach`), `Fixes #N`, then report back. Each clip is a
+   GIF or an MP4 by the rule on `studio/capture.md#gif-or-mp4` (a short pose or motion loop is a GIF).
    **Screenshots on issues too**: every issue you open (a follow-up, a bug, a finding) carries a capture of what it is
    about when there is anything to see (`gh issue create --attach <png>` or `gh issue edit --attach <png>`).
 

@@ -97,13 +97,79 @@ folder whose PNG files are named otherwise (`walk-front.png`) has no frames, and
 
 ## clip {#clip}
 
-Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif` with a
-128-colour palette at up to 12 fps. The clip is cut at 30 s (`--max-seconds N` for another cut) and has to stay under
-9 MB (GitHub takes 10 MB for most attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720
-and 480 px, then the command fails. When frames run past the cut, it prints a line with how many frames and seconds
-were left out (`clip cut at 30 s: 120 frames (12 s) of 420 left out`): read it before you attach the clip, since the
-part you meant to show may sit in what was cut (#1090 sent such a clip before the line existed, #1132). Raise
-`--max-seconds`, or capture a shorter run that starts nearer the moment.
+Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif`. Which
+of the two a clip should be is [GIF or MP4](#gif-or-mp4). The clip is cut at 30 s (`--max-seconds N` for another cut)
+and has to stay under 9 MB (GitHub takes 10 MB for most attachments): an MP4 is encoded at 1280 px wide and, while too
+big, again at 960, 720 and 480 px, then the command fails. When frames run past the cut, it prints a line with how many
+frames and seconds were left out (`clip cut at 30 s: 120 frames (12 s) of 420 left out`): read it before you attach
+the clip, since the part you meant to show may sit in what was cut (#1090 sent such a clip before the line
+existed, #1132). Raise `--max-seconds`, or capture a shorter run that starts nearer the moment.
+
+A GIF has a budget of its own, measured for [GIF or MP4](#gif-or-mp4): 512 KB for each second of it, counted for at
+least 2 s and at most 10 s (1 to 5 MB). It is encoded with a 128-colour palette at 800 px wide (GitHub's description
+column is 814 px) and, while over the budget, again at 640 and 480 px. Its frame rate is 10 fps, or 20 fps from frames
+recorded at 20, 40 or 60 fps, because a GIF's delays are whole hundredths of a second. Every encoding prints its size.
+A GIF longer than 10 s, or still over its budget at 480 px, is kept with a `warning:` line that names the MP4; one
+over 9 MB fails.
+
+## GIF or MP4 {#gif-or-mp4}
+
+<!-- new section: clip said how to make a GIF and never when a clip should be one; agents chose by habit (#1153) -->
+
+Choose for every clip, on a pull request and on an issue. A GIF plays inline the moment the page opens, loops and
+needs no click, so the maintainer prefers it for simple things; an MP4 carries sound, length and detail.
+
+| The clip | Make | Write it in the body as |
+| --- | --- | --- |
+| Short (10 s or less), silent, showing one thing: a UI change, a pose, a short motion | a GIF: `gds capture clip <folder> --gif` | an image on the `Before:` or `After:` line: `![after](./<name>.gif)` |
+| Any sound (the [listening clip](#sound-a-clip-you-can-listen-to)) | an MP4 with its audio track | the bare upload address on its own line |
+| Longer than 10 s, or a change that unfolds over time | an MP4: `gds capture clip <folder>` | the bare upload address on its own line, a still or [sheet](#sheet) on `After:` |
+| Detail a 128-colour palette loses (gradients, fog, light falloff, fine texture), fast or fine motion, slowed playback | an MP4 | the same |
+| A loop that helps the reader beside detail that needs the MP4 | both | the GIF on `After:`, the MP4's address below it |
+
+A GIF that `gds capture clip --gif` warns about is the wrong choice: make the MP4, or capture a shorter run that starts
+nearer the moment. [Attaching](#attaching) and [Images](pull-requests.md#attach) have how each is uploaded.
+
+What the budget rests on (gdstudio #1153, 2026-11-11): Chromium 1243 playing GIFs of a 3D Third Person capture with
+the download throttled, the picture's changes read from the compositor's screencast (a canvas cannot sample it: drawing
+an animated image draws its first frame).
+
+- **A GIF plays while it downloads**, frame by frame as the bytes arrive, so it stalls on its first play when its bytes
+  a second outrun the connection, and plays at its own rate once it has arrived, whatever its size: every GIF up to
+  1280 px kept its 100 ms frames (p95 under 135 ms) after loading. So the budget is a rate, not a size.
+- **Frame delays are whole hundredths of a second.** ffmpeg wrote 12 fps as delays of 8, 8 and 9 and 15 fps as 6, 7
+  and 7, an uneven step; 10 and 20 fps are even.
+- **GitHub's description column is 814 px** (signed out, windows from 1280 to 2560 px wide), and an image in a list
+  item (`- **After:**`) is drawn 758 px wide; a wider GIF only costs bytes.
+- **GitHub serves the upload as it is**: the address redirects to the stored file (`image/gif`, the same 4,055,821
+  bytes as the local one), so a GIF plays on a pull request as it played here. On gdstudio #1167 the `After:` GIF
+  showed 27 different frames in 3 s of the page.
+
+Stalls on the first play (a frame held over 150 ms while the file arrived) and the time until all of it had arrived,
+GIFs at 10 fps cut from one capture:
+
+| GIF | Size | Mbit/s | 3 Mbps | 5 Mbps | 10 Mbps | 25 Mbps |
+| --- | --- | --- | --- | --- | --- | --- |
+| 480 px, 10 s | 1.7 MB | 1.4 | | 0 (2.9 s) | 0 (1.5 s) | 0 (0.6 s) |
+| 640 px, 10 s | 2.6 MB | 2.2 | | 1 (4.5 s) | 0 (2.3 s) | 0 (0.9 s) |
+| 800 px, 5 s | 2.1 MB | 3.5 | 20 (6.0 s) | 0 (3.6 s) | 0 (1.8 s) | |
+| 800 px, 10 s | 3.8 MB | 3.2 | 36 (10.6 s) | 0 (6.4 s) | 0 (3.3 s) | |
+| 960 px, 10 s | 5.0 MB | 4.2 | 40 (14.0 s) | 9 (8.4 s) | 0 (4.3 s) | |
+| 1280 px, 5 s | 4.3 MB | 7.3 | | 23 (7.4 s) | 3 (3.7 s) | 0 (1.5 s) |
+| 1280 px, 10 s | 7.8 MB | 6.6 | | 40 (13.3 s) | 2 (6.7 s) | 0 (2.7 s) |
+
+So the budget is 512 KB a second (4.2 Mbit/s): every GIF up to 4.6 Mbit/s played its first loop without a stall at
+10 Mbps, and those of 5.7 Mbit/s and more stalled. On 5 Mbps the clean ones were 3.5 Mbit/s or less, so a GIF near
+the budget stalls a few times on its first play there and loops smoothly after. The 8 s capture of the pull request
+that added this was 7.9 MB at 1280 px from the old `--gif` (39 stalls at 5 Mbps, 4 at 10) and 3.9 MB at 800 px from
+the new one (2 and 0).
+
+- **Approach:** To measure how a GIF plays, read the changes of the picture from the compositor (CDP
+  `Page.startScreencast`, a hash of each frame), throttle with `Network.emulateNetworkConditions` in full Chromium, and
+  split a long sweep into runs under `gds quiet`'s 900 s (or pass `--timeout`). **Watch out for:** a canvas
+  `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
+  headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
+  written. **Seen:** gdstudio #1153, 2026-11-11.
 
 ## Attaching {#attaching}
 
@@ -141,9 +207,9 @@ report only after reading the body back.
   reference by name only, so `![after](./gate-after.mp4)` beside `--attach ./gate-after.png` stays a local path and
   the upload goes to the end of the body. **Seen:** gdstudio #847, 2026-11-08 (its first body linked
   `./gate-after.mp4`; the one sent links `./gate-after.png`, the file attached).
-- **Approach:** Put an image on the `After:` line (a still, or a [contact sheet](#sheet) of the clip) and the clip's
-  bare upload address beside it, as for [sound](#sound-a-clip-you-can-listen-to); run `gds pr check-body` on the body
-  read back after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
+- **Approach:** For an MP4, put a still or a [sheet](#sheet) on the `After:` line and the clip's bare upload address
+  beside it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run `gds pr check-body` on the body read back
+  after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
   plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
   refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
   reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio

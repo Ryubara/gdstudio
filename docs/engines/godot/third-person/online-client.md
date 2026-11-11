@@ -19,8 +19,9 @@ player's own `_physics_process` off. Each physics step:
    WELCOME's centimetres. A TICK gives the `Reconciler` the server's point for the last command applied (`ack`), and
    gives every other entry, `joined` and `left` to `RemotePlayers`.
 2. `StallGuard` judges the step: more than 0.25 s since the last on the machine's clock is a resync (the reconciler
-   forgets its points and takes the next answer whole), and for 0.5 s after it every tick that is not the first of its
-   process frame is skipped (the engine's catch-up ticks: no command, no step).
+   forgets its points and takes the next answer whole, and the body first steps as the server stepped its own through
+   the silence: `SilenceWalk`, below), and for 0.5 s after it every tick that is not the first of its process frame is
+   skipped (the engine's catch-up ticks: no command, no step).
 3. The body moves by the correction under way (`Reconciler.take`).
 4. The controller is sampled, the command numbered (by the server tick it is expected to be stepped at:
    `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail it, `renumbered`; the map's doors and
@@ -39,6 +40,14 @@ remembered points of the unanswered commands by every correction, snaps past 2.5
 stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
 alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
 `Player.teleport()` and reset it.
+
+`SilenceWalk` (`gameplay/net/silence_walk.gd`) is the client's half of the server's silence rule: a server whose
+client sends nothing holds the body `NetServer.HOLD_TICKS` (4) steps, steps the last command again without its presses
+for `COMMAND_TICKS` (30), then stands it (`PeerSlot.take`). On a resync the client steps its own body the same way at
+once, for every tick of the stall but the one that ends it (`NetClient.silent_steps`), the standing steps until the
+body is at rest on the floor (two seconds at most), so the two bodies come out of a stall with the same point and the
+same speed. The snap alone puts the point right and keeps the speed the body had before the stall ([the
+gate](#bad-network-gate) has the trace).
 
 `RemotePlayers` (`gameplay/net/remote_players.gd`) makes one puppet `Player` a slot from `player.tscn`
 (`Player.make_puppet()`, then `PlayerPuppet`), draws each `delay` (0.1 s) behind its clock, between the two snapshots
@@ -144,7 +153,7 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
 | Worst error | under 6 m a stall with freezes (`worst_stall_error_m`), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
-| Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client; a page 1.5 m per stall of its thread, the freezes included | the server's hold |
+| Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client; a page 0.75 m per stall of its thread, the freezes included (1.5 m before #1127's silence walk) | the server's hold |
 | Starved puppets | 1 % of puppet-steps and 8 a puppet per stall of the client's thread (its catch-up frame), or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
 | Logs | nobody kicked, no `ERROR` in the server's or client's log; the page: no console error, no `Buffer payload full`, at least 20 frames a second | the transport |
 | Page hitches | the page: at most one frame past 0.25 s in the 3 s after the seat (a stray one of the machine) | a join that meets the level's first draws |
@@ -166,6 +175,9 @@ before the relay jittered):
 | Browser, relay, freezes, judged a stall (36 to 38 fps, three runs, #1070) | 234 to 264 ms | 41 to 57 (0.97 to 2.31 m) | 7 to 8 / 10 to 12 | 4.41 to 7.60 m, 2.20 to 2.53 m a stall (3 stacked) | 3.5 to 6.2 mm | 21 to 27 of about 4000 |
 | Browser, relay, freezes, joined during the warm-up (main, 27 to 37 fps, eight runs, #1106) | 214 to 276 ms | 0.93 to 5.79 m (one run 28.3 m) | 4 to 9 / 11 to 14 | 4.51 to 7.50 m, 1.44 to 3.26 m a stall (4 stacked) | 0.6 to 8.7 mm | 18 to 81 of about 4000 (one 426) |
 | Browser, relay, freezes, joined after the warm-up (28 to 31 fps, seven runs, #1106) | 238 to 304 ms | 1.66 to 4.59 m | 3 to 4 / 3 to 4 | 1.63 to 3.52 m (no stall stacked) | 1.1 to 8.7 mm | 24 to 78 of about 4500 (two runs whose server lost 40 and 55 steps: 366, 657) |
+| Native, relay and jitter, freezes, silence walk (six runs, #1127) | 248 to 282 ms | 8 to 120 (0.10 to 1.02 m; 3.98 m in a run whose server went over budget 50 steps) | 0 to 3 / 3 | 0.04 to 0.46 m | 0.1 to 7.8 mm | 3 to 150 of 5760 |
+| Browser, relay, freezes, joined during the warm-up, silence walk (35 to 38 fps, three runs, #1127) | 252 to 280 ms | 28 to 70 (0.91 to 2.44 m) | 6 to 9 / 11 to 14 | 0.69 to 1.40 m | 1.4 to 8.1 mm | 45 to 168 of about 4000 |
+| Browser, relay, freezes, joined after the warm-up, silence walk (28 to 35 fps, four runs, #1127) | 226 to 291 ms | 24 to 88 (0.47 to 1.85 m; 1.85 m in a run whose server lost 59 steps) | 0 to 2 / 3 | 0.15 to 0.46 m | 0 to 5.8 mm | 30 to 102 of about 4500 (459 in that run) |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
 | Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
@@ -174,6 +186,10 @@ before the relay jittered):
 | Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
 | Teeth: browser, server hold 0, joined after the warm-up (two runs, #1106) | 254 to 262 ms | 44.8 to 45.6 m against 6.5 m allowed | | | | |
+
+With the silence walk (#1127) the answer after a stall is centimetres off, so a stall of the page's thread costs about
+what a stall of the native client's does: a page that joins after the warm-up (#1106) corrected at most 0.65 m a freeze
+in the two seconds after it, so a page is allowed the hitch's 0.75 m a stall (`CORRECTED_M_A_PAGE_STALL`, 1.5 m before).
 
 The client costs 190 to 290 µs a step at the median (`NetClient`, the body's step included). The relay carried 41 KB up
 and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for a client with three other players.
@@ -217,6 +233,14 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   0.3 to 1.7 s of steps to the shared machine, so the page's run now checks the server's clock first. **Seen:**
   gdstudio #1106, 2026-11-11 (`CORRECTED_M_A_PAGE_STALL`, `SERVER_LOST_STEPS`; why a page's freeze costs more:
   #1127).
+- **Approach:** After a stall of the client's thread, step its body as the server stepped its own through the silence
+  (`SilenceWalk`), and judge it by the speed gap of the first commands after the stall (each command's velocity on both
+  sides), not by corrections. **Watch out for:** the snap put the point right but kept the body's speed from before
+  the stall; the bodies then stepped the same commands at the same capped acceleration, so the gap lasted and every
+  answer corrected the drift (a page's first freeze: a 0.70 m snap, then answers of 0.2 to 0.6 m, speeds 1.0 to 1.4
+  m/s apart). Native sprints hit the speed cap sooner. Six page runs: 0.8 to 7 m/s apart, 1.1 to 4.2 m corrected in
+  the 2 s after three freezes; walked 0.0 m/s in 13 of 14 freezes, 0.03 to 1.95 m; native 0.04 to 0.25 m a run, was
+  0.7 to 0.9. **Seen:** gdstudio #1127, 2026-11-11 (the rest: late commands on a loaded machine).
 - **Approach:** Give a teeth check a condition the broken part cannot pass on any machine: the relay jitters each
   chunk up to 30 ms (in order), which the server's hold of four steps absorbs and a server without it turns into
   repeated commands. **Watch out for:** without jitter, the hold-0 run read 16 to 18 m of corrections on Windows but
@@ -229,12 +253,12 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
   deployment from the made game listened on `$PORT` at once).
 - **Approach:** Keep a gate's walk off every ledge the body can fall from or climb, and read a failed run by second:
-  `by_second` (where the body stood, metres corrected, snaps, gap) and the relay's stalls near it (`WORST` lines). Count
-  a snap by its cause: with up stalls, one under 4 m per up stall (`size_snaps_m`). **Watch out for:** the walk round
-  the spawn crossed the dais's edge; a command repeated in an up stall took the server's body down while the client's
-  stayed up, and each quarter of the correction landed inside the dais and was pushed back on top (#1119): 141 m
-  corrected in one local run, 75.5 m and 1.65 m apart standing on 31cc1793. On the dais top, six two-core runs: 22.6
-  to 23.9 m, worst 1.0 to 1.31 m. **Seen:** gdstudio #1110, 2026-11-11 (from #1109).
+  `by_second` and the relay's stalls near it (`WORST` lines). Count a snap by its cause: with up stalls, one under 4 m
+  per up stall (`size_snaps_m`). **Watch out for:** the walk round the spawn crossed the dais's edge; a command
+  repeated in an up stall took the server's body down while the client's stayed up, and each quarter of the correction
+  landed inside the dais (#1119): 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m, worst 1.31 m. A
+  branch cut before the fix fails the stall run the same way with nothing networked changed: merge main, never rerun.
+  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1).
 
 ## Playing online {#play-online}
 
@@ -255,6 +279,11 @@ Reload button on the web and "update the game" on the desktop; the game is full;
 before the WELCOME or `connect_seconds` of frames (each under the stall guard's 0.25 s) without one it says the server
 did not answer, and on a seated link that closes, Connection lost. Every message has Back to menu, the player's input
 is off while one shows, and the texts are exports of `online_status.tscn`.
+The overlay is not under the router's stage, so it builds its `gds_ui` theme from the tokens itself (the marquee
+panel's padding, the title's size; [Menus](../menus.md#menus)); `tests/ui/test_online_status.gd` holds every part
+inside the panel's bulbs at the desktop and the phone layout, and `tools/capture/online_status_tour.tscn` shows
+Connecting, a message and the other-version message in the real online game (Movie Maker at 1920 x 1080, or
+`-- --shots=<folder>` in an 844 x 390 window).
 
 `PlayerBot` (`gameplay/player/player_bot.gd`, `--bot` or `?bot`) plays through the player's own `PlayerInput`: it
 presses the input actions (`Input.action_press`) and turns the camera with `PlayerCamera.orbit`, so the server hears a
@@ -276,20 +305,44 @@ every hello as a server of the next protocol version: the probe then fails (its 
 passes only when every page shows the overlay's "another version" message. `OnlineProbe` (`ui/probe/`) is the page's
 side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
 
-**What it measured** (Windows, Godot 4.7.2, 2026-11-11; headless Chromium on SwiftShader at 320x180 under `gds quiet`,
-one page, `server_bot.gd` bots for the puppets, relay 100 ms each way, 20 s):
+**What it measured** (Windows, Godot 4.7.2, 2026-11-11, Ryzen 7 9800X3D and RTX 5080; headless Chromium 156 at
+320x180 under `gds quiet`, one page, `server_bot.gd` bots for the puppets (`--bots` 1, 4 and 7), relay 100 ms each way,
+20 s). On the GPU (`--gpu`, ANGLE on Direct3D 11) a warm-up page played 20 s first (below); vsync holds a GPU page at
+16.7 ms whatever it draws, so `--uncapped` (vsync and the frame cap off) reads the page's work, two runs each:
 
-| Puppets | Frames a second | Frame p50 / p95 | Placing the puppets, p50 | Corrections (metres) |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | 23 | 42.8 / 48.7 ms | 0.1 ms | 40 (1.6 m) |
-| 4 | 21 | 46.1 / 50.6 ms | 0.2 ms | 18 (1.8 m) |
-| 7 (8 players) | 19 | 51.8 / 63.7 ms | 0.3 ms | 14 (1.1 m) |
+| Puppets | Renderer | Frames a second | Frame p50 / p95 | Placing the puppets, p50 | Corrections (metres) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | SwiftShader | 23 | 42.8 / 48.7 ms | 0.1 ms | 40 (1.6 m) |
+| 4 | SwiftShader | 21 | 46.1 / 50.6 ms | 0.2 ms | 18 (1.8 m) |
+| 7 (8 players) | SwiftShader | 19 | 51.8 / 63.7 ms | 0.3 ms | 14 (1.1 m) |
+| 1 | GPU, vsync | 60 | 16.6 / 18.3 ms | 0.1 ms | 11 (0.3 m) |
+| 4 | GPU, vsync | 60 | 16.7 / 17.8 ms | 0.2 ms | 12 (0.5 m) |
+| 7 (8 players) | GPU, vsync | 60 | 16.6 / 18.0 ms | 0.3 ms | 41 (2.5 m) |
+| 1 | GPU, uncapped | 166 to 230 | 4.1 to 6.6 / 5.5 to 10.0 ms | 0.1 ms | 41 to 53 (1.6 to 2.5 m) |
+| 4 | GPU, uncapped | 135 to 140 | 7.6 to 7.8 / 10.3 to 11.0 ms | 0.2 ms | 29 to 60 (0.7 to 2.7 m) |
+| 7 | GPU, uncapped | 79 to 94 | 10.5 to 14.3 / 13.6 to 18.3 ms | 0.4 ms | 17 to 19 (0.7 m) |
 
-Each puppet costs the software-drawn page about 1.5 ms a frame (its skinned model and animation; placing it from the
-track is a few hundredths of that), so eight players draw at 19 frames a second there, against the research's
-estimate of about 1 ms for eight on a desktop GPU. Two pages at once share the CPU and draw at 15. The GPU build could
-not be measured: a page with `--enable-gpu` under `gds quiet` draws a frame in 5 to 17 ms but hitches 0.6 to 3 s every
-few frames and never sends its HELLO (#908 saw the same; #1117).
+Each puppet costs the software-drawn page about 1.5 ms a frame and the GPU page 1 to 1.3 ms (with no puppet the
+uncapped page made a frame in 1.7 to 2.2 ms): nearly the same, so the cost is the page's own work for each puppet (its
+animation and skinned model), not the drawing, and placing it from the track is a few hundredths of it. Eight players
+hold 60 frames a second with vsync on a desktop GPU, but their frame is 10.5 to 14.3 ms of work (p95 up to 18.3 ms),
+against the research's estimate of about 1 ms for all eight; on SwiftShader they draw at 19. Two pages at once share
+the CPU and draw at 15 there.
+
+**A cold browser hangs up on its first join.** Godot's Compatibility renderer links each shader program the first time
+it draws with it and asks for the link's result at once (`getProgramParameter`), which waits until Chrome's GPU process
+has compiled it. On ANGLE's Direct3D 11 the first page waited 21.2 s in 342 calls to `getProgramParameter` (171
+programs, the slowest about 1.1 s each), in long tasks of 13.9, 4.8 and 3.0 s from the first frames; the socket opened
+before the first of them, its `open` event ran 14 s later, and the server had hung up on a connection with no hello at
+`NetServer.hello_seconds` (10 s; close code 1008): the overlay said the server did not answer. SwiftShader links the
+same programs in 0.3 s (its longest task 2.4 s), which is why software pages always seated. The browser keeps what it
+compiled: a second page in the same browser, or the same profile started again, drew at 60 frames a second and seated
+in a second. So `online.py --gpu` plays a warm-up page for `--warm-up` seconds (20) first, and the measured pages read
+a returning player; the warm-up page itself is hung up every time. The private desktop was not the cause: the warm
+page ran on it. A player whose browser has never drawn the game meets the same hang-up (#1137). Two GPU pages after
+the warm-up seat and hold 60 frames a second; two SwiftShader pages failed four runs of four later the same day, on a
+machine busy with other agents (main's probe too, and with a warm-up): the second page hitched 2.7 to 8 s while the
+first drew, and was hung up for its hello in the same way.
 
 **Jolt in wasm against Jolt on Linux.** `StepTraceProbe` (`ui/probe/`, `?steptrace` or `-- --steptrace` with
 `--play`) steps a server's body (`character.tscn`) 1800 times through the template's map with commands of the step's
@@ -321,7 +374,77 @@ Linux. The page's hitches after the join are #1106.
   for:** the browser corrected 30 to 100 times more than a native client against the same Linux server, which looked
   like Jolt in wasm parting from Jolt on Linux; the three traces were the same to nine decimals and the corrections
   were the page's hitches. **Seen:** gdstudio #909, 2026-11-11 (`StepTraceProbe`, `step_trace.py`).
+- **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
+  arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
+  7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's
+  `puppets` field showed it. **Seen:** gdstudio #1117, 2026-11-11 (fixed in `online.py`'s docstring; the table's rows
+  are `--bots` 1, 4 and 7).
 - **Approach:** Count a connect timeout in frames the game really ran (each under the stall guard's 0.25 s), and show
   Back to menu while connecting. **Watch out for:** a page's first seconds are spent compiling shaders and loading the
   map; a timeout on the clock would call a server that is fine unreachable on a slow device. **Seen:** gdstudio #909,
   2026-11-11 (`OnlineStatus.connect_seconds`).
+
+## The long proofs: unread client, hostile cost, soak, bandwidth {#soak-and-bandwidth}
+
+<!-- new section: the gate above is 30 s runs; nothing held the proofs that need a minute or ten (a client that stops
+     reading, the hostile clients' cost, the soak, bytes per player) or the choices made where #908 asked the
+     impossible -->
+
+The rest of gdstudio #908 (gdstudio #1071), and what was chosen where #908 asked for what no client can pass: the
+1 % of stalled chunks of [the gate](#bad-network-gate) stays (2 % starve 40 % of the steps at a 100 ms delay, measured
+there), and the 60 s unread client is a client whose downlink stalls while it still sends (below). Windows, Godot
+4.7.2, 2026-11-11, other agents using the machine.
+
+- **The unread client** (`tests/gameplay/test_net_server_unread.gd`, the template job): eight players, one of them
+  behind `tests/fixtures/tcp_relay.gd`, which stops reading the server's side for 60 s of the frame clock while the
+  client still sends; a ninth join's churn (a `left` and a `joined` every 5 s) owes it 24 events. After the stall it has
+  every event once, in order, TICKs in order and of all eight, and the server never hung up on it. On loopback the
+  sockets held the whole minute (228 KB through the relay, no send refused), so a second case makes the listener refuse
+  every send to that peer (as a full `outbound_buffer` does): 1811 sends refused, `peers_stalled` in seven `stats`
+  lines, and still every event. Taking out "the events wait" (`sent_events` called on a refused TICK) loses 22 of
+  the 24 events. In the browser, `tools/web_smoke/net_play_smoke.py --unread 60 --bots 7` (a workstation run) holds the
+  page's downlink 60 s while the page plays: 270 KB down, 2383 TICKs read of the 2340 sent (none lost), 3646 steps of
+  starved puppets (the stall itself), settled 1.8 mm, no `Buffer payload full`, nobody kicked.
+- **The hostile cost** (`tests/gameplay/test_net_server_hostile_cost.gd`): the honest player beside a stream of hostile
+  clients (a flood, junk sizes and types, a packet over 4 KB, a lying `seq`, a second hello, a socket that never reads),
+  each hung up on and the next connecting at once, against windows with two polite players in the same seats (a seated
+  hostile's body costs a player's step: against the honest player alone the median read twice the baseline). Three
+  rounds of 300 frames: median step 0.28 to 0.35 ms hostile against 0.35 to 0.39 ms quiet, 95th percentile under 4 ms,
+  54 hostile clients, 36 of them kicked. With the command rate limit taken out the flood is never hung up on: median
+  2.9 ms against 0.32 ms.
+- **The soak** (`tools/net/soak.gd`; `.github/workflows/net-soak.yml`, nightly, by hand, and on a pull request that
+  changes it): the server and two predicting clients of `OnlineRig` over real sockets, ten game minutes at
+  `--fixed-fps 60` in 69 s of wall time; each client walks 1040 to 1217 m; every 300 ticks, once both stood a second,
+  each body is 0.0 mm from the server's and every solid thing is in both worlds (`tests/fixtures/world_parity.gd`, the
+  same comparison as `test_world_parity.gd`); no correction, snap or loss; memory 204 KB more after the first minute,
+  no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
+  (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
+- **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
+  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+
+| Players | Down a client | Up a client |
+| ---: | ---: | ---: |
+| 2 | 1140 B/s | 1286 B/s |
+| 4 | 1857 B/s | 1286 B/s |
+| 8 | 3298 B/s | 1286 B/s |
+
+  Up is the same at any count: 60 commands a second of 15 bytes and the WebSocket frame's 6 (a client's frames are
+  masked), and two pings.
+
+- **Approach:** Test a client that stops reading by stalling its downlink and nothing else (a relay that stops reading
+  the server's side), and keep "the client stopped sending" for the silence rule. **Watch out for:** #908 asked for a
+  60 s unread client while the server hangs up on 15 s without a command: a frozen client stops both, so the server
+  rightly drops it at 15 s (`test_net_server_silence.gd`); the one that can be unread for a minute still sends, and
+  Godot's `WebSocketLink` sends only when polled, so the stall has to be made under the socket, not by not polling.
+  **Seen:** gdstudio #1071, 2026-11-11 (`TcpRelay.hold_down`, `Relay.hold_down`).
+- **Approach:** Prove a full send buffer with a listener that refuses sends to one peer, and report what the real
+  sockets held. **Watch out for:** on Windows loopback the sockets under a 16 KB `outbound_buffer` took the whole minute
+  of eight players (some 230 KB) without one refused send, so a test that waits for the kernel to fill passes without
+  ever reaching the refusal path. **Seen:** gdstudio #1071, 2026-11-11 (`FullListener` in the unread suite).
+- **Approach:** Compare a server's step under hostile clients with a baseline that has as many polite players in the
+  seats the hostile ones take. **Watch out for:** a hostile client that is seated gets a body the server steps like any
+  player's, so against the honest player alone the hostile median read 0.26 ms to 0.12 ms, twice, and none of it was
+  the attack. **Seen:** gdstudio #1071, 2026-11-11 (`test_net_server_hostile_cost.gd`, the `Polite` clients).
+- **Approach:** Measure a soak's walk as the path its bodies took, summed every tick. **Watch out for:** the distance
+  between two checks of a body walking circles is a chord, under 5 m on most checks, and the first soak failed its
+  own "the autopilot ran" check twenty times. **Seen:** gdstudio #1071, 2026-11-11 (`soak.gd` `_track_walks`).

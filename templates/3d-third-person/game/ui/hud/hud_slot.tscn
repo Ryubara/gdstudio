@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/hud/hud_slot.gd" id="1_slot"]
+
+[node name="HudSlot" type="PanelContainer" node_paths=PackedStringArray("icon", "key_label", "count_label")]
+custom_minimum_size = Vector2(84, 84)
+mouse_filter = 2
+theme_type_variation = &"HudSlot"
+script = ExtResource("1_slot")
+icon = NodePath("IconMargin/Icon")
+key_label = NodePath("Key")
+count_label = NodePath("Count")
+
+[node name="IconMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="Icon" type="TextureRect" parent="IconMargin"]
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Key" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_type_variation = &"HudSlotKey"
+text = "1"
+
+[node name="Count" type="Label" parent="."]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+theme_type_variation = &"HudSlotKey"
+text = "3"

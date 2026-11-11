@@ -93,7 +93,7 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
 - **Take it off** only on the maintainer's word, and only by hand on the pull request's page. The check re-runs with no
   new commit. Auto-merge that is on stays on through the hold, so the pull request merges the moment the label comes
   off.
-- **The guard** in `guards.py` gives a session the reason, and it is the only thing that stops a session taking the
+- **The guard** in `guards/merges.py` gives a session the reason, and it is the only thing that stops a session taking the
   label off: every agent uses the maintainer's token, so GitHub cannot tell them apart. It reads shell commands, so it
   does not see a script that calls the API itself.
 - **A pull request opened before the check was required** has no run on its head and stays pending: run
@@ -106,8 +106,8 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
 ## Comments {#comments}
 
 Nothing an agent runs posts a comment or a review under the maintainer's GitHub account (their decision of 2026-10-12);
-status labels say that work is under way. `check_comments` in `guards.py` judges what `gh` would do, because a rule
-that lists the commands named `comment` let `gh issue close --comment` post on #691
+status labels say that work is under way. `check_comments` in `guards/comments.py` judges what `gh` would do, because a
+rule that lists the commands named `comment` let `gh issue close --comment` post on #691
 ([Writing checks](writing-checks.md#effects)). The routes come from every page
 of `gh help` in gh 2.102 and the mutations from GitHub's schema, read on 2026-11-05; a later `gh` can add a route, so
 the list is only as current as that walk.
@@ -458,21 +458,69 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
   corrections depended on the coordinator remembering; nothing tied a correction to a docs change, and agents did not
   read past corrections before starting. **Seen:** Deadnight, 2026-11-01 (fix: the learning hooks (kit #72)).
 
+## The guards' modules {#modules}
+
+<!-- new section: the page said what each guard refuses, never where its code lives; guards.py became a package -->
+
+The dispatcher runs the package `.claude/hooks/guards/`, one module per job, so two hook changes rarely touch one file.
+Standard library only: the hooks start under `uv run --no-project`.
+
+| Module | Its job |
+| --- | --- |
+| `__init__.py` | the entry points the dispatcher calls: `pre_tool_use`, `post_tool_use`, `stop` and `subagent_stop` run the guards of every module, each importing the modules it needs when it runs |
+| `shell.py` | reading a shell line: heredocs left out, simple commands as words, the program, the folder of `git -C` and `cd`, a flag's values |
+| `workspace.py` | the tool groups, the warnings of a guard that failed open (`take_warnings`), globs, git, the workspace by its marker, the kit (`KIT`, `kit_root`), `load_kit_module`, and `gds` commands started in the background |
+| `agents.py` | agent types, and the `Read:` lines of a task agent's prompt ([below](#docs)) |
+| `issues.py` | issue order and the labels of progress ([below](#issues)) |
+| `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
+| `commits.py` | commits and pushes |
+| `merges.py` | `gh pr merge`, manual paths and the hold ([above](#hold)) |
+| `behind_base.py` | a merge only of a head that holds its base's tip |
+| `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
+| `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
+| `protected.py` | secrets printed, protected and generated files edited |
+| `proof.py`, `session.py`, `mains.py`, `disk.py`, `sweep.py`, `learning.py`, `docs.py`, `stall.py`, `idle.py` | the sections of the same names below |
+
+A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
+of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
+when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
+when it runs `git` or `gh`. The three kit modules the hooks load
+by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`) go through `load_kit_module(name)`, so they must use the
+standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
+
+- **Approach:** Replace a name of the guards in a test with `hook_support.patch(monkeypatch, name, value)`
+  (`python/tests/hook_support.py`), which sets it in every module of the package that holds it. **Watch out for:**
+  `monkeypatch.setattr(guards, name, ...)` changes only the package's binding, so the guard that imported the name
+  still calls the real one and a test reaches GitHub or the real disk; and a module named like one of the package's
+  functions hides it, because importing `guards.behind` set the package's `behind` to the module (hence
+  `behind_base.py`). **Seen:** gdstudio #929, 2026-11-11 (the split; `guards.behind(...)` raised "'module' object is
+  not callable" until the module was renamed).
+
+- **Approach:** Import a guard module inside the entry point that calls it, and time a hook change against the code
+  before it, interleaved (A, B, A, B) on the same payloads, Read among them. **Watch out for:** the PreToolUse hook
+  runs on every tool call (matcher `*`), so each module imported with the package costs every Read and Grep a file
+  open; the twenty modules imported at once cost 10 to 15 ms more than the single file, a run of one after the other
+  hides it in noise. **Seen:** gdstudio #929, 2026-11-11 (fixed by imports in `pre_tool_use`; a Read went from 120 to
+  115 ms, a shell command stayed within noise).
+
 ## Tests {#tests}
 
 How the run works (the command, CI's four workers, the seeded repositories of `python/tests/git_seed.py`, the
 allowed skips) is on [The kit's tests](kit-tests.md); this section says which file covers which hook.
 
-`python/tests/test_hooks.py` covers every guard (the comment guard with one case per route, spelling and mutation, and
-one per command that must keep working), the answer protocol, the fail-open path, the issue-order checks, the
-stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check (the refusal and both commands,
-a task agent never judged, the refusal limit and its reset, the `gh` cache, failing open) and the learning loop (each
-event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
-once, throttled, switched off, log moved aside; started by session start, a merge and Stop).
+`python/tests/hooks/` covers every guard, one file per job as [the modules](#modules) are (`test_hook_<job>.py`; its
+`conftest.py` keeps every test away from GitHub, the sweep, the disk guard and the real disk): the comment guard (one
+case per route, spelling and mutation, and one per command that must keep working), the answer protocol, the fail-open
+path, the issue-order checks, the stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check
+(the refusal and both commands, a task agent never judged, the refusal limit and its reset, the `gh` cache, failing
+open) and the learning loop (each event's text, the queue gate and its loop guard, and the dispatcher run as a process)
+and the background sweep (started once, throttled, switched off, log moved aside; started by session start, a merge and
+Stop).
 `python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
 `python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a
 pull request read through recorded `gh` answers, the order of the proposed sections, a path mention far from the issue's
 words left out (#909's body in `python/tests/fixtures/issue_bodies/`), and that the kit's own brief names sections that
-exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
+exist; `hooks/test_hook_issues.py` and `hooks/test_hook_docs.py` cover the `Read:` guard and the report's `Read:` and
+`Docs gaps:` lines.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.
