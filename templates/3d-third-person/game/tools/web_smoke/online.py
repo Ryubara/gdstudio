@@ -8,7 +8,10 @@ menu goes straight to the online game (`OnlineMain`), whose `PlayerBot` plays th
 first page walks the route to the door, the others watch and shoot), and whose `OnlineProbe` writes what the client
 measured to `window.gdonline`. After `--seconds` of play it reads every page's report and checks: every page seated,
 every page sees every player, a round trip read, no body lost, the body within a metre of the server's point, no
-`Buffer payload full` or other console error, and no ERROR or kick in the server's log. The frame time and the
+`Buffer payload full` or other console error, and no ERROR or kick in the server's log. The pages open together and
+join once their level's warm-up is over and their frames settle (`JoinWait`, kit #1142); each page records every
+frame's length (`FRAME_WATCH` of `net_play_smoke.py`), and a page fails with more than `JOIN_HITCHES` frames past
+0.25 s in the 3 s after its seat (the bad-network gate's bound). The frame time and the
 puppets' cost are recorded for the docs (`--bots` 0, 3 and 6 with one page give 1, 4 and 7 puppets... with two pages,
 one more).
 
@@ -36,7 +39,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
 from bad_network import Verdict, judge_server, server_log
 from bad_network_gate import godot_cmd, start, stop, wait_for_port
-from net_play_smoke import GPU_ARGS, SOFTWARE_ARGS, serve, wait_for
+from net_play_smoke import (
+    FRAME_WATCH,
+    GPU_ARGS,
+    HITCH_S,
+    JOIN_HITCHES,
+    JOIN_WINDOW_S,
+    SOFTWARE_ARGS,
+    hitches,
+    serve,
+    wait_for,
+)
 from relay import Relay
 
 READY_TIMEOUT_S = 120.0
@@ -80,7 +93,9 @@ def main() -> int:
     try:
         url = args.url
         if not url:
-            script = "res://tools/net/other_version_server.gd" if args.other_version else "res://tools/net/gate_server.gd"
+            script = (
+                "res://tools/net/other_version_server.gd" if args.other_version else "res://tools/net/gate_server.gd"
+            )
             server = start(godot_cmd(args.godot, project, script, "--port", "0"), args.out / "server.log")
             url = f"ws://127.0.0.1:{wait_for_port(args.out / 'server.log', server)}"
         page_url = url
@@ -101,23 +116,31 @@ def main() -> int:
             browser = playwright.chromium.launch(args=GPU_ARGS if args.gpu else SOFTWARE_ARGS)
             width, height = (int(n) for n in args.viewport.split("x"))
             pages: list[Page] = []
+            # Every page opens first and then each is waited for: a page opened after another was seated would load
+            # its level, and SwiftShader its shaders, inside the first page's join window.
             for index in range(args.pages):
                 page = browser.new_context(viewport={"width": width, "height": height}).new_page()
-                page.on("console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None)
+                page.add_init_script(FRAME_WATCH)
+                page.on(
+                    "console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None
+                )
                 page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
                 plan = "route" if index == 0 else "watch"
                 page.goto(
                     f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
                 )
-                settled = "window.gdonline && window.gdonline.state !== 'connecting'"
-                wait_for(page, settled, READY_TIMEOUT_S)
                 pages.append(page)
+            waiting = "['connecting', 'loading'].indexOf(window.gdonline.state) < 0"
+            for page in pages:
+                wait_for(page, f"window.gdonline && {waiting}", READY_TIMEOUT_S * args.pages)
             seated = all(report_of(page)["state"] == "seated" for page in pages)
             if seated:
                 time.sleep(args.seconds)
             else:
                 time.sleep(2.0)
             reports = [report_of(page) for page in pages]
+            for page, report in zip(pages, reports):
+                report["hitches"] = hitches(page)
             for index, page in enumerate(pages):
                 page.screenshot(path=str(args.out / f"page{index + 1}.png"))
             browser.close()
@@ -132,7 +155,9 @@ def main() -> int:
     players = args.pages + args.bots
     if args.expect_refused:
         for index, report in enumerate(reports):
-            verdict.check(f"page {index + 1} was refused for its version", report["state"] == "refused version", report["state"])
+            verdict.check(
+                f"page {index + 1} was refused for its version", report["state"] == "refused version", report["state"]
+            )
             verdict.check(
                 f"page {index + 1} says the server runs another version",
                 OLD_VERSION_TEXT in report.get("message", ""),
@@ -142,11 +167,19 @@ def main() -> int:
         for index, report in enumerate(reports):
             name = f"page {index + 1}"
             verdict.check(f"{name} was seated", report["state"] == "seated", report["state"])
-            verdict.check(f"{name} sees all {players} players", report.get("players", 0) == players, report.get("players"))
+            verdict.check(
+                f"{name} sees all {players} players", report.get("players", 0) == players, report.get("players")
+            )
             verdict.check(f"{name} read a round trip", report.get("rtt_ms", -1) > 0, report.get("rtt_ms"))
             verdict.check(f"{name} lost no answer", report.get("lost", -1) == 0, report.get("lost"))
             gap = report.get("gap_m", -1.0)
             verdict.check(f"{name} is within {GAP_M} m of the server's point", 0.0 <= gap <= GAP_M, gap)
+            seen = report.get("hitches", {})
+            verdict.check(
+                f"{name} drew at most {JOIN_HITCHES} frame past {HITCH_S} s in the {JOIN_WINDOW_S:g} s after its seat",
+                seen.get("in_join_window", JOIN_HITCHES + 1) <= JOIN_HITCHES,
+                {k: seen.get(k) for k in ("in_join_window", "join_window_ms", "unplanned", "worst_unplanned_ms")},
+            )
         if server is not None:
             log = server_log(args.out / "server.log")
             result["server"] = log
@@ -162,6 +195,10 @@ def main() -> int:
         keys = ("state", "players", "rtt_ms", "gap_m", "corrections", "corrected_m", "fps", "frame_us_p50")
         line = ", ".join(f"{k} {report.get(k)}" for k in keys)
         line += f", frame_us_p95 {report.get('frame_us_p95')}, puppets_us_p50 {report.get('puppets_us_p50')}"
+        seen = report.get("hitches", {})
+        line += f", settle_ms {report.get('settle_ms')}, wait_ms {report.get('wait_ms')}"
+        line += f", hitches {seen.get('unplanned')} (join window {seen.get('in_join_window')}, worst"
+        line += f" {seen.get('worst_unplanned_ms')} ms), links_after_seat {seen.get('links_after_seat')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1
