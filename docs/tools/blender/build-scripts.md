@@ -40,13 +40,16 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
-  **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+  A patch chained before a solve in one background command fails the same way: its assert stopped the patch, the
+  solve ran the old code for 13 minutes and gave the old pose to the last digit. Patch in the foreground, read its
+  result, then start the run. **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was
+  committed); gdstudio #1084, 2026-11-11 (fix: the patch run alone).
 - **Approach:** Lint and format a template's Python (its build scripts and benches under `templates/<t>/game/`)
   by hand before the push, with the settings a game made from it uses: `uvx ruff check --no-cache --config
   templates/repo/ruff.toml <files>` and the same with `ruff format` (120 columns). **Watch out for:** the kit's ruff
   pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
   ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
-  2026-11-11.
+  2026-11-11; gdstudio #1084, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver; formatted again at 120).
 
 ## Rebuilding a committed file {#rebuilding}
 
