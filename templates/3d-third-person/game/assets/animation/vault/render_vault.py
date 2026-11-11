@@ -17,8 +17,8 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-TILE = (400, 480)
-METRES_HIGH = 2.3
+TILE = (400, 540)
+METRES_HIGH = 2.7
 ## The frames looked at close: where the first version of each clip had a leg deepest in the other leg or an arm.
 CLOSE = {"Vault_Low": [7, 12], "Vault_High": [15, 20]}
 
@@ -134,9 +134,9 @@ def render(rig, clips, actions, out):
                 box.hide_render = not on
 
         views = {
-            "side": (lambda y: ((6, y, 1.05), (0, y, 1.05)), 1, (True, True, False)),
-            "right": (lambda y: ((-6, y, 1.05), (0, y, 1.05)), 2, (True, False, True)),
-            "front": (lambda y: ((0, y - 6, 1.05), (0, y, 1.05)), 2, (True, False, False)),
+            "side": (lambda y: ((6, y, 1.25), (0, y, 1.25)), 1, (True, True, False)),
+            "right": (lambda y: ((-6, y, 1.25), (0, y, 1.25)), 2, (True, False, True)),
+            "front": (lambda y: ((0, y - 6, 1.25), (0, y, 1.25)), 2, (True, False, False)),
             "top": (lambda y: ((0, y, 6), (0, y - 0.001, 0)), 2, (True, False, False)),
         }
         for view, (place, every, boxes_on) in views.items():
@@ -167,6 +167,22 @@ def render(rig, clips, actions, out):
                 while len(rows) % 6:
                     rows.append(np.ones_like(rows[0]))
             _sheet(rows, 6, out / f"{clip.name}_over.png")
+            # The arm that carries the body, close: from a frame before the plant to two after the hand has left,
+            # seen from the character's left and a little ahead (upper row) and from straight ahead (lower row).
+            show(True, False, False)
+            first = clip.events["hand_plant"] - 1
+            last = min(clip.frames, clip.events.get("push_off", clip.events["hand_release"] + 1) + 2)
+            hand = clip.notes.get("hand_place", {})
+            at = Vector((hand.get("left", 0.25), -hand.get("forward", 0.1), clip.box_height))
+            tiles = []
+            for offset in ((4.0, -2.2, 1.0), (0.0, -6.0, 0.6)):
+                for frame in range(first, last + 1):
+                    scene.frame_set(frame)
+                    arm.location.y = -clip.forward(frame)
+                    target = at + Vector((-0.15, 0.0, 0.32))
+                    _aim(camera, tuple(target + Vector(offset)), tuple(target), 1.55)
+                    tiles.append(_shot(out / "tile.png", (520, 520)))
+            _sheet(tiles, last - first + 1, out / f"{clip.name}_arm.png")
             for frame in CLOSE.get(clip.name, []):
                 scene.frame_set(frame)
                 arm.location.y = -clip.forward(frame)

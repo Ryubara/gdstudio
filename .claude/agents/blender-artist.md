@@ -68,6 +68,9 @@ every stage your task touches before that stage, and the page of its asset class
    model's skinned mesh, leg in leg, arm in leg and limb in torso, with the deepest overlap per clip and frame in
    your report (`animation.md#keyframes`; on the universal rig, the 3D Third Person template's
    `assets/animation/limb_overlap.py`), and close-ups of the frames where limbs come nearest.
+   **A clip that leaves the ground is checked as a body**: its centre of mass on a free fall's arc while nothing
+   touches it, the limb that carries it giving and pushing (`check_motion` in the template's `build_vault.py`; kit
+   `docs/engines/godot/third-person/clips.md#vault-clips`).
 6. **Licence.** Every third-party base gets a licence entry (source URL, licence, author). Committing a third-party
    asset is a maintainer decision: say so in the pull request, leave auto-merge off and hold it
    (`gds pr hold <owner/repo>#N`); only the maintainer takes `S-hold` off.

@@ -1,7 +1,9 @@
 ## The vault study (kit #1010): plays `Vault_Low` and `Vault_High` from
 ## `assets/animation/vault/vault.glb` on the mannequin over each clip's reference box, with a
 ## sprint in, `Vault_Land` and a sprint out, from four views (a camera that follows behind the
-## left shoulder as the game's does, the side, the front and the top). The body is moved forward
+## left shoulder as the game's does, the side, the front and the top, then two close views: `arm`
+## on the hand that carries the body over, `landing` on the foot coming down). The body is moved
+## forward
 ## at the speed `vault_clips.json` gives for the clip, the way the game moves it; the clips are
 ## sought frame by frame with no blending, so a join that does not fit shows.
 ##
@@ -24,9 +26,9 @@ const LAND := "Vault_Land"
 const SPRINT_SPEED := 6.5
 ## Seconds of sprint before and after each vault.
 const RUN_IN := 0.5
-const RUN_OUT := 0.45
+const RUN_OUT := 11.0 / 24.0
 const BOX_WIDTH := 3.0
-const ALL_VIEWS: Array[String] = ["game", "side", "front", "top"]
+const ALL_VIEWS: Array[String] = ["game", "side", "front", "top", "arm", "landing"]
 
 var _clips := {}
 var _fps := 24
@@ -39,6 +41,7 @@ var _player: AnimationPlayer
 var _camera: Camera3D
 var _box: MeshInstance3D
 var _label: Label
+var _plan_clip := ""
 
 
 func _ready() -> void:
@@ -89,6 +92,7 @@ func _process(delta: float) -> void:
 		get_tree().quit()
 		return
 	var step: Dictionary = _plan[index]
+	_plan_clip = step.clip
 	var phase := pose(step.clip, local - RUN_IN)
 	_look(step.view, _clips[step.clip])
 	_label.text = "%s   %s view   %+.2f s   %s" % [step.clip, step.view, local - RUN_IN, phase]
@@ -178,6 +182,16 @@ func _look(view: String, spec: Dictionary) -> void:
 		"front":
 			_camera.size = 3.2
 			_camera.look_at_from_position(middle + Vector3(0, 0.3, 9), middle + Vector3(0, 0.3, 0))
+		"arm":
+			var hand := Vector3(spec.hand_place.left, _height(_plan_clip), spec.hand_place.forward)
+			_camera.size = 2.0
+			_camera.look_at_from_position(
+				hand + Vector3(8.0, 0.9, 1.6), hand + Vector3(0.0, 0.35, 0.15)
+			)
+		"landing":
+			var down := Vector3(0.0, 0.8, float(spec.root_at.land) + 0.2)
+			_camera.size = 2.3
+			_camera.look_at_from_position(down + Vector3(8, 0.2, 0), down)
 		"top":
 			_camera.size = 3.6
 			_camera.look_at_from_position(

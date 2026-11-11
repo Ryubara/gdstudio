@@ -3,7 +3,7 @@
 Three clips of the template's own for vaulting over an obstacle, on the mannequins' rig (the Universal Animation
 Library has a climb, `ClimbUp_1m`, and no vault). Godot imports `vault.glb` as an `AnimationLibrary`, like the two
 packs; add it to an `AnimationPlayer` under the name `vault` and the clips are `vault/Vault_Low`, `vault/Vault_High`
-and `vault/Vault_Land`. Nothing in the game plays them yet: the vault itself is kit #1013.
+and `vault/Vault_Land`. Nothing in the game plays them yet: the vault (kit #1013) plays a stand-in until kit #1037.
 
 | File | What it is |
 | --- | --- |
@@ -15,9 +15,9 @@ and `vault/Vault_Land`. Nothing in the game plays them yet: the vault itself is 
 
 | Clip | Length | Reference obstacle | What happens |
 | --- | --- | --- | --- |
-| `Vault_Low` | 0.667 s | 0.8 m high, 0.4 m deep | A speed vault: off the left foot, the left hand on the top, both legs over to the right, down on the right foot |
-| `Vault_High` | 1.083 s | 1.2 m high, 0.4 m deep | A two-handed side vault: a short step, off the right foot, both hands on the top, the right hand off first |
-| `Vault_Land` | 0.417 s | none | The step after either vault: down on the right foot and off into the sprint |
+| `Vault_Low` | 0.792 s | 0.8 m high, 0.4 m deep | A speed vault: off the left foot, the left hand on the top, both legs over to the right, down on the right foot |
+| `Vault_High` | 1.250 s | 1.2 m high, 0.4 m deep | A two-handed side vault: a short step, off the right foot, both hands on the top, the right hand off first |
+| `Vault_Land` | 0.417 s | none | The step after either vault: the right leg gives under the landing (the hips drop 0.14 m in three frames) and drives off into the sprint |
 
 ## Using them
 
@@ -30,6 +30,13 @@ body was moved when each clip was keyed, with forward 0 at the obstacle's front 
 - `events`: seconds from the clip's start: `takeoff` (the last foot leaves the floor), `hand_plant` and
   `hand_release` (the left hand on the top; `right_hand_release` in `Vault_High`), `over` (the hips over the middle of
   the obstacle), `land` (the right foot down, the clip's end). `root_at` is where the root is at each.
+  `hand_release` is the last time the wrist is still; `push_off` is when the fingers have left and the body is in
+  the air (`lowest` in `Vault_Land`: the hips' lowest point).
+- `motion`: what the build measured of the move itself: each stretch in the air (`air_1`, `air_2`: its length, the
+  speed upward at its start, the rise to the top of the arc and the fall from it, the speed downward at its end, and
+  how far the body's centre of mass is off a free fall's arc), `push` (the planted arm from the plant to the push:
+  the elbow's angle on each frame, the share of the body's weight the arm carries), `reach` (the landing leg's knee
+  and foot over the last six frames) and `absorb` (`Vault_Land`'s knee and hips).
 - `hand_place`: where the left wrist is while planted: `left` of the body's line, `forward` of the front face,
   `wrist_above_top` over the top (the palm lies on it). `Vault_High`'s right hand mirrors it.
 
@@ -41,7 +48,11 @@ no weapon is in the hands during it.
 For another height, lift the body by the difference while a hand is on the top (`tools/capture/vault_study.tscn` does
 it with `LOW_HEIGHT` and `HIGH_HEIGHT`); `Vault_Low` is made for about 0.5 to 1.0 m and `Vault_High` for about 1.0 to
 1.3 m. The clips were keyed on the female mannequin. The male's arms are 5 cm longer, so his planted wrist moves up
-to 37 mm (`Vault_Low`) and 76 mm (`Vault_High`) and sits up to 45 mm low: put the hand on the edge by IK if it shows.
+to 35 mm (`Vault_Low`) and 71 mm (`Vault_High`) and sits up to 49 mm low: put the hand on the edge by IK if it shows.
+
+The clips carry the body's rise and fall themselves (in the pelvis), over the reference obstacle: move the root level
+and forward at `speed`. A path that drops the root to the floor at the end as well, or ends sooner than the clip's
+`land`, brings the body down faster than a fall.
 
 ## Rebuilding
 
@@ -49,11 +60,20 @@ to 37 mm (`Vault_Low`) and 76 mm (`Vault_High`) and sits up to 45 mm low: put th
 the file, and fails before it exports when the skin goes under the floor or more than 12 mm into the box, when a
 planted wrist or ankle moves, when the palm is more than 15 mm from the top, when the body is jerked to keep a hand
 in reach, or when a limb is more than 5 mm inside another on either mannequin (`../limb_overlap.py` measures both
-skinned meshes on every frame; the clips read 0.5 mm at most). Positions in the tables are `(left, forward, up)` in
-the world of the reference obstacle; the legs and the free arm in the air are keyed in the hips' own axes (`hips()`),
-the left foot left of the hips and the right foot right of them, so they cannot cross. The export is the same bytes
+skinned meshes on every frame; the clips read 0.0 mm). It also fails on a move a body cannot make (`check_motion`):
+the centre of mass more than 15 mm off a free fall's arc while nothing touches the body, a planted arm that never
+gives under the weight or is not straight when the hand leaves or carries under a quarter of the body's weight, a
+landing leg that folds again, snaps open or is not nearly straight a frame before the foot lands, and a landing step
+whose knee and hips do not give. From each vault's jump on, the pelvis is not keyed by hand: `Clip.drive` takes the
+height the centre of mass has to be at on every frame (a free fall in the air; while a hand carries the body, a
+curve between the heights and speeds at the plant and at the push) and keys the pelvis under it, and the build keys
+each clip a few times until the two agree (`--trace` prints every frame's numbers). Positions in the tables are
+`(left, forward, up)` in the world of the reference obstacle; the legs and the free arm in the air are keyed in the
+hips' own axes (`hips()`), the left foot left of the hips and the right foot right of them, so they cannot cross.
+The export is the same bytes
 on every run, and `vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
-`tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top).
+`tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top, `_arm`
+the planted arm from the plant to the push, `_side` every frame of the whole move).
 
 `../limb_overlap.py` also runs on its own, on any clips of the universal rig:
 `blender -b --factory-startup -P limb_overlap.py -- --clips <clips.glb> --model <mannequin.glb> [--model ...]`

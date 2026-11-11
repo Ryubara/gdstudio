@@ -3,22 +3,23 @@
   "units": "metres and seconds; forward 0 is the obstacle's front face",
   "measured": {
     "file": "vault.glb",
-    "sha256": "3510fd136c68431e7b8632e5257faa492556a2eb310355ba2aaab9f7ea35ddb6",
+    "sha256": "7a498b9f564e319e72eccb8f15bb7131ca0269d850f04f32161badd54b092a4b",
     "overlap_limit_mm": 5.0
   },
   "clips": {
     "Vault_Low": {
-      "length": 0.6667,
-      "frames": 16,
+      "length": 0.7917,
+      "frames": 19,
       "loop": false,
       "speed": 4.0,
-      "travel": 2.6667,
+      "travel": 3.1667,
       "events": {
         "takeoff": 0.1667,
-        "hand_plant": 0.2917,
+        "hand_plant": 0.25,
         "over": 0.375,
         "hand_release": 0.375,
-        "land": 0.6667
+        "push_off": 0.4167,
+        "land": 0.7917
       },
       "hand_place": {
         "left": 0.27,
@@ -36,19 +37,20 @@
       "root_start": -1.3,
       "root_at": {
         "takeoff": -0.6333,
-        "hand_plant": -0.1333,
+        "hand_plant": -0.3,
         "over": 0.2,
         "hand_release": 0.2,
-        "land": 1.3667
+        "push_off": 0.3667,
+        "land": 1.8667
       },
       "contacts": {
         "lowest": -0.0036,
-        "deepest_in_box": 0.0041,
+        "deepest_in_box": 0.0042,
         "foot_l_drift_mm": 0.4,
         "hand_l_drift_mm": 0.0,
         "palm_gap_mm": [
-          -4.1,
-          -0.3
+          -4.2,
+          2.1
         ],
         "overlap_mm": {
           "female": {
@@ -64,21 +66,104 @@
             "by_class": {}
           }
         }
+      },
+      "motion": {
+        "air_1": {
+          "frames": [
+            4,
+            6
+          ],
+          "seconds": 0.0833,
+          "speed_up_at_start": 1.64,
+          "rise_to_top": null,
+          "seconds_to_top": null,
+          "fall_from_top": null,
+          "speed_down_at_end": -0.82,
+          "off_the_arc_mm": 0.6
+        },
+        "air_2": {
+          "frames": [
+            10,
+            19
+          ],
+          "seconds": 0.375,
+          "speed_up_at_start": 0.89,
+          "rise_to_top": 0.04,
+          "seconds_to_top": 0.091,
+          "fall_from_top": 0.396,
+          "speed_down_at_end": 2.79,
+          "off_the_arc_mm": 0.2
+        },
+        "push": {
+          "frames": [
+            6,
+            10
+          ],
+          "elbow_deg": [
+            148,
+            121,
+            125,
+            163,
+            176
+          ],
+          "arm_length_share": [
+            0.96,
+            0.87,
+            0.89,
+            0.99,
+            1.0
+          ],
+          "shoulder_over_wrist": [
+            0.4,
+            0.396,
+            0.428,
+            0.47,
+            0.446
+          ],
+          "weight_carried": 1.04,
+          "speed_up_on": 0.82,
+          "speed_up_off": 0.89
+        },
+        "reach": {
+          "frames": [
+            13,
+            19
+          ],
+          "knee_deg": [
+            89,
+            95,
+            105,
+            114,
+            128,
+            139,
+            162
+          ],
+          "foot_up": [
+            0.863,
+            0.745,
+            0.626,
+            0.5,
+            0.359,
+            0.236,
+            0.135
+          ]
+        }
       }
     },
     "Vault_High": {
-      "length": 1.0833,
-      "frames": 26,
+      "length": 1.25,
+      "frames": 30,
       "loop": false,
       "speed": 3.0,
-      "travel": 3.25,
+      "travel": 3.75,
       "events": {
         "takeoff": 0.4583,
         "hand_plant": 0.4583,
         "right_hand_release": 0.5417,
         "over": 0.6667,
         "hand_release": 0.6667,
-        "land": 1.0833
+        "push_off": 0.7083,
+        "land": 1.25
       },
       "hand_place": {
         "left": 0.24,
@@ -100,7 +185,8 @@
         "right_hand_release": -0.235,
         "over": 0.14,
         "hand_release": 0.14,
-        "land": 1.39
+        "push_off": 0.265,
+        "land": 1.89
       },
       "contacts": {
         "lowest": -0.0036,
@@ -111,16 +197,14 @@
         "hand_r_drift_mm": 0.0,
         "palm_gap_mm": [
           -4.7,
-          8.2
+          4.0
         ],
         "overlap_mm": {
           "female": {
-            "deepest": 0.5,
-            "frame": 15,
-            "pair": "thigh_l in thigh_r",
-            "by_class": {
-              "leg/leg": 0.5
-            }
+            "deepest": 0.0,
+            "frame": null,
+            "pair": null,
+            "by_class": {}
           },
           "male": {
             "deepest": 0.0,
@@ -128,6 +212,81 @@
             "pair": null,
             "by_class": {}
           }
+        }
+      },
+      "motion": {
+        "air_1": {
+          "frames": [
+            17,
+            30
+          ],
+          "seconds": 0.5417,
+          "speed_up_at_start": 1.36,
+          "rise_to_top": 0.095,
+          "seconds_to_top": 0.139,
+          "fall_from_top": 0.796,
+          "speed_down_at_end": 3.95,
+          "off_the_arc_mm": 0.2
+        },
+        "push": {
+          "frames": [
+            11,
+            17
+          ],
+          "elbow_deg": [
+            78,
+            76,
+            88,
+            99,
+            124,
+            163,
+            176
+          ],
+          "arm_length_share": [
+            0.64,
+            0.62,
+            0.7,
+            0.76,
+            0.89,
+            0.99,
+            1.0
+          ],
+          "shoulder_over_wrist": [
+            0.198,
+            0.291,
+            0.343,
+            0.359,
+            0.401,
+            0.407,
+            0.395
+          ],
+          "weight_carried": 0.4,
+          "speed_up_on": 2.83,
+          "speed_up_off": 1.36
+        },
+        "reach": {
+          "frames": [
+            24,
+            30
+          ],
+          "knee_deg": [
+            95,
+            101,
+            109,
+            117,
+            128,
+            139,
+            162
+          ],
+          "foot_up": [
+            1.057,
+            0.926,
+            0.781,
+            0.627,
+            0.464,
+            0.292,
+            0.135
+          ]
         }
       }
     },
@@ -139,6 +298,7 @@
       "travel": 1.6667,
       "events": {
         "land": 0.0,
+        "lowest": 0.125,
         "push_off": 0.2083,
         "sprint": 0.4167
       },
@@ -161,6 +321,27 @@
             "pair": null,
             "by_class": {}
           }
+        }
+      },
+      "motion": {
+        "absorb": {
+          "frames": [
+            0,
+            3
+          ],
+          "knee_deg": [
+            162,
+            113,
+            95,
+            94
+          ],
+          "pelvis_up": [
+            0.867,
+            0.8,
+            0.752,
+            0.73
+          ],
+          "drop": 0.137
         }
       }
     }

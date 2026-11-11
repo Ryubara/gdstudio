@@ -89,8 +89,17 @@ The build checks, on every frame and on the skinned mesh, before it exports: the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
 clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
-([Keyframes](#keyframes); 5 mm allowed).
+([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
+on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching
+([the vault clips](../../engines/godot/third-person/clips.md#vault-clips)).
 
+- **Approach:** Where a body leaves the ground, key the pelvis from the centre of mass, not by eye: write its
+  height for every frame (free fall between contacts, a curve with a height and speed at each end while a limb
+  carries it), measure in each pose how far it is above the pelvis (segment masses on the bones), key the pelvis
+  that much lower and repeat until it settles (`Clip.drive` and `Clip.settle`: three or four passes, under 0.2 mm).
+  **Watch out for:** a pelvis on a smooth curve is not a body on an arc: legs that reach down and arms that swing
+  move the pelvis the other way. **Seen:** gdstudio #1016, 2026-11-11 (both vaults within 0.3 mm of the arc; the
+  build fails over 15 mm).
 - **Approach:** Key the limbs that are in the air in the **hips' own axes** (a point from the pelvis bone, turned
   with the pelvis's keys: `hips()` in `build_vault.py`), the left foot with `left` above 0 and the right below it,
   and keep world positions for what touches the world. Take the leg paths from footage of the real move: over a
