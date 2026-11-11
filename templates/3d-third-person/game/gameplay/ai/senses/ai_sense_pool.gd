@@ -26,13 +26,19 @@ var frame := -1
 var table_version := -1
 ## How many nodes the group had.
 var count := 0
+## The physics frame it was last checked on (the later thinks of a tick take it as it is).
+var checked := -1
+## The table it was checked against.
+var checked_table: AiRelations
 
 
 ## The pool of `group` in `tree`, built again when it is `REBUILD_TICKS` old or `table` changed.
 static func of(tree: SceneTree, group: StringName, table: AiRelations) -> AiSensePool:
 	var now := Engine.get_physics_frames()
-	var version := table.version if table != null else -1
 	var pool: AiSensePool = _pools.get(group, null)
+	if pool != null and pool.checked == now and pool.checked_table == table:
+		return pool
+	var version := table.version if table != null else -1
 	if (
 		pool == null
 		or now - pool.frame >= REBUILD_TICKS
@@ -43,6 +49,8 @@ static func of(tree: SceneTree, group: StringName, table: AiRelations) -> AiSens
 		pool = AiSensePool.new()
 		pool._build(tree, group, table, now)
 		_pools[group] = pool
+	pool.checked = now
+	pool.checked_table = table
 	return pool
 
 

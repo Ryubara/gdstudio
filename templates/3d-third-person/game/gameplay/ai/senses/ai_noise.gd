@@ -133,13 +133,24 @@ func radius_of(kind: StringName) -> float:
 
 ## The noise with `serial`, or null when it was dropped or is older than `keep_seconds`.
 func noise_at(serial: int) -> AiNoiseRecord:
+	var noise := record(serial)
+	if noise == null or noise.frame < first_kept_frame():
+		return null
+	return noise
+
+
+## The noise with `serial` whatever its age, or null when it was dropped (a listener checks the
+## age itself against `first_kept_frame()`, read once).
+func record(serial: int) -> AiNoiseRecord:
 	if serial <= 0 or serial > newest or serial <= newest - _ring.size():
 		return null
 	var noise := _ring[(serial - 1) % _size]
-	if noise.serial != serial:
-		return null
-	var age := (Engine.get_physics_frames() - noise.frame) / float(Engine.physics_ticks_per_second)
-	return noise if age <= keep_seconds else null
+	return noise if noise.serial == serial else null
+
+
+## The physics frame of the oldest noise still kept by age.
+func first_kept_frame() -> int:
+	return Engine.get_physics_frames() - int(keep_seconds * Engine.physics_ticks_per_second)
 
 
 ## The oldest serial still on the board (newest + 1 when it is empty).

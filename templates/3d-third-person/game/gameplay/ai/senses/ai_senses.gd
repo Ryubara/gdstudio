@@ -46,6 +46,8 @@ enum Line { CLEAR, BLOCKED, REFUSED }
 
 ## The group every senses node joins (the team share and the witnesses read it).
 const GROUP := &"ai_senses"
+## The height of a target that is not a `Character` (and the cone's aim at any target).
+const STANDING_HEIGHT := 1.6
 
 static var _next_share := 0
 static var _everyone: Array[AiSenses] = []
@@ -131,13 +133,13 @@ var _rays_left := 0
 var _heard_serial := 0
 var _ray_at: Dictionary[int, float] = {}
 var _ray_clear: Dictionary[int, bool] = {}
-var _looked: Dictionary[int, bool] = {}
 var _visible: Dictionary[int, bool] = {}
 var _candidates: Array[Node3D] = []
-var _candidate_bands := PackedInt32Array()
-var _candidate_near: Array[bool] = []
-var _candidate_members: Array[AiFactionMember] = []
 var _candidate_points := PackedVector3Array()
+# Each candidate's band times 2, plus 1 when it is at arm's reach.
+var _candidate_flags := PackedInt32Array()
+# The senses' clock of each candidate's last ray (-INF: never).
+var _candidate_ages := PackedFloat64Array()
 var _outbox: Array[Share] = []
 var _share_keys: Dictionary[int, bool] = {}
 
@@ -340,12 +342,10 @@ func _band(other: AiFactionMember) -> int:
 
 func _look(profile: AiProfile, seconds: float) -> void:
 	_visible.clear()
-	_looked.clear()
 	_candidates.clear()
-	_candidate_bands.clear()
-	_candidate_near.clear()
-	_candidate_members.clear()
 	_candidate_points.clear()
+	_candidate_flags.clear()
+	_candidate_ages.clear()
 	if _factions == null or _member == null:
 		_clear_seen()
 		return
@@ -357,6 +357,7 @@ func _look(profile: AiProfile, seconds: float) -> void:
 	var keep := maxf(profile.lose_sight_range, profile.sight_range)
 	var keep_reach := keep * keep
 	var near_reach := profile.near_radius * profile.near_radius
+	var lift := Vector3.UP * (STANDING_HEIGHT * target_height_share)
 	var table := _factions.relations
 	var mine := (
 		_member.refresh(table) if _member.table_version != table.version else _member.faction_index
@@ -370,7 +371,6 @@ func _look(profile: AiProfile, seconds: float) -> void:
 			if band > care_up_to and not grudges:
 				continue
 			var nodes: Array = pool.nodes[part]
-			var members: Array = pool.members[part]
 			for index in nodes.size():
 				var node: Variant = nodes[index]
 				if not is_instance_valid(node) or node == _character:
@@ -378,53 +378,51 @@ func _look(profile: AiProfile, seconds: float) -> void:
 				var body := node as Node3D
 				var at := body.global_position
 				var far := me.distance_squared_to(at)
-				if far > keep_reach and far > near_reach:
+				if far > sight_reach and far > near_reach:
+					if far > keep_reach or not _was_seen(body):
+						continue
+				var near := far <= near_reach
+				if not near and look.dot((at + lift - origin).normalized()) < cos_half:
 					continue
-				var id := body.get_instance_id()
-				var belief: AiBelief = beliefs.by_id.get(id, null)
-				if (
-					far > sight_reach
-					and far > near_reach
-					and (belief == null or not belief.seen_now)
-				):
-					continue
-				if _looked.has(id):
-					continue
-				_looked[id] = true
-				var member: AiFactionMember = members[index]
-				var felt := _band(member) if grudges else band
-				if felt > care_up_to:
-					continue
+				var felt := band
+				if grudges:
+					felt = _band(pool.members[part][index])
+					if felt > care_up_to:
+						continue
 				var character := body as Character
 				if character != null and character.is_dead():
 					continue
-				var point := at + Vector3.UP * (_height_of(character) * target_height_share)
-				var near := far <= near_reach
-				if not near and look.dot((point - origin).normalized()) < cos_half:
-					continue
 				_candidates.append(body)
-				_candidate_bands.append(felt)
-				_candidate_near.append(near)
-				_candidate_members.append(member)
-				_candidate_points.append(point)
-	if _candidates.is_empty():
-		_clear_seen()
-		return
-	_cast_rays(origin)
-	var fresh_after := beliefs.clock - ray_fresh_seconds - 0.0001
-	var rates := Rates.new()
-	rates.read(profile, self)
-	for index in _candidates.size():
-		var body := _candidates[index]
-		var id := body.get_instance_id()
-		if not _ray_clear.get(id, false) or _ray_at.get(id, -INF) < fresh_after:
-			continue
-		_visible[id] = true
-		_see(index, _candidate_points[index] - origin, look, seconds, rates)
+				_candidate_points.append(
+					at + Vector3.UP * (_height_of(character) * target_height_share)
+				)
+				_candidate_flags.append(felt * 2 + (1 if near else 0))
+				_candidate_ages.append(_ray_at.get(body.get_instance_id(), -INF))
+	if not _candidates.is_empty():
+		_cast_rays(origin)
+		var fresh_after := beliefs.clock - ray_fresh_seconds - 0.0001
+		var rates: Rates = null
+		for index in _candidates.size():
+			if _candidate_ages[index] < fresh_after:
+				continue
+			var body := _candidates[index]
+			var id := body.get_instance_id()
+			if not _ray_clear[id] or _visible.has(id):
+				continue
+			_visible[id] = true
+			if rates == null:
+				rates = Rates.new()
+				rates.read(profile, self)
+			_see(index, _candidate_points[index] - origin, look, seconds, rates)
 	_clear_seen()
 	if _ray_at.size() > 256:
 		_ray_at.clear()
 		_ray_clear.clear()
+
+
+func _was_seen(body: Node3D) -> bool:
+	var belief: AiBelief = beliefs.by_id.get(body.get_instance_id(), null)
+	return belief != null and belief.seen_now
 
 
 # Every belief not in sight this think is no longer seen now.
@@ -435,19 +433,19 @@ func _clear_seen() -> void:
 
 
 # Casts at most the rays left this think (and the budget allows), at the candidates whose last
-# answer is oldest, the ones at arm's reach first.
+# answer is oldest, the ones at arm's reach first; a candidate's age becomes the think's clock.
 func _cast_rays(origin: Vector3) -> void:
 	var count := _candidates.size()
 	while _rays_left > 0:
 		var best := -1
 		var oldest := INF
 		for index in count:
-			var at: float = _ray_at.get(_candidates[index].get_instance_id(), -INF)
+			var at := _candidate_ages[index]
 			if at >= beliefs.clock:
 				continue
-			if _candidate_near[index]:
+			if _candidate_flags[index] & 1:
 				at -= 1000000.0
-			if best < 0 or at < oldest:
+			if at < oldest:
 				best = index
 				oldest = at
 		if best < 0:
@@ -458,6 +456,7 @@ func _cast_rays(origin: Vector3) -> void:
 		var id := _candidates[best].get_instance_id()
 		_ray_at[id] = beliefs.clock
 		_ray_clear[id] = line == Line.CLEAR
+		_candidate_ages[best] = beliefs.clock
 
 
 # One line test from `from` to `to` against `sight_mask`, from this think's rays and the
@@ -477,15 +476,15 @@ func _line(from: Vector3, to: Vector3) -> Line:
 
 
 static func _height_of(character: Character) -> float:
-	return character.body_height() if character != null else 1.6
+	return character.body_height() if character != null else STANDING_HEIGHT
 
 
 func _see(index: int, toward: Vector3, look: Vector3, seconds: float, rates: Rates) -> void:
 	var body := _candidates[index]
-	var band := _candidate_bands[index]
+	var band := _candidate_flags[index] >> 1
 	var belief: AiBelief = beliefs.by_id.get(body.get_instance_id(), null)
 	if belief == null:
-		belief = beliefs.track(body, _candidate_members[index])
+		belief = beliefs.track(body, AiFactionMember.of(body))
 	var was_seen := belief.seen_now
 	belief.band = band
 	belief.seen_now = true
@@ -499,7 +498,7 @@ func _see(index: int, toward: Vector3, look: Vector3, seconds: float, rates: Rat
 		belief.first_clear_at = beliefs.clock
 	if belief.noticed:
 		return
-	if _candidate_near[index]:
+	if _candidate_flags[index] & 1:
 		_raise(belief, 1.0)
 	elif was_seen:
 		# The clock starts at the first clear ray: a thing just come into view earns nothing yet.
@@ -523,9 +522,10 @@ func _listen(profile: AiProfile) -> void:
 			else _member.faction_index
 		)
 	var first := maxi(_heard_serial + 1, _board.oldest())
+	var kept_from := _board.first_kept_frame()
 	for serial in range(first, _board.newest + 1):
-		var noise := _board.noise_at(serial)
-		if noise == null:
+		var noise := _board.record(serial)
+		if noise == null or noise.frame < kept_from:
 			continue
 		var radius := noise.radius * ears
 		var far := me.distance_squared_to(noise.position)
