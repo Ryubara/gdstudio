@@ -199,6 +199,9 @@ shooting page once that work lands).
 - **The two hands hold it together, and the left hand follows the reload** (kit #1084, #1031, #1051, #1078, #1079).
   The left hand is laid over the right one as a two-handed grip is taught, goes on and off the gun one way, and the
   trigger finger has a solved way to the trigger: [The two-handed pistol grip](weapon-hands/two-handed-pistol-grip.md).
+- **Or one hand** (kit #1085): with the definition's `one_handed` the right hand's grip is the same pose on the
+  same seat (its thumb on the frame, the index finger on the trigger while aiming) and the left hand is off the gun
+  but for the reload; the arm, the chest and the kick are [One-handed](../../engines/godot/third-person/shooting.md#one-handed).
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and

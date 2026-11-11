@@ -347,7 +347,8 @@ and only at the line's far end does the clip's arm take it; it waits there while
 arm too short for the hand's place (the aim coming up) backs the hand off along that line. `SupportHandPlan`
 (`gameplay/weapon/hold/support_hand_plan.gd`) works that out and names the reload's phases (`HELD`, `LET_GO`,
 `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`); read `WeaponHold.left_hand()` for whatever should move with the
-hand. Everything is tuned in its inspector while the game runs:
+hand. Held in one hand (`one_handed`, kit #1085) a fourth modifier turns the body side-on and reaches the right arm
+out, and the left hand comes in only to reload. Everything is tuned in its inspector while the game runs:
 
 | Property | Default | What it does |
 | --- | --- | --- |
@@ -363,7 +364,10 @@ hand. Everything is tuned in its inspector while the game runs:
 | `magazine_marker` | `MagazineHand` | The weapon's child the left hand's bone is brought to while the magazine goes in. |
 | `magazine_approach`, `return_clearance` | (0, -0.1, 0), (0, -0.04, 0.04) | In the weapon's space: where the hand starts from under the magazine (a magazine's length down the grip), and how far it bows out half-way from under the magazine to the far end of `support_way`, round the grip's foot. |
 | `reload_leave`, `reload_reach`, `reload_insert`, `reload_return` | (0.02, 0.1), (0.3, 0.4), (0.4, 0.54), (0.71, 0.88) | The shares of the reload clip between which the left hand lets go (opens, leaves along its way, goes to the clip's arm), comes under the magazine, pushes it in and goes back to the pistol: the times of `Pistol_Reload`, to change with the clip. |
-| `held_weight`, `aim_weight`, `reload_weight`, `reload_share` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
+| `one_handed` | off (the held `WeaponDef.one_handed`) | Aim and shoot in the right hand alone: the chest side-on, the arm out along the barrel, the left arm on the locomotion clip and a little out, and the left hand on the pistol only for a reload. Switches while the game runs. |
+| `shooting_arm`, `side_on`, `one_hand_reach`, `one_hand_elbow`, `one_hand_offset`, `free_arm_out` | the right arm, 35 deg, 0.96, (-0.5, -1, 0), (0, 0, 0), 10 deg | One-handed: the arm that holds the pistol out, how far the chest turns (the head turns back), how straight the arm is (a share of its length), where its elbow points and where the wrist sits from the barrel's line through the shoulder (model space), and how far the free arm is held out. |
+| `kick_climb`, `kick_back`, `kick_up`, `kick_time` | 10 deg, 0.05 m, 0.03 m, 0.4 s | One-handed, each shot: the muzzle climbs at the wrist, the wrist comes back (the elbow bends) and up, at the kick's height; it rises in the first 8 percent of `kick_time` and settles by its end, on top of the shot clip. |
+| `held_weight`, `aim_weight`, `reload_weight`, `reload_share`, `shot_kick` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
 
 The seven poses, the two markers, the way and the pistol's seat are solved, never typed: the pistol folder's
 `README.md` says how to run the solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip
