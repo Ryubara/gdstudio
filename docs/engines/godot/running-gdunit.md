@@ -3,11 +3,11 @@
 <!-- new section: the testing pages cover how fast a suite is and what leaks at exit; nothing held how to run a whole
 GdUnit suite on a shared machine (fresh checkouts, time limits, logs, what to run before a push) -->
 
-A whole Deadnight suite is about 3,400 cases and runs for most of an hour, on a machine that other agents share. CI
-runs it headless, in shards (`godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a <suite> -c
---ignoreHeadlessMode`); a run that needs a window goes through `gds godot` ([No focus](no-focus.md)). What a leak at
-exit means is in [Leaks at exit](test-exit-leaks.md), how to make a suite fast in [Test speed](test-speed.md), what a
-window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md).
+A whole Deadnight suite is about 3,400 cases and runs for most of an hour, on a machine that other agents share. CI runs
+it headless, in shards (`godot --headless --path game --fixed-fps 60 -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a
+<suite> -c --ignoreHeadlessMode`); a run that needs a window goes through `gds godot` ([No focus](no-focus.md)). What a
+leak at exit means is in [Leaks at exit](test-exit-leaks.md), how to make a suite fast in [Test speed](test-speed.md),
+what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdunit-on-linux.md).
 
 ## A fresh checkout {#fresh-checkout}
 
@@ -45,7 +45,11 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
 - **Approach:** Add `--fixed-fps 60` to the command of a game whose tests step physics ticks (the template job, a
   game's `ci.yml` and `templates/repo/AGENTS.md` have it). **Watch out for:** it makes each frame one tick and removes
   the wait for the clock, so a suite that loops on `Time.get_ticks_msec()` times out; the reason and the numbers are in
-  [Test speed](test-speed.md#what-makes-a-suite-run-at-the-clocks-speed). **Seen:** gdstudio #916, 2026-11-10.
+  [Test speed](test-speed.md#what-makes-a-suite-run-at-the-clocks-speed); without it a suite that steps a rig by hand
+  and also awaits physics ticks reads a free-running clock and fails where CI passes. **Seen:** gdstudio #916,
+  2026-11-10; gdstudio #1087, 2026-11-11 (a camera swap suite run by hand without the flag: 6 of 15 cases about 0.8
+  degrees off, all green at `--fixed-fps 60` and in `gds template test`; the command at the top of this page now has
+  the flag).
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
   `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
