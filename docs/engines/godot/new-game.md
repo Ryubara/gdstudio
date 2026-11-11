@@ -270,10 +270,14 @@ What each template plays, and on which bus (the buses and the volume node are in
 | --- | --- | --- | --- |
 | `3d-blank` | the wind loop (`assets/audio/wind/`) | the `Wind` player of `main.tscn`, from the start | `Ambient` |
 | `3d-third-person` | the wind loop, at -20 dB (replace it by changing the `stream` of the one `Wind` player; level and bus stay) | the same `Wind` player | `Ambient` |
-| `3d-third-person` | footsteps (four soft thuds, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
+| `3d-third-person` | footsteps (four soft sneaker steps, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
 | `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup` at -16 dB, one file a pickup | `SFX` |
 | `3d-third-person` | a pistol shot (five files, `assets/audio/pistol/`, Deadnight's House Pistol, MIT) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -22 dB, three voices | `SFX` |
-| `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each, synthesised by `tools/audio/impact_sounds.py`, MIT) | the `sound` of each `ImpactSurface`'s `EffectDef`, played at -10 to -14 dB from the `EffectEmitter`'s pool | `SFX` |
+| `3d-third-person` | the pistol's empty click, reload steps and draw (`assets/audio/pistol/`) and the fists' swing (`assets/audio/fists/`) | `EmptySound` (-12 dB), `ReloadSound` (-16) and `DrawSound` (-10) of `Weapon`, and its `ShotSound` with the fists' `shot_volume_db` (-27) | `SFX` |
+| `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each) | the `sound` of each `ImpactSurface`'s `EffectDef`, played at -10 to -14 dB from the `EffectEmitter`'s pool | `SFX` |
+
+Every template sound but the pistol shots is generated with ElevenLabs Sound Effects on a paid plan by the kit's
+`tools/audio/sfx.py` ([Sound effects](../../gamedev/audio/sound-effects.md), kit #1083).
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
   `gds new game` and read its first CI run before calling a template change done; a test reads every `"$PRE_COMMIT" run`
