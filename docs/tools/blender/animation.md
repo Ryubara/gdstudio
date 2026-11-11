@@ -71,7 +71,8 @@ capture ([Godot rig sharing](../../engines/godot/rig-sharing.md)).
 
 A clip with no clip to start from is solved, frame by frame, from a few targets, by a script that keys the result
 (`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
-transitions to the Universal Animation Library's crouch, on the Quaternius universal rig). Godot imports the file with
+transitions to the Universal Animation Library's crouch, on the Quaternius universal rig, one file a mannequin:
+`prone.glb` for the female and `prone_male.glb` for the male, kit #1090). Godot imports the file with
 `importer="animation_library"` beside the libraries
 ([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
 
@@ -144,6 +145,19 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   never ran (`n[:-4]` of `index_01_l` is `index_`); a nearest-normal test called a finger 90 mm inside the thumb's
   open base. **Seen:** gdstudio #1020, 2026-11-11 (fix: `floor_mm` and `fist_mm` in the build's report; the male's
   own clip set is a follow-up).
+- **Approach:** Give each body its own clip file when the clip rests limbs on the floor: the same build on that
+  body's skeleton and skin with a short table of what differs, the same library name, clip names and speed. Read
+  where each part's lowest vertex is before choosing what to change. **Watch out for:** the first male build with
+  only the joint heights raised passed every floor number and lay on knees and elbows, the belly 5 cm off the
+  floor and the head 10 cm higher than hers: his knees are 2.5 cm thicker (a straighter lying leg rests the belly)
+  and his longer upper arms lift the shoulders (the collarbones draw back 16 degrees; elbows wide enough to do it
+  alone put the fists 50 cm apart). **Seen:** gdstudio #1090, 2026-11-11 (`prone_male.glb`, `BODIES` in the build;
+  the female's file is the same bytes).
+- **Approach:** Hold the floor in a Godot test on the skin as the game plays the clip
+  (`tests/fixtures/skinned_parts.gd`), and render two sheets at once into two folders. **Watch out for:** Godot's
+  import drops keys within half a degree, so a planted hand is up to 3 mm lower in the game than in the build
+  (1.5 mm under the floor there, 4.1 mm here); a shin counted with its foot read the toes; two renders into one
+  folder lost a sheet, since the tiles share a name. **Seen:** gdstudio #1090, 2026-11-11.
 - **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
   the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
   passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the

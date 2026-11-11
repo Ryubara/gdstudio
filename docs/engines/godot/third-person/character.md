@@ -40,7 +40,9 @@ animation data; no Blender round trip, which would have renamed and re-ordered t
 the result are in the folder's `LICENSE.md`. The female stays the default because the template's captures, the pistol's
 seat and the clip checks were all made on her, and the two stand 1.8 m tall with the same feet; the male has longer
 collarbones and upper arms (0.22 m and 0.27 m against 0.19 m and 0.22 m; the forearms are the same), so a clip reaches
-a slightly different pose.
+a slightly different pose. A clip that rests limbs on the floor is therefore one file a mannequin: the prone and
+crawl clips are `assets/animation/prone/prone.glb` for the female and `prone_male.glb` for the male, loaded as the same
+library `prone` with the same clip names (kit #1090; in her file he lay 2 to 4 cm in the floor).
 Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.glb` (or the other way round).
 
 - **Approach:** Take a model that a pack ships only inside its clip files by dropping the clips from the glb itself

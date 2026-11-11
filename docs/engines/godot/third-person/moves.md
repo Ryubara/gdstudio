@@ -42,7 +42,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   played for the crawl, lifted and moved ahead by `prone_pose_offset` (the stroke floats under a water line) and
   tipped by `prone_pose_lean`; with real clips the offset and the lean are zero. Those clips rest the forearms on
   their outer edges with the hands in fists and hold no weapon
-  ([how they are solved](../../../tools/blender/animation.md#solved-clips)).
+  ([how they are solved](../../../tools/blender/animation.md#solved-clips)). They are one file a mannequin, loaded
+  as the same library `prone`: `assets/animation/prone/prone.glb` for the female and `prone_male.glb` for the male
+  (kit #1090), with the same clip names, lengths and crawl speed.
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

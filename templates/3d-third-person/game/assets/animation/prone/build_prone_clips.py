@@ -1,22 +1,25 @@
 """Build the template's prone and crawl clips and export them to glTF (kit #1009).
 
-GDStudio's own animation, made from nothing on the Quaternius universal rig (the female mannequin's skeleton, CC0),
-because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
+GDStudio's own animation, made from nothing on the Quaternius universal rig (CC0), one file a mannequin: `prone.glb`
+on the female's skeleton and skin and `prone_male.glb` on the male's (kit #1090; `BODIES` holds what differs), because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
 targets (where the pelvis lies, how the spine arches, where an elbow, a hand and a foot rest on the ground) and keyed
 on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from the
 library is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
-    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb>
+    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb>
         --library <ual1.glb> --out <prone.glb> [--report <numbers.json>]
+    blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb>
+        --other <mannequin_female.glb> --library <ual1.glb> --out <prone_male.glb> [--report <numbers.json>]
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop
 does not close, a planted elbow, hand or foot slides, the body sinks into the floor or rises over the prone height, a
-transition does not start or end on the pose it joins, or a limb goes more than 5 mm into another part of the body on
-either mannequin (`../limb_overlap.py`, the check every clip build of the template shares; `--male` names the other
-mannequin).
+transition does not start or end on the pose it joins, a limb goes more than 5 mm into another part of the body
+(`../limb_overlap.py`, the check every clip build of the template shares) or a part named in `FLOOR_PARTS` goes more
+than 5 mm under the floor, on the skinned mesh of every body that plays the file (`PLAYED_BY`). `--other` names the
+other mannequin: the report has its numbers with the file's clips too, as Godot would play them on it.
 """
 
 import argparse
@@ -141,8 +144,18 @@ PLAYED_BY = ("female", "male")  # the bodies that play the file: their fists and
 # `prone.glb`. A clip holds the pelvis's height and every joint angle that sets an elbow's or a knee's height, so
 # the male mannequin, whose upper arms are 5 cm longer and whose limbs are thicker, lies 2 to 4 cm in the floor in
 # her clips: `--body male` solves the same targets on his skeleton and skin with the numbers below in place of
-# hers and builds `prone_male.glb`. Only what his thicker limbs and longer arms need differs; the angles, the roll
-# of the forearms, the timing, the stride and so the crawl's speed are the same.
+# hers and builds `prone_male.glb`. Only what his thicker limbs and longer arms need differs; the forearms' angle
+# and roll, the timing, the stride and so the crawl's speed are the same. What each group is for:
+# - thicker limbs: the joints rest higher (`ELBOW_H`, `FIST_H`, `WRIST_H`, `ANKLE_H`, `TOE_H`), and a lying leg is
+#   straighter (`LYING_REACH`), or his thick knees hold the pelvis 4 cm up and the belly never reaches the floor;
+# - upper arms 5 cm longer: on the same elbows his shoulders ride 7 cm higher and the back arches. The collarbones
+#   draw back instead (`IDLE_CLAV_PUSH`, `CRAWL_CLAV_PUSH`: the chest hangs between the shoulders, as it does on
+#   anyone propped on the elbows) and the elbows rest a little further out and ahead (`IDLE_ELBOW_*`,
+#   `CRAWL_ELBOW_OUT`), which also brings his fists as near the centre line as hers;
+# - the transitions: the pelvis higher where the back knee passes the floor (`DIVE_LIFT`), the feet higher as they
+#   come onto their toes (`FOOT_LIFT`), the elbows and the waiting left hand further out past the front knee
+#   (`ELBOW_CLEAR`, `HAND_WAIT`);
+# - the fist: his fingers are longer, so they curl 4 degrees less at the middle joint (`FIST_CURL`).
 BODIES = {
     "female": {},
     "male": {
@@ -1663,9 +1676,10 @@ def fist_numbers(rig, pose):
 
 
 def floor_numbers(arm, actions, clips, bodies, failures):
-    """How low each mannequin's hands (with their fingers) and forearms get in each clip, in millimetres over the
-    floor, with the frame. A hand deeper than `HAND_FLOOR_LIMIT` on the first body, the one the clips are solved on,
-    fails the build; the other's numbers are reported (his longer upper arms put his elbows lower)."""
+    """How low each mannequin's hands (with their fingers), forearms, thighs and shins get in each clip, in
+    millimetres over the floor, with the frame. A part of `FLOOR_PARTS` deeper than `FLOOR_LIMIT` on the first body,
+    the one the clips are solved on, fails the build; the other body's numbers are reported (it plays its own
+    file)."""
     scene = bpy.context.scene
     out = {}
     for name, frames in clips.items():
