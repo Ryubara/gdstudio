@@ -33,6 +33,8 @@ const BAND_NAMES: Array[String] = ["Hostile", "Unfriendly", "Neutral", "Friendly
 ## The ends of the attitude scale.
 const LIMIT := 100.0
 
+static var _builds := 0
+
 ## The sides, each with its row of base attitudes toward the others.
 @export var factions: Array[AiFaction] = []:
 	set(value):
@@ -64,6 +66,10 @@ const LIMIT := 100.0
 ## Attitude points a minute the current value drifts back toward the base.
 @export_range(0.0, 600.0, 0.5, "suffix:/min") var recovery_per_minute := 10.0
 
+## A number no other table and no earlier build of this one has, new each time the arrays are
+## built (a faction added or renamed): a member's cached faction index is good while it matches.
+var version := 0
+
 var _dirty := true
 var _count := 0
 var _index: Dictionary[StringName, int] = {}
@@ -75,7 +81,8 @@ var _drifting := false
 
 ## The index of faction `id` in the table, or -1.
 func index_of(id: StringName) -> int:
-	_ensure()
+	if _dirty:
+		_ensure()
 	return _index.get(id, -1)
 
 
@@ -119,7 +126,8 @@ func is_hostile(a: StringName, b: StringName) -> bool:
 
 ## The attitude by faction index (`index_of`); -1 is a faction not in the table.
 func attitude_at(i: int, j: int) -> float:
-	_ensure()
+	if _dirty:
+		_ensure()
 	if i < 0 or j < 0:
 		return float(default_attitude)
 	return _current[i * _count + j]
@@ -127,7 +135,8 @@ func attitude_at(i: int, j: int) -> float:
 
 ## The band by faction index (`index_of`): one byte read.
 func band_at(i: int, j: int) -> int:
-	_ensure()
+	if _dirty:
+		_ensure()
 	if i < 0 or j < 0:
 		return band_of(default_attitude)
 	return _band[i * _count + j]
@@ -277,6 +286,8 @@ func _ensure() -> void:
 	if not _dirty:
 		return
 	_dirty = false
+	_builds += 1
+	version = _builds
 	_count = factions.size()
 	_index.clear()
 	for at in _count:

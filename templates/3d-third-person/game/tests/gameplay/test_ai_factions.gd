@@ -181,10 +181,13 @@ func test_the_band_rings_follow_the_band_toward_the_player() -> void:
 	assert_bool(ring.visible).is_false()
 
 
-func test_a_profile_faction_applies_live() -> void:
+func test_a_profile_faction_applies_at_the_next_think() -> void:
 	var factions := _factions()
 	var player := _player_member()
 	var character := _arena.add_character(Vector3(0.0, 0.0, -3.0))
 	assert_bool(factions.is_hostile_between(character, player)).is_true()
 	character.profile.faction = &"ally"
+	character.think(0.1)
 	assert_bool(factions.is_hostile_between(character, player)).is_false()
+	AiFactionMember.of(character).faction = &"enemy"
+	assert_bool(factions.is_hostile_between(character, player)).is_true()

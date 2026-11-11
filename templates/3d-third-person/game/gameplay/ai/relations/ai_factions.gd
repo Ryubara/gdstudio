@@ -81,20 +81,32 @@ static func find(node: Node) -> AiFactions:
 
 ## False when `attacker` must not hurt `victim`: it is Friendly or Allied toward the victim and its
 ## faction does not hurt friends. True with no `AiFactions` in the tree, for itself, or for a
-## victim or attacker in no faction.
+## victim or attacker in no faction or in one the table does not have.
 static func can_hurt(attacker: Node, victim: Node) -> bool:
 	if attacker == null or victim == null or attacker == victim:
 		return true
-	var factions := find(victim)
+	var own := AiFactionMember.of(attacker)
+	var other := AiFactionMember.of(victim)
+	var factions: AiFactions = other.level() if other != null else find(victim)
 	if factions == null or factions.relations == null:
 		return true
-	var attacker_faction := AiFactionMember.faction_of(attacker)
-	if attacker_faction == &"" or AiFactionMember.faction_of(victim) == &"":
-		return true
-	if factions.band_between(attacker, victim) < AiRelations.Band.FRIENDLY:
-		return true
-	var side := factions.relations.faction(attacker_faction)
-	return side == null or side.hurts_friends
+	var table := factions.relations
+	var side := -1
+	var band := AiRelations.Band.NEUTRAL
+	if own != null and other != null:
+		side = own.refresh(table) if own.table_version != table.version else own.faction_index
+		var victim_side := (
+			other.refresh(table) if other.table_version != table.version else other.faction_index
+		)
+		if side < 0 or victim_side < 0:
+			return true
+		band = factions.band_of_members(own, other)
+	else:
+		side = table.index_of(AiFactionMember.faction_of(attacker))
+		if side < 0 or table.index_of(AiFactionMember.faction_of(victim)) < 0:
+			return true
+		band = factions.band_between(attacker, victim)
+	return band < AiRelations.Band.FRIENDLY or table.factions[side].hurts_friends
 
 
 ## How `a` feels about `b`: its personal grudge toward `b` when it holds one, else its faction's
@@ -110,12 +122,35 @@ func attitude_between(a: Node, b: Node) -> float:
 
 ## The band of `a` toward `b` (`AiRelations.Band`): a grudge's by its value, else the factions'.
 func band_between(a: Node, b: Node) -> int:
-	var member := AiFactionMember.of(a)
 	if relations == null:
 		return AiRelations.Band.NEUTRAL
+	var member := AiFactionMember.of(a)
+	var other := AiFactionMember.of(b)
+	if member != null and other != null:
+		return band_of_members(member, other)
 	if member != null and member.has_grudge(b):
 		return relations.band_of(member.grudge_toward(b))
 	return relations.band(AiFactionMember.faction_of(a), AiFactionMember.faction_of(b))
+
+
+## The band of member `a` toward member `b`: the hot path (the senses keep the members of what
+## they perceive). A grudge check only when `a` holds one, two cached indexes and one byte read.
+func band_of_members(a: AiFactionMember, b: AiFactionMember) -> int:
+	if a.holds_grudges:
+		var held := a.grudge_by_id(b.entity_id)
+		if not is_nan(held):
+			return relations.band_of(held)
+	var table := relations
+	if a.table_version != table.version:
+		a.refresh(table)
+	if b.table_version != table.version:
+		b.refresh(table)
+	return table.band_at(a.faction_index, b.faction_index)
+
+
+## True when member `a` is Hostile toward member `b` (`band_of_members`).
+func is_hostile_members(a: AiFactionMember, b: AiFactionMember) -> bool:
+	return band_of_members(a, b) == AiRelations.Band.HOSTILE
 
 
 ## True when `a` is Hostile toward `b`: the filter the senses read first.

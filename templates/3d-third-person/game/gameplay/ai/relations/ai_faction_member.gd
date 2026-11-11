@@ -15,19 +15,34 @@ const META := &"ai_faction_member"
 @export var faction := &"":
 	set(value):
 		faction = value
+		table_version = -1
 		update_configuration_warnings()
 ## Reports hits on the parent and its death to the level's `AiFactions`.
 @export var reports_events := true
 ## The ring the debug overlay colours by band toward the player (`AiFactions.show_bands`).
 @export var band_marker: GeometryInstance3D
 
+## The parent's instance id, the key of other members' grudges toward it.
+var entity_id := 0
+## Its faction's index in the table of `table_version` (`refresh`), read by the hot path.
+var faction_index := -1
+## The `AiRelations.version` `faction_index` was read from; -1 makes the next lookup read it.
+var table_version := -1
+## True while it holds any grudge, so the hot path skips the grudge lookup otherwise.
+var holds_grudges := false
+
 var _grudges: Dictionary[int, float] = {}
 var _last_attacker: WeakRef
+var _ai: AiCharacter
+var _level: AiFactions
 
 
 func _enter_tree() -> void:
-	if get_parent() != null:
-		get_parent().set_meta(META, self)
+	var parent := get_parent()
+	if parent != null:
+		parent.set_meta(META, self)
+		entity_id = parent.get_instance_id()
+		_ai = parent as AiCharacter
 
 
 func _exit_tree() -> void:
@@ -45,6 +60,8 @@ func _ready() -> void:
 		parent.connect(&"died", _on_died)
 	if parent.has_signal(&"revived"):
 		parent.connect(&"revived", _on_revived)
+	if parent.has_signal(&"thought"):
+		parent.connect(&"thought", _on_thought)
 	show_band(false)
 
 
@@ -71,22 +88,39 @@ static func faction_of(node: Object) -> StringName:
 func faction_id() -> StringName:
 	if faction != &"":
 		return faction
-	var ai := get_parent() as AiCharacter
-	if ai != null and ai.profile != null:
-		return ai.profile.faction
+	if _ai != null and _ai.profile != null:
+		return _ai.profile.faction
 	return &""
+
+
+## The level's `AiFactions`, found once and kept while it is in the tree; null without one.
+func level() -> AiFactions:
+	if _level == null or not is_instance_valid(_level) or not _level.is_inside_tree():
+		_level = AiFactions.find(self)
+	return _level
+
+
+## Reads its faction's index in `table` again (`faction_index`). The hot path calls it when the
+## table was built again; a think calls it too, so a profile's faction edited live applies at the
+## character's next think.
+func refresh(table: AiRelations) -> int:
+	faction_index = table.index_of(faction_id())
+	table_version = table.version
+	return faction_index
 
 
 ## Holds a personal attitude toward one entity that beats the faction's (-100 to 100).
 func grudge(entity: Object, value: float) -> void:
 	if entity != null:
 		_grudges[entity.get_instance_id()] = clampf(value, -AiRelations.LIMIT, AiRelations.LIMIT)
+		holds_grudges = true
 
 
 ## Drops the personal attitude toward `entity`: the faction's applies again.
 func forgive(entity: Object) -> void:
 	if entity != null:
 		_grudges.erase(entity.get_instance_id())
+		holds_grudges = not _grudges.is_empty()
 
 
 ## True when it holds a personal attitude toward `entity`.
@@ -97,6 +131,11 @@ func has_grudge(entity: Object) -> bool:
 ## The personal attitude toward `entity` (`has_grudge` first).
 func grudge_toward(entity: Object) -> float:
 	return _grudges.get(entity.get_instance_id(), 0.0)
+
+
+## The personal attitude toward the entity with instance id `id`, or NAN when it holds none.
+func grudge_by_id(id: int) -> float:
+	return _grudges.get(id, NAN)
 
 
 ## Shows the band ring in `color`, or hides it (the debug overlay).
@@ -116,7 +155,7 @@ func _on_took_hit(_amount: float, source: Node3D) -> void:
 		return
 	_last_attacker = weakref(source)
 	if reports_events:
-		var factions := AiFactions.find(self)
+		var factions := level()
 		if factions != null:
 			factions.report(&"attack", source, get_parent())
 
@@ -124,10 +163,14 @@ func _on_took_hit(_amount: float, source: Node3D) -> void:
 func _on_died() -> void:
 	var attacker: Object = _last_attacker.get_ref() if _last_attacker != null else null
 	if attacker != null and reports_events:
-		var factions := AiFactions.find(self)
+		var factions := level()
 		if factions != null:
 			factions.report(&"kill", attacker as Node, get_parent())
 	_last_attacker = null
+
+
+func _on_thought(_seconds: float) -> void:
+	table_version = -1
 
 
 func _on_revived() -> void:
