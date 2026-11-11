@@ -27,6 +27,7 @@ var fire := false
 
 var _fire_was := false
 var _built := false
+var _repeat := false
 var _walk_was := Vector3.ZERO
 var _look_was := Vector3.ZERO
 var _strength_was := 1.0
@@ -53,7 +54,9 @@ func sample() -> PlayerCommand:
 		and aim == command.aim
 		and fire == command.fire
 	):
+		_repeat = true
 		return command
+	_repeat = false
 	command.clear()
 	command.set_from_world(walk_direction, look_direction, walk_strength)
 	command.aim = aim
@@ -64,6 +67,10 @@ func sample() -> PlayerCommand:
 	_look_was = look_direction
 	_strength_was = walk_strength
 	return command
+
+
+func repeats(command_handed: PlayerCommand) -> bool:
+	return _repeat and command_handed == _command
 
 
 ## True when it asks for nothing: no walk, no aim, no trigger.

@@ -237,6 +237,8 @@ var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
 var _slide := CharacterSlide.new()
+# The command `last_command` was last copied from (`CharacterController.repeats()`).
+var _copied: PlayerCommand
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -287,11 +289,15 @@ func step(command: PlayerCommand, delta: float) -> void:
 		return
 	assert(Engine.is_in_physics_frame(), "Character.step() runs inside a physics frame.")
 	assert(_is_physics_step(delta), "Character.step() takes whole physics steps.")
-	if command.all_finite():
+	if command == _copied and controller != null and controller.repeats(command):
+		pass  # The controller's command as the last step copied it (an AI between its thinks).
+	elif command.all_finite():
 		last_command.copy_from(command)
 		last_command.move = command.move.limit_length(1.0)
+		_copied = command
 	else:
 		last_command.clear()
+		_copied = null
 	view_yaw = last_command.yaw
 	view_pitch = _prone.held_pitch(prone_tuning, last_command.pitch)
 	if ragdoll_by_command and last_command.ragdoll_pressed:
@@ -516,6 +522,7 @@ func has_room_to_stand() -> bool:
 # The command of a body nobody controls: it asks for nothing and looks where it looked.
 func _idle_command() -> PlayerCommand:
 	last_command.clear()
+	_copied = null
 	return last_command
 
 

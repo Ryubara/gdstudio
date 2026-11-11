@@ -26,6 +26,13 @@ func sample() -> PlayerCommand:
 	return _command
 
 
+## True when `command` is the one the last `sample()` handed out and it was not written since the
+## call before (the body then keeps the copy it made: an AI's command between its thinks). False
+## here: a human's, a network's and a test's command is copied on every step.
+func repeats(_command_handed: PlayerCommand) -> bool:
+	return false
+
+
 ## Where the person who watches this character is (the local camera), for what only matters to
 ## the eye (how far a death may be a ragdoll). `Vector3.INF`: nobody watches here (an AI on a
 ## server, a test, a body stepped from the network).

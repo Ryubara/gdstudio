@@ -30,7 +30,7 @@ func before_test() -> void:
 
 
 # A body on a floor of its own world with a 0.2 m kerb across its way, facing -Z, stepped by hand.
-func _body_in_a_world(lean: bool, index: int) -> Character:
+func _body_in_a_world(lean: bool, index: int, controller: CharacterController = null) -> Character:
 	var world: SubViewport = auto_free(SubViewport.new())
 	world.own_world_3d = true
 	world.size = Vector2i(64, 64)
@@ -41,7 +41,8 @@ func _body_in_a_world(lean: bool, index: int) -> Character:
 	arena.add_block(Vector2(0.0, START_Z - 3.0), Vector3(8.0, 0.2, 1.0), 0.2)
 	var body := load(BODY).instantiate() as Character
 	body.position = Vector3(0.0, 0.0, START_Z)
-	var controller := CharacterController.new()
+	if controller == null:
+		controller = CharacterController.new()
 	controller.lean_step = lean
 	body.add_child(controller)
 	body.controller = controller
@@ -211,3 +212,44 @@ func test_the_ai_controller_gives_the_command_its_channels_say_on_every_call() -
 	var still := controller.sample()
 	assert_bool(still.fire or still.aim or still.fire_pressed).is_false()
 	assert_vector(still.move).is_equal(Vector2.ZERO)
+
+
+func test_an_ai_body_keeps_its_copy_of_a_repeated_command_and_steps_as_the_full_tick() -> void:
+	var ai := AiController.new()
+	_bodies.append(_body_in_a_world(true, 0, ai))
+	_bodies.append(_body_in_a_world(false, 1))
+	await InputSim.ticks(get_tree(), 4)
+	var plan: Array[Array] = [
+		[Vector3.FORWARD, Vector3.ZERO, false, false, 60],
+		[Vector3.RIGHT, Vector3.ZERO, false, false, 40],
+		[Vector3.ZERO, Vector3.LEFT, true, false, 30],
+		[Vector3.ZERO, Vector3.LEFT, true, true, 20],
+		[Vector3.BACK, Vector3.ZERO, false, false, 60],
+		[Vector3.ZERO, Vector3.ZERO, false, false, 30],
+	]
+	var stale := 0
+	for leg in plan:
+		ai.walk_direction = leg[0]
+		ai.look_direction = leg[1]
+		ai.aim = leg[2]
+		ai.fire = leg[3]
+		for _tick in leg[4]:
+			await get_tree().physics_frame
+			_ticks += 1
+			var command := ai.sample()
+			var copy := command.clone()
+			_bodies[0].step(command, CommandDriver.tick_seconds())
+			_bodies[1].step(copy, CommandDriver.tick_seconds())
+			_compare()
+			var kept := _bodies[0].last_command
+			if (
+				kept.move != copy.move
+				or kept.yaw != copy.yaw
+				or kept.aim != copy.aim
+				or kept.fire != copy.fire
+				or kept.fire_pressed != copy.fire_pressed
+			):
+				stale += 1
+	assert_array(_differences).is_empty()
+	assert_int(stale).is_equal(0)
+	assert_int(_ticks).is_equal(240)
