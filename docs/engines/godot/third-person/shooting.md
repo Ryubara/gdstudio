@@ -204,7 +204,8 @@ weapon is a new `.tres`; nothing else changes.
 - **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
   `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
   the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
-  `toggle_unarmed` (H, d-pad up); a screen that picks a weapon (the inventory) calls
+  `toggle_unarmed` (H, d-pad up); the HUD's weapon slots' keys `weapon_1` and `weapon_2` (1, 2, a finger on the slot)
+  and a screen that picks a weapon (the inventory) call
   `PlayerInput.request_weapon(slot)`, which sends the same presses one a tick (`WeaponChooser`,
   [Inventory](../inventory.md#template-screen)). The character steps the loadout and then the weapon at the end of
   each `step`, and both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload;

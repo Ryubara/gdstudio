@@ -200,7 +200,9 @@ needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
 sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
 right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes, 0.3; 0
-swaps at once). A swap keeps what the crosshair is on under it (Shoulder swap subgroup): `keep_aim_on_swap` (on) finds
+swaps at once). A swap made while aiming keeps what the crosshair is on under it (Shoulder swap subgroup; a swap while
+walking or sprinting only slides the view, so the run keeps its way, unless `keep_aim_when_not_aiming`, off, is on):
+`keep_aim_on_swap` (on) finds
 the point under the crosshair when the swap starts (what the weapon would hit, or the ray's end at `aim_point_range`,
 100 m, when nothing is there; never nearer than `aim_point_min_distance`, 2 m, past the arm, on `aim_point_mask`) and
 turns the view inward as it slides so the point stays put, so a shot fired mid-swap goes there; `aim_shoulder_time`

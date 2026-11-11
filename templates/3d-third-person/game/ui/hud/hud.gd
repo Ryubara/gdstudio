@@ -16,7 +16,8 @@ extends CanvasLayer
 ## One `Theme` (`theme`) styles every part: edit `hud_theme.tres` or point `theme` at another one
 ## to restyle the whole HUD. On a phone the HUD grows until its smallest text is `min_text_size`
 ## CSS pixels high, and while the touch controls show, a part with a `touch_region` moves there
-## (the bottom corners are the thumbs').
+## (the bottom corners are the thumbs'). A part with places a finger presses (the weapon slots, the
+## hotbar) gives them to the touch layer through `touch_zones()`.
 
 ## The touch controls came up or went away.
 signal touch_layout_changed(on: bool)
@@ -97,6 +98,7 @@ func _ready() -> void:
 	_bind_parts()
 	if touch_controls != null:
 		touch_controls.shown_changed.connect(set_touch_layout)
+		touch_controls.add_zone_source(self)
 		set_touch_layout(touch_controls.is_shown())
 
 
@@ -134,6 +136,17 @@ func widgets() -> Array[HudWidget]:
 		for node in root.find_children("*", "HudWidget", true, false):
 			found.append(node as HudWidget)
 	return found
+
+
+## The places of the HUD a finger presses on a touch screen (the weapon slots, the hotbar): each
+## shown part's `touch_zones()`, as `{rect, action}` in canvas pixels. The touch layer asks for
+## them at each finger's touch and presses the action of the first that holds it.
+func touch_zones() -> Array[Dictionary]:
+	var zones: Array[Dictionary] = []
+	for widget in widgets():
+		if widget.visible and widget.has_method(&"touch_zones"):
+			zones.append_array(widget.call(&"touch_zones"))
+	return zones
 
 
 ## The part of the canvas a device's safe area leaves, in canvas pixels (`margin` is applied by
