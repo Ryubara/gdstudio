@@ -8,5 +8,5 @@ display_name = "Grunt"
 courage = 0.6
 aggression = 0.4
 curiosity = 0.2
-faction = &"enemies"
+faction = &"enemy"
 accuracy = 0.4

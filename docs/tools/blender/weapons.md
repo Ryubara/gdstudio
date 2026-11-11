@@ -212,6 +212,24 @@ Library's six pistol clips on the `hand_r` bone.
   the skeleton from the hands down, but their skins differ by up to 3.3 mm in the same pose (in both directions), so
   the solver measures both skins in every step and presses the nearer one 0.8 mm into the surface; the other is then
   up to 2.5 mm off it. A hold solved on one mannequin put the other 2.7 mm into the grip.
+- **The left hand follows the reload** (kit #1031). `Pistol_Reload` (1.67 s, stretched to the weapon's
+  `reload_time`) has the left hand on the gun for its first 4 hundredths, down at the left hip for the new magazine at
+  a quarter, under the grip from 0.54 to 0.71 and back on the gun from 0.88. After the solved seat moved the pistol
+  about 10 cm in the hand, the clip's own left hand was 16 to 22 mm inside the gun or the right hand for a third of the
+  clip on the female and 20 to 23 mm at its ends on the male, and under the grip it stood beside the gun's right side,
+  not under the magazine. `WeaponHold` now takes the hand through the clip's steps by the clip's own time
+  (`CharacterAnimation.reload_progress()`: how much of the body the one-shot holds, and the share played): on the
+  `SupportHand` marker, opened and let go to the clip's arm (0.04 to 0.10), brought to the line under the magazine
+  (0.30 to 0.40) one magazine's length down the grip, pushed up it (0.40 to 0.54) to the `MagazineHand` marker, where
+  the heel of the palm is on the magazine's base as a real reload seats one, then down, round the grip's foot and
+  onto the gun (0.71 to 0.88). Where the hand holds, it is within the 2 mm and 5 mm (the palm 1.6 to 3.1 mm off the
+  base, nothing more than 1.2 mm in); while it moves, a fingertip passes 4 to 5 mm through the other hand for a
+  hundredth of the clip in three places (0.03, 0.05, 0.79), which the test caps at 6 mm. The trigger finger is off
+  the trigger for the whole reload. Where the hand should be at each moment was decided from the clip and from how a
+  reload is taught: the magazine is fetched at the belt, guided in and seated firmly with the support palm, and the
+  grip is taken again ([Shooting Illustrated](https://www.shootingillustrated.com/articles/2012/10/25/semi-automatic-handgun-reloading),
+  [AmmoLand](https://www.ammoland.com/2023/03/4-pistol-reload-methods-9-magazine-tips)). The clip has no rack of the
+  slide and no magazine in the hand, and the pistol's `Magazine` node does not move yet.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
@@ -282,6 +300,22 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   sampling by a triangle's longest edge made millions of samples on long thin triangles and the grid never finished;
   a search on every third vertex chose a left hand whose full measure was 0.4 mm too deep, and the final solve then
   curled the index finger into a fist to escape. **Seen:** gdstudio #1001, 2026-11-10.
+- **Approach:** Take a hand through a clip that moves it on and off the weapon by the clip's own time: a marker and a
+  solved finger pose for each place it holds, a straight way in along the line the part travels (a magazine goes up
+  the grip) and a way out that backs off before it crosses. Measure every hundredth of the clip once and keep the
+  deepest shares in the test. **Watch out for:** the clip's place for the hand fits only the seat the clip was made
+  with (after the reseat it was beside the gun, not under the magazine); a straight blend from under the magazine to
+  the support place went 21 mm through the grip's foot; fingers opened toward their rest went 4 to 5 mm into the
+  trigger guard and the other hand; a test at every 4 hundredths passed while three shares between were 4 to 5 mm in.
+  **Seen:** gdstudio #1031, 2026-11-10 (three passing moments of 4 to 5 mm are left, capped at 6 mm).
+- **Approach:** Seat a hand on a surface by its palm with the fingers already closed, and close the fingers again
+  after each seating, a fixed number of times; hold a part that the game's test reads deeper than the solver (the
+  male thumb's root, 1.4 mm) off the surface in the solver. **Watch out for:** the palm's skin near the knuckles
+  follows the fingers, so a palm seated with open fingers ended 4 to 6 mm in or 9 to 13 mm off once they closed;
+  seating on the skin the hand bone alone moves pushed the hand 17 mm into the gun; backing the whole hand off until
+  nothing was deeper than 0.3 mm took it 8 mm off for a thumb that touched sideways; a bisection of the push over
+  the whole way failed, since past the gun the palm is clear again (step to the first touch, then bisect).
+  **Seen:** gdstudio #1031, 2026-11-10.
 - **Approach:** After closing a hand on a grip, measure the weapon against the body in the locomotion clips again, and
   bench a change of modifiers one configuration a process. **Watch out for:** the seat that put the grip in the palm
   moved the pistol 6 cm toward the body, into the thigh in `Idle` and `Walk`, which only the clearance test showed

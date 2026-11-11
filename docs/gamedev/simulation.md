@@ -55,3 +55,27 @@ rules hold in any engine. What a crowd off physics costs, and how Godot's naviga
   two near-equal ways round a booth were named from strips beside its face, so a slow dead walked between them for six
   minutes, never stuck; the first check covered only the case it fixed. **Seen:** Deadnight #1347, 2026-11-06 (fix: a
   4 m gain to turn back; a grid test round the face, and a dodge-past test with the hold on and off).
+
+## Factions and relationships {#relationships}
+
+<!-- new section: who is hostile to whom is a simulation rule any engine's AI keeps (kit #964); nothing held the
+     model apart from the Godot template's classes -->
+
+Who is hostile, neutral or friendly to whom is data, not code: a table of factions and, for every ordered pair, an
+attitude from -100 to 100 with a base and a current value. The rules that keep it readable and cheap, in any engine
+(the Godot template's parts: [Factions and relationships](../engines/godot/third-person/ai.md#relations)):
+
+- **Asymmetric.** A toward B is set apart from B toward A: civilians fear soldiers who only distrust them, and the
+  player's view of an ally says nothing about the ally's view of the player.
+- **Named bands with hysteresis.** Behaviour reads a band (Hostile, Unfriendly, Neutral, Friendly, Allied), never the
+  number. A band farther from Neutral is entered at its line and left only some distance past it (Hostile at -60, left
+  at -40), so a value that wobbles on a line does not flip a character between fighting and walking past.
+- **Only a perceived act changes anything.** An event (attack, kill, help, trespass) carries a delta and a witness
+  rule; each witness faction changes once, however many of its members saw it, and not at all when it was hostile to
+  the victim. An act nobody perceived changes nothing.
+- **Drift back.** The current value moves toward its base at a fixed rate, so a grudge fades unless it is fed.
+- **Personal beats faction.** A grudge of one character against one entity overrides the faction for that pair.
+- **Friendly fire is a lookup.** A side that does not hurt friends has its hits on Friendly or Allied targets dropped
+  where hits are delivered; a side that does (the player) pays for them in attitude.
+- **Cheap to ask, cheap to send.** A lookup is an array read by cached indexes; the table lives on the authority,
+  a change is sent as two faction indexes and a signed byte, and a late joiner gets the whole table once.

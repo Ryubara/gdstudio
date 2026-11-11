@@ -1,8 +1,8 @@
-## Writes the solved pistol hold into the project (kit #1001): the three `HandPose` files of
+## Writes the solved pistol hold into the project (kit #1001): the five `HandPose` files of
 ## `gameplay/weapon/hold/` and `assets/weapons/pistol/pistol_held.tscn` (the pistol's seat on
-## `hand_r` and the `SupportHand` marker), from the JSON file `solve_pistol_hold.py` wrote. No
-## number of the hold is typed by hand: change the model or the solver, run both again, then the
-## test `tests/gameplay/test_pistol_hold.gd`.
+## `hand_r`, the `SupportHand` and `MagazineHand` markers), from the JSON file
+## `solve_pistol_hold.py` wrote. No number of the hold is typed by hand: change the model or the
+## solver, run both again, then the test `tests/gameplay/test_pistol_hold.gd`.
 ##
 ## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json>`
 extends SceneTree
@@ -11,6 +11,8 @@ const POSES: Dictionary[String, String] = {
 	"grip": "res://gameplay/weapon/hold/pistol_grip_pose.tres",
 	"trigger": "res://gameplay/weapon/hold/pistol_trigger_pose.tres",
 	"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
+	"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
+	"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
 }
 const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 
@@ -27,6 +29,8 @@ func _initialize() -> void:
 		return
 	var solved: Dictionary = parsed
 	for key: String in POSES:
+		if not solved.has(key):
+			continue
 		var pose := HandPose.new()
 		if ResourceLoader.exists(POSES[key]):
 			pose = load(POSES[key]) as HandPose
@@ -55,6 +59,8 @@ func _initialize() -> void:
 	var places := {"Pistol": _text(solved.seat)}
 	if solved.has("support_hand"):
 		places["SupportHand"] = _text(solved.support_hand)
+	if solved.has("magazine_hand"):
+		places["MagazineHand"] = _text(solved.magazine_hand)
 	var lines := FileAccess.get_file_as_string(HELD).split("\n")
 	var node := ""
 	for index in lines.size():
