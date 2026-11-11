@@ -27,7 +27,7 @@ const LEG_BONES: Array[StringName] = [
 const FLOOR_SLACK := 0.02
 ## How far a joint's middle may be inside the wall. `Vault_Low` carries the left knee past the
 ## front edge between two of its 24 keys a second, and the frames drawn between them cut the
-## corner by 0.05 m (the clip's own, gdstudio #1220).
+## corner by 0.05 m (the clip's own, gdstudio #1221).
 const KNEE_CUT := 0.055
 
 var _arena: PlayArena
