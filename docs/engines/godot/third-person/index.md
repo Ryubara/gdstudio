@@ -9,5 +9,7 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
   controller, the ragdoll and touch controls.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
+- [Vaulting and mantling](traversal.md): the `Vaultable` component, the probe, the warped path, the defaults and where
+  they come from, and the level designer's how-to.
 
 What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).

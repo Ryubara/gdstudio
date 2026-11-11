@@ -113,6 +113,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   **Watch out for:** under Movie Maker the mixer runs on the frames, not on its own thread, so
   `AudioSettings.drain_mixer()` waits its whole second for nothing, and a tour that quit with the wind playing printed
   `2 resources still in use at exit` and made the capture unusable as proof. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** A capture cut by `--quit-after N` before its scene ends needs that silence too: the templates'
+  `AudioSettings` pauses the tree and stops every player at frame `N - 8`, told N by `++ --quit-after=N`, which
+  `gds godot` and `gds capture frames` add to a Movie Maker run (`capture.tell_movie_end`); a plain Godot start still
+  leaks. **Watch out for:** Godot removes the arguments it uses from `OS.get_cmdline_args()`, so a script cannot read
+  where the capture ends, and `--quit-after` stops with no frame left to mix: whatever plays then (the looping wind, a
+  coin picked up in the last second) is held, one Ogg voice being 4 leaked instances and 2 resources under `--verbose`.
+  **Seen:** gdstudio #1030, 2026-11-10 (the action tour's 1200-frame capture, 4 resources: the wind and a coin).
 - **Approach:** Capture to an absolute path of a folder that exists, smoke the run with `--quit-after 25` first, and for
   a long run write `x.avi`, pull the track with `ffmpeg -i x.avi -vn -c:a pcm_s32le x.wav` at once and delete the avi
   only after the wav exists; split a long capture into runs of a few minutes of sound. **Watch out for:** a relative

@@ -128,3 +128,37 @@ func test_a_gain_set_before_any_node_exists_starts_from_the_layouts_volume() -> 
 func test_a_bus_the_project_lacks_takes_a_gain_without_error() -> void:
 	AudioSettings.set_player_gain(&"Nope", 0.3)
 	assert_float(AudioSettings.player_gain(&"Nope")).is_equal_approx(0.3, 0.0001)
+
+
+func test_a_movie_capture_ends_at_its_quit_after_frame_and_nothing_else_does() -> void:
+	var movie := "C:/captures/f.png"
+	assert_int(AudioSettings.movie_quit_frame(["--quit-after", "1200"], movie)).is_equal(1200)
+	assert_int(AudioSettings.movie_quit_frame(["--quit-after=90", "--verbose"], movie)).is_equal(90)
+	assert_int(AudioSettings.movie_quit_frame(["--quit-after", "1200"], "")).is_equal(-1)
+	assert_int(AudioSettings.movie_quit_frame(["--fixed-fps", "30"], movie)).is_equal(-1)
+	assert_int(AudioSettings.movie_quit_frame(["--quit-after"], movie)).is_equal(-1)
+	assert_int(AudioSettings.movie_quit_frame(["--quit-after", "soon"], movie)).is_equal(-1)
+
+
+func test_a_run_that_writes_no_movie_never_watches_the_frames() -> void:
+	var settings: AudioSettings = auto_free(AudioSettings.new())
+	add_child(settings)
+	assert_bool(settings.is_processing()).is_false()
+
+
+func test_silencing_for_the_quit_pauses_the_tree_and_stops_every_voice() -> void:
+	var holder: Node = auto_free(Node.new())
+	var player := AudioStreamPlayer.new()
+	player.stream = _wind()
+	holder.add_child(player)
+	var settings := AudioSettings.new()
+	holder.add_child(settings)
+	add_child(holder)
+	player.play()
+	settings.silence_for_quit()
+	var paused := get_tree().paused
+	get_tree().paused = false
+	assert_bool(paused).is_true()
+	assert_bool(player.playing).is_false()
+	AudioSettings.stop_players(holder)
+	AudioSettings.drain_mixer()

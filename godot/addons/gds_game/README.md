@@ -17,6 +17,7 @@ its copy.
 | `camera_shake/` | `CameraShake` (the trauma shake a camera rig applies; `CameraShake.shake(preset, at)` from anywhere) and `ShakePreset` (one kind of shake as a resource) |
 | `screen_host/` | `ScreenHost`: opens `UIRouter` screens over the running game, pauses it (unless the top screen's `pauses_game()` says no) and gives it back; its `menu_scene` is set by the game's scene (empty: the project's main scene); needs `gds_ui` |
 | `inventory/` | `Inventory` (a bag of numbered slots of stacks: add, move, remove, drop in front of the owner; filled from a collector's pickup signal by its `catalog`), `ItemDef` (one kind of item), `ItemStack` (an item and a count); kit `docs/engines/godot/inventory.md` |
+| `traversal/` | `Vaultable` (on an obstacle: it may be vaulted over or mantled onto, from which faces, with what overrides), `VaultSettings` (the numbers, as a resource), `VaultProbe` (shape casts that measure the obstacle ahead and plan a crossing) and `VaultPlan` (the crossing: kind, measurements, the warped path) |
 | `testing/` | `ExportPins` (pins every export's default in a suite) and `InputSim` (key, pad and mouse events through the `InputMap`, waits in physics ticks); used by suites only |
 
 The scenes and resources that carry these scripts are the template's and the game's own (3D Third Person's

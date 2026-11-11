@@ -50,6 +50,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"ragdoll_body": null,
 		&"ragdoll": false,
 		&"ragdoll_by_command": true,
+		&"vault_settings": null,
 		&"health_enabled": true,
 		&"max_health": 100.0,
 	}

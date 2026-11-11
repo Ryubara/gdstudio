@@ -53,6 +53,10 @@ var values: Array = []
 ## place in the spread's seeded order), so a body put back shoots again on the same tick and in
 ## the same direction. Empty for a character with no weapon.
 var weapon: Array = []
+## The step state of the character's vault (`CharacterVault.save_step_state()`: the time into the
+## crossing, its cooldown and the plan's path), so a body put back mid-vault crosses on the same
+## path.
+var vault: Array = []
 ## The step state of the character's `WeaponLoadout` (`save_step_state()`: what is in the hands,
 ## where a switch is, each slot's ammunition). Empty for a character with no loadout.
 var loadout: Array = []

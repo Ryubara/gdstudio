@@ -13,14 +13,15 @@
 [ext_resource type="PackedScene" path="res://world/lighting/daylight.tscn" id="daylight"]
 [ext_resource type="PackedScene" path="res://gameplay/door/door.tscn" id="door"]
 [ext_resource type="Script" uid="uid://484hd7kq1u6j" path="res://world/lighting/graphics_profile.gd" id="gp"]
+[ext_resource type="PackedScene" path="res://core/minimap/minimap_section.tscn" id="minimap_section"]
 [ext_resource type="Script" uid="uid://csjccrhj5wnx7" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="pcam"]
 [ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="pcamtween"]
-[ext_resource type="PackedScene" path="res://core/minimap/minimap_section.tscn" id="minimap_section"]
 [ext_resource type="PackedScene" path="res://gameplay/pickup/pickup.tscn" id="pickup"]
 [ext_resource type="PackedScene" path="res://gameplay/moving_platform/moving_platform.tscn" id="plat"]
 [ext_resource type="PackedScene" path="res://gameplay/physics_prop/physics_prop.tscn" id="prop"]
 [ext_resource type="PackedScene" path="res://gameplay/spawn_point/spawn_point.tscn" id="spawn"]
 [ext_resource type="PackedScene" path="res://gameplay/target/target.tscn" id="target"]
+[ext_resource type="Script" path="res://addons/gds_game/traversal/vaultable.gd" id="vaultable"]
 [ext_resource type="PackedScene" path="res://gameplay/trigger_zone/trigger_zone.tscn" id="zone"]
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_tynt2"]
@@ -581,6 +582,76 @@ _surfaces = [{
 "uv_scale": Vector4(0, 0, 0, 0),
 "vertex_count": 24,
 "vertex_data": PackedByteArray("AACAvwAAAEAAAIA/AACAPwAAAEAAAIA/AACAvwAAAMAAAIA/AACAPwAAAMAAAIA/AACAPwAAAEAAAIC/AACAvwAAAEAAAIC/AACAPwAAAMAAAIC/AACAvwAAAMAAAIC/AACAPwAAAEAAAIA/AACAPwAAAEAAAIC/AACAPwAAAMAAAIA/AACAPwAAAMAAAIC/AACAvwAAAEAAAIC/AACAvwAAAEAAAIA/AACAvwAAAMAAAIC/AACAvwAAAMAAAIA/AACAPwAAAEAAAIA/AACAvwAAAEAAAIA/AACAPwAAAEAAAIC/AACAvwAAAEAAAIC/AACAvwAAAMAAAIA/AACAPwAAAMAAAIA/AACAvwAAAMAAAIC/AACAPwAAAMAAAIC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_prfmx"]
+lightmap_size_hint = Vector2i(14, 10)
+_surfaces = [{
+"aabb": AABB(-0.2, -0.25, -1.25, 0.4, 0.5, 2.5),
+"attribute_data": PackedByteArray("AAAAAAAAAABu23Y/mpkZPquqqj4AAAAASZJkP5qZGT4AAAAAAAAAP27bdj/NzEw9q6qqPgAAAD9JkmQ/zcxMPauqKj8AAAAA27YtP5qZWT8AAIA/AAAAANu2LT8zM3M/q6oqPwAAAD+3bRs/mplZPwAAgD8AAAA/t20bPzMzcz+rqqo+AAAAACVJEj3NzAw/q6oqPwAAAAAlSRI9zcxMPauqqj4AAAA/t23bPc3MDD+rqio/AAAAP7dt2z3NzEw9AAAAAAAAAD/bti0/zcxMPauqqj4AAAA/27YtP83MDD8AAAAAAACAP7dtGz/NzEw9q6qqPgAAgD+3bRs/zcwMP6uqqj4AAAA/kiTJPjMzcz+rqio/AAAAP5IkyT6amVk/q6qqPgAAgD8lSRI9MzNzP6uqKj8AAIA/JUkSPZqZWT+rqio/AAAAP5IkyT7NzAw/AACAPwAAAD9JkqQ+zcwMP6uqKj8AAIA/kiTJPs3MTD0AAIA/AACAP0mSpD7NzEw9"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("zcxMvgAAgD4AAKA/zcxMPgAAgD4AAKA/zcxMvgAAgL4AAKA/zcxMPgAAgL4AAKA/zcxMPgAAgD4AAKC/zcxMvgAAgD4AAKC/zcxMPgAAgL4AAKC/zcxMvgAAgL4AAKC/zcxMPgAAgD4AAKA/zcxMPgAAgD4AAKC/zcxMPgAAgL4AAKA/zcxMPgAAgL4AAKC/zcxMvgAAgD4AAKC/zcxMvgAAgD4AAKA/zcxMvgAAgL4AAKC/zcxMvgAAgL4AAKA/zcxMPgAAgD4AAKA/zcxMvgAAgD4AAKA/zcxMPgAAgD4AAKC/zcxMvgAAgD4AAKC/zcxMvgAAgL4AAKA/zcxMPgAAgL4AAKA/zcxMvgAAgL4AAKC/zcxMPgAAgL4AAKC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_khejg"]
+lightmap_size_hint = Vector2i(14, 14)
+_surfaces = [{
+"aabb": AABB(-0.2, -0.45, -1.25, 0.4, 0.9, 2.5),
+"attribute_data": PackedByteArray("AAAAAAAAAABu23Y/btt2P6uqqj4AAAAAbtt2P0mSZD8AAAAAAAAAP7dtGz9u23Y/q6qqPgAAAD+3bRs/SZJkP6uqKj8AAAAAkiTJPrdtGz8AAIA/AAAAAJIkyT7bti0/q6oqPwAAAD8lSRI9t20bPwAAgD8AAAA/JUkSPdu2LT+rqqo+AAAAACVJEj2SJMk+q6oqPwAAAAAlSRI9JUkSPauqqj4AAAA/kiTJPpIkyT6rqio/AAAAP5IkyT4lSRI9AAAAAAAAAD9u23Y/JUkSPauqqj4AAAA/btt2P5IkyT4AAAAAAACAP7dtGz8lSRI9q6qqPgAAgD+3bRs/kiTJPquqqj4AAAA/kiTJPm7bdj+rqio/AAAAP5IkyT5JkmQ/q6qqPgAAgD8lSRI9btt2P6uqKj8AAIA/JUkSPUmSZD+rqio/AAAAP27bdj/bti0/AACAPwAAAD9u23Y/t20bP6uqKj8AAIA/t20bP9u2LT8AAIA/AACAP7dtGz+3bRs/"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("zcxMvmZm5j4AAKA/zcxMPmZm5j4AAKA/zcxMvmZm5r4AAKA/zcxMPmZm5r4AAKA/zcxMPmZm5j4AAKC/zcxMvmZm5j4AAKC/zcxMPmZm5r4AAKC/zcxMvmZm5r4AAKC/zcxMPmZm5j4AAKA/zcxMPmZm5j4AAKC/zcxMPmZm5r4AAKA/zcxMPmZm5r4AAKC/zcxMvmZm5j4AAKC/zcxMvmZm5j4AAKA/zcxMvmZm5r4AAKC/zcxMvmZm5r4AAKA/zcxMPmZm5j4AAKA/zcxMvmZm5j4AAKA/zcxMPmZm5j4AAKC/zcxMvmZm5j4AAKC/zcxMvmZm5r4AAKA/zcxMPmZm5r4AAKA/zcxMvmZm5r4AAKC/zcxMPmZm5r4AAKC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_k8yhi"]
+lightmap_size_hint = Vector2i(14, 14)
+_surfaces = [{
+"aabb": AABB(-0.25, -0.6, -1.25, 0.5, 1.2, 2.5),
+"attribute_data": PackedByteArray("AAAAAAAAAABu23Y/btt2P6uqqj4AAAAAbtt2P0mSZD8AAAAAAAAAP7dtGz9u23Y/q6qqPgAAAD+3bRs/SZJkP6uqKj8AAAAAkiTJPrdtGz8AAIA/AAAAAJIkyT7bti0/q6oqPwAAAD8lSRI9t20bPwAAgD8AAAA/JUkSPdu2LT+rqqo+AAAAACVJEj2SJMk+q6oqPwAAAAAlSRI9JUkSPauqqj4AAAA/kiTJPpIkyT6rqio/AAAAP5IkyT4lSRI9AAAAAAAAAD9u23Y/JUkSPauqqj4AAAA/btt2P5IkyT4AAAAAAACAP7dtGz8lSRI9q6qqPgAAgD+3bRs/kiTJPquqqj4AAAA/kiTJPm7bdj+rqio/AAAAP5IkyT5JkmQ/q6qqPgAAgD8lSRI9btt2P6uqKj8AAIA/JUkSPUmSZD+rqio/AAAAP27bdj/bti0/AACAPwAAAD9u23Y/t20bP6uqKj8AAIA/t20bP9u2LT8AAIA/AACAP7dtGz+3bRs/"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("AACAvpqZGT8AAKA/AACAPpqZGT8AAKA/AACAvpqZGb8AAKA/AACAPpqZGb8AAKA/AACAPpqZGT8AAKC/AACAvpqZGT8AAKC/AACAPpqZGb8AAKC/AACAvpqZGb8AAKC/AACAPpqZGT8AAKA/AACAPpqZGT8AAKC/AACAPpqZGb8AAKA/AACAPpqZGb8AAKC/AACAvpqZGT8AAKC/AACAvpqZGT8AAKA/AACAvpqZGb8AAKC/AACAvpqZGb8AAKA/AACAPpqZGT8AAKA/AACAvpqZGT8AAKA/AACAPpqZGT8AAKC/AACAvpqZGT8AAKC/AACAvpqZGb8AAKA/AACAPpqZGb8AAKA/AACAvpqZGb8AAKC/AACAPpqZGb8AAKC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_43v24"]
+lightmap_size_hint = Vector2i(22, 14)
+_surfaces = [{
+"aabb": AABB(-1, -0.8, -1.25, 2, 1.6, 2.5),
+"attribute_data": PackedByteArray("AAAAAAAAAACMLno/btt2P6uqqj4AAAAAAABAP27bdj8AAAAAAAAAP4wuej+3bRs/q6qqPgAAAD8AAEA/t20bP6uqKj8AAAAARhcdPyVJEj0AAIA/AAAAAEYXHT+SJMk+q6oqPwAAAD900cU+JUkSPQAAgD8AAAA/dNHFPpIkyT6rqqo+AAAAAIwuujySJMk+q6oqPwAAAACMLro8JUkSPauqqj4AAAA/AACAPpIkyT6rqio/AAAAPwAAgD4lSRI9AAAAAAAAAD9GFx0/t20bP6uqqj4AAAA/RhcdP27bdj8AAAAAAACAP3TRxT63bRs/q6qqPgAAgD900cU+btt2P6uqqj4AAAA/jC56P5IkyT6rqio/AAAAPwAAQD+SJMk+q6qqPgAAgD+MLno/JUkSPauqKj8AAIA/AABAPyVJEj2rqio/AAAAPwAAgD5u23Y/AACAPwAAAD+MLro8btt2P6uqKj8AAIA/AACAPrdtGz8AAIA/AACAP4wuujy3bRs/"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("AACAv83MTD8AAKA/AACAP83MTD8AAKA/AACAv83MTL8AAKA/AACAP83MTL8AAKA/AACAP83MTD8AAKC/AACAv83MTD8AAKC/AACAP83MTL8AAKC/AACAv83MTL8AAKC/AACAP83MTD8AAKA/AACAP83MTD8AAKC/AACAP83MTL8AAKA/AACAP83MTL8AAKC/AACAv83MTD8AAKC/AACAv83MTD8AAKA/AACAv83MTL8AAKC/AACAv83MTL8AAKA/AACAP83MTD8AAKA/AACAv83MTD8AAKA/AACAP83MTD8AAKC/AACAv83MTD8AAKC/AACAv83MTL8AAKA/AACAP83MTL8AAKA/AACAv83MTL8AAKC/AACAP83MTL8AAKC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
+}]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_unaim"]
+lightmap_size_hint = Vector2i(14, 14)
+_surfaces = [{
+"aabb": AABB(-0.2, -0.45, -1.25, 0.4, 0.9, 2.5),
+"attribute_data": PackedByteArray("AAAAAAAAAABu23Y/btt2P6uqqj4AAAAAbtt2P0mSZD8AAAAAAAAAP7dtGz9u23Y/q6qqPgAAAD+3bRs/SZJkP6uqKj8AAAAAkiTJPrdtGz8AAIA/AAAAAJIkyT7bti0/q6oqPwAAAD8lSRI9t20bPwAAgD8AAAA/JUkSPdu2LT+rqqo+AAAAACVJEj2SJMk+q6oqPwAAAAAlSRI9JUkSPauqqj4AAAA/kiTJPpIkyT6rqio/AAAAP5IkyT4lSRI9AAAAAAAAAD9u23Y/JUkSPauqqj4AAAA/btt2P5IkyT4AAAAAAACAP7dtGz8lSRI9q6qqPgAAgD+3bRs/kiTJPquqqj4AAAA/kiTJPm7bdj+rqio/AAAAP5IkyT5JkmQ/q6qqPgAAgD8lSRI9btt2P6uqKj8AAIA/JUkSPUmSZD+rqio/AAAAP27bdj/bti0/AACAPwAAAD9u23Y/t20bP6uqKj8AAIA/t20bP9u2LT8AAIA/AACAP7dtGz+3bRs/"),
+"format": 34359742519,
+"index_count": 36,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAAFAAYABQAHAAYACAAJAAoACQALAAoADAANAA4ADQAPAA4AEAARABIAEQATABIAFAAVABYAFQAXABYA"),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 24,
+"vertex_data": PackedByteArray("zcxMvmZm5j4AAKA/zcxMPmZm5j4AAKA/zcxMvmZm5r4AAKA/zcxMPmZm5r4AAKA/zcxMPmZm5j4AAKC/zcxMvmZm5j4AAKC/zcxMPmZm5r4AAKC/zcxMvmZm5r4AAKC/zcxMPmZm5j4AAKA/zcxMPmZm5j4AAKC/zcxMPmZm5r4AAKA/zcxMPmZm5r4AAKC/zcxMvmZm5j4AAKC/zcxMvmZm5j4AAKA/zcxMvmZm5r4AAKC/zcxMvmZm5r4AAKA/zcxMPmZm5j4AAKA/zcxMvmZm5j4AAKA/zcxMPmZm5j4AAKC/zcxMvmZm5j4AAKC/zcxMvmZm5r4AAKA/zcxMPmZm5r4AAKA/zcxMvmZm5r4AAKC/zcxMPmZm5r4AAKC//3//f////7//f/9/////v/9//3////+//3//f////7//////AAD/v/////8AAP+//////wAA/7//////AAD/v///AID///////8AgP///////wCA////////AID/////AAAAgP9//78AAACA/3//vwAAAID/f/+/AAAAgP9//78AgP//AAD/vwCA//8AAP+/AID//wAA/78AgP//AAD/vwCAAAD///+/AIAAAP///78AgAAA////vwCAAAD///+/")
 }]
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_nshgt"]
@@ -1158,6 +1229,11 @@ mesh = SubResource("ArrayMesh_yovrs")
 size = Vector3(6, 1, 1)
 material = ExtResource("5_orange")
 
+[node name="MinimapSection" parent="Room" unique_id=498138610 instance=ExtResource("minimap_section")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.25, 2, -15)
+title = "Workshop"
+size = Vector3(12.5, 4, 10)
+
 [node name="Cover" type="Node3D" parent="." unique_id=1333788567]
 
 [node name="LowWallA" parent="Cover" unique_id=545483991 instance=ExtResource("blk")]
@@ -1259,6 +1335,100 @@ pixel_size = 0.006
 modulate = Color(1, 1, 1, 0.95)
 outline_modulate = Color(0.1, 0.1, 0.12, 1)
 text = "4 m"
+font_size = 96
+outline_size = 24
+
+[node name="VaultCourse" type="Node3D" parent="." unique_id=905463340]
+
+[node name="Vault05" parent="VaultCourse" unique_id=1665383344 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.25, -12)
+mesh = SubResource("ArrayMesh_prfmx")
+size = Vector3(0.4, 0.5, 2.5)
+material = ExtResource("5_orange")
+
+[node name="Vaultable" type="Node" parent="VaultCourse/Vault05" unique_id=1880160629]
+script = ExtResource("vaultable")
+
+[node name="Vault05Label" type="Label3D" parent="VaultCourse" unique_id=381779636]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.85, -12)
+pixel_size = 0.004
+billboard = 2
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "vault 0.5 m"
+font_size = 96
+outline_size = 24
+
+[node name="Vault09" parent="VaultCourse" unique_id=1209948088 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.5, 0.45, -12)
+mesh = SubResource("ArrayMesh_khejg")
+size = Vector3(0.4, 0.9, 2.5)
+material = ExtResource("5_orange")
+
+[node name="Vaultable" type="Node" parent="VaultCourse/Vault09" unique_id=1329192118]
+script = ExtResource("vaultable")
+
+[node name="Vault09Label" type="Label3D" parent="VaultCourse" unique_id=2009050450]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.5, 1.25, -12)
+pixel_size = 0.004
+billboard = 2
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "vault 0.9 m"
+font_size = 96
+outline_size = 24
+
+[node name="Vault12" parent="VaultCourse" unique_id=1559547088 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0.6, -12)
+mesh = SubResource("ArrayMesh_k8yhi")
+size = Vector3(0.5, 1.2, 2.5)
+material = ExtResource("5_orange")
+
+[node name="Vaultable" type="Node" parent="VaultCourse/Vault12" unique_id=111995762]
+script = ExtResource("vaultable")
+
+[node name="Vault12Label" type="Label3D" parent="VaultCourse" unique_id=45003841]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 1.55, -12)
+pixel_size = 0.004
+billboard = 2
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "vault 1.2 m"
+font_size = 96
+outline_size = 24
+
+[node name="Mantle16" parent="VaultCourse" unique_id=430214894 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.8, -12)
+mesh = SubResource("ArrayMesh_43v24")
+size = Vector3(2, 1.6, 2.5)
+material = ExtResource("5_orange")
+
+[node name="Vaultable" type="Node" parent="VaultCourse/Mantle16" unique_id=1730208302]
+script = ExtResource("vaultable")
+
+[node name="Mantle16Label" type="Label3D" parent="VaultCourse" unique_id=1804578186]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.95, -12)
+pixel_size = 0.004
+billboard = 2
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "mantle 1.6 m"
+font_size = 96
+outline_size = 24
+
+[node name="NoVault09" parent="VaultCourse" unique_id=1909225620 instance=ExtResource("blk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.5, 0.45, -15)
+mesh = SubResource("ArrayMesh_unaim")
+size = Vector3(0.4, 0.9, 2.5)
+material = ExtResource("4_dark")
+
+[node name="NoVault09Label" type="Label3D" parent="VaultCourse" unique_id=594334210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.5, 1.25, -15)
+pixel_size = 0.004
+billboard = 2
+modulate = Color(1, 1, 1, 0.95)
+outline_modulate = Color(0.1, 0.1, 0.12, 1)
+text = "no vault"
 font_size = 96
 outline_size = 24
 
@@ -1706,10 +1876,5 @@ outline_modulate = Color(0.1, 0.1, 0.12, 1)
 text = "Y: ragdoll"
 font_size = 96
 outline_size = 24
-
-[node name="MinimapSection" parent="Room" instance=ExtResource("minimap_section")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.25, 2, -15)
-title = "Workshop"
-size = Vector3(12.5, 4, 10)
 
 [connection signal="activated" from="Triggers/PressurePad" to="Doors/MainDoor" method="open" unbinds=1]

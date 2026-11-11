@@ -13,7 +13,7 @@ can be replaced alone.
 | `Player` | `gameplay/player/player.tscn` | The human's character: the dressed character with its `PlayerInput`. It joins the group `player` (the HUD, the minimap and camera zones look for it), starts at a `SpawnPoint` of that group and again when it falls out of the map, and holds `input_enabled` and `ragdoll_key`. |
 | `CharacterTuning` | `gameplay/player/player_tuning.tres` | Every number a developer tunes, grouped, with ranges and units (below). A copy of the file gives a second feel. |
 | `PlayerCamera` | `ui/player_rig/player_rig.tscn`, `gameplay/player/player_camera.gd` | A thin wrapper that sets the follow, orbit and wall settings on a Phantom Camera (`FollowCamera`) and turns it to the orbit input. Tune this node, never `Camera`. |
-| `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `character_dressed.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, on the character's first death (a character that never dies never carries them), and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
+| `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `character_dressed.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, on the character's first death, taking a set the `RagdollPool` (`ragdoll_pool.gd`) made after the level loaded (a character that never dies never carries them; one freed gives them back), and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
 | `CharacterAnimation` | `gameplay/character/character_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `WeaponDef`, `Weapon`, `WeaponLoadout`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: every number of a shot, the magazine, reserve and reload, its clips and sounds). A `Weapon` fires the one it holds along the ray its character aims by, the crosshair's for the player (pooled `Projectile` spheres, a hitscan ray or a blow), counts the ammunition, reloads and clicks when empty; a `WeaponLoadout` switches between the slots and the empty hands; a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. A definition names its model and muzzle under the `Model` slot, so a game adds a weapon with a `.tres` and a model node. |
 | `HitZones`, `HitReaction` | `gameplay/hit_zones/`, `gameplay/character/hit_reaction.gd`, nodes of `character_dressed.tscn` | The body parts a shot can hit (a `HitZone` shape each on a bone: `zone`, `bone`, `offset`, `damage_multiplier`, `enabled`), looked for only when a shot meets the capsule, and how the body answers a hit: `death_push`, `lying_push`, the flinch (`flinch_enabled`, `flinch_push`, `flinch_strength`, `flinch_time`, `flinch_hold`). |
@@ -42,7 +42,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | --- | --- | --- | --- |
 | Move | WASD or arrows | left stick | the left thumb: a stick appears where it lands |
 | Look | mouse (click the game to capture it; Esc lets go) | right stick | drag on the right half of the screen |
-| Jump | Space | A | the Jump button |
+| Jump (and vault or mantle, near a wall that allows it) | Space | A | the Jump button |
 | Sprint | Shift | left bumper | push the stick out to its outer ring |
 | Walk | X (held) | a gentle push on the stick | a gentle push on the stick |
 | Interact | E | X | the Use button |
@@ -155,6 +155,9 @@ shipped games, with the sources in the kit's `docs/engines/godot/third-person/ch
 The character lies down only on the ground and gets up through crouch, only when a crouched body fits above it: under
 a gap only a lying body fits under (0.8 m, say), letting go of prone keeps it down until it crawls out.
 
+Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
+`vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
+
 Every number is read while the game runs, so you can change it in the remote inspector and see it at once; the capsule,
 the steepest slope and the floor snap are applied again whenever the resource changes. The `Interactor`'s half angle
 (how far from straight ahead still counts as in front, 75 degrees) is on that node.
@@ -224,6 +227,34 @@ inspector) or pressing Y does the same; `teleport()` and `respawn()` get it up a
 step (`hinge_passes`, `cone_passes`), so a limb the body lands on stays near a person's range. The prototype level has a
 ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's
 `docs/engines/godot/ragdoll.md`.
+
+## Vaulting and mantling {#vaulting}
+
+Press jump running at a wall that carries a `Vaultable` and the character vaults over it (0.45 to 1.3 m high and up to
+0.9 m thick, with room to land beyond) or, when it is higher (up to 2.0 m), thicker or has no room to land, mantles up
+onto it. A wall without the component is only jumped, so the level decides what can be crossed: the map's vault course
+(west of the room, the orange walls labelled `vault 0.5 m` to `mantle 1.6 m`, and a dark `no vault` wall beside them)
+shows each case. The crossing is a path warped to the wall it measured (hand plant on the near edge, feet over the
+top, landing clear of the far side), so one clip serves every height; it is stepped from the command like the rest of
+the body, so an AI or a server does it the same way, and `CharacterState` keeps it.
+
+To make an obstacle crossable, add a `Vaultable` node under its body (or beside the `Body` of a `ProtoBlock`, as the
+course does). Its inspector: `allow_vault`, `allow_mantle`, the faces it may be crossed from, a height or depth
+override for a shape the probe misreads, and a clip of its own for the vault or the mantle.
+
+`vault_settings.tres`, with the defaults:
+
+| Group | Settings (default) |
+| --- | --- |
+| Trigger | press jump, sprint into it, or both (press jump); the speed the automatic one needs (5.5 m/s); the least speed a vault needs, slower mantles (0); the wait after a crossing before the automatic trigger starts another (0.25 s) |
+| Detection | how far past the body's front a wall is looked for (0.7 m) plus how far the body goes in 0.15 s; the widest angle off square to the face (35 degrees); the radius of the sphere cast onto the top (0.08 m); the steepest top (30 degrees) |
+| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (0.3 m); the deepest drop beyond (1.2 m); the least crossing speed (4 m/s), shortest and longest vault (0.45 and 0.9 s); the share of the speed kept on landing (0.85); the hand plant and the clear of the far edge as shares of the clip (0.3 and 0.7) |
+| Mantle | lowest and highest mantle (0.45 and 2.0 m); the high clip from 1.25 m; the time (0.45 s and 0.5 s a metre); when the feet reach the top (0.7 of the time); how far onto the top (0.1 m) |
+| Body | aim and fire stop for the crossing (on) |
+
+The clips are on `Animation` (Traversal group): the vault (a placeholder, `NinjaJump_Start`, until the template's own
+vault clips land), the high vault, the mantle (`ClimbUp_1m`) and the high mantle, and the range of speeds a clip may be
+played at (0.5 to 2). `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
 
 ## Events other nodes connect to
 
