@@ -7,7 +7,9 @@ extends CanvasLayer
 ## drive it; it sends nothing. While a message shows, the game is dimmed behind it, the player's
 ## input is off and the mouse free.
 ##
-## The texts are exports: open the scene to reword or restyle them.
+## The texts are exports: open the scene to reword or restyle them. The overlay is not under the
+## router's stage, so it builds its theme from the tokens itself (the panel's padding, the title's
+## size); without it the title sat on the panel's row of bulbs.
 
 ## Said when the shown state changes.
 signal state_changed(state: State)
@@ -50,6 +52,8 @@ var waited := 0.0
 
 
 func _ready() -> void:
+	_apply_theme()
+	UITokens.active_changed().connect(_on_tokens_changed)
 	_back.pressed.connect(back_to_menu)
 	_reload.pressed.connect(_on_reload)
 	if client != null:
@@ -116,6 +120,14 @@ func _show(shown: State) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		(_reload if _reload.visible else _back).grab_focus.call_deferred()
 	state_changed.emit(shown)
+
+
+func _apply_theme() -> void:
+	_root.theme = UIThemeBuilder.build(UITokens.active())
+
+
+func _on_tokens_changed(_next: UITokens) -> void:
+	_apply_theme()
 
 
 func _on_welcomed(_slot: int) -> void:

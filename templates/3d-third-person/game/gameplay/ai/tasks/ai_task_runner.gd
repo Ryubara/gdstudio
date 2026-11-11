@@ -696,6 +696,8 @@ func _release(task: AiTask) -> void:
 	if mask & AiTask.Channel.MOVE:
 		controller.walk_direction = Vector3.ZERO
 		controller.walk_strength = 1.0
+		controller.crouch = false
+		controller.sprint = false
 	if mask & AiTask.Channel.LOOK:
 		controller.look_direction = Vector3.ZERO
 	if mask & AiTask.Channel.ACTION:
