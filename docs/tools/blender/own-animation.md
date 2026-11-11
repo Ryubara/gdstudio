@@ -425,13 +425,13 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Check | Limit |
 | --- | --- |
 | Loop seam | the last pose is the first to the bit; the change of speed across the seam is no more than the largest in the cycle |
-| Floor | a planted sole's lowest vertex within 2 mm of the floor; no vertex more than 5 mm under it on any frame |
+| Floor | a planted sole's lowest vertex within 2 mm of the floor; no vertex more than 5 mm under it on any frame; a crouched clip under its capsule's height (`ceiling`) |
 | Planted feet | a planted sole wanders at most 5 mm in a contact at the clip's speed; the speed in `clips.json` is the measured one within 2 % |
 | Planted hands, forearms, knees | at most 1 mm of drift in the world while planted (as the vault clips, kit #1016) |
 | Limbs inside limbs | at most 5 mm on every body (`limb_overlap.py`) |
 | Gait | legs half a cycle apart within a frame; each arm with the other side's leg (correlation over 0.7); shoulders against hips; cadence, planted share and bob inside [the feel](#feel)'s ranges or the variant's declared ones |
 | Overlap | the forearm, hand, chest and head each trail their parent by the variant's declared frames, within half a frame; no part moves more than 0.5 degrees on the frame a contact lands without its parent moving |
-| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees; standing, it is over the feet |
+| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees; standing, it is over the feet; with a foot down it drops at no more than 1.05 of gravity |
 | Joins | a transition's first and last pose are the poses it joins within 1 mm and half a degree, at the phase `clips.json` names, and its speed there is the joined clip's |
 | Travel | a transition's root travel is the distance and the turn `clips.json` declares; a planted foot stays within 5 mm in the world while the root travels |
 | Limits | no joint past a person's range ([the ragdoll's limits](../../engines/godot/ragdoll.md#limits)); no elbow or knee bending backward; no change of a joint's speed over a per-joint limit in one frame |
@@ -568,7 +568,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
 | #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
-| #1160 crouch | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch`, `Crouch_To_Stand` |
+| #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch`, `Crouch_To_Stand`, A shipped; the prone transitions rebuilt on the new crouch |
 | #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
 
 Later waves, filed when the first has landed and its toolkit has settled: the slide and the curved runs; combat

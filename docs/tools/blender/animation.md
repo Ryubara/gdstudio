@@ -316,7 +316,9 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b>
 | Put the weight somewhere | `Clip.balance` (the floor point the centre of mass is over; `weight.support_point` for a share between the feet) and `Clip.stretch` (how straight the straighter leg is): the pelvis is solved from them. `weight.free_fall` and `weight.lean_for` for the air and for a change of speed |
 | Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
 | Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
-| Join another clip | `declared["joins"]`: the pose and the speed a first or last frame must meet |
+| Join another clip | `clips/joined.py` (`Joined`: the picked variant of another clip, its first frame as a spec and its solved pose), `Clip.meet` (the exact end poses, with the frames the difference is let go over) and `declared["joins"]`: the pose and the speed a first or last frame must meet |
+| Hold or raise a heel | `ContactPlan.raised(rig, side, frame, heel)`: the planted foot turned about its toes; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat |
+| Take a body down or up | `Clip.stretch` as a function of the frame; the weight check fails a drop over 1.05 of gravity with a foot down; `declared["ceiling"]` holds a crouched clip under its capsule on every body |
 
 **What the build does** (`build.build_clip`, `build.build_file`): solves every frame in the world, runs the overlap
 pass, takes the root's travel out (the clip is in place, the travel is a curve in `clips.json`), reduces the keys and
@@ -327,10 +329,11 @@ their limits; `selftest.py` breaks a clip for each one.
 
 **What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
 the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
-which is not a clip anyone has looked at for style. Mirroring, the placed hand, the joins and the `ik_` targets are
-written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's lean and the
-free fall's arc are tested on made-up motion only. A body whose legs differ from the reference body's is reported with
-`needs_ik` and not held to the floor and planted limits.
+which is not a clip anyone has looked at for style. The joins are proved by the stance changes (kit #1160: both ends
+0.0 mm and 0.09 degrees from the idles' first poses) and the contact plan by `Crouch_Walk`. Mirroring, the placed hand
+and the `ik_` targets are written and not yet used by a shipped clip: the first issue that uses each proves it. The
+weight check's lean and the free fall's arc are tested on made-up motion only. A body whose legs differ from the
+reference body's is reported with `needs_ik` and not held to the floor and planted limits.
 
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
   how straight the carrying leg is, how far a hand keeps from the thigh, and let the solver find the pelvis and the
@@ -367,6 +370,36 @@ free fall's arc are tested on made-up motion only. A body whose legs differ from
   printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
   **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
   library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
+- **Approach:** Give a gait its own overlap numbers (`overlap_<type>` in the style file), sized to its step: a
+  part may trail by a sixth of a step at most, and three bones that share a part's lag each get a third of it, never
+  under half a frame. **Watch out for:** the loose style's idle numbers (the forearm 4 frames behind the upper arm,
+  which is 4 behind the chest) on a 12-frame step swung each arm with its own side's leg (-0.31 where the check
+  asks for 0.7), and trailed the hands 38 to 49 mm into thighs that rose in a stance change; a chest lag of half
+  a frame shared by three spine bones is a sixth of a frame each, and the spring ran to infinity.
+  **Seen:** gdstudio #1160, 2026-11-11 (fix: `overlap_crouch_walk` and `overlap_stand_to_crouch` in the styles).
+- **Approach:** On a deeply bent leg, land the foot flat and let its heel rise from the landing on, and read the
+  ankle's bend and the sole's wander on every frame of a first gait before tuning anything else. **Watch out for:**
+  a flat sole under a shin that swings 45 degrees slid 6.8 mm in a contact with its joints still, because the
+  heel's skin is shared with the shin; the same low pelvis asked 67 to 80 degrees of the ankle and put the
+  trailing knee 15 cm off the floor; the male mannequin's toes are 24 mm longer and went 14 mm under the floor in
+  a swing cleared for the reference body. **Seen:** gdstudio #1160, 2026-11-11 (fix: `heel_rise`, a quicker
+  cadence, `ContactPlan.toe_reach`; the wander is 4.3 to 5.0 mm).
+- **Approach:** Time a move that lowers or raises the body from the fall of its centre of mass, and let the check
+  refuse what gravity does not allow, before fitting it to a controller's number. **Watch out for:** the
+  controller's `crouch_time` is 0.2 s and the crouch lowers the centre of mass 0.45 m, which a free fall takes
+  0.30 s over; a 12-frame drop asked 1.33 of gravity and a 12-frame rise had to stop at 1.6 of it. **Seen:**
+  gdstudio #1160, 2026-11-11 (fix: `checks.FALL` with its self-test; the shortest drop is 13 frames, the rise 14).
+- **Approach:** Check a crouched pose against the capsule on every body before tuning how it looks, and fold the
+  spine before the hips. **Watch out for:** the first crouch stood 1.26 m tall in a 1.1 m capsule; tipping the
+  pelvis to lower it turned the thigh 143 degrees from its rest (the limit is 125); the male mannequin's head is
+  24 mm higher in the same pose, and his longer forearm was 30 mm inside a thigh the female's cleared.
+  **Seen:** gdstudio #1160, 2026-11-11 (fix: `declared["ceiling"]`, the pelvis tipped 12 degrees under an 80
+  degree fold, the arms hung forward).
+- **Approach:** Film a review clip in a game made from the branch (`gds template test <template> --suite <one
+  suite> --keep`, then `gds capture frames --project game` in the kept folder), and count the frames it wrote.
+  **Watch out for:** the template's own `game/` folder has no kit addons, so the capture scene did not parse
+  (`AudioSettings` not declared) and Movie Maker still wrote 300 frames of an empty scene; an import there
+  rewrote three `.exr.import` files. **Seen:** gdstudio #1160, 2026-11-11.
 
 ## The clip eval {#eval}
 

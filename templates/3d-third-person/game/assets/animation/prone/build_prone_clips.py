@@ -3,13 +3,14 @@
 GDStudio's own animation, made from nothing on the Quaternius universal rig (the female mannequin's skeleton, CC0),
 because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
 targets (where the pelvis lies, how the spine arches, where an elbow, a hand and a foot rest on the ground) and keyed
-on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from the
-library is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end.
+on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from
+another file is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end: GDStudio's own
+crouch idle (`../own/locomotion.glb`, kit #1160), given as `--library`.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
     blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb>
-        --library <ual1.glb> --out <prone.glb> [--report <numbers.json>]
+        --library <own/locomotion.glb> --out <prone.glb> [--report <numbers.json>]
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop

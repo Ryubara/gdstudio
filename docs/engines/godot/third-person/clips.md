@@ -33,7 +33,8 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
   `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
-  (`tools/capture/own_clips_review.gd`).
+  (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
+  `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,

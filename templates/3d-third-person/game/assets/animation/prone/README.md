@@ -11,8 +11,8 @@ from a looping clip's name and makes it loop). The player scene does not hold th
 | --- | --- | --- | --- |
 | `Prone_Idle_Loop` | 3.0 s (90 frames) | yes | Lying on the belly, propped on the forearms, which point inward and rest on their outer edges, the hands closed into fists near the centre line in front of the head, the right a little ahead; one slow breath and a small drift of the head. |
 | `Crawl_Fwd_Loop` | 0.933 s (28 frames) | yes | A crawl on the forearms, the body kept low: the right elbow and the left foot plant and the body is pulled over them, then the other pair. Each forearm lands pointing inward on its outer edge, its fist in front of the head and ahead of the other fist. In place. |
-| `Crouch_To_Prone` | 0.9 s (27 frames) | no | From frame 0 of `ual1/Crouch_Idle`: the open hands reach for the floor ahead and catch the body, the feet go back one after the other, and as the elbows come down the forearms roll onto their outer edges and the hands close. Ends on frame 0 of `Prone_Idle_Loop`. |
-| `Prone_To_Crouch` | 1.0 s (30 frames) | no | From frame 0 of `Prone_Idle_Loop`: the fists open and the hands come back beside the chest, push on flat palms, the knees draw under the body, the chest rises. Ends on frame 0 of `ual1/Crouch_Idle`. |
+| `Crouch_To_Prone` | 0.9 s (27 frames) | no | From frame 0 of `gds/Crouch_Idle` (our own crouch, `../own/`, since kit #1160): the open hands reach for the floor ahead and catch the body, the feet go back one after the other, and as the elbows come down the forearms roll onto their outer edges and the hands close. Ends on frame 0 of `Prone_Idle_Loop`. |
+| `Prone_To_Crouch` | 1.0 s (30 frames) | no | From frame 0 of `Prone_Idle_Loop`: the fists open and the hands come back beside the chest, push on flat palms, the knees draw under the body, the chest rises. Ends on frame 0 of `gds/Crouch_Idle`. |
 
 All four are at 30 frames a second, the library's rate, keyed on every frame, with no root motion (the game moves the
 body), on the 65 bones of the Quaternius universal rig.
@@ -77,17 +77,18 @@ dragged through the floor. The code holsters or hides the weapon while prone. A 
 elbow, hand and foot rests on the floor), keys the result on the female mannequin's armature in the pinned Blender and
 exports the armature with a one-triangle stand-in mesh, so the file has a skin for Godot's `Skeleton3D` and no copy of
 the mannequin. The chest rides on the planted elbows: the spine pitches and rolls by the amount that keeps each
-shoulder one upper arm from its elbow. The only pose read from the library is frame 0 of `Crouch_Idle_Loop`, where the
-transitions join. The build fails before it exports when a loop does not close, a planted joint slides, the body sinks
-more than 2 cm into the floor, a transition misses the pose it joins, a part of the body goes more than 5 mm into
-another on either mannequin (`../limb_overlap.py`, the check the template's clip builds share), a hand of the
-female goes more than 5 mm under the floor on any frame, or the fist does not fit on either mannequin (a finger
-piece more than 3 mm inside the palm or another finger, or the thumb more than 5 mm off the fingers:
-`fist_numbers`, on the mesh's own pieces). The report (`--report`) has every frame's lowest hand and forearm vertex
-on both mannequins (`floor_mm`) and the fists' fit (`fist_mm`).
+shoulder one upper arm from its elbow. The only pose read from another file is frame 0 of our own `Crouch_Idle_Loop`
+(`../own/locomotion.glb`, kit #1160; the library's until then), where the transitions join: its feet stand side by
+side, so the right foot is carried back and forward, not slid. The build fails before it exports when a loop does not
+close, a planted joint slides, the body sinks more than 2 cm into the floor, a transition misses the pose it joins, a
+part of the body goes more than 5 mm into another on either mannequin (`../limb_overlap.py`, the check the template's
+clip builds share), a hand of the female goes more than 5 mm under the floor on any frame, or the fist does not fit on
+either mannequin (a finger piece more than 3 mm inside the palm or another finger, or the thumb more than 5 mm off the
+fingers: `fist_numbers`, on the mesh's own pieces). The report (`--report`) has every frame's lowest hand and forearm
+vertex on both mannequins (`floor_mm`) and the fists' fit (`fist_mm`).
 
 ```text
-blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb> --library <ual1.glb> --out <prone.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb> --library <../own/locomotion.glb> --out <prone.glb>
 blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --travel Crawl_Fwd_Loop=0.618
 blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --clip Crawl_Fwd_Loop --travel Crawl_Fwd_Loop=0.618 --views top --scale 1.35 --ahead 0.6 --frames 15 --wrap 5 --tile 420x360
 ```
