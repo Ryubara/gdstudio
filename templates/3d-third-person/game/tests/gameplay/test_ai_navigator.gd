@@ -3,8 +3,9 @@
 # director's budget, snaps a goal in a wall to the open ground in front, keeps its route when a
 # target off the mesh flips sides or a much longer route appears, gives up an unreachable goal
 # after one more ask with no search limit, and a far character stepped every 4th tick, the AGENT
-# backend and two walkers meeting head on all get there. The ways that are not what the mesh says
-# are `test_ai_nav_recovery.gd`.
+# backend and two walkers meeting head on all get there. When it asks again and how long a steer
+# holds are `test_ai_nav_queries.gd`; the ways that are not what the mesh says are
+# `test_ai_nav_recovery.gd`.
 extends GdUnitTestSuite
 
 var _arena: NavArena

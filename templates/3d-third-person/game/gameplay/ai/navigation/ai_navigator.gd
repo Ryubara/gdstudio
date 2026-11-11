@@ -79,7 +79,7 @@ const SIDESTEP_ON := 0.3
 ## Within this many metres of the path's end it steers at every step.
 const STEER_EVERY_STEP_WITHIN := 2.0
 ## The longest a steer holds (seconds) while nothing on the way calls for the next one.
-const MOST_HOLD := 0.25
+const MOST_HOLD := 0.5
 ## Following: metres past the band before it walks again.
 const FOLLOW_SLACK := 0.5
 ## A body this far (metres, on the ground) off the stretch it walks has strayed: it asks again.
@@ -159,6 +159,8 @@ var watch := AiStuckWatch.new()
 var ladder := AiStuckLadder.new()
 ## Path queries asked since the start.
 var path_queries := 0
+## Steers since the start (each one writes the controller's channel anew).
+var steers := 0
 ## The last failure (`Failure`), or -1.
 var last_failure := -1
 ## Why the last goal was refused or given up, for the overlay.
@@ -335,12 +337,15 @@ func _navigate(seconds: float) -> void:
 		return
 	_clock += seconds
 	_since_query += seconds
-	_jump_for = maxf(_jump_for - seconds, 0.0)
-	_crouch_for = maxf(_crouch_for - seconds, 0.0)
+	if _jump_for > 0.0:
+		_jump_for = maxf(_jump_for - seconds, 0.0)
+	if _crouch_for > 0.0:
+		_crouch_for = maxf(_crouch_for - seconds, 0.0)
 	# Idle, it leaves the controller alone: a task or a test may drive it.
 	if mode == Mode.IDLE:
 		return
-	if not _may_walk():
+	# A walker on a ready map skips the call (this runs for every walker at every step).
+	if (mode != Mode.GO_TO or not _map_ready or character.is_dead()) and not _may_walk():
 		return
 	if _since_query >= _query_after:
 		_maybe_query(navigation_map())
@@ -593,6 +598,7 @@ func _judge_check() -> void:
 
 func _walk(seconds: float) -> void:
 	_hold = 0.0
+	steers += 1
 	var controller := character.ai_controller()
 	if controller == null:
 		return
@@ -625,7 +631,8 @@ func _walk(seconds: float) -> void:
 	_steer_at = steer
 	var wish := AiNavPath.flat(steer - at).normalized()
 	var strength := clampf(speed_scale, 0.0, 1.0)
-	var sprint := speed_scale > 1.0 or _on_link >= 0 or _heading_to_link(at)
+	var to_link := _heading_to_link(at)
+	var sprint := speed_scale > 1.0 or _on_link >= 0 or to_link
 	strength = _climb_cap(strength, at, steer)
 	if ladder.rung == AiStuckLadder.Rung.SIDESTEP and ladder.rung_seconds < ladder.sidestep_seconds:
 		# Off to the side and a little on, at a full push, so a slow walker clears the block too.
@@ -645,31 +652,30 @@ func _walk(seconds: float) -> void:
 	controller.crouch = (
 		_crouch_for > 0.0 or (character.crouching and not character.has_room_to_stand())
 	)
-	_judge_stuck(seconds, speed if wish != Vector3.ZERO else 0.0, at)
-	_hold = _steer_hold(at, speed)
+	var left := path.left(at)
+	_judge_stuck(seconds, speed if wish != Vector3.ZERO else 0.0, at, left)
+	_hold = 0.0 if to_link else _steer_hold(at, speed, left)
 
 
 # How long the push just given may hold before the next steer: 0 (every step) near the end, on or
 # heading to a link, while stuck, jumping or pushed by avoidance; otherwise until the body may
 # reach the next point of the path (or a vault, or the last 2 m), at least `steer_seconds` and at
 # most `MOST_HOLD`. A body on a long stretch is not steered 20 times a second (kit #1062).
-func _steer_hold(at: Vector3, speed: float) -> float:
+func _steer_hold(at: Vector3, speed: float, left: float) -> float:
 	if (
 		mode == Mode.IDLE
 		or _on_link >= 0
 		or ladder.is_climbing()
 		or _jump_for > 0.0
 		or path.is_finished()
-		or _heading_to_link(at)
+		or left <= STEER_EVERY_STEP_WITHIN
 	):
-		return 0.0
-	var left := path.left(at)
-	if left <= STEER_EVERY_STEP_WITHIN:
 		return 0.0
 	if avoidance != AiNavAvoidance.Mode.OFF:
 		return steer_seconds
+	var next := path.points[path.index]
 	var room := minf(
-		AiNavPath.flat(path.points[path.index] - at).length() - path_desired_distance,
+		Vector2(next.x - at.x, next.z - at.z).length() - path_desired_distance,
 		left - STEER_EVERY_STEP_WITHIN
 	)
 	if _check.vault_at.is_finite() and _check.vault_at != _vaulted_at:
@@ -678,8 +684,7 @@ func _steer_hold(at: Vector3, speed: float) -> float:
 	return clampf(room / fastest, steer_seconds, maxf(MOST_HOLD, steer_seconds))
 
 
-func _judge_stuck(seconds: float, speed: float, at: Vector3) -> void:
-	var left := path.left(at)
+func _judge_stuck(seconds: float, speed: float, at: Vector3, left: float) -> void:
 	if watch.sample(seconds, speed, left):
 		ladder.start()
 		_on_rung()

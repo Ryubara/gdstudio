@@ -33,6 +33,10 @@ const CELL := 2
 const BOX_CELLS := 2
 const BOX_SPACING := 20
 
+## Rounds of the fixed calibration loop timed before each row (`calibration_ms`): a busy machine
+## reads slower there too, so two runs compare by it.
+const CALIBRATION_ROUNDS := 200000
+
 ## The baked mesh's polygons, for the report.
 var polygons := 0
 
@@ -120,6 +124,7 @@ func _new_crowd(count: int) -> void:
 func _measure(count: int) -> Dictionary:
 	for _i in WARM_FRAMES:
 		await get_tree().process_frame
+	var calibration := _calibrate()
 	_spent.clear()
 	_steps.clear()
 	_queries.clear()
@@ -141,6 +146,7 @@ func _measure(count: int) -> Dictionary:
 	var ticks := _director.tick - ticks_before
 	var seconds := float(ticks) / Engine.physics_ticks_per_second
 	var spent := _mean(_spent)
+
 	var step := _mean(_steps)
 	var most := 0
 	for taken in _queries:
@@ -157,6 +163,7 @@ func _measure(count: int) -> Dictionary:
 		"polygons": polygons,
 		"nav_mean_us": spent,
 		"nav_us_each": spent / count,
+		"calibration_ms": calibration,
 		"step_mean_us": step,
 		"queries_most_a_tick": most,
 		"queries_mean_a_tick": float(asked) / maxi(ticks, 1),
@@ -210,6 +217,14 @@ func _total_queries() -> int:
 	for navigator in _navigators:
 		total += navigator.path_queries
 	return total
+
+
+func _calibrate() -> float:
+	var start := Time.get_ticks_usec()
+	var value := 0.0
+	for index in CALIBRATION_ROUNDS:
+		value = sin(value + index) * 0.5
+	return (Time.get_ticks_usec() - start + int(value * 0.0)) / 1000.0
 
 
 func _mean(values: Array[float]) -> float:
