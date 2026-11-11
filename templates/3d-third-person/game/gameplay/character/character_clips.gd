@@ -4,7 +4,8 @@ extends RefCounted
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
 ## #1009, `assets/animation/prone/`), the library `prone`, with its prone aim clips (gdstudio
-## #1111), the library `prone_aim`. The looping clips lose their `_Loop`
+## #1111), the library `prone_aim`, and its prone reload (gdstudio #1185), the library
+## `prone_reload`. The looping clips lose their `_Loop`
 ## suffix on import (`Idle_Loop` is `Idle`) and loop.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
@@ -16,6 +17,7 @@ const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
 const LIBRARY_PRONE_AIM := &"prone_aim"
+const LIBRARY_PRONE_RELOAD := &"prone_reload"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"ual1/Idle"
@@ -64,6 +66,7 @@ const TO_CROUCH := &"prone/Prone_To_Crouch"
 const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
 const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
 const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
+const PRONE_RELOAD := &"prone_reload/Prone_Reload_Pistol"
 
 ## Every clip of the three libraries, with its library.
 const ALL: Array[StringName] = [
@@ -160,4 +163,5 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Down",
 	&"prone_aim/Prone_Aim_Neutral",
 	&"prone_aim/Prone_Aim_Up",
+	&"prone_reload/Prone_Reload_Pistol",
 ]

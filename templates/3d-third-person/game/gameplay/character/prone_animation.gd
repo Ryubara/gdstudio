@@ -29,6 +29,8 @@ var lies := 0.0
 
 # The `prone` library the scene holds, put back for a model with no library of its own.
 var _shared: AnimationLibrary
+# True when the reload clip chosen last was the prone one (`reload_clip`).
+var _reload_lying := false
 # What is left of the last shot's kick (1 just fired, 0 none).
 var _kick := 0.0
 # The looks the held weapon's prone down and up clips are made for (`WeaponDef.prone_aim_angles`).
@@ -116,6 +118,22 @@ func step_crawl_share(speed: float, blend_time: float, delta: float) -> float:
 	return crawl_share
 
 
+## The clip a reload of `hold` plays now: its prone reload on a body that lies with a prone aim
+## (none when it has none: the standing clip folds the arms under a lying chest), else its
+## standing one. The choice is kept, so `reload_misplaced` can tell when the body has changed.
+func reload_clip(hold: WeaponDef) -> StringName:
+	_reload_lying = lies > 0.5
+	if hold == null:
+		return &""
+	return hold.prone_reload_clip if _reload_lying else hold.reload_clip
+
+
+## True when the reload clip that plays was chosen for the other way of holding the body: a
+## standing reload on a body that has lain down since, or the prone one on a body that got up.
+func reload_misplaced() -> bool:
+	return _reload_lying != (lies > 0.5)
+
+
 ## A shot was fired: true when the body lies with a prone aim, which then kicks (the muzzle
 ## jumps up and settles) in place of the standing shot clip.
 func kick() -> bool:
@@ -142,9 +160,10 @@ static func crawl_pace(body: Character, clip_speed: float) -> float:
 
 
 ## How far the weapon is put away for lying (0 in the hand, 1 away): the prone clips rest the body
-## on its forearms and fists, which cannot hold it. Aiming brings it back.
-static func stow_share(body: Character) -> float:
-	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - body.aim_amount)
+## on its forearms and fists, which cannot hold it. Aiming brings it back, and so does a reload
+## clip, by `reloading`, how much of the upper body it holds.
+static func stow_share(body: Character, reloading := 0.0) -> float:
+	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - maxf(body.aim_amount, reloading))
 
 
 ## Hides the model of the weapon in the hands (`hold.view` under `model`) while `away`, and shows

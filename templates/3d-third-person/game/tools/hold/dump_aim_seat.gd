@@ -3,7 +3,10 @@
 ## pistol's seat on `hand_r`, the left hand's `SupportHand` marker, the muzzle, the grip's foot
 ## and the wrist turn the grip pose adds (`HandPose.turns`).
 ## `assets/animation/prone/build_prone_aim_clips.py` reads it, so no number of the hold is typed
-## there.
+## there. For a clip that reloads (kit #1185, `build_prone_reload_clip.py`) it also writes the
+## `MagazineHand` marker and the left hand's way through a reload as `WeaponHold` has it
+## (`reload`: the way off the weapon, the approach under the magazine, the bow of the way back and
+## the four pairs of shares).
 ##
 ## `<godot> --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <out.json>`
 extends SceneTree
@@ -14,6 +17,7 @@ const MODELS: Dictionary = {
 }
 const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const GRIP := "res://gameplay/weapon/hold/pistol_grip_pose.tres"
+const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 
 
 func _initialize() -> void:
@@ -38,6 +42,20 @@ func _initialize() -> void:
 	out["foot"] = _xf(_within(pistol.find_child("Magazine", true, false) as Node3D, pistol))
 	var turn: Quaternion = (load(GRIP) as HandPose).turns[StringName(held.bone_name)]
 	out["turn"] = [turn.x, turn.y, turn.z, turn.w]
+	var hold := (load(HOLD) as PackedScene).instantiate() as WeaponHold
+	var magazine := pistol.get_node_or_null(hold.magazine_marker) as Node3D
+	if magazine != null:
+		out["magazine"] = _xf(magazine.transform)
+		out["reload"] = {
+			"way": _v(hold.support_way),
+			"approach": _v(hold.magazine_approach),
+			"clearance": _v(hold.return_clearance),
+			"leave": [hold.reload_leave.x, hold.reload_leave.y],
+			"reach": [hold.reload_reach.x, hold.reload_reach.y],
+			"insert": [hold.reload_insert.x, hold.reload_insert.y],
+			"back": [hold.reload_return.x, hold.reload_return.y],
+		}
+	hold.free()
 	held.free()
 	var file := FileAccess.open(OS.get_cmdline_user_args()[0], FileAccess.WRITE)
 	file.store_string(JSON.stringify(out, " "))
@@ -54,6 +72,10 @@ func _within(node: Node3D, above: Node3D) -> Transform3D:
 		found = cursor.transform * found
 		cursor = cursor.get_parent() as Node3D
 	return found
+
+
+func _v(v: Vector3) -> Array:
+	return [v.x, v.y, v.z]
 
 
 # A transform as twelve numbers: the basis' columns x, y, z, then the origin.

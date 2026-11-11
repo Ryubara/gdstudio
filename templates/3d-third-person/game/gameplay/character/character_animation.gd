@@ -637,7 +637,7 @@ func _drive_pistol(delta: float) -> void:
 	var up_share := 1.0
 	if character.loadout != null:
 		up_share = 1.0 - character.loadout.lowered_amount()
-	var stow := ProneAnimation.stow_share(character)
+	var stow := ProneAnimation.stow_share(character, reload_progress().x)
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, stow > 0.5)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
@@ -649,6 +649,8 @@ func _drive_pistol(delta: float) -> void:
 	var arm := maxf(character.aim_amount, _shot_arm)
 	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.
 	var lying := _prone_look.lying(character, hold)
+	if is_reloading() and _prone_look.reload_misplaced():
+		stop_reload()
 	_weights = Vector2(armed, arm * aims)
 	tree.set(_P_ARMED, minf(armed, 1.0 - lying))
 	tree.set(_P_AIM, arm * aims * (1.0 - lying))
@@ -772,13 +774,13 @@ func _on_definition_changed(_definition: WeaponDef) -> void:
 
 
 func _on_reload_started(seconds: float) -> void:
-	var hold := held_definition()
-	# A body lying with a prone aim keeps it through the reload: the reload clip is a standing one.
-	if hold == null or hold.reload_clip == &"" or _prone_look.lies > 0.5:
+	# A lying body reloads with the weapon's prone reload, never the standing clip.
+	var clip := _prone_look.reload_clip(held_definition())
+	if clip == &"" or not animation_player.has_animation(clip):
 		return
-	if not animation_player.has_animation(hold.reload_clip):
-		return
-	var length := animation_player.get_animation(hold.reload_clip).length
+	var root := tree.tree_root as AnimationNodeBlendTree
+	(root.get_node(_RELOAD_CLIP) as AnimationNodeAnimation).animation = clip
+	var length := animation_player.get_animation(clip).length
 	tree.set(_P_RELOAD_SCALE, length / maxf(seconds, 0.01))
 	tree.set(_P_RELOAD_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 

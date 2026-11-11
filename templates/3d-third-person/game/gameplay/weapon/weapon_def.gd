@@ -168,6 +168,14 @@ enum Kind {
 	set(value):
 		reload_clip = value
 		emit_changed()
+## The reload of a lying body, played the same way in place of `reload_clip` while the body lies
+## with a prone aim (the pistol's `prone_reload/Prone_Reload_Pistol`: from the prone aim's pose
+## and back to it, with the left hand's times of `reload_clip`, which `WeaponHold` follows).
+## Empty: a reload lying down shows nothing, since `reload_clip` is made for a standing body.
+@export var prone_reload_clip: StringName = &"":
+	set(value):
+		prone_reload_clip = value
+		emit_changed()
 
 @export_group("Sound")
 ## A shot (an `AudioStreamRandomizer` gives a spread of takes).
