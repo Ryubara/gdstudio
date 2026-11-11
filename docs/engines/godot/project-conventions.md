@@ -59,7 +59,8 @@ game/
   and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
   silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
   once; 2026-11-11); seven
-  hand-made uids in 3D Third Person replaced, kit #1129, 2026-11-11.
+  hand-made uids in 3D Third Person replaced, kit #1129, 2026-11-11; #1052 (a new suite iterated in a kept game,
+  where Godot writes the uid, then missing in the worktree: the template run stopped at the layout check).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
