@@ -111,8 +111,10 @@ const _WAY_ON := 0.88
 ## The left hand's fingers round the magazine.
 @export var magazine_pose: HandPose
 
-## Past this distance from the viewport's camera the fingers keep the clip's fist (the hands are
-## a few pixels there; the rifle's far level shows from 10 m). 0: always posed.
+## Past this distance from the camera the fingers keep the clip's fist (the hands are a few
+## pixels there; the rifle's far level shows from 10 m). 0: always posed. The hold reads no
+## camera (a server has none): the animation throttle, which measures every character's distance,
+## sets `fingers_far`.
 @export_range(0.0, 100.0, 0.5, "suffix:m") var fingers_far_distance := 10.0
 
 @export_group("Reload")
@@ -158,6 +160,8 @@ var posed_aim := 0.0
 var posed_pitch := 0.0
 var posed_reload := -1.0
 var posed_lowered := 0.0
+## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
+var fingers_far := false
 
 var _skeleton: Skeleton3D
 var _modifiers: Array[SkeletonModifier3D] = []
@@ -412,15 +416,9 @@ func _forget_definition() -> void:
 	_mine = null
 
 
-# Whether the viewport's camera is past `fingers_far_distance`.
+# Whether the fingers rest: `fingers_far`, unless `fingers_far_distance` is 0.
 func _fingers_far() -> bool:
-	if fingers_far_distance <= 0.0 or not is_inside_tree():
-		return false
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return false
-	var far := fingers_far_distance * fingers_far_distance
-	return global_position.distance_squared_to(camera.global_position) > far
+	return fingers_far and fingers_far_distance > 0.0
 
 
 func _on_weapon_changed(definition: WeaponDef) -> void:

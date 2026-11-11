@@ -6,7 +6,8 @@
 ## arms' reach and both hands' fingers), `rifle_low` (the same at the low ready) or `rifle_reload`
 ## (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera looks on from
 ## `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the player's
-## own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past it).
+## own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past it,
+## the holds told so as the animation throttle tells them in a game).
 ## A game always has a camera, and what the hold moves costs more with one looking.
 ##
 ## A frame's work is the span from the `_process` of the first node to process to the end of the
@@ -147,6 +148,8 @@ func _figure(run: Dictionary) -> Node3D:
 		var held := (load(RIFLE_HELD) as PackedScene).instantiate() as TwoHandHold
 		held.posed_aim = run.aim
 		held.posed_reload = run.get("reload", -1.0)
+		# What the animation throttle tells a hold past `fingers_far_distance` in a game.
+		held.fingers_far = run.camera > held.fingers_far_distance
 		slot.add_child(held)
 		return figure
 	var seat := (load(PISTOL_HELD) as PackedScene).instantiate() as BoneAttachment3D

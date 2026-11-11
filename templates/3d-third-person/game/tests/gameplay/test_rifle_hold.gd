@@ -218,17 +218,15 @@ func test_a_reload_cut_off_puts_the_magazine_and_the_left_hand_back() -> void:
 	stage.free()
 
 
-# Past `fingers_far_distance` from the camera the fingers keep the clip (their modifiers are
-# off: kit #1178) and both arms still hold the rifle; nearer, the fingers close on it again.
+# Told the camera is past `fingers_far_distance` (`fingers_far`, from the animation throttle), the
+# fingers keep the clip (their modifiers are off: kit #1178) and both arms still hold the rifle;
+# told it is near again, the fingers close on it.
 func test_far_from_the_camera_the_fingers_rest_and_the_arms_still_hold() -> void:
 	var stage := RifleStage.make_rifle(_holder, "female")
 	var hold := stage.hold as TwoHandHold
-	var camera := Camera3D.new()
-	_holder.add_child(camera)
-	camera.make_current()
 	for far: bool in [true, false, true]:
 		var distance := hold.fingers_far_distance + (5.0 if far else -7.0)
-		camera.global_position = stage.global_position + Vector3(0.0, 1.5, distance)
+		hold.fingers_far = far
 		stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
 		await stage.settle()
 		for modifier in hold.modifiers():
@@ -249,7 +247,6 @@ func test_far_from_the_camera_the_fingers_rest_and_the_arms_still_hold() -> void
 				)
 				. is_less(REACH)
 			)
-	camera.free()
 	stage.free()
 
 
