@@ -35,9 +35,10 @@ closes the hands on it:
 - the right hand's three fingers round the grip, the thumb high on the left side, the index finger along the frame and,
   as the character aims, on the trigger; the wrist is turned 28 degrees under the grip so that the barrel keeps the
   line the aim clips were made for (1.5 degrees up and 3 degrees out from the facing in `Pistol_Aim_Neutral`);
-- while it aims or fires, the left hand on the pistol: its bone is brought to the `SupportHand` marker of
-  `pistol_held.tscn` (move the marker and the hand follows, in the running game too), its fingers over the right
-  hand's and its thumb forward along the frame;
+- while it aims or fires, the left hand on the pistol as a two-handed grip is taught: its bone is brought to the
+  `SupportHand` marker of `pistol_held.tscn` (move the marker and the hand follows, in the running game too), the hand
+  canted 43 degrees, its fingers over the right hand's and round the front of the grip, its index finger under the
+  trigger guard and its thumb forward along the frame; the right thumb lies on the root of the left one meanwhile;
 - through a reload, the left hand where `Pistol_Reload` means it: on the pistol, let go for the clip's reach to the
   belt, up the grip's line to the `MagazineHand` marker with the heel of the palm on the magazine's base, and round the
   grip's foot back to `SupportHand`; the index finger is off the trigger meanwhile;
@@ -49,9 +50,10 @@ Measured on the skinned mesh in every pistol clip and every locomotion clip with
 part more than 2.7 mm off it on the female mannequin and 4.4 mm on the male (the limits are 2 mm and 5 mm).
 
 No number of the hold is typed by hand. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,
-`tools/hold/solve_pistol_hold.py` solves the seat, the fingers, the left hand's place and its way off the pistol
-(the opened pose and the clear line it leaves along) on both mannequins at once, and `tools/hold/write_hold.gd`
-writes `pistol_held.tscn`, the five `HandPose` files of `gameplay/weapon/hold/` and the way (`support_way` in
+`tools/hold/solve_pistol_hold.py` solves the seat, the fingers, the left hand's place over the right hand, the right
+thumb on it, the trigger finger's way to the trigger and the left hand's way off the pistol (the opened pose and the
+clear line it leaves along) on both mannequins at once, each hand measured against the other, and `tools/hold/write_hold.gd`
+writes `pistol_held.tscn`, the seven `HandPose` files of `gameplay/weapon/hold/` and the way (`support_way` in
 `weapon_hold.tscn`).
 After a change to the model or to a mannequin's hands, run the three (each file's header has its command), then
 `tools/capture/pistol_hold_study.tscn` for the numbers and close-ups, and the test.

@@ -241,6 +241,8 @@ and off the gun one way (its fingers open where it holds, then the opened hand l
 `WeaponHold.support_way`), and `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) names the reload's
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
 `INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
+How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
+arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

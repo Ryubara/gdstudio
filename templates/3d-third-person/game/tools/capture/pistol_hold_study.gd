@@ -9,7 +9,8 @@
 ## more of a two-handed pose, from ahead of the muzzle and from straight below):
 ## `HOLD_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
 ## res://tools/capture/pistol_hold_study.tscn`. `MODEL=male` studies the male mannequin,
-## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=reload` studies one
+## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=trigger` films the
+## trigger finger's way to the trigger at seven shares of it, `HOLD_ONLY=reload` studies one
 ## tag (the reload is filmed at every share of `RELOAD_SHARES`, both hands measured;
 ## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it;
 ## `HOLD_RELOAD_STEP=0.01` measures every hundredth of it instead, the scan that finds a hand
@@ -26,6 +27,7 @@ const POSES: Array[Dictionary] = [
 	{"tag": "aim_down", "clip": &"ual1/Pistol_Aim_Down", "times": [0.0, 0.16], "aim": 1.0},
 	{"tag": "shoot", "clip": &"ual1/Pistol_Shoot", "times": [0.0, 0.05, 0.1, 0.2], "aim": 1.0},
 	{"tag": "reload", "clip": &"ual1/Pistol_Reload", "shares": RELOAD_SHARES},
+	{"tag": "trigger", "clip": &"ual1/Pistol_Aim_Neutral", "trigger": TRIGGER_SHARES, "aim": 1.0},
 	{"tag": "carry_idle", "clip": &"ual1/Idle", "times": [0.0, 1.0], "carry": true},
 	{"tag": "carry_walk", "clip": &"ual1/Walk", "times": [0.0, 0.3, 0.6], "carry": true},
 	{"tag": "carry_jog", "clip": &"ual1/Jog_Fwd", "times": [0.0, 0.25, 0.5], "carry": true},
@@ -39,6 +41,10 @@ const POSES: Array[Dictionary] = [
 const RELOAD_SHARES: Array = [
 	0.0, 0.04, 0.08, 0.17, 0.25, 0.33, 0.42, 0.5, 0.54, 0.63, 0.71, 0.79, 0.88, 1.0
 ]
+
+## How far on the trigger the index finger is in the `trigger` poses (kit #1079): the aimed pistol
+## in both hands, the finger along the frame, on its way by the pose between, and on the trigger.
+const TRIGGER_SHARES: Array = [0.0, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0]
 
 ## How near the gun the left view cuts when only the right hand holds it: 7.5 cm off its middle.
 const _ONE_HAND_NEAR := 0.425
@@ -66,7 +72,8 @@ func _run(model: String) -> void:
 		if only != "" and spec.tag != only:
 			continue
 		var reload: bool = spec.has("shares")
-		var times: Array = _reload_shares() if reload else spec.times
+		var trigger: bool = spec.has("trigger")
+		var times: Array = _reload_shares() if reload else spec.get("times", spec.get("trigger"))
 		for index in times.size():
 			var aim: float = spec.get("aim", 0.0)
 			if spec.get("carry", false):
@@ -75,17 +82,25 @@ func _run(model: String) -> void:
 				var length := _stage.clip(spec.clip).length
 				var share: float = times[index] if _follows_reload else -1.0
 				_stage.pose(spec.clip, times[index] * length, aim, &"", [], share)
+			elif trigger:
+				# The reload's weight takes the finger off the trigger, as in the game.
+				_stage.pose(spec.clip, 0.16, aim)
+				if _stage.hold != null:
+					_stage.hold.set(&"reload_weight", 1.0 - float(times[index]))
+					_stage.hold.call(&"refresh")
 			else:
 				_stage.pose(spec.clip, times[index], aim)
 			await _stage.settle()
 			var tag := "%s_%d" % [spec.tag, index]
-			if reload:
+			if reload or trigger:
 				tag = _reload_tag(spec.tag, times[index])
 			print("HOLD %s %s %s" % [model, tag, _measure(aim > 0.0 or reload)])
 			if OS.get_environment("HOLD_OBJ") != "":
 				_stage.contact.dump_obj(OS.get_environment("HOLD_OBJ").path_join(tag + ".obj"))
 			if film and reload:
 				await _shoot(camera, out.path_join(tag), true, true)
+			elif film and trigger:
+				await _shoot(camera, out.path_join(tag), true)
 			elif film and index == times.size() - 1:
 				await _shoot(camera, out.path_join(spec.tag), aim > 0.0)
 	get_tree().quit()

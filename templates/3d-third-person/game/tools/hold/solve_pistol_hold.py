@@ -620,11 +620,20 @@ def main():
         out = restore(scene)
     else:
         out = solve_right(scene, rounds, started)
+    # The file is written after every stage: a run that is stopped keeps what it solved, and
+    # `--magazine-only` and `--way-only` go on from there.
     out.update(solve_left(scene, out, rounds, started))
+    save(out)
     out.update(solve_trigger_way(scene, out, started))
+    save(out)
     if "--hold-only" not in sys.argv:
         out.update(solve_magazine(scene, out, place_left(scene, MAGAZINE_FROM), started))
+        save(out)
         out.update(solve_way(scene, out, started))
+        save(out)
+
+
+def save(out):
     with open(sys.argv[2], "wb") as file:
         file.write(json.dumps(out, indent=1).encode())
 
