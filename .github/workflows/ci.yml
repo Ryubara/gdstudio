@@ -212,14 +212,21 @@ jobs:
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
       - name: The browser for the boot check
-        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md).
+        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md#running).
         # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu
-        # mirror, which was unreachable for an hour on 2026-11-11 (#1224). An apt failure takes
-        # about eight minutes of retries, so it is tried once, then the browser alone.
+        # mirror, which was unreachable for an hour on 2026-11-11 (#1224) and stalled apt for 39 minutes the same day
+        # (#1235). Each call has its own limit (a normal install takes about 20 s): the apt one is tried once, then the
+        # browser alone, twice. The step's limit stops anything those miss.
+        timeout-minutes: 12
         run: |
-          uvx playwright@1.64.1 install --with-deps chromium-headless-shell && exit 0
-          echo "::warning::apt mirror unreachable; installing Chromium without its system packages"
-          uvx playwright@1.64.1 install chromium-headless-shell
+          pw="uvx playwright@1.64.1"
+          timeout -k 30 240 $pw install --with-deps chromium-headless-shell && exit 0
+          echo "::warning::apt mirror unreachable or stalled; installing Chromium without its system packages"
+          for try in 1 2; do
+            timeout -k 30 180 $pw install chromium-headless-shell && exit 0
+            echo "::warning::Chromium download $try failed or stalled"
+          done
+          exit 1
       - name: Boot the web export in a browser
         # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
         # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
