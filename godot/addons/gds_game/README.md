@@ -18,6 +18,7 @@ its copy.
 | `screen_host/` | `ScreenHost`: opens `UIRouter` screens over the running game, pauses it and gives it back; its `menu_scene` is set by the game's scene (empty: the project's main scene); needs `gds_ui` |
 | `hits/` | `Health` (the harm a character, a target or a prop can take: `apply(hit)`, `damaged`, `changed`, `flinched`, `died` once, regeneration, invulnerable; found on a body by `Health.of(body)`) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; about 40 bytes on the wire) |
 | `interact/` | `Interactable`: an area on the Sensors layer that makes its parent usable; `interact(by)` says `interacted`, so a door, a lever or a chest needs no method of its own |
+| `traversal/` | `Vaultable` (on an obstacle: it may be vaulted over or mantled onto, from which faces, with what overrides), `VaultSettings` (the numbers, as a resource), `VaultProbe` (shape casts that measure the obstacle ahead and plan a crossing) and `VaultPlan` (the crossing: kind, measurements, the warped path) |
 | `testing/` | `ExportPins` (pins every export's default in a suite) and `InputSim` (key, pad and mouse events through the `InputMap`, waits in physics ticks); used by suites only |
 
 The scenes and resources that carry these scripts are the template's and the game's own (3D Third Person's

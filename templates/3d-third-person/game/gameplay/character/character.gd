@@ -6,10 +6,10 @@ extends CharacterBody3D
 ## buffer), steers in the air, climbs low steps, rides a `MovingPlatform`, pushes a `PhysicsProp`,
 ## opens a `Door`, collects a `Pickup`, aims and shoots its `Weapon`, and dies into a ragdoll
 ## (`die()`, the `ragdoll` checkbox or a command's `ragdoll_pressed`) and gets up again
-## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`) and slides
-## when crouch is pressed at a sprint (`CharacterSlide`, tuned by its `SlideTuning`).
-## Everything else a developer tunes is in the `CharacterTuning` resource. Other nodes
-## connect to the signals; `CharacterAnimation` follows `state`.
+## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`), slides
+## when crouch is pressed at a sprint (`CharacterSlide`, tuned by its `SlideTuning`), and vaults
+## over or mantles onto a `Vaultable` (`CharacterVault`, tuned by its `vault_settings`). Everything
+## else is tuned in the `CharacterTuning`. Other nodes connect to the signals.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
@@ -72,6 +72,8 @@ enum State {
 	DEAD,  ## Dead: limp, ignoring every gameplay input; the camera still orbits.
 	PRONE,  ## Lying down, going down or getting up: still or crawling.
 	SLIDE,  ## Sliding on its momentum, low (after `PRONE` so the numbers sent before stay).
+	VAULT,  ## Vaulting over an obstacle.
+	MANTLE,  ## Climbing up onto an obstacle.
 }
 
 @export_group("Character")
@@ -94,6 +96,8 @@ enum State {
 ## Empty: the body asks for nothing (it still falls and stands), or something else steps it
 ## (`step()` with physics processing off).
 @export var controller: CharacterController
+## How it vaults over and mantles onto obstacles that carry a `Vaultable`. Empty: it never does.
+@export var vault_settings: VaultSettings
 
 @export_group("Prone")
 ## The prone stance and the crawl: speeds, times, the lying capsule, the aim. Empty: the
@@ -208,6 +212,8 @@ var last_command := PlayerCommand.new()
 var sliding: bool:
 	get:
 		return _slide.active
+## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
+var vault_motion := CharacterVault.new()
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -247,8 +253,8 @@ func _ready() -> void:
 		return
 	var part := Health.of(self)
 	if part != null:
-		part.changed.connect(_on_health_changed)
-		part.died.connect(_on_health_died)
+		part.changed.connect(func(value: float, _max: float) -> void: health_changed.emit(value))
+		part.died.connect(die)
 	if model != null:
 		facing = model.rotation.y
 	view_yaw = facing - PI
@@ -304,6 +310,8 @@ func step(command: PlayerCommand, delta: float) -> void:
 func _move(delta: float) -> void:
 	_tick_timers(delta)
 	_update_prone(delta)
+	if vault_motion.drive(self, delta):
+		return
 	var lowered := _slide.amount
 	_slide.begin_tick(self, _wants_crouch, _coyote, _action_lock > 0.0, delta)
 	_update_crouch(delta)
@@ -356,6 +364,7 @@ func state_snapshot(into: CharacterState = null) -> CharacterState:
 		weapon.save_step_state(kept.weapon)
 	else:
 		kept.weapon.clear()
+	vault_motion.save_step_state(kept.vault)
 	if loadout != null:
 		loadout.save_step_state(kept.loadout)
 	else:
@@ -376,6 +385,7 @@ func restore(kept: CharacterState) -> void:
 		loadout.load_step_state(kept.loadout)
 	if weapon != null:
 		weapon.load_step_state(kept.weapon)
+	vault_motion.load_step_state(kept.vault)
 	_prone.load_step_state(kept.prone)
 	_slide.load_step_state(kept.slide)
 	_fit_body()
@@ -390,6 +400,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 		if ragdoll_body != null:
 			ragdoll_body.stop(false)
 		_come_alive()
+	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
 	_fallen = false
@@ -473,8 +484,7 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	take_hit(HitRecord.blow(amount, source))
 
 
-## Takes a hit (a shot through `HitZones`, or a record a network received): the `Health` child
-## takes its damage (`Health.apply()`), and at zero the character dies carrying it into the ragdoll.
+## Takes a hit (from `HitZones` or a network): the `Health` child takes it, and at zero it dies.
 ## A blow (`record.knockback`) also stops and throws the character. A dead character takes no
 ## damage, but the record is still said (`hit_received`): a shot pushes the lying body.
 func take_hit(record: HitRecord) -> void:
@@ -501,16 +511,6 @@ func _stagger(source: Node3D) -> void:
 		away = -Vector3.FORWARD.rotated(Vector3.UP, facing)
 	velocity = away.normalized() * tuning.knockback_speed
 	state = State.HIT
-
-
-func _on_health_changed(value: float, _max_value: float) -> void:
-	health_changed.emit(value)
-
-
-# The `Health` reached zero: the character dies, carrying the hit that killed into the ragdoll.
-func _on_health_died(record: HitRecord) -> void:
-	if state != State.DEAD:
-		die(record)
 
 
 func _get_configuration_warnings() -> PackedStringArray:

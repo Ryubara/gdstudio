@@ -42,7 +42,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | --- | --- | --- | --- |
 | Move | WASD or arrows | left stick | the left thumb: a stick appears where it lands |
 | Look | mouse (click the game to capture it; Esc lets go) | right stick | drag on the right half of the screen |
-| Jump | Space | A | the Jump button |
+| Jump (and vault or mantle, near a wall that allows it) | Space | A | the Jump button |
 | Sprint | Shift | left bumper | push the stick out to its outer ring |
 | Walk | X (held) | a gentle push on the stick | a gentle push on the stick |
 | Interact | E | X | the Use button |
@@ -155,6 +155,9 @@ shipped games, with the sources in the kit's `docs/engines/godot/third-person/mo
 The character lies down only on the ground and gets up through crouch, only when a crouched body fits above it: under
 a gap only a lying body fits under (0.8 m, say), letting go of prone keeps it down until it crawls out.
 
+Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
+`vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
+
 Every number is read while the game runs, so you can change it in the remote inspector and see it at once; the capsule,
 the steepest slope and the floor snap are applied again whenever the resource changes. The `Interactor`'s half angle
 (how far from straight ahead still counts as in front, 75 degrees) is on that node.
@@ -224,6 +227,34 @@ inspector) or pressing Y does the same; `teleport()` and `respawn()` get it up a
 step (`hinge_passes`, `cone_passes`), so a limb the body lands on stays near a person's range. The prototype level has a
 ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's
 `docs/engines/godot/ragdoll.md`.
+
+## Vaulting and mantling {#vaulting}
+
+Press jump running at a wall that carries a `Vaultable` and the character vaults over it (0.45 to 1.3 m high and up to
+0.9 m thick, with room to land beyond) or, when it is higher (up to 2.0 m), thicker or has no room to land, mantles up
+onto it. A wall without the component is only jumped, so the level decides what can be crossed: the map's vault course
+(west of the room, the orange walls labelled `vault 0.5 m` to `mantle 1.6 m`, and a dark `no vault` wall beside them)
+shows each case. The crossing is a path warped to the wall it measured (hand plant on the near edge, feet over the
+top, landing clear of the far side), so one clip serves every height; it is stepped from the command like the rest of
+the body, so an AI or a server does it the same way, and `CharacterState` keeps it.
+
+To make an obstacle crossable, add a `Vaultable` node under its body (or beside the `Body` of a `ProtoBlock`, as the
+course does). Its inspector: `allow_vault`, `allow_mantle`, the faces it may be crossed from, a height or depth
+override for a shape the probe misreads, and a clip of its own for the vault or the mantle.
+
+`vault_settings.tres`, with the defaults:
+
+| Group | Settings (default) |
+| --- | --- |
+| Trigger | press jump, sprint into it, or both (press jump); the speed the automatic one needs (5.5 m/s); the least speed a vault needs, slower mantles (0); the wait after a crossing before the automatic trigger starts another (0.25 s) |
+| Detection | how far past the body's front a wall is looked for (0.7 m) plus how far the body goes in 0.15 s; the widest angle off square to the face (35 degrees); the radius of the sphere cast onto the top (0.08 m); the steepest top (30 degrees) |
+| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (0.3 m); the deepest drop beyond (1.2 m); the least crossing speed (4 m/s), shortest and longest vault (0.45 and 0.9 s); the share of the speed kept on landing (0.85); the hand plant and the clear of the far edge as shares of the clip (0.3 and 0.7) |
+| Mantle | lowest and highest mantle (0.45 and 2.0 m); the high clip from 1.25 m; the time (0.45 s and 0.5 s a metre); when the feet reach the top (0.7 of the time); how far onto the top (0.1 m) |
+| Body | aim and fire stop for the crossing (on) |
+
+The clips are on `Animation` (Traversal group): the vault (a placeholder, `NinjaJump_Start`, until the template's own
+vault clips land), the high vault, the mantle (`ClimbUp_1m`) and the high mantle, and the range of speeds a clip may be
+played at (0.5 to 2). `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
 
 ## Events other nodes connect to
 

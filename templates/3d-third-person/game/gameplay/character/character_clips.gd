@@ -43,6 +43,9 @@ const SWIM := &"ual1/Swim_Fwd"
 const DANCE := &"ual1/Dance"
 const OPEN_CHEST := &"ual2/Chest_Open"
 const CLIMB_UP := &"ual2/ClimbUp_1m"
+## Stands in for the vault until the template's own vault clips land (kit #1010): a jump take-off
+## that tucks the legs, played warped to the vault's time.
+const VAULT_PLACEHOLDER := &"ual2/NinjaJump_Start"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
 const SLIDE_START := &"ual2/Slide_Start"
