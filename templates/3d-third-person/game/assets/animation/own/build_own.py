@@ -56,6 +56,8 @@ def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
         clips.write_bytes(glb)
         command = [blender, "-b", "--factory-startup", "-P", str(HERE.parent / "limb_overlap.py"), "--"]
         command += ["--clips", clips.as_posix(), "--limit", str(OVERLAP_MM), "--json", numbers.as_posix()]
+        # The rate is named: reduced keys can be whole frames at a lower rate too, and the check would read between them.
+        command += ["--fps", str(build.FPS)]
         for body in bodies:
             command += ["--model", Path(body).as_posix()]
         done = subprocess.run(command, capture_output=True, text=True, timeout=3600, env=QUIET)

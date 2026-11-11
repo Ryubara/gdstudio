@@ -358,11 +358,14 @@ free fall's arc are tested on made-up motion only. A body whose legs differ from
   as their difference alone, which fails every swing where it reverses; a test body moved sideways took its feet
   along, so the centre of mass was never outside them. **Seen:** gdstudio #1154, 2026-11-11 (fix: `checks._kick`
   compares a frame with the frames beside it; the weight case lifts a foot out of the plan).
-- **Approach:** Read a frame number a Blender tool reports at the frame rate that tool set, and look at a named
-  fault from the side it is on. **Watch out for:** `limb_overlap.py` sets the scene to 24 frames a second, so its
-  "frame 115" of a 30 a second clip is frame 144; close-ups of frame 115 from the front showed a clean hand, and
-  the crossing (curled fingers in the thigh) was found only once the pose it measured was printed. **Seen:**
-  gdstudio #1154, 2026-11-11.
+- **Approach:** Read a frame number a Blender tool reports at the frame rate that tool set, look at a named fault
+  from the side it is on, and have a build that hands a file with reduced keys to a tool name the rate
+  (`build_own.py` passes `--fps`). **Watch out for:** `limb_overlap.py` set the scene to 24 frames a second until
+  kit #1035, so its "frame 115" of a 30 a second clip was frame 144; close-ups of frame 115 from the front showed
+  a clean hand, and the crossing (curled fingers in the thigh) was found only once the pose it measured was
+  printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
+  **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
+  library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
 
 ## The clip eval {#eval}
 
