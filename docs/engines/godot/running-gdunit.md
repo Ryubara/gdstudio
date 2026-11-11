@@ -139,6 +139,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
   failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
   it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
+- **Approach:** To find what a suite leaves alive at exit, keep a game (`gds template test <t> --keep --suite <s>`)
+  and run GdUnit's command line on its `game/` yourself with `--verbose`, one suite and one log at a time:
+  `Leaked instance:` names the objects, `Resource still in use: res://...` the scripts. Then cut the suite's cases and
+  the game's scripts ([the typed array pattern](test-exit-leaks.md#typed-array-export-and-self-cast)). **Watch out
+  for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
+  a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
+  2026-11-11.
 
 ## Before the push {#before-the-push}
 
