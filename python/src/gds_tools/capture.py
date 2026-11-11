@@ -47,7 +47,7 @@ MP4_CRF = 26
 # only when its bytes a second stay under the viewer's connection.
 GIF_WIDTHS = (800, 640, 480)  # tried in order until the file fits gif_budget()
 GIF_FPS_CHOICES = (20, 10, 5, 4, 2, 1)  # each a whole number of hundredths a frame
-GIF_BYTES_PER_SECOND = 512 * 1024  # 4 Mbit/s: no stall while downloading at 5 Mbps
+GIF_BYTES_PER_SECOND = 512 * 1024  # 4.2 Mbit/s: no stall on the first play while downloading at 10 Mbps
 GIF_MIN_BUDGET_SECONDS = 2.0  # a shorter loop may stall once, for under a second, on its first play
 GIF_MAX_SECONDS = 10.0  # longer is an MP4; also caps the budget at 5 MB
 

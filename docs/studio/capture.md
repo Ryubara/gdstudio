@@ -138,7 +138,31 @@ an animated image draws its first frame).
 - **GitHub's description column is 814 px** (signed out, windows from 1280 to 2560 px wide); a wider GIF only costs
   bytes.
 
-<!-- gif-sweep-table -->
+Stalls on the first play (a frame held over 150 ms while the file arrived) and the time until all of it had arrived,
+GIFs at 10 fps cut from one capture:
+
+| GIF | Size | Mbit/s | 3 Mbps | 5 Mbps | 10 Mbps | 25 Mbps |
+| --- | --- | --- | --- | --- | --- | --- |
+| 480 px, 10 s | 1.7 MB | 1.4 | | 0 (2.9 s) | 0 (1.5 s) | 0 (0.6 s) |
+| 640 px, 10 s | 2.6 MB | 2.2 | | 1 (4.5 s) | 0 (2.3 s) | 0 (0.9 s) |
+| 800 px, 5 s | 2.1 MB | 3.5 | 20 (6.0 s) | 0 (3.6 s) | 0 (1.8 s) | |
+| 800 px, 10 s | 3.8 MB | 3.2 | 36 (10.6 s) | 0 (6.4 s) | 0 (3.3 s) | |
+| 960 px, 10 s | 5.0 MB | 4.2 | 40 (14.0 s) | 9 (8.4 s) | 0 (4.3 s) | |
+| 1280 px, 5 s | 4.3 MB | 7.3 | | 23 (7.4 s) | 3 (3.7 s) | 0 (1.5 s) |
+| 1280 px, 10 s | 7.8 MB | 6.6 | | 40 (13.3 s) | 2 (6.7 s) | 0 (2.7 s) |
+
+So the budget is 512 KB a second (4.2 Mbit/s): every GIF up to 4.6 Mbit/s played its first loop without a stall at
+10 Mbps, and those of 5.7 Mbit/s and more stalled. On 5 Mbps the clean ones were 3.5 Mbit/s or less, so a GIF near
+the budget stalls a few times on its first play there and loops smoothly after. The 8 s capture of the pull request
+that added this was 7.9 MB at 1280 px from the old `--gif` (39 stalls at 5 Mbps, 4 at 10) and 3.9 MB at 800 px from
+the new one (2 and 0).
+
+- **Approach:** To measure how a GIF plays, read the changes of the picture from the compositor (CDP
+  `Page.startScreencast`, a hash of each frame), throttle with `Network.emulateNetworkConditions` in full Chromium, and
+  split a long sweep into runs under `gds quiet`'s 900 s (or pass `--timeout`). **Watch out for:** a canvas
+  `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
+  headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
+  written. **Seen:** gdstudio #1153, 2026-11-11.
 
 ## Attaching {#attaching}
 

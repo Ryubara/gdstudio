@@ -331,7 +331,7 @@ def test_gif_frame_rate_gives_whole_hundredths(tmp_path: Path) -> None:
 
 
 def test_gif_budget_grows_with_its_length() -> None:
-    # measured in #1153: a GIF of up to 4 Mbit/s (512 KB a second) played without a stall while it downloaded at 5 Mbps
+    # measured in #1153: GIFs up to 4.6 Mbit/s played without a stall while they downloaded at 10 Mbps
     mb = 1024 * 1024
     assert [capture.gif_budget(s) for s in (0.5, 2, 5, 10, 25)] == [mb, mb, 2.5 * mb, 5 * mb, 5 * mb]
 
