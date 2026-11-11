@@ -67,6 +67,44 @@ func test_a_route_over_the_ramp_ends_where_the_server_body_ends() -> void:
 	assert_float(reconciler.worst_error).is_less(Reconciler.DEAD_ZONE)
 
 
+func test_commands_that_arrive_unevenly_are_waited_for_not_repeated() -> void:
+	# Two machines' frames drift: a command lands a step late now and then, and the next step has
+	# two. The server holds the body a few steps for a late one (`NetServer.hold_ticks`), so the
+	# client's prediction stays exact; with no hold each late command is a repeat that leaves the
+	# server's body a step ahead, which the client's reconciler has to correct.
+	var gaps := {}
+	var corrections := {}
+	for hold in [4, 0]:
+		_rig = auto_free(OnlineRig.new())
+		_rig.jitter = 0.03
+		add_child(_rig)
+		_rig.start()
+		_rig.server.hold_ticks = hold
+		_waypoint = 0
+		_client = await _rig.join("Ada")
+		_rig.controllers[0].plan = _route
+		await _rig.wait(ROUTE_TICKS + 90)
+		var server_body := _rig.server_body(_client)
+		gaps[hold] = _client.player.global_position.distance_to(server_body.global_position)
+		corrections[hold] = _client.reconciler.corrections
+		var peer := _rig.server.peer_at(_client.slot)
+		var first := peer.history.find(1)
+		prints(
+			"uneven commands, hold %d:" % hold,
+			"gap %.4f m," % gaps[hold],
+			"held",
+			peer.history.slice(first).count(PeerSlot.HELD),
+			"repeated",
+			peer.history.slice(first).count(PeerSlot.REPEATED),
+			"corrections",
+			_client.reconciler.corrections
+		)
+	assert_float(gaps[4]).is_less(0.0002)
+	assert_int(corrections[4]).is_equal(0)
+	# Without the hold the reconciler pulls the body back after every repeat.
+	assert_int(corrections[0]).is_greater(50)
+
+
 func test_the_client_body_is_tuned_as_the_server_body() -> void:
 	_client = await _rig.join("Ada")
 	var body := _client.player

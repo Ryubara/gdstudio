@@ -82,15 +82,25 @@ func test_a_stall_resyncs_and_skips_the_catch_up_ticks() -> void:
 	for frame in 10:
 		now[0] += 1.0 / 60.0
 		assert_int(guard.check(frame)).is_equal(StallGuard.Verdict.STEP)
-	# The thread froze half a second: the engine runs eight ticks in frame 10.
+	# The thread froze half a second inside frame 10; the engine catches up with eight ticks in
+	# frame 11, a few microseconds apart: the first steps, the other seven are skipped.
 	now[0] += 0.5
 	assert_int(guard.check(10)).is_equal(StallGuard.Verdict.RESYNC)
-	for _tick in 7:
-		assert_int(guard.check(10)).is_equal(StallGuard.Verdict.SKIP)
-	now[0] += 1.0 / 60.0
+	now[0] += 0.001
 	assert_int(guard.check(11)).is_equal(StallGuard.Verdict.STEP)
+	for _tick in 7:
+		now[0] += 0.0001
+		assert_int(guard.check(11)).is_equal(StallGuard.Verdict.SKIP)
 	assert_int(guard.resyncs).is_equal(1)
 	assert_int(guard.skipped).is_equal(7)
+	# Long after, two ticks in one frame (a game drawn at 30 frames a second) both step.
+	for frame in range(12, 52):
+		now[0] += 1.0 / 60.0
+		guard.check(frame)
+	now[0] += 1.0 / 30.0
+	assert_int(guard.check(52)).is_equal(StallGuard.Verdict.STEP)
+	assert_int(guard.check(52)).is_equal(StallGuard.Verdict.STEP)
+	assert_int(guard.resyncs).is_equal(1)
 
 
 func test_a_resync_takes_the_next_answer_whole() -> void:

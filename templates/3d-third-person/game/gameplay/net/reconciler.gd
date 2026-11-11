@@ -34,6 +34,8 @@ var lost := 0
 var worst_error := 0.0
 ## The error of the last answer, metres.
 var last_error := 0.0
+## Metres the body was moved by corrections in all (snaps not counted).
+var corrected := 0.0
 ## The next answer is taken whole, whatever its size (after a stall: `StallGuard`).
 var snap_next := false
 
@@ -96,6 +98,7 @@ func take() -> Vector3:
 	if _pending.length() * (1.0 - SHARE) <= DEAD_ZONE * 0.1:
 		part = _pending
 	_pending -= part
+	corrected += part.length()
 	_shift(part)
 	return part
 

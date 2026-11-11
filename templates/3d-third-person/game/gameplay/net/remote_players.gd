@@ -30,6 +30,9 @@ const CLOCK_PULL := 0.1
 var local_slot := -1
 ## Physics steps on which a puppet's track had no snapshot as new as the moment drawn.
 var starved := 0
+## The microseconds the last physics step spent placing the puppets (their own animation and
+## drawing are the characters' cost, not counted here).
+var last_frame_us := 0
 
 var _puppets: Dictionary[int, Player] = {}
 var _tracks: Dictionary[int, InterpolationTrack] = {}
@@ -46,6 +49,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _clock < 0.0:
 		return
+	var began := Time.get_ticks_usec()
 	_clock += delta
 	var at := _clock - delay
 	for slot: int in _puppets:
@@ -54,6 +58,7 @@ func _physics_process(delta: float) -> void:
 		var moving := track.sample(at, _sample)
 		starved += 1 if track.starved > before else 0
 		_puppets[slot].puppet_to(_sample, moving, delta)
+	last_frame_us = Time.get_ticks_usec() - began
 
 
 ## The puppet of `slot`, or null.

@@ -70,6 +70,10 @@ const STEP_BUDGET_MS := 6.0
 ## Steps the last command is stepped again (without its presses) when none came, before the body
 ## stands still.
 @export_range(0, 600, 1, "suffix:steps") var command_ticks := 30
+## Steps a body waits for a late command, without stepping, before it repeats the last: two
+## machines' frames drift, so a client's command lands a step late now and then, and a repeat made
+## for it leaves the body a step off where the client predicted it. 0 repeats at once.
+@export_range(0, 30, 1, "suffix:steps") var hold_ticks := 4
 ## Seconds without a command before a seated player is hung up on (a hidden tab stops its loop).
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.
@@ -417,7 +421,7 @@ func _tell_others(peer: PeerSlot, event: NetEvent) -> void:
 func _step_bodies(delta: float) -> void:
 	for slot: int in _sorted_slots():
 		var peer := _by_slot[slot]
-		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks):
+		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
 			peer.body.step(command, delta)
 
 
@@ -453,9 +457,15 @@ func _log_stats() -> void:
 	var sorted := _stats_steps.duplicate()
 	sorted.sort()
 	var stalled := 0
+	var held := 0
+	var repeated := 0
 	for peer: PeerSlot in _by_slot.values():
 		stalled += 1 if peer.stalled else 0
 		peer.stalled = false
+		held += peer.held
+		repeated += peer.repeated
+		peer.held = 0
+		peer.repeated = 0
 	var over := 0
 	for ms in sorted:
 		over += 1 if ms > STEP_BUDGET_MS else 0
@@ -470,6 +480,8 @@ func _log_stats() -> void:
 			"step_ms_p95": snappedf(percentile(sorted, 0.95), 0.001),
 			"steps_over_budget": over,
 			"peers_stalled": stalled,
+			"steps_held": held,
+			"steps_repeated": repeated,
 			"kicked": kicked,
 		}
 	)
