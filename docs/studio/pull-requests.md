@@ -158,6 +158,14 @@ it.
   `check-body` does not see the history, so it passed; the `body` check then failed on the fix commit ("build-ok failed
   on an earlier commit of it") and the pull request sat red until the line was added. **Seen:** gdstudio #821, 2026-11-08
   (the `template` job failed once; the body got its `Lessons:` line after the fix push).
+- **Approach:** Before sending a body, check that its `Fixes #N` is your own issue, the one `gds issue start` began
+  the branch for (the number at the end of the branch's name). **Watch out for:** a body that named a sibling issue
+  closed that one at the merge and left its own open; nothing checks the number, and the coordinator had to reopen
+  one and close the other by hand. **Seen:** gdstudio #1119 (PR #1176, which said `Fixes #1116`), 2026-11-11.
+- **Approach:** After fixing a body that failed the `pr` workflow, wait for the run the edit starts and judge that
+  one; do not rerun the failed run. **Watch out for:** `pr` runs on `pull_request_target`, and a rerun reads the
+  body from the event that started it, so the old body fails again however it was fixed. **Seen:** gdstudio #1016,
+  2026-11-11 (coordinator's finding).
 
 ## Which paths the image guard covers {#attach-paths}
 
@@ -195,3 +203,9 @@ upload is named in the answer, with the command that repairs it. It is advice, n
 exists), and `readback = false` in `[attach]` turns it off. Neither check can read a script file (`python open_pr.py`
 runs `gh` out of sight; only the read-back sees its result) or a `gh api` call that sets a body; `pr-rules` in CI
 remains the last check.
+
+- **Approach:** In a body that is about captures (a docs pull request, a report), describe a reference in words ("an
+  image reference to the local `.mp4`") rather than writing the `![name](./file)` form, even in backticks. **Watch
+  out for:** the read-back matches the form anywhere outside an HTML comment, code spans included, so a docs pull
+  request with no capture at all was reported as sent with a local image. **Seen:** gdstudio #1237 (PR #1240),
+  2026-11-11 (the Summary reworded with `gh pr edit`).

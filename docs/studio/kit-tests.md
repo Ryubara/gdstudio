@@ -28,10 +28,12 @@ only through `gds eval check` ([Agent evals](agent-evals.md#running)).
 Run it from the checkout whose code you changed (your worktree), with `--project` naming that checkout's `python`
 folder: `uv run --project <another checkout>/python pytest` tests the other checkout's code.
 
-- **Approach:** Name `python/tests` on every full run, as above. **Watch out for:** a bare `pytest` from the checkout's
-  root also collects the eval tasks' acceptance suites under `evals/`, which start services and fail with socket
-  timeouts that have nothing to do with your change, so the run looks red when the kit is fine. **Seen:** gdstudio
-  #1145 (2026-11-11), after a merge of main.
+- **Approach:** Name `python/tests` on every full run, as above, the form CI runs; a bare `pytest` from the root
+  collects the same set only because of the root `pytest.ini`, so keep it in step with `python/pyproject.toml`.
+  **Watch out for:** before that file, a bare `pytest` from the root also collected the eval tasks' acceptance suites
+  under `evals/`, which start services and failed with socket timeouts unrelated to the change, so the run looked
+  red when the kit was fine. **Seen:** gdstudio #1145, 2026-11-11, after a merge of main (fix: the root `pytest.ini`
+  and `test_root_pytest_config.py`, #1189, PR #1196).
 
 ## What the tests share {#shared}
 

@@ -17,9 +17,9 @@ out of a sprint plays a turn of its own instead of snapping round ([the feel as 
 
 <!-- new section: nobody had measured the library's clips; a replacement needs the number it has to beat -->
 
-The template played 27 of the libraries' 86 clips when this was measured (`CharacterClips`, `pistol.tres`,
-`fists.tres`), and four clips of our own (`assets/animation/prone/`); since kit #1037 it plays our three vault clips
-(`assets/animation/vault/`) and no longer `NinjaJump_Start`. Every number below is from
+The template plays 27 of the libraries' 86 clips (`CharacterClips`, `pistol.tres`, `fists.tres`), four clips of our
+own (`assets/animation/prone/`) and, since kit #1037, our three vault clips (`assets/animation/vault/`, made in
+kit #1016, not yet measured here) in place of `NinjaJump_Start`. Every number below is from
 `templates/3d-third-person/game/assets/animation/audit_clips.py`, which reads the glb itself and measures each frame
 on the skinned mesh; its docstring defines each measure. The body is the library's own (the male mannequin); the
 female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`.
