@@ -295,6 +295,19 @@ Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `e
 `prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
 fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
 kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
+
+Aiming lying down plays the held weapon's prone aim clips inside the prone state, over the idle and the crawl from
+`spine_01` up, blended by the look: the `WeaponDef`'s `prone_aim_clip`, `prone_aim_up_clip` and `prone_aim_down_clip`
+(the pistol's are `prone_aim/Prone_Aim_Neutral`, `_Up` and `_Down`), with `prone_aim_angles` the looks the down and up
+clips are made for (25 and 20 degrees; past them the pose stays on the clip). While the body lies, the standing grip
+and aim layers below have no weight. A shot lying down plays no shot clip: it kicks the look the pose is on by the
+Animation's `prone_shot_kick` (7 degrees), which settles over `prone_shot_kick_time` (0.22 s). A weapon whose
+`prone_aim_clip` is empty aims lying down with its standing clips. A reload lying down keeps the prone aim (the
+standing reload clip is not played on a lying body; a prone reload clip is kit #1185). The camera frames it with its
+Prone aim group
+(`PlayerCamera`: `prone_aim_view`, `prone_aim_distance` 1.8 m, `prone_aim_ahead` 0.55 m, `prone_aim_rise` 0 m,
+`prone_aim_shoulder` 0.7 m, `prone_aim_fov` 50 degrees): the view turns about the shoulders, not the hips, and sits
+further to the side, so the hands and the pistol show beside the head above the HUD.
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -334,7 +347,9 @@ both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the sk
 `character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
 It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
 pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so
-it follows the carry, the aim, a reload and a death with no wiring of its own. Through a reload the left hand is on
+it follows the carry, the aim, a reload and a death with no wiring of its own. Lying with a prone aim
+(`prone_hold_share()`), its left arm keeps the elbow the clip gives it (`support_keep_elbow`). Through a reload the
+left hand is on
 the pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol
 again; the pistol's `Magazine` does not move yet. The left hand goes on and off the pistol one way, for the aim and
 the reload alike: its fingers open where it holds, the opened hand leaves along a line that passes through nothing,
@@ -368,8 +383,10 @@ worked out on each machine from the aim the game already has; nothing of it goes
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
 `Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
-The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
-to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
+The dressed character's `AnimationPlayer` holds the library as `prone`, and `prone_aim.glb` beside it as `prone_aim`:
+three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
+flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
+with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
 the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are
 fists near the centre line in front of the head, and each fist in turn plants ahead of the other, with the opposite

@@ -773,7 +773,8 @@ func _on_definition_changed(_definition: WeaponDef) -> void:
 
 func _on_reload_started(seconds: float) -> void:
 	var hold := held_definition()
-	if hold == null or hold.reload_clip == &"":
+	# A body lying with a prone aim keeps it through the reload: the reload clip is a standing one.
+	if hold == null or hold.reload_clip == &"" or _prone_look.lies > 0.5:
 		return
 	if not animation_player.has_animation(hold.reload_clip):
 		return

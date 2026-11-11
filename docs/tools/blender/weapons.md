@@ -248,6 +248,13 @@ Library's six pistol clips on the `hand_r` bone.
   Two faults the live measure found are not the left hand's way and have their own issues: while the aim comes up
   the arm is 6 to 16 cm short of the gun and the fingers pass 13 to 16 mm (kit #1078), and the right trigger finger
   crosses the left thumb's tip by 4 to 8 mm on its way off the trigger (kit #1079).
+- **Lying down the same hold holds** (kit #1111). The prone aim clips are solved from this hold
+  (`tools/hold/dump_aim_seat.gd` writes the seat, the `SupportHand` marker and the wrist turn for the clip build), so
+  the right hand's bone is where the seat carries the pistol along the look and the left hand's bone on its marker,
+  and `WeaponHold` closes the fingers as it does standing; the left arm keeps the clip's elbow
+  (`support_keep_elbow`, from `CharacterAnimation.prone_hold_share()`). Within the 2 mm and 5 mm on both
+  mannequins in the three clips (`tests/gameplay/test_prone_aim_hold.gd`). After a change of the seat or the
+  marker, run the dump and `assets/animation/prone/build_prone_aim_clips.py` again.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and

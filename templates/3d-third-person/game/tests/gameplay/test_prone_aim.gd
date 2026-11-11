@@ -188,6 +188,24 @@ func test_a_shot_lying_down_kicks_the_prone_aim_and_plays_no_standing_shot() -> 
 	assert_bool(played).is_true()
 
 
+func test_a_reload_lying_down_keeps_the_prone_aim() -> void:
+	await _lie_down()
+	await _aim()
+	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
+	await InputSim.ticks(get_tree(), 6)
+	InputSim.mouse_button(MOUSE_BUTTON_LEFT, false)
+	await InputSim.ticks(get_tree(), 20)
+	InputSim.key(KEY_R, true)
+	await InputSim.ticks(get_tree(), 3)
+	InputSim.key(KEY_R, false)
+	assert_bool(_player.weapon.is_reloading()).is_true()
+	# The standing reload clip does not play over the lying body; the prone aim stays.
+	for _tick in 30:
+		await InputSim.ticks(get_tree(), 1)
+		assert_bool(_animation.is_reloading()).is_false()
+		assert_float(_animation.tree.get(PRONE_AIM)).is_equal_approx(1.0, 0.001)
+
+
 func test_both_hands_are_on_the_pistol_in_the_running_game() -> void:
 	var hold := _player.get_node("WeaponHold") as WeaponHold
 	var marker := _player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D

@@ -151,6 +151,18 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   target is only a hint; wider elbows in the crawl sank the chest 2.2 cm into the floor. **Seen:** gdstudio #1020,
   2026-11-10 (fix: the hands go up and over the knee by frame 3 and the knee opens from frame 2 to 6; coming up
   the left hand waits outside the knee until frame 19; at most 2.6 mm on both mannequins, the build fails over 5).
+- **Approach:** Solve a clip that holds a weapon from the hold the game uses: dump the weapon's seat on the hand
+  bone, the other hand's marker and the hand bones' rests from Godot (`tools/hold/dump_aim_seat.gd`), and put each
+  hand bone where that seat carries the weapon, as a world turn from the rest (Godot's x, y, z to Blender's x, -z,
+  y), so no bone axis of either program matters. **Watch out for:** a clip build that imports another
+  (`import build_prone_clips`) reuses its rig, solver, keying and export, and a subclass adds what differs; the
+  importer's key tolerance moves a pistol at the end of two stretched arms 2 to 4 mm through a breath the build
+  holds to 0.5 mm. **Seen:** gdstudio #1111, 2026-11-11 (`build_prone_aim_clips.py`, `test_prone_aim_hold.gd`).
+- **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
+  blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
+  places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
+  degrees left the hand 16 mm short of its marker and the barrel 4 degrees off; at 7 cm and 0.97 both are inside
+  the limits. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`).
 - **Approach:** When one clip's target moves, rebuild and read every clip that joins it. **Watch out for:** moving
   the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
   since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss

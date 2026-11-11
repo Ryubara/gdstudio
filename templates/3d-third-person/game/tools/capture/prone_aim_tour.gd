@@ -8,6 +8,7 @@
 ## `hands_front` (close on the pistol from its right, its left, above and ahead, for the hands on
 ## the weapon). `PRONE_AIM_MODEL=male` swaps the mannequin, and `PRONE_AIM_STANDING_VIEW=1` aims
 ## with the camera's standing aim view (`PlayerCamera.prone_aim_view` off), to compare.
+## `PRONE_AIM_TOUR=reload` plays a shot and a reload lying down instead.
 ##
 ## `gds capture frames --project game --scene res://tools/capture/prone_aim_tour.tscn --seconds 14`
 ## It prints a `STEP` line as each step starts, with the frame, to find a moment's frame. It
@@ -60,6 +61,18 @@ const TOUR: Array[Dictionary] = [
 	{"do": "wait", "actions": [], "seconds": 1.3},
 ]
 
+## A short tour of its own for the reload lying down (`PRONE_AIM_TOUR=reload`): fire once, reload.
+const RELOAD_TOUR: Array[Dictionary] = [
+	{"do": "look", "yaw": 0.0, "pitch": 4.0, "actions": []},
+	{"do": "tap", "action": &"prone"},
+	{"do": "wait", "actions": [], "seconds": 1.0},
+	{"do": "wait", "actions": [&"aim"], "seconds": 0.8},
+	{"do": "wait", "actions": [&"aim", &"fire"], "seconds": 0.1},
+	{"do": "wait", "actions": [&"aim"], "seconds": 0.5},
+	{"do": "wait", "actions": [&"aim", &"reload"], "seconds": 0.1},
+	{"do": "wait", "actions": [&"aim"], "seconds": 2.2},
+]
+
 var _index := 0
 var _clock := 0.0
 var _frame := 0
@@ -68,6 +81,7 @@ var _started := false
 var _view: Array = []
 var _camera: Camera3D
 var _on_pistol := false
+var _tour := TOUR
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -77,6 +91,8 @@ func _ready() -> void:
 	_view = VIEWS.get(OS.get_environment("PRONE_AIM_VIEW"), [])
 	_rig.prone_aim_view = OS.get_environment("PRONE_AIM_STANDING_VIEW").is_empty()
 	_on_pistol = OS.get_environment("PRONE_AIM_VIEW").begins_with("hands")
+	if OS.get_environment("PRONE_AIM_TOUR") == "reload":
+		_tour = RELOAD_TOUR
 	if OS.get_environment("PRONE_AIM_MODEL") == "male":
 		var slot := _player.model
 		var old := slot.rig()
@@ -126,11 +142,11 @@ func _physics_process(delta: float) -> void:
 		_started = true
 		_player.teleport(START, PI)
 		return
-	if _index >= TOUR.size():
+	if _index >= _tour.size():
 		_hold([])
 		_finish()
 		return
-	var step := TOUR[_index]
+	var step := _tour[_index]
 	if _clock == 0.0:
 		print("STEP %d tick %d %s" % [_index, _frame, step])
 	var done := false
