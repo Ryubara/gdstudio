@@ -35,6 +35,13 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
 
+The guards that read a shell line split it into simple commands (`&&`, `||`, `;`, `|`) and judge each by its program.
+Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
+included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
+assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
+`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
+folder.
+
 ## Pull request bodies before they are sent {#pr-body}
 
 Moved to [Pull requests: the body guard](pull-requests.md#pr-body): `gds pr check-body`, the guard before `gh pr
