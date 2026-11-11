@@ -4,7 +4,8 @@
 ## pose, the wrist's turn and the arm's swing) or `aimed` (those and the left arm's reach and the
 ## left fingers); or with `rifle_held.tscn` in the model's space: `rifle` (aimed: the stance, both
 ## arms' reach and both hands' fingers), `rifle_low` (the same at the low ready) or `rifle_reload`
-## (aimed, half way through a reload: the left hand on its way to the magazine).
+## (aimed, 0.3 of a reload: the left hand taking the magazine out) or `rifle_far`
+## (aimed, seen by a camera 30 m away: past the hold's `fingers_far_distance`).
 ##
 ## A frame's work is the span from the `_process` of the first node to process to the end of the
 ## deferred calls that follow the last one (the skeletons run their modifiers there), the same
@@ -36,6 +37,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"rifle": {"rifle": true, "aim": 1.0},
 	"rifle_low": {"rifle": true, "aim": 0.0},
 	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3},
+	"rifle_far": {"rifle": true, "aim": 1.0, "camera": 30.0},
 }
 
 var _frame_start := 0
@@ -60,6 +62,11 @@ func _bench() -> void:
 		get_tree().quit(1)
 		return
 	var run := RUNS[run_name]
+	if run.has("camera"):
+		var camera := Camera3D.new()
+		add_child(camera)
+		camera.position = Vector3(0.0, 2.0, run.camera)
+		camera.make_current()
 	var library := load(LIBRARY) as AnimationLibrary
 	library.get_animation(CLIP.get_slice("/", 1)).loop_mode = Animation.LOOP_LINEAR
 	for index in FIGURES:
