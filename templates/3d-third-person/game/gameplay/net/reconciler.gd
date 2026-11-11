@@ -32,6 +32,9 @@ const KEEP := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 var corrections := 0
 var snaps := 0
 var lost := 0
+## The error of each snap taken for its size (past `SNAP_DISTANCE`, not a resync's), metres, in
+## order: a report tells them from the join's and a stall's (`tools/net/bad_network.py`).
+var size_snaps := PackedFloat32Array()
 ## The largest error an answer measured, metres.
 var worst_error := 0.0
 ## The error of the last answer, metres.
@@ -92,6 +95,8 @@ func answer(ack: int, server_point: Vector3) -> bool:
 		if last_error > LOST_DISTANCE * runs:
 			lost += 1
 		snaps += 1
+		if not snap_next:
+			size_snaps.append(last_error)
 		snap_next = false
 		_pending = Vector3.ZERO
 		_snapped += error
