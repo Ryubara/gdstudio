@@ -449,6 +449,31 @@ frame). Median frame work in ms (the director's step a tick in brackets, ms; tic
   the GDScript around the slide (the slide's tick, gravity and the jump, the step climber's `test_move`, the state),
   which is where the next cut is (measured with 40 `ai_character.tscn` stepped by hand, 300 ticks).
 
+**The lean tick (#1059).** `tools/bench/ai_step_profile.tscn` (`ai_step_profile.py` for Chrome) steps 40 walking
+`ai_character.tscn` by hand, in blocks that alternate between the real step and a copy of the full step cut into its
+modules, each module run over the whole crowd before the next (one module of one body is under the browser's clock
+step). Microseconds a walking body a tick, the full tick, mean of three runs (range in brackets):
+
+| Module | Chrome 1x | Chrome 4x | What an AI's lean tick does with it |
+| --- | ---: | ---: | --- |
+| the controller's `sample()` | 2.1 | 10.0 | built again only when a channel changed (1.2, 5.5) |
+| the step's prologue (copy the command, the view) | 3.6 | 17.5 | the copy kept while the AI's command repeats |
+| timers and the prone stance | 1.4 | 7.2 | the timers only |
+| the vault's trigger | 3.8 | 19.9 | its cooldown only |
+| the slide, the crouch, the aim | 3.2 | 17.2 | left out (two timers) |
+| steering (the facing on the model 0.6 of it) | 3.8 | 20.0 | the walk's branch only |
+| gravity and the jump | 0.6 | 3.5 | the grounded branch |
+| the step climber (one `test_move`) | 4.8 | 25.2 | only after the move met a wall, then the move again |
+| `move_and_slide` | 12.0 | 62.7 | the same |
+| pushing props | 1.0 | 5.6 | the same |
+| the state | 2.0 | 10.6 | the walk's branch only |
+| the weapon's presses, its tick | 2.2 | 11.8 | the presses left out |
+| **the real step** | **42.3** (40.0 to 44.0) | **261** (231 to 294) | |
+
+The lean tick (`CharacterLean`, taken when the controller's `lean_step` is on and nothing but the walk has work) ends
+every tick where the full tick does: `test_character_lean.gd` steps a lean and a full body through walking, a kerb,
+running, sprinting, a jump, crouch, aim and fire, prone, a slide and presses, and compares their snapshots each tick.
+
 - **Approach:** Put off work that a per-tick budget refuses fairly: start the loop over the characters one further
   along each tick, and test the refusal with more characters wanting the work every tick than the budget allows.
   **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the
