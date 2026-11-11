@@ -209,7 +209,11 @@ PCM takes in 1 µs; the weapon's `ShotSound` went from 244 to 1 µs and an impac
 impact from 364 to 18 µs. `DecodedSounds.decoded()` takes an `AudioStreamRandomizer` too (a copy holding decoded
 takes, the spread and weights kept, rebuilt when the original changes), and decodes through the engine's own WAV
 reader: the 23 takes of the pistol and the impacts in 13 ms on the desktop and 31 ms in Chrome, against 28 and 51 ms
-for the old loop over every sample in script.
+for the old loop over every sample in script. Online (a server, seven `server_bot.gd --shoot` bots and
+`predict_bot.gd`, 30 s on one machine, two runs each), a played shot cost the predicting client 663 µs and a hit 696 to
+719 µs before and 216 to 252 and 240 to 339 µs after; with every sound switched off they cost 277 and 249 µs, so what is
+left is the projectile, the flash and the mark, not the sound. The client's step p95 went from 1.7 to 1.9 ms to 0.9 to
+1.3 ms.
 
 - **Approach:** Set the stream of every player of a short, often-started sound through `DecodedSounds.decoded()`
   (the weapon when its definition is applied, an effect slot at each play, each reload step), decode while the level
