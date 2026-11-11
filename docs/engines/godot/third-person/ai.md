@@ -17,7 +17,7 @@ this base leaves for it.
 | `AiCharacter` | `gameplay/ai/ai_character.gd`, `ai_character.tscn` | The template's `Character` (its body, `Model` slot, animation, `Health` and ragdoll, as the player has them: the scene inherits `character_dressed.tscn`) driven by an `AiController`. Joins the group `ai_characters`, never `player`. Signals `situation_changed`, `tier_changed`, `thought`. A hit comes through `Health`, a death goes into the same ragdoll. |
 | `AiController` | `gameplay/ai/ai_controller.gd` | The `CharacterController` the parts write: the movement channel (`walk_direction`, `walk_strength`) and the action channel (`look_direction`, `aim`, `fire`), turned into one `PlayerCommand` a tick with `set_from_world`. A fire that starts is a press in exactly one command; `is_still()` says it asks for nothing. |
 | `AiProfile` | `gameplay/ai/ai_profile.gd`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres` | Every number a kind of character reads, in six groups (Movement, Senses, Combat, Nerve, Social, Budget), each an `@export` with a range, a unit and a tooltip, read where it is used so an edit applies live. |
-| `AiDirector` | `gameplay/ai/ai_director.gd`, a node of `world/world.tscn` (group `ai_director`) | Steps every registered character's body, runs its think at its rate on its own phase, puts it in a tier by distance, and holds the shared `AiBudget`. It gives a character its `tier` and its `budget` and nothing else. |
+| `AiDirector` | `gameplay/ai/ai_director.gd`, a node of `world/world.tscn` (group `ai_director`) | Steps every registered character's body, runs its think at its rate on its own phase, puts it in a tier by distance, and holds the shared `AiBudget` and the fight's attack slots ([Attack slots](ai-behaviour.md#attack-slots)). It gives a character its `tier` and its `budget` and nothing else. |
 | `AiAnimationThrottle` | `gameplay/ai/ai_animation_throttle.gd`, the `AnimationThrottle` child of the `AiDirector` in `world/world.tscn` (the director's `animation_throttle`) | Moves each managed character's `AnimationTree` on less often where nobody would see it (far, out of view, Dormant), with the footsteps only near the camera: [The animation throttle](#animation-throttle). |
 | `AiBudget` | `gameplay/ai/ai_budget.gd` | Rays, path queries and thinks all characters together may spend in one physics tick; `take_ray()`, `take_path()`, `take_think()` refuse the one over the count. |
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
@@ -63,7 +63,9 @@ finds it through the group; a character with no director steps itself and never 
 - **`AiDirector`**: Population `web_cap` 40, `desktop_cap` 120, `web_full_cap` 12, `desktop_full_cap` 60,
   `player_group`; Budget a tick `rays_per_tick` 8, `paths_per_tick` 4, `thinks_per_tick` 12; Steps
   `reduced_step_ticks` 4, `dormant_step_ticks` 6, `rest_step_ticks` 3; Animation `animation_throttle` (the
-  `AnimationThrottle` node in `world.tscn`; empty: every character animates every frame).
+  `AnimationThrottle` node in `world.tscn`; empty: every character animates every frame); Attack slots
+  `web_attack_slots` 6, `desktop_attack_slots` 16 (a target), `web_fight_cap` 12, `desktop_fight_cap` 48 (all
+  targets), `slot_lease_seconds` 3 s ([Attack slots](ai-behaviour.md#attack-slots)).
 - **`AiAnimationThrottle`**: `enabled`; Distances `near_distance` 15 m, `far_distance` 25 m, `footstep_range` 15 m
   (all from the camera); Periods `reduced_period` 3, `far_period` 6 (frames), `freeze_unseen`, `max_catch_up` 0.25 s,
   `hit_hold` 1 s; Work `recheck_frames` 4, `throttle_skeleton`, `camera` (empty: the viewport's).

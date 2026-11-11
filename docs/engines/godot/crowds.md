@@ -409,7 +409,9 @@ frame in brackets, ms):
   budget, mostly the bodies that aim and fire and no longer rest ([the table](third-person/ai-behaviour.md#cost)).
   Since #1104 those bodies take the lean tick (14 to 25 % off the step) and a web fight is counted apart: **12**
   fighting guards fit the 1 ms budget, **6** the 5 ms at 4x, more fighting at once are over it in a browser
-  ([the table](third-person/ai-behaviour.md#cost-follow-up)).
+  ([the table](third-person/ai-behaviour.md#cost-follow-up)). Since #1203 the director's attack slots hold a fight to
+  that count: 6 guards a target and 12 in all engage in a browser, the rest hold
+  ([attack slots](third-person/ai-behaviour.md#attack-slots)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for

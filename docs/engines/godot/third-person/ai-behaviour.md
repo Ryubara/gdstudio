@@ -17,6 +17,7 @@ new behaviour is a task script and a row. The base, the profile and the director
 | `AiReactionRow`, `AiReactionWaiver`, `AiSituationRule` | `behaviour/` | A row of the table; a cell answered with nothing on purpose, with its reason; what one situation blocks and which task layers it keeps open. |
 | `AiPlayState` | `behaviour/ai_play_state.gd` | Aggressive, Careful, Safe from the health share less the pressure of hostiles seen, with hysteresis and a dwell. No node, no clock. |
 | `AiChoice` | `behaviour/ai_choice.gd` | Utility scoring with a commitment bonus, at exactly three places: the target, the cover spot, the next patrol stop. |
+| `AiAttackSlots` | `ai_attack_slots.gd`, the `AiDirector`'s `slots` | At most N guards engage one target and at most a cap engage at all; the rest hold: [Attack slots](#attack-slots). |
 | `AiMarker` | `behaviour/ai_marker.gd` | A place that means something to the AI (patrol stop, cover, lookout, spawn, scenario point), placed and tuned in the scene; the tasks find markers through a list the markers keep, never the tree's groups. |
 | Stock tasks | `tasks/stock/` (base `AiStockTask`, the aim model `AiAim`) | The 18 tasks the shipped sets answer with: [Stock tasks](#stock-tasks). |
 | Scenes | `ai_guard.tscn`, `ai_ally.tscn`, `ai_civilian.tscn` | `ai_character.tscn` with a profile and a set: the grunt and `hostile_guard`, the ally and `friendly_ally`, the civilian and `civilian` (its brain reminds itself up to Unfriendly, so a civilian keeps away from a stranger with a gun too). |
@@ -78,8 +79,8 @@ it from running while Safe.
 | `AiInvestigate` | `investigate`, Response, Move and Look | Goes to look at a place, then looks around; a newer noise merges into it. |
 | `AiSearch` | `search`, Response, Move and Look | Visits seeded spots around where the subject was last believed, then ends (`lost_trail`). |
 | `AiChase` | `chase`, Response, Move and Look | Runs to where a lost subject is believed; ends when a hostile is in view again. |
-| `AiAttack` | `engage`, Response, Move, Action and Look | Ranged with the aim model, only at a subject seen now and never through a friend; melee from the weapon's own reach; reloads a dry magazine; `NO_AMMO` with nothing to load. |
-| `AiTakeCover` | `cover`, Response, Move, Action and Look | Runs to a cover marker facing the threat (scored, kept) and hides and peeks to shoot; only hides when Safe. |
+| `AiAttack` | `engage`, Response, Move, Action and Look | Ranged with the aim model, only at a subject seen now and never through a friend; melee from the weapon's own reach; reloads a dry magazine; `NO_AMMO` with nothing to load. Fights only with an [attack slot](#attack-slots); without one it holds, gun down, watching (`held`). |
+| `AiTakeCover` | `cover`, Response, Move, Action and Look | Runs to a cover marker facing the threat (scored, kept) and hides and peeks to shoot; only hides when Safe. A peek takes an [attack slot](#attack-slots) and gives it back when it goes down; without one it stays down. |
 | `AiFlee` | `flee`, Response, Move | Runs to the reachable point farthest from the threat until `safe_distance`. |
 | `AiCower` | `cower`, Response, Move and Look | Crouches facing the threat until it has not been believed for `panic_recovery_seconds`. |
 | `AiGuard` | `guard`, Default, Move and Look | Holds a place, looks around while there; the guard's default and `order_hold`. |
@@ -212,7 +213,7 @@ change at 1x, two at 4x, with the frame's work and ticks a frame at 4x; rows of 
   **6** fit the 4x budget (4.8 to 5.0 ms, half a tick a frame). 20 or more fighting at once are over the budget in a
   browser at any speed: a level made for the web keeps a fight to 12 hostile guards engaged at once (6 for a weak
   machine), and may hold more around it calm (40 calm guards are 0.8 ms). The director's population caps are not
-  changed: nothing enforces the count yet (attack slots that only N guards hold at once: kit #1203).
+  changed: since kit #1203 the [attack slots](#attack-slots) hold a fight to that count.
 
 - **Approach:** Bench reactions in three modes (brains off, on with nothing to answer, on against a threat) and time
   the step by part (senses, brain, tasks, navigator, bodies) in a throwaway copy of the made game before naming a
@@ -226,6 +227,35 @@ change at 1x, two at 4x, with the frame's work and ticks a frame at 4x; rows of 
   natively read 1.91 to 1.94 ms against 1.70 to 1.85 before in Chrome, and only rows of 600 ticks or more showed the
   20 % it saves there. **Seen:** gdstudio #1104, 2026-11-11 (the bench now measures at least 600 ticks a row).
 
+## Attack slots {#attack-slots}
+
+<!-- new section: the cost follow-up set a web count of fighting guards from the table; nothing in the template held a
+     fight to it, and how a guard waits for its turn, when a slot frees and what it saves is a subject of its own -->
+
+The director holds one `AiAttackSlots` (`slots`, kit #1203): at most `web_attack_slots` (6) guards engage one target
+at once and at most `web_fight_cap` (12) engage at all in a browser, `desktop_attack_slots` (16) and
+`desktop_fight_cap` (48) on the desktop and a server ([the inspector](ai.md#inspector)); the web counts are the
+[follow-up's](#cost-follow-up) 6 that fit the 4x budget a target and 12 that fit the 1 ms budget in all.
+
+- **Who fires.** `AiAttack` asks for a slot on its subject at each think before it aims (`AiStockTask.take_slot()`);
+  `AiTakeCover` asks at each peek. The first to ask when one is free takes it; asking again keeps it.
+- **Who waits.** A guard without a slot holds: it stands, its gun down (no aim, no trigger), looking at the subject,
+  and asks again each think; its overlay reads `engage held`. Its body is at rest, so the director steps it every
+  `rest_step_ticks`, and its task answers the threat (`answers_threat`), so the reminder does not route it elsewhere.
+  A peek with no slot stays down.
+- **When a slot frees.** Its holder gives it back when the engage task ends (the subject dead or lost, a dry gun), is
+  suspended or dropped, when the subject is not seen now (at once, before `lose_after`), when a peek goes down, and
+  when the character leaves the director. A holder that is gone or dead, or has not asked for `slot_lease_seconds`, is
+  pruned as soon as a slot is wanted and none is free.
+- **The network.** Only the authority runs the tasks, so only the server holds the slots; nothing about them is sent.
+  A client sees a held guard as one that does not aim.
+
+**What it saves**, `ai_behaviour_bench.py` in Chrome, 40 guards against the two targets: the web defaults (`threat`)
+against the same fight with every guard allowed to fire (`uncapped`, the slots and the fight cap set to the count), the
+director's step in ms a tick:
+
+BENCH_TABLE
+
 ## Proof {#proof}
 
 `tests/gameplay/test_ai_reactions.gd` plays the scenarios in an arena with a body that moves: a guard notices,
@@ -237,6 +267,9 @@ ally hit by its player complains and never fights. `test_ai_reaction_rules.gd` (
 turn, the reload, the overlay, a remote client routes nothing, the patrol and the two scored choices),
 `test_ai_behaviour_sets.gd` (coverage, first row wins, chance, blocks, the brain's source has no behaviour branch),
 `test_ai_play_state.gd`, `test_ai_reaction_tables.gd` and `test_ai_stock_tasks.gd` (one per task).
+`test_ai_attack_slots.gd`: 20 guards on an arc against one target never have more than 4 (the test's count)
+aiming or firing at one tick, the rest hold with their guns down, and a slot freed by a death, a loss of
+sight and the end of the engage task is taken by a waiting guard; it failed on `main` (20 aimed at once).
 
 Each rule was broken in a made game to see its test fail: the friend-in-line check, firing at a memory (in both the
 attack and the aim), the play dwell, the melee approach and the freed noise maker
@@ -244,3 +277,5 @@ attack and the aim), the play dwell, the melee approach and the freed noise make
 
 The capture is `tools/capture/reactions_tour.tscn` (41 s, from the player's camera with the overlays): a guard's
 notice, chase, search and return; cover and peeks; civilians fleeing and a hurt one cowering.
+`tools/capture/attack_slots_tour.tscn` (16 s): eight guards on an arc, three slots, five holding; one firing guard dies
+at 8 s and a held one takes its place.

@@ -15,20 +15,27 @@ extends Node
 ## the count, its Full cap the shipped one (12 in a browser, 60 on the desktop), and the
 ## animation throttle is on, as `world.tscn` has it.
 ##
+## The `threat` rows run with the director's attack slots (kit #1203: in a browser 6 a target and
+## 12 in all; the rest hold), the `uncapped` rows are the same fight with the slots and the fight
+## cap set to the count (every guard that sees a target fires, as before #1203). `engaged` is the
+## mean of slots held a tick.
+##
 ## Each row measures at least 300 frames and 600 ticks. One line of JSON, `AI_BEHAVIOUR_BENCH
 ## {...}`: for each count and mode the director's step a tick (`step_mean_us`, `step_p95_us`,
 ## `us_each`), the median frame work in milliseconds, frames, ticks and ticks a frame, a
 ## calibration loop timed before the row (`calibration_ms`: a busy machine reads slower there
 ## too), the events the brains routed a second and the guards by active task at the end.
 ## Desktop: `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_behaviour_bench.tscn
-## [-- --counts=50,100]`; browser: a web export with this scene as `run/main_scene` and `tools/*`
-## out of the exclude filter, read by `tools/bench/ai_behaviour_bench.py`
-## (`window.__ai_behaviour_bench`; the page's query takes the same `counts=50`).
+## [-- --counts=50,100 --modes=threat,uncapped]`; browser: a web export with this scene as
+## `run/main_scene` and `tools/*` out of the exclude filter, read by
+## `tools/bench/ai_behaviour_bench.py`
+## (`window.__ai_behaviour_bench`; the page's query takes the same `counts=50&modes=threat`).
 
 const COUNTS: Array[int] = [50, 100]
 ## Brains off (senses and an empty runner), brains on with the targets friendly (the brain's own
-## work with nothing to answer: the guard's default task), and brains on with them hostile.
-const MODES: Array[String] = ["off", "calm", "threat"]
+## work with nothing to answer: the guard's default task), brains on with them hostile, and the
+## same with no attack slots.
+const MODES: Array[String] = ["off", "calm", "threat", "uncapped"]
 const WARM_FRAMES := 120
 const FRAMES := 300
 ## Ticks a row measures at least: a browser draws about three frames a tick at 1x, so 300 frames
@@ -55,6 +62,8 @@ var _tick_start := -1
 var _ticks := 0
 var _tick := 0
 var _counts: Array[int] = COUNTS.duplicate()
+var _modes: Array[String] = MODES.duplicate()
+var _engaged := 0
 
 
 ## Processed after every other node: says when a frame's processing is over.
@@ -84,7 +93,7 @@ func _run() -> void:
 	_read_options()
 	var report := {"frames": FRAMES, "web": OS.has_feature("web"), "rows": []}
 	for count in _counts:
-		for mode in MODES:
+		for mode in _modes:
 			_new_crowd(count, mode)
 			report.rows.append(await _measure(count, mode))
 			_arena.free()
@@ -96,7 +105,8 @@ func _run() -> void:
 		get_tree().quit()
 
 
-# `counts=50,100` from the command line after `--` or the page's query.
+# `counts=50,100` and `modes=threat,uncapped` from the command line after `--` or the page's
+# query.
 func _read_options() -> void:
 	var words := PackedStringArray()
 	if OS.has_feature("web"):
@@ -111,6 +121,11 @@ func _read_options() -> void:
 			_counts.clear()
 			for part in parts[1].split(",", false):
 				_counts.append(int(part))
+		elif parts.size() == 2 and parts[0] == "modes":
+			_modes.clear()
+			for part in parts[1].split(",", false):
+				if MODES.has(part):
+					_modes.append(part)
 
 
 func _new_crowd(count: int, mode: String) -> void:
@@ -134,7 +149,7 @@ func _new_crowd(count: int, mode: String) -> void:
 		target.name = "Target%d" % index
 		target.add_to_group(&"player")
 		var member := AiFactionMember.new()
-		member.faction = &"player" if mode == "threat" else &"enemy"
+		member.faction = &"player" if mode in ["threat", "uncapped"] else &"enemy"
 		target.add_child(member)
 		_arena.add_child(target)
 		_targets.append(target)
@@ -143,6 +158,11 @@ func _new_crowd(count: int, mode: String) -> void:
 	_director = AiDirector.new()
 	_director.web_cap = count
 	_director.desktop_cap = count
+	if mode == "uncapped":
+		_director.web_attack_slots = count
+		_director.desktop_attack_slots = count
+		_director.web_fight_cap = count
+		_director.desktop_fight_cap = count
 	_throttle = AiAnimationThrottle.new()
 	_director.add_child(_throttle)
 	_director.animation_throttle = _throttle
@@ -185,6 +205,7 @@ func _measure(count: int, mode: String) -> Dictionary:
 	var calibration := _calibrate()
 	var routed_before := _routed()
 	_ticks = 0
+	_engaged = 0
 	_works.clear()
 	_steps.clear()
 	_tick_start = -1
@@ -217,6 +238,8 @@ func _measure(count: int, mode: String) -> Dictionary:
 		"routed_per_second": (_routed() - routed_before) / maxf(seconds, 0.001),
 		"tasks": _tasks(),
 		"full": _director.count_at(AiDirector.Tier.FULL),
+		"engaged": float(_engaged) / maxi(_ticks, 1),
+		"fight_cap": _director.fight_cap(),
 	}
 
 
@@ -245,6 +268,7 @@ func _on_tick() -> void:
 	_tick += 1
 	_move_targets()
 	_ticks += 1
+	_engaged += _director.slots.count()
 	if _tick_start < 0:
 		_tick_start = Time.get_ticks_usec()
 	# The step of the tick before this one (the director runs inside the tick).
