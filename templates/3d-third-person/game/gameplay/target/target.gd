@@ -20,6 +20,9 @@ signal knocked_down
 ## The board stood up again.
 signal stood_up
 
+## The group every target joins, so a network names one by its place among them (`NetHits`).
+const GROUP := &"target"
+
 @export_group("Look")
 ## The board's diameter.
 @export_range(0.2, 3.0, 0.05, "suffix:m") var size := 1.0:
@@ -62,6 +65,7 @@ func _ready() -> void:
 	set_process(false)
 	if Engine.is_editor_hint():
 		return
+	add_to_group(GROUP)
 	var health := Health.of(self)
 	if health != null:
 		health.hit_taken.connect(_on_hit_taken)

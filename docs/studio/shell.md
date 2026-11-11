@@ -82,7 +82,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
   before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903).
+  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
 
 ## Background commands and processes {#background}
 
@@ -125,7 +125,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
-  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late).
+  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red).
 
 ## Reverting and checking out {#checkout}
 
