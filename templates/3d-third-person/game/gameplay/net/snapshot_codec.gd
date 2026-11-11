@@ -1,9 +1,10 @@
 class_name SnapshotCodec
 extends RefCounted
-## The server's messages that carry state: a TICK (the events since the last one, then every
-## player) and a WELCOME (the world table and every player, for a client that joins at any time).
-## The layouts are in `NetWire` and `NetEvent`. Snapshots are full: eight players are 96 bytes a
-## tick, and a full snapshot repairs whatever a stall delayed.
+## The server's messages that carry state: a TICK (the events since the last one, every player,
+## then the moving props: `NetWorld.stream_rows`) and a WELCOME (the world table and every
+## player, for a client that joins at any time). The layouts are in `NetWire` and `NetEvent`.
+## Snapshots are full: eight players are 96 bytes a tick, and a full snapshot repairs whatever a
+## stall delayed.
 ##
 ## A decoder checks a count against the bytes left before it reads a single entry (never
 ## allocating by what a packet claims) and answers null, with the reason counted, for anything
@@ -21,13 +22,16 @@ const F_AIR := 1 << 3
 const F_RISING := 1 << 4
 const F_DEAD := 1 << 5
 
-## The shortest event (a kind and one byte) and the longest (a JOINED with the longest name).
+## The shortest event (a kind and one byte) and the longest: an ENTITY with the longest state (20
+## bytes), one longer than a JOINED with the longest name (19).
 const MIN_EVENT_SIZE := 2
-const MAX_EVENT_SIZE := 3 + NetLimits.NAME_BYTES
+const MAX_EVENT_SIZE := 8 + NetLimits.MAX_ENTITY_STATE
 const MAX_TICK := (
 	NetWire.TICK_HEADER
 	+ NetLimits.MAX_EVENTS * MAX_EVENT_SIZE
 	+ NetLimits.MAX_PLAYERS * PLAYER_SIZE
+	+ NetWire.TICK_TAIL
+	+ NetLimits.MAX_STREAMED_PARTS * (NetWire.STREAM_ROW_HEADER + NetLimits.MAX_ENTITY_STATE)
 )
 ## A world row: u16 id, u8 kind, u8 state length (then the state).
 const ENTITY_HEADER := 4
@@ -50,6 +54,8 @@ class Tick:
 	var ack := 0
 	var events: Array[NetEvent] = []
 	var players: Array[PlayerEntry] = []
+	## The moving props' rows (an id and a state each; the kind is left 0).
+	var parts: Array[EntityEntry] = []
 
 
 ## A WELCOME, read.
@@ -68,15 +74,19 @@ class Welcome:
 
 
 ## The TICK packet, or an empty array (counted in `drops`) when what it would carry cannot travel
-## (too many events or players, a slot out of range, a number that is not finite).
+## (too many events, players or parts, a slot out of range, a number that is not finite).
 static func tick(
 	server_tick: int,
 	ack: int,
 	events: Array[NetEvent],
 	players: Array[PlayerEntry],
-	drops: NetDrops = null
+	drops: NetDrops = null,
+	parts: Array[EntityEntry] = []
 ) -> PackedByteArray:
 	if events.size() > NetLimits.MAX_EVENTS or players.size() > NetLimits.MAX_PLAYERS:
+		NetDrops.note(drops, NetDrops.TOO_MANY)
+		return PackedByteArray()
+	if parts.size() > NetLimits.MAX_STREAMED_PARTS:
 		NetDrops.note(drops, NetDrops.TOO_MANY)
 		return PackedByteArray()
 	var out := StreamPeerBuffer.new()
@@ -95,6 +105,17 @@ static func tick(
 		if reason != &"":
 			NetDrops.note(drops, reason)
 			return PackedByteArray()
+	out.put_u8(parts.size())
+	for row in parts:
+		if row.id < 0 or row.id > 0xFFFF:
+			NetDrops.note(drops, NetDrops.BAD_VALUE)
+			return PackedByteArray()
+		if row.state.size() > NetLimits.MAX_ENTITY_STATE:
+			NetDrops.note(drops, NetDrops.TOO_LONG)
+			return PackedByteArray()
+		out.put_u16(row.id)
+		out.put_u8(row.state.size())
+		out.put_data(row.state)
 	return out.data_array
 
 
@@ -104,7 +125,7 @@ static func read_tick(data: PackedByteArray, drops: NetDrops = null) -> Tick:
 		return _drop(drops, NetDrops.EMPTY)
 	if data[0] != NetWire.Type.TICK:
 		return _drop(drops, NetDrops.UNKNOWN_TYPE)
-	if data.size() < NetWire.TICK_HEADER:
+	if data.size() < NetWire.TICK_HEADER + NetWire.TICK_TAIL:
 		return _drop(drops, NetDrops.TOO_SHORT)
 	if data.size() > MAX_TICK:
 		return _drop(drops, NetDrops.TOO_LONG)
@@ -128,9 +149,26 @@ static func read_tick(data: PackedByteArray, drops: NetDrops = null) -> Tick:
 	var players := _read_players(reader, drops)
 	if players == null:
 		return null
+	result.players = players.players
+	var part_count := reader.u8()
+	if not reader.ok:
+		return _drop(drops, NetDrops.COUNT_PAST_END)
+	if part_count > NetLimits.MAX_STREAMED_PARTS:
+		return _drop(drops, NetDrops.TOO_MANY)
+	if part_count * NetWire.STREAM_ROW_HEADER > reader.left():
+		return _drop(drops, NetDrops.COUNT_PAST_END)
+	for _index in part_count:
+		var row := EntityEntry.new()
+		row.id = reader.u16()
+		var state_size := reader.u8()
+		if state_size > NetLimits.MAX_ENTITY_STATE:
+			return _drop(drops, NetDrops.BAD_VALUE)
+		row.state = reader.take(state_size)
+		if not reader.ok:
+			return _drop(drops, NetDrops.COUNT_PAST_END)
+		result.parts.append(row)
 	if reader.left() != 0:
 		return _drop(drops, NetDrops.TOO_LONG)
-	result.players = players.players
 	return result
 
 
