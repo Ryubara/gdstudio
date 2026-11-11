@@ -43,12 +43,21 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 @export var grip_pose: HandPose
 ## The index finger on the trigger, blended over `grip_pose` as the character aims.
 @export var trigger_pose: HandPose
+## Where the index finger is half-way between the frame and the trigger (kit #1079): it leaves
+## the trigger guard on its own side before it lifts, so it never crosses the left thumb, which
+## lies along the frame on the other side. Solved with the poses, never typed.
+@export var trigger_way_pose: HandPose
+## The right thumb while the left hand is on the weapon too (kit #1084): it rests on the root of
+## the left thumb, which takes its place on the frame, as a two-handed grip is taught. Blended
+## over `grip_pose` while the left hand waits at the far end of `support_way`, before it comes in
+## (`SupportHandPlan.room`).
+@export var thumb_pose: HandPose
 ## How far the right hand is on `grip_pose` (0 the clip's own fist).
 @export_range(0.0, 1.0, 0.01) var held_weight := 1.0
 ## The arm that carries the weapon, and how many degrees it is held out from the body while the
 ## weapon is carried: a hand closed on a grip is wider than the clips' open hand, and with the arm
 ## hanging as the clips have it the grip's foot would be in the thigh. It goes back as the
-## character aims (the aim clips hold the weapon clear of the body).
+## character aims or reloads (those clips hold the weapon clear of the body).
 @export var carry_arm: StringName = &"upperarm_r"
 @export_range(0.0, 30.0, 0.5) var carry_arm_out := 8.0
 
@@ -134,10 +143,15 @@ func refresh() -> void:
 	# The finger leaves the trigger for the reload.
 	_grip.second_weight = aim_weight * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight)
+	# The reload clip brings the weapon in front of the chest, as the aim clips do: held out there,
+	# it would be out of the left arm's reach (13 mm on the male mannequin).
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
 	if _arm == null:
 		return
 	_plan_left()
+	# The right thumb makes room while the left hand waits at the far end of its way, before it
+	# comes in, and lies on the weapon again once that hand is back out there.
+	_grip.open_weight = _left.room
 	_weigh(_arm, held_weight * _left.arm)
 	_weigh(_fingers, held_weight * _left.arm)
 	if _arm.active:
@@ -151,8 +165,12 @@ func refresh() -> void:
 			place = place.interpolate_with(under, _left.at_magazine)
 			place.origin += return_clearance * sin(PI * _left.across)
 		# In the bone's space: the weapon's seat times the place in the weapon.
-		_arm.offset = (_marker.get_parent() as Node3D).transform * place
+		var weapon := (_marker.get_parent() as Node3D).transform
+		_arm.offset = weapon * place
 		_arm.elbow = support_elbow
+		# An arm too short for the place (the aim coming up, the weapon still out to the side)
+		# backs the hand off along its way, opened; under the magazine it has no such line.
+		_arm.retreat = weapon.basis * support_way if _left.at_magazine <= 0.0 else Vector3.ZERO
 		_fingers.second_weight = _left.magazine_fingers
 		_fingers.open_weight = _left.opened
 
@@ -192,9 +210,15 @@ func modifiers() -> Array[SkeletonModifier3D]:
 	return found
 
 
-## How far the left hand stopped from its marker on the last update, in metres.
+## How far the left hand stopped from its place on the last update, in metres.
 func support_shortfall() -> float:
 	return _arm.shortfall if _arm != null and is_instance_valid(_arm) else 0.0
+
+
+## How far the left arm backed the hand off along `support_way` on the last update because it was
+## too short for the hand's place, in metres (0 when it reached).
+func support_backed() -> float:
+	return _arm.backed if _arm != null and is_instance_valid(_arm) else 0.0
 
 
 # A modifier's weight; written only when it changes, since the setters make the skeleton work.
@@ -221,6 +245,8 @@ func _build() -> void:
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
 	_grip.second = trigger_pose
+	_grip.second_via = trigger_way_pose
+	_grip.open = thumb_pose
 	_skeleton.add_child(_grip)
 	_marker = seat.get_child(0).get_node_or_null(support_marker) as Node3D
 	if _marker != null and _marker.get_parent() == seat.get_child(0) and support_arm.size() == 3:
@@ -234,6 +260,7 @@ func _build() -> void:
 		_fingers.pose = support_pose
 		_fingers.second = magazine_pose
 		_fingers.open = open_pose
+		_arm.opener = _fingers
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 	refresh()
