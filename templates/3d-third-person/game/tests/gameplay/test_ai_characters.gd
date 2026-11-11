@@ -52,7 +52,7 @@ func _warnings_of(root: Node) -> Array[String]:
 
 func test_the_model_slots_variant_is_pinned_empty() -> void:
 	var slot: CharacterModel = auto_free(CharacterModel.new())
-	var pins := {&"variant": null}
+	var pins := {&"variant": null, &"body_layers": 1 << 1}
 	assert_array(ExportPins.differences(slot, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(slot, pins)).is_empty()
 
