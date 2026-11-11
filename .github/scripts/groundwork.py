@@ -431,11 +431,15 @@ def section_refs(text: str) -> list[tuple[str, str]]:
 
 
 def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[str, Any] | None,
-                     changed: list[str] | None = None) -> list[str]:
+                     changed: list[str] | None = None, docs_ref: str | None = None) -> list[str]:
     """Docs ship with the change (pull_requests.kit_docs, lessons, read_first: the sections read first, which must
     exist when `read_first.docs` is a folder here), judged from the title, the description,
     the pull request's history (`pr-history`: failed earlier checks, the issues it closes and their labels) and, when
-    given, its changed files (the `Lessons:` section's page must be one of them when `lessons.edited` is on)."""
+    given, its changed files (the `Lessons:` section's page must be one of them when `lessons.edited` is on).
+    `docs_ref` (a git ref, `origin/main` on a machine) is where the `Read first:` sections are looked up instead of the
+    folder as it is checked out: the author read them before the branch existed, and CI reads them in its checkout of
+    the base branch, so a section only the branch adds is refused here too (kit #1131). `Lessons:` names the section
+    the branch writes and is never looked up in the base."""
     history = history or {}
     rules = conv["pull_requests"]
     problems: list[str] = []
@@ -503,9 +507,16 @@ def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[
             problems.append(f"'{label}' names sections as page.md#anchor (the `Read:` lines of `gds brief`), not "
                             f"areas or words: {value!r}")
         elif first.get("docs") and Path(first["docs"]).is_dir():
-            missing = [f"{p}#{a}" for p, a in refs if a not in page_anchors(Path(first["docs"]) / p)]
+            docs = Path(first["docs"])
+            if docs_ref:
+                missing = [f"{p}#{a}" for p, a in refs if a not in ref_page_anchors(docs, p, docs_ref)]
+                where = (f"{docs_ref}'s {first['docs']}/ (as CI reads the base branch; a section this branch "
+                         f"adds is named in 'Lessons:', not here)")
+            else:
+                missing = [f"{p}#{a}" for p, a in refs if a not in page_anchors(docs / p)]
+                where = f"{first['docs']}/"
             if missing:
-                problems.append(f"'{label}' names sections that do not exist in {first['docs']}/: "
+                problems.append(f"'{label}' names sections that do not exist in {where}: "
                                 f"{', '.join(missing)} (docs/studio/rules.md#anchors)")
     return problems
 
@@ -519,8 +530,24 @@ def page_anchors(path: Path) -> set[str]:
     python/src/gds_tools/lessons.py reads them); empty when the page does not exist."""
     if not path.is_file():
         return set()
+    return text_anchors(path.read_text(encoding="utf-8"))
+
+
+def ref_page_anchors(docs: Path, page: str, ref: str) -> set[str]:
+    """The anchors of `docs/<page>` as the git ref `ref` has it (`git show <ref>:./<page>` inside the folder `docs`);
+    empty when the ref, or the page in it, does not exist."""
+    try:
+        done = subprocess.run(["git", "-C", str(docs), "show", f"{ref}:./{page}"], capture_output=True,
+                              encoding="utf-8", errors="replace", timeout=30, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    return text_anchors(done.stdout) if done.returncode == 0 else set()
+
+
+def text_anchors(text: str) -> set[str]:
+    """The anchors of a docs page's text (`page_anchors`)."""
     found, fenced = set(), False
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         if re.match(r"^\s*(```|~~~)", line):
             fenced = not fenced
             continue
@@ -1201,9 +1228,21 @@ def cmd_check_body(conv: dict[str, Any], args: argparse.Namespace) -> int:
         history = json.loads(_read(args.history)) if args.history else {}
         if history.get("unavailable"):
             print("note: the pull request's history could not be read; the title alone is judged", file=sys.stderr)
+        if "closes" not in history:  # no API answer (a machine, or GitHub down): the body's closing lines say it
+            history["closes"] = [{"number": n, "labels": []} for n in body_closes(conv, body)]
         changed = _read(args.changed).split() if getattr(args, "changed", None) else None
-        problems += lessons_problems(conv, title, body, history, changed)
+        problems += lessons_problems(conv, title, body, history, changed, getattr(args, "docs_ref", None))
     return _report(problems, "description")
+
+
+def body_closes(conv: dict[str, Any], body: str) -> list[int]:
+    """The issues a description closes by its own closing lines (`pull_requests.closing`, `Fixes #N`), in order; used
+    when the API's list (`pr-history`) is not at hand, so the `Read first:` rule is judged on a machine too."""
+    closing = conv["pull_requests"].get("closing")
+    if not closing:
+        return []
+    found = re.findall(rf"^\s*{re.escape(closing['keyword'])} #(\d+)\s*$", body, flags=re.MULTILINE)
+    return list(dict.fromkeys(int(n) for n in found))
 
 
 def cmd_pr_history(conv: dict[str, Any], args: argparse.Namespace) -> int:
@@ -1346,6 +1385,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--title", help="the title (a file): enables the screenshots, failed-first and lessons rules")
     p.add_argument("--history", help="the output of pr-history (a file): lets the lessons rules see failed checks")
     p.add_argument("--changed", help="the changed files, one per line (a file): the Lessons: section's page is one")
+    p.add_argument("--docs-ref", help="a git ref (origin/main) whose docs the Read first: sections are looked up in, "
+                   "as CI reads its checkout of the base branch")
     p.set_defaults(run=cmd_check_body)
     p = sub.add_parser("pr-history", help="print a pull request's failed earlier checks and closed issues as JSON")
     p.add_argument("--repo", required=True, help="owner/name")

@@ -48,6 +48,13 @@ ground](ui-controls.md#a-card-that-looks-for-free-ground)); sending input is in
   from `get_viewport_rect()`, before the phone factor was on the window, so it covered 29 units of the last tab on the
   narrowest page; a height or a text size does not show a cover, and every test set the factor first. **Seen:**
   Deadnight #1271, 2026-11-05 (fix: `MenuPlate.fit` on the factor and on `resized`; `header_overlap` in the probe).
+- **Approach:** Give a text that changes with the pointer or focus (an item's details) a fixed height: the lines of
+  the longest shipped text, read from the label's theme, with `max_lines_visible` and an ellipsis; prove it by pointer
+  motion over every slot comparing every part's rectangle at desktop and phone sizes. **Watch out for:** a centred
+  card grows both ways, so details of 1 to 4 wrapped lines moved the whole inventory card 19 units at every hover; a
+  `UIFitScroll` refitted only on a viewport or content change, so a menu put to the phone factor at run time stayed
+  too tall once the details held still. **Seen:** gdstudio #1136, 2026-11-11 (fix: `LinesLabel`, `lines` 4; the
+  scroll refits on its limit's `resized`; `test_no_part_moves_*`).
 
 ## Placing a HUD part {#placement}
 

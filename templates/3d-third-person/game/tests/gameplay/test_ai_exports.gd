@@ -56,6 +56,11 @@ func test_the_profile_defaults_are_pinned() -> void:
 		&"failure_window": 10.0,
 		&"fallback_seconds": 5.0,
 		&"commit_seconds": 0.5,
+		&"careful_margin": 0.3,
+		&"pressure_per_threat": 0.1,
+		&"max_pressure": 0.3,
+		&"play_hysteresis": 0.08,
+		&"play_dwell": 2.0,
 	}
 	assert_array(ExportPins.differences(profile, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(profile, pins)).is_empty()
@@ -115,7 +120,7 @@ func test_the_character_adds_only_its_ai_exports() -> void:
 		if not base.has(export_name):
 			own.append(export_name)
 	assert_array(own).is_equal(
-		[&"profile", &"debug", &"debug_label", &"senses", &"navigator", &"task_runner"]
+		[&"profile", &"debug", &"debug_label", &"senses", &"navigator", &"task_runner", &"brain"]
 	)
 	assert_bool(character.debug).is_false()
 	assert_str((character.profile as AiProfile).display_name).is_equal("Grunt")
@@ -176,3 +181,59 @@ func test_the_tasks_node_and_the_needs_defaults_are_pinned() -> void:
 	assert_array(ExportPins.differences(AiNeedRow.new(), row_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(AiNeedRow.new(), row_pins)).is_empty()
 	assert_array(ExportPins.differences(AiNeeds.new(), {&"rows": []})).is_empty()
+
+
+func test_the_brain_marker_and_router_defaults_are_pinned() -> void:
+	var brain: AiBrain = auto_free(AiBrain.new())
+	var brain_pins := {
+		&"behaviour": null,
+		&"leader": null,
+		&"patrol_route": &"",
+		&"home_radius": 6.0,
+		&"random_seed": 0,
+		&"threat_recheck_seconds": 1.0,
+		&"target_bonus": 0.3,
+		&"remind_up_to": AiRelations.Band.HOSTILE,
+		&"retry_seconds": 1.0,
+		&"line_cooldown": 8.0,
+		&"any_line_cooldown": 2.5,
+		&"crowd_cooldown": 1.5,
+		&"authority_only": true,
+	}
+	assert_array(ExportPins.differences(brain, brain_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(brain, brain_pins)).is_empty()
+	var marker: AiMarker = auto_free(AiMarker.new())
+	var marker_pins := {
+		&"kind": AiMarker.Kind.PATROL, &"route": &"", &"wait_seconds": 2.0, &"enabled": true
+	}
+	assert_array(ExportPins.differences(marker, marker_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(marker, marker_pins)).is_empty()
+	var row_pins := {
+		&"event": &"noticed",
+		&"bands": 31,
+		&"situations": 31,
+		&"play_states": 7,
+		&"min_awareness": 0.0,
+		&"min_courage": 0.0,
+		&"max_courage": 1.0,
+		&"chance": 1.0,
+		&"chance_scale": AiReactionRow.Scale.NONE,
+		&"task": null,
+		&"place": AiReactionRow.Place.EVENT,
+		&"enter": 0,
+		&"note": "",
+	}
+	assert_array(ExportPins.differences(AiReactionRow.new(), row_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(AiReactionRow.new(), row_pins)).is_empty()
+	var waiver_pins := {&"event": &"noticed", &"bands": 0, &"situations": 0, &"reason": ""}
+	assert_array(ExportPins.wrong_values(AiReactionWaiver.new(), waiver_pins)).is_empty()
+	var rule_pins := {&"situation": 0, &"blocks": [], &"open_layers": 31}
+	assert_array(ExportPins.wrong_values(AiSituationRule.new(), rule_pins)).is_empty()
+	var set_pins := {
+		&"display_name": "Behaviour",
+		&"rows": [],
+		&"waivers": [],
+		&"situation_rules": [],
+		&"default_task": null,
+	}
+	assert_array(ExportPins.differences(AiBehaviourSet.new(), set_pins)).is_empty()

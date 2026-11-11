@@ -1,0 +1,519 @@
+[gd_resource type="Resource" script_class="AiBehaviourSet" format=3]
+
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_look_around.gd" id="1_r5do8"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_reaction_row.gd" id="2_jnd8y"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_follow.gd" id="3_hue3o"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_attack.gd" id="4_qmsts"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_take_cover.gd" id="5_8t5an"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_look_at.gd" id="6_ej1ou"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_task.gd" id="7_20jg8"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_say.gd" id="8_okdrf"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_task_parallel.gd" id="9_6d6wu"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_chase.gd" id="10_3j141"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_traverse_link.gd" id="11_li7hh"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_go_to.gd" id="12_rohxs"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_guard.gd" id="13_nwk0t"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_use_object.gd" id="14_tf8b0"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_behaviour_set.gd" id="15_l07mi"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_situation_rule.gd" id="16_6b7mp"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_reaction_waiver.gd" id="17_ev2vx"]
+
+[sub_resource type="Resource" id="Resource_hpk2j"]
+script = ExtResource("1_r5do8")
+seconds = 0.0
+id = &"look_around"
+layer = 4
+channels = 4
+replace_policy = 3
+hard_timeout = 0.0
+
+[sub_resource type="Resource" id="Resource_351mn"]
+script = ExtResource("3_hue3o")
+id = &"follow"
+hard_timeout = 0.0
+
+[sub_resource type="Resource" id="Resource_w203b"]
+script = ExtResource("2_jnd8y")
+event = &"spawned"
+task = SubResource("Resource_351mn")
+note = "Follows its leader (the brain's leader) from the start."
+
+[sub_resource type="Resource" id="Resource_26xbi"]
+script = ExtResource("4_qmsts")
+answers_threat = true
+id = &"engage"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_fsew2"]
+script = ExtResource("2_jnd8y")
+bands = 1
+play_states = 1
+task = SubResource("Resource_26xbi")
+enter = 4
+note = "An enemy believed: fight it."
+
+[sub_resource type="Resource" id="Resource_t0h3c"]
+script = ExtResource("5_8t5an")
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_1hgvf"]
+script = ExtResource("2_jnd8y")
+bands = 1
+play_states = 2
+task = SubResource("Resource_t0h3c")
+enter = 4
+note = "Careful: fight from cover, peeking (no spot: hunkered down where it stands)."
+
+[sub_resource type="Resource" id="Resource_ec8vy"]
+script = ExtResource("5_8t5an")
+peek = false
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_ga7bv"]
+script = ExtResource("2_jnd8y")
+bands = 1
+play_states = 4
+task = SubResource("Resource_ec8vy")
+enter = 4
+note = "Safe: hide in cover (no spot: hunkered down where it stands)."
+
+[sub_resource type="Resource" id="Resource_qkbbc"]
+script = ExtResource("6_ej1ou")
+seconds = 3.0
+id = &"look_at"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_ifkm7"]
+script = ExtResource("2_jnd8y")
+bands = 2
+task = SubResource("Resource_qkbbc")
+note = "An Unfriendly thing is watched."
+
+[sub_resource type="Resource" id="Resource_1opqi"]
+script = ExtResource("6_ej1ou")
+seconds = 2.5
+id = &"look_at"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_j0cus"]
+script = ExtResource("2_jnd8y")
+event = &"suspicious"
+bands = 3
+task = SubResource("Resource_1opqi")
+note = "A glimpse: look at it."
+
+[sub_resource type="Resource" id="Resource_h885i"]
+script = ExtResource("6_ej1ou")
+seconds = 2.5
+id = &"look_at"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_jafcm"]
+script = ExtResource("2_jnd8y")
+event = &"heard"
+bands = 7
+task = SubResource("Resource_h885i")
+note = "A noise: look toward it and stay with the leader."
+
+[sub_resource type="Resource" id="Resource_tyt5x"]
+script = ExtResource("4_qmsts")
+answers_threat = true
+id = &"engage"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_pbyk7"]
+script = ExtResource("2_jnd8y")
+event = &"hit"
+bands = 7
+play_states = 3
+task = SubResource("Resource_tyt5x")
+enter = 4
+note = "Hit by a foe: fight back."
+
+[sub_resource type="Resource" id="Resource_23g0l"]
+script = ExtResource("5_8t5an")
+peek = false
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_fjugg"]
+script = ExtResource("2_jnd8y")
+event = &"hit"
+bands = 7
+play_states = 4
+task = SubResource("Resource_23g0l")
+enter = 4
+note = "Hit while Safe: hide."
+
+[sub_resource type="Resource" id="Resource_phlj0"]
+script = ExtResource("6_ej1ou")
+seconds = 1.5
+id = &"look_at"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_c3l7a"]
+script = ExtResource("8_okdrf")
+line = &"watch_it"
+id = &"say"
+layer = 1
+channels = 8
+
+[sub_resource type="Resource" id="Resource_uwmkd"]
+script = ExtResource("9_6d6wu")
+children = Array[ExtResource("7_20jg8")]([SubResource("Resource_phlj0"), SubResource("Resource_c3l7a")])
+id = &"look"
+layer = 1
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_gbu5u"]
+script = ExtResource("2_jnd8y")
+event = &"hit"
+bands = 24
+task = SubResource("Resource_uwmkd")
+note = "Hit by a friend (the player's stray shot): look and complain, never fight."
+
+[sub_resource type="Resource" id="Resource_kkise"]
+script = ExtResource("10_3j141")
+give_up_seconds = 6.0
+answers_threat = true
+id = &"chase"
+layer = 1
+channels = 5
+
+[sub_resource type="Resource" id="Resource_3hyin"]
+script = ExtResource("2_jnd8y")
+event = &"lost_sight"
+bands = 7
+play_states = 3
+task = SubResource("Resource_kkise")
+enter = 4
+note = "Lost sight of the enemy: a short chase, then back to the leader."
+
+[sub_resource type="Resource" id="Resource_7hbxh"]
+script = ExtResource("5_8t5an")
+peek = false
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_x6co4"]
+script = ExtResource("2_jnd8y")
+event = &"lost_sight"
+bands = 7
+play_states = 4
+task = SubResource("Resource_7hbxh")
+note = "Safe: stay hidden."
+
+[sub_resource type="Resource" id="Resource_mpjgb"]
+script = ExtResource("1_r5do8")
+id = &"look_around"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_usi7o"]
+script = ExtResource("2_jnd8y")
+event = &"lost_trail"
+bands = 7
+task = SubResource("Resource_mpjgb")
+enter = 3
+note = "The trail ran out: look round, then follow the leader again."
+
+[sub_resource type="Resource" id="Resource_yti4n"]
+script = ExtResource("1_r5do8")
+id = &"look_around"
+layer = 1
+channels = 4
+replace_policy = 3
+
+[sub_resource type="Resource" id="Resource_ah6hk"]
+script = ExtResource("2_jnd8y")
+event = &"forgot"
+task = SubResource("Resource_yti4n")
+note = "A memory expired: one look round."
+
+[sub_resource type="Resource" id="Resource_v52at"]
+script = ExtResource("5_8t5an")
+peek = false
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_qeatu"]
+script = ExtResource("2_jnd8y")
+event = &"hurt"
+task = SubResource("Resource_v52at")
+note = "Turned Safe with a hostile in view: hide in cover, or hunker down."
+
+[sub_resource type="Resource" id="Resource_aav7x"]
+script = ExtResource("4_qmsts")
+draw_fists = true
+answers_threat = true
+id = &"engage"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_cig2o"]
+script = ExtResource("2_jnd8y")
+event = &"no_ammo"
+bands = 7
+play_states = 1
+task = SubResource("Resource_aav7x")
+note = "A dry gun, Aggressive: fists."
+
+[sub_resource type="Resource" id="Resource_g104l"]
+script = ExtResource("5_8t5an")
+peek = false
+answers_threat = true
+id = &"cover"
+layer = 1
+channels = 7
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_sasyp"]
+script = ExtResource("2_jnd8y")
+event = &"no_ammo"
+bands = 7
+play_states = 6
+task = SubResource("Resource_g104l")
+note = "A dry gun, Careful or Safe: hide without peeking."
+
+[sub_resource type="Resource" id="Resource_hplir"]
+script = ExtResource("11_li7hh")
+id = &"traverse_link"
+layer = 0
+interruptible = 1
+
+[sub_resource type="Resource" id="Resource_wc12f"]
+script = ExtResource("2_jnd8y")
+event = &"link"
+task = SubResource("Resource_hplir")
+note = "The navigator stopped at a link it leaves to a task (auto_traverse_links off): cross it."
+
+[sub_resource type="Resource" id="Resource_4kqpt"]
+script = ExtResource("12_rohxs")
+id = &"go_to"
+layer = 2
+authority = 30
+
+[sub_resource type="Resource" id="Resource_xy71g"]
+script = ExtResource("2_jnd8y")
+event = &"order_go"
+task = SubResource("Resource_4kqpt")
+note = "A script sends it somewhere."
+
+[sub_resource type="Resource" id="Resource_5civv"]
+script = ExtResource("13_nwk0t")
+id = &"guard"
+layer = 2
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+authority = 30
+
+[sub_resource type="Resource" id="Resource_rpg6x"]
+script = ExtResource("2_jnd8y")
+event = &"order_hold"
+task = SubResource("Resource_5civv")
+note = "A script has it hold a place until revoked."
+
+[sub_resource type="Resource" id="Resource_tdtmv"]
+script = ExtResource("14_tf8b0")
+id = &"use"
+layer = 2
+channels = 3
+authority = 30
+
+[sub_resource type="Resource" id="Resource_l3rbk"]
+script = ExtResource("2_jnd8y")
+event = &"order_use"
+task = SubResource("Resource_tdtmv")
+note = "A script has it use a door or a switch."
+
+[sub_resource type="Resource" id="Resource_nd7qa"]
+script = ExtResource("16_6b7mp")
+situation = 3
+blocks = Array[StringName]([&"heard", &"suspicious"])
+
+[sub_resource type="Resource" id="Resource_wcdf4"]
+script = ExtResource("17_ev2vx")
+bands = 28
+situations = 31
+reason = "The senses notice only what they care about (care_up_to Unfriendly): a Neutral, Friendly or Allied thing is never noticed."
+
+[sub_resource type="Resource" id="Resource_00f0g"]
+script = ExtResource("17_ev2vx")
+event = &"suspicious"
+bands = 28
+situations = 31
+reason = "The senses notice only what they care about (care_up_to Unfriendly): a Neutral, Friendly or Allied thing is never noticed."
+
+[sub_resource type="Resource" id="Resource_laouc"]
+script = ExtResource("17_ev2vx")
+event = &"heard"
+bands = 24
+situations = 31
+reason = "A friend's noise is not heard: the senses filter it by band."
+
+[sub_resource type="Resource" id="Resource_6qn4l"]
+script = ExtResource("17_ev2vx")
+event = &"lost_sight"
+bands = 24
+situations = 31
+reason = "It never fights a friend, so no fight loses one."
+
+[sub_resource type="Resource" id="Resource_huts2"]
+script = ExtResource("17_ev2vx")
+event = &"lost_trail"
+bands = 24
+situations = 31
+reason = "It never chases a friend."
+
+[sub_resource type="Resource" id="Resource_mgg0k"]
+script = ExtResource("17_ev2vx")
+event = &"no_ammo"
+bands = 24
+situations = 31
+reason = "It never fights a friend."
+
+[sub_resource type="Resource" id="Resource_nsra6"]
+script = ExtResource("17_ev2vx")
+event = &"spawned"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_1xy7x"]
+script = ExtResource("17_ev2vx")
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_lj32r"]
+script = ExtResource("17_ev2vx")
+event = &"suspicious"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_lhuye"]
+script = ExtResource("17_ev2vx")
+event = &"heard"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_6b32k"]
+script = ExtResource("17_ev2vx")
+event = &"hit"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_e52l7"]
+script = ExtResource("17_ev2vx")
+event = &"lost_sight"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_2xgl2"]
+script = ExtResource("17_ev2vx")
+event = &"lost_trail"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_0oa0g"]
+script = ExtResource("17_ev2vx")
+event = &"forgot"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_3mesd"]
+script = ExtResource("17_ev2vx")
+event = &"hurt"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_ub6m1"]
+script = ExtResource("17_ev2vx")
+event = &"no_ammo"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_72ig6"]
+script = ExtResource("17_ev2vx")
+event = &"link"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_skbwg"]
+script = ExtResource("17_ev2vx")
+event = &"order_go"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_cbags"]
+script = ExtResource("17_ev2vx")
+event = &"order_hold"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[sub_resource type="Resource" id="Resource_4k0xb"]
+script = ExtResource("17_ev2vx")
+event = &"order_use"
+bands = 31
+situations = 16
+reason = "The ally set never enters Fleeing (it hides or runs as a task, Engaged)."
+
+[resource]
+script = ExtResource("15_l07mi")
+display_name = "Friendly ally"
+rows = Array[ExtResource("2_jnd8y")]([SubResource("Resource_w203b"), SubResource("Resource_fsew2"), SubResource("Resource_1hgvf"), SubResource("Resource_ga7bv"), SubResource("Resource_ifkm7"), SubResource("Resource_j0cus"), SubResource("Resource_jafcm"), SubResource("Resource_pbyk7"), SubResource("Resource_fjugg"), SubResource("Resource_gbu5u"), SubResource("Resource_3hyin"), SubResource("Resource_x6co4"), SubResource("Resource_usi7o"), SubResource("Resource_ah6hk"), SubResource("Resource_qeatu"), SubResource("Resource_cig2o"), SubResource("Resource_sasyp"), SubResource("Resource_wc12f"), SubResource("Resource_xy71g"), SubResource("Resource_rpg6x"), SubResource("Resource_l3rbk")])
+waivers = Array[ExtResource("17_ev2vx")]([SubResource("Resource_wcdf4"), SubResource("Resource_00f0g"), SubResource("Resource_laouc"), SubResource("Resource_6qn4l"), SubResource("Resource_huts2"), SubResource("Resource_mgg0k"), SubResource("Resource_nsra6"), SubResource("Resource_1xy7x"), SubResource("Resource_lj32r"), SubResource("Resource_lhuye"), SubResource("Resource_6b32k"), SubResource("Resource_e52l7"), SubResource("Resource_2xgl2"), SubResource("Resource_0oa0g"), SubResource("Resource_3mesd"), SubResource("Resource_ub6m1"), SubResource("Resource_72ig6"), SubResource("Resource_skbwg"), SubResource("Resource_cbags"), SubResource("Resource_4k0xb")])
+situation_rules = Array[ExtResource("16_6b7mp")]([SubResource("Resource_nd7qa")])
+default_task = SubResource("Resource_hpk2j")
