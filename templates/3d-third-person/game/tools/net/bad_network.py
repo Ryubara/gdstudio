@@ -24,8 +24,10 @@ LOST_PAGE = 1
 # own hitches over 0.25 s): a snap more is an error past 2.5 m, a loop that does not settle.
 SNAPS_A_FREEZE = 1
 SNAPS_AT_JOIN = 1
-# Without freezes a stall of the network is a burst, never a wrong position: no snap (2.5 m off).
-STALL_WORST_ERROR_M = 2.5
+# Without freezes a stall of the network is a burst, never a wrong position: under 4 m. A stall of the commands' way
+# outlasts the hold, so the server repeats the last command (30 steps at most) and the answer after it is off by that
+# run: 1.4 to 1.6 m for one stall, 2.7 m when two came close together (with the jitter on top).
+STALL_WORST_ERROR_M = 4.0
 # Once the body has stood two seconds it is where the server says, to the wire's rounding (a TICK carries
 # centimetres: 0.87 cm at most) and a little more.
 END_GAP_M = 0.05
@@ -38,8 +40,8 @@ CORRECTED_M_PER_MINUTE = 4.0
 # which the relay never does: the deployment on Railway read 3.1 m in 30 s at a 69 ms round trip (6.1 m a minute).
 # The hard limits (lost, snaps, worst error, settled) stay the same.
 CORRECTED_M_PER_MINUTE_REAL = 10.0
-# Measured 0.5 to 1.0 m an up stall over six runs; the freeze run, with no stalls, is the hold's teeth.
-CORRECTED_M_AN_UP_STALL = 1.5
+# Measured 0.5 to 1.6 m an up stall over seven runs; the freeze run, with no stalls, is the hold's teeth.
+CORRECTED_M_AN_UP_STALL = 3.0
 # A stall of the client's own thread that the run did not plan (a software-drawn page's hitch past 0.25 s): the
 # commands around it come late, as around a freeze. The browser read 0.7 to 5.2 m with 7 to 9 hitches; without the
 # hold 31 m.

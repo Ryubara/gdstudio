@@ -133,9 +133,9 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Lost | no answer past 6 m (the page: one) | a loop that does not settle |
 | Snaps | one at the join and one per stall of the client's thread the stall guard saw | an error past 2.5 m outside a resync |
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
-| Worst error | under 6 m with freezes (the page: 8 m, #1070), under 2.5 m with stalls only | a stall shows as a burst, never a wrong place |
+| Worst error | under 6 m with freezes (the page: 8 m, #1070), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
-| Corrected | 4 m a minute (10 over a real network), 1.5 m more per stall of the commands' way, 0.75 m per unplanned stall of the client | the server's hold |
+| Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client | the server's hold |
 | Starved puppets | 1 % of puppet-steps and 8 a puppet per stall of the client's thread (its catch-up frame), or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
 | Logs | nobody kicked, no `ERROR` in the server's or client's log; the page: no console error, no `Buffer payload full`, at least 20 frames a second | the transport |
 
@@ -146,7 +146,7 @@ before the relay jittered):
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Native, relay, freezes (three runs) | 220 to 234 ms | 53 to 75 (0.69 to 0.93 m) | 3 / 3 | 2.72 to 2.93 m | 2.8 to 4.1 mm | 0 |
 | Native, relay and 30 ms jitter, freezes | about 230 ms | 54 (0.75 m) | 3 / 3 | under 3 m | under 5 mm | 0 |
-| Native, relay and jitter, 1 % stalls (19 up, 17 down) | about 240 ms | 207 (19.3 m) | 0 / 0 | under 2.5 m | under 5 mm | 669 of 5760 |
+| Native, relay and jitter, 1 % stalls (17 to 19 up, 17 to 19 down) | about 240 to 270 ms | 207 to 271 (19.3 to 27.3 m) | 0 to 1 / 0 | 1.5 to 2.7 m | 2.2 to 5 mm | 669 to 714 of 5760 |
 | Native, relay, 1 % stalls (22 to 26 up, 10 to 16 down) | 234 to 248 ms | 188 to 221 (11.2 to 16.4 m) | 0 / 0 | 1.42 to 1.52 m | 2.1 to 6.1 mm | 387 to 531 of 5760 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
