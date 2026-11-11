@@ -69,7 +69,7 @@ omni_range = 2.2
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="."]
 unique_name_in_owner = true
-volume_db = -14.0
+volume_db = -20.0
 bus = &"SFX"
 
 [node name="MinimapMarker" type="Node" parent="."]

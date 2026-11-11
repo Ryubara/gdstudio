@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="pcamtween"]
 [ext_resource type="PackedScene" path="res://core/minimap/minimap_section.tscn" id="minimap_section"]
 [ext_resource type="PackedScene" path="res://gameplay/pickup/pickup.tscn" id="pickup"]
+[ext_resource type="PackedScene" path="res://gameplay/pickup/rifle_pickup.tscn" id="rifle_pickup"]
 [ext_resource type="PackedScene" path="res://gameplay/moving_platform/moving_platform.tscn" id="plat"]
 [ext_resource type="PackedScene" path="res://gameplay/physics_prop/physics_prop.tscn" id="prop"]
 [ext_resource type="PackedScene" path="res://gameplay/spawn_point/spawn_point.tscn" id="spawn"]
@@ -1427,6 +1428,9 @@ tint = Color(0.35, 0.85, 0.4, 1)
 [node name="BridgeCoin" parent="Pickups" unique_id=1398352393 instance=ExtResource("pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 2.7, 16)
 respawn_time = 10.0
+
+[node name="RiflePickup" parent="Pickups" unique_id=1873012645 instance=ExtResource("rifle_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -8)
 
 [node name="Spawns" type="Node3D" parent="." unique_id=489255347]
 

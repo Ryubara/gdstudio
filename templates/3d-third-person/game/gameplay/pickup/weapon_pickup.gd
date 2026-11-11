@@ -9,8 +9,9 @@ extends Pickup
 ##
 ## Everything it shows is a node of `weapon_pickup.tscn`: the weapon's model goes under `Visual`
 ## (a scene that extends this one, like `rifle_pickup.tscn`, puts it there), `Glow` is the ring on
-## the ground and `Light` a small light in the weapon's colour (`tint`; delete it on a level with
-## many pickups: each light is drawn again over what it touches on the Compatibility renderer).
+## the ground and `Light` a small light in the weapon's colour (`tint`, no shadow; ten rifle
+## pickups drew 35 draw calls on the Compatibility renderer with their lights and without, but a
+## mesh takes at most 8 lights there, so delete it on a level that crowds pickups together).
 ## `Sound` plays the pickup sound. The spin, the bob, the respawn and the sound are `Pickup`'s.
 ##
 ## What a body was given is gameplay (a server decides it); the spin, the glow and the sound are

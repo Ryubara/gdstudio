@@ -160,3 +160,30 @@ func test_the_step_state_takes_a_given_weapon_back() -> void:
 	assert_int(_rifle_slot()).is_equal(-1)
 	assert_bool((_player.model.get_node("RifleHeld") as Node3D).visible).is_false()
 	assert_str(_player.weapon.definition.display_name).is_equal("Pistol")
+
+
+func test_both_hands_reach_the_rifle_and_let_go_when_it_is_put_away() -> void:
+	_pickup()
+	await _walk_through()
+	await _seconds(0.8)
+	var hold := _player.model.get_node("RifleHeld") as TwoHandHold
+	assert_int(hold.modifiers().size()).is_equal(5)
+	for modifier in hold.modifiers():
+		assert_bool(modifier.active).is_true()
+	var skeleton := _player.model.skeleton()
+	await skeleton.skeleton_updated
+	for side: String in ["r", "l"]:
+		var target := (
+			hold.find_child("RightHandTarget" if side == "r" else "LeftHandTarget", true, false)
+			as Node3D
+		)
+		var hand := (
+			skeleton.global_transform
+			* skeleton.get_bone_global_pose(skeleton.find_bone("hand_" + side))
+		)
+		assert_float(hand.origin.distance_to(target.global_position)).is_less(0.02)
+	_player.loadout.select(0)
+	await _seconds(0.9)
+	assert_bool(hold.visible).is_false()
+	for modifier in hold.modifiers():
+		assert_bool(modifier.active).is_false()

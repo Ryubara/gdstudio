@@ -9,6 +9,11 @@ extends SceneTree
 ##
 ## `godot --headless --path game -s res://tools/carry/measure_hand_contact.gd`
 ## It prints a `CONTACT` line a clip and model, in millimetres.
+##
+## With `-- rifle` after the command it measures the rifle's `TwoHandHold` instead (kit #889): the
+## game's player given the rifle, its modifiers' final pose read in `skeleton_updated`, at the low
+## ready, the aim level, up and down, on both mannequins; a `RIFLE` line a pose with each hand's
+## deepest point inside the rifle and each finger's gap to it (its last joint's nearest skin point).
 
 const MODELS: Array[String] = [
 	"res://assets/characters/mannequin/mannequin_female.glb",
@@ -23,12 +28,23 @@ const CLIPS: Array[StringName] = [
 	CharacterClips.PISTOL_RELOAD,
 ]
 const SAMPLES := 8
+const RIFLE := "res://assets/weapons/rifle/rifle.glb"
+## The rifle's poses: how far it is up at the shoulder and the view's pitch in degrees.
+const RIFLE_POSES: Array = [
+	["low ready", 0.0, 0.0], ["aim", 1.0, 0.0], ["aim up", 1.0, 30.0], ["aim down", 1.0, -30.0]
+]
+const LEFT_FINGERS: Array[StringName] = [
+	&"thumb_03_l", &"index_03_l", &"middle_03_l", &"ring_03_l", &"pinky_03_l"
+]
 const FINGERS: Array[StringName] = [
 	&"thumb_03_r", &"index_03_r", &"middle_03_r", &"ring_03_r", &"pinky_03_r"
 ]
 
 
 func _initialize() -> void:
+	if OS.get_cmdline_user_args().has("rifle"):
+		_measure_rifle.call_deferred()
+		return
 	for path in MODELS:
 		var holder := Node3D.new()
 		get_root().add_child(holder)
@@ -206,3 +222,137 @@ func _closest_on_triangle(p: Vector3, a: Vector3, b: Vector3, c: Vector3) -> Vec
 		if p.distance_squared_to(edge) < p.distance_squared_to(best):
 			best = edge
 	return best
+
+
+# The rifle's two-handed hold on the game's player, on each mannequin and in each pose.
+func _measure_rifle() -> void:
+	var triangles := _triangles_of(RIFLE)
+	for path in MODELS:
+		var player := (
+			(load("res://gameplay/player/player.tscn") as PackedScene).instantiate() as Player
+		)
+		player.start_at_spawn = false
+		get_root().add_child(player)
+		player.set_physics_process(false)
+		var slot := player.model
+		if not path.ends_with("female.glb"):
+			var old := slot.rig()
+			slot.remove_child(old)
+			old.free()
+			slot.add_child((load(path) as PackedScene).instantiate())
+		for _frame in 3:
+			await process_frame
+		player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 0)
+		for _tick in 4:
+			player.loadout.tick(1.0)
+		var hold := slot.get_node("RifleHeld") as TwoHandHold
+		var clearance := PistolClearance.new(get_root(), path)
+		var model := path.get_file().get_basename().trim_prefix("mannequin_")
+		for pose: Array in RIFLE_POSES:
+			player.aim_amount = pose[1]
+			player.view_pitch = deg_to_rad(pose[2])
+			for _frame in 30:
+				await process_frame
+			var skeleton := slot.skeleton()
+			await skeleton.skeleton_updated
+			var globals: Array[Transform3D] = []
+			for bone in skeleton.get_bone_count():
+				globals.append(skeleton.get_bone_global_pose(bone))
+			var gun := hold.find_child("Near", true, false) as Node3D
+			var to_gun := (
+				(skeleton.global_transform.affine_inverse() * gun.global_transform).affine_inverse()
+			)
+			_report_rifle(model, pose[0], clearance, globals, to_gun, triangles)
+		# Out of the signal's emission first: freeing the skeleton inside it crashes the engine.
+		await process_frame
+		clearance.free_rig()
+		player.free()
+	quit()
+
+
+func _report_rifle(
+	model: String,
+	pose_name: String,
+	clearance: PistolClearance,
+	globals: Array[Transform3D],
+	to_gun: Transform3D,
+	triangles: PackedVector3Array
+) -> void:
+	var saved := FINGERS
+	var hands := _hand_points(clearance, globals)
+	var left_hands := _hand_points_of(clearance, globals, LEFT_FINGERS)
+	var line := "RIFLE %s %s" % [model, pose_name]
+	for side: Array in [["right", hands, saved], ["left", left_hands, LEFT_FINGERS]]:
+		var points: Dictionary = side[1]
+		var whole := _depth_and_gap(points[side[0]], to_gun, triangles)
+		var gaps := PackedStringArray()
+		for finger: StringName in side[2]:
+			var finger_hit := _depth_and_gap(points[finger], to_gun, triangles)
+			(
+				gaps
+				. append(
+					(
+						"%s %+.1f"
+						% [
+							String(finger).get_slice("_", 0),
+							(finger_hit.y if finger_hit.x <= 0.0 else -finger_hit.x) * 1000.0,
+						]
+					)
+				)
+			)
+		line += " | %s: in %.1f, fingers [%s]" % [side[0], whole.x * 1000.0, ", ".join(gaps)]
+	print(line)
+
+
+# `_hand_points` with another list of finger bones (the left hand's).
+func _hand_points_of(
+	clearance: PistolClearance, globals: Array[Transform3D], fingers: Array[StringName]
+) -> Dictionary:
+	var skeleton := clearance.skeleton
+	var found := {"right": PackedVector3Array(), "left": PackedVector3Array()}
+	var finger_bones := {}
+	for finger in fingers:
+		found[finger] = PackedVector3Array()
+		finger_bones[skeleton.find_bone(finger)] = finger
+	var all := _hand_points(clearance, globals)
+	found["left"] = all["left"]
+	for part: Dictionary in clearance._body:
+		var vertices: PackedVector3Array = part["vertices"]
+		var bones: PackedInt32Array = part["bones"]
+		var weights: PackedFloat32Array = part["weights"]
+		var per: int = part["per"]
+		var binds: Dictionary = part["binds"]
+		for vertex in vertices.size():
+			var position := Vector3.ZERO
+			var strongest := 0.0
+			var owner_bone := -1
+			for slot in per:
+				var weight := weights[vertex * per + slot]
+				if weight <= 0.0:
+					continue
+				var entry: Array = binds[bones[vertex * per + slot]]
+				position += (
+					weight * ((globals[entry[0]] * (entry[1] as Transform3D)) * vertices[vertex])
+				)
+				if weight > strongest:
+					strongest = weight
+					owner_bone = entry[0]
+			if finger_bones.has(owner_bone):
+				found[finger_bones[owner_bone]].append(position)
+	return found
+
+
+func _triangles_of(path: String) -> PackedVector3Array:
+	var gun := (load(path) as PackedScene).instantiate() as Node3D
+	var faces := PackedVector3Array()
+	for node in gun.find_children("*", "MeshInstance3D", true, false):
+		var instance := node as MeshInstance3D
+		var to_root := Transform3D.IDENTITY
+		var cursor: Node = instance
+		while cursor != null and cursor != gun:
+			to_root = (cursor as Node3D).transform * to_root
+			cursor = cursor.get_parent()
+		for vertex in instance.mesh.get_faces():
+			faces.append(to_root * vertex)
+	gun.free()
+	return faces
