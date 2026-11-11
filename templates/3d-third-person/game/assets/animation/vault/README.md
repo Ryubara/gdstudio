@@ -36,9 +36,11 @@ body was moved when each clip was keyed, with forward 0 at the obstacle's front 
   speed upward at its start, the rise to the top of the arc and the fall from it, the speed downward at its end, and
   how far the body's centre of mass is off a free fall's arc), `release_r` (the right arm from when its hand lets go,
   or from the takeoff in `Vault_Low`, to the landing: the wrist's height over its shoulder and its speed on every
-  frame), `push` (the planted arm from the plant to the push:
-  the elbow's angle on each frame, the share of the body's weight the arm carries), `reach` (the landing leg's knee
-  and foot over the last six frames) and `absorb` (`Vault_Land`'s knee and hips).
+  frame), `legs` (`Vault_High`, from the takeoff until the legs come down: the hips over the top, the knees' and
+  ankles' spread in hip widths, each knee, ankle and toe against the top, each ankle's speed against the hips), `push`
+  (the planted arm from the plant to the push: the elbow's angle on each frame, the share of the body's weight the arm
+  carries), `reach` (the landing leg's knee and foot over the last six frames) and `absorb` (`Vault_Land`'s knee and
+  hips).
 - `hand_place`: where the left wrist is while planted: `left` of the body's line, `forward` of the front face,
   `wrist_above_top` over the top (the palm lies on it). `Vault_High`'s right hand mirrors it.
 
@@ -67,10 +69,13 @@ of mass more than 15 mm off a free fall's arc while nothing touches the body, a 
 weight or is not straight when the hand leaves or carries under a quarter of the body's weight, a landing leg that
 folds again, snaps open or is not nearly straight a frame before the foot lands, a landing step whose knee and hips do
 not give, and a free arm that is flung: its wrist more than 0.05 m over its own shoulder, faster than 7 m/s in the
-world or 4.5 m/s against the shoulder, or a change of speed over 4 m/s in one frame. From each vault's jump on, the
-pelvis is not keyed by hand: `Clip.drive` takes the height the centre of mass has to be at on every frame (a free fall
-in the air; while a hand carries the body, a curve between the heights and speeds at the plant and at the push) and
-keys the pelvis under it, and the build keys each clip a few times until the two agree (`--trace` prints every frame's
+world or 4.5 m/s against the shoulder, or a change of speed over 4 m/s in one frame. In `Vault_High` it fails on legs
+that do not go over together: the knees over 2.0 or the ankles over 2.6 hip widths apart while the hips are over the
+box, a knee under 40 degrees or a leg bone under the top there, an ankle whose speed against the hips changes by over
+6 m/s in a frame, or a leg held under 1 m/s for two frames in the air. From each vault's jump on, the pelvis is not
+keyed by hand: `Clip.drive` takes the height the centre of mass has to be at on every frame (a free fall in the air;
+while a hand carries the body, a curve between the heights and speeds at the plant and at the push) and keys the
+pelvis under it, and the build keys each clip a few times until the two agree (`--trace` prints every frame's
 numbers). Positions in the tables are `(left, forward, up)` in the world of the reference obstacle; the legs in the
 air are keyed in the hips' own axes (`hips()`), the left foot left of the hips and the right foot right of them, so
 they cannot cross. A free arm is keyed from its own shoulder in the world's axes (`shoulder()`), so its height over

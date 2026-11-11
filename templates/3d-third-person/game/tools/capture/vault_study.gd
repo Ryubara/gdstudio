@@ -1,9 +1,10 @@
 ## The vault study (kit #1010): plays `Vault_Low` and `Vault_High` from
 ## `assets/animation/vault/vault.glb` on the mannequin over each clip's reference box, with a
 ## sprint in, `Vault_Land` and a sprint out, from four views (a camera that follows behind the
-## left shoulder as the game's does, the side, the front and the top, then three close views:
+## left shoulder as the game's does, the side, the front and the top, then four close views:
 ## `arm` on the hand that carries the body over, `landing` on the foot coming down, `free_arm`
-## behind the right shoulder, on the arm that lets go). The body is moved forward
+## behind the right shoulder, on the arm that lets go, `legs` from past the box on the right,
+## on the legs coming over the top). The body is moved forward
 ## at the speed `vault_clips.json` gives for the clip, the way the game moves it; the clips are
 ## sought frame by frame with no blending, so a join that does not fit shows.
 ##
@@ -28,7 +29,9 @@ const SPRINT_SPEED := 6.5
 const RUN_IN := 0.5
 const RUN_OUT := 11.0 / 24.0
 const BOX_WIDTH := 3.0
-const ALL_VIEWS: Array[String] = ["game", "side", "front", "top", "arm", "landing", "free_arm"]
+const ALL_VIEWS: Array[String] = [
+	"game", "side", "front", "top", "arm", "landing", "free_arm", "legs"
+]
 
 var _clips := {}
 var _fps := 24
@@ -198,6 +201,13 @@ func _look(view: String, spec: Dictionary) -> void:
 			_camera.fov = 40.0
 			_camera.look_at_from_position(
 				shoulder + Vector3(-1.3, 0.5, -2.0), shoulder + Vector3(-0.2, -0.1, 0.1)
+			)
+		"legs":
+			var hips := _bone("pelvis")
+			_camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+			_camera.fov = 40.0
+			_camera.look_at_from_position(
+				hips + Vector3(-1.9, 0.7, 2.6), hips + Vector3(-0.3, -0.05, 0.0)
 			)
 		"top":
 			_camera.size = 3.6

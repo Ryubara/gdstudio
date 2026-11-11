@@ -51,6 +51,14 @@ contact times. Forward 0 is the obstacle's front face.
 - **`Vault_High`** is a two-handed side vault for what the low one cannot do: a short step, off the right foot with
   both hands on the top (0.10 m in, 0.24 m each side), the hips up over the hands, the right hand off first to let the
   legs by. Both hands are open on the obstacle, so it holds no weapon: the vault code holsters or hides one.
+- **The legs go over together, to the right.** In `Vault_High` the hips roll onto the left arm (72 degrees at the
+  push) until the body lies on its side over the top, and both legs trail beside the hips, parallel to the obstacle, a
+  hip width apart (the knees 1.6 hip widths at most while the hips are over the box, 3.8 before the fourth review)
+  with the knees near a right angle (65 degrees at the tightest, 14 before), the right leg on top. The hips cross the
+  front edge 0.26 m over the top and are 0.34 to 0.42 m over it across the box (0.16 and 0.29 to 0.33 before: the lean
+  puts the pelvis nearer the centre of mass, whose arc is unchanged). The feet cross the front edge two frames after
+  the hips; past the far edge the legs swing forward and down in one move (no ankle slower than 2 m/s against the
+  hips; five frames under 0.7 before). The build and the Godot suite hold it (`LEGS_*`).
 - **The arm that lets go follows the body.** `Vault_High`'s right hand leaves the top with its elbow still bent (84
   degrees), lifts ahead of the right knee as that leg swings over, and from four frames after the release rides out
   to the right a little under shoulder height, a balance arm, until it comes down and back into the sprint's swing

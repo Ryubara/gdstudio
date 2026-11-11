@@ -91,7 +91,8 @@ palm's gap to the surface, how far each planted wrist or ankle moves in the worl
 clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
 ([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
 on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
-an arm that has let go staying under its shoulder's height and gaining speed without a snap
+an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
+together with no leg astride, folded shut, snapped or held
 ([the vault clips](../../engines/godot/third-person/clips.md#vault-clips)).
 
 - **Approach:** Where a body leaves the ground, key the pelvis from the centre of mass, not by eye: write its
@@ -101,6 +102,21 @@ an arm that has let go staying under its shoulder's height and gaining speed wit
   **Watch out for:** a pelvis on a smooth curve is not a body on an arc: legs that reach down and arms that swing
   move the pelvis the other way. **Seen:** gdstudio #1016, 2026-11-11 (both vaults within 0.3 mm of the arc; the
   build fails over 15 mm).
+- **Approach:** Take both legs over an obstacle **together and to one side**: roll the hips onto the carrying arm (72
+  degrees in `Vault_High`), let the legs trail beside them a hip width apart with the knees near a right angle, and
+  key each foot on one smooth path from the pelvis in the world's axes. Measure it (`legs_of` in `build_vault.py`) and
+  fail the build on the knees' and ankles' spread in hip widths, the tightest knee, a leg bone under the top, an
+  ankle's change of speed in a frame and a leg held still. **Watch out for:** one leg over ahead and the other folded
+  behind the hands reads as a squat on the box (knees 3.8 hip widths apart, one knee at 14 degrees, the legs still for
+  five frames); feet keyed in the hips' axes jump 0.4 m in a frame as the hips roll and lean. **Seen:** gdstudio
+  #1016, 2026-11-11, a maintainer correction (fix: `LEGS_*` in the build).
+- **Approach:** A fault you can name in your own capture is fixed before the pull request goes to review; the list of
+  weak points holds only what was tried and could not be done, each with the number that shows it and what it would
+  take. Measure each weak point you are about to write down: one a check can express becomes a check. **Watch out
+  for:** writing down that the body is folded tight over the top and reads as a crouch on the box, sending it for
+  review, and getting the same words back as the review's fault a round later; a review that names one fault does not
+  pass the others on your list. **Seen:** gdstudio #1016, 2026-11-11 (the squat over the top stood in the weak points
+  of the second and third rework and was the fourth review's fault).
 - **Approach:** Key an arm that has let go from **its own shoulder in the world's axes** (`Clip.shoulder` in
   `build_vault.py`), let the hand go while the elbow is still bent, and let it gain speed evenly from rest over four
   or five frames until it travels with the body. Fail the build on the wrist's height over its shoulder, its speed in

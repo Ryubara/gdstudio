@@ -53,6 +53,21 @@ const FREE_SPEED_CHANGE := 4.5
 ## hand of `Vault_High` from when it lets go, the right arm of `Vault_Low` from the takeoff.
 const FREE_ARMS := {"Vault_High": "right_hand_release", "Vault_Low": "takeoff"}
 
+## The legs over the top in `Vault_High`, a little over the build's limits (`LEGS_*` in
+## `build_vault.py`; both mannequins have the same legs): the knees and the ankles in
+## widths of the hip joints while the hips are over the box, the tightest knee there, how far a
+## leg bone may be under the top, the most an ankle's speed against the hips changes in one
+## frame, and the speed under which a leg counts as held still.
+const LEGS_KNEE_SPREAD := 2.2
+const LEGS_ANKLE_SPREAD := 2.8
+const LEGS_FOLD := 35.0
+const LEGS_UNDER_TOP := 0.02
+const LEGS_SPEED_CHANGE := 6.5
+const LEGS_HELD := 1.0
+const LEG_BONES: Array[String] = [
+	"pelvis", "thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"
+]
+
 var _file := {}
 
 
@@ -455,4 +470,103 @@ func test_a_free_arm_follows_the_body() -> void:
 				"%s: the right elbow is at %.0f degrees when the hand lets go" % [path, elbow]
 			)
 			. is_less_equal(140.0)
+		)
+
+
+# What the legs do in a vault from the takeoff until they come down (seven frames before the
+# landing): over the frames the hips are over the box, the widest the knees and the ankles
+# are apart in widths of the hip joints, the tightest knee and the lowest leg bone against
+# the top; over all of them, the most an ankle's speed against the hips changes in one frame
+# and how often it rests against the hips for two frames running once the hips are over.
+func _legs(rig: Dictionary, clip: String) -> Dictionary:
+	var spec: Dictionary = _file.clips[clip]
+	var fps := float(_file.fps)
+	var first := int(round(spec.events.takeoff * fps))
+	var final := int(spec.frames) - 7
+	var out := {"knees": 0.0, "ankles": 0.0, "fold": 180.0, "low": 9.0, "snap": 0.0, "held": 0}
+	out.merge({"over": [], "hips": 0.0})
+	var local := {"l": [], "r": []}
+	var over_from := -1
+	for frame in range(first, final + 1):
+		var time := _time(clip, frame)
+		var pose := _pose(rig, StringName("vault/" + clip), time, LEG_BONES)
+		for side: String in local:
+			local[side].append(pose["foot_" + side] - pose.pelvis)
+		var forward: float = spec.root_start + spec.speed * time + pose.pelvis.z
+		if forward < 0.0 or forward > spec.obstacle.depth:
+			continue
+		if over_from < 0:
+			over_from = frame - first
+			out.hips = pose.pelvis.y - spec.obstacle.height
+		out.over.append(frame)
+		var width: float = (pose.thigh_l - pose.thigh_r).length()
+		out.knees = maxf(out.knees, (pose.calf_l - pose.calf_r).length() / width)
+		out.ankles = maxf(out.ankles, (pose.foot_l - pose.foot_r).length() / width)
+		for side: String in local:
+			var hip: Vector3 = pose["thigh_" + side] - pose["calf_" + side]
+			var shin: Vector3 = pose["foot_" + side] - pose["calf_" + side]
+			out.fold = minf(out.fold, rad_to_deg(hip.angle_to(shin)))
+			for part: String in ["calf_", "foot_", "ball_"]:
+				out.low = minf(out.low, pose[part + side].y - spec.obstacle.height)
+	for side: String in local:
+		var speeds: Array[Vector3] = []
+		for index in range(1, local[side].size()):
+			speeds.append((local[side][index] - local[side][index - 1]) * fps)
+		for index in range(1, speeds.size()):
+			out.snap = maxf(out.snap, (speeds[index] - speeds[index - 1]).length())
+			var slow: bool = speeds[index].length() < LEGS_HELD
+			if index > over_from and slow and speeds[index - 1].length() < LEGS_HELD:
+				out.held += 1
+	return out
+
+
+# Both legs go over the box together, to one side (the maintainer's review of 2026-11-11, the
+# fourth): in `Vault_High` the hips roll onto the left arm and the legs trail beside them, a
+# hip width apart, in one move. Before, the right leg went over ahead and the left stayed
+# folded behind the hands, astride them: the knees 3.8 hip widths apart with one folded to 14
+# degrees, each leg stopping and starting again, then held for five frames in the air.
+func test_the_legs_go_over_together() -> void:
+	for path: String in [FEMALE, MALE]:
+		var legs := _legs(_rig(path), "Vault_High")
+		var said := (
+			"Vault_High on %s, hips over the box on frames %s (%.3f m over the top at the edge): "
+			% [path.get_file(), str(legs.over), legs.hips]
+		)
+		said += (
+			"knees %.2f and ankles %.2f hip widths apart, tightest knee %.0f degrees, "
+			% [legs.knees, legs.ankles, legs.fold]
+		)
+		said += (
+			"lowest leg bone %.3f m over the top, %.2f m/s a frame, held %d"
+			% [legs.low, legs.snap, legs.held]
+		)
+		print(said)
+		assert_int(legs.over.size()).is_greater(1)
+		(
+			assert_float(legs.knees)
+			. override_failure_message("the knees are astride. " + said)
+			. is_less_equal(LEGS_KNEE_SPREAD)
+		)
+		(
+			assert_float(legs.ankles)
+			. override_failure_message("the feet are astride. " + said)
+			. is_less_equal(LEGS_ANKLE_SPREAD)
+		)
+		(
+			assert_float(legs.fold)
+			. override_failure_message("a leg is folded shut over the top. " + said)
+			. is_greater_equal(LEGS_FOLD)
+		)
+		(
+			assert_float(legs.low)
+			. override_failure_message("a leg hangs under the top. " + said)
+			. is_greater_equal(-LEGS_UNDER_TOP)
+		)
+		assert_float(legs.snap).override_failure_message("a leg snaps. " + said).is_less_equal(
+			LEGS_SPEED_CHANGE
+		)
+		(
+			assert_int(legs.held)
+			. override_failure_message("a leg is held still in the air. " + said)
+			. is_equal(0)
 		)

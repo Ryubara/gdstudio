@@ -74,6 +74,17 @@ FREE_SPEED_AGAINST_SHOULDER = 4.5
 FREE_SPEED_CHANGE = 4.0
 
 ## Gravity (m/s^2): a body in the air, touching nothing, falls on this arc and no other.
+# The legs over the obstacle (`legs_of`), while the hips are over its top: the knees and the ankles no farther apart
+# than this many widths of the hip joints (legs astride the hands read as a squat on the box; they go over together,
+# to one side), no knee folded tighter than this, and no knee, ankle or toe bone under the top.
+LEGS_KNEE_SPREAD = 2.0
+LEGS_ANKLE_SPREAD = 2.6
+LEGS_FOLD = 40.0
+# From the takeoff until the legs come down: an ankle's speed against the hips changes by no more than this in one
+# frame (m/s; a leg that stops and starts again, or turns back), and from the front face on neither ankle rests
+# against the hips (under this speed, m/s) for two frames running: a held pose in the air.
+LEGS_SPEED_CHANGE = 6.0
+LEGS_HELD = 1.0
 GRAVITY = 9.81
 ## How far the body's centre may be off the arc of a free fall on any frame in the air (m).
 ARC_LIMIT = 0.015
@@ -880,7 +891,8 @@ def vault_land(rig, offsets=None):
 
 def vault_high(rig, offsets=None):
     """A two-handed side vault: a short step, off the right foot with both hands on top, the hips up over the
-    hands and both legs swung over to the right as the right hand lets go, down on the right foot. The arms take
+    hands and rolled onto the left arm, both legs over together on the right, parallel to the obstacle, as the
+    right hand lets go, down on the right foot. The arms take
     a third of the body's weight from the moment the foot leaves: the elbows are bent under it at the plant and
     straighten as the hips rise over the hands, the left arm locks as the body passes over it and pushes off
     last, and the body is still rising when it leaves the hand."""
@@ -929,8 +941,8 @@ def vault_high(rig, offsets=None):
             10: (0.0, -0.04),
             12: (-0.03, -0.03),
             14: (-0.07, -0.02),
-            16: (-0.10, 0.0),
-            18: (-0.10, 0.0),
+            16: (-0.07, 0.0),
+            18: (-0.07, 0.0),
             22: (-0.08, -0.02),
             26: (-0.04, -0.05),
             last: (end.x, -end.y),
@@ -941,6 +953,7 @@ def vault_high(rig, offsets=None):
     c.push = ("hand_l", takeoff, release)
     c.reach = ("foot_r", last)
     c.released = [("hand_r", 12, last)]
+    c.legs = (takeoff, 23)
     c.arc = {"off_foot": off_foot, "off_hand": off_hand, "land": STRIKE}
 
     c.keys(
@@ -950,11 +963,15 @@ def vault_high(rig, offsets=None):
             8: c.turned("pelvis", 0, 22, 0),
             10: c.turned("pelvis", 0, 25, 5),
             12: c.turned("pelvis", -3, 34, 10),
-            14: c.turned("pelvis", -10, 30, 34),
-            15: c.turned("pelvis", -12, 22, 36),
-            16: c.turned("pelvis", -15, 12, 56),
-            18: c.turned("pelvis", -13, 5, 46),
-            20: c.turned("pelvis", -9, 6, 32),
+            13: c.turned("pelvis", -6, 32, 26),
+            14: c.turned("pelvis", -10, 27, 44),
+            15: c.turned("pelvis", -12, 20, 58),
+            16: c.turned("pelvis", -14, 14, 68),
+            17: c.turned("pelvis", -14, 10, 72),
+            18: c.turned("pelvis", -13, 8, 70),
+            19: c.turned("pelvis", -11, 7, 62),
+            20: c.turned("pelvis", -9, 6, 50),
+            22: c.turned("pelvis", -6, 8, 30),
             24: c.turned("pelvis", -4, 10, 16),
             27: c.turned("pelvis", 0, 12, 5),
         },
@@ -1082,7 +1099,19 @@ def vault_high(rig, offsets=None):
     c.keys("curl_l", {8: 1.0, 10: 0.0, 18: 0.0, 22: 1.0})
     c.keys("curl_r", {8: 1.0, 10: 0.0, 12: 0.0, 18: 1.0})
 
-    # The left foot finishes its sprint step, swings through and tucks; the right foot takes off close to the wall.
+    def side(frame, left, forward, up):
+        """A foot from the pelvis in the world's axes, while the body lies on its side over the top."""
+        return c.under(frame, left, forward, -up)
+
+    # The legs go over together, to the right, parallel to the obstacle (a side vault): the hips roll onto the left
+    # arm (72 degrees at the push) and both legs trail behind and beside them, the knees a hip width apart and bent
+    # about a right angle, the right leg on top; past the far edge they swing forward and down as the body comes
+    # upright. Both feet are on one smooth path each from the pelvis in the world's axes (`side`): keyed in the
+    # hips' own axes, the roll and the forward lean threw them 0.4 m in a frame. Before the fourth review the right
+    # leg went over ahead like a hurdler's and the left stayed folded behind the hands, astride them: a squat on
+    # the box (`LEGS_*`).
+    # The left foot finishes its sprint step and swings through; its knee turns out to the right at the edge, the
+    # hips being too low there to lift it over forward (0.12 m over the top, 0.26 m before the face).
     stance = c.channels["foot_l_pos"].at(0)
     c.keys(
         "foot_l_pos",
@@ -1093,13 +1122,18 @@ def vault_high(rig, offsets=None):
             7: c.body(7, 0.09, -0.45, 0.45),
             9: c.body(9, 0.10, -0.12, 0.30),
             11: c.body(11, 0.08, 0.08, 0.42),
-            13: c.hips(13, 0.12, -0.25, -0.30),
-            15: c.hips(15, 0.11, -0.20, -0.12),
-            16: c.hips(16, 0.14, 0.03, -0.09),
-            17: c.hips(17, 0.18, 0.12, -0.06),
-            19: c.hips(19, 0.18, 0.12, -0.12),
-            22: c.hips(22, 0.17, 0.06, -0.20),
-            24: c.hips(24, 0.15, -0.06, -0.30),
+            12: side(12, 0.07, -0.02, -0.62),
+            13: side(13, 0.02, -0.16, -0.54),
+            14: side(14, -0.08, -0.28, -0.36),
+            15: side(15, -0.20, -0.32, -0.15),
+            16: side(16, -0.33, -0.28, -0.12),
+            17: side(17, -0.43, -0.21, -0.05),
+            18: side(18, -0.48, -0.13, -0.02),
+            19: side(19, -0.46, -0.05, -0.05),
+            20: side(20, -0.38, -0.02, -0.16),
+            21: side(21, -0.27, -0.05, -0.27),
+            22: side(22, -0.15, -0.09, -0.36),
+            24: c.hips(24, 0.14, -0.10, -0.38),
             27: c.hips(27, 0.13, -0.24, -0.38),
         },
     )
@@ -1111,8 +1145,9 @@ def vault_high(rig, offsets=None):
             5: c.turned("foot_l", 0, 60, 0),
             9: c.turned("foot_l", 0, 30, 0),
             13: c.hips_turned(13, "foot_l", 0, 40, 0),
-            15: c.hips_turned(15, "foot_l", -35, -10, 0),
-            20: c.hips_turned(20, "foot_l", -35, -10, 0),
+            15: c.hips_turned(15, "foot_l", 0, -10, 0),
+            17: c.hips_turned(17, "foot_l", 0, 45, 0),
+            20: c.hips_turned(20, "foot_l", 0, 45, 0),
             26: c.hips_turned(26, "foot_l", 0, 50, 0),
         },
     )
@@ -1121,9 +1156,12 @@ def vault_high(rig, offsets=None):
         {
             5: P(0.0, 1.0, 0.0),
             11: P(0.0, 1.0, 0.2),
-            13: c.hips_way(13, 0.15, 1.0, 0.2),
-            15: c.hips_way(15, -0.02, 1.0, 0.6),
-            20: c.hips_way(20, 0.15, 1.0, 0.25),
+            13: P(-0.5, 1.0, 0.0),
+            14: P(-1.0, 0.4, 0.0),
+            15: P(-0.3, 1.0, 0.0),
+            16: P(-0.3, 1.0, 0.15),
+            20: P(-0.3, 1.0, 0.15),
+            23: c.hips_way(23, 0.15, 1.0, 0.2),
             26: c.hips_way(26, 0.2, 1.0, 0.1),
         },
     )
@@ -1131,8 +1169,9 @@ def vault_high(rig, offsets=None):
         "ball_l",
         {3: c.spine("ball_l"), 4: c.spine("ball_l", 0, -25, 0), 5: c.spine("ball_l", 0, -45, 0), 7: c.spine("ball_l")},
     )
-    # The right leg pushes off, goes over on top like a hurdler's, and past the far edge opens and reaches down
-    # for the ground, a little more each frame, the toes first (as in `Vault_Low`).
+    # The right leg pushes off and trails: it rises beside the left one, crosses the front edge two frames after
+    # the hips and lies on top; past the far edge it opens and reaches down for the ground, a little more each
+    # frame, the toes first (as in `Vault_Low`).
     foot = P(-0.09, c.forward(6) + 0.30, 0.104)
     c.keys(
         "foot_r_pos",
@@ -1141,13 +1180,18 @@ def vault_high(rig, offsets=None):
             6: foot,
             9: foot,
             10: foot + P(0.0, 0.03, 0.06),
-            11: foot + P(0.0, 0.07, 0.16),
-            12: foot + P(-0.04, 0.14, 0.36),
-            14: c.hips(14, -0.30, 0.0, -0.30),
-            15: c.hips(15, -0.34, 0.36, -0.09),
-            17: c.hips(17, -0.24, 0.55, -0.06),
-            19: c.hips(19, -0.20, 0.57, -0.18),
-            22: c.hips(22, -0.17, 0.54, -0.30),
+            11: foot + P(0.0, 0.07, 0.20),
+            12: foot + P(-0.04, 0.14, 0.44),
+            13: c.body(13, -0.30, -0.33, 0.80),
+            14: c.body(14, -0.47, -0.39, 1.07),
+            15: c.body(15, -0.62, -0.39, top + 0.15),
+            16: side(16, -0.61, -0.32, 0.0),
+            17: side(17, -0.62, -0.25, 0.05),
+            18: side(18, -0.62, -0.14, 0.06),
+            19: side(19, -0.60, 0.02, -0.04),
+            20: side(20, -0.56, 0.14, -0.14),
+            21: side(21, -0.48, 0.26, -0.26),
+            22: side(22, -0.38, 0.36, -0.36),
             24: c.under(24, -0.15, 0.46, 0.42),
             26: c.under(26, -0.13, 0.40, 0.56),
             28: c.under(28, -0.11, 0.34, 0.68),
@@ -1164,9 +1208,10 @@ def vault_high(rig, offsets=None):
             10: c.turned("foot_r", 0, 25, 0),
             11: c.turned("foot_r", 0, 45, 0),
             12: c.turned("foot_r", 0, 60, 0),
-            15: c.hips_turned(15, "foot_r", 0, -15, 0),
-            17: c.hips_turned(17, "foot_r", 0, 10, 0),
-            22: c.hips_turned(22, "foot_r", 0, 10, 0),
+            15: c.hips_turned(15, "foot_r", 0, 0, 0),
+            17: c.hips_turned(17, "foot_r", 0, 45, 0),
+            19: c.hips_turned(19, "foot_r", 0, 45, 0),
+            22: c.hips_turned(22, "foot_r", 0, 30, 0),
             25: c.turned("foot_r", 0, 16, 0),
             29: c.turned("foot_r", 0, 14, 0),
         },
@@ -1176,10 +1221,11 @@ def vault_high(rig, offsets=None):
         {
             6: P(0.0, 1.0, 0.0),
             12: P(-0.2, 1.0, 0.2),
-            15: c.hips_way(15, -0.45, 0.8, 0.8),
-            17: c.hips_way(17, -0.3, 0.6, 1.0),
-            19: c.hips_way(19, -0.25, 0.8, 0.8),
-            22: c.hips_way(22, -0.15, 1.0, 0.3),
+            14: P(-1.0, 0.6, 0.5),
+            15: P(-0.7, 0.8, 0.6),
+            16: P(-0.3, 1.0, 0.5),
+            20: P(-0.3, 1.0, 0.3),
+            22: P(-0.2, 1.0, 0.1),
             25: P(-0.1, 1.0, 0.0),
         },
     )
@@ -1233,6 +1279,9 @@ def measure_pose(rig, mats):
         out[f"elbow_{side}"] = angle_at(mats, f"upperarm_{side}", f"lowerarm_{side}", f"hand_{side}")
         out[f"knee_{side}"] = angle_at(mats, f"thigh_{side}", f"calf_{side}", f"foot_{side}")
         out[f"foot_{side}"] = mats[f"foot_{side}"].translation.copy()
+        out[f"toe_{side}"] = mats[f"ball_{side}"].translation.copy()
+        out[f"calf_{side}"] = mats[f"calf_{side}"].translation.copy()
+        out[f"thigh_{side}"] = mats[f"thigh_{side}"].translation.copy()
     return out
 
 
@@ -1407,6 +1456,35 @@ def release_of(clip, limb, first, final):
     }
 
 
+def legs_of(clip, first, final):
+    """What the legs do from `first` to `final`, a list a frame: the hips' height over the top, how far the knees
+    are apart against the hip joints' own width, each ankle and knee in the world (forward of the front face, up
+    from the top), each ankle's speed against the hips and how far its path turns from one frame to the next."""
+    trace, top = clip.trace, clip.box_height
+    frames = list(range(first, final + 1))
+    out = {"frames": [first, final]}
+    out["hips_over_top"] = [round(trace[f]["pelvis"].z - top, 3) for f in frames]
+    out["hips_forward"] = [round(clip.to_world(f, trace[f]["pelvis"]).y * -1.0, 3) for f in frames]
+    width = (trace[first]["thigh_l"] - trace[first]["thigh_r"]).length
+    out["knee_spread"] = [round((trace[f]["calf_l"] - trace[f]["calf_r"]).length / width, 2) for f in frames]
+    out["ankle_spread"] = [round((trace[f]["foot_l"] - trace[f]["foot_r"]).length / width, 2) for f in frames]
+    for side in "lr":
+        for part, name in (("foot", "ankle"), ("calf", "knee"), ("toe", "toe")):
+            world = [clip.to_world(f, trace[f][f"{part}_{side}"]) for f in frames]
+            out[f"{name}_{side}_forward"] = [round(-v.y, 3) for v in world]
+            out[f"{name}_{side}_over_top"] = [round(v.z - top, 3) for v in world]
+        out[f"knee_{side}_deg"] = [round(trace[f][f"knee_{side}"]) for f in frames]
+        local = [trace[f][f"foot_{side}"] - trace[f]["pelvis"] for f in frames]
+        out[f"ankle_{side}_from_hips"] = [f"{v.x:+.2f} {-v.y:+.2f} {v.z:+.2f}" for v in local]
+        steps = [(b - a) * FPS for a, b in zip(local, local[1:])]
+        out[f"ankle_{side}_speed"] = [round(v.length, 2) for v in steps]
+        out[f"ankle_{side}_speed_change"] = [round((b - a).length, 2) for a, b in zip(steps, steps[1:])]
+        out[f"ankle_{side}_turn_deg"] = [
+            round(math.degrees(a.angle(b))) if a.length > 0.5 and b.length > 0.5 else 0 for a, b in zip(steps, steps[1:])
+        ]
+    return out
+
+
 def check_motion(clip):
     """Fail on what the body cannot do: leave the arc of a free fall while nothing touches it, cross on an arm
     that never takes its weight or never pushes, land on a leg that does not reach, or land without giving."""
@@ -1483,6 +1561,46 @@ def check_motion(clip):
             problems.append(f"the planted arm does not push off straight (elbow {elbows})")
         if carried_share < 0.25:
             problems.append(f"the planted arm carries only {carried_share:.2f} of the body's weight")
+    if getattr(clip, "legs", None):
+        entry = legs_of(clip, *clip.legs)
+        report["legs"] = entry
+        for key, values in entry.items():
+            if not key.endswith("_from_hips"):
+                print(f"LEGS {clip.name} {key}: {values}")
+        first = clip.legs[0]
+        over = [i for i, v in enumerate(entry["hips_forward"]) if 0.0 <= v <= clip.box_depth]
+        entry["frames_over_the_top"] = [first + over[0], first + over[-1]] if over else []
+        for key, limit, what in (
+            ("knee_spread", LEGS_KNEE_SPREAD, "the knees are"),
+            ("ankle_spread", LEGS_ANKLE_SPREAD, "the ankles are"),
+        ):
+            worst = max((entry[key][i] for i in over), default=0.0)
+            entry[f"peak_{key}_over_the_top"] = worst
+            if worst > limit:
+                problems.append(f"{what} {worst} hip widths apart over the top (the limit is {limit})")
+        fold = min((entry[f"knee_{side}_deg"][i] for i in over for side in "lr"), default=180)
+        entry["tightest_knee_over_the_top"] = fold
+        if fold < LEGS_FOLD:
+            problems.append(f"a knee is folded to {fold} degrees over the top (the limit is {LEGS_FOLD:.0f})")
+        low = min(
+            (entry[f"{part}_{side}_over_top"][i] for i in over for side in "lr" for part in ("knee", "ankle", "toe")),
+            default=1.0,
+        )
+        entry["lowest_leg_bone_over_the_top"] = low
+        if low < 0.0:
+            problems.append(f"a leg bone is {-low:.3f} m under the top while the hips are over it")
+        for side in "lr":
+            snap = max(entry[f"ankle_{side}_speed_change"])
+            entry[f"peak_ankle_{side}_speed_change"] = snap
+            if snap > LEGS_SPEED_CHANGE:
+                problems.append(f"the {side} leg snaps: {snap} m/s of speed change in one frame (the limit is {LEGS_SPEED_CHANGE})")
+            speeds = entry[f"ankle_{side}_speed"][over[0] :] if over else []
+            held = sum(1 for a, b in zip(speeds, speeds[1:]) if a < LEGS_HELD and b < LEGS_HELD)
+            entry[f"ankle_{side}_frames_held"] = held
+            if held:
+                problems.append(f"the {side} leg is held still against the hips for {held + 1} frames in the air")
+        for key in [k for k in entry if k.endswith("_from_hips")]:
+            del entry[key]
     for limb, first, final in clip.released:
         entry = release_of(clip, limb, first, final)
         report[f"release_{limb[-1]}"] = entry
