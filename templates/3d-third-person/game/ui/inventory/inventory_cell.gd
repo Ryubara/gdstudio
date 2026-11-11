@@ -14,12 +14,14 @@ signal dragged_onto(from: InventoryCell)
 ## The pointer or the focus came onto this cell (`on`) or left it.
 signal shown(on: bool)
 
-## What the cell stands for: `ITEM` a slot of the bag, `WEAPON` a slot of the loadout.
-enum Kind { ITEM, WEAPON }
+## What the cell stands for: `ITEM` a slot of the bag, `WEAPON` a slot of the loadout, `HOTBAR` a
+## place of the player's `Hotbar` (a bag cell dropped on it is assigned there).
+enum Kind { ITEM, WEAPON, HOTBAR }
 
 ## Whether the cell is a bag slot or a weapon.
 var kind := Kind.ITEM
-## The bag slot or the loadout slot it shows (`WeaponLoadout.UNARMED` for the empty hands).
+## The bag slot, the loadout slot (`WeaponLoadout.UNARMED` for the empty hands) or the hotbar place
+## it shows.
 var slot := 0
 ## Whether it shows something (an empty bag slot does not).
 var filled := false
@@ -62,6 +64,14 @@ func show_empty() -> void:
 	set_held(false)
 
 
+## Shows an empty slot with `caption` on it (a hotbar place's key).
+func show_caption(caption: String) -> void:
+	show_empty()
+	_title.text = caption
+	_title.modulate = Color(1.0, 1.0, 1.0, 0.6)
+	_title.visible = not caption.is_empty()
+
+
 ## Shows or hides the badge of the weapon in the hands (or on its way there).
 func set_equipped(on: bool) -> void:
 	_badge.visible = on
@@ -102,7 +112,9 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	var from := data as InventoryCell
-	return kind == Kind.ITEM and from != null and from != self and from.kind == Kind.ITEM
+	if from == null or from == self or from.kind != Kind.ITEM:
+		return false
+	return kind == Kind.ITEM or (kind == Kind.HOTBAR and from.filled)
 
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
