@@ -228,6 +228,12 @@ one-assert suite, and a wrapper of `GdUnitCmdTool.gd` that loads `def.gd` then `
 other way round, or without GdUnit4, is clean. Godot's tracker has the same family, closed unfixed
 (godotengine/godot#122601, #123883 and #122022); 4.8's shutdown clean-up does more.
 
+The cast is not always needed: `WeaponLoadout` (`@export var slots: Array[WeaponDef]`, no cast to `WeaponLoadout`
+anywhere in it) left the same 188 objects and 117 resources when a suite ran a player and held a `WeaponDef` it got at
+run time (`var hold := animation.held_definition()`), or gave its weapon a duplicated `WeaponDef`. The same suite that
+only *named* `WeaponDef` (the call compiled, never run) was clean. So read every exported `Array[Other]` of a
+`class_name` class on the suite's path as a candidate, with or without a cast.
+
 - **Approach:** Export such an array as `@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:Other") var x:
   Array[Resource] = []` (the inspector still offers only `Other`) and cast each item where it is used. Find the script
   with a wrapper of `GdUnitCmdTool.gd` that loads a list of scripts before `super()`, a one-assert suite, and a greedy
@@ -237,9 +243,10 @@ other way round, or without GdUnit4, is clean. Godot's tracker has the same fami
   names. **Seen:** gdstudio #1236, 2026-11-11 (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
   and did not leak in any order tried).
 - **Approach:** When a suite leaks alone and not in the whole run, cut it to the smallest set of its cases that still
-  leaks (each case in a file of its own with the suite's head, then halves, then pairs) before reading code.
-  **Watch out for:** `test_player_step.gd` leaks alone only when a case that uses `CommandCodec` runs before the case
-  that gives a player's weapon a duplicated `WeaponDef` (two cases out of 14; either alone, or the other way round, is
-  clean), and a probe without GdUnit4 doing the same is clean: it is the same family as above with no script named
-  yet, and the whole run (CI's condition) does not show it. **Seen:** gdstudio #1236, 2026-11-11 (the four other suites
-  #1138 named were already clean alone on `main` at 9ebaa690).
+  leaks (each case in a file of its own with the suite's head, then one body a line at a time; a case turned off by a
+  rename still compiles, so cut bodies out), then put the exported `Array[Other]` the last line reaches to
+  `Array[Resource]`. **Watch out for:** `test_player_step.gd` (a duplicated `WeaponDef` after `CommandCodec`) was
+  first filed as the engine family with no script to change; it and `test_prone_animation.gd` (the case that calls
+  `held_definition()`) were both `WeaponLoadout.slots`, which has no self-cast. **Seen:** gdstudio #1236, 2026-11-11
+  (four other suites of #1138 already clean alone at 9ebaa690); gdstudio #1249, 2026-11-11 (fix: `slots` as
+  `Array[Resource]`: prone 188 objects and 117 resources to none, player step 191 and 120 to none).
