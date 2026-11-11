@@ -14,7 +14,7 @@ const POSES: Array = [
 	[&"ual1/Pistol_Aim_Up", [0.0, 0.16]],
 	[&"ual1/Pistol_Aim_Down", [0.0, 0.16]],
 	[&"ual1/Pistol_Shoot", [0.0, 0.05, 0.1, 0.2]],
-	[&"ual1/Pistol_Reload", [0.0, 0.4, 0.8, 1.2]],
+	[&"ual1/Pistol_Reload", [0.0, 0.4, 0.8, 1.05, 1.2]],
 ]
 
 

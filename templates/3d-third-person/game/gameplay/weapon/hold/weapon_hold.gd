@@ -7,7 +7,12 @@ extends Node
 ##   finger along the frame and, as the character aims, on the trigger (`trigger_pose`), and the
 ##   arm held a little out from the thigh while the weapon is carried (`carry_arm_out`);
 ## - while aiming or firing, the left hand on the weapon: the left arm reaches the weapon's
-##   `SupportHand` marker (`HoldArm`) and its fingers wrap over the right hand (`support_pose`).
+##   `SupportHand` marker (`HoldArm`) and its fingers wrap over the right hand (`support_pose`);
+## - through a reload, the left hand where the reload clip means it to be (kit #1031): on the
+##   weapon until the clip takes it away, the clip's own arm while it fetches the new magazine at
+##   the belt, up the grip's line to the magazine's foot and under it while it goes in (the
+##   `MagazineHand` marker, `magazine_pose`), and round the grip's foot onto the weapon again.
+##   The clip gives the times (the Reload group's shares of `Pistol_Reload`).
 ##
 ## The skeleton is inside the model's `.glb`, which a scene cannot add nodes to, so the three
 ## modifiers (two `HandPoseModifier`s and a `HoldArm`) are made here, as children of the model's
@@ -19,6 +24,14 @@ extends Node
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
+## The share of the reload by which the left hand's fingers open before the hand lets go.
+const _OPEN_LEAD := 0.02
+## The way back from the magazine, as shares of `reload_return`: the hand is down off the
+## magazine by `_BACK_DOWN_SHARE` of `magazine_approach` half-way through the first `_BACK_DOWN`
+## of it, and crosses from the magazine's marker to the support's between `_BACK_ACROSS`.
+const _BACK_DOWN := 0.7
+const _BACK_DOWN_SHARE := 0.4
+const _BACK_ACROSS := Vector2(0.3, 0.8)
 
 @export_group("Nodes")
 ## The slot that holds the character's model.
@@ -55,11 +68,46 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## How far the weapon is aimed: the left hand is on it by this much, and the trigger finger.
 @export_range(0.0, 1.0, 0.01) var aim_weight := 0.0
 
+@export_group("Reload")
+## The left hand's fingers while the heel of its palm pushes the magazine in.
+@export var magazine_pose: HandPose
+## The left hand opened, as it lets go of the weapon and as it comes back to it.
+@export var open_pose: HandPose
+## The weapon's child that marks where the left hand's bone sits while it pushes the magazine in.
+@export var magazine_marker := ^"MagazineHand"
+## Where the left hand starts from under the magazine, from its place there, in the weapon's own
+## space: the new magazine's length down the grip, since the magazine goes in ahead of the palm.
+@export var magazine_approach := Vector3(0.0, -0.1, 0.0)
+## How far the left hand swings out, in the weapon's own space, half-way from the magazine back to
+## its place on the weapon (it goes round the grip's foot, not through it).
+@export var return_clearance := Vector3(0.0, 0.0, 0.04)
+## The shares of the reload clip between which the left hand lets go of the weapon; after the
+## second the clip's own arm has it (the reach to the belt for the new magazine).
+@export var reload_leave := Vector2(0.04, 0.1)
+## The shares between which the left hand comes from the clip's arm to the line under the magazine.
+@export var reload_reach := Vector2(0.3, 0.4)
+## The shares between which it pushes the magazine up into the grip.
+@export var reload_insert := Vector2(0.4, 0.54)
+## The shares between which it goes from the magazine back to its place on the weapon.
+@export var reload_return := Vector2(0.71, 0.88)
+## How much of the upper body the reload clip holds now (it fades in and out), and the share of the
+## clip that has played; from `animation`, or the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var reload_weight := 0.0
+@export_range(0.0, 1.0, 0.01) var reload_share := 0.0
+
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
 var _fingers: HandPoseModifier
 var _marker: Node3D
+var _magazine: Node3D
+# The left hand now: how far the hold has it (the rest is the clip's arm), how far it is under the
+# magazine instead of on the support marker, how far its fingers are opened, and how far it is
+# moved from its marker in the weapon's space (the way up to the magazine, the swing back).
+var _left_on := 0.0
+var _left_magazine := 0.0
+var _left_open := 0.0
+var _left_move := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -79,20 +127,66 @@ func refresh() -> void:
 		held_weight = weights.x
 		# A dead character's tree is off and the ragdoll holds the arms.
 		aim_weight = weights.y if animation.tree.active else 0.0
+		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
+		reload_weight = reload.x
+		reload_share = reload.y
 	if _grip == null or not is_instance_valid(_grip):
 		return
 	_weigh(_grip, held_weight)
-	_grip.second_weight = aim_weight
+	# The finger leaves the trigger for the reload.
+	_grip.second_weight = aim_weight * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
 	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight)
 	if _arm == null:
 		return
-	_weigh(_arm, held_weight * aim_weight)
-	_weigh(_fingers, held_weight * aim_weight)
+	_plan_left()
+	_weigh(_arm, held_weight * _left_on)
+	_weigh(_fingers, held_weight * _left_on)
 	if _arm.active:
-		# The marker's place in the bone's space: the weapon's seat times the marker's own place.
-		_arm.offset = (_marker.get_parent() as Node3D).transform * _marker.transform
+		# The hand's place in the bone's space: the weapon's seat times its place in the weapon.
+		var place := _marker.transform
+		if _magazine != null and _left_magazine > 0.0:
+			place = place.interpolate_with(_magazine.transform, _left_magazine)
+		place.origin += _left_move
+		_arm.offset = (_marker.get_parent() as Node3D).transform * place
 		_arm.elbow = support_elbow
+		_fingers.second_weight = _left_magazine
+		_fingers.open_weight = _left_open
+
+
+## How far the left hand is on the weapon's support marker (x) and at its magazine (y) now;
+## together at most 1, and what is left is the clip's own arm.
+func support_weights() -> Vector2:
+	_plan_left()
+	return Vector2(_left_on * (1.0 - _left_magazine), _left_on * _left_magazine)
+
+
+# Where the left hand is now. Aiming puts it on the weapon. A reload takes it through the clip's
+# steps, by as much as the reload clip holds the body: it opens and lets go, the clip's arm
+# fetches the new magazine, the hand comes to the line under the magazine and pushes it up into
+# the grip, stays under it, and swings round the grip's foot back to its place.
+func _plan_left() -> void:
+	_left_on = aim_weight
+	_left_magazine = 0.0
+	_left_open = 0.0
+	_left_move = Vector3.ZERO
+	if reload_weight <= 0.0 or _magazine == null:
+		return
+	var reach := smoothstep(reload_reach.x, reload_reach.y, reload_share)
+	var insert := smoothstep(reload_insert.x, reload_insert.y, reload_share)
+	var back := smoothstep(reload_return.x, reload_return.y, reload_share)
+	var held := 1.0 - smoothstep(reload_leave.x, reload_leave.y, reload_share)
+	# The fingers open before the hand goes, and are open at the middle of the swing back.
+	var letting_go := smoothstep(reload_leave.x - _OPEN_LEAD, reload_leave.x, reload_share)
+	# The way back: down off the magazine first (the way it came), then out round the grip's foot
+	# with the fingers open, then onto the weapon.
+	var down := sin(PI * minf(back / _BACK_DOWN, 1.0)) * _BACK_DOWN_SHARE
+	var across := smoothstep(_BACK_ACROSS.x, _BACK_ACROSS.y, back)
+	var swing := sin(PI * smoothstep(_BACK_ACROSS.x, 1.0, back))
+	_left_on = lerpf(aim_weight, maxf(held, reach), reload_weight)
+	_left_magazine = reach * (1.0 - across)
+	_left_open = maxf(letting_go * (1.0 - reach), swing) * reload_weight
+	_left_move = magazine_approach * (reach * (1.0 - insert) + down) + return_clearance * swing
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.
@@ -145,5 +239,8 @@ func _build() -> void:
 		_fingers = HandPoseModifier.new()
 		_fingers.name = _SUPPORT_FINGERS
 		_fingers.pose = support_pose
+		_fingers.second = magazine_pose
+		_fingers.open = open_pose
+		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 	refresh()

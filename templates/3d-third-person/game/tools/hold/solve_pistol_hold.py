@@ -8,7 +8,10 @@ It skins both mannequins' hands on the CPU as Godot does and measures them again
 1 mm grid (and, for the left hand, against the right hand of the same mannequin), so a pose is right for both at
 once. With no option it solves the fingers for the seat and the left hand's place below (the hold the template
 ships, about 5 minutes); `--search-seat` and `--search-left` search those again from there (4 to 6 minutes each),
-`--seat=` and `--left=` give other starts, and `--scan=` prints a table of seats to choose from.
+`--seat=` and `--left=` give other starts, and `--scan=` prints a table of seats to choose from. The left hand
+under the magazine (kit #1031: where it pushes the magazine in during the reload) is solved last, from its
+place on the gun rolled under the magazine's base; `--magazine=` gives another move from that place and `--magazine-only` solves
+only it, on the seat and right hand of the output file of an earlier run (a minute).
 
 The seat is given as a move from `REFERENCE_SEAT` (metres along the pistol's own axes, then degrees about them),
 and the hand bone is turned back at the wrist by the same turn, so the barrel keeps the reference's line in the
@@ -46,6 +49,16 @@ REFERENCE_SEAT = [0.0234, -0.9867, 0.1609, -0.0805, 0.1585, 0.9841, -0.9965, -0.
 # hand's mirrored across the pistol.
 SEAT = [0.022, -0.035, 0.0306, -4.0, -23.5, -15.5]
 LEFT = [-0.017, -0.03, 0.009, -8.0, 1.5, 0.0]
+# The left hand's place while it pushes the magazine in, as a move from its place on the gun (about the middle
+# of the magazine's base): rolled about the barrel's line until the heel of the palm is under the base.
+MAGAZINE = [0.0, 0.0, -0.07, 80.0, 0.0, 0.0]
+# How far the thumb of the hand under the magazine stays off every surface, metres: the test in Godot read
+# the male thumb's root 1.4 mm deeper than this solver there.
+CUP_THUMB_OFF = 0.0005
+# The left hand opened, as it lets go of the gun and comes back to it: each finger bone this share of the way
+# from its rest (straight) to its place on the gun; the thumb, the index and the little finger stay.
+OPEN_SHARE = 0.6
+MAGAZINE_BASE = np.array([0.003, -0.052, 0.0])
 # The grid of the gun's distance: the whole gun (muzzle at -0.207) and a hand's thickness round it.
 GRID_LOW = [-0.24, -0.09, -0.075]
 GRID_HIGH = [0.08, 0.17, 0.075]
@@ -107,6 +120,8 @@ def finger_cost(scene, hand, finger, angles, mode):
     lows = [sd[:, p].min(axis=1) for p in (base, mid, tip)]
     # A search that measures every third vertex keeps 0.4 mm in hand, so the full measure agrees.
     deep = relu(-sd.min(axis=1) - (TOL if hand.stride == 1 else TOL - 0.0004))
+    if mode == "cup" and finger == "thumb":
+        deep = relu(CUP_THUMB_OFF - sd.min(axis=1))
     cost = 100.0 * deep
     a = np.atleast_2d(angles)
     tip_at = scene.to_gun(pts[:, tip].mean(axis=1))
@@ -126,6 +141,10 @@ def finger_cost(scene, hand, finger, angles, mode):
         cost += touch[2] + touch[1] + 2e-4 * (a[:, 2] + a[:, 3])
         cost += relu(tip_at[:, 2] + 0.014) + relu(mid_at[:, 2] + 0.014)
         cost += 0.1 * relu(FRAME_Y - tip_at[:, 1])
+    elif mode == "cup":
+        # Under the magazine: the fingers close on whatever is in reach (the grip's foot, the right hand).
+        cost += touch[2] + 0.5 * touch[1]
+        cost += 2e-4 * relu(a[:, 5] - 45.0) if finger == "thumb" else 3.0 * natural(a) + 2e-4 * np.abs(a[:, 0])
     elif mode == "thumb":
         # Both thumbs lie on the gun's left (+Z), the left one ahead of the right one.
         cost += touch[2] + 0.7 * touch[1] + 0.3 * touch[0]
@@ -370,6 +389,63 @@ def search_left(scene, start, rounds):
     return best
 
 
+def put_left(scene, in_gun):
+    """Moves the left hand, as its fingers are, to a place given in the gun."""
+    hand = scene.left
+    hand.move = np.eye(4)
+    hand._apply_all()
+    hand.move = scene.gun_global() @ in_gun @ np.linalg.inv(hand.hand_global())
+    hand._apply_all()
+
+
+def place_magazine(scene, support, params):
+    """Puts the left hand under the magazine: its place on the gun (`support`, in the gun) turned and moved by
+    `params` (gun axes, about the middle of the magazine's base), then pushed up the gun's Y from below until
+    the palm's skin is TARGET off a surface."""
+    turn = np.eye(4)
+    turn[:3, :3] = R.axis_angle(X, params[3]) @ R.axis_angle(Y, params[4]) @ R.axis_angle(Z, params[5])
+    turn[:3, 3] = MAGAZINE_BASE - turn[:3, :3] @ MAGAZINE_BASE + np.array(params[:3])
+    start = turn @ support
+    hand = scene.left
+    palm = hand.part["palm"]
+
+    def put(lift):
+        in_gun = start.copy()
+        in_gun[1, 3] += lift
+        put_left(scene, in_gun)
+        return in_gun
+
+    def gap(lift):
+        put(lift)
+        return scene.field(hand, hand.points(palm), palm).min() - TARGET
+
+    # Up from well below in 1 mm steps to the first touch (past the gun the palm is clear again, so no
+    # bisection over the whole way), then to the place between the last two steps.
+    low = -0.15
+    while low < 0.1 and gap(low + 0.001) > 0:
+        low += 0.001
+    high = low + 0.001
+    for _ in range(12):
+        mid = 0.5 * (low + high)
+        if gap(mid) > 0:
+            low = mid
+        else:
+            high = mid
+    return put(low)
+
+
+def close_magazine(scene, quick=False):
+    hand = scene.left
+    total = 0.0
+    for _ in range(1 if quick else 2):
+        total = 0.0
+        for finger in FINGERS:
+            best, cost = solve_finger(scene, hand, finger, "cup", quick, hand.angles[finger])
+            hand.set(finger, best)
+            total += cost
+    return total
+
+
 def reach(scene, in_gun):
     """How far the left shoulder is from the left hand's place in every dumped aim and shoot pose, metres."""
     r = scene.rig
@@ -414,6 +490,9 @@ def main():
             scan(scene, [[float(v) for v in part.split(",")] for part in argument[7:].split(";")])
             return
     rounds = [(0.008, 4.0), (0.004, 2.0), (0.002, 1.0), (0.001, 0.5)]
+    if "--magazine-only" in sys.argv:
+        magazine_only(scene, started)
+        return
     best = settle(scene, option("seat", SEAT))
     if "--search-seat" in sys.argv:
         scene.right.stride = 3
@@ -425,6 +504,7 @@ def main():
     scene.right._apply_all()
     total, table = close_right(scene, quick=False, trigger=False)
     grip = scene.right.quaternions()
+    angles = {"right": {finger: scene.right.angles[finger].tolist() for finger in FINGERS}}
     report(scene, scene.right, "right (frame)")
     on_trigger, _ = solve_finger(scene, scene.right, "index", "trigger", False)
     scene.right.set("index", on_trigger)
@@ -455,7 +535,9 @@ def main():
     arm, rows = reach(scene, in_gun)
     print(f"left arm {arm:.3f} m;", ", ".join("{} {:.3f}".format(n.split("/")[1], d) for n, d in rows))
     print("left", np.round(left, 4).tolist(), "in %.0f s" % (time.time() - started))
+    support = scene.left.quaternions()
     out = {
+        "angles": angles,
         "seat_params": best.tolist(),
         "seat": scene.seat.tolist(),
         "wrist": R.mat_to_quat(scene.right.wrist).tolist(),
@@ -463,8 +545,66 @@ def main():
         "trigger": trigger,
         "left_params": left.tolist(),
         "support_hand": in_gun.tolist(),
-        "support": scene.left.quaternions(),
+        "support": support,
     }
+    out["open"] = opened(scene.rig, support)
+    out.update(solve_magazine(scene, angles["right"], in_gun, started))
+    with open(sys.argv[2], "wb") as file:
+        file.write(json.dumps(out, indent=1).encode())
+
+
+def opened(rig, support):
+    """The left hand's pose on the gun with its fingers opened: each finger bone `OPEN_SHARE` of the way from
+    its rest to `support` (bone name to quaternion); the thumb, the index and the little finger stay as they
+    are there (the index finger lies under the trigger guard and straightening it lifts it into the guard;
+    the little finger's tip went 5 mm into the right hand half-way open)."""
+    out = {}
+    for name, quaternion in support.items():
+        end = np.array(quaternion, float)
+        if not name.startswith(("thumb", "index", "pinky")):
+            start = np.array(R.mat_to_quat(rig.rest[rig.index[name]][:3, :3]), float)
+            if start @ end < 0.0:
+                end = -end
+            angle = np.arccos(np.clip(start @ end, -1.0, 1.0))
+            if angle > 1e-6:
+                end = (np.sin((1.0 - OPEN_SHARE) * angle) * start + np.sin(OPEN_SHARE * angle) * end) / np.sin(angle)
+        out[name] = end.tolist()
+    return out
+
+
+def solve_magazine(scene, right_angles, support, started):
+    """The left hand under the magazine, against the gun and the right hand with its finger off the trigger."""
+    for finger in FINGERS:
+        scene.right.angles[finger] = np.array(right_angles[finger], float)
+    scene.right._apply_all()
+    scene.freeze_right()
+    params = np.array(option("magazine", MAGAZINE))
+    for finger in FINGERS:
+        scene.left.angles[finger][:] = 0.0
+    # The palm's skin near the knuckles follows the fingers: the hand is seated again under the closed fingers
+    # and they are closed again there, three times.
+    for _ in range(3):
+        in_gun = place_magazine(scene, support, params)
+        total = close_magazine(scene)
+    report(scene, scene.left, "magazine")
+    print(
+        "magazine", np.round(params, 4).tolist(), "total %.2f mm" % (total * 1000), "in %.0f s" % (time.time() - started)
+    )
+    return {
+        "magazine_params": params.tolist(),
+        "magazine_hand": in_gun.tolist(),
+        "magazine": scene.left.quaternions(),
+    }
+
+
+def magazine_only(scene, started):
+    """Solves only the left hand under the magazine, on the seat and the right hand of the solve in the output
+    file, and adds it to that file."""
+    with open(sys.argv[2], "rb") as file:
+        out = json.load(file)
+    scene.seat = seat_from(scene, np.array(out["seat_params"]))
+    out["open"] = opened(scene.rig, out["support"])
+    out.update(solve_magazine(scene, out["angles"]["right"], np.array(out["support_hand"]), started))
     with open(sys.argv[2], "wb") as file:
         file.write(json.dumps(out, indent=1).encode())
 

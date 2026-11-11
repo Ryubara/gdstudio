@@ -88,6 +88,13 @@ const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePac
 const _P_RELOAD_ACTIVE := StringName("parameters/%s/active" % _RELOAD)
 const _P_RELOAD_REQUEST := StringName("parameters/%s/request" % _RELOAD)
 const _P_RELOAD_SCALE := StringName("parameters/%s/scale" % _RELOAD_SCALE)
+const _P_RELOAD_FADING_IN := StringName("parameters/%s/fade_in_remaining" % _RELOAD)
+const _P_RELOAD_FADING_OUT := StringName("parameters/%s/fade_out_remaining" % _RELOAD)
+const _P_RELOAD_INSIDE := StringName("parameters/%s/internal_active" % _RELOAD)
+const _P_RELOAD_AT := StringName("parameters/%s/current_position" % _RELOAD_CLIP)
+const _P_RELOAD_LENGTH := StringName("parameters/%s/current_length" % _RELOAD_CLIP)
+const _RELOAD_FADE_IN := 0.15
+const _RELOAD_FADE_OUT := 0.2
 
 @export_group("Nodes")
 ## The character that is animated.
@@ -392,6 +399,20 @@ func aim_pitch() -> float:
 ## True while the reload clip plays over the upper body.
 func is_reloading() -> bool:
 	return tree != null and tree.get(_P_RELOAD_ACTIVE)
+
+
+## Where the reload clip is, for whatever follows it (the `WeaponHold`'s left hand): x how much of
+## the upper body the clip holds now (0 none, 1 all of it: it fades in and out), y the share of the
+## clip that has played (0 its start, 1 its end), however long the weapon's reload takes.
+func reload_progress() -> Vector2:
+	if not is_reloading():
+		return Vector2.ZERO
+	var weight := 1.0 - float(tree.get(_P_RELOAD_FADING_IN)) / _RELOAD_FADE_IN
+	if not tree.get(_P_RELOAD_INSIDE):
+		weight = float(tree.get(_P_RELOAD_FADING_OUT)) / _RELOAD_FADE_OUT
+	var length: float = tree.get(_P_RELOAD_LENGTH)
+	var share := float(tree.get(_P_RELOAD_AT)) / length if length > 0.0 else 1.0
+	return Vector2(clampf(weight, 0.0, 1.0), clampf(share, 0.0, 1.0))
 
 
 ## Stops the reload clip (a switch or a death cut the reload short).
@@ -733,8 +754,8 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	shoot.fadeout_time = 0.12
 	shoot.filter_enabled = true
 	var reload := AnimationNodeOneShot.new()
-	reload.fadein_time = 0.15
-	reload.fadeout_time = 0.2
+	reload.fadein_time = _RELOAD_FADE_IN
+	reload.fadeout_time = _RELOAD_FADE_OUT
 	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
