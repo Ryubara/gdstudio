@@ -156,23 +156,23 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
 
 ## Close and powerful sounds {#close-and-powerful-sounds}
 
-Moved to [Mixing levels](audio/mixing-levels.md#close-and-powerful-sounds).
+Moved to [Mixing levels](audio-mixing/mixing-levels.md#close-and-powerful-sounds).
 
 ## Headroom without a limiter {#headroom-without-a-limiter}
 
-Moved to [Mixing levels](audio/mixing-levels.md#headroom-without-a-limiter).
+Moved to [Mixing levels](audio-mixing/mixing-levels.md#headroom-without-a-limiter).
 
 ## A layer over a sound that already peaks {#a-layer-over-a-sound-that-already-peaks}
 
-Moved to [Mixing levels](audio/mixing-levels.md#a-layer-over-a-sound-that-already-peaks).
+Moved to [Mixing levels](audio-mixing/mixing-levels.md#a-layer-over-a-sound-that-already-peaks).
 
 ## Is a sound heard under fire? {#is-a-sound-heard-under-fire}
 
-Moved to [Mixing levels](audio/mixing-levels.md#is-a-sound-heard-under-fire).
+Moved to [Mixing levels](audio-mixing/mixing-levels.md#is-a-sound-heard-under-fire).
 
 ## Warnings that must carry through cover {#warnings-that-must-carry-through-cover}
 
-Moved to [Mixing levels](audio/mixing-levels.md#warnings-that-must-carry-through-cover).
+Moved to [Mixing levels](audio-mixing/mixing-levels.md#warnings-that-must-carry-through-cover).
 
 ## Starting sounds {#starting-sounds}
 
