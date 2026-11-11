@@ -21,9 +21,10 @@ the docs (one page sees a puppet for each bot: `--bots` 1, 4 and 7 give 1, 4 and
 
 `--gpu` draws with the machine's GPU (ANGLE on Direct3D 11 on Windows). A first page plays `--warm-up` seconds before
 the measured ones (20 with `--gpu`): Chrome compiles each shader program the first time it draws it, on the page's
-thread, 12 to 14 s at once on a cold start, and the server hangs up on a socket that says no hello in 10 s; the
-browser keeps what it compiled, so the measured pages read a returning player's frames. `--uncapped` turns vsync and
-the frame cap off, so the frame time is the page's work and not 16.7 ms.
+thread, 12 to 14 s at once on a cold start (the server hangs up on its late hello and the client opens a new socket,
+`NetClient.rejoins`); the browser keeps what it compiled, so the measured pages read a returning player's frames.
+`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped`
+turns vsync and the frame cap off, so the frame time is the page's work and not 16.7 ms.
 
 `--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
 page shows the overlay's "another version" message. `result.json`, the logs and a screenshot of each page go to the
@@ -59,9 +60,9 @@ from relay import Relay
 
 READY_TIMEOUT_S = 120.0
 # Seconds a first page plays on the GPU before the measured pages open: Chrome on ANGLE's Direct3D 11 compiles each
-# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), and the
-# server hangs up on a socket that says no hello in `NetServer.hello_seconds` (10 s). The browser keeps what it
-# compiled for its later pages, so the measured pages read a returning player's frames.
+# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), so the
+# first page's frames and join time are a first visit's (21 to 22 s, one new socket after a late hello). The browser
+# keeps what it compiled for its later pages, so the measured pages read a returning player's frames.
 GPU_WARM_UP_S = 20.0
 # Chrome's flags for frames as fast as the page can make them (`--uncapped`): with vsync a GPU page reads 16.7 ms at
 # any load, which hides what a puppet costs.
@@ -79,6 +80,21 @@ def report_of(page: Page) -> dict:
     report = json.loads(text or "{}")
     report["state"] = page.evaluate("() => window.gdonline ? window.gdonline.state : 'no probe'")
     return report
+
+
+def wait_for_all(pages: list[Page], began: list[float], timeout_s: float) -> list[float]:
+    """Waits until every page has stopped loading and connecting; returns each page's seconds from its load until then
+    (pages that are loading together are polled together, so a later page is not timed by an earlier one's wait)."""
+    done: dict[int, float] = {}
+    end = time.time() + timeout_s
+    while len(done) < len(pages) and time.time() < end:
+        for index, page in enumerate(pages):
+            if index not in done and page.evaluate(
+                f"() => {{ try {{ return !!({SETTLED}); }} catch (e) {{ return false; }} }}"
+            ):
+                done[index] = round(time.time() - began[index], 1)
+        time.sleep(0.25)
+    return [done.get(index, round(time.time() - began[index], 1)) for index in range(len(pages))]
 
 
 def warm_up(browser: Browser, url: str, viewport: dict, seconds: float) -> dict:
@@ -162,6 +178,7 @@ def main() -> int:
             pages: list[Page] = []
             # Every page opens first and then each is waited for: a page opened after another was seated would load
             # its level, and SwiftShader its shaders, inside the first page's join window.
+            began: list[float] = []
             for index in range(args.pages):
                 page = browser.new_context(viewport=viewport).new_page()
                 page.add_init_script(FRAME_WATCH)
@@ -170,12 +187,13 @@ def main() -> int:
                 )
                 page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
                 plan = "route" if index == 0 else "watch"
+                began.append(time.time())
                 page.goto(
                     f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
                 )
                 pages.append(page)
-            for page in pages:
-                wait_for(page, SETTLED, READY_TIMEOUT_S * args.pages)
+            # Seconds from each page's load to its seat (or its failure), as the player waits them.
+            join_s = wait_for_all(pages, began, READY_TIMEOUT_S * args.pages)
             seated = all(report_of(page)["state"] == "seated" for page in pages)
             if seated:
                 time.sleep(args.seconds)
@@ -184,6 +202,8 @@ def main() -> int:
             reports = [report_of(page) for page in pages]
             for page, report in zip(pages, reports):
                 report["hitches"] = hitches(page)
+            for report, seconds in zip(reports, join_s):
+                report["join_s"] = seconds
             for index, page in enumerate(pages):
                 page.screenshot(path=str(args.out / f"page{index + 1}.png"))
             browser.close()
@@ -242,6 +262,7 @@ def main() -> int:
         line += f", settle_ms {report.get('settle_ms')}, wait_ms {report.get('wait_ms')}"
         line += f", hitches {seen.get('unplanned')} (join window {seen.get('in_join_window')}, worst"
         line += f" {seen.get('worst_unplanned_ms')} ms), links_after_seat {seen.get('links_after_seat')}"
+        line += f", join_s {report.get('join_s')}, rejoined {report.get('rejoined')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1

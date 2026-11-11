@@ -20,6 +20,12 @@ extends Node
 ## map and a teleport go through `Player.teleport()` and reset the reconciler, so a move the
 ## server did not make is never read as an error. The address is `--connect <url>` or the page's
 ## `?url=` (`WebSocketLink.server_url`) unless a test hands a link to `join_with`.
+##
+## A server that hangs up before the WELCOME for a hello that came too late
+## (`NetServer.CLOSE_POLICY` after `NetServer.hello_seconds`) gets a new socket, up to `rejoins`
+## times, before the client says it is gone: a browser that has never drawn the game links every
+## shader program in its first frames, which held a page's thread 14 s on a GPU while its socket's
+## `open` waited (gdstudio #1137), and a busy machine's second page does the same.
 
 ## Said when the server seated this client.
 signal welcomed(slot: int)
@@ -27,6 +33,9 @@ signal welcomed(slot: int)
 signal refused(reason: int)
 ## Said when the link closed (the server went, or a goodbye).
 signal disconnected
+## Said when the server hung up before the WELCOME for a late hello and a new socket opens to the
+## same address (`rejoins`); `attempt` counts from 1.
+signal rejoining(attempt: int)
 
 ## Ticks a command's number may trail the server tick it is expected to be stepped at before the
 ## numbering moves on (`first_seq`; a stall, a slow clock).
@@ -59,6 +68,11 @@ static var next_url := ""
 ## computes the same spawn so its body starts exactly where the server's does.
 @export var spawn_group := &"player"
 @export var spawn_seed := 1
+## New sockets the client opens to the same address when the server hangs up on a hello that came
+## too late (close `NetServer.CLOSE_POLICY` before the WELCOME), before it says `disconnected`. A
+## page whose first frames compile the game's shaders sends its hello late once; a refusal, a
+## server that is not there or a seated link that closes is never retried.
+@export_range(0, 10) var rejoins := 2
 
 ## The link to the server (null before `join`).
 var link: NetLink
@@ -88,6 +102,8 @@ var seq := 0
 var rtt_ms := -1
 ## Times the numbering of the commands moved on to the server's tick (after a stall).
 var renumbered := 0
+## New sockets opened after a late hello (`rejoins`).
+var rejoined := 0
 ## TICKs read, and packets the decoders refused.
 var ticks_read := 0
 var drops := NetDrops.new()
@@ -104,6 +120,10 @@ var _hello_at := 0.0
 # The last stall's end (this node's clock, milliseconds as a ping carries them): a PONG for an
 # older ping is not a round trip (-1: no stall yet).
 var _pings_valid_from := -1
+# The address `join` opened (empty for a link handed to `join_with`, which is never reopened).
+var _url := ""
+# Whether a REFUSED came on this link: the server answered, so its close is not retried.
+var _refused := false
 
 
 func _ready() -> void:
@@ -156,12 +176,15 @@ func join(url: String) -> Error:
 	if failed != OK:
 		return failed
 	join_with(socket)
+	_url = url
 	return OK
 
 
 ## Says hello over `with_link` once it opens (a test's `LoopbackLink` or `LinkConditioner`).
 func join_with(with_link: NetLink) -> void:
 	link = with_link
+	_url = ""
+	_refused = false
 	link.connected.connect(_on_connected)
 	link.packet_received.connect(_on_packet)
 	link.closed.connect(_on_closed)
@@ -263,6 +286,7 @@ func _on_packet(data: PackedByteArray) -> void:
 		NetWire.Type.WELCOME:
 			_on_welcome(SnapshotCodec.read_welcome(data, drops))
 		NetWire.Type.REFUSED:
+			_refused = true
 			refused.emit(NetWire.read_refused(data, drops))
 		NetWire.Type.TICK:
 			_on_tick(SnapshotCodec.read_tick(data, drops))
@@ -326,11 +350,40 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 
 
 func _on_closed() -> void:
+	if should_rejoin():
+		_rejoin()
+		return
 	slot = -1
 	combat.clear()
 	if remote_players != null:
 		remote_players.clear()
 	disconnected.emit()
+
+
+## Whether the link that just closed is one to open again: the server hung up before the WELCOME
+## (`NetServer.CLOSE_POLICY`: a hello later than `hello_seconds`), no REFUSED came, the address is
+## known and `rejoins` are left.
+func should_rejoin() -> bool:
+	return (
+		not is_seated()
+		and not _refused
+		and _url != ""
+		and rejoined < rejoins
+		and link != null
+		and link.close_code() == NetServer.CLOSE_POLICY
+	)
+
+
+# Opens a new socket to the same address; the closed link says nothing more.
+func _rejoin() -> void:
+	link.connected.disconnect(_on_connected)
+	link.packet_received.disconnect(_on_packet)
+	link.closed.disconnect(_on_closed)
+	rejoined += 1
+	rejoining.emit(rejoined)
+	if join(_url) != OK:
+		_url = ""
+		_on_closed()
 
 
 # The body starts where the server put it: the same spawn, computed in this map, when it agrees
