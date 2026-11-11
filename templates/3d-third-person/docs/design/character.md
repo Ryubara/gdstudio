@@ -70,7 +70,10 @@ slowly (1.2 rad/s). It ends when it drops below 3 m/s, after 1.5 s on the flat, 
 hold mode; off, a press slides to the end) or when the body leaves the ground; it then crouches while crouch is held
 or a ceiling is too low to stand under, and stands otherwise. Under a gap too low even to crouch in, it keeps sliding
 until it is out. Jump during a slide jumps 85 percent as high and keeps the slide's speed through the air (at most
-9 m/s, fading by 1 m/s each second). Aim and fire work while sliding. Another slide waits 0.3 s.
+9 m/s, fading by 1 m/s each second). Aim and fire work while sliding: the body slides on along its line and the upper
+body turns so the pistol points at the crosshair, up to 75 degrees to either side; aimed further round, the body turns
+with the aim (or, for a weapon whose `past_aim_limit` is `REFUSE_SHOT`, the trigger does nothing until the aim is back
+in reach). Another slide waits 0.3 s.
 
 It is part of the body's step (`CharacterSlide`, `gameplay/character/character_slide.gd`): a bot or a server slides a
 body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in its
@@ -149,11 +152,20 @@ shipped games, with the sources in the kit's `docs/engines/godot/third-person/mo
 | Slopes | no limit downhill (on), slope gravity (9.8 m/s²), the share of friction downhill (0.2), the flattest slope that counts (4 degrees) |
 | Steering | the turn rate (1.2 rad/s) |
 | Body and camera | the capsule's height (0.9 m), the time to drop and rise (0.12 s), the camera target's height (0.75 m) |
-| Shooting | shooting allowed (on) |
+| Shooting | shooting allowed (on), the aim layer's reach (`aim_limits`: 75 degrees left and right of the slide, 50 up, 70 down) |
 | Slide jump | slide jump (on), its height share (0.85), boost (0), most speed (9 m/s) and air drag (1 m/s²) |
 
 The character lies down only on the ground and gets up through crouch, only when a crouched body fits above it: under
 a gap only a lying body fits under (0.8 m, say), letting go of prone keeps it down until it crawls out.
+
+The aim layer (`AimLayer`, a node of the character, `gameplay/character/aim/`) points the held weapon at the aim in
+every move: it turns the spine after the clips by the yaw and pitch that put the muzzle on a point 15 m along the aim
+(`converge_distance`), within the move's `AimLimits`: `CharacterTuning.aim_limits` standing and `crouch_aim_limits`
+crouched (70 degrees each side, 45 up and down), `SlideTuning.aim_limits` and `ProneTuning.aim_limits`. Each holds on
+or off, the most to the left and right of the way the body faces, and the most up and down. The weapon's
+`past_aim_limit` (Aim group of its `WeaponDef`) says what happens past the side limits: the body turns (the default)
+or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
+`release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
@@ -171,7 +183,10 @@ magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo
 the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
 so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
 pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
-2.5 a second, with no ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
+2.5 a second, with no ammunition, and a punch does not zoom the view (`fire_zooms` off). Each definition's Aim and zoom
+group says what aim and fire do with it: `can_aim`, `fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with
+`override_zoom` its own aim and fire field of view, distance and `zoom_offset` in place of the camera's; all apply
+while the game runs. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
 weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
 `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
 turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
@@ -189,7 +204,8 @@ field of view and distance added at a full sprint, the zoom speed, and a shake w
 frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Slide (the field of view
 added while sliding, 5 degrees, and its speed, 4 a second; the sprint view stays through a slide), Aim (the distance, the
 field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
-aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+aiming, with `zoom_when_firing` to turn it off, which a weapon's `fire_zooms` can also do for itself, and a Shot
+kick: `shot_kick_amplitude` in degrees, off at 0, and
 `shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
 from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
 follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:

@@ -20,6 +20,11 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `HitRecord` goes to the character's `take_hit()`. None: the shot passed between the parts (beside the waist, between
   the legs), takes the capsule as an exception and flies on in the same tick. A lying body is met on its ragdoll bones
   (they carry the same tag while limp), and the record names the bone.
+- **Where a weapon aims on a character.** The aim ray asks the same two steps: `HitZones.aimed_point(point, along)`
+  answers the point on the part the ray meets past the capsule, or `Vector3.INF` when it passes between the parts, and
+  `Weapon.aim_point` then goes on to what is behind the body (with the zones off it is the capsule's point). The shot
+  leaves the muzzle toward that point, so a close shot lands on the part under the crosshair, not beside it
+  (gdstudio #1251, [Shooting](third-person/shooting.md#crouch-aim-shoot)).
 - **Why two steps.** The zones move only for a shot that reached a capsule, never every frame: they cost nothing while
   nobody shoots (the numbers are below). The price: a part held outside the capsule (an arm stretched out to aim) is
   not hit, since the capsule is the first test.

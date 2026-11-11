@@ -11,6 +11,9 @@ extends AiStockTask
 ## Which spot is the second choice point that is scored (`AiChoice`): walking cost first, a spot
 ## facing the threat preferred, the spot already chosen keeping `commitment`. A spot is taken by
 ## one character at a time.
+##
+## A peek needs one of the director's attack slots on the threat (kit #1203): without one it stays
+## down and asks again each think; it gives the slot back when the peek ends and when it leaves.
 
 ## How far it looks for a spot.
 @export_range(1.0, 100.0, 0.5, "suffix:m") var search_radius := 15.0
@@ -92,6 +95,12 @@ func resume() -> Resume:
 	return Resume.RESUME
 
 
+func suspend() -> void:
+	super()
+	_peeking = false
+	free_slot()
+
+
 func cancel() -> void:
 	super()
 	_leave()
@@ -139,13 +148,20 @@ func choose_spot() -> AiMarker:
 func _fight(delta: float, belief: AiBelief) -> Status:
 	_phase += delta
 	controller.walk_direction = Vector3.ZERO
-	if not _peeking and _phase >= hide_seconds and peek and not plays_safe():
+	if (
+		not _peeking
+		and _phase >= hide_seconds
+		and peek
+		and not plays_safe()
+		and take_slot(subject())
+	):
 		_peeking = true
 		peeks += 1
 		_phase = 0.0
 	elif _peeking and _phase >= peek_seconds:
 		_peeking = false
 		_phase = 0.0
+		free_slot()
 	var peek_now := _peeking and peek and not plays_safe()
 	controller.crouch = not peek_now
 	if not peek_now:
@@ -165,6 +181,7 @@ func _fight(delta: float, belief: AiBelief) -> Status:
 
 
 func _leave() -> void:
+	free_slot()
 	if spot != null and is_instance_valid(spot) and spot.taken_by == character:
 		spot.taken_by = null
 	if controller != null:

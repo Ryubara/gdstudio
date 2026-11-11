@@ -44,7 +44,7 @@ func before_test() -> void:
 	add_child(_arena)
 	var player := load("res://gameplay/player/player.tscn").instantiate() as Player
 	player.start_at_spawn = false
-	var slots: Array[WeaponDef] = [player.loadout.slots[0], _rifle]
+	var slots: Array[Resource] = [player.loadout.slots[0], _rifle]
 	player.loadout.slots = slots
 	_arena.add_child(player)
 	_arena.player = player
