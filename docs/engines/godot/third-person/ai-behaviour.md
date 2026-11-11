@@ -102,8 +102,9 @@ target, a turn no faster than `aim_speed`, tracking noise that shrinks while on 
   `play_hysteresis` 0.08, `play_dwell` 2 s.
 - **`AiBehaviourSet`**: `display_name`, `rows`, `waivers`, `situation_rules`, `default_task`. **`AiReactionRow`**:
   `event`, `bands`, `situations`, `play_states`, `min_awareness`, `min_courage`, `max_courage`, `chance`,
-  `chance_scale`, `task`, `place`, `enter`, `note`. **`AiReactionWaiver`**: `event`, `bands`, `situations`, `reason`.
-  **`AiSituationRule`**: `situation`, `blocks`, `open_layers`.
+  `chance_scale`, `noises` (the noise kinds a `heard` row answers; empty: any), `task`, `place`, `enter`, `note`.
+  **`AiReactionWaiver`**: `event`, `bands`, `situations`, `reason`. **`AiSituationRule`**: `situation`, `blocks`,
+  `open_layers`.
 - **`AiMarker`**: `kind`, `route`, `wait_seconds` 2 s, `enabled`.
 - Each stock task's numbers are its exports (group Stock: `answers_threat`, `roams`; then its own, documented on
   the script). The brain's and the profile's are pinned by `test_ai_exports.gd`, each task's channels and contract by
