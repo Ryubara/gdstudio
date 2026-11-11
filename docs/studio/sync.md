@@ -57,7 +57,8 @@ branches chose three homes on one day (gdstudio #923) -->
 `godot/addons/gds_game/` holds the gameplay code any game of any template can use (the maintainer's decision on
 gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone`, the
 impacts (`Impacts`, `ImpactSurface`, `ImpactMark`), `SpawnPoint`, the camera shake (`CameraShake`, `ShakePreset`),
-`DecodedSounds` (short sounds decoded once, gdstudio #1023), `ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced
+`DecodedSounds` (short sounds decoded once, gdstudio #1023), `ShaderPrelink` (a web build's GL programs linked at once
+from a recorded list, gdstudio #1164), `ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced
 beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the second group), the traversal parts
 (`Vaultable`, `VaultSettings`, `VaultProbe`, `VaultPlan`; gdstudio #1013), `Health` and `HitRecord` (`hits/`) and
 `Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is

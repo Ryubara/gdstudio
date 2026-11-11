@@ -1,3 +1,4 @@
+# On the clock: `ShaderPrelink.wait` gives up after real seconds, as a stuck page needs.
 # `ShaderPrelink` of `gds_game` on its own, with a page of the test's (the browser's side is
 # measured by the template's `tools/web_smoke/shader_programs.py`): a list of this Godot is handed
 # to the page once and is done when the page says so; a list of another Godot, of another format,
