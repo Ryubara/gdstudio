@@ -295,5 +295,6 @@ Online (#970): `test_net_ai_snapshot.gd` (a row's limits, full and delta round t
 interest radius, the tier rates, hostile bytes), `test_net_ai_glide.gd` (even steps, set-downs, the buffer, the guess
 ahead capped and stopped at a wall) and `test_net_ai_online.gd` (a client runs no AI, a walker drawn where the server
 has it, a late joiner's one snapshot, a death's ragdoll on another screen from one event, a player's shot as a HIT on
-the puppet, a browser's cap); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
+the puppet, a browser's cap) and `test_net_ai_section.gd` (the AI section's population on a server, drawn by a
+client); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
 screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).
