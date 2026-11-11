@@ -276,13 +276,17 @@ override for a shape the probe misreads, and a clip of its own for the vault or 
 | --- | --- |
 | Trigger | press jump, sprint into it, or both (press jump); the speed the automatic one needs (5.5 m/s); the least speed a vault needs, slower mantles (0); the wait after a crossing before the automatic trigger starts another (0.25 s) |
 | Detection | how far past the body's front a wall is looked for (0.7 m) plus how far the body goes in 0.15 s; the widest angle off square to the face (35 degrees); the radius of the sphere cast onto the top (0.08 m); the steepest top (30 degrees) |
-| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (0.3 m); the deepest drop beyond (1.2 m); the least crossing speed (4 m/s), shortest and longest vault (0.45 and 0.9 s); the share of the speed kept on landing (0.85); the hand plant and the clear of the far edge as shares of the clip (0.3 and 0.7) |
+| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (1.13 m, the clips' own) and the nearest one settled for when that is blocked (0.3 m); the deepest drop beyond (1.2 m); the shortest and longest vault (0.45 and 1.3 s); the share of the speed kept on landing (0.85); what the two vault clips were keyed on (`low_clip`, `high_clip`: `vault_low.tres`, `vault_high.tres`) and how much faster than its own pace a clip may play (1 to 1.15) |
 | Mantle | lowest and highest mantle (0.45 and 2.0 m); the high clip from 1.25 m; the time (0.45 s and 0.5 s a metre); when the feet reach the top (0.7 of the time); how far onto the top (0.1 m) |
 | Body | aim and fire stop for the crossing (on) |
 
-The clips are on `Animation` (Traversal group): the vault (a placeholder, `NinjaJump_Start`, until the template's own
-vault clips land), the high vault, the mantle (`ClimbUp_1m`) and the high mantle, and the range of speeds a clip may be
-played at (0.5 to 2). `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
+The clips are on `Animation` (Traversal group): the vault (`Vault_Low`, one hand, under 1.0 m), the high vault
+(`Vault_High`, two hands; the pistol is put away for it), the step out of the landing (`Vault_Land`), the mantle
+(`ClimbUp_1m`) and the high mantle, and the range of speeds a mantle's clip may be played at (0.5 to 2). A vault is
+fitted to the wall measured: it starts at the frame that fits the distance, the hands land on the top at any height
+from 0.45 to 1.3 m, and the model stays level while the capsule goes over (the kit's
+`docs/engines/godot/third-person/traversal.md`). `tests/gameplay/test_vault_contacts.gd` measures the hands and the
+legs on both mannequins. `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
 
 ## Events other nodes connect to
 
@@ -321,8 +325,9 @@ arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
 `aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`, `Pistol_Aim_Neutral`,
 `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the locomotion), and `Pistol_Shoot`
-plays for each shot. On top of everything is a one-shot layer for actions: interact and hit play there, and so does
-anything else:
+is added to it for each shot (`WeaponDef.shoot_additive`: the clip less its own first frame, so the gun kicks about 16
+degrees up from wherever it aims). On top of everything is a one-shot layer for actions: interact and hit play there,
+and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -343,6 +348,7 @@ the node or on the `WeaponDef`, builds the tree again):
 | `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
 | `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil and the reload (a melee blow's clips are the weapon category's `melee_clips`), stretched to the reload's time. |
+| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
