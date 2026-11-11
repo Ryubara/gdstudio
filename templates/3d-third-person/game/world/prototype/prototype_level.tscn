@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" path="res://gameplay/target/target.tscn" id="target"]
 [ext_resource type="Script" path="res://addons/gds_game/traversal/vaultable.gd" id="vaultable"]
 [ext_resource type="PackedScene" path="res://gameplay/trigger_zone/trigger_zone.tscn" id="zone"]
+[ext_resource type="PackedScene" path="res://gameplay/trigger_zone/trigger_zone_net.tscn" id="zone_net"]
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_tynt2"]
 lightmap_size_hint = Vector2i(206, 134)
@@ -1550,6 +1551,8 @@ auto_open_range = 3.0
 [node name="PressurePad" parent="Triggers" unique_id=930297803 instance=ExtResource("zone")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.5, -5)
 show_plate = true
+
+[node name="NetEntity" parent="Triggers/PressurePad" unique_id=1840274466 instance=ExtResource("zone_net")]
 
 [node name="Platforms" type="Node3D" parent="." unique_id=1276059867]
 
