@@ -29,7 +29,7 @@ a headless process does not spin; the step is `physics_ticks_per_second` (60, pi
 
 | Message in | Answer |
 | --- | --- |
-| HELLO of a version `NetWire.accepts` refuses (outside `MIN_VERSION` to `VERSION`, both 2 since prone, #1012) | `REFUSED(version)`, then the close after the listener's linger |
+| HELLO of a version `NetWire.accepts` refuses (outside `MIN_VERSION` to `VERSION`, both 3 since the weapon presses, #887) | `REFUSED(version)`, then the close after the listener's linger |
 | HELLO whose world hash is not `NetServer.world_hash` | `REFUSED(world)` |
 | HELLO with every slot of `max_players` held | `REFUSED(full)` |
 | HELLO otherwise | the lowest free slot (0 is the first; the codec carries 0 to 7), a body, `WELCOME` (slot, tick rate, the server tick, the world hash, every player with its name), and a `joined` event to everyone else |
@@ -53,6 +53,11 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
   once a frame ends (`test_net_server_stream.gd`, within 1 mm on a floor): a predicting client may replay unanswered
   commands in one frame the same way. A held `prone` bit lays the body down (state `PRONE`, 11, in every TICK) and it
   crawls by the same commands (`test_net_server_stream.gd`).
+- **Every move is the character's own.** The server adds no rule of its own for a move: crouch pressed at a sprint
+  slides the body (`SLIDE`, 12), a jump pressed in front of a wall that carries a `Vaultable` vaults it (`VAULT`, 13) or
+  climbs onto it (`MANTLE`, 14), and the weapon presses (flag bits 11 to 14: reload, next, previous, the empty hands)
+  switch and reload the body's `WeaponLoadout`, all through `step` (`test_net_server_moves.gd`). TICKs carry the state,
+  never the weapon held or its ammunition: that is the shots' and the HUD's (#906).
 - **Spawns.** Slot n starts at the n-th enabled `SpawnPoint` of `spawn_group` (`player`) in the bodies' world, by node
   path, wrapping past the last; the spot inside the point's radius comes from a generator seeded by `spawn_seed` and the
   slot (`spawn_transform(slot)`). `SpawnPoint.pick` is random among the points free this frame, so it cannot give a
@@ -69,19 +74,32 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
 - **Clocks.** The connection rules read `NetServer.clock` (the machine's when empty, the frame clock in tests), as
   [a room over a real socket](../multiplayer.md#room-over-socket) says.
 
-What it costs, measured on Windows with Godot 4.7.2 (other agents were using the machine):
+What it costs, measured on Windows with Godot 4.7.2 once main's moves, weapons and character split had landed
+(gdstudio #887, #1019, #1021, #1024, #1029, #1042; other agents were using the machine). Step times in milliseconds;
+the process rows take the second 10 s `stats` line, the first with every bot moving.
 
-| Run | Step p50 | Step p95 | Down a client | Up a client | Memory |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `tools/bench/server_bench.tscn`, 8 bots in the map, 600 steps (`test_net_server_cost.gd`, which fails at 6 ms p95) | 0.56 ms | 0.89 ms | 3210 B/s | 902 B/s | 106 MB static |
-| A headless server process (`-- --server`) with 8 bots of `tools/net/server_bot.gd` in another process, two 10 s stats lines | 0.74 to 0.77 ms | 1.32 to 1.39 ms | 3201 B/s | 900 B/s | 169 MB working set, 130 MB private |
-| The same process idle, no player | 0.02 ms | 0.03 ms | | | 168 MB working set, 127 MB private |
+| Run | 1 player | 2 | 4 | 8 |
+| --- | ---: | ---: | ---: | ---: |
+| `tools/bench/server_bench.tscn`, 1200 steps in the map, p50 / p95 | 0.10 / 0.16 | 0.16 / 0.22 | 0.30 / 0.40 | 0.54 / 0.73 |
+| A headless server process (`-- --server`), bots of `tools/net/server_bot.gd` in another process, p50 / p95 | 0.18 / 0.30 | 0.28 / 0.47 | 0.43 / 0.69 | 0.69 / 1.02 |
+| The same with `--moves` (weapon presses, a slide, three vaults and a mantle each), p50 / p95 | | | | 0.66 to 0.78 / 1.20 to 1.30 |
+| Down a client (B/s) | 708 | 1067 | 1781 | 3211 |
+| Server process, working set / private (MB) | 180 / 140 | 181 / 141 | 182 / 142 | 182 / 143 (183 / 144 with `--moves`) |
+
+Up is 908 B/s a client in every run (911 with `--moves`), and no step went over the 6 ms budget once every bot was
+in (one did in the first window of the 4 and 8 player runs, while the bots joined). Idle with no player the process
+holds 180 MB working set and 140 MB private; the bench's static memory is 93 MB with one body and 101 MB with eight.
+`test_net_server_cost.gd` fails above 6 ms p95 with 8 bots in the map.
 
 The bytes are payloads (the WebSocket frame adds 2 a packet down and 6 up): down is 30 TICKs of 107 bytes, up 60
-commands of 15 and two pings. The template's menu scene alone, headless, is 142 MB working set and 90 MB private, so
-the map, the bodies and the server add about 27 MB working set and 37 MB private; the image of #910 measures the Linux
-resident size against the research's 80 MB estimate. The bot's round trip on localhost read 20 ms (rounded to its
-frames) and every bot's `ack` trailed what it had sent by 2 commands, the ones in flight.
+commands of 15 and two pings (8 players). The image of #910 measures the Linux resident size against the research's
+80 MB estimate. The bot's round trip on localhost read 13 to 22 ms (rounded to its frames) and every bot's `ack`
+trailed what it had sent by 1 or 2 commands, the ones in flight.
+
+With `--moves` every bot of `server_bot.gd` steers by its own position in the TICKs: the weapon presses, a slide on its
+way to the map's `VaultCourse`, then the three vaults and the mantle; its `SERVER_BOT` line lists the states the
+server sent for it. In the 8-player run above every bot saw `SLIDE`, `VAULT` and `MANTLE`, and the log held no
+`kicked` line and no `ERROR`.
 
 - **Approach:** Prove a server's step by stepping an offline body with exactly what the server applied: keep each
   slot's `history` (the `seq` of every command applied, or that the step repeated, stood or idled, grouped by step)
@@ -89,3 +107,8 @@ frames) and every bot's `ack` trailed what it had sent by 2 commands, the ones i
   client over a real socket on one machine may miss a frame now and then, so a test that compares against the plain
   stream fails on a repeat the server rightly made; the burst run proves the catch-up path the paced one rarely meets.
   **Seen:** gdstudio #904, 2026-11-10 (`test_net_server_stream.gd`).
+- **Approach:** Have a bot that steers from TICKs press a move that needs speed (a slide) only after several TICKs in
+  a row of `RUN` and a speed averaged over them, and report the states the server sent so a missed move shows.
+  **Watch out for:** a press at a fixed tick, or on one TICK-to-TICK speed, missed the slide for two of eight bots and
+  then for three: the prototype map drops off a ledge just west of the spawn points, so the crouch came in the air
+  (`FALL`) and only crouched. **Seen:** gdstudio #904, 2026-11-10 (`tools/net/server_bot.gd --moves`).

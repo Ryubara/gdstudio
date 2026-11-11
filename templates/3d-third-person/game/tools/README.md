@@ -66,7 +66,8 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/bench/server_bench.tscn` times the game server's step with 1 to 8 bots on real sockets in the map and counts
   the bytes each way (`-- --bodies=8 --ticks=1200`; prints `SERVER_BENCH`).
 - `tools/net/server_bot.gd` plays bots against a running server (`-- --server`) in another process and prints what
-  each saw (`SERVER_BOT`: slot, TICKs, players, ack, round trip, bytes); the header has the command.
+  each saw (`SERVER_BOT`: slot, TICKs, players, ack, round trip, bytes); with `--moves` each runs the weapon presses, a
+  slide and the map's vault course and lists the states the server sent it; the header has the command.
 - `tools/net/relay.py` is a TCP relay with a delay each way and a byte counter, for a real round trip on one machine
   (the browser's throttling does not touch WebSockets).
 - `tools/web_smoke/net_link_smoke.py` drives the web export's `NetProbe` (`?netprobe&url=ws://...`) against the echo

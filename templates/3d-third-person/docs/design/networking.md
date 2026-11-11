@@ -47,8 +47,9 @@ Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `m
 
 - `game/tools/net/echo_server.gd` is a bare server that answers every packet; `game/tools/net/relay.py` adds a delay
   each way between a client and it. Their headers say how to run them.
-- `game/tools/net/server_bot.gd` plays bots against a server you started, and `game/tools/bench/server_bench.tscn`
-  times the server's step with eight of them; their headers say how to run them.
+- `game/tools/net/server_bot.gd` plays bots against a server you started (with `--moves` they slide, vault, mantle and
+  switch and reload their weapons on the map), and `game/tools/bench/server_bench.tscn` times the server's step with
+  one to eight of them; their headers say how to run them.
 - `game/tools/web_smoke/net_link_smoke.py` opens the web build against the echo server in a headless browser.
 
 The numbers and the engine behaviour the link was built around are in the kit's `docs/engines/godot/multiplayer.md`
