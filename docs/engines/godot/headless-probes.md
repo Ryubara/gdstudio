@@ -52,6 +52,9 @@ minutes). How it is started decides what it can build.
   program, so `Popen.kill()` and `OS.kill` end only the wrapper, and nothing runs when the parent is killed: the next
   run failed with `PermissionError: [WinError 32]` on the server's log with two Godot processes and about 600 MB held.
   **Seen:** Deadnight #502, 2026-11-02 (fix: the probe's `finally` and its own time limit).
+- **Approach:** Read a Godot program's memory from the largest of `psutil.Process(pid).children(recursive=True)`, never
+  from the PID `Popen` returned. **Watch out for:** that PID is the console wrapper's, so a server's memory read 7 MB
+  working set; its child held 180 MB. **Seen:** gdstudio #904, 2026-11-10 (the two-process run's harness).
 
 ## Runs that never end {#runs-that-never-end}
 

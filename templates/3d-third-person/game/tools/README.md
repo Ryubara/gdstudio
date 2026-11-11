@@ -11,6 +11,15 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   (`CARRY_MODEL=male` films the male mannequin; `CARRY_BONES` and `CARRY_HELD=1` try another grip or the held pose).
 - `tools/carry/measure_clearance.gd` measures how deep the held pistol sinks into the body in each locomotion clip on
   both mannequins (the header says how to run it; `tests/gameplay/test_pistol_clearance.gd` pins it at none).
+- `tools/capture/pistol_hold_study.tscn` poses a mannequin in every pistol clip and the locomotion clips with the
+  pistol out, prints how each hand meets the pistol (lines starting `HOLD`) and, with a window and `HOLD_OUT`, saves
+  close-ups from the gun's left, its right, above and the player's camera (`MODEL=male`; `HOLD_OFF=1` is the clips'
+  own fist).
+- `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
+  `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
+  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
+- `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
+  user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
 - `tools/capture/action_tour.tscn` plays the character through the range, the crouch course and the cubes by pressing the
   input actions, for a clip with the sound.
@@ -57,6 +66,17 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   `gds quiet`; the command is in its header).
 - `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints
   `LISTENING <port>` (the header says how to run and stop it).
+- `tools/bench/server_bench.tscn` times the game server's step with 1 to 8 bots on real sockets in the map and counts
+  the bytes each way (`-- --bodies=8 --ticks=1200`; prints `SERVER_BENCH`).
+- `tools/net/server_bot.gd` plays bots against a running server (`-- --server`) in another process and prints what
+  each saw (`SERVER_BOT`: slot, TICKs, players, ack, round trip, bytes); with `--moves` each runs the weapon presses, a
+  slide and the map's vault course and lists the states the server sent it; the header has the command.
+- `tools/net/predict_bot.gd` is a predicting client (`NetClient`, the map, `RemotePlayers`) against a running server:
+  circles, sprints and jumps, optional `--delay-ms` and `--freeze s:ms,...`, and prints `PREDICT_BOT` (corrections,
+  snaps, worst error, end gap, stalls, puppets, starved steps, round trip, microseconds a step); the header has the
+  command.
+- `tools/capture/online_tour.tscn` records a server and two clients in one process side by side: Ada's own screen
+  and Bo's, where she is drawn from the server (`gds capture frames --scene res://tools/capture/online_tour.tscn`).
 - `tools/net/relay.py` is a TCP relay with a delay each way and a byte counter, for a real round trip on one machine
   (the browser's throttling does not touch WebSockets).
 - `tools/web_smoke/net_link_smoke.py` drives the web export's `NetProbe` (`?netprobe&url=ws://...`) against the echo

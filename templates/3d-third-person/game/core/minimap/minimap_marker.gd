@@ -97,13 +97,13 @@ func position_3d() -> Vector3:
 	return Vector3(at.x, height(), at.y)
 
 
-## The target's forward on the map plane, as a unit vector. A parent with a
-## `get_minimap_heading() -> Vector2` method answers for itself (the player's body turns inside
-## its node).
+## The target's forward on the map plane, as a unit vector. A parent with a `MinimapHeading`
+## child answers through it (a character's body stays put while its model turns inside it).
 func heading() -> Vector2:
 	var parent := get_parent()
-	if parent != null and parent.has_method(&"get_minimap_heading"):
-		return parent.call(&"get_minimap_heading")
+	var source := MinimapHeading.of(parent)
+	if source != null:
+		return source.heading()
 	if parent is Node3D:
 		var forward := -(parent as Node3D).global_basis.z
 		var flat := Vector2(forward.x, forward.z)

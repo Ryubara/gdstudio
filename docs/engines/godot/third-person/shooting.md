@@ -133,12 +133,13 @@ the spread's place for `restore()`.
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
-- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor back
-  against the panel's motion, `close_after` counts from when the last character left, and `interact_point()` tells
-  the `Interactor` where to measure from. **Watch out for:** a sensor that is a child of a sliding door rises with it
-  and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
-  longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
-  set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
+- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor and
+  the door's `Interactable` back against the panel's motion ([Using things](interact.md#interactable)), and
+  `close_after` counts from when the last character left. **Watch out for:** a sensor that is a child of a sliding door
+  rises with it and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m
+  reach no longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a
+  step, so set its `position` before. **Seen:** gdstudio #845, 2026-11-08; gdstudio #925, 2026-11-10 (`interact_point()`
+  became the `Interactable` kept at the closed door's place).
 - **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
   `TriggerZone` Characters and Props: [Physics layers](../physics-layers.md#template-layers)) and a class test behind
   it: `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies
@@ -203,10 +204,12 @@ weapon is a new `.tres`; nothing else changes.
 - **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
   `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
   the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
-  `toggle_unarmed` (H, d-pad up). The character steps the loadout and then the weapon at the end of each `step`, and
-  both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload; `.loadout`), so a
-  server and a predicting client reload and switch on the same tick. What is in the hands is gameplay; the clips, the
-  sounds and the flash are cosmetic and never sent.
+  `toggle_unarmed` (H, d-pad up); a screen that picks a weapon (the inventory) calls
+  `PlayerInput.request_weapon(slot)`, which sends the same presses one a tick (`WeaponChooser`,
+  [Inventory](../inventory.md#template-screen)). The character steps the loadout and then the weapon at the end of
+  each `step`, and both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload;
+  `.loadout`), so a server and a predicting client reload and switch on the same tick. What is in the hands is
+  gameplay; the clips, the sounds and the flash are cosmetic and never sent.
 - **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
   reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
@@ -215,8 +218,10 @@ weapon is a new `.tres`; nothing else changes.
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
 the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
 empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side) and
-`tools/capture/reload_closeups.tscn` (the hands on the pistol in the grip, the aim and five moments of the reload, from
-the side, above and behind the shoulder).
+`tools/capture/reload_closeups.tscn` (the player's own scene with the clip seeked: the grip, the aim and five moments
+of the reload, from the side, above and behind the shoulder; it plays no reload, so the left hand there is the clip's
+own) and `tools/capture/pistol_hold_study.tscn` with `HOLD_ONLY=reload` (the hold told of the reload: fourteen shares
+of the clip measured and filmed from the gun's two sides, above, under the grip's foot and the player's camera).
 
 Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
@@ -226,14 +231,12 @@ resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons 
 all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
 number as a budget.
 
-Hands on the pistol in the clips it plays (`tools/carry/measure_hand_contact.gd`, the skinned mesh against the gun, 8
-samples a clip, the seat of kit #834 that #1001 replaces): the right hand goes 9.4 mm into the grip on the female
-mannequin and 11.1 mm on the male in every pistol clip, the index finger and the thumb touch, the middle, ring and
-little fingers stand 5.1, 7.4 and 11.3 mm off (2.4, 5.3 and 8.4 on the male); the clips' left hand goes 5 to 12 mm
-into the gun in the grip, aim and shot (to 47 mm aiming up on the female and 76 to 88 mm in the male's grip and shot)
-and in the reload leaves it and comes back (7.6 mm in on the female, 49 mm on the male). The reload holds to the
-weapons page's limits only once #1001's hold (fingers on `Grip` and `Trigger`, the support hand by IK) carries it
-through `Pistol_Reload` too.
+Hands on the pistol through the reload: the `WeaponHold` follows the reload clip by
+`CharacterAnimation.reload_progress()` (how much of the upper body the one-shot holds, and the share of the clip
+played, whatever `reload_time` is), so the left hand is on the gun, away for the new magazine, under the magazine while
+it goes in and on the gun again, and the trigger finger is off the trigger
+([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). It is cosmetic: the
+rounds go in at the end of `reload_time` whatever the hands do.
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

@@ -24,5 +24,7 @@
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
   that use them are in `ui/minimap/` and `core/minimap/`.
+- `assets/ui/inventory/` is the inventory's icons (a coin, a bandage, the pistol and the fists: SVG, GDStudio's own,
+  drawn for the template); the items are `gameplay/inventory/*.tres` and the weapons' `WeaponDef`s name theirs.
 - `assets/shaders/effects/flash_star.gdshader` and `assets/materials/effects/flash_star.tres` draw the muzzle flash's
   star (original).

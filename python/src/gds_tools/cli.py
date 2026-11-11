@@ -237,6 +237,7 @@ def _cmd_new_game(args: argparse.Namespace) -> int:
         options=options,
     )
     print(f"made {made.repo}")
+    print(f"from {kit} ({workspace.describe_kit(kit)})")
     published = made.published
     if published:
         print(f"repository  {published.url.removesuffix('.git')}")
@@ -280,7 +281,8 @@ def _cmd_template_test(args: argparse.Namespace) -> int:
 
 def _cmd_template_game(args: argparse.Namespace) -> int:
     kit, root = _template_context()
-    game = template_test.make_game(kit, root, args.name)
+    # stdout is the game's path alone (a script reads it); the source line goes with the hints, to stderr
+    game = template_test.make_game(kit, root, args.name, log=lambda line: print(line, file=sys.stderr, flush=True))
     print(game)
     print(f"remove it with `gds template clean {game}`", file=sys.stderr)
     return 0

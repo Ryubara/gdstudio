@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/target/target.gd" id="1_target"]
+[ext_resource type="Script" path="res://addons/gds_game/hits/health.gd" id="2_health"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/diamond.png" id="9_diamond"]
 
@@ -52,6 +53,10 @@ mesh = SubResource("CylinderMesh_board")
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 1, 0.06)
 shape = SubResource("CylinderShape3D_board")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_value = 1.0
 
 [node name="MinimapMarker" type="Node" parent="."]
 script = ExtResource("9_marker")

@@ -1,0 +1,164 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/inventory/inventory_screen.gd" id="1_screen"]
+[ext_resource type="Script" path="res://ui/menus/menu_fit.gd" id="2_fit"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_panel.gd" id="3_panel"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_label.gd" id="4_label"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_button.gd" id="5_button"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_fit_scroll.gd" id="6_scroll"]
+[ext_resource type="PackedScene" path="res://ui/inventory/model_preview.tscn" id="7_preview"]
+
+[node name="InventoryScreen" type="Control"]
+script = ExtResource("1_screen")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+back_closes = true
+stars = false
+self_modulate = Color(1, 1, 1, 0.72)
+
+[node name="Fit" type="Control" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_fit")
+phone_factor = 1.75
+
+[node name="Margin" type="MarginContainer" parent="Fit"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 24
+
+[node name="Center" type="CenterContainer" parent="Fit/Margin"]
+layout_mode = 2
+
+[node name="Card" type="PanelContainer" parent="Fit/Margin/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("3_panel")
+variant = 1
+
+[node name="Row" type="HBoxContainer" parent="Fit/Margin/Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="PreviewColumn" type="VBoxContainer" parent="Fit/Margin/Center/Card/Row"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Fit/Margin/Center/Card/Row/PreviewColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("4_label")
+text = "Inventory"
+style = 2
+
+[node name="Preview" parent="Fit/Margin/Center/Card/Row/PreviewColumn" instance=ExtResource("7_preview")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 280)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TurnHint" type="Label" parent="Fit/Margin/Center/Card/Row/PreviewColumn"]
+layout_mode = 2
+script = ExtResource("4_label")
+text = "Drag to turn"
+horizontal_alignment = 1
+style = 3
+
+[node name="CloseButton" type="Button" parent="Fit/Margin/Center/Card/Row/PreviewColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("5_button")
+text = "Close"
+variant = 1
+
+[node name="Side" type="VBoxContainer" parent="Fit/Margin/Center/Card/Row"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WeaponsCaption" type="Label" parent="Fit/Margin/Center/Card/Row/Side"]
+layout_mode = 2
+script = ExtResource("4_label")
+text = "WEAPONS"
+style = 5
+
+[node name="WeaponsMargin" type="MarginContainer" parent="Fit/Margin/Center/Card/Row/Side"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 8
+
+[node name="Weapons" type="HBoxContainer" parent="Fit/Margin/Center/Card/Row/Side/WeaponsMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ItemsCaption" type="Label" parent="Fit/Margin/Center/Card/Row/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("4_label")
+text = "BAG"
+style = 5
+
+[node name="Scroll" type="ScrollContainer" parent="Fit/Margin/Center/Card/Row/Side" node_paths=PackedStringArray("limit")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+horizontal_scroll_mode = 0
+script = ExtResource("6_scroll")
+limit = NodePath("../../../../../..")
+margin = 24.0
+least = 124.0
+
+[node name="Grid" type="GridContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 4
+
+[node name="DetailRow" type="HBoxContainer" parent="Fit/Margin/Center/Card/Row/Side"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Detail" type="VBoxContainer" parent="Fit/Margin/Center/Card/Row/Side/DetailRow"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="DetailName" type="Label" parent="Fit/Margin/Center/Card/Row/Side/DetailRow/Detail"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("4_label")
+text = "Inventory"
+style = 3
+
+[node name="DetailText" type="Label" parent="Fit/Margin/Center/Card/Row/Side/DetailRow/Detail"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+script = ExtResource("4_label")
+text = "Choose a weapon or an item."
+autowrap_mode = 3
+style = 3
+
+[node name="DropButton" type="Button" parent="Fit/Margin/Center/Card/Row/Side/DetailRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_vertical = 4
+script = ExtResource("5_button")
+text = "Drop"
+variant = 1

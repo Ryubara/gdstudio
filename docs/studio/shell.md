@@ -100,6 +100,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   pre-commit run; stopping a background task ends the shell, not the `timeout` and Godot under it, which kept writing to
   the same log beside the new run. **Seen:** Deadnight, 2026-11-01; Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06
   (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run).
+- **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
+  running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
+  it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
+  the run's last step (the older client's hello) never ran and printed nothing, no failure either. **Seen:** gdstudio
+  #910, 2026-11-11 (the 2-bot run of the deployed series; the 4 and 8 bot runs checked the refusal).
 
 ## Before committing {#before-commit}
 
@@ -119,7 +124,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
-  lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went).
+  lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
+  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late).
 
 ## Reverting and checking out {#checkout}
 

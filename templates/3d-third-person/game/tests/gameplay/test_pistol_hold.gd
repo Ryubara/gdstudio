@@ -1,0 +1,404 @@
+# The hands hold the pistol (kit #1001): in every pistol clip and in the locomotion clips with the
+# pistol out, on both mannequins, no skin of the right hand is more than 2 mm inside the gun and
+# no holding part more than 5 mm off it; while aiming and shooting the left hand lies on the gun
+# and over the right hand within the same limits, its arm reaching the support marker. Through
+# the reload (kit #1031) the right hand holds as ever and the left hand is on the gun, away with
+# the clip's arm for the new magazine, under the magazine while it goes in and on the gun again,
+# never more than 2 mm inside the gun or the other hand on the way. Measured on the skinned mesh
+# after the hold's modifiers ran (`HoldStage`, `HandContact`).
+extends GdUnitTestSuite
+
+const MODELS: Array[String] = ["female", "male"]
+## The clips that hold the pistol in one hand, with the times sampled.
+const ONE_HANDED: Dictionary[StringName, Array] = {
+	CharacterClips.PISTOL_IDLE: [0.0, 0.5, 1.0],
+}
+## The shares of the reload clip that are measured: every 2 hundredths, its end, and the three
+## where a scan of every hundredth found the left hand deepest on its way.
+const RELOAD_STEP := 0.02
+const RELOAD_DEEPEST: Array[float] = [0.03, 0.05, 0.79]
+## How deep the left hand may pass through the gun or the right hand while it moves between its
+## places, in metres: where it holds (on the gun, under the magazine) `HandContact`'s 2 mm stand.
+## A fingertip passes 4 to 5 mm through the other hand for a hundredth of the clip as the hand
+## lets go and as it swings back (kit #1031; the clip's own hand was 16 to 22 mm in for a third
+## of the reload).
+const PASSING_DEPTH := 0.006
+## The shares of the reload in which the left hand is on the gun (to the first, from the second)
+## and under the magazine (between the third and the fourth), as `Pistol_Reload` has them.
+const RELOAD_ON_GUN_UNTIL := 0.02
+const RELOAD_ON_GUN_FROM := 0.9
+const RELOAD_MAGAZINE_FROM := 0.54
+const RELOAD_MAGAZINE_UNTIL := 0.71
+## The clips that hold it in both hands.
+const TWO_HANDED: Dictionary[StringName, Array] = {
+	CharacterClips.PISTOL_AIM: [0.0, 0.16],
+	CharacterClips.PISTOL_AIM_UP: [0.0, 0.16],
+	CharacterClips.PISTOL_AIM_DOWN: [0.0, 0.16],
+	CharacterClips.PISTOL_SHOOT: [0.0, 0.05, 0.1, 0.2],
+}
+## The locomotion clips, the grip clip over the gripping hand (the hand-only carry).
+const CARRIED: Dictionary[StringName, Array] = {
+	CharacterClips.IDLE: [0.0, 1.0],
+	CharacterClips.WALK: [0.0, 0.3, 0.6],
+	CharacterClips.RUN: [0.0, 0.25, 0.5],
+	CharacterClips.SPRINT: [0.0, 0.2, 0.4],
+	CharacterClips.CROUCH_WALK: [0.0, 0.7],
+	CharacterClips.AIR: [0.0, 0.3],
+}
+## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).
+const REACH := 0.005
+## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
+const ON_TRIGGER := 0.012
+const OFF_TRIGGER := 0.02
+
+var _holder: Node3D
+var _live_skeleton: Skeleton3D
+var _live_marker: Node3D
+var _live_gaps: Array[float] = []
+var _live_hold: Node
+var _live_magazine: Node3D
+# One entry an update of a live reload: the reload's share, the hold's two weights, and how far
+# the left hand is from the support marker and from the magazine marker.
+var _live_reload: Array[Dictionary] = []
+
+
+func before_test() -> void:
+	InputSim.release_all()
+	_holder = auto_free(Node3D.new())
+	add_child(_holder)
+
+
+func after_test() -> void:
+	InputSim.release_all()
+
+
+func test_the_right_hand_holds_the_pistol_in_the_one_handed_clips() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in ONE_HANDED:
+			for time: float in ONE_HANDED[clip_name]:
+				stage.pose(clip_name, time)
+				await stage.settle()
+				_assert_holds(stage, "r", "%s %s at %.2f" % [model, clip_name, time])
+		stage.free()
+
+
+func test_both_hands_hold_the_pistol_in_the_aim_and_shoot_clips() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in TWO_HANDED:
+			for time: float in TWO_HANDED[clip_name]:
+				stage.pose(clip_name, time, 1.0)
+				await stage.settle()
+				var tag := "%s %s at %.2f" % [model, clip_name, time]
+				_assert_holds(stage, "r", tag)
+				_assert_holds(stage, "l", tag)
+				(
+					assert_float(_reach(stage))
+					. override_failure_message(
+						"%s: the left hand is %.1f mm from its marker" % [tag, _reach(stage) * 1e3]
+					)
+					. is_less(REACH)
+				)
+		stage.free()
+
+
+func test_the_right_hand_holds_the_pistol_through_the_reload() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for share in _reload_shares():
+			_pose_reload(stage, share, 1.0)
+			await stage.settle()
+			_assert_holds(stage, "r", "%s reload at %.2f" % [model, share])
+			var off := _tip_to_trigger(stage)
+			(
+				assert_float(off)
+				. override_failure_message(
+					(
+						"%s reload at %.2f: the finger is %.1f mm from the trigger"
+						% [model, share, off * 1e3]
+					)
+				)
+				. is_greater(OFF_TRIGGER)
+			)
+		stage.free()
+
+
+# The left hand through the reload, whether the character aims or carries the pistol: on the gun
+# at its ends, under the magazine while it goes in, and no deeper than `PASSING_DEPTH` in the gun
+# or the other hand on the way.
+func test_the_left_hand_follows_the_reload() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for share in _reload_shares():
+			_pose_reload(stage, share, 0.0)
+			await stage.settle()
+			var tag := "%s reload at %.2f" % [model, share]
+			var contacts: Array[String] = []
+			var marker := ^""
+			if share <= RELOAD_ON_GUN_UNTIL or share >= RELOAD_ON_GUN_FROM:
+				contacts = HoldStage.LEFT_CONTACTS
+				marker = ^"SupportHand"
+			elif share >= RELOAD_MAGAZINE_FROM and share <= RELOAD_MAGAZINE_UNTIL:
+				contacts = HoldStage.MAGAZINE_CONTACTS
+				marker = ^"MagazineHand"
+			var parts := stage.contact.measure("l", true)
+			if marker.is_empty():
+				for part: String in parts:
+					var depth: float = -parts[part].distance
+					(
+						assert_float(depth)
+						. override_failure_message(
+							"%s l: %s %.1f mm inside on the way" % [tag, part, depth * 1e3]
+						)
+						. is_less(PASSING_DEPTH)
+					)
+				continue
+			var fails := HandContact.failures(tag + " l:", parts, contacts)
+			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
+			var gap := _reach(stage, marker)
+			(
+				assert_float(gap)
+				. override_failure_message(
+					"%s: the left hand is %.1f mm from %s" % [tag, gap * 1e3, marker]
+				)
+				. is_less(REACH)
+			)
+		stage.free()
+
+
+func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
+	var pistol := load("res://gameplay/weapon/pistol.tres") as WeaponDef
+	var bones := pistol.grip_bones
+	var grip_clip := pistol.grip_clip
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in CARRIED:
+			for time: float in CARRIED[clip_name]:
+				stage.pose(clip_name, time, 0.0, grip_clip, bones)
+				await stage.settle()
+				_assert_holds(stage, "r", "%s %s at %.2f" % [model, clip_name, time])
+		stage.free()
+
+
+func test_the_index_finger_is_on_the_trigger_only_while_aiming() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		stage.pose(CharacterClips.PISTOL_IDLE, 0.5, 0.0)
+		await stage.settle()
+		var carried := _tip_to_trigger(stage)
+		stage.pose(CharacterClips.PISTOL_AIM, 0.16, 1.0)
+		await stage.settle()
+		var aiming := _tip_to_trigger(stage)
+		(
+			assert_float(carried)
+			. override_failure_message(
+				"%s: carried, the finger is %.1f mm from the trigger" % [model, carried * 1e3]
+			)
+			. is_greater(OFF_TRIGGER)
+		)
+		(
+			assert_float(aiming)
+			. override_failure_message(
+				"%s: aiming, the finger is %.1f mm from the trigger" % [model, aiming * 1e3]
+			)
+			. is_less(ON_TRIGGER)
+		)
+		stage.free()
+
+
+# The player's own scene wires the hold: carried, only the grip acts; with the aim button held the
+# left hand comes to the gun and stays on it while the character walks and fires, read from the
+# live skeleton on every update (a hand that trailed the gun by a frame would show here).
+func test_the_player_holds_the_pistol_in_both_hands_while_it_aims_walks_and_fires() -> void:
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	var view := Camera3D.new()
+	view.position = Vector3(0.0, 1.3, 3.0)
+	arena.add_child(view)
+	view.make_current()
+	await InputSim.ticks(get_tree(), 20)
+	# Read by name and by property, so the suite also loads in a project that has no hold yet.
+	var hold := player.get_node_or_null("WeaponHold")
+	assert_object(hold).override_failure_message("the player has no WeaponHold").is_not_null()
+	if hold == null:
+		AudioDrain.stop_all(arena)
+		return
+	var modifiers: Array = hold.call(&"modifiers")
+	assert_int(modifiers.size()).is_equal(3)
+	assert_float(hold.get(&"held_weight")).is_equal(1.0)
+	assert_float(hold.get(&"aim_weight")).is_equal(0.0)
+	assert_bool((modifiers[0] as SkeletonModifier3D).active).is_true()
+	assert_bool((modifiers[1] as SkeletonModifier3D).active).is_false()
+	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
+	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
+	_live_gaps.clear()
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+	await InputSim.ticks(get_tree(), 40)
+	assert_float(hold.get(&"aim_weight")).is_equal(1.0)
+	_live_skeleton.skeleton_updated.connect(_read_left_hand)
+	InputSim.key(KEY_W, true)
+	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
+	await InputSim.ticks(get_tree(), 60)
+	_live_skeleton.skeleton_updated.disconnect(_read_left_hand)
+	assert_int(_live_gaps.size()).is_greater(20)
+	var worst := 0.0
+	for gap in _live_gaps:
+		worst = maxf(worst, gap)
+	(
+		assert_float(worst)
+		. override_failure_message("the left hand was %.1f mm from the gun" % (worst * 1e3))
+		. is_less(REACH)
+	)
+	assert_float(hold.call(&"support_shortfall")).is_equal_approx(0.0, 0.0005)
+	InputSim.release_all()
+	await InputSim.ticks(get_tree(), 40)
+	assert_float(hold.get(&"aim_weight")).is_equal(0.0)
+	AudioDrain.stop_all(arena)
+
+
+# The player's own reload while it aims: R starts it, the left hand lets go of the gun for the
+# clip's reach to the belt, is at the pistol's magazine marker on every update while the clip
+# pushes the magazine in, and is on the support marker again for the clip's end.
+func test_the_players_left_hand_goes_to_the_magazine_and_back_when_it_reloads() -> void:
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	var view := Camera3D.new()
+	view.position = Vector3(0.0, 1.3, 3.0)
+	arena.add_child(view)
+	view.make_current()
+	await InputSim.ticks(get_tree(), 20)
+	_live_hold = player.get_node_or_null("WeaponHold")
+	assert_object(_live_hold).is_not_null()
+	_live_magazine = player.get_node_or_null("Model/PistolHeld/Pistol/MagazineHand") as Node3D
+	assert_object(_live_magazine).override_failure_message("no MagazineHand marker").is_not_null()
+	if _live_hold == null or _live_magazine == null or not &"reload_share" in _live_hold:
+		assert_bool(false).override_failure_message("the hold knows no reload").is_true()
+		AudioDrain.stop_all(arena)
+		return
+	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
+	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
+	_live_reload.clear()
+	player.weapon.set_ammo(3, 24)
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+	await InputSim.ticks(get_tree(), 40)
+	_live_skeleton.skeleton_updated.connect(_read_reload)
+	InputSim.key(KEY_R, true)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.key(KEY_R, false)
+	await InputSim.ticks(get_tree(), roundi(player.weapon.definition.reload_time * 60.0) + 40)
+	_live_skeleton.skeleton_updated.disconnect(_read_reload)
+	await InputSim.ticks(get_tree(), 2)
+	var seated := 0
+	var back := 0
+	var away := 0
+	var worst_seated := 0.0
+	var worst_back := 0.0
+	for entry in _live_reload:
+		var weights: Vector2 = entry.weights
+		var share: float = entry.share
+		if share > RELOAD_MAGAZINE_FROM + 0.01 and share < RELOAD_MAGAZINE_UNTIL - 0.01:
+			seated += 1
+			worst_seated = maxf(worst_seated, entry.magazine)
+		elif share > RELOAD_ON_GUN_FROM:
+			back += 1
+			worst_back = maxf(worst_back, entry.support)
+		elif weights.x + weights.y < 0.001 and share > 0.1 and share < 0.3:
+			away += 1
+	assert_int(seated).override_failure_message("never under the magazine").is_greater(5)
+	assert_int(back).override_failure_message("never back on the gun").is_greater(2)
+	assert_int(away).override_failure_message("never away for the magazine").is_greater(5)
+	(
+		assert_float(worst_seated)
+		. override_failure_message("%.1f mm from the magazine marker" % (worst_seated * 1e3))
+		. is_less(REACH)
+	)
+	(
+		assert_float(worst_back)
+		. override_failure_message("%.1f mm from the support marker" % (worst_back * 1e3))
+		. is_less(REACH)
+	)
+	assert_int(player.weapon.ammo).is_equal(12)
+	assert_float(_live_hold.get(&"reload_weight")).is_equal(0.0)
+	InputSim.release_all()
+	await InputSim.ticks(get_tree(), 40)
+	assert_bool((_live_hold.call(&"modifiers")[1] as SkeletonModifier3D).active).is_false()
+	AudioDrain.stop_all(arena)
+
+
+# The measure itself works: with the hold left out the clips' own fist is found deep in the grip.
+func test_the_clips_own_fist_fails_the_measure() -> void:
+	var stage := HoldStage.make(_holder, "female", false)
+	stage.pose(CharacterClips.PISTOL_AIM, 0.16, 1.0)
+	await stage.settle()
+	var right := stage.contact.measure("r")
+	assert_array(HandContact.failures("r", right, HoldStage.RIGHT_CONTACTS)).is_not_empty()
+	stage.free()
+
+
+# The hand's bone is read in the skeleton's update; the marker rides the attachment, which moves
+# in the same signal, so the two are compared once every listener ran.
+func _read_left_hand() -> void:
+	var bone := _live_skeleton.get_bone_global_pose(_live_skeleton.find_bone(&"hand_l"))
+	_compare_with_marker.call_deferred(_live_skeleton.global_transform * bone.origin)
+
+
+func _read_reload() -> void:
+	var bone := _live_skeleton.get_bone_global_pose(_live_skeleton.find_bone(&"hand_l"))
+	var entry := {
+		"share": _live_hold.get(&"reload_share"),
+		"weights": _live_hold.call(&"support_weights"),
+		"hand": _live_skeleton.global_transform * bone.origin,
+	}
+	_compare_with_markers.call_deferred(entry)
+
+
+func _compare_with_markers(entry: Dictionary) -> void:
+	if is_instance_valid(_live_marker) and is_instance_valid(_live_magazine):
+		entry.support = (entry.hand as Vector3).distance_to(_live_marker.global_position)
+		entry.magazine = (entry.hand as Vector3).distance_to(_live_magazine.global_position)
+		_live_reload.append(entry)
+
+
+func _compare_with_marker(hand: Vector3) -> void:
+	if is_instance_valid(_live_marker):
+		_live_gaps.append(hand.distance_to(_live_marker.global_position))
+
+
+func _assert_holds(stage: HoldStage, side: String, tag: String) -> void:
+	var parts := stage.contact.measure(side, side == "l")
+	var contacts := HoldStage.RIGHT_CONTACTS if side == "r" else HoldStage.LEFT_CONTACTS
+	var fails := HandContact.failures("%s %s:" % [tag, side], parts, contacts)
+	assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
+
+
+# How far the left hand's bone is from a marker of the pistol, in metres (a pistol with no such
+# marker reads as a metre off).
+func _reach(stage: HoldStage, marker_path := ^"SupportHand") -> float:
+	var marker := stage.pistol.get_node_or_null(marker_path) as Node3D
+	if marker == null:
+		return 1.0
+	return stage.bone_origin(&"hand_l").distance_to(marker.global_position)
+
+
+func _reload_shares() -> Array[float]:
+	var shares: Array[float] = []
+	for step in ceili(1.0 / RELOAD_STEP):
+		shares.append(step * RELOAD_STEP)
+	shares.append(1.0)
+	shares.append_array(RELOAD_DEEPEST)
+	return shares
+
+
+# Puts the reload clip at `share` of its length on the stage, the hold told it is that far in.
+func _pose_reload(stage: HoldStage, share: float, aim: float) -> void:
+	var length := stage.clip(CharacterClips.PISTOL_RELOAD).length
+	stage.pose(CharacterClips.PISTOL_RELOAD, share * length, aim, &"", [], share)
+
+
+# How far the skin of the index finger's last bone is from the trigger's front face, in metres.
+func _tip_to_trigger(stage: HoldStage) -> float:
+	var trigger := stage.pistol.find_child("Trigger", true, false) as Node3D
+	return stage.contact.part_distance_to("r", "index_tip", trigger.global_position)

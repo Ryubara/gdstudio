@@ -73,13 +73,14 @@ func test_the_pause_button() -> void:
 	var pins := {
 		&"host": null,
 		&"touch": null,
+		&"screen": null,
 		&"always_shown": false,
 		&"variant": UIButton.Variant.PRIMARY,
 		&"preview_state": UIButton.Preview.NONE,
 	}
 	# The button is a UIButton, whose own two exports are the addon's.
 	assert_array(ExportPins.wrong_values(button, pins)).is_empty()
-	for pinned: StringName in [&"host", &"touch", &"always_shown"]:
+	for pinned: StringName in [&"host", &"touch", &"screen", &"always_shown"]:
 		assert_array(ExportPins.names(button)).contains([pinned])
 
 
@@ -89,7 +90,15 @@ func test_the_main_menu_and_the_menu_scene() -> void:
 	assert_str(main_menu.title).is_empty()
 	assert_bool(main_menu.allow_back).is_true()
 	var menu_scene := auto_free(MenuScene.new()) as MenuScene
-	_check(menu_scene, {&"main_menu": null, &"game_scene": "res://main.tscn", &"skip_menu": false})
+	_check(
+		menu_scene,
+		{
+			&"main_menu": null,
+			&"game_scene": "res://main.tscn",
+			&"server_scene": "res://gameplay/net/net_server.tscn",
+			&"skip_menu": false,
+		}
+	)
 
 
 func test_the_loading_screen_stays_up_a_moment() -> void:

@@ -24,7 +24,7 @@ so code and the inspector say the same thing. The constants script moves to the 
 | 4 | Props | `PROPS` | `PhysicsProp` (pushed crates, balls) | World, Characters, Props (`PROP_MASK`) |
 | 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
 | 6 | Hit Zones | `HIT_ZONES` | the `HitZones` body of a character (its parts, [Hit zones](third-person-hits.md)) | none (scanned only by a shot's second test) |
-| 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`) |
+| 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor`, an `Interactable` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`); an `Interactable` none (an `Interactor`'s query on `SENSORS` finds it) |
 
 Rays and other masks: the camera's spring arm (`PlayerCamera.wall_mask`) is World and Props (`CAMERA_MASK`); the
 weapon's aim ray (`Weapon.aim_mask`) is `SHOT_MASK`, so the crosshair's point is on what the shot will hit; the
