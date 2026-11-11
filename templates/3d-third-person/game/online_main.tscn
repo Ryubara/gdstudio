@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://gameplay/net/remote_players.gd" id="3_remote"]
 [ext_resource type="Script" path="res://gameplay/net/net_client.gd" id="4_client"]
 [ext_resource type="PackedScene" path="res://ui/online/online_status.tscn" id="5_status"]
-[ext_resource type="Script" path="res://gameplay/character/character_animation_throttle.gd" id="6_throttle"]
+[ext_resource type="Script" path="res://gameplay/animation_throttle/character_animation_throttle.gd" id="6_throttle"]
 
 [node name="OnlineMain" type="Node" node_paths=PackedStringArray("client", "remote_players", "player_rig", "status")]
 script = ExtResource("1_online")

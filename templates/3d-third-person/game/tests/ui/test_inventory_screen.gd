@@ -372,7 +372,9 @@ func test_the_preview_draws_the_live_model_and_follows_a_mesh_put_in_the_slot() 
 	assert_bool(meshes.is_empty()).is_false()
 	for mesh: MeshInstance3D in meshes:
 		assert_int(mesh.layers & bit).override_failure_message(str(mesh.name)).is_equal(bit)
-		assert_int(mesh.layers & 1).is_equal(1)
+		# And the game's cameras still see it on the body's own layer.
+		var body := _player.model.body_layers
+		assert_int(mesh.layers & body).is_equal(body)
 	# A model swap: a mesh dropped into the slot while the screen is up is drawn too.
 	var swapped := MeshInstance3D.new()
 	swapped.mesh = BoxMesh.new()
