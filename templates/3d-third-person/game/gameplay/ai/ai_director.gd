@@ -253,6 +253,7 @@ func _step(entry: Entry, delta: float) -> void:
 	entry.last_step = tick
 	body_steps += 1
 	var character := entry.character
+	character.before_step(delta * missed)
 	var command := (
 		character.controller.sample() if character.controller != null else _still_command()
 	)

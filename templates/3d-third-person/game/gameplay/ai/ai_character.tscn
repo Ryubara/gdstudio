@@ -6,6 +6,7 @@
 [ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="4_grunt"]
 [ext_resource type="Script" path="res://gameplay/ai/tasks/ai_tasks.gd" id="5_tasks"]
 [ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="5_member"]
+[ext_resource type="Script" path="res://gameplay/ai/navigation/ai_navigator.gd" id="5_navigator"]
 
 [sub_resource type="TorusMesh" id="TorusMesh_band"]
 inner_radius = 0.42
@@ -18,15 +19,19 @@ resource_local_to_scene = true
 shading_mode = 0
 albedo_color = Color(0.85, 0.85, 0.8, 1)
 
-[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "task_runner") instance=ExtResource("1_dressed")]
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "task_runner", "navigator") instance=ExtResource("1_dressed")]
 script = ExtResource("2_ai")
 profile = ExtResource("4_grunt")
 debug_label = NodePath("DebugLabel")
 task_runner = NodePath("AiTasks")
 controller = NodePath("AiController")
+navigator = NodePath("Navigator")
 
 [node name="AiController" type="Node" parent="."]
 script = ExtResource("3_controller")
+
+[node name="Navigator" type="Node" parent="."]
+script = ExtResource("5_navigator")
 
 [node name="DebugLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
