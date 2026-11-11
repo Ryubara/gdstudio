@@ -6,7 +6,7 @@
 ## way a player would; it only puts the body at the start of each run.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --scene res://tools/capture/vault_tour.tscn --seconds 40
+## `gds capture frames --project game --scene res://tools/capture/vault_tour.tscn --seconds 42
 ## --fps 30`. `WALLS=Vault09` films only that wall (a comma list of the course's node names),
 ## `VIEWS=player,close` only those views, `MODEL=male` the male mannequin.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
@@ -18,14 +18,16 @@ const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
 const RUN_IN := 1.7
 const PRESS_BEFORE := 0.6
 const PRESS_SECONDS := 0.15
+## Seconds the run goes on after a crossing ends.
+const RUN_ON := 0.2
 ## Ticks the body stands at the start while the camera comes round.
 const SETTLE_TICKS := 40
 ## The views: the camera's heading (0 looks along -Z, so a run toward +X crosses the frame left
 ## to right), pitch and distance, the game's speed and how long the run is filmed (game seconds).
 const VIEWS := {
-	"player": {"yaw": -90.0, "pitch": 12.0, "distance": 3.2, "speed": 1.0, "seconds": 2.2},
-	"side": {"yaw": 0.0, "pitch": 8.0, "distance": 4.2, "speed": 1.0, "seconds": 2.2},
-	"close": {"yaw": 200.0, "pitch": 16.0, "distance": 1.9, "speed": 0.4, "seconds": 2.2},
+	"player": {"yaw": -90.0, "pitch": 12.0, "distance": 3.2, "speed": 1.0, "seconds": 2.0},
+	"side": {"yaw": 0.0, "pitch": 8.0, "distance": 4.2, "speed": 1.0, "seconds": 2.0},
+	"close": {"yaw": 200.0, "pitch": 16.0, "distance": 1.9, "speed": 0.4, "seconds": 1.5},
 }
 ## What is filmed, in order: a wall of the course and the views it is filmed from.
 const SHOTS: Array[Dictionary] = [
@@ -42,6 +44,8 @@ var _tick := 0
 var _clock := 0.0
 var _press := 0.0
 var _pressed := false
+var _crossed := false
+var _after := 0.0
 var _label: Label
 
 @onready var _main: Node = $Main
@@ -95,7 +99,15 @@ func _physics_process(delta: float) -> void:
 		_press = PRESS_SECONDS
 		_pressed = true
 	_press = maxf(_press - delta, 0.0)
-	_walk_east()
+	# Runs on through the step out of the landing, then stands (the next wall is close).
+	var crossing := _player.vault_motion.is_active()
+	if _crossed and not crossing:
+		_after += delta
+	_crossed = _crossed or crossing
+	if _after < RUN_ON:
+		_walk_east()
+	else:
+		_release()
 	if _press > 0.0:
 		Input.action_press(&"jump")
 	else:
@@ -144,6 +156,8 @@ func _next() -> void:
 	_tick = 0
 	_press = 0.0
 	_pressed = false
+	_crossed = false
+	_after = 0.0
 	Engine.time_scale = 1.0
 	_release()
 	if _run >= _runs.size():
