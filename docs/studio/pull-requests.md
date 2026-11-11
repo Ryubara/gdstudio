@@ -177,7 +177,7 @@ absolute paths in the scratch folder, and the command ran in the worktree (the a
 on GitHub shows the first body with `](../before-desktop-2-solo.png)` references and the uploads appended). The same
 history shows 17 Deadnight pull requests of 2026-11-02 and 03 with a description revision that had `./` image
 references. The guard now places the reference and the `--attach` path (`file_key` in
-`.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
+`.claude/hooks/guards/bodies.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
 file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are judged alike. A `cd` it
 cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body guard reads the same
 placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the description rules, and

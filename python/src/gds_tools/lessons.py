@@ -575,7 +575,7 @@ def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> st
 # `gds brief`: the sections a task agent reads before it starts, proposed from its issue
 # --------------------------------------------------------------------------------------------------------------------
 
-# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/guards.py`) or a folder of two
+# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/dispatch.py`) or a folder of two
 # parts or more that ends in a slash (`docs/lessons/`; a bare `design/` matches too much prose). Words that merely
 # contain a dot (`e.g.`, `v1.2`) are not paths.
 _PATH = re.compile(
