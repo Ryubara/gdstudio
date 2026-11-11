@@ -304,6 +304,16 @@ weapon is a new `.tres`; nothing else changes.
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
   reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
   `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+- **What aim and fire do** is the weapon's too (`WeaponDef`'s Aim and zoom group, gdstudio #1255): `can_aim` (off:
+  the aim button does nothing), `fire_needs_aim` (on: fire shoots only with the aim button held, and never with
+  `can_aim` off; `WeaponDef.fire_allowed()`), `fire_zooms` (off: holding fire leaves the camera's framing alone; the
+  camera's own `zoom_when_firing` must be on too) and `show_crosshair` (off: the `Crosshair` stays hidden). With
+  `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`, `fire_distance` and `zoom_offset` (further to
+  the chosen shoulder and up, blended in with the zoom) replace the camera's. The defaults keep the pistol as it was; the
+  fists have `fire_zooms` off, so a punch does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
+  from the definition its server body holds too (gameplay); `PlayerCamera.held_definition()` and the `Crosshair` read
+  the rest every frame (local, never sent), so every toggle applies while the game runs. Tests:
+  `test_weapon_aim_toggles.gd`; capture: `tools/capture/fire_zoom_tour.tscn` (pistol fire zooms, fist fire does not).
 
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
 the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
