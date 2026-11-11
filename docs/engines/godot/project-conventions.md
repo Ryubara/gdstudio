@@ -44,7 +44,8 @@ game/
   a `##` tooltip), pin each file's defaults in a test, and keep a scene map (which scene loads which, and which one is
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
-  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
+  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
+  2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
@@ -57,9 +58,10 @@ game/
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
-  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back); gdstudio #925,
-  2026-11-10 (a template has no project to import: a throwaway script imported in the kit's `godot/`).
+  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
+  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
+  script imported in the kit's `godot/`); gdstudio #910, 2026-11-11 (a test's, caught by `gds template
+  test`).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx

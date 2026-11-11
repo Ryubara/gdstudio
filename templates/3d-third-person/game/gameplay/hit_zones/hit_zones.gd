@@ -129,9 +129,12 @@ func shot(
 
 
 ## Gives `record` to the receiver: a `Character` takes it (`take_hit()`), any other body's
-## `Health` child applies it.
+## `Health` child applies it. A hit its source may not deal (a friend's, `AiFactions.can_hurt`)
+## is dropped.
 func deliver(record: HitRecord) -> void:
 	if record == null or receiver == null:
+		return
+	if not AiFactions.can_hurt(record.source, receiver):
 		return
 	var character := receiver as Character
 	if character != null:

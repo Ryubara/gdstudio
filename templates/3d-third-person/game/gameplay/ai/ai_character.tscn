@@ -4,11 +4,25 @@
 [ext_resource type="Script" path="res://gameplay/ai/ai_character.gd" id="2_ai"]
 [ext_resource type="Script" path="res://gameplay/ai/ai_controller.gd" id="3_controller"]
 [ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="4_grunt"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_tasks.gd" id="5_tasks"]
+[ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="5_member"]
 
-[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label") instance=ExtResource("1_dressed")]
+[sub_resource type="TorusMesh" id="TorusMesh_band"]
+inner_radius = 0.42
+outer_radius = 0.52
+rings = 32
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_band"]
+resource_local_to_scene = true
+shading_mode = 0
+albedo_color = Color(0.85, 0.85, 0.8, 1)
+
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "task_runner") instance=ExtResource("1_dressed")]
 script = ExtResource("2_ai")
 profile = ExtResource("4_grunt")
 debug_label = NodePath("DebugLabel")
+task_runner = NodePath("AiTasks")
 controller = NodePath("AiController")
 
 [node name="AiController" type="Node" parent="."]
@@ -25,3 +39,31 @@ fixed_size = false
 text = "AI"
 font_size = 40
 outline_size = 10
+
+[node name="AiTasks" type="Node" parent="." node_paths=PackedStringArray("label")]
+script = ExtResource("5_tasks")
+label = NodePath("../TaskLabel")
+
+[node name="TaskLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+visible = false
+cast_shadow = 0
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+fixed_size = false
+modulate = Color(1, 0.92, 0.6, 1)
+text = "Tasks"
+font_size = 36
+outline_size = 10
+
+[node name="AiFactionMember" type="Node" parent="." node_paths=PackedStringArray("band_marker")]
+script = ExtResource("5_member")
+band_marker = NodePath("../BandRing")
+
+[node name="BandRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("TorusMesh_band")
+material_override = SubResource("StandardMaterial3D_band")

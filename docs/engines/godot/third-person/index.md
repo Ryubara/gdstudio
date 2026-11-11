@@ -15,5 +15,8 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
   the situation machine.
 - [Vaulting and mantling](traversal.md): the `Vaultable` component, the probe, the warped path, the defaults and where
   they come from, and the level designer's how-to.
+- [The game server](game-server.md): the headless server that admits and steps the players, its log and its cost.
+- [The online client](online-client.md): the predicting client, the reconciler and stall guard, the puppets of the
+  other players, and what it costs.
 
 What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).

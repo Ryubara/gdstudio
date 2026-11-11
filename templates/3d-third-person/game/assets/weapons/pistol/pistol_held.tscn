@@ -10,3 +10,6 @@ transform = Transform3D(-0.36056, -0.11119, -0.9261, -0.92443, -0.08968, 0.37065
 
 [node name="SupportHand" type="Marker3D" parent="Pistol"]
 transform = Transform3D(0.33616, -0.93382, -0.12237, -0.02007, -0.13695, 0.99033, -0.94157, -0.3305, -0.06478, 0.05079, 0.00787, 0.0885)
+
+[node name="MagazineHand" type="Marker3D" parent="Pistol"]
+transform = Transform3D(0.33616, -0.93382, -0.12237, 0.92378, 0.3017, 0.23576, -0.18327, -0.19226, 0.96404, 0.05079, -0.10559, 0.00433)
