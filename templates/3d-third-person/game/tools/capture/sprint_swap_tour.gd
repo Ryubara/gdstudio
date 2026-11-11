@@ -18,8 +18,8 @@ const SPOT := Vector3(4.0, 0.0, 18.0)
 ## How far ahead of the character the board of the aimed part stands.
 const BOARD_DISTANCE := 5.0
 ## Seconds of the sprint before the swap, and after it.
-const RUN_UP := 1.2
-const RUN_ON := 1.8
+const RUN_UP := 0.8
+const RUN_ON := 1.0
 ## Seconds of the aimed part before the swap, and after it.
 const AIM_UP := 1.0
 const AIM_ON := 1.4
@@ -44,7 +44,7 @@ func _ready() -> void:
 	_build_line()
 	_build_board()
 	_build_label()
-	_title = "Sprinting, not aiming: the swap only slides the view"
+	_title = "Sprinting, not aiming: shoulder swap"
 	Input.action_press(&"move_forward")
 	Input.action_press(&"sprint")
 
@@ -84,7 +84,7 @@ func _start_aimed_part() -> void:
 	_part = 1
 	_clock = 0.0
 	_swapped = false
-	_title = "Aiming: the swap keeps the point under the crosshair"
+	_title = "Aiming: shoulder swap (blue marker: the point aimed at)"
 	Input.action_release(&"move_forward")
 	Input.action_release(&"sprint")
 	Input.action_press(&"aim")
