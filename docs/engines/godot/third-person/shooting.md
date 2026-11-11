@@ -247,6 +247,11 @@ through `Pistol_Reload` too.
   of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
   and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
 
+- **Approach:** When you add an export to `WeaponDef`, pin its default for the pistol in `test_weapon.gd`'s list in
+  the same commit. **Watch out for:** `ExportPins.differences` fails on any export it has no pin for, so the new
+  `view_scene` passed every suite run during the work and failed only in the full run. **Seen:** gdstudio #889,
+  2026-11-10.
+
 ## Weapon pickups and a two-handed hold {#weapon-pickups}
 
 <!-- new section: the weapons section covers a loadout fixed in the scene; nothing said how a game hands a character a

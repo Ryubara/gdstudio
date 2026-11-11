@@ -86,6 +86,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"projectile_bounce_keep": 0.6,
 		&"melee_reach": 1.1,
 		&"view": NodePath("PistolHeld"),
+		&"view_scene": null,
 		&"muzzle": NodePath("PistolHeld/Pistol/Pistol/Muzzle"),
 		&"grip_clip": CharacterClips.PISTOL_IDLE,
 		&"grip_bones": [&"hand_r"] as Array[StringName],
