@@ -25,6 +25,13 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
   `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
   sha256 in the licence entry.
+- **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
+  read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
+  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
+  to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
+  2026-11-11 (the position tracks).
 
 ## The two mannequins {#mannequins}
 
@@ -223,7 +230,7 @@ Scene dock and checks the result.
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
-  | An AI's lean tick (#1059) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
+  | An AI's lean tick (#1059; the aim and the trigger since #1104) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
   | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
   | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
 

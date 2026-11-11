@@ -59,6 +59,13 @@ A test may skip in CI only when `python/tests/allowed_skips.toml` names it with 
 ran on a platform it names. Every entry is a platform fact (a junction is a Windows folder link); a tool a test needs is
 installed on the runner instead. A local run without `--allowed-skips` reports skips and does not judge them.
 
+- **Approach:** When a new test runs a pinned tool, add the tool to the Windows test job's `--fetch` in
+  `.github/workflows/ci.yml` and an entry for the other platforms (one per test, without its `[parameter]`), then run
+  the test file with `--allowed-skips python/tests/allowed_skips.toml` before the push. **Watch out for:** on a machine
+  with the tool the test runs and passes, so nothing local shows the skip that fails all three CI test jobs.
+  **Seen:** gdstudio #1190, 2026-11-11 (the pinned-ffmpeg clip test; fix: ffmpeg fetched on windows-2025, linux and
+  darwin allowed).
+
 ## Speed {#speed}
 
 - **Approach:** Count the processes a test starts, not only its seconds: make a repository once a session and copy it,

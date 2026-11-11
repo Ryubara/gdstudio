@@ -1,17 +1,20 @@
 class_name CharacterLean
 extends RefCounted
 ## The lean tick of a `Character`: the same tick as the full one for a body that walks or stands on
-## the ground and asks for nothing but a push and a view, with the modules that have nothing to do
-## on it left out (the prone stance, the vault's probe, the slide, the crouch, the aim and the
-## weapon's presses), so the body ends the tick in exactly the state the full tick leaves it in
-## (`test_character_lean.gd` steps both side by side and compares their snapshots).
+## the ground and asks for nothing but a push, a view, the aim and the trigger, with the modules
+## that have nothing to do on it left out (the prone stance, the vault's probe, the slide, the
+## crouch and the weapon's switch and reload), so the body ends the tick in exactly the state the
+## full tick leaves it in (`test_character_lean.gd` steps both side by side and compares their
+## snapshots).
 ##
 ## An AI's body takes it (`CharacterController.lean_step`, on in `AiController`): an AI walks far
 ## more ticks than it does anything else, and its body's step is what a crowd costs (gdstudio
-## #1059). Any other body, a player's, a predicting client's or one a server steps for a player,
-## never does. On any tick where one of those modules has something to do (a press, a held aim,
-## crouch, prone or jump, a slide or a vault running, a timer still counting, the body in the air)
-## the body takes the full tick instead, so the lean tick decides nothing of its own.
+## #1059), and a fighting AI aims and fires on it too (#1104). Any other body, a player's, a
+## predicting client's or one a server steps for a player, never does. On any tick where one of
+## those modules has something to do (a jump, reload, switch or use press, the aim going up or
+## coming down this tick, crouch, prone or jump held, a slide or a vault running, a timer still
+## counting, the body in the air) the body takes the full tick instead, so the lean tick decides
+## nothing of its own.
 ##
 ## Its functions are static and keep nothing, like the body's other modules.
 
@@ -23,11 +26,8 @@ static func can_take(body: Character) -> bool:
 	if (
 		command.crouch
 		or command.prone
-		or command.aim
-		or command.fire
 		or command.jump
 		or command.jump_pressed
-		or command.fire_pressed
 		or command.interact_pressed
 		or command.reload_pressed
 		or command.next_weapon_pressed
@@ -39,13 +39,16 @@ static func can_take(body: Character) -> bool:
 		not body._grounded
 		or body._action_lock > 0.0
 		or body._jump_buffer > 0.0
-		or body._fire_buffer > 0.0
 		or body.crouching
 		or body._crouch_amount > 0.0
-		or body.aiming
-		or body.aim_amount > 0.0
-		or body.aim_held
-		or body.fire_held
+	):
+		return false
+	if (
+		(
+			(command.aim or command.fire or command.fire_pressed or body._fire_buffer > 0.0)
+			or (body.aiming or body.aim_amount > 0.0 or body.aim_held or body.fire_held)
+		)
+		and not _can_aim(body, command)
 	):
 		return false
 	if body._prone.down or body._prone.amount > 0.0:
@@ -65,9 +68,17 @@ static func can_take(body: Character) -> bool:
 	return true
 
 
+# A fight on its feet (gdstudio #1104): the aim held or let go and the trigger pulled, with the aim
+# already as the command wants it (no `aim_changed` on this tick) and a weapon in the hands, so the
+# full tick's aim only moves `aim_amount` and copies the two held buttons, and its trigger only
+# counts the fire buffer and pulls.
+static func _can_aim(body: Character, command: PlayerCommand) -> bool:
+	return body.weapon != null and body.aiming == (command.aim or command.fire)
+
+
 ## One lean tick of `body` (only when `can_take(body)`): what `Character._move()` does on such a
 ## tick, in its order, without the modules that would find nothing to do, and the walk's steering
-## and state with the branches for crouch, prone, aim, a hit and the air left out.
+## and state with the branches for crouch, prone, a hit and the air left out.
 static func move(body: Character, delta: float) -> void:
 	var tuning := body.tuning
 	# The timers: nothing locks the body and no jump is buffered (both at 0), and it is on the
@@ -85,8 +96,15 @@ static func move(body: Character, delta: float) -> void:
 	slide.cooldown = maxf(slide.cooldown - delta, 0.0)
 	slide.boost_cooldown = maxf(slide.boost_cooldown - delta, 0.0)
 	slide.landed = false
-	# The crouch: let go of, with nothing to stand up from; the aim: nothing held and the arm down.
+	# The crouch: let go of, with nothing to stand up from; the aim: held as the command holds it
+	# (it neither goes up nor comes down this tick) and the arm on its way to it.
 	body._wants_crouch = false
+	if body.weapon != null:
+		body.fire_held = body.last_command.fire
+		body.aim_held = body.last_command.aim
+	body.aim_amount = move_toward(
+		body.aim_amount, 1.0 if body.aiming else 0.0, delta / maxf(tuning.aim_pose_time, 0.001)
+	)
 	var wish := body._wish_direction()
 	_steer(body, wish, delta)
 	_vertical(body)
@@ -113,12 +131,10 @@ static func move(body: Character, delta: float) -> void:
 		body._after_move(wish, delta)
 	else:
 		_after_move(body, wish)
-	# The weapon's presses: none, the fire buffer empty; standing, the spread is the weapon's own.
-	if body.weapon != null:
-		body.weapon.spread_share = 1.0
+	_trigger(body, delta)
 
 
-# `Character._steer()` and `_target_speed()` on the ground, up, unlocked, not aiming or crouched:
+# `Character._steer()` and `_target_speed()` on the ground, up, unlocked, not crouched:
 # the same numbers in the same order.
 static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 	var tuning := body.tuning
@@ -129,10 +145,12 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 	if strength > 0.0:
 		var command := body.last_command
 		var speed := tuning.run_speed * strength
-		if command.sprint:
+		if command.sprint and not body.aiming:
 			speed = tuning.sprint_speed
 		elif command.walk or strength < tuning.walk_below_push:
 			speed = tuning.walk_speed * maxf(strength, tuning.least_walk_share)
+		if body.aiming:
+			speed = minf(speed, tuning.walk_speed * tuning.aim_walk_cap) * tuning.aim_move_scale
 		if body._push_cap > 0.0:
 			speed = minf(speed, body._push_cap)
 		goal = wish.normalized() * speed
@@ -140,7 +158,13 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 	flat = flat.move_toward(goal, rate * delta)
 	body.velocity.x = flat.x
 	body.velocity.z = flat.z
-	if strength > 0.0:
+	if body.aiming:
+		# Aiming turns the body to the view's heading, however it walks.
+		body.facing = lerp_angle(
+			body.facing, body.view_yaw + PI, clampf(tuning.aim_turn_speed * delta, 0.0, 1.0)
+		)
+		body._present_facing()
+	elif strength > 0.0:
 		body.facing = lerp_angle(
 			body.facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
 		)
@@ -161,13 +185,15 @@ static func _vertical(body: Character) -> void:
 
 
 # `Character._after_move()` and `_pick_state()` for a body that did not just land, with nothing
-# locking it, up, not crouched, aiming or sliding.
+# locking it, up, not crouched or sliding.
 static func _after_move(body: Character, wish: Vector3) -> void:
 	var tuning := body.tuning
 	var grounded := body._grounded
 	body._was_airborne = not grounded
 	var speed := body.ground_speed()
-	body._sprinting = grounded and body.last_command.sprint and speed > tuning.run_speed
+	body._sprinting = (
+		grounded and not body.aiming and body.last_command.sprint and speed > tuning.run_speed
+	)
 	var picked := Character.State.IDLE
 	if not grounded:
 		picked = Character.State.JUMP if body.velocity.y > 0.0 else Character.State.FALL
@@ -182,3 +208,23 @@ static func _after_move(body: Character, wish: Vector3) -> void:
 			else Character.State.RUN
 		)
 	body.state = picked
+
+
+# `Character._use_weapon()` with no switch and no reload asked for and the body up: the fire buffer
+# counts, a pull (a press, or the trigger held on an automatic weapon) fills it, and the shot
+# leaves once the aim is up.
+static func _trigger(body: Character, delta: float) -> void:
+	body._fire_buffer = maxf(body._fire_buffer - delta, 0.0)
+	var weapon := body.weapon
+	if weapon == null:
+		return
+	var command := body.last_command
+	var pulled := command.fire_pressed
+	if weapon.definition != null and weapon.definition.automatic and command.fire:
+		pulled = true
+	weapon.spread_share = 1.0
+	if pulled:
+		body._fire_buffer = body.tuning.fire_buffer_time
+	if body._fire_buffer > 0.0 and body.aiming and body.aim_amount >= body.tuning.shot_aim_amount:
+		if weapon.pull(body._aim_origin(), body._aim_direction()) != Weapon.Pull.BUSY:
+			body._fire_buffer = 0.0

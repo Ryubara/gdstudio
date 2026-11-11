@@ -38,8 +38,10 @@ The `Reconciler` never replays (a step has side effects: [the character's snapsh
 measures the error of the answered command, moves the body a quarter of what is left each frame, shifts the
 remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m (6 m a
 stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
-alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
-`Player.teleport()` and reset it.
+alone (a TICK carries centimetres: up to 0.87 cm of rounding). A part that puts the body more than 5 cm inside the
+world (`BodyOverlap`, the body's shapes laid against the world with its mask) is followed by the rest of the correction
+at once (`Reconciler.take_rest`, counted in `stuck_snaps`): a body on a ledge whose server body stands below it would
+be pushed back out after each part. `fell` and `teleported` go through `Player.teleport()` and reset it.
 
 `SilenceWalk` (`gameplay/net/silence_walk.gd`) is the client's half of the server's silence rule: a server whose
 client sends nothing holds the body `NetServer.HOLD_TICKS` (4) steps, steps the last command again without its presses
@@ -72,6 +74,14 @@ steps without stepping before it repeats the last command (`PeerSlot.HELD` in th
   catch-up ticks come in the next frame, so a guard that skipped the rest of the stalled frame skipped nothing (0
   skipped over three freezes); skipping every second tick of a frame at all times would halve the commands of a game
   drawn at 30 frames a second. **Seen:** gdstudio #905, 2026-11-11 (7 ticks skipped a freeze after the fix).
+- **Approach:** Take a correction whole once a part of it puts the body inside the world: lay the body's shapes
+  against the world after the part (`collide_shape`, the deepest contact pair) and hand out the rest past 5 cm.
+  **Watch out for:** a body on the dais's top whose server body stood against the wall below never met it while the
+  controller walked it back on top (the gate's walk round the spawn): each quarter landed inside the dais, the step put
+  it back, and the shifted points hid that for a round trip (240 ms: 1.4 m apart after 3 s, 12.5 m corrected). Under
+  Jolt the motion test's `recovery_as_collision` depth is what is left after one recovery pass (0.033 m for 0.25 m
+  inside): read the contact pairs. **Seen:** gdstudio #1119, 2026-11-11 (`test_net_ledge_correction.gd`; about 5 µs a
+  frame that takes a part).
 
 ## Puppets {#puppets}
 
@@ -148,7 +158,8 @@ TCP's loss). The browser half is `tools/web_smoke/net_play_smoke.py`: the web ex
 and 24 s. The probe joins only after the level's warm-up (`EffectEmitter.warmed`) and 20 frames in a row under the
 server's hold (`FrameSettle`), as a game joins behind its loading screen; the page records each frame's length and
 the GL programs linked in it, and the report's `hitches` lists every frame past 0.25 s after the seat. Both judge with
-`tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
+`tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay); `--walk spawn` walks round
+the spawn across the dais's edge instead (gdstudio #1119);
 `--break reconciler` (native only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
 server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs after the gate.
 
@@ -262,9 +273,10 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   `by_second` and the relay's stalls near it (`WORST` lines). Count a snap by its cause: with up stalls, one under 4 m
   per up stall (`size_snaps_m`). **Watch out for:** the walk round the spawn crossed the dais's edge; a command
   repeated in an up stall took the server's body down while the client's stayed up, and each quarter of the correction
-  landed inside the dais (#1119): 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m, worst 1.31 m. A
-  branch cut before the fix fails the stall run the same way with nothing networked changed: merge main, never rerun.
-  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1).
+  landed inside the dais: 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m. #1119
+  fixed the client (`BodyOverlap`): the old walk (`--walk spawn`), three two-core stall runs, 25.0 to 32.4 m against
+  28.8 to 62.2 m. A branch cut before the fix fails the stall run the same way: merge main, never rerun.
+  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1); #1119.
 
 ## Playing online {#play-online}
 
