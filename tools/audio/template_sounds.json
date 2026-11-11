@@ -5,7 +5,7 @@
   "credits_per_second": 40,
   "min_seconds": 0.5,
   "max_seconds": 30.0,
-  "budget": 4000,
+  "budget": 5000,
   "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).",
   "licence_free": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
   "licence_paid": "Generated on ElevenLabs' paid `{tier}` plan, which allows commercial use under ElevenLabs' Sound\n  Effects terms (<https://elevenlabs.io/sound-effects-terms>, Exhibit 4): the sounds may be used in a game, combined\n  with other material; they may not be sold, licensed or shared on their own as isolated audio files or samples, or\n  put in a sound, sample or effects library.",

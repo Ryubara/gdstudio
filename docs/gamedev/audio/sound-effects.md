@@ -148,6 +148,12 @@ credits ──> plan ──> generate ──> encode ──> check
   `mix`, `seed`: a whistle layered over its gusts, [A wind that reads as wind](#wind)). `licence_free` and
   `licence_paid` are the two licence texts, chosen by the plan the take was made on.
 
+- **Approach:** After adding a sound to the data file, run `uv run --project python pytest
+  python/tests/test_sfx_recipe.py` and move the set's pinned plan (the whole set asked again from an empty cache) and,
+  when it passes, the `budget`, in the same commit. **Watch out for:** a new cache holds only the new takes, so `plan`
+  and `generate` passed while the whole set's plan went from 3900 to 4608 credits, over the 4000 budget, and the
+  recipe's test failed after the commit. **Seen:** gdstudio #1100, 2026-11-11 (the budget is 5000 now).
+
 **Where it lives.** It is a script in the kit's `tools/audio/`, laid out as Deadnight's voice recipe is (a script and
 a data file that holds every prompt, length and target), not a `gds` subcommand: it needs numpy for the cutting and
 the checks and the kit's Python depends on Pillow alone, so a subcommand would add a package to every agent's
