@@ -153,8 +153,10 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 
 ## Page size {#size}
 
-A page holds at most 50 KB. A topic that grows past it becomes a folder of subpages (as `gamedev/audio/` did): the
-one time a learning makes a new page. The check names the page and its size.
+A page holds at most 50 KB. When one nears it, the simplest move is one subject to a sibling page (as `landing.md`
+left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
+`{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
+Those are the times a learning makes a new page. The check names the page and its size.
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
@@ -164,6 +166,12 @@ one time a learning makes a new page. The check names the page and its size.
   its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a subpage titled like the
   one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
   #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
+- **Approach:** Before adding to a page, read its size (`wc -c`): over about 45 KB, move one subject to a sibling page
+  first, in the same pull request, rather than a whole folder split; say in its reason line which page it left.
+  **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
+  `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
+  merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
+  (PR #1219) and #1222 (PR #1227), 2026-11-11.
 
 ## Where the entry is named {#named}
 
