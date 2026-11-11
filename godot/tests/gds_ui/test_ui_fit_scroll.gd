@@ -86,6 +86,19 @@ func test_a_smaller_screen_shrinks_the_area_and_a_bigger_one_gives_it_back() -> 
 	assert_float(scroll.custom_minimum_size.y).is_equal_approx(tall, 1.0)
 
 
+func test_the_area_fits_again_when_its_limit_alone_changes_size() -> void:
+	# A menu scaled for a phone (MenuFit) changes the limit's size and not the viewport's.
+	var parts := await _card(12, 50.0, Vector2(800.0, 2000.0))
+	var stage: Control = parts["stage"]
+	var scroll: UIFitScroll = parts["scroll"]
+	var tall := scroll.custom_minimum_size.y
+	stage.size = Vector2(SCREEN.x, 300.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_float(scroll.custom_minimum_size.y).is_less(tall)
+	assert_float((parts["card"] as Control).size.y).is_less_equal(300.0 + 1.0)
+
+
 func test_a_very_short_screen_still_shows_the_least_height() -> void:
 	var parts := await _card(12, 50.0, Vector2(800.0, 100.0))
 	var scroll: UIFitScroll = parts["scroll"]

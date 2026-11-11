@@ -142,9 +142,10 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
 
 - **Bound the area, scroll the rest.** `UIFitScroll` (`gds_ui`) is a `UIScroll` that asks for its content's height and
   no more than the screen leaves (`limit`, `margin`, `card`, and `steady` to keep a height between short pages); the
-  title and the buttons around it stay on the screen. A tab's column goes in a scroll area the size of its panel
-  (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height its tab leaves
-  (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
+  title and the buttons around it stay on the screen. It fits again when the viewport, its content or its `limit`
+  changes size (a `MenuFit` turned to the phone factor resizes the limit only). A tab's column goes in a scroll area
+  the size of its panel (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height
+  its tab leaves (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
 - **A scroll area takes width too.** The theme gives every `ScrollContainer` `hover_room` at each side and the bar a
   track: content that was exactly the panel's width is 54 units wider than its panel once it sits in one. Extend the
   area past the panel by that room (`offset_left`, `offset_right`) or build the rows narrower by `UIScroll.side_room`;
