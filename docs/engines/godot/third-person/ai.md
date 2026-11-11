@@ -41,9 +41,9 @@ finds it through the group; a character with no director steps itself and never 
   `full_range` 25 m, `reduced_range` 70 m, `tier_margin` 4 m, `max_rays_per_think` 2, `repath_seconds` 0.25 s. The
   three files change only what makes the kind: the grunt (faction `enemies`, `accuracy` 0.4), the ally (`players`,
   0.6, `obeys_orders` 0.9), the civilian (`civilians`, `engage_range` 0, `flee_below_health` 1, `courage` 0.1).
-- **`AiDirector`**: Population `web_cap` 40, `desktop_cap` 120, `web_full_cap` 20, `desktop_full_cap` 60,
+- **`AiDirector`**: Population `web_cap` 40, `desktop_cap` 120, `web_full_cap` 12, `desktop_full_cap` 60,
   `player_group`; Budget a tick `rays_per_tick` 8, `paths_per_tick` 4, `thinks_per_tick` 12; Steps
-  `reduced_step_ticks` 3, `dormant_step_ticks` 6, `rest_step_ticks` 3.
+  `reduced_step_ticks` 4, `dormant_step_ticks` 6, `rest_step_ticks` 3.
 
 ## How the director schedules {#schedule}
 
@@ -62,7 +62,7 @@ finds it through the group; a character with no director steps itself and never 
   number of physics steps and scales the velocity for the move, so a far character walks as far in the same time
   (`test_a_far_character_stepped_less_often_walks_as_far`). A character at rest (on a floor that does not move, still,
   its controller asking for nothing) or dead is stepped at most every `rest_step_ticks`. A far body moves in steps of
-  three or six ticks, which shows only to a camera near it.
+  four or six ticks, which shows only to a camera near it.
 
 ## Proof {#proof}
 
