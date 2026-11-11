@@ -157,27 +157,31 @@ func test_a_goal_in_a_wall_is_walked_to_from_the_open_side() -> void:
 	assert_float(navigator.character.global_position.x).is_less(0.0)
 
 
-# Deadnight #950's flip, made here: a target in a hole between two blocks, moving across its
-# middle. Fails first without the kept route: the walker turns round at each repath.
-func test_a_target_off_the_mesh_does_not_turn_the_walker_round() -> void:
-	_arena.add_wall(Rect2i(-1, -6, 3, 12))
+# Deadnight #950's flip, made here: a target off the mesh in a long hole 2 m wide, swaying across
+# it. A goal deep in the hole snaps to the walker's side (`AiRouteRules.snap_goal`), but within
+# `OPEN_GROUND` of the far edge the nearest point of the mesh is the goal, and the route round the
+# hole's end is over 15 m longer. Fails first without the kept route (`keeps_route` made false in
+# `AiNavigator._query_now`): the path swings to the far side 3 times in 4 s. The walker starts far
+# off, as the rule lets go once 1 m of the old route is left.
+func test_a_target_off_the_mesh_does_not_swing_the_route_to_the_far_side() -> void:
+	_arena.add_wall(Rect2i(0, -8, 2, 16))
 	await _ready_arena()
 	var target := Node3D.new()
 	_arena.add_child(target)
-	var navigator := _arena.add_walker(Vector3(-8, 0, -1))
-	navigator.follow(target, 0.5)
-	var turns := 0
-	var heading := Vector3.ZERO
-	for tick in 360:
-		# The target crosses the hole's middle line (z = 0) every half second.
-		target.position = Vector3(0.5, 0, 0.6 * sin(tick * TAU / 60.0))
+	target.position = Vector3(1, 0, 0)
+	var navigator := _arena.add_walker(Vector3(-13, 0, 0))
+	var ends: Array[float] = []
+	navigator.path_changed.connect(func() -> void: ends.append(navigator.path.end().x))
+	navigator.follow(target, 0.5, 0.5)
+	for tick in 240:
+		# Within 0.15 m of each edge at the ends of its sway, over the middle twice a second.
+		target.position.x = 1.0 + 0.85 * sin(tick * TAU / 60.0)
 		await get_tree().physics_frame
-		var walk := (navigator.character.controller as AiController).walk_direction
-		if walk != Vector3.ZERO and heading != Vector3.ZERO and walk.dot(heading) < -0.5:
-			turns += 1
-		if walk != Vector3.ZERO:
-			heading = walk
-	assert_int(turns).is_less_equal(1)
+	assert_array(ends).is_not_empty()
+	var far_side := ends.filter(func(x: float) -> bool: return x > 1.0)
+	var message := "routes to the far side: %s" % [ends]
+	assert_int(far_side.size()).override_failure_message(message).is_equal(0)
+	assert_float(navigator.character.global_position.x).is_greater(-9.0)
 
 
 # A target that moves across a wall: on its near side the route is short, on its far side the
