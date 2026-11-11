@@ -141,6 +141,18 @@ func select(slot: int) -> void:
 			_begin_holster(slot, lowered_amount())
 
 
+## Puts `slot` (-1 the empty hands) in the hands at once, with no switch: a puppet online, whose
+## weapon a SHOT names (TICKs carry none). Nothing happens for a slot the loadout lacks.
+func equip_now(slot: int) -> void:
+	if _definition(slot) == null:
+		return
+	_target = slot
+	_phase = Phase.READY
+	_phase_left = 0.0
+	if slot != _held:
+		_equip(slot)
+
+
 ## Switches to the next weapon (the slots in order, then the empty hands, round again).
 func next() -> void:
 	select(_step_from(_target, 1))
