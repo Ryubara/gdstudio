@@ -399,7 +399,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 		if ragdoll_body != null:
 			ragdoll_body.stop(false)
 		CharacterDeath.come_alive(self)
-	vault_motion.cancel()
+	vault_motion.cancel(self)
 	global_position = spot
 	velocity = Vector3.ZERO
 	_rider.platform = null

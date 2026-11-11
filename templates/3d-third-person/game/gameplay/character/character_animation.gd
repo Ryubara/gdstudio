@@ -14,8 +14,8 @@ extends Node
 ## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
 ##
-## The clips come from the Universal Animation Library 1 and 2 and the template's own prone
-## clips, added to the `AnimationPlayer` as the libraries `ual1`, `ual2` and `prone`. Pick another
+## The clips come from the Universal Animation Library 1 and 2 and the template's own prone and
+## vault clips, the `AnimationPlayer`'s libraries `ual1`, `ual2`, `prone` and `vault`. Pick another
 ## clip for a state in the inspector; `CharacterClips` names them all. A model whose body needs
 ## prone clips of its own gets them from `prone_libraries`.
 ##
@@ -185,12 +185,12 @@ const _RELOAD_FADE_OUT := 0.2
 		_rebuild()
 
 @export_group("Traversal")
-## The vault over a low obstacle; it is played to last the vault's time, so its hand plant meets
-## the edge (set `VaultSettings.plant_at` and `clear_at` to the clip's own contact times). A
-## placeholder until the template's vault clips land.
-@export var vault_clip: StringName = CharacterClips.VAULT_PLACEHOLDER
-## The vault over an obstacle from `VaultSettings.high_vault_above` up (two hands).
-@export var vault_high_clip: StringName = CharacterClips.VAULT_PLACEHOLDER
+## The vault over a low obstacle (one hand); what it was keyed on is `VaultSettings.low_clip`.
+@export var vault_clip: StringName = CharacterClips.VAULT_LOW
+## The vault from `VaultSettings.high_vault_above` up (two hands; keyed on `high_clip`).
+@export var vault_high_clip: StringName = CharacterClips.VAULT_HIGH
+## The step out of a vault's landing, played straight after either vault. Empty: none.
+@export var vault_land_clip: StringName = CharacterClips.VAULT_LAND
 ## The climb onto an obstacle; played to last the mantle's time.
 @export var mantle_clip: StringName = CharacterClips.CLIMB_UP
 ## The climb onto an obstacle from `VaultSettings.high_mantle_above` up.
@@ -274,6 +274,8 @@ var _crouch: AnimationNodeBlendSpace1D
 var _tuning: CharacterTuning
 # The crawl's share and pace, the weapon put away lying, and a model's own prone clips.
 var _prone_look := ProneAnimation.new()
+# A vault timed by its clip: the clip joined to its landing step, and the hands off the weapon.
+var _vault_look := VaultAnimation.new()
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
 var _shots := 0
@@ -306,6 +308,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	tree.active = true
+	# Before the tree in the frame, so what a frame sets is in the pose drawn that frame.
+	process_priority = tree.process_priority - 1
 	_playback = tree.get(_P_PLAYBACK)
 	_playback.start(GROUND)
 	character.state_changed.connect(_on_state_changed)
@@ -413,7 +417,7 @@ func _tree_runs_itself(on: bool) -> void:
 # What a frame sets on the tree from the character, `delta` seconds after the last time.
 func _drive(delta: float) -> void:
 	_follow_tuning()
-	var speed := character.ground_speed()
+	var speed := _vault_look.follow(character, self, action_blend_time, delta)
 	tree.set(_P_GROUND_SPEED, speed)
 	tree.set(_P_CROUCH_SPEED, speed)
 	_drive_prone(speed, delta)
@@ -630,8 +634,10 @@ func _drive_pistol(delta: float) -> void:
 	var up_share := 1.0
 	if character.loadout != null:
 		up_share = 1.0 - character.loadout.lowered_amount()
-	var stow := ProneAnimation.stow_share(character)
-	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, stow > 0.5)
+	var lying := ProneAnimation.stow_share(character)
+	var stow := maxf(lying, _vault_look.hands)
+	var hidden := lying > 0.5 or _vault_look.away
+	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
@@ -724,16 +730,9 @@ func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
 
 
-# A vault or a mantle plays its clip over the whole body for the crossing's time: the clip of the
-# obstacle's `Vaultable` when it names one, else the low or high clip for the kind.
+# A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
 func _on_vault_started(plan: VaultPlan) -> void:
-	var clip := traversal_clip(plan)
-	play_clip(clip, plan.duration)
-	if tree == null or plan.duration <= 0.0 or not animation_player.has_animation(clip):
-		return
-	var length := animation_player.get_animation(clip).length
-	var speed := clampf(length / plan.duration, traversal_speed_range.x, traversal_speed_range.y)
-	tree.set(&"parameters/%s/scale" % _ACTION_SCALE, speed)
+	_vault_look.start(self, plan, traversal_clip(plan))
 
 
 ## The clip a crossing plays: the obstacle's own override, else this node's low or high clip for
@@ -788,7 +787,10 @@ func _build_root() -> AnimationNodeBlendTree:
 	_action_scale_node = AnimationNodeTimeScale.new()
 	root.add_node(_ACTION_CLIP, _action_clip_node, Vector2(0, 200))
 	root.add_node(_ACTION_SCALE, _action_scale_node, Vector2(200, 200))
-	root.connect_node(_ACTION_SCALE, 0, _ACTION_CLIP)
+	# A vault holds its clip to the body's own time through the seek (`VaultAnimation`).
+	root.add_node(VaultAnimation.SEEK, AnimationNodeTimeSeek.new(), Vector2(100, 200))
+	root.connect_node(VaultAnimation.SEEK, 0, _ACTION_CLIP)
+	root.connect_node(_ACTION_SCALE, 0, VaultAnimation.SEEK)
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time

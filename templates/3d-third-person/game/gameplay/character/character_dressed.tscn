@@ -7,6 +7,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -77,7 +78,8 @@ root_node = NodePath("../Model/Mannequin")
 libraries = {
 &"ual1": ExtResource("5_ual1"),
 &"ual2": ExtResource("6_ual2"),
-&"prone": ExtResource("6_prone")
+&"prone": ExtResource("6_prone"),
+&"vault": ExtResource("6_vault")
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="." index="5"]
