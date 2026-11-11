@@ -248,12 +248,16 @@ func test_a_task_that_errors_ends_invalid_and_default_runs() -> void:
 	assert_array(whats).contains([&"failed", &"fallback"])
 
 
-# 13. An idle runner allocates nothing on a step (memory and objects counted).
-func test_an_idle_runner_allocates_nothing_per_step() -> void:
+# 13. An idle runner does no work on a step: the counter of steps that ran a task and the decision
+# log stay still, and 2000 steps leave the memory and the object count where they were. (Static
+# memory sees what a step keeps, not what it frees before it returns; the work counter is what
+# catches a runner that selects or describes on an idle step.)
+func test_an_idle_runner_does_no_work_and_allocates_nothing_per_step() -> void:
 	var runner := _runner()
 	runner.assign(ScriptedTask.make(&"blink", AiTask.Layer.RESPONSE, 0.1))
 	_run(runner, 0.5)
 	assert_int(runner.count()).is_equal(0)
+	var written := runner.decisions.written
 	var objects := Performance.get_monitor(Performance.OBJECT_COUNT)
 	var grew := 0
 	for _trial in 3:
@@ -267,6 +271,7 @@ func test_an_idle_runner_allocates_nothing_per_step() -> void:
 	assert_int(grew).is_equal(0)
 	assert_float(objects_now).is_equal(objects)
 	assert_int(runner.busy_steps).is_equal(1)
+	assert_int(runner.decisions.written).is_equal(written)
 
 
 # The same event stream, stepped the same way, gives the same decision log.
