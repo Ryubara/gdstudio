@@ -219,7 +219,7 @@ setting up its children. A test that names
   for:** the first version drew everything in `_draw` of an empty `CanvasLayer` (nothing in the scene, slots hidden in an
   angle table); a `@tool` script must not touch `Input` or `DisplayServer` at edit time; the saved sizes must equal what
   the script computes or every open dirties the scene. The 18 finger tests passed unchanged.
-  **Seen:** gdstudio #831, 2026-11-08 ([checklist](new-game.md#template-checklist)).
+  **Seen:** gdstudio #831, 2026-11-08 ([checklist](template-checklist.md#template-checklist)).
 - **Approach:** Start a new device's controls from the reusable `TouchControls` of the 3D Blank template (a floating
   stick, a look drag, buttons that press the game's actions; the settings are exports) and prove it as the template did:
   GdUnit4 with two fingers, a drag whose `relative` is wrong and mouse motion, then the web export in a phone-sized
