@@ -16,7 +16,7 @@ import yaml
 KIT = Path(__file__).resolve().parents[2]
 WORKFLOWS = [KIT / ".github" / "workflows" / "ci.yml", KIT / "templates" / "repo" / ".github" / "workflows" / "ci.yml"]
 STEP_LIMIT_MINUTES = 15
-INSTALL = re.compile(r"(playwright\S*|\$pw)\s+install\b")
+INSTALL = re.compile(r"(playwright\S*|\"\$\{pw\[@\]\}\")\s+install\b")
 TIMED = re.compile(r"^\s*timeout\s+(-k\s+\d+\s+)?\d+\s+")
 
 
@@ -51,8 +51,8 @@ def test_every_browser_install_has_a_step_limit_and_timed_calls(path: Path):
 @pytest.mark.parametrize(
     ("line", "timed"),
     [
-        ("timeout -k 30 240 $pw install --with-deps chromium-headless-shell && exit 0", True),
-        ("  timeout 180 $pw install chromium-headless-shell", True),
+        ('timeout -k 30 240 "${pw[@]}" install --with-deps chromium-headless-shell && exit 0', True),
+        ('  timeout 180 "${pw[@]}" install chromium-headless-shell', True),
         ("uvx playwright@1.64.1 install --with-deps chromium-headless-shell && exit 0", False),
     ],
 )

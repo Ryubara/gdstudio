@@ -163,11 +163,11 @@ jobs:
         # browser alone, twice. The step's limit stops anything those miss.
         timeout-minutes: 12
         run: |
-          pw="uvx playwright@1.64.1"
-          timeout -k 30 240 $pw install --with-deps chromium-headless-shell && exit 0
+          pw=(uvx playwright@1.64.1)
+          timeout -k 30 240 "${pw[@]}" install --with-deps chromium-headless-shell && exit 0
           echo "::warning::apt mirror unreachable or stalled; installing Chromium without its system packages"
           for try in 1 2; do
-            timeout -k 30 180 $pw install chromium-headless-shell && exit 0
+            timeout -k 30 180 "${pw[@]}" install chromium-headless-shell && exit 0
             echo "::warning::Chromium download $try failed or stalled"
           done
           exit 1
