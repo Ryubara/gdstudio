@@ -55,7 +55,7 @@ script = ExtResource("5_tasks")
 label = NodePath("../TaskLabel")
 
 [node name="TaskLabel" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
 visible = false
 cast_shadow = 0
 pixel_size = 0.004
