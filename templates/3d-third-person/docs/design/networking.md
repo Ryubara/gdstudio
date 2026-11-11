@@ -54,7 +54,9 @@ A `NetClient` node (`game/gameplay/net/net_client.gd`) joins a server and plays 
 physics step it samples the player's controller, sends the command and steps the body with exactly the numbers the
 server will read, so the body moves the moment the key goes down. When a TICK says where the server's body stands after
 a command, a `Reconciler` slides the local body toward it a quarter of the way a frame (and puts it there at once when
-it is more than 2.5 m off); a `StallGuard` notices the game froze (a hidden tab) and skips the burst of catch-up steps.
+it is more than 2.5 m off); a `StallGuard` notices the game froze (a hidden tab) and skips the burst of catch-up steps,
+and a `SilenceWalk` steps the body as the server stepped its own meanwhile (it walks on a moment, then stands), so both
+come out of the freeze at the same speed.
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
@@ -70,7 +72,7 @@ on the server), and none past the interest radius. A browser among the players c
 everyone.
 
 Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `join_on_ready`, `player_name`,
-`spawn_group`, `spawn_seed`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
+`spawn_group`, `spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
 `extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`.
 
 ## Playing online
@@ -89,7 +91,9 @@ Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `
 The overlay says **Connecting** until the server seats the player, then hides. It says the server runs another version
 (reload the page, or update the game), that the game is full, that the server runs another map, that nobody answered
 within `connect_seconds`, or **Connection lost**, each with **Back to menu**; while it shows, the player's input is off.
-Its texts are exports of `online_status.tscn`.
+Its texts are exports of `online_status.tscn`. A server that hangs up on a hello that came too late (a browser
+compiling the game's shaders on its first visit holds its page for seconds) gets a new socket, up to `rejoins` times,
+while the overlay still says Connecting.
 
 `--bot route` or `--bot watch` (`?bot=route` on the web) hands the player to a `PlayerBot`, which presses the same
 actions a person would and turns the camera as the mouse does: `route` walks to the main door, opens it, comes back,

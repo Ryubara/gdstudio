@@ -101,6 +101,22 @@ HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin cou
 showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
 in it is sent over a network.
 
+**The weapon slots and the hotbar** (gdstudio #1148) are two rows of `HudSlot` places (`hud_slot.tscn`: `IconMargin/Icon`,
+`Key`, `Count`), made by their row from `cell_scene` because their number is a setting (the editor shows them, a `@tool`
+script): `HudWeaponSlots` (`hud_weapon_slots.tscn`, under the ammo card) shows the first `place_count` weapons of the
+loadout's round with the one in hand (or asked for) lit, and `HudHotbar` (`hud_hotbar.tscn`, bottom middle) shows the
+player's `Hotbar` ([The hotbar](../inventory.md#hotbar)). A place shows the first key of its action (`weapon_1`,
+`hotbar_1`: a rebound key shows the new one), an empty place its key alone. The look is the theme's variations
+`HudSlot`, `HudSlotLit`, `HudSlotEmpty` (with an `icon_color` each), `HudSlotKey` and `HudSlotKeyLit`. On a touch screen
+each place is a place a finger presses (`touch_zones()`, through `Hud.touch_zones()` to the touch layer), and every
+place is at least 44 CSS pixels (84 units: the HUD's phone scale makes them 45 on an 844 x 390 and a 667 x 375 page).
+In the inspector: on both rows Keys (`action_format`, `first_key_number`), Parts (`row`, `cell_scene`) and Phone
+(`touch_region`: the slots `BottomLeft`, the hotbar `TopLeft`); `HudWeaponSlots` Places (`place_count` 2);
+`HudHotbar` Look (`flash_time` 0.3 s, `flash_scale` 1.15) and Places (`editor_places` 4, the editor's count; the game's
+is the `Hotbar`'s); on `HudSlot` Look (`panel_variations`, `key_variation`, `key_variation_lit`, `spent_alpha` 0.35) and
+Parts. Cost, measured as above on the same machine (1920 x 1080, 150 frames): the six places add about 24 draw calls
+(285 against 261 with them hidden) and 0.04 ms of CPU; the GPU time did not move past its noise.
+
 - **Approach:** Give a part its player in one place: `Hud.player` points every part that has none (or had the old one)
   at the rig's `Player`, and a part given its own `player` keeps it. **Watch out for:** a first version bound every part
   to `Hud.player` on `add_widget` and overwrote the stand-in subjects the HUD tests had set, 15 of 15 cases failed; bind
