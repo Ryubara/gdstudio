@@ -139,4 +139,4 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   is not valid GDScript ("Unindent doesn't match", and GdUnit hung); it rewrote a multi-line lambda inside a call into
   a form Godot refuses, and put a comment between `"key":` and its wrapped `{...}` value. **Seen:** Deadnight,
   2026-11-01 (fix: short asserts, a named helper in place of the lambda); Deadnight, 2026-11-03 (a merge that kept two
-  batches' entries).
+  batches' entries); gdstudio #1001, 2026-11-10 (a lambda in a `connect` call: named methods).

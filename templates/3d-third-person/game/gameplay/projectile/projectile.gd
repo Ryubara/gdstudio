@@ -4,8 +4,8 @@ extends CharacterBody3D
 ## A sphere that flies where the `Weapon` sent it. Each physics tick it moves along its velocity
 ## (falling by `gravity`), and when it touches something it pushes a `RigidBody3D` with `impulse`,
 ## hits a character on the body part in its path (the character's `HitZones`: `damage` times the
-## part's multiplier; between the parts it flies on), tells a body that has a
-## `take_shot(projectile, point)` method (a `Target`), reports the hit to
+## part's multiplier; between the parts it flies on), gives any other body that carries a
+## `Health` (a `Target`, a crate) a `HitRecord` of `damage`, reports the hit to
 ## the level's `Impacts` (the mark, effect and sound of the surface), and then either
 ## bounces off the level (`bounces`) or stops. It is gone after `lifetime` seconds.
 ##
@@ -199,12 +199,16 @@ func _touch(collision: KinematicCollision3D) -> bool:
 		var body := collider as RigidBody3D
 		body.apply_impulse(direction * impulse, point - body.global_position)
 		movable = true
-	if collider != null and collider.has_method(&"take_shot"):
-		collider.call(&"take_shot", self, point)
+	var health := Health.of(collider) if zones == null else null
+	if health != null:
+		health.apply(
+			HitRecord.shot(damage, &"", &"", point, direction, impulse, _shooter as Node3D)
+		)
 		movable = true
 	impacted.emit(collider, point, normal)
-	if impact_effects and collider != null:
-		get_tree().call_group(&"impacts", &"impact", collider, point, normal)
+	var impacts := Impacts.find(self) if impact_effects and collider != null else null
+	if impacts != null:
+		impacts.impact(collider, point, normal)
 	if _bounces_left > 0 and not movable:
 		_bounces_left -= 1
 		velocity = velocity.bounce(normal) * bounce_keep

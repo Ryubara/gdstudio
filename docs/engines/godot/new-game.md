@@ -220,7 +220,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), a `WebProbe` that CI's [boot check](web-probes.md#boot-check) waits for, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, prone and crawl, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), a minimap and a full-screen map ([Minimap](minimap.md)), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, prone and crawl, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), a minimap and a full-screen map ([Minimap](minimap.md)), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, an inventory screen (the live model, the weapons, a bag of items: [Inventory](inventory.md)), and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):
@@ -337,6 +337,9 @@ template cheap to change):
     *Why:* a pinned default is a decision someone made, a test of the change is the only proof that item 2 holds, and a
     universal part copied into a template is never fixed in the games made from it.
 
+A test of item 5 calls the script's own `_get_configuration_warnings()`: the engine's `get_configuration_warnings()` is
+not callable from GDScript ("Nonexistent function"), and the script's list is the one a missing component adds to.
+
 How it is proved: `gds check scripts` and an editor open of a fresh game (the probe of
 [editor screenshots](editor-screenshots.md) prints each node's configuration warnings and what is empty, and saves each
 scene to see that nothing generated is written), the suites with a pin and a live test per export, and the editor's own
@@ -404,6 +407,11 @@ replaced whole.
   just its additions and is merged by `gds new game`. **Watch out for:** a hand-kept full copy drifted whenever the base
   gained a line (kit #846 failed CI that way), and a key an extending template sets must be one the base does not need to
   change (the later one wins). **Seen:** gdstudio #928, 2026-11-10.
+- **Approach:** When a script copies the branch's template files into a game made by `gds template game` (to test
+  without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
+  changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
+  addons' autoloads); copying the template's file over it dropped `UIRouter` and `PhantomCameraManager`, and the next
+  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10.
 - **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once

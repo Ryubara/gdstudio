@@ -1,31 +1,49 @@
 class_name Interactor
 extends Node3D
-## Finds what the character can use: the nearest node of the group `interactable` that is within
-## `reach` in front of this node. Anything with an `interact(by: Node3D)` method can join the
-## group (a `Door` does when its `player_can_use` is on). A node that moves when used (a swinging
-## door) can also have `interact_point() -> Vector3`, a world position that stays put to measure
-## from.
+## Finds what the character can use: the nearest `Interactable` within `reach` in front of this
+## node. It asks the physics space once, when asked (the interact button), for the areas on
+## `interact_mask` inside a cylinder of the reach around it, so nothing joins a group and nothing
+## is called by a method name; the reach is measured on the ground plane to each one's
+## `Interactable.reach_point()` (a swinging gate measures from where it stands closed).
 
-## The group a usable node joins.
-const GROUP := &"interactable"
+## The most areas one search looks at (pickups and trigger zones share the Sensors layer).
+const MAX_CANDIDATES := 32
 
 ## Targets more than this far from straight ahead are ignored.
 @export_range(10.0, 180.0, 1.0, "suffix:deg") var half_angle := 75.0
+## How far above and below this node a usable thing may be found, metres.
+@export_range(0.2, 10.0, 0.1, "suffix:m") var reach_height := 1.5
+## The physics layers an `Interactable` sits on: Sensors (`PhysicsLayers.SENSORS`).
+@export_flags_3d_physics var interact_mask := PhysicsLayers.SENSORS
+
+var _query := PhysicsShapeQueryParameters3D.new()
+var _shape := CylinderShape3D.new()
 
 
-## The usable node in front, or null. `reach` is in metres from this node, along `forward`.
-func find_target(forward: Vector3, reach: float) -> Node3D:
-	var best: Node3D = null
+func _init() -> void:
+	_query.shape = _shape
+	_query.collide_with_areas = true
+	_query.collide_with_bodies = false
+
+
+## The usable `Interactable` in front, or null. `reach` is in metres from this node, along
+## `forward`.
+func find_target(forward: Vector3, reach: float) -> Interactable:
+	if not is_inside_tree() or reach <= 0.0:
+		return null
+	_shape.radius = reach
+	_shape.height = reach_height * 2.0
+	_query.transform = Transform3D(Basis.IDENTITY, global_position)
+	_query.collision_mask = interact_mask
+	var best: Interactable = null
 	var best_distance := reach
 	var flat := Vector3(forward.x, 0.0, forward.z).normalized()
-	for node in get_tree().get_nodes_in_group(GROUP):
-		var candidate := node as Node3D
-		if candidate == null or not candidate.is_inside_tree():
+	var space := get_world_3d().direct_space_state
+	for found in space.intersect_shape(_query, MAX_CANDIDATES):
+		var candidate := found.collider as Interactable
+		if candidate == null or not candidate.enabled:
 			continue
-		var spot := candidate.global_position
-		if candidate.has_method(&"interact_point"):
-			spot = candidate.call(&"interact_point")
-		var offset := spot - global_position
+		var offset := candidate.reach_point() - global_position
 		var distance := Vector2(offset.x, offset.z).length()
 		if distance > best_distance:
 			continue

@@ -295,11 +295,13 @@ finds them first -->
   stands for. **Watch out for:** a mark made a node mid-night, a default order made standing tests roam, a moved lamp
   post broke a test that wrote its cover as coordinates, and a pinned list order and a copied boss health went red in
   folders nobody ran. **Seen:** Deadnight (outline), 2026-11-02; Deadnight #641, #682, #688, #719, #938, 2026-11-03
-  (fix: those folders run before the push; cover read from the lot).
+  (fix: those folders run before the push; cover read from the lot); gdstudio #890, 2026-11-10 (a `Player` export
+  failed two other suites' pins).
 - **Approach:** After every merge of main, grep the merged tree (tests and captures included) for each field, action
   or default the branch removes or changes, run the suites of what landed meanwhile, and diff each file the branch
   shares with a merged pull request; grep again right before auto-merge. **Watch out for:** clean merges left a
   duplicate dictionary key, another pull request's test assuming the old default order, readers of a removed field,
   and suites that bought perks in a row against a purchase that now takes 2.5 s. **Seen:** Deadnight #676, #814,
   2026-11-03; Deadnight #959, 2026-11-04; Deadnight #1233, 2026-11-05 (fix: a shared fixture step that finishes an
-  action; the grep named in the pull request is the one after the merge).
+  action; the grep named in the pull request is the one after the merge); gdstudio #1029, 2026-11-10 (a merged
+  budget test called the removed `take_shot` and counted 42 nodes before `Health`).

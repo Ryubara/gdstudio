@@ -128,7 +128,7 @@ Open `gameplay/player/player_tuning.tres` in the inspector. The groups, with the
 | Safety | the height below which it starts again at its spawn point (-25 m) |
 
 Prone has a resource of its own, `gameplay/player/prone_tuning.tres` (`Player` > Prone > `prone_tuning`); the
-defaults come from shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#prone`:
+defaults come from shipped games, with the sources in the kit's `docs/engines/godot/third-person/moves.md#prone`:
 
 | Group | Settings (default) |
 | --- | --- |
@@ -139,7 +139,7 @@ defaults come from shipped games, with the sources in the kit's `docs/engines/go
 | Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
 
 The slide has one too, `gameplay/player/slide_tuning.tres` (`Player` > Slide > `slide_tuning`); the defaults come from
-shipped games, with the sources in the kit's `docs/engines/godot/third-person/slide.md#slide`:
+shipped games, with the sources in the kit's `docs/engines/godot/third-person/moves.md#slide`:
 
 | Group | Settings (default) |
 | --- | --- |
@@ -267,11 +267,11 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `reloaded`, `reload_cancelled` and `definition_changed`, the `Loadout` `weapon_changed`, `switch_started` and
 `switch_finished`, a `Projectile` `impacted(collider, point, normal)` and a `Target` `shot`, `knocked_down` and
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
-each) and gives the character a `HitRecord` (`take_hit(record)`): it takes the health (`max_health`, 100;
-`health_enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes
-the hit part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is
-all a network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a
-blow with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
+`enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
+part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
+network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
+with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
@@ -319,6 +319,26 @@ the node or on the `WeaponDef`, builds the tree again):
 The pistol sits in the hand without sinking into the leg or the body in the locomotion, crouch, jump and push clips on
 both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the skinned body, and
 `tools/carry/measure_clearance.gd` prints the numbers for another grip. If a game changes the grip, run both.
+
+**The hands on the pistol** are closed by `WeaponHold` (`gameplay/weapon/hold/weapon_hold.tscn`, a node of
+`character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
+It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
+pistol layer's weights (`CharacterAnimation.pistol_weights()`), so it follows the carry, the aim and a death with no
+wiring of its own. Everything is tuned in its inspector while the game runs:
+
+| Property | Default | What it does |
+| --- | --- | --- |
+| `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
+| `support_pose` | `pistol_support_pose.tres` | The left hand's fingers over the right hand, used while aiming or firing. |
+| `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
+| `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
+| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims. |
+| `held_weight`, `aim_weight` | from the animation | How far the hold and its aim are on, for a character posed by hand (no `animation` set). |
+
+The three poses and the pistol's seat are solved, never typed: the pistol folder's `README.md` says how to run the
+solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip to 2 mm in and 5 mm off on both
+mannequins, and `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
+worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
 ## Licences
 

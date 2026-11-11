@@ -133,12 +133,13 @@ the spread's place for `restore()`.
   every overlapping body, static ones too: the gate door opened at the start and again after each press of the
   interact button, because its sensor overlapped the gate's posts, the low wall, the floor and the door itself.
   **Seen:** gdstudio #845, 2026-11-08 (`test_door.gd` and `test_gate_in_the_map.gd`).
-- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor back
-  against the panel's motion, `close_after` counts from when the last character left, and `interact_point()` tells
-  the `Interactor` where to measure from. **Watch out for:** a sensor that is a child of a sliding door rises with it
-  and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m reach no
-  longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a step, so
-  set its `position` before. **Seen:** gdstudio #845, 2026-11-08.
+- **Approach:** Keep a door's sensor and its reach point where the closed door stands: the script moves the sensor and
+  the door's `Interactable` back against the panel's motion ([Using things](interact.md#interactable)), and
+  `close_after` counts from when the last character left. **Watch out for:** a sensor that is a child of a sliding door
+  rises with it and loses a character 2 m away; an open swinging gate's origin moves away from its hinge, so the 1.6 m
+  reach no longer found it; a test body made at the origin and moved after `add_child` is sensed at the origin for a
+  step, so set its `position` before. **Seen:** gdstudio #845, 2026-11-08; gdstudio #925, 2026-11-10 (`interact_point()`
+  became the `Interactable` kept at the closed door's place).
 - **Approach:** Make every area that reacts to bodies say which bodies, by its mask first (a `Pickup` Characters, a
   `TriggerZone` Characters and Props: [Physics layers](../physics-layers.md#template-layers)) and a class test behind
   it: `characters_only`, then `counts` (`CHARACTERS_AND_PROPS` by default) and `required_group`. Prove it with real bodies
@@ -203,10 +204,12 @@ weapon is a new `.tres`; nothing else changes.
 - **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
   `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
   the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
-  `toggle_unarmed` (H, d-pad up). The character steps the loadout and then the weapon at the end of each `step`, and
-  both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload; `.loadout`), so a
-  server and a predicting client reload and switch on the same tick. What is in the hands is gameplay; the clips, the
-  sounds and the flash are cosmetic and never sent.
+  `toggle_unarmed` (H, d-pad up); a screen that picks a weapon (the inventory) calls
+  `PlayerInput.request_weapon(slot)`, which sends the same presses one a tick (`WeaponChooser`,
+  [Inventory](../inventory.md#template-screen)). The character steps the loadout and then the weapon at the end of
+  each `step`, and both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload;
+  `.loadout`), so a server and a predicting client reload and switch on the same tick. What is in the hands is
+  gameplay; the clips, the sounds and the flash are cosmetic and never sent.
 - **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
   reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by

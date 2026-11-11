@@ -26,6 +26,7 @@ signal listening_changed(listening: bool)
 	&"previous_weapon",
 	&"toggle_unarmed",
 	&"shoulder_swap",
+	&"inventory",
 	&"pause",
 ]
 

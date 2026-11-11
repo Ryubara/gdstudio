@@ -7,7 +7,8 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
 
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
-- [Sliding](slide.md): the slide's module, its numbers and where they come from.
+- [Prone and sliding](moves.md): lying down, the crawl and the slide.
+- [Using things](interact.md): the `Interactable` component, the `Interactor` and the door's.
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 - [Vaulting and mantling](traversal.md): the `Vaultable` component, the probe, the warped path, the defaults and where

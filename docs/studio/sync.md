@@ -58,11 +58,12 @@ branches chose three homes on one day (gdstudio #923) -->
 gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone`, the
 impacts (`Impacts`, `ImpactSurface`, `ImpactMark`), `SpawnPoint`, the camera shake (`CameraShake`, `ShakePreset`),
 `DecodedSounds` (short sounds decoded once, gdstudio #1023), `ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced
-beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the second group) and the traversal parts
-(`Vaultable`, `VaultSettings`, `VaultProbe`, `VaultPlan`; gdstudio #1013). It is scripts only: no `plugin.cfg`, no
-autoload, no scene. A `class_name` under `addons/` is a global class without a plugin, so a game needs no
-`project.godot` line for it, and `gds sync` alone brings it to a game made before it existed. Its suites are
-`godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s.
+beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the second group), the traversal parts
+(`Vaultable`, `VaultSettings`, `VaultProbe`, `VaultPlan`; gdstudio #1013), `Health` and `HitRecord` (`hits/`) and
+`Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is
+scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under `addons/` is a global class without a plugin,
+so a game needs no `project.godot` line for it, and `gds sync` alone brings it to a game made before it existed. Its
+suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s.
 
 A part goes in `gds_game` when all three hold, and stays in the template otherwise:
 
