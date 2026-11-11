@@ -172,6 +172,11 @@ Those are the times a learning makes a new page. The check names the page and it
   `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
   merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
   (PR #1219) and #1222 (PR #1227), 2026-11-11.
+- **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
+  on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
+  a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
+  saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
+  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed).
 
 ## Where the entry is named {#named}
 

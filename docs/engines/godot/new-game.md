@@ -64,7 +64,7 @@ Without `--local`, the command goes on:
 3. **The conventions.** `python .github/scripts/groundwork.py labels`, `settings` and `ruleset`, each with `-R
    <owner>/<name> --apply`, from the game's own conventions.
 4. **The hold sweep.** `gh workflow run hold-sweep.yml` once, now that the ruleset requires `hold`
-   ([The hold](../../studio/hooks.md#hold)), tried again for a minute while GitHub registers the pushed workflows.
+   ([The hold](../../studio/hooks-hold.md#hold)), tried again for a minute while GitHub registers the pushed workflows.
 5. **The proof.** It waits for the first `ci` and `docs` runs of the pushed commit and for the site to answer, and
    prints the runs' and the site's URLs.
 6. **The kit pull request.** A kit branch `workspace-add-<name>` in its own worktree
