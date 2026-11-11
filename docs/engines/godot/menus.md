@@ -21,7 +21,7 @@ one after it.
 | Part | Where (`templates/3d-third-person/game/`) | What it does |
 | --- | --- | --- |
 | Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. |
-| Main menu | `ui/menus/main_menu.tscn` | Play, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. |
+| Main menu | `ui/menus/main_menu.tscn` | Play, Play online, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. Play online loads `online_scene` (3D Third Person: `online_main.tscn`) and joins `server_address`, or the address typed in the field under it, which shows only in a debug build (`address_field`: a developer setting, never a player's): [Playing online](third-person/online-client.md#play-online). |
 | Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
@@ -120,8 +120,10 @@ lets a player rebind keys (gdstudio #881) -->
 The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds
 the options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies
 every value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root
-viewport, window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse
-sensitivity and invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings
+viewport, window mode, vsync, a quality preset, and Controls > Camera shake, `controls/camera_shake` 0 to 100 %, as the
+global `CameraShake.strength`, which scales every shake: [Camera](camera.md#shake-component)) and writes the file half a
+second after the last change. Mouse sensitivity and invert Y are read by `LookSettings`, a node that carries them to the
+camera rig. A row of the settings
 screen is a `SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key
 in the service, a row in the scene and, if it does something, a line in `_apply`.
 
@@ -153,3 +155,13 @@ in the service, a row in the scene and, if it does something, a line in `_apply`
   named on the command line, `GDS_QUIET`), never by naming the folders of tests and tools in shipped code. **Watch out
   for:** the layout check's `ships-tools` rule fails a shipped script that spells `res://tests/` or `res://tools/`,
   and the first version of `is_harness_run` did. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** When an option sets a static (`CameraShake.strength`), put it back in `after_test` of every suite that
+  makes a `SettingsService` or moves its row, and test the static and its effect (a shake at 0 turns nothing), not only
+  the saved value. **Watch out for:** a service made in a test applies every value at `_ready`, so a suite that leaves
+  the option at 0 turns the shake off for every suite after it in the run, and a camera test then passes or fails by
+  the order of the suites. **Seen:** gdstudio #1091, 2026-11-11 (`tests/core/test_settings_camera_shake.gd`).
+- **Approach:** A new row on a settings tab also changes the focus count `test_menu_navigation.gd` pins for the
+  Controls tab: update that count and its comment with the row, and run the whole template suite before opening the
+  pull request, not only the settings suites. **Watch out for:** the settings suites alone all pass while the
+  navigation suite fails on the count. **Seen:** gdstudio #1091, 2026-11-11 (caught by the full `gds template test`
+  after the pull request was open).

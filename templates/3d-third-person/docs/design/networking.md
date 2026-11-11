@@ -1,8 +1,9 @@
 # Networking
 
 What the template gives an online game so far: the **link** that carries packets between a client and a server, the
-packets above it (`NetWire`, `CommandCodec`, `SnapshotCodec`), and the **game server** that admits players and steps
-their bodies. The client that predicts its body and draws the others is still to come.
+packets above it (`NetWire`, `CommandCodec`, `SnapshotCodec`), the **game server** that admits players and steps
+their bodies, the **client** that predicts its body and draws the others, and the **online game** a player starts
+from the menu.
 
 ## The link
 
@@ -56,10 +57,40 @@ The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
 Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
 
-The offline game (`main.tscn`) has no client yet: the online entry of the menu adds one. Until then
-`game/tests/fixtures/online_arena.tscn` holds a map, a `PlayerRig`, `RemotePlayers` and a `NetClient`. Inspector:
-`NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`, `spawn_seed`;
-`RemotePlayers` `puppet_scene`, `delay`.
+Inspector: `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`,
+`spawn_seed`; `RemotePlayers` `puppet_scene`, `delay`.
+
+## Playing online
+
+`game/online_main.tscn` is the online game: the offline game (`main.tscn`, unchanged) with a `NetClient`, the
+`RemotePlayers` and an `OnlineStatus` overlay (`game/ui/online/`). Three ways in:
+
+- The main menu's **Play online** loads it and joins the address under the button. That field is a developer's: it
+  shows in a debug build (the editor, a debug export) and never in a release, where the menu's `server_address` is the
+  only address (set it to your deployed server, `wss://...`). `address_field` on `MainMenu` forces it on or off.
+- `godot --path game -- --connect ws://host:8910 [--name Ada]`: the project's first scene sees the address and goes
+  straight to the online game. Back to the menu from it shows the menu.
+- On the web, the page's address: `index.html?url=wss://host&name=Ada`. A page served over `https` can only open
+  `wss://`.
+
+The overlay says **Connecting** until the server seats the player, then hides. It says the server runs another version
+(reload the page, or update the game), that the game is full, that the server runs another map, that nobody answered
+within `connect_seconds`, or **Connection lost**, each with **Back to menu**; while it shows, the player's input is off.
+Its texts are exports of `online_status.tscn`.
+
+`--bot route` or `--bot watch` (`?bot=route` on the web) hands the player to a `PlayerBot`, which presses the same
+actions a person would and turns the camera as the mouse does: `route` walks to the main door, opens it, comes back,
+fires past the other player and stands; `watch` keeps the nearest other player in view and, after `fire_after`
+seconds, shoots at it. Two clients and a server, one bot each, are the online game's capture.
+
+```text
+godot --headless --path game -- --server --port 8910
+godot --path game -- --connect ws://127.0.0.1:8910 --bot watch --name Two
+godot --path game -- --connect ws://127.0.0.1:8910 --bot route --name One
+```
+
+`--onlineprobe` (`?onlineprobe` on the web) prints what the client measured once a second (`ONLINE_PROBE {...}`: round
+trip, corrections, the gap to the server's point, players, frame time) or writes it to `window.gdonline`.
 
 ## The server image
 
@@ -94,6 +125,12 @@ image).
 - `game/tools/capture/online_tour.tscn` records two clients side by side (Ada's own screen and Bo's, where she is a
   puppet).
 - `game/tools/web_smoke/net_link_smoke.py` opens the web build against the echo server in a headless browser.
+- `game/tools/web_smoke/online.py` opens two pages of the web build against a server through a 100 ms relay, each with
+  a bot, and checks that both are seated and see each other; with `--other-version` the server is of the next
+  protocol version and every page must say so.
+- `game/tools/web_smoke/step_trace.py` steps a body through the map with scripted commands in the web build and on
+  the desktop (`?steptrace`, `-- --play --steptrace`) and compares the positions: they are the same floats, so a
+  browser predicts exactly what a server steps.
 
 The numbers and the engine behaviour the link was built around are in the kit's `docs/engines/godot/multiplayer.md`
 (The template's transport).

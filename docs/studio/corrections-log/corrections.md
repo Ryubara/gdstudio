@@ -1,0 +1,63 @@
+# Corrections and the checks they become
+
+<!-- new section: split out of maintainer-corrections.md when it reached the size limit (#1115) -->
+
+What the maintainer corrected or added that neither the coordinator nor any agent had proposed first.
+
+| Recorded | Source | What the maintainer pointed out | Rule |
+| --- | --- | --- | --- |
+| 2026-11-01 | Deadnight | Multiplayer should run on our own protocol and backend, built network-first, not on the engine's built-in multiplayer | [engines/godot/multiplayer.md#why-our-own-protocol-the-comparison](../../engines/godot/multiplayer.md#why-our-own-protocol-the-comparison) |
+| 2026-11-01 | Deadnight | Balance and a real wave system belong to the concept from the start, not as extras | [gamedev/design.md#reference](../../gamedev/design.md#reference) |
+| 2026-11-01 | Deadnight | The game needed boss rounds and zombie types, each clearly announced | [gamedev/design.md#variety](../../gamedev/design.md#variety) |
+| 2026-11-01 | Deadnight | Every issue and pull request needs screenshots and videos from before and after | [studio/capture.md#attaching](../capture.md#attaching) |
+| 2026-11-01 | Deadnight | Agents test everything themselves; nothing is handed to the maintainer to try | [studio/capture.md#feature-proof](../capture.md#feature-proof) |
+| 2026-11-01 | Deadnight | Pull requests should carry an Issues affected section and a Failed first test | [studio/hooks.md#pr-body](../hooks.md#pr-body) |
+| 2026-11-01 | Deadnight | The starter kit had few guns; the game needed more weapons in its own style | [gamedev/design.md#content](../../gamedev/design.md#content) |
+| 2026-11-01 | Deadnight | The HUD's text was out of line and the whole HUD too big | [gamedev/ui.md#hud](../../gamedev/ui.md#hud) |
+| 2026-11-01 | Deadnight | Points should read as a portrait and the points in the player's colour, not as a PLAYER 1 POINTS label | [gamedev/ui.md#hud](../../gamedev/ui.md#hud) |
+| 2026-11-01 | Deadnight | The generator panel should show only while progress is made, and ammo did not belong under the health bar | [gamedev/ui.md#hud](../../gamedev/ui.md#hud) |
+| 2026-11-01 | Deadnight | Recordings should come from the player's over-the-shoulder camera, not a spectator camera | [studio/capture.md#frames](../capture.md#frames) |
+| 2026-11-01 | Deadnight | The shoulder camera should be closer and fluid, tuned against a reference camera | [gamedev/controller.md#feel](../../gamedev/controller.md#feel) |
+| 2026-11-01 | Deadnight | Textures and the kit's own props would improve the map a lot | [gamedev/design.md#content](../../gamedev/design.md#content) |
+| 2026-11-01 | Deadnight | Tearing and repairing boards needed real animation | [gamedev/design.md#interactions](../../gamedev/design.md#interactions) |
+| 2026-11-01 | Deadnight | Zombie speed had to be researched against the player's walk and sprint in the reference | [gamedev/design.md#reference](../../gamedev/design.md#reference) |
+| 2026-11-01 | Deadnight | Bot teammates needed research in depth: reviving, buying, moving and every weapon | [gamedev/design.md#bot-teammates](../../gamedev/design.md#bot-teammates) |
+| 2026-11-01 | Deadnight | 93 Godot processes held the CPU at 100%, reported from a neighbouring project | [studio/workspace.md#shared-machine](../workspace.md#shared-machine) |
+| 2026-11-01 | Deadnight | The web build should be hosted on Railway | [engines/godot/web-export.md#live-build](../../engines/godot/web-export.md#live-build) |
+| 2026-11-01 | Deadnight | The deployed build hitched the first time a shot or a zombie appeared | [engines/godot/first-use-hitches.md#the-warm-up](../../engines/godot/first-use-hitches.md#the-warm-up) |
+| 2026-11-01 | Deadnight | The game needed researched, intuitive mobile controls for landscape play | [gamedev/controller.md#devices](../../gamedev/controller.md#devices) |
+| 2026-11-01 | Deadnight | Local main checkouts should follow every merge, set up from the start | [studio/hooks.md#mains](../hooks.md#mains) |
+| 2026-11-01 | Deadnight | Rounds have no time limit, and a 3x zombie count means a 3x spawn rate too | [gamedev/design.md#settings](../../gamedev/design.md#settings) |
+| 2026-11-01 | Deadnight | Desktop should hold over 100 zombies at once without lag on a fast machine | [engines/godot/performance-budgets.md#the-rule](../../engines/godot/performance-budgets.md#the-rule) |
+| 2026-11-01 | Deadnight #260 | The dead's animation should follow their speed and the round | [engines/godot/crowds.md#gait-follows-speed](../../engines/godot/crowds.md#gait-follows-speed) |
+| 2026-11-01 | Deadnight | Guns had to be scaled, angled and placed correctly on the player | [tools/blender/weapons.md#axes-origin-and-the-hold](../../tools/blender/weapons.md#axes-origin-and-the-hold) |
+| 2026-11-01 | Deadnight | Research pages and the corrections page should be kept current as work lands | [studio/hooks.md#docs](../hooks.md#docs) |
+| 2026-11-01 | Deadnight #299 | Mouse look still did not work on the web after its fix merged, because the live site kept the old build | [engines/godot/web-export.md#live-build](../../engines/godot/web-export.md#live-build) |
+| 2026-11-01 | Deadnight | Godot windows agents opened took the cursor and then the keyboard from the maintainer | [engines/godot/no-focus.md#what-to-know](../../engines/godot/no-focus.md#what-to-know) |
+| 2026-11-01 | Deadnight | Corrections should be written into the docs, and that should be enforced | [studio/hooks.md#learning](../hooks.md#learning) |
+| 2026-11-01 | Deadnight | Pull requests opened hours earlier were still unmerged with no label saying why | [studio/starting-work.md#landing](../starting-work.md#landing) |
+| 2026-11-02 | Deadnight #402 | New pull requests kept opening while older ones stayed unmerged, one for four hours | [studio/starting-work.md#landing](../starting-work.md#landing) |
+| 2026-11-02 | Deadnight #447 | Open pull requests were backing up the queue and had to be landed first | [studio/starting-work.md#merging-main-into-a-pull-request](../starting-work.md#merging-main-into-a-pull-request) |
+| 2026-11-02 | Deadnight #415 | Every tuned number should be an exported variable, and the docs should map the scenes and the one that loads the game | [engines/godot/project-conventions.md#rules](../../engines/godot/project-conventions.md#rules) |
+| 2026-11-06 | Deadnight #1366 | Creating a match from the lobby in the Discord Activity stuck on the loading screen with no progress | [engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe](../../engines/godot/web-export.md#discord-activity-the-proxy-and-the-iframe) |
+| 2026-11-07 | gdstudio #779 | `gds new game` should finish the GitHub steps itself, with MIT as the default licence, not leave them to the maintainer | [engines/godot/new-game.md#github](../../engines/godot/new-game.md#github) |
+| 2026-11-07 | gdstudio #780 | The maintainer's prompts were quoted in the public docs; none belongs in a public repository | [studio/rules.md#rule](../rules.md#rule) |
+| 2026-11-07 | gdstudio #786 | Deadnight was paused for kit work, yet a Deadnight issue was started and a pull request opened for it | [studio/starting-work.md#paused](../starting-work.md#paused) |
+| 2026-11-08 | gdstudio #811 | No Deadnight pull request is worked while Deadnight is paused; the pause covered issues, so the coordinator refreshed and reran Deadnight #1371 and a kit task opened Deadnight #1374 | [studio/starting-work.md#paused](../starting-work.md#paused) |
+| 2026-11-08 | gdstudio #797 | Pull request #808 had failed with its agent stopped while the coordinator kept reporting it as waiting on checks | [studio/starting-work.md#stopping-and-finishing](../starting-work.md#stopping-and-finishing) |
+| 2026-11-08 | gdstudio #790 | The new site listed about 970 lessons in one sidebar group that was always open; sections should fold and nest | [studio/docs-site.md#nav](../docs-site.md#nav) |
+| 2026-11-08 | gdstudio #769 | The maintainer questioned whether agents use per-mistake lesson pages at all; a learning belongs in the page an agent reads for the task | [studio/rules.md#where](../rules.md#where) |
+| 2026-11-08 | gdstudio #814 | A new 3D Blank game opened in the editor with five parse errors from the `gds_ui` demo; #778 had excluded the demo from the export instead of finding the missing autoload | [engines/godot/new-game.md#proof](../../engines/godot/new-game.md#proof) |
+| 2026-11-08 | gdstudio #819 | 3D Blank should be only a bounded floor and walls; the prototype map built in #788 suits the templates with a character controller | [engines/godot/new-game.md#the-templates](../../engines/godot/new-game.md#the-templates) |
+| 2026-11-08 | gdstudio #821 | Every template should ship with the Phantom Camera addon, customised at a high level in the inspector, instead of a hand-built camera | [engines/godot/camera.md#phantom-camera](../../engines/godot/camera.md#phantom-camera) |
+| 2026-11-08 | gdstudio #821 | Every template with a character controller should ship simple, intuitive touch controls | [gamedev/controller.md#devices](../../gamedev/controller.md#devices) |
+| 2026-11-08 | gdstudio #837 | A game made from 3D Third Person was silent: #837 committed the sounds and buses but no node plays them, and our reports had not said so | [engines/godot/audio.md#template-buses](../../engines/godot/audio.md#template-buses) |
+| 2026-11-09 | gdstudio #866 | A pull request's `Model:` line and trailers named the harness that ran the session, not the model that wrote the work | [studio/pull-requests.md#body](../pull-requests.md#body) |
+| 2026-11-10 | gdstudio #865 | Work done while a weaker model ran the studio fell short (a ragdoll pull request with red checks and its tests uncommitted, an issue holding a decision never made) and was redone from scratch | [studio/asks.md#decision-words](../asks.md#decision-words) |
+| 2026-11-10 | gdstudio #846 | The coordinator was building a template feature itself instead of starting a godot-engineer for it | [studio/starting-work.md#starting-an-agent](../starting-work.md#starting-an-agent) |
+| 2026-11-10 | gdstudio #1016 | The vault clips made from scratch had legs passing through each other, worst over the bar where the tucked leg crossed inside the other; nothing had measured the limbs against each other before the clips were shown | [tools/blender/animation.md#keyframes](../../tools/blender/animation.md#keyframes) |
+| 2026-11-10 | gdstudio #1001 | The hands on the 3D Third Person pistol were placed poorly; whenever a GDStudio weapon is held, its hand placement has to be refined heavily, finger by finger and with the support hand | [tools/blender/weapons.md#hands-on-the-weapon](../../tools/blender/weapons.md#hands-on-the-weapon) |
+| 2026-11-10 | gdstudio #887 | After the session was cleared, an agent past the context limit went unmentioned although Tether had already raised it; the maintainer had to ask why nobody acted | [studio/agents.md#the-loop](../agents.md#the-loop) |
+| 2026-11-08 | gdstudio #857 | A game made from 3D Third Person played its effects too loud against each other (the footsteps had to be turned down by about 20 dB), its steps sounded like boots, its wind like breath on a microphone, and its pistol fired in silence; the template's sounds had been chosen and levelled without playing the game at a normal volume, and an empty player had been reported as a sound | [engines/godot/audio.md#template-buses](../../engines/godot/audio.md#template-buses) |
+| 2026-11-10 | gdstudio #1020 | The from-scratch crawl looked right overall but its arms were wrong: both forearms reached straight ahead, parallel and shoulder-width apart, where a crawling person's forearms angle inward in front of the head and one arm reaches past the other in turn; a new gait's limb pattern is researched from manuals, motion studies and reference footage before it is keyed, not only its speed | [tools/blender/animation.md#solved-clips](../../tools/blender/animation.md#solved-clips) |
+| 2026-11-11 | gdstudio #1020 | The reworked crawl was much better, but its forearms lay flat with the palms on the ground, which nobody can keep up: a crawling forearm rests rolled about 45 degrees onto its outer edge, angled in, with the hand closed into a fist; a pose held for long is checked for comfort, down to the forearm's roll and each finger, not only for where the limbs go | [tools/blender/animation.md#solved-clips](../../tools/blender/animation.md#solved-clips) |

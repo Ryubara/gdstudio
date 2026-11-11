@@ -49,6 +49,14 @@ def roomy_disk(monkeypatch):
     monkeypatch.setattr(guards, "free_bytes", lambda path: int(FREE["gb"] * guards.GB))
 
 
+@pytest.fixture(autouse=True)
+def heads_hold_main(monkeypatch):
+    """No test asks GitHub whether a pull request is behind its base: every head holds the tip (python/tests/
+    test_merge_guard.py has the merge guard's own tests)."""
+    guards.take_warnings()
+    monkeypatch.setattr(guards, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))
+
+
 def shell(command: str, cwd: Path) -> dict:
     return {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(cwd)}
 
@@ -121,6 +129,16 @@ def test_a_windowed_godot_goes_through_gds(tmp_path):
     assert denied(shell("uv run --project python gds godot --path game --write-movie x.png", tmp_path)) == ""
     assert denied(shell("uv run --project python gds capture frames --project game --name a", tmp_path)) == ""
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
+
+
+def test_a_variable_assignment_is_not_the_program(tmp_path):
+    reason = "takes the keyboard focus"
+    find = "$(uv run --project python gds tool path godot)"
+    assert denied(shell(f'GODOT="{find}" && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert denied(shell(f'GODOT={find} && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert reason in denied(shell(f'GODOT="{find}" && "$GODOT" --path game', tmp_path))
+    assert reason in denied(shell(f'GODOT="{find}" "$GODOT" --path game', tmp_path))
+    assert denied(shell(f'GODOT="{find}"', tmp_path)) == ""
 
 
 def test_a_godot_with_real_audio_is_refused(tmp_path):
