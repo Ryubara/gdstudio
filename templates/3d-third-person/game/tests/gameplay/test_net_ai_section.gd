@@ -2,17 +2,17 @@
 # of its own (`OnlineRig`). The client's spawners spawn nothing (its map handed its AI to the
 # server); the server's wake when a player's body on the server comes within `wake_range`, spawn the
 # whole population (3 grunts, 2 shooters, 2 allies, 3 civilians), lead the allies with that body,
-# and the client draws every one of them in its own look: enemies in the male mannequin, friendlies
+# and the client draws every one of them in its own look: enemies in the male body, friendlies
 # in the female. A death, a body taken back to the pool and a respawn reach the client too.
 extends GdUnitTestSuite
 
 ## The section's origin in the world (`world.tscn` puts it there).
 const SECTION := Vector3(-25.0, 0.0, -9.0)
 const POPULATION := "World/AISection/Population"
-## Each spawner of the section and whether its kind is an enemy (the male mannequin).
+## Each spawner of the section and whether its kind is an enemy (the male body, `CharacterBodies`).
 const ENEMIES := {&"Grunts": true, &"Shooters": true, &"Allies": false, &"Civilians": false}
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
+const MALE := CharacterBodies.MALE
+const FEMALE := CharacterBodies.FEMALE
 
 var _rig: OnlineRig
 var _ada: NetClient
