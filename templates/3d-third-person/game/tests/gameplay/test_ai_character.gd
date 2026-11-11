@@ -127,7 +127,8 @@ func test_every_profile_number_has_a_range_and_a_default() -> void:
 	for property in profile.get_property_list():
 		if not (property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE):
 			continue
-		if property.type in [TYPE_FLOAT, TYPE_INT]:
+		# A choice (an enum, such as the task's `under_attack`) shows as a list, not a range.
+		if property.type in [TYPE_FLOAT, TYPE_INT] and property.hint != PROPERTY_HINT_ENUM:
 			assert_int(property.hint).override_failure_message(property.name).is_equal(
 				PROPERTY_HINT_RANGE
 			)
