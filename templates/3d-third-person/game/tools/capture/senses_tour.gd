@@ -28,7 +28,7 @@ const PITCH := 18.0
 var _clock := 0.0
 var _pass := -1
 var _grunt: AiCharacter
-var _walker := Walker.new()
+var _walker: Walker
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -52,6 +52,9 @@ class Walker:
 
 
 func _ready() -> void:
+	# Made here, not as the member's default: a scene scan that instantiates the tour and frees
+	# it would leave a node made at instantiation as an orphan.
+	_walker = Walker.new()
 	_player.add_child(_walker)
 	_player.controller = _walker
 	_walker.strength = WALK
