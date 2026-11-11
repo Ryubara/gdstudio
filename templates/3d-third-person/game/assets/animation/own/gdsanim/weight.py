@@ -28,8 +28,10 @@ def settle(solver: Solver, spec: dict, over: tuple, stretch: float | None = None
     """Solve `spec` with the pelvis moved level until the centre of mass is over the floor point `over` (x, z).
     With `stretch` the pelvis is also raised or lowered until the straighter leg is that share of its full
     length (hip to ankle over thigh plus calf), so the leg that carries the weight is as straight as the
-    description says wherever the weight goes; without it the pelvis keeps the description's height. Returns the
-    pose; `spec["pelvis"]["place"]` is left as solved."""
+    description says wherever the weight goes; without it the pelvis keeps the description's height. When `over`
+    is a point in space (x, y, z) the pelvis is moved until the centre of mass is at it, height too: a gait gives
+    the centre of mass's whole path (a free fall between a run's contacts). Returns the pose;
+    `spec["pelvis"]["place"]` is left as solved."""
     rig = solver.rig
     place = np.array(spec["pelvis"]["place"], dtype=float)
     pose = None
@@ -37,8 +39,11 @@ def settle(solver: Solver, spec: dict, over: tuple, stretch: float | None = None
         spec["pelvis"]["place"] = place
         pose = solver.solve(spec)
         com = centre_of_mass(rig, pose)
-        miss = np.array([over[0] - com[0], 0.0, over[1] - com[2]])
-        if stretch is not None:
+        if len(over) == 3:
+            miss = np.asarray(over, dtype=float) - com
+        else:
+            miss = np.array([over[0] - com[0], 0.0, over[1] - com[2]])
+        if stretch is not None and len(over) == 2:
             miss[1] = _stretch_miss(rig, spec, pose, stretch)
         if np.linalg.norm(miss) < 1e-5:
             break

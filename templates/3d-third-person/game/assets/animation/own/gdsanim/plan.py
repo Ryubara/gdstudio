@@ -181,6 +181,11 @@ class ContactPlan:
             ankle[1] += sole["floor"] - lowest
         return {"ankle": ankle, "foot": (pitch, yaw, 0.0), "toe": max(pitch, 0.0)}
 
+    def state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
+        """The leg spec of a foot turned about a point of its sole (`_state`), for a description that writes a
+        foot's path itself: a landing on the ball of the foot, a heel drawn up behind a runner."""
+        return self._state(rig, side, pivot, at, pitch, yaw)
+
     def _ball(self, rig: Rig, side: str, fall: Footfall, shift: np.ndarray) -> np.ndarray:
         return np.array([fall.place[0], rig.sole[side]["floor"], fall.place[1]]) + shift
 

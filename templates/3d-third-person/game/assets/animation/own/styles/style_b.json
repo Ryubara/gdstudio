@@ -45,6 +45,127 @@
   "stagger": 0.04,
   "toe_out": 12.0
  },
+ "overlap_walk": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.0,
+   0.15
+  ],
+  "upperarm": [
+   1.5,
+   0.15
+  ],
+  "forearm": [
+   2.0,
+   0.15
+  ],
+  "hand": [
+   2.0,
+   0.2
+  ]
+ },
+ "walk": {
+  "frames": 28,
+  "duty": 0.5714285714285714,
+  "hip_turn": 6.0,
+  "hip_tip": 4.5,
+  "counter_turn": 6.0,
+  "sway": 0.022,
+  "bob": 0.042,
+  "arm_fore": 22.0,
+  "arm_back": 28.0,
+  "elbow_live": 16.0,
+  "wrist_live": 9.0,
+  "finger_live": 6.0,
+  "uneven": 1.6,
+  "lean": 2.0,
+  "elbow": 24.0,
+  "arm_clear": 0.22,
+  "arm_out": 11.0
+ },
+ "overlap_jog": {
+  "chest": [
+   2.0,
+   0.1
+  ],
+  "head": [
+   2.0,
+   0.15
+  ],
+  "upperarm": [
+   1.2,
+   0.15
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "jog": {
+  "hip_turn": 8.0,
+  "hip_tip": 5.5,
+  "counter_turn": 13.0,
+  "sway": 0.012,
+  "bob": 0.07,
+  "arm_fore": 34.0,
+  "arm_back": 50.0,
+  "elbow": 76.0,
+  "elbow_live": 14.0,
+  "wrist_live": 10.0,
+  "curl": [
+   45.0,
+   110.0,
+   120.0,
+   128.0,
+   134.0
+  ],
+  "uneven": 1.6,
+  "arm_out_back": 18.0,
+  "arm_out": 15.0
+ },
+ "overlap_sprint": {
+  "chest": [
+   1.5,
+   0.1
+  ],
+  "head": [
+   2.0,
+   0.15
+  ],
+  "upperarm": [
+   1.2,
+   0.15
+  ],
+  "forearm": [
+   1.4,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "sprint": {
+  "hip_turn": 11.0,
+  "hip_tip": 5.0,
+  "counter_turn": 16.0,
+  "arm_fore": 46.0,
+  "arm_back": 66.0,
+  "elbow_live": 6.0,
+  "bob": 0.055,
+  "uneven": 1.5,
+  "lean": 6.0,
+  "arm_twist": 0.0,
+  "elbow": 80.0,
+  "arm_out": 16.0
+ },
  "notes": {
   "idle": [
    "For a loose, lived-in character: the weight goes 80 % onto a leg and the hips tip 13 degrees.",

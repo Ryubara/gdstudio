@@ -31,7 +31,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import idle  # noqa: E402
+from clips import gait, idle  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
 from gdsanim.solve import Solver  # noqa: E402
@@ -41,7 +41,12 @@ ASSETS = HERE.parents[1]
 REFERENCE = ASSETS / "characters/mannequin/mannequin_female.glb"
 BODIES = [REFERENCE, ASSETS / "characters/mannequin/mannequin_male.glb"]
 ## A clip type's description, by its name in lower case.
-TYPES = {"idle": ("Idle", idle.describe)}
+TYPES = {
+    "idle": ("Idle", idle.describe),
+    "walk": ("Walk", gait.walk),
+    "jog": ("Jog", gait.jog),
+    "sprint": ("Sprint", gait.sprint),
+}
 ## The shipped files: the frozen list of clips each carries.
 GROUPS = {"locomotion": ["Idle"]}
 ## The deepest a limb may be inside another part of the body, on every body (mm).
@@ -123,6 +128,7 @@ def main() -> int:
     rig = Rig(args.model)
     bodies = [rig] + [Rig(path) for path in (args.body or BODIES) if Path(path).resolve() != args.model.resolve()]
     solver = Solver(rig, bodies[1:])
+    gait.play_on(bodies)
     if args.what == "self-test":
         return selftest.run(rig, solver, bodies)
     styles = {one.letter: one for one in style.load_all(HERE / "styles")}

@@ -36,6 +36,75 @@
   "head_yaw": 3.0,
   "finger_live": 4.0
  },
+ "overlap_walk": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "walk": {},
+ "overlap_jog": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.1
+  ],
+  "hand": [
+   1.0,
+   0.15
+  ]
+ },
+ "jog": {},
+ "overlap_sprint": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.1
+  ],
+  "hand": [
+   1.0,
+   0.15
+  ]
+ },
+ "sprint": {},
  "notes": {
   "idle": [
    "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
