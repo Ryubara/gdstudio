@@ -9,13 +9,20 @@ first page walks the route to the door, the others watch and shoot), and whose `
 measured to `window.gdonline`. After `--seconds` of play it reads every page's report and checks: every page seated,
 every page sees every player, a round trip read, no body lost, the body within a metre of the server's point, no
 `Buffer payload full` or other console error, and no ERROR or kick in the server's log. The frame time and the
-puppets' cost are recorded for the docs (`--bots` 0, 3 and 6 with one page give 1, 4 and 7 puppets... with two pages,
-one more).
+puppets' cost are recorded for the docs (one page sees a puppet for each bot: `--bots` 1, 4 and 7 give 1, 4 and 7
+puppets; with two pages, one more).
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/web_smoke/online.py build/web build/online \\
         --godot <pinned godot> --project game [--pages 2] [--bots 0] [--delay-ms 100] [--seconds 20]
-        [--url wss://<deployment> --delay-ms 0] [--gpu] [--other-version [--expect-refused]]
+        [--url wss://<deployment> --delay-ms 0] [--gpu [--uncapped] [--warm-up 20]] [--other-version [--expect-refused]]
+
+`--gpu` draws with the machine's GPU (ANGLE on Direct3D 11 on Windows). A first page plays `--warm-up` seconds before
+the measured ones (20 with `--gpu`): Chrome compiles each shader program the first time it draws it, on the page's
+thread, 12 to 14 s at once on a cold start (the server hangs up on its late hello and the client opens a new socket,
+`NetClient.rejoins`); the browser keeps what it compiled, so the measured pages read a returning player's frames.
+`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped`
+turns vsync and the frame cap off, so the frame time is the page's work and not 16.7 ms.
 
 `--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
 page shows the overlay's "another version" message. `result.json`, the logs and a screenshot of each page go to the
@@ -30,7 +37,7 @@ import sys
 import time
 from pathlib import Path
 
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import Browser, Page, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
@@ -40,6 +47,14 @@ from net_play_smoke import GPU_ARGS, SOFTWARE_ARGS, serve, wait_for
 from relay import Relay
 
 READY_TIMEOUT_S = 120.0
+# Seconds a first page plays on the GPU before the measured pages open: Chrome on ANGLE's Direct3D 11 compiles each
+# shader program the first time it draws it, blocking the page's thread (12 to 14 s at once on an RTX 5080), so the
+# first page's frames and join time are a first visit's (21 to 22 s, one new socket after a late hello). The browser
+# keeps what it compiled for its later pages, so the measured pages read a returning player's frames.
+GPU_WARM_UP_S = 20.0
+# Chrome's flags for frames as fast as the page can make them (`--uncapped`): with vsync a GPU page reads 16.7 ms at
+# any load, which hides what a puppet costs.
+UNCAPPED_ARGS = ["--disable-gpu-vsync", "--disable-frame-rate-limit"]
 # The body may trail the server's point by what a round trip of walking covers (6 m/s sprinting, 0.25 s), plus the
 # corrections under way.
 GAP_M = 1.5
@@ -51,6 +66,21 @@ def report_of(page: Page) -> dict:
     report = json.loads(text or "{}")
     report["state"] = page.evaluate("() => window.gdonline ? window.gdonline.state : 'no probe'")
     return report
+
+
+def warm_up(browser: Browser, url: str, viewport: dict, seconds: float) -> dict:
+    """Plays one page for `seconds` after it settles, so the browser has compiled the game's shaders; returns how long
+    it took to settle, its state then and its frame times."""
+    page = browser.new_context(viewport=viewport).new_page()
+    began = time.time()
+    page.goto(url)
+    wait_for(page, "window.gdonline && window.gdonline.state !== 'connecting'", READY_TIMEOUT_S)
+    settled_s = time.time() - began
+    time.sleep(seconds)
+    report = report_of(page)
+    page.context.close()
+    keys = ("state", "fps", "frame_us_p50", "frame_us_p95")
+    return {"settled_s": round(settled_s, 1)} | {k: report.get(k) for k in keys}
 
 
 def main() -> int:
@@ -65,6 +95,13 @@ def main() -> int:
     parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
     parser.add_argument("--seconds", type=float, default=20.0, help="seconds of play after the last page is seated")
     parser.add_argument("--gpu", action="store_true", help="draw with the machine's GPU instead of SwiftShader")
+    parser.add_argument(
+        "--warm-up",
+        type=float,
+        default=-1.0,
+        help=f"seconds a first page plays before the measured ones (default {GPU_WARM_UP_S:g} with --gpu, else 0)",
+    )
+    parser.add_argument("--uncapped", action="store_true", help="with --gpu: vsync and the frame cap off")
     parser.add_argument("--viewport", default="320x180", help="each page's size, WxH (a small page draws faster)")
     parser.add_argument("--other-version", action="store_true", help="a server of the next protocol version")
     parser.add_argument("--expect-refused", action="store_true", help="pass only when every page was refused")
@@ -91,26 +128,36 @@ def main() -> int:
                 raise SystemExit("the relay passes ws:// only: add --delay-ms 0 for a wss:// server")
             relay = Relay(host, int(port), args.delay_ms / 1000.0)
             page_url = f"ws://127.0.0.1:{relay.start_in_thread()}"
+        warm = args.warm_up if args.warm_up >= 0 else (GPU_WARM_UP_S if args.gpu else 0.0)
         if args.bots > 0:
-            seconds = int(READY_TIMEOUT_S * args.pages + args.seconds + 60)
+            seconds = int(READY_TIMEOUT_S * (args.pages + 1) + warm + args.seconds + 60)
             bot_args = ["--connect", url, "--bots", str(args.bots), "--seconds", str(seconds)]
             bots = start(
                 godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log"
             )
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(args=GPU_ARGS if args.gpu else SOFTWARE_ARGS)
+            launch_args = GPU_ARGS + (UNCAPPED_ARGS if args.uncapped else []) if args.gpu else SOFTWARE_ARGS
+            browser = playwright.chromium.launch(args=launch_args)
             width, height = (int(n) for n in args.viewport.split("x"))
+            viewport = {"width": width, "height": height}
+            if warm > 0:
+                warm_url = f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot=route&name=Warm&onlineprobe"
+                result["warm_up"] = warm_up(browser, warm_url, viewport, warm)
+                print(f"WARM-UP: {result['warm_up']}", flush=True)
             pages: list[Page] = []
+            join_s: list[float] = []
             for index in range(args.pages):
-                page = browser.new_context(viewport={"width": width, "height": height}).new_page()
+                page = browser.new_context(viewport=viewport).new_page()
                 page.on("console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None)
                 page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
                 plan = "route" if index == 0 else "watch"
+                began = time.time()
                 page.goto(
                     f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
                 )
                 settled = "window.gdonline && window.gdonline.state !== 'connecting'"
                 wait_for(page, settled, READY_TIMEOUT_S)
+                join_s.append(round(time.time() - began, 1))
                 pages.append(page)
             seated = all(report_of(page)["state"] == "seated" for page in pages)
             if seated:
@@ -118,6 +165,9 @@ def main() -> int:
             else:
                 time.sleep(2.0)
             reports = [report_of(page) for page in pages]
+            # Seconds from the page's load to its seat (or its failure), as the player waits them.
+            for report, seconds in zip(reports, join_s):
+                report["join_s"] = seconds
             for index, page in enumerate(pages):
                 page.screenshot(path=str(args.out / f"page{index + 1}.png"))
             browser.close()
@@ -162,6 +212,7 @@ def main() -> int:
         keys = ("state", "players", "rtt_ms", "gap_m", "corrections", "corrected_m", "fps", "frame_us_p50")
         line = ", ".join(f"{k} {report.get(k)}" for k in keys)
         line += f", frame_us_p95 {report.get('frame_us_p95')}, puppets_us_p50 {report.get('puppets_us_p50')}"
+        line += f", join_s {report.get('join_s')}, rejoined {report.get('rejoined')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1

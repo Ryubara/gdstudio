@@ -165,7 +165,8 @@ every exit, kept with `--keep`, two calls at once).
   headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
   for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
   own folder cannot be opened to make one; `gds template test` stops at that check, before it makes a game, so there
-  is no project to open either. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR #1092), 2026-11-11.
+  is no project to open either. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR #1092), 2026-11-11;
+  gdstudio #1148, 2026-11-11 (a suite written after the scripts: check each new `.gd` has its `.uid`).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
@@ -173,7 +174,7 @@ every exit, kept with `--keep`, two calls at once).
   two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
   file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
   `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
-  checkout built main; use `--project ./python`); gdstudio #1026, 2026-11-11 (the same).
+  checkout built main; use `--project ./python`); gdstudio #1026 and #1148, 2026-11-11 (the same).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -434,6 +435,11 @@ replaced whole.
   addons' autoloads); copying the template's file over it dropped `UIRouter` and `PhantomCameraManager`, and the next
   run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10; gdstudio #966,
   2026-11-10 (a `cp -r` of the whole template folder: `UIRouter` not declared in 25 scripts, the game made again).
+- **Approach:** When a script copies the branch's changes into a kept game, list them against the branch's base
+  (`git diff --name-only <base>` plus untracked files), never only what is uncommitted, and prefer `gds template test`,
+  which builds from the working tree each run. **Watch out for:** a sync of uncommitted files only left a mutated file
+  in the game after the mutation was undone and committed, so the next run looked restored when it was not. **Seen:**
+  gdstudio #968, 2026-11-11.
 - **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once

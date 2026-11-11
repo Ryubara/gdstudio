@@ -5,7 +5,9 @@
 
 How GDStudio authors animation clips in Blender, by script, on a shared skeleton ([Rigging](rigging.md)), and gets them
 into Godot. Locomotion clips that keep a ground speed are on [Gaits](gaits.md); cleaning and exporting a kit's clips on
-[Rig sharing](rig-sharing.md); clips that hold a weapon on [Weapons](weapons.md#hands-on-the-weapon).
+[Rig sharing](rig-sharing.md); clips that hold a weapon on [Weapons](weapons.md#hands-on-the-weapon). The plan to
+replace every library clip the template plays, with the checks and the review every clip of ours goes through, is
+[Our own animation set](own-animation.md).
 
 ## The conventions {#conventions}
 

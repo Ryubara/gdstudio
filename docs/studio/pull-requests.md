@@ -67,6 +67,16 @@ a branch fresh are in [Starting work](starting-work.md#landing).
 
 [Which paths the image guard covers](#attach-paths) has the measured table of what `gh --attach` rewrites.
 
+A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), and the two are written differently:
+
+- **A GIF is an image.** Write `![after](./<name>.gif)` on the `After:` line (or `Before:`) and attach `./<name>.gif`:
+  `--attach` swaps in the upload address and GitHub draws it as an image that plays inline and loops. It counts as the
+  capture on its line.
+- **An MP4 is its bare upload address on its own line**, with a blank line on each side: only then does GitHub draw a
+  player. `![x](./<name>.mp4)` becomes a plain link after the upload, so attach with that reference, then replace the
+  link with the address alone and `gh pr edit --body-file` again
+  ([Sound](capture.md#sound-a-clip-you-can-listen-to)); put a still or a sheet on the `After:` line beside it.
+
 - **Approach:** Make the reference and the `--attach` path one file: `cd` into the images' folder and write `--attach
   ./x.png` with `![alt](./x.png)` under `## Screenshots` (or the same absolute path in both), write paths literally
   (never `$S/x.png`), and edit the body file in a command of its own. **Watch out for:** `gh` rewrites a reference only
@@ -167,7 +177,7 @@ absolute paths in the scratch folder, and the command ran in the worktree (the a
 on GitHub shows the first body with `](../before-desktop-2-solo.png)` references and the uploads appended). The same
 history shows 17 Deadnight pull requests of 2026-11-02 and 03 with a description revision that had `./` image
 references. The guard now places the reference and the `--attach` path (`file_key` in
-`.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
+`.claude/hooks/guards/bodies.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses the pair that is not one
 file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are judged alike. A `cd` it
 cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body guard reads the same
 placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the description rules, and
