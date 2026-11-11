@@ -290,6 +290,11 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   its curled fingers 50 to 105 mm inside the pelvis and the thigh, which is wider than the waist. **Seen:** gdstudio
   #1185, 2026-11-11 (`BELT_SWING`, `hand_free`, the belt measured over the hand's span; the limb check found all
   three before any render).
+- **Approach:** Run the whole suite before the pull request opens when a clip or an export is added: the template
+  pins the number of clips and every export of the pistol's definition. **Watch out for:** the related suites
+  passed and the pull request was opened while the full run was still going; it then failed on the clip count (93,
+  now 94) and on the pistol's pins, which lacked `prone_reload_clip`. **Seen:** gdstudio #1185, 2026-11-11
+  (`test_character_clips.gd`, `test_weapon.gd`).
 - **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
   blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
   places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
