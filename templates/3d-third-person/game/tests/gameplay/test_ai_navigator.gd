@@ -40,6 +40,23 @@ func test_it_walks_to_a_goal_with_its_body() -> void:
 	assert_int(navigator.watch.episodes).is_equal(0)
 
 
+# The debug overlay: the path drawn, and what it does over the head.
+func test_the_debug_overlay_draws_the_path_and_says_what_it_does() -> void:
+	await _ready_arena()
+	_arena.add_director()
+	var navigator := _arena.add_walker(Vector3(-8, 0, -8))
+	navigator.character.debug = true
+	navigator.debug = true
+	navigator.go_to(Vector3(8, 0, 6))
+	await InputSim.ticks(get_tree(), 30)
+	assert_str(navigator.character.debug_label.text).contains("go to")
+	var drawing := navigator.get_node("NavDebug") as AiNavDebug
+	assert_int((drawing.mesh as ImmediateMesh).get_surface_count()).is_equal(1)
+	navigator.debug = false
+	await InputSim.ticks(get_tree(), 2)
+	assert_object(navigator.get_node_or_null("NavDebug")).is_null()
+
+
 # A map that has not taken its first iteration (here one never made active) answers nothing and
 # prints an error for a query. Fails first with a query on it.
 func test_it_waits_for_the_map_s_first_iteration() -> void:

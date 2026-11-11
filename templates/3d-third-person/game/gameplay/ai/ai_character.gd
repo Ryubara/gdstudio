@@ -138,3 +138,5 @@ func _show_debug() -> void:
 	debug_label.text = (
 		"%s\n%s · %s" % [kind, AiSituation.name_of(situation.current), AiDirector.TIER_NAMES[tier]]
 	)
+	if navigator is AiNavigator:
+		debug_label.text += "\n" + (navigator as AiNavigator).debug_text()

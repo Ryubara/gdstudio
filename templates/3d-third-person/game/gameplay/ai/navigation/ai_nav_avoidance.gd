@@ -71,6 +71,9 @@ func _separate(body: Node3D, wish: Vector3, others: Array[Node]) -> Vector3:
 	var push := Vector3.ZERO
 	var at := body.global_position
 	for node in others:
+		# The list is kept between repaths: a character freed since is skipped.
+		if not is_instance_valid(node):
+			continue
 		var other := node as Node3D
 		if other == null or other == body:
 			continue

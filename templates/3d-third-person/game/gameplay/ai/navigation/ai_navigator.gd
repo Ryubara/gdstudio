@@ -74,6 +74,8 @@ const JUMP_HOLD := 0.25
 const CROUCH_HOLD := 1.0
 ## How near (metres) a `Vaultable` on the path must be for the jump that vaults it.
 const VAULT_REACH := 1.2
+## The share of the way on that a sidestep keeps.
+const SIDESTEP_ON := 0.3
 ## Following: metres past the band before it walks again.
 const FOLLOW_SLACK := 0.5
 
@@ -281,8 +283,11 @@ func navigate(seconds: float) -> void:
 	_since_query += seconds
 	_jump_for = maxf(_jump_for - seconds, 0.0)
 	_crouch_for = maxf(_crouch_for - seconds, 0.0)
-	if mode == Mode.IDLE or character.is_dead():
-		_release()
+	# Idle, it leaves the controller alone: a task or a test may drive it.
+	if mode == Mode.IDLE:
+		return
+	if character.is_dead():
+		stop()
 		return
 	var map := navigation_map()
 	# A map that has not taken its first iteration answers nothing: wait, never a frame count.
@@ -297,8 +302,12 @@ func navigate(seconds: float) -> void:
 		_release()
 		return
 	_maybe_query(map)
-	if mode == Mode.IDLE:
-		return
+	if mode != Mode.IDLE:
+		_check_and_walk(seconds)
+
+
+# The body-ray check of the path (as far as the budget allows this step), then the walk.
+func _check_and_walk(seconds: float) -> void:
 	if not _check.is_done(path):
 		_check.run(path, character, character.budget)
 		if _check.is_done(path):
@@ -312,6 +321,8 @@ func navigate(seconds: float) -> void:
 
 ## The overlay's line: what it does, the stuck rung, the reason a goal was refused.
 func debug_text() -> String:
+	if character == null:
+		return ""
 	var line := ""
 	match mode:
 		Mode.GO_TO:
@@ -491,7 +502,9 @@ func _walk(seconds: float) -> void:
 	var sprint := speed_scale > 1.0 or _on_link >= 0 or _heading_to_link(at)
 	strength = _climb_cap(strength, at, steer)
 	if ladder.rung == AiStuckLadder.Rung.SIDESTEP and ladder.rung_seconds < ladder.sidestep_seconds:
-		wish = wish.cross(Vector3.UP) * ladder.side
+		# Off to the side and a little on, at a full push, so a slow walker clears the block too.
+		wish = (wish.cross(Vector3.UP) * ladder.side + wish * SIDESTEP_ON).normalized()
+		strength = 1.0
 	var speed := _commanded_speed(strength, sprint)
 	wish = _avoid.steer(character, wish, speed, _others).normalized()
 	if near_end and mode == Mode.FOLLOW:

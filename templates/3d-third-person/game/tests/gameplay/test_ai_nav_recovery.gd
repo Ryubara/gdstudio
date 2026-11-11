@@ -26,10 +26,11 @@ func _ready_arena() -> void:
 # sees it, the sidestep takes the body round it.
 func test_a_sidestep_takes_it_round_a_block_it_did_not_know_of() -> void:
 	await _ready_arena()
-	var block := _frozen_box(Vector3(0, 1, 0), Vector3(1.2, 2, 1.2))
+	var block := _frozen_box(Vector3(0, 1, 0), Vector3(1.4, 2, 1.4))
 	_arena.add_child(block)
 	var navigator := _arena.add_walker(Vector3(-6, 0, 0))
-	navigator.go_to(Vector3(6, 0, 0))
+	# A slow walk (a push of 0.7 is a walk): the sidestep must clear the block all the same.
+	navigator.go_to(Vector3(6, 0, 0), 0.7)
 	assert_bool(await NavArena.walk(get_tree(), navigator)).is_true()
 	assert_int(navigator.watch.episodes).is_greater_equal(1)
 	assert_float(navigator.watch.longest_episode).is_less(3.0)
