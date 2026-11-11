@@ -50,7 +50,8 @@ the ragdoll, from the pose the body is in and the event's velocity; the get-up, 
 at once and the pose blending there over `get_up_time` (`Character.revive_at`). Events about the local player play at
 once; the rest wait until the puppets are drawn at their TICK's time (`RemotePlayers.drawn_time`), so a puppet's
 shot leaves where the puppet is drawn and its hit lands as the round gets there. A dead puppet is left to its ragdoll
-(`PlayerPuppet.place`); a ragdoll that falls out of the map waits for the server's `REVIVED`.
+(`PlayerPuppet.place`); a ragdoll that falls out of the map waits for the server's `REVIVED`. No camera shake is made
+for a hit near the player yet (#1068).
 
 - **Approach:** Name a thing a client must find again by its place among its kind in the same viewport
   (`get_viewport() ==`), and find a level's one-of-a-kind node (`Impacts`, `EffectEmitter`) the same way, whenever one
@@ -102,4 +103,5 @@ centimetres of the server's). A first run on a busier machine read 385 / 3100 µ
 - **What a client's event costs.** A shot played 529 µs on average and a hit 596 (worst 908 and 1253), a death 265 and
   a get-up 249. Almost all of it is starting the sound: in a probe, 50 `AudioStreamPlayer3D.play()` calls of the
   pistol's OGG randomizer took 25.8 ms, the 50 flashes 1.3 ms and the rest of 50 impacts 3.4 ms. The same sounds cost
-  the same offline; the online part (the queue, the lookups, the cosmetic round) is a few microseconds.
+  the same offline; the online part (the queue, the lookups, the cosmetic round) is a few microseconds. Cheaper sound
+  starts: #1067.
