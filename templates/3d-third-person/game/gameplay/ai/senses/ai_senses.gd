@@ -68,6 +68,10 @@ static var _everyone: Array[AiSenses] = []
 ## The friendliest band (`AiRelations.Band`) it still perceives: Unfriendly takes Hostile and
 ## Unfriendly things, Hostile only enemies. Nothing past it is looked at, heard or remembered.
 @export var care_up_to: AiRelations.Band = AiRelations.Band.UNFRIENDLY
+## Kinds of noise (`AiNoise.SHOT`...) it hears from things past `care_up_to` too: a civilian is
+## startled by any gunshot, a friend's included. Such a noise is heard (the brain routes it) and
+## never remembered. Empty: nothing past `care_up_to` is heard.
+@export var startled_by: Array[StringName] = []
 ## What blocks sight (and muffles a far noise): the world and props, never characters or their
 ## hit zones.
 @export_flags_3d_physics var sight_mask := PhysicsLayers.CAMERA_MASK
@@ -242,6 +246,27 @@ func _ready() -> void:
 	var factions := AiFactions.find(self)
 	if factions != null and not factions.witness_source.is_valid():
 		factions.witness_source = AiSenses.witnesses_of
+
+
+## Forgets everything it knew (a pooled character spawned again as a new one).
+func forget_all() -> void:
+	beliefs.clear()
+	_outbox.clear()
+	_share_keys.clear()
+	_ray_at.clear()
+	_ray_clear.clear()
+	_visible.clear()
+
+
+## Every character forgets `node` (a body that leaves the level for a pool: no memory of it
+## stays to be chased, aimed at or told about).
+static func forget_everywhere(node: Node) -> void:
+	if node == null:
+		return
+	var id := node.get_instance_id()
+	for senses in _everyone:
+		if is_instance_valid(senses) and senses.beliefs.by_id.has(id):
+			senses.beliefs.forget(id)
 
 
 ## One look, listen and settle, `seconds` after the last (the character's think calls it first).
@@ -580,12 +605,16 @@ func _listen(profile: AiProfile) -> void:
 		if noise.maker_gone():
 			continue
 		var band := _noise_band(noise.member, table, mine)
-		if band > care_up_to:
+		var startles := band > care_up_to
+		if startles and not startled_by.has(noise.kind):
 			continue
 		var clear := radius * _board.occlusion
 		if far > clear * clear:
 			if _line(eye_position(), noise.position + Vector3.UP * 0.3) != Line.CLEAR:
 				continue
+		if startles:
+			heard.emit(noise.kind, noise.position, source)
+			continue
 		_hear(noise, source, band, 1.0 - sqrt(far) / maxf(radius, 0.001), profile)
 	_heard_serial = _board.newest
 
