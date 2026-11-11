@@ -182,6 +182,90 @@ the spread's place for `restore()`.
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](../camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
 
+## Aim layer {#aim-layer}
+
+<!-- new section: the crouch-aim-shoot section covers the aim clips and the weapon layer; nothing said how a weapon is
+     pointed at the aim in a move whose pose the clips were not made for (a slide pointed the pistol at the sky) -->
+
+The weapon layer's aim clips are posed for a body standing upright: the upper body takes the aim pose relative to the
+hips. A move that leans the hips (the slide lies back nearly flat, a crouch or a lying body bends them) carries the
+whole aim with it, so sliding pointed the pistol at the sky (the layer has to bend the chest about 88 degrees to level
+it), and a slide that keeps the body along its line cannot aim to its side at all. The aim layer is an aim offset over
+the move's pose: the `AimLayer` node of the character makes an `AimOffsetModifier` (a `SkeletonModifier3D`) on the
+model's skeleton that, after the clips, turns `spine_01` to `spine_03` by the pitch and yaw that put the muzzle on the
+aim. The arms, hands and weapon ride the spine, so they follow.
+
+What engines offer for the same job: Unreal's Aim Offset is a blend space of additive aim poses by yaw and pitch
+([Aim Offset](https://dev.epicgames.com/documentation/en-us/unreal-engine/aim-offset-in-unreal-engine)), which needs a
+pose set per move; Unity's Multi-Aim Constraint turns a chain of bones toward a target, each by a weight
+([Animation Rigging](https://docs.unity3d.com/Packages/com.unity.animation.rigging@1.3/manual/constraints/MultiAimConstraint.html)).
+The layer is the second kind: it needs no clips (no custom aim poses were made) and works for any weapon with a muzzle
+and any move, measured on the pose of that very frame. Godot's own modifiers aim one bone at a node
+([SkeletonModifier3D](https://docs.godotengine.org/en/stable/classes/class_skeletonmodifier3d.html)), not a point on
+something a chain carries, so it is a modifier of its own, in the shape of `HoldArm`.
+
+**The solve.** The muzzle's pose is worked out from the bones' local poses (the chain's parent, the chain, then the
+bones from the last spine bone down to the hand the `BoneAttachment3D` rides, times the muzzle's fixed place on it, read
+once). The aimed direction runs from the muzzle to a point `converge_distance` (15 m) along the character's aim ray
+(`Character.aim_ray()`, the last two steps blended by the physics interpolation fraction, as the aim clips' pitch is),
+with its heading off the model's +Z and its elevation held within the move's limits. The pitch is solved first, about
+the model's side axis (the chest bending forward or back), so the muzzle reaches the aim's elevation; then the yaw about
+up, to its heading. Both are exact for the direction. The whole turn is one rotation, and each bone turns by its share
+of it (`slerp` from identity) about the same axis, so the shares add up to it exactly; a second pass takes in the
+muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to 0.5 with two, in `test_aim_layer.gd`).
+
+**Order and weight.** Modifiers run in the order of the skeleton's children, so the layer sits right after the
+`WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
+the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
+`WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
+turns nothing.
+
+**Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
+and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
+`release_time` (0.12 s). In the close-ups the pistol's recoil tips the gun about 30 degrees up for a few frames.
+
+**Moves and limits.** Each move's tuning holds an `AimLimits` (on or off, the most left and right of the way the body
+faces, the most up and down): `CharacterTuning.aim_limits` standing and `crouch_aim_limits` crouched (70, 70, 45, 45),
+`SlideTuning.aim_limits` (75 each side, 50 up, 70 down), `ProneTuning.aim_limits`; `Character.aim_limits` is the one of
+the move it is in. Standing, crouched and lying the body still turns to the view while aiming, so the layer covers the
+turn's lag and the clips' own error. Sliding, the body keeps along the slide (`CharacterSlide.aim_facing`) while the aim
+is within the side limits; past them it turns just enough to bring the aim back in reach, or, for a weapon whose
+`WeaponDef.past_aim_limit` is `REFUSE_SHOT`, keeps its line and the trigger does nothing until the aim is in reach
+(`AimLimits.REACH_MARGIN`, 2 degrees, keeps the edge from flickering). The facing and the refusal are in the step, so a
+server and a predicting client agree; nothing new is sent.
+
+**Online.** The layer is a pose on each machine. A puppet is placed with `facing` and `view_pitch` from the snapshot and
+its `view_yaw` is its facing, so on another screen a sliding player's pistol follows the aim's pitch but points along
+the body's facing, not to its side: the aim's yaw off the body is not in the snapshot (gdstudio #1277).
+
+**How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
+change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
+need nothing from it and it needs nothing from them: a steadier clip only makes its turn smaller. A one-handed hold
+whose support arm is off leaves the layer as it is.
+
+**What it costs** (`tools/bench/aim_layer_cost.tscn`, 40 dressed players aiming 30 degrees off their facing, the
+modifier timed alone on a shared machine under load): about 31 to 37 microseconds a character a frame with two passes,
+25 with one (`passes`), against 9 for the hold's support arm in the same run. Only an aiming character pays it (the
+modifier is off at weight 0). The web export was not measured.
+
+The tests are `tests/gameplay/test_aim_layer.gd` (sliding ahead, 50 degrees left and right, 20 up and 25 down within 3
+degrees with the body along the slide; without the layer the slide misses by more than 10; past the reach the body turns
+by the overshoot; a refusing weapon keeps the body and fires nothing until the aim is back; standing and crouched; the
+limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
+(`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
+
+- **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
+  *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
+  turn clamped, is ill-conditioned when the clip points the muzzle near vertical (the slide: the heading of a direction
+  almost straight up is noise): the first draft hit its limits and missed by 15 to 90 degrees while standing passed.
+  **Seen:** gdstudio #1253, 2026-11-11 (`test_aim_layer.gd`).
+- **Approach:** Turn a chain of bones toward a goal by one rotation shared out by `slerp` from identity, each part about
+  the same axis, walk the chain's global poses forward from its parent, and read the muzzle's place on its attachment
+  once. **Watch out for:** two rotations (pitch and yaw) each shared over the chain double the bone writes, and
+  `HandPoseModifier.global_pose` called for every bone and every muzzle read walks to the root each time. **Seen:**
+  gdstudio #1253, 2026-11-11 (`aim_layer_cost.tscn`).
+
 ## Ammo, reloading and switching {#weapons}
 
 <!-- new section: the template had one weapon with its numbers on the node; nothing said how a weapon is data, how
@@ -206,7 +290,8 @@ weapon is a new `.tres`; nothing else changes.
   hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
   character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
   from the chest.
-- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` and
+- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` (`WeaponDef`s,
+  typed `Array[Resource]` with a `WeaponDef` hint: [why](../test-exit-leaks.md#typed-array-export-and-self-cast)) and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
   away, shows the model of the one in the hands, and fills a reserve from a pickup of its `ammo_item`. A switch takes
   the old weapon's `holster_time` (it cannot fire or reload; a reload under way is cut short and gives nothing), then

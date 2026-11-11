@@ -83,6 +83,7 @@ const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
 const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
+const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
 const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
 const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
 const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePace/scale" % PRONE)
@@ -466,6 +467,11 @@ func pistol_weights() -> Vector2:
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
 func aim_pitch() -> float:
 	return tree.get(_P_AIM_POSE) if tree != null else 0.0
+
+
+## True while a shot's clip (the recoil, a blow) plays over the upper body, fading in and out.
+func is_shooting() -> bool:
+	return tree != null and tree.tree_root != null and tree.get(_P_SHOOT_ACTIVE)
 
 
 ## True while the reload clip plays over the upper body.
