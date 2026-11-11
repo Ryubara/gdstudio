@@ -117,6 +117,22 @@ func test_a_death_is_answered_by_a_spawn_after_the_delay() -> void:
 	assert_int(spawner.alive.size()).is_equal(2)
 
 
+# A population exactly at the director's cap respawns while its dead lie (kit #1247): the web
+# soak at scale 4 (40 characters, the web cap) was refused its first respawns.
+func test_a_population_at_the_director_cap_respawns_while_its_dead_lie() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": 0.2, "corpse_seconds": 60.0})
+	await _ticks(2)
+	assert_int(_director.count()).is_equal(2)
+	spawner.alive[0].die()
+	await _ticks(20)
+	assert_int(spawner.corpses.size()).is_equal(1)
+	assert_int(spawner.alive.size()).is_equal(2)
+	for character in spawner.alive:
+		assert_object(character.director).is_same(_director)
+
+
 func test_no_respawn_below_zero_and_none_past_the_cap() -> void:
 	var never := _spawner(GRUNT, {"respawn_delay": -1.0})
 	await _ticks(2)
