@@ -235,6 +235,18 @@ Kit #1204 timed the think of the 40 fighting guards by part (the same bench, 12 
 rows of 1200 ticks; natively three interleaved runs of each build, in Chrome four at 1x and two at 4x), and kept only
 what measured. Microseconds a tick, mean of the runs (range):
 
+**The timed copy**, so the rows can be measured again: make a game to keep (`gds template game 3d-third-person`, or
+`gds template bench-web 3d-third-person ai_behaviour_bench` without `--run` for Chrome) and patch its AI scripts, never
+the template's, with spans that add into one static table: `static var prof := {}` and
+`static func add(key, usec)` on `AiDirector`, then `var t0 := Time.get_ticks_usec()` ... `AiDirector.add("think",
+Time.get_ticks_usec() - t0)` around `_think` and `_step` in the director's step, around `sense`, the brain's `think` and
+`thought.emit` in `AiCharacter`, and around the look, listen and settle in `AiSenses` and the aim, trigger and friend
+check in the stock tasks; count what they walk the same way (`n_noises`, `n_friend_calls`). The bench clears the table
+before a row and prints each key divided by the row's ticks. Run each build natively as `--headless --fixed-fps 60
+--path <game> res://tools/bench/ai_behaviour_bench.tscn -- --counts=40 --full=12 --modes=threat`, builds in turns, and
+export the same copy to the web for Chrome. Kit #1204 did it with a patch script, `prof_apply.py`, kept with its probes
+in that task's scratch folder; the made game it ran on is gone, so this paragraph is the recipe.
+
 | Part, 40 fighting | Native before | Native after | Chrome before | Chrome after | Chrome 4x before | 4x after |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | the look (its rays) | 79 (16) | 72 (16) | 99 (21) | 93 (22) | 559 (124) | 521 (126) |
