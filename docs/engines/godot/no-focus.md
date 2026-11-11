@@ -213,6 +213,12 @@ script), and the Godot editor opened by a person or by the MCP add-on.
 - **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
   person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
   runs of the same capture script differed).
+- **Approach:** Make a bot that presses input actions (`Input.action_press`) press a held action again whenever
+  `Input.is_action_pressed` reads it up, and keep its one-tick presses (fire, interact) apart from its holds. **Watch
+  out for:** under `gds godot` a client's walk stopped half-way through its route and never went on: the engine lets
+  go of every pressed action when its window loses the focus, a window on the private desktop does now and then, and
+  the bot believed its key still down. The same bot ran its whole route headless and in a test. **Seen:** gdstudio
+  #909, 2026-11-11 (fix: `PlayerBot._hold`; `test_a_hold_the_window_let_go_of_is_pressed_again`).
 - **Approach:** Keep the pinned Godot's path in a variable whose name does not start with `godot` (`G="$(gds tool path
   godot)"; "$G" --headless ...`), use `export GODOT=...`, or start it from a script file. **Watch out for:** the window
   guard reads the first word of each command, and a bare assignment `GODOT="$(... gds tool path godot)"` reads as a
