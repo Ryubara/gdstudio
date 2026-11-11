@@ -22,6 +22,9 @@ draw the blend of the last two ticks.
 - A capture camera that cuts between spots is OFF from the moment it is made: with it on, the saved frames show where
   the last ticks left it, tens of metres from the printed position, and the log has the one line `[Physics
   interpolation] Interpolated Camera3D triggered from outside physics process`.
+- A camera that renders an off-screen view and is set in `_process` (the minimap's `SubViewport` camera, a baker) is OFF
+  too: left on, it was blended with its transform a tick ago and a point unprojected through it was up to 0.65 of the
+  picture away from the maths that placed it (gdstudio #884; [Minimap](minimap.md#drawing)).
 - After you set a new transform on a node that must not slide in (a teleport, a spawn, a pooled node reused), call
   `reset_physics_interpolation()` once the transform is set.
 - Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation
@@ -37,6 +40,12 @@ draw the blend of the last two ticks.
   ticks by hand with interpolation off, so a smooth camera framed a body that stepped every two or three frames on a
   120-165 Hz screen, which a 60 Hz screen never shows. **Seen:** Deadnight, 2026-11-01 (fix: interpolation on, the hand
   blend off, and the 144 fps measure ([below](#measuring-it))).
+- **Approach:** Turn interpolation off on any camera a script moves from place to place (a warm-up's or a capture's),
+  in the line that makes it, and test what the camera does at its first place. **Watch out for:** an interpolated
+  camera answers `get_frustum()` (and culls) from where the last tick left it: a warm-up camera put at a probe the
+  player had not seen reported the frustum of its last place, so it found no probe there and waited for none, and only
+  the suite's frame count showed it. **Seen:** gdstudio #981, 2026-11-10 (fix: `PHYSICS_INTERPOLATION_MODE_OFF` on the
+  emitter's tour camera).
 - **Approach:** Assert `is_physics_interpolated_and_enabled()` on the real body inside the real screen. **Watch out
   for:** a setting a node inherits holds only in the tree the game builds: interpolation was measured in a test room
   under a plain `Node`, while in the game the night hangs under a `Control`, which switched it off below, and the web

@@ -17,6 +17,23 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   [waiting for a new mesh](#never-wait-a-fixed-number-of-frames-for-a-mesh)).
 - **A door's new mesh is an iteration.** Putting a fresh mesh into the region again and waiting a few physics frames
   moves the iteration id, which is how a test makes "the map took the new mesh in".
+- **The suite before may still be in the map.** A region freed with the last test's arena leaves the map at its
+  next iteration, so a new arena with the same squares answers a closest-point test at once from the old region, and
+  its owner is a freed RID with no layers. Wait until `map_get_closest_point_owner` is your region's RID and the map
+  holds one region (`NavArena.settle()`). A map made with `map_create()` and never made active stays at iteration 0:
+  that is the fixture for "waits for the first iteration".
+- **Approach:** Wait for a test's own region by its RID, never by a point the mesh would answer. **Watch out for:**
+  the navigator suites' first `settle()` waited for a point within half a metre of the mesh; every test after the
+  first saw the freed region of the one before, and its goals came back "no open ground near the goal".
+  **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`).
+- **Approach:** Turn off both threads before waiting on a region: `region_set_use_async_iterations(region_rid, false)`
+  after the region enters the tree and `map_set_use_async_iterations(map, false)`; the map then holds the region at
+  the next physics tick on every machine. **Watch out for:** the map's switch alone is not enough: a region builds its
+  polygons on a worker thread by default (`navigation/world/region_use_async_iterations`), so under `--fixed-fps` a
+  wait counted in ticks ends with machine load. `NavArena.settle()` took 24 to 97 ticks locally and ran past its cap
+  of 300 once on a CI runner ("the map never answered"), with no change near navigation in the commits before it.
+  **Seen:** gdstudio #1072, 2026-11-11 (`test_the_arena_s_region_is_in_the_map_at_the_next_tick` fails with the
+  region's switch taken out; with both off every `settle()` after the first answers at tick 1).
 - **A lambda copies a packed array.** Building the vertex list inside a lambda (`var corner := func(...)` appending to a
   `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty. Use a method and member variables.
 
@@ -83,7 +100,8 @@ the map where the path ends, within the bots' 2.5 m.
 ## Never wait a fixed number of frames for a mesh {#never-wait-a-fixed-number-of-frames-for-a-mesh}
 
 A door's saved mesh is swapped into the region at once, but the map takes it in over 8 to 12 physics frames (async
-map iterations: the count moves with machine load). A test that waited 12 frames failed one run in three
+map and region iterations: the count moves with machine load; with both off it is the next tick,
+[a small mesh of your own](#a-small-mesh-of-your-own)). A test that waited 12 frames failed one run in three
 (Deadnight #699). Poll until the map answers for what the mesh opens (a path from the start to a point in each open
 area ends within a metre of it, and `DoorNavigation.is_busy()` is false), with a large cap that fails with a message,
 and do not read a path after an assertion on its status that may have failed: GdUnit goes on after a failed assertion.
@@ -97,6 +115,16 @@ still (Deadnight #733, #736). Turn it off for a server's map with
 `NavigationServer3D.map_set_use_async_iterations(map, false)`: the physics step takes the mesh in, the same on every
 machine. A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
+
+- **Approach:** Turn off both threaded builds for a game whose server must answer the same everywhere, in
+  `project.godot`: `navigation/world/map_use_async_iterations=false` and
+  `navigation/world/region_use_async_iterations=false`. Godot reads them when it makes a map or a region, so every
+  region a level adds, a section's or a door's, builds on the physics step with no call of its own. **Watch out for:**
+  the map's switch alone (what `AiNavigator` set) left each region's build on a worker thread, so a section added to
+  the 3D Third Person level reached the map after 3 ticks on an idle machine and 12 to 48 in a bench, more under load.
+  A web build has no threads (`THREADS_ENABLED` off), so both are off there whatever the project says. **Seen:**
+  gdstudio #1075, 2026-11-11 (`test_navigation_sync.gd` fails with the region's switch back on;
+  `tools/bench/nav_sync_bench.tscn` for the frame cost).
 
 ## A night stepped by hand has a stale map {#a-night-stepped-by-hand-has-a-stale-map}
 
@@ -123,6 +151,9 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
   own: bodies that collide stand on each other in a stair.
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
+- **A bake depends on where the region sits** (its cells lie on the world grid), and the cell height decides which
+  stairs stay on the mesh: bake and compare a section at the origin, and give stairs a whole number of cells
+  ([Map sections](map-sections.md#what-the-bakes-found), gdstudio #885).
 
 ## A walk to a goal the layer never reaches {#a-walk-to-a-goal-the-layer-never-reaches}
 

@@ -68,14 +68,15 @@ var _held: Array[StringName] = []
 
 
 func _ready() -> void:
-	var animation: PlayerAnimation = _player.get_node("Animation")
+	var animation: CharacterAnimation = _player.get_node("Animation")
 	if OS.get_environment("CARRY_BONES") != "":
 		var bones: Array[StringName] = []
 		for bone in OS.get_environment("CARRY_BONES").split(","):
 			bones.append(StringName(bone))
-		animation.grip_bones = bones
+		_player.weapon.definition = _player.weapon.definition.duplicate()
+		_player.weapon.definition.grip_bones = bones
 	if OS.get_environment("CARRY_HELD") == "1":
-		animation.carry = PlayerAnimation.Carry.HELD_POSE
+		animation.carry = CharacterAnimation.Carry.HELD_POSE
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = Vector3(60.0, 1.0, 30.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)

@@ -25,8 +25,8 @@ one after it.
 | Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
-| Screen host | `ui/menus/screen_host.gd`, `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`) | Opens screens over the game ([Menus over a game](#screen-host)). |
-| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer; the way in on a phone, which has no Esc. |
+| Screen host | `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`), its script the synced `addons/gds_game/screen_host/screen_host.gd` | Opens screens over the game ([Menus over a game](#screen-host)). |
+| Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. With a `screen` it opens that screen instead: the `BagButton` beside it opens the [inventory](inventory.md#template-screen). |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |
@@ -37,7 +37,8 @@ one after it.
 `presets`, three `QualityPreset` resources (`title`, `msaa`, `shadow_atlas_size`, `shadow_filter`) that Low, Medium and
 High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `force`. `SettingRow`: `key`, `format`,
 `option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
-`PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `always_shown`. `LookSettings`: `camera`. `MenuScene`:
+`PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `screen` (empty: the pause menu), `always_shown`.
+`LookSettings`: `camera`. `MenuScene`:
 `main_menu`, `game_scene`, `skip_menu`. `LoadingScreen`: `least_time`.
 
 - **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
@@ -55,16 +56,19 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 - **Approach:** When the project's main scene stops being the game's, give tools a way past the menu (`--play`,
   `?play`, `skip_menu`) and point every test and capture that wants the game at `res://main.tscn`. **Watch out for:**
   `gds capture frames` without `--scene`, a Playwright probe and a tour that start the main scene now start at the
-  menu; the template's `touch_smoke.py` opens `?probe&play`. **Seen:** gdstudio #881, 2026-11-10.
+  menu; the template's `touch_smoke.py` opens `?probe&play`; a probe written on a branch from before the menu passes
+  its own CI and fails after `gds merge-main`, so rerun every web probe of the branch after the merge. **Seen:**
+  gdstudio #881, 2026-11-10; #903, 2026-11-10 (`net_link_smoke.py` waited on `window.gdnet` that never came; fix:
+  `?play&netprobe`).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 
 <!-- new section: A menu over a live game covers the online case; nothing said how a solo game opens a pause menu, an
 inventory or a map over its running world and gives the game back (gdstudio #881) -->
 
-`ScreenHost` (`ui/menus/screen_host.gd` in the 3D Third Person template, one node in the game scene) is the way a game
-shows a screen over itself. The screens stay on the `UIRouter` stack, which runs while the tree is paused; the host
-adds what the router does not know about a game:
+`ScreenHost` (the synced `addons/gds_game/screen_host/screen_host.gd`; in 3D Third Person the `Screens` node,
+`ui/menus/screen_host.tscn`) is the way a game shows a screen over itself. The screens stay on the `UIRouter` stack,
+which runs while the tree is paused; the host adds what the router does not know about a game:
 
 - **Open and close.** `open(screen)` takes a `PackedScene`, a path or a `Control`, pauses the tree, lets the mouse go
   and shows the screen; `close()` clears the stack. When the stack is empty again (a Resume button, Esc, a screen that
@@ -75,9 +79,15 @@ adds what the router does not know about a game:
 - **Give the screen `back_closes`** so Esc closes it when it is the only one: `UIRouter.pop()` stops at the root, so
   without it a pause menu has no Esc. A screen extends `UIScreen`; `UIRouter.close()` is a pop that may empty the stack
   and `UIRouter.clear()` frees all of it.
+- **Let a screen keep the game running.** A screen with a `pauses_game()` method that returns false (the inventory,
+  when the player turned Settings > Controls > Pause in the inventory off) unpauses the tree while it is on top: the
+  host asks the top screen on every change of the stack (`top_pauses_game()`), so a pause menu pushed over it stops the
+  game and going back runs it again. The tree is paused from the open until the screen has arrived.
 - **Keep the game as a node tree, not a screen.** The router disables the screen it covers, so a game that is the
   bottom screen stops whether it wants to or not; as plain nodes under a paused tree it stops by the tree's own
   setting, and a game that must run on (online) turns `pause_tree` off.
+- **Main menu.** `go_to_menu()` leaves for `menu_scene`, an export the game's host scene sets (3D Third Person's names
+  `ui/menus/menu_scene.tscn`); empty, it reads back the project's main scene, so the script names no game's path.
 - **Web.** The host also opens the pause menu when the game had the mouse captured and no longer has it (a browser's
   first Esc only lets the pointer lock go) or when the window loses focus
   ([Web export](web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)), and takes the lock
@@ -110,8 +120,10 @@ lets a player rebind keys (gdstudio #881) -->
 The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds
 the options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies
 every value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root
-viewport, window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse
-sensitivity and invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings
+viewport, window mode, vsync, a quality preset, and Controls > Camera shake, `controls/camera_shake` 0 to 100 %, as the
+global `CameraShake.strength`, which scales every shake: [Camera](camera.md#shake-component)) and writes the file half a
+second after the last change. Mouse sensitivity and invert Y are read by `LookSettings`, a node that carries them to the
+camera rig. A row of the settings
 screen is a `SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key
 in the service, a row in the scene and, if it does something, a line in `_apply`.
 
@@ -143,3 +155,13 @@ in the service, a row in the scene and, if it does something, a line in `_apply`
   named on the command line, `GDS_QUIET`), never by naming the folders of tests and tools in shipped code. **Watch out
   for:** the layout check's `ships-tools` rule fails a shipped script that spells `res://tests/` or `res://tools/`,
   and the first version of `is_harness_run` did. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** When an option sets a static (`CameraShake.strength`), put it back in `after_test` of every suite that
+  makes a `SettingsService` or moves its row, and test the static and its effect (a shake at 0 turns nothing), not only
+  the saved value. **Watch out for:** a service made in a test applies every value at `_ready`, so a suite that leaves
+  the option at 0 turns the shake off for every suite after it in the run, and a camera test then passes or fails by
+  the order of the suites. **Seen:** gdstudio #1091, 2026-11-11 (`tests/core/test_settings_camera_shake.gd`).
+- **Approach:** A new row on a settings tab also changes the focus count `test_menu_navigation.gd` pins for the
+  Controls tab: update that count and its comment with the row, and run the whole template suite before opening the
+  pull request, not only the settings suites. **Watch out for:** the settings suites alone all pass while the
+  navigation suite fails on the count. **Seen:** gdstudio #1091, 2026-11-11 (caught by the full `gds template test`
+  after the pull request was open).

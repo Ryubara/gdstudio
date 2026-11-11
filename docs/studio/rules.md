@@ -141,6 +141,13 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 A page holds at most 50 KB. A topic that grows past it becomes a folder of subpages (as `gamedev/audio/` did): the
 one time a learning makes a new page. The check names the page and its size.
 
+- **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
+  named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
+  page with a short section per moved `{#anchor}` linking to its new place. Then run `test_docs_site.py` and the strict
+  docs build. **Watch out for:** a page at 51.1 KB with six agents adding to it failed the next one; a folder without
+  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`. **Seen:**
+  gdstudio #983 and #1029 (the template pages); #1067, 2026-11-11 (`audio.md`, now `audio-mixing/`).
+
 ## Where the entry is named {#named}
 
 - **A task agent's report.** Its `Mistakes` section names each section it updated as `page.md#anchor`. The

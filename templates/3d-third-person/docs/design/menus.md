@@ -12,7 +12,8 @@ the addon's README for restyling); the scripts only wire them. How each part wor
 | Main menu | The project starts here | Play, Settings, Quit (not in a browser) |
 | Loading | Play | A bar while `main.tscn` is read on a thread |
 | Pause menu | Esc, a pad's Start, the Menu button on a touch screen, or losing the mouse's pointer lock in a browser | Resume, Settings, Main menu; the game is paused behind it |
-| Settings | From either menu | Video (window mode, quality, resolution scale, vsync), Audio (a slider per bus), Controls (mouse sensitivity, invert, a button per action for the keyboard and for a pad) |
+| Inventory | I, a pad's right shoulder, the Bag button on a touch screen | The player's model, weapons and bag: [Inventory](inventory.md) |
+| Settings | From either menu | Video (window mode, quality, resolution scale, vsync), Audio (a slider per bus), Controls (mouse sensitivity, invert, camera shake, pause in the inventory, a button per action for the keyboard and for a pad) |
 
 Mouse, keyboard, gamepad and touch all work on every screen: the arrows and the d-pad move the focus, accept and
 cancel are Enter and A, Esc and B, and the touch layer's buttons stand down while a menu is up.

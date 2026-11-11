@@ -71,6 +71,30 @@ def test_scratch_folder_outside_git(tmp_path: Path) -> None:
         capture.scratch_folder(tmp_path, tmp_path, lambda cmd, cwd: Result(128, ""))
 
 
+def test_frames_folder_follows_the_caller_not_the_throwaway_game(tmp_path: Path) -> None:
+    """A throwaway game is its own git repository (`template-check`, branch `main`): its frames must not land
+    in the shared `scratch/template-check/main/`, but in the scratch folder of the worktree gds runs in."""
+    game = tmp_path / "elsewhere" / "template-check" / "game"
+    worktree = tmp_path / "worktrees" / "gdstudio" / "my-task"
+    game.mkdir(parents=True)
+    worktree.mkdir(parents=True)
+
+    def run(cmd: list[str], cwd: Path | None) -> Result:
+        top = game.parent if Path(cmd[2]) == game.resolve() else worktree
+        return git_fake(top, "main" if top == game.parent else "my-task")(cmd, cwd)
+
+    out = capture.frames_folder(game, worktree, tmp_path / "ws", "hud", None, run)
+    assert out == tmp_path / "ws" / "scratch" / "gdstudio" / "my-task" / "hud"
+
+
+def test_frames_folder_takes_an_explicit_out(tmp_path: Path) -> None:
+    explicit = tmp_path / "mine" / "clip"
+    out = capture.frames_folder(
+        tmp_path / "game", tmp_path, tmp_path / "ws", "hud", str(explicit), git_fake(tmp_path, "x")
+    )
+    assert out == explicit.resolve()
+
+
 def test_frames_command_line_and_metadata(project: Path, tmp_path: Path) -> None:
     fake = FakeGodot(frames=3)
     out = tmp_path / "scratch" / "main"
@@ -82,7 +106,7 @@ def test_frames_command_line_and_metadata(project: Path, tmp_path: Path) -> None
     assert cmd[cmd.index("--fixed-fps") + 1] == "12"
     assert cmd[cmd.index("--quit-after") + 1] == "3"  # ceil(0.25 * 12)
     assert "--resolution" not in cmd  # Movie Maker ignores it: frames are the project's viewport size
-    assert cmd[-1] == "res://x.tscn"
+    assert cmd[-3:] == ["res://x.tscn", "++", "--quit-after=3"]  # the game silences its last frames
     assert len(frames) == 3
     assert json.loads((out / capture.META_FILE).read_text(encoding="utf-8"))["fps"] == 12
     assert capture.read_fps(out) == 12
@@ -238,3 +262,28 @@ def test_gif_command_line_and_ffmpeg_failure(tmp_path: Path) -> None:
 def test_clip_without_frames(tmp_path: Path) -> None:
     with pytest.raises(CaptureError, match="no frames"):
         capture.encode_clip(Path("ffmpeg"), tmp_path, run=FakeFfmpeg([]), log=lambda m: None)
+
+
+def test_a_movie_runs_end_is_told_to_the_game_and_other_runs_are_left_alone() -> None:
+    movie = ["--write-movie", "f.png", "--fixed-fps", "30", "--quit-after", "1200"]
+    assert capture.tell_movie_end(movie) == [*movie, "++", "--quit-after=1200"]
+    assert capture.tell_movie_end(["--write-movie=f.png", "--quit-after=9"]) == [
+        "--write-movie=f.png",
+        "--quit-after=9",
+        "++",
+        "--quit-after=9",
+    ]
+    assert capture.tell_movie_end([*movie, "--", "--seed=4"]) == [*movie, "--", "--seed=4", "--quit-after=1200"]
+    told = [*movie, "++", "--quit-after=1200"]
+    assert capture.tell_movie_end(told) == told
+    assert capture.tell_movie_end(["--quit-after", "5", "--headless"]) == ["--quit-after", "5", "--headless"]
+    assert capture.tell_movie_end(["--write-movie", "f.png"]) == ["--write-movie", "f.png"]
+    assert capture.tell_movie_end(["--path", "g", "--", "--write-movie", "x", "--quit-after", "3"]) == [
+        "--path",
+        "g",
+        "--",
+        "--write-movie",
+        "x",
+        "--quit-after",
+        "3",
+    ]

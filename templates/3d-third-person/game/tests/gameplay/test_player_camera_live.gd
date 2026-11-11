@@ -42,6 +42,8 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"sprint_shake_amplitude": 0.0,
 		&"sprint_shake_frequency": 3.0,
 		&"sprint_shake_blend": 4.0,
+		&"slide_fov_change": 5.0,
+		&"slide_zoom_speed": 4.0,
 		&"shot_kick_amplitude": 0.0,
 		&"shot_kick_duration": 0.2,
 		&"aim_distance": 1.1,
@@ -68,7 +70,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"blend_duration": 1.2,
 		&"blend_transition": PhantomCameraTween.TransitionType.SINE,
 		&"blend_ease": PhantomCameraTween.EaseType.EASE_IN_OUT,
-		&"wall_mask": 1,
+		&"wall_mask": PhysicsLayers.CAMERA_MASK,
 		&"wall_shape": null,
 		&"wall_margin": 0.25,
 	}

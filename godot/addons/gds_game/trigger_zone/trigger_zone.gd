@@ -5,12 +5,16 @@ extends Area3D
 ## one leaves, so a pressure plate, a checkpoint or a "door ahead" area is one node and a signal
 ## connection. It works on its own: connect `activated` and `deactivated` to anything.
 ##
-## What counts is the `counts` setting (characters and props by default) and the optional
-## `required_group`: the box also overlaps the floor and walls it stands in, and those never count
-## unless `counts` is `ANY`.
+## What it senses is its Collision > Mask: Characters and Props (`PhysicsLayers.TRIGGER_MASK`), so
+## the floor and walls it stands in never reach the script; it sits on the Sensors layer. What
+## counts among those is the `counts` setting (characters and props by default, a class test that
+## also holds when the mask lists the level) and the optional `required_group`.
 ##
 ## The box is the `Shape` node of `trigger_zone.tscn` (the editor draws it) and the optional pad
 ## is the `Plate` node; `size` and the colours follow the inspector live.
+##
+## A copy whose state another program owns (an online client's, where the game server's copy
+## senses the bodies) turns `sensing` off and paints its plate with `show_active`.
 
 ## The first body came in (or, with `fire_once`, the only time).
 signal activated(body: Node3D)
@@ -23,7 +27,8 @@ enum Counts {
 	CHARACTERS,
 	## A `CharacterBody3D` or a `RigidBody3D`: a pressure pad a pushed crate also presses.
 	CHARACTERS_AND_PROPS,
-	## Every body on the layers below, static ones too (the floor under the zone, walls, platforms).
+	## Every body on the mask's layers, static ones too when the mask lists World (the floor under
+	## the zone, walls, platforms).
 	ANY,
 }
 
@@ -57,8 +62,22 @@ enum Counts {
 		plate_active_color = value
 		_update_plate()
 
+## Whether the zone notices bodies itself (on). Off it notices none, says nothing and its plate
+## shows what `show_active` last said: the copy of a zone whose state comes from elsewhere (an
+## online client's). Changing it forgets who was inside.
+var sensing := true:
+	set(value):
+		sensing = value
+		_inside.clear()
+		_shown_active = false
+		# Deferred: the area may be in its physics callbacks (a body entering) right now.
+		set_deferred(&"monitoring", value)
+		_update_plate()
+
 var _inside: Array[Node3D] = []
 var _spent := false
+# What `show_active` said while `sensing` is off.
+var _shown_active := false
 
 
 func _ready() -> void:
@@ -69,9 +88,18 @@ func _ready() -> void:
 		body_exited.connect(_on_body_exited)
 
 
-## True while at least one counted body is inside.
+## True while at least one counted body is inside (with `sensing` off: what `show_active` said).
 func is_active() -> bool:
-	return not _inside.is_empty()
+	return not _inside.is_empty() if sensing else _shown_active
+
+
+## Shows the zone pressed or not, for a copy that does not sense (`sensing` off): paints the plate
+## and emits nothing, since the rules ran where the state came from. Ignored while `sensing` is on.
+func show_active(active: bool) -> void:
+	if sensing:
+		return
+	_shown_active = active
+	_update_plate()
 
 
 ## How many counted bodies are inside.
@@ -108,7 +136,7 @@ func _counts(body: Node3D) -> bool:
 
 
 func _on_body_entered(body: Node3D) -> void:
-	if _spent or not _counts(body) or _inside.has(body):
+	if not sensing or _spent or not _counts(body) or _inside.has(body):
 		return
 	_inside.append(body)
 	if _inside.size() == 1:

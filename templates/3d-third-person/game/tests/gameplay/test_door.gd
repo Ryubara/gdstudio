@@ -33,7 +33,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"locked": false,
 		&"close_after": 0.0,
 		&"auto_open_range": 0.0,
-		&"auto_open_mask": 1,
+		&"auto_open_mask": PhysicsLayers.CHARACTERS,
 		&"player_can_use": true,
 	}
 	assert_array(ExportPins.differences(_door, pins)).is_empty()
@@ -141,10 +141,17 @@ func test_start_open_decides_where_a_new_door_begins() -> void:
 	open_door.free()
 
 
-func _body(kind: Node3D, at: Vector3, layer := 1) -> Node3D:
+# A body on `layer`, or on the layer of what it is (a character, a prop, the level) when it is 0.
+func _body(kind: Node3D, at: Vector3, layer := 0) -> Node3D:
 	var shape := CollisionShape3D.new()
 	shape.shape = BoxShape3D.new()
 	kind.add_child(shape)
+	if layer == 0:
+		layer = PhysicsLayers.WORLD
+		if kind is CharacterBody3D:
+			layer = PhysicsLayers.CHARACTERS
+		elif kind is RigidBody3D:
+			layer = PhysicsLayers.PROPS
 	(kind as CollisionObject3D).collision_layer = layer
 	kind.position = at  # Before it enters the tree: one built at the origin is sensed there.
 	add_child(kind)
@@ -168,7 +175,8 @@ func test_a_door_with_a_reach_stays_closed_among_static_blocks_and_props() -> vo
 	var blocks := _door_among_blocks()
 	await _ticks(30)
 	var sensor := _door.get_node("%Sensor") as Area3D
-	assert_int(sensor.get_overlapping_bodies().size()).is_greater_equal(3)
+	# The sensor masks Characters (#924): the floor, posts, wall and crate never reach it.
+	assert_array(sensor.get_overlapping_bodies()).is_empty()
 	assert_bool(_door.is_moving() or _door.is_open()).is_false()
 	assert_float(_door.openness()).is_equal(0.0)
 	for block in blocks:
@@ -242,34 +250,37 @@ func test_the_reach_is_measured_from_the_closed_door_even_when_a_swing_moves_it(
 	gate.open()
 	await _ticks(20)
 	assert_float(gate.global_position.distance_to(Vector3(5.0, 0.0, 4.0))).is_greater(0.5)
-	assert_vector(gate.interact_point()).is_equal_approx(
-		Vector3(5.0, 0.0, 4.0), Vector3.ONE * 0.001
-	)
+	var usable := gate.get_node("Interactable") as Interactable
+	assert_vector(usable.reach_point()).is_equal_approx(Vector3(5.0, 1.0, 4.0), Vector3.ONE * 0.001)
 	var interactor := Interactor.new()
 	add_child(interactor)
 	interactor.global_position = Vector3(5.0, 0.0, 2.8)
-	assert_object(interactor.find_target(Vector3.BACK, 1.6)).is_same(gate)
+	await _ticks(2)
+	assert_object(interactor.find_target(Vector3.BACK, 1.6)).is_same(usable)
+	assert_object(usable.usable()).is_same(gate)
 	interactor.free()
 	gate.free()
 
 
 func test_the_auto_open_mask_decides_which_characters_open_it() -> void:
-	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 2.0), 1) as CharacterBody3D
+	var walker := _body(CharacterBody3D.new(), Vector3(0.0, 1.0, 2.0)) as CharacterBody3D
 	_door.open_time = 0.1
-	_door.auto_open_mask = 2
+	_door.auto_open_mask = PhysicsLayers.WORLD
 	_door.auto_open_range = 3.0
 	await _ticks(10)
 	assert_float(_door.openness()).is_equal(0.0)
-	assert_int((_door.get_node("%Sensor") as Area3D).collision_mask).is_equal(2)
-	_door.auto_open_mask = 1
+	assert_int((_door.get_node("%Sensor") as Area3D).collision_mask).is_equal(PhysicsLayers.WORLD)
+	_door.auto_open_mask = PhysicsLayers.CHARACTERS
 	await _ticks(10)
 	assert_bool(_door.is_open()).is_true()
 	walker.free()
 
 
-func test_player_can_use_puts_the_door_in_the_group_a_character_looks_in() -> void:
-	assert_bool(_door.is_in_group(&"interactable")).is_true()
+func test_player_can_use_switches_the_doors_interactable() -> void:
+	var usable := _door.get_node("Interactable") as Interactable
+	assert_bool(usable.enabled).is_true()
 	_door.player_can_use = false
-	assert_bool(_door.is_in_group(&"interactable")).is_false()
+	assert_bool(usable.enabled).is_false()
+	assert_bool(usable.interact(null)).is_false()
 	_door.player_can_use = true
-	assert_bool(_door.is_in_group(&"interactable")).is_true()
+	assert_bool(usable.enabled).is_true()

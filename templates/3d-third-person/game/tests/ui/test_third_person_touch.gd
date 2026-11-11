@@ -1,6 +1,6 @@
-# The character's touch layer: the base's touch controls with three more buttons (fire, aim and
-# crouch) as nodes of their own scene. A finger on each presses its action, and the player
-# crouches, aims and shoots from them.
+# The character's touch layer: the base's touch controls with five more buttons (fire, aim,
+# crouch, reload and swap) as nodes of their own scene. A finger on each presses its action, and
+# the player crouches, aims and shoots from them.
 extends GdUnitTestSuite
 
 const SCENE := "res://ui/touch/third_person_touch_controls.tscn"
@@ -40,17 +40,29 @@ func _touch_event(index: int, at: Vector2, pressed: bool) -> void:
 	_touch._input(event)
 
 
-func test_the_scene_adds_three_buttons_to_the_base_and_keeps_its_two() -> void:
+func test_the_scene_adds_six_buttons_to_the_base_and_keeps_its_two() -> void:
 	var packed := load(SCENE) as PackedScene
 	var inherited := auto_free(packed.instantiate()) as TouchControls
 	add_child(inherited)
 	await get_tree().process_frame
-	assert_int(inherited.button_count()).is_equal(5)
+	assert_int(inherited.button_count()).is_equal(8)
 	var actions := {}
 	for button in inherited.buttons_root.get_children():
 		actions[(button as TouchButton).action] = (button as TouchButton).label
-	assert_dict(actions).is_equal(
-		{&"jump": "Jump", &"interact": "Use", &"fire": "Fire", &"aim": "Aim", &"crouch": "Crouch"}
+	(
+		assert_dict(actions)
+		. is_equal(
+			{
+				&"jump": "Jump",
+				&"interact": "Use",
+				&"fire": "Fire",
+				&"aim": "Aim",
+				&"crouch": "Crouch",
+				&"reload": "Reload",
+				&"next_weapon": "Swap",
+				&"prone": "Prone",
+			}
+		)
 	)
 	assert_array(inherited._get_configuration_warnings()).is_empty()
 
@@ -81,6 +93,20 @@ func test_a_finger_on_the_crouch_button_crouches_and_lifting_it_stands() -> void
 	_touch_event(5, at, false)
 	await InputSim.ticks(get_tree(), 30)
 	assert_bool(_player.crouching).is_false()
+
+
+func test_a_tap_on_the_prone_button_lies_down_and_another_gets_up() -> void:
+	var at := _touch.button_center(_index("Prone"))
+	_touch_event(6, at, true)
+	await InputSim.ticks(get_tree(), 3)
+	_touch_event(6, at, false)
+	await InputSim.ticks(get_tree(), 50)
+	assert_bool(_player.prone).is_true()
+	_touch_event(6, at, true)
+	await InputSim.ticks(get_tree(), 3)
+	_touch_event(6, at, false)
+	await InputSim.ticks(get_tree(), 80)
+	assert_bool(_player.prone).is_false()
 
 
 func test_a_finger_on_the_aim_button_aims_and_shows_the_crosshair() -> void:

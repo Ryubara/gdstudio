@@ -3,8 +3,8 @@ extends Node3D
 ## Measures how high a ledge the real `Player` gets onto from level ground: it runs (and sprints)
 ## the character at a block of each height from several distances and presses jump at several
 ## moments, all through the input actions a player presses. The most a body climbs is more than
-## `PlayerTuning.jump_height`: the step-up at an edge and the capsule's rounded foot add to it, so
-## a map judges its walls against this number, never the tuning (kit
+## `CharacterTuning.jump_height`: the step-up at an edge and the capsule's rounded foot add to it,
+## so a map judges its walls against this number, never the tuning (kit
 ## `docs/engines/godot/map-review.md`, "Measure the reach").
 ##
 ## Each height and distance gets a lane of its own, side by side, and every lane runs at once

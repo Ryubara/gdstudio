@@ -32,7 +32,7 @@ same way only when nothing else is loading the machine: a loaded machine doubles
   **Watch out for:** GdUnit4's timeout counts game time, so a loop on `Time.get_ticks_msec()` never ended (6 of 444
   cases); a test that teleports a body and clears its log one frame later heard a stray step the wall-clock frame order
   had hidden: let the state settle first. **Seen:** gdstudio #916, 2026-11-10 (five slow suites 166 s to 18 s with no
-  test changed; the whole 3D Third Person suite FIXED_NUMBERS).
+  test changed; the whole 3D Third Person suite FIXED_NUMBERS); gdstudio #926.
 
 ## What hand stepping needs {#what-hand-stepping-needs}
 
@@ -140,7 +140,8 @@ two clocks, and a slow runner pulls them apart. Give the real-time part an injec
   real milliseconds and waited 8 wall seconds while the game ran in frames, so a loaded runner played fewer frames of
   the same network (484 corrections where a quiet one prints 50) and failed once; a `--fixed-fps 60` run with no game
   clock on a `GameServer` lost its client in seconds. **Seen:** Deadnight, 2026-11-02 (fix: one clock; the worst gap
-  stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`).
+  stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`); gdstudio #903,
+  2026-11-10 (a socket rig on the real clock: lingers never ended at `--fixed-fps 60`).
 
 - **Approach:** Switch off a node that eases or animates in `_process` (`set_process(false)`,
   `AnimationTree.callback_mode_process = MANUAL`) and step it by hand with a fixed delta in the test's tick helper;

@@ -83,6 +83,9 @@ The probe starts the game server as a process of its own. On Windows the console
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
+3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
+([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
@@ -98,6 +101,61 @@ the server running, and the next run cannot open its log ([Processes a probe sta
   tick clock. The same server then serves single-player and tests, and "bad network" is a command-line option.
 - `StreamPeerBuffer` is enough for a compact binary protocol: little-endian by default, `put_u8/put_8/put_16/put_u32`
   and the matching `get_*` (signed variants have no `u`). Check each packet's length before reading.
+
+- **Approach:** Let the side that closes linger: stop sending, then send the close frame a few ticks later (0.25 s), so
+  the other end reads the last packets in a poll of their own; a refusal is sent, then the server waits for the client
+  to close. **Watch out for:** Godot 4.7.2's `WebSocketPeer` throws away every packet that reaches it in the same
+  `poll` as the other end's close frame, in both directions: 20 packets sent and then `close()` arrived as 0 when the
+  receiver had not polled between them (20 when it had), so "read to the floor after the close" saves nothing and a
+  refusal sent with its close is lost. **Seen:** gdstudio #903, 2026-11-10 (fix: `WebSocketLink.close()` and
+  `WsListener.disconnect_peer()` linger; a test keeps the engine's loss without the linger, so an engine fix shows).
+- **Approach:** Give a listener its own handshake deadline (3 s, on the caller's clock) and its own packet-size cap
+  under the inbound buffer, and hang up (1009) on a packet over it. **Watch out for:** `WebSocketPeer` has no
+  `handshake_timeout` in 4.7.2 (that is `WebSocketMultiplayerPeer`'s), so a TCP connection that never sends the upgrade
+  waits forever; a frame of exactly the inbound buffer's size (65,536 bytes into 64 KB) is accepted and passed on, so a
+  flood of 64 KB frames went through until the cap; a 1 MB frame the engine refuses and closes itself. **Seen:**
+  gdstudio #903, 2026-11-10.
+
+## The template's transport (3D Third Person) {#template-transport}
+
+<!-- new section: the sections above say how to use WebSocketPeer and what Deadnight measured; nothing said what the
+     template's transport classes are, what they guarantee, or what 4.7.2 measured on localhost and in the browser -->
+
+`templates/3d-third-person/game/gameplay/net/` carries packets and never reads them (the packets are the codecs'):
+
+| Class | What it is |
+| --- | --- |
+| `NetLink` | The interface: `send(bytes) -> bool`, `poll()` once per physics tick, `is_open()`, `close()`, `close_code()`, `left_on_purpose()`; signals `packet_received`, `connected`, `closed`. |
+| `WebSocketLink` | The client, desktop and web: `NetLimits.BUFFER_SIZE` inbound, 8192 packets, a lingering `close()`, `drop()` for tests, `server_url()` from `--connect <url>` or the page's `?url=`, and no `ws://` from an `https` page (`refusal` says why). |
+| `WsListener` | The server: ids per handshake, `NetLimits.BUFFER_SIZE` outbound and `send` false when full (`refused_sends`), 64 KB inbound and a 4 KB packet cap (1009), a 3 s handshake deadline, a lingering `disconnect_peer` and a 1 s close grace, `port()` after `listen(0)`, `left_on_purpose(id)`. |
+| `LoopbackLink` | `pair()`: two ends in one process; a packet sent in tick t is read in tick t+1; `close()` is a goodbye, `drop()` a network that went. |
+| `LinkConditioner` | Wraps any link: `delay`, `jitter`, `stall_chance` and `stall_seconds`, `stall_for(seconds)`, a seeded RNG and a `clock` Callable; never reorders, a stall holds everything behind it. |
+
+**One socket buffer size: `NetLimits.BUFFER_SIZE` (256 KB).** `WebSocketLink.inbound_buffer` and
+`WsListener.outbound_buffer` both start from it and neither file has a constant of its own; `test_net_limits.gd` pins
+the value and that both read it. It was 1 MB in the transport and 256 KB in the packets' limits until #934 measured it
+in the browser (`net_link_smoke.py --inbound <bytes>`, a 5 s frozen tab at 35 KB/s, so 175 KB wait): 256 KB lost
+nothing in six runs (0 `Buffer payload full` errors, every packet in order), 1 MB the same in two, and the 64 KB
+control lost packets in 7 of 9 pages (4 to 86 errors; two pages lost none, so the smoke tries the control up to three
+times). A size above that buys nothing in a freeze that short and costs 1 MB a peer each way on a full server.
+
+Measured on Windows, Godot 4.7.2: a thousand packets each way over `127.0.0.1` in order; a conditioner of 100 ms each
+way gave round trips of 217 to 250 ms on the physics-frame clock; two GdUnit runs of the suites at once on one machine
+passed (`listen(0)`). In the browser (`tools/web_smoke/net_link_smoke.py`, headless Chromium, SwiftShader): the page
+opened the address from `?url=`, refused `ws://` on an `https` origin (a Playwright route) without opening a socket, and
+read every packet of a 35 KB/s stream through a 5 s busy-loop freeze with the 1 MB buffer, where the engine's 64 KB lost
+packets out of order and logged 6 to 41 `Buffer payload full` errors (three runs). Round trips in that page are rounded
+to its frames (the SwiftShader page ran at 6 frames a second): median 148 to 197 ms over loopback, 301 to 398 ms through
+`tools/net/relay.py` at 100 ms each way. The relay alone, a Python TCP echo through it: 214 to 222 ms at 100 ms each
+way, and with `--stall-chance 0.2 --stall-ms 300` up to 821 ms (9 stalls in 20 trips).
+
+- **Approach:** Prove a socket buffer size where it overflows (the browser, or a real network), and pin the size with a
+  test; on localhost test only what the buffer guarantees (nothing lost in 5 s at 35 KB/s, `send` false when full).
+  **Watch out for:** on Windows loopback the kernel took about 200 KB beyond the listener's buffer before `send` was
+  refused (207 KB with a 16 KB buffer, 261 KB with 64 KB, 1.24 MB with 1 MB), and a native client's 64 KB inbound
+  buffer never overflowed because each poll reads at most what the kernel holds, so a native test of the 64 KB default
+  passed and proved nothing. **Seen:** gdstudio #903, 2026-11-10 (fix: the browser control run with `&inbound=65536`;
+  a native test pins the sizes); #934 (one constant, `NetLimits.BUFFER_SIZE`, after two parallel copies).
 
 ## The pattern that worked (own protocol over that transport) {#own-protocol}
 
@@ -142,7 +200,18 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | TICK, 8 players, no events | 107 | 107 |
 | TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
 | PING / PONG | 7 / 11 | 7 / 11 |
-| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 16, 14, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 15, 15, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+
+What the command's fields mean, fixed by gdstudio #901: `move` is the push in the view's axes (`x` right, `y`
+forward, no longer than 1), `yaw` the view's heading (0 looks along -Z, so the body's `facing` is `yaw + PI`), `pitch`
+positive up; `crouch` is already the toggle's result; a press is true in one command. The shot block (`has_shot`) rides
+only on a tick where a shot can leave (a press buffered or just made, or an automatic weapon held, and the weapon
+ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
+shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
+every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
+the empty hands; gdstudio #887) and bit 15 is prone (#1012); no flag bit is free. `NetWire.VERSION` 4 (#906): a shot
+carries the weapon and the low 16 bits of its `seq`, a hit the health it left
+([shots online](third-person/online-shots.md#template-shots)).
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -239,7 +308,8 @@ and drawings carry no collision; a solid thing is built into the world both side
 collision, so the server's bodies must not block one another either (Deadnight #760: a body on layer 1 with a mask of 1
 and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
-(`tests/net/test_world_parity.gd`).
+(`tests/net/test_world_parity.gd`). A solid thing that moves is put at the command's tick on both sides
+([networked map parts](third-person/net-world.md#net-world)).
 
 - **Approach:** Build a solid thing into the world both sides build and move it by the rules (server) and the frame
   (client); a view script adds no collision (a node it makes with `.new()` gets none), and a test joins a real client to
@@ -282,7 +352,7 @@ client -->
   and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
   remote bodies are the same scene as local ones (a puppet `Player`), the frame gains `aim` and `pitch`, captures come
   from the second client (Deadnight #548); code that works through a node type (`as Player`) turns "no such body" into
-  a silent skip, so say it loudly).
+  a silent skip, so say it loudly); gdstudio #905 (online-client.md#puppets).
 
 ## Events reach a client only through its command loop {#events-reach-a-client-only-through-its-command-loop}
 
@@ -451,13 +521,22 @@ backend deployed -->
 `tools.toml`), copy the project, run `godot --headless --path /app --import` once **at build time**, then
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
-Deploying and testing it on Railway: [Railway](../../studio/railway.md).
+Process 1 is `tini`, which passes the platform's SIGTERM on (Godot as process 1 ignores it and is killed after the
+grace period). Deploying and testing it on Railway: [Railway](../../studio/railway.md). The 3D Third Person server
+starts with `godot --headless --path game -- --server` ([The game server](third-person/game-server.md#template-server))
+and its image, deploy and numbers are the template's `server/` ([The server image](third-person/game-server.md#server-image)).
 
 - **Approach:** Read a procfs file with `get_line()` (it is one line), treat an empty result as no data, and test
   Linux-only paths in the Docker image. **Watch out for:** procfs files report a length of 0 and
   `FileAccess.get_as_text()` reads `get_length()` bytes, so `/proc/self/stat` came back empty and a headless server
   logged `Out of bounds get index '11'` every 5 s; on Windows the path does not exist, so it showed only in the
   container. **Seen:** Deadnight, 2026-11-01 (fix: `get_line()` and an empty check).
+- **Approach:** Cap Godot's worker pool in a server image (`threading/worker_pool/max_threads=2` in an `override.cfg`
+  the Dockerfile writes) and read the process's processor share beside the step time. **Watch out for:** the pool has
+  a thread a core and Jolt hands every physics step to all of them: an idle 3D Third Person server took 24% of a core
+  on a 16-core machine (16 workers at 1.1% each) and 30% with 8 bots while its step read 0.6 ms; two threads gave 1.9%
+  and 6.7% with the same step times, and Railway's hosts have 48 cores. **Seen:** gdstudio #910, 2026-11-11 (the
+  template's `server/Dockerfile`).
 
 ## Small things that cost time {#small-things-that-cost-time}
 

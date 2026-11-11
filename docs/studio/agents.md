@@ -70,6 +70,13 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   main loop busy. **Watch out for:** the pane flagged a running agent `retire` at 511k, but the agent guard acted only
   on stopped agents and no poller was configured, so nothing reached the coordinator and the agent grew to 539k.
   **Seen:** tether #27, 2026-11-10 (fix: tether #28 tells it once, and waiting notices go out at the Stop hook).
+- **Approach:** After a clear or a checkpoint, start the first status by checking every running agent's context
+  against the retire line, and handle first any handover the handoff names as asked for: the agent guard tells each
+  agent once, so a notice that arrived just before the clear is not repeated. **Watch out for:** the guard told the
+  coordinator about the #887 agent at 508k seconds before a checkpoint cleared the session; the first status after the
+  clear called all nine agents running and left the handover unmentioned until the maintainer asked, by which point
+  the agent had reached 527k. A project with no `agents` poller in `.claude/tether.json` gets no repeat wake.
+  **Seen:** gdstudio #887, 2026-11-10 (fix: the kit checkout's ignored `.claude/tether.json` declares the poller).
 - **Approach:** When a guard keeps its own record of what is live, check it against what the harness itself reports
   (a hook input's `background_tasks`, a clear) and let the harness win when its report is newer. **Watch out for:**
   Tether learned that a subagent's background task ended only from its notification or a TaskStop answer. A `/clear`

@@ -7,6 +7,7 @@ Some files live in every game but belong to the kit. The kit is their one source
 | Agent definitions | `.claude/agents/*.md` | the same path |
 | The `gds_ui` Godot addon ([UI controls](../engines/godot/ui-controls.md#where)) | `godot/addons/gds_ui/` | `game/addons/gds_ui/`, the same `res://` path |
 | Hook launcher and its settings | `templates/game/.claude/` | `.claude/` |
+| The web boot check ([browser probes](../engines/godot/web-probes.md#boot-check)) | `templates/game/game/tools/web_smoke/boot_check.py` | `game/tools/web_smoke/boot_check.py` |
 | The checker for titles, messages, descriptions | `.github/scripts/groundwork.py` | the same path (it reads the game's own `.github/conventions.yml`) |
 | The hold's check and its sweep (only the label name is read from them, so one copy fits every game) | `.github/workflows/hold.yml`, `hold-sweep.yml` | the same paths |
 | The message-check hooks and the hook types to install | the blocks of `.pre-commit-config.yaml` between `# gds-sync:begin <name>` and `# gds-sync:end <name>` | the same blocks in the game's config |
@@ -54,11 +55,15 @@ the committed ones with the 3D Blank template's.
 branches chose three homes on one day (gdstudio #923) -->
 
 `godot/addons/gds_game/` holds the gameplay code any game of any template can use (the maintainer's decision on
-gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone` and the
-suites' `ExportPins` and `InputSim`. It is scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under
-`addons/` is a global class without a plugin, so a game needs no `project.godot` line for it, and `gds sync` alone
-brings it to a game made before it existed. Its suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job
-with `gds_ui`'s.
+gdstudio #923, 2026-11-10): today the effect pool (`EffectDef`, `EffectEmitter`, `EffectSlot`), `TriggerZone`, the
+impacts (`Impacts`, `ImpactSurface`, `ImpactMark`), `SpawnPoint`, the camera shake (`CameraShake`, `ShakePreset`),
+`DecodedSounds` (short sounds decoded once, gdstudio #1023), `ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced
+beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the second group), the traversal parts
+(`Vaultable`, `VaultSettings`, `VaultProbe`, `VaultPlan`; gdstudio #1013), `Health` and `HitRecord` (`hits/`) and
+`Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is
+scripts only: no `plugin.cfg`, no autoload, no scene. A `class_name` under `addons/` is a global class without a plugin,
+so a game needs no `project.godot` line for it, and `gds sync` alone brings it to a game made before it existed. Its
+suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s.
 
 A part goes in `gds_game` when all three hold, and stays in the template otherwise:
 
@@ -87,12 +92,18 @@ or an old path left as drift, so the game's CI fails until it is synced. A game'
 history and the sync's pull request shows the deletion. Entries stay in `MOVED`: a game may be synced for the first time
 long after. Move a part only when no open branch has changed it (`gh pr list`, the worktrees); the next one waits.
 
+A moved script keeps its exports as they were. A game made before the move keeps its own suites, and a suite that pins
+every export's default (`ExportPins.differences`) fails on a new export or a changed default, so a move that must drop a
+template path from a default (the screen host's `menu_scene`) keeps the old value readable without one: the export's
+default is empty, its getter reads back the project's main scene, and the template's scene sets the path.
+
 - **Approach:** Move a universal part into `gds_game` with its `.uid`, add its line to `MOVED`, rewrite the templates'
   references, prove the script alone in `godot/tests/gds_game/` and keep the template's in-the-map suites where they
   are. **Watch out for:** a part copied into a template is never fixed in the games made from it: `playground`, made
   the same morning, already had 2 stale files of 43, and the template scenes name scripts by path only (no `uid=`), so a
   move without the rewrite breaks every scene that uses the script. **Seen:** gdstudio #923, 2026-11-10 (the review of
-  #896 found the stale copies; first parts moved: the effect pool, `TriggerZone`, `ExportPins`, `InputSim`).
+  #896 found the stale copies; first parts moved: the effect pool, `TriggerZone`, `ExportPins`, `InputSim`); gdstudio
+  #952, 2026-11-10 (the impacts, `SpawnPoint`, the shake, `ScreenHost`; an older game, synced, passed every suite).
 
 ## Not synced: what a new game is made from {#templates}
 

@@ -21,6 +21,11 @@ game's own models. Learned on Deadnight's branding (Deadnight #438): six shots, 
   without lighting the set; a rim from behind makes the dead read as silhouettes.
 - A camera aimed by where a subject should sit on screen needs Euler order `XYZ` (yaw outermost), set before the
   angles: in `ZXY` the pitch is applied outside the yaw, so the camera rolls and points away from the subject.
+- **Approach:** Fit a perspective camera to a subject by projecting every point of it into the camera's view and
+  sizing the frame by the farthest point on each side (twice the larger half from the centre), searching the camera's
+  distance until that fits. **Watch out for:** a fit by the subject's bounds or its middle leaves the near end bigger
+  than it looks from the centre, so the end nearest the lens was cut off the frame. **Seen:** the Blender model duel,
+  2026-11-10 (`fill_at` and `fit_distance` of its render helper).
 - Blender 5's compositor is a node group (`scene.compositing_node_group`) and the Glare node's settings are input
   sockets; `scene.use_nodes` and `scene.node_tree` are gone. Check the pinned version's API, not memory.
 

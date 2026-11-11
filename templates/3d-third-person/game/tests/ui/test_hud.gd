@@ -63,13 +63,26 @@ func test_every_hud_control_ignores_the_mouse() -> void:
 
 
 func test_a_part_with_no_data_is_hidden_and_takes_no_room() -> void:
-	# The real player has no health and no ammo, and has collected nothing.
+	# The real player has health (#876) and the pistol's ammo, and has collected nothing.
 	for widget in _hud.widgets():
-		if widget is HudStat or widget is ItemCounter:
+		if widget is HudStat and (widget as HudStat).value_property == &"health":
+			assert_bool(widget.has_data()).is_true()
+			assert_bool(widget.visible).is_true()
+		elif widget is HudStat and (widget as HudStat).value_property == &"ammo":
+			assert_bool(widget.visible).is_true()
+			assert_str((widget as HudStat).value_label.text).is_equal("12 | 36")
+		elif widget is HudStat or widget is ItemCounter:
 			assert_bool(widget.has_data()).is_false()
 			assert_bool(widget.visible).is_false()
-	assert_float(_region(&"BottomLeft").size.y).is_equal(0.0)
-	assert_bool(_hud.minimap_slot.visible).is_false()
+
+
+func test_the_health_shows_the_players_own_and_follows_a_hit() -> void:
+	var health: HudStat = _region(&"BottomLeft").get_node("HudHealth")
+	assert_str(health.value_label.text).is_equal("100 / 100")
+	_player.take_hit(HitRecord.shot(34.0, &"chest", &"spine_03", Vector3.INF, Vector3.ZERO, 0.0))
+	assert_str(health.value_label.text).is_equal("66 / 100")
+	# The slot holds the template's minimap, so it shows.
+	assert_bool(_hud.minimap_slot.visible).is_true()
 
 
 func test_the_coin_counter_appears_at_the_first_coin_and_counts() -> void:
@@ -145,7 +158,7 @@ func test_ammo_reads_the_weapon_and_follows_a_swapped_weapon() -> void:
 func test_a_part_looks_for_another_player_when_told_one() -> void:
 	var part := (load(HEALTH) as PackedScene).instantiate() as HudStat
 	_hud.add_widget(part, &"BottomLeft")
-	# It bound to the real player, which has no health.
+	# It bound to the real player.
 	assert_object(part.bound_to()).is_same(_player)
 	var subject := HudSubject.new()
 	add_child(auto_free(subject))
@@ -225,12 +238,14 @@ func test_every_export_of_the_hud_and_a_stat_has_its_default_pinned() -> void:
 		&"source": HudStat.Source.PLAYER,
 		&"value_property": &"health",
 		&"max_property": &"max_health",
+		&"extra_property": &"",
 		&"refresh_signals": null,
 		&"title": "Health",
 		&"show_title": true,
 		&"show_bar": true,
 		&"value_format": "{value}",
 		&"max_format": "{value} / {max}",
+		&"extra_format": "",
 		&"low_share": 0.25,
 		&"low_color": Color(1.0, 0.4, 0.35, 1.0),
 		&"title_label": null,
@@ -264,9 +279,14 @@ func test_every_export_of_the_hud_and_a_stat_has_its_default_pinned() -> void:
 
 
 func test_the_minimap_slot_shows_while_something_is_in_it() -> void:
+	for child in _hud.minimap_slot.get_children():
+		child.free()
+	assert_bool(_hud.minimap_slot.visible).is_false()
 	var map := Control.new()
 	_hud.minimap_slot.add_child(map)
 	assert_bool(_hud.minimap_slot.visible).is_true()
-	assert_float(_hud.minimap_slot.size.x).is_equal(_hud.minimap_slot.custom_minimum_size.x)
+	map.custom_minimum_size = Vector2(120.0, 120.0)
+	await get_tree().process_frame
+	assert_float(_hud.minimap_slot.size.x).is_equal(120.0)
 	map.free()
 	assert_bool(_hud.minimap_slot.visible).is_false()

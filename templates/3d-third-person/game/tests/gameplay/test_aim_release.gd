@@ -6,9 +6,9 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 var _camera: Camera3D
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -16,7 +16,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_tuning = _player.tuning
 	_animation = _player.get_node("Animation")
 	# A camera 3 m behind the character looking along -Z, at the height of its hands.

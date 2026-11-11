@@ -126,5 +126,9 @@ From the Soldier's aim-move clips (Deadnight #74):
 
 A `SkeletonModifier3D` (for example arm IK that puts both hands on a held weapon) changes the pose only for the
 skeleton's update: read and test its result in a `skeleton_updated` handler, since `get_bone_global_pose` after the
-frame returns the clip's pose. Blend the modifier out while a clip owns the arms (reload, swing). Held items are
+frame returns the clip's pose. Blend the modifier out while a clip owns the arms (reload, swing).
+With no scene running (a test that poses a skeleton by hand, no update between poses), `get_bone_global_pose` and
+`set_bone_global_pose` gave results that depended on the poses set before: work a bone's global pose out from the
+local poses up its parents instead (the 3D Third Person template's `HandPoseModifier.global_pose()`,
+gdstudio #1001). Held items are
 scaled by one written rule against the character's in-game height, including any scale on the character's scene.

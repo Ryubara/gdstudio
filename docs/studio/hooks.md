@@ -25,9 +25,9 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
 | Godot audio | a Godot started with a real `--audio-driver` (not `Dummy`), or `gds godot --with-audio`: it plays through the speakers of the person at the machine (docs/engines/godot/no-focus.md#sound) | drop the option: `gds godot` adds `--audio-driver Dummy`, `--headless` and Movie Maker force it |
 | Browser probes | a `tools/web_smoke/*.py` script or a Playwright run (`playwright test`, `uv run --with playwright python x.py`) not wrapped in `gds quiet`: headless Chrome under pointer lock clips the person's cursor (docs/engines/godot/no-focus.md) | `gds quiet -- <command>` |
-| Pull request images | `gh pr create\|edit --attach <file>` whose body file (`--body-file`, or a literal `--body`) does not refer to every attached file inside `## Screenshots` by a path that names the same file as `--attach` (`./x.png` is `<the folder the command runs in>/x.png`, [below](#attach-paths)), has no image between `Before:` and `After:` (unless `Before: none (reason)`) or none below `After:`, or cannot be read before the command runs (`[attach]` in `hooks.toml`) | write the body to a file with `![before](../before.png)` / `![after](../after.png)` on those lines, `cd` into the folder that holds the images, then `--body-file <file> --attach ./before.png ...`; read the body back |
-| Local images left in a pull request | after a shell command that opened or edited a pull request, or printed one's address as its last line (a script, an alias): the description read back from GitHub still has a `![x](../x.png)` reference that is not an upload (`readback` in `[attach]`) | the answer names the references; fix the description at once ([below](#attach-paths)) |
-| Pull request body | `gh pr create\|edit` with a `--body-file` (or a literal `--body`) that `groundwork.py check-body` refuses: the rules `pr-rules` runs after the push (`[pr_body]` in `hooks.toml`, [below](#pr-body)) | fix the body file, check it with `gds pr check-body <file> [--title <file>]`, then run the command |
+| Pull request images | `gh pr create\|edit --attach <file>` whose body file (`--body-file`, or a literal `--body`) does not refer to every attached file inside `## Screenshots` by a path that names the same file as `--attach` (`./x.png` is `<the folder the command runs in>/x.png`, [the image guard](pull-requests.md#attach-paths)), has no image between `Before:` and `After:` (unless `Before: none (reason)`) or none below `After:`, or cannot be read before the command runs (`[attach]` in `hooks.toml`) | write the body to a file with `![before](../before.png)` / `![after](../after.png)` on those lines, `cd` into the folder that holds the images, then `--body-file <file> --attach ./before.png ...`; read the body back |
+| Local images left in a pull request | after a shell command that opened or edited a pull request, or printed one's address as its last line (a script, an alias): the description read back from GitHub still has a `![x](../x.png)` reference that is not an upload (`readback` in `[attach]`) | the answer names the references; fix the description at once ([the image guard](pull-requests.md#attach-paths)) |
+| Pull request body | `gh pr create\|edit` with a `--body-file` (or a literal `--body`) that `groundwork.py check-body` refuses: the rules `pr-rules` runs after the push (`[pr_body]` in `hooks.toml`, [the body guard](pull-requests.md#pr-body)) | fix the body file, check it with `gds pr check-body <file> [--title <file>]`, then run the command |
 | Kills | stopping Godot or Blender by name (`taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name`): every agent's run dies | kill your own process by its PID |
 | Secrets | printing a key-like variable; dumping the environment | test that it is set |
 | Files | editing secrets, caches, git internals, pinned tools; generated files | edit the source (`conventions.yml`, then render) |
@@ -37,82 +37,13 @@ fails, the call is allowed and the error printed, so a broken guard never locks 
 
 ## Pull request bodies before they are sent {#pr-body}
 
-`pr-rules` judges a description after the push, and an agent whose body failed only found out there (a `None` line
-without its reason, text after it, a missing section). `gds pr check-body <file> [--title <file>] [--repo <folder>]`
-runs the same function, `groundwork.py check-body`, on the machine and exits 1 with the reasons (2 when it cannot run:
-no conventions, not a checkout). It runs in the checkout of the repository the pull request is for and reads that
-repository's `.github/conventions.yml`, with its own `.github/scripts/groundwork.py` when it has one (a game's rules
-differ from the kit's), else the kit's. The Git/GitHub guard does the same before `gh pr create|edit` runs: it reads
-the body once, the same read `--attach` uses, runs the check in the checkout around the current folder (or the
-`<workspace>/repos/<name>` checkout that `-R owner/name` names, when that is another repository) and refuses with the
-reasons and the command to run. `--title` on the command turns on the title rules (screenshots, failed first, lessons).
-Not judged, because they cannot be read first: a body from standard input, a file not written yet, a literal body with a
-backtick or `$(`, a `gh pr edit` without a body, and a repository with no checkout. The pull request's history is not
-asked (no network), so "a check failed on an earlier commit" is still `pr-rules`' alone to judge.
-A `](../path)` reference to a file the same command passes with `--attach` (the same file, [below](#attach-paths)) counts
-as an uploaded capture there (the guard swaps in an upload address before it asks, as `--attach` does), so one body
-satisfies both guards; a reference to a file that is not attached, or the same body without `--attach`, is refused.
-`gds pr check-body` by hand has no `--attach` and still wants uploaded captures
-([Pull requests](pull-requests.md#attach)). A relative `--body-file` is read
-from the folder the command is in after its `cd` (`cd <dir> &&` or `cd <dir>;`, quoted paths, `cd /d`, `~` and Git
-Bash's `/c/dir` included), the way `gh` reads it. A `cd` the guard cannot follow (`cd -`, `cd $DIR`, a glob) leaves a
-relative body file unplaced: `--attach` is then refused with "use an absolute path", and without `--attach` the body
-is not judged. The refusal for a missing file names the path it looked in
-([Writing checks](writing-checks.md#paths)). `--attach` paths are never
-opened by the guard, only placed and compared with the references ([below](#attach-paths)). The docs rule of
-`pr-rules` (code changed, no docs changed, no `Docs: none` line) reads the branch's files: `gds pr check-body` and the
-guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
-branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
-`docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([Writing checks](writing-checks.md#same-input)).
-
-- **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
-  and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
-  when a pull request had nowhere to name them. **Seen:** Deadnight, 2026-11-01 (fix: the template carries both sections
-  and the body check reads them before a pull request is sent).
-- **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
-  `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
-  Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
-
-- **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
-  body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
-  `check-body` does not see the history, so it passed; the `body` check then failed on the fix commit ("build-ok failed
-  on an earlier commit of it") and the pull request sat red until the line was added. **Seen:** gdstudio #821, 2026-11-08
-  (the `template` job failed once; the body got its `Lessons:` line after the fix push).
+Moved to [Pull requests: the body guard](pull-requests.md#pr-body): `gds pr check-body`, the guard before `gh pr
+create|edit` and what neither can judge. This page had reached its size limit.
 
 ## Which paths the image guard covers {#attach-paths}
 
-`gh pr create|edit --attach` uploads each file and rewrites a `![alt](../path)` reference in the body to the upload, in
-place, **only when the reference and the `--attach` path name the same file**. `gh` places both from the folder it runs
-in. With the command run in the worktree, `--attach <scratch>/before.png` and `![before](../before.png)` are two files:
-the reference stays `./before.png`, the upload is appended after `## AI use`, and `pr-rules` fails with "the 'Before:'
-capture is missing". Measured on 2026-11-03 with `gh` 2.102.0 (`gh issue edit --attach` shares the code):
-
-| `gh` runs in | `--attach` | reference in the body | rewritten in place |
-| --- | --- | --- | --- |
-| the worktree | `<scratch>/x.png` | `./x.png` | no (the upload is appended after `## AI use`) |
-| the images' folder | `<scratch>/x.png`, `./x.png` or `x.png` | `./x.png` or `x.png` | yes |
-| the worktree | `<scratch>/x.png` | `<scratch>/x.png` | yes |
-| the worktree | `<scratch>/x.png` | a relative path that resolves to it | yes |
-
-The guard before the command used to match by file name alone, so it passed the first row. Deadnight #611 and #637
-were opened that way through the Bash tool, which the guard does see: the body file was written first, `--attach` took
-absolute paths in the scratch folder, and the command ran in the worktree (the body history on GitHub shows the first
-body with `](../before-desktop-2-solo.png)` references and the uploads appended). 17 Deadnight pull requests of
-2026-11-02 and 03 had a description revision with `./` image references. The guard now places the reference and the
-`--attach` path (`file_key` in `.claude/hooks/guards.py`, following a plain `cd`, `pushd` or `Set-Location`) and refuses
-the pair that is not one file, naming both paths and the folder `gh` would read from. The Bash and PowerShell tools are
-judged alike. A `cd` it cannot follow (`cd $DIR`) leaves a relative reference unplaced, so it is refused too. The body
-guard reads the same placing (`as_uploaded`): a `./x.png` reference that `gh` would leave local stays local for the
-description rules, and the two guards agree.
-
-Paths the guard cannot read are covered by a second line, a `PostToolUse` read-back. After a shell command that ran
-`gh pr create|edit`, or whose last output line is a pull request address (a script that runs `gh`, an alias), the
-description is fetched (`gh pr view <url> --json body`) and any `![x](../x.png)` reference to an image that is not an
-upload is named in the answer, with the command that repairs it. It is advice, not a refusal (the pull request already
-exists), and `readback = false` in `[attach]` turns it off. Neither check can read a script file (`python open_pr.py`
-runs `gh` out of sight; only the read-back sees its result) or a `gh api` call that sets a body; `pr-rules` in CI
-remains the last check.
+Moved to [Pull requests: the image guard](pull-requests.md#attach-paths): the measured table of what `gh --attach`
+rewrites, and the read-back after the command.
 
 ## Commit messages before they leave the machine {#pre-push}
 
@@ -196,6 +127,7 @@ an alias made before this guard, a `gh` extension, `curl` with a token, the webs
 `gds` is the last of these and has its own rule, because it runs under the maintainer's account: `run_gh` in
 `python/src/gds_tools/issues.py` is its one way to run `gh`, and refuses what `posts_a_comment` names; a test fails
 if a second way appears. `gds issue start`, `release` and `unblock` change labels and the ledger and post nothing.
+Until 2026-11-06 they did post, and this page called it by design.
 Comments a workflow posts with `GITHUB_TOKEN` appear under `github-actions[bot]`, not under the maintainer.
 
 A second copy of the rule runs on the maintainer's machine, for every project: the user-level hook
@@ -322,17 +254,17 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
 - **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
   with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
   session back once, naming the branch. If GitHub cannot be asked, the hook lets go.
+- **Only its own branches.** The gate names a branch the session owns (`owned_kit_worktrees`): the worktree of its
+  `cwd`; the one its prompt names (`Worktree:`) or the ledger holds for its `Issue:` (read from the first user messages
+  of its transcript); one named in its `git commit`, `git worktree add` or `git merge` commands. A session that owns
+  none (an eval run, the coordinator) is never held for others' branches; the check below does the same.
 - **Commits after a merge.** The same list gives the tip a branch's last merged pull request landed (`headRefOid`).
-  A branch whose pull request is merged (and none is open) and which then got a commit is also named, when
-  `git cherry origin/main HEAD <tip>` still marks that commit `+`: the commits after the tip, compared to `origin/main`
-  by patch id, because a squash merge rewrites every hash. The message says to make a new branch from `origin/main`,
-  cherry-pick the commit, open a new pull request, and reset the old branch to the merged tip (so it is not named
-  again). A commit that already reached `origin/main` through a new pull request has the same patch id and is not
-  named; one squashed there with other commits has a new patch id, so each `+` commit is also read by content and is
-  stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
-  is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
-  the gap that lost a lesson twice (kit #175 and #176;
-  [Starting work](starting-work.md#landing)).
+  A merged branch (none open) that then got a commit is also named, when `git cherry origin/main HEAD <tip>` marks the
+  commit `+` (by patch id, since a squash merge rewrites every hash). The message says to make a new branch from
+  `origin/main`, cherry-pick the commit, open a new pull request, and reset the old branch. A commit
+  that reached `origin/main` through a new pull request has the same patch id and is not named; one squashed there
+  with others is read by content: stranded only if a path it touches differs from `origin/main`'s blob. If the tip is
+  unknown in the worktree (the branch was rewritten), the hook lets go ([Starting work](starting-work.md#landing)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
@@ -381,6 +313,11 @@ game's `lessons` rule without `names: section` keeps the old form.
   docs, and an agent's own fixes left none. **Seen:** Deadnight #507, gdstudio #99, 2026-11-02 (fix: the Stop and
   SubagentStop gates flag a kit branch with commits and no pull request and a report with mistakes and no section; `gds
   issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99)).
+
+- **Approach:** Judge a Stop gate against the stopping session's own work: name only the branches it owns (its `cwd`,
+  prompt, ledger entry and commands). **Watch out for:** a gate over every kit worktree held each agent, the
+  coordinator and eval runs to disclaim the others' branches, and ate an eval run's report.
+  **Seen:** gdstudio #895, 2026-11-10.
 
 ## Agent stalls {#stall}
 
@@ -513,6 +450,9 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
   read past corrections before starting. **Seen:** Deadnight, 2026-11-01 (fix: the learning hooks (kit #72)).
 
 ## Tests {#tests}
+
+How the run works (the command, CI's four workers, the seeded repositories of `python/tests/git_seed.py`, the
+allowed skips) is on [The kit's tests](kit-tests.md); this section says which file covers which hook.
 
 `python/tests/test_hooks.py` covers every guard (the comment guard with one case per route, spelling and mutation, and
 one per command that must keep working), the answer protocol, the fail-open path, the issue-order checks, the

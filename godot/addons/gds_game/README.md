@@ -11,11 +11,22 @@ its copy.
 | Folder | What |
 | --- | --- |
 | `effects/` | `EffectDef` (what an effect is), `EffectEmitter` (one capped pool of one-shot effects, found by `EffectEmitter.find(self)`), `EffectSlot` (one playing effect) |
-| `trigger_zone/` | `TriggerZone`: an area that says when the first body comes in and the last one leaves |
+| `trigger_zone/` | `TriggerZone`: an area that says when the first body comes in and the last one leaves; with `sensing` off it notices nothing and shows what `show_active` says (a copy whose state is owned elsewhere: an online client's) |
+| `impacts/` | `Impacts` (where a shot lands: a mark on the body it hit, an effect and a sound by the kind of surface; `impact(collider, point, normal)`), `ImpactSurface` (one kind of surface), `ImpactMark` (one mark) |
+| `spawn_point/` | `SpawnPoint`: where something starts, in a named group; `SpawnPoint.pick()` passes over a point taken in the same frame |
+| `camera_shake/` | `CameraShake` (the trauma shake a camera rig applies; `CameraShake.shake(preset, at)` from anywhere) and `ShakePreset` (one kind of shake as a resource) |
+| `screen_host/` | `ScreenHost`: opens `UIRouter` screens over the running game, pauses it (unless the top screen's `pauses_game()` says no) and gives it back; its `menu_scene` is set by the game's scene (empty: the project's main scene); needs `gds_ui` |
+| `hits/` | `Health` (the harm a character, a target or a prop can take: `apply(hit)`, `damaged`, `changed`, `flinched`, `died` once, regeneration, invulnerable; found on a body by `Health.of(body)`) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; about 40 bytes on the wire) |
+| `interact/` | `Interactable`: an area on the Sensors layer that makes its parent usable; `interact(by)` says `interacted`, so a door, a lever or a chest needs no method of its own |
+| `inventory/` | `Inventory` (a bag of numbered slots of stacks: add, move, remove, drop in front of the owner; filled from a collector's pickup signal by its `catalog`), `ItemDef` (one kind of item), `ItemStack` (an item and a count); kit `docs/engines/godot/inventory.md` |
+| `traversal/` | `Vaultable` (on an obstacle: it may be vaulted over or mantled onto, from which faces, with what overrides), `VaultSettings` (the numbers, as a resource), `VaultProbe` (shape casts that measure the obstacle ahead and plan a crossing) and `VaultPlan` (the crossing: kind, measurements, the warped path) |
 | `testing/` | `ExportPins` (pins every export's default in a suite) and `InputSim` (key, pad and mouse events through the `InputMap`, waits in physics ticks); used by suites only |
 
-The scenes that carry these scripts are the template's and the game's own (3D Third Person's
-`gameplay/effects/effect_emitter.tscn`, `gameplay/trigger_zone/trigger_zone.tscn`): restyle and retune them there.
+The scenes and resources that carry these scripts are the template's and the game's own (3D Third Person's
+`gameplay/effects/effect_emitter.tscn`, `gameplay/trigger_zone/trigger_zone.tscn`, `gameplay/impacts/impacts.tscn`,
+`gameplay/spawn_point/spawn_point.tscn`, `ui/menus/screen_host.tscn`, the `Inventory` node of
+`gameplay/player/player.tscn`, and 3D Blank's shake presets in
+`core/camera_shake/presets/`): restyle and retune them there.
 
 ## What goes here
 

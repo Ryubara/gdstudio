@@ -304,6 +304,10 @@ they exist.
   harness says it is. **Watch out for:** the coordinator copied its own model into briefs, but the godot-engineer runs
   another model, so an agent had to rewrite its unpushed commit messages and the others needed a correction mid-task.
   **Seen:** gdstudio #875, 2026-11-10 (fix: briefs say to name the model the agent actually runs as).
+- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, whatever
+  the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
+  captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
+  #880 and #886, 2026-11-10.
 
 ## The report {#the-report}
 
@@ -325,6 +329,16 @@ SubagentStop holds back once a task agent's report that names a pull request wit
 ([Hooks: docs](hooks.md#docs)). The coordinator reads them: a gap the agent did not fix itself becomes a docs change or
 an issue, and a section that was read and did not help is one to leave out of the next brief. A pull request that
 closes an issue names the same sections on its `Read first:` line.
+
+- **Approach:** Name a section on `Read:`, `Read first:` and `Lessons:` by its path under `docs/` in full
+  (`engines/godot/ragdoll.md#limits`), never by the page alone. **Watch out for:** the kit's body check looks each
+  section up from `docs/`, so `ragdoll.md#limits` is refused as a section that does not exist. **Seen:** gdstudio
+  #846, 2026-11-10.
+- **Approach:** List on `Read first:` and in the report's `Read:` only the sections you opened, and run `gds learn
+  <words>` for more before you start; a brief's line you skipped is left out or named as skipped. **Watch out for:**
+  the check sees that a section exists, not that it was read, so a body that copied all six `Read:` lines of its
+  brief, one of them read, passed; it came out only after the merge, and the coordinator corrected the body. **Seen:**
+  gdstudio #928 (PR #987), 2026-11-10.
 
 ## Looking {#looking}
 
@@ -410,8 +424,9 @@ Open pull requests come before new work: each one left open goes stale against `
   for the maintainer.
 - **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
-  passed. Several land one at a time. On 2026-11-06 three parked pull requests landed unrefreshed and `main` went red: a
-  shorter reload met a test added after its last run.
+  passed, and new commits that look unrelated are no exception. Several land one at a time. On 2026-11-06 three parked
+  pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
+  2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
   ([Pausing a game](#paused)). Landing what you would recommend does not reach past the pause.
@@ -517,8 +532,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
   so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
   limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02; Deadnight #656 and #410,
-  2026-11-02.
+  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
+  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

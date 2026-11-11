@@ -10,7 +10,7 @@ const TARGET := "res://gameplay/target/target.tscn"
 var _arena: PlayArena
 var _player: Player
 var _camera: Camera3D
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -19,7 +19,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_tuning = _player.tuning
 	# A camera 3 m behind the character looking along -Z, at the height of its hands.
 	_camera = Camera3D.new()
@@ -36,6 +38,13 @@ func after_test() -> void:
 
 func _weapon() -> Weapon:
 	return _player.weapon
+
+
+# Fires the weapon along the ray under the crosshair, as the body does with the ray its input
+# puts in the command (the weapon itself reads no camera).
+func _fire_at_the_crosshair() -> Projectile:
+	var ray := CameraAim.crosshair_ray(_camera)
+	return _weapon().fire(ray[0], ray[1])
 
 
 func _hold_aim() -> void:
@@ -129,8 +138,10 @@ func test_the_fire_button_aims_and_shoots_one_projectile_a_press() -> void:
 
 
 func test_holding_fire_shoots_over_and_over_when_the_weapon_is_automatic() -> void:
-	_weapon().automatic = true
-	_weapon().fire_rate = 10.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon().definition = _weapon().definition.duplicate()
+	_weapon().definition.automatic = true
+	_weapon().definition.fire_rate = 10.0
 	var shots: Array[Projectile] = []
 	_weapon().fired.connect(func(shot: Projectile) -> void: shots.append(shot))
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
@@ -139,7 +150,9 @@ func test_holding_fire_shoots_over_and_over_when_the_weapon_is_automatic() -> vo
 
 
 func test_the_fire_rate_spaces_the_shots() -> void:
-	_weapon().fire_rate = 2.0
+	# Its own copy: the pistol's definition is shared by every weapon that holds it.
+	_weapon().definition = _weapon().definition.duplicate()
+	_weapon().definition.fire_rate = 2.0
 	assert_object(_weapon().fire()).is_not_null()
 	assert_object(_weapon().fire()).is_null()
 	await InputSim.ticks(get_tree(), 20)
@@ -158,9 +171,10 @@ func test_a_shot_leaves_the_muzzle_and_flies_to_the_point_under_the_crosshair() 
 	var middle := board.global_position + Vector3(0.0, board.get_node("%Pivot").position.y, 0.0)
 	_camera.position = Vector3(0.0, middle.y, 3.0)
 	await InputSim.ticks(get_tree(), 2)
-	var point := _weapon().aim_point()
+	var ray := CameraAim.crosshair_ray(_camera)
+	var point := _weapon().aim_point(ray[0], ray[1])
 	assert_float(point.z).is_equal_approx(-12.0, 0.2)
-	var shot := _weapon().fire()
+	var shot := _fire_at_the_crosshair()
 	assert_object(shot).is_not_null()
 	assert_vector(shot.global_position).is_equal_approx(
 		_weapon().muzzle.global_position, Vector3.ONE * 0.1
@@ -168,7 +182,9 @@ func test_a_shot_leaves_the_muzzle_and_flies_to_the_point_under_the_crosshair() 
 	# The shot's direction is from the muzzle to the aim point.
 	var want := (point - _weapon().muzzle.global_position).normalized()
 	assert_float(shot.velocity.normalized().dot(want)).is_greater(0.999)
-	assert_float(shot.velocity.length()).is_equal_approx(_weapon().projectile_speed, 0.01)
+	assert_float(shot.velocity.length()).is_equal_approx(
+		_weapon().definition.projectile_speed, 0.01
+	)
 	var hit: Array = []
 	shot.impacted.connect(
 		func(collider: Node, _p: Vector3, _n: Vector3) -> void: hit.append(collider)
@@ -186,7 +202,7 @@ func test_a_shot_moves_a_cube_it_hits() -> void:
 	_arena.add_child(cube)
 	_camera.position = Vector3(0.0, 0.5, 3.0)
 	await InputSim.ticks(get_tree(), 4)
-	var shot := _weapon().fire()
+	var shot := _fire_at_the_crosshair()
 	assert_object(shot).is_not_null()
 	# The push shows for a moment (the cube's friction stops it soon): read the fastest tick.
 	var fastest := 0.0
@@ -205,7 +221,7 @@ func test_a_target_stands_up_again_after_its_reset_time() -> void:
 	_arena.add_child(board)
 	_camera.position = Vector3(0.0, 0.9, 3.0)
 	await InputSim.ticks(get_tree(), 4)
-	_weapon().fire()
+	_fire_at_the_crosshair()
 	await InputSim.ticks(get_tree(), 30)
 	assert_bool(board.is_down()).is_true()
 	assert_float(board.tilt()).is_equal_approx(board.drop_angle, 1.0)
@@ -215,7 +231,7 @@ func test_a_target_stands_up_again_after_its_reset_time() -> void:
 
 
 func test_a_projectile_never_hits_the_one_who_fired_it() -> void:
-	var shot := _weapon().fire()
+	var shot := _fire_at_the_crosshair()
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(is_instance_valid(shot) and not shot.is_queued_for_deletion()).is_true()
 	assert_bool(_player.get_slide_collision_count() >= 0).is_true()

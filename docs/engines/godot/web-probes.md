@@ -45,6 +45,58 @@ command is the same there (off Windows it starts the program normally).
   injected this way. **Seen:** Deadnight, 2026-11-01 (fix: direct protocol, no package downloaded; the GPU still
   works through ANGLE).
 
+## The boot check every template runs {#boot-check}
+
+<!-- new section: CI exported the web build and never opened it; a script failing only in a browser passed (#921) -->
+
+The kit's `template` job and a game's own `web` job open the web export in headless Chromium after exporting it
+(`game/tools/web_smoke/boot_check.py`, a file the kit syncs into every game from `templates/game/`). It serves
+`build/web`, opens `index.html?probe` and waits for the game's probe to write `ready` to `window.gdprobe` (`WebProbe`
+in 3D Blank, `MenuProbe` in the menu of 3D Third Person). It fails on a console error, a page error, a request that
+failed or answered 400 or more (the favicon aside), or no `ready` within 60 s, printing the engine's own
+`#status-notice` when there is one. It records, and never gates on, the seconds to the first frames, the longest frame
+in the 3 s after them, and the sizes of the pack, the wasm and the folder, as a table in the job summary and in
+`<out>/boot.json`; a shot of the first frames goes to `<out>/boot.png`. A template that has
+`tools/web_smoke/touch_smoke.py` runs it in the next step (3D Third Person: 17 checks, 21 s on a PC and about 90 s on the
+runner, at `--ratio 1 --no-shots`), and both write their files to a `web-smoke` artifact.
+
+Run the same step locally from a made game (`gds template game <template>` keeps one for probes), after
+`godot --headless --path game --export-release Web` with the pinned Godot:
+
+```text
+uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 python game/tools/web_smoke/boot_check.py build/web build/boot
+```
+
+A game that has no probe in its main scene fails with "did not report ready": add a node that writes `ready` (the 3D
+Blank `ui/probe/web_probe.gd` is 34 lines) rather than loosening the check.
+
+- **Approach:** Time the first frames of a page with `performance.now()` read inside the `requestAnimationFrame` callback,
+  never the callback's timestamp argument. **Watch out for:** the argument is when the frame began, and the engine's
+  start blocks the main thread for most of a second, so the callback ran late and its timestamp read 0.17 s while the
+  page took 1.03 s to say ready. **Seen:** gdstudio #921, 2026-11-10 (fix: `WATCH` in `boot_check.py`).
+- **Approach:** Keep a boot check's `ready` for what the game's probe says and the frame time as a note: a first-use
+  hitch (a shader linked at the first shot, [first-use hitches](first-use-hitches.md)) is outside it, because the boot
+  never fires. **Watch out for:** the longest frame in the seconds after ready was 0.6 to 0.8 s in both templates on
+  software GL, which is the first frames' own shader work and not a regression; read it against `main`'s runs of the
+  same runner. **Seen:** gdstudio #921, 2026-11-10 (the first-shot hitch of #946 is not seen by it).
+
+- **Approach:** A smoke that measures a distance or a turn in a duration waits on the game's own clock: the probe writes
+  `ticks` (`Engine.get_physics_frames()`) and the smoke waits for N ticks (`sim_wait` in `touch_smoke.py`), and CI opens
+  a phone page at a device pixel ratio of 1 (`--ratio 1`) without its pictures (`--no-shots`; a failure still leaves
+  `failed.png`), since every check reads the canvas's own scale. **Watch out
+  for:** on the runner's software renderer the same `time.sleep(0.8)` was a fraction of the game time, so "keeps
+  walking after the look finger lifts" read 0.28 m and then 0.56 m against 2 m on a PC, and the whole smoke took 4 min
+  16 s at ratio 2 (the page drew 1688 by 780 pixels in SwiftShader). **Seen:** gdstudio #921, 2026-11-10 (fix: ticks
+  and `--ratio 1`).
+
+- **Approach:** A check that a press caused an effect waits on the game's word that it began (the probe's `jumps`),
+  then watches the effect from that sample (the rise, until it passes 0.3 m or 90 ticks), never a window of ticks
+  counted from the press. **Watch out for:** the old jump check read the height for 30 ticks from a snapshot taken
+  before the press, the jump takes about 30 ticks to its apex and the first sample after a press is 14 to 17 ticks in,
+  so a press reaching the game late left too little window, and over 30 ticks none ("jumps 0 to 1, rose 0.00 m"). A
+  page 30 times slower and a main thread held for 6 s did not reproduce it; `--throttle` and `--stall-jump` of
+  `touch_smoke.py` try it. **Seen:** gdstudio #991, 2026-11-10 (fix: waits on `jumps`; 20 of 20 runs passed).
+
 ## What a probe can see {#what-a-probe-sees}
 
 - **Approach:** Give a browser test a probe node that, only when `OS.has_feature("web")` and the page asks for it

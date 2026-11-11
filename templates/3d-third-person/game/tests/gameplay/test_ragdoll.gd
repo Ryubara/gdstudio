@@ -4,16 +4,21 @@
 # test_ragdoll_physics.gd, the live exports of the Ragdoll node in test_ragdoll_live.gd.
 extends GdUnitTestSuite
 
+## The most ticks a dead body gets to come to rest (20 s).
+const SETTLE_TICKS := 1200
+
 var _arena: PlayArena
 var _player: Player
-var _ragdoll: PlayerRagdoll
+var _ragdoll: CharacterRagdoll
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_ragdoll = _player.ragdoll_body
 	await InputSim.ticks(get_tree(), 4)
 
@@ -33,17 +38,28 @@ func _press_y() -> void:
 	await _ticks(1)
 
 
-func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
-	var player_pins := {
+func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
+	var character_pins := {
 		&"tuning": null,
-		&"start_at_spawn": true,
+		&"prone_tuning": null,
+		&"slide_tuning": null,
 		&"model": null,
+		&"controller": null,
 		&"weapon": null,
+		&"loadout": null,
 		&"ragdoll_body": null,
 		&"ragdoll": false,
-		&"ragdoll_key": KEY_Y,
-		&"input_enabled": true,
+		&"ragdoll_by_command": true,
+		&"vault_settings": null,
 	}
+	var body := auto_free(load("res://gameplay/character/character.gd").new()) as Character
+	assert_array(ExportPins.differences(body, character_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(body, character_pins)).is_empty()
+	# The human adds its own on top of the character's.
+	var player_pins := character_pins.duplicate()
+	player_pins.merge(
+		{&"start_at_spawn": true, &"input_enabled": true, &"ragdoll_key": KEY_Y, &"inventory": null}
+	)
 	var fresh := auto_free(load("res://gameplay/player/player.gd").new()) as Player
 	assert_array(ExportPins.differences(fresh, player_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, player_pins)).is_empty()
@@ -52,7 +68,8 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"mass": 70.0,
 		&"thickness": 1.0,
 		&"joint_range": 1.0,
-		&"hinge_passes": 4,
+		&"hinge_passes": 6,
+		&"cone_passes": 6,
 		&"linear_damp": 0.1,
 		&"angular_damp": 2.0,
 		&"friction": 0.8,
@@ -65,10 +82,11 @@ func test_the_player_and_its_ragdoll_pin_their_exports() -> void:
 		&"max_active": 4,
 		&"settle_time": 8.0,
 		&"ragdoll_range": 0.0,
-		&"collision_layer": 16,
-		&"collision_mask": 17,
+		&"editor_preview": true,
+		&"collision_layer": PhysicsLayers.RAGDOLL,
+		&"collision_mask": PhysicsLayers.RAGDOLL_MASK,
 	}
-	var ragdoll := auto_free(PlayerRagdoll.new()) as PlayerRagdoll
+	var ragdoll := auto_free(CharacterRagdoll.new()) as CharacterRagdoll
 	assert_array(ExportPins.differences(ragdoll, ragdoll_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(ragdoll, ragdoll_pins)).is_empty()
 
@@ -79,6 +97,22 @@ func test_the_scene_wires_a_ragdoll_with_sixteen_bones_that_rest_while_alive() -
 	assert_bool(_ragdoll.is_active()).is_false()
 	for bone in [&"pelvis", &"Head", &"hand_l", &"hand_r", &"foot_l", &"foot_r"]:
 		assert_object(_ragdoll.body(bone)).is_not_null()
+
+
+# A character that never dies never pays for its bones (gdstudio #926: 16 bodies and 33 nodes
+# from the spawn, about 25 microseconds a frame each): they are made on the first death.
+func test_a_living_character_carries_no_physical_bone_until_it_dies() -> void:
+	var skeleton := _player.model.skeleton()
+	await _ticks(30)
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(0)
+	_player.die()
+	await _ticks(2)
+	assert_bool(_ragdoll.is_limp()).is_true()
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(16)
+	_player.revive()
+	await _ticks(60)
+	# Made once: getting up keeps them for the next death.
+	assert_int(skeleton.find_children("*", "PhysicalBone3D", true, false).size()).is_equal(16)
 
 
 func test_y_kills_and_revives_and_the_checkbox_follows() -> void:
@@ -114,7 +148,14 @@ func test_a_dead_body_ignores_every_gameplay_input() -> void:
 	var shots := [0]
 	_player.weapon.fired.connect(func(_p: Projectile) -> void: shots[0] += 1)
 	_player.die()
-	await _ticks(180)
+	# Wait until every bone sleeps, not a fixed time: the pose at death is on the real clock, so
+	# some falls are still sliding after three seconds and moved the hips with no key pressed.
+	_ragdoll.settle_time = 1.0
+	for _tick in SETTLE_TICKS:
+		if _ragdoll.is_settled():
+			break
+		await get_tree().physics_frame
+	assert_bool(_ragdoll.is_settled()).is_true()
 	var spot := _player.global_position
 	var hips := _ragdoll.hips()
 	for key in [KEY_W, KEY_SPACE, KEY_SHIFT, KEY_C, KEY_E]:

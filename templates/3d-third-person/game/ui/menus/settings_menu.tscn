@@ -227,6 +227,28 @@ hint = "Push the mouse forward to look down."
 [node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/InvertY"]
 script = ExtResource("10_toggle")
 
+[node name="CameraShake" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Camera shake"
+key = &"controls/camera_shake"
+hint = "0 turns every shake of the view off."
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/CameraShake"]
+script = ExtResource("9_slider")
+min_value = 0.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="PauseInInventory" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Pause in the inventory"
+key = &"controls/pause_in_inventory"
+hint = "Off: the world goes on while the bag is open."
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/PauseInInventory"]
+script = ExtResource("10_toggle")
+
 [node name="Footer" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column"]
 theme_override_constants/separation = 16
 

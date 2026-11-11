@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 const LEVEL := "res://world/prototype/prototype_level.tscn"
 
 var _level: Node3D
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:

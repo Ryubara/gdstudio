@@ -41,6 +41,14 @@ MOVED: dict[str, str] = {
     "res://gameplay/effects/effect_def.gd": "res://addons/gds_game/effects/effect_def.gd",
     "res://gameplay/effects/effect_emitter.gd": "res://addons/gds_game/effects/effect_emitter.gd",
     "res://gameplay/effects/effect_slot.gd": "res://addons/gds_game/effects/effect_slot.gd",
+    "res://gameplay/impacts/impacts.gd": "res://addons/gds_game/impacts/impacts.gd",
+    "res://gameplay/impacts/impact_surface.gd": "res://addons/gds_game/impacts/impact_surface.gd",
+    "res://gameplay/impacts/impact_mark.gd": "res://addons/gds_game/impacts/impact_mark.gd",
+    "res://gameplay/spawn_point/spawn_point.gd": "res://addons/gds_game/spawn_point/spawn_point.gd",
+    "res://core/camera_shake/camera_shake.gd": "res://addons/gds_game/camera_shake/camera_shake.gd",
+    "res://core/camera_shake/shake_preset.gd": "res://addons/gds_game/camera_shake/shake_preset.gd",
+    "res://ui/menus/screen_host.gd": "res://addons/gds_game/screen_host/screen_host.gd",
+    "res://gameplay/hit_zones/hit_record.gd": "res://addons/gds_game/hits/hit_record.gd",
 }
 #: The game files whose `res://` references a move rewrites (Godot's text formats and scripts).
 REFERENCE_SUFFIXES = frozenset({".gd", ".tscn", ".tres", ".cfg", ".godot", ".gdshader"})

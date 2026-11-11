@@ -44,20 +44,32 @@ game/
   a `##` tooltip), pin each file's defaults in a test, and keep a scene map (which scene loads which, and which one is
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
-  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
+  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
+  2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
-  own).
+  own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
+  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
 - **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless
   --import`) and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
-  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back).
+  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
+  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
+  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
+  template test`).
+
+- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
+  the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
+  ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
+  (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
+  looked like a problem of the change; importing a tool's module to try it (`python -c "import bad_network"`) leaves
+  `__pycache__/` the same way (`PYTHONDONTWRITEBYTECODE=1`, or delete it). **Seen:** gdstudio #884, 2026-11-10; gdstudio
+  #908, 2026-11-11 (`tools/net/__pycache__`, caught by `gds check layout` before the push).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
@@ -100,7 +112,7 @@ project's hooks hold.
   was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
   clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
-  matched and read `git diff` of every file it touched before the commit).
+  matched and read `git diff` of every file it touched before the commit); gdstudio #1059.
 
 ## Where the rules came from {#where-the-rules-came-from}
 

@@ -9,7 +9,8 @@ extends Node
 ## the HUD reads the `player`, and the screen host's `opened` and `closed` call the touch layer's
 ## `suspend` and `resume`.
 ##
-## On the web, a page opened with `?probe` gets a `WebProbe` here at run time, so no scene ships a
+## On the web, a page opened with `?probe` gets a `WebProbe` here at run time (and one opened with
+## `?netprobe` a `NetProbe`, and one opened with `?netplay` a `NetPlayProbe`), so no scene ships a
 ## probe node.
 
 @export_group("Nodes")
@@ -24,3 +25,5 @@ extends Node
 func _ready() -> void:
 	if not Engine.is_editor_hint():
 		WebProbe.attach(self, player, camera_rig, touch)
+		NetProbe.attach(self)
+		NetPlayProbe.attach(self, player)

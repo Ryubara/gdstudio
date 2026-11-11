@@ -31,3 +31,30 @@ offset_right = -420.0
 offset_bottom = -30.0
 action = &"crouch"
 label = "Crouch"
+
+[node name="Prone" parent="SafeArea/Buttons" index="5" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -590.0
+offset_top = -400.0
+offset_right = -420.0
+offset_bottom = -230.0
+action = &"prone"
+label = "Prone"
+
+[node name="Reload" parent="SafeArea/Buttons" index="6" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -780.0
+offset_top = -200.0
+offset_right = -640.0
+offset_bottom = -60.0
+action = &"reload"
+label = "Reload"
+
+[node name="Swap" parent="SafeArea/Buttons" index="7" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -780.0
+offset_top = -380.0
+offset_right = -640.0
+offset_bottom = -240.0
+action = &"next_weapon"
+label = "Swap"

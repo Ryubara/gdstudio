@@ -17,6 +17,11 @@ game's `WebProbe` writes to `window.gdprobe`:
         uv run --with playwright==1.64.1 python tools/web_smoke/touch_smoke.py build/web build/smoke
 
 Screenshots and `result.json` go to the second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
+
+`--no-shots` leaves the pictures out (each costs seconds on CI's software renderer; a failure still leaves `failed.png`).
+`--ratio 1` renders the page at one pixel per CSS pixel, a quarter of the pixels of the phone's 2: CI's software
+renderer draws the game too slowly at 2 for the checks that measure a distance in a few seconds, and every check reads
+the canvas's own scale, so it passes at either.
 """
 
 from __future__ import annotations
@@ -40,7 +45,11 @@ READY_TIMEOUT_S = 120.0
 LOOK_SENSITIVITY_DEG_PER_PX = 0.1  # TouchControls.look_sensitivity, the scene's value.
 LOOK_TOLERANCE = 0.2
 STEPS = 12
+PHYSICS_FPS = 60  # the project's physics ticks a second, which the probe's `ticks` counts
 STEP_PERIOD_S = 0.03
+JUMP_WAIT_S = 30.0  # wall seconds to see the jump counted after the press, however late the game gets the touch
+JUMP_MIN_RISE_M = 0.3
+JUMP_WATCH_TICKS = 90  # ticks after the jump to see it rise (the apex is about 30 ticks in)
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -123,6 +132,21 @@ def wait_for(page: Page, test, seconds: float) -> dict:
     return state
 
 
+def sim_wait(page: Page, seconds: float) -> None:
+    """Waits `seconds` of the game's own time (60 physics ticks a second), however slowly the page draws.
+
+    A check that measures a distance or a turn in a duration reads the game's clock (`ticks` in the probe), not the
+    wall's: a software renderer draws a few frames a second and the character walks a share of the distance in the
+    same wall seconds. Falls back to the wall clock for a probe without `ticks`, and gives up after 20 times as long."""
+    start = probe(page).get("ticks")
+    if start is None:
+        time.sleep(seconds)
+        return
+    end = time.time() + seconds * 20 + 5
+    while time.time() < end and probe(page).get("ticks", start) - start < seconds * PHYSICS_FPS:
+        time.sleep(0.02)
+
+
 def angle_between(a: float, b: float) -> float:
     return (b - a + 180.0) % 360.0 - 180.0
 
@@ -131,6 +155,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("build", type=Path, help="the web export's folder (build/web)")
     parser.add_argument("out", type=Path, help="where the screenshots and result.json go")
+    parser.add_argument("--no-shots", dest="shots", action="store_false", help="take no pictures but one after a failure")
+    parser.add_argument("--ratio", type=float, default=RATIO, help="the page's device pixel ratio (default %(default)s)")
+    parser.add_argument("--throttle", type=float, default=1.0, help="slow the page's CPU by this factor through the DevTools protocol (default %(default)s)")
+    parser.add_argument("--stall-jump", type=float, default=0.0, help="busy the page for this many seconds as the jump finger lands (a self-test of the jump check)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     server, port = serve(args.build)
@@ -138,8 +166,15 @@ def main() -> int:
     problems: list[str] = []
     console_errors: list[str] = []
 
+    started = time.time()
+
+    def shot(name: str) -> None:
+        """A picture of the page; `--no-shots` keeps only the one a failure leaves, since each costs seconds on CI."""
+        if args.shots:
+            page.screenshot(path=str(args.out / f"{name}.png"))
+
     def check(name: str, ok: bool, detail: str) -> None:
-        checks[name] = {"ok": bool(ok), "detail": detail}
+        checks[name] = {"ok": bool(ok), "detail": detail, "at_s": round(time.time() - started, 1)}
         if not ok:
             problems.append(f"{name}: {detail}")
 
@@ -147,11 +182,13 @@ def main() -> int:
         browser = playwright.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
         context = browser.new_context(
             viewport={"width": PAGE_W, "height": PAGE_H},
-            device_scale_factor=RATIO,
+            device_scale_factor=args.ratio,
             is_mobile=True,
             has_touch=True,
         )
         page = context.new_page()
+        if args.throttle > 1.0:
+            page.context.new_cdp_session(page).send("Emulation.setCPUThrottlingRate", {"rate": args.throttle})
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: console_errors.append(str(e)))
         page.goto(f"http://127.0.0.1:{port}/index.html?probe&play", wait_until="load")
@@ -164,16 +201,16 @@ def main() -> int:
         scale = state["canvas_h"] / PAGE_H
         css = lambda key: state[key] / scale  # noqa: E731 - a canvas pixel in CSS pixels
         check("shown at once on a touch screen", state["touch_shown"] is True, f"touch_shown={state['touch_shown']}")
-        page.screenshot(path=str(args.out / "phone_idle.png"))
+        shot("phone_idle")
         hand = Hand(page)
 
         # 1. A look drag turns the camera by the designed angle and moves nothing else.
         before = probe(page)
         hand.down(1, 600, 200)
         hand.drag({1: (600 + 120, 200)})
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         hand.up(1)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after = probe(page)
         want = -120.0 * scale * LOOK_SENSITIVITY_DEG_PER_PX
         got = angle_between(before["yaw"], after["yaw"])
@@ -186,11 +223,11 @@ def main() -> int:
         stick_x, stick_y = css("home_x"), css("home_y")
         hand.down(2, stick_x, stick_y)
         hand.drag({2: (stick_x, stick_y - 40)}, steps=6)
-        time.sleep(1.2)
+        sim_wait(page, 1.2)
         mid = probe(page)
-        page.screenshot(path=str(args.out / "phone_stick_down.png"))
+        shot("phone_stick_down")
         hand.up(2)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after = probe(page)
         travelled = math.dist((before["x"], before["z"]), (after["x"], after["z"]))
         forward = (-math.sin(math.radians(before["yaw"])), -math.cos(math.radians(before["yaw"])))
@@ -203,16 +240,21 @@ def main() -> int:
 
         # 3. A tap on the jump button jumps.
         before = probe(page)
+        if args.stall_jump > 0:
+            # A self-test of the wait: the page's main thread is busy as the finger lands, so the game sees the press late.
+            page.evaluate(f"setTimeout(() => {{ const end = performance.now() + {args.stall_jump * 1000}; while (performance.now() < end); }}, 0)")
         hand.down(3, css("button0_x"), css("button0_y"))
-        peak = before["y"]
-        end = time.time() + 0.5
-        while time.time() < end:
+        jumped_state = wait_for(page, lambda s: s["jumps"] > before["jumps"], JUMP_WAIT_S)
+        peak = jumped_state["y"]
+        jumped_tick = jumped_state["ticks"]
+        # The rise is read in the ticks after the game says it jumped, not in a window counted from the press.
+        while peak - before["y"] <= JUMP_MIN_RISE_M and probe(page)["ticks"] - jumped_tick < JUMP_WATCH_TICKS:
             peak = max(peak, probe(page)["y"])
-            time.sleep(0.04)
+            time.sleep(0.02)
         hand.up(3)
-        time.sleep(1.0)
+        sim_wait(page, 1.0)
         after = probe(page)
-        check("the jump button jumps", after["jumps"] == before["jumps"] + 1 and peak - before["y"] > 0.3, f"jumps {before['jumps']} to {after['jumps']}, rose {peak - before['y']:.2f} m")
+        check("the jump button jumps", after["jumps"] == before["jumps"] + 1 and peak - before["y"] > JUMP_MIN_RISE_M, f"jumps {before['jumps']} to {after['jumps']}, rose {peak - before['y']:.2f} m")
 
         # 4. Two fingers at once: the stick and a look drag, each only its own job.
         before = probe(page)
@@ -220,16 +262,16 @@ def main() -> int:
         hand.down(5, 600, 200)
         # Backwards, the way the character came from: it is not at a wall.
         hand.drag({4: (stick_x, stick_y + 40), 5: (600 + 90, 200)}, steps=10)
-        time.sleep(0.4)
-        page.screenshot(path=str(args.out / "phone_two_fingers.png"))
+        sim_wait(page, 0.4)
+        shot("phone_two_fingers")
         both = probe(page)
         hand.up(5)
-        time.sleep(0.3)
+        sim_wait(page, 0.3)
         mid_state = probe(page)
-        time.sleep(0.8)
+        sim_wait(page, 0.8)
         after_lift = probe(page)
         hand.up(4)
-        time.sleep(0.6)
+        sim_wait(page, 0.6)
         turned = angle_between(before["yaw"], both["yaw"])
         want = -90.0 * scale * LOOK_SENSITIVITY_DEG_PER_PX
         check("two fingers: the look finger still turns by the designed angle", abs(turned - want) <= abs(want) * LOOK_TOLERANCE, f"turned {turned:.1f} deg, designed {want:.1f}")
@@ -239,7 +281,7 @@ def main() -> int:
         # 5. The crouch, aim and fire buttons: a finger on each does its own job.
         hand.down(6, css("button4_x"), css("button4_y"))
         state = wait_for(page, lambda s: s.get("crouching") is True, 3.0)
-        page.screenshot(path=str(args.out / "phone_crouch.png"))
+        shot("phone_crouch")
         check("the crouch button crouches", state.get("crouching") is True, f"crouching={state.get('crouching')}")
         hand.up(6)
         state = wait_for(page, lambda s: s.get("crouching") is False, 3.0)
@@ -247,12 +289,12 @@ def main() -> int:
         hand.down(7, css("button3_x"), css("button3_y"))
         state = wait_for(page, lambda s: s.get("aiming") is True, 3.0)
         check("the aim button aims", state.get("aiming") is True, f"aiming={state.get('aiming')}")
-        time.sleep(1.0)
-        page.screenshot(path=str(args.out / "phone_aim.png"))
+        sim_wait(page, 1.0)
+        shot("phone_aim")
         before = probe(page)
         hand.down(8, css("button2_x"), css("button2_y"))
         state = wait_for(page, lambda s: s.get("shots", 0) > before.get("shots", 0), 3.0)
-        page.screenshot(path=str(args.out / "phone_fire.png"))
+        shot("phone_fire")
         check("the fire button shoots", state.get("shots", 0) == before.get("shots", 0) + 1, f"shots {before.get('shots')} to {state.get('shots')}")
         hand.up(8)
         hand.up(7)
@@ -260,12 +302,14 @@ def main() -> int:
         check("lifting the aim button lowers the arm", state.get("aiming") is False, f"aiming={state.get('aiming')}")
 
         check("no console error or page error", not console_errors, "; ".join(console_errors[:5]) or "none")
+        if problems and not args.shots:
+            page.screenshot(path=str(args.out / "failed.png"))
         browser.close()
     server.shutdown()
     result = {"checks": checks, "problems": problems, "scale": scale}
     (args.out / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     for name, entry in checks.items():
-        print(("ok   " if entry["ok"] else "FAIL ") + name + " (" + entry["detail"] + ")")
+        print(("ok   " if entry["ok"] else "FAIL ") + name + " (" + entry["detail"] + f") at {entry['at_s']:.0f} s")
     return 1 if problems else 0
 
 

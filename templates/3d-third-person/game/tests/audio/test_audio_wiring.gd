@@ -69,11 +69,13 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 	for path in [
 		"res://world/world.tscn",
 		"res://gameplay/pickup/pickup.tscn",
-		"res://gameplay/player/footsteps.tscn",
+		"res://gameplay/character/footsteps.tscn",
 		"res://gameplay/weapon/weapon.tscn",
+		"res://gameplay/weapon/pistol.tres",
+		"res://gameplay/weapon/fists.tres",
 	]:
 		text += FileAccess.get_file_as_string(path)
-	for folder in ["coin", "footsteps", "pistol", "wind"]:
+	for folder in ["coin", "footsteps", "pistol", "fists", "wind"]:
 		var dir := DirAccess.open("res://assets/audio/%s" % folder)
 		assert_object(dir).is_not_null()
 		for file in dir.get_files():
@@ -93,6 +95,9 @@ func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> voi
 			continue
 		var parent := player.get_parent()
 		var files = parent.get("steps") if parent.get("steps") != null else parent.get("sounds")
+		if parent is Weapon and player.name == &"ReloadSound":
+			# The weapon gives it each step of its definition's reload as the reload reaches it.
+			files = (parent as Weapon).definition.reload_sounds
 		(
 			assert_bool(files is Array and not files.is_empty())
 			. override_failure_message(
@@ -105,7 +110,7 @@ func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> voi
 func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voices() -> void:
 	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
 	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
-	var randomizer := sound.stream as AudioStreamRandomizer
+	var randomizer := weapon.definition.shot_sound as AudioStreamRandomizer
 	assert_object(randomizer).is_not_null()
 	assert_int(randomizer.streams_count).is_equal(5)
 	for n in 5:
@@ -116,6 +121,23 @@ func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voic
 	assert_float(randomizer.random_volume_offset_db).is_between(0.5, 2.0)
 	assert_int(sound.max_polyphony).is_equal(3)
 	assert_str(String(sound.bus)).is_equal("SFX")
+
+
+# The players hold the takes decoded once (`DecodedSounds`): starting an Ogg Vorbis take set its
+# decoder up, about 250 µs a shot on the desktop and 300 to 400 in a browser; a decoded one about 1.
+func test_the_weapon_plays_its_sounds_decoded_with_the_definitions_spread() -> void:
+	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
+	var shot := weapon.get_node("%ShotSound").stream as AudioStreamRandomizer
+	var written := weapon.definition.shot_sound as AudioStreamRandomizer
+	assert_object(shot).is_same(DecodedSounds.decoded(written))
+	assert_int(shot.streams_count).is_equal(written.streams_count)
+	assert_float(shot.random_pitch).is_equal_approx(written.random_pitch, 0.0001)
+	for n in shot.streams_count:
+		assert_object(shot.get_stream(n)).is_instanceof(AudioStreamWAV)
+	var empty := weapon.get_node("%EmptySound").stream as AudioStreamRandomizer
+	for n in empty.streams_count:
+		assert_object(empty.get_stream(n)).is_instanceof(AudioStreamWAV)
+	assert_object(weapon.get_node("%DrawSound").stream).is_instanceof(AudioStreamWAV)
 
 
 func test_a_shot_plays_at_the_muzzle() -> void:

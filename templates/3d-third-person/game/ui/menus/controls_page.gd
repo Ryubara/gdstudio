@@ -17,10 +17,16 @@ signal listening_changed(listening: bool)
 	&"sprint",
 	&"walk",
 	&"crouch",
+	&"prone",
 	&"interact",
 	&"aim",
 	&"fire",
+	&"reload",
+	&"next_weapon",
+	&"previous_weapon",
+	&"toggle_unarmed",
 	&"shoulder_swap",
+	&"inventory",
 	&"pause",
 ]
 

@@ -85,6 +85,13 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   properly, so a green `main` shard proves only its own deal; a wrapper named otherwise prints the usage and runs
   nothing. **Seen:** Deadnight #1231, 2026-11-05 (fix: `tools/ci/warm_GdUnitCmdTool.gd` took 911 objects to none on the
   same 55 cases; a test runs two suites through it in a child Godot and fails on a leak line).
+- **Approach:** In a kit template, judge a new suite's leak lines by the whole `gds template test` run (one process,
+  CI's condition), not by a `--suite` run of it alone; bisect only a leak the whole run shows. **Watch out for:** a new
+  suite of 3D Third Person leaked 196 objects run alone, the same with every test turned off, and main's
+  `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
+  nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
+  a leak CI never sees); gdstudio #887, 2026-11-10 (`test_prone_aim.gd` alone: 195 GDScript objects with every test
+  but one turned off, none in the whole run; the RID lines beside them were real, next entry).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the
@@ -92,6 +99,14 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   resources), not the new code; it came with the typed export in `Weapon` or `ImpactSurface` alone, never in a minimal
   project or with `Resource`, and removing `@tool` or the exports' ranges changed nothing. **Seen:** gdstudio #888,
   2026-11-10 (`EffectDef`; Godot 4.7.2's cause not found).
+- **Approach:** When a leak at exit shows only in CI, get CI's own evidence before changing code: run the failing
+  step with `--verbose` (it names each script still in use) and add a temporary step that runs it earlier in the job,
+  before the tests. **Watch out for:** CI's `--export-release Web` of 3D Third Person ended with 17 scripts in use
+  (`gds_ui`, Phantom Camera, the audio settings), none of them changed, while every local replay was clean (Windows,
+  the same Ubuntu 24.04 in WSL, tmpfs, 4 cores, CI's exact test command); writing the mask defaults as numbers, a guess
+  from the entry above, changed nothing. The next run of the same code passed, an early export included: this leak
+  comes and goes, so one red export is not proof a change caused it; rerun before bisecting. **Seen:** gdstudio
+  #954, 2026-11-10.
 - **Approach:** Before editing the game for a guess about a leak or a stall, run the suite alone with and without the
   edit; run one shard at a time, its log in a file. **Watch out for:** a type cycle between two classes, guessed from one
   probe, was "fixed" in the game's scripts and changed nothing, while two shards run at once on shared net ports stalled
@@ -122,7 +137,11 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   that holds the connection and a lambda that holds the object is a cycle nothing frees: every test passes and CI
   fails on `resources still in use at exit`, which the summary line does not carry (576 tests green, 6 instances and 3
   resources leaked). **Seen:** Deadnight #207, #225, #432, 2026-11-01..02; Deadnight #1074, 2026-11-05 (fix: ids
-  captured, disconnect in `after_test`; the leak count reproduces exactly alone with `--verbose`).
+  captured, disconnect in `after_test`); gdstudio #964, 2026-11-10 (a lambda on the emitter's own signal).
+- **Approach:** Give a `RefCounted` test helper that listens to an object it owns (a client and its link) a
+  `release()` that disconnects its handlers, and call it from the fixture's `_exit_tree`. **Watch out for:** nothing
+  frees two `RefCounted` that hold each other: a test client's lambda on its own link's `closed` left 4 instances and
+  7 scripts in use at exit while both cases passed. **Seen:** gdstudio #904, 2026-11-10 (`HandClient.release()`).
 
 - **Approach:** Free what a test makes or removes: `remove_child(node)` then `node.free()`,
   `auto_free(SomeNode.new())` (even for a node made only to read `get_property_list()`), or leave the node in the
@@ -138,3 +157,39 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   it loads until the end of the run, so each const kept the whole lot scene, its scripts and statics in use at exit;
   the leak showed only in one shard, never in 15 local runs, and bisecting by CI runs took five pushes. **Seen:**
   Deadnight #837, 2026-11-03 (fix: the three capture scripts load in the function that runs).
+- **Approach:** Two `RefCounted` objects that must know each other (the two ends of a loopback link) hold each other
+  through `weakref()`, and an end whose other is gone treats it as closed; grep a new suite's log alone for `still in
+  use` before the pull request, even when the full run is green. **Watch out for:** `LoopbackLink.pair()` made ends
+  that held each other strongly, so every pair a test made stayed alive: 526 template tests passed with one line `4
+  resources still in use at exit`, which only a run of each suite alone traced to the loopback suite. **Seen:**
+  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end).
+- **Approach:** A scene's script makes its nodes in `_ready` (or adds them as children at once), never in a member
+  initializer (`var _dummy := Node3D.new()`) that only `_ready` adds to the tree. **Watch out for:** a test that
+  `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
+  only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
+  the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`); gdstudio #926,
+  2026-11-10 (the parts bench's frame-end node, the same way); gdstudio #966 (the senses tour's walker); gdstudio
+  #1075, 2026-11-11 (the navigation sync bench's probe: every suite passed locally, and only CI's exit 101 named
+  it; grep a new bench or tour for `:= .*\.new()` on a `var` line before the push).
+- **Approach:** A cache of resources shared by every instance of a class (`static var _meshes: Dictionary[float,
+  SphereMesh]`) is emptied when the last instance goes: count instances in `_init` and `NOTIFICATION_PREDELETE`, and
+  clear the dictionaries at zero. **Watch out for:** a static holds its resources until the script unloads, after the
+  servers have shut down, so a run that fired one pooled projectile ended with `RID allocations of type JoltShape3D,
+  DummyMesh, DummyMaterial, DummyShader were leaked at exit`, one of each cached look. **Seen:** gdstudio #887,
+  2026-11-10 (`Projectile`'s shared mesh, shape and paints).
+
+## The export leak is intermittent on CI {#the-export-leak-is-intermittent-on-ci}
+
+<!-- new section: the earlier sections cover leaks a test run makes; the template job's headless web export failed
+     with the same message on one run and passed on the next with the same code -->
+
+The template job's `--export-release Web` sometimes ends with `N resources still in use at exit` and passes on a rerun
+of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). CI now exports once more when
+the only `ERROR` lines are at-exit leaks, prints the first run's leak lines (the export runs with `--verbose`, which
+names each script) as a warning, and fails when the second run leaks too or when any other error shows.
+
+- **Approach:** Tell a flake from a real leak by rerunning the job, then by exporting early in the job (before the
+  tests) with `--verbose`: a leak that names the same script on every run and in the early export is real and is fixed
+  in that script; one that comes and goes with the same code is the flake, which the retry absorbs. **Watch out for:**
+  a retry hides a leak that happens one run in two, so read the warning's script names in the log when it shows.
+  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step).

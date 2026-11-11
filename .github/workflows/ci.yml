@@ -117,8 +117,8 @@ jobs:
     # A game made from each template (3D Blank, 3D Third Person) with `gds new game`, as a person makes one, then judged by the steps of
     # the game's own ci.yml (templates/repo/.github/workflows/ci.yml): the files it must hold in sync with the kit, the
     # conventions and the layout rules, every pre-commit hook, the docs build, the import, a parse of every script, a
-    # run, its tests and the web export. It also checks that none of that left a file behind that git does not ignore:
-    # the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
+    # run, its tests, the web export and a boot of that export in a headless browser. It also checks that none of that
+    # left a file behind that git does not ignore: the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -187,8 +187,23 @@ jobs:
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          "$godot" --headless --path repos/template-check/game --export-release Web 2>&1 | tee export.log
-          if grep -E "ERROR" export.log; then exit 1; fi
+          # The at-exit leak ("N resources still in use at exit") is intermittent on CI (#954, #888) and passes on a
+          # rerun of the same code. When it is the only error, export once more; a second leak, or any other error,
+          # fails (docs/engines/godot/test-exit-leaks.md#the-export-leak-is-intermittent-on-ci).
+          export_web() { "$godot" --headless --path repos/template-check/game --verbose --export-release Web 2>&1 | tee "$1"; }
+          leak_only() { ! grep -E "ERROR" "$1" | grep -vE "still in use at exit|leaked at exit" | grep -q .; }
+          export_web export.log
+          if grep -qE "ERROR" export.log; then
+            if leak_only export.log && grep -qE "still in use at exit|leaked at exit" export.log; then
+              echo "::warning::The export ended with an at-exit leak; exporting once more. First run's leak lines:"
+              grep -E "ERROR|still in use|leaked at exit|^\s+res://" export.log || true
+              rm -rf repos/template-check/build/web && mkdir -p repos/template-check/build/web
+              export_web export-retry.log
+              if grep -E "ERROR" export-retry.log; then exit 1; fi
+            else
+              grep -E "ERROR" export.log; exit 1
+            fi
+          fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
       - name: The export holds the level and leaves the tests and tools out
@@ -196,6 +211,55 @@ jobs:
           pck=repos/template-check/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The browser for the boot check
+        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md).
+        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+      - name: Boot the web export in a browser
+        # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
+        # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
+        # (game/tools/web_smoke/boot_check.py, the kit's file in every game). `gds quiet` is how every browser
+        # probe runs; off Windows it starts the program as it is.
+        run: |
+          uv run --project repos/gdstudio/python --frozen gds quiet -- \
+            uv run --with playwright==1.64.1 python repos/template-check/game/tools/web_smoke/boot_check.py \
+            repos/template-check/build/web repos/template-check/build/boot --title "Web boot: ${{ matrix.template }}"
+      - name: The template's own browser smoke (touch controls)
+        # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a template without the script
+        # has nothing more to add. Ratio 1 and no pictures: the runner's software renderer draws slowly.
+        run: |
+          smoke=repos/template-check/game/tools/web_smoke/touch_smoke.py
+          if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
+          uv run --project repos/gdstudio/python --frozen gds quiet -- \
+            uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/smoke --ratio 1 --no-shots
+          echo "Touch smoke (${{ matrix.template }}): every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: The template's bad-network gate (native, and its teeth)
+        # 3D Third Person's predicting client against its own server through a relay of 100 ms each way: freezes of
+        # the client's thread, then 1 % of the chunks stalled 300 ms; thresholds in game/tools/net/bad_network.py
+        # (kit docs/engines/godot/third-person/online-client.md#bad-network-gate). Then the same freeze run with the
+        # reconciler's fix and with the server's hold taken out, each of which must fail. The browser half
+        # (tools/web_smoke/net_play_smoke.py) runs on a workstation: the runner drew its page at 14 frames a second.
+        run: |
+          gate=repos/template-check/game/tools/net/bad_network_gate.py
+          if [ ! -f "$gate" ]; then echo "no $gate: nothing to add"; exit 0; fi
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          out=repos/template-check/build/net_gate
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/gate"
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/teeth_reconciler" \
+            --runs freeze --break reconciler --expect-fail
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/teeth_hold" \
+            --runs freeze --break hold --expect-fail
+          echo "Bad-network gate (${{ matrix.template }}): passed, and failed with either fix taken out" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the browser captures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-smoke-${{ matrix.template }}
+          path: |
+            repos/template-check/build/boot
+            repos/template-check/build/smoke
+            repos/template-check/build/net_gate
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Nothing the build made is left for git to see
         working-directory: repos/template-check
         run: |

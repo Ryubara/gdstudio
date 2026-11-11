@@ -45,6 +45,10 @@ covered it -->
   binding's release, so the second binding made no rising edge; a level (fire) hides both. A row for an action with a
   cooldown also needs ticks between its bindings. **Seen:** Deadnight #411, 2026-11-02; Deadnight #642, 2026-11-02
   (fix: the view comes from the camera rig, one `_tick_command` helper reads everything every tick).
+- **Approach:** Press an action a node reads in `_unhandled_input` with an event (`Input.parse_input_event` of a
+  key or an `InputEventAction`, the suites' `InputSim`), never `Input.action_press`. **Watch out for:**
+  `action_press` sets the action's state and sends no event, so a node that reacts to `is_action_pressed(event)`
+  (a map toggle, a zoom) never saw the capture tour's presses. **Seen:** gdstudio #884, 2026-11-10.
 
 ## What a suite leaves behind {#leaks}
 
