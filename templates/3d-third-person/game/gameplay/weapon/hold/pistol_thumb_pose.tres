@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_ftcup")
 rotations = Dictionary[StringName, Quaternion]({
-&"thumb_01_r": Quaternion(-0.49871, 0.85704, 0.06997, 0.10899),
-&"thumb_02_r": Quaternion(-0.11921, -0.01208, 0.10095, 0.98765),
-&"thumb_03_r": Quaternion(0.02861, -7e-05, 0.00054, 0.99959)
+&"thumb_01_r": Quaternion(-0.55195, 0.78669, -0.15088, -0.23175),
+&"thumb_02_r": Quaternion(-0.12957, 0.01692, -0.12812, 0.98311),
+&"thumb_03_r": Quaternion(0.00025, -8e-05, 0.00054, 1)
 })
