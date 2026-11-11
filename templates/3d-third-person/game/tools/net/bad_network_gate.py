@@ -27,8 +27,8 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from bad_network import Network, Verdict, errors_in, judge_client, judge_server, server_log  # noqa: E402
-from relay import Relay  # noqa: E402
+from bad_network import Network, Verdict, errors_in, judge_client, judge_server, server_log
+from relay import Relay
 
 FREEZES = "8:500,16:2000,24:5000"
 SETTLE_S = 2.0
@@ -140,6 +140,7 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
         stall_s=args.stall_ms / 1000.0,
         stalls_up=relay.stalls_up if relay else 0,
         stalls_down=relay.stalls_down if relay else 0,
+        real=bool(args.url) and relay is None,
     )
     if relay is not None:
         result["relay"] = relay.counts()

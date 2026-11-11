@@ -8,7 +8,7 @@ does not touch WebSockets), serves the exported game (`build/web`) and opens it 
 circles, and writes what it measured to `window.gdnet`. The page's main thread is frozen (a busy loop, the freeze a
 player gets) for 0.5, 2 and 5 s at 8, 16 and 24 s; at 30 s the body stands, and two seconds later the report is
 judged with the native gate's thresholds (`tools/net/bad_network.py`): no body lost, a snap for the join and for each
-freeze, worst error under 6 m, settled under 5 cm, corrections and starved puppets within what the network allows, no
+freeze, worst error under 8 m (one answer past 6 m), settled under 5 cm, corrections and starved puppets within what the network allows, no
 `Buffer payload full` or other console error, nobody kicked and no ERROR in the server's log.
 
     uv run --project <kit>/python gds quiet -- \\
@@ -33,9 +33,9 @@ from pathlib import Path
 from playwright.sync_api import Page, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
-from bad_network import Network, Verdict, judge_client, judge_server, server_log  # noqa: E402
-from bad_network_gate import godot_cmd, start, stop, wait_for_port  # noqa: E402
-from relay import Relay  # noqa: E402
+from bad_network import Network, Verdict, judge_client, judge_server, server_log
+from bad_network_gate import godot_cmd, start, stop, wait_for_port
+from relay import Relay
 
 READY_TIMEOUT_S = 120.0
 # Seconds after the seat, milliseconds of the page's thread frozen.
@@ -136,8 +136,17 @@ def main() -> int:
             relay = Relay(host, int(port), args.delay_ms / 1000.0, 0, args.stall_chance, args.stall_ms / 1000.0)
             page_url = f"ws://127.0.0.1:{relay.start_in_thread()}"
         if args.bots > 0:
-            bot_args = ["--connect", url, "--bots", str(args.bots), "--seconds", str(int(READY_TIMEOUT_S + WALK_S + 60))]
-            bots = start(godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log")
+            bot_args = [
+                "--connect",
+                url,
+                "--bots",
+                str(args.bots),
+                "--seconds",
+                str(int(READY_TIMEOUT_S + WALK_S + 60)),
+            ]
+            bots = start(
+                godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log"
+            )
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(args=GPU_ARGS if args.gpu else SOFTWARE_ARGS)
             width, height = (int(n) for n in args.viewport.split("x"))
@@ -168,6 +177,8 @@ def main() -> int:
         stall_s=args.stall_ms / 1000.0,
         stalls_up=relay.stalls_up if relay else 0,
         stalls_down=relay.stalls_down if relay else 0,
+        real=bool(args.url) and relay is None,
+        page=True,
     )
     fps = result["client"].get("fps", 0)
     verdict.check(

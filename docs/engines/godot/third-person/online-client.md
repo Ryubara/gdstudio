@@ -105,3 +105,68 @@ lockstep route ends 0.000000 m off (`test_net_client_prediction.gd`); the closed
 3.1 mm off at 50 to 400 ms with two pushes (`test_net_reconciler_loop.gd`); puppets drawn 100 ms behind over a link of
 100 ms each way never starved in 240 steps; the TICK for eight players is 107 bytes (`test_net_client_link.gd`); 153
 solid things are in both worlds at the same place (`test_world_parity.gd`).
+
+## The bad-network gate {#bad-network-gate}
+
+<!-- new section: the costs above are one-off measurements; nothing held the repeatable pass/fail proof of the client
+     over a bad network, native and in the browser, or what its thresholds guard -->
+
+A gate with thresholds, run in the kit's `template` CI job and by hand against any server (gdstudio #908). The native
+half is `tools/net/bad_network_gate.py`: the server of `--server` started by `tools/net/gate_server.gd` (free port;
+`--hold-ticks` for the teeth check), three `server_bot.gd` bots for puppets, `tools/net/relay.py` with 100 ms each way,
+and `predict_bot.gd` through it, in two runs of 30 s: `freeze` (the client's own thread frozen 0.5, 2 and 5 s) and
+`stalls` (1 % of the relayed chunks held 300 ms more, everything behind them waiting too: TCP's loss). The browser half
+is `tools/web_smoke/net_play_smoke.py`: the web export opened with `?play&netplay&url=ws://<relay>` gets a
+`NetPlayProbe` (`ui/probe/`, made by the player rig only on such a page) that plays online with a `NetClient`, walks a
+`CirclingController` and writes `NetPlayReport` to `window.gdnet`; the page's thread is frozen by a busy loop at 8, 16
+and 24 s. Both judge with `tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
+`--break reconciler` (native only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
+server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs after the gate.
+
+| Check | Threshold | What it guards |
+| --- | --- | --- |
+| Lost | no answer past 6 m (the page: one) | a loop that does not settle |
+| Snaps | one at the join and one per stall of the client's thread the stall guard saw | an error past 2.5 m outside a resync |
+| Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
+| Worst error | under 6 m with freezes (the page: 8 m, #1070), under 2.5 m with stalls only | a stall shows as a burst, never a wrong place |
+| Settled | under 5 cm two seconds after the body stands | the end state is the server's |
+| Corrected | 4 m a minute (10 over a real network), 1 m more per stall of the commands' way, 0.5 m per unplanned stall of the client | the server's hold |
+| Starved puppets | 1 % of puppet-steps, or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
+| Logs | nobody kicked, no `ERROR` in the server's or client's log; the page: no console error, no `Buffer payload full`, at least 20 frames a second | the transport |
+
+Windows, Godot 4.7.2, 2026-11-11 (Railway: the template's image, 48-core EPYC host):
+
+| Run | Round trip | Corrections (metres) | Snaps / stalls | Worst error | Settled | Starved puppet-steps |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Native, relay, freezes | 234 ms | 53 (0.69 m) | 3 / 3 | 2.83 m | 2.8 mm | 0 |
+| Native, relay, 1 % stalls (25 up, 11 down) | 235 ms | 194 (14.3 m) | 0 / 0 | 1.50 m | 3.7 mm | 432 of 5760 |
+| Browser, relay, freezes (34 fps) | 248 ms | 76 (3.29 m) | 4 / 11 | 5.89 m | 2.6 mm | 30 of 4059 |
+| Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
+| Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
+| Teeth: native, server hold 0 | 234 ms | 726 (16.2 m) | | | | |
+| Teeth: native, reconciler unshifted | 234 ms | 610 lost, 739 snaps, 241 km worst, 12 m off at the end | | | | |
+| Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
+
+The client costs 190 to 290 µs a step at the median (`NetClient`, the body's step included). The relay carried 41 KB up
+and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for a client with three other players.
+
+- **Approach:** Judge starvation by puppet-steps (`RemotePlayers.starved` adds one for each puppet that starved on a
+  step), and bound it by what the network forces: a stall of the snapshots' way starves the puppets for its length
+  less the interpolation delay, a snapshot's interval more (a 300 ms stall, 14 steps). **Watch out for:** the first
+  report divided by steps alone and read three times the starvation, which looked like a clock that recovers slowly
+  after a burst; a trace of each TICK's arrival against the clock showed 14-step streaks, one a stall, and a burst
+  that put the clock right at once. 2 % of chunks stalled (the issue's number) starve 40 % of the steps at a 100 ms
+  delay: no client can pass that, so the gate stalls 1 % and judges against the forced bound. **Seen:** gdstudio #908,
+  2026-11-11 (`NetPlayReport`, `Network.starved_allowed`).
+- **Approach:** Run a browser probe of the game loop in a small page (320x180) and fail a run whose page drew under 20
+  frames a second: it measures the machine, not the client. **Watch out for:** SwiftShader drew the 1280x720 page at
+  6 frames a second, the client stepped 30 times a second instead of 60, the server repeated its commands, and the
+  gate read 13.8 m of corrections and two lost answers that were the renderer's; a page with `--enable-gpu` never
+  seated under `gds quiet`. Even at 34 to 40 frames a second the page hitches past 0.25 s about eight times in 30 s,
+  so snaps and corrections are allowed per stall the stall guard saw. **Seen:** gdstudio #908, 2026-11-11
+  (`net_play_smoke.py` `MIN_FPS`).
+- **Approach:** Deploy the game server from a game made from the template (`gds template game`, its `server/`), never
+  from the kit's `templates/3d-third-person/`. **Watch out for:** the kit's template folder has no synced addons
+  (`gds_ui`, `gds_game`, Phantom Camera), so the image built, the deployment read `SUCCESS`, and the server failed to
+  parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
+  deployment from the made game listened on `$PORT` at once).
