@@ -1,7 +1,8 @@
 # The client's side of the wire: puppets drawn 100 ms behind over a link that holds every packet
 # 100 ms each way never run out of snapshots; the server's TICK for eight players is still the
 # 107 bytes of the #902 budget; a stall of the client's own thread resyncs and skips the catch-up
-# ticks; the interpolation track blends, holds and warps.
+# ticks, stalls with no answer between them are judged a stall each, and a PONG that waited out a
+# stall is no round trip; the interpolation track blends, holds and warps.
 extends GdUnitTestSuite
 
 var _rig: OnlineRig
@@ -110,6 +111,60 @@ func test_a_resync_takes_the_next_answer_whole() -> void:
 	reconciler.answer(1, Vector3(0.5, 0.0, 0.0))
 	assert_vector(reconciler.take()).is_equal(Vector3(0.5, 0.0, 0.0))
 	assert_bool(reconciler.snap_next).is_false()
+
+
+func test_stalls_with_no_answer_between_them_add_up_and_are_judged_a_stall_each() -> void:
+	# The server walks its body on through each silence (gdstudio #1070): three stalls before the
+	# answer after them may hold three walk-ons, 7 m is not lost; after one stall it is.
+	var reconciler := Reconciler.new()
+	for stall in 3:
+		reconciler.resync()
+		reconciler.record(stall + 1, Vector3.ZERO)
+	reconciler.answer(3, Vector3(7.0, 0.0, 0.0))
+	assert_vector(reconciler.take()).is_equal(Vector3(7.0, 0.0, 0.0))
+	assert_int(reconciler.lost).is_equal(0)
+	assert_int(reconciler.most_stacked).is_equal(3)
+	assert_int(reconciler.stacked_stalls).is_equal(0)
+	assert_float(reconciler.worst_error).is_equal_approx(7.0, 0.0001)
+	assert_float(reconciler.worst_stall_error).is_equal_approx(7.0 / 3.0, 0.0001)
+	reconciler.resync()
+	reconciler.record(4, Vector3.ZERO)
+	reconciler.answer(4, Vector3(0.0, 0.0, 7.0))
+	assert_int(reconciler.lost).is_equal(1)
+	assert_float(reconciler.worst_stall_error).is_equal_approx(7.0, 0.0001)
+	# A teleport's snap is no stall: one walk-on at most.
+	reconciler.reset()
+	reconciler.snap_next = true
+	reconciler.record(5, Vector3.ZERO)
+	reconciler.answer(5, Vector3(0.0, 0.0, 6.5))
+	assert_int(reconciler.lost).is_equal(2)
+
+
+func test_a_pong_that_waited_out_a_stall_is_not_a_round_trip() -> void:
+	# Its ping left before the freeze, so it measures the freeze: 5 s, and the numbering would put
+	# the commands 5 s ahead of the server (gdstudio #1070).
+	var now := [10.0]
+	var client: NetClient = auto_free(NetClient.new())
+	client.join_on_ready = false
+	client.world_root = auto_free(Node.new())
+	client.clock = func() -> float: return now[0]
+	var ends := LoopbackLink.pair()
+	client.join_with(ends[0])
+	var pong := func(sent_at: float) -> void:
+		ends[1].send(NetWire.pong(NetWire.read_ping(NetWire.ping(roundi(sent_at * 1000.0))), 1))
+		ends[1].poll()
+		client._physics_process(1.0 / 60.0)
+	now[0] = 10.2
+	pong.call(10.0)
+	assert_int(client.rtt_ms).is_equal(200)
+	now[0] = 15.1
+	client.resync()
+	now[0] = 15.2
+	pong.call(10.1)
+	assert_int(client.rtt_ms).is_equal(200)
+	now[0] = 15.45
+	pong.call(15.2)
+	assert_int(client.rtt_ms).is_equal(250)
 
 
 func test_the_track_blends_holds_and_warps() -> void:
