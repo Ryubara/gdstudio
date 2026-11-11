@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+# cancels-on-main: a push to the default branch cancels the docs run of the commit before it. That is fine here: the
+# site is rebuilt in full from the newest commit, so a cancelled build or deploy is replaced by the next one, and the
+# pages never go back to an older commit. (Unlike `ci`, whose run on each commit is its own result.)
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -75,17 +78,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Built from the Go module proxy, not GitHub's release downloads: those answered 504 for minutes at a time on
-      # 2026-11-08 (gdstudio #823). The proxy serves tag v1.7.12 (commit 914e7df), and `go` checks the module against
-      # the public checksum database; GOTOOLCHAIN=auto fetches the Go version the module asks for from the same proxy.
+      # The release binary, checked against a sha256 pinned here (from the release's actionlint_1.7.12_checksums.txt).
+      # Never `go install`: actionlint 1.7.12 asks for Go 1.25, the runner's Go is older, and GOTOOLCHAIN=auto then
+      # downloads a toolchain that sum.golang.org and go.dev answered 404 for (gdstudio #962). GitHub's release host
+      # answered 504 for minutes on 2026-11-08 (gdstudio #823), so curl retries on any error.
       - name: Install actionlint 1.7.12
         env:
-          GOTOOLCHAIN: auto
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
         run: |
-          for attempt in 1 2 3; do
-            go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 && break
-            [ "$attempt" = 3 ] && exit 1
-            sleep 15
-          done
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$archive" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/actionlint-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/actionlint-bin" actionlint
+          echo "$RUNNER_TEMP/actionlint-bin" >> "$GITHUB_PATH"
       - run: actionlint -color .github/workflows/*.yml

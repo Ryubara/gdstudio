@@ -1,35 +1,30 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/weapon/weapon.gd" id="1_weapon"]
-[ext_resource type="PackedScene" path="res://gameplay/projectile/projectile.tscn" id="2_projectile"]
-[ext_resource type="AudioStream" path="res://assets/audio/pistol/pistol_shot_1.ogg" id="s1"]
-[ext_resource type="AudioStream" path="res://assets/audio/pistol/pistol_shot_2.ogg" id="s2"]
-[ext_resource type="AudioStream" path="res://assets/audio/pistol/pistol_shot_3.ogg" id="s3"]
-[ext_resource type="AudioStream" path="res://assets/audio/pistol/pistol_shot_4.ogg" id="s4"]
-[ext_resource type="AudioStream" path="res://assets/audio/pistol/pistol_shot_5.ogg" id="s5"]
-
-[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_shot"]
-streams_count = 5
-stream_0/stream = ExtResource("s1")
-stream_0/weight = 1.0
-stream_1/stream = ExtResource("s2")
-stream_1/weight = 1.0
-stream_2/stream = ExtResource("s3")
-stream_2/weight = 1.0
-stream_3/stream = ExtResource("s4")
-stream_3/weight = 1.0
-stream_4/stream = ExtResource("s5")
-stream_4/weight = 1.0
-random_pitch = 1.04
-random_volume_offset_db = 1.0
+[ext_resource type="Resource" path="res://gameplay/weapon/pistol.tres" id="2_pistol"]
 
 [node name="Weapon" type="Node3D"]
 script = ExtResource("1_weapon")
-projectile_scene = ExtResource("2_projectile")
+definition = ExtResource("2_pistol")
 
 [node name="ShotSound" type="AudioStreamPlayer3D" parent="."]
 unique_name_in_owner = true
-stream = SubResource("AudioStreamRandomizer_shot")
 volume_db = -22.0
 max_polyphony = 3
+bus = &"SFX"
+
+[node name="EmptySound" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = -12.0
+bus = &"SFX"
+
+[node name="ReloadSound" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = -16.0
+max_polyphony = 2
+bus = &"SFX"
+
+[node name="DrawSound" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = -10.0
 bus = &"SFX"

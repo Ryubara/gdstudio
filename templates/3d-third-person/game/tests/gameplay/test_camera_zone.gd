@@ -13,10 +13,10 @@ var _overlook: PhantomCamera3D
 func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
-	_player = _scene.get_node("Player")
-	_host = _scene.get_node("Camera/PhantomCameraHost")
-	_follow = _scene.get_node("PlayerCamera").phantom_camera()
-	_overlook = _scene.get_node("Level/CameraViews/OverlookCamera")
+	_player = _scene.get_node("PlayerRig/Player")
+	_host = _scene.get_node("PlayerRig/Camera/PhantomCameraHost")
+	_follow = _scene.get_node("PlayerRig/PlayerCamera").phantom_camera()
+	_overlook = _scene.get_node("World/Level/CameraViews/OverlookCamera")
 	await InputSim.ticks(get_tree(), 12)
 
 
@@ -27,7 +27,7 @@ func test_the_follow_camera_has_the_view_until_the_player_enters_the_zone() -> v
 
 func test_entering_the_zone_hands_the_view_over_and_leaving_hands_it_back() -> void:
 	var views := []
-	_scene.get_node("Level/CameraViews/CameraZone").view_changed.connect(
+	_scene.get_node("World/Level/CameraViews/CameraZone").view_changed.connect(
 		func(zone_view: bool) -> void: views.append(zone_view)
 	)
 	_player.teleport(Vector3(-18.0, 0.1, 11.5))
@@ -36,7 +36,7 @@ func test_entering_the_zone_hands_the_view_over_and_leaving_hands_it_back() -> v
 	assert_int(_overlook.priority).is_greater(_follow.priority)
 	# The view blends there over the camera tween (1.2 s), it does not cut.
 	await InputSim.ticks(get_tree(), 100)
-	var camera: Camera3D = _scene.get_node("Camera")
+	var camera: Camera3D = _scene.get_node("PlayerRig/Camera")
 	assert_vector(camera.global_position).is_equal_approx(
 		_overlook.global_position, Vector3.ONE * 0.2
 	)
@@ -51,6 +51,8 @@ func test_a_box_that_is_not_the_player_does_not_take_the_view() -> void:
 	var shape := CollisionShape3D.new()
 	shape.shape = BoxShape3D.new()
 	crate.add_child(shape)
+	# On the Props layer, which the zone senses: the group test is what keeps it out.
+	crate.collision_layer = PhysicsLayers.PROPS
 	crate.position = Vector3(-18.0, 0.6, 11.5)
 	_scene.add_child(crate)
 	await InputSim.ticks(get_tree(), 10)

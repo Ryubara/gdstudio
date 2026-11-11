@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://gameplay/trigger_zone/trigger_zone.gd" id="1_zone"]
+[ext_resource type="Script" path="res://addons/gds_game/trigger_zone/trigger_zone.gd" id="1_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_zone"]
 resource_local_to_scene = true
@@ -15,7 +15,8 @@ resource_local_to_scene = true
 albedo_color = Color(0.75, 0.2, 0.15, 1)
 
 [node name="TriggerZone" type="Area3D"]
-collision_layer = 0
+collision_layer = 64
+collision_mask = 10
 script = ExtResource("1_zone")
 
 [node name="Shape" type="CollisionShape3D" parent="."]

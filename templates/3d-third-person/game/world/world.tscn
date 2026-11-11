@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://world/prototype/prototype_level.tscn" id="1_level"]
+[ext_resource type="Script" path="res://core/audio_settings/audio_settings.gd" id="2_audio"]
+[ext_resource type="AudioStream" path="res://assets/audio/wind/wind_soft_1.ogg" id="3_wind"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/impacts.tscn" id="4_impacts"]
+[ext_resource type="PackedScene" path="res://gameplay/effects/effect_emitter.tscn" id="5_effects"]
+[ext_resource type="PackedScene" path="res://world/prototype/ai_section/ai_section.tscn" id="6_ai_section"]
+[ext_resource type="PackedScene" path="res://world/prototype/pathing_section/pathing_section.tscn" id="7_pathing_section"]
+[ext_resource type="Script" path="res://gameplay/ai/ai_director.gd" id="8_ai_director"]
+[ext_resource type="Script" path="res://gameplay/ai/ai_animation_throttle.gd" id="9_ai_throttle"]
+[ext_resource type="Script" path="res://gameplay/ai/relations/ai_factions.gd" id="ai_factions"]
+[ext_resource type="Resource" path="res://gameplay/ai/relations/ai_relations.tres" id="ai_relations"]
+[ext_resource type="Script" path="res://gameplay/ai/senses/ai_noise.gd" id="ai_noise"]
+
+[node name="World" type="Node"]
+
+[node name="AudioSettings" type="Node" parent="."]
+script = ExtResource("2_audio")
+
+[node name="Wind" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_wind")
+autoplay = true
+volume_db = -20.0
+bus = &"Ambient"
+
+[node name="Level" parent="." instance=ExtResource("1_level")]
+
+[node name="AISection" parent="." instance=ExtResource("6_ai_section")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -9)
+
+[node name="PathingSection" parent="." instance=ExtResource("7_pathing_section")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -6)
+
+[node name="Impacts" parent="." instance=ExtResource("4_impacts")]
+
+[node name="AiDirector" type="Node" parent="." node_paths=PackedStringArray("animation_throttle")]
+script = ExtResource("8_ai_director")
+animation_throttle = NodePath("AnimationThrottle")
+
+[node name="AnimationThrottle" type="Node" parent="AiDirector"]
+script = ExtResource("9_ai_throttle")
+
+[node name="Effects" parent="." instance=ExtResource("5_effects")]
+warm_up_groups = Array[StringName]([&"player"])
+
+[node name="AiFactions" type="Node" parent="."]
+script = ExtResource("ai_factions")
+relations = ExtResource("ai_relations")
+
+[node name="AiNoise" type="Node" parent="."]
+script = ExtResource("ai_noise")

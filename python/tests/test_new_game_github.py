@@ -5,19 +5,24 @@ from __future__ import annotations
 
 import datetime
 import json
-import shutil
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from git_seed import relocate
+from new_game_kit import KIT, git_environment, is_lfs
+from new_game_kit import run_git as git
 
 from gds_tools import cli, new_game
 from gds_tools import new_game_github as github
 from gds_tools.issues import IssueError
 
-KIT = Path(__file__).resolve().parents[2]
 FULL = "Ryubara/my-game"
 CO_AUTHOR = "Claude Opus 5.5 <noreply@anthropic.com>"
+# Most tests are about a step of the command other than the pull request that adds the game to the kit, which is
+# a worktree, a commit, a push and a run of the body check: they leave it out (the default run and its tests cover it).
+NO_KIT_PR = github.Options(co_author=CO_AUTHOR, kit_pr=False)
 GREEN = {"databaseId": 7, "status": "completed", "conclusion": "success", "url": "https://github.com/r/run/7"}
 RUNNING = {"databaseId": 7, "status": "in_progress", "conclusion": "", "url": "https://github.com/r/run/7"}
 FAILED = {"databaseId": 8, "status": "completed", "conclusion": "failure", "url": "https://github.com/r/run/8"}
@@ -25,44 +30,14 @@ FAILED = {"databaseId": 8, "status": "completed", "conclusion": "failure", "url"
 
 @pytest.fixture(autouse=True)
 def git_identity(monkeypatch, tmp_path):
-    for key, value in {
-        "GIT_AUTHOR_NAME": "Test",
-        "GIT_AUTHOR_EMAIL": "test@example.invalid",
-        "GIT_COMMITTER_NAME": "Test",
-        "GIT_COMMITTER_EMAIL": "test@example.invalid",
-        "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"),
-        "GIT_CONFIG_SYSTEM": str(tmp_path / "gitconfig"),
-    }.items():
-        monkeypatch.setenv(key, value)
-
-
-def git(*args: str, cwd: Path | None = None) -> str:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+    git_environment(monkeypatch, tmp_path / "gitconfig")
 
 
 @pytest.fixture
-def kit(tmp_path) -> Path:
-    """The parts of the kit the command reads, as a git checkout whose `origin` is a local bare repository."""
-    copy = tmp_path / "kit"
-    for rel in ("templates", "godot/addons", ".claude/agents", ".github/scripts", ".github/workflows"):
-        shutil.copytree(KIT / rel, copy / rel, ignore=shutil.ignore_patterns(".godot", "__pycache__"))
-    for rel in (
-        "workspace.toml",
-        "tools.toml",
-        ".pre-commit-config.yaml",
-        ".github/conventions.yml",
-        ".github/pull_request_template.md",
-    ):
-        (copy / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(KIT / rel, copy / rel)
-    origin = tmp_path / "kit-origin.git"
-    git("init", "--bare", "-b", "main", str(origin))
-    git("init", "-b", "main", cwd=copy)
-    git("add", "-A", cwd=copy)
-    git("commit", "-q", "-m", "kit", cwd=copy)
-    git("remote", "add", "origin", str(origin), cwd=copy)
-    git("push", "-q", "origin", "main", cwd=copy)
-    return copy
+def kit(small_git_kit) -> Path:
+    """The parts of the kit the command reads, as a git checkout whose `origin` is a local bare repository: the small
+    kit of conftest.py (a stand-in for 3D Blank, not the 21 MB of the real templates, which no GitHub step reads)."""
+    return small_git_kit
 
 
 @pytest.fixture
@@ -146,14 +121,15 @@ class FakeGh:
 
 
 class Runner:
-    """Real git; a fake `uvx` (the hooks come from the network); the groundwork commands recorded, never run."""
+    """Real git, but no Git LFS; a fake `uvx` (the hooks come from the network); the groundwork commands recorded,
+    never run."""
 
     def __init__(self, fail_step: str = ""):
         self.groundwork: list[list[str]] = []
         self.fail_step = fail_step
 
     def __call__(self, argv, *args, **kwargs):
-        if argv[0] == "uvx":
+        if argv[0] == "uvx" or is_lfs(argv):
             return subprocess.CompletedProcess(argv, 0, "", "")
         if any(str(a).endswith("groundwork.py") for a in argv):
             self.groundwork.append(list(argv))
@@ -196,8 +172,24 @@ def make(kit, root, game_origin, gh=None, run=None, options=None, fetch=lambda u
     return made, gh, run
 
 
-def test_every_step_runs_in_order_and_the_proof_is_green(kit, root, game_origin):
-    made, gh, run = make(kit, root, game_origin)
+@pytest.fixture(scope="module")
+def default_flow(small_git_kit_seed, tmp_path_factory) -> SimpleNamespace:
+    """The command with every default, run once a module: the tests that only read what it made and what it asked of
+    `gh` share it (each run is about thirty git processes, and nine tests read the same one; kit #945)."""
+    base = tmp_path_factory.mktemp("default-flow")
+    with pytest.MonkeyPatch.context() as patch:
+        git_environment(patch, base / "gitconfig")
+        kit = relocate(small_git_kit_seed, base / "git-kit") / "kit"
+        root = base / "workspace"
+        (root / "repos").mkdir(parents=True)
+        game_origin = base / "game-origin.git"
+        git("init", "--bare", "-b", "main", str(game_origin))
+        made, gh, run = make(kit, root, game_origin)
+    return SimpleNamespace(made=made, gh=gh, run=run, kit=kit, root=root, game_origin=game_origin)
+
+
+def test_every_step_runs_in_order_and_the_proof_is_green(default_flow):
+    made, gh = default_flow.made, default_flow.gh
     routes = [" ".join(c[:2]) for c in gh.calls]
     order = ["auth status", "repo view", "repo create", "api -X", "workflow run", "run list", "pr create"]
     assert [r for r in dict.fromkeys(routes) if r in order] == order
@@ -209,36 +201,34 @@ def test_every_step_runs_in_order_and_the_proof_is_green(kit, root, game_origin)
     assert made.todo == []
 
 
-def test_the_repository_is_public_by_default_with_the_pages_address_as_homepage(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin)
-    (create,) = gh.called("repo", "create")
+def test_the_repository_is_public_by_default_with_the_pages_address_as_homepage(default_flow):
+    (create,) = default_flow.gh.called("repo", "create")
     assert create[2] == FULL and "--public" in create
     assert create[create.index("--homepage") + 1] == "https://ryubara.github.io/my-game/"
 
 
 def test_private_makes_it_private(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin, options=github.Options(private=True))
+    _, gh, _ = make(kit, root, game_origin, options=github.Options(private=True, kit_pr=False))
     (create,) = gh.called("repo", "create")
     assert "--private" in create and "--public" not in create
 
 
-def test_main_is_pushed_and_the_runs_are_those_of_the_pushed_commit(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_main_is_pushed_and_the_runs_are_those_of_the_pushed_commit(default_flow):
+    made, gh, game_origin = default_flow.made, default_flow.gh, default_flow.game_origin
     pushed = git("rev-parse", "main", cwd=game_origin)
     assert pushed == git("rev-parse", "HEAD", cwd=made.repo)
     assert git("remote", "get-url", "origin", cwd=made.repo) == str(game_origin)
     assert all(c[c.index("--commit") + 1] == pushed for c in gh.called("run", "list"))
 
 
-def test_pages_is_set_to_github_actions_before_the_push(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin)
-    (pages,) = [c for c in gh.calls if c[-1] == "build_type=workflow"]
+def test_pages_is_set_to_github_actions_before_the_push(default_flow):
+    (pages,) = [c for c in default_flow.gh.calls if c[-1] == "build_type=workflow"]
     assert pages == ["api", "-X", "POST", f"repos/{FULL}/pages", "-f", "build_type=workflow"]
 
 
 def test_pages_refused_on_the_empty_repository_is_set_after_the_push_and_the_deploy_is_rerun(kit, root, game_origin):
     gh = FakeGh(pages_refusals=2, runs={"ci.yml": [GREEN], "docs.yml": [FAILED, RUNNING, GREEN]})
-    made, gh, _ = make(kit, root, game_origin, gh=gh)
+    made, gh, _ = make(kit, root, game_origin, gh=gh, options=NO_KIT_PR)
     assert len([c for c in gh.calls if c[-1] == "build_type=workflow"]) == 3  # POST, PUT refused; POST taken
     assert gh.called("run", "rerun") == [["run", "rerun", "8", "--failed", "-R", FULL]]
     assert made.published.docs.conclusion == "success" and made.published.green
@@ -246,7 +236,7 @@ def test_pages_refused_on_the_empty_repository_is_set_after_the_push_and_the_dep
 
 def test_a_failed_deploy_is_not_rerun_when_pages_was_there_before_the_push(kit, root, game_origin):
     gh = FakeGh(runs={"ci.yml": [GREEN], "docs.yml": [FAILED]})
-    made, gh, _ = make(kit, root, game_origin, gh=gh)
+    made, gh, _ = make(kit, root, game_origin, gh=gh, options=NO_KIT_PR)
     assert gh.called("run", "rerun") == []
     assert not made.published.green and not made.published.pages_live
 
@@ -256,11 +246,11 @@ def test_pages_refused_twice_stops_with_what_to_do(kit, root, game_origin):
         make(kit, root, game_origin, gh=FakeGh(pages_refusals=4))
 
 
-def test_labels_settings_and_ruleset_are_applied_to_the_new_repository(kit, root, game_origin):
-    made, _, run = make(kit, root, game_origin)
-    steps = [argv[argv.index(".github/scripts/groundwork.py") + 1] for argv in run.groundwork]
+def test_labels_settings_and_ruleset_are_applied_to_the_new_repository(default_flow):
+    groundwork = default_flow.run.groundwork
+    steps = [argv[argv.index(".github/scripts/groundwork.py") + 1] for argv in groundwork]
     assert steps == ["labels", "settings", "ruleset"]
-    for argv in run.groundwork:
+    for argv in groundwork:
         assert argv[-3:] == ["-R", FULL, "--apply"]
 
 
@@ -270,36 +260,36 @@ def test_a_groundwork_step_that_fails_stops_the_command(kit, root, game_origin):
 
 
 def test_the_hold_sweep_runs_once_and_is_retried_until_github_takes_it(kit, root, game_origin):
-    _, gh, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=2))
+    _, gh, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=2), options=NO_KIT_PR)
     assert gh.called("workflow", "run") == [["workflow", "run", "hold-sweep.yml", "-R", FULL]] * 3
 
 
 def test_a_hold_sweep_github_never_takes_is_left_as_a_step(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=99))
+    made, _, _ = make(kit, root, game_origin, gh=FakeGh(dispatch_failures=99), options=NO_KIT_PR)
     assert any("hold-sweep.yml" in step for step in made.todo)
 
 
 def test_a_run_that_does_not_finish_in_time_is_reported_unfinished(kit, root, game_origin):
     gh = FakeGh(runs={"ci.yml": [RUNNING], "docs.yml": [RUNNING]})
-    made, _, _ = make(kit, root, game_origin, gh=gh, options=github.Options(wait_minutes=1))
+    made, _, _ = make(kit, root, game_origin, gh=gh, options=github.Options(wait_minutes=1, kit_pr=False))
     assert made.published.ci.conclusion == "" and made.published.ci.url
     assert not made.published.green
 
 
 def test_a_site_that_does_not_answer_is_not_green(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, fetch=lambda url: False)
+    made, _, _ = make(kit, root, game_origin, fetch=lambda url: False, options=NO_KIT_PR)
     assert made.published.docs.conclusion == "success" and not made.published.pages_live
     assert not made.published.green
 
 
 def test_no_wait_leaves_the_proof_as_a_step(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin, options=github.Options(wait=False))
+    made, gh, _ = make(kit, root, game_origin, options=github.Options(wait=False, kit_pr=False))
     assert gh.called("run", "list") == []
     assert any("watch the first CI run" in step for step in made.todo)
 
 
-def test_the_kit_pull_request_adds_the_game_on_its_own_branch(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_the_kit_pull_request_adds_the_game_on_its_own_branch(default_flow):
+    gh, kit, root = default_flow.gh, default_flow.kit, default_flow.root
     tree = root / "worktrees" / "gdstudio" / "workspace-add-my-game"
     assert f'[repos.my-game]\nurl = "https://github.com/{FULL}.git"\nrole = "game"' in (
         tree / "workspace.toml"
@@ -327,11 +317,10 @@ def test_no_kit_pr_opens_none(kit, root, game_origin):
     assert gh.called("pr", "create") == [] and made.published.kit_pr == ""
 
 
-def test_the_kit_pull_request_description_passes_the_kits_own_check(kit, root, game_origin):
+def test_the_kit_pull_request_description_passes_the_kits_own_check(default_flow):
     from gds_tools import pr
 
-    _, gh, _ = make(kit, root, game_origin)
-    assert pr.check_body(KIT, gh.body, "workspace: Add the my-game game", kit=KIT).ok
+    assert pr.check_body(KIT, default_flow.gh.body, "workspace: Add the my-game game", kit=KIT).ok
 
 
 def test_an_existing_repository_stops_the_command_before_a_file_is_written(kit, root, game_origin):
@@ -351,8 +340,8 @@ def test_a_remote_goes_only_with_local(kit, root, game_origin):
         make(kit, root, game_origin, remote="https://github.com/Ryubara/my-game.git")
 
 
-def test_every_new_game_is_mit_with_the_kit_owner_as_holder(kit, root, game_origin):
-    made, gh, _ = make(kit, root, game_origin)
+def test_every_new_game_is_mit_with_the_kit_owner_as_holder(default_flow):
+    made, gh = default_flow.made, default_flow.gh
     text = (made.repo / "LICENSE").read_text(encoding="utf-8")
     assert text.startswith("MIT License\n")
     assert f"Copyright (c) {datetime.date.today().year} Ryubara\n" in text
@@ -360,13 +349,13 @@ def test_every_new_game_is_mit_with_the_kit_owner_as_holder(kit, root, game_orig
 
 
 def test_copyright_names_another_holder(kit, root, game_origin):
-    made, _, _ = make(kit, root, game_origin, holder="Someone Else")
+    made, _, _ = make(kit, root, game_origin, holder="Someone Else", options=NO_KIT_PR)
     assert "Someone Else" in (made.repo / "LICENSE").read_text(encoding="utf-8")
 
 
 def test_another_licence_comes_from_github_with_the_year_and_holder(kit, root, game_origin):
     gh = FakeGh(licences={"apache-2.0": "Apache License\nCopyright [yyyy] [name of copyright owner]\n"})
-    made, _, _ = make(kit, root, game_origin, gh=gh, licence="Apache-2.0")
+    made, _, _ = make(kit, root, game_origin, gh=gh, licence="Apache-2.0", options=NO_KIT_PR)
     text = (made.repo / "LICENSE").read_text(encoding="utf-8")
     assert text == f"Apache License\nCopyright {datetime.date.today().year} Ryubara\n"
 

@@ -4,7 +4,10 @@
 A task is a folder `evals/<kind>/<name>/` of the kit with a `TASK.md` (TOML front matter between `+++` lines, then the
 brief the agent gets) and, for a Blender task, `prepare.py` (writes the inputs) and `check.py` (measures the delivery);
 both run in the pinned Blender, headless. A Godot task starts from a template and is judged by its own tests, the
-task's acceptance suite and `gds check layout`.
+task's acceptance suite (`acceptance/`), its probe (`probe/`, a headless script that prints the numbers of a level),
+the code-quality numbers of what it added and `gds check layout`. A `service` task is a backend judged by its own
+tests, lint and an HTTP acceptance suite (`eval_service.py`); a `review` task is a planted-fault pull request judged by
+the findings the reviewer reports (`eval_review.py`).
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gds_tools import integrations, layout
+from gds_tools import eval_quality, eval_review, eval_service, integrations, layout, new_game, sync
 from gds_tools.manifest import load_tools
 
 Log = Callable[[str], None]
@@ -28,6 +31,7 @@ EVALS = "evals"
 RESULT = "result.json"
 RUNS = "checks.jsonl"  # one line per check run: how many runs a delivery took, and what the first one met
 ACCEPTANCE_DIR = "tests/eval_acceptance"
+PROBE_DIR = "tests/eval_probe"
 GDTOOLKIT = "gdtoolkit==4.5.0"
 PLACEHOLDERS = {"{GAME_TITLE}": "Eval", "{GAME_DESCRIPTION}": "An agent eval built from a template."}
 
@@ -46,6 +50,7 @@ class Task:
     deliver: list[str] = field(default_factory=list)
     read: list[str] = field(default_factory=list)
     template: str = ""
+    limits: dict = field(default_factory=dict)
 
     @property
     def brief(self) -> str:
@@ -76,6 +81,7 @@ def tasks(kit: Path) -> dict[str, Task]:
             deliver=list(front.get("deliver", [])),
             read=list(front.get("read", [])),
             template=front.get("template", ""),
+            limits=dict(front.get("limits", {})),
         )
     return found
 
@@ -150,10 +156,20 @@ def prepare(task: Task, target: Path, kit: Path, tools_dir: Path, tool: Callable
         for extra in task.folder.glob("*.json"):
             shutil.copy2(extra, target / extra.name)
         return
+    if task.kind == "service":
+        eval_service.prepare(task.folder, target)
+        return
+    if task.kind == "review":
+        eval_review.prepare(task.folder, target)
+        return
     if task.kind != "godot":
         raise EvalError(f"unknown eval kind {task.kind!r}")
     game = target / "game"
-    shutil.copytree(kit / "templates" / task.template / "game", game)
+    shutil.copytree(
+        kit / "templates" / task.template / "game", game, ignore=shutil.ignore_patterns(*sorted(new_game.CACHE_FOLDERS))
+    )
+    for addon in sync.KIT_ADDONS:  # what `gds sync` writes into every game: the template's autoloads name them
+        shutil.copytree(kit / sync.KIT_PROJECT / "addons" / addon, game / "addons" / addon)
     for path in game.rglob("*"):
         if path.is_file() and path.suffix in {".godot", ".md", ".tscn", ".gd", ".tres", ".cfg"}:
             text = path.read_text(encoding="utf-8")
@@ -198,7 +214,75 @@ def junit_counts(report: Path, marker: str) -> tuple[int, int, int, int]:
     return mine, mine_failed, rest, rest_failed
 
 
-def check_godot(task: Task, target: Path, tool: Callable[[str], Path], log: Log) -> dict:
+def run_acceptance(
+    task: Task, game: Path, tool: Callable[[str], Path], log: Log, godot_args: tuple[str, ...] = ()
+) -> tuple[int, ...]:
+    """Copy the task's acceptance suite into the game, run every suite of the game with GdUnit4 and remove the copy;
+    (acceptance cases, acceptance failed, the game's own cases, the game's own failed). The GdUnit4 reports go to
+    `reports/` beside the game. `godot_args` go to the test run's Godot (a test passes `--fixed-fps 60`, so a suite
+    that waits seconds of game time does not wait them on the clock)."""
+    reports = game.parent / "reports"
+    dest = game / ACCEPTANCE_DIR
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.rmtree(reports, ignore_errors=True)
+    shutil.copytree(task.folder / "acceptance", dest)
+    try:
+        _run([tool("godot"), "--headless", "--path", game, "--import"], log)
+        cmd = [
+            tool("godot"),
+            "--headless",
+            *godot_args,
+            "--path",
+            game,
+            "-s",
+            "res://addons/gdUnit4/bin/GdUnitCmdTool.gd",
+        ]
+        _run([*cmd, "-a", "res://tests", "-rd", "../reports", "-c", "--ignoreHeadlessMode"], log, timeout=1200)
+    finally:
+        shutil.rmtree(dest, ignore_errors=True)
+    return junit_counts(reports, "eval_acceptance")
+
+
+_PROBE_ROW = re.compile(r"^EVAL_ROW (\{.*\})\s*$", re.MULTILINE)
+
+
+def run_probe(task: Task, game: Path, tool: Callable[[str], Path], log: Log) -> tuple[list[dict], str]:
+    """Run the task's probe (`probe/probe.gd`, a `SceneTree` script) in the game, headless, and read the rows it
+    printed as `EVAL_ROW {json}` lines; (rows, the tail of the output)."""
+    dest = game / PROBE_DIR
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.copytree(task.folder / "probe", dest)
+    try:
+        _run([tool("godot"), "--headless", "--path", game, "--import"], log)
+        run = _run([tool("godot"), "--headless", "--path", game, "-s", f"res://{PROBE_DIR}/probe.gd"], log, timeout=900)
+    finally:
+        shutil.rmtree(dest, ignore_errors=True)
+    output = run.stdout + run.stderr
+    found = []
+    for raw in _PROBE_ROW.findall(output):
+        row = json.loads(raw)
+        row.setdefault("unit", "")
+        row.setdefault("op", "info")
+        row["pass"] = bool(row.get("pass", True))
+        found.append(row)
+    return found, "\n".join(output.strip().splitlines()[-6:])
+
+
+def added_scripts(game: Path, template: Path) -> dict[str, str]:
+    """The scripts a delivery added or changed outside `addons/`, `tests/` and `tools/`: `{path: source}`."""
+    found = {}
+    for path in sorted(game.rglob("*.gd")):
+        parts = path.relative_to(game).parts
+        if parts[0] in {"addons", "tests", "tools", ".godot", "reports"}:
+            continue
+        original = template / Path(*parts)
+        text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        if not original.is_file() or original.read_text(encoding="utf-8").replace("\r\n", "\n") != text:
+            found["/".join(parts)] = text
+    return found
+
+
+def check_godot(task: Task, target: Path, tool: Callable[[str], Path], log: Log, kit: Path | None = None) -> dict:
     rows = Rows(task.name)
     game = target / "game"
     if not (game / "project.godot").is_file():
@@ -221,32 +305,42 @@ def check_godot(task: Task, target: Path, tool: Callable[[str], Path], log: Log)
     errors = [line for line in (imported.stdout + imported.stderr).splitlines() if "ERROR" in line]
     rows.errors += errors[:10]
     rows.row("ERROR lines on a headless import", len(errors), "==", 0)
+    template_tests = (kit / "templates" / task.template / "game" / "tests") if kit is not None else None
     own = [p for p in (game / "tests").rglob("test_*.gd") if "fixtures" not in p.parts]
-    template_suites = {"test_main_scene.gd", "test_project_settings.gd", "test_prototype_level.gd"}
-    rows.row("new test suites written", len([p for p in own if p.name not in template_suites]), ">=", 1)
-    acceptance = task.folder / "acceptance"
-    dest = game / ACCEPTANCE_DIR
-    reports = target / "reports"
-    shutil.rmtree(dest, ignore_errors=True)
-    shutil.rmtree(reports, ignore_errors=True)
-    shutil.copytree(acceptance, dest)
-    try:
-        _run([tool("godot"), "--headless", "--path", game, "--import"], log)
-        cmd = [tool("godot"), "--headless", "--path", game, "-s", "res://addons/gdUnit4/bin/GdUnitCmdTool.gd"]
-        _run([*cmd, "-a", "res://tests", "-rd", "../reports", "-c", "--ignoreHeadlessMode"], log, timeout=1200)
-    finally:
-        shutil.rmtree(dest, ignore_errors=True)
-    cases, failed, own_cases, own_failed = junit_counts(reports, "eval_acceptance")
-    rows.row("acceptance cases run", cases, ">=", 1)
-    rows.row("acceptance cases failed", failed if cases else -1, "==", 0)
-    rows.row("the game's own test cases failed", own_failed if own_cases else -1, "==", 0)
-    rows.rows.append(
-        {"name": "the game's own test cases", "value": own_cases, "op": "info", "limit": "", "unit": "", "pass": True}
-    )
+    mine = [p for p in own if template_tests is None or not (template_tests / p.relative_to(game / "tests")).is_file()]
+    rows.row("new test suites written", len(mine), ">=", 1)
+    if "min_test_cases" in task.limits:
+        cases = sum(len(re.findall(r"^func test_", p.read_text(encoding="utf-8"), re.MULTILINE)) for p in mine)
+        rows.row("test cases in the new suites", cases, ">=", task.limits["min_test_cases"])
+    if (task.folder / "acceptance").is_dir():
+        cases, failed, own_cases, own_failed = run_acceptance(task, game, tool, log)
+        rows.row("acceptance cases run", cases, ">=", 1)
+        rows.row("acceptance cases failed", failed if cases else -1, "==", 0)
+        rows.row("the game's own test cases failed", own_failed if own_cases else -1, "==", 0)
+        rows.rows.append(
+            {
+                "name": "the game's own test cases",
+                "value": own_cases,
+                "op": "info",
+                "limit": "",
+                "unit": "",
+                "pass": True,
+            }
+        )
+    if (task.folder / "probe").is_dir():
+        found, tail = run_probe(task, game, tool, log)
+        rows.row("probe rows printed", len(found), ">=", 1)
+        if not found:
+            rows.errors.append(f"probe: {tail}")
+        rows.rows += found
+    if task.limits and kit is not None:
+        added = added_scripts(game, kit / "templates" / task.template / "game")
+        rows.rows += eval_quality.rows(added, task.limits)
+        rows.errors += [f"quality: {item}" for item in eval_quality.findings(added)]
     return rows.data()
 
 
-def check(task: Task, target: Path, tool: Callable[[str], Path], log: Log) -> dict:
+def check(task: Task, target: Path, tool: Callable[[str], Path], log: Log, kit: Path | None = None) -> dict:
     """Measure the delivery in `target`; the rows are also written to `target/result.json`."""
     if not (target / "TASK.md").is_file():
         raise EvalError(f"{target} is not an eval folder (no TASK.md); start one with `gds eval prepare`")
@@ -259,8 +353,14 @@ def check(task: Task, target: Path, tool: Callable[[str], Path], log: Log) -> di
         if not out.is_file():
             raise EvalError(f"check.py wrote no result (exit {run.returncode}): {run.stderr[-800:]}")
         data = json.loads(out.read_text(encoding="utf-8"))
+    elif task.kind == "service":
+        data = eval_service.check_service(task.name, task.folder, target, task.limits, log)
+        out.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    elif task.kind == "review":
+        data = eval_review.check_review(task.name, task.folder, target, task.limits)
+        out.write_text(json.dumps(data, indent=2), encoding="utf-8")
     else:
-        data = check_godot(task, target, tool, log)
+        data = check_godot(task, target, tool, log, kit or task.folder.parents[2])
         out.write_text(json.dumps(data, indent=2), encoding="utf-8")
     scored = [r for r in data["rows"] if r["op"] != "info"]
     line = {"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "met": sum(r["pass"] for r in scored), "of": len(scored)}

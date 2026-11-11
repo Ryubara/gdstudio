@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from git_seed import slim
 
 pytest.importorskip("yaml")
 
@@ -66,16 +67,24 @@ def game_conventions() -> str:
     pytest.skip("pull_requests.sections is not written on one line")
 
 
+@pytest.fixture(scope="session")
+def workspace_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The kit's checkout and a game's, made once a session (four git processes) and copied by each test (kit #945)."""
+    root = tmp_path_factory.mktemp("check-body-workspace") / "ws"
+    (root / "repos").mkdir(parents=True)
+    (root / ".gdstudio-workspace").write_text("", encoding="utf-8")
+    make_repo(root / "repos" / "gdstudio", "https://github.com/Ryubara/gdstudio.git")
+    make_repo(root / "repos" / "deadnight", "https://github.com/Ryubara/deadnight.git", game_conventions())
+    return slim(root)
+
+
 @pytest.fixture()
-def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
+def workspace(workspace_seed: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
     # the real kit pauses Deadnight, and `gds pr check-body` refuses a paused repository (test_paused_prs.py)
     monkeypatch.setattr(issues, "paused_repositories", lambda kit: {})
     root = tmp_path / "ws"
-    (root / "repos").mkdir(parents=True)
-    (root / ".gdstudio-workspace").write_text("", encoding="utf-8")
-    kit = make_repo(root / "repos" / "gdstudio", "https://github.com/Ryubara/gdstudio.git")
-    game = make_repo(root / "repos" / "deadnight", "https://github.com/Ryubara/deadnight.git", game_conventions())
-    return {"root": root, "kit": kit, "game": game}
+    shutil.copytree(workspace_seed, root)
+    return {"root": root, "kit": root / "repos" / "gdstudio", "game": root / "repos" / "deadnight"}
 
 
 def shell(command: str, cwd: Path) -> dict:
@@ -546,3 +555,37 @@ def test_a_fix_names_a_section_its_branch_edits(workspace, tmp_path, capsys, cha
     body.write_text(text, encoding="utf-8", newline="\n")
     code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
     assert ("does not change that page" in err) is refused, err
+
+
+# --- a listed Screenshots none line (kit #931) -----------------------------------------------------------------------
+
+NONE_LINE = "Screenshots: none (checker code and docs only, nothing visible)"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [NONE_LINE, f"- {NONE_LINE}", f"* {NONE_LINE}", f"  - {NONE_LINE}", "- **Screenshots:** none (a text check)"],
+    ids=["bare", "dash", "star", "indented", "bold"],
+)
+def test_a_screenshots_none_line_passes_bare_or_listed(line, workspace, tmp_path, capsys):
+    """Failed first: `- Screenshots: none (reason)` was read as a missing Before:/After: pair for a `godot` title."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    assert NONE_LINE in text
+    body, title = tmp_path / "body.md", tmp_path / "title.txt"
+    body.write_text(text.replace(NONE_LINE, line), encoding="utf-8", newline="\n")
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
+    assert run_gds(args, capsys)[0] == 0
+
+
+@pytest.mark.parametrize(
+    "line", ["- Screenshots: none", "- Screenshots: none (a reason) and more", "- Screenshots: none ()"]
+)
+def test_a_listed_screenshots_none_line_still_needs_its_reason(line, workspace, tmp_path, capsys):
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    body, title = tmp_path / "body.md", tmp_path / "title.txt"
+    body.write_text(text.replace(NONE_LINE, line), encoding="utf-8", newline="\n")
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
+    code, err = run_gds(args, capsys)
+    assert code == 1 and "needs a reason in parentheses" in err

@@ -4,14 +4,16 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_animation = _player.get_node("Animation")
 	await InputSim.ticks(get_tree(), 6)
 
@@ -36,9 +38,9 @@ func _clip_of(state: StringName) -> StringName:
 
 
 func test_every_export_has_its_default_pinned() -> void:
-	var fresh := PlayerAnimation.new()
+	var fresh := CharacterAnimation.new()
 	var pins := {
-		&"player": null,
+		&"character": null,
 		&"model": null,
 		&"animation_player": null,
 		&"tree": null,
@@ -51,17 +53,30 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"land_clip": CharacterClips.LAND,
 		&"crouch_idle_clip": CharacterClips.CROUCH_IDLE,
 		&"crouch_walk_clip": CharacterClips.CROUCH_WALK,
+		&"slide_start_clip": CharacterClips.SLIDE_START,
+		&"slide_clip": CharacterClips.SLIDE,
+		&"slide_exit_clip": CharacterClips.SLIDE_EXIT,
 		&"push_clip": CharacterClips.PUSH,
 		&"interact_clip": CharacterClips.INTERACT,
 		&"hit_clip": CharacterClips.HIT,
-		&"pistol_idle_clip": CharacterClips.PISTOL_IDLE,
-		&"aim_clip": CharacterClips.PISTOL_AIM,
-		&"aim_up_clip": CharacterClips.PISTOL_AIM_UP,
-		&"aim_down_clip": CharacterClips.PISTOL_AIM_DOWN,
-		&"shoot_clip": CharacterClips.PISTOL_SHOOT,
+		&"vault_clip": CharacterClips.VAULT_PLACEHOLDER,
+		&"vault_high_clip": CharacterClips.VAULT_PLACEHOLDER,
+		&"mantle_clip": CharacterClips.CLIMB_UP,
+		&"mantle_high_clip": CharacterClips.CLIMB_UP,
+		&"traversal_speed_range": Vector2(0.5, 2.0),
+		&"prone_idle_clip": CharacterClips.SWIM,
+		&"prone_idle_pace": 0.0,
+		&"crawl_clip": CharacterClips.SWIM,
+		&"crawl_clip_speed": 1.5,
+		&"to_prone_clip": &"",
+		&"to_crouch_clip": &"",
+		&"prone_pose_offset": Vector3(0.0, 0.42, 0.6),
+		&"prone_pose_lean": 0.0,
+		&"carry": CharacterAnimation.Carry.HAND_ONLY,
 		&"upper_body_bone": &"spine_01",
 		&"aim_pitch_range": 45.0,
 		&"shoot_speed": 1.6,
+		&"shot_hold_time": 0.2,
 		&"blend_time": 0.15,
 		&"action_blend_time": 0.1,
 	}
@@ -87,10 +102,10 @@ func test_a_clip_changed_while_the_game_runs_is_in_the_tree_and_the_state_goes_o
 	assert_str(_ground().get_blend_point_node(0).animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(2).animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(3).animation).is_equal(CharacterClips.WALK)
-	assert_str(_clip_of(PlayerAnimation.JUMP)).is_equal(CharacterClips.WALK)
-	assert_str(_clip_of(PlayerAnimation.FALL)).is_equal(CharacterClips.IDLE)
-	assert_str(_clip_of(PlayerAnimation.LAND)).is_equal(CharacterClips.IDLE)
-	assert_str(_clip_of(PlayerAnimation.PUSH)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.JUMP)).is_equal(CharacterClips.WALK)
+	assert_str(_clip_of(CharacterAnimation.FALL)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.LAND)).is_equal(CharacterClips.IDLE)
+	assert_str(_clip_of(CharacterAnimation.PUSH)).is_equal(CharacterClips.IDLE)
 	assert_str(_animation.body_state()).is_equal(state)
 
 

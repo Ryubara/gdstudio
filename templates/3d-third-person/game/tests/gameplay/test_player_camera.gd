@@ -13,9 +13,9 @@ var _camera: Camera3D
 func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
-	_player = _scene.get_node("Player")
-	_rig = _scene.get_node("PlayerCamera")
-	_camera = _scene.get_node("Camera")
+	_player = _scene.get_node("PlayerRig/Player")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
+	_camera = _scene.get_node("PlayerRig/Camera")
 	await InputSim.ticks(get_tree(), 12)
 
 
@@ -34,7 +34,7 @@ func test_the_camera_sits_behind_and_above_the_player_at_the_tuned_distance() ->
 	var distance := _camera.global_position.distance_to(pivot + _rig.offset)
 	assert_float(distance).is_equal_approx(_rig.distance, 0.4)
 	assert_float(_camera.global_position.y).is_greater(pivot.y)
-	assert_object(_scene.get_node("Camera/PhantomCameraHost").get_active_pcam()).is_same(
+	assert_object(_scene.get_node("PlayerRig/Camera/PhantomCameraHost").get_active_pcam()).is_same(
 		_rig.phantom_camera()
 	)
 
@@ -78,7 +78,7 @@ func test_the_pitch_stops_at_its_limits() -> void:
 
 func test_the_touch_layer_turns_the_camera_through_its_signal() -> void:
 	var yaw := _rig.yaw
-	_scene.get_node("TouchControls").look_turned.emit(Vector2(12.0, 0.0))
+	_scene.get_node("PlayerRig/TouchControls").look_turned.emit(Vector2(12.0, 0.0))
 	assert_float(_rig.yaw).is_equal_approx(yaw - 12.0, 0.001)
 
 

@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/pause_button.gd" id="1_button"]
+
+[node name="PauseButton" type="Button"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -84.0
+offset_top = 32.0
+offset_right = 84.0
+offset_bottom = 104.0
+grow_horizontal = 2
+script = ExtResource("1_button")
+text = "Menu"
+variant = 1

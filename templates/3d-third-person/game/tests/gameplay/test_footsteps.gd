@@ -13,11 +13,13 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_steps = _player.get_node("Footsteps")
 	_steps.stepped.connect(
 		func(foot: StringName, crouched: bool) -> void:
-			_heard.append({"foot": foot, "crouched": crouched, "at": Time.get_ticks_msec()})
+			_heard.append({"foot": foot, "crouched": crouched, "at": _game_msec()})
 	)
 	_heard.clear()
 	await InputSim.ticks(get_tree(), 10)
@@ -28,15 +30,21 @@ func after_test() -> void:
 	AudioDrain.stop_all(_arena)
 
 
-# Walks for `seconds` of real time and returns the steps heard.
+# Game time in milliseconds: the physics tick count, never the wall clock, so a run at a fixed frame
+# step (`--fixed-fps 60`) sees the same gaps as one on the clock.
+func _game_msec() -> int:
+	return int(Engine.get_physics_frames() * 1000 / Engine.physics_ticks_per_second)
+
+
+# Walks for `seconds` of game time and returns the steps heard.
 func _walk_for(seconds: float) -> int:
 	# Each walk starts at the south end of the arena, so none runs off the north edge.
 	_player.teleport(Vector3(0.0, 0.0, 25.0))
-	await get_tree().physics_frame
+	# A teleport stops the body, so it speeds up again: the first strides are short. Half a second
+	# lets the cadence settle (a run on the wall clock got there by luck of its frame order).
+	await InputSim.ticks(get_tree(), 30)
 	_heard.clear()
-	var end := Time.get_ticks_msec() + int(seconds * 1000.0)
-	while Time.get_ticks_msec() < end:
-		await get_tree().physics_frame
+	await InputSim.ticks(get_tree(), int(seconds * Engine.physics_ticks_per_second))
 	return _heard.size()
 
 
@@ -60,7 +68,7 @@ func test_the_three_players_keep_the_levels_they_were_tuned_to() -> void:
 
 func test_every_export_has_its_default_pinned() -> void:
 	var pins := {
-		&"player": _player,
+		&"character": _player,
 		&"model": _player.get_node("Model"),
 		&"steps": _steps.steps,
 		&"pitch_variation": 0.05,

@@ -17,6 +17,15 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   [waiting for a new mesh](#never-wait-a-fixed-number-of-frames-for-a-mesh)).
 - **A door's new mesh is an iteration.** Putting a fresh mesh into the region again and waiting a few physics frames
   moves the iteration id, which is how a test makes "the map took the new mesh in".
+- **The suite before may still be in the map.** A region freed with the last test's arena leaves the map at its
+  next iteration, so a new arena with the same squares answers a closest-point test at once from the old region, and
+  its owner is a freed RID with no layers. Wait until `map_get_closest_point_owner` is your region's RID and the map
+  holds one region (`NavArena.settle()`). A map made with `map_create()` and never made active stays at iteration 0:
+  that is the fixture for "waits for the first iteration".
+- **Approach:** Wait for a test's own region by its RID, never by a point the mesh would answer. **Watch out for:**
+  the navigator suites' first `settle()` waited for a point within half a metre of the mesh; every test after the
+  first saw the freed region of the one before, and its goals came back "no open ground near the goal".
+  **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`).
 - **A lambda copies a packed array.** Building the vertex list inside a lambda (`var corner := func(...)` appending to a
   `PackedVector3Array` declared outside) appends to a copy and the mesh comes out empty. Use a method and member variables.
 
@@ -123,6 +132,9 @@ How Deadnight's second map is held to its design targets (Deadnight #631, `tests
 - **Bodies on the mesh.** A soak that walks real player bodies along the mesh puts them on a physics layer of their
   own: bodies that collide stand on each other in a stair.
 - A `SceneTree` script that measures starts after `await process_frame`, and every headless run gets a `timeout`.
+- **A bake depends on where the region sits** (its cells lie on the world grid), and the cell height decides which
+  stairs stay on the mesh: bake and compare a section at the origin, and give stairs a whole number of cells
+  ([Map sections](map-sections.md#what-the-bakes-found), gdstudio #885).
 
 ## A walk to a goal the layer never reaches {#a-walk-to-a-goal-the-layer-never-reaches}
 

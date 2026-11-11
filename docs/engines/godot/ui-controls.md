@@ -183,8 +183,9 @@ first. On the web, set `viewport-fit=cover` and block page scroll, zoom and the 
 and what its build showed: `docs/research/mobile-controls.md` there.
 
 A new HUD part must be tested against the touch buttons too (a list of kept cards in the layout test) and captured on a
-phone: the right thumb's corner is full, and rectangle tests between HUD parts do not see it. A HUD part's `refresh`
-must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
+phone: the right thumb's corner is full, and rectangle tests between HUD parts do not see it. The template HUD moves a
+part to its `touch_region` while the touch layer shows ([the template HUD](ui-layout.md#template-hud)). A HUD part's
+`refresh` must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
 
 A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
 its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the
@@ -258,6 +259,10 @@ pass). Test it by changing the layout and measuring the rectangles after two idl
   boxes, but digits sit at cap height above room for a descender and the icon's art fills 0.44 to 0.46 of its cell; each
   place nudged it its own way, judged by rectangles, so the bottom-left box (icon 7 px high) was found by eye. **Seen:**
   Deadnight #1161, 2026-11-04 (fix: the helper and the pixel test).
+- **Approach:** Take the middle of a control that may sit under a scaled parent as `control.get_global_transform() *
+  (control.size * 0.5)`. **Watch out for:** `get_global_rect()` is the global position and the unscaled size, so for a
+  menu laid out at a phone's factor of 2 it gave a point half a control away from the middle and a probe tapped the
+  gap beside every button. **Seen:** gdstudio #881, 2026-11-10 (`UiProbeFields`, tapped by `menu_smoke.py`).
 
 ## A card that looks for free ground {#a-card-that-looks-for-free-ground}
 
@@ -400,11 +405,15 @@ line under it.
 
 ## 3D in a menu {#3d-in-a-menu}
 
+A menu that shows the character standing in the game (not a stage of its own) draws the game's world through a camera
+that sees one render layer: [Inventory: a live model in a menu](inventory.md#live-model).
+
 - **A menu's 3D stage is drawn at the window's pixels.** With the canvas stretch a `Control` is 1920 x 1080 whatever the
   window, and a `SubViewportContainer` makes its viewport that size (stretch on) or grows to the viewport's (off):
   1920 x 1080 stretched into a 2560 x 1440 window, soft and stair-stepped. Use a `Control`, a `SubViewport` child and a
-  `TextureRect` on its texture, and size the viewport from `get_viewport().get_final_transform().get_scale()` times the
-  control's size (cap it, 1440 high), again on `size_changed` of the root.
+  `TextureRect` on its texture, and size the viewport from the scale of
+  `get_viewport().get_final_transform() * get_global_transform_with_canvas()` times the control's size (cap it, 1440
+  high), checked each frame it shows: a scale above the control (a phone's `MenuFit`) changes without a resize.
 - **A `SubViewport` has its own `msaa_3d`** (the project setting does not reach it): choose it for the look (4x for a
   portrait or a stage; on a phone the pixels are fewer at the real size, so 4x cost less than the old 2x there).
 - **An adaptive-quality fallback needs a way back.** Judge over more than one window, climb back when frames recover
@@ -415,6 +424,11 @@ line under it.
   backoff, before it ships. **Watch out for:** a stretched `SubViewportContainer` drew the stage at the 1920 x 1080
   canvas, not the window's pixels, its `msaa_3d` was its own, and the governor dropped to half resolution after one slow
   window for the whole session. **Seen:** Deadnight #893, 2026-11-03 (fix: deadnight #920 and gdstudio #439).
+- **Approach:** Size a menu's viewport from the control's whole transform to the window, the final transform times
+  `get_global_transform_with_canvas()`, and print it at a phone size. **Watch out for:** the final transform alone
+  leaves out a parent's own scale: under the phone layout's `MenuFit` (1.75 times) the inventory's preview rendered at
+  137 x 101 px and was stretched to 240 x 177. **Seen:** gdstudio #890, 2026-11-10 (`ModelPreview._fit_viewport`, the
+  tour's `--measure`).
 
 ## A part at a scale of its own inside a screen {#a-part-at-a-scale-of-its-own-inside-a-screen}
 
@@ -434,6 +448,8 @@ inside it: a scroll's room (`UIFitScroll.limit`), a tap size in units (divide by
   checks the server's tick still climbs).
 - **Solo stops the simulation, online it does not**: only the player's controls go off, and the card says so
   ("Menu: the night goes on around you", not "Paused").
+- **A solo game that pauses behind its menu** opens it through one host node, not as a router screen: [Menus over a
+  game](menus.md#screen-host).
 - **In a test, wait for the router only while it is busy** (`if UIRouter.busy: await UIRouter.idle`): the signal is not
   replayed to a waiter that comes after it.
 

@@ -9,7 +9,7 @@ const TUNING := "res://gameplay/player/player_tuning.tres"
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
@@ -17,7 +17,7 @@ func before_test() -> void:
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
 	# A copy: the file is a cached resource that other suites read.
-	_player.tuning = (load(TUNING) as PlayerTuning).duplicate()
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 
@@ -46,6 +46,9 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"acceleration": 28.0,
 		&"deceleration": 36.0,
 		&"turn_speed": 12.0,
+		&"walk_below_push": 0.45,
+		&"least_walk_share": 0.5,
+		&"run_above_walk": 0.35,
 		&"jump_height": 1.25,
 		&"jump_rise_time": 0.4,
 		&"fall_gravity_scale": 1.35,
@@ -57,17 +60,26 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"max_slope": 48.0,
 		&"step_height": 0.32,
 		&"snap_length": 0.35,
+		&"step_probe_margin": 0.06,
 		&"crouch_height": 1.1,
 		&"crouch_speed": 1.5,
 		&"crouch_time": 0.2,
 		&"crouch_toggle": false,
 		&"camera_height": 1.55,
 		&"crouch_camera_height": 0.9,
+		&"dead_camera_rise": 0.25,
 		&"aim_move_scale": 0.6,
+		&"aim_walk_cap": 1.5,
 		&"aim_turn_speed": 18.0,
 		&"aim_pose_time": 0.15,
+		&"fire_buffer_time": 0.3,
+		&"shot_aim_amount": 0.5,
 		&"push_strength": 0.85,
 		&"push_mass": 40.0,
+		&"push_boost": 1.5,
+		&"push_least_share": 0.15,
+		&"push_contact": 1.15,
+		&"push_hold": 0.25,
 		&"interact_time": 0.7,
 		&"interact_reach": 1.6,
 		&"hit_stun_time": 0.45,
@@ -79,7 +91,7 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"height": 1.8,
 		&"fall_limit": -25.0,
 	}
-	var file := load(TUNING) as PlayerTuning
+	var file := load(TUNING) as CharacterTuning
 	assert_array(ExportPins.differences(file, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(file, pins)).is_empty()
 

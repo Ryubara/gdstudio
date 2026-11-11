@@ -18,14 +18,21 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   compilation. **Seen:** Deadnight, 2026-11-01 (fix: `reload_weapon`); Deadnight #462, 2026-11-01 (a helper named
   `_set`).
 
-- **Approach:** Name a local variable or parameter so that it matches no member of its node class (`gravity_scale`,
-  not `scale`, in a `Node3D`; `stick_offset`, not `offset`, in a `CanvasLayer`; `earlier`, not `before`, in a GdUnit
-  suite), and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
+- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
+  `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
+  own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
   `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
-  opening 3D Third Person ("local variable "scale" is shadowing an already-declared property in the base class"), which
-  a headless run never shows; as errors, `gds check scripts` fails the script (a throwaway `var scale` gave "1 of 429 do
-  not parse"). **Seen:** gdstudio #836, 2026-11-08 (also a test helper `_body` shadowed by a
-  lambda's `_body`); #857 (a test's `for name in`, exit 105).
+  opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
+  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
+  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, `world_hash` beside a function of that name);
+  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script).
+
+- **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
+  `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
+  `Array[Projectile]` passes the parser and fails at run time ("Trying to assign an array of type Array to a variable
+  of type Array[Projectile]"), only on the path that runs it: the weapon's pool hit it once its live list was full.
+  **Seen:** gdstudio #887, 2026-11-10 (`Weapon._take_projectile`, found by `test_weapon_ray.gd`; in the same task a
+  tool's `root` and `sign` met the shadowing rule above).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
@@ -47,6 +54,37 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   night test stopped on it. **Seen:** Deadnight #442, 2026-11-01 (fix: `is_instance_valid`; the night test is the
   check).
 
+- **Approach:** Give an `@export_enum` a name for "none" (`"Stay"`, `"None"`) and test for that string; load every new
+  script once (`gds check scripts`) before reading anything else a run prints. **Watch out for:** `@export_enum("",
+  "TopLeft", ...)` is a parse error ("Argument 1 of annotation @export_enum is empty") that was reported only as
+  "Could not resolve class" on the scripts that extend the failing one. **Seen:** gdstudio #880, 2026-11-10 (fix: a
+  `Stay` entry).
+
+- **Approach:** Fill a typed array in steps (`var paths: Array[String] = [a, b]`, then `if cond: paths = [c]`) and read
+  the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
+  cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
+  type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
+  matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+
+## Script errors at run time {#runtime-errors}
+
+<!-- new section: the page held names, lambdas and files; nothing said what a call returns when the function it calls
+     hits a script error, which a watchdog depends on -->
+
+- **Approach:** To catch a script error in code another script supplies (a task's `update()`), make the value `0` of
+  the function's return enum mean "invalid" (`enum Status { INVALID, RUNNING, SUCCEEDED, FAILED }`), read the result
+  into a `Variant` and treat anything that is not a known status (0 from a typed function, `null` from an untyped one)
+  as the error. GDScript has no `try`: the caller carries on after the error. **Watch out for:** in Godot 4.7.2 a
+  function declared `-> int` that hits `Cannot call method 'x' on a null value` returns `0` to its caller, not `null`,
+  and the caller's next line runs; assigning that result to a typed enum variable hides the difference. A `-> bool`
+  returns `false`, so a check that may error should mean "not valid" by `false`. **Seen:** gdstudio #965, 2026-11-10
+  (a headless spike, then `AiTask._judge`).
+
+- **Approach:** When two `RefCounted` objects need each other (a task and the runner that owns it), keep the back
+  reference as a `WeakRef` (`weakref(runner)`, read with `get_ref()`) or pass the owner as an argument. **Watch out
+  for:** a strong reference both ways is a cycle that reference counting never frees, which shows as objects leaked
+  at exit, a line CI refuses. **Seen:** gdstudio #965, 2026-11-10 (`AiTask.runner()`).
+
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that
@@ -67,12 +105,18 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   without `unbinds` fails only when the signal fires (the key is `unbinds`). **Seen:** gdstudio #788, 2026-11-08 (the
   graphics profile found no node and did nothing; fixed, with a test that applies it).
 
+- **Approach:** In a `.tscn` written by hand or by a script, put each node's `script = ExtResource(...)` line before
+  the script's own exports (`style`, `title`, `key`). **Watch out for:** properties above the `script` line are
+  dropped without a word: every label of a settings screen loaded at the body size and every row had no title, and no
+  check noticed; only a capture and a probe that printed the property did. **Seen:** gdstudio #881, 2026-11-10 (the 3D
+  Third Person menus).
 - **Approach:** Treat `project.godot` as Godot's file: change it by hand only for a real setting, keep local-only
-  settings in an untracked `override.cfg`, run `git checkout game/project.godot` after each import or run, and stage
-  files by path (never `git add -A` in a worktree where Godot has just run). **Watch out for:** Godot rewrites the
-  file in its own format and section order whenever it saves project state, so a hand-written comment vanished and two
-  engineers touching the input map conflicted on a reorder nobody meant. **Seen:** Deadnight, 2026-11-01 (fix:
-  `override.cfg` and a checkout after every run).
+  settings for a game run in an untracked `override.cfg` (the editor never reads it: an editor plugin goes in
+  `project.godot`, [Integrations](../../studio/workspace.md#integrations)), run `git checkout game/project.godot` after
+  each import or run, and stage files by path (never `git add -A` in a worktree where Godot has just run). **Watch out
+  for:** Godot rewrites the file in its own format and section order whenever it saves project state, so a hand-written
+  comment vanished and two engineers touching the input map conflicted on a reorder nobody meant. **Seen:** Deadnight,
+  2026-11-01 (fix: `override.cfg` and a checkout after every run).
 
 - **Approach:** Make input bindings in the editor, or print `InputMap.action_get_events(action)` from a probe, and add
   a test that sends the real key. **Watch out for:** Godot accepts any integer as a `physical_keycode`: codes typed
@@ -113,4 +157,4 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   is not valid GDScript ("Unindent doesn't match", and GdUnit hung); it rewrote a multi-line lambda inside a call into
   a form Godot refuses, and put a comment between `"key":` and its wrapped `{...}` value. **Seen:** Deadnight,
   2026-11-01 (fix: short asserts, a named helper in place of the lambda); Deadnight, 2026-11-03 (a merge that kept two
-  batches' entries).
+  batches' entries); gdstudio #1001, 2026-11-10 (a lambda in a `connect` call: named methods).

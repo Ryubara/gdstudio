@@ -39,7 +39,10 @@ Esc opens the menu. Every web game with mouse look has this, so it is part of th
   and fire while unlocked, re-lock from a button press, and have the web smoke release the lock and check the pause
   screen. **Watch out for:** in a browser the first Esc only exits pointer lock and never reaches the game, so the
   game's `pause` key never came and mouse look and fire kept running with a free cursor. **Seen:** Deadnight, 2026-11-02
-  (fix: the pause follows the lock, as above; it belongs in a web game's first design).
+  (fix: the pause follows the lock, as above; it belongs in a web game's first design); gdstudio #881, 2026-11-10 (the
+  template's `ScreenHost` does it for every game made from 3D Third Person, and `tools/web_smoke/pause_smoke.py`
+releases
+  the lock in Chromium and reads the menu up).
 
 ## Discord Activity: the proxy and the iframe {#discord-activity-the-proxy-and-the-iframe}
 
@@ -207,6 +210,9 @@ ratio at 2 on a touch device (`PhoneRender`, `html/head_include`): an 844 x 390 
 - **Probe it on the page.** `tools/web_smoke/phone_layout.py` walks the menu screens in Chromium as a phone (and in
   an iframe with `--iframe`) and prints the page, canvas, factor, units and the smallest text and tap target in CSS
   px (`window.deadnight_audit`; `WebProbe`'s `layout`, `phone` and `ui_audit`). Run it through `gds quiet`.
+- **One helper for the page's height.** In 3D Third Person, `Hud.css_height()` gives the page height in CSS px (the
+  canvas element's box on the web, the window over the pixel ratio elsewhere); a part that sizes itself by the page asks
+  it rather than doing its own sums ([The template HUD](ui-layout.md#template-hud), gdstudio #880).
 
 - **A report that the game looks zoomed in on a phone is answered on the phone first.** Deadnight #1310: headless
   Chrome as a phone showed nothing wrong (canvas = page, visual viewport scale 1, a pinch and a double tap change

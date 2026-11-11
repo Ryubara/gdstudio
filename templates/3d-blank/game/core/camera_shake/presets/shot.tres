@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShakePreset" format=3]
+
+[ext_resource type="Script" path="res://addons/gds_game/camera_shake/shake_preset.gd" id="1_preset"]
+
+[resource]
+script = ExtResource("1_preset")
+trauma = 0.4
+duration = 0.2
+wave = 0
+frequency = 18.0
+max_rotation = Vector3(1.2, 0.6, 0.3)
+max_offset = Vector2(0, 0)
+exponent = 2.0
+blend_speed = 4.0
+radius = 0.0

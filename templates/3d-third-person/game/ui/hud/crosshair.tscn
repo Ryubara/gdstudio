@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" path="res://ui/hud/crosshair.gd" id="1_crosshair"]
 
-[node name="Crosshair" type="Control"]
-layout_mode = 3
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bare"]
+
+[node name="Crosshair" type="PanelContainer"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -16,4 +17,5 @@ offset_bottom = 8.5
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_bare")
 script = ExtResource("1_crosshair")

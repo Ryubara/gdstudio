@@ -25,6 +25,15 @@ same way only when nothing else is loading the machine: a loaded machine doubles
   at 60 a second (a 38 s suite cancelled the 20-minute CI job). **Seen:** Deadnight, 2026-11-01 (fix: about 1,500
   ticks a second headless); Deadnight #524, 2026-11-02 (fix: 38 s to 1.7 s, same poses and limits).
 
+- **Approach:** Run a game's GdUnit4 suites at `--fixed-fps 60`: each frame is exactly one physics tick and the engine
+  never waits for the clock. Wait in ticks (`InputSim.ticks`; 3 s is 180), read game time as `Engine.get_physics_frames()
+  / Engine.physics_ticks_per_second`, and start a suite that must read the real clock with `# On the clock: <why>`
+  (`gds check layout` refuses `Time.get_ticks_msec()`, `get_ticks_usec()` and `create_timer()` in `tests/` without it).
+  **Watch out for:** GdUnit4's timeout counts game time, so a loop on `Time.get_ticks_msec()` never ended (6 of 444
+  cases); a test that teleports a body and clears its log one frame later heard a stray step the wall-clock frame order
+  had hidden: let the state settle first. **Seen:** gdstudio #916, 2026-11-10 (five slow suites 166 s to 18 s with no
+  test changed; the whole 3D Third Person suite FIXED_NUMBERS); gdstudio #926.
+
 ## What hand stepping needs {#what-hand-stepping-needs}
 
 - **One physics step for new bodies, and `physics_frame` is emitted before it.** The physics server indexes a body on its
@@ -131,7 +140,8 @@ two clocks, and a slow runner pulls them apart. Give the real-time part an injec
   real milliseconds and waited 8 wall seconds while the game ran in frames, so a loaded runner played fewer frames of
   the same network (484 corrections where a quiet one prints 50) and failed once; a `--fixed-fps 60` run with no game
   clock on a `GameServer` lost its client in seconds. **Seen:** Deadnight, 2026-11-02 (fix: one clock; the worst gap
-  stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`).
+  stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`); gdstudio #903,
+  2026-11-10 (a socket rig on the real clock: lingers never ended at `--fixed-fps 60`).
 
 - **Approach:** Switch off a node that eases or animates in `_process` (`set_process(false)`,
   `AnimationTree.callback_mode_process = MANUAL`) and step it by hand with a fixed delta in the test's tick helper;

@@ -30,7 +30,10 @@ resource_local_to_scene = true
 radius = 0.5
 
 [node name="PhysicsProp" type="RigidBody3D"]
+collision_layer = 8
+collision_mask = 11
 script = ExtResource("1_prop")
+metadata/surface = &"wood"
 
 [node name="CrateMesh" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true

@@ -14,9 +14,9 @@ func before_test() -> void:
 	# Another suite may have left a button down (a base suite leaves `fire` pressed).
 	InputSim.release_all()
 	_scene = scene_runner("res://main.tscn").scene()
-	_rig = _scene.get_node("PlayerCamera")
-	_player = _scene.get_node("Player")
-	_camera = _scene.get_node("Camera")
+	_rig = _scene.get_node("PlayerRig/PlayerCamera")
+	_player = _scene.get_node("PlayerRig/Player")
+	_camera = _scene.get_node("PlayerRig/Camera")
 	await InputSim.ticks(get_tree(), 8)
 
 
@@ -39,6 +39,18 @@ func _sprint() -> void:
 	InputSim.key(KEY_SHIFT, true)
 	await InputSim.ticks(get_tree(), 60)
 	assert_bool(_player.is_sprinting()).is_true()
+
+
+func _pitch_bobs_in_a_second() -> int:
+	var bobs := 0
+	var last := _rig.current_shake().x
+	for _step in 60:
+		_rig.advance(1.0 / 60.0)
+		var pitch := _rig.current_shake().x
+		if last <= 0.0 and pitch > 0.0:
+			bobs += 1
+		last = pitch
+	return bobs
 
 
 func _aim() -> void:
@@ -124,16 +136,16 @@ func test_the_shake_frequency_and_blend_are_live() -> void:
 	await _sprint()
 	_rig.sprint_shake_amplitude = 1.0
 	_rig.sprint_shake_blend = 2.0
-	_rig._shake_blend = 0.0
+	_rig.shaker.clear()
 	_rig.advance(0.25)
-	# Half of the way in (2 per second for a quarter of a second), eased.
-	assert_float(_rig._shake_blend).is_equal_approx(0.5, 0.001)
+	# Half of the way in (2 per second for a quarter of a second).
+	assert_float(_rig.shaker.level_of(&"sprint")).is_equal_approx(0.5, 0.001)
 	_settle()
-	var phase := _rig._shake_phase
+	assert_float(_rig.shaker.level_of(&"sprint")).is_equal(1.0)
+	# The pitch bobs at the frequency: three bobs a second, then six.
+	assert_int(_pitch_bobs_in_a_second()).is_between(2, 3)
 	_rig.sprint_shake_frequency = 6.0
-	_rig.advance(0.1)
-	var turned := fposmod(_rig._shake_phase - phase, TAU * 2.0)
-	assert_float(turned).is_equal_approx(TAU * 6.0 * 0.1, 0.001)
+	assert_int(_pitch_bobs_in_a_second()).is_between(5, 6)
 
 
 func test_the_shake_does_not_run_off_the_ground_or_while_walking() -> void:

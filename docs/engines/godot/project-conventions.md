@@ -31,8 +31,9 @@ game/
 | A scene beside its script | The script on a scene's root node has the scene's name and folder (`player.tscn`, `player.gd`). | `scene-script` |
 | Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. | `uid` |
 | Dependencies run one way | `addons`, `assets` < `core` < `gameplay`, `world`, `net` < `ui` < the root scene. A file refers only to folders at its own level or below: `core` never names `gameplay`, `gameplay` never names `ui`. `tests/` and `tools/` and the root scenes may use anything. | `dependency` |
-| Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. | `ships-tools`, `export` |
+| Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. A probe that the exported game itself must carry (a browser test reads `window.gdprobe` from the web build: `ui/probe/web_probe.gd`, which a scene's script adds at run time on `?probe`, so no scene holds it) is shipped code, not a tool: it lives under `ui/probe/`, does nothing unless asked (the page has `?probe`), and names nothing in `tools/`; the script that drives it stays in `tools/web_smoke/`. | `ships-tools`, `export` |
 | An addon the kit puts in a game is registered | `gds sync` copies `gds_ui` into `addons/` and enables nothing (the 3D Blank template also commits Phantom Camera, registered the same way): the game's `project.godot` enables `res://addons/gds_ui/plugin.cfg` under `[editor_plugins]` and has `UIRouter="*res://addons/gds_ui/router/ui_router.gd"` under `[autoload]`, as the plugin does when it is enabled. Without the autoload the addon's demo and focus ring do not parse. | `addon-plugin`, `addon-autoload` (`gds sync` also warns) |
+| Shared gameplay code lives in the kit | A part any game of any template can use unchanged (the effect pool, `TriggerZone`, the suites' `ExportPins` and `InputSim`) is a script of the synced `addons/gds_game/`, edited in the kit and written into games by `gds sync`; the template keeps its scenes and tuning ([Sync](../../studio/sync.md#gds-game)). No other script declares one of the addon's classes. | `addon-class` |
 | Generated files outside `res://` | GdUnit's reports go to a folder outside the project (`-rd ../../reports`, relative to `game/`, never an absolute `/path`: GdUnit4 reads it as `res://`); none is committed under `game/reports/`. | `generated` |
 | Third-party assets | Every third-party asset folder carries a `LICENSE.md` naming source and licence, and its credit reaches the game's Credits screen. | judgment (a maintainer decision to commit one) |
 | Splitting a feature | Past about 30 scripts with clear clusters, a feature folder gets subfolders named for the clusters. | judgment |
@@ -43,18 +44,30 @@ game/
   a `##` tooltip), pin each file's defaults in a test, and keep a scene map (which scene loads which, and which one is
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
-  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export).
+  Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
+  2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
-  own).
-- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless --import`)
-  and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had the uid and
-  the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and `template` CI
-  jobs; copy the uid files back, not only the scripts, and run `gds check layout templates/<name>/game` before the push.
-  **Seen:** gdstudio #845, 2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`).
+  own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
+  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
+- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless
+  --import`) and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had
+  the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
+  `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
+  `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
+  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
+  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
+  script imported in the kit's `godot/`); gdstudio #910, 2026-11-11 (a test's, caught by `gds template
+  test`).
+
+- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
+  the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
+  ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
+  (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
+  looked like a problem of the change. **Seen:** gdstudio #884, 2026-11-10.
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
@@ -76,8 +89,9 @@ uv run --project <workspace>/repos/gdstudio/python gds check layout game
 
 It prints one line per broken rule (`path: [rule] what is wrong`) and exits 1; a game's `conventions` CI job runs it
 beside `gds sync --check`. It reads files only. What it cannot judge, whether every script parses, is
-`gds check scripts game` ([New game](new-game.md#proof)). The rules and the order are in
-`python/src/gds_tools/layout.py`, with a test for each in `python/tests/test_layout.py`: a new rule is a kit pull
+`gds check scripts game` ([New game](new-game.md#proof)); a template's suites run with both checks in
+`gds template test <name>`. The rules and the order are in `python/src/gds_tools/layout.py`, with a test for each in
+`python/tests/test_layout.py`: a new rule is a kit pull
 request, not a game's exception.
 
 ## Editing a file by script {#scripted-edits}
@@ -96,7 +110,7 @@ project's hooks hold.
   was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
   clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
-  matched and read `git diff` of every file it touched before the commit).
+  matched and read `git diff` of every file it touched before the commit); gdstudio #1059.
 
 ## Where the rules came from {#where-the-rules-came-from}
 

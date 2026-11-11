@@ -1,14 +1,13 @@
 """`gds sync`: keep the game-side copies of kit-owned files identical to the kit (docs/studio/sync.md).
 
-The kit is the one source of the files every game carries: the agent definitions (`.claude/agents/*.md`), the
-commit and pull request checker (`.github/scripts/groundwork.py`), the hook launcher with its settings
-(`templates/game/`), the Godot addons the kit owns (`godot/addons/gds_ui/`, written to `game/addons/gds_ui/` at the
-same `res://` path) and the message-check hooks of `.pre-commit-config.yaml`. The last is a file a game also writes
-into (its own formatters), so only the blocks between `# gds-sync:begin <name>` and `# gds-sync:end <name>` lines are
-the kit's; the kit's own config is their source. `gds sync <game>` writes all of it into the game and records the
-hashes in `.claude/gds-sync.json`; `gds sync <game> --check` fails when a copy differs from the kit, so a hand edit in
-a game (or a kit change not yet synced) is caught. Change these files in the kit, then sync each game in a pull
-request of its own.
+The kit is the one source of the files every game carries: the agent definitions (`.claude/agents/*.md`), the commit and
+pull request checker (`.github/scripts/groundwork.py`), the hook launcher with its settings (`templates/game/`), the
+Godot addons the kit owns (`godot/addons/gds_ui/` and `gds_game/`, written to `game/addons/<name>/` at the same `res://`
+path) and the message-check hooks of `.pre-commit-config.yaml`. The last is a file a game also writes into (its own
+formatters), so only the blocks between `# gds-sync:begin <name>` and `# gds-sync:end <name>` lines are the kit's; the
+kit's own config is their source. `gds sync <game>` writes all of it into the game and records the hashes in
+`.claude/gds-sync.json`; `gds sync <game> --check` fails when a copy differs from the kit, so a hand edit in a game (or
+a kit change not yet synced) is caught. Change these files in the kit, then sync each game in a pull request of its own.
 """
 
 from __future__ import annotations
@@ -27,9 +26,33 @@ SCRIPTS = (".github/scripts/groundwork.py", ".github/workflows/hold.yml", ".gith
 #: The Godot addons the kit owns: edited in the kit's own Godot project (`godot/addons/<name>/`, beside the tests that
 #: prove them) and copied whole to the same path in a game's project. The folder also holds the third-party addons
 #: `gds workspace init` installs untracked (GdUnit4, the MCP addon), so the owned ones are named, never globbed.
-KIT_ADDONS = ("gds_ui",)
+KIT_ADDONS = ("gds_ui", "gds_game")
 KIT_PROJECT = "godot"
 GAME_PROJECT = "game"
+
+#: Template files that moved into a kit addon (old `res://` path -> the addon's), for the games made before the move.
+#: `gds sync` deletes a game's old copy (and its `.uid`) and points every reference at the addon; without it the old
+#: copy and the addon declare the same `class_name` and the project does not parse. Entries stay: a game may be synced
+#: for the first time long after (docs/studio/sync.md#moved).
+MOVED: dict[str, str] = {
+    "res://tests/fixtures/export_pins.gd": "res://addons/gds_game/testing/export_pins.gd",
+    "res://tests/fixtures/input_sim.gd": "res://addons/gds_game/testing/input_sim.gd",
+    "res://gameplay/trigger_zone/trigger_zone.gd": "res://addons/gds_game/trigger_zone/trigger_zone.gd",
+    "res://gameplay/effects/effect_def.gd": "res://addons/gds_game/effects/effect_def.gd",
+    "res://gameplay/effects/effect_emitter.gd": "res://addons/gds_game/effects/effect_emitter.gd",
+    "res://gameplay/effects/effect_slot.gd": "res://addons/gds_game/effects/effect_slot.gd",
+    "res://gameplay/impacts/impacts.gd": "res://addons/gds_game/impacts/impacts.gd",
+    "res://gameplay/impacts/impact_surface.gd": "res://addons/gds_game/impacts/impact_surface.gd",
+    "res://gameplay/impacts/impact_mark.gd": "res://addons/gds_game/impacts/impact_mark.gd",
+    "res://gameplay/spawn_point/spawn_point.gd": "res://addons/gds_game/spawn_point/spawn_point.gd",
+    "res://core/camera_shake/camera_shake.gd": "res://addons/gds_game/camera_shake/camera_shake.gd",
+    "res://core/camera_shake/shake_preset.gd": "res://addons/gds_game/camera_shake/shake_preset.gd",
+    "res://ui/menus/screen_host.gd": "res://addons/gds_game/screen_host/screen_host.gd",
+    "res://gameplay/hit_zones/hit_record.gd": "res://addons/gds_game/hits/hit_record.gd",
+}
+#: The game files whose `res://` references a move rewrites (Godot's text formats and scripts).
+REFERENCE_SUFFIXES = frozenset({".gd", ".tscn", ".tres", ".cfg", ".godot", ".gdshader"})
+_SKIPPED_FOR_REFERENCES = frozenset({".godot", "addons", "reports"})
 
 #: The one game file the kit owns only parts of: the hooks that judge commit messages and pushes.
 BLOCK_FILE = ".pre-commit-config.yaml"
@@ -76,6 +99,67 @@ def strays(game: Path, wanted: set[str]) -> list[str]:
             if path.is_file() and target not in wanted:
                 found.append(target)
     return found
+
+
+def _res_file(game: Path, res: str) -> Path:
+    return game / GAME_PROJECT / res.removeprefix("res://")
+
+
+def _reference_files(game: Path) -> list[Path]:
+    """The game's own text files that can name a `res://` path (not its addons, the import cache or reports)."""
+    project = game / GAME_PROJECT
+    if not project.is_dir():
+        return []
+    return [
+        p
+        for p in sorted(project.rglob("*"))
+        if p.suffix in REFERENCE_SUFFIXES
+        and p.is_file()
+        and not _SKIPPED_FOR_REFERENCES & set(p.relative_to(project).parts[:-1])
+    ]
+
+
+def moved_leftovers(game: Path) -> list[str]:
+    """What a game still holds from before a file moved into a kit addon: the old copy, or a reference to its old
+    path."""
+    problems = []
+    for old, new in MOVED.items():
+        if _res_file(game, old).exists():
+            problems.append(f"{GAME_PROJECT}/{old.removeprefix('res://')}: moved to {new} (run `gds sync`)")
+    for path in _reference_files(game):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for old, new in MOVED.items():
+            if f'"{old}"' in text:
+                rel = path.relative_to(game).as_posix()
+                problems.append(f"{rel}: names {old}, which moved to {new} (run `gds sync`)")
+    return problems
+
+
+def move_into_addons(game: Path, log=print) -> int:
+    """Delete a game's old copies of the files in `MOVED` and point its references at the addon; returns how many
+    files changed."""
+    changed = 0
+    for old, new in MOVED.items():
+        path = _res_file(game, old)
+        for stale in (path, path.with_name(path.name + ".uid")):
+            if stale.exists():
+                stale.unlink()
+                log(f"removed {stale.relative_to(game).as_posix()} (moved to {new})")
+                changed += 1
+        folder = path.parent
+        while folder != game / GAME_PROJECT and folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+            folder = folder.parent
+    for path in _reference_files(game):
+        text = path.read_bytes().decode("utf-8", errors="surrogateescape")
+        new_text = text
+        for old, new in MOVED.items():
+            new_text = new_text.replace(f'"{old}"', f'"{new}"')
+        if new_text != text:
+            path.write_bytes(new_text.encode("utf-8", errors="surrogateescape"))
+            log(f"wrote   {path.relative_to(game).as_posix()} (references to moved files)")
+            changed += 1
+    return changed
 
 
 def blocks(text: str) -> dict[str, str]:
@@ -154,6 +238,7 @@ def drift(kit: Path, game: Path) -> list[str]:
         elif digest(path.read_bytes()) != want:
             problems.append(f"{target}: differs from the kit (edit it in the kit, then run `gds sync`)")
     problems += block_drift(kit, game)
+    problems += moved_leftovers(game)
     stray = strays(game, set(wanted))
     problems += [
         f"{target}: not in the kit's addon (add it to the kit, or run `gds sync` to remove it)" for target in stray
@@ -202,6 +287,7 @@ def sync(kit: Path, game: Path, log=print) -> int:
         (game / target).unlink()
         log(f"removed {target}")
         changed += 1
+    changed += move_into_addons(game, log)
     if config_text is not None:
         have = blocks(config_text)
         new_text = config_text

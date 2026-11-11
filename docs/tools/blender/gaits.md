@@ -57,3 +57,9 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
   bone is 0.518 long), so it solves the wrong lengths (100+ degrees off the kit's own legs).
 - **A pose set by hand reads back as the NLA's** while the clean-up's tracks are unmuted: mute every track before
   posing and reading bone matrices.
+
+- **Approach:** Check the legs' phase by the main swing of each limb (the frame each foot leaves the floor, or the peak
+  of its forward speed) and require the two half a cycle apart, within a frame or two. **Watch out for:** a check by
+  correlation of the two legs' curves alone failed a good run whose feet moved with different shapes (a short contact,
+  a long flight), since the shapes differ even when the timing is right. **Seen:** the Blender model duel, 2026-11-10
+  (a correlation check failed a run whose legs did swing half a cycle apart).

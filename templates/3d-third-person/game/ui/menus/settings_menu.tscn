@@ -1,0 +1,255 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/settings_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://ui/menus/menu_fit.gd" id="2_fit"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_panel.gd" id="3_panel"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_label.gd" id="4_label"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_button.gd" id="5_button"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_fit_scroll.gd" id="6_scroll"]
+[ext_resource type="Script" path="res://ui/menus/setting_row.gd" id="7_row"]
+[ext_resource type="Script" path="res://ui/menus/controls_page.gd" id="8_controls"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_slider.gd" id="9_slider"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_toggle.gd" id="10_toggle"]
+[ext_resource type="Script" path="res://addons/gds_ui/components/ui_option_selector.gd" id="11_selector"]
+
+[node name="SettingsMenu" type="Control"]
+script = ExtResource("1_menu")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Fit" type="Control" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_fit")
+
+[node name="Margin" type="MarginContainer" parent="Fit"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 32
+
+[node name="Center" type="CenterContainer" parent="Fit/Margin"]
+
+[node name="Card" type="PanelContainer" parent="Fit/Margin/Center"]
+unique_name_in_owner = true
+script = ExtResource("3_panel")
+variant = 1
+
+[node name="Column" type="VBoxContainer" parent="Fit/Margin/Center/Card"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1100, 0)
+theme_override_constants/separation = 16
+
+[node name="Overline" type="Label" parent="Fit/Margin/Center/Card/Column"]
+unique_name_in_owner = true
+script = ExtResource("4_label")
+text = "OPTIONS"
+style = 5
+
+[node name="Title" type="Label" parent="Fit/Margin/Center/Card/Column"]
+unique_name_in_owner = true
+script = ExtResource("4_label")
+text = "Settings"
+style = 1
+
+[node name="Tabs" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column"]
+unique_name_in_owner = true
+theme_override_constants/separation = 8
+
+[node name="VideoTab" type="Button" parent="Fit/Margin/Center/Card/Column/Tabs"]
+unique_name_in_owner = true
+script = ExtResource("5_button")
+text = "Video"
+variant = 0
+
+[node name="AudioTab" type="Button" parent="Fit/Margin/Center/Card/Column/Tabs"]
+unique_name_in_owner = true
+script = ExtResource("5_button")
+text = "Audio"
+variant = 2
+
+[node name="ControlsTab" type="Button" parent="Fit/Margin/Center/Card/Column/Tabs"]
+unique_name_in_owner = true
+script = ExtResource("5_button")
+text = "Controls"
+variant = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Fit/Margin/Center/Card/Column"]
+unique_name_in_owner = true
+script = ExtResource("6_scroll")
+size_flags_horizontal = 3
+steady = 330.0
+
+[node name="Pages" type="MarginContainer" parent="Fit/Margin/Center/Card/Column/Scroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 24
+
+[node name="VideoPage" type="VBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages"]
+unique_name_in_owner = true
+theme_override_constants/separation = 16
+
+[node name="WindowMode" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage"]
+script = ExtResource("7_row")
+title = "Window mode"
+key = &"video/window_mode"
+hint = "Fullscreen fills the screen."
+option_values = PackedFloat32Array(0, 1)
+hide_on_web = true
+
+[node name="Control" type="Control" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage/WindowMode"]
+script = ExtResource("11_selector")
+options = PackedStringArray("Windowed", "Fullscreen")
+
+[node name="Quality" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage"]
+script = ExtResource("7_row")
+title = "Quality"
+key = &"video/quality"
+hint = "Shadows and edge smoothing."
+option_values = PackedFloat32Array(0, 1, 2)
+options_from_presets = true
+
+[node name="Control" type="Control" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage/Quality"]
+script = ExtResource("11_selector")
+options = PackedStringArray("Low", "Medium", "High")
+
+[node name="ResolutionScale" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage"]
+script = ExtResource("7_row")
+title = "Resolution scale"
+key = &"video/resolution_scale"
+hint = "Draws the 3D world smaller; the menus stay sharp."
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage/ResolutionScale"]
+script = ExtResource("9_slider")
+min_value = 50.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="Vsync" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage"]
+script = ExtResource("7_row")
+title = "Vertical sync"
+key = &"video/vsync"
+hint = "Off gives the lowest delay and may tear."
+hide_on_web = true
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/VideoPage/Vsync"]
+script = ExtResource("10_toggle")
+
+[node name="AudioPage" type="VBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages"]
+unique_name_in_owner = true
+visible = false
+theme_override_constants/separation = 16
+
+[node name="Master" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage"]
+script = ExtResource("7_row")
+title = "Master volume"
+key = &"audio/master"
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage/Master"]
+script = ExtResource("9_slider")
+min_value = 0.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="Effects" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage"]
+script = ExtResource("7_row")
+title = "Effects"
+key = &"audio/sfx"
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage/Effects"]
+script = ExtResource("9_slider")
+min_value = 0.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="Ambient" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage"]
+script = ExtResource("7_row")
+title = "Ambient"
+key = &"audio/ambient"
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage/Ambient"]
+script = ExtResource("9_slider")
+min_value = 0.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="Interface" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage"]
+script = ExtResource("7_row")
+title = "Interface sounds"
+key = &"audio/ui"
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/AudioPage/Interface"]
+script = ExtResource("9_slider")
+min_value = 0.0
+max_value = 100.0
+step = 5.0
+value = 100.0
+
+[node name="ControlsPage" type="VBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages"]
+unique_name_in_owner = true
+script = ExtResource("8_controls")
+visible = false
+theme_override_constants/separation = 16
+
+[node name="MouseSensitivity" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Mouse sensitivity"
+key = &"controls/mouse_sensitivity"
+format = "%.2fx"
+
+[node name="Control" type="HSlider" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/MouseSensitivity"]
+script = ExtResource("9_slider")
+min_value = 0.2
+max_value = 3.0
+step = 0.05
+value = 1.0
+
+[node name="InvertY" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Invert vertical look"
+key = &"controls/invert_y"
+hint = "Push the mouse forward to look down."
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/InvertY"]
+script = ExtResource("10_toggle")
+
+[node name="PauseInInventory" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Pause in the inventory"
+key = &"controls/pause_in_inventory"
+hint = "Off: the world goes on while the bag is open."
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/PauseInInventory"]
+script = ExtResource("10_toggle")
+
+[node name="Footer" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column"]
+theme_override_constants/separation = 16
+
+[node name="ResetButton" type="Button" parent="Fit/Margin/Center/Card/Column/Footer"]
+unique_name_in_owner = true
+script = ExtResource("5_button")
+text = "Reset to defaults"
+variant = 1
+
+[node name="Spacer" type="Control" parent="Fit/Margin/Center/Card/Column/Footer"]
+size_flags_horizontal = 3
+
+[node name="BackButton" type="Button" parent="Fit/Margin/Center/Card/Column/Footer"]
+unique_name_in_owner = true
+script = ExtResource("5_button")
+text = "Back"
+variant = 0

@@ -18,6 +18,17 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 - **A flash light counts against the Compatibility per-object light cap** ([Lighting in Compatibility](compat-lighting.md)):
   allow one at a time on the whole map, and keep it short in range.
 
+- **In the 3D Third Person template the flash is an `EffectDef`** played on the weapon's `Muzzle` marker by the level's
+  pooled `EffectEmitter` ([Effects](third-person-template.md#effects)): a star (one `flash_star.gdshader` quad drawn
+  by a one-shot `CPUParticles3D`, scaled and faded by the particle), a few short sparks and a 0.06 s light, so the same
+  rules apply (additive, no depth write, one light at a time on the map) and the emitter caps the lights. The marker's
+  -Z is the flash's direction, a scaled marker does not scale it, and the weapon switches it off or resizes it.
+- **Approach:** Size a flash against the weapon in a slow-motion capture from the game camera (`Engine.time_scale` 0.12
+  under Movie Maker at 30 fps, one frame every 4 ms of play), not at full speed. **Watch out for:** the first star, 0.3
+  m across, was larger than the pistol it came from and, additive over a purple body, read pink; at 0.2 m with a
+  brighter core it reads as a flash. A flash that lasts 0.07 s is one frame at 10 fps and none at 60 in a still
+  capture. **Seen:** gdstudio #888, 2026-11-10.
+
 ## Impacts {#impacts}
 
 - **Billboard in `vertex()`** for a puff that keeps its node's scale and faces the camera; it works in Compatibility:
@@ -64,6 +75,76 @@ game's page is `docs/research/hit-blood.md`).
   of the combat loop: shots had numbers, sounds and a reticle but nothing on the body, and no issue listed the genre's
   feedback. **Seen:** Deadnight #618, 2026-11-02 (fix: deadnight #648 added the blood above).
 
+## Bullet impacts and marks in 3D Third Person {#impact-marks}
+
+<!-- new section: the template's pistol left nothing where a shot landed (gdstudio #875); the Impacts and Blood sections
+     above are Deadnight's toon, server-driven versions, and none said how a Decal behaves in Compatibility, what a mark
+     does on a moving body, or how a hit picks its surface -->
+
+What the 3D Third Person template does (`gameplay/impacts/`, scripts in the synced `addons/gds_game/impacts/`; its
+inspector list is on [the impacts page](third-person-impacts.md)). Measured in Godot 4.7.2 on Windows, an RTX 5080, in a
+spike (`Decal` nodes on a floor, a wall, a cylinder and a moving box, drawn in each renderer) and in the template's own
+captures; the research with its sources is in the pull request of #875.
+
+| Route | Forward+ | Compatibility (the web build) | Moving bodies | Verdict |
+| --- | --- | --- | --- | --- |
+| `Decal` node | draws, wraps a cylinder and a corner, clipped at an edge | **draws nothing, with no error** (the docs say Forward+ and Mobile only) | a child of the body follows it, but projects on whatever is in its box (a wall beside the crate) | desktop only; not used |
+| Pooled quad (`MeshInstance3D`) a child of the hit body, one shader | draws | draws, the same frame | follows the body, goes when it is freed | **used** |
+| One `MultiMeshInstance3D` of quads | draws | draws | one draw call, but a multimesh is one transform space: a mark on a moving body needs a multimesh of its own | for a map that never moves |
+| A mesh clipped to the surface | draws | draws | heavy per hit | only if marks must bend round a curve |
+
+- **A mark is a quad whose +Z is the surface normal**, a child of the body that was hit, lifted off it by `surface_offset`
+  (4 mm) and, in the shader, by 2 mm a metre of distance to the camera (a fixed lift flickers far away). It is a
+  `MeshInstance3D` of a shared unit `QuadMesh` scaled in x and y (z stays 1, so the lift is in metres) with the
+  surface's `ShaderMaterial`. The shader draws a hole and a rough ring, or `mark_texture` when `use_texture` is on, and
+  fades by an **instance uniform** (`instance uniform float fade`, set with `set_instance_shader_parameter`), which
+  works in Compatibility, so every mark of a surface shares one material and one program. `GeometryInstance3D.transparency`
+  does not: it is Forward+ only.
+- **Marks come from a pool with a cap**: past `max_marks` the oldest node is taken out of its parent and put on the new
+  hit (nothing is allocated); a mark that lives out `mark_lifetime` fades over `mark_fade_time` and is freed (0 keeps it
+  until a newer one needs the place). A freed body takes its marks with it; the list forgets them at the next hit and
+  tick.
+- **A hit picks its surface** from the first node, from the body up to the root, with the metadata `surface` (a name)
+  or in a group of that name; the default surface when none says. The name is only a key: any number of `ImpactSurface`
+  nodes under the `Impacts`. Each holds its mark material and an `EffectDef` (a particles scene and a sound), so a
+  developer restyles them in the editor.
+- **Effects and sounds are `EffectDef`s played by the level's `EffectEmitter`**, the same pooled player the muzzle flash
+  uses ([Effects](third-person-template.md#effects)): each surface holds one (a particles scene and a sound), so there is
+  one pool, one cap and one place that frees what has ended. The first version (#875) kept a template node and a pool of
+  copies per surface and wrote the template's changed properties onto the copy it used (a one-time `duplicate()` copies
+  once and ignores later edits); #888 moved that onto the emitter, and a change to the `EffectDef` is read at the next
+  play.
+- **`CPUParticles3D` is the default effect** (8 to 10 small unshaded meshes, one shot): on the web a `GPUParticles3D`
+  adds programs of its own ([first-use hitches](first-use-hitches.md)); both work, since the emitter calls `restart()`
+  on every particle node of the scene.
+- **The bones of the ragdoll (layer 5, Ragdoll) take no mark**: a shot stops at them since #924
+  ([Physics layers](physics-layers.md#shots-meet-bones)), and `Impacts` skips a `PhysicalBone3D` until #876 keeps a
+  mark on a body that gets up. A `CharacterBody3D` takes no mark either (its mesh is animated; a mark would
+  stay in the air), but its surface still plays the effect and the sound. A game that wants wounds sets the body's
+  surface (`flesh`) and gives it a blood effect: the quad cannot follow a skinned mesh.
+- **Online, nothing of an impact travels but the hit.** The server's shots make no mark, effect or sound
+  (`Weapon.effects` off); each screen makes them from the `HIT` event's point, normal and kind, finds the surface with a
+  10 cm ray along the normal (or the player or target the id names), and a cosmetic round on its way there stops there.
+  The muzzle flash, the shot sound, the flinch and the ragdoll are made on each screen the same way
+  ([shots online](third-person/online-shots.md#template-shots)).
+- **Known limits of a quad:** it is flat, so on a curved surface it touches at its middle and floats at its edge (a 12
+  cm mark on a pillar of 1 m diameter lifts 3.6 mm at the rim: hardly seen); near the edge of a block it overhangs into
+  the air (a `Decal` would clip). The first mark of a material builds its program (the first-use hitch: show one in a
+  loading screen on the web).
+
+- **Approach:** Make marks flat quads on the hit body with an instance-uniform shader rather than `Decal`s when the game
+  ships to the web or phones, and prove the route with a one-scene spike in both renderers before building. **Watch out
+  for:** `Decal` is Forward+ and Mobile only: in Compatibility the spike drew none of its 40 decals and printed no error,
+  so a mark system built on it would have shown nothing in the web build while every desktop test passed. **Seen:**
+  gdstudio #875, 2026-11-10.
+- **Approach:** Test a mark system with real projectiles in a small arena (a wall, a floor, a `PhysicsProp`, a
+  `MovingPlatform`): read the mark's parent, its `global_basis.z` against the normal, its place against the body after
+  40 ticks, and age a mark by writing `mark.age` instead of waiting out a lifetime. **Watch out for:** a shot at a map's
+  wall from the spawn hit another block first; shoot from straight above the thing under test. A shader's
+  `get_shader_uniform_list` lists neither instance uniforms nor groups (read the source for `fade`), and an untyped
+  `Array.sort()` of `StringName` keys did not sort alphabetically (collect `String`s). **Seen:** gdstudio #875,
+  2026-11-10.
+
 ## Camera shake {#camera-shake}
 
 - **Trauma style, rotation only, on the lens node.** The rig keeps the unshaken transform, and the aim ray reads that,
@@ -71,6 +152,8 @@ game's page is `docs/research/hit-blood.md`).
 - **Read `FastNoiseLite` at an accumulated time**, not `TIME`, so the shake is the same in tests and in Movie Maker.
 - **Every amount is exported** (per weapon and on the player tuning) and a player setting scales it to zero; reduced
   motion turns it off.
+- **The templates' version is a shared component**: `CameraShake` and `ShakePreset` resources, one line to play one
+  ([Camera: shake component](camera.md#shake-component)).
 
 ## Capturing it {#capturing-it}
 
@@ -86,3 +169,8 @@ game's page is `docs/research/hit-blood.md`).
   the 300 s timeout; two captures of a night had black bands 58 px high, the arrival show's own bars, still up 0.45 s
   after `arrival_ended`. **Seen:** Deadnight #642, 2026-11-02; Deadnight, 2026-11-05 (fix: wait for the show to be gone;
   find an unexplained band by its size first, 58.5 / 780 named the constant).
+- **Approach:** For a capture of marks or effects, stage each scene with `Player.teleport()` in front of a lit surface and
+  put the crosshair on a point by unprojecting it through the lens (`Camera3D.unproject_position`), then read the frames.
+  **Watch out for:** a bot that walked across the map got stuck on blocks, and the first burst went into the dark face of
+  a wall in shadow, where 12 cm dark holes and 2 cm dust specks were invisible: mark size and dust need a lit,
+  mid-tone surface in the frame (the orange blocks of the prototype map). **Seen:** gdstudio #875, 2026-11-10.

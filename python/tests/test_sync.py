@@ -226,7 +226,8 @@ def test_the_real_kit_owns_the_addon_with_its_uids_and_none_of_the_third_party_o
     targets = {e.target for e in sync.entries(Path(__file__).resolve().parents[2])}
     assert "game/addons/gds_ui/plugin.cfg" in targets
     assert "game/addons/gds_ui/router/ui_router.gd.uid" in targets
-    assert not [t for t in targets if t.startswith("game/addons/") and "/gds_ui/" not in t]
+    assert "game/addons/gds_game/trigger_zone/trigger_zone.gd.uid" in targets
+    assert not [t for t in targets if t.startswith("game/addons/") and t.split("/")[2] not in sync.KIT_ADDONS]
 
 
 def test_sync_warns_about_a_synced_addon_the_games_project_does_not_register(tmp_path, monkeypatch, capsys):
@@ -243,3 +244,86 @@ def test_sync_warns_about_a_synced_addon_the_games_project_does_not_register(tmp
     assert "warning: project.godot: [addon-autoload]" in warned
     assert "UIRouter" in warned
     assert "[addon-plugin]" in warned
+
+
+# --- files that moved from a template into a kit addon (kit #923) ---
+
+KIT = Path(__file__).resolve().parents[2]
+
+
+def test_every_moved_file_is_in_the_kits_addon_with_its_uid():
+    for old, new in sync.MOVED.items():
+        target = KIT / sync.KIT_PROJECT / new.removeprefix("res://")
+        assert target.is_file(), new
+        assert target.with_name(target.name + ".uid").is_file(), new
+        assert new.split("/")[3] in sync.KIT_ADDONS
+        assert not old.startswith("res://addons/")
+
+
+def test_no_template_keeps_a_moved_file_or_its_old_path():
+    for template in (KIT / "templates").glob("*/game"):
+        for old in sync.MOVED:
+            assert not (template / old.removeprefix("res://")).exists(), f"{template.parent.name}: {old}"
+        for path in template.rglob("*"):
+            if path.suffix in sync.REFERENCE_SUFFIXES and path.is_file():
+                text = path.read_text(encoding="utf-8", errors="replace")
+                assert not [old for old in sync.MOVED if f'"{old}"' in text], path
+
+
+def made_before_the_move(tmp_path):
+    """A game as a template made it before #923: its own copies of the moved scripts and scenes naming them."""
+    game = tmp_path / "old-game"
+    project = game / "game"
+    for old in sync.MOVED:
+        path = project / old.removeprefix("res://")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"class_name {path.stem.title().replace('_', '')}\n")
+        path.with_name(path.name + ".uid").write_text("uid://b0ld\n")
+    zone = project / "gameplay" / "trigger_zone" / "trigger_zone.tscn"
+    zone.write_text(
+        '[gd_scene format=3]\n\n[ext_resource type="Script" path="res://gameplay/trigger_zone/trigger_zone.gd" '
+        'id="1_zone"]\n'
+    )
+    flash = project / "gameplay" / "weapon" / "muzzle_flash.tres"
+    flash.parent.mkdir(parents=True)
+    flash.write_text('[ext_resource type="Script" path="res://gameplay/effects/effect_def.gd" id="1_def"]\n')
+    (project / "tests" / "fixtures" / "README.md").write_text("fixtures\n")
+    (project / "tests" / "test_zone.gd").write_text("extends GdUnitTestSuite\nvar pins := ExportPins\n")
+    # Kit #952: the presets stay the game's own beside the shake script that moved; the host scene names its script.
+    preset = project / "core" / "camera_shake" / "presets" / "impact.tres"
+    preset.parent.mkdir(parents=True)
+    preset.write_text('[ext_resource type="Script" path="res://core/camera_shake/shake_preset.gd" id="1_preset"]\n')
+    host = project / "ui" / "menus" / "screen_host.tscn"
+    host.write_text('[ext_resource type="Script" path="res://ui/menus/screen_host.gd" id="1_host"]\n')
+    return game
+
+
+def test_a_game_made_before_the_move_is_drift_until_synced(tmp_path):
+    game = made_before_the_move(tmp_path)
+    problems = sync.drift(KIT, game)
+    assert any("gameplay/trigger_zone/trigger_zone.gd: moved to res://addons/gds_game/" in p for p in problems)
+    assert any("muzzle_flash.tres: names res://gameplay/effects/effect_def.gd" in p for p in problems)
+
+
+def test_sync_moves_a_game_made_before_the_move_onto_the_addon(tmp_path):
+    game = made_before_the_move(tmp_path)
+    (game / ".pre-commit-config.yaml").write_text((KIT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    lines = []
+    sync.sync(KIT, game, lines.append)
+    project = game / "game"
+    for old, new in sync.MOVED.items():
+        assert not (project / old.removeprefix("res://")).exists()
+        assert (project / new.removeprefix("res://")).is_file()
+    zone = (project / "gameplay" / "trigger_zone" / "trigger_zone.tscn").read_text()
+    assert 'path="res://addons/gds_game/trigger_zone/trigger_zone.gd"' in zone
+    assert "res://addons/gds_game/effects/effect_def.gd" in (project / "gameplay/weapon/muzzle_flash.tres").read_text()
+    assert (project / "tests" / "test_zone.gd").read_text().endswith("ExportPins\n")  # a class name needs no change
+    assert (project / "tests" / "fixtures" / "README.md").exists()
+    preset = (project / "core" / "camera_shake" / "presets" / "impact.tres").read_text()
+    assert 'path="res://addons/gds_game/camera_shake/shake_preset.gd"' in preset
+    host = (project / "ui" / "menus" / "screen_host.tscn").read_text()
+    assert 'path="res://addons/gds_game/screen_host/screen_host.gd"' in host
+    assert any("removed game/tests/fixtures/input_sim.gd (moved to" in line for line in lines)
+    assert sync.drift(KIT, game) == []
+    # A second sync finds nothing left to move.
+    assert sync.move_into_addons(game, lambda _: None) == 0

@@ -1,4 +1,4 @@
-"""The `gds` command: GDStudio's tooling for agents and people (docs/tools.md)."""
+"""The `gds` command: GDStudio's tooling for agents and people (docs/studio/index.md)."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from gds_tools import (
     scripts,
     sweep,
     sync,
+    template_test,
     workspace,
     worktrees,
 )
@@ -61,7 +62,7 @@ def _cmd_refs_fetch(args: argparse.Namespace) -> int:
 def _cmd_capture_frames(args: argparse.Namespace) -> int:
     root = workspace.require_workspace()
     project = Path(args.project).resolve()
-    out = capture.scratch_folder(project, root) / capture.safe_name(args.name)
+    out = capture.frames_folder(project, Path.cwd(), root, args.name, args.out)
     frames = capture.capture_frames(
         workspace.tool_path("godot", root), project, out, args.scene, args.seconds, args.fps
     )
@@ -142,7 +143,8 @@ def run_godot_command(argv: list[str]) -> int:
     timeout, with_audio, rest = parse_godot_args(argv)
     root = workspace.require_workspace()
     godot = workspace.tool_path("godot", root)
-    return _stream_quiet([str(godot), *mute_godot(rest, with_audio)], timeout, "godot")
+    args = capture.tell_movie_end(mute_godot(rest, with_audio))
+    return _stream_quiet([str(godot), *args], timeout, "godot")
 
 
 def run_quiet_command(argv: list[str]) -> int:
@@ -235,6 +237,7 @@ def _cmd_new_game(args: argparse.Namespace) -> int:
         options=options,
     )
     print(f"made {made.repo}")
+    print(f"from {kit} ({workspace.describe_kit(kit)})")
     published = made.published
     if published:
         print(f"repository  {published.url.removesuffix('.git')}")
@@ -250,6 +253,47 @@ def _cmd_new_game(args: argparse.Namespace) -> int:
     if published and options and options.wait and not published.green:
         print("gds: the first CI run or the Pages site is not green", file=sys.stderr)
         return 1
+    return 0
+
+
+def _template_context() -> tuple[Path, Path]:
+    """The kit checkout `gds` runs from (the template files are read from it as they are on disk) and the real
+    workspace, whose marker, local file and GdUnit4 folder a throwaway workspace copies."""
+    root = workspace.require_workspace()
+    return workspace.kit_checkout() or root / "repos" / workspace.KIT, root
+
+
+def _cmd_template_test(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    result = template_test.run_template_test(
+        kit,
+        root,
+        args.name,
+        suites=args.suite,
+        keep=args.keep,
+        fixed_fps=None if args.real_clock else args.fixed_fps,
+        godot_args=template_test.split_args(args.godot_args),
+        gdunit_args=template_test.split_args(args.gdunit_args),
+        timeout=args.timeout,
+    )
+    return result.code
+
+
+def _cmd_template_game(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    # stdout is the game's path alone (a script reads it); the source line goes with the hints, to stderr
+    game = template_test.make_game(kit, root, args.name, log=lambda line: print(line, file=sys.stderr, flush=True))
+    print(game)
+    print(f"remove it with `gds template clean {game}`", file=sys.stderr)
+    return 0
+
+
+def _cmd_template_clean(args: argparse.Namespace) -> int:
+    folder = template_test.throwaway_of(Path(args.path))
+    if not template_test.remove_throwaway(folder):
+        print(f"gds: could not remove {folder}; delete it by hand", file=sys.stderr)
+        return 1
+    print(f"removed {folder}")
     return 0
 
 
@@ -506,7 +550,7 @@ def _cmd_eval_prepare(args: argparse.Namespace) -> int:
 def _cmd_eval_check(args: argparse.Namespace) -> int:
     kit, _ = _eval_context()
     task = evals.get(kit, args.name)
-    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None)
+    data = evals.check(task, Path(args.folder).resolve(), workspace.tool_path, lambda _line: None, kit)
     print(evals.table(data))
     return 0 if all(r["pass"] for r in data["rows"]) else 1
 
@@ -637,6 +681,9 @@ def build_parser() -> argparse.ArgumentParser:
     frames.add_argument("--seconds", type=float, default=5, help="length of the capture (default: 5)")
     frames.add_argument("--fps", type=int, default=capture.DEFAULT_FPS, help="frames per second (default: 10)")
     frames.add_argument("--name", default="capture", help="folder name under scratch/<repo>/<branch>/")
+    frames.add_argument(
+        "--out", help="write the frames to this folder instead (default: the scratch folder of the folder gds runs in)"
+    )
     frames.set_defaults(func=_cmd_capture_frames)
     sheet = cap.add_parser("sheet", help="tile a folder's frames into one labelled contact sheet PNG")
     sheet.add_argument("folder")
@@ -690,6 +737,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     game.add_argument("--workspace", help="the workspace folder (default: the one around the current folder)")
     game.set_defaults(func=_cmd_new_game)
+
+    tpl = sub.add_parser(
+        "template", help="run a template where it can run (docs/engines/godot/new-game.md#proof)"
+    ).add_subparsers(dest="cmd", required=True)
+    tpl_test = tpl.add_parser(
+        "test",
+        help="make a game from the working tree's template in a throwaway workspace of its own, parse its scripts, run "
+        "its GdUnit4 suites and remove what was made",
+    )
+    tpl_test.add_argument("name", help="a template of the kit's templates/ (`gds new game --list`)")
+    tpl_test.add_argument(
+        "--suite",
+        action="append",
+        default=[],
+        help="a suite to run (`tests/core/test_x.gd` or `res://tests/...`); repeat for several, in the order given "
+        "(default: all of res://tests, as CI does)",
+    )
+    tpl_test.add_argument("--keep", action="store_true", help="keep the game and print its path")
+    tpl_test.add_argument(
+        "--fixed-fps",
+        type=int,
+        default=template_test.CI_FIXED_FPS,
+        help="run Godot with --fixed-fps N: every frame is one tick, no waiting on the clock "
+        f"(default {template_test.CI_FIXED_FPS}, as CI runs the suites)",
+    )
+    tpl_test.add_argument(
+        "--real-clock",
+        action="store_true",
+        help="run on the real clock, with no --fixed-fps (CI does not: a green run here may fail there)",
+    )
+    tpl_test.add_argument(
+        "--godot-args",
+        help="more arguments for Godot in one string, joined with `=` (`--godot-args='--audio-driver Dummy'`)",
+    )
+    tpl_test.add_argument("--gdunit-args", help="more arguments for GdUnit4, as --godot-args")
+    tpl_test.add_argument(
+        "--timeout", type=float, default=template_test.GDUNIT_TIMEOUT, help="seconds before the GdUnit4 run is stopped"
+    )
+    tpl_test.set_defaults(func=_cmd_template_test)
+    tpl_game = tpl.add_parser("game", help="the same game, imported and kept for captures and probes; prints its path")
+    tpl_game.add_argument("name", help="a template of the kit's templates/")
+    tpl_game.set_defaults(func=_cmd_template_game)
+    tpl_clean = tpl.add_parser("clean", help="remove a workspace made by `template test --keep` or `template game`")
+    tpl_clean.add_argument("path", help="the game's path or its workspace folder")
+    tpl_clean.set_defaults(func=_cmd_template_clean)
 
     chk_group = sub.add_parser("check", help="checks of a game's files").add_subparsers(dest="cmd", required=True)
     lay = chk_group.add_parser("layout", help="the folder, naming and dependency rules of a Godot project")
@@ -866,6 +958,7 @@ def main(argv: list[str] | None = None) -> int:
         issues.IssueError,
         pr.PrCheckError,
         new_game.NewGameError,
+        template_test.TemplateTestError,
         new_game_github.GitHubError,
         scripts.ScriptCheckError,
         FileNotFoundError,

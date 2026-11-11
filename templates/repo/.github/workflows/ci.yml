@@ -1,7 +1,8 @@
 # The game's build and tests, with the same pinned Godot agents use: the runner's work folder becomes a GDStudio
 # workspace, the kit's `gds workspace init` fetches Godot and GdUnit4 from tools.toml (hash-checked, cached), and the
 # project is imported and run headless. Any engine or script error fails the job, since Godot itself exits 0 on most
-# of them. The `web` job exports the game for the browser and checks that the tests and tools stayed out of it.
+# of them. The `web` job exports the game for the browser, checks that the tests and tools stayed out of it and boots
+# the export in a headless browser.
 # `build-ok` is the required check for the build, so the jobs above it can change freely.
 # Actions are pinned to a full commit SHA; the tag is in the comment beside it.
 name: ci
@@ -99,7 +100,7 @@ jobs:
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python gds tool path godot)
-          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
+          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --fixed-fps 60 --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Upload the test report
         if: always()
@@ -154,6 +155,37 @@ jobs:
           pck=repos/{GAME_SLUG}/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The browser for the boot check
+        # Playwright's own headless Chromium, the one the local probes use (the kit's docs/engines/godot/web-probes.md).
+        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+      - name: Boot the web export in a browser
+        # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
+        # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
+        # (game/tools/web_smoke/boot_check.py, the kit's file in every game). `gds quiet` is how every browser
+        # probe runs; off Windows it starts the program as it is.
+        run: |
+          uv run --project repos/gdstudio/python gds quiet -- \
+            uv run --with playwright==1.64.1 python repos/{GAME_SLUG}/game/tools/web_smoke/boot_check.py \
+            repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/boot --title "Web boot"
+      - name: The game's own browser smoke (touch controls)
+        # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a game without the script has
+        # nothing more to add. Ratio 1 and no pictures: the runner's software renderer draws slowly.
+        run: |
+          smoke=repos/{GAME_SLUG}/game/tools/web_smoke/touch_smoke.py
+          if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
+          uv run --project repos/gdstudio/python gds quiet -- \
+            uv run --with playwright==1.64.1 python "$smoke" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/smoke --ratio 1 --no-shots
+          echo "Touch smoke: every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the browser captures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-smoke
+          path: |
+            repos/{GAME_SLUG}/build/boot
+            repos/{GAME_SLUG}/build/smoke
+          if-no-files-found: ignore
+          retention-days: 7
 
   gdlint:
     # The commit hook itself, so its version (the `rev` in `.pre-commit-config.yaml`), its files and its settings cannot
@@ -200,13 +232,22 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The download script comes from the same commit as the release it fetches (v1.7.12).
-      - name: Download actionlint 1.7.12
-        run: >-
-          bash <(curl -sSfL
-          https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash)
-          1.7.12
-      - run: ./actionlint -color .github/workflows/*.yml
+      # The release binary, checked against a sha256 pinned here (from the release's actionlint_1.7.12_checksums.txt).
+      # Never `go install`: actionlint 1.7.12 asks for Go 1.25, the runner's Go is older, and GOTOOLCHAIN=auto then
+      # downloads a toolchain that sum.golang.org and go.dev answered 404 for (kit #962). GitHub's release host
+      # answered 504 for minutes on 2026-11-08 (kit #823), so curl retries on any error.
+      - name: Install actionlint 1.7.12
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$archive" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/actionlint-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/actionlint-bin" actionlint
+          echo "$RUNNER_TEMP/actionlint-bin" >> "$GITHUB_PATH"
+      - run: actionlint -color .github/workflows/*.yml
 
   build-ok:
     if: always()

@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _ragdoll: PlayerRagdoll
+var _ragdoll: CharacterRagdoll
 
 
 func before_test() -> void:
@@ -23,7 +23,7 @@ func after_test() -> void:
 
 func _bones() -> Array[PhysicalBone3D]:
 	var found: Array[PhysicalBone3D] = []
-	for entry: Dictionary in PlayerRagdoll.BODIES:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
 		found.append(_ragdoll.body(entry.bone))
 	return found
 
@@ -52,15 +52,38 @@ func test_thickness_scales_every_capsule() -> void:
 
 func test_joint_range_scales_the_limits() -> void:
 	var swing: float = _ragdoll.body(&"thigh_l").get(&"joint_constraints/swing_span")
-	var knee: float = _ragdoll.body(&"calf_l").get(&"joint_constraints/z/angular_limit_upper")
+	var knee: float = _ragdoll.body(&"calf_l").get(&"joint_constraints/angular_limit_upper")
 	_ragdoll.joint_range = 0.5
 	assert_float(_ragdoll.body(&"thigh_l").get(&"joint_constraints/swing_span")).is_equal_approx(
 		swing * 0.5, 0.01
 	)
 	(
-		assert_float(_ragdoll.body(&"calf_l").get(&"joint_constraints/z/angular_limit_upper"))
+		assert_float(_ragdoll.body(&"calf_l").get(&"joint_constraints/angular_limit_upper"))
 		. is_equal_approx(knee * 0.5, 0.01)
 	)
+
+
+func test_hinge_passes_sets_how_many_hinges_hold_each_elbow_and_knee() -> void:
+	# Four elbows and knees, each held by `hinge_passes` hinges.
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
+	_ragdoll.hinge_passes = 1
+	assert_int(_ragdoll.hinge_count()).is_equal(4)
+	assert_int(_ragdoll.body_count()).is_equal(16)
+	_ragdoll.hinge_passes = 3
+	assert_int(_ragdoll.hinge_count()).is_equal(12)
+
+
+func test_cone_passes_sets_how_many_cones_hold_each_ball_joint() -> void:
+	# Eleven cones (spine twice, neck, shoulders, wrists, hips, ankles), each held by `cone_passes`
+	# cones, and the hinges keep their own count.
+	assert_int(_ragdoll.cone_count()).is_equal(66)
+	_ragdoll.cone_passes = 1
+	assert_int(_ragdoll.cone_count()).is_equal(11)
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
+	assert_int(_ragdoll.body_count()).is_equal(16)
+	_ragdoll.cone_passes = 3
+	assert_int(_ragdoll.cone_count()).is_equal(33)
+	assert_int(_ragdoll.hinge_count()).is_equal(24)
 
 
 func test_damping_friction_and_bounce_reach_every_bone() -> void:

@@ -60,6 +60,10 @@ _RES_PATH = re.compile(r"res://([A-Za-z0-9_.\-]+)/")
 _EXT_RESOURCE = re.compile(r'^\[ext_resource\b[^\]]*?\bpath="([^"]+)"[^\]]*?\bid="([^"]+)"', re.MULTILINE)
 _SECTION = re.compile(r"^\[([^\]]+)\]\s*$")
 _EXCLUDE_FILTER = re.compile(r'^exclude_filter="([^"]*)"', re.MULTILINE)
+#: What waits on the clock in a suite: the wall clock, or a timer (a template's suites run at `--fixed-fps 60`, where
+#: a tick count is exact and a wait costs no time, but a read of the real clock never advances in step with it).
+_CLOCK_CALL = re.compile(r"\b(?:Time\.get_ticks_(?:msec|usec)|create_timer)\s*\(")
+_ON_THE_CLOCK = re.compile(r"^\s*#.*\bon the clock\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -143,6 +147,34 @@ def _classes(project: Path, entries: list[Path]) -> list[Problem]:
                     _rel(project, path),
                     "class-name",
                     f"class_name {found.group(1)} does not match the file: rename one to the other",
+                )
+            )
+    return problems
+
+
+def _addon_classes(project: Path, entries: list[Path]) -> list[Problem]:
+    """A class the kit's synced addons declare is declared nowhere else: a second copy in `core/` or `gameplay/` (a
+    template's old file, a hand copy) would never get the kit's fixes, and two scripts with one `class_name` do not
+    parse."""
+    from gds_tools.sync import KIT_ADDONS  # sync names the addons; it imports nothing from here
+
+    owned: dict[str, str] = {}
+    for addon in KIT_ADDONS:
+        root = project / "addons" / addon
+        for path in sorted(root.rglob("*.gd")) if root.is_dir() else []:
+            found = _CLASS_NAME.search(_text(path))
+            if found:
+                owned[found.group(1)] = f"addons/{addon}/{path.relative_to(root).as_posix()}"
+    problems = []
+    for path in entries:
+        found = _CLASS_NAME.search(_text(path)) if path.suffix == ".gd" else None
+        if found and found.group(1) in owned:
+            problems.append(
+                Problem(
+                    _rel(project, path),
+                    "addon-class",
+                    f"class_name {found.group(1)} is the kit's ({owned[found.group(1)]}, synced by `gds sync`): "
+                    "delete this copy and use the addon's",
                 )
             )
     return problems
@@ -299,6 +331,29 @@ def _reports(project: Path) -> list[Problem]:
     return [Problem("reports", "generated", "generated test reports are committed: write them outside res:// with -rd")]
 
 
+def _on_the_clock(project: Path, entries: list[Path]) -> list[Problem]:
+    """A suite that reads the wall clock or waits on a timer says why in its first line (`test-speed.md`): the
+    suites run at a fixed frame step, so a wait counts physics ticks (`InputSim.ticks`) unless the test is about the
+    clock itself (a socket, the engine's own callback)."""
+    problems = []
+    for path in entries:
+        if path.suffix != ".gd" or _rel(project, path).split("/")[0] != "tests" or not path.is_file():
+            continue
+        text = _text(path)
+        code = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
+        call = _CLOCK_CALL.search(code)
+        if call and not _ON_THE_CLOCK.match(text.splitlines()[0] if text else ""):
+            problems.append(
+                Problem(
+                    _rel(project, path),
+                    "on-the-clock",
+                    f"calls `{call.group(0).rstrip('( ')}` but its first line does not say why it is on the clock: "
+                    "count ticks (`InputSim.ticks`) or start the file with a `# On the clock: <reason>` comment",
+                )
+            )
+    return problems
+
+
 def check(project: Path) -> list[Problem]:
     """Every broken rule of the Godot project at `project` (the folder holding `project.godot`)."""
     project = project.resolve()
@@ -309,10 +364,12 @@ def check(project: Path) -> list[Problem]:
         *_top_level(project),
         *_names(project, entries),
         *_classes(project, entries),
+        *_addon_classes(project, entries),
         *_scene_scripts(project, entries),
         *_uids(project, entries),
         *_dependencies(project, entries),
         *_export(project),
         *addon_problems(project),
         *_reports(project),
+        *_on_the_clock(project, entries),
     ]

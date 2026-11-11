@@ -6,11 +6,14 @@ has neither (the hooks refuse it). Every agent researches as part of its own wor
 | Agent | Model | Covers |
 | --- | --- | --- |
 | Coordinator (the main session) | Opus 5.5, medium | plans, writes issues, briefs and starts agents, merges, talks to the maintainer |
-| `godot-engineer` | Sonnet 5.5, high | GDScript, scenes, UI and motion, gameplay, networking, shaders, tests, captures |
-| `blender-artist` | Opus 5.5, high | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
-| `level-designer` | Opus 5.5, high | map layout and review: loops, sightlines, spawns, pacing, landmarks, light, reach, escape and roost sweeps, phone reading ([principles](../gamedev/level-design.md)) |
-| `backend-engineer` | Sonnet 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
+| `godot-engineer` | Opus 5.5, medium | GDScript, scenes, UI and motion, gameplay, networking, shaders, tests, captures |
+| `blender-artist` | Fable 5.2, medium | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
+| `level-designer` | Fable 5.2, medium | map layout and review: loops, sightlines, spawns, pacing, landmarks, light, reach, escape and roost sweeps, phone reading ([principles](../gamedev/level-design.md)) |
+| `backend-engineer` | Opus 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
 | `reviewer` | Sonnet 5.5, high | reviews a pull request it did not write (code, docs, assets, captures) and runs [structure reviews](#structure-reviews) with web search; never edits |
+
+Design and modelling work (Blender assets, level layout, visual and UI design) runs on Fable unless the maintainer
+says otherwise for a task (decided 2026-11-10 after a Fable-Opus head-to-head on a rifle and a rigged character).
 
 Definitions: `.claude/agents/*.md`. A new agent is added only when a kind of work keeps recurring that none of these
 covers well.
@@ -62,6 +65,39 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   for:** Tether's checkpoint holds on `busy` or a raw `draft !== ''`; the diagnosis blamed only `busy`, as fact, while a
   lone newline counted as a draft there and kept the session running past 950,000 tokens. **Seen:** Tether checkpoint,
   2026-11-04 (fix: the diagnosis names each term and its evidence).
+- **Approach:** Treat a flag Tether shows only in its pane as unseen by the coordinator: for each state the pane flags,
+  name the path that tells the model (a wake, the Stop hook's reason, a prompt's added context) and test it with the
+  main loop busy. **Watch out for:** the pane flagged a running agent `retire` at 511k, but the agent guard acted only
+  on stopped agents and no poller was configured, so nothing reached the coordinator and the agent grew to 539k.
+  **Seen:** tether #27, 2026-11-10 (fix: tether #28 tells it once, and waiting notices go out at the Stop hook).
+- **Approach:** After a clear or a checkpoint, start the first status by checking every running agent's context
+  against the retire line, and handle first any handover the handoff names as asked for: the agent guard tells each
+  agent once, so a notice that arrived just before the clear is not repeated. **Watch out for:** the guard told the
+  coordinator about the #887 agent at 508k seconds before a checkpoint cleared the session; the first status after the
+  clear called all nine agents running and left the handover unmentioned until the maintainer asked, by which point
+  the agent had reached 527k. A project with no `agents` poller in `.claude/tether.json` gets no repeat wake.
+  **Seen:** gdstudio #887, 2026-11-10 (fix: the kit checkout's ignored `.claude/tether.json` declares the poller).
+- **Approach:** When a guard keeps its own record of what is live, check it against what the harness itself reports
+  (a hook input's `background_tasks`, a clear) and let the harness win when its report is newer. **Watch out for:**
+  Tether learned that a subagent's background task ended only from its notification or a TaskStop answer. A `/clear`
+  kills a stopped agent's shells and writes neither, so `agent_decision` refused a finished agent for good over a task
+  TaskStop called "No task found". A subagent's `SubagentStop` lists its own tasks, but the main loop's `Stop` lists
+  only the main loop's, so measure which hook carries a fact before relying on it. **Seen:** tether #30, 2026-11-10
+  (fix: tether #32 filters its record through the agent's last `SubagentStop` and the clear).
+- **Approach:** Give each event one `on()` hook without a matcher in a Tether-style plugin module: add new work as a
+  function the existing hook calls. **Watch out for:** a second `on('session.end')` made the engine refuse to load the
+  whole module, so 58 of 112 tests failed at once. **Seen:** tether #32, 2026-11-10 (fix: one hook calls both the
+  checkpoint's and the task record's clear handling).
+- **Approach:** After a Tether update is installed, restart the session (`claude --resume <session id>`), then check
+  that the transcript's `tether: version <X> loaded` line names the new version before relying on its fix. **Watch
+  out for:** a `/clear` keeps the loaded plugin module; alpha.33 was installed while the coordinator session ran on
+  and only cleared, so alpha.32 (no alert for a running agent) stayed loaded and an agent grew from 501k to 599k
+  unannounced. **Seen:** tether #29, 2026-11-10 (fix: Tether logs its loaded version at each start and clear).
+- **Approach:** When two Tether pull requests run at once, grep the merged `hooks/register.tsx` for each `on('<event>'`
+  you added after every merge of main, and fold a second hook of the same event into the one main has. **Watch out
+  for:** the engine refuses a second `on()` of an event without a matcher and the whole module does not load: tether
+  #31 and #32 each added a `classic.SubagentStop` hook, and after the merge every test failed with "registered twice".
+  **Seen:** tether #31, 2026-11-10 (fix: the status-line capture joined #32's hook before the pull request landed).
 - **Approach:** Make every script given to Monitor or run in the background end on its own (a deadline, and when its
   parent goes), and count the copies after each re-arm. **Watch out for:** the coordinator's pull request monitor was a
   `while true` loop; each 30-minute expiry of the Monitor tool left it running, and 35 orphaned copies forked about 70

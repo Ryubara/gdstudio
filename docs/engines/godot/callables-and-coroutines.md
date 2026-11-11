@@ -20,6 +20,13 @@ error, and a test that checks only "no error" passes. **Keep the object in a fie
 the Callable is used** (Deadnight: `Night.profile_uplink`), and test the hand-over with the real wiring, asserting that
 the call happened.
 
+- **Approach:** Bind a node (or nothing) to a callable a `RefCounted` keeps, never the `RefCounted` itself: store
+  `_on_hit.bind(character)` in the record and find the record by the node in the handler. **Watch out for:** the other
+  side of the rule above: a bound argument is a real reference, so a record holding `_on_hit.bind(record)` keeps itself
+  alive, and the throttle's records were never freed: `12 ObjectDB instances were leaked at exit` in every suite that
+  made one, which `gds template test` and CI refuse. **Seen:** gdstudio #1046, 2026-11-11 (fix: the callables bind the
+  character; found by running the suite one test at a time).
+
 ## A coroutine of a RefCounted object does not keep it alive either {#refcounted-coroutine}
 
 A method that awaits a timer or a request, called on an object nothing else references, is dropped: the code after the
@@ -88,7 +95,14 @@ instead of the original) had no home -->
 - **Approach:** Append to the property itself (`data.names.append(x)`), or assign the copy back, when the array is a
   `Packed*Array`. **Watch out for:** packed arrays are value types, so `var list := data.names; list.append(x)` changes
   a copy and the property stays empty, with no error: a credits list stayed empty although every line was appended.
-  **Seen:** Deadnight, 2026-11-01 (fix: append to the property; a test caught it).
+  Taken out of a `Dictionary` with `as PackedInt32Array` it is a copy as well: every part of a hand measured
+  `inf` because the appends went to copies (a plain `Array` in the dictionary is shared). **Seen:** Deadnight,
+  2026-11-01 (fix: append to the property; a test caught it); gdstudio #1001, 2026-11-10.
+- **Approach:** `duplicate()` a packed array another object keeps appending to before a coroutine reads it across
+  frames (a replay of a server's history, a list of samples). **Watch out for:** the other way round from the entry
+  above: passed to a function, `peer.history_steps` was the same array, so a replay loop that awaited a frame for each
+  entry grew with the server that went on stepping, ran 1025 frames instead of 126 and let the server drop the client
+  as silent. **Seen:** gdstudio #904, 2026-11-10 (fix: the test replays a copy taken when it read the body).
 
 ## Handlers of one signal run in the order they connected {#signal-order}
 
@@ -100,3 +114,7 @@ instead of the original) had no home -->
   playing and its `arrival_ended` showed the HUD again over the board; the screen connects before the night, a headless
   run has no drop, and the rules never end a night under one, so only a windowed test that forced it failed. **Seen:**
   Deadnight, 2026-11-05 (fix: `_on_arrival_ended` does nothing when the board is up).
+- **Approach:** To connect a handler that takes no arguments to a signal that carries some, read the argument count from
+  `get_signal_list()` and use `callable.unbind(count)` only when it is above zero. **Watch out for:** `unbind(0)` is an
+  error ("Amount of unbind() arguments must be 1 or greater") printed on every connect, and a connection test that
+  looks only at the result passes. **Seen:** gdstudio #880, 2026-11-10 (the HUD's `refresh_on`).

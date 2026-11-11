@@ -1,7 +1,8 @@
 # The kit's build and tests on the three platforms the bootstrap supports: ruff, pytest, and a dry run of the
-# bootstrap from the checkout, the gds_ui addon's Godot tests (`godot`), and a game made from the 3D Blank template and
-# built the way the game's own CI does (`template`). The final job, `build-ok`, is the one required check, so the jobs
-# can change without editing the ruleset. Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+# bootstrap from the checkout, the gds_ui addon's Godot tests (`godot`), and a game made from each template (a matrix
+# over `3d-blank` and `3d-third-person`) and built the way the game's own CI does (`template`). The final job,
+# `build-ok`, is the one required check, so the jobs can change without editing the ruleset. Actions are pinned to a
+# full commit SHA; the tag is in the comment beside it.
 name: ci
 
 on:
@@ -12,9 +13,11 @@ on:
 permissions:
   contents: read
 
+# Only a pull request run is cancelled by the next push; every run on `main` finishes, so each merged commit has its
+# own result (the group is the commit there). A test reads this block (test_workflow_concurrency.py).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -37,20 +40,24 @@ jobs:
           lfs: true
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       # The windowed-Godot test of `gds quiet` (test_quiet_run.py) needs the pinned Godot, and it proves a Windows
-      # rule, so Windows fetches it from tools.toml (hash-checked, cached), as the `godot` job does on Linux.
+      # rule, so Windows fetches it from tools.toml (hash-checked, cached), as the `godot` job does on Linux. The agent
+      # evals' tests (test_evals.py) run each Godot task's acceptance suite against the bare template, which needs
+      # GdUnit4 as well (kit #898).
       - if: runner.os == 'Windows'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: cache/downloads
           key: tools-test-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
-      - name: Make the workspace and fetch the pinned Godot (Windows)
+      - name: Make the workspace and fetch the pinned Godot and GdUnit4 (Windows)
         if: runner.os == 'Windows'
-        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot
+        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot,gdunit4
       - run: uv run --project python --frozen ruff check python
       - run: uv run --project python --frozen ruff format --check python
       # A skip that python/tests/allowed_skips.toml does not allow for this platform fails the run, and so does an
       # allowed skip whose test ran: the skip count of each runner is its count of entries (kit #797).
-      - run: uv run --project python --frozen pytest python/tests -q -rs --allowed-skips python/tests/allowed_skips.toml
+      # Four workers, a test file to each (the module fixtures stay one per file): the tests are processes and files,
+      # not processor time, and the run took 6 min 29 s on one (kit #945).
+      - run: uv run --project python --frozen pytest python/tests -q -rs -n auto --maxprocesses=4 --dist loadfile --durations=30 --allowed-skips python/tests/allowed_skips.toml
       # The launchers themselves, from a checkout: every step printed, nothing downloaded or created.
       - name: Bootstrap dry run (Windows)
         if: runner.os == 'Windows'
@@ -110,8 +117,8 @@ jobs:
     # A game made from each template (3D Blank, 3D Third Person) with `gds new game`, as a person makes one, then judged by the steps of
     # the game's own ci.yml (templates/repo/.github/workflows/ci.yml): the files it must hold in sync with the kit, the
     # conventions and the layout rules, every pre-commit hook, the docs build, the import, a parse of every script, a
-    # run, its tests and the web export. It also checks that none of that left a file behind that git does not ignore:
-    # the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
+    # run, its tests, the web export and a boot of that export in a headless browser. It also checks that none of that
+    # left a file behind that git does not ignore: the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -173,15 +180,30 @@ jobs:
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
-          "$godot" --headless --path repos/template-check/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --verbose 2>&1 | tee tests.log
+          "$godot" --headless --path repos/template-check/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -rd ../../../reports -c --ignoreHeadlessMode --fixed-fps 60 --verbose 2>&1 | tee tests.log
           ! grep -E "leaked at exit|still in use" tests.log
       - name: Export the web build
         run: |
           set -o pipefail
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p repos/template-check/build/web
-          "$godot" --headless --path repos/template-check/game --export-release Web 2>&1 | tee export.log
-          if grep -E "ERROR" export.log; then exit 1; fi
+          # The at-exit leak ("N resources still in use at exit") is intermittent on CI (#954, #888) and passes on a
+          # rerun of the same code. When it is the only error, export once more; a second leak, or any other error,
+          # fails (docs/engines/godot/test-exit-leaks.md#the-export-leak-is-intermittent-on-ci).
+          export_web() { "$godot" --headless --path repos/template-check/game --verbose --export-release Web 2>&1 | tee "$1"; }
+          leak_only() { ! grep -E "ERROR" "$1" | grep -vE "still in use at exit|leaked at exit" | grep -q .; }
+          export_web export.log
+          if grep -qE "ERROR" export.log; then
+            if leak_only export.log && grep -qE "still in use at exit|leaked at exit" export.log; then
+              echo "::warning::The export ended with an at-exit leak; exporting once more. First run's leak lines:"
+              grep -E "ERROR|still in use|leaked at exit|^\s+res://" export.log || true
+              rm -rf repos/template-check/build/web && mkdir -p repos/template-check/build/web
+              export_web export-retry.log
+              if grep -E "ERROR" export-retry.log; then exit 1; fi
+            else
+              grep -E "ERROR" export.log; exit 1
+            fi
+          fi
           test -s repos/template-check/build/web/index.pck
           test -s repos/template-check/build/web/index.wasm
       - name: The export holds the level and leaves the tests and tools out
@@ -189,6 +211,37 @@ jobs:
           pck=repos/template-check/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The browser for the boot check
+        # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md).
+        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+      - name: Boot the web export in a browser
+        # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
+        # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
+        # (game/tools/web_smoke/boot_check.py, the kit's file in every game). `gds quiet` is how every browser
+        # probe runs; off Windows it starts the program as it is.
+        run: |
+          uv run --project repos/gdstudio/python --frozen gds quiet -- \
+            uv run --with playwright==1.64.1 python repos/template-check/game/tools/web_smoke/boot_check.py \
+            repos/template-check/build/web repos/template-check/build/boot --title "Web boot: ${{ matrix.template }}"
+      - name: The template's own browser smoke (touch controls)
+        # 3D Third Person drives its touch layer in a phone-sized page (`?probe&play`); a template without the script
+        # has nothing more to add. Ratio 1 and no pictures: the runner's software renderer draws slowly.
+        run: |
+          smoke=repos/template-check/game/tools/web_smoke/touch_smoke.py
+          if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
+          uv run --project repos/gdstudio/python --frozen gds quiet -- \
+            uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/smoke --ratio 1 --no-shots
+          echo "Touch smoke (${{ matrix.template }}): every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the browser captures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-smoke-${{ matrix.template }}
+          path: |
+            repos/template-check/build/boot
+            repos/template-check/build/smoke
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Nothing the build made is left for git to see
         working-directory: repos/template-check
         run: |

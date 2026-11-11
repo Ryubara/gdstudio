@@ -16,7 +16,10 @@ default branch -->
 - **Approach:** Use `cancel-in-progress` for pull requests only; every run on the default branch finishes. **Watch out
   for:** main's CI cancelled its run when the next merge landed, so four of five merges in three minutes were never
   checked. **Seen:** Deadnight #290, 2026-11-01 (fix: the evening review found it (Deadnight #290) and Deadnight #296
-  kept the cancel to pull requests).
+  kept the cancel to pull requests); gdstudio #919, 2026-11-10 (the kit's own `ci.yml` grouped by ref and cancelled
+  for `main` too: 4 of the last 30 runs on `main` were cancelled; fix: the group is the commit for a push, and
+  `test_workflow_concurrency.py` fails any workflow that runs on `main` and can cancel there, unless a
+  `# cancels-on-main:` comment gives the reason, as `docs.yml` does: a cancelled site build is replaced by the next).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
@@ -61,6 +64,19 @@ they are rerun, replayed or read from another branch -->
   limit from the branch's own `ci.yml`, so two pull requests rerun, then closed and reopened, after `main` raised the
   `godot` limit from 20 to 30 minutes were still cancelled at 20. **Seen:** Deadnight #501, #507 and #525, 2026-11-02
   (fix: main merged into each branch).
+- **Approach:** When a push shows `pr`, `hold` and `pr-status` but no `ci`, `conventions` or `docs`, read `gh pr view N
+  --json mergeable`: on `CONFLICTING` run `gds merge-main` and push; on `MERGEABLE` wait five minutes for the late runs
+  before closing and reopening. **Watch out for:** `pull_request` workflows run on the merge commit GitHub builds,
+  `pull_request_target` ones on the base, so a conflict starts no `ci` at all and a slow merge build delays it, while
+  the base-side checks run at once; a close and reopen raced the late run and one cancelled the other (one group per
+  pull request). **Seen:** gdstudio #912 and #951, 2026-11-10 (clean merges; `ci` came 2 and 4 minutes late, after the
+  reopen); gdstudio #988 (opened in conflict: no `ci` until a merge of main). Found for gdstudio #1003 in the run list.
+- **Approach:** Before you wait on a check that `gh pr checks` still shows as pending, read its run (`gh run view <id>
+  --json status,conclusion,headSha`); when that run is `completed` and `success` on the pull request's head, and
+  another entry of the same name passed, the check is done. **Watch out for:** after `gh pr edit` a second `title` entry
+  stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
+  that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
+  42893048440).
 
 ## Reruns {#reruns}
 
@@ -131,14 +147,14 @@ they are rerun, replayed or read from another branch -->
   1,000 with `main` green and blocked three pushes of branches that never touched it. When a push is refused for a file
   the branch never touched, read `main` first; never push past the hook. **Seen:** Deadnight #1128 and #1129,
   2026-11-04; Deadnight #1225, 2026-11-05 (fix: a piece moved out, `gdlint` added to CI).
-- **Approach:** Fetch a CI tool from a source that does not share one host with everything else (a Go tool with
-  `go install <module>@<tag>` through the module proxy, which checks the checksum database), with a short retry; when
-  an unpack fails with `not in gzip format`, ask the URL for its status (`curl -sSIL`) before suspecting the change.
-  **Watch out for:** GitHub's release downloads answered `504` with a 92-byte body, the actionlint download script had
-  no retry and piped it into `tar`, so `docs` went red on `main` after a docs-only merge; a rerun failed the same way,
-  and the first fix (nine `curl` tries over 80 s against the same host) failed too, since the outage lasted minutes.
-  **Seen:** gdstudio #823, 2026-11-08 (fix: #825 retried the release host and failed; the next built actionlint from
-  the Go module proxy).
+- **Approach:** Fetch a CI tool as its release binary, check it against a sha256 written in the workflow (from the
+  release's checksums file) and retry the download (`curl -fsSL --retry 6 --retry-all-errors --retry-delay 10`); never
+  `go install` a tool in CI. For `not in gzip format`, ask the URL for its status (`curl -sSIL`) first. **Watch out
+  for:** `go install ...actionlint@v1.7.12` needed Go 1.25, `GOTOOLCHAIN=auto` tried to fetch it and `sum.golang.org`
+  answered `404`, so `docs` went red on `main` with our code unchanged; before that, GitHub's release host answered
+  `504` and the download script had no retry. The hash is what makes a retry safe. **Seen:** gdstudio #823, 2026-11-08
+  (#825's retry failed; the next built from the Go proxy); gdstudio #962, 2026-11-10 (fix: the pinned binary in `docs.yml`
+  and the game template's `ci.yml`, whose script checked no hash).
 
 ## Workflow files {#workflows}
 

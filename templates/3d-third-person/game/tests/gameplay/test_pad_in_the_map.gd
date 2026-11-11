@@ -13,9 +13,9 @@ var _door: Door
 
 func before_test() -> void:
 	_scene = scene_runner("res://main.tscn").scene()
-	_player = _scene.get_node("Player")
-	_pad = _scene.get_node("Level/Triggers/PressurePad")
-	_door = _scene.get_node("Level/Doors/MainDoor")
+	_player = _scene.get_node("PlayerRig/Player")
+	_pad = _scene.get_node("World/Level/Triggers/PressurePad")
+	_door = _scene.get_node("World/Level/Doors/MainDoor")
 	await InputSim.ticks(get_tree(), 10)
 
 
@@ -23,9 +23,11 @@ func after_test() -> void:
 	InputSim.release_all()
 
 
-func test_the_pad_overlaps_the_level_but_nobody_presses_it_at_the_start() -> void:
+func test_the_pad_never_hears_of_the_level_and_nobody_presses_it_at_the_start() -> void:
 	await InputSim.ticks(get_tree(), 60)
-	assert_array(_pad.get_overlapping_bodies()).is_not_empty()
+	# The pad stands in the floor and the landing; its mask (Characters and Props, #924) leaves
+	# them out, so the area does not even report them.
+	assert_array(_pad.get_overlapping_bodies()).is_empty()
 	assert_bool(_pad.is_active()).is_false()
 	assert_bool(_door.is_open() or _door.is_moving()).is_false()
 
@@ -42,5 +44,5 @@ func test_the_player_on_the_pad_presses_it_and_leaving_releases_it() -> void:
 
 func test_every_coin_of_the_map_is_there_until_the_player_comes() -> void:
 	await InputSim.ticks(get_tree(), 60)
-	for coin: Pickup in _scene.get_node("Level/Pickups").get_children():
+	for coin: Pickup in _scene.get_node("World/Level/Pickups").get_children():
 		assert_bool(coin.is_available()).is_true()

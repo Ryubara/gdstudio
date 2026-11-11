@@ -17,7 +17,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
   1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
   Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
-  is a run that never started).
+  is a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`: unzip it
+  from the cache's `gdunit4-<version>/src.zip`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -40,6 +41,32 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   behind; a run silent for a minute is a stuck debugger. A test of a symbol that may be missing reads it dynamically
   (`get_script_constant_map()`). **Seen:** Deadnight, 2026-11-01 (without `-d` script errors become failures);
   Deadnight #1323, 2026-11-06 (twice 3 minutes on a `get_script()` call in a suite).
+
+- **Approach:** Add `--fixed-fps 60` to the command of a game whose tests step physics ticks (the template job, a
+  game's `ci.yml` and `templates/repo/AGENTS.md` have it). **Watch out for:** it makes each frame one tick and removes
+  the wait for the clock, so a suite that loops on `Time.get_ticks_msec()` times out; the reason and the numbers are in
+  [Test speed](test-speed.md#what-makes-a-suite-run-at-the-clocks-speed). **Seen:** gdstudio #916, 2026-11-10.
+
+- **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
+  parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
+  first. **Seen:** gdstudio #881 (four menu suites; `was`), #924 (a camera distance), #887 (a health read before a
+  shot), #1013 (a helper's parameter, written after reading this entry), #904 (`ticks_before`, `later`), #965
+  (`next_up`), #1047 (both, after reading this), all 2026-11-10; #906, 2026-11-11 (byte counters named `before` and
+  `after` in a helper): grep a new suite for `before` and `after` as names, and for a local named like one of the
+  script's own exports, before its first run; `gds template test` names them at parse.
+
+- **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
+  `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
+  code under test did after it. **Watch out for:** GdUnit4 6.2 reports any `SCRIPT ERROR` raised during a test as a
+  failure of that test ("Godot Runtime Error !"), even when the code under test caught it and carried on as designed;
+  the assert takes the entry out of the error monitor. **Seen:** gdstudio #965, 2026-11-10 (the task watchdog's tests:
+  a task's `update()` calls a method on `null`).
+
+- **Approach:** Check that an assertion exists on GdUnit's assert class before using it; for "not approximately equal"
+  write `assert_bool(is_equal_approx(a, b)).is_false()`. **Watch out for:** `assert_float(x).is_not_equal_approx(...)`
+  does not exist: the case ends in a runtime error ("Nonexistent function") at that line, not a failed assertion, and
+  everything after it in the case is skipped. **Seen:** gdstudio #1046, 2026-11-11 (the throttle suite's catch-up case).
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
@@ -95,12 +122,17 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   the green, and the list behind two case counts (596 against 595) was gone. **Seen:** Deadnight #987, 2026-11-04;
   Deadnight #1231, 2026-11-05 (fix: compare runs by their case lists; `SCRATCH.md` `Can go:` names a log after the
   merge).
+- **Approach:** For orphan nodes, run `gds template test <t> --keep` and read the `N orphans` count under each
+  `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
+  failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
+  it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
 
 ## Before the push {#before-the-push}
 
 A change to a kit template is pushed only after the template's own proof has run, not just the kit's `pytest`:
-`templates/<t>/game` has no GdUnit4, so its suites run in a game made from it, with the script parse and the editor
-open of [Proving a new game](new-game.md#proof) (gdstudio #830).
+`templates/<t>/game` has no GdUnit4, so its suites run with `gds template test <t>`, which makes a game from the
+working tree in a throwaway workspace of its own, parses every script and runs the suites ([Proving a new
+game](new-game.md#proof), gdstudio #830 and #917).
 
 - **Approach:** Before pushing, run `gds merge-main`, then every folder of `game/tests` on the merged branch (or CI's
   own shard command), read the logs for `ERROR`, and ignore any earlier summary; before taking over a branch, list the
@@ -108,12 +140,17 @@ open of [Proving a new game](new-game.md#proof) (gdstudio #830).
   children, by PID. **Watch out for:** a hand-over said "tests passing" and was green only on the folders its author
   guessed: `tests/world` (light cap) and `tests/tuning` (sound tables) read the whole project and failed on a new light
   and sound field, and the old runner script kept moving to the next shard and overwrote the summary. **Seen:**
-  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run).
+  Deadnight #1057, 2026-11-04 (fix: all folders on the merged branch, four loops at most, one log folder per run);
+  gdstudio #901, 2026-11-10 (a test edited after the run).
 - **Approach:** To see a new test fail first, save the diff (`git diff origin/main -- <paths> > file.patch`), run the
   revert, the test and the restore as separate commands with the test under its own `timeout` (or run it in a worktree
   of `main` with the new test copied in), and read `git status` after any killed command. **Watch out for:** revert,
   run and restore in one command: the timeout killed it between the first and the last and the worktree held main's
   files with the fix gone. **Seen:** Deadnight #987, 2026-11-04 (fix: the saved patch restored the work).
+- **Approach:** When a change renames a method or changes its signature, search the tests for its callers (`git grep
+  -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
+  for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
+  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 
@@ -141,7 +178,13 @@ open of [Proving a new game](new-game.md#proof) (gdstudio #830).
   removed it between another run's write and read (3 of 6 concurrent pairs failed, alone never) and a flake issue was
   filed; two parallel full-shard runs of net suites with fixed ports
   printed nothing for 25 minutes (alone: 8). **Seen:** Deadnight #594, 2026-11-02; Deadnight #1231, 2026-11-05 (fix:
-  6 of 6 concurrent pairs passed; eleven suites still use a fixed `user://` name, harmless with one run per machine).
+  6 of 6 concurrent pairs passed).
+
+- **Approach:** Name every file a suite writes under `user://` by process id (the 3D Third Person template's
+  `TempUserFile.path` in `tests/fixtures/`) and delete it in `before_test` and `after_test`. **Watch out for:** every
+  game `gds template test` makes has the same name and so the same `user://`, so a fixed name is never harmless on a
+  machine many agents share. **Seen:** gdstudio #1043, 2026-11-10 (two settings suites with fixed names: 8 of 10
+  concurrent rounds of two copies had a failing run; with `TempUserFile`, 20 of 20 runs passed).
 
 ## State a test inherits {#state-a-test-inherits}
 

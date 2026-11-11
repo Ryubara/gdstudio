@@ -1,0 +1,103 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/gds_game/impacts/impacts.gd" id="1_impacts"]
+[ext_resource type="Script" path="res://addons/gds_game/impacts/impact_surface.gd" id="2_surface"]
+[ext_resource type="Script" path="res://addons/gds_game/effects/effect_def.gd" id="4_def"]
+[ext_resource type="Material" path="res://assets/materials/impacts/impact_mark.tres" id="3_mark"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_dust.tscn" id="dust"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_splinters.tscn" id="splinters"]
+[ext_resource type="PackedScene" path="res://gameplay/impacts/effects/impact_sparks.tscn" id="sparks"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_1.ogg" id="default1"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_2.ogg" id="default2"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_default_3.ogg" id="default3"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_wood_1.ogg" id="wood1"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_wood_2.ogg" id="wood2"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_wood_3.ogg" id="wood3"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_1.ogg" id="metal1"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_2.ogg" id="metal2"]
+[ext_resource type="AudioStream" path="res://assets/audio/impacts/impact_metal_3.ogg" id="metal3"]
+
+[sub_resource type="AudioStreamRandomizer" id="Randomizer_default"]
+streams_count = 3
+random_pitch = 1.08
+random_volume_offset_db = 1.5
+stream_0/stream = ExtResource("default1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("default2")
+stream_1/weight = 1.0
+stream_2/stream = ExtResource("default3")
+stream_2/weight = 1.0
+
+[sub_resource type="AudioStreamRandomizer" id="Randomizer_wood"]
+streams_count = 3
+random_pitch = 1.08
+random_volume_offset_db = 1.5
+stream_0/stream = ExtResource("wood1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("wood2")
+stream_1/weight = 1.0
+stream_2/stream = ExtResource("wood3")
+stream_2/weight = 1.0
+
+[sub_resource type="AudioStreamRandomizer" id="Randomizer_metal"]
+streams_count = 3
+random_pitch = 1.08
+random_volume_offset_db = 1.5
+stream_0/stream = ExtResource("metal1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("metal2")
+stream_1/weight = 1.0
+stream_2/stream = ExtResource("metal3")
+stream_2/weight = 1.0
+
+[sub_resource type="Resource" id="Effect_Default"]
+script = ExtResource("4_def")
+particles = ExtResource("dust")
+sound = SubResource("Randomizer_default")
+sound_volume_db = -12.0
+
+[sub_resource type="Resource" id="Effect_Wood"]
+script = ExtResource("4_def")
+particles = ExtResource("splinters")
+sound = SubResource("Randomizer_wood")
+sound_volume_db = -12.0
+
+[sub_resource type="Resource" id="Effect_Metal"]
+script = ExtResource("4_def")
+particles = ExtResource("sparks")
+sound = SubResource("Randomizer_metal")
+sound_volume_db = -14.0
+
+[sub_resource type="Resource" id="Effect_Target"]
+script = ExtResource("4_def")
+particles = ExtResource("sparks")
+sound = SubResource("Randomizer_metal")
+sound_volume_db = -10.0
+
+[node name="Impacts" type="Node3D" node_paths=PackedStringArray("default_surface")]
+script = ExtResource("1_impacts")
+mark_material = ExtResource("3_mark")
+default_surface = NodePath("Surfaces/Default")
+
+[node name="Surfaces" type="Node" parent="."]
+
+[node name="Default" type="Node" parent="Surfaces"]
+script = ExtResource("2_surface")
+surface_name = &"default"
+effect = SubResource("Effect_Default")
+
+[node name="Wood" type="Node" parent="Surfaces"]
+script = ExtResource("2_surface")
+surface_name = &"wood"
+effect = SubResource("Effect_Wood")
+
+[node name="Metal" type="Node" parent="Surfaces"]
+script = ExtResource("2_surface")
+surface_name = &"metal"
+effect = SubResource("Effect_Metal")
+
+[node name="Target" type="Node" parent="Surfaces"]
+script = ExtResource("2_surface")
+surface_name = &"target"
+leaves_mark = false
+effect = SubResource("Effect_Target")

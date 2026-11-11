@@ -19,8 +19,20 @@ performance review (#907, #929); the lessons are linked below.
   fast (`Engine.time_scale`) for the long wait, but check the early moments (a light gone, a scorch still there) at real
   speed: one slow frame at a fast clock skips past everything.
 
+- **A template that ships to the web has one pooled player for all of it.** 3D Third Person's `EffectEmitter` plays an
+  `EffectDef` (particles, sound, light) from a capped pool (smaller on the web), cuts the oldest when it is full,
+  hides a free slot and switches its light off (so it holds no light place), and does no work while nothing plays; a
+  muzzle flash and every bullet impact use it instead of each keeping pools of their own
+  ([Effects](third-person-template.md#effects)).
+
 ## `_process` is on after ready {#process-is-on-after-ready}
 
 A script that defines `_process` has it turned on when the node is ready, *after* `_init` ran. `set_process(false)` in
 `_init` does nothing; put it in `_ready` (or call it from the code that decides the node has nothing to move). The same
 holds for `_physics_process`.
+
+- **Approach:** Put `set_process(false)` in `_ready`, never in `_init`, for a node that works only when something asks
+  (a service that saves after a delay). **Watch out for:** `Settings` switched processing off in `_init`, the engine
+  switched it on at ready, and the autoload counted idle time and wrote the settings file 0.6 s after every start with
+  nothing changed; a test that waits for the file to stay unwritten found it. **Seen:** gdstudio #881, 2026-11-10
+  (`test_an_idle_service_does_not_process_or_write_anything`).

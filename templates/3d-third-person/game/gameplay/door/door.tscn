@@ -1,6 +1,9 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/door/door.gd" id="1_door"]
+[ext_resource type="Script" path="res://addons/gds_game/interact/interactable.gd" id="2_interactable"]
+[ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
+[ext_resource type="Texture2D" path="res://assets/ui/minimap/square.png" id="9_square"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_panel"]
 resource_local_to_scene = true
@@ -13,6 +16,9 @@ size = Vector3(2, 3, 0.25)
 [sub_resource type="SphereShape3D" id="SphereShape3D_sensor"]
 resource_local_to_scene = true
 radius = 0.01
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_use"]
+radius = 0.5
 
 [node name="Door" type="AnimatableBody3D"]
 script = ExtResource("1_door")
@@ -30,9 +36,30 @@ shape = SubResource("BoxShape3D_panel")
 [node name="Sensor" type="Area3D" parent="."]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-collision_layer = 0
+collision_layer = 64
+collision_mask = 2
 monitoring = false
 
 [node name="SensorShape" type="CollisionShape3D" parent="Sensor"]
 unique_name_in_owner = true
 shape = SubResource("SphereShape3D_sensor")
+
+[node name="Interactable" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+collision_layer = 64
+collision_mask = 0
+monitoring = false
+script = ExtResource("2_interactable")
+prompt = "Open"
+
+[node name="UseShape" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_use")
+
+[node name="MinimapMarker" type="Node" parent="."]
+script = ExtResource("9_marker")
+icon = ExtResource("9_square")
+color = Color(0.45, 0.7, 1, 1)
+size = 10.0
+kind = &"door"
+
+[connection signal="interacted" from="Interactable" to="." method="interact"]

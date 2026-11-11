@@ -4,10 +4,13 @@ it fails instead. `test_disk.py` proves the real routes pass through it."""
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from git_seed import relocate, slim
+from new_game_kit import GITHUB_KIT_FILES, KIT_FILES, build_kit, git_environment, run_git
 from skip_allowlist import (  # noqa: F401 - the hooks of the skip allowlist (--allowed-skips)
     pytest_addoption,
     pytest_collectreport,
@@ -31,3 +34,48 @@ def no_real_services(monkeypatch: pytest.MonkeyPatch) -> None:
         return real(argv, *args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", guarded)
+
+
+@pytest.fixture(scope="session")
+def small_kit_seed(tmp_path_factory) -> Path:
+    """The small kit, made once; a test copies it."""
+    return build_kit(
+        tmp_path_factory.mktemp("small-kit") / "kit", real_templates=False, files=KIT_FILES + GITHUB_KIT_FILES
+    )
+
+
+@pytest.fixture(scope="session")
+def small_git_kit_seed(small_kit_seed, tmp_path_factory) -> Path:
+    """The small kit as a git checkout with one commit and an `origin` that is a local bare repository, made once
+    (`<seed>/kit` and `<seed>/kit-origin.git`); a test gets a copy with the paths rewritten (git_seed.relocate)."""
+    seed = tmp_path_factory.mktemp("small-kit-git")
+    kit, origin = seed / "kit", seed / "kit-origin.git"
+    shutil.copytree(small_kit_seed, kit)
+    with pytest.MonkeyPatch.context() as patch:
+        git_environment(patch, seed / "gitconfig")
+        run_git("init", "-q", "-b", "main", cwd=kit)
+        run_git("add", "-A", cwd=kit)
+        run_git("commit", "-q", "-m", "kit", cwd=kit)
+        run_git("clone", "-q", "--bare", str(kit), str(origin))
+        run_git("remote", "add", "origin", str(origin), cwd=kit)
+        run_git("fetch", "-q", "origin", cwd=kit)
+        run_git("branch", "-q", "--set-upstream-to=origin/main", "main", cwd=kit)
+        # A test copies these two repositories: one pack file each, no sample hooks, instead of a loose object per
+        # file of the kit (about 150) and thirteen samples.
+        for repository in (kit, origin):
+            run_git("repack", "-a", "-d", "-q", cwd=repository)
+    slim(seed)
+    return seed
+
+
+@pytest.fixture
+def small_kit(small_kit_seed, tmp_path) -> Path:
+    """A writable copy of the small kit: a test that records a remote or adds a template writes to the copy."""
+    return shutil.copytree(small_kit_seed, tmp_path / "kit")
+
+
+@pytest.fixture
+def small_git_kit(small_git_kit_seed, tmp_path) -> Path:
+    """The small kit as a git checkout whose `origin` is a local bare repository, copied from the seed with no git
+    process (it was a bare clone, a clone and a `remote set-url` for every test)."""
+    return relocate(small_git_kit_seed, tmp_path / "git-kit") / "kit"

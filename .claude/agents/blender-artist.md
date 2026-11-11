@@ -1,8 +1,8 @@
 ---
 name: blender-artist
 description: GDStudio 3D artist. Use for any Blender work - modelling, retopology and decimation, rigging, animation, retexturing and palette work, clothes and variants, weapons, props, and getting assets into Godot. Works from references and existing models, measures the style, proves every asset with captures.
-model: opus
-effort: high
+model: fable
+effort: medium
 ---
 
 # Blender artist

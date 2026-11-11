@@ -42,7 +42,7 @@ each fall, until about four mixes have landed (with a poll cap).
 
 3D Blank (and so 3D Third Person) ships `default_bus_layout.tres` with `Master` and three buses sending to it: `SFX`
 (steps, pickups, hits), `Ambient` (beds such as the wind) and `UI` (menus, -3 dB: interface sounds sit under the
-game's). A sound's player sets `bus` to one of them. The `AudioSettings` node in `main.tscn` (`core/audio_settings/`)
+game's). A sound's player sets `bus` to one of them. The `AudioSettings` node in `world/world.tscn` (`core/audio_settings/`)
 holds one `@export_range` volume in dB a bus; each setter calls `AudioServer.set_bus_volume_db` at once, so the remote
 inspector tunes the mix while the game runs, a settings screen sets the same properties, and `@tool` makes the editor's
 own mixer follow. A bus the project lacks is skipped (`AudioSettings.bus_volume_db` returns `NAN` for it), so renaming
@@ -53,6 +53,12 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   running game, so a mix could not be tuned through the remote inspector; a setter also runs when the scene loads,
   before the buses may exist, so `_ready` applies them all again. **Seen:** gdstudio #835, 2026-11-08 (the node and a
   GdUnit4 suite that sets each export and reads the bus back).
+- **Approach:** Give the player's own volume (a settings slider) a layer of its own on top of the mix:
+  `AudioSettings.set_player_gain(bus, 0..1)` is static, remembers each bus's mix (the node's value, or the layout's
+  when no node exists yet) and writes `mix + linear_to_db(gain)`, muting at 0. **Watch out for:** a slider that writes
+  `AudioServer` directly is lost the next time the inspector or the remote inspector changes the node, and a menu
+  before the game has no node to set; the gain must outlive scenes, so it is static, and a test resets it with
+  `reset_player_gain()`. **Seen:** gdstudio #881, 2026-11-10 (`test_audio_settings.gd`, `test_settings_service.gd`).
 - **Approach:** When sounds land before anything plays them, say so wherever the template is described (its design
   page, the pull request, the report): which files have no player yet and the issue that wires them. Search the scenes
   and scripts for `AudioStreamPlayer` and find where each one's `stream` comes from (the scene, or a script when it
@@ -62,7 +68,7 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   sound a report claims against the capture's track. **Seen:** gdstudio #835 and #837, 2026-11-08; #857, 2026-11-09
   (five shots, and a test that fails on a player with nothing to play).
 
-- **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `main.tscn`,
+- **Approach:** Play each template sound from a node with its own volume and bus (`Wind` on `Ambient` in `world/world.tscn`,
   `Sound` in `pickup.tscn`, `Step`, `CrouchStep` and `LandStep` in `footsteps.tscn`, `ShotSound` in `weapon.tscn`), and
   test that every player is on a template bus and every file in `assets/audio/` is named by a scene. **Watch out for:**
   an autoplaying sound leaks `ObjectDB instances were leaked at exit` when a process quits with it playing (every
@@ -107,6 +113,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   **Watch out for:** under Movie Maker the mixer runs on the frames, not on its own thread, so
   `AudioSettings.drain_mixer()` waits its whole second for nothing, and a tour that quit with the wind playing printed
   `2 resources still in use at exit` and made the capture unusable as proof. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** A capture cut by `--quit-after N` before its scene ends needs that silence too: the templates'
+  `AudioSettings` pauses the tree and stops every player at frame `N - 8`, told N by `++ --quit-after=N`, which
+  `gds godot` and `gds capture frames` add to a Movie Maker run (`capture.tell_movie_end`); a plain Godot start still
+  leaks. **Watch out for:** Godot removes the arguments it uses from `OS.get_cmdline_args()`, so a script cannot read
+  where the capture ends, and `--quit-after` stops with no frame left to mix: whatever plays then (the looping wind, a
+  coin picked up in the last second) is held, one Ogg voice being 4 leaked instances and 2 resources under `--verbose`.
+  **Seen:** gdstudio #1030, 2026-11-10 (the action tour's 1200-frame capture, 4 resources: the wind and a coin).
 - **Approach:** Capture to an absolute path of a folder that exists, smoke the run with `--quit-after 25` first, and for
   a long run write `x.avi`, pull the track with `ffmpeg -i x.avi -vn -c:a pcm_s32le x.wav` at once and delete the avi
   only after the wav exists; split a long capture into runs of a few minutes of sound. **Watch out for:** a relative
@@ -115,6 +128,13 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   ends, and `gds godot` stops a run at 900 s (an avi encodes at about 15 ms a frame). **Seen:** Deadnight, 2026-11-01
   (the relative path); Deadnight #718, 2026-11-03 (fix: runs of one case each, three at a time; five minutes of sound
   and 40 minutes were lost to a deleted avi).
+- **Approach:** Prove a change left a sound as it was with a null test: the same scene captured before and after, both
+  tracks read by their own sample width (`<i4` for Movie Maker), the difference measured window by window (a few seconds
+  each) against each window's level, and the frames of any window that differs read to name what plays there.
+  **Watch out for:** a script that read the 32-bit track as `int16` gave every window the same -10.8 dB and looked like
+  a change; the whole action tour differed by -44 dB RMS only because its shots vary from run to run (its first 8 s),
+  while its walking differed by -70 to -83 dB (16-bit rounding) and a crowd of walkers by -65 dB. **Seen:** gdstudio
+  #1023, 2026-11-10.
 
 ## Layered gunshots and event-timed sounds {#layered-gunshots-and-event-timed-sounds}
 
@@ -286,6 +306,19 @@ frame that starts six sounds pays six times.
   Ogg Vorbis re-reads the headers, so every shot and kill cost the single-threaded web build 6 to 8 ms while the
   resource count stayed flat and nothing looked like a leak. **Seen:** Deadnight #387, 2026-11-01 (fix: Deadnight #402,
   decode on load and a start cap; a GdUnit test counts nodes and objects over a run and fails on an allocation per kill).
+
+Measured in the 3D Third Person template (desktop, Godot 4.7.2, gdstudio #1023): `AudioStreamPlayer3D.play()` of a
+0.1 s mono Ogg Vorbis step costs about 250 µs, of the same samples as an `AudioStreamWAV` about 1 µs. `DecodedSounds`
+of `gds_game` makes the WAV (`DecodedSounds.decoded(stream)`: short, non-looping Ogg Vorbis and MP3, at the mix rate,
+16-bit, mono when the channels match, made once and shared); the template's `Footsteps` plays its steps through it.
+
+- **Approach:** Decode a short sound that is started often (steps, shots, impacts) once and share the WAV across every
+  node that plays it; warm it in `_ready` so the first play does not decode; prove the sound unchanged with a null test
+  of two Movie Maker mixes, before and after. **Watch out for:** a crowd's footsteps paid the Ogg setup on every step
+  (14 µs a walking character a frame on the desktop, 22 in Chrome: 0.35 ms a frame for 25), while the step list
+  emptied cost 1.6 µs; the decode itself is a GDScript loop, 2 ms on the desktop and up to 16 ms in Chrome for four
+  steps, so it belongs in the load, not the frame. **Seen:** gdstudio #1023, 2026-11-10 (footsteps 13 µs to 2.3 on the
+  desktop, 22 to 7 to 8 in Chrome).
 
 A capped start returns no player: Deadnight's `Audio.play` answers null both for a dropped sound (too far, over its
 voice limit) and for one put off to the next frame by the starts-per-frame cap, which then plays. Code that schedules

@@ -19,7 +19,9 @@ in a real window (not `--headless`: Movie Maker needs a renderer). The window op
 it never takes the keyboard or cursor from the person at the machine ([why](../engines/godot/no-focus.md)). The scene
 runs on a
 fixed timestep, so a seeded scene gives the same frames every time. To record with your own command line (several
-scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself.
+scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself. Both add
+`++ --quit-after=N` to a Movie Maker run's command line, so the game can silence its last frames before Godot stops it
+and the log ends with nothing `still in use` ([why](../engines/godot/audio.md#capturing-sound)).
 
 | Option | Meaning |
 | --- | --- |
@@ -27,11 +29,15 @@ scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, nev
 | `--scene` | A scene to run instead of the main scene, e.g. `res://ui/hud.tscn`. |
 | `--seconds`, `--fps` | Length and rate; the capture is at most `ceil(seconds * fps)` frames: a scene that calls `quit()` ends it sooner, so `--seconds` is an upper bound. Defaults 5 s at 10 fps. |
 | `--name` | The folder name (default `capture`). |
+| `--out` | Write the frames to exactly this folder instead of the scratch folder below. |
 
 The frames go to `<workspace>/scratch/<repo>/<branch>/<name>/` as `<name>00000000.png`, `<name>00000001.png`, ...
 next to Movie Maker's `<name>.wav` and a `capture.json` holding the frame rate. The repository and branch come from
-the project folder with the rule the hooks use: the repository is the git top level's name (for a worktree
-`worktrees/<repo>/<branch>`, the parent folder's name) and a `/` in the branch becomes `-`. Frames from an earlier
+the folder `gds` runs in, never from `--project`, so run it from your task's worktree: a throwaway game made by
+`gds template game` is a git repository of its own, and naming the folder from it would put every agent's frames in
+the shared `scratch/template-check/main/`. The rule is the hooks' one: the repository is the git top level's name (for
+a worktree `worktrees/<repo>/<branch>`, the parent folder's name) and a `/` in the branch becomes `-`. Outside a git
+repository, pass `--out <folder>`. Frames from an earlier
 run of the same name are replaced. A project that was never imported is imported first.
 
 Frames are the project's viewport size (Godot's `--resolution` has no effect on Movie Maker); the sheet and the clip
@@ -42,6 +48,13 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   game as no player sees it. **Seen:** Deadnight, 2026-11-01 (fix: deadnight's recordings come from the player's camera
   with the real devices switched off).
 
+- **Approach:** For a phone-shaped window (844 x 390, a canvas of 2337 x 1080 units) save the viewport's own pixels
+  from the capture scene (`await RenderingServer.frame_post_draw`, then
+  `get_viewport().get_texture().get_image().save_png`), and keep Movie Maker for sizes whose canvas is 1920 units wide
+  or less. **Watch out for:** Movie Maker writes frames of the project's size (1920 x 1080) whatever `--resolution`
+  says and cuts a wider canvas at both sides, so the first phone captures of the menus showed the middle of every card
+  and looked like a layout fault. **Seen:** gdstudio #881, 2026-11-10 (`tools/capture/menus_tour.gd`,
+  `--shots=<folder>`).
 - **Approach:** Read frame N-1 to see the state before a change made at step N; to record at a real smaller size (a UI
   test at 720p) write an uncommitted `game/override.cfg` with `window/size/window_width_override` and
   `window_height_override` (the stretch base stays 1920 x 1080, so the UI scales as for a 720p player), and delete it
@@ -123,8 +136,14 @@ report only after reading the body back.
   bare upload address beside it, as for [sound](#sound-a-clip-you-can-listen-to); run `gds pr check-body` on the body
   read back after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
   plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
-  refuses every local `./file`, since only a `github.com/user-attachments/` address counts. **Seen:** gdstudio #847,
-  2026-11-08 (the `After:` became a contact sheet with the clip's address beside it).
+  refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
+  reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
+  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`); gdstudio #880 and #886, 2026-11-10
+  (the guard of today refuses that `--repo` command with no reference: checked for gdstudio #1003).
+- **Approach:** Read the `## Screenshots` section of the body file back (`sed -n '/## Screenshots/,/## AI/p'`) after
+  editing it and before the send. **Watch out for:** a scripted edit that was to add the image references matched
+  nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
+  2026-11-10.
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 

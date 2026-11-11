@@ -1,12 +1,12 @@
-# The animation tree's crouch state and its pistol layer on the upper body: the crouch idle and
-# walk blend by speed, the holding pose is on the arms and spine but not on the legs, the aim pose
-# follows the camera's pitch and a shot plays the recoil. Read from the real tree of a running
-# player.
+# The animation tree's crouch state and its pistol layer: the crouch idle and walk blend by speed,
+# the grip pose is on the gripping hand and the aim layers on the upper body but not on the legs,
+# the aim pose follows the camera's pitch and a shot plays the recoil. Read from the real tree of a
+# running player.
 extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _animation: PlayerAnimation
+var _animation: CharacterAnimation
 var _camera: Camera3D
 
 
@@ -16,7 +16,9 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_animation = _player.get_node("Animation")
 	_camera = Camera3D.new()
 	_camera.position = Vector3(0.0, 1.3, 3.0)
@@ -72,8 +74,8 @@ func test_crouching_travels_the_body_to_the_crouch_state_and_standing_back() -> 
 	assert_str(String(_animation.body_state())).is_equal("ground")
 
 
-func test_the_pistol_layer_holds_the_upper_body_and_leaves_the_legs() -> void:
-	for layer in ["Armed", "Aim", "Shoot"]:
+func test_the_aim_layers_take_the_upper_body_and_leave_the_legs() -> void:
+	for layer in ["Aim", "Shoot", "Reload"]:
 		var node := _root().get_node(layer) as AnimationNode
 		assert_bool(node.filter_enabled).override_failure_message(layer).is_true()
 		assert_bool(node.is_path_filtered(NodePath("Armature/Skeleton3D:spine_01"))).is_true()
@@ -83,6 +85,20 @@ func test_the_pistol_layer_holds_the_upper_body_and_leaves_the_legs() -> void:
 		assert_bool(node.is_path_filtered(NodePath("Armature/Skeleton3D:pelvis"))).is_false()
 		assert_bool(node.is_path_filtered(NodePath("Armature/Skeleton3D:thigh_l"))).is_false()
 		assert_bool(node.is_path_filtered(NodePath("Armature/Skeleton3D:foot_r"))).is_false()
+
+
+func test_the_grip_layer_takes_the_gripping_hand_and_nothing_else() -> void:
+	var node := _root().get_node("Armed") as AnimationNode
+	assert_bool(node.filter_enabled).is_true()
+	for bone in ["hand_r", "thumb_01_r", "thumb_03_r", "index_01_r", "index_03_r", "pinky_01_r"]:
+		var path := NodePath("Armature/Skeleton3D:%s" % bone)
+		assert_bool(node.is_path_filtered(path)).override_failure_message(bone).is_true()
+	for bone in ["lowerarm_r", "upperarm_r", "clavicle_r", "spine_01", "spine_03", "Head"]:
+		var path := NodePath("Armature/Skeleton3D:%s" % bone)
+		assert_bool(node.is_path_filtered(path)).override_failure_message(bone).is_false()
+	for bone in ["hand_l", "index_01_l", "pelvis", "thigh_l", "foot_r"]:
+		var path := NodePath("Armature/Skeleton3D:%s" % bone)
+		assert_bool(node.is_path_filtered(path)).override_failure_message(bone).is_false()
 
 
 func test_an_armed_player_holds_the_pistol_and_the_aim_follows_the_arm() -> void:
@@ -127,7 +143,7 @@ func test_a_shot_plays_the_recoil_over_the_aim() -> void:
 	_player.weapon.fire()
 	await InputSim.ticks(get_tree(), 3)
 	assert_bool(_animation.tree.get(path)).is_true()
-	await get_tree().create_timer(1.0).timeout
+	await InputSim.ticks(get_tree(), 60)
 	assert_bool(_animation.tree.get(path)).is_false()
 
 
@@ -150,7 +166,9 @@ func test_the_pistol_clips_are_the_ones_the_template_names() -> void:
 
 
 func test_a_clip_set_in_the_inspector_replaces_the_one_in_the_tree() -> void:
-	_animation.shoot_clip = CharacterClips.PUNCH
+	# The weapon's clips are its definition's: a copy of the pistol's, so no other suite sees it.
+	_player.weapon.definition = _player.weapon.definition.duplicate()
+	_player.weapon.definition.shoot_clips = [CharacterClips.PUNCH]
 	_animation.crouch_walk_clip = CharacterClips.WALK
 	var shoot := _root().get_node("ShootClip") as AnimationNodeAnimation
 	assert_str(String(shoot.animation)).is_equal(String(CharacterClips.PUNCH))

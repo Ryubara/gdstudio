@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from gds_tools import layout
+from gds_tools import layout, project_file
 
 KIT = Path(__file__).resolve().parents[2]
 TEMPLATE_GAME = KIT / "templates" / "3d-blank" / "game"
@@ -40,6 +40,11 @@ def test_the_third_person_template_on_top_of_its_base_follows_every_rule(tmp_pat
     game = tmp_path / "game"
     shutil.copytree(TEMPLATE_GAME, game)
     shutil.copytree(KIT / "templates" / "3d-third-person" / "game", game, dirs_exist_ok=True)
+    # The template's project file holds only what it adds; `gds new game` merges it into the base's.
+    project = [TEMPLATE_GAME / "project.godot", KIT / "templates" / "3d-third-person" / "game" / "project.godot"]
+    (game / "project.godot").write_text(
+        project_file.merge([path.read_text(encoding="utf-8") for path in project]), encoding="utf-8", newline="\n"
+    )
     assert layout.check(game) == []
 
 
@@ -87,6 +92,21 @@ def test_a_class_name_is_its_file_in_pascal_case(tmp_path):
         },
     )
     assert [p.path for p in layout.check(project)] == ["core/audio_service.gd"]
+
+
+def test_a_class_of_the_kits_synced_addon_is_declared_nowhere_else(tmp_path):
+    """A template or game copy of a part that moved into `gds_game` never gets the kit's fixes (kit #923)."""
+    project = make(
+        tmp_path,
+        {
+            "addons/gds_game/trigger_zone/trigger_zone.gd": "class_name TriggerZone\nextends Area3D\n",
+            "gameplay/trigger_zone/trigger_zone.gd": "class_name TriggerZone\nextends Area3D\n",
+            "gameplay/door/door.gd": "class_name Door\nextends Node3D\n",
+        },
+    )
+    found = [p for p in layout.check(project) if p.rule == "addon-class"]
+    assert [p.path for p in found] == ["gameplay/trigger_zone/trigger_zone.gd"]
+    assert "addons/gds_game/trigger_zone/trigger_zone.gd" in found[0].message
 
 
 def test_a_scene_and_the_script_on_its_root_share_a_folder_and_a_name(tmp_path):
@@ -258,3 +278,28 @@ def test_the_template_with_the_synced_addon_passes_every_rule(tmp_path):
     shutil.copytree(TEMPLATE_GAME, game)
     shutil.copytree(KIT / "godot" / "addons" / "gds_ui", game / "addons" / "gds_ui")
     assert layout.check(game) == []
+
+
+def test_a_suite_that_reads_the_wall_clock_or_waits_on_a_timer_must_say_why(tmp_path):
+    calls = {"msec": "Time.get_ticks_msec()", "usec": "Time.get_ticks_usec()", "timer": "get_tree().create_timer(1.0)"}
+    for name, call in calls.items():
+        (tmp_path / name).mkdir()
+        project = make(tmp_path / name, {"tests/test_a.gd": f"extends GdUnitTestSuite\nvar t := {call}\n"})
+        assert [(p.path, p.rule) for p in layout.check(project)] == [("tests/test_a.gd", "on-the-clock")], call
+
+
+def test_a_first_line_comment_on_the_clock_is_the_reason(tmp_path):
+    text = "# On the clock: the engine's own callback is the subject.\nextends GdUnitTestSuite\n"
+    text += "var t := Time.get_ticks_msec()\n"
+    assert layout.check(make(tmp_path, {"tests/test_a.gd": text})) == []
+
+
+def test_a_clock_call_in_a_comment_or_outside_the_tests_is_not_judged(tmp_path):
+    project = make(
+        tmp_path,
+        {
+            "tests/test_a.gd": "extends GdUnitTestSuite\n# Never Time.get_ticks_msec() here.\n",
+            "core/clock.gd": "extends Node\nvar t := Time.get_ticks_msec()\n",
+        },
+    )
+    assert layout.check(project) == []

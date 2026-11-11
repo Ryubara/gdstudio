@@ -1,18 +1,22 @@
-# The player's AnimationTree is built in code (PlayerAnimation), and the editor shows it too: the
+# The player's AnimationTree is built in code (CharacterAnimation), and the editor shows it too: the
 # script is a `@tool` script, so opening the player scene builds the tree and the node has no
 # warning. The built tree must never be written into a scene file.
 extends GdUnitTestSuite
 
 const PLAYER_SCENE := "res://gameplay/player/player.tscn"
+const DRESSED_SCENE := "res://gameplay/character/character_dressed.tscn"
 const SCENES := [
 	"res://gameplay/player/player.tscn",
+	"res://gameplay/character/character_dressed.tscn",
 	"res://main.tscn",
+	"res://ui/player_rig/player_rig.tscn",
+	"res://world/world.tscn",
 	"res://world/prototype/prototype_level.tscn",
 ]
 
 
 func test_the_script_is_a_tool_script_so_the_editor_builds_the_tree() -> void:
-	var source := FileAccess.get_file_as_string("res://gameplay/player/player_animation.gd")
+	var source := FileAccess.get_file_as_string("res://gameplay/character/character_animation.gd")
 	assert_bool(source.begins_with("@tool")).is_true()
 
 
@@ -44,7 +48,7 @@ func test_no_scene_file_holds_the_generated_tree() -> void:
 func test_the_pistol_hangs_on_the_model_slot_not_inside_the_mannequin() -> void:
 	# A node inside the mannequin's instance is lost when the mannequin is replaced, and an
 	# instance needs `editable` to keep one; the pistol is a child of the slot instead.
-	var text := FileAccess.get_file_as_string(PLAYER_SCENE)
+	var text := FileAccess.get_file_as_string(DRESSED_SCENE)
 	assert_bool(text.contains("[editable path=")).is_false()
 	assert_bool(text.contains('parent="Model/Armature')).is_false()
 	assert_bool(text.contains('[node name="PistolHeld" parent="Model"')).is_true()

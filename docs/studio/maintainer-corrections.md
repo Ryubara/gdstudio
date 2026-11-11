@@ -6,9 +6,10 @@ pointed out in our words, with its source (the date it was recorded, the game, a
 links the topic section it updated: the entry (the approach, what to watch out for, where it was seen) is kept in
 the topic page an agent reads for that work, not here ([Learning in the topic pages](rules.md), gdstudio #769).
 
-A new correction updates its topic section and adds one line here, in the same pull request. A prompt is never quoted,
-word for word or nearly, here or anywhere in a public repository: the checks fail a row with a cell that starts with a
-quotation mark, and a row whose last cell links no section (gdstudio #780).
+A new correction updates its topic section and adds one line here, in the same pull request. A task agent updates the
+section and puts the line in its report; the coordinator adds it here, so many agents never edit this one page. A prompt
+is never quoted, word for word or nearly, here or anywhere in a public repository: the checks fail a row with a cell
+that starts with a quotation mark, and a row whose last cell links no section (gdstudio #780).
 
 ## Corrections and the checks they become {#corrections-and-the-checks-they-become}
 
@@ -63,6 +64,8 @@ quotation mark, and a row whose last cell links no section (gdstudio #780).
 | 2026-11-09 | gdstudio #866 | A pull request's `Model:` line and trailers named the harness that ran the session, not the model that wrote the work | [studio/pull-requests.md#body](pull-requests.md#body) |
 | 2026-11-10 | gdstudio #865 | Work done while a weaker model ran the studio fell short (a ragdoll pull request with red checks and its tests uncommitted, an issue holding a decision never made) and was redone from scratch | [studio/asks.md#decision-words](asks.md#decision-words) |
 | 2026-11-10 | gdstudio #846 | The coordinator was building a template feature itself instead of starting a godot-engineer for it | [studio/starting-work.md#starting-an-agent](starting-work.md#starting-an-agent) |
+| 2026-11-10 | gdstudio #1001 | The hands on the 3D Third Person pistol were placed poorly; whenever a GDStudio weapon is held, its hand placement has to be refined heavily, finger by finger and with the support hand | [tools/blender/weapons.md#hands-on-the-weapon](../tools/blender/weapons.md#hands-on-the-weapon) |
+| 2026-11-10 | gdstudio #887 | After the session was cleared, an agent past the context limit went unmentioned although Tether had already raised it; the maintainer had to ask why nobody acted | [studio/agents.md#the-loop](agents.md#the-loop) |
 | 2026-11-08 | gdstudio #857 | A game made from 3D Third Person played its effects too loud against each other (the footsteps had to be turned down by about 20 dB), its steps sounded like boots, its wind like breath on a microphone, and its pistol fired in silence; the template's sounds had been chosen and levelled without playing the game at a normal volume, and an empty player had been reported as a sound | [engines/godot/audio.md#template-buses](../engines/godot/audio.md#template-buses) |
 
 ## Found by playing: concepts and details we missed {#found-by-playing-concepts-and-details-we-missed}
@@ -239,6 +242,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-09 | gdstudio #868 | After a shot the camera zoomed out at once but the character kept the slow aim walk and aim clips for about a second; with no aim or fire button held, nothing of aiming or firing may remain | [engines/godot/third-person-template.md#crouch-aim-shoot](../engines/godot/third-person-template.md#crouch-aim-shoot) |
 | 2026-11-10 | gdstudio #872 | The 3D Third Person ragdoll looked melted: its limbs passed through each other because the bones did not collide among themselves, and its joints turned past what a body can because the limits were widened to fit the clips instead of taken from anatomy | [engines/godot/ragdoll.md#limits](../engines/godot/ragdoll.md#limits) |
 | 2026-11-10 | gdstudio #872 | A ragdoll started in mid-air kept the animation's pose until it hit something, instead of going limp as it fell, because every bone was given the same velocity | [engines/godot/ragdoll.md#building](../engines/godot/ragdoll.md#building) |
+| 2026-11-10 | gdstudio #877 | Playing 3D Third Person, the character walked, jogged and sprinted with both arms held out as if aiming; off aim and fire the pistol should only sit in one hand while the arms follow the locomotion | [engines/godot/third-person-template.md#crouch-aim-shoot](../engines/godot/third-person-template.md#crouch-aim-shoot) |
 
 ## Start of a new game {#start-of-a-new-game}
 

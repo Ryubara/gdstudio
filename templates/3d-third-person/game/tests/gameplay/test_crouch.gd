@@ -6,14 +6,16 @@ extends GdUnitTestSuite
 
 var _arena: PlayArena
 var _player: Player
-var _tuning: PlayerTuning
+var _tuning: CharacterTuning
 
 
 func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (load("res://gameplay/player/player_tuning.tres") as PlayerTuning).duplicate()
+	_player.tuning = (
+		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
+	)
 	_tuning = _player.tuning
 	await InputSim.ticks(get_tree(), 4)
 
@@ -41,16 +43,21 @@ func test_holding_crouch_lowers_the_capsule_and_the_camera_target() -> void:
 	assert_float(body.position.y - _capsule().height / 2.0).is_equal_approx(0.0, 0.001)
 
 
-func test_the_pad_and_the_control_key_crouch_too() -> void:
+func test_the_pad_crouches_too() -> void:
 	InputSim.pad_button(JOY_BUTTON_B, true)
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(_player.crouching).is_true()
 	InputSim.pad_button(JOY_BUTTON_B, false)
 	await InputSim.ticks(get_tree(), 30)
 	assert_bool(_player.crouching).is_false()
+
+
+# Ctrl is left free: the editor's embedded game window takes Ctrl+W as its own
+# shortcut, so a W pressed while crouching on Ctrl never reached the game.
+func test_the_control_key_does_not_crouch() -> void:
 	InputSim.key(KEY_CTRL, true)
 	await InputSim.ticks(get_tree(), 10)
-	assert_bool(_player.crouching).is_true()
+	assert_bool(_player.crouching).is_false()
 
 
 func test_it_stands_up_when_the_button_is_let_go_and_there_is_room() -> void:
@@ -69,7 +76,7 @@ func test_a_crouch_walk_is_slower_and_plays_the_crouch_state() -> void:
 	await InputSim.ticks(get_tree(), 40)
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.crouch_speed, 0.05)
 	assert_int(_player.state).is_equal(Player.State.CROUCH)
-	var animation := _player.get_node("Animation") as PlayerAnimation
+	var animation := _player.get_node("Animation") as CharacterAnimation
 	assert_str(String(animation.body_state())).is_equal("crouch")
 
 
