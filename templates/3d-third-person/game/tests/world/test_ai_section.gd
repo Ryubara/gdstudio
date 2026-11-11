@@ -31,6 +31,9 @@ func before_test() -> void:
 
 func after_test() -> void:
 	InputSim.release_all()
+	# The parked characters are out of the tree: freed here, before the orphan count.
+	for spawner: AiSpawner in _spawners.values():
+		spawner.pool().clear()
 	for action: StringName in [&"move_right", &"crouch", &"fire", &"aim"]:
 		Input.action_release(action)
 

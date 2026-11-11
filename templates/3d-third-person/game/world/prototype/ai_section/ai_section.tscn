@@ -696,7 +696,7 @@ scene = ExtResource("grunt")
 count = 3
 markers = [NodePath("../../Spawns/Enemy1"), NodePath("../../Spawns/Enemy2"), NodePath("../../Spawns/Enemy3")]
 respawn_delay = 15.0
-wake_range = 30.0
+wake_range = 25.0
 patrol_route = &"guard_lane"
 max_corpses = 2
 
@@ -706,7 +706,7 @@ scene = ExtResource("shooter")
 count = 2
 markers = [NodePath("../../AiMarkers/ShooterPosts/Post1"), NodePath("../../AiMarkers/ShooterPosts/Post2")]
 respawn_delay = 20.0
-wake_range = 30.0
+wake_range = 25.0
 patrol_route = &"hold"
 max_corpses = 2
 
@@ -716,7 +716,7 @@ scene = ExtResource("ally")
 count = 2
 markers = [NodePath("../../Spawns/Friendly1"), NodePath("../../Spawns/Friendly2"), NodePath("../../Spawns/Friendly3"), NodePath("../../Spawns/Friendly4")]
 respawn_delay = 15.0
-wake_range = 30.0
+wake_range = 25.0
 leader_group = &"player"
 max_corpses = 2
 
@@ -726,7 +726,7 @@ scene = ExtResource("civilian")
 count = 3
 markers = [NodePath("../../AiMarkers/CivilianHomes/Home1"), NodePath("../../AiMarkers/CivilianHomes/Home2"), NodePath("../../AiMarkers/CivilianHomes/Home3")]
 respawn_delay = 20.0
-wake_range = 30.0
+wake_range = 25.0
 max_corpses = 2
 
 [node name="LightmapGI" type="LightmapGI" parent="." unique_id=85991155]

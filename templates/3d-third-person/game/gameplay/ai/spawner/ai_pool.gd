@@ -22,17 +22,23 @@ func _init(from: PackedScene = null) -> void:
 	scene = from
 
 
-## Makes characters until `size` are parked or out (`out` of them are in the level now), each
-## readied once under `parent` and taken out again.
-func prewarm(size: int, out: int, parent: Node) -> void:
+## Makes characters until `size` are parked or out (`out` of them are in the level now), at most
+## `at_most` of them in this call (0: all), each readied once under `parent` and taken out again.
+## True while more are still to make.
+func prewarm(size: int, out: int, parent: Node, at_most := 0) -> bool:
+	var made_now := 0
 	while _parked.size() + out < size:
+		if at_most > 0 and made_now >= at_most:
+			return true
 		var character := _make()
 		if character == null:
-			return
+			return false
 		if parent != null and parent.is_inside_tree():
 			parent.add_child(character)
 			parent.remove_child(character)
 		_parked.append(character)
+		made_now += 1
+	return false
 
 
 ## A parked character, or a new one when none is parked (null without a scene).

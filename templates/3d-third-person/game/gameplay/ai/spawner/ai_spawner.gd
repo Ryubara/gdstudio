@@ -1,9 +1,11 @@
 class_name AiSpawner
 extends Node3D
 ## Keeps `count` AI characters of `scene` alive at the spawn `markers`, from a pool (`AiPool`):
-## the characters are made when the level loads, and a death is answered by a spawn of a pooled
-## one `respawn_delay` seconds later. A body lies in its ragdoll until it settles (or
-## `corpse_seconds`), at most `max_corpses` at once, then goes back to the pool.
+## the characters are made before they are needed (when the level loads, or with `wake_range` one
+## a tick as a player comes within `PREWARM_MARGIN` of it) and never again, and a death is
+## answered by a spawn of a pooled one `respawn_delay` seconds later. A body lies in its ragdoll
+## until it settles (or `corpse_seconds`), at most `max_corpses` at once, then goes back to the
+## pool.
 ##
 ## Placed by hand in a level (the AI section holds one per kind) and tuned in the inspector. It
 ## wires each character it spawns to the level: the brain's `patrol_route`, its `leader` (the
@@ -25,6 +27,9 @@ signal released(character: AiCharacter)
 const MARKER_CLEAR := 1.5
 ## Physics ticks between two looks for a player within `wake_range`.
 const WAKE_CHECK_TICKS := 15
+## Metres beyond `wake_range` at which the pool starts making its characters, one a tick, so
+## they are ready when the player arrives and a level nobody goes near holds none.
+const PREWARM_MARGIN := 10.0
 
 @export_group("Spawn")
 ## The character it spawns (an inherited `ai_character.tscn`: `characters/enemy_grunt.tscn`).
@@ -95,6 +100,7 @@ var _due: PackedFloat64Array = PackedFloat64Array()
 var _next_marker := 0
 var _ticks := 0
 var _runs := false
+var _prewarming := false
 
 
 ## True when AI characters are spawned in this tree: offline play, or a game server with
@@ -118,8 +124,9 @@ func _ready() -> void:
 	set_physics_process(_runs)
 	if not _runs or scene == null:
 		return
-	_pool.prewarm(_pool_size(), 0, self)
 	awake = wake_range <= 0.0
+	if awake:
+		_pool.prewarm(_pool_size(), 0, self)
 	_fill()
 
 
@@ -132,9 +139,14 @@ func _notification(what: int) -> void:
 func _physics_process(delta: float) -> void:
 	_clock += delta
 	_ticks += 1
-	if not awake and _ticks % WAKE_CHECK_TICKS == 0 and _player_within(wake_range):
-		awake = true
-		_fill()
+	if _prewarming:
+		_prewarming = _pool.prewarm(_pool_size(), alive.size() + corpses.size(), self, 1)
+	if not awake and _ticks % WAKE_CHECK_TICKS == 0:
+		if enabled and not _prewarming and _player_within(wake_range + PREWARM_MARGIN):
+			_prewarming = true
+		if _player_within(wake_range):
+			awake = true
+			_fill()
 	_tend_corpses()
 	if not _due.is_empty() and _due[0] <= _clock:
 		_due.remove_at(0)

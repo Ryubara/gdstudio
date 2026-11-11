@@ -50,6 +50,13 @@ func _warnings_of(root: Node) -> Array[String]:
 	return found
 
 
+func test_the_model_slots_variant_is_pinned_empty() -> void:
+	var slot: CharacterModel = auto_free(CharacterModel.new())
+	var pins := {&"variant": null}
+	assert_array(ExportPins.differences(slot, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(slot, pins)).is_empty()
+
+
 func test_each_scene_inherits_the_ai_character_with_its_profile_set_and_faction() -> void:
 	for kind: String in SCENES:
 		var state := (load(SCENES[kind]) as PackedScene).get_state()

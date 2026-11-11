@@ -56,6 +56,29 @@ func _spawner(scene := GRUNT, changes := {}) -> AiSpawner:
 	return spawner
 
 
+func test_the_spawner_defaults_are_pinned() -> void:
+	var spawner: AiSpawner = auto_free(AiSpawner.new())
+	var pins := {
+		&"scene": null,
+		&"count": 3,
+		&"markers": [],
+		&"respawn_delay": 10.0,
+		&"cap": 0,
+		&"enabled": true,
+		&"wake_range": 0.0,
+		&"player_group": &"player",
+		&"patrol_route": &"",
+		&"leader_group": &"",
+		&"debug": false,
+		&"max_corpses": 4,
+		&"corpse_seconds": 20.0,
+		&"settled_linger": 2.0,
+		&"on_server": false,
+	}
+	assert_array(ExportPins.differences(spawner, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(spawner, pins)).is_empty()
+
+
 func test_it_spawns_its_count_at_the_markers_facing_their_way() -> void:
 	var spawner := _spawner()
 	await _ticks(2)
@@ -196,19 +219,25 @@ func test_off_it_spawns_nothing_more_and_on_again_it_fills_up() -> void:
 	assert_int(spawner.alive.size()).is_equal(2)
 
 
-func test_it_waits_for_a_player_within_wake_range() -> void:
+func test_it_waits_for_a_player_within_wake_range_and_makes_its_pool_on_the_way() -> void:
 	# The arena's stand-in for the player's body starts far away.
 	var player := _arena.viewer
-	player.position = Vector3(0, 0, 30)
+	player.position = Vector3(0, 0, 60)
 	var spawner := _spawner(GRUNT, {"wake_range": 10.0})
 	await _ticks(40)
 	assert_bool(spawner.awake).is_false()
-	assert_int(spawner.alive.size()).is_equal(0)
+	assert_int(spawner.pool().made).is_equal(0)
+	# Within the margin: the characters are made, one a tick, before anyone spawns.
+	player.position = Vector3(0, 0, 10.0 + AiSpawner.PREWARM_MARGIN - 2.0)
+	await _ticks(40)
+	assert_bool(spawner.awake).is_false()
 	assert_int(spawner.pool().parked()).is_equal(spawner.count + spawner.max_corpses)
+	var made := spawner.pool().made
 	player.position = Vector3(0, 0, 6)
 	await _ticks(40)
 	assert_bool(spawner.awake).is_true()
 	assert_int(spawner.alive.size()).is_equal(2)
+	assert_int(spawner.pool().made).is_equal(made)
 
 
 func test_freeing_the_spawner_frees_the_characters_it_parked() -> void:
