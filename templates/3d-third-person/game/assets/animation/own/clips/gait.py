@@ -24,8 +24,9 @@ description with three sets of numbers, built from how people walk and run (the 
 - **The arms swing in their sockets**, each with the other side's leg, hanging in a walk and bent in a run; the
   forearm, the hand, the chest and the head take their motion late through the overlap pass, and the fingers open
   and close a little with the swing.
-- **The two halves are not mirror images** (`uneven`): one leg reaches and lifts a little more and the other arm
-  swings a little wider, as a person's do.
+- **The two sides are not mirror images**: a side has its own numbers for its foot, its arm and its hand (`left`,
+  `right`), the pelvis, the chest and the head keep a small turn and tilt through the cycle (the `_rest` numbers),
+  and one leg reaches and lifts a little more while the other arm swings a little wider (`uneven`).
 """
 
 import math
@@ -95,7 +96,15 @@ COMMON = {
     "curl": [24.0, 48.0, 58.0, 66.0, 72.0],  # the fingers' curl: thumb, index, middle, ring, little
     "finger_live": 4.0,  # degrees the fingers open as the arm swings back and close as it comes forward
     "thumb_out": 38.0,  # degrees the thumb is lifted from under the palm to lie beside it
-    "uneven": 1.0,  # how far the two halves of the cycle differ (0: mirror images)
+    "uneven": 1.0,  # how far the two halves of the cycle differ in reach, lift and swing
+    "left": {},  # a side's own number for any key of `SIDED`, over the one both sides share: no body
+    "right": {},  # carries its two sides alike (`own-animation.md#feel`, no mirror poses)
+    "hip_turn_rest": 0.0,  # degrees the pelvis stays turned to its left through the whole cycle
+    "hip_tip_rest": 0.0,  # degrees its right side stays lower
+    "chest_turn_rest": 0.0,  # degrees the chest stays turned to its left against the pelvis
+    "chest_tip_rest": 0.0,  # degrees the right shoulder stays lower
+    "head_turn_rest": 0.0,  # degrees the head stays turned to its left
+    "head_tip_rest": 0.0,  # degrees it stays tilted to its right
     "speed_limit": 38.0,  # the largest change of a joint's speed in one frame the clip may have (degrees a frame)
     "keys_kept": 0.4,  # the share of a moving bone's keys a half-degree reducer may keep
     "kb_a_second": 20.0,  # the clip's key bytes for a second of clip (a short cycle has few frames to drop)
@@ -231,6 +240,12 @@ PARTS = {
     "hand_l": "hand",
     "hand_r": "hand",
 }
+## The numbers a side may have of its own (`left`, `right`).
+SIDED = (
+    "ahead", "width", "toe_out", "kick", "carry_height", "arm_fore", "arm_back", "arm_out", "arm_out_back",
+    "arm_twist", "arm_clear", "elbow", "elbow_live", "pronate", "wrist", "wrist_live", "shrug", "curl",
+    "finger_live", "thumb_out",
+)
 FINGER_NAMES = ("thumb", "index", "middle", "ring", "pinky")
 ## How much further the right side goes than the left where the halves differ, at `uneven` 1: the right foot's
 ## reach (m), its lift in the swing (a share), the left arm's swing (a share), and a turn the pelvis keeps (degrees).
@@ -277,6 +292,9 @@ class Gait:
         self.covered = n["speed"] * self.contact / FPS
         self.lags = lags
         self.base = 0.0
+        for name in ("left", "right"):
+            unknown = sorted(set(n[name]) - set(SIDED))
+            assert not unknown, f"`{name}` sets {unknown}, which a side cannot have of its own"
         ## The pelvis's solved place on each whole frame, from the last pass of `settle_height`: where the
         ## build's own solve starts from.
         self._pelvis = {}
@@ -286,9 +304,14 @@ class Gait:
         falls = []
         for s, sign in SIDES:
             land = 0.0 if s == "l" else self.frames / 2.0
-            falls.append(Footfall(s, land, land + self.contact, self._place(s, sign, 0), yaw=sign * n["toe_out"]))
+            place = self._place(s, sign, 0)
+            falls.append(Footfall(s, land, land + self.contact, place, yaw=sign * self.own(s, "toe_out")))
         self.plan = ContactPlan(self.frames, falls, Travel.steady(n["speed"]))
         self._heights = self._height_curve()
+
+    def own(self, s: str, key: str):
+        """A number as one side has it: its own (`left`, `right`) or the one both share."""
+        return self.n["left" if s == "l" else "right"].get(key, self.n[key])
 
     def late(self, part: str) -> float:
         """The frames a part of the overlap pass trails the part it hangs from, at this gait's pace."""
@@ -302,8 +325,8 @@ class Gait:
     def _place(self, s: str, sign: float, cycle: int) -> tuple:
         """Where the ball of a foot stands on the floor (x, z) in its contact of a cycle."""
         n = self.n
-        reach = n["ahead"] * self.covered + (UNEVEN_REACH * n["uneven"] if s == "r" else 0.0)
-        return (sign * n["width"], n["speed"] * self._land(s) / FPS + reach + cycle * self.stride)
+        reach = self.own(s, "ahead") * self.covered + (UNEVEN_REACH * n["uneven"] if s == "r" else 0.0)
+        return (sign * self.own(s, "width"), n["speed"] * self._land(s) / FPS + reach + cycle * self.stride)
 
     def _stance(self, s: str, sign: float, cycle: int, t: float) -> dict:
         """A planted foot, `t` frames after it landed."""
@@ -311,7 +334,7 @@ class Gait:
         sole = rig.sole[s]
         x, z = self._place(s, sign, cycle)
         ball = np.array([x, sole["floor"], z])
-        yaw = sign * n["toe_out"]
+        yaw = sign * self.own(s, "toe_out")
         if t < n["roll_in"]:
             share = 1.0 - maths.smooth(t / n["roll_in"])
             if n["heel_strike"] >= 0.0:
@@ -332,6 +355,7 @@ class Gait:
         a = self._stance(s, sign, cycle, self.contact)
         b = self._stance(s, sign, cycle + 1, 0.0)
         more = 1.0 + (UNEVEN_LIFT * n["uneven"] if s == "r" else 0.0)
+        kick, carry = self.own(s, "kick"), self.own(s, "carry_height")
         go = (1.0 - n["swing_early"]) * maths.smooth(u) + n["swing_early"] * (1.0 - (1.0 - u) ** 2)
         # A foot brought to rest over the floor before it lands has to reach far past its landing place first
         # (the body goes on under it): a runner's still has some of its speed, and the landing takes it.
@@ -339,7 +363,7 @@ class Gait:
         go = (1.0 - still) * go + still * u
         ankle = a["ankle"] + (b["ankle"] - a["ankle"]) * go
         lift = maths.keyed(
-            [(0.0, 0.0), (n["kick_at"], n["kick"] * more), (n["carry_at"], n["carry_height"] * more), (1.0, 0.0)], u
+            [(0.0, 0.0), (n["kick_at"], kick * more), (n["carry_at"], carry * more), (1.0, 0.0)], u
         )
         ankle[1] += lift
         if n["land_from"] > 0.0:
@@ -350,7 +374,7 @@ class Gait:
         pitch = maths.keyed(
             [(0.0, pitch_a), (n["kick_at"], max(n["kick_pitch"], pitch_a)), (0.86, 0.6 * pitch_b), (1.0, pitch_b)], u
         )
-        yaw = sign * n["toe_out"]
+        yaw = sign * self.own(s, "toe_out")
         toe = a["toe"] * (1.0 - maths.smooth(u / 0.3))
         # Nothing of the sole goes under the floor while it swings: the toes hang under a foot whose heel is up.
         turn = body_turn(pitch, yaw, 0.0)
@@ -437,6 +461,7 @@ class Gait:
         n = self.n
         p = f / self.frames
         turn = n["hip_turn"] * math.cos(2.0 * math.pi * (p - n["hip_turn_at"])) + UNEVEN_TURN * n["uneven"]
+        turn += n["hip_turn_rest"]
         tip = n["hip_tip"] * math.cos(2.0 * math.pi * (p - n["hip_tip_at"]))
         nod = n["lean_live"] * math.cos(4.0 * math.pi * (p - 0.5 * n["duty"]) + math.pi)
         side, height, ahead = self.centre(f)
@@ -450,41 +475,43 @@ class Gait:
         for s, sign in SIDES:
             at = n["arm_at"] + (0.0 if s == "l" else 0.5)
             wide = 1.0 + (UNEVEN_ARM * n["uneven"] if s == "l" else 0.0)
-            middle = 0.5 * (n["arm_fore"] - n["arm_back"])
-            reach = 0.5 * (n["arm_fore"] + n["arm_back"]) * wide
+            o = {key: self.own(s, key) for key in SIDED}
+            middle = 0.5 * (o["arm_fore"] - o["arm_back"])
+            reach = 0.5 * (o["arm_fore"] + o["arm_back"]) * wide
             swing = math.cos(2.0 * math.pi * (p - at) + 2.0 * math.pi * late / self.frames)
             # The elbow and the wrist give with the swing as it is played; the overlap pass makes them late.
             played = math.cos(2.0 * math.pi * (p - at))
             arms[s] = {
                 "swing": middle + reach / left * swing,
-                "out": n["arm_out"] + n["arm_out_back"] * (0.5 - 0.5 * played),
+                "out": o["arm_out"] + o["arm_out_back"] * (0.5 - 0.5 * played),
                 # The forearm turns in toward the body's middle as it comes forward, and hangs beside the hip.
-                "twist": n["arm_twist"] * (0.5 + 0.5 * played),
-                "bend": n["elbow"] + n["elbow_live"] * played,
-                "pronate": n["pronate"],
-                "wrist": n["wrist"] - n["wrist_live"] * played,
+                "twist": o["arm_twist"] * (0.5 + 0.5 * played),
+                "bend": o["elbow"] + o["elbow_live"] * played,
+                "pronate": o["pronate"],
+                "wrist": o["wrist"] - o["wrist_live"] * played,
                 "carry": n["carry"],
             }
-            if n["arm_clear"] > 0.0:
-                arms[s]["clear"] = n["arm_clear"]
-            clavicle[s] = (n["shrug"], n["clavicle"] * reach * swing)
+            if o["arm_clear"] > 0.0:
+                arms[s]["clear"] = o["arm_clear"]
+            clavicle[s] = (o["shrug"], n["clavicle"] * reach * swing)
             curls = {
-                finger: n["curl"][i] + n["finger_live"] * played * (0.5 if finger == "thumb" else 1.0)
+                finger: o["curl"][i] + o["finger_live"] * played * (0.5 if finger == "thumb" else 1.0)
                 for i, finger in enumerate(FINGER_NAMES)
             }
-            curls["thumb_out"] = n["thumb_out"]
+            curls["thumb_out"] = o["thumb_out"]
             fingers[s] = curls
         return {
             "pelvis": {
                 "place": self._pelvis.get(f, np.array([side, height - 0.1, ahead - 0.02])).copy(),
-                "turn": (n["pelvis_pitch"], turn, -tip),
+                "turn": (n["pelvis_pitch"], turn, -tip - n["hip_tip_rest"]),
             },
             "chest": (
                 n["lean"] + nod,
-                -n["counter_turn"] * math.cos(2.0 * math.pi * (p - n["hip_turn_at"] - chest_late / self.frames)),
-                n["counter_tip"] * tip,
+                -n["counter_turn"] * math.cos(2.0 * math.pi * (p - n["hip_turn_at"] - chest_late / self.frames))
+                + n["chest_turn_rest"],
+                n["counter_tip"] * tip - n["chest_tip_rest"],
             ),
-            "head": (n["head_pitch"], 0.0, 0.0),
+            "head": (n["head_pitch"], n["head_turn_rest"], -n["head_tip_rest"]),
             "clavicle": clavicle,
             "arm": arms,
             "fingers": fingers,

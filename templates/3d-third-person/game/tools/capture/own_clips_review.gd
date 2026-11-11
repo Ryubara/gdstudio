@@ -20,7 +20,8 @@
 ## nine seconds, short enough for a GIF.
 ## A gait is filmed moving (kit #1155): `OWN_HOLD=<action>` is held with `move_forward` (`walk`
 ## for the walk, `sprint` for the sprint, nothing for the jog) and `OWN_MOVE=<seconds>` is how
-## long it moves for (default 1.5; a gait wants 4), so the loop is seen over the ground at the
+## long it moves for (default 1.5; the walk wants 4; a run reaches the far wall, so the jog
+## takes 2.2 and the sprint 1.4 from 5 m ahead), so the loop is seen over the ground at the
 ## game's speed, with its start and its stop either side. `OWN_AHEAD=<metres>` starts each turn
 ## that far ahead of the spawn point: the spawn pad ends 4.6 m ahead, and a body that steps off
 ## it plays its fall, which is not the clip under review.
@@ -47,6 +48,7 @@ var _hold := &""
 var _move := WALK
 var _ahead := 0.0
 var _way := Vector3.ZERO
+var _from := Vector3.ZERO
 var _row: Node3D
 var _row_camera: Camera3D
 var _label: Label
@@ -125,14 +127,14 @@ func _film_player() -> void:
 		return
 	if turn != _turn:
 		_turn = turn
-		if turn > 0:
-			_rig.player.respawn()
-		if _ahead > 0.0:
-			# The way is read once: later turns begin with the camera still in front.
-			if _way == Vector3.ZERO:
-				var way := -_rig.camera_rig.camera.global_basis.z
-				_way = Vector3(way.x, 0.0, way.z).normalized()
-			_rig.player.global_position += _way * _ahead
+		# Every turn starts on one place, facing one way, read once: `respawn()` picks a spawn
+		# point and a spot on it at random, and later turns begin with the camera in front.
+		if _way == Vector3.ZERO:
+			var way := -_rig.camera_rig.camera.global_basis.z
+			_way = Vector3(way.x, 0.0, way.z).normalized()
+			_from = _rig.player.global_position + _way * _ahead
+		if turn > 0 or _ahead > 0.0:
+			_rig.player.teleport(_from, atan2(_way.x, _way.z))
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
 	var at := fmod(_clock, length)

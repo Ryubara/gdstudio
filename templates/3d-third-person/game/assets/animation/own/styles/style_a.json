@@ -58,7 +58,36 @@
    0.15
   ]
  },
- "walk": {},
+ "walk": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 21.0,
+   "arm_back": 24.0,
+   "elbow": 18.0
+  },
+  "right": {
+   "toe_out": 10.0,
+   "width": 0.085,
+   "arm_fore": 14.0,
+   "arm_back": 19.0,
+   "elbow": 22.0,
+   "arm_out": 9.0,
+   "pronate": 20.0,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ]
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_turn_rest": -2.0,
+  "chest_tip_rest": 1.5,
+  "head_turn_rest": 1.5,
+  "head_tip_rest": 1.0
+ },
  "overlap_jog": {
   "chest": [
    1.0,
@@ -81,7 +110,29 @@
    0.15
   ]
  },
- "jog": {},
+ "jog": {
+  "left": {
+   "toe_out": 3.0,
+   "width": 0.054,
+   "arm_fore": 34.0,
+   "arm_back": 45.0
+  },
+  "right": {
+   "toe_out": 8.0,
+   "width": 0.06,
+   "arm_fore": 25.0,
+   "arm_back": 38.0,
+   "elbow": 86.0,
+   "arm_twist": 11.0,
+   "shrug": 1.5
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_turn_rest": -2.5,
+  "chest_tip_rest": 1.5,
+  "head_turn_rest": 1.5,
+  "head_tip_rest": 1.0
+ },
  "overlap_sprint": {
   "chest": [
    1.0,
@@ -104,22 +155,44 @@
    0.15
   ]
  },
- "sprint": {},
+ "sprint": {
+  "left": {
+   "toe_out": 2.0,
+   "arm_fore": 50.0,
+   "arm_back": 62.0,
+   "elbow": 88.0
+  },
+  "right": {
+   "toe_out": 6.0,
+   "width": 0.056,
+   "arm_fore": 41.0,
+   "arm_back": 53.0,
+   "elbow": 97.0,
+   "arm_out": 14.0,
+   "shrug": 3.5
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 0.8,
+  "chest_turn_rest": -2.0,
+  "chest_tip_rest": 1.5,
+  "head_turn_rest": 1.0,
+  "head_tip_rest": 1.0
+ },
  "notes": {
   "idle": [
    "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
    "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
   ],
   "walk": [
-   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the arms through 43. Shipped as gds/Walk (the recommendation).",
+   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the arms through 43. Shipped as gds/Walk (the recommendation). Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
    "Could not be done: a knee as straight as a person's when the heel lands (ours is 23 degrees bent, a person's about 5). The step is 0.74 m on 0.83 m legs and the body is held to 37 mm of rise, so both legs cannot be straight while both feet are down."
   ],
   "jog": [
-   "A person's numbers at 4.0 m/s: 180 steps a minute and a foot down 30 % (people: 178 and 32 %), the centre of mass 62 mm up and down on a free fall between contacts, the hips 12 degrees against the shoulders' 19. Shipped as gds/Jog.",
-   "Could not be done: the pelvis inside the old 60 to 90 mm with a low knee lift only; it goes 79 mm because the legs' own rise is counted by the centre of mass. The audit reads 7 mm of planted wander: the heel's skin, which the shin drags; on the foot's own skin it is 3.6."
+   "A person's numbers at 4.0 m/s: 180 steps a minute and a foot down 30 % (people: 178 and 32 %), the centre of mass 62 mm up and down on a free fall between contacts, the hips 12 degrees against the shoulders' 19. Shipped as gds/Jog. Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
+   "Could not be done: the pelvis inside the old 60 to 90 mm with a low knee lift only; it goes 79 mm because the legs' own rise is counted by the centre of mass. The audit reads 7 mm of planted wander: the heel's skin, which the shin drags; on the foot's own skin it is 4.4."
   ],
   "sprint": [
-   "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint.",
+   "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint. Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
    "Could not be done: the forearm turned in across the chest as sprinters carry it (12 to 19 mm inside the chest on both bodies); it is turned 4 degrees out. A calf moves 70 degrees a frame faster in one frame as the foot leaves; the limit for the clip is declared at 80."
   ]
  }

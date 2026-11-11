@@ -84,7 +84,35 @@
   "lean": 2.0,
   "elbow": 24.0,
   "arm_clear": 0.22,
-  "arm_out": 11.0
+  "arm_out": 11.0,
+  "left": {
+   "toe_out": 3.2,
+   "arm_fore": 26.2,
+   "arm_back": 30.8,
+   "elbow": 26.8
+  },
+  "right": {
+   "toe_out": 11.6,
+   "width": 0.089,
+   "arm_fore": 16.4,
+   "arm_back": 23.8,
+   "elbow": 32.4,
+   "arm_out": 13.8,
+   "pronate": 22.4,
+   "curl": [
+    32.4,
+    62.0,
+    72.0,
+    77.2,
+    80.4
+   ]
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.4,
+  "chest_turn_rest": -2.8,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 2.1,
+  "head_tip_rest": 1.4
  },
  "overlap_jog": {
   "chest": [
@@ -128,7 +156,28 @@
   ],
   "uneven": 1.6,
   "arm_out_back": 18.0,
-  "arm_out": 15.0
+  "arm_out": 15.0,
+  "left": {
+   "toe_out": 2.6,
+   "width": 0.056,
+   "arm_fore": 39.6,
+   "arm_back": 54.2
+  },
+  "right": {
+   "toe_out": 9.6,
+   "width": 0.064,
+   "arm_fore": 27.0,
+   "arm_back": 44.4,
+   "elbow": 81.6,
+   "arm_twist": 9.8,
+   "shrug": 2.1
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.4,
+  "chest_turn_rest": -3.5,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 2.1,
+  "head_tip_rest": 1.4
  },
  "overlap_sprint": {
   "chest": [
@@ -164,7 +213,28 @@
   "lean": 6.0,
   "arm_twist": 0.0,
   "elbow": 80.0,
-  "arm_out": 16.0
+  "arm_out": 16.0,
+  "left": {
+   "toe_out": 1.6,
+   "arm_fore": 51.6,
+   "arm_back": 71.6,
+   "elbow": 74.4
+  },
+  "right": {
+   "toe_out": 7.2,
+   "width": 0.058,
+   "arm_fore": 39.0,
+   "arm_back": 59.0,
+   "elbow": 87.0,
+   "arm_out": 18.8,
+   "shrug": 4.1
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.12,
+  "chest_turn_rest": -2.8,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 1.4,
+  "head_tip_rest": 1.4
  },
  "notes": {
   "idle": [
@@ -172,15 +242,15 @@
    "Could not be done: the deepest shift still reads 1.3 mm of hand in thigh on the female (the limit is 5); the free foot stays flat, a heel that lifts was not tried."
   ],
   "walk": [
-   "Loose: a longer step (129 steps a minute), the hips turn 12 degrees and tip 9, the pelvis sways 64 mm, the arms go through 57 degrees and the forearm and the hand trail two frames and swing past.",
+   "Loose: a longer step (129 steps a minute), the hips turn 12 degrees and tip 9, the pelvis sways 64 mm, the arms go through 57 degrees and the forearm and the hand trail two frames and swing past. Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
    "Tried and held back: an overshoot of 0.25 to 0.3 on the forearm and the hand. At a gait's pace the spring rings: the elbow went 21 degrees past straight and the hand 100 degrees from the forearm; it is 0.15 and 0.2. The hands keep 22 cm from the thigh's line to clear the hips."
   ],
   "jog": [
-   "Loose: the hips turn 16 degrees and the shoulders 25, the pelvis sways 52 mm, the hands are half open and the arms go through 96 degrees, trailing a frame and a half.",
+   "Loose: the hips turn 16 degrees and the shoulders 25, the pelvis sways 52 mm, the hands are half open and the arms go through 96 degrees, trailing a frame and a half. Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
    "Could not be done: the hands as near the hips as the grounded one's (62 mm inside the pelvis on the male with the wider swing); the elbows go 18 degrees out as they pass back."
   ],
   "sprint": [
-   "Loose: the hips turn 22 degrees and the shoulders 31, the arms through 125 degrees with an open elbow, the head lets the chest's turn through (11 degrees).",
+   "Loose: the hips turn 22 degrees and the shoulders 31, the arms through 125 degrees with an open elbow, the head lets the chest's turn through (11 degrees). Each side has its own numbers: the right arm is held tighter with its shoulder lower, and the right foot turns out more.",
    "Could not be done: the closing elbow of the grounded one (the trailing hand was 31 to 110 mm inside the chest); the elbow holds 80 degrees and gives 6."
   ]
  }

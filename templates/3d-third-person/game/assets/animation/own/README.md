@@ -141,8 +141,16 @@ declared choice.
 - **Overlap.** The chest, the head, the upper arms, the forearms and the hands follow through the overlap pass.
   At a gait's pace a spring changes a swing's size and timing, so the description leads and enlarges the upper
   arm's swing by what the spring will take, and the declared lags are the spring's at that pace.
-- **Not mirror images.** The right foot reaches 12 mm further and lifts a tenth higher, the left arm swings 8 %
-  wider and the pelvis keeps a degree of turn (`uneven`; the sharp variant sets it to 0).
+- **Each side has its own numbers** (`left`, `right` and the `_rest` numbers of a style's section; the kit's
+  `docs/tools/blender/own-animation.md#feel`, no mirror poses). In the grounded walk the right foot points 10
+  degrees out and lands 85 mm from the middle line, the left 4 degrees and 75 mm; the left arm swings 21 degrees
+  forward and 24 back with the elbow at 18, the right 14 and 19 with the elbow at 22, hanging 2 degrees further
+  out, turned in 6 more and its fingers closed 6 to 10 degrees more; the pelvis stays turned a degree and its
+  right side a degree low, the chest 2 degrees back on the right with that shoulder 1.5 lower, the head turned
+  1.5 and tilted 1 against them. The runs do the same with their own figures (the right arm tighter and its
+  shoulder a little raised and lower, the feet at different widths and toe-out). The loose variant has 1.4 times
+  these differences and the sharp one 0.8. On top of that the right foot reaches 12 mm further and lifts a tenth
+  higher and the left arm swings 8 % wider (`uneven`).
 
 ### The three variants of each
 
@@ -151,27 +159,28 @@ Measured by `../audit_clips.py` on the female mannequin; the review sheets print
 | | A, grounded | B, loose | C, sharp | the library's |
 | --- | --- | --- | --- | --- |
 | **Walk**: steps a minute, planted sole speed | 138, 1.71 m/s | 129, 1.71 | 138, 1.71 | 90, 0.95 |
-| Pelvis up and down, side to side | 37, 46 mm | 43, 64 | 32, 49 | 53, 71 |
+| Pelvis up and down, side to side | 37, 48 mm | 43, 66 | 32, 50 | 53, 71 |
 | Hips turn and tip, shoulders turn | 8 and 6, 8 degrees | 12 and 9, 12 | 6 and 5, 10 | 4 and 5, 15 |
-| Upper arm swings; forearm, hand, chest trail | 43 degrees; 1.4, 1.4, 1.3 frames | 57; 2.0, 2.1, 2.4 | 45; 0.9, 0.9, 0.8 | 33; 0.2, 2.2, 1.3 |
-| Halves differ, lowest sole vertex, seam's step | 1.0 degrees, 0.4 mm, 0.18 | 1.6, 0.3, 0.16 | 0, 0.4, 0.16 | 2.5, 14.8 under, 2.01 |
+| Left upper arm swings; forearm, hand, chest trail | 49 degrees; 1.4, 1.4, 1.3 frames | 65; 2.0, 2.0, 2.4 | 50; 0.9, 0.9, 0.8 | 33; 0.2, 2.2, 1.3 |
+| Thighs' halves differ, lowest sole vertex, seam's step | 1.2 degrees, 0.4 mm, 0.18 | 1.7, 0.3, 0.16 | 0.6, 0.4, 0.17 | 2.5, 14.8 under, 2.01 |
 | **Jog**: steps a minute, planted sole speed | 180, 4.07 m/s | 180, 4.07 | 180, 4.07 | 129, 5.91 |
-| Pelvis up and down, side to side | 79, 36 mm | 90, 52 | 78, 32 | 245, 36 |
+| Pelvis up and down, side to side | 79, 37 mm | 90, 53 | 79, 33 | 245, 36 |
 | Hips turn and tip, shoulders turn | 12 and 8, 19 degrees | 16 and 11, 25 | 9 and 5, 14 | 1 and 11, 76 |
-| Upper arm swings; forearm, hand, chest trail | 79 degrees; 0.8, 0.9, 0.8 frames | 96; 1.2, 1.4, 1.8 | 75; 0.8, 0.9, 0.8 | 86; 1.6, none, none |
-| Thigh swings, trunk leans, halves differ | 78, 7.6, 1.3 degrees | 79, 7.6, 2.2 | 86, 8.9, 0 | 117, 25.5, 3.7 |
+| Left upper arm swings; forearm, hand, chest trail | 87 degrees; 0.8, 0.9, 0.8 frames | 108; 1.2, 1.4, 1.8 | 83; 0.9, 0.9, 0.8 | 86; 1.6, none, none |
+| Thigh swings, trunk leans, halves differ | 78, 7.6, 1.3 degrees | 79, 7.6, 2.1 | 85, 8.9, 0.6 | 117, 25.5, 3.7 |
 | **Sprint**: steps a minute, planted sole speed | 200, 6.50 m/s | 200, 6.50 | 200, 6.50 | 180, 5.79 |
-| Pelvis up and down, side to side | 87, 25 mm | 90, 27 | 86, 22 | 138, 36 |
+| Pelvis up and down, side to side | 87, 26 mm | 90, 28 | 88, 23 | 138, 36 |
 | Hips turn and tip, shoulders turn | 18 and 8, 25 degrees | 22 and 10, 31 | 14 and 5, 19 | 4 and 10, 47 |
-| Upper arm swings; forearm, hand, chest trail | 112 degrees; 0.9, 0.9, 0.8 frames | 125; 1.3, 1.5, 1.3 | 112; 0.9, 0.9, 0.8 | 78; 0.3, 0.1, none |
-| Thigh swings, trunk leans, halves differ | 95, 9.6, 1.5 degrees | 95, 9.1, 2.3 | 101, 12.2, 0 | 113, 39.1, 13.4 |
-| Planted sole wanders (the build, both bodies) | 4.5, 3.6, 2.3 mm (walk, jog, sprint) | 4.5, 3.6, 2.3 | 4.5, 3.6, 2.3 | 64, 10, 313 (the audit) |
-| Limbs inside limbs, female and male | 0 and 0, 0 and 3.8, 0 and 0 mm | 0 and 0, 0 and 2.0, 0 and 0 | 0 and 0, 0 and 3.3, 0 and 0 | walk: 12 mm |
+| Left upper arm swings; forearm, hand, chest trail | 121 degrees; 0.9, 0.9, 0.8 frames | 138; 1.2, 1.5, 1.3 | 122; 0.9, 0.9, 0.8 | 78; 0.3, 0.1, none |
+| Thigh swings, trunk leans, halves differ | 95, 9.6, 1.3 degrees | 94, 9.1, 2.0 | 100, 12.2, 0.6 | 113, 39.1, 13.4 |
+| Planted sole wanders (the build, both bodies) | 4.5, 4.4, 2.3 mm (walk, jog, sprint) | 4.5, 4.7, 2.3 | 4.5, 4.2, 2.3 | 64, 10, 313 (the audit) |
+| Limbs inside limbs, female and male | 0 and 0 mm in all three | 0 and 0 | 0 and 0 | walk: 12 mm |
 
 **A is the one shipped for all three** (`picks.json`), as the recommendation: its numbers are a person's at the
 game's speeds. B is the vision for a loose, long-limbed character; C for a small or stylised body seen from far.
 The grounded and the sharp runs trail by the same frames; what tells them apart is the trunk (hips, shoulders,
-lean), the knee lift and the mirror.
+lean) and the knee lift; the "halves differ" row follows the thighs only, and the sides differ most in the
+arms, the feet's turn and the shoulders' set.
 
 ### What the numbers do not say
 
@@ -181,7 +190,7 @@ lean), the knee lift and the mirror.
   to 12 cm behind the centre of mass in the sprint because the trunk leans.
 - **The audit reads the jog's planted sole wandering 7 mm.** It follows every vertex of the sole, and the heel's
   skin is weighted to the shin, which swings 25 degrees a frame over the planted foot. On the skin that only the
-  foot and the toes move, the build reads 3.6 mm.
+  foot and the toes move, the build reads 4.4 mm.
 - **The pelvis moves 2 to 5 cm fore and aft in place.** The centre of mass moves at one speed, so the pelvis gives
   way as a leg swings forward. The game's capsule moves at one speed; the tree's issue (kit #1158) decides whether
   the pelvis's own travel is kept.
