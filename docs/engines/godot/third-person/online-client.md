@@ -255,6 +255,11 @@ Reload button on the web and "update the game" on the desktop; the game is full;
 before the WELCOME or `connect_seconds` of frames (each under the stall guard's 0.25 s) without one it says the server
 did not answer, and on a seated link that closes, Connection lost. Every message has Back to menu, the player's input
 is off while one shows, and the texts are exports of `online_status.tscn`.
+The overlay is not under the router's stage, so it builds its `gds_ui` theme from the tokens itself (the marquee
+panel's padding, the title's size; [Menus](../menus.md#menus)); `tests/ui/test_online_status.gd` holds every part
+inside the panel's bulbs at the desktop and the phone layout, and `tools/capture/online_status_tour.tscn` shows
+Connecting, a message and the other-version message in the real online game (Movie Maker at 1920 x 1080, or
+`-- --shots=<folder>` in an 844 x 390 window).
 
 `PlayerBot` (`gameplay/player/player_bot.gd`, `--bot` or `?bot`) plays through the player's own `PlayerInput`: it
 presses the input actions (`Input.action_press`) and turns the camera with `PlayerCamera.orbit`, so the server hears a
