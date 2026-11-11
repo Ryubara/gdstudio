@@ -283,7 +283,8 @@ weapon is a new `.tres`; nothing else changes.
   hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
   character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
   from the chest.
-- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` and
+- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` (`WeaponDef`s,
+  typed `Array[Resource]` with a `WeaponDef` hint: [why](../test-exit-leaks.md#typed-array-export-and-self-cast)) and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
   away, shows the model of the one in the hands, and fills a reserve from a pickup of its `ammo_item`. A switch takes
   the old weapon's `holster_time` (it cannot fire or reload; a reload under way is cut short and gives nothing), then
