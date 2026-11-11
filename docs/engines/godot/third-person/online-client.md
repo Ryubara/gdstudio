@@ -153,11 +153,15 @@ before the relay jittered):
 | Native, relay and 30 ms jitter, freezes | about 230 ms | 54 (0.75 m) | 3 / 3 | under 3 m | under 5 mm | 0 |
 | Native, relay and jitter, 1 % stalls (17 to 19 up, 17 to 19 down) | about 240 to 270 ms | 207 to 271 (19.3 to 27.3 m) | 0 to 1 / 0 | 1.5 to 2.7 m | 2.2 to 5 mm | 669 to 714 of 5760 |
 | Native, relay, 1 % stalls (22 to 26 up, 10 to 16 down) | 234 to 248 ms | 188 to 221 (11.2 to 16.4 m) | 0 / 0 | 1.42 to 1.52 m | 2.1 to 6.1 mm | 387 to 531 of 5760 |
+| Native, relay and jitter, 1 % stalls, the walk on the dais (Linux runner, 13 runs, 26 up, 11 down) | | 20.7 to 21.1 m | 0 or 1 / 0 | 1.00 to 1.07 m | 2 to 8 mm | |
+| Native, relay and jitter, 1 % stalls, the walk on the dais (Windows, two cores, six runs, 30 up, 12 down) | 245 to 277 ms | 22.6 to 23.9 m | 0 or 1 / 0 | 1.00 to 1.31 m | 0.2 to 7 mm | |
+| Native, relay and jitter, freezes, the walk on the dais (Windows two cores, three runs; the runner 0.28 m) | | 0.25 to 0.37 m | 3 / 3 | 2.06 to 2.11 m | 4.6 to 4.7 mm | 0 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
 | Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
 | Teeth: native, server hold 0, with jitter (Windows; the Linux runner without jitter read 2.4 m) | about 230 ms | 831 (32.3 m) | | | | |
+| Teeth on the dais walk: hold 0 (Windows two cores; the runner) | | 58.1 m; 33.4 m | | | | |
 | Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
 

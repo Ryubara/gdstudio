@@ -249,17 +249,6 @@ jobs:
           python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/teeth_hold" \
             --runs freeze --break hold --expect-fail
           echo "Bad-network gate (${{ matrix.template }}): passed, and failed with either fix taken out" >> "$GITHUB_STEP_SUMMARY"
-      - name: TRIAL (removed before merge) the stall run repeated
-        if: always()
-        run: |
-          gate=repos/template-check/game/tools/net/bad_network_gate.py
-          if [ ! -f "$gate" ]; then exit 0; fi
-          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
-          for i in $(seq 1 12); do
-            python3 "$gate" --godot "$godot" --project repos/template-check/game --out "repos/template-check/build/net_gate/trial_$i" \
-              --runs stalls > "trial_$i.txt" 2>&1 || true
-            echo "TRIAL $i $(grep -E 'snaps|settled|corrected|worst error|RELAY|WORST|FAILED|ALL PASSED' "trial_$i.txt" | tr '\n' '|')"
-          done
       - name: Upload the browser captures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
