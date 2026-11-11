@@ -163,14 +163,23 @@ class ContactPlan:
         return self._swing(rig, side, before[-1], after[0], f)
 
     def _state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
-        """The leg spec of a foot turned by `pitch` and `yaw` with its sole point `pivot` at `at`."""
+        """The leg spec of a foot turned by `pitch` and `yaw` about a point of its sole. `pivot` is `ball` (the
+        point `at` is where the ball of the foot stands; a heel that rises turns about the toes' hinge over it,
+        so the toes stay where they are) or `heel` (`at` is the back of the heel; the foot is then set down so
+        the lowest of its skin is on the floor, as a heel that rolls)."""
         sole = rig.sole[side]
         turn = body_turn(pitch, yaw, 0.0)
-        return {
-            "ankle": at + turn @ (sole["ankle"] - sole[pivot]),
-            "foot": (pitch, yaw, 0.0),
-            "toe": max(pitch, 0.0),
-        }
+        if pivot == "ball":
+            hinge = at + (sole["hinge"] - sole["ball"])
+            ankle = hinge + turn @ (sole["ankle"] - sole["hinge"])
+        else:
+            ankle = at + turn @ (sole["ankle"] - sole["heel"])
+            # The heel's skin is shared with the shin, which does not turn with the foot: blend as the skin does.
+            rest = sole["skin"] - sole["ankle"]
+            share = sole["skin_weight"][:, None]
+            lowest = float((share * (rest @ turn.T) + (1.0 - share) * rest)[:, 1].min()) + ankle[1]
+            ankle[1] += sole["floor"] - lowest
+        return {"ankle": ankle, "foot": (pitch, yaw, 0.0), "toe": max(pitch, 0.0)}
 
     def _ball(self, rig: Rig, side: str, fall: Footfall, shift: np.ndarray) -> np.ndarray:
         return np.array([fall.place[0], rig.sole[side]["floor"], fall.place[1]]) + shift
@@ -207,6 +216,10 @@ class ContactPlan:
         yaw = a.yaw + (b.yaw - a.yaw) * go
         out = self._state(rig, side, "ball", ball, pitch, yaw)
         out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3))
+        # The toes hang under a foot whose heel is still up: lift the foot until their tip clears the floor.
+        hinge = ball + (sole["hinge"] - sole["ball"])
+        tip = hinge + body_turn(pitch - out["toe"], yaw, 0.0) @ (sole["toe"] - sole["hinge"])
+        out["ankle"][1] += max(sole["floor"] + 0.004 - tip[1], 0.0) * math.sin(math.pi * min(u / 0.5, 1.0) ** 0.5)
         return out
 
 

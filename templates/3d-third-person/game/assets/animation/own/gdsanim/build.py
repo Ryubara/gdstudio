@@ -87,7 +87,7 @@ def keyed_bones(rig: Rig) -> list:
     """Every bone a clip may key: not the root (clips are in place), not a `_leaf`, a twist bone or a socket."""
     out = []
     for name in rig.bones:
-        if name == rig.parent["pelvis"] or name.endswith("_leaf") or "twist" in name or name.startswith("socket_"):
+        if name == rig.parent["pelvis"] or "_leaf" in name or "twist" in name or name.startswith("socket_"):
             continue
         out.append(name)
     return out

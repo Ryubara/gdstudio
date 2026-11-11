@@ -98,7 +98,7 @@ def reduce_clip(rig, rotation: np.ndarray, translation: np.ndarray, tracks: list
         for n, kept in kept_p.items():
             pos[:, rig.index[n]] = played(translation[:, rig.index[n]], kept, False)
         got = rig.world(rot, pos)
-        error = float(np.linalg.norm(got[:, ends, :3, 3] - full[:, ends, :3, 3], axis=2).max())
+        error = float(np.linalg.norm(got[:, ends][:, :, :3, 3] - full[:, ends][:, :, :3, 3], axis=2).max())
         planted_error = 0.0
         for n in feet:
             mask = planted.get(n)

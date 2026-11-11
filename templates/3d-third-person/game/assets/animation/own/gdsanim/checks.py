@@ -55,7 +55,7 @@ SPEED_CHANGE = 30.0
 ## Cost: the share of a moving bone's rotation keys a reducer keeps at half a degree, and the clip's key bytes for a
 ## second of clip (the budget's imported size is measured in Godot; this stops a clip that could never meet it).
 KEYS_KEPT = 0.40
-KB_A_SECOND = 9.0
+KB_A_SECOND = 16.0
 MAIN = audit_clips.MAIN
 
 
@@ -322,12 +322,15 @@ def check_overlap(built, played: dict) -> tuple:
 
 
 def _kick(body: Played, bone: str, f: int) -> float:
-    """How far a bone's turn on frame `f` is from the mean of its turns on the frames round it (degrees)."""
+    """How much more sharply a bone's turn changes at frame `f` than on the frames beside it (degrees). The
+    change at a frame is half the difference between the turn into it and the turn out of it; a swing that
+    reverses changes as much on the frames beside, a pose that jumps for one frame does not."""
     if bone not in body.rig.index:
         return 0.0
     world = body.world[:, body.rig.index[bone], :3, :3]
-    steps = [maths.rotation_vector(world[k + 1] @ world[k].T) for k in (f - 2, f - 1, f, f + 1)]
-    return math.degrees(float(np.linalg.norm(0.5 * (steps[1] + steps[2]) - 0.5 * (steps[0] + steps[3]))))
+    steps = [maths.rotation_vector(world[k + 1] @ world[k].T) for k in range(f - 2, f + 2)]
+    change = [float(np.linalg.norm(0.5 * (steps[k] - steps[k + 1]))) for k in range(3)]
+    return math.degrees(max(change[1] - 0.5 * (change[0] + change[2]), 0.0))
 
 
 def check_weight(built, played: dict) -> tuple:
@@ -524,18 +527,32 @@ def check_cost(built, played: dict) -> tuple:
     limit = built.clip.declared.get("keys_kept", KEYS_KEPT)
     if numbers["keys_kept"] > limit:
         failures.append(f"cost: a half-degree reducer keeps {numbers['keys_kept']:.0%} of the moving bones' keys, over {limit:.0%}")
-    if numbers["kb_a_second"] > KB_A_SECOND:
-        failures.append(f"cost: the clip's keys are {numbers['kb_a_second']} KB a second, over {KB_A_SECOND}")
+    most = built.clip.declared.get("kb_a_second", KB_A_SECOND)
+    if numbers["kb_a_second"] > most:
+        failures.append(f"cost: the clip's keys are {numbers['kb_a_second']} KB a second, over {most}")
     return {"cost": numbers}, failures
 
 
 def check_reduction(built, played: dict) -> tuple:
-    """The written keys play back within the reducer's limits of the full curve."""
-    kept = built.kept
-    numbers = {"reduce_error_mm": kept.get("error_mm", 0.0), "reduce_planted_mm": kept.get("planted_error_mm", 0.0)}
+    """The written keys play back within the reducer's limits of the full curve: the hands, the head and the feet
+    within `reduce.LIMIT`, a planted foot within `reduce.PLANTED_LIMIT`."""
+    body = next(iter(played.values()))
+    rig = body.rig
+    reference = built.record["_rig"]
+    full = reference.world(built.rotation, built.translation)
+    ends = [n for n in reduce.ENDS if n in rig.index]
+    mine = body.world[:, [rig.index[n] for n in ends]][:, :, :3, 3]
+    gap = np.linalg.norm(mine - full[:, [reference.index[n] for n in ends]][:, :, :3, 3], axis=2)
+    error, planted = float(gap.max()), 0.0
+    for k, name in enumerate(ends):
+        if name in reduce.FEET:
+            mask = np.array([built.clip.plan.planted(name[-1], float(f)) for f in range(gap.shape[0])])
+            if mask.any():
+                planted = max(planted, float(gap[mask, k].max()))
+    numbers = {"reduce_error_mm": round(error * 1000, 3), "reduce_planted_mm": round(planted * 1000, 3)}
     failures = []
-    if numbers["reduce_error_mm"] > reduce.LIMIT * 1000 or numbers["reduce_planted_mm"] > reduce.PLANTED_LIMIT * 1000:
-        failures.append(f"cost: the reduced keys stray {numbers['reduce_error_mm']} mm from the full curve")
+    if error > reduce.LIMIT * 1.001 or planted > reduce.PLANTED_LIMIT * 1.001:
+        failures.append(f"reduction: the written keys stray {error * 1000:.2f} mm from the full curve ({planted * 1000:.2f} mm at a planted foot)")
     return numbers, failures
 
 

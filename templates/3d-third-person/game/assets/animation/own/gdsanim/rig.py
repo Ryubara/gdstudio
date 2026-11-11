@@ -116,6 +116,11 @@ class Rig:
         ## The bone each vertex follows most.
         self.owner = np.array([body.names[body.joints[slot]] for slot in heaviest])
 
+    def _weight(self, bone: str) -> np.ndarray:
+        """Each vertex's weight to a bone."""
+        slot = self.body.joints.index(self.index[bone])
+        return np.where(self.skin_joints == slot, self.skin_weights, 0.0).sum(axis=1)
+
     def _sole(self, side: str) -> dict:
         """The heel, the ball and the toe tip of a sole at rest, on the floor, and the ankle over them."""
         pick = np.isin(self.owner, [f"foot_{side}", f"ball_{side}", f"ball_leaf_{side}"])
@@ -123,12 +128,17 @@ class Rig:
         low = verts[verts[:, 1] <= verts[:, 1].min() + 0.012]
         middle = float(np.median(low[:, 0]))
         floor = float(verts[:, 1].min())
+        heel = (self.owner == f"foot_{side}") & (self.verts[:, 1] <= floor + 0.05)
         return {
             "heel": np.array([middle, floor, float(low[:, 2].min())]),
             "ball": np.array([middle, floor, float(self.rest_pos[f"ball_{side}"][2])]),
             "toe": np.array([middle, floor, float(low[:, 2].max())]),
             "ankle": self.rest_pos[f"foot_{side}"].copy(),
+            "hinge": self.rest_pos[f"ball_{side}"].copy(),
             "floor": floor,
+            # The skin of the heel and the arch with its weight to the foot bone, for a foot that rolls on it.
+            "skin": self.verts[heel],
+            "skin_weight": self._weight(f"foot_{side}")[heel],
         }
 
     def _find_rig_json(self) -> Path | None:
@@ -145,7 +155,8 @@ class Rig:
         self.motion_scale = float(data.get("motion_scale", self.motion_scale))
         for side, points in data.get("sole", {}).items():
             for key, value in points.items():
-                self.sole[side][key] = np.array(value, dtype=float)
+                if not key.startswith("skin"):
+                    self.sole[side][key] = np.array(value, dtype=float)
         for name, row in data.get("masses", {}).items():
             self.masses[name] = tuple(row)
         self.extra = {k: v for k, v in data.items() if k not in ("bones", "sole", "masses")}
