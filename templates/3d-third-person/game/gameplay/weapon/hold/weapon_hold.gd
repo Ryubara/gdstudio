@@ -479,4 +479,9 @@ func _build_magazines(weapon: Node3D) -> void:
 	mesh.mesh = (_gun_magazine as MeshInstance3D).mesh
 	mesh.transform = _magazine.transform.affine_inverse() * _in(_gun_magazine, weapon)
 	_held_magazine.add_child(mesh)
-	_skeleton.add_child(_held_magazine)
+	# In the model slot beside the weapon's seat, so the slot puts its mesh on the body's layers
+	# as it does every mesh of the model (the minimap, the inventory's preview).
+	# The path is set before it enters the tree, where the attachment connects to the skeleton.
+	_held_magazine.use_external_skeleton = true
+	_held_magazine.external_skeleton = NodePath("../%s" % model.get_path_to(_skeleton))
+	model.add_child(_held_magazine)

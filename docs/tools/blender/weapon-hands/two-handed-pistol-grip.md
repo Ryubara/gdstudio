@@ -196,6 +196,11 @@ player's camera (`*_carry_*.png`).
   straight from the clip's fist the fingers went 3 to 7 mm through the new magazine as they closed on it, and from
   the carry to the pose under the magazine 1.7 to 2.8 mm, whatever share of the way in the change was put at.
   **Seen:** gdstudio #1052, 2026-11-11 (fix: `pistol_carry_open_pose.tres` both ways; 1.0 mm at most).
+- **Approach:** Put a mesh that rides the character (a prop in a hand) in the model slot, as the weapon's seat is, a
+  `BoneAttachment3D` with its skeleton path set before it enters the tree, so the slot puts it on the body's render
+  layers. **Watch out for:** the new magazine's attachment added under the skeleton after the slot had sorted its meshes
+  stayed on layer 1: the minimap would have drawn it and the inventory's preview missed it (six cases of the full suite
+  failed). **Seen:** gdstudio #1052, 2026-11-11.
 - **Approach:** Make a test's prop measure from the node whose children are the meshes. **Watch out for:**
   `HandContact.set_weapon()` takes the meshes under the node it is given, not the node itself: given the magazine's
   `MeshInstance3D`, it measured nothing and every finger read 30 mm off. **Seen:** gdstudio #1052, 2026-11-11 (fix:
