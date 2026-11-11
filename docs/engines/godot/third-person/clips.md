@@ -125,8 +125,11 @@ contact times. Forward 0 is the obstacle's front face.
 - **Approach:** Check a contact clip at the game's frame rate as well as on its own keys: sample every joint that
   passes an edge at 60 a second (or finer) between the keys. **Watch out for:** `Vault_Low` moves the left knee 0.5 m
   in one of its 24 frames a second, from before the front edge to over the top; both keys are clear of the box and
-  the build's checks pass, and the frames Godot draws between them cut the corner by 48 mm. **Seen:** gdstudio
-  #1037, 2026-11-11 (`test_vault_contacts.gd` measures it and allows 55 mm; the clip's fix is gdstudio #1221).
+  the build's checks pass, and the frames Godot draws between them cut the corner by up to 68 mm. A limit for a
+  peak between keys is set over its worst instant, measured at several draw rates (59, 61, 121, 179 and 240 frames
+  a second sweep the instant a frame lands on); one run's frames read anything from 0 to the peak. **Seen:** gdstudio
+  #1037, 2026-11-11 (`test_vault_contacts.gd` allowed 55 mm from runs that read 48 mm, and failed in CI at 66 to
+  68 mm once main's other suites shifted the frames; it allows 75 mm now; the clip's fix is gdstudio #1221).
 - **Approach:** Turn the importer's animation optimizer off for a clip with a contact (`_subresources` in the
   `.import`: `"nodes": {"PATH:AnimationPlayer": {"optimizer/enabled": false}}`), and test the contact in Godot, on
   every planted frame, with the body moved as the game moves it. **Watch out for:** the optimizer dropped the

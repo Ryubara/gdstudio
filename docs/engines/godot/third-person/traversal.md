@@ -66,7 +66,7 @@ Measured in the game (`tests/gameplay/test_vault_contacts.gd`, the drawn pose on
 | Planted wrist over the top (the clip rests it at 36 mm) | within 20 mm | within 60 mm (its arms are 50 mm longer) |
 | Planted wrist along and across the top | within 30 mm | within 75 mm (its hands land 60 mm wider) |
 | Planted wrist moves while planted | under 25 mm | under 80 mm |
-| A foot or knee joint inside the wall | 48 mm for one drawn frame of `Vault_Low` (the left knee past the front edge, the clip's own: gdstudio #1221); none in `Vault_High` | the same |
+| A foot or knee joint inside the wall | up to 68 mm for a frame drawn near 0.307 s of `Vault_Low` (the left knee past the front edge, the clip's own: gdstudio #1221; the test allows 75 mm); none in `Vault_High` | the same |
 | Lowest leg joint against the floor | above -20 mm at every height | the same |
 
 ## What shipped games and engines do, and the defaults {#research}
