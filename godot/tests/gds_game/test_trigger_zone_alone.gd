@@ -73,3 +73,30 @@ func test_fire_once_ignores_everything_after_the_first() -> void:
 	_zone._on_body_exited(body)
 	_zone._on_body_entered(body)
 	assert_int(_on).is_equal(1)
+
+
+func test_a_zone_that_does_not_sense_shows_what_it_is_told_and_says_nothing() -> void:
+	_zone.sensing = false
+	_zone._on_body_entered(_body())
+	assert_bool(_zone.is_active()).is_false()
+	_zone.show_active(true)
+	assert_bool(_zone.is_active()).is_true()
+	_zone.show_active(false)
+	assert_bool(_zone.is_active()).is_false()
+	assert_int(_on).is_equal(0)
+	assert_int(_off).is_equal(0)
+	await get_tree().process_frame
+	assert_bool(_zone.monitoring).is_false()
+
+
+func test_a_sensing_zone_ignores_what_it_is_told() -> void:
+	_zone.show_active(true)
+	assert_bool(_zone.is_active()).is_false()
+	var body := _body()
+	_zone._on_body_entered(body)
+	_zone.sensing = false
+	assert_bool(_zone.is_active()).is_false()
+	_zone.sensing = true
+	await get_tree().process_frame
+	assert_bool(_zone.monitoring).is_true()
+	assert_int(_zone.occupant_count()).is_equal(0)

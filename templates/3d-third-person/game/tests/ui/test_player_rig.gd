@@ -42,3 +42,6 @@ func test_no_probe_is_made_off_the_web() -> void:
 	await await_idle_frame()
 	assert_object(rig.get_node_or_null("WebProbe")).is_null()
 	assert_bool(WebProbe.asked()).is_false()
+	assert_object(rig.get_node_or_null("NetPlayProbe")).is_null()
+	assert_bool(NetPlayProbe.asked()).is_false()
+	assert_object(rig.player.controller).is_same(rig.player.get_node("PlayerInput"))

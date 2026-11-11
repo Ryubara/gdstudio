@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/bench/sound_start_bench.gd" id="1_bench"]
+
+[node name="SoundStartBench" type="Node"]
+script = ExtResource("1_bench")

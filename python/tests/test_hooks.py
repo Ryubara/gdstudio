@@ -123,6 +123,16 @@ def test_a_windowed_godot_goes_through_gds(tmp_path):
     assert denied(shell("uv run --project python gds tool path godot", tmp_path)) == ""
 
 
+def test_a_variable_assignment_is_not_the_program(tmp_path):
+    reason = "takes the keyboard focus"
+    find = "$(uv run --project python gds tool path godot)"
+    assert denied(shell(f'GODOT="{find}" && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert denied(shell(f'GODOT={find} && "$GODOT" --headless --path game', tmp_path)) == ""
+    assert reason in denied(shell(f'GODOT="{find}" && "$GODOT" --path game', tmp_path))
+    assert reason in denied(shell(f'GODOT="{find}" "$GODOT" --path game', tmp_path))
+    assert denied(shell(f'GODOT="{find}"', tmp_path)) == ""
+
+
 def test_a_godot_with_real_audio_is_refused(tmp_path):
     reason = "agents never listen"
     pinned = '"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe"'
@@ -712,14 +722,14 @@ def stop_payload(workspace: Path, **extra) -> dict:
 
 
 def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace, monkeypatch):
-    _kit_worktree(workspace, "docs-a", 2)
+    tree = _kit_worktree(workspace, "docs-a", 2)
     _kit_worktree(workspace, "docs-b", 1)
     _kit_worktree(workspace, "docs-c", 0)  # nothing ahead: nothing to publish
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-b": ""})  # b has a pull request
-    out = dispatch.answer(stop_payload(workspace), CONFIG)
+    out = dispatch.answer(stop_payload(tree), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"] and "docs-b" not in out["reason"]
     assert "docs-c" not in out["reason"] and "open its pull request now" in out["reason"]
-    assert dispatch.answer(stop_payload(workspace, stop_hook_active=True), CONFIG) is None  # held once only
+    assert dispatch.answer(stop_payload(tree, stop_hook_active=True), CONFIG) is None  # held once only
 
 
 def test_stop_lets_go_when_every_branch_has_a_pull_request_or_github_is_unreachable(workspace, monkeypatch):
@@ -728,6 +738,68 @@ def test_stop_lets_go_when_every_branch_has_a_pull_request_or_github_is_unreacha
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: a guard that cannot look lets go
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+
+
+def _session_transcript(path: Path, prompt: str, commands: tuple[str, ...] = ()) -> Path:
+    """An agent's transcript: its prompt, then a Bash call for each command."""
+    lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
+    for command in commands:
+        block = {"type": "tool_use", "name": "Bash", "input": {"command": command}}
+        lines.append({"type": "assistant", "message": {"role": "assistant", "content": [block]}})
+    path.write_text("\n".join(json.dumps(line) for line in lines), encoding="utf-8")
+    return path
+
+
+def _two_agents(workspace: Path, monkeypatch) -> tuple[Path, Path]:
+    """Two agents' kit worktrees with unpublished commits, and no pull request for either."""
+    mine = _kit_worktree(workspace, "docs-mine", 1)
+    theirs = _kit_worktree(workspace, "docs-theirs", 2)
+    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    return mine, theirs
+
+
+def test_a_stop_names_only_the_branch_of_the_worktree_it_works_in(workspace, monkeypatch):
+    mine, theirs = _two_agents(workspace, monkeypatch)
+    for tree, own, other in ((mine, "docs-mine", "docs-theirs"), (theirs, "docs-theirs", "docs-mine")):
+        for payload in (stop_payload(tree), subagent_stop_payload(tree, "Done. Mistakes: none")):
+            reason = dispatch.answer(payload, CONFIG)["reason"]
+            assert own in reason and other not in reason, reason
+
+
+def test_an_agent_owns_the_worktree_its_prompt_and_the_ledger_name(workspace, tmp_path_factory, monkeypatch):
+    mine, theirs = _two_agents(workspace, monkeypatch)
+    notes = tmp_path_factory.mktemp("transcripts")
+    ledger = workspace / "cache" / "issues-started.json"
+    ledger.parent.mkdir()
+    started = {"ryubara/gdstudio#7": {"agent": "godot-engineer", "worktree": mine.as_posix()}}
+    ledger.write_text(json.dumps({"started": started}), encoding="utf-8")
+    for prompt in (f"Worktree: {mine.as_posix()}\nIssue: Ryubara/gdstudio#8", "Issue: Ryubara/gdstudio#7"):
+        transcript = _session_transcript(notes / "agent.jsonl", prompt)
+        payload = subagent_stop_payload(workspace, "Done. Mistakes: none", agent_transcript_path=str(transcript))
+        reason = dispatch.answer(payload, CONFIG)["reason"]
+        assert "docs-mine" in reason and "docs-theirs" not in reason, reason
+
+
+def test_an_agent_owns_the_worktrees_it_committed_in_or_added(workspace, tmp_path_factory, monkeypatch):
+    mine, theirs = _two_agents(workspace, monkeypatch)
+    notes = tmp_path_factory.mktemp("transcripts")
+    commands = (
+        f"git -C {theirs.as_posix()} log --oneline",  # looked at, not committed in
+        f'git -C "{mine.as_posix()}" commit -m "docs: Add a page"',
+    )
+    transcript = _session_transcript(notes / "agent.jsonl", "Fix #5.", commands)
+    payload = subagent_stop_payload(workspace, "Done. Mistakes: none", agent_transcript_path=str(transcript))
+    reason = dispatch.answer(payload, CONFIG)["reason"]
+    assert "docs-mine" in reason and "docs-theirs" not in reason, reason
+
+
+def test_a_session_that_owns_no_branch_is_not_held_for_other_agents_branches(workspace, tmp_path_factory, monkeypatch):
+    _two_agents(workspace, monkeypatch)
+    notes = tmp_path_factory.mktemp("transcripts")
+    eval_run = _session_transcript(notes / "eval.jsonl", "This is an eval run. Work only in the eval folder.")
+    payload = subagent_stop_payload(workspace, REPORT, agent_transcript_path=str(eval_run))
+    assert dispatch.answer(payload, CONFIG) is None  # an eval run: its report is not replaced
+    assert dispatch.answer(stop_payload(workspace), CONFIG) is None  # the coordinator between tasks
 
 
 def _squash_merged_worktree(workspace: Path, name: str) -> tuple[Path, str]:
@@ -766,19 +838,19 @@ def _squash_merged_worktree(workspace: Path, name: str) -> tuple[Path, str]:
 def test_stop_names_a_commit_pushed_to_a_branch_after_its_pull_request_merged(workspace, monkeypatch):
     tree, tip = _squash_merged_worktree(workspace, "docs-late")
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": tip})
-    assert dispatch.answer(stop_payload(workspace), CONFIG) is None  # only its squashed commits: nothing is lost
+    assert dispatch.answer(stop_payload(tree), CONFIG) is None  # only its squashed commits: nothing is lost
     (tree / "late.md").write_text("a second lesson", encoding="utf-8")
     for args in (["add", "late.md"], ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "late"]):
         subprocess.run(["git", "-C", str(tree), *args], check=True, capture_output=True)
-    out = dispatch.answer(stop_payload(workspace), CONFIG)
+    out = dispatch.answer(stop_payload(tree), CONFIG)
     assert out["decision"] == "block" and "docs-late" in out["reason"] and tip[:9] in out["reason"]
     assert "after their pull request merged" in out["reason"] and "cherry-pick" in out["reason"]
     assert "no pull request" not in out["reason"]
-    assert dispatch.answer(stop_payload(workspace, stop_hook_active=True), CONFIG) is None
+    assert dispatch.answer(stop_payload(tree, stop_hook_active=True), CONFIG) is None
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": ""})  # an open pull request covers it
-    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    assert dispatch.answer(stop_payload(tree), CONFIG) is None
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: let go
-    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
 def test_a_late_commit_already_on_main_by_patch_id_is_not_named(workspace, monkeypatch):
@@ -797,7 +869,7 @@ def test_a_late_commit_already_on_main_by_patch_id_is_not_named(workspace, monke
     run("update-ref", "refs/remotes/origin/main", "HEAD")
     run("switch", "-q", "docs-moved")
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-moved": tip})
-    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
 def test_a_late_commit_squashed_with_others_into_main_is_not_named(workspace, monkeypatch):
@@ -823,7 +895,7 @@ def test_a_late_commit_squashed_with_others_into_main_is_not_named(workspace, mo
     ).stdout
     assert cherry.startswith("+ ")  # by patch id alone it would still look stranded
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-rescued": tip})
-    assert dispatch.answer(stop_payload(workspace), CONFIG) is None
+    assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
 def test_the_pr_heads_map_keeps_the_latest_merged_tip_and_lets_an_open_pull_request_cover(monkeypatch):
@@ -944,9 +1016,9 @@ def test_helpers_and_the_reviewer_may_finish_with_mistakes(workspace):
 
 
 def test_an_agent_with_unpublished_kit_docs_may_not_finish(workspace, monkeypatch):
-    _kit_worktree(workspace, "docs-a", 1)
+    tree = _kit_worktree(workspace, "docs-a", 1)
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
-    out = dispatch.answer(subagent_stop_payload(workspace, "Done. Mistakes: none"), CONFIG)
+    out = dispatch.answer(subagent_stop_payload(tree, "Done. Mistakes: none"), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"]
 
 
@@ -1262,12 +1334,12 @@ def test_nothing_to_judge_or_no_workspace_lets_the_end_through(workspace, tmp_pa
 
 
 def test_a_stall_and_unpublished_docs_come_back_together(workspace, monkeypatch):
-    _kit_worktree(workspace, "docs-b", 1)
+    tree = _kit_worktree(workspace, "docs-b", 1)
     monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
-    reason = stall_answer(workspace, STALLED)["reason"]
+    reason = stall_answer(workspace, STALLED, cwd=str(tree))["reason"]
     assert "without a report" in reason and "docs-b" in reason
     again = stall_answer(
-        workspace, STALLED, stop_hook_active=True
+        workspace, STALLED, cwd=str(tree), stop_hook_active=True
     )  # the docs gate lets go once held; the stall gate counts
     assert "without a report" in again["reason"] and "docs-b" not in again["reason"]
 

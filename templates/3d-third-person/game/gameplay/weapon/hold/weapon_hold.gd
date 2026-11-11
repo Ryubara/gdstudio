@@ -12,7 +12,11 @@ extends Node
 ##   weapon until the clip takes it away, the clip's own arm while it fetches the new magazine at
 ##   the belt, up the grip's line to the magazine's foot and under it while it goes in (the
 ##   `MagazineHand` marker, `magazine_pose`), and round the grip's foot onto the weapon again.
-##   The clip gives the times (the Reload group's shares of `Pistol_Reload`).
+##   The clip gives the times (the Reload group's shares of `Pistol_Reload`);
+## - the left hand's one way on and off the weapon (kit #1051): its fingers open where it holds
+##   (`open_pose`), then the opened hand leaves along `support_way`, and it comes on the same way
+##   backwards, for the aim and from the magazine alike. `SupportHandPlan` says where on all of
+##   this the hand is now, and holds the reload's phases.
 ##
 ## The skeleton is inside the model's `.glb`, which a scene cannot add nodes to, so the three
 ## modifiers (two `HandPoseModifier`s and a `HoldArm`) are made here, as children of the model's
@@ -24,14 +28,6 @@ extends Node
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
-## The share of the reload by which the left hand's fingers open before the hand lets go.
-const _OPEN_LEAD := 0.02
-## The way back from the magazine, as shares of `reload_return`: the hand is down off the
-## magazine by `_BACK_DOWN_SHARE` of `magazine_approach` half-way through the first `_BACK_DOWN`
-## of it, and crosses from the magazine's marker to the support's between `_BACK_ACROSS`.
-const _BACK_DOWN := 0.7
-const _BACK_DOWN_SHARE := 0.4
-const _BACK_ACROSS := Vector2(0.3, 0.8)
 
 @export_group("Nodes")
 ## The slot that holds the character's model.
@@ -65,30 +61,37 @@ const _BACK_ACROSS := Vector2(0.3, 0.8)
 @export var support_arm: Array[StringName] = [&"upperarm_l", &"lowerarm_l", &"hand_l"]
 ## Where the left elbow points, in the model's space (out to the left and down).
 @export var support_elbow := Vector3(0.6, 0.6, 0.2)
+## The left hand opened where it holds: the first step of its way off the weapon, and the last
+## of its way on.
+@export var open_pose: HandPose
+## The line the opened left hand leaves the weapon along, from its place on it, in the weapon's
+## own space: its far end is where the clip's arm takes the hand, and where it comes in from.
+## Solved with `open_pose` (the clear line nearest the way to the belt), never typed.
+@export var support_way := Vector3(0.0, 0.0, 0.06)
 ## How far the weapon is aimed: the left hand is on it by this much, and the trigger finger.
 @export_range(0.0, 1.0, 0.01) var aim_weight := 0.0
 
 @export_group("Reload")
 ## The left hand's fingers while the heel of its palm pushes the magazine in.
 @export var magazine_pose: HandPose
-## The left hand opened, as it lets go of the weapon and as it comes back to it.
-@export var open_pose: HandPose
 ## The weapon's child that marks where the left hand's bone sits while it pushes the magazine in.
 @export var magazine_marker := ^"MagazineHand"
 ## Where the left hand starts from under the magazine, from its place there, in the weapon's own
 ## space: the new magazine's length down the grip, since the magazine goes in ahead of the palm.
 @export var magazine_approach := Vector3(0.0, -0.1, 0.0)
-## How far the left hand swings out, in the weapon's own space, half-way from the magazine back to
-## its place on the weapon (it goes round the grip's foot, not through it).
-@export var return_clearance := Vector3(0.0, 0.0, 0.04)
-## The shares of the reload clip between which the left hand lets go of the weapon; after the
-## second the clip's own arm has it (the reach to the belt for the new magazine).
-@export var reload_leave := Vector2(0.04, 0.1)
+## How far the left hand bows out, in the weapon's own space, half-way from under the magazine
+## to the far end of `support_way` (it goes round the grip's foot, not through it).
+@export var return_clearance := Vector3(0.0, -0.04, 0.04)
+## The shares of the reload clip between which the left hand lets go of the weapon: it opens and
+## leaves along `support_way` first, and after the second the clip's own arm has it (the reach to
+## the belt for the new magazine).
+@export var reload_leave := Vector2(0.02, 0.1)
 ## The shares between which the left hand comes from the clip's arm to the line under the magazine.
 @export var reload_reach := Vector2(0.3, 0.4)
 ## The shares between which it pushes the magazine up into the grip.
 @export var reload_insert := Vector2(0.4, 0.54)
-## The shares between which it goes from the magazine back to its place on the weapon.
+## The shares between which it goes from the magazine back to its place on the weapon: down off
+## the magazine, across to the far end of `support_way`, in along it, and the fingers close.
 @export var reload_return := Vector2(0.71, 0.88)
 ## How much of the upper body the reload clip holds now (it fades in and out), and the share of the
 ## clip that has played; from `animation`, or the caller's for a character posed by hand.
@@ -101,13 +104,8 @@ var _arm: HoldArm
 var _fingers: HandPoseModifier
 var _marker: Node3D
 var _magazine: Node3D
-# The left hand now: how far the hold has it (the rest is the clip's arm), how far it is under the
-# magazine instead of on the support marker, how far its fingers are opened, and how far it is
-# moved from its marker in the weapon's space (the way up to the magazine, the swing back).
-var _left_on := 0.0
-var _left_magazine := 0.0
-var _left_open := 0.0
-var _left_move := Vector3.ZERO
+# Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
+var _left := SupportHandPlan.new()
 
 
 func _ready() -> void:
@@ -140,53 +138,48 @@ func refresh() -> void:
 	if _arm == null:
 		return
 	_plan_left()
-	_weigh(_arm, held_weight * _left_on)
-	_weigh(_fingers, held_weight * _left_on)
+	_weigh(_arm, held_weight * _left.arm)
+	_weigh(_fingers, held_weight * _left.arm)
 	if _arm.active:
-		# The hand's place in the bone's space: the weapon's seat times its place in the weapon.
+		# The hand's place in the weapon: where it holds, moved out along its way; from the reach
+		# of a reload on, blended with its place under the magazine, down the approach line.
 		var place := _marker.transform
-		if _magazine != null and _left_magazine > 0.0:
-			place = place.interpolate_with(_magazine.transform, _left_magazine)
-		place.origin += _left_move
+		place.origin += support_way * _left.off
+		if _magazine != null and _left.at_magazine > 0.0:
+			var under := _magazine.transform
+			under.origin += magazine_approach * _left.down
+			place = place.interpolate_with(under, _left.at_magazine)
+			place.origin += return_clearance * sin(PI * _left.across)
+		# In the bone's space: the weapon's seat times the place in the weapon.
 		_arm.offset = (_marker.get_parent() as Node3D).transform * place
 		_arm.elbow = support_elbow
-		_fingers.second_weight = _left_magazine
-		_fingers.open_weight = _left_open
+		_fingers.second_weight = _left.magazine_fingers
+		_fingers.open_weight = _left.opened
 
 
-## How far the left hand is on the weapon's support marker (x) and at its magazine (y) now;
-## together at most 1, and what is left is the clip's own arm.
+## How far the left hand is on the weapon's support marker or its way (x) and at its magazine (y)
+## now; together at most 1, and what is left is the clip's own arm.
 func support_weights() -> Vector2:
 	_plan_left()
-	return Vector2(_left_on * (1.0 - _left_magazine), _left_on * _left_magazine)
+	return Vector2(_left.arm * (1.0 - _left.at_magazine), _left.arm * _left.at_magazine)
 
 
-# Where the left hand is now. Aiming puts it on the weapon. A reload takes it through the clip's
-# steps, by as much as the reload clip holds the body: it opens and lets go, the clip's arm
-# fetches the new magazine, the hand comes to the line under the magazine and pushes it up into
-# the grip, stays under it, and swings round the grip's foot back to its place.
+## The left hand's plan now: the reload's phase and where on its way the hand is, for whatever
+## moves with it (read it, never write it).
+func left_hand() -> SupportHandPlan:
+	_plan_left()
+	return _left
+
+
+# Where the left hand is now (`SupportHandPlan`): aiming brings it on the weapon, and a reload
+# takes it through the clip's steps by as much as the reload clip holds the body. A weapon with
+# no magazine marker has no reload to follow.
 func _plan_left() -> void:
-	_left_on = aim_weight
-	_left_magazine = 0.0
-	_left_open = 0.0
-	_left_move = Vector3.ZERO
-	if reload_weight <= 0.0 or _magazine == null:
-		return
-	var reach := smoothstep(reload_reach.x, reload_reach.y, reload_share)
-	var insert := smoothstep(reload_insert.x, reload_insert.y, reload_share)
-	var back := smoothstep(reload_return.x, reload_return.y, reload_share)
-	var held := 1.0 - smoothstep(reload_leave.x, reload_leave.y, reload_share)
-	# The fingers open before the hand goes, and are open at the middle of the swing back.
-	var letting_go := smoothstep(reload_leave.x - _OPEN_LEAD, reload_leave.x, reload_share)
-	# The way back: down off the magazine first (the way it came), then out round the grip's foot
-	# with the fingers open, then onto the weapon.
-	var down := sin(PI * minf(back / _BACK_DOWN, 1.0)) * _BACK_DOWN_SHARE
-	var across := smoothstep(_BACK_ACROSS.x, _BACK_ACROSS.y, back)
-	var swing := sin(PI * smoothstep(_BACK_ACROSS.x, 1.0, back))
-	_left_on = lerpf(aim_weight, maxf(held, reach), reload_weight)
-	_left_magazine = reach * (1.0 - across)
-	_left_open = maxf(letting_go * (1.0 - reach), swing) * reload_weight
-	_left_move = magazine_approach * (reach * (1.0 - insert) + down) + return_clearance * swing
+	_left.leave = reload_leave
+	_left.reach = reload_reach
+	_left.insert = reload_insert
+	_left.back = reload_return
+	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.

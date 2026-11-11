@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/trigger_zone/trigger_zone_net.gd" id="1_net"]
+
+[node name="NetEntity" type="Node" groups=["net_part"]]
+script = ExtResource("1_net")
+metadata/net_kind = &"pad"
