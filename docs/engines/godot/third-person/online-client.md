@@ -37,8 +37,10 @@ The `Reconciler` never replays (a step has side effects: [the character's snapsh
 measures the error of the answered command, moves the body a quarter of what is left each frame, shifts the
 remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m (6 m a
 stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
-alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
-`Player.teleport()` and reset it.
+alone (a TICK carries centimetres: up to 0.87 cm of rounding). A part that puts the body more than 5 cm inside the
+world (`BodyOverlap`, the body's shapes laid against the world with its mask) is followed by the rest of the correction
+at once (`Reconciler.take_rest`, counted in `stuck_snaps`): a body on a ledge whose server body stands below it would
+be pushed back out after each part. `fell` and `teleported` go through `Player.teleport()` and reset it.
 
 `RemotePlayers` (`gameplay/net/remote_players.gd`) makes one puppet `Player` a slot from `player.tscn`
 (`Player.make_puppet()`, then `PlayerPuppet`), draws each `delay` (0.1 s) behind its clock, between the two snapshots
@@ -63,6 +65,14 @@ steps without stepping before it repeats the last command (`PeerSlot.HELD` in th
   catch-up ticks come in the next frame, so a guard that skipped the rest of the stalled frame skipped nothing (0
   skipped over three freezes); skipping every second tick of a frame at all times would halve the commands of a game
   drawn at 30 frames a second. **Seen:** gdstudio #905, 2026-11-11 (7 ticks skipped a freeze after the fix).
+- **Approach:** Take a correction whole once a part of it puts the body inside the world: lay the body's shapes
+  against the world after the part (`collide_shape`, the deepest contact pair) and hand out the rest past 5 cm.
+  **Watch out for:** a body on the dais's top whose server body stood against the wall below never met it while the
+  controller walked it back on top (the gate's walk round the spawn): each quarter landed inside the dais, the step put
+  it back, and the shifted points hid that for a round trip (240 ms: 1.4 m apart after 3 s, 12.5 m corrected). Under
+  Jolt the motion test's `recovery_as_collision` depth is what is left after one recovery pass (0.033 m for 0.25 m
+  inside): read the contact pairs. **Seen:** gdstudio #1119, 2026-11-11 (`test_net_ledge_correction.gd`; about 5 µs a
+  frame that takes a part).
 
 ## Puppets {#puppets}
 

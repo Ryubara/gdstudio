@@ -24,6 +24,7 @@ static func of(
 		"corrections": reconciler.corrections,
 		"snaps": reconciler.snaps,
 		"size_snaps_m": millimetres(reconciler.size_snaps),
+		"stuck_snaps": reconciler.stuck_snaps,
 		"lost": reconciler.lost,
 		"worst_error_m": snappedf(reconciler.worst_error, 0.001),
 		"worst_stall_error_m": snappedf(reconciler.worst_stall_error, 0.001),
