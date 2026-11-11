@@ -14,9 +14,10 @@ extends Node
 ## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
 ## getting up it starts again from the ground state.
 ##
-## The clips come from the Universal Animation Library 1 and 2, added to the `AnimationPlayer`
-## as the libraries `ual1` and `ual2`. Pick another clip for a state in the inspector;
-## `CharacterClips` names them all.
+## The clips come from the Universal Animation Library 1 and 2 and the template's own prone
+## clips, added to the `AnimationPlayer` as the libraries `ual1`, `ual2` and `prone`. Pick another
+## clip for a state in the inspector; `CharacterClips` names them all. A model whose body needs
+## prone clips of its own gets them from `prone_libraries`.
 ##
 ## It is a `@tool` script so the editor shows the tree too: opening the character scene builds the
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
@@ -200,37 +201,35 @@ const _RELOAD_FADE_OUT := 0.2
 @export var traversal_speed_range := Vector2(0.5, 2.0)
 
 @export_group("Prone")
-## Lying still. The template's own prone clips are made in gdstudio #1009; until they land this
-## is the swim stroke held on its first pose (`prone_idle_pace` 0), laid on the ground by the
-## placeholder pose below.
-@export var prone_idle_clip: StringName = CharacterClips.SWIM:
+## Lying still: the template's own prone idle (gdstudio #1009), a slow breath on the forearms.
+@export var prone_idle_clip: StringName = CharacterClips.PRONE_IDLE:
 	set(value):
 		prone_idle_clip = value
 		_rebuild()
 ## How fast the prone idle plays (1 its own pace, 0 held on its first pose).
-@export_range(0.0, 2.0, 0.05) var prone_idle_pace := 0.0
-## Crawling, blended in by ground speed up to the crawl speed (`ProneTuning.crawl_speed`).
-@export var crawl_clip: StringName = CharacterClips.SWIM:
+@export_range(0.0, 2.0, 0.05) var prone_idle_pace := 1.0
+## Crawling on the forearms, in place; the game moves the body. Played backwards to back up.
+@export var crawl_clip: StringName = CharacterClips.CRAWL:
 	set(value):
 		crawl_clip = value
 		_rebuild()
-## The ground speed the crawl clip's stride covers at its own pace, m/s: it plays at
-## `ground speed / crawl_clip_speed` of its pace, so the elbows and knees keep up with the ground
-## at any crawl speed.
-@export_range(0.1, 5.0, 0.01, "suffix:m/s") var crawl_clip_speed := 1.5
-## Going down, played over the whole body for the tuning's `enter_time`. Empty: no clip (the
-## blend into the prone idle shows the change).
-@export var to_prone_clip: StringName = &""
-## Getting up to crouch, played over the whole body for the tuning's `exit_time`. Empty: no clip.
-@export var to_crouch_clip: StringName = &""
-@export_subgroup("Placeholder pose")
-## How far the model is moved lying down, metres, in the model's own axes (x to its left, y up,
-## z ahead): puts a clip made for another stance on the ground while there is no prone clip
-## (the swim stroke floats under the water line: it is lifted). Zero with real prone clips.
-@export_custom(PROPERTY_HINT_RANGE, "-1.5,1.5,0.01,suffix:m")
-var prone_pose_offset := Vector3(0.0, 0.42, 0.6)
-## How far the model is tipped forward about its feet lying down. Zero with real prone clips.
-@export_range(-90.0, 90.0, 0.5, "suffix:deg") var prone_pose_lean := 0.0
+## The ground speed the crawl clip's stride covers at its own pace, m/s (the clip's README: a
+## planted elbow travels 0.30 m in 52 % of the cycle): it plays at `ground speed /
+## crawl_clip_speed` of its pace, backwards when the body moves away from its facing, so the
+## planted elbows, fists and feet keep their place on the ground at any crawl speed.
+@export_range(0.1, 5.0, 0.001, "suffix:m/s") var crawl_clip_speed := 0.618
+## Going down, played over the whole body for the tuning's `enter_time`, from the crouch idle's
+## first pose to the prone idle's. Empty: no clip (the blend into the prone idle shows the change).
+@export var to_prone_clip: StringName = CharacterClips.TO_PRONE
+## Getting up to crouch, played over the whole body for the tuning's `exit_time`, from the prone
+## idle's first pose to the crouch idle's. Empty: no clip.
+@export var to_crouch_clip: StringName = CharacterClips.TO_CROUCH
+## Prone clips a model plays instead of the `AnimationPlayer`'s own `prone` library, by the model's
+## scene file (`res://assets/characters/mannequin/mannequin_male.glb`): a body whose limbs differ
+## lies on the floor with clips solved on it. The library must hold the same clip names. Swapped
+## in the game when the model is set or replaced, never in the editor (the scene keeps the shared
+## library).
+@export var prone_libraries: Dictionary[String, AnimationLibrary] = {}
 
 @export_group("Weapon")
 ## How the weapon is carried while the character is not aiming or firing. The clips are the held
@@ -273,7 +272,8 @@ var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
 # The tuning whose speeds the blend spaces show (its `changed` is connected).
 var _tuning: CharacterTuning
-var _posed := false
+# The crawl's share and pace, the weapon put away lying, and a model's own prone clips.
+var _prone_look := ProneAnimation.new()
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
 var _shots := 0
@@ -300,6 +300,7 @@ func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
+	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
 	_build()
 	_follow_tuning()
 	if Engine.is_editor_hint():
@@ -415,7 +416,7 @@ func _drive(delta: float) -> void:
 	var speed := character.ground_speed()
 	tree.set(_P_GROUND_SPEED, speed)
 	tree.set(_P_CROUCH_SPEED, speed)
-	_drive_prone(speed)
+	_drive_prone(speed, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
 	if _action_was_active and not active:
@@ -533,10 +534,15 @@ func _on_rig_changed(_rig: Node3D) -> void:
 			tree.active = false
 		return
 	_follow_rig()
+	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
 		tree.active = _fits(model.rig()) and not _dead
 	_rebuild()
+
+
+func _rig_or_null() -> Node3D:
+	return model.rig() if is_instance_valid(model) else null
 
 
 func _fits(rig: Node3D) -> bool:
@@ -624,7 +630,9 @@ func _drive_pistol(delta: float) -> void:
 	var up_share := 1.0
 	if character.loadout != null:
 		up_share = 1.0 - character.loadout.lowered_amount()
-	var armed := up_share if hold != null and hold.grip_clip != &"" else 0.0
+	var stow := ProneAnimation.stow_share(character)
+	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, stow > 0.5)
+	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
 	_shot_hold = maxf(_shot_hold - delta, 0.0)
@@ -686,31 +694,18 @@ func _on_state_changed(state: Character.State) -> void:
 			_travel(PRONE)
 
 
-# The prone state follows the crawl: the crawl clip is blended in by ground speed up to the
-# crawl speed and plays at the pace of its stride, the idle at its own pace, and the placeholder
-# pose lays the model down by how far down the character is.
-func _drive_prone(speed: float) -> void:
-	var prone := character.prone_tuning
-	if prone == null:
-		return
-	tree.set(_P_PRONE_MOVE, clampf(speed / maxf(prone.crawl_speed, 0.01), 0.0, 1.0))
-	tree.set(_P_CRAWL_PACE, speed / maxf(crawl_clip_speed, 0.01))
+# The prone state follows the crawl (`ProneAnimation`): the crawl replaces the idle over
+# `blend_time` as soon as the body moves and plays at the pace of its stride, backwards while the
+# body moves away from the way it faces; the idle plays at its own pace.
+func _drive_prone(speed: float, delta: float) -> void:
+	tree.set(_P_PRONE_MOVE, _prone_look.step_crawl_share(speed, blend_time, delta))
+	tree.set(_P_CRAWL_PACE, crawl_pace())
 	tree.set(_P_PRONE_IDLE_PACE, prone_idle_pace)
-	_pose_prone(smoothstep(0.0, 1.0, character.prone_amount))
 
 
-# Moves and tips the model inside its slot by `lying` (0 to 1) of the placeholder pose; nothing
-# at all while the pose is zero, so a game's own offset of the model stays.
-func _pose_prone(lying: float) -> void:
-	var rig := model.rig() if model != null else null
-	if rig == null:
-		return
-	var zero := prone_pose_offset.is_zero_approx() and is_zero_approx(prone_pose_lean)
-	if zero or (lying <= 0.0 and not _posed):
-		return
-	_posed = lying > 0.0
-	rig.position = prone_pose_offset * lying
-	rig.rotation = Vector3(deg_to_rad(prone_pose_lean) * lying, 0.0, 0.0)
+## How fast and which way the crawl clip plays now (1 its own pace; below zero backwards).
+func crawl_pace() -> float:
+	return ProneAnimation.crawl_pace(character, crawl_clip_speed)
 
 
 func _on_prone_changed(down: bool) -> void:
