@@ -189,9 +189,17 @@ func free_slot() -> int:
 ## radius from a generator seeded by `spawn_seed` and the slot; the origin facing -Z when the map
 ## has none.
 func spawn_transform(slot: int) -> Transform3D:
+	return spawn_transform_in(players_root, spawn_group, spawn_seed, slot)
+
+
+## The same for the map `in_world` is in, so a predicting client starts its body exactly where
+## the server put it (`NetClient`).
+static func spawn_transform_in(
+	in_world: Node3D, group: StringName, seed_value: int, slot: int
+) -> Transform3D:
 	var points: Array[SpawnPoint] = []
-	var world := players_root.get_world_3d()
-	for node in get_tree().get_nodes_in_group(StringName("spawn_%s" % spawn_group)):
+	var world := in_world.get_world_3d()
+	for node in in_world.get_tree().get_nodes_in_group(StringName("spawn_%s" % group)):
 		var point := node as SpawnPoint
 		if point != null and point.enabled and point.get_world_3d() == world:
 			points.append(point)
@@ -201,8 +209,14 @@ func spawn_transform(slot: int) -> Transform3D:
 		func(a: SpawnPoint, b: SpawnPoint) -> bool: return str(a.get_path()) < str(b.get_path())
 	)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash([spawn_seed, slot])
+	rng.seed = hash([seed_value, slot])
 	return points[slot % points.size()].spawn_transform(rng)
+
+
+## The heading a spawn transform faces (radians about the up axis), as `Character.teleport` takes
+## it.
+static func heading_of(spot: Transform3D) -> float:
+	return atan2(-spot.basis.z.x, -spot.basis.z.z)
 
 
 ## The state every client is sent of one seated player.
@@ -333,7 +347,7 @@ func _make_body(slot: int) -> Character:
 
 func _put_at_spawn(body: Character, slot: int) -> void:
 	var spot := spawn_transform(slot)
-	body.teleport(spot.origin, atan2(-spot.basis.z.x, -spot.basis.z.z))
+	body.teleport(spot.origin, heading_of(spot))
 
 
 func _refuse(peer: PeerSlot, reason: NetWire.Refusal, fields: Dictionary) -> void:
