@@ -40,7 +40,7 @@ contact times. Forward 0 is the obstacle's front face.
 | Clip | Length | Reference obstacle | Body moved at | Root from, to | Contacts (seconds from the clip's start) |
 | --- | --- | --- | --- | --- | --- |
 | `Vault_Low` | 0.792 s (19 frames at 24) | 0.8 m high, 0.4 m deep | 4.0 m/s (3.17 m) | -1.30 m, +1.87 m | left foot off 0.167, left hand on 0.250, hips over the middle 0.375, wrist off 0.375, fingers off (the push) 0.417, right foot down 0.792 |
-| `Vault_High` | 1.250 s (30 frames) | 1.2 m high, 0.4 m deep | 3.0 m/s (3.75 m) | -1.86 m, +1.89 m | right foot off 0.458, both hands on 0.458, right hand off 0.542, hips over 0.667, left wrist off 0.667, fingers off (the push) 0.708, right foot down 1.250 |
+| `Vault_High` | 1.250 s (30 frames) | 1.2 m high, 0.4 m deep | 3.0 m/s (3.75 m) | -1.86 m, +1.89 m | right foot off 0.458, both hands on 0.458, right hand off 0.500, hips over 0.667, left wrist off 0.667, fingers off (the push) 0.708, right foot down 1.250 |
 | `Vault_Land` | 0.417 s (10 frames) | none | 4.0 m/s (1.67 m) | | right foot down 0, hips lowest 0.125, off 0.208, left foot down 0.417 |
 
 - **`Vault_Low`** is a speed vault: off the left foot, the left hand flat on the top 0.12 m in from the front edge and
@@ -51,6 +51,15 @@ contact times. Forward 0 is the obstacle's front face.
 - **`Vault_High`** is a two-handed side vault for what the low one cannot do: a short step, off the right foot with
   both hands on the top (0.10 m in, 0.24 m each side), the hips up over the hands, the right hand off first to let the
   legs by. Both hands are open on the obstacle, so it holds no weapon: the vault code holsters or hides one.
+- **The arm that lets go follows the body.** `Vault_High`'s right hand leaves the top with its elbow still bent (84
+  degrees), lifts ahead of the right knee as that leg swings over, and from four frames after the release rides out
+  to the right a little under shoulder height, a balance arm, until it comes down and back into the sprint's swing
+  with the landing. Its wrist is never over its shoulder (0.01 m under at the highest, 0.30 m over before the third
+  review), it gains speed over four frames (2.6, 4.6, 5.3, 5.1 m/s in the world, where the body itself moves at
+  3.6) and never moves faster than 4.1 m/s against the shoulder (9.4 before). `Vault_Low`'s free right arm is keyed
+  the same way: it lies back along the upper side of the rolled body, the wrist at shoulder height (0.01 m over;
+  0.37 m before), and opens out to the right as the body comes upright. The build and the Godot suite hold both
+  (`FREE_*`; the male's longer arms read up to 0.03 m over the shoulder and 6.9 m/s).
 - **`Vault_Land`** is the step after either: both vaults end in the sprint's right foot strike (0.333 s into
   `Sprint`), where `Vault_Land` starts, and it ends in the left foot strike (`Sprint` at 0 s), where both vaults start.
   The body arrives still falling (2.8 m/s after the low vault, 3.9 m/s after the high one), so the clip's first three
@@ -60,11 +69,11 @@ contact times. Forward 0 is the obstacle's front face.
   top for 0.167 s (four frames; the wrist is still for three, then the heel of the hand lifts and the fingers leave
   last). The elbow is at 148 degrees when the hand lands, gives to 121 as the shoulder comes over the hand, and is
   straight (176) when the hand leaves, behind the body; the chest turns toward the hand as the body goes by and the
-  right arm is thrown out and up on the far side. Through the contact the arm carries the whole body (1.04 of its
-  weight on average: the body comes onto the hand rising at 0.82 m/s and leaves it at 0.89 m/s, where gravity alone
-  would have taken 1.6 m/s off). In `Vault_High` the hands land with the arms folded under the body (78 degrees), the
-  arms straighten as the hips rise over them (to 176 when the left hand leaves, 0.25 s after the plant) and carry 0.4
-  of the body's weight while the jump does the rest.
+  right arm lies back along the upper side of the body, no higher than its shoulder. Through the contact the arm
+  carries the whole body (1.04 of its weight on average: the body comes onto the hand rising at 0.82 m/s and leaves it
+  at 0.89 m/s, where gravity alone would have taken 1.6 m/s off). In `Vault_High` the hands land with the arms folded
+  under the body (78 degrees), the arms straighten as the hips rise over them (to 176 when the left hand leaves, 0.25
+  s after the plant) and carry 0.4 of the body's weight while the jump does the rest.
 - **In the air the body is on the arc of a free fall**, measured at its centre of mass (the usual table of body
   segment masses on the bones), not at the pelvis. `Vault_Low`: 0.375 s from the hand's push to the landing, up
   0.04 m more for 0.09 s, then 0.40 m of fall in 0.28 s; `Vault_High`: 0.542 s, up 0.095 m for 0.14 s (the top is

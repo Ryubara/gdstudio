@@ -90,7 +90,8 @@ deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
 clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
 ([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
-on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching
+on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
+an arm that has let go staying under its shoulder's height and gaining speed without a snap
 ([the vault clips](../../engines/godot/third-person/clips.md#vault-clips)).
 
 - **Approach:** Where a body leaves the ground, key the pelvis from the centre of mass, not by eye: write its
@@ -100,6 +101,14 @@ on the arc of a free fall while nothing touches it, the planted arm giving and t
   **Watch out for:** a pelvis on a smooth curve is not a body on an arc: legs that reach down and arms that swing
   move the pelvis the other way. **Seen:** gdstudio #1016, 2026-11-11 (both vaults within 0.3 mm of the arc; the
   build fails over 15 mm).
+- **Approach:** Key an arm that has let go from **its own shoulder in the world's axes** (`Clip.shoulder` in
+  `build_vault.py`), let the hand go while the elbow is still bent, and let it gain speed evenly from rest over four
+  or five frames until it travels with the body. Fail the build on the wrist's height over its shoulder, its speed in
+  the world and against the shoulder, and its change of speed in one frame. **Watch out for:** keyed in the hips' axes
+  with the body rolled 56 degrees, the wrist went 0.30 m over the shoulder, above the head, at 11 m/s within two
+  frames; a hand held until the arm is at full stretch is torn off by the shoulder; a hand that only rides with the
+  body already moves at 3.6 m/s in the world. **Seen:** gdstudio #1016, 2026-11-11, a maintainer correction (fix:
+  `Vault_High`'s right hand lets go a frame earlier; `FREE_*` in the build).
 - **Approach:** Key the limbs that are in the air in the **hips' own axes** (a point from the pelvis bone, turned
   with the pelvis's keys: `hips()` in `build_vault.py`), the left foot with `left` above 0 and the right below it,
   and keep world positions for what touches the world. Take the leg paths from footage of the real move: over a

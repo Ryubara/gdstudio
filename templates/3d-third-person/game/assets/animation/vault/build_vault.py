@@ -702,7 +702,9 @@ def vault_low(rig, offsets=None):
     c.keys("hand_l_world", {4: 0.0, 6: 1.0, 11: 1.0, 13: 0.0})
     c.keys("curl_l", {4: 1.0, 5: 0.0, 11: 0.0, 15: 1.0})
 
-    # The right arm balances the push: out and up on the far side while the left arm carries the body, then down
+    # The right arm is free and follows the body: keyed from its own shoulder (`shoulder`), it lies back along the
+    # upper side of the rolled body with the wrist no higher than the shoulder while the left arm carries the body
+    # (a point up from the rolled hips put it 0.37 m over the shoulder, above the head, in two frames), then down
     # and back as the body comes upright, into the sprint's swing.
     c.keys(
         "hand_r_pos",
@@ -992,6 +994,10 @@ def vault_high(rig, offsets=None):
 
     # Both hands go onto the top, 0.10 m in from the front edge; the right lets go first to let the legs by. The
     # left wrist stays until the body is over it; then the heel of the hand lifts and the fingers leave last.
+    # The right hand lets go while its elbow is still bent (an arm at full stretch is torn off the top by the
+    # rising shoulder): from rest it gains speed evenly over four frames on a path in the world, ahead of the
+    # right knee that swings over, until it travels with the body; then it rides out to the right a little under
+    # the shoulder (`shoulder`), a balance arm, and comes down into the sprint's swing with the landing.
     plant_l = P(0.24, 0.10, top + PALM)
     plant_r = P(-0.24, 0.10, top + PALM)
     c.keys(
