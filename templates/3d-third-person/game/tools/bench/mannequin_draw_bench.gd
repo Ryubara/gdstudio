@@ -19,8 +19,10 @@ extends Node3D
 ## probe (`mannequin_draw_bench.py`) records every `requestAnimationFrame` delta and every
 ## program WebGL links under the cell the bench names in `window.__cell`.
 ##
-## On the web the page's query sets `rounds`, `frames`, `warm` and `order`
-## (`?rounds=2&frames=90`). Make the build and run the probe with the kit:
+## On the web the page's query sets `rounds`, `frames`, `warm`, `order`, `first` (0: no first
+## appearances) and `cells` (cell keys measured in place of the full list, any variant at any
+## level: `?rounds=12&cells=facet/16/lod2,facet/notwist/16/lod2`). Make the build and run the
+## probe with the kit:
 ## `gds template bench-web 3d-third-person mannequin_draw_bench --run`
 ## `--probe-args="--gpu --uncapped"` (no `--probe-args`: SwiftShader).
 ## It prints one line of JSON that starts with `MANNEQUIN_DRAW_BENCH` and, on the web, puts it in
@@ -52,6 +54,10 @@ var rounds := 3
 var frames := 150
 var warm := 30
 var order := 0
+## Off (`first=0`): no first appearances before the cells.
+var first := true
+## Cell keys (`facet/16/lod2`, `facet/notwist/16/lod2`) that replace the full list when set.
+var only: Array[String] = []
 
 var _camera: Camera3D
 ## Model name to its pool of `COUNTS.max()` bodies, hidden and still until a cell shows them.
@@ -117,7 +123,7 @@ func _process(_delta: float) -> void:
 func _run() -> void:
 	var first_use: Array[Dictionary] = []
 	var names: Array = MODELS.keys()
-	for step in names.size():
+	for step in names.size() if first else 0:
 		var model: String = names[(step + order) % names.size()]
 		first_use.append(await _first_use(model))
 	_show("", 0, 0)
@@ -162,6 +168,12 @@ func _run() -> void:
 # the split of sixteen near bodies last.
 func _cells() -> Array[Array]:
 	var cells: Array[Array] = []
+	if not only.is_empty():
+		for key in only:
+			var parts := key.split("/")
+			var model := "/".join(parts.slice(0, parts.size() - 2))
+			cells.append([model, int(parts[-2]), int(parts[-1].trim_prefix("lod"))])
+		return cells
 	for level in LEVEL_DISTANCE.size():
 		cells.append(["none", 0, level])
 		for count in COUNTS:
@@ -289,7 +301,12 @@ func _read_query() -> void:
 	var query := str(JavaScriptBridge.eval("window.location.search", true)).trim_prefix("?")
 	for pair in query.split("&", false):
 		var key := pair.get_slice("=", 0)
-		var value := int(pair.get_slice("=", 1))
+		var text := pair.get_slice("=", 1)
+		if key == "cells":
+			for cell in text.uri_decode().split(",", false):
+				only.append(cell)
+			continue
+		var value := text.to_int() if text.is_valid_int() else 0
 		match key:
 			"rounds":
 				rounds = maxi(value, 1)
@@ -299,3 +316,5 @@ func _read_query() -> void:
 				warm = maxi(value, 0)
 			"order":
 				order = maxi(value, 0)
+			"first":
+				first = value != 0
