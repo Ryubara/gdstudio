@@ -30,6 +30,8 @@ const NOT_STATE := {
 	&"sliding": "read only, from _slide",
 	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
+	&"vault_settings": "an export",
+	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
 	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"_interactor": "a node",
