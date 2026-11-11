@@ -39,6 +39,10 @@ folder: `uv run --project <another checkout>/python pytest` tests the other chec
 - **No real services.** The `no_real_services` fixture makes any `gh`, PowerShell or process listing that reaches
   `subprocess.run` fail the test; the suites that delete or post use it, so a forgotten fake fails instead of acting.
 - **Recorded answers.** `gh` answers live as JSON under `python/tests/fixtures/` (issues, pull requests, briefs).
+- **Approach:** Keep an issue or pull request body a test reads as a `.txt` file under `python/tests/fixtures/`
+  (`pr_bodies/`, `issue_bodies/`). **Watch out for:** saved as `.md`, a GitHub body fails markdownlint in pre-commit
+  (no top heading, long lines, a `#904` line read as a heading), and rewrapping it changes the text the test is about.
+  **Seen:** gdstudio #1133, 2026-11-11 (#909's body, renamed to `.txt`).
 
 ## Skips {#skips}
 
