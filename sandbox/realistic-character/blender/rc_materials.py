@@ -42,9 +42,14 @@ def skin(name, texdir, texname):
     p.inputs["Subsurface IOR"].default_value = 1.4
     p.inputs["Subsurface Anisotropy"].default_value = 0.8
     p.inputs["IOR"].default_value = 1.4
-    g.link(g.mul(mask[1], 0.7), p.inputs["Coat Weight"])
-    p.inputs["Coat Roughness"].default_value = 0.14
-    p.inputs["Coat IOR"].default_value = 1.33
+    # The oil film of the forehead, nose, chin and lips: a faint, fairly rough coat. (The first build's 0.7 at a
+    # roughness of 0.14 read as wet.)
+    g.link(g.mul(mask[1], 0.25), p.inputs["Coat Weight"])
+    p.inputs["Coat Roughness"].default_value = 0.30
+    p.inputs["Coat IOR"].default_value = 1.4
+    # Peach fuzz, as far as Cycles goes: a light sheen at grazing angles where the mask's blue says so.
+    g.link(g.mul(mask[2], 0.12), p.inputs["Sheen Weight"])
+    p.inputs["Sheen Roughness"].default_value = 0.4
     g.t.nodes.active = t["albedo"]
     return m
 

@@ -3,9 +3,12 @@ extends Node3D
 ##
 ## Builds everything from code: the exported character from `res://asset/`, a material for each of its surfaces,
 ## an idle clip of the Universal Animation Library retargeted by bone name, three lighting setups, the captures
-## and the frame cost. Run it once per renderer:
+## and the frame cost. Run it once per renderer and hairstyle:
 ##
-##   gds godot -- --path <project> [--rendering-method gl_compatibility] -- --out=<folder>
+##   gds godot -- --path <project> [--rendering-method gl_compatibility] -- --out=<folder> [--hair=ponytail|long]
+##
+## `--shine` adds, per lighting, a bust capture with every highlight switched off next to the normal one, for
+## `shine.py`. The roughness and specular each material ends up with are the constants below.
 
 const ASSET := "res://asset/"
 const LIGHTS: Array[String] = ["dark", "day", "warm"]
@@ -14,22 +17,44 @@ const SHOTS := {
 	"face": [Vector3(0.10, 1.605, 0.86), Vector3(0.0, 1.585, 0.08), 23.9],
 	"bust": [Vector3(0.42, 1.30, 1.18), Vector3(0.0, 1.37, 0.0), 39.6],
 	"full": [Vector3(0.9, 1.0, 3.7), Vector3(0.0, 0.87, 0.0), 39.6],
+	"back": [Vector3(-0.5, 1.45, -1.25), Vector3(0.0, 1.35, 0.0), 39.6],
+	"arm": [Vector3(0.78, 1.22, 1.02), Vector3(0.25, 1.14, 0.0), 22.0],
+	"hands": [Vector3(0.50, 0.98, 0.72), Vector3(0.30, 0.86, 0.02), 20.0],
 }
-const CAPTURES := [["dark", "face"], ["dark", "bust"], ["day", "bust"], ["day", "face"], ["warm", "bust"], ["day", "full"]]
+const CAPTURES := [
+	["dark", "face"], ["dark", "bust"], ["dark", "full"], ["day", "face"], ["day", "bust"], ["day", "full"],
+	["warm", "face"], ["warm", "bust"], ["warm", "full"], ["day", "arm"], ["warm", "arm"], ["day", "back"],
+	["day", "hands"],
+]
+## Specular (Godot's scale: 0.5 is 4 % reflectance head on) and what the roughness comes from, per material.
+## Skin: 0.35, roughness from the map (0.62 to 0.74 dry, 0.46 at the oiliest, lips 0.36 to 0.50).
+## Cloth, leather, webbing: 0.25, roughness from the map (cloth 0.9, leather 0.6 to 0.8), never metal.
+## Gear (polymer, steel): 0.5, the map's roughness and metal.
+const SPECULAR_SKIN := 0.35
+const SPECULAR_CLOTH := 0.25
+const SPECULAR_GEAR := 0.5
+const EYE_ROUGHNESS := 0.38
 
 var _character: Node3D
 var _camera := Camera3D.new()
 var _env := Environment.new()
 var _rig: Node3D
 var _compat := false
+var _shaded: Array[Material] = []
 
 
 func _ready() -> void:
 	_compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	var out := "user://"
+	var hair := "ponytail"
+	var shine := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
+		if a.begins_with("--hair="):
+			hair = a.trim_prefix("--hair=")
+		if a == "--shine":
+			shine = true
 	var world := WorldEnvironment.new()
 	world.environment = _env
 	add_child(world)
@@ -49,19 +74,31 @@ func _ready() -> void:
 	var empty := await _measure()
 	_character = (load(ASSET + "heroine.glb") as PackedScene).instantiate()
 	add_child(_character)
+	# One hairstyle is worn: the other leaves the scene, so the cost below is of what is drawn.
+	for node in _character.find_children("hair_*", "MeshInstance3D", true, false):
+		if String(node.name) != "hair_" + hair:
+			node.get_parent().remove_child(node)
+			node.free()
 	var skeleton: Skeleton3D = _character.find_children("*", "Skeleton3D", true, false)[0]
 	var rig: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ASSET + "rig.json"))
 	skeleton.motion_scale = rig["motion_scale"]
 	_materials()
 	var clip := _idle(skeleton)
-	var tag := "compat" if _compat else "forward"
+	var tag := ("compat" if _compat else "forward") + "_" + hair
 	for pair: Array in CAPTURES:
 		_light(pair[0])
 		_shot(pair[1])
-		for i in 30:
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
+		await _settle()
 		get_viewport().get_texture().get_image().save_png("%s/godot_%s_%s_%s.png" % [out, tag, pair[0], pair[1]])
+	if shine:
+		for kind in LIGHTS:
+			_light(kind)
+			_shot("bust")
+			for matt: float in [0.0, 1.0]:
+				_matt(matt)
+				await _settle()
+				var name := "all_off" if matt > 0.5 else "reworked"
+				get_viewport().get_texture().get_image().save_png("%s/shine_%s_%s_%s.png" % [out, tag, kind, name])
 	_light("day")
 	_shot("bust")
 	var with := await _measure()
@@ -69,6 +106,7 @@ func _ready() -> void:
 		"renderer": RenderingServer.get_current_rendering_method(),
 		"adapter": RenderingServer.get_video_adapter_name(),
 		"window": [get_viewport().size.x, get_viewport().size.y],
+		"hair": hair,
 		"clip": clip,
 		"bones": skeleton.get_bone_count(),
 		"empty": empty,
@@ -79,6 +117,12 @@ func _ready() -> void:
 	f.close()
 	print("REPORT ", JSON.stringify(report))
 	get_tree().quit()
+
+
+func _settle() -> void:
+	for i in 30:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
 
 
 ## Frame cost of the view as it stands: CPU and GPU milliseconds the renderer measures, averaged over 240 frames.
@@ -111,7 +155,9 @@ func _tex(name: String) -> Texture2D:
 	return load(ASSET + name + ".png")
 
 
-func _pbr(set_name: String) -> StandardMaterial3D:
+## Clothes and gear: the baked maps on a StandardMaterial3D. `metal` says whether the set has metal at all: a
+## cloth set never reads its metal channel, so a stray value there cannot make cloth gleam.
+func _pbr(set_name: String, specular: float, metal: bool) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(set_name + "_albedo")
 	m.normal_enabled = true
@@ -122,29 +168,27 @@ func _pbr(set_name: String) -> StandardMaterial3D:
 	m.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
 	m.roughness_texture = orm
 	m.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
-	m.metallic = 1.0
-	m.metallic_texture = orm
-	m.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+	m.metallic_specular = specular
+	if metal:
+		m.metallic = 1.0
+		m.metallic_texture = orm
+		m.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+	m.set_meta("specular", specular)
+	_shaded.append(m)
 	return m
 
 
-func _skin(set_name: String) -> StandardMaterial3D:
-	var m := _pbr(set_name)
-	m.metallic = 0.0
-	m.metallic_texture = null
-	# Subsurface scattering and transmittance are Forward+ only; Compatibility draws the same maps without them.
-	m.subsurf_scatter_enabled = true
-	m.subsurf_scatter_strength = 0.18
-	m.subsurf_scatter_skin_mode = true
-	m.subsurf_scatter_texture = _tex(set_name + "_mask")
-	m.subsurf_scatter_transmittance_enabled = true
-	m.subsurf_scatter_transmittance_color = Color(0.9, 0.22, 0.12)
-	m.subsurf_scatter_transmittance_depth = 0.04
-	m.subsurf_scatter_transmittance_boost = 0.15
-	m.clearcoat_enabled = true
-	m.clearcoat = 0.22
-	m.clearcoat_roughness = 0.16
-	m.clearcoat_texture = _tex(set_name + "_coat")
+func _skin(set_name: String, detail_tiles: float) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://skin.gdshader")
+	m.set_shader_parameter("albedo_tex", _tex(set_name + "_albedo"))
+	m.set_shader_parameter("normal_tex", _tex(set_name + "_normal"))
+	m.set_shader_parameter("orm_tex", _tex(set_name + "_orm"))
+	m.set_shader_parameter("mask_tex", _tex(set_name + "_mask"))
+	m.set_shader_parameter("detail_tex", _tex("skin_detail_normal"))
+	m.set_shader_parameter("detail_tiles", detail_tiles)
+	m.set_shader_parameter("specular", SPECULAR_SKIN)
+	_shaded.append(m)
 	return m
 
 
@@ -160,31 +204,26 @@ func _wet_shell() -> StandardMaterial3D:
 
 
 func _materials() -> void:
-	var hair := StandardMaterial3D.new()
-	hair.albedo_texture = _tex("hair_albedo")
-	hair.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-	hair.cull_mode = BaseMaterial3D.CULL_DISABLED
-	hair.normal_enabled = true
-	hair.normal_texture = _tex("hair_normal")
-	hair.ao_enabled = true
-	hair.ao_texture = _tex("hair_orm")
-	hair.roughness = 0.55
-	hair.metallic_specular = 0.25
-	hair.anisotropy_enabled = true
-	hair.anisotropy = 0.4
+	var hair := ShaderMaterial.new()
+	hair.shader = load("res://hair.gdshader")
+	hair.set_shader_parameter("albedo_tex", _tex("hair_albedo"))
+	hair.set_shader_parameter("normal_tex", _tex("hair_normal"))
+	hair.set_shader_parameter("orm_tex", _tex("hair_orm"))
+	_shaded.append(hair)
 	var eye := StandardMaterial3D.new()
 	eye.albedo_texture = _tex("eye_albedo")
-	eye.roughness = 0.38
+	eye.roughness = EYE_ROUGHNESS
 	var occ := StandardMaterial3D.new()
 	occ.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	occ.vertex_color_use_as_albedo = true
 	occ.albedo_color = Color(0, 0, 0, 1)
 	occ.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	var outfit := _pbr("outfit")
+	var outfit := _pbr("outfit", SPECULAR_CLOTH, false)
 	outfit.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var by_name := {
-		"skin_head": _skin("head"), "skin_body": _skin("body"), "eye": eye, "cornea": _wet_shell(),
-		"tearline": _wet_shell(), "eye_occlusion": occ, "hair": hair, "outfit": outfit, "gear": _pbr("gear"),
+		"skin_head": _skin("head", 24.0), "skin_body": _skin("body", 40.0), "eye": eye, "cornea": _wet_shell(),
+		"tearline": _wet_shell(), "eye_occlusion": occ, "hair": hair, "outfit": outfit,
+		"gear": _pbr("gear", SPECULAR_GEAR, true),
 	}
 	for node in _character.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
@@ -200,6 +239,17 @@ func _materials() -> void:
 					key = "skin_head" if s == 0 else "skin_body"
 			assert(by_name.has(key), "no material for surface '%s' of %s" % [key, mi.name])
 			mi.set_surface_override_material(s, by_name[key])
+
+
+## Switches every highlight of the skin, hair, clothes and gear off (1.0) or back on (0.0), and the reflected
+## background with them: the difference between the two captures is what the highlights add.
+func _matt(amount: float) -> void:
+	_env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED if amount > 0.5 else Environment.REFLECTION_SOURCE_BG
+	for m in _shaded:
+		if m is ShaderMaterial:
+			(m as ShaderMaterial).set_shader_parameter("matt", amount)
+		else:
+			(m as StandardMaterial3D).metallic_specular = 0.0 if amount > 0.5 else float(m.get_meta("specular"))
 
 
 ## Plays the library's idle on her skeleton: the tracks are bone rotations by name, so they are only re-pathed.

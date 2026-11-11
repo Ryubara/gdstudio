@@ -46,51 +46,141 @@ def slice_centre(co, z, tol=0.012):
     return co[sel].mean(0)
 
 
+FINGERS = ("thumb", "index", "middle", "ring", "pinky")
+# A finger's length from its knuckle joint to its tip, as a share of the hand's length, and where its two other
+# joints sit along it (shares of that length from the knuckle). The knuckle joint lies inside the palm, about a
+# centimetre before the web between the fingers, so it cannot be read off the surface; the two finger joints are
+# then taken on the finger's own centre line.
+FINGER_LENGTH = {"index": 0.460, "middle": 0.495, "ring": 0.460, "pinky": 0.375}
+FINGER_JOINTS = (0.47, 0.74)
+
+
+def segment_hand(co, edges, in_hand, sx, f):
+    """Which finger each vertex of one hand belongs to: 0 none (palm, wrist), 1 thumb, 2 index .. 5 pinky. The
+    four fingers are the pieces the hand falls into past the knuckle line; the thumb is what stands clear of the
+    palm's edge on its side."""
+    side = (sx * co[:, 0] > 0) & in_hand
+    rel = co - f["wrist"]
+    t, s = rel @ f["a"], rel @ f["lat"]
+    fid = np.zeros(len(co), dtype=np.int32)
+    cut = side & (t > f["knuckle"] + 0.010)
+    label = np.where(cut, np.arange(len(co)), len(co))
+    e = edges[cut[edges[:, 0]] & cut[edges[:, 1]]]
+    for _ in range(300):
+        m = np.minimum(label[e[:, 0]], label[e[:, 1]])
+        before = label.copy()
+        np.minimum.at(label, e[:, 0], m)
+        np.minimum.at(label, e[:, 1], m)
+        if (label == before).all():
+            break
+    roots = [r for r in np.unique(label[cut]) if (label == r).sum() > 30]
+    roots.sort(key=lambda r: -s[label == r].mean())
+    assert len(roots) == 4, f"the hand fell into {len(roots)} fingers past its knuckle line"
+    for k, r in enumerate(roots):
+        fid[label == r] = 2 + k
+    sl = side & (np.abs(t - f["knuckle"]) < 0.004)
+    ss = np.sort(s[sl])
+    gaps = np.where(np.diff(ss) > 0.006)[0]
+    edge = ss[gaps[0]] if len(gaps) else ss.max()
+    thumb = side & (fid == 0) & (s > edge + 0.004) & (t > 0.18 * f["length"])
+    fid[thumb] = 1
+    return fid
+
+
+def finger_joints(co, fid, f, side_name):
+    """Joint centres of one hand's fingers, from the mesh (see FINGER_LENGTH)."""
+    out = {}
+    hl = f["length"]
+    for k, name in enumerate(FINGERS[1:], start=2):
+        pts = co[fid == k]
+        mean = pts.mean(0)
+        ax = np.linalg.eigh(np.cov((pts - mean).T))[1][:, -1]
+        ax = ax if ax @ f["a"] > 0 else -ax
+        u = (pts - mean) @ ax
+        tip = pts[u > u.max() - 0.004].mean(0)
+        length = FINGER_LENGTH[name] * hl
+
+        def centre(share, pts=pts, ax=ax, tip=tip, length=length):
+            d = (pts - tip) @ ax + (1 - share) * length
+            near = np.abs(d) < 0.004
+            return pts[near].mean(0) if near.sum() >= 4 else tip - ax * (1 - share) * length
+
+        j2, j3 = centre(FINGER_JOINTS[0]), centre(FINGER_JOINTS[1])
+        j1 = j2 - ax * FINGER_JOINTS[0] * length
+        for n, q in (("01", j1), ("02", j2), ("03", j3), ("04_leaf", tip)):
+            out[f"{name}_{n}_{side_name}"] = Vector(q)
+        print("FINGER", side_name, name, "knuckle at", round(float((j1 - f["wrist"]) @ f["a"] / hl), 3), "of the hand, length",
+              round(length, 4))
+    # The thumb: its tip and axis from the mesh, its two joints by its phalanges' shares of the hand's length,
+    # its base at the wrist's thumb side.
+    pts = co[fid == 1]
+    far = (pts - f["wrist"]) @ (f["lat"] + 0.6 * f["a"])
+    tip = pts[far > far.max() - 0.004].mean(0)
+    near = pts[np.linalg.norm(pts - tip, axis=1) < 0.26 * hl]
+    mean = near.mean(0)
+    ax = np.linalg.eigh(np.cov((near - mean).T))[1][:, -1]
+    ax = ax if ax @ (tip - mean) > 0 else -ax
+    d = (pts - tip) @ ax
+    sl = np.abs(d + 0.165 * hl) < 0.004
+    j3 = pts[sl].mean(0) if sl.sum() >= 4 else tip - ax * 0.165 * hl
+    j1 = f["wrist"] + f["a"] * 0.06 * hl + f["lat"] * 0.13 * hl + f["th"] * f["palm"] * (0.02 * hl)
+    j2 = j3 - ax * 0.19 * hl
+    for n, q in (("01", j1), ("02", j2), ("03", j3), ("04_leaf", tip)):
+        out[f"thumb_{n}_{side_name}"] = Vector(q)
+    print("FINGER", side_name, "thumb metacarpal", round(float(np.linalg.norm(j2 - j1)), 4), "tip to base", round(float(np.linalg.norm(tip - j1)), 4))
+    return out
+
+
 def joints(full, vp, lib):
     """Her joint centres in the A pose (metres), named as the library names its bones."""
     co = L.co_get(full.data)
+    arm_v, hand_v = L.vertex_parts(full.data)
+    e = np.empty(len(full.data.edges) * 2, dtype=np.int32)
+    full.data.edges.foreach_get("vertices", e)
+    e = e.reshape(-1, 2)
     j = {"root": Vector((0, 0, 0))}
     for name, p in (("pelvis", (0, 0.012, 0.955)), ("spine_01", (0, 0.018, 1.03)), ("spine_02", (0, 0.022, 1.12)),
                     ("spine_03", (0, 0.026, 1.23)), ("neck_01", (0, 0.022, 1.385)), ("Head", (0, 0.004, 1.468))):
         j[name] = Vector(p) * S
     frames = {}
+    fid = np.zeros(len(co), dtype=np.int32)
+    height = float(co[:, 2].max() - co[:, 2].min())
     for side, sx in (("l", 1), ("r", -1)):
         sel = sx * co[:, 0] > 0
         j[f"clavicle_{side}"] = Vector((sx * 0.022, -0.025, 1.365)) * S
         sh = Vector((sx * 0.158, 0.012, 1.352)) * S
-        arm = co[sel & (vp == 3)]
-        hand = co[sel & (vp == 4)]
-        o = arm.mean(0)
-        ax = np.linalg.eigh(np.cov((arm - o).T))[1][:, -1]
-        ax = ax if ax[2] < 0 else -ax
-        t = (arm - o) @ ax
-        wrist = Vector(arm[t > t.max() - 0.012].mean(0))
-        k = 0.545
-        guess = sh + (wrist - sh) * k
-        near = arm[np.abs((arm - np.array(guess)) @ ax) < 0.012]
-        elbow = Vector(near.mean(0)) + Vector((0, 0.006, 0))
+        # The wrist is measured (the last section before the palm flares): the base mesh's hand tile starts 8 cm
+        # up the forearm, and a hand bone put on that seam bends the forearm in the middle.
+        f = L.hand_frame(co, arm_v, hand_v, sx)
+        wrist = Vector(f["wrist"])
+        elbow = sh + (wrist - sh) * L.ELBOW_SHARE + Vector((0, 0.008, 0))
         j[f"upperarm_{side}"], j[f"lowerarm_{side}"], j[f"hand_{side}"] = sh, elbow, wrist
-        # The hand's own frame: along the fingers, towards the thumb, out of the palm.
-        ho = hand.mean(0)
-        w, v = np.linalg.eigh(np.cov((hand - ho).T))
-        a = v[:, 2] if v[:, 2] @ (ho - np.array(wrist)) > 0 else -v[:, 2]
-        lat = v[:, 1]
-        rel = hand - np.array(wrist)
-        along, side_c = rel @ a, rel @ lat
-        prox = along < np.percentile(along, 55)
-        far = np.abs(side_c[prox]) > np.percentile(np.abs(side_c[prox]), 90)
-        th = lat * np.sign(side_c[prox][far].mean())
-        th = th - a * (th @ a)
-        th /= np.linalg.norm(th)
+        forearm = (wrist - elbow).length
+        ratio = f["length"] / forearm
+        print("ARM", side, "upper", round((elbow - sh).length, 4), "forearm", round(forearm, 4), f"{forearm / height:.2%}",
+              "hand", round(f["length"], 4), f"{f['length'] / height:.2%}", "hand to forearm", round(ratio, 3))
+        assert L.HAND_TO_FOREARM[0] <= ratio <= L.HAND_TO_FOREARM[1], f"the hand is {ratio:.2f} of the forearm"
+        # The palm's side is the one the thumb's tip leans to.
+        rel = co - f["wrist"]
+        t, s, h = rel @ f["a"], rel @ f["lat"], rel @ f["th"]
+        near = sel & hand_v & (t > 0)
+        f["palm"] = float(np.sign(h[near & (s > 0.6 * s[near].max())].mean()))
+        a, th = f["a"], f["lat"]
         palm = np.cross(a, th) * sx
-        scale = (along.max()) / (lib[f"middle_04_leaf_{side}"][1].to_translation() - lib[f"hand_{side}"][1].to_translation()).length
+        # Any finger bone the mesh gives no joint for keeps the library's layout, scaled to her hand.
+        scale = f["length"] / (lib[f"middle_04_leaf_{side}"][1].to_translation() - lib[f"hand_{side}"][1].to_translation()).length
         la, lth, lp = Vector((sx, 0, 0)), Vector((0, -1, 0)), Vector((0, 0, -1))
         base = lib[f"hand_{side}"][1].to_translation()
         for name in lib:
-            if name.endswith(f"_{side}") and any(f in name for f in ("thumb", "index", "middle", "ring", "pinky")):
+            if name.endswith(f"_{side}") and any(fg in name for fg in FINGERS):
                 d = lib[name][1].to_translation() - base
                 q = np.array(wrist) + scale * ((d @ la) * a + (d @ lth) * th + (d @ lp) * palm)
                 j[name] = Vector(q)
+        side_fid = segment_hand(co, e, hand_v, sx, f)
+        fid = np.maximum(fid, side_fid)
+        for name, q in finger_joints(co, side_fid, f, side).items():
+            if name in j:
+                j[name] = q
         frames[side] = (Vector(a), Vector(palm))
         j[f"thigh_{side}"] = Vector((sx * 0.090, 0.006, 0.915)) * S
         leg = co[sel & (vp == 5)]
@@ -102,7 +192,7 @@ def joints(full, vp, lib):
         fdir = Vector((toe.x - ankle.x, toe.y - ankle.y, 0)).normalized()
         j[f"ball_{side}"] = Vector((ankle.x, ankle.y, 0.015)) + fdir * 0.125 * S
         j[f"ball_leaf_{side}"] = j[f"ball_{side}"] + fdir * 0.07 * S
-    return j, frames
+    return j, frames, fid
 
 
 def build_fit(j, lib, order):
@@ -198,7 +288,7 @@ def b_head_x(arm, name):
     return arm.data.bones[name].head_local.x
 
 
-def body_weights(arm, full, vp):
+def body_weights(arm, full, vp, fid):
     """Weights for the whole body: each vertex to the bones of its own body part by distance to the bone's
     segment, then smoothed over the surface so the parts blend at the joints. (Bone heat fails on this mesh: the
     mouth bag and eye sockets are closed pockets it cannot solve.)"""
@@ -223,6 +313,12 @@ def body_weights(arm, full, vp):
                  "pelvis": (2, 5), "clavicle": (2, 3), "upperarm": (2, 3), "lowerarm": (3, 4), "hand": (3, 4),
                  "thigh": (2, 5), "calf": (5, 6), "foot": (5, 6), "ball": (6,)}.get(stem, (4,) if stem.startswith(fingers) else ())
         allow[:, k] = mine & np.isin(vp, parts)
+        if stem.startswith(fingers):
+            # A finger's bones move its own piece of the hand; only its first bone reaches into the palm.
+            k_f = 1 + FINGERS.index(stem.split("_")[0])
+            allow[:, k] &= (fid == k_f) | ((fid == 0) & stem.endswith("_01"))
+        elif stem in ("hand", "lowerarm"):
+            allow[:, k] &= fid == 0
         if stem == "upperarm":
             # On the trunk only the shoulder's cap follows the arm, not the side of the chest.
             allow[:, k] &= (vp != 2) | (np.abs(co[:, 0]) > abs(b_head_x(arm, name)) - 0.012)
@@ -268,14 +364,14 @@ def body_weights(arm, full, vp):
                     groups[k].add([i], x, "REPLACE")
 
 
-def bind(arm, full, vp):
+def bind(arm, full, vp, fid):
     """Bone heat on the whole body, then every mesh takes the body's weights (or one bone, where it is rigid)."""
     full.hide_render = True
     full.parent = arm
     full.modifiers.new("Armature", "ARMATURE").object = arm
-    body_weights(arm, full, vp)
+    body_weights(arm, full, vp, fid)
     deform = [b.name for b in arm.data.bones if not b.name.endswith("_leaf") and b.name != "root"]
-    head_only = {"hair": "Head", "brows_lashes": "Head"}
+    head_only = {"hair_ponytail": "Head", "brows_lashes": "Head"}
     for o in bpy.data.objects:
         if o.type != "MESH" or o is full or o.name.startswith(("rig_", "floor")):
             continue
@@ -285,6 +381,16 @@ def bind(arm, full, vp):
         bone = head_only.get(o.name) or ("eye_" + o.name[-1].lower() if o.name[:-2] in ("eye", "cornea") else "Head" if o.name[:-2] in ("eyeocc", "tear") else None)
         if bone:
             o.vertex_groups.new(name=bone).add(range(len(o.data.vertices)), 1.0, "REPLACE")
+            continue
+        if o.name == "hair_long":
+            # Long hair follows the head down to the jaw and lies on the shoulders below it.
+            zb = L.co_get(o.data)[:, 2] / S
+            w_head = L.smoothstep(1.40, 1.50, zb)
+            w_chest = L.smoothstep(1.42, 1.34, zb) * (1 - w_head)
+            for name, w in (("Head", w_head), ("spine_03", w_chest), ("neck_01", 1 - w_head - w_chest)):
+                g = o.vertex_groups.new(name=name)
+                for i in np.where(w > 0.004)[0].tolist():
+                    g.add([i], float(w[i]), "REPLACE")
             continue
         L.select_only(o)
         dt = o.modifiers.new("dt", "DATA_TRANSFER")
@@ -407,6 +513,36 @@ def check(arm, lib):
     return total
 
 
+def check_fist(arm, full):
+    """Closes both hands and measures them: every fingertip must reach the palm, and no edge of the hand may
+    stretch to more than 6 times its rest length. (The webs between the fingers stretch 3 to 5 times as they
+    are weighted now; a vertex that follows the wrong finger stretches far more.)"""
+    co0 = L.co_get(full.data)
+    e = np.empty(len(full.data.edges) * 2, dtype=np.int32)
+    full.data.edges.foreach_get("vertices", e)
+    e = e.reshape(-1, 2)
+    L.pose_fist(arm)
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = full.evaluated_get(dg)
+    co1 = np.array([v.co[:] for v in ev.data.vertices])
+    rest = np.linalg.norm(co0[e[:, 0]] - co0[e[:, 1]], axis=1)
+    posed = np.linalg.norm(co1[e[:, 0]] - co1[e[:, 1]], axis=1)
+    for side, sx in (("l", 1), ("r", -1)):
+        hand = arm.pose.bones[f"hand_{side}"].head
+        m1 = arm.pose.bones[f"middle_01_{side}"].head
+        palm = (hand + m1) / 2
+        reach = max((arm.pose.bones[f"{f}_04_leaf_{side}"].head - palm).length for f in FINGERS[1:])
+        span = (m1 - hand).length
+        near = (sx * co0[e[:, 0], 0] > hand.x * sx) & (rest > 1e-5)
+        stretch = float((posed[near] / rest[near]).max())
+        print("FIST", side, "farthest fingertip from the palm's middle", round(reach, 4), "palm", round(span, 4), "worst edge stretch", round(stretch, 2))
+        assert reach < 0.75 * span, f"a fingertip stays {reach:.3f} m from the palm in a fist"
+        assert stretch < 6.0, f"an edge of the {side} hand stretches {stretch:.1f} times in a fist"
+    for pb in arm.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
+
+
 def main():
     L.open_stage(A.work, "s06")
     lib, order = read_library(A.base)
@@ -417,11 +553,11 @@ def main():
     for p in full.data.polygons:
         for v in p.vertices:
             vp[v] = part[p.index]
-    j, frames = joints(full, vp, lib)
+    j, frames, fid = joints(full, vp, lib)
     arm = build_fit(j, lib, order)
     # The eye bones exist before the bind so the eyeballs have a group to go to; they are placed for good below.
     eye = bpy.context.scene["eye_center"]
-    bind(arm, full, vp)
+    bind(arm, full, vp, fid)
     to_t_pose(arm, frames, lib)
     apply_pose_as_rest(arm)
     library_rest(arm, lib, eye)
@@ -432,6 +568,7 @@ def main():
                 o.vertex_groups.get("pelvis") or o.vertex_groups.new(name="pelvis")
                 o.vertex_groups["pelvis"].add([v.index], 1.0, "REPLACE")
     total = check(arm, lib)
+    check_fist(arm, full)
     pelvis = arm.data.bones["pelvis"].head_local.z
     with open(f"{A.work}/rig.json", "w") as f:
         json.dump({"pelvis_height": pelvis, "motion_scale": pelvis / LIB_PELVIS, "bones": len(arm.data.bones), "triangles": total}, f, indent=1)

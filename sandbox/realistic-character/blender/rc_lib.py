@@ -28,6 +28,8 @@ def args():
     p.add_argument("--shots", default="")
     p.add_argument("--samples", type=int, default=0)
     p.add_argument("--out", default="")
+    p.add_argument("--hair", default="ponytail", help="the hairstyle a render shows: ponytail or long")
+    p.add_argument("--pose", default="relaxed", help="the pose a render uses: relaxed, rest or fist")
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     a = p.parse_args(argv)
     a.work = a.work.replace("\\", "/").rstrip("/")
@@ -150,6 +152,44 @@ def fbm3(p, octaves=4, seed=0):
     return out / (1 - 0.5**octaves)
 
 
+def write_png16(path, rgb):
+    """A 16-bit RGB PNG from a float array (height, width, 3) in 0..1, first row at the bottom as Blender stores
+    it. Blender's own image save writes 8 bits unless it goes through a render's colour management; a normal map
+    needs neither."""
+    import struct
+    import zlib
+
+    a = (np.clip(rgb[::-1], 0, 1) * 65535 + 0.5).astype(">u2")
+    h, w = a.shape[:2]
+    raw = np.concatenate([np.zeros((h, 1), dtype=np.uint8), np.ascontiguousarray(a).reshape(h, w * 3).view(np.uint8)], 1).tobytes()
+
+    def chunk(kind, data):
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+
+    with open(path, "wb") as f:
+        f.write(bytes([137, 80, 78, 71, 13, 10, 26, 10]) + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 16, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(raw, 3)) + chunk(b"IEND", b""))
+
+
+# Her hair: a chestnut brown, in linear RGB. The strands of the atlas vary around it and a share are sun-lightened;
+# the scalp under the cards is painted in its shade so no gap between cards shows skin or a black cap.
+HAIR_RGB = np.array([0.105, 0.056, 0.027])
+HAIR_LIGHT = np.array([0.30, 0.185, 0.090])
+
+
+HAIRSTYLES = ("ponytail", "long")
+
+
+def show_hair(style):
+    """Only one hairstyle is ever drawn: hide the others from the viewport and the render."""
+    for name in HAIRSTYLES:
+        o = bpy.data.objects.get("hair_" + name)
+        if o:
+            o.hide_render = name != style
+            o.hide_viewport = name != style
+
+
 def cycles_gpu(scene, samples=128):
     scene.render.engine = "CYCLES"
     prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -180,20 +220,26 @@ def deg(x):
     return math.radians(x)
 
 
-def scalp_mask(c):
-    """Where hair grows, 0..1, for positions in the base mesh's metres (position / SCALE): above a plane from the
-    forehead's hairline to the nape, receding at the temples, with sideburns, the ears left out."""
+def scalp_mask(c, soft=0.0):
+    """Where hair grows, 0..1, for positions in the base mesh's metres (position / SCALE). The hairline of a head
+    seen from the side: from the forehead it falls to the front of the ear (a line, receding at the temples, with
+    a sideburn), passes over the ear, drops behind it and runs level across the nape. `soft` widens the edge
+    (metres each way): the painted scalp fades over a centimetre, the cards start inside it. (The first build cut
+    one plane from the forehead to the nape, which left the head bare behind the ears: fine under a short cut,
+    an undercut under a ponytail.)"""
     x, y, z = c[:, 0], c[:, 1], c[:, 2]
     ax = np.abs(x)
-    f, n = np.array([-0.122, 1.597]), np.array([0.078, 1.492])
+    f, n = np.array([-0.122, 1.597]), np.array([-0.030, 1.532])
     d = n - f
     nrm = np.array([-d[1], d[0]]) / np.linalg.norm(d)
     s = (np.stack([y, z], 1) - f) @ nrm
     s -= 0.013 * np.exp(-(((ax - 0.060) / 0.016) ** 2)) * (y < -0.045)
-    s += 0.020 * np.exp(-(((y + 0.025) / 0.012) ** 2 + ((z - 1.535) / 0.02) ** 2)) * (ax > 0.06)
+    s += 0.012 * np.exp(-(((y + 0.030) / 0.010) ** 2 + ((z - 1.535) / 0.02) ** 2)) * (ax > 0.06)
+    low = 1.558 - (1.558 - 1.476) * smoothstep(0.010, 0.050, y)   # over the ear, then down to the nape
+    s = np.minimum(s, z - low)
     s += 0.006 * (fbm3(c * 60, 3, 1) - 0.5)
     ear = np.maximum(gauss(c, (0.086, 0.012, 1.515), 0.022), gauss(c, (-0.086, 0.012, 1.515), 0.022))
-    return smoothstep(-0.003, 0.006, s) * (z > 1.44) * (1 - np.clip(ear * 1.8, 0, 1))
+    return smoothstep(-0.003 - soft, 0.006 + soft, s) * (z > 1.44) * (1 - np.clip(ear * 1.8, 0, 1))
 
 
 def brow_field(c):
@@ -255,4 +301,99 @@ def pose_relaxed(arm):
     fb = arm.pose.bones["foot_l"]
     yaw = Quaternion(z, math.radians(14)).to_matrix()
     fb.matrix = Matrix.Translation(fb.matrix.to_translation()) @ (yaw @ arm.data.bones["foot_l"].matrix_local.to_3x3()).to_4x4()
+    bpy.context.view_layer.update()
+
+
+# Female hand proportions the build fits and checks (shares of standing height unless said otherwise). Sources:
+# the US Army's ANSUR II survey of women (hand length 181 mm and hand breadth 79 mm at a stature of 1,629 mm:
+# 11.1 % and 4.9 %) and Drillis and Contini's segment lengths (hand 10.8 %, forearm 14.6 %: a hand is 0.74 of a
+# forearm). The first build's hands were 11.7 % long and 5.4 % wide on a forearm of 13.3 %.
+HAND_LENGTH = 0.107
+HAND_BREADTH = 0.048
+HAND_TO_FOREARM = (0.70, 0.80)
+ELBOW_SHARE = 0.585  # the elbow's place on the line from the shoulder joint to the wrist
+
+
+def vertex_parts(mesh):
+    """For a mesh with the `part` face attribute: boolean vertex masks (in the arm tile, in the hand tile)."""
+    part = np.empty(len(mesh.polygons), dtype=np.int32)
+    mesh.attributes["part"].data.foreach_get("value", part)
+    lt = np.empty(len(mesh.polygons), dtype=np.int32)
+    mesh.polygons.foreach_get("loop_total", lt)
+    lv = np.empty(len(mesh.loops), dtype=np.int32)
+    mesh.loops.foreach_get("vertex_index", lv)
+    lp = np.repeat(part, lt)
+    arm = np.zeros(len(mesh.vertices), dtype=bool)
+    hand = np.zeros(len(mesh.vertices), dtype=bool)
+    arm[lv[lp == 3]] = True
+    hand[lv[lp == 4]] = True
+    return arm, hand
+
+
+def hand_frame(co, arm, hand, sx):
+    """Measures one hand of a body in any pose. The base mesh's hand tile starts 8 cm up the forearm, so the
+    wrist is found, not read: the last section before the palm flares (within 10 % of the thinnest). Returns a dict with `wrist`
+    (the section's centre), the unit axes `a` (to the fingertips), `lat` (to the thumb's side) and `th`, the hand's
+    `length` (wrist to the tip of the longest finger), its `breadth` (across the knuckles, thumb left out) and
+    `knuckle` (how far along the knuckle line is)."""
+    side = sx * co[:, 0] > 0
+    pts = co[side & hand]
+    seam = co[side & hand & arm].mean(0)
+    mean = pts.mean(0)
+    w, v = np.linalg.eigh(np.cov((pts - mean).T))
+    a = v[:, 2] if v[:, 2] @ (mean - seam) > 0 else -v[:, 2]
+    lat, th = v[:, 1], v[:, 0]
+    al, s, t = (pts - seam) @ a, (pts - seam) @ lat, (pts - seam) @ th
+    full = al.max()
+    xs, areas = [], []
+    for x in np.arange(0.02, 0.5 * full, 0.0025):
+        sl = np.abs(al - x) < 0.005
+        if sl.sum() >= 6:
+            xs.append(x)
+            areas.append(np.ptp(s[sl]) * np.ptp(t[sl]))
+    # The forearm's last centimetres are nearly even: the wrist is where that ends and the palm starts to flare.
+    at = max(x for x, area in zip(xs, areas) if area < 1.10 * min(areas))
+    sl = np.abs(al - at) < 0.005
+    wrist = seam + a * at + lat * (s[sl].max() + s[sl].min()) / 2 + th * (t[sl].max() + t[sl].min()) / 2
+    al, s = (pts - wrist) @ a, (pts - wrist) @ lat
+    length = al.max()
+    # The thumb's side: where the hand is widest before the fingers part.
+    near = (al > 0.2 * length) & (al < 0.5 * length)
+    if abs(s[near].max()) < abs(s[near].min()):
+        lat, s = -lat, -s
+    # The knuckle line: the last section before the fingers part. Hand breadth leaves the thumb out, so it is read
+    # only once the thumb stands clear of the palm (a gap on its side), and the thumb's part is dropped.
+    breadth, knuckle, clear = 0.0, 0.0, False
+    for x in np.arange(0.30 * length, 0.70 * length, 0.0025):
+        sl = np.abs(al - x) < 0.004
+        ss = np.sort(s[sl])
+        wide = np.where(np.diff(ss) > 0.006)[0]
+        thumb = [i for i in wide if ss[i] > 0.25 * ss.max()]
+        if len(wide) > len(thumb):
+            break
+        if thumb:
+            clear = True
+            ss = ss[: thumb[0] + 1]
+        if clear:
+            breadth, knuckle = float(np.ptp(ss)), float(x)
+    if np.cross(a, lat) @ th < 0:
+        th = -th
+    return {"wrist": wrist, "a": a, "lat": lat, "th": th, "length": float(length), "breadth": breadth,
+            "knuckle": knuckle, "seam": seam}
+
+
+def pose_fist(arm):
+    """Both hands closed, from the T rest: each finger joint turned about the hand's knuckle axis (armature Y in
+    the T pose), the thumb folded over the index. The check of the finger joints and weights."""
+    from mathutils import Quaternion
+
+    y, z, x = Vector((0, 1, 0)), Vector((0, 0, 1)), Vector((1, 0, 0))
+    for side, sx in (("l", 1), ("r", -1)):
+        for f in ("index", "middle", "ring", "pinky"):
+            for k, a in ((1, 78), (2, 98), (3, 62)):
+                pose_turn(arm, f"{f}_0{k}_{side}", Quaternion(y, math.radians(a * sx)))
+        pose_turn(arm, f"thumb_01_{side}", Quaternion(x, math.radians(-38 * sx)))
+        pose_turn(arm, f"thumb_01_{side}", Quaternion(z, math.radians(22 * sx)))
+        pose_turn(arm, f"thumb_02_{side}", Quaternion(z, math.radians(32 * sx)))
+        pose_turn(arm, f"thumb_03_{side}", Quaternion(z, math.radians(48 * sx)))
     bpy.context.view_layer.update()

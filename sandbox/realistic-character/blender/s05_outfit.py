@@ -58,6 +58,9 @@ def gz(c, z0, s):
 def clothes(full):
     def torso(cen, part):
         body = ((part == 2) & (cen[:, 2] < 1.47)) | ((part == 0) & (cen[:, 2] < 1.42))
+        # The shoulder's cap belongs to the arm's tile: without its faces the armhole's edge followed the tile's
+        # stair-stepped seam instead of the cut line (a ragged armhole).
+        body |= (part == 3) & (cen[:, 2] > 1.27) & (np.abs(cen[:, 0]) < 0.25)
         return body & (cen[:, 2] > 0.90) & (np.abs(cen[:, 0]) < 0.25)
 
     top = C.shell("top", full, torso, top_field, lambda c: np.full(len(c), 0.0040), tension=30,
@@ -271,7 +274,9 @@ def gear(full, top, trousers):
                            field, lambda c: np.full(len(c), 0.0017), tension=2, rim=0.0013)
             out.append(mat(wrap, "wrap"))
         else:
-            pt = Vector(o + ax * (t0 + 0.955 * (t1 - t0)))
+            # Above the wrist as measured (the arm's tile ends 8 cm short of it: the first watch sat mid-forearm).
+            hf = L.hand_frame(co, *L.vertex_parts(full.data), sx)
+            pt, ax = Vector(hf["wrist"] - hf["a"] * 0.030), hf["a"]
             r, _ = C.plane_ring([full], pt, Vector(ax), 28, 0.0012,
                                 only=lambda q, pt=pt: np.linalg.norm(q - np.array(pt), axis=1) < 0.06)
             out.append(mat(C.strap("watch_band", r, Vector(ax), 0.020, 0.0024), "webbing"))

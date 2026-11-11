@@ -29,6 +29,11 @@ SHOTS = {
     "bust": ((0.42, -1.18, 1.30), (0.0, 0.0, 1.37), 50, (1200, 1700), 5.6),
     "back": ((-0.5, 1.25, 1.45), (0.0, 0.0, 1.35), 50, (1200, 1700), 5.6),
     "full": ((0.9, -3.7, 1.0), (0.0, 0.0, 0.87), 50, (1100, 1900), 8.0),
+    # Her left hand in the T rest (use with --pose rest or --pose fist): its back, its palm, and from the front.
+    "hand_back": ((0.80, -0.02, 2.05), (0.80, 0.0, 1.43), 85, (1200, 900), 11.0),
+    "hand_palm": ((0.80, -0.02, 0.80), (0.80, 0.0, 1.43), 85, (1200, 900), 11.0),
+    "hand_front": ((0.86, -0.62, 1.50), (0.80, 0.0, 1.42), 85, (1200, 900), 11.0),
+    "arm": ((0.50, -1.05, 1.55), (0.50, 0.0, 1.43), 50, (1500, 700), 8.0),
 }
 TURN = 8
 LIGHTS = ("dark", "day", "warm")
@@ -145,9 +150,12 @@ def main():
     L.open_stage(A.work, A.stage)
     sc = bpy.context.scene
     engine(sc)
+    L.show_hair(A.hair)
     rig = bpy.data.objects.get("rig")
-    if rig and not A.only:
+    if rig and A.pose == "relaxed":
         L.pose_relaxed(rig)
+    elif rig and A.pose == "fist":
+        L.pose_fist(rig)
     sc.cycles.transparent_max_bounces = 64
     out = A.out or f"{A.work}/../renders/{A.stage}"
     os.makedirs(out, exist_ok=True)
@@ -176,7 +184,7 @@ def main():
             cam.data.dof.focus_distance = (Vector(tgt) - Vector(pos)).length
             cam.data.dof.aperture_fstop = fstop
             sc.render.resolution_x, sc.render.resolution_y = int(res[0] * A.res), int(res[1] * A.res)
-            sc.render.filepath = f"{out}/{A.engine.lower()}_{light}_{name}.png"
+            sc.render.filepath = f"{out}/{A.engine.lower()}_{A.hair}_{light}_{name}.png"
             bpy.ops.render.render(write_still=True)
             print("RENDERED", sc.render.filepath)
 

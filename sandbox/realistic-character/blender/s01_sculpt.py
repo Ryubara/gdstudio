@@ -3,7 +3,7 @@ into our own heroine (face landmarks, build, height), drops the skin the clothes
 set and a body set, and saves:
 
 - `body_mr`: the cage with its Multires modifier (the normal bake reads levels 1 and 3 from it);
-- `mid`: level 1 applied, the game mesh's skin; `high`: level 3 applied, the surface the textures are painted on;
+- `mid`: level 1 applied and triangulated, the game mesh's skin; `high`: level 3 applied, the surface the textures are painted on;
 - `body_full`: level 1 of the whole body, which the clothes are cut from.
 """
 
@@ -150,6 +150,52 @@ def pack_uvs(obj):
     mesh.uv_layers[0].data.foreach_set("uv", uv.ravel())
 
 
+def fit_hands(cage, height):
+    """Brings the hands to a woman's proportions (rc_lib.HAND_LENGTH and HAND_BREADTH of her height): each hand is
+    scaled about its wrist in its own frame, the wrist narrows with it, and the forearm grows by part of what the
+    shorter hand gave up, so her reach stays. Measured on a level-1 copy, applied to the cage."""
+    probe = level_copy(cage, "probe", 1)
+    pco = L.co_get(probe.data)
+    parm, phand = L.vertex_parts(probe.data)
+    co = L.co_get(cage.data)
+    carm, chand = L.vertex_parts(cage.data)
+    out = co.copy()
+    for sx in (1, -1):
+        f = L.hand_frame(pco, parm, phand, sx)
+        print("HAND before", "L" if sx > 0 else "R", "length", round(f["length"], 4), f"{f['length'] / height:.2%}",
+              "breadth", round(f["breadth"], 4), f"{f['breadth'] / height:.2%}")
+        k_len = L.HAND_LENGTH * height / f["length"]
+        k_lat = L.HAND_BREADTH * height / f["breadth"]
+        k_th = (k_len + k_lat) / 2
+        shift = 0.6 * (f["length"] - L.HAND_LENGTH * height)
+        side = sx * co[:, 0] > 0.10
+        rel = co - f["wrist"]
+        t, s, h = rel @ f["a"], rel @ f["lat"], rel @ f["th"]
+        limb = side & (carm | chand) & (t > -0.26)  # the arm's own vertices only: a leg is also "below the wrist"
+        blend = L.smoothstep(-0.07, 0.0, t)          # the wrist narrows over the last 7 cm of the forearm
+        reach = L.smoothstep(-0.24, -0.02, t)        # the forearm stretches from the elbow down
+        t2 = np.where(t > 0, t * k_len, t) + shift * reach
+        s2 = s * (1 + (k_lat - 1) * blend)
+        h2 = h * (1 + (k_th - 1) * blend)
+        new = f["wrist"] + np.outer(t2, f["a"]) + np.outer(s2, f["lat"]) + np.outer(h2, f["th"])
+        out[limb] = new[limb]
+    bpy.data.objects.remove(probe)
+    L.co_set(cage.data, out)
+
+
+def check_hands(full, height):
+    """The numbers the hands are held to, read from the body the rig and the clothes use."""
+    co = L.co_get(full.data)
+    arm, hand = L.vertex_parts(full.data)
+    for sx in (1, -1):
+        f = L.hand_frame(co, arm, hand, sx)
+        ln, br = f["length"] / height, f["breadth"] / height
+        print("HAND after", "L" if sx > 0 else "R", "length", round(f["length"], 4), f"{ln:.2%}", "breadth",
+              round(f["breadth"], 4), f"{br:.2%}", "knuckle line at", round(f["knuckle"] / f["length"], 3))
+        assert 0.100 <= ln <= 0.111, f"hand length is {ln:.1%} of her height (a woman's is 10 to 11 %)"
+        assert 0.044 <= br <= 0.051, f"hand breadth is {br:.1%} of her height (a woman's is about 4.8 %)"
+
+
 def level_copy(src, name, level):
     o = src.copy()
     o.data = src.data.copy()
@@ -175,8 +221,12 @@ def main():
     part = np.array(tag_parts(mesh))
     co = L.co_get(mesh)
     L.co_set(mesh, deform(co, co))
+    zs = L.co_get(mesh)[:, 2]
+    height = float(zs.max() - zs.min())
+    fit_hands(base, height)
     full = level_copy(base, "body_full", 1)
     full.hide_render = True
+    check_hands(full, height)
 
     # Drop the skin under the top, the trousers and the boots, cage face by cage face.
     co = L.co_get(mesh)
@@ -201,6 +251,14 @@ def main():
 
     for name, level in (("mid", 1), ("high", 3)):
         o = level_copy(base, name, level)
+        if name == "mid":
+            # The game mesh is triangles from here on: the normal bake, the tangents of the export and Godot
+            # must all see the same diagonals, or the map corrects for a surface nobody draws.
+            bm = bmesh.new()
+            bm.from_mesh(o.data)
+            bmesh.ops.triangulate(bm, faces=bm.faces, quad_method="FIXED", ngon_method="BEAUTY")
+            bm.to_mesh(o.data)
+            bm.free()
         zs = L.co_get(o.data)[:, 2]
         print("BODY", name, "verts", len(o.data.vertices), "tris", L.tri_count(o), "top", round(zs.max(), 4))
     zs = L.co_get(full.data)[:, 2]
