@@ -62,7 +62,7 @@ PARTS = crouch_idle.PARTS
 
 def skewed(x: float, turn: float) -> float:
     """0 to 1 with no speed at either end, the fastest at the share `turn` of the way through: speeding up until
-    then and slowing after (0.5 is `maths.smooth`)."""
+    then and slowing after, each at one rate (0.5 is an even ease)."""
     x = min(max(x, 0.0), 1.0)
     if x < turn:
         return x * x / turn
