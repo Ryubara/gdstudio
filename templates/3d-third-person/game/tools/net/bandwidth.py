@@ -133,6 +133,7 @@ def server_stats(log: Path) -> dict:
     keys = (
         "ai",
         "ai_build_us",
+        "ai_history_us",
         "ai_encode_us_per_tick",
         "step_ms_p50",
         "step_ms_p95",

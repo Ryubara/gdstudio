@@ -222,7 +222,7 @@ and the rows of the moving props, and a world part's state may be 12 bytes
 ([pushed props online](third-person/net-world.md#props)). `NetWire.VERSION` 6 (#970): a TICK ends with the AI block
 for its client (`AiSnapshot`: none, full or a delta of rows, moves and the ids that left), a HELLO carries a flags
 byte (`F_WEB`: the client is a browser), an `AI` event (id, what happened, a point, a direction) and a HIT names an AI
-as `NetHits.AI_BASE + id` ([the AI online](third-person/ai.md#replication)). The socket buffers are 1 MB since: five
+as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). The socket buffers are 1 MB since: five
 seconds of a full AI snapshot of 120 characters every TICK is 252 KB.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to

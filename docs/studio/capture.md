@@ -70,6 +70,12 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   both runs showed two Carhops. **Seen:** Deadnight, 2026-11-03 (backdrop tour); Deadnight, 2026-11-02 (shoulder views)
   (fix: `[female] loadout character: ...` is printed by each run).
 
+- **Approach:** Record a capture of an online rig (a server and its clients in one process, `OnlineRig`) at
+  `--fps 60`, one physics tick a frame, and crop or slow the clip afterwards. **Watch out for:** at `--fps 10` Movie
+  Maker runs six ticks in each frame, and a client that judges its stalls by process frames (`StallGuard`) no longer
+  plays as it does at a game's frame rate, so the clip is not the game: the AI rewind's tour hit 1 of 3 at 10 frames
+  a second, 2 of 3 at 30 and 3 of 3 at 60, where the same scene run headless hit 3 of 3. **Seen:** gdstudio #1198,
+  2026-11-11 (`tools/capture/ai_rewind_tour.tscn`).
 - **Approach:** Count a capture scene's waits in physics ticks and size `--quit-after` (which counts rendered frames)
   as ticks / 6 at `--fixed-fps 10`; make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to
   a shot (not only a sheet), and cross-check them against a headless log of the events. **Watch out for:** Movie Maker

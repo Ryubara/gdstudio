@@ -123,6 +123,10 @@ var shot_seq := 0
 ## Where the last shot left from and the way it went (after the spread), world space.
 var last_origin := Vector3.ZERO
 var last_heading := Vector3.FORWARD
+## The AI as the shooter's screen drew it (a server's lag compensation, gdstudio #1198): set for
+## the step of one command with a shot block, its shots meet each AI character there (a hitscan
+## at once, a projectile for its first `ShotRewind.flight_seconds`). Null: as it is now.
+var rewind: ShotRewind
 var _cooldown := 0.0
 var _magazine := 0
 var _reserve := 0
@@ -399,11 +403,11 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	_cooldown = definition.shot_interval()
 	match definition.kind:
 		WeaponDef.Kind.PROJECTILE:
-			_launch(start, heading)
+			_launch(start, heading, _rewind_flight(start, heading))
 		WeaponDef.Kind.HITSCAN:
-			_scan(start, heading, definition.aim_range)
+			_scan(start, heading, definition.aim_range, _rewind_ray(start, heading))
 		WeaponDef.Kind.MELEE:
-			_scan(start, heading, definition.melee_reach)
+			_scan(start, heading, definition.melee_reach, _rewind_ray(start, heading))
 	_play(_player(&"ShotSound"), start)
 	if definition.kind != WeaponDef.Kind.MELEE:
 		_flash()
@@ -427,7 +431,28 @@ func _spread(heading: Vector3) -> Vector3:
 	return heading.rotated(side, sin(around) * angle).rotated(up, cos(around) * angle)
 
 
-func _launch(start: Vector3, heading: Vector3) -> void:
+# The rewind of a projectile leaving now: the drawn AI along its first `flight_seconds`.
+func _rewind_flight(start: Vector3, heading: Vector3) -> ShotRewind:
+	if rewind == null or not authoritative:
+		return null
+	var seconds := rewind.flight_seconds
+	var reach := definition.projectile_speed * seconds
+	return rewind.for_shot(
+		start, heading, reach, 0.5 * definition.projectile_gravity * seconds * seconds
+	)
+
+
+# The rewind of a ray (a hitscan shot or a blow) leaving now.
+func _rewind_ray(start: Vector3, heading: Vector3) -> ShotRewind:
+	if rewind == null or not authoritative:
+		return null
+	var reach := definition.aim_range
+	if definition.kind == WeaponDef.Kind.MELEE:
+		reach = definition.melee_reach
+	return rewind.for_shot(start, heading, reach)
+
+
+func _launch(start: Vector3, heading: Vector3, shot_rewind: ShotRewind = null) -> void:
 	var shot := _take_projectile()
 	var world: Node = shooter.get_parent() if shooter != null else get_parent()
 	if shot.get_parent() != world:
@@ -446,6 +471,7 @@ func _launch(start: Vector3, heading: Vector3) -> void:
 		definition.impacts and shot.scene_impact_effects and effects and authoritative
 	)
 	shot.authoritative = authoritative
+	shot.rewind = shot_rewind
 	shot.launch(start, heading, definition.projectile_speed, shooter)
 	_live.append(shot)
 	_last_projectile = shot
@@ -488,12 +514,16 @@ func _on_projectile_finished(shot: Projectile) -> void:
 # character's capsule asks its `HitZones` for the part on the ray (`HitZones.shot`, the record it
 # delivers to `take_hit`), anything else its `Health`; a ray that passes between the parts goes on
 # past the capsule, as a projectile does.
-func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
-	var skip: Array[RID] = []
+# With `shot_rewind`, the AI characters near the ray are met where the shooter's screen drew them
+# (`ShotRewind.nearer`) and left out of the physics query.
+func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewind = null) -> void:
+	var skip: Array[RID] = shot_rewind.excluded() if shot_rewind != null else []
 	var found := {}
 	var record: HitRecord = null
 	for _attempt in 3:
 		found = _cast(start, start + heading * reach, skip)
+		if shot_rewind != null:
+			found = shot_rewind.nearer(start, start + heading * reach, found)
 		if found.is_empty():
 			return
 		var zones := HitZones.of(found["collider"])
@@ -508,12 +538,14 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 			definition.damage,
 			definition.impulse,
 			shooter as Node3D,
-			found["position"]
+			found.get("centre", found["position"])
 		)
 		if record != null:
 			zones.deliver(record)
 			break
 		skip.append((found["collider"] as CollisionObject3D).get_rid())
+		if shot_rewind != null:
+			shot_rewind.skip(found["collider"])
 		found = {}
 	if found.is_empty():
 		return

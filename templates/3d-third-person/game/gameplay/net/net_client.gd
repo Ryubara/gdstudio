@@ -243,8 +243,7 @@ func _predict(delta: float) -> void:
 	# The map's moving parts where the server will have them when it steps this command.
 	map_parts.tick = seq
 	map_parts.place(map_parts.tick)
-	if last_tick != null:
-		wanted.view_tick = last_tick.server_tick
+	wanted.view_tick = view_tick()
 	var packet := CommandCodec.encode(wanted, drops)
 	if packet.is_empty():
 		packet = CommandCodec.encode(_standing(seq))
@@ -255,6 +254,14 @@ func _predict(delta: float) -> void:
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
 		link.send(NetWire.ping(_now_ms(), rtt_ms))
+
+
+## The server tick this screen draws the AI and the other players at (the server meets a shot
+## with the AI there, `ShotRewind`): the AI's drawn time, else the newest TICK's tick, else 0.
+func view_tick() -> int:
+	if ai_replica != null and ai_replica.drawn_time() >= 0.0:
+		return roundi(ai_replica.drawn_time() * NetLimits.TICK_RATE)
+	return last_tick.server_tick if last_tick != null else 0
 
 
 ## The client's own thread stalled (`StallGuard`): the reconciler forgets its points and takes the

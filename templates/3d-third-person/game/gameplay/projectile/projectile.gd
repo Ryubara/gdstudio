@@ -76,8 +76,13 @@ var scene_impact_effects := true
 ## it touches, or where the server's hit was (`stop_at`), and changes nothing; the server's HIT
 ## event makes the impact.
 var authoritative := true
+## The AI as the shooter's screen drew it (a server's lag compensation, `Weapon.rewind`, gdstudio
+## #1198), set by the weapon before `launch()`: for its first ticks the characters near its path
+## are left out of its physics and met where they were drawn. Null: as they are now.
+var rewind: ShotRewind
 
 var _age := 0.0
+var _rewind_ticks := 0
 var _bounces_left := 0
 var _flying := false
 var _base_paint: Material
@@ -122,12 +127,57 @@ func _physics_process(delta: float) -> void:
 	velocity.y -= gravity * delta
 	if _stop_point.is_finite() and _reaches_stop(delta):
 		return
-	var collision := move_and_collide(velocity * delta)
-	# A shot that passes between a character's parts flies on through the capsule, this tick.
+	var motion := velocity * delta
+	if rewind != null:
+		motion = _rewound_move(motion)
+		if not _flying or motion == Vector3.ZERO:
+			return
+	_move(motion)
+
+
+# Moves along `motion`; a shot that passes between a character's parts flies on through the
+# capsule, this tick.
+func _move(motion: Vector3) -> void:
+	var collision := move_and_collide(motion)
 	for attempt in 3:
 		if collision == null or not _touch(collision):
 			return
 		collision = move_and_collide(collision.get_remainder())
+
+
+# One tick of the flight with the AI where the shooter drew it: a character met on the way is hit
+# (unless something else is met first); returns what is left of `motion` to move as usual.
+func _rewound_move(motion: Vector3) -> Vector3:
+	var flown := _rewind_ticks
+	_rewind_ticks += 1
+	if rewind.is_over(flown):
+		_end_rewind()
+		return motion
+	var met := rewind.meet(global_position, global_position + motion, flown, size * 0.5)
+	if met.is_empty():
+		return motion
+	var share: float = met["share"]
+	var collision := move_and_collide(motion * share)
+	if collision != null:
+		# Something nearer than the character: as usual from there.
+		for attempt in 3:
+			if collision == null or not _touch(collision):
+				return Vector3.ZERO
+			collision = move_and_collide(collision.get_remainder())
+		return Vector3.ZERO
+	var character: Node3D = met["collider"]
+	if not _hit(character, met["position"], met["normal"], velocity.normalized(), met["centre"]):
+		return Vector3.ZERO
+	rewind.skip(character)
+	return motion * (1.0 - share)
+
+
+# The flight now meets the characters as they are: they are put back in its physics.
+func _end_rewind() -> void:
+	for body in rewind.bodies():
+		if is_instance_valid(body):
+			remove_collision_exception_with(body)
+	rewind = null
 
 
 ## Starts it flying from `origin` along `direction` at `speed`. Skips `shooter`, so it never hits
@@ -147,6 +197,11 @@ func launch(
 		remove_collision_exception_with(skipped)
 	if shooter != null:
 		add_collision_exception_with(shooter)
+	_rewind_ticks = 0
+	if rewind != null:
+		for body in rewind.bodies():
+			if is_instance_valid(body) and body != shooter:
+				add_collision_exception_with(body)
 	global_position = origin
 	velocity = direction.normalized() * speed
 	reset_physics_interpolation()
@@ -200,10 +255,21 @@ func _park() -> void:
 
 # Answers a touch; true when the shot passed between a character's parts and flies on.
 func _touch(collision: KinematicCollision3D) -> bool:
-	var collider := collision.get_collider()
-	var point := collision.get_position()
-	var normal := collision.get_normal()
-	var direction := velocity.normalized()
+	var collider := collision.get_collider() as Node
+	return _hit(
+		collider,
+		collision.get_position(),
+		collision.get_normal(),
+		velocity.normalized(),
+		global_position
+	)
+
+
+# Answers a touch of `collider` at `point` flying along `direction`, its middle at `centre`; true
+# when the shot passed between a character's parts and flies on.
+func _hit(
+	collider: Node, point: Vector3, normal: Vector3, direction: Vector3, centre: Vector3
+) -> bool:
 	if not authoritative:
 		impacted.emit(collider, point, normal)
 		_end()
@@ -212,7 +278,7 @@ func _touch(collision: KinematicCollision3D) -> bool:
 	var zones := HitZones.of(collider)
 	if zones != null:
 		var record := zones.shot(
-			collider, point, direction, damage, impulse, _shooter as Node3D, global_position
+			collider, point, direction, damage, impulse, _shooter as Node3D, centre
 		)
 		if record == null:
 			add_collision_exception_with(collider)

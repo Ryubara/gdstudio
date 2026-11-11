@@ -505,7 +505,7 @@ there), and the 60 s unread client is a client whose downlink stalls while it st
   (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
 - **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
   connection; 10 s once all are seated (`--ai 40,120` adds an AI crowd on the server: [the AI's
-  numbers](ai.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
+  numbers](ai-online.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
 
 | Players | Down a client | Up a client |
 | ---: | ---: | ---: |
