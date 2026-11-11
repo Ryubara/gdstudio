@@ -10,7 +10,7 @@ and `vault/Vault_Land`. Nothing in the game plays them yet: the vault (kit #1013
 | `vault.glb` | The three clips (24 frames a second, in place, no loop) |
 | `vault_clips.json` | Each clip's reference obstacle, the speed the body is moved at, and the contact times |
 | `build_vault.py` | Rebuilds both with the pinned Blender (`blender -b --factory-startup -P build_vault.py`) |
-| `render_vault.py` | The contact sheets (`build_vault.py -- --render <folder>`) |
+| `render_vault.py` | The contact sheets (`build_vault.py -- --render <folder>`), the poses between the keys among them |
 | `../limb_overlap.py` | Measures limbs passing through each other, for this build and any other clips |
 
 | Clip | Length | Reference obstacle | What happens |
@@ -64,7 +64,11 @@ and forward at `speed`. A path that drops the root to the floor at the end as we
 the file, and fails before it exports when the skin goes under the floor or more than 12 mm into the box, when a
 planted wrist or ankle moves, when the palm is more than 15 mm from the top, when the body is jerked to keep a hand in
 reach, or when a limb is more than 5 mm inside another on either mannequin (`../limb_overlap.py` measures both skinned
-meshes on every frame; the clips read 0.0 mm). It also fails on a move a body cannot make (`check_motion`): the centre
+meshes on every frame; the clips read 0.0 mm). It reads the clip between its keys as well, 240 times a second with
+the keys joined by straight lines as a game joins them (`check_between`): a leg joint of either mannequin more than
+5 mm inside the box, skin more than 12 mm inside it, a planted hand's own skin more than 20 mm into the top or the
+lowest skin more than 25 mm under the floor fails the build (`--trace` prints every sample that reads anything, and
+each leg joint's place near the box). It also fails on a move a body cannot make (`check_motion`): the centre
 of mass more than 15 mm off a free fall's arc while nothing touches the body, a planted arm that never gives under the
 weight or is not straight when the hand leaves or carries under a quarter of the body's weight, a landing leg that
 folds again, snaps open or is not nearly straight a frame before the foot lands, a landing step whose knee and hips do
@@ -82,7 +86,8 @@ they cannot cross. A free arm is keyed from its own shoulder in the world's axes
 the shoulder is a number in the table whatever the body's roll. The export is the same bytes on every run, and
 `vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
 `tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top, `_arm` the
-planted arm from the plant to the push, `_side` every frame of the whole move).
+planted arm from the plant to the push, `_side` every frame of the whole move, `_edge` the legs at the front edge
+between the keys, five poses a frame).
 
 `../limb_overlap.py` also runs on its own, on any clips of the universal rig:
 `blender -b --factory-startup -P limb_overlap.py -- --clips <clips.glb> --model <mannequin.glb> [--model ...]`

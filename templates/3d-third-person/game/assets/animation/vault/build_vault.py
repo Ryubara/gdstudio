@@ -753,7 +753,10 @@ def vault_low(rig, offsets=None):
     # upper one and the left leg the lower, each on its own side of the hips (`hips`: left above 0 for the left
     # foot, below 0 for the right), knees a hip's width apart. They never cross.
     # The left leg pushes off, trails, tucks under the right leg with its knee forward, and stays behind on the
-    # way down as the trailing leg of the landing stride.
+    # way down as the trailing leg of the landing stride. On frame 7 its knee is out beside the rolled body (the
+    # thigh in line with the trunk, the shin folded back) and already over the top, a frame before it passes the
+    # front edge: with the ankle behind the hip and the knee pointed forward, the knee hung straight down under
+    # the top there and whipped forward through the edge between frames 7 and 8 (gdstudio #1221).
     stance = c.channels["foot_l_pos"].at(0)
     c.keys(
         "foot_l_pos",
@@ -816,6 +819,8 @@ def vault_low(rig, offsets=None):
             18: c.under(18, -0.10, 0.31, 0.73),
         },
     )
+    # The lead foot is lifted and held back a little on frame 5, toes up (`foot_r_rot`), so the toes are over the
+    # top when they pass the front edge between frames 5 and 6 (they cut it by 40 mm; gdstudio #1221).
     c.key("foot_r_pos", 5, c.channels["foot_r_pos"].at(5) + P(0.0, -0.03, 0.06))
     c.keys(
         "foot_r_rot",

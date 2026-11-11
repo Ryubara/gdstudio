@@ -115,6 +115,16 @@ contact times. Forward 0 is the obstacle's front face.
   [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
   (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
   file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off.
+- **The legs clear the box between the keys too.** A game draws the clip 60 times a second and more, with the 24
+  keys a second joined by straight lines, so the build reads the pose 240 times a second, joined the same way, with
+  the root moved at the clip's speed: no leg joint of either mannequin more than 5 mm inside the box (0.0 in both
+  vaults), no skin more than 12 mm (0.0 in `Vault_Low`, 4.4 mm of a forearm in `Vault_High`). In `Vault_Low` the left
+  knee swings out to the right with the rolled body on frame 7, before the front face, and is 0.065 m over the top
+  where it crosses the edge (0.285 s); the lead foot is lifted with the toes up on frame 5 and its ball is 0.07 m over
+  the top at the edge. A planted palm presses up to 16.3 mm into the top between two keys and the sole of the sprint's
+  foot strike 20.8 mm into the floor, under the contact, which the build allows (20 and 25 mm).
+  `tests/assets/test_vault_clips.gd` reads the leg joints at the same rate in Godot, and the `_edge` sheet draws the
+  poses between the keys at the front edge.
 - **What the vault code has to change to play them** (kit #1037; nothing in this section changes the game). The
   clips carry the body's rise and fall themselves, in the pelvis, over the reference obstacle: the code moves the
   root level and forward at the clip's speed, and lifts it only by the difference to another height while a hand is
@@ -133,6 +143,14 @@ contact times. Forward 0 is the obstacle's front face.
   three frames), so Godot played the wrist 107 mm off the box on that frame while the build's checks in Blender read 0.
   **Seen:** gdstudio #1010, 2026-11-10 (fix: the optimizer off, the arm kept bent through the plant, and
   `tests/assets/test_vault_clips.gd`).
+- **Approach:** Check a clip against the obstacle between its keys as well, 240 times a second with the keys joined
+  as the player joins them, and key a limb that swings past an edge over the edge's height a frame before it gets
+  there. **Watch out for:** `Vault_Low`'s left knee was before the front face and under the top on frame 7 and past
+  it and over the top on frame 8, both keys clear; on the frames a game draws between them it was 60 mm inside the
+  wall (the skin 76 mm), and the lead foot's toes 40 mm between frames 5 and 6. The knee's pole pointed forward
+  while the ankle passed behind the hip, so the knee hung down and whipped forward in one frame. **Seen:** gdstudio
+  #1221, 2026-11-11 (found by #1037's test in the game; fix: `check_between` in `build_vault.py`, the knee keyed out
+  beside the rolled body on frame 7, the lead foot lifted on frame 5).
 - **Approach:** Animate a vault from the planted arm. Decide where the body's centre of mass is on every frame (a
   free fall's arc in the air; on the hand, a rise that ends faster than gravity alone would leave it) and key the
   pelvis from that. Let the arm show it: the elbow bent with the shoulder low over the hand, the arm straight and

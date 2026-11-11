@@ -91,7 +91,9 @@ The build checks, on every frame and on the skinned mesh, before it exports: the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
 clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
-([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
+([Keyframes](#keyframes); 5 mm allowed). It reads the legs and the skin against the obstacle **between the keys**
+as well, ten times a frame, since two keys that are clear of an edge say nothing of the path between them. It also
+checks what the body does between its contacts: its centre of mass
 on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
 an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
 together with no leg astride, folded shut, snapped or held
@@ -142,6 +144,14 @@ together with no leg astride, folded shut, snapped or held
   `spine_01`, which read the rest pose as 87 mm of chest in thigh. **Seen:** gdstudio #1016, 2026-11-10 (fix:
   `limb_overlap.py` closes the rims; its `--self-test` reads 0 on the rest pose and a crossing on swung legs).
 
+- **Approach:** Measure a clip against what it must not touch between its keys, as a game draws it: set every baked
+  key's interpolation to `LINEAR` (a loop over the action's curves after the last `keyframe_insert`), then
+  `scene.frame_set(whole, subframe=part)` ten times a frame with the root moved to that time, and read each joint of
+  every mannequin and the skin (`check_between` in `build_vault.py`), a planted hand's own skin with a limit of its
+  own. **Watch out for:** a check on whole frames passes a limb that crosses an edge between two keys (a knee 60 mm
+  inside a wall); Blender joins a script's new keys with Bezier curves whatever the preference
+  `keyframe_new_interpolation_type` says; a planted palm sinks 16 mm into the top between keys that read 4 mm.
+  **Seen:** gdstudio #1221, 2026-11-11 (`Vault_Low`; the build asserts that every key is linear).
 - **Approach:** Let a planted hand pull the pelvis toward itself when the arm cannot reach, smooth that pull over a
   few frames, and keep the planted arm a little bent (0.94 of its length) so the arm takes up what the smoothing
   leaves. **Watch out for:** a pull applied only on the frames that needed it moved the body 30 to 45 mm for single
