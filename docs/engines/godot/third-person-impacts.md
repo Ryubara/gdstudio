@@ -23,7 +23,9 @@ grenade or a ray gun reuses it.
   `ImpactSurface` with `surface_name`, `leaves_mark` (off for the target's board, which tips over), `mark_material`
   (empty: the `Impacts`'), `mark_scale` and `effect`, an `EffectDef` (a one-shot `CPUParticles3D` scene and a
   three-variant `sound` on `SFX`) that the level's `EffectEmitter` plays ([Effects](third-person-template.md#effects));
-  its `max_instances` is how many hits of the surface can show and sound at once. Add a node and a name for a new
+  its `max_instances` is how many hits of the surface can show and sound at once. The slot plays the sound's takes
+  decoded once to PCM (`DecodedSounds`), so a hit's sound starts in a few microseconds, not the 300 of an Ogg take
+  ([Audio: starting sounds](audio.md#starting-sounds)). Add a node and a name for a new
   surface (`glass`, `flesh`); the default is what a hit gets when the body says nothing or says a name no surface has.
 - **Which surface a body is.** The metadata `surface` on the body or any node above it (Inspector, Node, Metadata,
   Add: a name), or a group of that name; the nearest wins. `physics_prop.tscn` says `wood`,
