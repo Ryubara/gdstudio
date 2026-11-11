@@ -29,7 +29,7 @@ a headless process does not spin; the step is `physics_ticks_per_second` (60, pi
 
 | Message in | Answer |
 | --- | --- |
-| HELLO of a version `NetWire.accepts` refuses (outside `MIN_VERSION` to `VERSION`, both 3 since the weapon presses, #887) | `REFUSED(version)`, then the close after the listener's linger |
+| HELLO of a version `NetWire.accepts` refuses (outside `MIN_VERSION` to `VERSION`, both 4 since the shots, #906) | `REFUSED(version)`, then the close after the listener's linger |
 | HELLO whose world hash is not `NetServer.world_hash` | `REFUSED(world)` |
 | HELLO with every slot of `max_players` held | `REFUSED(full)` |
 | HELLO otherwise | the lowest free slot (0 is the first; the codec carries 0 to 7), a body, `WELCOME` (slot, tick rate, the server tick, the world hash, every player with its name), and a `joined` event to everyone else |
@@ -59,7 +59,8 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
   slides the body (`SLIDE`, 12), a jump pressed in front of a wall that carries a `Vaultable` vaults it (`VAULT`, 13) or
   climbs onto it (`MANTLE`, 14), and the weapon presses (flag bits 11 to 14: reload, next, previous, the empty hands)
   switch and reload the body's `WeaponLoadout`, all through `step` (`test_net_server_moves.gd`). TICKs carry the state,
-  never the weapon held or its ammunition: that is the shots' and the HUD's (#906).
+  never the weapon held or its ammunition: a SHOT names the weapon it left, and shots, hits and deaths are
+  [their own page](online-shots.md#template-shots).
 - **Spawns.** Slot n starts at the n-th enabled `SpawnPoint` of `spawn_group` (`player`) in the bodies' world, by node
   path, wrapping past the last; the spot inside the point's radius comes from a generator seeded by `spawn_seed` and the
   slot (`spawn_transform(slot)`). `SpawnPoint.pick` is random among the points free this frame, so it cannot give a

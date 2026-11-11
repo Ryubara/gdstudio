@@ -44,6 +44,9 @@ var hits := 0
 var deaths := 0
 var revives := 0
 var rejected := 0
+## Microseconds spent playing events, in all and the most one event took, by kind name.
+var spent_us := {}
+var worst_us := {}
 
 var _pending: Array[NetEvent] = []
 var _due: PackedFloat64Array = []
@@ -98,6 +101,15 @@ func clear() -> void:
 
 ## Plays one event now.
 func play(event: NetEvent) -> void:
+	var began := Time.get_ticks_usec()
+	_play(event)
+	var took := Time.get_ticks_usec() - began
+	var kind: String = str(NetEvent.Kind.find_key(event.kind)).to_lower()
+	spent_us[kind] = int(spent_us.get(kind, 0)) + took
+	worst_us[kind] = maxi(int(worst_us.get(kind, 0)), took)
+
+
+func _play(event: NetEvent) -> void:
 	match event.kind:
 		NetEvent.Kind.SHOT:
 			_play_shot(event)

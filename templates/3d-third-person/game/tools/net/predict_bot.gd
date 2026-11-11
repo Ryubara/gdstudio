@@ -172,6 +172,8 @@ func _report() -> void:
 			"deaths": _client.combat.deaths,
 			"revives": _client.combat.revives,
 			"rejected": _client.combat.rejected,
+			"spent_us": _client.combat.spent_us,
+			"worst_us": _client.combat.worst_us,
 		},
 	}
 	print("PREDICT_BOT ", JSON.stringify(line))

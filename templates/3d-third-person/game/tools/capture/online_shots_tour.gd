@@ -12,7 +12,7 @@ extends Node
 
 ## Ada stands behind `TargetB`, Bo behind her on her right, both looking toward the targets.
 const ADA_AT := Vector3(-3.0, 0.3, -10.0)
-const BO_AT := Vector3(0.5, 0.3, -6.5)
+const BO_AT := Vector3(-0.3, 0.3, -4.5)
 const VIEW := Vector2i(960, 540)
 ## The board of `TargetB` and where a body is aimed at, above its feet.
 const BOARD := Vector3(-3.0, 0.9, -15.2)
@@ -40,7 +40,7 @@ func _ready() -> void:
 	_put(_ada, ADA_AT, PI)
 	_put(_bo, BO_AT, PI)
 	_turn_camera(_ada, 0.0)
-	_turn_camera(_bo, 25.0)
+	_turn_camera(_bo, -8.0)
 	for index in 2:
 		_rig.controllers[index].plan = _plan.bind(index)
 	_show(_rig.views[0], 0, "Ada's screen (her own body, predicted)")

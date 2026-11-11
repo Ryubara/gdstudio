@@ -11,7 +11,8 @@ extends Node
 ## body steps with exactly the numbers the server reads) and sent; the body steps once with it
 ## (`Character.step`, the server's own step) and the point it reached is recorded for that number.
 ## A ping goes out `NetLimits.PING_RATE` times a second. Nothing cosmetic is sent: the server
-## hears commands only.
+## hears commands only. The server's shots, hits and deaths are played by `combat`
+## (`ClientCombat`); the player's own shots are cosmetic (`Weapon.authoritative` off).
 ##
 ## The player's own `_physics_process` is turned off while this node runs it. Its fall out of the
 ## map and a teleport go through `Player.teleport()` and reset the reconciler, so a move the
