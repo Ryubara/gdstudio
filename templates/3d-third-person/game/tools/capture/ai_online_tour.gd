@@ -94,11 +94,14 @@ func _process(_delta: float) -> void:
 		_server_camera.global_transform = camera.global_transform
 		_server_camera.fov = camera.fov
 	var dead := 0
-	for guard in _guards:
-		dead += 1 if is_instance_valid(guard) and guard.is_dead() else 0
+	for character: AiCharacter in _rig.server.ai.characters().values():
+		dead += 1 if is_instance_valid(character) and character.is_dead() else 0
+	var drawn_dead := 0
+	for id in _bo.ai_replica.ids():
+		drawn_dead += 1 if _bo.ai_replica.puppet_of(id).is_dead() else 0
 	_label.text = (
-		"Puppets on this screen: %d   AI on the server: %d   guards down: %d"
-		% [_bo.ai_replica.count(), _rig.server.ai.rows().size(), dead]
+		"AI on the server: %d (%d down)   puppets on this screen: %d (%d down)"
+		% [_rig.server.ai.rows().size(), dead, _bo.ai_replica.count(), drawn_dead]
 	)
 
 
