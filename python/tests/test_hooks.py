@@ -3,28 +3,21 @@ that it lets a call through when it breaks. Git-backed checks use throwaway repo
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from hook_support import CONFIG, HOOKS, dispatch, guards, patch
 
-HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-sys.path.insert(0, str(HOOKS))
-_spec = importlib.util.spec_from_file_location("dispatch", HOOKS / "dispatch.py")
-dispatch = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(dispatch)
-guards = dispatch.guards
-CONFIG = dispatch.load_config(None)
 REAL_IDLE_ISSUES = guards.idle_issues
 
 
 @pytest.fixture(autouse=True)
 def no_github_at_stop(monkeypatch):
     """The coordinator's Stop check asks GitHub; no test reaches it unless it says so (the `idle` fixture)."""
-    monkeypatch.setattr(guards, "idle_issues", lambda workspace, config, gh=None: [])
+    patch(monkeypatch, "idle_issues", lambda workspace, config, gh=None: [])
 
 
 REAL_START_SWEEP = guards.start_sweep
@@ -34,7 +27,7 @@ REAL_START_SWEEP = guards.start_sweep
 def no_sweep(monkeypatch):
     """No test starts the real `gds worktree sweep` (it would remove worktrees of this machine); the `sweeps` fixture
     records the starts instead."""
-    monkeypatch.setattr(guards, "start_sweep", lambda workspace, config, force=False: False)
+    patch(monkeypatch, "start_sweep", lambda workspace, config, force=False: False)
 
 
 REAL_START_DISK_GUARD = guards.start_disk_guard
@@ -45,8 +38,8 @@ FREE = {"gb": 500.0}  # the disk every test sees, unless it sets another
 def roomy_disk(monkeypatch):
     """No test starts the real `gds disk guard`, and every test sees a disk with room, whatever this machine has."""
     FREE["gb"] = 500.0
-    monkeypatch.setattr(guards, "start_disk_guard", lambda workspace, config, force=False: False)
-    monkeypatch.setattr(guards, "free_bytes", lambda path: int(FREE["gb"] * guards.GB))
+    patch(monkeypatch, "start_disk_guard", lambda workspace, config, force=False: False)
+    patch(monkeypatch, "free_bytes", lambda path: int(FREE["gb"] * guards.GB))
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +47,7 @@ def heads_hold_main(monkeypatch):
     """No test asks GitHub whether a pull request is behind its base: every head holds the tip (python/tests/
     test_merge_guard.py has the merge guard's own tests)."""
     guards.take_warnings()
-    monkeypatch.setattr(guards, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))
+    patch(monkeypatch, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))
 
 
 def shell(command: str, cwd: Path) -> dict:
@@ -473,7 +466,7 @@ def sweeps(monkeypatch, workspace):
         def __init__(self, command, **kwargs):
             started.append((command, kwargs))
 
-    monkeypatch.setattr(guards, "start_sweep", REAL_START_SWEEP)
+    patch(monkeypatch, "start_sweep", REAL_START_SWEEP)
     monkeypatch.setattr(guards.subprocess, "Popen", FakePopen)
     monkeypatch.setattr(guards.shutil, "which", lambda name: "/bin/uv")
     return started
@@ -505,7 +498,7 @@ def test_a_long_log_is_moved_aside(sweeps, workspace):
 
 def test_session_start_merge_and_stop_start_the_sweep(monkeypatch, workspace):
     calls = []
-    monkeypatch.setattr(guards, "start_sweep", lambda ws, config, force=False: calls.append(force))
+    patch(monkeypatch, "start_sweep", lambda ws, config, force=False: calls.append(force))
     context("SessionStart", workspace)
     context("PostToolUse", workspace, tool_name="Bash", tool_input={"command": "gh pr merge 7 --squash"})
     context("PostToolUse", workspace, tool_name="Bash", tool_input={"command": "gh pr view 7"})
@@ -572,7 +565,7 @@ def test_helpers_and_reviewers_need_no_issue(workspace):
 
 def test_work_on_an_existing_pull_request_names_it(workspace, monkeypatch):
     states = {"7": "OPEN", "8": "MERGED", "9": "MISSING", "10": None}
-    monkeypatch.setattr(guards, "pr_state", lambda repo, number: states[number])
+    patch(monkeypatch, "pr_state", lambda repo, number: states[number])
     assert (
         denied(agent_call(workspace, "godot-engineer", "Resolve the conflicts.\nPR: Ryubara/deadnight#7" + READ)) == ""
     )
@@ -584,7 +577,7 @@ def test_work_on_an_existing_pull_request_names_it(workspace, monkeypatch):
 
 
 def test_a_pull_request_line_does_not_stand_in_for_an_unstarted_issue(workspace, monkeypatch):
-    monkeypatch.setattr(guards, "pr_state", lambda repo, number: "OPEN")
+    patch(monkeypatch, "pr_state", lambda repo, number: "OPEN")
     prompt = "PR: Ryubara/deadnight#7\nIssue: Ryubara/deadnight#523"
     assert "Ryubara/deadnight#523 was not started" in denied(agent_call(workspace, "godot-engineer", prompt))
 
@@ -633,7 +626,7 @@ def test_read_lines_are_not_asked_of_helpers_the_reviewer_or_when_switched_off(w
 
 def test_read_lines_need_only_their_form_when_the_kit_cannot_be_loaded(workspace, monkeypatch):
     start_in_ledger(workspace, "Ryubara/deadnight#523")
-    monkeypatch.setattr(guards, "lessons_module", lambda kit: None)
+    patch(monkeypatch, "lessons_module", lambda kit: None)
     assert denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523\nRead: x.md#y")) == ""
     assert "names none" in denied(agent_call(workspace, "godot-engineer", "Issue: Ryubara/deadnight#523"))
 
@@ -733,7 +726,7 @@ def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace
     tree = _kit_worktree(workspace, "docs-a", 2)
     _kit_worktree(workspace, "docs-b", 1)
     _kit_worktree(workspace, "docs-c", 0)  # nothing ahead: nothing to publish
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-b": ""})  # b has a pull request
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-b": ""})  # b has a pull request
     out = dispatch.answer(stop_payload(tree), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"] and "docs-b" not in out["reason"]
     assert "docs-c" not in out["reason"] and "open its pull request now" in out["reason"]
@@ -742,9 +735,9 @@ def test_stop_holds_back_kit_branches_with_commits_and_no_pull_request(workspace
 
 def test_stop_lets_go_when_every_branch_has_a_pull_request_or_github_is_unreachable(workspace, monkeypatch):
     _kit_worktree(workspace, "docs-a", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-a": ""})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-a": ""})
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: a guard that cannot look lets go
+    patch(monkeypatch, "kit_pr_heads", lambda repo: None)  # cannot ask: a guard that cannot look lets go
     assert dispatch.answer(stop_payload(workspace), CONFIG) is None
 
 
@@ -762,7 +755,7 @@ def _two_agents(workspace: Path, monkeypatch) -> tuple[Path, Path]:
     """Two agents' kit worktrees with unpublished commits, and no pull request for either."""
     mine = _kit_worktree(workspace, "docs-mine", 1)
     theirs = _kit_worktree(workspace, "docs-theirs", 2)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     return mine, theirs
 
 
@@ -845,7 +838,7 @@ def _squash_merged_worktree(workspace: Path, name: str) -> tuple[Path, str]:
 
 def test_stop_names_a_commit_pushed_to_a_branch_after_its_pull_request_merged(workspace, monkeypatch):
     tree, tip = _squash_merged_worktree(workspace, "docs-late")
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": tip})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-late": tip})
     assert dispatch.answer(stop_payload(tree), CONFIG) is None  # only its squashed commits: nothing is lost
     (tree / "late.md").write_text("a second lesson", encoding="utf-8")
     for args in (["add", "late.md"], ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "late"]):
@@ -855,9 +848,9 @@ def test_stop_names_a_commit_pushed_to_a_branch_after_its_pull_request_merged(wo
     assert "after their pull request merged" in out["reason"] and "cherry-pick" in out["reason"]
     assert "no pull request" not in out["reason"]
     assert dispatch.answer(stop_payload(tree, stop_hook_active=True), CONFIG) is None
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-late": ""})  # an open pull request covers it
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-late": ""})  # an open pull request covers it
     assert dispatch.answer(stop_payload(tree), CONFIG) is None
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: None)  # cannot ask: let go
+    patch(monkeypatch, "kit_pr_heads", lambda repo: None)  # cannot ask: let go
     assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
@@ -876,7 +869,7 @@ def test_a_late_commit_already_on_main_by_patch_id_is_not_named(workspace, monke
     run("cherry-pick", "docs-moved")  # the same change landed on main through a new pull request
     run("update-ref", "refs/remotes/origin/main", "HEAD")
     run("switch", "-q", "docs-moved")
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-moved": tip})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-moved": tip})
     assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
@@ -902,7 +895,7 @@ def test_a_late_commit_squashed_with_others_into_main_is_not_named(workspace, mo
         ["git", "-C", str(tree), "cherry", "origin/main", "HEAD", tip], capture_output=True, text=True
     ).stdout
     assert cherry.startswith("+ ")  # by patch id alone it would still look stranded
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {"docs-rescued": tip})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {"docs-rescued": tip})
     assert dispatch.answer(stop_payload(tree), CONFIG) is None
 
 
@@ -936,7 +929,7 @@ READ_REPORT = "\n\nRead: studio/hooks.md#docs, studio/starting-work.md#starting-
 
 
 def test_a_report_of_finished_work_names_what_was_read_and_the_gaps(workspace, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     bare = "Done: https://github.com/Ryubara/deadnight/pull/412\n\nMistakes: none"
     out = dispatch.answer(subagent_stop_payload(workspace, bare), CONFIG)
     assert out["decision"] == "block" and "`Read: <page>.md#<anchor>, ...`" in out["reason"]
@@ -956,7 +949,7 @@ def test_a_report_of_finished_work_names_what_was_read_and_the_gaps(workspace, m
 
 
 def test_an_agent_may_not_finish_with_mistakes_and_no_section(workspace, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     out = dispatch.answer(subagent_stop_payload(workspace, MISTAKES_REPORT), CONFIG)
     assert out["decision"] == "block" and "names no topic section that your kit branch updates" in out["reason"]
     assert "Mistakes: none" in out["reason"] and "gds learn" in out["reason"]
@@ -981,7 +974,7 @@ def _page_on_branch(workspace: Path, page: str, text: str) -> Path:
 def test_a_named_section_the_branch_edits_satisfies_the_report(workspace, monkeypatch):
     """The rule was written into the section (gdstudio #769): the report names it as page.md#anchor, a kit worktree has
     that anchor, and its branch changes the page against origin/main. An old lesson file no longer counts."""
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     report = MISTAKES_REPORT + "\n\nRule: docs/engines/godot/web-export.md#imports (kit PR #120)" + READ_REPORT
     assert "names no topic section" in dispatch.answer(subagent_stop_payload(workspace, report), CONFIG)["reason"]
     rule = "\n- **Approach:** x. **Watch out for:** y. **Seen:** Deadnight #1, 2026-11-07.\n"
@@ -1025,13 +1018,13 @@ def test_helpers_and_the_reviewer_may_finish_with_mistakes(workspace):
 
 def test_an_agent_with_unpublished_kit_docs_may_not_finish(workspace, monkeypatch):
     tree = _kit_worktree(workspace, "docs-a", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     out = dispatch.answer(subagent_stop_payload(tree, "Done. Mistakes: none"), CONFIG)
     assert out["decision"] == "block" and "docs-a" in out["reason"]
 
 
 def test_the_report_falls_back_to_the_transcript(workspace, tmp_path, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     transcript = tmp_path / "agent.jsonl"
     lines = [
         {"message": {"role": "user", "content": "go"}},
@@ -1194,7 +1187,7 @@ def test_local_image_references_are_told_from_uploads():
 
 def test_a_pull_request_opened_with_local_images_is_named_at_once(monkeypatch):
     """The path the guard before the command cannot see: the body that reached GitHub is read back."""
-    monkeypatch.setattr(guards, "local_images_in", lambda url: ["![before](./before.png)"])
+    patch(monkeypatch, "local_images_in", lambda url: ["![before](./before.png)"])
     commands = [
         "gh pr create --repo Ryubara/deadnight --body-file b.md --attach a.png 2>&1 | tail -5",
         "gh pr edit 637 --body-file b.md",
@@ -1210,10 +1203,10 @@ def test_a_pull_request_opened_with_local_images_is_named_at_once(monkeypatch):
 
 def test_a_clean_description_or_an_unrelated_command_says_nothing(monkeypatch):
     asked = []
-    monkeypatch.setattr(guards, "local_images_in", lambda url: asked.append(url) or [])
+    patch(monkeypatch, "local_images_in", lambda url: asked.append(url) or [])
     assert dispatch.answer(after("gh pr create --attach a.png", PR_URL), CONFIG) is None
     assert asked == [PR_URL]
-    monkeypatch.setattr(guards, "local_images_in", lambda url: ["![x](./x.png)"])
+    patch(monkeypatch, "local_images_in", lambda url: ["![x](./x.png)"])
     assert dispatch.answer(after("gh pr view 637", PR_URL), CONFIG) is None  # a read prints the address too
     assert dispatch.answer(after("gh pr create --attach a.png", "no address printed"), CONFIG) is None
     off = {**CONFIG, "attach": {"readback": False}}
@@ -1247,7 +1240,7 @@ def stall_answer(workspace: Path, report: str, **extra):
 
 
 def test_a_transcript_ending_on_an_announced_step_is_refused(workspace, tmp_path, monkeypatch):
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     payload = {"hook_event_name": "SubagentStop", "cwd": str(workspace), "agent_type": "godot-engineer"}
     transcript = write_transcript(tmp_path / "agent.jsonl", STALLED)
     out = dispatch.answer({**payload, "agent_id": "a1", "agent_transcript_path": str(transcript)}, CONFIG)
@@ -1343,7 +1336,7 @@ def test_nothing_to_judge_or_no_workspace_lets_the_end_through(workspace, tmp_pa
 
 def test_a_stall_and_unpublished_docs_come_back_together(workspace, monkeypatch):
     tree = _kit_worktree(workspace, "docs-b", 1)
-    monkeypatch.setattr(guards, "kit_pr_heads", lambda repo: {})
+    patch(monkeypatch, "kit_pr_heads", lambda repo: {})
     reason = stall_answer(workspace, STALLED, cwd=str(tree))["reason"]
     assert "without a report" in reason and "docs-b" in reason
     again = stall_answer(
@@ -1391,7 +1384,7 @@ def idle(monkeypatch):
         state.asked += 1
         return list(state.found)
 
-    monkeypatch.setattr(guards, "idle_issues", look)
+    patch(monkeypatch, "idle_issues", look)
     return state
 
 
@@ -1500,7 +1493,7 @@ PAUSES: dict[str, str] = {}  # what the hook's issues module reads as paused (th
 
 @pytest.fixture()
 def one_repository(monkeypatch):
-    monkeypatch.setattr(guards, "workspace_repositories", lambda kit: [(DEADNIGHT, "deadnight")])
+    patch(monkeypatch, "workspace_repositories", lambda kit: [(DEADNIGHT, "deadnight")])
     PAUSES.clear()
     monkeypatch.setattr(guards.issues_module(guards.KIT), "paused_repositories", lambda kit: dict(PAUSES))
 
@@ -1654,7 +1647,7 @@ def test_the_disk_guard_starts_in_the_background_and_is_throttled(monkeypatch, w
         def __init__(self, command, **kwargs):
             started.append(command)
 
-    monkeypatch.setattr(guards, "start_disk_guard", REAL_START_DISK_GUARD)
+    patch(monkeypatch, "start_disk_guard", REAL_START_DISK_GUARD)
     monkeypatch.setattr(guards.subprocess, "Popen", FakePopen)
     monkeypatch.setattr(guards.shutil, "which", lambda name: "/bin/uv")
     assert guards.start_disk_guard(workspace, CONFIG) is True
@@ -1883,5 +1876,5 @@ def test_the_comment_guard_covers_both_shell_tools(tmp_path, tool):
 
 @pytest.mark.parametrize("command", ALLOWED_COMMANDS)
 def test_what_is_not_a_comment_keeps_working(tmp_path, monkeypatch, command):
-    monkeypatch.setattr(guards, "held", lambda target, repo, cwd: False)
+    patch(monkeypatch, "held", lambda target, repo, cwd: False)
     assert denied(shell(command, tmp_path)) == ""
