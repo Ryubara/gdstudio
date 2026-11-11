@@ -92,8 +92,9 @@ on a `HudStat` the Data (`source`, `value_property`, `max_property`, `extra_prop
 (`title`, `show_title`, `show_bar`, the three formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the
 `separator`. The ammo part reads the weapon's `ammo`, `magazine_size` and, as its `extra_property`, `reserve`, shown
 `magazine | reserve` (`extra_format`), and hides for the fists, whose definition has no magazine ([Ammo, reloading and
-switching](shooting.md#weapons)); the player has no health yet, so that part stays hidden until the hit zones (#876)
-make `health`/`max_health` exist, and `tools/capture/hud_tour.tscn` shows it fed by a stand-in.
+switching](shooting.md#weapons)); the health part reads the character's `health` and `max_health`, which come from
+its `Health` child (since #876, a component since #925), and stays hidden on a character without one;
+`tools/capture/hud_tour.tscn` can still feed it from a stand-in.
 
 Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
 HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
