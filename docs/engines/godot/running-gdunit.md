@@ -53,7 +53,8 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   first. **Seen:** gdstudio #881, 2026-11-10 (`var before := ...` in four menu suites; `was` instead); gdstudio #924,
   2026-11-10 (once more, a camera distance named `before`); gdstudio #887, 2026-11-10 (a health read before a shot);
   gdstudio #1013, 2026-11-10 (a helper's parameter `before := 0.9`, the distance to press jump at, written after
-  reading this entry: grep a new suite for `before` and `after` used as names before its first run).
+  reading this entry: grep a new suite for `before` and `after` used as names before its first run); gdstudio #904,
+  2026-11-10 (`before` and `after` again in two server suites: `ticks_before`, `later`).
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
