@@ -99,3 +99,4 @@ passing tests. Each rule names the concept nobody planned for and the detail tha
 | 2026-11-05 | Deadnight #1275 to #1280 | The phone interface was the desktop with touch buttons, not its own design, with duplicate controls | [engines/godot/ui-controls.md#touch-controls](../../engines/godot/ui-controls.md#touch-controls) |
 | 2026-11-05 | Deadnight #1277 | Every button on the right side of a phone screen should still look around while it is held | [engines/godot/ui-controls.md#touch-controls](../../engines/godot/ui-controls.md#touch-controls) |
 | 2026-11-05 | Deadnight #1278 | A weapon at 0 rounds should reload by itself; aimed auto-fire on a phone did not | [gamedev/controller.md#states](../../gamedev/controller.md#states) |
+| 2026-11-11 | gdstudio #1126 | A ragdolled body pushed along by a moving object looked blurred and juddering, like the character controller before its camera blend | [engines/godot/ragdoll.md#drawing](../../engines/godot/ragdoll.md#drawing) |
