@@ -14,7 +14,10 @@ Godot 4.7.2, Godot Physics and Jolt, on both mannequins.
 
 A ragdoll is a `PhysicalBoneSimulator3D` under the `Skeleton3D` with one `PhysicalBone3D` per bone that moves. The
 simulator is the only node that needs to exist while the character lives: with `active` off it costs nothing, and
-`physical_bones_start_simulation()` hands the skeleton to the bodies.
+`physical_bones_start_simulation()` hands the skeleton to the bodies. A bone that has never simulated keeps the
+collision layer it was made with in the physics server (the engine zeroes it only when a bone stops), so it sits in
+the world as a static body: zero the layer and mask of every bone not simulating
+([Shots meet ragdoll bones](physics-layers.md#shots-meet-bones), gdstudio #876).
 
 - **Approach:** Make every bone's `joint_offset` first, then put every body where its joint is to rest (a cone's centre,
   the middle of a hinge's range) in global space, and set the `joint_type` last, bone by bone. **Watch out for:** in

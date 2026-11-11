@@ -35,6 +35,14 @@ FREEZES = "8:500,16:2000,24:5000"
 # steps (67 ms) absorbs and a server without it turns into repeated commands (the hold's teeth on any machine: without
 # jitter a Linux runner's two processes drifted so little that the run without the hold read 2.4 m, against 0.7 m).
 JITTER_MS = 30.0
+# The client circles the spawn dais's flat top (8 m square round the map's origin, 1 m high), running, never across its
+# edge. The walk round the spawn (2 m from the west edge, 3 m, sprinting every other lap) reached 5.4 m out: a command
+# repeated in an up stall walked the server's body off the edge while the client's stayed up, and each quarter of the
+# correction put the client inside the dais, which pushed it back on top, so the two fought for seconds (141 m of
+# corrections in one local run; 75.5 m, and 1.65 m apart after standing, on the runner; gdstudio #1110, #1119).
+WALK_CENTRE = "0,0"
+WALK_RADIUS_M = 2.0
+WALK_LAP_S = 3.5
 SETTLE_S = 2.0
 START_TIMEOUT_S = 60.0
 # name: (the client's freezes, the relay's stall chance; None takes --stall-chance)
@@ -130,8 +138,19 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
             bots = start(godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), out / "bots.log")
             time.sleep(3.0)
         client_args = ["--connect", client_url, "--seconds", str(args.seconds), "--freeze", freeze]
+        client_args += [
+            "--centre",
+            WALK_CENTRE,
+            "--radius",
+            str(WALK_RADIUS_M),
+            "--lap",
+            str(WALK_LAP_S),
+            "--no-sprint",
+        ]
         if args.broken == "reconciler":
             client_args += ["--break", "reconciler"]
+        if relay is not None:
+            result["client_started_s"] = round(time.perf_counter() - relay.began, 3)
         client = start(
             godot_cmd(args.godot, project, "res://tools/net/predict_bot.gd", *client_args), out / "client.log"
         )
@@ -157,6 +176,7 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
     )
     if relay is not None:
         result["relay"] = relay.counts()
+        result["relay_stalls"] = relay.stall_log
     judge_client(report, network, verdict)
     client_errors = errors_in(out / "client.log")
     verdict.check("no ERROR in the client's log", not client_errors, client_errors)
@@ -169,6 +189,22 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
     return verdict, result
 
 
+def worst_seconds(result: dict, count: int = 5) -> list[str]:
+    """The seconds of a run that corrected most, each with its snaps, its gap and the relay's stalls near it (on the
+    relay's clock less the client's start, so a stall may read a second or two late: the client's boot and join)."""
+    seconds = result.get("client", {}).get("by_second", [])
+    stalls = result.get("relay_stalls", [])
+    start = result.get("client_started_s", 0.0)
+    lines = []
+    for entry in sorted(seconds, key=lambda e: -e["corrected_m"])[:count]:
+        near = [f"{way}@{t - start:.1f}" for t, way in stalls if entry["s"] - 1 <= t - start <= entry["s"] + 3]
+        lines.append(
+            f"s={entry['s']} corrected={entry['corrected_m']} snaps={entry['snaps']} gap={entry['gap_m']}"
+            f" stalls={' '.join(near) or '-'}"
+        )
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--godot", required=True, help="the pinned Godot (console build on Windows)")
@@ -179,7 +215,7 @@ def main() -> int:
     parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
     parser.add_argument("--stall-chance", type=float, default=0.01, help="chance a relayed chunk stalls (stalls run)")
     parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
-    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls and the jitter")
+    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls and the jitter (each way its own)")
     parser.add_argument("--jitter-ms", type=float, default=JITTER_MS, help="up to this much more delay a chunk")
     parser.add_argument("--seconds", type=int, default=30, help="seconds the client walks")
     parser.add_argument("--bots", type=int, default=3, help="bots that give the client puppets")
@@ -202,6 +238,9 @@ def main() -> int:
         verdict.print(f"[{name}] ")
         if "relay" in result:
             print(f"RELAY [{name}] {result['relay']}", flush=True)
+        if not verdict.passed:
+            for line in worst_seconds(result):
+                print(f"WORST [{name}] {line}", flush=True)
         results.append(result)
         failures += [f"{name}: {f}" for f in verdict.failures()]
     passed = not failures

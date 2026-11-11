@@ -1,11 +1,11 @@
 """What starting a shot or an impact sound costs in the web build: runs `tools/bench/sound_start_bench.tscn` in Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), opens it in headless Chrome with sound allowed to start without a click, waits for
-`window.__sound_start_bench` and prints each case's microseconds a start. It also counts the sounds the page handed
-the browser as samples (`createBufferSource`: a lone WAV or Ogg plays as a sample, a randomizer as a stream that
-Godot mixes itself) and the loudest sample that reached the output
-(an `AnalyserNode` between the page and the speakers), so a cheap start that plays nothing shows as silence.
+Serves a web export of the bench (`gds template bench-web 3d-third-person sound_start_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), opens it in headless Chrome with sound allowed to start without a click,
+waits for `window.__sound_start_bench` and prints each case's microseconds a start. It also counts the sounds the page
+handed the browser as samples (`createBufferSource`: a lone WAV or Ogg plays as a sample, a randomizer as a stream that
+Godot mixes itself) and the loudest sample that reached the output (an `AnalyserNode` between the page and the
+speakers), so a cheap start that plays nothing shows as silence.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/sound_start_bench.py build/web

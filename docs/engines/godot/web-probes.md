@@ -44,6 +44,14 @@ command is the same there (off Windows it starts the program normally).
   Chrome of the same account, so a headless session answers "Browser extension is not connected"; a gamepad cannot be
   injected this way. **Seen:** Deadnight, 2026-11-01 (fix: direct protocol, no package downloaded; the GPU still
   works through ANGLE).
+- **Approach:** Before blaming the desktop for a GPU page that stalls in its first seconds, time its WebGL calls from
+  an init script (wrap each `WebGL2RenderingContext.prototype` method, keep the calls over 50 ms) and measure a warm
+  browser, one that played the game once. **Watch out for:** a cold Chrome on ANGLE's Direct3D 11 blocked the page
+  21 s in `getProgramParameter` (Godot reads each link at once; 171 programs) where SwiftShader took 0.3 s, and a probe
+  whose socket opened meanwhile was hung up for a missing hello, which read as the private desktop starving the page.
+  Fresh Playwright browsers are always cold: a GPU probe plays a warm-up page first (`online.py --warm-up`). The
+  headless shell with `--enable-gpu` does draw on the GPU. **Seen:** gdstudio #1117, 2026-11-11 (a player's cold
+  first join: #1137).
 
 ## The boot check every template runs {#boot-check}
 
@@ -219,3 +227,30 @@ calibrated on that spread, and what it cannot see needs a count that does not mo
   28 runs it was set from already had it, and the decode is about 4 s of 40 against a spread of 2.2 to 4.6, so a ratio
   absorbs the runner's speed, not a small real cost. **Seen:** Deadnight #873, 2026-11-03; Deadnight #828, 2026-11-03
   (fix: the gate catches about an 80 % growth; `test_load_cost.gd` caps seconds decoded behind the bar).
+
+## A bench's web export {#bench-web}
+
+<!-- new section: every bench under a template's tools/bench/ repeated in its header how to put it in a web build, and
+each bench author worked it out again (#963, #1059, #1062) -->
+
+A template's benches (`tools/bench/<name>.tscn`, most with a `<name>.py` that reads the result in Chrome) measure in
+the web build what the desktop numbers cannot. The web build starts the menu and leaves `tools/*` out of the pack, so a
+bench runs from a throwaway game, and one command makes it, from your worktree:
+
+```text
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench --run --probe-args=4
+```
+
+It makes the game from the working tree's template in a workspace of its own (as `gds template game`, see
+[Proving a new game](new-game.md#proof)), sets `run/main_scene` in its `project.godot` to the bench, takes `tools/*` out
+of the Web preset's `exclude_filter` (the tests and addons stay out), exports with the pinned Godot
+(`--export-release Web`, failing on an `ERROR` line; an export whose only error is the at-exit leak runs once more, as
+CI does) and prints the build's folder, the game and the probe's command. The bench is named by its name, its
+`tools/bench/<name>.tscn` path or its `res://` path. Without `--run` the game is kept (`gds template clean <path>` when
+done); with `--run` the bench's `<name>.py` reads the build under `gds quiet` (`--probe-args` after the build folder: 4
+is the weak-machine throttle) and the game is removed unless `--keep`, the exit code the probe's. Nothing in the
+template changes. Its tests are `python/tests/test_bench_web.py` (the edits on the real template files, a fake Godot).
+
+Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
+headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).

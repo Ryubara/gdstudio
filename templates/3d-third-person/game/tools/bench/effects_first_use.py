@@ -1,15 +1,14 @@
 """The first flash, its light and the first impact in the web build: no GL program is linked once the level is up.
 
-Serves a web export of `tools/bench/effects_cost.tscn` (export the project with that scene as `run/main_scene` and
-`tools/*` taken out of the preset's exclude filter), opens it in headless Chrome on the GPU with a fresh profile, and
-counts the programs WebGL links (`linkProgram`, timed at the `LINK_STATUS` read that follows it) in each run the bench
-marks. The `warm_up` mark is the level's start, the emitter's warm-up included; every later run (nothing fired, the
-flash, its light, the impacts, at 4 and 30 shots a second) must link none: a program linked there stops that frame,
-for 65 to 190 ms before kit #946. The last two runs walk into the room with a reflection probe of its own and fire
-there: 2 and 3 to 4 programs (frames of 120 to 157 and 64 to 87 ms) before the emitter's probe tour (kit #981). It
-prints each run's length (`run_ms`; the `warm_up` row's is the level's start), its programs, their milliseconds,
-the slowest of its first frames (`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second
-argument.
+Serves a web export of `tools/bench/effects_cost.tscn` (`gds template bench-web 3d-third-person effects_cost` makes it:
+kit docs/engines/godot/web-probes.md#bench-web), opens it in headless Chrome on the GPU with a fresh profile, and counts
+the programs WebGL links (`linkProgram`, timed at the `LINK_STATUS` read that follows it) in each run the bench marks.
+The `warm_up` mark is the level's start, the emitter's warm-up included; every later run (nothing fired, the flash, its
+light, the impacts, at 4 and 30 shots a second) must link none: a program linked there stops that frame, for 65 to 190
+ms before kit #946. The last two runs walk into the room with a reflection probe of its own and fire there: 2 and 3 to 4
+programs (frames of 120 to 157 and 64 to 87 ms) before the emitter's probe tour (kit #981). It prints each run's length
+(`run_ms`; the `warm_up` row's is the level's start), its programs, their milliseconds, the slowest of its first frames
+(`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second argument.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/effects_first_use.py build/web build/first_use.json
