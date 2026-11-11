@@ -40,6 +40,11 @@ minutes). How it is started decides what it can build.
   markers, the first also occurred earlier, so `s[:a] + new + s[b:]` with `b < a` copied half the file twice; two
   ten-minute soaks printed `Could not resolve class "SoakWatch"` and were read only when they ended. **Seen:**
   Deadnight, 2026-11-03 (fix: the splice was rewritten from the intact copy).
+- **Approach:** In a `SceneTree` tool that builds nodes which start work in `_ready` (a server that listens, a client
+  that joins), add them in `_initialize` and start the run from a coroutine whose first line is `await process_frame`.
+  **Watch out for:** the root enters the tree after `_initialize`, so a `NetServer` added and asked `is_listening()` at
+  once had not run its `_ready`: the soak reported "the server did not listen" with no error in the log. **Seen:**
+  gdstudio #1071, 2026-11-11 (`tools/net/soak.gd` `_run`).
 
 ## Processes a probe starts {#processes}
 

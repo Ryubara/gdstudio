@@ -189,3 +189,68 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (`gds_ui`, `gds_game`, Phantom Camera), so the image built, the deployment read `SUCCESS`, and the server failed to
   parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
   deployment from the made game listened on `$PORT` at once).
+
+## The long proofs: unread client, hostile cost, soak, bandwidth {#soak-and-bandwidth}
+
+<!-- new section: the gate above is 30 s runs; nothing held the proofs that need a minute or ten (a client that stops
+     reading, the hostile clients' cost, the soak, bytes per player) or the choices made where #908 asked the
+     impossible -->
+
+The rest of gdstudio #908 (gdstudio #1071), and what was chosen where #908 asked for what no client can pass: the
+1 % of stalled chunks of [the gate](#bad-network-gate) stays (2 % starve 40 % of the steps at a 100 ms delay, measured
+there), and the 60 s unread client is a client whose downlink stalls while it still sends (below). Windows, Godot
+4.7.2, 2026-11-11, other agents using the machine.
+
+- **The unread client** (`tests/gameplay/test_net_server_unread.gd`, the template job): eight players, one of them
+  behind `tests/fixtures/tcp_relay.gd`, which stops reading the server's side for 60 s of the frame clock while the
+  client still sends; a ninth join's churn (a `left` and a `joined` every 5 s) owes it 24 events. After the stall it has
+  every event once, in order, TICKs in order and of all eight, and the server never hung up on it. On loopback the
+  sockets held the whole minute (228 KB through the relay, no send refused), so a second case makes the listener refuse
+  every send to that peer (as a full `outbound_buffer` does): 1811 sends refused, `peers_stalled` in seven `stats`
+  lines, and still every event. Taking out "the events wait" (`sent_events` called on a refused TICK) loses 22 of
+  the 24 events. In the browser, `tools/web_smoke/net_play_smoke.py --unread 60 --bots 7` (a workstation run) holds the
+  page's downlink 60 s while the page plays: 270 KB down, 2383 TICKs read of the 2340 sent (none lost), 3646 steps of
+  starved puppets (the stall itself), settled 1.8 mm, no `Buffer payload full`, nobody kicked.
+- **The hostile cost** (`tests/gameplay/test_net_server_hostile_cost.gd`): the honest player beside a stream of hostile
+  clients (a flood, junk sizes and types, a packet over 4 KB, a lying `seq`, a second hello, a socket that never reads),
+  each hung up on and the next connecting at once, against windows with two polite players in the same seats (a seated
+  hostile's body costs a player's step: against the honest player alone the median read twice the baseline). Three
+  rounds of 300 frames: median step 0.28 to 0.35 ms hostile against 0.35 to 0.39 ms quiet, 95th percentile under 4 ms,
+  54 hostile clients, 36 of them kicked. With the command rate limit taken out the flood is never hung up on: median
+  2.9 ms against 0.32 ms.
+- **The soak** (`tools/net/soak.gd`; `.github/workflows/net-soak.yml`, nightly, by hand, and on a pull request that
+  changes it): the server and two predicting clients of `OnlineRig` over real sockets, ten game minutes at
+  `--fixed-fps 60` in 69 s of wall time; each client walks 1040 to 1217 m; every 300 ticks, once both stood a second,
+  each body is 0.0 mm from the server's and every solid thing is in both worlds (`tests/fixtures/world_parity.gd`, the
+  same comparison as `test_world_parity.gd`); no correction, snap or loss; memory 204 KB more after the first minute,
+  no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
+  (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
+- **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
+  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+
+| Players | Down a client | Up a client |
+| ---: | ---: | ---: |
+| 2 | 1140 B/s | 1286 B/s |
+| 4 | 1857 B/s | 1286 B/s |
+| 8 | 3298 B/s | 1286 B/s |
+
+  Up is the same at any count: 60 commands a second of 15 bytes and the WebSocket frame's 6 (a client's frames are
+  masked), and two pings.
+
+- **Approach:** Test a client that stops reading by stalling its downlink and nothing else (a relay that stops reading
+  the server's side), and keep "the client stopped sending" for the silence rule. **Watch out for:** #908 asked for a
+  60 s unread client while the server hangs up on 15 s without a command: a frozen client stops both, so the server
+  rightly drops it at 15 s (`test_net_server_silence.gd`); the one that can be unread for a minute still sends, and
+  Godot's `WebSocketLink` sends only when polled, so the stall has to be made under the socket, not by not polling.
+  **Seen:** gdstudio #1071, 2026-11-11 (`TcpRelay.hold_down`, `Relay.hold_down`).
+- **Approach:** Prove a full send buffer with a listener that refuses sends to one peer, and report what the real
+  sockets held. **Watch out for:** on Windows loopback the sockets under a 16 KB `outbound_buffer` took the whole minute
+  of eight players (some 230 KB) without one refused send, so a test that waits for the kernel to fill passes without
+  ever reaching the refusal path. **Seen:** gdstudio #1071, 2026-11-11 (`FullListener` in the unread suite).
+- **Approach:** Compare a server's step under hostile clients with a baseline that has as many polite players in the
+  seats the hostile ones take. **Watch out for:** a hostile client that is seated gets a body the server steps like any
+  player's, so against the honest player alone the hostile median read 0.26 ms to 0.12 ms, twice, and none of it was
+  the attack. **Seen:** gdstudio #1071, 2026-11-11 (`test_net_server_hostile_cost.gd`, the `Polite` clients).
+- **Approach:** Measure a soak's walk as the path its bodies took, summed every tick. **Watch out for:** the distance
+  between two checks of a body walking circles is a chord, under 5 m on most checks, and the first soak failed its
+  own "the autopilot ran" check twenty times. **Seen:** gdstudio #1071, 2026-11-11 (`soak.gd` `_track_walks`).
