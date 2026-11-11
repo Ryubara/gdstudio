@@ -1,0 +1,56 @@
+From the networking research #883 (9 of 9). Depends on: #904, #905, #908; the menu item needs #881. The server image and deploy are #910.
+
+### From
+
+the coordinator, 2026-11-10, research for #883 (`research.md`, section 3 "Join, leave" and section 4 budgets).
+
+### Summary
+
+Two players in the map over a WebSocket, in a browser and on the desktop, with a deployed headless server.
+
+- Entry: `--connect ws://host:port` / `wss://...`, `--name`, `--server`, `?url=` on web (the page address is the
+  command line; behind `https` the socket must be `wss://`); `main.tscn` stays the offline game and an `OnlineMain`
+  scene wraps it with a `NetClient`. The main menu from #881 gets "Play online" and an address field (developer
+  setting; a player never sees an address in a shipped game, kit plan-from-the-start). A connecting state, a "server
+  speaks another version, reload" message on `REFUSED(version)`, "the game is full", and a "connection lost" overlay.
+- Autopilot for tests and captures: `--bot` plays the same commands a player would (walk a route, aim, fire) through
+  `PlayerInput`; no hand testing.
+- Server image and deploy: #910 (backend-engineer). The probe here runs against a local server; the `wss://` join of a
+  deployed one is checked once #910 lands.
+- Web probe (`tools/web_smoke/online.py`, run through `gds quiet`): a built web export in headless Chrome joins a
+  local server through the relay of #903, walks, and publishes the page probe (`players`, `rtt_ms`, body vs server
+  position, frame time with N puppets). Measures: frame cost with 1 to 8 puppets on SwiftShader and on the GPU build,
+  the prediction correction rate under **Jolt in wasm against Jolt on Linux** (the one risk Deadnight cannot answer).
+
+### Area
+
+A-godot (`game/core/`, `tools/web_smoke/`)
+
+### Docs page
+
+engines/godot/multiplayer.md#web-export; engines/godot/web-probes.md
+
+### What "done" means
+
+- A made game from the branch: `gds` runs a server and two windowed clients (through `gds godot --`); a capture from
+  the second client's camera shows player 1 in the map (walking, aiming, shooting, dying, a door opening).
+- The headless Chrome probe passes against a local server with two pages and a relay at 100 ms each way: both
+  players seen, `rtt_ms` read, no console error, no `Buffer payload full`.
+- The measured frame cost of 1, 4, 8 puppets in the browser and the Jolt correction rate are in the docs, with the
+  budgets of `research.md` updated from the measurements.
+- Failed first: new feature (the probe fails against a server of another version).
+
+### Fix list or steps
+
+1. Entry, scenes and the connecting/refused/lost states.
+2. Autopilot (`--bot`).
+3. Probe and relay, then the numbers.
+4. Docs: the "Play online" how-to, the budgets, the Jolt finding.
+
+### Blocked by
+
+#904, #905 and #908; #881 for the menu item (the entry works without it).
+
+### Screenshots
+
+Captures from client 2 (desktop) and a Chrome page screenshot of the web client with two players.
