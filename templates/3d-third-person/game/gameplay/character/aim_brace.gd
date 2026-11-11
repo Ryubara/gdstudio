@@ -70,12 +70,15 @@ static func stance_of(
 
 ## What `CharacterAnimation` does with the brace, kept here so the tree's script stays one size:
 ## makes it on the model's skeleton and weighs it by the aim. The brace holds on the ground state
-## only: the crouch, the air and the other states keep the aim on their own pelvis.
+## only: the crouch, the air and the other states keep the aim on their own pelvis. It weighs the
+## legs' stance under the aim too (`stance`, kit #1206).
 class Driver:
 	extends RefCounted
 	## The brace on the model's skeleton now, or null: it is made the first time the character
 	## aims, so a character that never aims (most of a crowd) carries no node for it.
 	var modifier: AimBrace
+	## The still legs under a standing aim: the ground state's idle point, held by the aim.
+	var stance := AimStance.new()
 
 	# How far the body is on the ground state's clips, whose stance the aim poses were made on.
 	var _share := 1.0
@@ -121,6 +124,7 @@ class Driver:
 		var standing := 1.0 if animation.body_state() == CharacterAnimation.GROUND else 0.0
 		_share = move_toward(_share, standing, delta / maxf(animation.blend_time, 0.001))
 		var weight := aim * _share if animation.aim_brace else 0.0
+		stance.drive(animation.tree, aim, animation.aim_stance)
 		if weight > 0.0 and not is_instance_valid(modifier):
 			_make(animation)
 		weigh(weight)

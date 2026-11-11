@@ -10,14 +10,13 @@ extends Node
 ## and the spine follow the locomotion clip; aiming or firing brings the arm up to aim by its look,
 ## a shot recoils or a blow is thrown, a reload plays stretched to the reload's time, and a switch
 ## lowers the arm and brings the next weapon up) and a one-shot layer on the whole body for actions
-## (interact, hit, and any clip a game asks for with
-## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
-## getting up it starts again from the ground state.
+## (interact, hit, and any clip a game asks for with `play_clip()`). While it is dead the tree is
+## off and the ragdoll holds the skeleton; on getting up it starts again from the ground state.
 ##
-## The clips come from the Universal Animation Library 1 and 2 and the template's own prone
-## clips, added to the `AnimationPlayer` as the libraries `ual1`, `ual2` and `prone`. Pick another
-## clip for a state in the inspector; `CharacterClips` names them all. A model whose body needs
-## prone clips of its own gets them from `prone_libraries`.
+## The clips come from the Universal Animation Library 1 and 2 and the template's own clips, added
+## to the `AnimationPlayer` as the libraries `ual1`, `ual2`, `prone` and `gds`. Pick another clip
+## for a state in the inspector; `CharacterClips` names them all. A model whose body needs prone
+## clips of its own gets them from `prone_libraries`.
 ##
 ## It is a `@tool` script so the editor shows the tree too: opening the character scene builds the
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
@@ -247,6 +246,8 @@ const _RELOAD_FADE_OUT := 0.2
 ## Holds the upper body's turn on the aim poses' stance while aiming on the ground state
 ## (`AimBrace`); off, the weapon points where the pelvis of the legs' clip is turned.
 @export var aim_brace := true
+## Holds the legs still under a standing aim: the idle on its steadiest pose (`AimStance`).
+@export var aim_stance := true
 ## How far the character looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
@@ -404,10 +405,9 @@ func advance(delta: float) -> void:
 # The tree's own processing, in its callback mode, on or off (with its mode and state kept).
 func _tree_runs_itself(on: bool) -> void:
 	var mode := tree.callback_mode_process
-	var idle := on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
-	var physics := (
-		on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
-	)
+	var running := on and tree.active
+	var idle := running and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	var physics := running and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	if tree.is_processing_internal() != idle:
 		tree.set_process_internal(idle)
 	if tree.is_physics_processing_internal() != physics:
@@ -958,7 +958,7 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 	space.min_space = 0.0
 	space.max_space = tuning.sprint_speed
 	space.sync = true
-	space.add_blend_point(_clip(idle_clip), 0.0, -1, &"idle")
+	space.add_blend_point(_brace.stance.idle_point(self, idle_clip), 0.0, -1, &"idle")
 	space.add_blend_point(_clip(walk_clip), tuning.walk_speed, -1, &"walk")
 	space.add_blend_point(_clip(run_clip), tuning.run_speed, -1, &"run")
 	space.add_blend_point(_clip(sprint_clip), tuning.sprint_speed, -1, &"sprint")

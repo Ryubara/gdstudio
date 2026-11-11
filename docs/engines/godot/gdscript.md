@@ -108,13 +108,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 ## Lambdas {#lambdas}
 
 - **Approach:** To collect results from a lambda, append to an Array or Dictionary, or set a member of the object that
-  owns it (a method plus member variables; a probe object holding the counts); never count in a captured local or fill
-  a captured packed array. **Watch out for:** a lambda captures a local `int`, `bool`, `float` or packed array by
-  value when it is made, so `kills += 1` or `vertices.append(...)` works on a copy: a test read 0 events and a
-  navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
-  outer variable inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (fix: Array holders and members
-  in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`);
-  gdstudio #836, 2026-11-08 (`hits += 1` read 0; the fix is `var hits: Array[Node]` and `hits.append(c)`).
+  owns it (a method plus member variables; a probe object holding the counts); never count in a captured local or fill a
+  captured packed array. **Watch out for:** a lambda captures a local `int`, `bool`, `float` or packed array by value
+  when it is made, so `kills += 1` or `vertices.append(...)` works on a copy: a test read 0 events and a navigation mesh
+  built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the outer variable
+  inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (Array holders in the bot suites); Deadnight #226,
+  2026-11-02 (built in a method instead); gdstudio #836, 2026-11-08 (`hits += 1` read 0; fixed with `var hits:
+  Array[Node]`); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm).
 
 ## Project and scene files {#project-and-scene-files}
 

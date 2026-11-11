@@ -62,10 +62,9 @@ enum Pull {
 @export var shooter: CollisionObject3D
 ## Where a shot starts when there is no `muzzle`: this far from the point of the aim ray that is
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
-## so a negative z is out in front). The default is the middle of where the pistol's muzzle is
-## while the character aims standing on the template's idle (it sways 34 mm to each side of it
-## with the idle's weight shift).
-@export var no_muzzle_offset := Vector3(0.065, -0.04, -0.685)
+## so a negative z is out in front). The default is where the pistol's muzzle is while the
+## character aims standing on the template's idle (`AimStance` holds it still there).
+@export var no_muzzle_offset := Vector3(0.065, -0.032, -0.681)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.

@@ -41,7 +41,7 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 		&"definition": _weapon.definition,
 		&"muzzle": _muzzle,
 		&"shooter": null,
-		&"no_muzzle_offset": Vector3(0.065, -0.04, -0.685),
+		&"no_muzzle_offset": Vector3(0.065, -0.032, -0.681),
 		&"aim_mask": PhysicsLayers.SHOT_MASK,
 		&"muzzle_flash_enabled": true,
 		&"projectile_cap": 24,
