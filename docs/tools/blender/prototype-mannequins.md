@@ -179,10 +179,30 @@ The floor and sun alone are 0.6 to 0.7 ms on the GPU and 21 to 22 ms on SwiftSha
   player wears a prototype body builds them behind its loading screen; a second model in one scene (an AI in another
   body) pays its 6 programs where it first appears unless the warm-up draws it
   ([first-use hitches](../../engines/godot/first-use-hitches.md#the-warm-up)).
-- **Unexplained on the GPU:** in 5 page loads out of 10, one look's far levels (1 and 2) read 0.2 to 0.45 ms a body
-  for some or all rounds of that page (`form`, `facet` or `joint`, a different one each time), and the next load of the
-  same cells read normally; level 0 and the Quaternius body never did. Follow-up #1260; the table leaves those rows
-  out.
+- **The slow far levels were a buffer hint (#1260).** In 5 page loads of 10 one look's far levels (1 and 2) read 0.2 to
+  0.45 ms a body for some or all rounds. The engine skins each `MeshInstance3D` into a buffer of its own made with
+  `GL_DYNAMIC_DRAW`, which ANGLE's Direct3D 11 copies out at every draw until the buffer has been drawn 3 times its
+  size with no skinning in between ([the buffer hint](../../engines/godot/web-export.md#skin-buffer-hint)). The
+  bench's `frozen` cells held every near body still, so the level 0 buffers (and the Quaternius body's one mesh) were
+  bound directly from the first round on; a far level's own buffers only got there by chance, at a different round on
+  each page, or never. Keeping each round's numbers in order showed it: every cell started slow and flipped once to
+  its normal cost, and two other builds of the levels, one `MeshInstance3D` given each level's mesh (`@swap`) and
+  Godot's own LODs on `Body_LOD0` (`@lods`, as the Quaternius body has), were never frozen and stayed slow (0.10 to
+  0.15 ms a body against 0.06 to 0.07), so the three nodes under visibility ranges were not the cause.
+  `SkinBuffers` (gds_game) makes those buffers static from the page. Ten page loads with it, on a GPU, uncapped, the
+  full cell list with both other builds, on a workstation at 10 to 79 % processor load with about 30 agents:
+
+  | 16 bodies, a body | With `SkinBuffers` (10 loads) | Without (`--dynamic-skin`, 4 loads between them) |
+  | --- | --- | --- |
+  | Prototype looks, far levels: median round / worst round | 0.05 to 0.09 / 0.06 to 0.12 ms | 0.06 to 0.11 / 0.09 to 0.18 ms |
+  | Prototype looks, far, `@swap` and `@lods` | 0.05 to 0.09 / 0.06 to 0.12 ms | 0.09 to 0.15 / 0.11 to 0.21 ms |
+  | Prototype looks, level 0 | 0.06 to 0.09 / 0.06 to 0.14 ms | 0.06 to 0.08 / 0.09 to 0.17 ms |
+  | Quaternius male, far / near | 0.08 to 0.11 / 0.08 to 0.12 ms | 0.09 to 0.13 / 0.10 to 0.13 ms |
+
+  No far cell's median was over 0.09 ms in any of the ten loads (1,041 buffers made static a page). A page with no
+  frozen cell (`first=0`, the far cells only, the closest to a game, where no body holds still) read 0.10 ms a body
+  for every look without it and 0.06 with it. The table above was measured before the fix, in the bound state the
+  frozen cells gave; a game without `SkinBuffers` pays the streamed cost for every animated body.
 
 - **Approach:** Under a shared machine's load, measure a browser bench in many short interleaved rounds (8 of 60
   frames, not 3 of 150) and read the median and the best round, never the mean of all. **Watch out for:** the first
