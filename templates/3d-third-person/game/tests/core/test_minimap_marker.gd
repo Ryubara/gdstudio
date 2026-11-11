@@ -59,12 +59,29 @@ func test_a_2d_parent_is_at_x_and_y() -> void:
 	assert_vector(marker.heading()).is_equal_approx(Vector2(0.0, 1.0), Vector2(0.001, 0.001))
 
 
-func test_a_parent_can_answer_for_its_own_facing() -> void:
-	var parent := auto_free(HeadingStub.new()) as Node3D
-	var marker := MinimapMarker.new()
-	parent.add_child(marker)
-	add_child(parent)
-	assert_vector(marker.heading()).is_equal_approx(Vector2(1.0, 0.0), Vector2(0.001, 0.001))
+func test_a_parent_with_a_heading_source_faces_where_its_model_turns() -> void:
+	var carrier := _carrier()
+	var model := Node3D.new()
+	carrier.add_child(model)
+	var source := MinimapHeading.new()
+	source.turns = model
+	source.front = MinimapHeading.Front.PLUS_Z
+	carrier.add_child(source)
+	# The body stays put; the model's front (+Z) turned a quarter left faces east.
+	model.rotate_y(PI * 0.5)
+	assert_vector(_marker(carrier).heading()).is_equal_approx(
+		Vector2(1.0, 0.0), Vector2(0.001, 0.001)
+	)
+
+
+func test_a_parent_without_a_heading_source_ignores_a_turning_child() -> void:
+	var carrier := _carrier()
+	var model := Node3D.new()
+	carrier.add_child(model)
+	model.rotate_y(PI * 0.5)
+	assert_vector(_marker(carrier).heading()).is_equal_approx(
+		Vector2(0.0, -1.0), Vector2(0.001, 0.001)
+	)
 
 
 func test_the_near_rule_counts_metres_from_the_viewer() -> void:

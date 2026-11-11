@@ -237,6 +237,11 @@ var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
 var _slide := CharacterSlide.new()
+# The command `last_command` was last copied from (`CharacterController.repeats()`).
+var _copied: PlayerCommand
+
+# Carries the body on a platform an online world drives (offline the engine does).
+var _rider := PlatformRider.new()
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -287,13 +292,19 @@ func step(command: PlayerCommand, delta: float) -> void:
 		return
 	assert(Engine.is_in_physics_frame(), "Character.step() runs inside a physics frame.")
 	assert(_is_physics_step(delta), "Character.step() takes whole physics steps.")
-	if command.all_finite():
+	if command == _copied and controller != null and controller.repeats(command):
+		pass  # The controller's command as the last step copied it (an AI between its thinks).
+	elif command.all_finite():
 		last_command.copy_from(command)
 		last_command.move = command.move.limit_length(1.0)
+		_copied = command
 	else:
 		last_command.clear()
+		_copied = null
 	view_yaw = last_command.yaw
 	view_pitch = _prone.held_pitch(prone_tuning, last_command.pitch)
+	if weapon != null:
+		weapon.shot_seq = last_command.seq
 	if ragdoll_by_command and last_command.ragdoll_pressed:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
@@ -309,8 +320,13 @@ func step(command: PlayerCommand, delta: float) -> void:
 		weapon.tick(delta)
 
 
-# One tick of a living body inside the map.
+# One tick of a living body inside the map. A controller that asks for it (an AI's) gets the lean
+# tick when nothing but the walk has anything to do: the same result, fewer modules
+# (`CharacterLean`).
 func _move(delta: float) -> void:
+	if controller != null and controller.lean_step and CharacterLean.can_take(self):
+		CharacterLean.move(self, delta)
+		return
 	_tick_timers(delta)
 	_update_prone(delta)
 	if vault_motion.drive(self, delta):
@@ -332,9 +348,11 @@ func _move(delta: float) -> void:
 	var before := velocity
 	var ticks := roundf(delta / get_physics_process_delta_time())
 	velocity *= ticks
+	_rider.carry(self)
 	move_and_slide()
 	velocity /= ticks
 	_grounded = is_on_floor()
+	_rider.land(self)
 	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
@@ -384,6 +402,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
+	_rider.platform = null
 	_fallen = false
 	_slide.reset()
 	_fit_body()
@@ -408,6 +427,12 @@ func die(shot: HitRecord = null) -> void:
 ## from lying to standing over the ragdoll's `get_up_time`.
 func revive() -> void:
 	CharacterDeath.revive(self)
+
+
+## Gets the character up at `spot` (a server's choice, online): the body stands there at once and
+## the ragdoll's pose blends to it over `get_up_time`, so the ragdoll never decides where it stands.
+func revive_at(spot: Vector3) -> void:
+	CharacterDeath.revive_at(self, spot)
 
 
 ## True while the character is dead.
@@ -454,12 +479,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if Health.of(self) == null:
 		return PackedStringArray(["No `Health` child: hits push the body but take nothing."])
 	return PackedStringArray()
-
-
-## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
-## node).
-func get_minimap_heading() -> Vector2:
-	return Vector2(sin(facing), cos(facing))
 
 
 ## Uses the nearest `Interactable` in front: returns the node it makes usable, or null.
@@ -511,6 +530,7 @@ func has_room_to_stand() -> bool:
 # The command of a body nobody controls: it asks for nothing and looks where it looked.
 func _idle_command() -> PlayerCommand:
 	last_command.clear()
+	_copied = null
 	return last_command
 
 

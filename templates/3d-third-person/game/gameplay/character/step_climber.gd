@@ -12,6 +12,11 @@ const PROBE_MARGIN := 0.02
 ## A rise smaller than this is not a step.
 const MIN_RISE := 0.01
 
+# What the first test hit, made once and filled again on every call (a body walking on open ground
+# runs that test every tick and it finds nothing; making the object was a fifth of the climb's
+# cost). Null until the first climb (no initialiser: `static-variables.md#the-rule`).
+static var _wall: KinematicCollision3D
+
 
 ## Returns how far the body was lifted (0 when nothing was in the way or the edge was too high).
 ## `motion` is where the body is about to go this tick, flat (y = 0). The top of the step is
@@ -23,7 +28,9 @@ static func climb(
 	if motion.length_squared() < 0.000001 or step_height <= 0.0:
 		return 0.0
 	var from := body.global_transform
-	var wall := KinematicCollision3D.new()
+	if _wall == null:
+		_wall = KinematicCollision3D.new()
+	var wall := _wall
 	if not body.test_move(from, motion, wall):
 		return 0.0
 	# Floor in the way is the floor snap's job, not a step.

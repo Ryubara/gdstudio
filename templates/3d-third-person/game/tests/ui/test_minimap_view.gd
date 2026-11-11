@@ -121,6 +121,24 @@ func test_the_map_turns_with_the_target_when_it_asks_for_that() -> void:
 	assert_float(at.y).is_less(0.0)
 
 
+func test_a_target_with_a_heading_source_turns_the_map_by_its_model() -> void:
+	_minimap.rotation_mode = Minimap.RotationMode.TARGET_FACING
+	var model := Node3D.new()
+	_subject.add_child(model)
+	model.rotate_y(-PI * 0.5)  # the body stays north; its model faces east
+	var east := _carry(Vector3(10.0, 0.0, 0.0))
+	_minimap.refresh_now()
+	var still := _centre_of(_minimap.icon_for(_marker_of(east))) - Vector2(110.0, 110.0)
+	assert_float(still.x).is_greater(0.0)
+	var source := MinimapHeading.new()
+	source.turns = model
+	_subject.add_child(source)
+	_minimap.refresh_now()
+	var at := _centre_of(_minimap.icon_for(_marker_of(east))) - Vector2(110.0, 110.0)
+	assert_float(at.x).is_equal_approx(0.0, 0.01)
+	assert_float(at.y).is_less(0.0)
+
+
 func test_a_turning_map_follows_at_the_smoothing_rate() -> void:
 	_minimap.turn_smoothing = 4.0
 	var camera := _camera(0.0)

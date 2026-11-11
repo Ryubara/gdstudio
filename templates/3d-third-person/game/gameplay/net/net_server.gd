@@ -35,11 +35,16 @@ const STATS_SECONDS := 10.0
 const MAX_CONNECTIONS := 2 * NetLimits.MAX_PLAYERS
 ## The close code for a peer hung up on for breaking the rules (RFC 6455: policy violation).
 const CLOSE_POLICY := 1008
-## The group of a map's networked parts, whose paths and kinds make the world hash (issue #907
-## adds the parts; the map has none yet).
+## The group of a map's networked parts, whose paths (from the map node, `world_root`) and kinds
+## make the world hash (issue #907 adds the parts; the map has none yet).
 const PART_GROUP := &"net_part"
 ## The milliseconds a step may take before it counts as over budget in the stats.
 const STEP_BUDGET_MS := 6.0
+## How far a command's number may be from the step that applies it and still be the tick the map's
+## moving parts are at for it: a client back from a stall of `NetLimits.STALL_SECONDS`, or a second
+## ahead (`command_tick`).
+const COMMAND_TICKS_BEHIND := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
+const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 
 @export_group("Server")
 ## The port to listen on; -1 reads `--port`, then `$PORT`, then `WebSocketLink.DEFAULT_PORT`. 0
@@ -54,6 +59,11 @@ const STEP_BUDGET_MS := 6.0
 @export var cap_frame_rate := false
 ## Prints the log lines (`logged` is said either way).
 @export var print_log := true
+
+## The map node (the `World` instance) whose networked parts make the world hash, the same node a
+## client's `NetClient.world_root` names, so the paths match whatever holds the map; empty is this
+## node's parent.
+@export var world_root: Node
 
 @export_group("Players")
 ## The body each player gets: the body alone, with no model, animation or camera.
@@ -78,9 +88,27 @@ const STEP_BUDGET_MS := 6.0
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.
 @export_range(1.0, 60.0, 0.5, "suffix:s") var hello_seconds := 10.0
+## Steps between a change of a map part the server decides (a door opened, a platform sent) and
+## its start, so a client hears of it before its predicted commands reach it: about the round trip
+## and the hold of the slowest client it plays well with, in steps (12: 200 ms at 60 a second).
+@export_range(0, 255, 1, "suffix:steps") var entity_lead_ticks := 12:
+	set(value):
+		entity_lead_ticks = value
+		if map_parts != null:
+			map_parts.lead_ticks = value
+
+@export_group("Shots")
+## Metres a command's shot may start from the body's eye before it is refused (`ServerCombat`).
+@export_range(0.5, 20.0, 0.1, "suffix:m") var origin_slack := 4.0
+## Seconds a dead body lies before the server gets it up (and says where, in a REVIVED event).
+@export_range(0.0, 60.0, 0.1, "suffix:s") var revive_seconds := 3.0
+## On: a body gets up at its spawn point; off: where it died.
+@export var revive_at_spawn := false
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
+## The map's networked parts (doors, platforms, pickups), run by this server.
+var map_parts := NetWorld.new()
 ## Seconds for the connection rules: empty is the machine's clock.
 var clock := Callable()
 var listener := WsListener.new()
@@ -94,6 +122,8 @@ var step_times := PackedFloat32Array()
 var keep_history := false
 ## Peers hung up on for breaking `PeerLimits`.
 var kicked := 0
+## Shots, hits and deaths: the server's judge and their events (gdstudio #906).
+var combat := ServerCombat.new()
 
 var _peers: Dictionary[int, PeerSlot] = {}
 var _by_slot: Dictionary[int, PeerSlot] = {}
@@ -110,7 +140,9 @@ func _ready() -> void:
 		add_child(players_root)
 	if cap_frame_rate:
 		Engine.max_fps = NetLimits.TICK_RATE
-	world_hash = world_hash_of(get_parent() if get_parent() != null else self)
+	world_hash = world_hash_of(_map_root())
+	_take_world(_map_root())
+	_wire_combat()
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
 	listener.peer_disconnected.connect(_on_disconnected)
@@ -147,6 +179,7 @@ func _physics_process(delta: float) -> void:
 	var began := Time.get_ticks_usec()
 	listener.poll()
 	_drop_the_silent()
+	map_parts.tick = server_tick + 1
 	_step_bodies(delta)
 	server_tick += 1
 	if server_tick % SEND_EVERY == 0:
@@ -158,15 +191,23 @@ func _physics_process(delta: float) -> void:
 	_log_stats()
 
 
-## The world hash of the networked parts under `root` (`NetWire.world_hash` of their paths and
-## kinds): a client computes the same from its own map.
+## The world hash of the networked parts under `root`, the map node (`NetWire.world_hash` of their
+## paths from `root` and their kinds): a client computes the same from its own map, whatever node
+## holds it. The map need not be in the tree (a bot hashes a map it never adds).
 static func world_hash_of(root: Node) -> int:
 	var parts := PackedStringArray()
-	if root.is_inside_tree():
-		for node in root.get_tree().get_nodes_in_group(PART_GROUP):
-			if root == node or root.is_ancestor_of(node):
-				parts.append("%s:%s" % [root.get_path_to(node), node.get_meta(&"net_kind", "")])
+	var nodes: Array[Node] = [root]
+	nodes.append_array(root.find_children("*", "", true, false))
+	for node in nodes:
+		if node.is_in_group(PART_GROUP):
+			parts.append("%s:%s" % [root.get_path_to(node), node.get_meta(&"net_kind", "")])
 	return NetWire.world_hash(parts)
+
+
+func _map_root() -> Node:
+	if world_root != null:
+		return world_root
+	return get_parent() if get_parent() != null else self
 
 
 ## The seated players, by slot.
@@ -320,7 +361,7 @@ func _on_hello(peer: PeerSlot, data: PackedByteArray) -> void:
 		var entry := entry_of(seated, _by_slot[seated].body)
 		entry.player_name = _by_slot[seated].player_name
 		players.append(entry)
-	var entities: Array[EntityEntry] = []
+	var entities := map_parts.table(server_tick)
 	listener.send(
 		peer.peer_id, SnapshotCodec.welcome(slot, server_tick, world_hash, entities, players)
 	)
@@ -350,6 +391,7 @@ func _make_body(slot: int) -> Character:
 	body.set_physics_process(false)
 	_put_at_spawn(body, slot)
 	body.fell.connect(_put_at_spawn.bind(body, slot))
+	combat.watch(slot, body)
 	return body
 
 
@@ -402,6 +444,7 @@ func _unseat(peer: PeerSlot, reason: String) -> void:
 		return
 	var slot := peer.slot
 	_by_slot.erase(slot)
+	combat.forget(slot)
 	if is_instance_valid(peer.body):
 		peer.body.queue_free()
 	peer.body = null
@@ -422,11 +465,74 @@ func _tell_others(peer: PeerSlot, event: NetEvent) -> void:
 # --- The step ---
 
 
+# Each command is stepped with the map's moving parts where they are at the command's tick
+# (`command_tick`), as the client predicted it; then the parts are put at this step's tick.
 func _step_bodies(delta: float) -> void:
 	for slot: int in _sorted_slots():
 		var peer := _by_slot[slot]
 		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
+			map_parts.place(command_tick(command.seq, map_parts.tick))
+			combat.judge(slot, peer.body, command)
 			peer.body.step(command, delta)
+			combat.stepped(slot, peer.body)
+	map_parts.place(map_parts.tick)
+	combat.step(delta)
+
+
+## The tick the map's moving parts are at for the command numbered `seq`, stepped at server tick
+## `at_tick`: a client numbers its commands by the server tick it expects each to be stepped at
+## (`NetClient`), so its predicted body meets the parts where the server's does; a number far from
+## the step (a stall, a hostile client) is held to `COMMAND_TICKS_BEHIND` and `_AHEAD`.
+static func command_tick(seq: int, at_tick: int) -> int:
+	return clampi(seq, at_tick - COMMAND_TICKS_BEHIND, at_tick + COMMAND_TICKS_AHEAD)
+
+
+func _take_world(root: Node) -> void:
+	map_parts = NetWorld.new(root, NetEntity.Role.SERVER, entity_lead_ticks)
+	map_parts.tick = server_tick
+	for entity in map_parts.entities:
+		entity.changed.connect(_on_entity_changed)
+		entity.taken.connect(_on_entity_taken)
+
+
+func _on_entity_changed(entity: NetEntity) -> void:
+	var at := map_parts.tick
+	var state: PackedByteArray = entity.write_state.call(at)
+	_tell_all(NetEvent.entity(entity.id, at, state))
+
+
+# A pickup the server's copy of which a body took: who took it, to everyone; taken by a body that
+# is no player's (an AI), its new state.
+func _on_entity_taken(entity: NetEntity, by: Node3D) -> void:
+	for slot: int in _by_slot:
+		if _by_slot[slot].body == by:
+			_tell_all(NetEvent.pickup(entity.id, slot))
+			return
+	_on_entity_changed(entity)
+
+
+func _tell_all(event: NetEvent) -> void:
+	for peer: PeerSlot in _by_slot.values():
+		peer.add_event(event)
+
+
+# The combat's events go to the players by slot; its rules are the inspector's.
+func _wire_combat() -> void:
+	combat.origin_slack = origin_slack
+	combat.revive_seconds = revive_seconds
+	combat.revive_at_spawn = revive_at_spawn
+	combat.spawn_of = spawn_transform
+	combat.tell_all = func(event: NetEvent) -> void:
+		for peer: PeerSlot in _by_slot.values():
+			peer.add_event(event)
+	combat.tell_others = func(from_slot: int, event: NetEvent) -> void:
+		for slot: int in _by_slot:
+			if slot != from_slot:
+				_by_slot[slot].add_event(event)
+	combat.tell = func(to_slot: int, event: NetEvent) -> void:
+		var peer: PeerSlot = _by_slot.get(to_slot)
+		if peer != null:
+			peer.add_event(event)
 
 
 func _send_ticks() -> void:
@@ -485,6 +591,10 @@ func _log_stats() -> void:
 		"steps_held": held,
 		"steps_repeated": repeated,
 		"kicked": kicked,
+		"shots": combat.shots,
+		"hits": combat.hits,
+		"shots_rejected": combat.rejected,
+		"deaths": combat.deaths,
 	}
 	# The process's resident memory and processor share (Linux only: the image, Railway).
 	fields.merge(_process.sample())

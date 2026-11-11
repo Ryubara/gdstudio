@@ -6,7 +6,8 @@
 ## for the given milliseconds. After `--seconds` it stands still two seconds and prints one line of
 ## JSON that starts with `PREDICT_BOT`: the reconciler's corrections, snaps, losses and worst
 ## error, the gap to its own entry in the last TICK, the stalls and skipped ticks, the puppets
-## drawn and how often they starved, the round trip, and what the client costs a physics step.
+## drawn and how often they starved, the round trip, what the client costs a physics step, and the
+## shots, hits and deaths it played from the server's events (`combat`).
 ##
 ## `<godot> --headless --path game -s res://tools/net/predict_bot.gd -- --connect
 ## ws://127.0.0.1:8910 --seconds 30 [--delay-ms 100] [--freeze 8:500,16:2000,24:5000]`; a
@@ -75,7 +76,8 @@ func _initialize() -> void:
 	var holder := Node3D.new()
 	holder.name = "Online"
 	root.add_child(holder)
-	holder.add_child((load(WORLD) as PackedScene).instantiate())
+	var world := (load(WORLD) as PackedScene).instantiate()
+	holder.add_child(world)
 	var player := (load(PLAYER) as PackedScene).instantiate() as Player
 	player.start_at_spawn = false
 	var input := player.get_node("PlayerInput")
@@ -93,6 +95,7 @@ func _initialize() -> void:
 	_client.join_on_ready = false
 	_client.player = player
 	_client.remote_players = _remote
+	_client.world_root = world
 	_client.player_name = args.get_string("name", "Predictor")
 	_client.keep_frame_times = true
 	holder.add_child(_client)
@@ -163,6 +166,17 @@ func _report() -> void:
 		"puppets_us_p50": _percentile(_puppet_us, 0.5),
 		"puppets_us_p95": _percentile(_puppet_us, 0.95),
 		"drops": _client.drops.summary(),
+		# The server's shots, hits and deaths this screen played (gdstudio #906).
+		"combat":
+		{
+			"shots": _client.combat.shots,
+			"hits": _client.combat.hits,
+			"deaths": _client.combat.deaths,
+			"revives": _client.combat.revives,
+			"rejected": _client.combat.rejected,
+			"spent_us": _client.combat.spent_us,
+			"worst_us": _client.combat.worst_us,
+		},
 	}
 	print("PREDICT_BOT ", JSON.stringify(line))
 

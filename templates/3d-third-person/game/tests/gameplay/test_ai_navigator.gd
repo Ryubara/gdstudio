@@ -28,6 +28,14 @@ func _ready_arena() -> void:
 	assert_bool(await _arena.settle()).override_failure_message("the map never answered").is_true()
 
 
+# The arena's region is in the map at the next physics tick, not when a thread is done with it: a
+# region's async iterations (Godot's default) took 24 to 97 ticks here and over 300 on a busy CI
+# runner. Fails first with `region_set_use_async_iterations` taken out of `NavArena.build()`.
+func test_the_arena_s_region_is_in_the_map_at_the_next_tick() -> void:
+	_arena.build()
+	assert_bool(await _arena.settle(Vector3(0.5, 0.0, 0.5), 3)).is_true()
+
+
 func test_it_walks_to_a_goal_with_its_body() -> void:
 	await _ready_arena()
 	var navigator := _arena.add_walker(Vector3(-8, 0, -8))

@@ -26,6 +26,7 @@ const NOT_STATE := {
 	&"max_health": "the Health child's, read only",
 	&"health": "the Health child's value: hits change it, the step never reads it",
 	&"last_command": "written again by every step before it is read",
+	&"_copied": "which command `last_command` was copied from, so a repeat is not copied again",
 	&"slide_tuning": "an export",
 	&"sliding": "read only, from _slide",
 	&"_slide": "the slide; its step state is CharacterState.slide",
@@ -38,6 +39,7 @@ const NOT_STATE := {
 	&"_interactor": "a node",
 	&"_body": "a node",
 	&"_camera_target": "a node",
+	&"_rider": "the online platform under it after its last move, found again by the next",
 }
 
 var _arena: PlayArena

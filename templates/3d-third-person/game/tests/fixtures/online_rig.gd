@@ -22,6 +22,10 @@ var delay := 0.0
 var jitter := 0.0
 ## The size of each client's view (a capture reads it).
 var view_size := Vector2i(320, 180)
+## Called with the server scene, and with each client's arena, before it enters the tree (a test
+## changes the map there).
+var prepare_server := Callable()
+var prepare_arena := Callable()
 
 
 func _init(use_loopback := true) -> void:
@@ -40,6 +44,8 @@ func start() -> bool:
 	server.clock = SocketRig.frame_clock
 	if loopback:
 		server.listener = LoopbackListener.new()
+	if prepare_server.is_valid():
+		prepare_server.call(server)
 	server_view.add_child(server)
 	return server.listener.is_listening()
 
@@ -50,6 +56,8 @@ func join(player_name: String, frames := 240) -> NetClient:
 	var view := _view("Client%d" % clients.size())
 	var arena := (load(ARENA_SCENE) as PackedScene).instantiate()
 	_own_cameras(arena, clients.size())
+	if prepare_arena.is_valid():
+		prepare_arena.call(arena)
 	view.add_child(arena)
 	var client := arena.get_node("NetClient") as NetClient
 	client.player_name = player_name

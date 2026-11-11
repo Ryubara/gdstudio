@@ -163,7 +163,8 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   **Watch out for:** a run showed another agent's worktree as the source: gds had built from the right checkout, but
   two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
   file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
-  `python/tests/test_kit_source.py` with two worktrees).
+  `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
+  checkout built main; use `--project ./python`).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -418,7 +419,8 @@ replaced whole.
   without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
   changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
   addons' autoloads); copying the template's file over it dropped `UIRouter` and `PhantomCameraManager`, and the next
-  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10.
+  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10; gdstudio #966,
+  2026-11-10 (a `cp -r` of the whole template folder: `UIRouter` not declared in 25 scripts, the game made again).
 - **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
