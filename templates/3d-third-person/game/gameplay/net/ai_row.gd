@@ -21,6 +21,9 @@ var target := AiSnapshot.NO_TARGET
 ## The look it is drawn in: the index of its profile in the server's `ai_variants` (the client's
 ## `AiReplica.variant_scenes` at the same index).
 var variant := 0
+## Its 14 bytes, made once a TICK by the server's `AiBroadcast.build` for every client's block
+## (empty: `AiSnapshot.encode` makes them).
+var bytes := PackedByteArray()
 
 
 ## Dead by its situation or its body's state.

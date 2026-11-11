@@ -123,7 +123,9 @@ func test_deltas_rebuild_the_server_rows_from_the_baseline() -> void:
 	rows.append(arriving)
 	var delta := AiSnapshot.encode(rows, view, rates, 6)
 	assert_int(delta[0]).is_equal(AiSnapshot.Mode.DELTA)
-	assert_int(delta.size()).is_equal(AiSnapshot.DELTA_HEADER + 6 * AiSnapshot.ROW_SIZE + 2)
+	# The five walked under 1.27 m: moves of 7 bytes; the new one a row; the one that left an id.
+	var size := AiSnapshot.DELTA_HEADER + AiSnapshot.ROW_SIZE + 5 * AiSnapshot.MOVE_SIZE + 2
+	assert_int(delta.size()).is_equal(size)
 	assert_bool(client.apply_bytes(delta)).is_true()
 	assert_int(client.changed.size()).is_equal(6)
 	assert_array(client.gone).contains_exactly([leaving.id])
@@ -132,6 +134,50 @@ func test_deltas_rebuild_the_server_rows_from_the_baseline() -> void:
 		assert_vector(client.rows[row.id].position).is_equal_approx(
 			row.position, Vector3.ONE * 0.005
 		)
+
+
+func test_a_walk_is_a_move_and_anything_more_is_a_row() -> void:
+	var rows := _rows(4)
+	var rates := _rates()
+	var view := AiPeerView.new()
+	var client := AiSnapshot.new()
+	client.apply_bytes(AiSnapshot.encode(rows, view, rates, 2))
+	# 1.27 m each way, a turn and a new speed: a move. 1.28 m, or a new state: a row.
+	rows[0].position += Vector3(1.27, -1.27, 1.27)
+	rows[0].yaw += 1.0
+	rows[0].speed = 2.5
+	rows[1].position.x += 1.28
+	rows[2].position.x += 0.1
+	rows[2].state = Character.State.CROUCH
+	var delta := AiSnapshot.encode(rows, view, rates, 4)
+	var block := AiSnapshot.read(delta)
+	assert_int(block.moves.size()).is_equal(6)
+	assert_int(block.moves[0]).is_equal(0)
+	assert_int(block.rows.size()).is_equal(2)
+	assert_bool(client.apply(block)).is_true()
+	for row in rows:
+		var held: AiRow = client.rows[row.id]
+		assert_vector(held.position).is_equal_approx(row.position, Vector3.ONE * 0.005)
+		assert_float(held.speed).is_equal_approx(row.speed, 0.001)
+		assert_int(held.state).is_equal(row.state)
+	# Walked by moves for ten seconds, the client's place is still the server's to the centimetre.
+	for step in NetLimits.SNAPSHOT_RATE * 10:
+		rows[3].position += Vector3(0.0333, 0.0, -0.0217)
+		client.apply_bytes(AiSnapshot.encode(rows, view, rates, 6 + step * 2))
+	assert_vector(client.rows[3].position).is_equal_approx(rows[3].position, Vector3.ONE * 0.005)
+
+
+func test_a_move_of_a_character_the_client_does_not_hold_is_refused() -> void:
+	var rows := _rows(2)
+	var rates := _rates()
+	var view := AiPeerView.new()
+	var client := AiSnapshot.new()
+	client.apply_bytes(AiSnapshot.encode(rows, view, rates, 2))
+	client.rows.erase(1)
+	rows[1].position.x += 0.2
+	var drops := NetDrops.new()
+	assert_bool(client.apply_bytes(AiSnapshot.encode(rows, view, rates, 4), drops)).is_false()
+	assert_int(drops.counts.get(NetDrops.NO_BASELINE, 0)).is_equal(1)
 
 
 func test_a_delta_with_a_missing_baseline_is_refused_until_a_full_one() -> void:

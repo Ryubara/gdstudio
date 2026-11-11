@@ -40,6 +40,25 @@ static func of(
 		"puppets_us_p50": percentile(puppet_us, 0.5),
 		"puppets_us_p95": percentile(puppet_us, 0.95),
 		"drops": client.drops.summary(),
+		"ai": ai_of(client.ai_replica),
+	}
+
+
+## What the client's AI puppets cost (gdstudio #970): the most drawn, the blocks applied and
+## refused, and the microseconds of applying a TICK's block and of placing every puppet a step
+## (their animation and drawing are the characters' own cost). Empty without a replica.
+static func ai_of(replica: AiReplica) -> Dictionary:
+	if replica == null:
+		return {}
+	return {
+		"puppets": replica.most_puppets,
+		"applied": replica.snapshot.applied,
+		"refused": replica.snapshot.refused,
+		"apply_us_p50": percentile(replica.apply_times, 0.5),
+		"apply_us_p95": percentile(replica.apply_times, 0.95),
+		"apply_us_worst": replica.worst_apply_us,
+		"place_us_p50": percentile(replica.frame_times, 0.5),
+		"place_us_p95": percentile(replica.frame_times, 0.95),
 	}
 
 

@@ -21,6 +21,7 @@ const WALK_SECONDS := 600.0
 
 var client: NetClient
 var remote: RemotePlayers
+var ai: AiReplica
 var _object: JavaScriptObject
 var _walker: CirclingController
 var _steps := 0
@@ -68,11 +69,17 @@ func _ready() -> void:
 	remote = RemotePlayers.new()
 	remote.name = &"RemotePlayers"
 	scene.add_child.call_deferred(remote)
+	# The server's AI characters, drawn and timed (gdstudio #970).
+	ai = AiReplica.new()
+	ai.name = &"AiReplica"
+	ai.keep_times = true
+	scene.add_child.call_deferred(ai)
 	client = NetClient.new()
 	client.name = &"NetClient"
 	client.join_on_ready = false
 	client.player = player
 	client.remote_players = remote
+	client.ai_replica = ai
 	# The map node hashes the world, as the server's `world_root` (`main.tscn`'s `World`).
 	var map := scene.get_node_or_null(^"World")
 	client.world_root = map if map != null else scene

@@ -68,7 +68,10 @@ func build() -> void:
 		var character := _characters[id]
 		if not _is_sent(character):
 			continue
-		_rows.append(row_of(id, character))
+		var row := row_of(id, character)
+		row.bytes = AiSnapshot.row_bytes(row, drops)
+		if not row.bytes.is_empty():
+			_rows.append(row)
 	last_build_us = Time.get_ticks_usec() - began
 
 

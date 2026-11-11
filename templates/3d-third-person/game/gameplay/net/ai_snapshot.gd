@@ -12,11 +12,16 @@ extends RefCounted
 ##   FULL   u8 seq, u16 count, the rows: the whole population within the interest
 ##          radius; the client drops every character it is not in                 4 + 14 n
 ##   DELTA  u8 seq, u8 base (the seq it applies on), u16 count, the rows that
-##          changed, u16 gone count, the ids that left                    7 + 14 n + 2 gone
+##          changed, u16 move count, the moves, u16 gone count, the ids that
+##          left                                               9 + 14 n + 7 moves + 2 gone
 ##
 ## A row (`AiRow`): u16 id, s16 x/y/z (cm from the section's origin), u8 yaw (256 steps), u8 speed
 ## (0.05 m/s), u8 mode (bits 0-2 the situation, 3-6 the body's state, 7 aiming), u16 target (a
 ## HIT's id, `NO_TARGET`), u8 variant. 14 bytes.
+##
+## A move: a held character that only walked (its place moved at most 1.27 m each way, its yaw and
+## speed may have changed, nothing else did): u16 id, s8 x/y/z (cm from the place held), u8 yaw,
+## u8 speed. 7 bytes: a walking crowd costs half what its rows would.
 ##
 ## Limits, pinned by `test_net_ai_snapshot.gd`: an id past `NetLimits.MAX_AI_ID` or a number that
 ## is not finite is refused (the block is not made); a position past
@@ -28,10 +33,13 @@ extends RefCounted
 enum Mode { NONE = 0, FULL = 1, DELTA = 2 }
 
 const ROW_SIZE := 14
+const MOVE_SIZE := 7
 const NONE_SIZE := 1
 const FULL_HEADER := 4
-## The header and the gone count.
-const DELTA_HEADER := 7
+## The header, the move count and the gone count.
+const DELTA_HEADER := 9
+## The most centimetres a move carries each way.
+const MOVE_REACH := 127
 const MAX_BLOCK := DELTA_HEADER + NetLimits.MAX_AI_ROWS * (ROW_SIZE + 2)
 const YAW_STEPS := 256
 const SPEED_STEP := 0.05
@@ -61,6 +69,8 @@ class Block:
 	var seq := 0
 	var base := 0
 	var rows: Array[AiRow] = []
+	## Six numbers a move: id, x, y, z (cm), yaw step, speed step.
+	var moves: PackedInt32Array = PackedInt32Array()
 	var gone: PackedInt32Array = PackedInt32Array()
 
 
@@ -84,14 +94,24 @@ static func encode(
 	var make_full := (
 		full or not view.has_baseline() or (keyframe > 0 and tick - view.full_tick >= keyframe)
 	)
+	var intervals := PackedInt32Array(
+		[
+			rates.interval_ticks(AiTierRates.Tier.FULL),
+			rates.interval_ticks(AiTierRates.Tier.REDUCED),
+			rates.interval_ticks(AiTierRates.Tier.DORMANT),
+		]
+	)
+	var full_reach := rates.full_radius * rates.full_radius
+	var reduced_reach := rates.reduced_radius * rates.reduced_radius
+	var interest := rates.interest_radius * rates.interest_radius
 	# Who is in this client's interest, nearest first when there are more than it may hold.
 	var wanted: Array[AiRow] = []
 	var tiers: Dictionary[int, int] = {}
 	for row in characters:
-		var tier := rates.tier_for(row.position.distance_to(view.viewer))
-		if tier == AiTierRates.Tier.OUT:
+		var away := row.position.distance_squared_to(view.viewer)
+		if away > interest:
 			continue
-		tiers[row.id] = tier
+		tiers[row.id] = 0 if away <= full_reach else (1 if away <= reduced_reach else 2)
 		wanted.append(row)
 	var limit := mini(view.cap, NetLimits.MAX_AI_ROWS)
 	if wanted.size() > limit:
@@ -105,25 +125,32 @@ static func encode(
 		wanted.resize(limit)
 	var bytes_of: Dictionary[int, PackedByteArray] = {}
 	for row in wanted:
-		var bytes := row_bytes(row, drops)
+		var bytes := row.bytes if not row.bytes.is_empty() else row_bytes(row, drops)
 		if not bytes.is_empty():
 			bytes_of[row.id] = bytes
 	if make_full:
 		return _full(view, bytes_of, tick)
 	var out_rows: Array[int] = []
+	var out_moves: Array[int] = []
 	for id: int in bytes_of:
 		var held: PackedByteArray = view.sent.get(id, PackedByteArray())
 		if held.is_empty():
 			out_rows.append(id)
 			continue
-		var due := tick - int(view.sent_tick.get(id, 0)) >= rates.interval_ticks(tiers[id])
-		if due and held != bytes_of[id]:
+		if tick - int(view.sent_tick.get(id, 0)) < intervals[tiers[id]]:
+			continue
+		var bytes := bytes_of[id]
+		if held == bytes:
+			continue
+		if _is_move(held, bytes):
+			out_moves.append(id)
+		else:
 			out_rows.append(id)
 	var left: Array[int] = []
 	for id: int in view.sent:
 		if not bytes_of.has(id):
 			left.append(id)
-	if out_rows.is_empty() and left.is_empty():
+	if out_rows.is_empty() and out_moves.is_empty() and left.is_empty():
 		return PackedByteArray([Mode.NONE])
 	var out := StreamPeerBuffer.new()
 	var base := view.seq
@@ -136,12 +163,35 @@ static func encode(
 		out.put_data(bytes_of[id])
 		view.sent[id] = bytes_of[id]
 		view.sent_tick[id] = tick
+	out.put_u16(out_moves.size())
+	for id in out_moves:
+		var held: PackedByteArray = view.sent[id]
+		var bytes := bytes_of[id]
+		out.put_u16(id)
+		for at in [2, 4, 6]:
+			out.put_8(bytes.decode_s16(at) - held.decode_s16(at))
+		out.put_u8(bytes[8])
+		out.put_u8(bytes[9])
+		view.sent[id] = bytes
+		view.sent_tick[id] = tick
 	out.put_u16(left.size())
 	for id in left:
 		out.put_u16(id)
 		view.sent.erase(id)
 		view.sent_tick.erase(id)
 	return out.data_array
+
+
+# Whether `bytes` differs from `held` only by a walk a move can carry: the place within
+# `MOVE_REACH` cm each way, the yaw and the speed; the mode, the target and the look the same.
+static func _is_move(held: PackedByteArray, bytes: PackedByteArray) -> bool:
+	for at in range(10, ROW_SIZE):
+		if held[at] != bytes[at]:
+			return false
+	for at in [2, 4, 6]:
+		if absi(bytes.decode_s16(at) - held.decode_s16(at)) > MOVE_REACH:
+			return false
+	return true
 
 
 static func _full(
@@ -267,6 +317,21 @@ static func read_block(reader: WireReader, drops: NetDrops = null) -> Block:
 		seen[row.id] = true
 		block.rows.append(row)
 	if mode == Mode.DELTA:
+		var move_count := reader.u16()
+		if not reader.ok:
+			return _drop(drops, NetDrops.COUNT_PAST_END)
+		if move_count > NetLimits.MAX_AI_ROWS:
+			return _drop(drops, NetDrops.TOO_MANY)
+		if move_count * MOVE_SIZE > reader.left():
+			return _drop(drops, NetDrops.COUNT_PAST_END)
+		for _index in move_count:
+			var id := reader.u16()
+			if id > NetLimits.MAX_AI_ID or seen.has(id):
+				return _drop(drops, NetDrops.BAD_VALUE)
+			seen[id] = true
+			block.moves.append_array(
+				[id, reader.s8(), reader.s8(), reader.s8(), reader.u8(), reader.u8()]
+			)
 		var gone_count := reader.u16()
 		if not reader.ok:
 			return _drop(drops, NetDrops.COUNT_PAST_END)
@@ -315,10 +380,11 @@ func apply(block: Block, drops: NetDrops = null) -> bool:
 					rows.erase(id)
 					gone.append(id)
 		Mode.DELTA:
-			if seq < 0 or block.base != seq:
+			if seq < 0 or block.base != seq or not _holds_moved(block):
 				refused += 1
 				NetDrops.note(drops, NetDrops.NO_BASELINE)
 				return false
+			_apply_moves(block)
 			for id in block.gone:
 				if rows.has(id):
 					rows.erase(id)
@@ -329,6 +395,35 @@ func apply(block: Block, drops: NetDrops = null) -> bool:
 	seq = block.seq
 	applied += 1
 	return true
+
+
+# Whether every character a delta moves is held (a move is from the place held).
+func _holds_moved(block: Block) -> bool:
+	for at in range(0, block.moves.size(), 6):
+		if not rows.has(block.moves[at]):
+			return false
+	return true
+
+
+# Each move, from the held place in whole centimetres, as the server's held bytes moved.
+func _apply_moves(block: Block) -> void:
+	for at in range(0, block.moves.size(), 6):
+		var id := block.moves[at]
+		var row: AiRow = rows[id].copy()
+		row.position = Vector3(
+			_moved(row.position.x, block.moves[at + 1]),
+			_moved(row.position.y, block.moves[at + 2]),
+			_moved(row.position.z, block.moves[at + 3])
+		)
+		row.yaw = yaw_from_step(block.moves[at + 4])
+		row.speed = block.moves[at + 5] * SPEED_STEP
+		rows[id] = row
+		changed.append(id)
+
+
+# A held place `by` centimetres on, in whole centimetres.
+static func _moved(metres: float, by: int) -> float:
+	return CommandCodec.point_from_step(CommandCodec.point_step(metres) + by)
 
 
 ## Applies the bytes of one block (a test's).

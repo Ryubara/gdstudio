@@ -48,6 +48,12 @@ var drops := NetDrops.new()
 var last_apply_us := 0
 var last_frame_us := 0
 var worst_apply_us := 0
+## While on, every TICK's apply time and every physics step's placing time are kept (a probe's).
+var keep_times := false
+var apply_times := PackedInt32Array()
+var frame_times := PackedInt32Array()
+## The most puppets drawn at once.
+var most_puppets := 0
 ## `func(slot: int) -> Node3D`: a player's body on this screen (the `NetClient` sets it), for the
 ## aim of a character after that player.
 var slot_body := Callable()
@@ -76,6 +82,8 @@ func _physics_process(delta: float) -> void:
 		glide.step(drawn, space, extrapolate_mask)
 		_place(_puppets[id], glide, delta)
 	last_frame_us = Time.get_ticks_usec() - began
+	if keep_times:
+		frame_times.append(last_frame_us)
 
 
 ## The puppet of AI id `id`, or null.
@@ -126,6 +134,9 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 			_glides[id].push(tick.server_tick, row)
 	last_apply_us = Time.get_ticks_usec() - began
 	worst_apply_us = maxi(worst_apply_us, last_apply_us)
+	most_puppets = maxi(most_puppets, _puppets.size())
+	if keep_times:
+		apply_times.append(last_apply_us)
 
 
 ## Plays an AI event on its puppet (the client's `ClientCombat` hands it over when it is due).
