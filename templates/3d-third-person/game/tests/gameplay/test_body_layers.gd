@@ -76,3 +76,27 @@ func test_a_model_swapped_in_comes_onto_the_layer_and_other_layers_stay() -> voi
 	for mesh in added.find_children("*", "VisualInstance3D", true, false):
 		assert_int((mesh as VisualInstance3D).layers).is_equal(body.model.body_layers)
 	assert_int((pistol[0] as MeshInstance3D).layers).is_equal(body.model.body_layers | PREVIEW_BIT)
+
+
+# Every look an online client draws AI characters with is out of the minimap's live view: drawn
+# there, a puppet's first draw built the minimap's variants of its programs (no fog, no sun) after
+# the seat, which no warm-up drew (gdstudio #1218; the browser gate now fails on any such link).
+func test_every_ai_look_is_out_of_the_minimap_view() -> void:
+	var minimap := auto_free((load(MINIMAP) as PackedScene).instantiate()) as Minimap
+	var replica := auto_free(AiReplica.new()) as AiReplica
+	assert_int(replica.variant_scenes.size()).is_greater_equal(1)
+	for scene in replica.variant_scenes:
+		var body := scene.instantiate() as Character
+		add_child(body)
+		auto_free(body)
+		await get_tree().process_frame
+		var meshes := _meshes(body)
+		assert_int(meshes.size()).is_greater_equal(4)
+		for mesh in meshes:
+			(
+				assert_int(mesh.layers & minimap.live_layers)
+				. override_failure_message(
+					"%s of %s is on %d" % [mesh.name, scene.resource_path, mesh.layers]
+				)
+				. is_equal(0)
+			)
