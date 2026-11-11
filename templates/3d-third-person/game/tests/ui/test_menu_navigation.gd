@@ -79,22 +79,36 @@ func test_every_tab_of_the_settings_has_no_dead_ends() -> void:
 		await get_tree().process_frame
 		(screen.get_node("%Tabs").get_child(tab) as Control).grab_focus()
 		_assert_no_dead_ends(screen, "settings tab %d" % tab)
-	# The controls tab holds the most: the three fixed rows (sensitivity, invert, pause in the
-	# inventory), a row of two buttons for each action, the three tabs and the two footer buttons.
+	# The controls tab holds the most: the four fixed rows (sensitivity, invert, camera shake, pause
+	# in the inventory), a row of two buttons for each action, the three tabs and the two footer
+	# buttons.
 	var page: ControlsPage = screen.get_node("%ControlsPage")
 	assert_int(MenuFixture.focusables(screen).size()).is_equal(
-		3 + 2 * page.rebind_rows().size() + 3 + 2
+		4 + 2 * page.rebind_rows().size() + 3 + 2
 	)
 
 
 func test_the_keys_walk_down_the_main_menu_and_round_again() -> void:
 	var screen := await _open(SCREENS["main menu"])
 	var play: Control = screen.get_node("%PlayButton")
+	var online: Control = screen.get_node("%OnlineButton")
+	var address: Control = screen.get_node("%AddressField")
 	var settings: Control = screen.get_node("%SettingsButton")
 	assert_object(_focus()).is_same(play)
 	InputSim.key(KEY_DOWN, true)
 	InputSim.key(KEY_DOWN, false)
+	assert_object(_focus()).is_same(online)
+	# The address field is a developer's: it shows in a debug build (the suites run one).
+	InputSim.key(KEY_DOWN, true)
+	InputSim.key(KEY_DOWN, false)
+	assert_object(_focus()).is_same(address)
+	InputSim.key(KEY_DOWN, true)
+	InputSim.key(KEY_DOWN, false)
 	assert_object(_focus()).is_same(settings)
+	InputSim.key(KEY_UP, true)
+	InputSim.key(KEY_UP, false)
+	InputSim.key(KEY_UP, true)
+	InputSim.key(KEY_UP, false)
 	InputSim.key(KEY_UP, true)
 	InputSim.key(KEY_UP, false)
 	assert_object(_focus()).is_same(play)

@@ -199,7 +199,14 @@ needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
 sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
-right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes). Tune
+right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes, 0.3; 0
+swaps at once). A swap keeps what the crosshair is on under it (Shoulder swap subgroup): `keep_aim_on_swap` (on) finds
+the point under the crosshair when the swap starts (what the weapon would hit, or the ray's end at `aim_point_range`,
+100 m, when nothing is there; never nearer than `aim_point_min_distance`, 2 m, past the arm, on `aim_point_mask`) and
+turns the view inward as it slides so the point stays put, so a shot fired mid-swap goes there; `aim_shoulder_time`
+(0.15 s) is the swap's time while aiming; `swap_anchor_strength` (1) is how much of that turn is made; `swap_look` says
+what the player's own look does during the swap: `ADD` (the default) turns the view by it on top of the anchor, `RELEASE`
+does too until it adds up to `swap_release_angle` (4 degrees) and then lets the point go. Tune
 the shoulder there, in the editor or in the remote inspector while the game runs; nothing else writes those two values
 (the Phantom Camera host copies its lens resource onto `Camera` whenever it changes, so `PlayerCamera` keeps the
 resource equal to them). With `aim_shifts_shoulder` on, aiming also moves the view to `aim_shoulder`. The settings are
@@ -279,12 +286,15 @@ with no point: it takes the health too, stops the character for the stun time an
 `CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
 in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space on ground speed: idle, walk, run, sprint),
-`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the prone idle and the crawl, blended by
-ground speed; the crawl plays at the pace of its stride, `crawl_clip_speed`), `jump`, `fall`, `land`, `push` and the
-slide's three clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends
-standing, which runs into `ground`). Until the template's own prone clips land (kit #1009), `prone` plays the swim
-stroke laid on the ground by the Animation's placeholder pose (`prone_pose_offset`, `prone_pose_lean`); with the real
-clips, set `prone_idle_clip`, `crawl_clip`, `to_prone_clip`, `to_crouch_clip` and `crawl_clip_speed`, and zero the pose.
+`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the template's own prone idle and crawl,
+`prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
+as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
+body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`,
+which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`).
+Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
+`prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
+fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -360,12 +370,26 @@ hundredth of the clip while it moves and on every update of the live player relo
 `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
+### Prone and crawl clips {#prone-clips}
+
+`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
+The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
+to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
+and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
+the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are
+fists near the centre line in front of the head, and each fist in turn plants ahead of the other, with the opposite
+leg. The folder's `README.md` has every number, the research
+on how people crawl, how the clips are built and how to render them; `tools/capture/prone_clips_tour.tscn` plays
+them.
+
 ## Licences
 
 The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
-(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`.
+(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
+clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`).
 
 ## Testing it in a browser
 

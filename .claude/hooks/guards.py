@@ -75,6 +75,10 @@ def split_commands(command: str) -> list[str]:
     return parts
 
 
+# `NAME=value`, with the value quoted or a `$(...)` that holds spaces (shlex leaves it one word): never a program
+_ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
+
+
 def segments(command: str) -> list[list[str]]:
     """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole)."""
     out: list[list[str]] = []
@@ -86,7 +90,7 @@ def segments(command: str) -> list[list[str]]:
             words = shlex.split(part.replace("\\", "/"), posix=True)
         except ValueError:
             words = part.split()
-        while words and (words[0] in ("&", ".", "call", "exec", "time", "sudo") or re.fullmatch(r"\w+=\S*", words[0])):
+        while words and (words[0] in ("&", ".", "call", "exec", "time", "sudo") or _ASSIGNMENT.match(words[0])):
             words = words[1:]
         if words:
             out.append(words)
@@ -885,14 +889,140 @@ def check_hold(words: list[str], cwd: Path) -> list[str]:
         if HOLD in removed:
             return [f"`{HOLD}` is taken off only by the maintainer, on the pull request's page: report it instead"]
     if area == "pr" and verb == "merge" and "--disable-auto" not in words:
-        positional = [
-            word for i, word in enumerate(words[3:], 3) if not word.startswith("-") and words[i - 1] not in _VALUE_FLAGS
-        ]
-        named = flag_values(words, ("-R", "--repo"))
-        target = positional[0] if positional else ""
-        if held(target, named[0] if named else None, cwd):
+        target, repo = merge_target(words)
+        if held(target, repo, cwd):
             return [f"{target or 'this pull request'}: {_HELD}"]
     return []
+
+
+def merge_target(words: list[str]) -> tuple[str, str | None]:
+    """The pull request a `gh pr merge` names (its number, URL or branch; '' for the current branch's) and the
+    repository `-R` gives, if any."""
+    positional = [
+        word for i, word in enumerate(words[3:], 3) if not word.startswith("-") and words[i - 1] not in _VALUE_FLAGS
+    ]
+    named = flag_values(words, ("-R", "--repo"))
+    return (positional[0] if positional else ""), (named[0] if named else None)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# A merge only of a pull request that holds the tip of its base (docs/studio/hooks.md#behind)
+# --------------------------------------------------------------------------------------------------------------------
+
+_PR_URL = re.compile(r"github\.com/([\w.-]+/[\w.-]+)/pull/\d+")
+WARNINGS: list[str] = []  # what a guard could not check in this hook run; the dispatcher says them (take_warnings)
+SHOWN_COMMITS = 5
+
+
+def take_warnings() -> list[str]:
+    """The warnings the guards gave since the last call, once: a guard that fails open says so here."""
+    taken, WARNINGS[:] = list(WARNINGS), []
+    return taken
+
+
+def gh_text(command: list[str], cwd: Path, what: str) -> str:
+    """The output of a `gh` command; raises `LookupError(why)` when GitHub cannot be asked or says no."""
+    try:
+        out = subprocess.run(command, cwd=cwd if cwd.is_dir() else None, capture_output=True, text=True, timeout=20)
+    except subprocess.TimeoutExpired:
+        raise LookupError(f"{what} timed out") from None
+    except (OSError, subprocess.SubprocessError) as error:
+        raise LookupError(f"{what} did not run: {error}") from None
+    if out.returncode != 0:
+        raise LookupError(f"{what} failed: {(out.stderr or out.stdout).strip()[:200] or out.returncode}")
+    return out.stdout.strip()
+
+
+def behind(target: str, repo: str | None, cwd: Path) -> tuple[dict[str, Any] | None, str]:
+    """How far a pull request's head is behind its base branch, as GitHub's compare API counts it (the local clone may
+    be stale): `({repo, number, base, branch, behind_by, commits}, '')`, `commits` being the base's commits the head
+    lacks as `<sha> <subject>` lines (empty when only the count could be read); `(None, why)` when GitHub cannot say."""
+    try:
+        view = ["gh", "pr", "view", *([target] if target else []), *(["-R", repo] if repo else [])]
+        fields = "number,baseRefName,headRefName,headRefOid,url"
+        try:
+            pr = json.loads(gh_text([*view, "--json", fields], cwd, "reading the pull request"))
+            number, base, branch, head = pr["number"], pr["baseRefName"], pr["headRefName"], pr["headRefOid"]
+            repo = repo or _PR_URL.search(pr["url"]).group(1)
+        except (ValueError, KeyError, TypeError, AttributeError):
+            raise LookupError("reading the pull request gave no number, base and head") from None
+        compare = f"repos/{repo}/compare/"
+        count = gh_text(["gh", "api", f"{compare}{base}...{head}", "--jq", ".behind_by"], cwd, "the compare call")
+        try:
+            lacking = int(count)
+        except ValueError:
+            raise LookupError(f"the compare call gave {count[:40]!r} for behind_by") from None
+        commits: list[str] = []
+        if lacking:
+            jq = '.commits[] | .sha[0:9] + " " + (.commit.message | split("\\n")[0])'
+            with contextlib.suppress(LookupError):  # the count alone still refuses
+                commits = gh_text(["gh", "api", f"{compare}{head}...{base}", "--jq", jq], cwd, "the list").splitlines()
+        return {
+            "repo": repo,
+            "number": number,
+            "base": base,
+            "branch": branch,
+            "behind_by": lacking,
+            "commits": commits,
+        }, ""
+    except LookupError as error:
+        return None, str(error)
+
+
+def worktree_of(branch: str, cwd: Path) -> Path | None:
+    """The worktree where `branch` is checked out, found from any checkout of the repository (None: no worktree)."""
+    found = None
+    for line in git(cwd, "worktree", "list", "--porcelain").splitlines():
+        if line.startswith("worktree "):
+            found = line.removeprefix("worktree ")
+        elif line == f"branch refs/heads/{branch}" and found:
+            return Path(found).resolve()
+    return None
+
+
+def behind_reason(found: dict[str, Any], cwd: Path) -> str:
+    """The refusal for a pull request whose head lacks `found["behind_by"]` commits of its base."""
+    count, base = found["behind_by"], found["base"]
+    commits = found["commits"]
+    named = ", ".join(commits[:SHOWN_COMMITS]) + (
+        f" and {len(commits) - SHOWN_COMMITS} more" if len(commits) > SHOWN_COMMITS else ""
+    )
+    workspace = workspace_of(cwd)
+    gds = f"uv run --project {(workspace / 'repos' / 'gdstudio' / 'python').as_posix()} gds" if workspace else "gds"
+    tree = worktree_of(found["branch"], cwd)
+    return (
+        f"{found['repo']}#{found['number']} is {count} commit{'s' * (count != 1)} behind {base}"
+        f"{f' (missing: {named})' if commits else ''}: refresh it with `{gds} merge-main --path "
+        f"{tree.as_posix() if tree else '<worktree>'}`, push once, and merge when its checks have passed on that head "
+        "(docs/studio/starting-work.md#landing)"
+    )
+
+
+def check_behind(words: list[str], cwd: Path) -> list[str]:
+    """A merge command (`gh pr merge`, with or without `--auto`, or a write to `gh api .../pulls/<n>/merge`) on a pull
+    request whose head does not contain the tip of its base branch. GitHub's own answer decides; when it cannot be
+    asked the call goes through with a warning, never silently."""
+    if len(words) < 3 or words[1] not in ("pr", "api"):
+        return []
+    asks: list[tuple[str, str | None]] = []
+    if words[1] == "pr" and words[2] == "merge" and "--disable-auto" not in words:
+        asks.append(merge_target(words))
+    elif words[1] == "api" and words[2] != "graphql" and api_method(words) != "GET":
+        for word in words[2:]:
+            merge = _API_MERGE.search(unquote(word))
+            if merge:
+                asks.append((merge.group(2), merge.group(1)))
+    reasons = []
+    for target, repo in asks:
+        found, why = behind(target, repo, cwd)
+        if found is None:
+            WARNINGS.append(
+                f"the merge guard could not check whether {target or 'this pull request'} holds the tip of its base "
+                f"({why}); the call goes through, so check it yourself (`gh pr view --json mergeStateStatus`)"
+            )
+        elif found["behind_by"] > 0:
+            reasons.append(behind_reason(found, cwd))
+    return reasons
 
 
 # The commands that exist to post (`gh help` of gh 2.102), and those that post when they carry `--comment` or `-c`.
@@ -1243,6 +1373,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         elif name == "gh":
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd)
+            reasons += check_behind(words, cwd)
             reasons += check_labels(words)
             reasons += check_pr_body(words, cwd, config, lost)
         reasons += check_tools(words, config)
@@ -1842,15 +1973,18 @@ def stranded_after_merge(tree: Path, base: str, tip: str) -> list[str]:
     return [c for c in new if not content_on_base(tree, base, c)]
 
 
-def unpublished_kit_branches(workspace: Path, config: dict[str, Any]) -> dict[str, str]:
+def unpublished_kit_branches(workspace: Path, config: dict[str, Any], owned: set[str] | None = None) -> dict[str, str]:
     """Branches of the kit's worktrees (`<workspace>/worktrees/gdstudio/*`) with commits ahead of `origin/main` and no
     pull request, open or merged (docs written and left for a batch), each mapped to '' ; and branches whose pull
     request merged and which then got a commit that is not on `origin/main` (pushed after the merge, so lost), each
-    mapped to the merged tip. Empty when GitHub cannot be asked."""
+    mapped to the merged tip. Empty when GitHub cannot be asked. With `owned` (worktree keys, `tree_key`), only those
+    worktrees are looked at: the others belong to other sessions."""
     folder = workspace / config.get("docs", {}).get("kit_worktrees", "worktrees/gdstudio")
     protected = config.get("git", {}).get("protected_branches", ["main"])
     ahead = {}
     for tree in sorted(p for p in folder.iterdir() if (p / ".git").exists()) if folder.is_dir() else []:
+        if owned is not None and tree_key(tree) not in owned:
+            continue
         branch = git(tree, "rev-parse", "--abbrev-ref", "HEAD")
         base = "origin/main" if git(tree, "rev-parse", "--verify", "-q", "origin/main") else "main"
         count = git(tree, "rev-list", "--count", f"{base}..HEAD")
@@ -1895,10 +2029,84 @@ def unpublished_message(branches: dict[str, str]) -> str:
     return " ".join(parts)
 
 
+def tree_key(path: Path | str) -> str:
+    """A worktree path as one comparable string: forward slashes, no trailing slash, lower case (Windows paths)."""
+    return str(path).replace("\\", "/").rstrip("/").lower()
+
+
+_COMMIT_WORDS = re.compile(r"\bgit\b[^\n]*\b(commit|worktree\s+add|merge)\b")
+
+
+def transcript_entries(session: dict[str, Any]) -> list[dict[str, Any]]:
+    """The entries of the session's transcript (`agent_transcript_path`, else `transcript_path`); [] when unreadable."""
+    path = session.get("agent_transcript_path") or session.get("transcript_path")
+    try:
+        lines = Path(path).read_text(encoding="utf-8", errors="replace").splitlines() if path else []
+    except OSError:
+        return []
+    entries = []
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict):
+            entries.append(entry)
+    return entries
+
+
+def transcript_blocks(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """The content blocks of a transcript entry's message (a plain string is one text block)."""
+    message = entry.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, str):
+        return [{"type": "text", "text": content, "role": message.get("role")}]
+    blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
+    return [{**b, "role": message.get("role")} for b in blocks]
+
+
+def owned_kit_worktrees(payload: dict[str, Any], workspace: Path, config: dict[str, Any]) -> set[str]:
+    """The kit worktrees (`tree_key`s) the stopping session owns, the only ones its docs gate may name:
+
+    - the worktree its `cwd` is in;
+    - the worktree its prompt names (`Worktree: <path>`), and the worktree the ledger of `gds issue start` holds for
+      the issue its prompt names (`Issue: owner/repo#N`), the first user messages of its transcript;
+    - a worktree it made commits in or added: an absolute path of a kit worktree in one of its own `git commit`,
+      `git worktree add` or `git merge` commands.
+
+    A session that owns none (an eval run, the coordinator between tasks) is held for no one's branch (#895)."""
+    folder = workspace / config.get("docs", {}).get("kit_worktrees", "worktrees/gdstudio")
+    if not folder.is_dir():
+        return set()
+    trees = {tree_key(p): p for p in folder.iterdir() if (p / ".git").exists()}
+    owned: set[str] = set()
+    here = tree_key(Path(payload.get("cwd") or "."))
+    owned.update(key for key in trees if here == key or here.startswith(key + "/"))
+    ledger = read_ledger(workspace, config)
+    seen_prompt = False
+    for entry in transcript_entries(payload):
+        for block in transcript_blocks(entry):
+            if block.get("role") == "user" and block.get("type") == "text" and not seen_prompt:
+                seen_prompt = True  # the first user message is the prompt the agent was started with
+                text = str(block.get("text") or "")
+                for found in re.findall(r"(?im)^[ \t>*-]*Worktree[ \t]*:[ \t]*`?([^\s`]+)", text):
+                    owned.update(key for key in trees if key == tree_key(found))
+                for _label, repo, number in _WORK_LINE.findall(text):
+                    tree = (ledger.get(ledger_key(repo, number)) or {}).get("worktree")
+                    owned.update(key for key in trees if tree and key == tree_key(tree))
+            command = (block.get("input") or {}).get("command") if block.get("type") == "tool_use" else None
+            if isinstance(command, str) and _COMMIT_WORDS.search(command):
+                said = tree_key(command)
+                owned.update(key for key in trees if key in said)
+    return owned
+
+
 def stop_kit_docs(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
-    """The docs gate of Stop: kit branches with commits and no pull request hold the session back once."""
+    """The docs gate of Stop: the stopping session's own kit branches with commits and no pull request hold it back
+    once. Other sessions' branches are theirs to publish, so they are never named here (gdstudio #895)."""
     workspace = workspace_of(Path(payload.get("cwd") or "."))
-    branches = unpublished_kit_branches(workspace, config) if workspace else []
+    owned = owned_kit_worktrees(payload, workspace, config) if workspace else set()
+    branches = unpublished_kit_branches(workspace, config, owned) if workspace and owned else {}
     return unpublished_message(branches) if branches else None
 
 

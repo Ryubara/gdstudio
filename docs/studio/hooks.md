@@ -19,6 +19,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
+| Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Starting work](starting-work.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
@@ -33,6 +34,13 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
+
+The guards that read a shell line split it into simple commands (`&&`, `||`, `;`, `|`) and judge each by its program.
+Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
+included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
+assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
+`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
+folder.
 
 ## Pull request bodies before they are sent {#pr-body}
 
@@ -68,8 +76,9 @@ branch deletion and an empty push pass. `--no-verify` is refused by the Git guar
   Improve, Document), never copy an issue's title; run `gds pr check-body <body> --title <title file>` before
   committing, and read the commit's output before chaining the push and `gh pr create`. **Watch out for:** an issue title
   is not checked and "Step" (or "Keep") is no verb: the commit hook refused the commit, and the chained `gh pr create`
-  then said "No commits between main and <branch>", which hid the first error. **Seen:** Deadnight #892, 2026-11-03
-  (fix: retitled "Fix the two-thumbs touch test that waits on real frames").
+  then said "No commits between main and <branch>", which hid the first error (it also means a push that never
+  happened: check `git status -sb`). **Seen:** Deadnight #892, 2026-11-03 (fix: retitled "Fix the two-thumbs touch
+  test that waits on real frames"); gdstudio #1094, 2026-11-11 (a silent `git push -q` that never reached GitHub).
 
 ## The hold {#hold}
 
@@ -253,17 +262,17 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
 - **Unpublished docs.** At `Stop` and `SubagentStop`, a branch of a worktree under `<workspace>/worktrees/gdstudio/`
   with commits ahead of `origin/main` and no open or merged pull request (one `gh pr list` for the kit) holds the
   session back once, naming the branch. If GitHub cannot be asked, the hook lets go.
+- **Only its own branches.** The gate names a branch the session owns (`owned_kit_worktrees`): the worktree of its
+  `cwd`; the one its prompt names (`Worktree:`) or the ledger holds for its `Issue:` (read from the first user messages
+  of its transcript); one named in its `git commit`, `git worktree add` or `git merge` commands. A session that owns
+  none (an eval run, the coordinator) is never held for others' branches; the check below does the same.
 - **Commits after a merge.** The same list gives the tip a branch's last merged pull request landed (`headRefOid`).
-  A branch whose pull request is merged (and none is open) and which then got a commit is also named, when
-  `git cherry origin/main HEAD <tip>` still marks that commit `+`: the commits after the tip, compared to `origin/main`
-  by patch id, because a squash merge rewrites every hash. The message says to make a new branch from `origin/main`,
-  cherry-pick the commit, open a new pull request, and reset the old branch to the merged tip (so it is not named
-  again). A commit that already reached `origin/main` through a new pull request has the same patch id and is not
-  named; one squashed there with other commits has a new patch id, so each `+` commit is also read by content and is
-  stranded only if some path it touches differs from `origin/main`'s blob (no checkout, no side effect). If the tip
-  is unknown in the worktree (the branch was rewritten), the hook cannot tell and lets go. This is
-  the gap that lost a lesson twice (kit #175 and #176;
-  [Starting work](starting-work.md#landing)).
+  A merged branch (none open) that then got a commit is also named, when `git cherry origin/main HEAD <tip>` marks the
+  commit `+` (by patch id, since a squash merge rewrites every hash). The message says to make a new branch from
+  `origin/main`, cherry-pick the commit, open a new pull request, and reset the old branch. A commit
+  that reached `origin/main` through a new pull request has the same patch id and is not named; one squashed there
+  with others is read by content: stranded only if a path it touches differs from `origin/main`'s blob. If the tip is
+  unknown in the worktree (the branch was rewritten), the hook lets go ([Starting work](starting-work.md#landing)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
@@ -287,7 +296,8 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   pull request's changed files (`check-body --changed`; `gds pr check-body` and the guard pass the branch's files).
   `Lessons: none (reason)` is refused for it; elsewhere the line is optional. A pull request that closes an issue
   needs `Read first: <page.md#anchor>, ...` naming the sections its author read (the `Read:` lines of its brief); a
-  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist. A game's
+  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist in the
+  base branch's docs (on a machine, `origin/main`'s: [the body guard](pull-requests.md#pr-body)). A game's
   conventions have no `docs` key (the kit's docs are not in its checkout), so only the form is checked there. A game's
   conventions add `Kit docs: <kit pull request>` (or `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue
   (`pull_requests.kit_docs`, same script): a game's rules live in the kit's sections. If GitHub cannot be asked, the
@@ -312,6 +322,11 @@ game's `lessons` rule without `names: section` keeps the old form.
   docs, and an agent's own fixes left none. **Seen:** Deadnight #507, gdstudio #99, 2026-11-02 (fix: the Stop and
   SubagentStop gates flag a kit branch with commits and no pull request and a report with mistakes and no section; `gds
   issue start` puts the rules of the issue's areas into the agent's context (gdstudio #99)).
+
+- **Approach:** Judge a Stop gate against the stopping session's own work: name only the branches it owns (its `cwd`,
+  prompt, ledger entry and commands). **Watch out for:** a gate over every kit worktree held each agent, the
+  coordinator and eval runs to disclaim the others' branches, and ate an eval run's report.
+  **Seen:** gdstudio #895, 2026-11-10.
 
 ## Agent stalls {#stall}
 
@@ -455,8 +470,9 @@ a task agent never judged, the refusal limit and its reset, the `gh` cache, fail
 event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
 once, throttled, switched off, log moved aside; started by session start, a merge and Stop).
 `python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
-`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a pull
-request read through recorded `gh` answers, the order of the proposed sections, and that the kit's own brief names
-sections that exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
+`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a
+pull request read through recorded `gh` answers, the order of the proposed sections, a path mention far from the issue's
+words left out (#909's body in `python/tests/fixtures/issue_bodies/`), and that the kit's own brief names sections that
+exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

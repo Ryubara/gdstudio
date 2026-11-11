@@ -296,7 +296,8 @@ def test_names_section_takes_a_topic_section_and_refuses_the_old_forms():
     """gdstudio #769: a learning updates a topic section, so `Lessons:` names it as page.md#anchor."""
     ok = body("Lessons: docs/engines/godot/web-export.md#threads")
     assert problems({"lessons": SECTIONS}, "net: Fix the lag", ok) == []
-    for old in (LESSON, "Lessons: [row](docs/studio/maintainer-corrections.md#found-by-playing)"):
+    log_page = "Lessons: [row](docs/studio/corrections-log/found-by-playing.md#x)"  # the log's folder (gdstudio #1115)
+    for old in (LESSON, "Lessons: [row](docs/studio/maintainer-corrections.md#found-by-playing)", log_page):
         out = problems({"lessons": SECTIONS}, "net: Fix the lag", body(old))
         assert out and "names the section of the rule as page.md#anchor" in out[0]
     out = problems({"lessons": SECTIONS}, "net: Fix the lag", body())
@@ -315,3 +316,12 @@ def test_edited_needs_the_sections_page_among_the_changed_files():
     assert (
         groundwork.lessons_problems(conv(**rules), "net: Fix it", text, CLEAN, None) == []
     )  # no file list: not judged
+
+
+def test_the_body_closing_lines_stand_in_for_the_api_list():
+    rules = conv()
+    rules["pull_requests"]["closing"] = {"keyword": "Fixes", "form": "Fixes #N"}
+    text = body("Fixes #12", "Fixes #7", "Fixes #12", "Not Fixes #9", "Fixes 3")
+    assert groundwork.body_closes(rules, text) == [12, 7]
+    del rules["pull_requests"]["closing"]
+    assert groundwork.body_closes(rules, text) == []

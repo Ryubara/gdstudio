@@ -144,9 +144,11 @@ one time a learning makes a new page. The check names the page and its size.
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
   page with a short section per moved `{#anchor}` linking to its new place. Then run `test_docs_site.py` and the strict
-  docs build. **Watch out for:** a page at 51.1 KB with six agents adding to it failed the next one; a folder without
-  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`. **Seen:**
-  gdstudio #983 and #1029 (the template pages); #1067, 2026-11-11 (`audio.md`, now `audio-mixing/`).
+  build. **Watch out for:** a page at 51.1 KB failed the next agent's change; a folder without
+  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that
+  reads the page by its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a
+  subpage titled like the one section it holds repeats its anchor, and the check refuses it. **Seen:** gdstudio #983,
+  #1029 (template pages); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
 
 ## Where the entry is named {#named}
 

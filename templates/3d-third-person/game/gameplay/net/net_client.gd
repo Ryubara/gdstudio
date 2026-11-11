@@ -30,6 +30,10 @@ signal disconnected
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
 
+## An address chosen for the next client that joins on ready (the main menu's "Play online"):
+## wins over `--connect` and `?url=`, and is used once.
+static var next_url := ""
+
 @export_group("Nodes")
 ## The local body the client predicts.
 @export var player: Player
@@ -58,8 +62,8 @@ var welcome: SnapshotCodec.Welcome
 var last_tick: SnapshotCodec.Tick
 var reconciler := Reconciler.new()
 var stall_guard := StallGuard.new()
-## The map's networked parts (doors, platforms, pickups) as the server's records show them; made
-## at the WELCOME.
+## The map's networked parts (doors, platforms, pickups, props, targets) as the server's records
+## show them; made at the WELCOME. A moving prop's records ride each TICK (`read_stream`).
 var map_parts := NetWorld.new()
 ## Seconds for pings and the stall guard: empty is the machine's clock.
 var clock := Callable():
@@ -87,6 +91,9 @@ var _steps := 0
 var _ping_every := NetLimits.TICK_RATE / NetLimits.PING_RATE
 # When the HELLO left (this node's clock, seconds): the WELCOME measures a first round trip.
 var _hello_at := 0.0
+# The last stall's end (this node's clock, milliseconds as a ping carries them): a PONG for an
+# older ping is not a round trip (-1: no stall yet).
+var _pings_valid_from := -1
 
 
 func _ready() -> void:
@@ -100,7 +107,8 @@ func _ready() -> void:
 	if join_on_ready and not Engine.is_editor_hint():
 		var args := NetArgs.new()
 		player_name = args.get_string("name", player_name)
-		var url := WebSocketLink.server_url()
+		var url := next_url if next_url != "" else WebSocketLink.server_url()
+		next_url = ""
 		if url != "":
 			join(url)
 
@@ -157,8 +165,7 @@ func _predict(delta: float) -> void:
 		StallGuard.Verdict.SKIP:
 			return
 		StallGuard.Verdict.RESYNC:
-			reconciler.reset()
-			reconciler.snap_next = true
+			resync()
 	var correction := reconciler.take()
 	if correction != Vector3.ZERO:
 		player.global_position += correction
@@ -177,7 +184,15 @@ func _predict(delta: float) -> void:
 	player.step(CommandCodec.decode(packet), delta)
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
-		link.send(NetWire.ping(int(_now() * 1000.0), rtt_ms))
+		link.send(NetWire.ping(_now_ms(), rtt_ms))
+
+
+## The client's own thread stalled (`StallGuard`): the reconciler forgets its points and takes the
+## next answer whole (`Reconciler.resync`), and a PONG for a ping sent before now measures the
+## stall, not the network, so it is not a round trip.
+func resync() -> void:
+	reconciler.resync()
+	_pings_valid_from = _now_ms()
 
 
 func _take_player() -> void:
@@ -211,8 +226,8 @@ func _on_packet(data: PackedByteArray) -> void:
 			_on_tick(SnapshotCodec.read_tick(data, drops))
 		NetWire.Type.PONG:
 			var pong := NetWire.read_pong(data, drops)
-			if pong != null:
-				rtt_ms = (int(_now() * 1000.0) - pong.client_ms) & 0xFFFFFFFF
+			if pong != null and not _sent_before_stall(pong.client_ms):
+				rtt_ms = (_now_ms() - pong.client_ms) & 0xFFFFFFFF
 		_:
 			drops.count(NetDrops.UNKNOWN_TYPE)
 
@@ -253,9 +268,12 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 				if remote_players != null:
 					remote_players.on_left(event.slot)
 			NetEvent.Kind.ENTITY:
-				map_parts.read_event(event)
+				# A target's fall waits for the hit it goes with (`ClientCombat`).
+				if remote_players == null or not map_parts.plays_with_puppets(event):
+					map_parts.read_event(event)
 			NetEvent.Kind.PICKUP:
 				map_parts.read_pickup(event, player if event.slot == slot else null)
+	map_parts.read_stream(tick.parts, tick.server_tick)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:
@@ -318,6 +336,20 @@ func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
 	if seq + 1 < expected - SEQ_SLACK:
 		seq = expected - 1
 		renumbered += 1
+
+
+# Whether the ping of `client_ms` left before the last stall: its PONG waited out the stall in a
+# buffer, so its round trip is the stall's length (5 s after a 5 s freeze), and the numbering
+# (`_keep_numbering`) would put the commands that far ahead of the server (gdstudio #1070).
+func _sent_before_stall(client_ms: int) -> bool:
+	if _pings_valid_from < 0:
+		return false
+	return ((client_ms - _pings_valid_from) & 0xFFFFFFFF) >= 0x80000000
+
+
+# The clock in milliseconds as a ping carries them (32 bits).
+func _now_ms() -> int:
+	return int(_now() * 1000.0) & 0xFFFFFFFF
 
 
 func _now() -> float:

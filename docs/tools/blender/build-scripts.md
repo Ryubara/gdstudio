@@ -24,6 +24,16 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   two edits and died on a name used before its import was written. **Seen:** Deadnight #438, 2026-11-01; Deadnight
   #939, 2026-11-04 (fix: the batch was run again and the failed file rebuilt).
 
+- **Approach:** Write a script, or a patch to one, to a file with the write tool and run the file; keep shell
+  heredocs for a few lines with no apostrophe, and open text files with `newline=""` when a Python one-liner rewrites
+  them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
+  Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
+  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10.
+- **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
+  old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
+  last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
+  **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+
 ## Rebuilding a committed file {#rebuilding}
 
 A rebuild changes only what the task changes. Blender's glTF export does not keep the triangle order from run to run,
@@ -46,6 +56,11 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
 
 ## Checks in the build {#checks}
 
+A clip build also checks that limbs do not pass through each other: `limb_overlap.py`
+(`templates/3d-third-person/game/assets/animation/`, from kit #1016 and #1020) measures, on every frame and on each
+mannequin's skinned mesh, how deep any body part is inside another, and a build calls its `measure()` on the baked
+actions before it exports (its header has the command line and the limit).
+
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar
   are plain boxes. Lift a part pitched about its centre by half its length times the sine of the pitch plus half its
@@ -65,3 +80,7 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   where they were made and printed a size 1 cm short (0.186 m against the file's 0.196 m), and a budget or lowest-vertex
   check would read the same stale place. **Seen:** gdstudio #834, 2026-11-08 (fix: the update in `build_pistol.py`'s
   check).
+- **Approach:** Compare two poses in a check by matrix distance (the largest difference of the two matrices' entries,
+  or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
+  `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
+  poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
