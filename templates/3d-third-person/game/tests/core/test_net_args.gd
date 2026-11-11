@@ -90,6 +90,15 @@ func test_the_server_exports_are_pinned() -> void:
 		&"revive_seconds": 3.0,
 		&"revive_at_spawn": false,
 		&"entity_lead_ticks": 12,
+		&"ai_rates": load("res://gameplay/net/ai_tier_rates.tres"),
+		&"ai_section_origin": Vector3.ZERO,
+		&"ai_variants":
+		[
+			load("res://gameplay/ai/profiles/grunt.tres"),
+			load("res://gameplay/ai/profiles/ally.tres"),
+			load("res://gameplay/ai/profiles/civilian.tres"),
+		],
+		&"ai_sees_players": true,
 	}
 	assert_array(ExportPins.differences(server, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(server, pins)).is_empty()
