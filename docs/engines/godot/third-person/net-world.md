@@ -43,22 +43,29 @@ build. Offline a part does what it always did.
   map when taken (its id is its place); its return is an `entity` event.
 - **Late joiners.** The WELCOME carries the table: each part's state written as at the WELCOME's tick, so a door that
   opened before is open on the first frame, not closed and then opening.
+- **The pressure pad.** `trigger_zone_net.tscn` (`TriggerZoneNet`, a `NetEntity` of kind `pad`) sits under the map's
+  `Triggers/PressurePad` instance, not in `trigger_zone.tscn`: a camera zone's `TriggerZone` follows one screen's own
+  player and stays local. The server's copy senses the bodies, opens the door through its `activated` signal and says
+  each press and release; a client's copy has `TriggerZone.sensing` off (no monitoring, no signal) and paints its
+  plate from the state (`show_active`), so player two sees the pad pressed by player one's puppet, a round trip late
+  for the player on it. Not solid, so no lead: the state is said at the server's tick.
 - **Puppets on a slab.** A client draws the slab at its predicted tick and a puppet 100 ms behind the newest TICK;
   `RemotePlayers` moves a puppet that stands on a slab by what the slab moves between the two moments, so player two
   sees the rider standing still on the slab it draws.
 
 State bytes (at most `NetLimits.MAX_ENTITY_STATE`, 8): a door 4 (flags opening and locked, u16 the openness the motion
 starts from, u8 the ticks to its start), a platform 6 (flags running and direction, u16 the distance, u16 the ticks it
-still waits, u8 the ticks to its start), a pickup 1 (available). The server rounds a new motion's start as the wire
-carries it, so both sides compute the same function; a WELCOME row is rebased to its tick (0.06 mm off at most).
+still waits, u8 the ticks to its start), a pickup 1 (available), a pad 1 (pressed). The server rounds a new motion's
+start as the wire carries it, so both sides compute the same function; a WELCOME row is rebased to its tick (0.06 mm
+off at most).
 
 Measured (Windows, Godot 4.7.2, one process with the server and its clients over a real socket on 127.0.0.1;
-`test_net_map_parts.gd`, `test_net_platform_ride.gd`, `test_net_door_prediction.gd`, `test_net_server_cost.gd`):
+`test_net_map_parts.gd`, `test_net_platform_ride.gd`, `test_net_door_prediction.gd`, `test_net_server_cost.gd`, `test_net_pressure_pad.gd`):
 
 | What | Number |
 | --- | --- |
-| Parts in the prototype map (doors, platforms, pickups, the pathing section's included) | 17, 6 of them moving |
-| WELCOME with the table, no player | 124 bytes (15 without it) |
+| Parts in the prototype map (doors, platforms, pickups, the pad, the pathing section's) | 18, 6 of them moving |
+| WELCOME with the table, no player | 129 bytes (15 without it) |
 | `entity` event of a door / `pickup` event | 12 / 4 bytes |
 | Putting the 6 moving parts at a tick | 17 µs (once a step on a client; 8 players: 9 times a server step) |
 | Server step, 8 bots in the map, p50 / p95 | 0.78 / 1.23 ms |
@@ -89,7 +96,8 @@ Measured (Windows, Godot 4.7.2, one process with the server and its clients over
 
 <!-- new section: issue #907 asked for the checklist a map component meets before it plays online -->
 
-A map component plays online when it answers each line; the three of #907 do, props and targets are the next.
+A map component plays online when it answers each line; the three of #907 and the pressure pad (#1074) do, props and
+targets are the next.
 
 1. **State:** what a late joiner needs, in at most 8 bytes, written as at a tick (`net_write`) and read back
    (`net_read`).
@@ -101,4 +109,6 @@ A map component plays online when it answers each line; the three of #907 do, pr
    from a client's touch.
 6. **Cosmetic:** spin, bob, sound and signals that only draw stay local.
 7. **In the scene:** `net_entity.tscn` as a child with its `net_kind`, so the world hash and the ids see it, and the
-   component hands it its functions in `_ready` (`NetEntity.serve`: no part finds another by a method name).
+   component hands it its functions in `_ready` (`NetEntity.serve`: no part finds another by a method name). A
+   component whose script is the synced `addons/gds_game/` (which knows no `NetEntity`) gets a template subclass of
+   `NetEntity` that serves for it through the addon's public methods (`TriggerZoneNet`).

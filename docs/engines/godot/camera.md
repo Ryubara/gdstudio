@@ -237,7 +237,18 @@ captures see the same shake.
   impacts.impact_made.connect(func(_surface, _collider, point, _normal): CameraShake.shake(IMPACT, point))
   ```
 
-  It is not wired in the template: the default of every shake the player causes is none.
+  3D Third Person wires it for hits near the player (next bullet); any other use is one line like this.
+- **A hit near the player shakes the view.** 3D Third Person's rig has a `NearHitShake` (`gameplay/player/`, under
+  `PlayerCamera` in `ui/player_rig/player_rig.tscn`): it listens to the level's `Impacts.impact_made` and plays its
+  `preset` (`core/camera_shake/presets/near_hit.tres`: trauma 0.6, 0.35 s, felt to 12 m) on the rig's own shaker at the
+  hit's point, so it fades with the distance from the camera and is gone past the radius. A round on the floor 3.6 m
+  away peaks at 0.07 degrees (the template's `near_hit_tour.tscn`); one 20 m away adds nothing. Inspector: `enabled`,
+  `preset`, `strength` (a share of the preset's trauma, on top of `CameraShake.strength`), `shaker`, `impacts`. It plays
+  on its own rig's shaker, not through the static `shake()`, so in a process with several worlds (the online tests) a
+  hit shakes only the camera of its world. Online, `ClientCombat` plays each HIT through the same `Impacts`, so every
+  peer shakes its own view from the event it has; where the screen finds no surface at the point it calls
+  `NearHitShake.play_near(client, point)` itself. The player's own rounds landing close shake it too, by the same
+  falloff (a HIT names no shooter).
 - **A continuous source is held, not played.** `shaker.hold(&"sprint", preset, level)` every frame with the state's
   level (1 while it holds, 0 when not), or `CameraShake.hold_everywhere(source, preset, level, at)`. A held source
   eases in and out by the preset's `blend_speed`, `release(source)` lets it go, and a source at 0 that has died away is

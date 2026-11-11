@@ -82,22 +82,26 @@ class Hand:
 
     def finger_points(self, finger, angles):
         """The finger's vertices for each row of angles: (K, N, 3). Other fingers stay as they are."""
+        return self.finger_points_turned(finger, local_rotations(finger, np.atleast_2d(angles)))
+
+    def finger_points_turned(self, finger, rots):
+        """The finger's vertices for each row of its three bones' rotations on top of their rests (three
+        (K, 3, 3), as `local_rotations` gives them or blended between two poses): (K, N, 3)."""
         rig = self.rig
-        a = np.atleast_2d(angles)
         chain = self.chains[finger]
-        rots = local_rotations(finger, a)
+        count = len(rots[0])
         parent = self.glob[rig.parent[chain[0]]]
         mats = []
-        g = np.broadcast_to(parent, (len(a), 4, 4))
+        g = np.broadcast_to(parent, (count, 4, 4))
         for bone, rot in zip(chain, rots, strict=False):
-            local = np.broadcast_to(rig.rest[bone], (len(a), 4, 4)).copy()
+            local = np.broadcast_to(rig.rest[bone], (count, 4, 4)).copy()
             local[:, :3, :3] = rig.rest[bone][:3, :3] @ rot
             g = g @ local
             mats.append(g @ rig.bind[bone])
         vid = self.ids[self.finger_verts[finger][:: self.stride]]
         homog = rig.homog[vid]
         static = np.zeros((len(vid), 3))
-        moving = np.zeros((len(a), len(vid), 3))
+        moving = np.zeros((count, len(vid), 3))
         skin_mats = self.glob @ rig.bind
         for k in range(4):
             bones = rig.vbones[vid, k]
@@ -114,6 +118,29 @@ class Hand:
         """For the finger's own vertex list: index arrays of its base, middle and tip bones' vertices."""
         mains = self.rig.main[self.ids[self.finger_verts[finger][:: self.stride]]]
         return [np.where(mains == b)[0] for b in self.chains[finger]]
+
+    def angles_of(self, quaternions):
+        """The angles of every finger for a pose given as bone name to Godot's (x, y, z, w), the way
+        `quaternions()` writes one: {finger: angles}. Only a pose this solver made reads back exactly."""
+        out = {}
+        for f in FINGERS:
+            first, second, third = (
+                self.rig.rest[bone][:3, :3].T @ R.quat_to_mat(quaternions[self.rig.names[bone]])
+                for bone in self.chains[f]
+            )
+            bend = [np.degrees(np.arctan2(m[2, 1], m[2, 2])) for m in (first, second, third)]
+            if f == "thumb":
+                # The root is Y, then Z, then X; the middle joint Z, then X.
+                root = [
+                    np.degrees(np.arctan2(-first[2, 0], first[0, 0])),
+                    np.degrees(np.arcsin(np.clip(first[1, 0], -1.0, 1.0))),
+                    np.degrees(np.arctan2(-first[1, 2], first[1, 1])),
+                ]
+                lean = np.degrees(np.arctan2(second[1, 0], second[0, 0]))
+                out[f] = np.array([*root, lean, bend[1], bend[2]])
+            else:
+                out[f] = np.array([np.degrees(np.arctan2(first[1, 0], first[0, 0])), *bend])
+        return out
 
     def quaternions(self, fingers=FINGERS):
         """Each finger bone's local rotation as Godot's (x, y, z, w)."""
