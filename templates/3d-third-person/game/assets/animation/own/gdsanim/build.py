@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import FPS, checks, export, mirror, overlap, reduce, weight
+from . import checks, export, mirror, overlap, reduce, weight
+from .maths import FPS
 from .plan import ContactPlan, unroot
 from .rig import SIDES, Rig
 from .solve import Solver

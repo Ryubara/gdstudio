@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import FPS
+from .maths import FPS
 from .rig import Rig
 
 _FLOAT, _UBYTE, _USHORT = 5126, 5121, 5123

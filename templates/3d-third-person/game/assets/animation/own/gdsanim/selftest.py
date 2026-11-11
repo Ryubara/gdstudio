@@ -11,7 +11,8 @@ import math
 
 import numpy as np
 
-from . import FPS, build, checks, maths, overlap, weight
+from . import build, checks, maths, overlap, weight
+from .maths import FPS
 from .build import Clip
 from .plan import ContactPlan, Footfall, Travel, standing
 from .rig import SIDES

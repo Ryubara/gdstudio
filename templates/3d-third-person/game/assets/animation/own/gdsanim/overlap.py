@@ -17,7 +17,8 @@ import math
 
 import numpy as np
 
-from . import FPS, maths
+from . import maths
+from .maths import FPS
 from .rig import Rig
 
 ## Spring steps a frame: enough that the stiffest spring a style can ask for (a lag of half a frame) is stable.

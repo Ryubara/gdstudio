@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 
-from . import FPS
+from .maths import FPS
 from .rig import SIDES, Rig
 from .solve import Solver
 

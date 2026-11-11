@@ -13,8 +13,8 @@ const MODELS: Array[String] = [
 	"res://assets/characters/mannequin/mannequin_male.glb",
 ]
 ## The furthest a planted foot's joints may move on the floor over a clip, in metres (the build
-## holds the sole to 5 mm; the joints of a standing foot move less).
-const PLANTED := 0.003
+## holds the sole to 5 mm; the joints move less, and the import must not add to it).
+const PLANTED := 0.001
 ## The imported library's bytes for a second of clip (the plan's budget is 6 KB a second).
 const BYTES_A_SECOND := 6144.0
 
@@ -123,9 +123,9 @@ func test_a_loop_s_last_pose_is_its_first_bone_by_bone() -> void:
 		for clip: String in records.clips:
 			if not records.clips[clip].loop:
 				continue
-			var name := StringName("gds/" + clip)
-			var first := _pose(name, 0.0)
-			var last := _pose(name, _player.get_animation(name).length)
+			var clip_name := StringName("gds/" + clip)
+			var first := _pose(clip_name, 0.0)
+			var last := _pose(clip_name, _player.get_animation(clip_name).length)
 			for bone: String in first:
 				var one: Transform3D = first[bone]
 				var other: Transform3D = last[bone]
@@ -147,28 +147,31 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 		_stage(model_path)
 		for clip: String in records.clips:
 			var record: Dictionary = records.clips[clip]
-			var name := StringName("gds/" + clip)
 			for side: String in record.contacts:
 				for contact: Array in record.contacts[side]:
-					var start := {}
-					var frame := ceili(contact[0])
-					while frame <= floori(contact[1]):
-						var pose := _pose(name, frame / 30.0)
-						# The clip is in place: put the body where its travel curve has it.
-						var travel := _travel_at(record, frame)
-						for bone: String in ["foot_" + side, "ball_" + side]:
-							var place: Vector3 = (pose[bone] as Transform3D).origin + travel
-							if not start.has(bone):
-								start[bone] = place
-							var where := (
-								"%s %s frame %d on %s" % [clip, bone, frame, model_path.get_file()]
-							)
-							(
-								assert_float(place.distance_to(start[bone]))
-								. override_failure_message(where)
-								. is_less(PLANTED)
-							)
-						frame += 3
+					var worst := _wander(clip, record, side, contact)
+					var where := (
+						"%s, the %s foot on %s: %.2f mm"
+						% [clip, side, model_path.get_file(), worst * 1000.0]
+					)
+					print(where)
+					assert_float(worst).override_failure_message(where).is_less(PLANTED)
+
+
+# The furthest a foot's joints get from where they were when the contact began, on the floor the
+# body travels over (the clip is in place: the travel curve of `clips.json` puts it back).
+func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> float:
+	var start := {}
+	var worst := 0.0
+	for frame in range(ceili(contact[0]), floori(contact[1]) + 1):
+		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
+		var travel := _travel_at(record, frame)
+		for bone: String in ["foot_" + side, "ball_" + side]:
+			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
+			if not start.has(bone):
+				start[bone] = place
+			worst = maxf(worst, place.distance_to(start[bone]))
+	return worst
 
 
 # The root's place at a frame, from the travel curve of `clips.json` (forward is +Z, left +X).
@@ -178,7 +181,7 @@ func _travel_at(record: Dictionary, frame: int) -> Vector3:
 		var a: Array = curve[i]
 		var b: Array = curve[i + 1]
 		if frame >= a[0] and frame <= b[0]:
-			var share := (frame - a[0]) / maxf(b[0] - a[0], 1.0)
+			var share: float = (frame - a[0]) / maxf(b[0] - a[0], 1.0)
 			return Vector3(lerpf(a[2], b[2], share), 0.0, lerpf(a[1], b[1], share))
 	return Vector3.ZERO
 

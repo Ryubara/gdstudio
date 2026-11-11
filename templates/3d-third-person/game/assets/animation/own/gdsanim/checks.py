@@ -15,7 +15,8 @@ import math
 
 import numpy as np
 
-from . import FPS, maths, reduce, weight
+from . import maths, reduce, weight
+from .maths import FPS
 from .rig import FINGERS, SIDES, Rig, audit_clips
 
 ## Loop seam: the change of speed across the seam against the largest elsewhere in the cycle, and the least change

@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import FPS, maths
+from . import maths
+from .maths import FPS
 from .maths import body_turn
 from .rig import SIDES, Rig
 

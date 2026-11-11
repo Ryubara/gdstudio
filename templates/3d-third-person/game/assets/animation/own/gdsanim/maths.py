@@ -1,4 +1,4 @@
-"""Rotations, quaternions, eases and curves through keys.
+"""Rotations, quaternions, eases and curves through keys, and the clips' key rate.
 
 Rotations are 3x3 matrices while a pose is solved and quaternions (x, y, z, w, glTF's order) once it is keyed.
 """
@@ -7,6 +7,8 @@ import math
 
 import numpy as np
 
+## The key rate of every clip (the Universal Animation Library's, which our clips play beside).
+FPS = 30
 X = np.array([1.0, 0.0, 0.0])
 Y = np.array([0.0, 1.0, 0.0])
 Z = np.array([0.0, 0.0, 1.0])
