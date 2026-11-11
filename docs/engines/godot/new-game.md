@@ -353,8 +353,8 @@ replaced whole.
   change (the later one wins). A key added to an extending template's file is also added to the list
   `python/tests/test_new_game.py` pins for it (`test_the_third_person_project_file_holds_only_what_it_adds`); run
   `uv run --project python pytest python/tests/test_new_game.py` before the push. **Seen:** gdstudio #928,
-  2026-11-10; gdstudio #1075, 2026-11-11 (two navigation keys: the template suites passed and the kit's `test` jobs
-  failed on the pinned list).
+  2026-11-10; #1075, 2026-11-11 (two navigation keys; the template suites passed, the kit's `test` jobs failed);
+  #1100, 2026-11-11 (the `MenuSounds` autoload, the same way).
 - **Approach:** When a script copies the branch's template files into a game made by `gds template game` (to test
   without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
   changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
