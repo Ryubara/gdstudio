@@ -225,19 +225,24 @@ calibrated on that spread, and what it cannot see needs a count that does not mo
 <!-- new section: every bench under a template's tools/bench/ repeated in its header how to put it in a web build, and
 each bench author worked it out again (#963, #1059, #1062) -->
 
-A template's benches (`tools/bench/<name>.tscn`, with a `<name>.py` that reads the result in Chrome) measure in the web
-build what the desktop numbers cannot. The web build ships neither `tools/` nor the bench as its main scene, so a bench
-runs from a throwaway game (one command for it is gdstudio #1130):
+A template's benches (`tools/bench/<name>.tscn`, most with a `<name>.py` that reads the result in Chrome) measure in
+the web build what the desktop numbers cannot. The web build starts the menu and leaves `tools/*` out of the pack, so a
+bench runs from a throwaway game, and one command makes it, from your worktree:
 
-1. Make a game from your branch with `gds template game <template>` (the template's name; it keeps the game and
-   prints its path); never export from `templates/<t>/game`, which has no addons and is the committed template.
-2. In that game, set `run/main_scene` in `project.godot` to the bench's scene, and take `tools/*` out of the Web
-   preset's `exclude_filter` in `export_presets.cfg` (keep `tests/*` out).
-3. Export it headless with the pinned Godot: `godot --headless --path <game> --export-release Web build/web/index.html`,
-   and read the output for `ERROR`.
-4. Run the bench's script from the game folder through `gds quiet` (it serves the build cross-origin isolated, so the
-   page's clock reads microseconds): `gds quiet -- uv run --with playwright==<pin> python tools/bench/<name>.py
-   build/web [throttle]`, with 4 as the weak-machine throttle. Its header names the page's query and what it prints.
+```text
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench --run --probe-args=4
+```
 
-Nothing of this is committed: the game is removed afterwards and the template keeps its menu as the main scene and
-`tools/*` out of the export.
+It makes the game from the working tree's template in a workspace of its own (as `gds template game`, see
+[Proving a new game](new-game.md#proof)), sets `run/main_scene` in its `project.godot` to the bench, takes `tools/*` out
+of the Web preset's `exclude_filter` (the tests and addons stay out), exports with the pinned Godot
+(`--export-release Web`, failing on an `ERROR` line; an export whose only error is the at-exit leak runs once more, as
+CI does) and prints the build's folder, the game and the probe's command. The bench is named by its name, its
+`tools/bench/<name>.tscn` path or its `res://` path. Without `--run` the game is kept (`gds template clean <path>` when
+done); with `--run` the bench's `<name>.py` reads the build under `gds quiet` (`--probe-args` after the build folder: 4
+is the weak-machine throttle) and the game is removed unless `--keep`, the exit code the probe's. Nothing in the
+template changes. Its tests are `python/tests/test_bench_web.py` (the edits on the real template files, a fake Godot).
+
+Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
+headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).

@@ -12,10 +12,10 @@ extends Node
 ## bodies, on the main thread, with no wait for the display in it (a browser paces frames, so the
 ## wall time between frames says nothing there).
 ##
-## One line of JSON, `NAV_SYNC_BENCH {...}`. Desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/nav_sync_bench.tscn`; browser:
-## a web export with this scene as `run/main_scene` and `tools/*` out of the exclude filter, read
-## by `tools/bench/nav_sync_bench.py` (`window.__nav_sync_bench`).
+## One line of JSON, `NAV_SYNC_BENCH {...}`. Desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/nav_sync_bench.tscn`; browser: the web export `gds template bench-web
+## 3d-third-person nav_sync_bench` makes (kit docs/engines/godot/web-probes.md#bench-web), read by
+## `tools/bench/nav_sync_bench.py` (`window.__nav_sync_bench`).
 
 enum Mode { STEP, THREADED }
 

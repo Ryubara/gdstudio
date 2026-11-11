@@ -34,9 +34,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252: one `m²` broke the docs build. **Seen:** Deadnight #429, #415
-  and #442, 2026-11-01, and on to 2026-11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether
-  #31, 2026-11-08 to 10 (CRLF again); gdstudio #1123, 2026-11-11 (16 pages).
+  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
+  and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
+  to 11-10; gdstudio #1130 and #1123, 2026-11-11 (a tool's own `write_text`; 16
+  pages).
 
 ## Scripted edits {#scripted-edits}
 
