@@ -33,6 +33,10 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
 <!-- new section: the page covers fresh checkouts, logs and what to run before a push; nothing covered the command
      line's flags or how a parse error ends a whole run -->
 
+GdUnit4's scene runner sets the project's physics tick rate when it is made: a test that changes
+`Engine.physics_ticks_per_second` sets it after `scene_runner()` and puts it back in `after_test`
+([Test speed](test-speed.md#time-driven-values)).
+
 - **Approach:** Run GdUnit4 headless as `godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a
   res://tests -c --ignoreHeadlessMode`, without `-d`, under a short `timeout`, with the output sent to a file whose
   tail you read. **Watch out for:** GdUnit4 refuses a headless run without `--ignoreHeadlessMode` (exit 103); with the

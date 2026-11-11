@@ -494,6 +494,33 @@ def test_propose_skips_a_path_mention_in_a_section_far_from_the_issues_words(bri
     assert [p.why for p in close if p.section.ref == "studio/voices.md#voice-lines"] == ["mentions game/core/"]
 
 
+ROBOTS_PAGE = """# Robot characters in the template
+
+The base every robot character is made from, the profile that says what kind of robot it is, and the director that
+budgets every robot character.
+
+## Robot parts
+
+Every robot character part, with no anchor of its own, long enough to be read as a section of robot characters.
+
+## Robot senses {#senses}
+
+What a robot character sees and hears, how far its senses reach, and how long a robot remembers what it sensed.
+"""
+
+
+def test_propose_names_only_headings_with_an_explicit_anchor(brief_kit):
+    """A page's `#` title and a heading with no `{#anchor}` get a slug, but a `Read:` line naming one reads as missing
+    to the agent given it (gdstudio #1193: `ai.md#ai-characters-in-3d-third-person`, `index.md#blender`)."""
+    (brief_kit / "docs" / "studio" / "robots.md").write_text(ROBOTS_PAGE, encoding="utf-8")
+    words = "godot: Add robot characters, their parts and senses"
+    found = lessons.propose(brief_kit, words, "See docs/studio/robots.md and studio/robots.md#robot-parts.", limit=6)
+    assert "studio/robots.md#senses" in refs_of(found)
+    assert not {"studio/robots.md#robot-characters-in-the-template", "studio/robots.md#robot-parts"} & set(
+        refs_of(found)
+    )
+
+
 def test_brief_text_and_missing_refs(brief_kit):
     found = lessons.propose(brief_kit, "the disk guard", limit=1)
     assert lessons.brief_text(found) == "Read: studio/hooks.md#disk"

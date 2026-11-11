@@ -26,6 +26,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   stops nothing (`bash <file>` honours it), so a refused description was published and the pull request marked ready; a
   fixer's exit 1 made `&&` skip the edit that followed it. **Seen:** Deadnight #1280, 2026-11-05; gdstudio #621,
   2026-11-05; Deadnight, 2026-11-03 (fix: `;` only for steps that may fail, every gate read before the next step).
+- **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
+  out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
+  locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
+  2026-11-11.
 
 ## Line endings and encodings {#line-endings}
 

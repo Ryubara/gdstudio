@@ -207,6 +207,10 @@ another game with no `.import`: the full local run was green and CI's step faile
   that copy. **Watch out for:** a Python or ruff run in a template's tools folder (`tools/net/`) leaves ignored caches
   there, and the old copy took them, so `gds template test` stopped at `layout: 3 problem(s)` before any suite ran;
   deleting the caches by hand was the only way on. **Seen:** gdstudio #903 (PR #935), 2026-11-10 (fix: gdstudio #957).
+- **Approach:** Write a task's logs, reports and probe output to its own scratch folder
+  (`<workspace>/scratch/<repo>/<branch>/`) under a name of your own. **Watch out for:** a fixed name in the shared
+  session scratchpad (`full.log`) was overwritten by another agent's run, so the results read were someone else's.
+  **Seen:** gdstudio #1148 (PR #1181), 2026-11-11.
 
 ## With `--local` {#with-local}
 
@@ -281,12 +285,12 @@ What each template plays, and on which bus (the buses and the volume node are in
 
 - **Approach:** To capture a template change, make the game with `gds template game <t>` (it prints the path of a game
   in a throwaway workspace, imported); run `gds capture frames --project <path>/game` from your own worktree, and
-  `gds template clean <path>` when done. A hand-built probe (base, template over it, `gds_ui`, as in
+  `gds template clean <path>` when done and after every `--keep` run. A hand-built probe (as in
   [Adding a template](#adding-a-template)) needs `git init` first. **Watch out for:** `--local` alone writes into the
-  real `repos/`; `capture frames` names the scratch folder from the folder you run it in, not from the game (a git
-  repository of its own, whose frames once all landed in the shared `scratch/template-check/main/`); outside git, pass
-  `--out`. **Seen:** gdstudio #838 and #847, 2026-11-08 (both probes were assembled by hand; the `git init` route was
-  checked in #849); #917 (the command); #992 (the shared folder, from #940 and #901).
+  real `repos/`; `capture frames` names the scratch folder from the folder you run it in, not from the game (whose
+  frames once all landed in the shared `scratch/template-check/main/`); outside git, pass `--out`. **Seen:** gdstudio
+  #838 and #847, 2026-11-08 (probes assembled by hand; `git init` checked in #849); #917 (the command); #992 (the
+  shared folder); #1026 (about 30 kept games left in the temp folder).
 
 ## What every template is built and reviewed against {#template-checklist}
 
