@@ -190,7 +190,11 @@ changes:
    `.pre-commit-config.yaml` has none to check. On Windows, Git LFS's own `pre-push` (`#!/bin/sh`) is moved aside by
    `pre-commit install` and then fails every push with `Executable /bin/sh not found`; the start rewrites its
    shebang to `#!/usr/bin/env sh`;
-3. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
+3. installs the pinned Godot addons (GdUnit4, the MCP addon) into the worktree's Godot project (`game/` in a game,
+   `godot/` in the kit), untracked as `gds workspace init` installs them
+   ([Integrations](workspace.md#integrations)); a reused worktree gets the ones it lacks. An addon not fetched yet is
+   named in the output (`gds workspace init` fetches it) and the start goes on;
+4. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
 
 If the worktree cannot be made, or a hook stays missing, the issue is left as it was and the worktree and branch it
 made are removed; if GitHub fails after the worktree exists, it is removed too. `--no-worktree` skips the step for an

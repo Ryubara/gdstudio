@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from datetime import datetime
@@ -15,6 +16,7 @@ from gds_tools import (
     capture,
     disk,
     evals,
+    integrations,
     issues,
     layout,
     lessons,
@@ -78,7 +80,8 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    print(f"written: {capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif)}")
+    clip = capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif, max_seconds=args.max_seconds)
+    print(f"written: {clip}")
     return 0
 
 
@@ -410,9 +413,30 @@ def _prepare_worktree(
                 ]
         except worktrees.WorktreeError as error:
             raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
+        lines += _install_addons(root, made.path)
         return issues.Prepared(branch=made.branch, path=made.path.as_posix(), lines=lines, undo=undo)
 
     return prepare
+
+
+def _install_addons(root: Path, tree: Path) -> list[str]:
+    """The pinned Godot addons (GdUnit4, the MCP addon) installed into the Godot project of a worktree `gds issue start`
+    made or reused, untracked as `gds workspace init` installs them (docs/studio/workspace.md#integrations); the lines
+    say what was done. A failure here only says so: the worktree is made, and `gds workspace init` installs them too."""
+    projects = integrations.checkout_projects(tree)
+    if not projects:
+        return []
+    done: list[str] = []
+    try:
+        kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+        missing = integrations.install_pinned_addons(
+            load_tools(kit / "tools.toml").values(), root / "tools", projects, done.append
+        )
+    except (ManifestError, OSError, subprocess.CalledProcessError) as error:
+        return [f"addons: not installed ({error}); run `gds workspace init`"]
+    if missing:
+        done.append(f"addons: {', '.join(missing)} not fetched; run `gds workspace init` to fetch and install them")
+    return done
 
 
 def _cmd_issue_start(args: argparse.Namespace) -> int:
@@ -723,6 +747,12 @@ def build_parser() -> argparse.ArgumentParser:
     clip = cap.add_parser("clip", help="encode a folder's frames to an MP4 (or GIF) small enough for GitHub")
     clip.add_argument("folder")
     clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
+    clip.add_argument(
+        "--max-seconds",
+        type=float,
+        default=capture.CLIP_MAX_SECONDS,
+        help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
