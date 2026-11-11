@@ -50,7 +50,6 @@ UNDER_GUARD_Y = 0.006  # the middle of a finger that lies under the trigger guar
 OVER = 0.5  # what a support finger's millimetre off the shooting hand costs, in millimetres of contact
 CANT = (30.0, 45.0)  # the support hand's cant the search stays in, degrees (`left_cant`)
 REACH_SPARE = 0.010  # how much shorter than the arm the way from the left shoulder to the hand stays, metres
-CARRY_ARM_OUT = 8.0  # `WeaponHold.carry_arm_out`: the right arm held out while the gun is carried, degrees
 ACROSS_Z = -0.015  # a support finger's last bone is at least this far on the gun's right (-Z), metres
 OVER_NEAR = 0.002  # how near the shooting hand's skin a support finger's bone counts as lying on it, metres
 WEB_Y = 0.07  # how high on the gun the thumb's root should sit (the web under the tang)
@@ -560,9 +559,9 @@ def close_magazine(scene, quick=False):
 def reach(scene, in_gun):
     """How far past the left arm's length the left hand's place is from the left shoulder, in metres (negative:
     the arm has that much to spare), for each mannequin (their arms differ above the hands) in every dumped
-    aim and shoot pose and where the reload clip starts and ends with both hands on the gun; the reload is
-    also measured with the right arm held out as it is while the gun is carried (`CARRY_ARM_OUT`), which
-    takes the gun further from the left shoulder. Rows of (mannequin, pose, metres)."""
+    aim and shoot pose and where the reload clip starts and ends with both hands on the gun. Rows of
+    (mannequin, pose, metres). The game does not hold the right arm out (`WeaponHold.carry_arm_out`) while
+    a reload plays: that took the gun 13 mm out of the male mannequin's reach."""
     rows = []
     for model, rig in scene.rigs.items():
         arm = np.linalg.norm(rig.rest[rig.index["lowerarm_l"]][:3, 3]) + np.linalg.norm(
@@ -579,13 +578,6 @@ def reach(scene, in_gun):
             target = (g[hand] @ scene.seat @ in_gun)[:3, 3]
             shoulder = g[rig.index["upperarm_l"]][:3, 3]
             rows.append((model, name.split("/")[1], np.linalg.norm(target - shoulder) - arm))
-            if reload:
-                # As `HandPoseModifier.swing_out` turns the right upper arm: about its joint, the hand
-                # toward the skeleton's -X.
-                joint = g[rig.index["upperarm_r"]][:3, 3]
-                axis = np.cross(g[hand][:3, 3] - joint, [-1.0, 0.0, 0.0])
-                swung = joint + R.axis_angle(axis, CARRY_ARM_OUT) @ (target - joint)
-                rows.append((model, "Pistol_Reload@0.00 carried", np.linalg.norm(swung - shoulder) - arm))
     return rows
 
 

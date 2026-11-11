@@ -57,7 +57,7 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## The arm that carries the weapon, and how many degrees it is held out from the body while the
 ## weapon is carried: a hand closed on a grip is wider than the clips' open hand, and with the arm
 ## hanging as the clips have it the grip's foot would be in the thigh. It goes back as the
-## character aims (the aim clips hold the weapon clear of the body).
+## character aims or reloads (those clips hold the weapon clear of the body).
 @export var carry_arm: StringName = &"upperarm_r"
 @export_range(0.0, 30.0, 0.5) var carry_arm_out := 8.0
 
@@ -143,7 +143,9 @@ func refresh() -> void:
 	# The finger leaves the trigger for the reload.
 	_grip.second_weight = aim_weight * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight)
+	# The reload clip brings the weapon in front of the chest, as the aim clips do: held out there,
+	# it would be out of the left arm's reach (13 mm on the male mannequin).
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
 	if _arm == null:
 		return
 	_plan_left()
