@@ -7,7 +7,8 @@ the bytes are counted both ways (WebSocket framing included, TCP/IP headers not)
 `--jitter-ms 30` each chunk waits up to that much more (still in order: the arrival
 jitters as on a real network, which the game server's hold of four steps absorbs). With
 `--stall-chance 0.02 --stall-ms 300` a chunk now and then costs a retransmission's wait, and
-everything behind it waits too: what loss is on TCP. `--seed` makes the stalls repeat.
+everything behind it waits too: what loss is on TCP. `--seed` makes the stalls repeat: each way has its
+own generator, so the same chunks of a way stall in every run.
 
     python tools/net/relay.py --target 127.0.0.1:8910 --delay-ms 100 [--listen 0] [--stall-chance 0.02]
 
@@ -48,7 +49,12 @@ class Relay:
         self.stalls = 0
         self.stalls_up = 0
         self.stalls_down = 0
-        self._rng = random.Random(seed)
+        # When each stall came (seconds since the relay started) and its way: a failed gate prints them.
+        self.stall_log: list[tuple[float, str]] = []
+        self.began = time.perf_counter()
+        # One generator a way, so the n-th chunk of a way stalls and jitters the same in every run whatever came the
+        # other way between (one shared generator split the runner's 35 stalls anywhere from 20 to 29 up).
+        self._rngs = {True: random.Random(seed), False: random.Random(seed + 1)}
         self.bytes_up = 0
         self.bytes_down = 0
         self.connections = 0
@@ -82,6 +88,7 @@ class Relay:
                 await writer.drain()
             writer.close()
 
+        rng = self._rngs[up]
         task = asyncio.create_task(deliver())
         last_due = 0.0
         try:
@@ -97,10 +104,11 @@ class Relay:
                     counts["up" if up else "down"] += len(chunk)
                 due = time.perf_counter() + self.delay_s
                 if chunk and self.jitter_s > 0.0:
-                    due += self._rng.uniform(0.0, self.jitter_s)
-                if chunk and self.stall_chance > 0.0 and self._rng.random() < self.stall_chance:
+                    due += rng.uniform(0.0, self.jitter_s)
+                if chunk and self.stall_chance > 0.0 and rng.random() < self.stall_chance:
                     due += self.stall_s
                     self.stalls += 1
+                    self.stall_log.append((round(time.perf_counter() - self.began, 3), "up" if up else "down"))
                     if up:
                         self.stalls_up += 1
                     else:

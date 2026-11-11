@@ -411,7 +411,7 @@ def self_correction_reasons(rule: dict[str, Any], title: str, history: dict[str,
     return reasons
 
 
-_LESSON_LINK = re.compile(r"lessons/20\d\d-\d\d-\d\d-[\w.-]+\.md|maintainer-corrections")
+_LESSON_LINK = re.compile(r"lessons/20\d\d-\d\d-\d\d-[\w.-]+\.md|maintainer-corrections|corrections-log/")
 # A section as `page.md#anchor` (docs/studio/rules.md#anchors); python/src/gds_tools/lessons.py reads it the same way
 # (a test keeps them equal). `docs/`, a URL up to it and leading `../` are dropped.
 _SECTION_REF = re.compile(r"((?:[\w.-]+/)*[\w.-]+\.md)#([A-Za-z0-9_-]+)")
@@ -447,7 +447,8 @@ def lessons_problems(conv: dict[str, Any], title: str, body: str, history: dict[
         value = _summary_value(conv, body, rule, "Lessons:")
         is_none = value is not None and value.lower().startswith("none")
         sections = rule.get("names", "legacy") == "section"
-        refs = [r for r in section_refs(value or "") if not r[0].endswith("maintainer-corrections.md")]
+        refs = [r for r in section_refs(value or "")
+                if not r[0].endswith("maintainer-corrections.md") and "corrections-log/" not in r[0]]
         wanted = (f"'{label} <page.md#anchor>' naming the topic section the rule went into (docs/studio/rules.md)"
                   if sections else f"'{label} docs/lessons/<file>.md' (or a row of the corrections page)")
         if value is not None and is_none and not _reasoned(value[4:]):

@@ -21,7 +21,7 @@ one after it.
 | Part | Where (`templates/3d-third-person/game/`) | What it does |
 | --- | --- | --- |
 | Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. |
-| Main menu | `ui/menus/main_menu.tscn` | Play, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. |
+| Main menu | `ui/menus/main_menu.tscn` | Play, Play online, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. Play online loads `online_scene` (3D Third Person: `online_main.tscn`) and joins `server_address`, or the address typed in the field under it, which shows only in a debug build (`address_field`: a developer setting, never a player's): [Playing online](third-person/online-client.md#play-online). |
 | Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
