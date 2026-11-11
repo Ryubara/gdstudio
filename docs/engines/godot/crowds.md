@@ -449,6 +449,33 @@ frame). Median frame work in ms (the director's step a tick in brackets, ms; tic
   the GDScript around the slide (the slide's tick, gravity and the jump, the step climber's `test_move`, the state),
   which is where the next cut is (measured with 40 `ai_character.tscn` stepped by hand, 300 ticks).
 
+**The template's navigator (#967).** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) times
+every `AiNavigator.navigate()` (the queries on their timer, the steering, the body-ray checks) for characters walking
+to seeded goals, one after another, on a baked 96 m map with 16 boxes (306 polygons), under the director's shipped
+defaults (12 at Full, the rest Reduced and stepped every 4th tick, 4 path queries a tick). Microseconds a character a
+tick (all the navigators' work a tick, over the count; in brackets the director's whole step, bodies included, ms):
+
+| | 50 | 100 | 200 |
+| --- | ---: | ---: | ---: |
+| Desktop, native | 1.2 (0.46) | 1.1 (0.85) | 1.1 (1.83) |
+| Chrome | 11.2 (1.84) | 8.4 (2.90) | 6.4 (5.22) |
+| Chrome 4x | 65 (11.3) | 46 (17.0) | 37 (31.5) |
+
+- The path budget holds: never more than 4 queries a tick (3.1 on average at 50, 4.0 from 100 on), and each
+  character asks 3.7 times a second at 50 against `repath_seconds`' limit of 4; at 100 and 200 the budget, not the
+  timer, sets the rate (2.4 and 1.2 a second), so a crowd past about 60 walkers repaths less often than 0.25 s.
+- In Chrome the navigation is about 10 times its native cost, against the spike's 1.5: a query on this mesh is about
+  45 µs there (one every 0.25 s per character is a quarter of the navigators' work at 50), a walk step 2 µs in a
+  tight loop but 10 to 13 µs read one navigator at a time. The browser's clock is coarse (100 µs in Chrome without
+  cross-origin isolation), so the per-navigator sum is the less sure figure; the director's step around it, read
+  once a tick, rose by about 0.6 ms at 50 walkers against the AI bench's walking crowd. Above the spike's 3.5 µs:
+  kit #1062 follows it.
+
+- **Approach:** Time a part that runs many times a tick in the browser in a tight loop of thousands of calls as well
+  as one call at a time, and look for engine calls (a shape query, a physics test) in what runs every step.
+  **Watch out for:** the first navigator asked the body's room to stand (a shape query) at every step and checked
+  every new path again although only its first point had moved: 17 µs a character a tick in Chrome at 50, 11 after
+  both went. **Seen:** gdstudio #967, 2026-11-11.
 - **Approach:** Put off work that a per-tick budget refuses fairly: start the loop over the characters one further
   along each tick, and test the refusal with more characters wanting the work every tick than the budget allows.
   **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the

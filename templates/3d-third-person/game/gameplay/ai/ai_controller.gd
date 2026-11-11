@@ -5,6 +5,8 @@ extends CharacterController
 ##
 ## - The movement channel (the navigator): `walk_direction`, a flat direction in the world, and
 ##   `walk_strength`, the share of a full push (a walk is less than a run).
+## - The moves the navigator asks for on the way: `jump`, `crouch` and `sprint`, held while on (a
+##   jump that starts is a press in exactly one command, as fire is).
 ## - The action channel (aiming and shooting): `look_direction`, where the eyes and the gun
 ##   point in the world, and `aim` and `fire`, held while they are on.
 ##
@@ -24,8 +26,15 @@ var look_direction := Vector3.ZERO
 var aim := false
 ## Holds the trigger.
 var fire := false
+## Holds the jump button: a jump (or a vault, at a `Vaultable`) starts on the tick it goes on.
+var jump := false
+## Holds crouch (at a sprint, a press starts a slide).
+var crouch := false
+## Holds sprint.
+var sprint := false
 
 var _fire_was := false
+var _jump_was := false
 
 
 func sample() -> PlayerCommand:
@@ -36,12 +45,17 @@ func sample() -> PlayerCommand:
 	command.fire = fire
 	command.fire_pressed = fire and not _fire_was
 	_fire_was = fire
+	command.jump = jump
+	command.jump_pressed = jump and not _jump_was
+	_jump_was = jump
+	command.crouch = crouch
+	command.sprint = sprint
 	return command
 
 
-## True when it asks for nothing: no walk, no aim, no trigger.
+## True when it asks for nothing: no walk, no aim, no trigger, no jump, crouch or sprint.
 func is_still() -> bool:
-	return walk_direction == Vector3.ZERO and not aim and not fire
+	return walk_direction == Vector3.ZERO and not aim and not fire and not jump and not crouch
 
 
 ## Lets go of everything: stands still, looks level, no aim, no trigger.
@@ -51,3 +65,6 @@ func release() -> void:
 	look_direction = Vector3.ZERO
 	aim = false
 	fire = false
+	jump = false
+	crouch = false
+	sprint = false
