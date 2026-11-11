@@ -105,10 +105,10 @@ in (one did in the first window of the 4 and 8 player runs, while the bots joine
 holds 180 MB working set and 140 MB private; the bench's static memory is 93 MB with one body and 101 MB with eight.
 `test_net_server_cost.gd` fails above 6 ms p95 with 8 bots in the map.
 
-The bytes are payloads (the WebSocket frame adds 2 a packet down and 6 up): down is 30 TICKs of 107 bytes, up 60
-commands of 15 and two pings (8 players). On Linux, in its image and on Railway: [the server
-image](#server-image). The bot's round trip on localhost read 13 to 22 ms (rounded to its frames) and every bot's `ack`
-trailed what it had sent by 1 or 2 commands, the ones in flight.
+The bytes are payloads (the WebSocket frame adds 2 a packet down and 6 up): down is 30 TICKs of 107 bytes (108 since
+gdstudio #1073, 14 more for each moving prop), up 60 commands of 15 and two pings (8 players). On Linux, in its image
+and on Railway: [the server image](#server-image). The bot's round trip on localhost read 13 to 22 ms (rounded to its frames)
+and every bot's `ack` trailed what it had sent by 1 or 2 commands, the ones in flight.
 
 With `--moves` every bot of `server_bot.gd` steers by its own position in the TICKs: the weapon presses, a slide on its
 way to the map's `VaultCourse`, then the three vaults and the mantle; its `SERVER_BOT` line lists the states the
