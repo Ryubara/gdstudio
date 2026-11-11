@@ -280,7 +280,12 @@ with a `NetClient`, the `RemotePlayers` and an `OnlineStatus` overlay (`ui/onlin
 | The command line | `-- --connect ws://host:8910 [--name Ada] [--bot route\|watch] [--onlineprobe]` | `MenuScene` goes straight to `online_scene`, once a run: back to the menu shows the menu |
 | A page | `index.html?url=wss://host[&name=Ada][&bot=watch][&onlineprobe]` | an `https` page may open `wss://` only; a page with `?netplay` stays the bad-network probe's |
 
-The overlay shows Connecting until the WELCOME, then hides; on `REFUSED` it names the reason (another version, with a
+The client joins once the level is ready, as a game joins behind its loading screen (`NetClient.join_after_warm_up`,
+on): `JoinWait` (`gameplay/net/join_wait.gd`) waits for the level's warm-up (`EffectEmitter.warmed`) and then for
+`FrameSettle` (20 frames in a row each under the stall guard's 0.25 s, at most 10 s), the bad-network probe's wait
+with a looser frame (the probe's is the server's hold, 67 ms).
+The overlay shows Loading meanwhile (the link is not open yet, so none of it counts towards `connect_seconds`), then
+Connecting until the WELCOME, then hides; on `REFUSED` it names the reason (another version, with a
 Reload button on the web and "update the game" on the desktop; the game is full; another map), on a link that closes
 before the WELCOME (after the new sockets of a late hello, below) or `connect_seconds` of frames (each under the stall
 guard's 0.25 s) without one it says the server did not answer, and on a seated link that closes, Connection lost.
@@ -304,13 +309,16 @@ gds godot -- --path game --write-movie <scratch>/client2.avi --fixed-fps 30 --qu
 gds godot -- --path game -- --connect ws://127.0.0.1:8931 --bot route --name One      # 8 s later
 ```
 
-`tools/web_smoke/online.py` (under `gds quiet`) is the browser's proof: the server of `gate_server.gd`, a relay of
-100 ms each way, two pages of the web export with `?url=<relay>&bot=route|watch&onlineprobe`; every page seated, every
+`tools/web_smoke/online.py` (under `gds quiet`) is the browser's proof: the server of `gate_server.gd`, a relay of 100
+ms each way, two pages of the web export with `?url=<relay>&bot=route|watch&onlineprobe`; every page seated, every
 player seen, a round trip read, nothing lost, the body within 1.5 m of the server's point, no console error and no
 `Buffer payload full`, nobody kicked. `--other-version` points it at `tools/net/other_version_server.gd`, which answers
 every hello as a server of the next protocol version: the probe then fails (its teeth), and with `--expect-refused` it
-passes only when every page shows the overlay's "another version" message. `OnlineProbe` (`ui/probe/`) is the page's
-side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
+passes only when every page shows the overlay's "another version" message. The pages open together (a page opened after
+another was seated would load its level inside the first one's join window), each records every frame (`FRAME_WATCH` of
+`net_play_smoke.py`), and a page fails with more than one frame past 0.25 s in the 3 s after its seat, the gate's bound;
+the report lists every such frame, `settle_ms` and `wait_ms` (the join's wait). `OnlineProbe` (`ui/probe/`) is the
+page's side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
 
 **What it measured** (Windows, Godot 4.7.2, 2026-11-11, Ryzen 7 9800X3D and RTX 5080; headless Chromium 156 at
 320x180 under `gds quiet`, one page, `server_bot.gd` bots for the puppets (`--bots` 1, 4 and 7), relay 100 ms each way,
@@ -333,35 +341,11 @@ Each puppet cost the software-drawn page about 1.5 ms a frame and the GPU page 1
 uncapped page made a frame in 1.7 to 2.2 ms; the first puppet also turns the route bot's view, so read the cost from 1
 to 7). Two pages at once share the CPU and draw at 15 there.
 
-**Where a puppet's frame went, and what took it down (#1138).** Seven puppets on one GPU page, uncapped, the frame
-with one part of the puppets taken out at a time (one run each, so a millisecond either way is noise): all in, 8.6 ms;
-no puppet, 2.3; the trees frozen, 4.1; the models hidden, 4.3; the weapon hold's modifiers stopped, 7.6; the footsteps
-off, 9.2; the puppets' meshes off the minimap's layer, 5.4. `tools/bench/puppet_bench.tscn` (`puppet_bench.py`) puts
-the same seven puppets walking in front of a camera with no level and no minimap: each costs 0.2 to 0.25 ms on the GPU
-(0.06 the animation's CPU work, the rest skinning and drawing; frozen, 0.02) and 1.3 ms on SwiftShader (0.56 frozen).
-So three quarters of a puppet's millisecond in the game was the minimap: its live camera (`map_update_rate` 0, every
-frame) drew every layer-1 mesh, so every puppet, on screen or not, was skinned and drawn a second time each frame.
-Every character's meshes are now on layer 2 (`CharacterModel.body_layers`), which the minimap leaves out (its marker
-shows the body), and the puppets have an animation throttle ([puppets](#puppets)) for the ones out of view or far.
-The same probe after both (two runs each; the rows before are the table above):
-
-| Puppets | Renderer | Frame p50 / p95 before | Frame p50 / p95 after | Puppets animated a frame |
-| ---: | --- | ---: | ---: | ---: |
-| 0 | GPU, uncapped | 1.7 to 2.2 ms | 2.3 to 2.4 / 3.2 to 3.3 ms | 0 |
-| 1 | GPU, uncapped | 4.1 to 6.6 / 5.5 to 10.0 ms | 4.0 to 4.1 / 5.3 to 5.6 ms | 1 |
-| 4 | GPU, uncapped | 7.6 to 7.8 / 10.3 to 11.0 ms | 4.4 to 5.6 / 6.0 to 9.4 ms | 1.1 to 1.4 |
-| 7 | GPU, uncapped | 10.5 to 14.3 / 13.6 to 18.3 ms | 3.8 to 4.2 / 5.6 ms | 1.3 to 3.0 |
-| 0 | SwiftShader | | 27.5 to 28.2 / 30.9 to 31.2 ms | 0 |
-| 1 | SwiftShader | 42.8 / 48.7 ms | 41.6 to 42.3 / 45.6 to 45.8 ms | 0.5 |
-| 4 | SwiftShader | 46.1 / 50.6 ms | 42.7 to 44.2 / 48.4 to 49.6 ms | 0.9 |
-| 7 | SwiftShader | 51.8 / 63.7 ms | 45.5 to 48.5 / 52.8 to 60.8 ms | 1.6 |
-
-From one puppet to seven a puppet now adds about 0.0 to 0.03 ms on the GPU (1 to 1.3 before) and 0.6 ms on SwiftShader
-(1.5 before). Interleaved on the same build (seven puppets, GPU), the layer alone read 5.0 and 6.6 ms against 8.6 and
-9.9 with the puppets back on layer 1, and the throttle on top 4.0 and 5.0. The throttle's share depends on where the
-puppets are: within 15 m of the camera a puppet animates every frame, so seven puppets in a close fight cost what the
-bench's `near/full` does (0.2 ms each on the GPU, 1.3 on SwiftShader); out of view or past 25 m they cost almost
-nothing. `OnlineProbe` reports `puppets_animated`, the puppets whose tree moved on in a frame.
+**Where a puppet's frame went (#1138).** About three quarters of a puppet's millisecond was the minimap's live
+camera drawing every body a second time each frame; with every character's meshes on layer 2
+(`CharacterModel.body_layers`) and an animation throttle for the puppets, seven puppets on the GPU page take 3.8 to 4.2
+ms a frame (10.5 to 14.3 before) and 45.5 to 48.5 ms on SwiftShader (51.8 before). The split, the bench and the tables:
+[what a puppet costs](puppet-cost.md#puppet-cost).
 
 **A cold browser hangs up on its first join.** Godot's Compatibility renderer links each shader program the first time
 it draws with it and asks for the link's result at once (`getProgramParameter`), which waits until Chrome's GPU process
@@ -415,6 +399,21 @@ The browser's corrections are its own hitches (each over 0.25 s is a resync and 
 126 catch-up ticks skipped), the same with either server; the native client reads the same 0.03 m against Windows and
 Linux. The page's hitches after the join are #1106.
 
+**The join after the warm-up** (#1142; Windows, Godot 4.7.2, 2026-11-11, the same SwiftShader page, `online.py`
+with the route bot, relay 100 ms each way; a hitch is a frame past 0.25 s after the seat, the join window its first
+3 s):
+
+| Join | Runs | Hitches in the join window | Worst hitch | Programs linked after the seat | Join's wait (settle) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| At once (`join_after_warm_up` off, as before) | 3 | 2 to 3 (fails) | 1.10 to 1.66 s | 53 to 54 | |
+| After the warm-up, settled under the server's hold | 3 | 1 each (283 to 419 ms, nothing linked) | 0.42 s | 1 to 5 | 9.3 to 10.2 s (1.35 to 1.41 s) |
+| After the warm-up, settled under the stall (shipped) | 4 | 0 | 0.38 s, 8.7 s after the seat | 0 to 4 | 9.2 to 10.0 s (1.05 to 1.45 s) |
+| Two pages at once (13 to 14 fps), settled under the server's hold | 1 | 0 | 0.43 s | 0 to 7 | 25 to 28 s (10 s: the limit) |
+| Two pages at once, settled under the stall (shipped) | 2 | 0 | 0.25 s | 0 to 1 | 18 to 19 s (1.2 to 1.6 s) |
+
+The page shows Loading for the warm-up's 8 to 9 s on SwiftShader (about 80 frames: in a Movie Maker capture at 10
+frames a second it is 8 s of Loading, two frames of Connecting, then play).
+
 - **Approach:** Aim a bot (or any program that shoots for a player) from the crosshair ray's origin,
   `camera.project_ray_origin(centre)`, not from the body or the camera's position. **Watch out for:** the
   over-the-shoulder lens is shifted half a metre to the side, so a watcher whose camera yaw pointed at the other
@@ -426,6 +425,12 @@ Linux. The page's hitches after the join are #1106.
   for:** the browser corrected 30 to 100 times more than a native client against the same Linux server, which looked
   like Jolt in wasm parting from Jolt on Linux; the three traces were the same to nine decimals and the corrections
   were the page's hitches. **Seen:** gdstudio #909, 2026-11-11 (`StepTraceProbe`, `step_trace.py`).
+- **Approach:** Join a player's game only after the level's warm-up and settled frames (`JoinWait`), say Loading
+  meanwhile, and count a frame settled under the stall guard's stall, not the server's hold. **Watch out for:** the
+  online game joined on ready, so a page met the warm-up's 1.1 to 1.7 s frames as stalls in its first 3 s (2 to 3
+  hitches, 53 programs linked after the seat); and with the probe's hold of 67 ms, a page drawn at 13 frames a
+  second (two pages on one CPU, or a Movie Maker capture) never had 20 short frames in a row and waited out the
+  whole 10 s limit on Loading. **Seen:** gdstudio #1142, 2026-11-11 (`online.py` judges the join window).
 - **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
   arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
   7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's
@@ -441,12 +446,6 @@ Linux. The page's hitches after the join are #1106.
   Back to menu while connecting. **Watch out for:** a page's first seconds are spent compiling shaders and loading the
   map; a timeout on the clock would call a server that is fine unreachable on a slow device. **Seen:** gdstudio #909,
   2026-11-11 (`OnlineStatus.connect_seconds`).
-- **Approach:** Split a per-character frame cost two ways before changing anything: take one part out at a time in
-  the real scene, and bench the character alone; a gap between the two is something else in the scene. **Watch out
-  for:** the issue and the first write-up put a puppet's millisecond on its animation and skinned model, but a bench
-  of seven puppets without a level read 0.2 ms each: the rest was the minimap's live camera drawing every body again
-  ([minimap cost](../minimap.md#cost)), and throttling the animation alone would have left most of it. **Seen:**
-  gdstudio #1138, 2026-11-11 (`tools/bench/puppet_bench.tscn`).
 
 ## The long proofs: unread client, hostile cost, soak, bandwidth {#soak-and-bandwidth}
 

@@ -129,7 +129,7 @@ counts icons.
   and the Compatibility renderer skinned each of them for it: seven online puppets cost the browser page about 1 ms
   each on a GPU, while a bench of the same seven puppets without a minimap cost 0.25 ms each. With the bodies on
   layer 2 the page with seven puppets went from 8.6 to 9.9 ms a frame to 5.0 to 6.6 ms. **Seen:** gdstudio #1138,
-  2026-11-11 ([what a puppet costs](third-person/online-client.md#play-online)).
+  2026-11-11 ([what a puppet costs](third-person/puppet-cost.md#puppet-cost)).
 
 ## Drawing it right {#drawing}
 

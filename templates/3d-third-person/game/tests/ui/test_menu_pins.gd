@@ -101,6 +101,7 @@ func test_the_main_menu_and_the_menu_scene() -> void:
 			&"online_scene": "res://online_main.tscn",
 			&"server_scene": "res://gameplay/net/net_server.tscn",
 			&"skip_menu": false,
+			&"shader_programs": "res://assets/shaders/web/shader_programs.json",
 		}
 	)
 
