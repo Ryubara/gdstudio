@@ -194,7 +194,7 @@ the two targets, 12 at Full and the rest stepped every 4th tick (the browser's d
   10 % of the listen (64 against 70 µs a tick natively) and were left out.
 - What is left is the think: a think of a fighting guard is 75 to 150 µs natively (2 to 3 times a calm one: the look
   with targets in view, the listen over every shot and step since the last think, the attack's aim), and 12 at Full
-  think 10 times a second (kit #1204).
+  think 10 times a second ([the think](#cost-think), kit #1204).
 
 **Before and after**, the director's step in Chrome (ms a tick, three interleaved runs of a build of `main` and of the
 change at 1x, two at 4x, with the frame's work and ticks a frame at 4x; rows of at least 600 ticks):
@@ -227,6 +227,50 @@ change at 1x, two at 4x, with the frame's work and ticks a frame at 4x; rows of 
   natively read 1.91 to 1.94 ms against 1.70 to 1.85 before in Chrome, and only rows of 600 ticks or more showed the
   20 % it saves there. **Seen:** gdstudio #1104, 2026-11-11 (the bench now measures at least 600 ticks a row).
 
+### The think {#cost-think}
+
+<!-- new section: the follow-up left the think as the larger half of a fight; nothing held what its parts cost
+after #1104 or which ideas measured -->
+
+Kit #1204 timed the think of the 40 fighting guards by part (the same bench, 12 at Full, a timed copy of a made game,
+rows of 1200 ticks; natively three interleaved runs of each build, in Chrome four at 1x and two at 4x), and kept only
+what measured. Microseconds a tick, mean of the runs (range):
+
+| Part, 40 fighting | Native before | Native after | Chrome before | Chrome after | Chrome 4x before | 4x after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| the look (its rays) | 79 (16) | 72 (16) | 99 (21) | 93 (22) | 559 (124) | 521 (126) |
+| the listen | 52 | 42 | 61 | 49 | 315 | 261 |
+| the settle | 23 | 24 | 30 | 32 | 146 | 148 |
+| **senses** | **170** | **154** | **216** | **201** | **1140** | **1054** |
+| the aim (the trigger; the friend-in-line check) | 64 (50; 29) | 61 (47; 26) | 82 (62; 38) | 74 (55; 31) | 445 (334; 204) | 425 (311; 173) |
+| tasks | 108 | 105 | 133 | 125 | 722 | 697 |
+| brain | 46 | 47 | 57 | 56 | 275 | 275 |
+| **the thinks** | **338 (327 to 347)** | **322 (319 to 324)** | **427 (416 to 446)** | **401 (391 to 413)** | **2260** | **2147** |
+| bodies | 485 | 488 | 608 | 620 | 3499 | 3539 |
+| the director's step | 885 (860 to 904) | 872 (867 to 876) | 1123 (1102 to 1169) | 1111 (1081 to 1153) | 6295 | 6234 |
+
+- **Kept:** the noise board files each noise under its maker's faction (`AiNoise.by_faction`), so a listen walks only
+  the factions it cares about: 20 % of the listen (the friends' shots and steps; what is left is hearing the impacts,
+  "something", which the brain routes); the look's `Rates` made once per senses, not once a think: 6 % of the look;
+  `get_global_position()` for `global_position` in the look's and the friend check's loops: 19 % of the friend check
+  in Chrome (a microbench of the check over 40 friends: 10.7 against 9.6 µs a call).
+- **Dropped:** a flat box around the line of fire before the friend check's arithmetic (no gain: in a crowd around the
+  target most friends stand inside the box, and the cost is the loop over each body, not the arithmetic); a settle and
+  `AiBeliefs.expire` that make no array (no gain natively or in Chrome); the trigger reading the magazine once (no
+  gain). A cheaper aim between shots was not tried apart: between shots the aim only turns, adds the noise and holds
+  (5 µs a call natively), and its random numbers must stay in step.
+- The thinks are 6 % shorter in Chrome (5 % at 4x, 5 % natively); the director's step is lower in 3 of 4 interleaved
+  pairs at 1x and both at 4x, by 1 % on the mean: the bodies (more than half the step) moved more between runs than
+  the thinks saved. The behaviour is the same: a digest of every guard's position to the centimetre, its beliefs and
+  its shots after 1320 ticks is equal for both builds.
+
+- **Approach:** Time a part's pieces and count what it walks (noises read, friends checked, calls a tick) before
+  choosing a fix, try each idea in interleaved runs of the timed copy, and keep only what moves its part; prove the
+  behaviour unchanged with a digest of the crowd's state (positions, beliefs, shots) equal for both builds.
+  **Watch out for:** a box around the line of fire looked like it would skip most of the friend check and saved
+  nothing (most friends stood inside it), and a counter placed one block deeper in the old listen than the new read
+  as a guard hearing twice as much. **Seen:** gdstudio #1204, 2026-11-11.
+
 ## Attack slots {#attack-slots}
 
 <!-- new section: the cost follow-up set a web count of fighting guards from the table; nothing in the template held a
@@ -257,7 +301,19 @@ at once and at most `web_fight_cap` (12) engage at all in a browser, `desktop_at
 against the same fight with every guard allowed to fire (`uncapped`, the slots and the fight cap set to the count), the
 director's step in ms a tick:
 
-BENCH_TABLE
+| Mode, 40 guards | engaged | 1x, run 1 | 1x, run 2 | 4x, run 1 | 4x, run 2 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| calm | 0 | 0.54 | 0.64 | 4.00 | 3.72 |
+| threat (6 a target, 12 in all) | 11.4 to 11.9 | 1.02 | 1.26 | 5.82 | 8.20 |
+| uncapped | 32.9 to 39.5 | 1.14 | 1.20 | 6.60 | 7.42 |
+| slots 4, cap 8 | 8 | 1.09 | 1.09 | 6.31 | 6.97 |
+| slots 3, cap 6 | 6 | 0.99 | 1.00 | 5.89 | 5.74 |
+
+The cap holds every engaged count to its limit, but what a slot saves (the aim and the trigger) is small next to the
+40 bodies and their thinks: uncapped costs about 0.1 ms more than the defaults at 1x, and the 4x runs move more
+between runs (5.8 to 8.2 ms for the defaults) than between modes. The web defaults stay 6 and 12; a lower cap saves no
+clear amount and thins the fight. The slots are for how a fight reads (a few guards fire, the rest wait their turn)
+as much as for its cost.
 
 ## Proof {#proof}
 

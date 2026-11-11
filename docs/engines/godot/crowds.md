@@ -572,7 +572,8 @@ and 2 at 4x on a machine other agents were using; "before" is #967's navigator w
   with the crowd itself as the candidates. **Watch out for:** the senses' first look asked every AI character its
   distance on every think (262 µs a think at 200 where 4 players were all it cared about), and every ally passed every
   telling on, so 40 grunts that saw the same players made thousands of tellings. **Seen:** gdstudio #966, 2026-11-10
-  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost)).
+  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost));
+  gdstudio #1204, 2026-11-11 (the noise board by faction: [the think](third-person/ai-behaviour.md#cost-think)).
 - **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
   from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
   character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about

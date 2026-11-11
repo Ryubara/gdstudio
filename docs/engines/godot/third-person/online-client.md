@@ -98,6 +98,8 @@ snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crou
 `aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
 and refits the capsule. `CharacterAnimation` needed nothing new.
 
+Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost).
+
 - **Approach:** Give a body placed by hand the engine's floor contact with a short move through its point (3 cm above
   it, moved down; up while the entry says it is in the air), then put it back on the point. **Watch out for:**
   `is_on_floor()` is set only by `move_and_slide`, so a puppet placed by `global_position` never had a floor and
@@ -222,6 +224,9 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (the warm-up it joined during: below), so snaps are allowed per stall the stall guard saw. The CI runner (ubuntu,
   four cores) drew the same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
   (`net_play_smoke.py` `MIN_FPS`; the first CI run of #1077 failed on it).
+- **Approach:** Run the browser half with `--gpu` whenever the page draws AI puppets (`net_play_smoke.py --gpu --ai N`).
+  **Watch out for:** SwiftShader drew 40 puppets at 7 frames a second, far under the floor above, while the GPU page
+  passed every gate at 42. **Seen:** gdstudio #970, 2026-11-11.
 - **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
   (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
   `worst_stall_error`). **Watch out for:** every page answer past 3 m came in its first three seconds, after two to
@@ -358,12 +363,12 @@ page's side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the deskto
 | 4 | GPU, uncapped | 135 to 140 | 7.6 to 7.8 / 10.3 to 11.0 ms | 0.2 ms | 29 to 60 (0.7 to 2.7 m) |
 | 7 | GPU, uncapped | 79 to 94 | 10.5 to 14.3 / 13.6 to 18.3 ms | 0.4 ms | 17 to 19 (0.7 m) |
 
-Each puppet costs the software-drawn page about 1.5 ms a frame and the GPU page 1 to 1.3 ms (with no puppet the
-uncapped page made a frame in 1.7 to 2.2 ms): nearly the same, so the cost is the page's own work for each puppet (its
-animation and skinned model), not the drawing, and placing it from the track is a few hundredths of it. Eight players
-hold 60 frames a second with vsync on a desktop GPU, but their frame is 10.5 to 14.3 ms of work (p95 up to 18.3 ms),
-against the research's estimate of about 1 ms for all eight; on SwiftShader they draw at 19. Two pages at once share
-the CPU and draw at 15 there.
+Each puppet cost the software-drawn page about 1.5 ms a frame and the GPU page 1 to 1.3 ms (with no puppet the
+uncapped page made a frame in 1.7 to 2.2 ms; the first puppet also turns the route bot's view, so read the cost from 1
+to 7). Two pages at once share the CPU and draw at 15 there.
+
+**Where a puppet's frame went (#1138):** mostly the minimap drawing every body again; seven puppets now take 3.8 to
+4.2 ms on the GPU page (10.5 to 14.3 before), [what a puppet costs](puppet-cost.md#puppet-cost).
 
 **A cold browser hangs up on its first join.** Godot's Compatibility renderer links each shader program the first time
 it draws with it and asks for the link's result at once (`getProgramParameter`), which waits until Chrome's GPU process
@@ -501,7 +506,8 @@ there), and the 60 s unread client is a client whose downlink stalls while it st
   no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
   (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
 - **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
-  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+  connection; 10 s once all are seated (`--ai 40,120` adds an AI crowd on the server: [the AI's
+  numbers](ai.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
 
 | Players | Down a client | Up a client |
 | ---: | ---: | ---: |

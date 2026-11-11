@@ -22,6 +22,8 @@ const OVER_RATE := &"over_rate"
 const OUT_OF_ORDER := &"out_of_order"
 ## A command before the HELLO was answered.
 const NO_HELLO := &"no_hello"
+## An AI delta whose baseline is not the snapshot this client holds (`AiSnapshot.apply`).
+const NO_BASELINE := &"no_baseline"
 
 static var _unowned: NetDrops
 
