@@ -41,7 +41,7 @@ func test_every_weapon_export_has_its_default_pinned() -> void:
 		&"definition": _weapon.definition,
 		&"muzzle": _muzzle,
 		&"shooter": null,
-		&"no_muzzle_offset": Vector3(0.13, -0.03, -0.7),
+		&"no_muzzle_offset": Vector3(0.07, -0.09, -0.65),
 		&"aim_mask": PhysicsLayers.SHOT_MASK,
 		&"muzzle_flash_enabled": true,
 		&"projectile_cap": 24,
@@ -58,7 +58,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 	var pistol := load(PISTOL) as WeaponDef
 	var pins := {
 		&"display_name": "Pistol",
-		&"icon": null,
+		&"icon": load("res://assets/ui/inventory/weapon_pistol.svg"),
 		&"kind": WeaponDef.Kind.PROJECTILE,
 		&"automatic": false,
 		&"fire_rate": 4.0,
@@ -131,7 +131,6 @@ func test_every_projectile_and_target_export_has_its_default_pinned() -> void:
 		&"size": 1.0,
 		&"tint": Color(0.9, 0.25, 0.2),
 		&"hit_tint": Color(0.95, 0.95, 0.95),
-		&"hits_to_drop": 1,
 		&"drop_angle": 80.0,
 		&"drop_time": 0.18,
 		&"reset_time": 3.0,
@@ -228,19 +227,24 @@ func test_the_impulse_pushes_a_body_it_hits_and_bounces_turn_the_shot_off_a_wall
 	assert_int(hits.size()).is_greater_equal(1)
 
 
-func test_a_target_needs_its_hits_to_drop_and_shows_the_hit_colour() -> void:
+func test_a_target_drops_when_its_health_is_gone_and_shows_the_hit_colour() -> void:
 	var board := auto_free(load(TARGET).instantiate()) as Target
 	_world.add_child(board)
-	board.hits_to_drop = 2
+	var health := Health.of(board)
+	assert_float(health.max_value).is_equal(1.0)
+	health.max_value = 60.0
+	health.reset()
 	var paint := (
 		(board.get_node("%Board") as MeshInstance3D).material_override as StandardMaterial3D
 	)
 	assert_object(paint.albedo_color).is_equal(board.tint)
-	var shot := auto_free(load(PROJECTILE).instantiate()) as Projectile
-	board.take_shot(shot, Vector3.ZERO)
+	var said: Array[HitRecord] = []
+	board.shot.connect(func(hit: HitRecord) -> void: said.append(hit))
+	health.apply(HitRecord.shot(34.0, &"", &"", Vector3.ZERO, Vector3.FORWARD, 0.0))
 	assert_bool(board.is_down()).is_false()
-	board.take_shot(shot, Vector3.ZERO)
+	health.apply(HitRecord.shot(34.0, &"", &"", Vector3.ZERO, Vector3.FORWARD, 0.0))
 	assert_bool(board.is_down()).is_true()
+	assert_int(said.size()).is_equal(2)
 	assert_object(paint.albedo_color).is_equal(board.hit_tint)
 	board.tint = Color(0.1, 0.9, 0.2)
 	board.hit_tint = Color(0.0, 0.0, 1.0)
@@ -260,7 +264,7 @@ func test_a_target_that_never_resets_stays_down() -> void:
 	_world.add_child(board)
 	board.reset_time = 0.0
 	board.drop_time = 0.05
-	board.take_shot(auto_free(load(PROJECTILE).instantiate()), Vector3.ZERO)
+	Health.of(board).apply(HitRecord.blow(1.0))
 	await InputSim.ticks(get_tree(), 24)
 	assert_bool(board.is_down()).is_true()
 	assert_float(board.tilt()).is_equal_approx(board.drop_angle, 0.5)

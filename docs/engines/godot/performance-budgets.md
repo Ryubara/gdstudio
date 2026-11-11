@@ -52,6 +52,13 @@ One row a second, from the running night, in a node that costs nothing when it i
   times), `RenderingServer.frame_pre_draw` is never emitted headless, and a browser's frame-to-frame wall time is the
   display's 16.7 ms whatever the work. **Seen:** gdstudio #926, 2026-11-10 (`tools/bench/parts_cost_bench.gd`,
   `tests/gameplay/test_parts_budget.gd`).
+- **Approach:** Profile a per-character step by module with a copy of the step cut into its parts, each part run over
+  the whole crowd before the next and timed once, beside the real step in alternating blocks (its sum should match),
+  and serve the web export with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
+  require-corp` so `performance.now()` steps 5 µs (the single-threaded export runs the same). **Watch out for:** one
+  module of one body is 0.5 to 12 µs in Chrome, under the page's 100 µs clock step when it is not cross-origin
+  isolated, and the copy drifts from the real step when the step changes: print both. **Seen:** gdstudio #1059,
+  2026-11-11 (`tools/bench/ai_step_profile.gd`: the sum read 40.4 µs against a real 42.3).
 
 ## A timed function must not hold what it is handed {#a-timed-function-must-not-hold-what-it-is-handed}
 

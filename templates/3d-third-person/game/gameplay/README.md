@@ -12,20 +12,28 @@ The template has a character and the map's components:
 - `character/`: the character whoever drives it (`Character` and its scenes `character.tscn`, the body alone, and
   `character_dressed.tscn`, with its model; `CharacterTuning`, `CharacterAnimation`, `CharacterRagdoll`, `Footsteps`,
   `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`).
+- `ai/`: the AI characters' base (`AiCharacter`, `ai_character.tscn`: the dressed character driven by an
+  `AiController`), what kind each is (`AiProfile`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres`), and the
+  `AiDirector` (a node of `world/world.tscn`) that steps them, runs their thinks and sets their tiers within one
+  `AiBudget` a tick; `AiSituation` is what a character believes is going on. `ai/relations/` says who is hostile to
+  whom: the `AiRelations` table (`ai_relations.tres`, its `AiFaction` rows and `AiRelationEvent` events), the level's
+  `AiFactions` (a node of `world/world.tscn`) and an `AiFactionMember` on each character and the player.
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
   `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: its numbers,
   magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
-  hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the
-  slots and the empty hands, and a `Target` falls over when hit. They work with any model: a definition names the
-  model node it shows and its muzzle marker under the character's `Model` slot. `rifle.tres` is the automatic
-  hitscan rifle; `TwoHandHold` (`two_hand_hold.tscn`, the rifle's `rifle_held.tscn`) holds a long gun with both hands
-  by IK where the clips have no pose for it. `WeaponLoadout.give()` adds a weapon at run time.
+  hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the slots
+  and the empty hands, and a `Target` falls over when its `Health` runs out. They work with any model: a definition
+  names the model node it shows and its muzzle marker under the character's `Model` slot. `rifle.tres` is the
+  automatic hitscan rifle; `TwoHandHold` (`two_hand_hold.tscn`, the rifle's `rifle_held.tscn`) holds a long gun with
+  both hands by IK where the clips have no pose for it. `WeaponLoadout.give()` adds a weapon at run time.
 - `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow
-  the skeleton when a shot needs them) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; what a
-  network sends). A `Projectile` that meets a character's capsule asks its `HitZones` which part is on its line; the
-  character's `take_hit()` takes the health and its `HitReaction` (in `character/`) flinches, throws or pushes the
-  body.
+  the skeleton when a shot needs them). A `Projectile` that meets a character's capsule asks its `HitZones` which part
+  is on its line and gets a `HitRecord`; the character's `take_hit()` gives it to its `Health` and its `HitReaction`
+  (in `character/`) flinches, throws or pushes the body.
+- Components from the synced `addons/gds_game/` that the parts above carry as nodes: `Health` (on every character and
+  target: anything with one takes a shot) and `Interactable` (on the door: anything with one is used by the interact
+  button). Parts find these by their type, never by a method name.
 - `impacts/`: an `Impacts` that makes a mark, an effect and a sound where a `Projectile` lands, by the kind of surface
   (`ImpactSurface` nodes; a body says `surface` in its metadata or a group). Marks are quads on the body that was hit.
 - `effects/`: the `EffectEmitter` (one in the level, `world/world.tscn` has it) plays an `EffectDef` (a particles scene,

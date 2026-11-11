@@ -41,9 +41,9 @@ degrees (the hold study below).
 
 The game holds it with C and E below (kit #889): `gameplay/weapon/rifle_held.tscn`, a `TwoHandHold` under the
 character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. The fingers still keep the clip's fist
-(`tools/carry/measure_hand_contact.gd -- rifle`: the right hand 22 mm into the grip, the left 15 mm into the hand
-guard), so the next step is solved fingers on `Grip`, `Trigger` and `Support`, as #1001 does for the pistol. The
-study below is how the hold was chosen.
+(measured in the game's pose: the right hand 22 mm into the grip, the left 15 mm into the hand guard), so the next step
+is solved fingers on `Grip`, `Trigger` and `Support`, as #1001 does for the pistol (#1036, measured with
+`tests/fixtures/hand_contact.gd`). The study below is how the hold was chosen.
 
 ### The proposal
 

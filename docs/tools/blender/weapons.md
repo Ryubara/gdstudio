@@ -183,15 +183,58 @@ Library's six pistol clips on the `hand_r` bone.
   0.6 across and 0.75 in height) went 5.5 mm at most into the fist but drew the slide 7 px tall at 1080p from the
   camera's 4.4 m, the chunky drawing 9.5 mm and 9 px, and the drawing at 1.3 looked like a toy and went 15 mm in. The
   chunky one matches the kit pistol's cross-section and the clips' fist, which is made for a thick grip.
-- **One hold fits every pistol clip.** The clips never change the fist (the hand's contact with the gun measured the
-  same in `Pistol_Idle`, `Aim_Neutral`, `Aim_Up`, `Aim_Down`, `Shoot` and `Reload`), so the gun rides `hand_r` with no
-  per-clip offset: a `BoneAttachment3D` with the pistol at 12.3 cm along the bone's +Y and 2.6 cm to its -X, the barrel
-  along +Y tilted 9 degrees toward -Z. In `Pistol_Aim_Neutral` that aims 1.5 degrees up and 3 degrees out from the
-  facing. The numbers and the scene are in the folder's README and `pistol_held.tscn`.
-- **Seat it by a search, not by one finger.** Put the grip in the middle finger's ring (the mean of its four joints
-  and the point on the palm across from the tip), point the barrel along the facing, then move it 4 mm and turn it
-  3 degrees at a time while the count of hand vertices more than 2 mm inside a closed part of the gun falls, the
-  deepest one and the gap of the nearest 60 come down, and the barrel stays near the facing.
+- **The clips' fist does not hold it: the hands are closed on it by a solved hold** (kit #1001). The clips keep one
+  fist in all six pistol clips, and on the seat of kit #834 that fist measured 16 to 18 mm inside the grip and 8 to
+  11 mm off it on the two mannequins, with the left hand 8 to 20 mm inside the right one in the aim and shoot clips.
+  The rule now: no skin more than 2 mm inside the pistol (or the other hand) and no holding part more than 5 mm off
+  it, on the skinned mesh, in every pistol clip and every locomotion clip with the pistol out, on both mannequins.
+  The hold that ships measures at most 1.2 mm in on both, and at most 2.7 mm off on the female and 4.4 mm off on the
+  male (`tests/gameplay/test_pistol_hold.gd`, which fails on the clips' fist).
+- **What the hold is.** `gameplay/weapon/hold/weapon_hold.tscn` (`WeaponHold`) makes three modifiers under the model's
+  `Skeleton3D`: the right hand's `HandPose` (three fingers round the grip, the thumb high on the left side, the index
+  finger along the frame, and on the trigger as the character aims), a `HoldArm` that reaches the left hand to the
+  pistol's `SupportHand` marker while it aims or fires, and the left hand's `HandPose` (fingers over the right hand's,
+  thumb forward along the frame). Finger rotations are absolute in each bone's parent, so the grip is the same in
+  every clip. Over 40 characters the carried hold costs 5.6 microseconds a character a frame and the aimed one 12.6
+  (headless, desktop; `tools/bench/hold_cost.tscn`). It is cosmetic and never sent over a network.
+- **The seat needs a wrist turn.** With the barrel on the clips' line a real-sized palm lies flat beside the grip, the
+  knuckles 2 cm off the panel. The seat is turned about the grip (24 degrees) and tipped (15), and the hand bone is
+  turned back by the same turn (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and
+  only the wrist bends (28 degrees). That moves the pistol about 10 cm (`Weapon.no_muzzle_offset` follows the muzzle).
+- **A closed hand is wider than the clips' open one: hold the arm out while it is carried.** With the grip in the
+  palm and the arm hanging as the locomotion clips have it, the grip's foot was 51 to 60 mm inside the female's thigh
+  in `Idle` and `Walk`. `WeaponHold.carry_arm_out` lifts the upper arm 8 degrees toward its own side while the pistol
+  is carried (the hand moves out, however the elbow is bent) and fades as the character aims; the pistol then clears
+  the body by 12 mm or more in every locomotion clip on both mannequins (`tests/gameplay/test_pistol_clearance.gd`).
+- **Solve it from Godot's own pose, for both mannequins at once.** `tools/hold/dump_hold_rig.gd` writes the rig as
+  Godot plays it, `tools/hold/solve_pistol_hold.py` (numpy and scipy) closes the hands, `tools/hold/write_hold.gd`
+  writes the three `HandPose` files and `pistol_held.tscn`: no number of the hold is typed. The two mannequins share
+  the skeleton from the hands down, but their skins differ by up to 3.3 mm in the same pose (in both directions), so
+  the solver measures both skins in every step and presses the nearer one 0.8 mm into the surface; the other is then
+  up to 2.5 mm off it. A hold solved on one mannequin put the other 2.7 mm into the grip.
+- **The left hand follows the reload** (kit #1031). `Pistol_Reload` (1.67 s, stretched to the weapon's
+  `reload_time`) has the left hand on the gun for its first 4 hundredths, down at the left hip for the new magazine at
+  a quarter, under the grip from 0.54 to 0.71 and back on the gun from 0.88. After the solved seat moved the pistol
+  about 10 cm in the hand, the clip's own left hand was 16 to 22 mm inside the gun or the right hand for a third of the
+  clip on the female and 20 to 23 mm at its ends on the male, and under the grip it stood beside the gun's right side,
+  not under the magazine. `WeaponHold` now takes the hand through the clip's steps by the clip's own time
+  (`CharacterAnimation.reload_progress()`: how much of the body the one-shot holds, and the share played): on the
+  `SupportHand` marker, opened and let go to the clip's arm (0.04 to 0.10), brought to the line under the magazine
+  (0.30 to 0.40) one magazine's length down the grip, pushed up it (0.40 to 0.54) to the `MagazineHand` marker, where
+  the heel of the palm is on the magazine's base as a real reload seats one, then down, round the grip's foot and
+  onto the gun (0.71 to 0.88). Where the hand holds, it is within the 2 mm and 5 mm (the palm 1.6 to 3.1 mm off the
+  base, nothing more than 1.2 mm in); while it moves, a fingertip passes 4 to 5 mm through the other hand for a
+  hundredth of the clip in three places (0.03, 0.05, 0.79), which the test caps at 6 mm. The trigger finger is off
+  the trigger for the whole reload. Where the hand should be at each moment was decided from the clip and from how a
+  reload is taught: the magazine is fetched at the belt, guided in and seated firmly with the support palm, and the
+  grip is taken again ([Shooting Illustrated](https://www.shootingillustrated.com/articles/2012/10/25/semi-automatic-handgun-reloading),
+  [AmmoLand](https://www.ammoland.com/2023/03/4-pistol-reload-methods-9-magazine-tips)). The clip has no rack of the
+  slide and no magazine in the hand, and the pistol's `Magazine` node does not move yet.
+- **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
+  search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
+  on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
+  a natural curl), then the left hand as the right one mirrored across the pistol and moved, its fingers closed on the
+  pistol and the right hand together.
 
 The template's rifle (kit #886, `templates/3d-third-person/game/assets/weapons/rifle/`) is Deadnight's M4A1 at the
 real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's hold is built from IK:
@@ -208,15 +251,18 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   characters the modifiers cost about 8 microseconds each on the desktop.
 - **Read the pose in `skeleton_updated`.** `get_bone_global_pose()` gives the modifiers' result only inside the
   skeleton's `skeleton_updated` signal; outside it a probe read the clip's pose and reported a solved hand 19 cm off its
-  target. A skeleton with no modifier that dirties it (the mannequin carries an inactive `PhysicalBoneSimulator3D`)
+  target. A `BoneAttachment3D` moves in the same signal, maybe after your listener: copy the bone poses in the signal
+  and read the attachment's transform afterwards (kit #1001). A skeleton with no modifier that dirties it (the
+  mannequin carries an inactive `PhysicalBoneSimulator3D`)
   never emits it, so a probe that awaits the signal there waits forever.
 - The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
   proposal and its numbers are in the rifle folder's README.
 - **The hold in the game (kit #889)** is the proposal's C and E as a component, `TwoHandHold`
   (`gameplay/weapon/two_hand_hold.gd`; how to use it: [Weapon pickups and a two-handed
   hold](../../engines/godot/third-person/shooting.md#weapon-pickups)): the pocket follows `spine_03`'s place in the
-  clip, so a crouch carries the gun. `tools/carry/measure_hand_contact.gd -- rifle` measures it in the game's own
-  pose: both hands sit on their targets (0 to 0.3 cm once settled), but the clip's fist does not fit the rifle. The
+  clip, so a crouch carries the gun. Measured in the game's own pose (by a rifle mode of the old
+  `tools/carry/measure_hand_contact.gd`, which #1038 replaced by `tests/fixtures/hand_contact.gd`, the probe #1036
+  uses): both hands sit on their targets (0 to 0.3 cm once settled), but the clip's fist does not fit the rifle. The
   right hand goes 22 mm into the grip on both mannequins, its middle, ring and little fingers 8 to 17 mm, its index
   finger stands 3.3 to 7 mm off and not on the trigger; the left hand goes 14 to 15 mm into the hand guard (45 mm on
   the male at the low ready) with its fingers 9 to 12 mm in. That fails this page's 2 mm and 5 mm: the rifle needs
@@ -235,7 +281,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   for:** `get_bone_global_pose()` read in `_process` gave the clip's arm hanging at the hip, so a close-up camera
   placed from the hand framed the thigh (place it from the hand's IK target instead); and freeing the player right
   after `await skeleton.skeleton_updated` freed the skeleton during its own signal and crashed Godot (signal 11).
-  **Seen:** gdstudio #889, 2026-11-10 (`rifle_tour.gd`, `measure_hand_contact.gd -- rifle`).
+  **Seen:** gdstudio #889, 2026-11-10 (`rifle_tour.gd` and the rifle's contact probe).
 
 - **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
   times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender
@@ -244,6 +290,55 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   rests match, and a seat aligned to that finger turned the barrel 60 degrees out; headless,
   `bake_mesh_from_current_skeleton_pose()` fails (no skin registered with the skeleton). **Seen:** gdstudio #834,
   2026-11-08 (fix: the Godot dump; its seat held in all six clips).
+
+- **Approach:** Reach a hand to a point that rides the same skeleton (the support hand on a weapon the other hand
+  carries) in a `SkeletonModifier3D` of your own that works the target out from the bone's pose in that update (the
+  template's `HoldArm`), and prove it on the live player while it walks and fires. **Watch out for:** the engine's
+  `TwoBoneIK3D` aimed at a node used the place the node had before the skeleton's update, whether the target sat under
+  the `BoneAttachment3D` or was moved by a modifier: the hand trailed the pistol by 35 mm in the shoot clip and by
+  52 cm after a jump of the pose; a modifier just switched on also needs a second update before a test reads it.
+  **Seen:** gdstudio #1001, 2026-11-10 (fix: `HoldArm`, 0.0 mm from the marker in every sample).
+- **Approach:** Count a point as inside a hand or a weapon by crossings of a ray per closed piece (the mannequin's hand
+  is 29 pieces: a capsule a finger bone, a ball a joint, and a palm open at the wrist, so three rays vote), in the test
+  and in the solver alike, and check one disputed number against a third measure on a dump of the posed meshes.
+  **Watch out for:** the side of the nearest triangle's normal read a thumb lying beside the other thumb as 5.3 mm
+  inside it when it was 1.6 mm, and a hand 30 mm inside the other from far away; the solver, which smoothed the same
+  rule over a grid, said 1.1 mm, so the two disagreed and the solve chased the test. **Seen:** gdstudio #1001,
+  2026-11-10 (fix: `HandContact` and `hold_field.py` count per piece; they agree to 0.4 mm).
+- **Approach:** Make the solver's distance grid cover the whole weapon and a hand's thickness round it, and make a
+  point outside the grid read the value at the grid's edge plus the way there. **Watch out for:** a grid that stopped
+  at 13 cm ahead of the grip on a pistol whose muzzle is at 20.7 cm, with 5 cm returned outside it: the index finger
+  along the frame reached past the grid, the solver saw nothing there and laid it 2.8 mm into the dust cover.
+  **Seen:** gdstudio #1001, 2026-11-10 (fix: the grid's bounds are the pistol's own; the finger lies 0.7 mm off).
+- **Approach:** Give a finger solver a cost for a natural curl (the last joint follows the middle one, every joint
+  near a closed grip's) and a thumb a cost for a hooked tip, sample a triangle along each of its edges when building a
+  distance grid, and keep a margin on the depth limit in any search that measures only every third vertex.
+  **Watch out for:** contact alone gave straight fingers with a hooked tip and a thumb bent 84 degrees at the tip;
+  sampling by a triangle's longest edge made millions of samples on long thin triangles and the grid never finished;
+  a search on every third vertex chose a left hand whose full measure was 0.4 mm too deep, and the final solve then
+  curled the index finger into a fist to escape. **Seen:** gdstudio #1001, 2026-11-10.
+- **Approach:** Take a hand through a clip that moves it on and off the weapon by the clip's own time: a marker and a
+  solved finger pose for each place it holds, a straight way in along the line the part travels (a magazine goes up
+  the grip) and a way out that backs off before it crosses. Measure every hundredth of the clip once and keep the
+  deepest shares in the test. **Watch out for:** the clip's place for the hand fits only the seat the clip was made
+  with (after the reseat it was beside the gun, not under the magazine); a straight blend from under the magazine to
+  the support place went 21 mm through the grip's foot; fingers opened toward their rest went 4 to 5 mm into the
+  trigger guard and the other hand; a test at every 4 hundredths passed while three shares between were 4 to 5 mm in.
+  **Seen:** gdstudio #1031, 2026-11-10 (three passing moments of 4 to 5 mm are left, capped at 6 mm).
+- **Approach:** Seat a hand on a surface by its palm with the fingers already closed, and close the fingers again
+  after each seating, a fixed number of times; hold a part that the game's test reads deeper than the solver (the
+  male thumb's root, 1.4 mm) off the surface in the solver. **Watch out for:** the palm's skin near the knuckles
+  follows the fingers, so a palm seated with open fingers ended 4 to 6 mm in or 9 to 13 mm off once they closed;
+  seating on the skin the hand bone alone moves pushed the hand 17 mm into the gun; backing the whole hand off until
+  nothing was deeper than 0.3 mm took it 8 mm off for a thumb that touched sideways; a bisection of the push over
+  the whole way failed, since past the gun the palm is clear again (step to the first touch, then bisect).
+  **Seen:** gdstudio #1031, 2026-11-10.
+- **Approach:** After closing a hand on a grip, measure the weapon against the body in the locomotion clips again, and
+  bench a change of modifiers one configuration a process. **Watch out for:** the seat that put the grip in the palm
+  moved the pistol 6 cm toward the body, into the thigh in `Idle` and `Walk`, which only the clearance test showed
+  (from the right side the capture looked fine); a second set of 40 mannequins in one process measured ten times the
+  first with nothing changed, which read as a hold that cost 5 ms a character. **Seen:** gdstudio #1001, 2026-11-10
+  (fix: `carry_arm_out`; `hold_cost.tscn` takes the run as its argument).
 
 ## Moving parts and a reload's ammunition {#moving-parts-and-a-reloads-ammunition}
 

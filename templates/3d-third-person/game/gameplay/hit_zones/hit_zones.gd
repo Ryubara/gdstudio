@@ -18,10 +18,12 @@ extends StaticBody3D
 ## A lying body (the character's ragdoll, limp) is hit on its bones: a shot that meets a
 ## `PhysicalBone3D` of this character's ragdoll makes a record of that bone.
 ##
-## The character (`receiver`) takes the record (`Character.take_hit()`); the record is all a
-## game's networking needs to send.
+## The character (`receiver`) takes the record (`Character.take_hit()`, which gives it to its
+## `Health`); a receiver that is not a `Character` gives it to its own `Health` child. The record
+## is all a game's networking needs to send.
 
-## The character that takes the hits (its `take_hit(record)`). Its capsule is what a shot meets
+## The character that takes the hits (`Character.take_hit()`, or the `Health` child of another
+## body). Its capsule is what a shot meets
 ## first, and it is tagged so a shot finds this node from the capsule.
 @export var receiver: CollisionObject3D:
 	set(value):
@@ -126,10 +128,21 @@ func shot(
 	return part.record(damage, found.point, along, strength, source)
 
 
-## Gives `record` to the receiver (`take_hit`).
+## Gives `record` to the receiver: a `Character` takes it (`take_hit()`), any other body's
+## `Health` child applies it. A hit its source may not deal (a friend's, `AiFactions.can_hurt`)
+## is dropped.
 func deliver(record: HitRecord) -> void:
-	if record != null and receiver != null and receiver.has_method(&"take_hit"):
-		receiver.call(&"take_hit", record)
+	if record == null or receiver == null:
+		return
+	if not AiFactions.can_hurt(record.source, receiver):
+		return
+	var character := receiver as Character
+	if character != null:
+		character.take_hit(record)
+		return
+	var health := Health.of(receiver)
+	if health != null:
+		health.apply(record)
 
 
 ## The first zone of this body on the segment `from`-`to`, after putting the zones on the bones:

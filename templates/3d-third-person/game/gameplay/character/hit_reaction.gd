@@ -218,7 +218,9 @@ func _stop_flinch(release: bool) -> void:
 func _on_revived() -> void:
 	var simulator := ragdoll.simulator() if ragdoll != null else null
 	if simulator != null and is_inside_tree():
-		get_tree().call_group(&"impacts", &"clear_marks_on", simulator)
+		var impacts := Impacts.find(self)
+		if impacts != null:
+			impacts.clear_marks_on(simulator)
 
 
 func _get_configuration_warnings() -> PackedStringArray:

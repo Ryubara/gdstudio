@@ -261,12 +261,15 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 
 func test_the_step_takes_the_physics_step_as_its_delta() -> void:
 	# The engine moves the body by its own step whatever number is passed, so `step` asserts
-	# (in a debug build) that the two are one; this is the check it makes.
+	# (in a debug build) that `delta` is a whole number of them (a far AI character is stepped
+	# every few ticks with their time, and its move is scaled to match); this is the check it makes.
 	await get_tree().physics_frame
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds())).is_true()
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds() / 2.0)).is_false()
+	var tick := CommandDriver.tick_seconds()
+	assert_bool(_player._is_physics_step(tick)).is_true()
+	assert_bool(_player._is_physics_step(tick * 4.0)).is_true()
+	assert_bool(_player._is_physics_step(tick / 2.0)).is_false()
+	assert_bool(_player._is_physics_step(tick * 1.5)).is_false()
 	assert_bool(_player._is_physics_step(0.0)).is_false()
-	assert_bool(_player._is_physics_step(1.0 / 30.0)).is_false()
 
 
 # Every script of the character (`gameplay/character/`: the body, its model, animation, ragdoll,

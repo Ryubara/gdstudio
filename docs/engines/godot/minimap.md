@@ -16,6 +16,7 @@ marker and the section, which gameplay scenes may carry), `ui/minimap/` (the wid
 | --- | --- | --- |
 | `Minimap` | `ui/minimap/minimap.tscn` | The widget: a round or square map that follows a target, turns, zooms and draws every marker. Everything is an inspector export. |
 | `MinimapMarker` | `core/minimap/minimap_marker.gd` | A node you add under any `Node3D` or `Node2D`: icon, colour, size, rotation, edge clamping and a rule for when it shows. Data only: it draws nothing and is never sent over the network. |
+| `MinimapHeading` | `core/minimap/minimap_heading.gd` | A node you add under a parent whose own node does not turn (a character turns its model inside its body): `turns` points at the node that does, `front` says which of its axes is the front. The marker and a minimap that follows the parent find it by type (`MinimapHeading.of(parent)`). |
 | `MinimapSection` | `core/minimap/minimap_section.tscn` | A box of the world (a floor, a room, a wing): slices the live camera to its height, names the map, may hold its own picture, and is what the `SAME_SECTION` rule compares. |
 | `MapScreen` | `ui/minimap/map_screen.tscn` | The full-screen map: a second `Minimap` (north up, every kind, the whole map) that opens on `map` and renders while open only. |
 | `MinimapIconPool`, `MinimapIcon` | `ui/minimap/` | The pool of sprites that draw markers; made once, reused. |
@@ -31,8 +32,11 @@ marker and the section, which gameplay scenes may carry), `ui/minimap/` (the wid
    HUD grows 1.5 times on a phone, so a 220 px map would be 325 units of 1080 and push the ammo onto the buttons).
    It finds its target (the first node in the `target_group`, `player`), the markers and the sections by itself.
 2. **Mark things**: add a `MinimapMarker` under a pickup, an enemy, a door, a goal. Set `kind` (`enemy`, `pickup`) and
-   a minimap can hide it by kind. A parent that turns inside its node (the player turns its model) gives its facing
-   with a `get_minimap_heading() -> Vector2` method; otherwise the marker uses the parent's `-Z`.
+   a minimap can hide it by kind. A parent that turns inside its node (the player turns its model) gets a
+   `MinimapHeading` child with `turns` set to that model (`front` `PLUS_Z` for a Blender model); otherwise the marker
+   and the minimap use the parent's `-Z`. It is a node and not a method, so the scene shows which things give their
+   own heading and a renamed method cannot break the arrow without a word (#1047, as `Health` and `Interactable` did
+   for hits and use in #1029).
 3. **Choose the rotation**: `NORTH_UP`, `TARGET_FACING` or `CAMERA_FACING` (the default: what is ahead on screen is up
    and an N sits where north is). Rotating suits compact levels and following a route, north up suits big maps that
    people learn; offer the choice in a game's settings by setting `rotation_mode`.

@@ -8,7 +8,7 @@ extends Resource
 ## A number is read where it is used, every tick, so changing it in the inspector or the remote
 ## inspector works while the game runs; the body sizes (`height`, `camera_height`) say `changed`,
 ## and `Character` fits its capsule again. The defaults come from shipped games' slides (the kit's
-## `docs/engines/godot/third-person/character.md#slide` lists the sources): an entry at about
+## `docs/engines/godot/third-person/moves.md#slide` lists the sources): an entry at about
 ## three quarters of a sprint, a small boost with a cooldown, about a second on the flat, faster
 ## downhill, a slide jump that keeps the speed.
 

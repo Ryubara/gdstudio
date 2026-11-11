@@ -9,7 +9,9 @@ extends CharacterBody3D
 ## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`), slides
 ## when crouch is pressed at a sprint (`CharacterSlide`, tuned by its `SlideTuning`), and vaults
 ## over or mantles onto a `Vaultable` (`CharacterVault`, tuned by its `vault_settings`). Everything
-## else is tuned in the `CharacterTuning`. Other nodes connect to the signals.
+## else is tuned in the `CharacterTuning`. Other nodes connect to the signals. The push, the death,
+## the capsule and the snapshot are modules beside it too (`CharacterPush`, `CharacterDeath`,
+## `CharacterCapsule`, `CharacterState`); a new move goes in a module of its own the same way.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
@@ -31,7 +33,7 @@ signal health_changed(health: float)
 ## A hit reached the character, alive or lying dead: the record a game's networking sends, and
 ## what the `HitReaction` answers with a flinch, the death's push or a push on the lying body.
 signal hit_received(record: HitRecord)
-## The character used `target` (a door, a lever): the target's `interact()` was called.
+## The character used `target` (a door, a lever): the parent of the `Interactable` it found.
 signal interacted(target: Node3D)
 ## The character took `amount` of `item_id` from a `Pickup`; `total` is how many it holds now.
 signal item_collected(item_id: StringName, amount: int, total: int)
@@ -155,20 +157,14 @@ enum State {
 ## `ragdoll_key` sends). A testing aid: a server that steps commands from the network turns it off.
 @export var ragdoll_by_command := true
 
-@export_group("Health")
-## On: hits take health and the character dies at zero. Off: hits still flinch and push the body,
-## but take nothing.
-@export var health_enabled := true
-## The health the character starts and gets up with. A hit's damage is the shot's damage times
-## its hit zone's multiplier (`HitZone.damage_multiplier`).
-@export_range(1.0, 10000.0, 1.0, "or_greater") var max_health := 100.0:
-	set(value):
-		max_health = maxf(value, 1.0)
-		if health > max_health:
-			health = max_health
-
-## The health left (0 to `max_health`); the HUD shows it.
-var health := 100.0
+## The health left (0 to `max_health`; 0 with no `Health` child): read only, the HUD shows it.
+var health: float:
+	get:
+		return Health.of(self).value if Health.of(self) != null else 0.0
+## The `Health` child's `max_value` (read only: tune and set the `Health` node).
+var max_health: float:
+	get:
+		return Health.of(self).max_value if Health.of(self) != null else 0.0
 
 ## True while the character is dead and lies in its death clip, not in a ragdoll (the ragdoll
 ## declined it: the cap on limp ragdolls or the range).
@@ -241,6 +237,8 @@ var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
 var _slide := CharacterSlide.new()
+# The command `last_command` was last copied from (`CharacterController.repeats()`).
+var _copied: PlayerCommand
 
 @onready var _interactor: Interactor = %Interactor
 @onready var _body: CollisionShape3D = %Body
@@ -257,7 +255,10 @@ func _ready() -> void:
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
-	health = max_health
+	var part := Health.of(self)
+	if part != null:
+		part.changed.connect(func(value: float, _max: float) -> void: health_changed.emit(value))
+		part.died.connect(die)
 	if model != null:
 		facing = model.rotation.y
 	view_yaw = facing - PI
@@ -278,26 +279,31 @@ func _physics_process(delta: float) -> void:
 ## Moves the body one physics tick as `command` asks: the only thing that moves it. The
 ## character's own `_physics_process` calls it with its controller's command; a server or a test
 ## turns that off (`set_physics_process(false)`) and calls it itself, inside a physics frame.
-## `delta` is the physics step (the engine moves the body by its own step, so another number
-## would split the two; a debug build stops on one). A command with a number that is not finite
-## is stepped as one that asks for nothing, and a push longer than 1 as 1. The weapon's cooldown
-## is counted at the end of every step, alive or dead.
+## `delta` is the physics step, or a whole number of them for a body stepped less often (a far
+## AI character every 3rd tick): the timers count it all and the move goes as far (any other
+## number would split the body from the engine's own step; a debug build stops on one). A
+## command with a number that is not finite is stepped as one that asks for nothing, and a push
+## longer than 1 as 1. The weapon's cooldown is counted at the end of every step, alive or dead.
 func step(command: PlayerCommand, delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	assert(Engine.is_in_physics_frame(), "Character.step() runs inside a physics frame.")
-	assert(_is_physics_step(delta), "Character.step() takes the physics step as its delta.")
-	if command.all_finite():
+	assert(_is_physics_step(delta), "Character.step() takes whole physics steps.")
+	if command == _copied and controller != null and controller.repeats(command):
+		pass  # The controller's command as the last step copied it (an AI between its thinks).
+	elif command.all_finite():
 		last_command.copy_from(command)
 		last_command.move = command.move.limit_length(1.0)
+		_copied = command
 	else:
 		last_command.clear()
+		_copied = null
 	view_yaw = last_command.yaw
 	view_pitch = _prone.held_pitch(prone_tuning, last_command.pitch)
 	if ragdoll_by_command and last_command.ragdoll_pressed:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
-		_dead_tick()
+		CharacterDeath.dead_tick(self)
 	elif global_position.y < tuning.fall_limit:
 		_fall_out()
 	else:
@@ -309,8 +315,13 @@ func step(command: PlayerCommand, delta: float) -> void:
 		weapon.tick(delta)
 
 
-# One tick of a living body inside the map.
+# One tick of a living body inside the map. A controller that asks for it (an AI's) gets the lean
+# tick when nothing but the walk has anything to do: the same result, fewer modules
+# (`CharacterLean`).
 func _move(delta: float) -> void:
+	if controller != null and controller.lean_step and CharacterLean.can_take(self):
+		CharacterLean.move(self, delta)
+		return
 	_tick_timers(delta)
 	_update_prone(delta)
 	if vault_motion.drive(self, delta):
@@ -330,9 +341,12 @@ func _move(delta: float) -> void:
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
+	var ticks := roundf(delta / get_physics_process_delta_time())
+	velocity *= ticks
 	move_and_slide()
+	velocity /= ticks
 	_grounded = is_on_floor()
-	_pushing = _push_props(before, delta)
+	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
 
@@ -358,39 +372,14 @@ func aim_ray() -> PackedVector3Array:
 ## Everything the next step reads from this one, in `into` (or a new `CharacterState`).
 func state_snapshot(into: CharacterState = null) -> CharacterState:
 	var kept := into if into != null else CharacterState.new()
-	kept.position = global_position
-	kept.velocity = velocity
-	kept.values.resize(CharacterState.FIELDS.size())
-	for index in CharacterState.FIELDS.size():
-		kept.values[index] = get(CharacterState.FIELDS[index])
-	if weapon != null:
-		weapon.save_step_state(kept.weapon)
-	else:
-		kept.weapon.clear()
-	vault_motion.save_step_state(kept.vault)
-	if loadout != null:
-		loadout.save_step_state(kept.loadout)
-	else:
-		kept.loadout.clear()
-	_prone.save_step_state(kept.prone)
-	_slide.save_step_state(kept.slide)
+	kept.take(self)
 	return kept
 
 
 ## Puts the body back as `kept` holds it (a `state_snapshot()` of this character while it was
 ## alive). The engine's own floor contact is found again by the next step.
 func restore(kept: CharacterState) -> void:
-	global_position = kept.position
-	velocity = kept.velocity
-	for index in CharacterState.FIELDS.size():
-		set(CharacterState.FIELDS[index], kept.values[index])
-	if loadout != null:
-		loadout.load_step_state(kept.loadout)
-	if weapon != null:
-		weapon.load_step_state(kept.weapon)
-	vault_motion.load_step_state(kept.vault)
-	_prone.load_step_state(kept.prone)
-	_slide.load_step_state(kept.slide)
+	kept.put_back(self)
 	_fit_body()
 	_present_facing()
 
@@ -402,7 +391,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	if state == State.DEAD:
 		if ragdoll_body != null:
 			ragdoll_body.stop(false)
-		_come_alive()
+		CharacterDeath.come_alive(self)
 	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
@@ -423,58 +412,13 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 ## the clip's last pose (`died_by_clip`). With `shot` (the hit that killed) the hit is said in
 ## `hit_received` once the body is limp, so the `HitReaction` throws the hit bone along it.
 func die(shot: HitRecord = null) -> void:
-	if state == State.DEAD:
-		return
-	var momentum := velocity
-	var viewer := controller.viewer_position() if controller != null else Vector3.INF
-	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start(viewer)
-	_wants_crouch = false
-	if _prone.is_prone():
-		_prone.reset()
-		prone_changed.emit(false)
-	_fire_buffer = 0.0
-	if weapon != null:
-		weapon.cancel_reload()
-	_action_lock = 0.0
-	_land_timer = 0.0
-	_jump_buffer = 0.0
-	_jump_held = false
-	_sprinting = false
-	_slide.reset()
-	aim_held = false
-	fire_held = false
-	aim_amount = 0.0
-	if aiming:
-		aiming = false
-		aim_changed.emit(false)
-	velocity = Vector3.ZERO
-	_body.disabled = true
-	if health > 0.0:
-		health = 0.0
-		health_changed.emit(health)
-	state = State.DEAD
-	ragdoll = true
-	if ragdoll_body != null and not died_by_clip:
-		ragdoll_body.start(momentum, viewer)
-	died.emit()
-	if shot != null:
-		shot.killed = true
-		hit_received.emit(shot)
+	CharacterDeath.die(self, shot)
 
 
 ## Gets the character up where its body lies, facing the way its chest faces; the pose blends
 ## from lying to standing over the ragdoll's `get_up_time`.
 func revive() -> void:
-	if state != State.DEAD:
-		return
-	if ragdoll_body != null and ragdoll_body.is_limp():
-		var heading := ragdoll_body.facing()
-		global_position = _ground_below(ragdoll_body.hips())
-		facing = atan2(heading.x, heading.z)
-		_present_facing()
-		reset_physics_interpolation()
-		ragdoll_body.stop()
-	_come_alive()
+	CharacterDeath.revive(self)
 
 
 ## True while the character is dead.
@@ -488,8 +432,7 @@ func hit(amount: float = 1.0, source: Node3D = null) -> void:
 	take_hit(HitRecord.blow(amount, source))
 
 
-## Takes a hit (a shot through `HitZones`, or a record a game's networking received): takes its
-## damage from the health when health is on and dies at zero, carrying the hit into the ragdoll.
+## Takes a hit (from `HitZones` or a network): the `Health` child takes it, and at zero it dies.
 ## A blow (`record.knockback`) also stops and throws the character. A dead character takes no
 ## damage, but the record is still said (`hit_received`): a shot pushes the lying body.
 func take_hit(record: HitRecord) -> void:
@@ -497,12 +440,10 @@ func take_hit(record: HitRecord) -> void:
 		hit_received.emit(record)
 		return
 	took_hit.emit(record.damage, record.source)
-	if health_enabled and record.damage > 0.0:
-		health = maxf(health - record.damage, 0.0)
-		health_changed.emit(health)
-		if health <= 0.0:
-			die(record)
-			return
+	if Health.of(self) != null:
+		Health.of(self).apply(record)
+	if state == State.DEAD:
+		return
 	if record.knockback:
 		_stagger(record.source)
 	hit_received.emit(record)
@@ -520,27 +461,26 @@ func _stagger(source: Node3D) -> void:
 	state = State.HIT
 
 
-## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
-## node).
-func get_minimap_heading() -> Vector2:
-	return Vector2(sin(facing), cos(facing))
+func _get_configuration_warnings() -> PackedStringArray:
+	if Health.of(self) == null:
+		return PackedStringArray(["No `Health` child: hits push the body but take nothing."])
+	return PackedStringArray()
 
 
-## Uses the nearest usable thing in front. Returns it, or null when there is nothing to use.
+## Uses the nearest `Interactable` in front: returns the node it makes usable, or null.
 func interact() -> Node3D:
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
 	var target := _interactor.find_target(forward, tuning.interact_reach)
 	if target == null or _action_lock > 0.0 or state == State.DEAD:
 		return null
-	if target.has_method(&"interact"):
-		target.call(&"interact", self)
+	target.interact(self)
 	_action_lock = tuning.interact_time
-	interacted.emit(target)
+	interacted.emit(target.usable())
 	state = State.INTERACT
-	return target
+	return target.usable()
 
 
-## Called by a `Pickup` the body touches.
+## Adds `amount` of `item_id` to `items` (a `Pickup` the body touches gives it).
 func collect(item_id: StringName, amount: int) -> void:
 	items[item_id] = items.get(item_id, 0) + amount
 	item_collected.emit(item_id, amount, items[item_id])
@@ -565,37 +505,25 @@ func is_sprinting() -> bool:
 ## The height of the capsule now, in metres: the standing height, or less while it crouches or
 ## lies down or slides.
 func body_height() -> float:
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var crouched := minf(lerpf(tuning.height, _crouch_height(), shrink), _slide.body_height(self))
-	if prone_tuning == null or not _prone.is_prone():
-		return crouched
-	return lerpf(crouched, _prone_height(), _prone.share())
+	return CharacterCapsule.height(self)
 
 
 ## True when nothing is above the character that would stop it from standing up.
 func has_room_to_stand() -> bool:
-	# Geometry, not feel: a probe a little thinner and shorter than the standing capsule, lifted
-	# off the floor, so touching a wall or the ground is not a ceiling.
-	_stand_probe.radius = maxf(tuning.radius - 0.02, 0.05)
-	_stand_probe.height = tuning.height - 0.12
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _stand_probe
-	var middle := global_position + Vector3.UP * (tuning.height / 2.0 + 0.06)
-	query.transform = Transform3D(Basis.IDENTITY, middle)
-	query.collision_mask = collision_mask
-	query.exclude = [get_rid()]
-	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+	return CharacterCapsule.has_room_to_stand(self, _stand_probe)
 
 
 # The command of a body nobody controls: it asks for nothing and looks where it looked.
 func _idle_command() -> PlayerCommand:
 	last_command.clear()
+	_copied = null
 	return last_command
 
 
-# True when `delta` is the step the engine moves this body by.
+# True when `delta` is a whole number of the steps the engine moves this body by.
 func _is_physics_step(delta: float) -> bool:
-	return is_equal_approx(delta, get_physics_process_delta_time())
+	var ticks := delta / get_physics_process_delta_time()
+	return ticks > 0.5 and is_equal_approx(ticks, roundf(ticks))
 
 
 func _aim_origin() -> Vector3:
@@ -625,43 +553,6 @@ func _fall_out() -> void:
 	fell.emit()
 
 
-# Dead: the body stays where it died with its capsule off, the camera's target follows the hips,
-# and a ragdoll that falls out of the map says `fell`.
-func _dead_tick() -> void:
-	if ragdoll_body == null or not ragdoll_body.is_limp():
-		return
-	var hips := ragdoll_body.hips()
-	if hips.y < tuning.fall_limit:
-		_fall_out()
-		return
-	_camera_target.global_position = hips + Vector3.UP * tuning.dead_camera_rise
-
-
-func _come_alive() -> void:
-	died_by_clip = false
-	health = max_health
-	health_changed.emit(health)
-	_body.disabled = false
-	velocity = Vector3.ZERO
-	_fall_speed = 0.0
-	_was_airborne = false
-	_camera_target.position = Vector3.ZERO
-	_fit_body()
-	state = State.IDLE
-	ragdoll = false
-	revived.emit()
-
-
-# The floor under `spot` (a ray down from a little above it), or `spot` itself over nothing.
-func _ground_below(spot: Vector3) -> Vector3:
-	# Geometry: from just above the hips to well under the lowest a body can lie.
-	var query := PhysicsRayQueryParameters3D.create(
-		spot + Vector3.UP * 0.5, spot + Vector3.DOWN * 3.0, collision_mask, [get_rid()]
-	)
-	var found := get_world_3d().direct_space_state.intersect_ray(query)
-	return found["position"] if not found.is_empty() else spot
-
-
 # Fits the capsule, the camera's target, the steepest floor and the floor snap to the tuning (they
 # are copied into the body, so a change to them is applied here, from the tuning's `changed`).
 func _apply_tuning() -> void:
@@ -674,36 +565,9 @@ func _apply_tuning() -> void:
 	floor_snap_length = tuning.snap_length
 
 
-# Sizes the capsule and the camera's target for the crouch: the capsule keeps its feet on the
-# ground and loses height from the top.
+# Sizes the capsule and the camera's target for the crouch, the slide and the stance.
 func _fit_body() -> void:
-	var capsule := _body.shape as CapsuleShape3D
-	var height := body_height()
-	var lying := _prone.share() if prone_tuning != null else 0.0
-	capsule.radius = lerpf(tuning.radius, _prone_radius(), lying) if lying > 0.0 else tuning.radius
-	capsule.height = height
-	_body.position.y = height / 2.0
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var eye := minf(
-		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink), _slide.camera_height(self)
-	)
-	if lying > 0.0:
-		eye = lerpf(eye, prone_tuning.camera_height, lying)
-	_camera_target.position.y = eye
-
-
-# The shortest the capsule can be: a capsule is at least two radii tall.
-func _crouch_height() -> float:
-	return clampf(tuning.crouch_height, tuning.radius * 2.0 + 0.01, tuning.height)
-
-
-# The lying capsule's radius and height (at least two radii tall, never above the crouch).
-func _prone_radius() -> float:
-	return minf(prone_tuning.radius, tuning.radius)
-
-
-func _prone_height() -> float:
-	return clampf(prone_tuning.height, _prone_radius() * 2.0 + 0.01, _crouch_height())
+	CharacterCapsule.fit(self)
 
 
 # Lies down or gets up as the command asks (`CharacterProne`), and fits the capsule as it goes.
@@ -872,55 +736,6 @@ func _climb(delta: float) -> void:
 	StepClimber.climb(
 		self, motion, tuning.step_height, tuning.max_slope, tuning.radius + tuning.step_probe_margin
 	)
-
-
-## Pushes the props the body slid into this tick. True when it is pushing one it walks at. A prop
-## with a `push_speed` is pushed at that speed and the character walks a little faster than it
-## (the tuning's `push_contact`), and it keeps counting as pushed for `push_hold` after the last
-## touch.
-func _push_props(before: Vector3, delta: float) -> bool:
-	var pushing := false
-	var slow_push := false
-	var flat := Vector3(before.x, 0.0, before.z)
-	var cap := 0.0
-	if flat.length() >= tuning.stand_speed:
-		for index in get_slide_collision_count():
-			var collision := get_slide_collision(index)
-			var prop := collision.get_collider() as RigidBody3D
-			if prop == null:
-				continue
-			var along := -collision.get_normal()
-			along.y = 0.0
-			if along.length_squared() < 0.0001:
-				continue
-			along = along.normalized()
-			# A prop more than 60 degrees off the way the body walks is brushed past, not pushed.
-			if along.dot(flat.normalized()) < 0.5:
-				continue
-			var share := (
-				tuning.push_strength
-				* clampf(tuning.push_mass / prop.mass, tuning.push_least_share, 1.0)
-				* tuning.push_boost
-			)
-			var want := flat.length() * clampf(share, 0.0, 1.0)
-			var slow: float = prop.get(&"push_speed") if &"push_speed" in prop else 0.0
-			if slow > 0.0:
-				want = slow
-				var contact := slow * tuning.push_contact
-				cap = contact if cap == 0.0 else minf(cap, contact)
-				slow_push = true
-			var gain := want - prop.linear_velocity.dot(along)
-			if gain > 0.0:
-				prop.apply_central_impulse(along * gain * prop.mass)
-			pushing = true
-	if slow_push:
-		_push_hold = tuning.push_hold
-		_push_cap = cap
-	else:
-		_push_hold = maxf(_push_hold - delta, 0.0)
-		if _push_hold <= 0.0:
-			_push_cap = 0.0
-	return pushing or _push_hold > 0.0
 
 
 func _after_move(wish: Vector3, _delta: float) -> void:

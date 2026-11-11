@@ -20,7 +20,9 @@ the muzzle along -X, thin across Y; in Godot the muzzle is -X, up +Y and the gun
 - `Slide`: runs back along +X at the shot, origin at its rear; `Magazine`: drops along the grip, origin at its foot;
 - `Muzzle`: the barrel's open end, -Z out of the barrel in Godot; `Eject`: the ejection port on the right;
 - `Grip`: the right hand's handle at the origin, +Y up the handle in Godot and -Z along the barrel;
-  `Trigger`: the trigger's front face, -Z the press (backward).
+  `Trigger`: the trigger's front face, -Z the press (backward);
+  `Support`: the left hand's handle in a two-handed hold, the right hand's fingers on the front strap, with the
+  `Grip`'s axes (kit #1001).
 """
 
 import argparse
@@ -255,6 +257,7 @@ MUZZLE = (-0.17, 0.0, BORE)  # the slide's front face on the bore (the bushing s
 EJECT = (-0.06, 0.02, 0.065)
 GRIP = ((0.032, 0.0, -0.058), (-0.31, 0.0, 0.95), (-1.0, 0.0, 0.0))  # origin, up the handle, front (the fingers)
 TRIGGER = (-0.03, 0.0, -0.012)
+SUPPORT = (-0.004, 0.0, -0.058)  # 3.6 cm ahead of the grip's middle: over the right hand's fingers on the front strap
 
 
 # ---- the template's file -----------------------------------------------------------------------------------------
@@ -310,6 +313,7 @@ def build(scale, chunk):
         empty(root, "Eject", place @ (Vector(EJECT) * k)),
         empty(root, "Grip", Vector(), frame(Vector(GRIP[1]) * k, Vector(GRIP[2]) * k)),
         empty(root, "Trigger", place @ (Vector(TRIGGER) * k), frame((0, 0, 1), (1, 0, 0))),
+        empty(root, "Support", place @ (Vector(SUPPORT) * k), frame(Vector(GRIP[1]) * k, Vector(GRIP[2]) * k)),
     ]
     return root, nodes, sockets
 

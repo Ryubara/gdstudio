@@ -63,7 +63,7 @@ enum Pull {
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is about where the pistol's muzzle is when the
 ## character aims.
-@export var no_muzzle_offset := Vector3(0.13, -0.03, -0.7)
+@export var no_muzzle_offset := Vector3(0.07, -0.09, -0.65)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
@@ -431,8 +431,8 @@ func _on_projectile_finished(shot: Projectile) -> void:
 
 # One ray from `start` along `heading`, `reach` long: the hit is pushed, told and reported. A
 # character's capsule asks its `HitZones` for the part on the ray (`HitZones.shot`, the record it
-# delivers to `take_hit`); a ray that passes between the parts goes on past the capsule, as a
-# projectile does.
+# delivers to `take_hit`), anything else its `Health`; a ray that passes between the parts goes on
+# past the capsule, as a projectile does.
 func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 	var skip: Array[RID] = []
 	var found := {}
@@ -466,10 +466,17 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D
 		body.apply_impulse(heading * definition.impulse, point - body.global_position)
-	if collider != null and collider.has_method(&"take_shot"):
-		collider.call(&"take_shot", null, point)
-	if definition.impacts and collider != null:
-		get_tree().call_group(&"impacts", &"impact", collider, point, normal)
+	# Not a character's hit zones: whatever carries a `Health` (a `Target`, a crate) takes the shot.
+	var health := Health.of(collider) if record == null else null
+	if health != null:
+		health.apply(
+			HitRecord.shot(
+				definition.damage, &"", &"", point, heading, definition.impulse, shooter as Node3D
+			)
+		)
+	var impacts := Impacts.find(self) if definition.impacts and collider != null else null
+	if impacts != null:
+		impacts.impact(collider, point, normal)
 	(
 		hit_scanned
 		. emit(

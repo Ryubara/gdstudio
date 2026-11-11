@@ -267,7 +267,9 @@ From Deadnight #702 (a bot's body had the view):
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
   its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty
   capture scripts as `make_current()`, and tests read the person's camera node, never the viewport's. **Seen:**
-  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above).
+  Deadnight #430; Deadnight #702, 2026-11-03 (fix: the viewport test above); gdstudio #905, 2026-11-11 (clients in
+  one process: each viewport's camera was its own while every Phantom Camera host followed the last client's camera;
+  ask the host's `get_active_pcam()` too, [the online client](third-person/online-client.md#puppets)).
 
 ## A rig no one looks through {#a-rig-no-one-looks-through}
 
