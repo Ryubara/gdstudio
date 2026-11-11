@@ -41,6 +41,15 @@ static func make(player: Player) -> void:
 ## Puts `puppet` where `entry` says, moving at `moving` (metres a second), and brings the parts
 ## that are eased on a stepped body (the aim pose, lying down) along by `delta`.
 static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: float) -> void:
+	# A dead puppet lies in its own ragdoll (its DIED event started it); a snapshot that says dead
+	# before the event came, or alive after a REVIVED that never came, does it here instead.
+	if entry.dead:
+		if not puppet.is_dead():
+			puppet.velocity = moving
+			puppet.die()
+		return
+	if puppet.is_dead():
+		puppet.revive_at(entry.position)
 	_touch_floor(puppet, entry.position, entry.air)
 	puppet.global_position = entry.position
 	puppet.velocity = moving

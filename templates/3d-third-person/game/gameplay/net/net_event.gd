@@ -5,9 +5,11 @@ extends RefCounted
 ##
 ## JOINED    u8 slot, u8 name length, the name (UTF-8, <= NAME_BYTES)          3 + name bytes
 ## LEFT      u8 slot                                                            2
-## SHOT      u8 slot, u32 seq, s16 origin x/y/z (cm), u16 yaw, s16 pitch        16
+## SHOT      u8 slot, u16 seq (its low 16 bits), u8 weapon (the loadout slot
+##           + 1, 0 the empty hands), s16 origin x/y/z (cm), u16 yaw, s16 pitch  15
 ## HIT       s16 point x/y/z (cm), u16 normal yaw, s16 normal pitch, u8 code
-##           (the surface), u16 id (the target, `NO_ID` for none)               14
+##           (what was hit, `NetHits.Kind`), u16 id (the target, `NO_ID` for
+##           none), u8 health left (`NO_HEALTH` for a thing with none)          15
 ## DIED      u8 slot, s16 velocity x/y/z (cm/s), u8 code (the cause)            9
 ## REVIVED   u8 slot, s16 position x/y/z (cm)                                   8
 ## ENTITY    u16 id, u32 tick (when the new state starts), u8 state length,
@@ -32,22 +34,27 @@ enum Kind {
 
 ## The id of a hit that struck no networked part.
 const NO_ID := 0xFFFF
+## The health byte of a hit on something that has no `Health`.
+const NO_HEALTH := 0xFF
 
 var kind := Kind.LEFT
 ## The player it is about.
 var slot := 0
-## A command's number (SHOT, REJECTED).
+## A command's number (REJECTED; a SHOT carries its low 16 bits).
 var seq := 0
 ## Metres: the shot's origin, the hit's point, the revived body's place; metres a second: the
 ## dead body's velocity.
 var point := Vector3.ZERO
 ## A unit direction: the shot's aim, the hit's surface normal.
 var direction := Vector3.FORWARD
-## A small number whose meaning is the kind's: the surface hit, the cause of death, why a command
+## A small number whose meaning is the kind's: what was hit, the cause of death, why a command
 ## was refused.
 var code := 0
 ## A networked part's id (HIT, ENTITY, PICKUP).
 var id := 0
+## The weapon a SHOT left (the loadout slot + 1, 0 the empty hands); the health a HIT left
+## (`Health.wire_value()`, `NO_HEALTH` for none).
+var amount := 0
 ## The server tick an entity's new state starts at.
 var tick := 0
 var player_name := ""
@@ -65,20 +72,26 @@ static func left(player_slot: int) -> NetEvent:
 	return _of(Kind.LEFT, player_slot)
 
 
-static func shot(player_slot: int, command_seq: int, origin: Vector3, aim: Vector3) -> NetEvent:
+static func shot(
+	player_slot: int, command_seq: int, origin: Vector3, aim: Vector3, weapon := 1
+) -> NetEvent:
 	var event := _of(Kind.SHOT, player_slot)
 	event.seq = command_seq
+	event.amount = weapon
 	event.point = origin
 	event.direction = aim
 	return event
 
 
-static func hit(at: Vector3, normal: Vector3, surface: int, target_id := NO_ID) -> NetEvent:
+static func hit(
+	at: Vector3, normal: Vector3, surface: int, target_id := NO_ID, health_left := NO_HEALTH
+) -> NetEvent:
 	var event := _of(Kind.HIT, 0)
 	event.point = at
 	event.direction = normal
 	event.code = surface
 	event.id = target_id
+	event.amount = health_left
 	return event
 
 
