@@ -177,7 +177,7 @@ A clip with no clip to start from is solved, frame by frame, from a few targets,
 (`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
 transitions to the Universal Animation Library's crouch, on the Quaternius universal rig). Godot imports the file with
 `importer="animation_library"` beside the libraries
-([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
+([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
 
 - **Give each bone a world turn from its rest, not angles on its own axes.** A glTF rig's bone axes are arbitrary, so
   a limb is aimed by mapping two rest directions (along the bone, and the joint's hinge) to where they should point;

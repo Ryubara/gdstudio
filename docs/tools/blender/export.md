@@ -59,7 +59,7 @@ pointer imported as a model leaves a broken `.import` behind ([Build scripts](bu
   "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
   player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
-  ([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
+  ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
 
 ## Reading a glb back in Blender {#reimport}
 

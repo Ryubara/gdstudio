@@ -321,10 +321,12 @@ they exist.
   harness says it is. **Watch out for:** the coordinator copied its own model into briefs, but the godot-engineer runs
   another model, so an agent had to rewrite its unpushed commit messages and the others needed a correction mid-task.
   **Seen:** gdstudio #875, 2026-11-10 (fix: briefs say to name the model the agent actually runs as).
-- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, whatever
-  the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
-  captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
-  #880 and #886, 2026-11-10.
+- **Approach:** Add `studio/capture.md#attaching` to the `Read:` lines of every task with something to see, and
+  `studio/shell.md#scripted-edits` to every task that edits GDScript or Python by script, whatever the brief proposed.
+  **Watch out for:** `gds brief` ranks by the issue's words, and a feature issue rarely names how captures are
+  attached or how files are edited, so its agent met the image rules only as refusals and a failed `pr-rules`, and
+  the scripted-edit section ranked ninth for #1040, past the six a brief prints. **Seen:** gdstudio #880 and #886,
+  2026-11-10; gdstudio #1040, 2026-11-11.
 - **Approach:** Let a path the issue names pick a section only when that section's words are also close to the
   issue's (`MENTION_FLOOR` in `lessons.py`: a third of the best section's score). **Watch out for:** an issue's `Area`
   line repeats its label's folders (`game/core/`) and many sections cite a file as an example, so the one section that
