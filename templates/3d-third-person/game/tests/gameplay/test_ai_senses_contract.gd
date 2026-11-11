@@ -7,13 +7,15 @@ extends GdUnitTestSuite
 
 const AI_FOLDER := "res://gameplay/ai"
 ## The layer that may read the world: perception, relationships, the path and steering, the
-## director that measures the tiers, the body's animation throttle.
+## director that measures the tiers, the body's animation throttle, the spawner that places
+## characters in the level (it waits for a player and hands an ally its leader).
 const MAY_READ_THE_WORLD: Array[String] = [
 	"res://gameplay/ai/senses/",
 	"res://gameplay/ai/relations/",
 	"res://gameplay/ai/navigation/",
 	"res://gameplay/ai/ai_director.gd",
 	"res://gameplay/ai/ai_animation_throttle.gd",
+	"res://gameplay/ai/spawner/",
 ]
 ## What a brain script must not name: the tree's groups, the physics space, the player.
 const FORBIDDEN: Array[String] = [
@@ -37,6 +39,7 @@ func test_the_senses_defaults_are_pinned() -> void:
 		&"team": true,
 		&"target_groups": [&"player", &"ai_characters"],
 		&"care_up_to": AiRelations.Band.UNFRIENDLY,
+		&"startled_by": [],
 		&"sight_mask": PhysicsLayers.CAMERA_MASK,
 		&"eye": null,
 		&"target_height_share": 0.85,

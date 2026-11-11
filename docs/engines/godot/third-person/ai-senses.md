@@ -62,8 +62,10 @@ player. The base, the profile and the director are on [AI characters](ai.md).
 ## The inspector {#inspector}
 
 - **`AiSenses`**: Senses `sight`, `hearing`, `touch`, `team` (all on); Targets `target_groups` (`player`,
-  `ai_characters`), `care_up_to` Unfriendly, `sight_mask` World and Props, `eye` (empty: 1.55 m above the feet),
-  `target_height_share` 0.85; Awareness `far_share` 0.3, `side_share` 0.5, `still_share` 0.7, `crouch_share` 0.6,
+  `ai_characters`), `care_up_to` Unfriendly, `startled_by` (empty; `shot` on the ally and the civilian: noises of those
+  kinds from past `care_up_to` emit `heard` but are never remembered, [the characters](ai-characters.md#parts)),
+  `sight_mask` World and Props, `eye` (empty: 1.55 m above the feet), `target_height_share` 0.85; Awareness `far_share`
+  0.3, `side_share` 0.5, `still_share` 0.7, `crouch_share` 0.6,
   `prone_share` 0.35, `unfriendly_share` 0.5, `glimpse_seconds` 3 s, `heard_gain` 0.5, `ray_fresh_seconds` 0.3 s;
   Network `authority_only` (on); Debug `show_view` (off), `view`. The ranges, angle, times and memory are the
   profile's Senses group ([AI characters: the inspector](ai.md#inspector)); `share_radius` and `share_delay` 0.5 s its

@@ -101,3 +101,11 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   number `tests/world/test_jump_reach.gd` pins).
 - `tools/capture/sections_tour.tscn` saves stills of the two map sections from the player's camera and from above
   (`--debug-navigation` draws the navigation meshes); the header says how to run it.
+- `tools/soak/ai_section_soak.tscn` fights round the AI section with its whole population for `AI_SOAK_SECONDS` (180)
+  and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or an engine error (`SOAK {...}`); the
+  header says how to run it. `tools/soak/section_pilot.gd` is its autopilot.
+- `tools/capture/section_tour.tscn` films the AI section's population from the game camera (`SECTION_TOUR=fight`,
+  `cover`, `chase` or `civilians`).
+- `tools/bench/ai_section_bench.tscn` times the AI director's step with the AI section's population, the player
+  watching and fighting (`AI_SECTION_BENCH {...}`); `ai_section_bench.py` runs it in Chrome
+  (`gds template bench-web 3d-third-person ai_section_bench --run`).

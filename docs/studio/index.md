@@ -16,6 +16,7 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [Starting work](starting-work.md) | Issues start oldest first, through `gds issue start`; how the window works. |
 | [Landing a pull request](landing.md) | The landing order, the refresh before a merge, auto-merge and hand merges, merging `main` into a branch. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
+| [The hold](hooks-hold.md) | How `S-hold` stops a merge and the maintainer's switch for lifting it. |
 | [Writing a check or a guard](writing-checks.md) | What went wrong in hooks, `groundwork.py` and CI jobs, and how to write the next check. |
 | [The shell and scripted edits](shell.md) | Pipes, chains, line endings, escapes, paths and processes: the habits that keep a command from hiding its failure. |
 | [Pull request titles, bodies and images](pull-requests.md) | Writing a title, a description and its captures so that `pr-rules` passes the first time. |
