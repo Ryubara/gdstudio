@@ -3,7 +3,8 @@ extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
+## #1009, `assets/animation/prone/`), the library `prone`, and its own rifle clips (gdstudio #1082,
+## `assets/animation/rifle/`), the library `rifle`. The looping clips lose their `_Loop`
 ## suffix on import (`Idle_Loop` is `Idle`) and loop.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
@@ -14,6 +15,7 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_RIFLE := &"rifle"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"ual1/Idle"
@@ -59,8 +61,15 @@ const PRONE_IDLE := &"prone/Prone_Idle"
 const CRAWL := &"prone/Crawl_Fwd"
 const TO_PRONE := &"prone/Crouch_To_Prone"
 const TO_CROUCH := &"prone/Prone_To_Crouch"
+# The rifle, held in both hands: the template's own clips.
+const RIFLE_IDLE := &"rifle/Rifle_Idle"
+const RIFLE_AIM := &"rifle/Rifle_Aim_Neutral"
+const RIFLE_AIM_UP := &"rifle/Rifle_Aim_Up"
+const RIFLE_AIM_DOWN := &"rifle/Rifle_Aim_Down"
+const RIFLE_SHOOT := &"rifle/Rifle_Shoot"
+const RIFLE_RELOAD := &"rifle/Rifle_Reload"
 
-## Every clip of the three libraries, with its library.
+## Every clip of the four libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -152,4 +161,10 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"rifle/Rifle_Aim_Down",
+	&"rifle/Rifle_Aim_Neutral",
+	&"rifle/Rifle_Aim_Up",
+	&"rifle/Rifle_Idle",
+	&"rifle/Rifle_Reload",
+	&"rifle/Rifle_Shoot",
 ]

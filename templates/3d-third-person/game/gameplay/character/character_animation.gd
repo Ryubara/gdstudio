@@ -277,6 +277,7 @@ var _prone_look := ProneAnimation.new()
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
 var _shots := 0
+var _shot_added := false
 var _watched_hold: WeaponDef
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
@@ -643,6 +644,7 @@ func _drive_pistol(delta: float) -> void:
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
+	ShotLayer.drive(tree, _shot_added)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
 
@@ -858,7 +860,8 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_AIM, 1, _AIM_POSE)
 	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
 	root.connect_node(_SHOOT, 0, _AIM)
-	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
+	var added := hold != null and hold.shoot_additive and first_shot != &""
+	_shot_added = ShotLayer.wire(root, shoot, _SHOOT, _SHOOT_SCALE, _clip(first_shot), added)
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)

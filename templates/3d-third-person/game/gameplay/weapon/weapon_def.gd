@@ -146,6 +146,14 @@ enum Kind {
 	set(value):
 		shoot_clips = value
 		emit_changed()
+## On: a shot's clip is added to the pose under it as its difference from its own first frame (the
+## first frame is the aim pose it was made on), so the recoil rocks the body wherever the character
+## aims, up and down too. Off: the clip replaces the pose under it while it plays (a punch, the
+## pistol's shot).
+@export var shoot_additive := false:
+	set(value):
+		shoot_additive = value
+		emit_changed()
 ## The reload, played on the upper body and stretched to `reload_time`. Empty: none.
 @export var reload_clip: StringName = &"":
 	set(value):
