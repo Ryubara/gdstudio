@@ -104,8 +104,9 @@ def prepare(project: Path, scene: str) -> str:
     """Make the bench the game's main scene and let `tools/*` into the web pack; return the bench's `res://` path."""
     bench = scene_path(project, scene)
     godot_file, presets = project / "project.godot", project / "export_presets.cfg"
-    godot_file.write_text(set_main_scene(godot_file.read_text(encoding="utf-8"), bench), encoding="utf-8")
-    presets.write_text(open_tools(presets.read_text(encoding="utf-8")), encoding="utf-8")
+    # Bytes, not text mode: on Windows text mode writes every line ending as CRLF (studio/shell.md#line-endings).
+    godot_file.write_bytes(set_main_scene(godot_file.read_text(encoding="utf-8"), bench).encode("utf-8"))
+    presets.write_bytes(open_tools(presets.read_text(encoding="utf-8")).encode("utf-8"))
     return bench
 
 

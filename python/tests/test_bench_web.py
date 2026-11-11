@@ -100,6 +100,12 @@ def test_prepare_writes_both_files_and_returns_the_bench(project):
     assert "tools/*" not in (project / "export_presets.cfg").read_text(encoding="utf-8")
 
 
+def test_prepare_keeps_the_files_line_endings_lf(project):
+    bench_web.prepare(project, "nav_cost_bench")
+    for name in ("project.godot", "export_presets.cfg"):
+        assert b"\r\n" not in (project / name).read_bytes()
+
+
 def test_the_probe_is_the_py_beside_the_bench(project):
     assert bench_web.probe_of(project, BENCH) == project / "tools" / "bench" / "nav_cost_bench.py"
     assert bench_web.probe_of(project, "res://tools/bench/hold_cost.tscn") is None
