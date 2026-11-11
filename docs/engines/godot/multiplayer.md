@@ -305,7 +305,8 @@ and drawings carry no collision; a solid thing is built into the world both side
 collision, so the server's bodies must not block one another either (Deadnight #760: a body on layer 1 with a mask of 1
 and 2 stopped at a teammate for good; players now sit on a layer of their own). Test it with a real client and host:
 list every `CollisionObject3D` and colliding `CSGShape3D` under each side's viewport and compare them
-(`tests/net/test_world_parity.gd`).
+(`tests/net/test_world_parity.gd`). A solid thing that moves is put at the command's tick on both sides
+([networked map parts](third-person/net-world.md#net-world)).
 
 - **Approach:** Build a solid thing into the world both sides build and move it by the rules (server) and the frame
   (client); a view script adds no collision (a node it makes with `.new()` gets none), and a test joins a real client to
