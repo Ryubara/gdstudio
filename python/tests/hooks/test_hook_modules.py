@@ -14,7 +14,7 @@ PROBE = """
 import sys
 sys.path.insert(0, sys.argv[1])
 import guards
-for name in ("pr", "lessons", "issues"):
+for name in ("pr", "lessons", "issues", "hold_switch"):
     if guards.load_kit_module(name) is None:
         raise SystemExit(f"gds_tools/{name}.py does not load with the standard library alone")
 print("loaded", " ".join(sorted(m for m in sys.modules if m.startswith("_gds_"))))
@@ -26,7 +26,13 @@ def test_the_kit_modules_the_hooks_load_need_only_the_standard_library():
         [sys.executable, "-I", "-S", "-c", PROBE, str(HOOKS)], capture_output=True, text=True, timeout=60
     )
     assert done.returncode == 0, done.stdout + done.stderr
-    assert done.stdout.split() == ["loaded", "_gds_issues_for_hooks", "_gds_lessons_for_hooks", "_gds_pr_for_hooks"]
+    assert done.stdout.split() == [
+        "loaded",
+        "_gds_hold_switch_for_hooks",
+        "_gds_issues_for_hooks",
+        "_gds_lessons_for_hooks",
+        "_gds_pr_for_hooks",
+    ]
 
 
 def test_one_loader_serves_the_three_kit_modules():

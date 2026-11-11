@@ -18,7 +18,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
-| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
+| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing the hold switch ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator while the maintainer's switch is on |
 | Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Starting work](starting-work.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
@@ -39,7 +39,7 @@ The guards that read a shell line split it into simple commands (`&&`, `||`, `;`
 Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
 included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
 assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
-`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
+`guards/shell.py`; #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
 folder.
 
 ## Pull request bodies before they are sent {#pr-body}
@@ -88,14 +88,22 @@ merges it. The rule is `merge.hold` in `.github/conventions.yml`. A failed `hold
 stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-failing`.
 
 - **Set it** with `gds pr hold <owner/repo>#N`: it adds the label and returns once the check is red, because until then
-  the green run before it still counts (on a real pull request: 3 s to pending, 7 to 10 s to red). Better still, open
-  the pull request held: `gh pr create --label S-hold`.
-- **Take it off** only on the maintainer's word, and only by hand on the pull request's page. The check re-runs with no
-  new commit. Auto-merge that is on stays on through the hold, so the pull request merges the moment the label comes
-  off.
+  the green run before it still counts (on a real pull request: 3 s to pending, 7 to 10 s to red). Or open it held:
+  `gh pr create --label S-hold`.
+- **Take it off** only on the maintainer's word: by hand on the pull request's page, or by the coordinator while the
+  switch below is on. The check re-runs with no new commit. Auto-merge that is on stays on through the hold, so the
+  pull request merges the moment the label comes off.
 - **The guard** in `guards/merges.py` gives a session the reason, and it is the only thing that stops a session taking the
   label off: every agent uses the maintainer's token, so GitHub cannot tell them apart. It reads shell commands, so it
   does not see a script that calls the API itself.
+- **The switch** delegates lifting until the maintainer says otherwise: in the workspace's untracked
+  `gdstudio.local.toml`, a `[hold]` table with `coordinator_may_lift` set to the boolean `true` (optional `since`,
+  `by`). The maintainer turns it on or off by hand in an editor; missing, `false` or unreadable is off. On, the
+  coordinator (no `agent_type` or `agent_id`) may run `gh pr|issue edit --remove-label S-hold`, logged to
+  `scratch/hold-lifts.log`; task agents, the API, `gh label` and merges stay refused. `gds doctor` says whether it is
+  on; `gds workspace init` keeps the table. No session turns it on: Edit or Write of the file, a shell command that
+  writes it (a redirect, a copy onto it or into the workspace, any program naming it but a reader), and any shell line
+  or new file text that sets the key are refused.
 - **A pull request opened before the check was required** has no run on its head and stays pending: run
   `gh workflow run hold-sweep.yml` once. It reports the check through the Checks API and does not touch the pull
   request. A new game runs it once when its ruleset starts requiring `hold`.
@@ -474,18 +482,19 @@ Standard library only: the hooks start under `uv run --no-project`.
 | `issues.py` | issue order and the labels of progress ([below](#issues)) |
 | `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
 | `commits.py` | commits and pushes |
-| `merges.py` | `gh pr merge`, manual paths and the hold ([above](#hold)) |
+| `merges.py` | `gh pr merge`, manual paths, the hold and its switch ([above](#hold)) |
 | `behind_base.py` | a merge only of a head that holds its base's tip |
 | `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
 | `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
-| `protected.py` | secrets printed, protected and generated files edited |
+| `protected.py` | secrets printed, protected and generated files edited, the hold switch |
 | `proof.py`, `session.py`, `mains.py`, `disk.py`, `sweep.py`, `learning.py`, `docs.py`, `stall.py`, `idle.py` | the sections of the same names below |
 
 A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
 of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
 when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
-when it runs `git` or `gh`. The three kit modules the hooks load
-by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`) go through `load_kit_module(name)`, so they must use the
+when it runs `git` or `gh`. The kit modules the hooks load
+by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_switch.py`) go through `load_kit_module(name)`, so
+they must use the
 standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
 
 - **Approach:** Replace a name of the guards in a test with `hook_support.patch(monkeypatch, name, value)`

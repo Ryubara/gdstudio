@@ -1,16 +1,20 @@
 """Merges and holds: no `--admin`, no auto-merge of a manual path, and nothing merges or unlabels a pull request a
-maintainer holds (docs/studio/hooks.md#hold)."""
+maintainer holds (docs/studio/hooks.md#hold), unless the maintainer's switch lets the coordinator take the label off;
+protected.py keeps sessions from turning that switch on."""
 
 from __future__ import annotations
 
 import re
 import subprocess
+import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 from urllib.parse import unquote
 
 from .issues import HOLD
 from .shell import flag_values
-from .workspace import git
+from .workspace import git, kit_root, load_kit_module, workspace_of
 
 
 def manual_paths(repo: Path) -> list[str]:
@@ -146,11 +150,12 @@ def check_hold_api(words: list[str], cwd: Path) -> list[str]:
     return reasons
 
 
-def check_hold(words: list[str], cwd: Path) -> list[str]:
+def check_hold(words: list[str], cwd: Path, lift: Callable[[str, str | None], None] | None = None) -> list[str]:
     """The hook's half of the hold (docs/studio/hooks.md#hold): no merge command on a pull request carrying the label,
-    and no
-    removal of the label by a session. The label is what GitHub enforces; this says why, and it is what stops a session
-    taking the label off, since a token cannot tell an agent from the maintainer."""
+    and no removal of the label by a session. The label is what GitHub enforces; this says why, and it is what stops a
+    session taking the label off, since a token cannot tell an agent from the maintainer. `lift` is given only to the
+    coordinator while the maintainer's switch is on: `gh pr|issue edit --remove-label` then passes and `lift` logs it;
+    every other way of taking the label off stays refused."""
     if len(words) < 3:
         return []
     area, verb = words[1], words[2]
@@ -161,7 +166,12 @@ def check_hold(words: list[str], cwd: Path) -> list[str]:
     if area in ("pr", "issue") and verb == "edit":
         removed = [name.strip() for value in flag_values(words, ("--remove-label",)) for name in value.split(",")]
         if HOLD in removed:
-            return [f"`{HOLD}` is taken off only by the maintainer, on the pull request's page: report it instead"]
+            if lift is not None:
+                lift(*edit_target(words))
+                return []
+            return [
+                f"`{HOLD}` is taken off only by the maintainer, on the pull request's page: report it instead{_OFF}"
+            ]
     if area == "pr" and verb == "merge" and "--disable-auto" not in words:
         target, repo = merge_target(words)
         if held(target, repo, cwd):
@@ -177,3 +187,56 @@ def merge_target(words: list[str]) -> tuple[str, str | None]:
     ]
     named = flag_values(words, ("-R", "--repo"))
     return (positional[0] if positional else ""), (named[0] if named else None)
+
+
+# --- the maintainer's switch (docs/studio/hooks.md#hold) ---
+
+_OFF = (
+    " (the maintainer's hold switch, `[hold]` in gdstudio.local.toml, lets the coordinator alone take it off, and only "
+    "while it is on: `gds doctor` says which)"
+)
+_EDIT_VALUE_FLAGS = (*_VALUE_FLAGS, "--add-label", "--remove-label", "--title", "--milestone", "--add-assignee")
+_EDIT_VALUE_FLAGS += ("--remove-assignee", "--add-reviewer", "--remove-reviewer", "--add-project", "--remove-project")
+_EDIT_VALUE_FLAGS += ("-B", "--base")
+
+
+def switch_module(workspace: Path | None) -> Any:
+    """`gds_tools/hold_switch.py` of the workspace's kit; None when it cannot be loaded (the switch then reads off)."""
+    return load_kit_module("hold_switch", kit_root(workspace), cached=True)
+
+
+def edit_target(words: list[str]) -> tuple[str, str | None]:
+    """The pull request or issue a `gh pr|issue edit` names ('' for the current branch's) and its `-R` repository."""
+    positional = [
+        word
+        for i, word in enumerate(words[3:], 3)
+        if not word.startswith("-") and words[i - 1] not in _EDIT_VALUE_FLAGS
+    ]
+    named = flag_values(words, ("-R", "--repo"))
+    return (positional[0] if positional else ""), (named[0] if named else None)
+
+
+def coordinator_lift(payload: dict[str, Any]) -> Callable[[str, str | None], None] | None:
+    """What `check_hold` logs a lift with, when this session may lift: the coordinator (no `agent_type` and no
+    `agent_id`: a task agent's calls carry both, a session started as an agent its type) while the maintainer's switch
+    is on. None otherwise, and `check_hold` refuses as it always did."""
+    if payload.get("agent_type") or payload.get("agent_id"):
+        return None
+    workspace = workspace_of(Path(payload.get("cwd") or "."))
+    module = switch_module(workspace) if workspace else None
+    if workspace is None or module is None or not module.read(workspace).on:
+        return None
+
+    def log(target: str, repo: str | None) -> None:
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        name = f"{repo}#{target}" if repo and target else target or "the current branch's pull request"
+        line = f"{stamp}  {name}  coordinator session {payload.get('session_id') or '?'}  took {HOLD} off\n"
+        try:
+            path = workspace / module.LOG
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as out:
+                out.write(line)
+        except OSError:
+            pass  # the log is the record, not the rule: a full disk does not stop a lift the maintainer allowed
+
+    return log
