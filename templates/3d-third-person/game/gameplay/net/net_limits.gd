@@ -24,8 +24,12 @@ const PING_RATE := 2
 const MAX_EVENTS := 32
 ## Networked world parts (doors, platforms, pickups, targets, props) one map may have.
 const MAX_ENTITIES := 128
-## The longest state one world part writes (an `entity` event, a WELCOME row), bytes.
-const MAX_ENTITY_STATE := 8
+## The longest state one world part writes (an `entity` event, a WELCOME row, a TICK's streamed
+## row), bytes: a pushed prop's is 11 (`PropState`).
+const MAX_ENTITY_STATE := 12
+## Streamed parts (moving props) one TICK carries; more take turns, each in every other TICK or so.
+## 8 keeps ten seconds of the longest TICKs inside `BUFFER_SIZE`.
+const MAX_STREAMED_PARTS := 8
 ## Bytes a socket buffers each way, the one size the transport reads (`WebSocketLink` inbound,
 ## `WsListener` outbound): 256 KB holds a 5 s frozen tab of a 35 KB/s stream (175 KB) and ten
 ## seconds of the longest TICKs at the snapshot rate; the engine's 64 KB lost packets there.

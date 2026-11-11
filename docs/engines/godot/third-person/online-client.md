@@ -109,10 +109,10 @@ Times are microseconds of a physics step: `NetClient` includes the body's own st
 
 The worst error is the 5 s freeze (the server repeated the last command for 30 steps, then stood); each freeze is one
 snap and seven skipped ticks; no puppet starved in any run, and the server logged no `kicked` line. In the suites: the
-lockstep route ends 0.000000 m off (`test_net_client_prediction.gd`); the closed loop in plain numbers ends at most
-3.1 mm off at 50 to 400 ms with two pushes (`test_net_reconciler_loop.gd`); puppets drawn 100 ms behind over a link of
-100 ms each way never starved in 240 steps; the TICK for eight players is 107 bytes (`test_net_client_link.gd`); 153
-solid things are in both worlds at the same place (`test_world_parity.gd`).
+lockstep route ends 0.000000 m off (`test_net_client_prediction.gd`); the closed loop in plain numbers ends at most 3.1
+mm off at 50 to 400 ms with two pushes (`test_net_reconciler_loop.gd`); puppets drawn 100 ms behind over a link of 100
+ms each way never starved in 240 steps; the TICK for eight players is 107 bytes (108 since #1073, less its moving props;
+`test_net_client_link.gd`); 153 solid things are in both worlds at the same place (`test_world_parity.gd`).
 
 ## The bad-network gate {#bad-network-gate}
 
