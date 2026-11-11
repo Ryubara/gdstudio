@@ -4,12 +4,26 @@
 # the game runs again, the d-pad and the arrows reach every slot, a stack is picked up and put down
 # with keys and with mouse clicks, Drop leaves a pickup in front of the player and refuses a coin,
 # the player's option keeps the game running with the player's own keys off, and the preview draws
-# the live model and follows a mesh dropped into the model slot.
+# the live model and follows a mesh dropped into the model slot. The screen keeps every part's
+# rectangle while the pointer goes over every slot at desktop and phone sizes, and the details area
+# holds the longest text the template ships.
 extends GdUnitTestSuite
 
 const HOST_SCENE := preload("res://ui/menus/screen_host.tscn")
 const INVENTORY := preload("res://ui/inventory/inventory_screen.tscn")
 const BAG_BUTTON := preload("res://ui/menus/pause_button.tscn")
+# The parts the player sees around the details text: none may move while the hovered slot changes.
+const STEADY_PARTS: Array[NodePath] = [
+	^"Fit/Margin/Center/Card",
+	^"%Title",
+	^"%Preview",
+	^"%CloseButton",
+	^"%Weapons",
+	^"%Scroll",
+	^"%DetailName",
+	^"%DetailText",
+	^"%DropButton",
+]
 
 var _arena: PlayArena
 var _player: Player
@@ -308,56 +322,6 @@ func test_a_finger_picks_a_stack_up_and_puts_it_down() -> void:
 	assert_bool(_bag().is_empty(0)).is_true()
 
 
-func test_the_hotbar_row_shows_the_players_hotbar_with_the_bandage_on_3() -> void:
-	var screen := await _open()
-	var cells := screen.hotbar_cells()
-	assert_int(cells.size()).is_equal(Hotbar.of(_player).place_count)
-	assert_bool(cells[0].filled).is_true()
-	assert_str(cells[0].count_text()).is_equal("3")
-	assert_bool(cells[1].filled).is_false()
-	assert_str(cells[1].tooltip_text).is_empty()
-
-
-func test_a_bag_slot_dragged_onto_a_hotbar_place_is_assigned_there() -> void:
-	var coin := _bag().find_in_catalog(&"coin")
-	_bag().add(coin, 4)
-	var coin_slot := _bag().find(coin)
-	var screen := await _open()
-	var from := screen.item_cells()[coin_slot]
-	var onto := screen.hotbar_cells()[2]
-	assert_bool(onto._can_drop_data(Vector2.ZERO, from)).is_true()
-	# A weapon or an empty bag slot is not taken.
-	assert_bool(onto._can_drop_data(Vector2.ZERO, screen.weapon_cells()[0])).is_false()
-	assert_bool(onto._can_drop_data(Vector2.ZERO, screen.item_cells()[15])).is_false()
-	onto._drop_data(Vector2.ZERO, from)
-	assert_object(Hotbar.of(_player).item_at(2)).is_same(coin)
-	assert_str(screen.hotbar_cells()[2].count_text()).is_equal("4")
-	# The bag is untouched.
-	assert_int(_bag().count_at(coin_slot)).is_equal(4)
-
-
-func test_a_hotbar_key_on_a_bag_slot_assigns_it_and_a_press_takes_it_off() -> void:
-	var screen := await _open()
-	var bar := Hotbar.of(_player)
-	await _tap_key(KEY_DOWN)
-	await _tap_key(KEY_DOWN)
-	assert_object(_focus()).is_same(screen.item_cells()[0])
-	await _tap_key(KEY_5)
-	assert_object(bar.item_at(2)).is_same(_bag().item_at(0))
-	assert_object(bar.item_at(0)).is_null()
-	assert_bool(_host.is_open()).is_true()
-	# The game behind it used nothing.
-	assert_int(_bag().count_at(0)).is_equal(3)
-	await _click(screen.hotbar_cells()[2])
-	assert_object(bar.item_at(2)).is_null()
-	# Picked up, then pressed on a place, it goes there.
-	await _click(screen.item_cells()[0])
-	assert_int(screen.picked()).is_equal(0)
-	await _click(screen.hotbar_cells()[1])
-	assert_object(bar.item_at(1)).is_same(_bag().item_at(0))
-	assert_int(screen.picked()).is_equal(-1)
-
-
 func test_drop_leaves_a_pickup_in_front_of_the_player_and_a_coin_cannot_be_dropped() -> void:
 	_player.collect(&"coin", 4)
 	assert_int(_bag().count_of_id(&"coin")).is_equal(4)
@@ -476,3 +440,98 @@ func test_the_bag_button_opens_the_inventory_on_a_touch_screen() -> void:
 	await _settle()
 	assert_object(UIRouter.top()).is_instanceof(InventoryScreen)
 	button.free()
+
+
+func _rects(screen: InventoryScreen) -> Dictionary:
+	var rects := {}
+	for path in STEADY_PARTS:
+		var part := screen.get_node(path) as Control
+		var xform := part.get_global_transform_with_canvas()
+		rects[path] = Rect2(xform.origin, part.size * xform.get_scale())
+	return rects
+
+
+func _point(at: Vector2) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = at
+	motion.global_position = at
+	get_viewport().push_input(motion, true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+# Moves the pointer over every weapon and bag slot (a slot the bag's scroll hides is focused first,
+# which scrolls it into view), then off the slots, and fails at the first part that moved.
+func _sweep_slots(screen: InventoryScreen) -> void:
+	var scroll := screen.get_node(^"%Scroll") as Control
+	var detail := screen.get_node(^"%DetailText") as Label
+	var cells: Array[InventoryCell] = screen.weapon_cells() + screen.item_cells()
+	await _point(Vector2.ONE)
+	var first := _rects(screen)
+	var texts := {}
+	for cell in cells:
+		if not scroll.get_global_rect().encloses(cell.get_global_rect()):
+			cell.grab_focus()
+			await get_tree().process_frame
+			await get_tree().process_frame
+		await _point(cell.get_global_transform_with_canvas() * (cell.size / 2.0))
+		texts[detail.text] = true
+		var now := _rects(screen)
+		for path: NodePath in first:
+			(
+				assert_that(now[path])
+				. override_failure_message(
+					"%s moved from %s to %s over %s" % [path, first[path], now[path], cell.name]
+				)
+				. is_equal(first[path])
+			)
+	await _point(Vector2.ONE)
+	assert_that(_rects(screen)).is_equal(first)
+	# The sweep showed short and long texts: a weapon's, a coin's, a bandage's, the empty bag's.
+	assert_int(texts.size()).is_greater_equal(4)
+
+
+func test_no_part_moves_while_the_pointer_goes_over_every_slot() -> void:
+	_player.collect(&"coin", 7)
+	var screen := await _open()
+	await _sweep_slots(screen)
+
+
+func test_no_part_moves_over_every_slot_under_the_phone_layout() -> void:
+	# An 844 x 390 phone page at a pixel ratio of 2, drawn with the phone factor.
+	get_window().size = Vector2i(1688, 780)
+	_player.collect(&"coin", 7)
+	var screen := await _open()
+	var fit := screen.get_node(^"Fit") as MenuFit
+	fit.force = 2
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# The card fits the phone's screen (the bag scrolls) before and after the sweep.
+	var xform := fit.get_global_transform_with_canvas()
+	var screen_rect := Rect2(xform.origin, fit.size * xform.get_scale()).grow(1.0)
+	assert_bool(screen_rect.encloses(_rects(screen)[^"Fit/Margin/Center/Card"])).is_true()
+	await _sweep_slots(screen)
+	assert_bool(screen_rect.encloses(_rects(screen)[^"Fit/Margin/Center/Card"])).is_true()
+
+
+func test_the_details_area_holds_the_longest_text_the_template_ships() -> void:
+	var screen := await _open()
+	var label := screen.get_node(^"%DetailText") as LinesLabel
+	var texts: Array[String] = [
+		"Choose a weapon or an item.",
+		"Press to put it here.",
+		"Picked up: press another slot to put it there.",
+	]
+	for item: ItemDef in _bag().catalog:
+		texts.append(item.description)
+	# A weapon's line at the widest counts a magazine shows.
+	texts.append("%d in the magazine, %d more. Press to take it in hand." % [999, 999])
+	var height := label.size.y
+	assert_float(height).is_equal(label.height_of(label.lines))
+	for text in texts:
+		label.text = text
+		await get_tree().process_frame
+		await get_tree().process_frame
+		assert_bool(label.fits()).override_failure_message("cut: %s" % text).is_true()
+		assert_float(label.size.y).is_equal(height)

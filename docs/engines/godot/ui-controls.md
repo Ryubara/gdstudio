@@ -142,9 +142,10 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
 
 - **Bound the area, scroll the rest.** `UIFitScroll` (`gds_ui`) is a `UIScroll` that asks for its content's height and
   no more than the screen leaves (`limit`, `margin`, `card`, and `steady` to keep a height between short pages); the
-  title and the buttons around it stay on the screen. A tab's column goes in a scroll area the size of its panel
-  (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height its tab leaves
-  (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
+  title and the buttons around it stay on the screen. It fits again when the viewport, its content or its `limit`
+  changes size (a `MenuFit` turned to the phone factor resizes the limit only). A tab's column goes in a scroll area
+  the size of its panel (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height
+  its tab leaves (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
 - **A scroll area takes width too.** The theme gives every `ScrollContainer` `hover_room` at each side and the bar a
   track: content that was exactly the panel's width is 54 units wider than its panel once it sits in one. Extend the
   area past the panel by that room (`offset_left`, `offset_right`) or build the rows narrower by `UIScroll.side_room`;
@@ -173,6 +174,11 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   centred cards that grew with their content and nothing bounded or scrolled them (the Loadout ran 47 units under the
   footer), and layout tests built screens outside the theme, so text measured too small. **Seen:** Deadnight #980,
   2026-11-04 (fix: the sweep).
+- **Approach:** Put a row added to a card that is bounded by a `UIFitScroll` inside the scroll's content, unless the card
+  has room for it at the phone factor, and open the card at 844 x 390 with the phone layout before the push. **Watch
+  out for:** the inventory's hotbar row went above the bag's scroll, which already sat at its `least` on a phone, so the
+  card grew 128 units past the screen; only a test from another pull request merged in later caught it. **Seen:**
+  gdstudio #1148, 2026-11-11 (fix: the hotbar and bag captions moved into the scroll's `Lists` column).
 
 ## Touch controls {#touch-controls}
 

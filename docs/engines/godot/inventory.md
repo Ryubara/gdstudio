@@ -42,7 +42,7 @@ In the inspector: `Inventory` Slots (`slot_count` 16, `start_items`), Pickups (`
 
 | Part | Where (`templates/3d-third-person/game/`) | What it does |
 | --- | --- | --- |
-| Screen | `ui/inventory/inventory_screen.tscn`, `.gd` (`InventoryScreen`, a `UIScreen`) | The live model on the left; the weapons row, the bag's grid and a detail line with Drop on the right; Close under the model. |
+| Screen | `ui/inventory/inventory_screen.tscn`, `.gd` (`InventoryScreen`, a `UIScreen`) | The live model on the left; the weapons row, the bag's grid and the details with Drop on the right; Close under the model. The details text is a `LinesLabel` (`ui/inventory/lines_label.gd`) that always takes `lines` lines of its theme's font, so the card keeps its size and place whatever slot is shown. |
 | Slot | `ui/inventory/inventory_cell.tscn`, `.gd` (`InventoryCell`, a `Button`) | One focus stop: `Icon`, `Title` (the name when there is no icon), `Count`, the `IN HAND` `Badge`, the `HeldFrame` of a picked-up stack; its styles are in the scene. |
 | Preview | `ui/inventory/model_preview.tscn`, `.gd` (`ModelPreview`) | A `SubViewport` of the game's own world whose `Camera` sees one render layer, added to the model's meshes while it shows. |
 | Weapon request | `gameplay/weapon/weapon_chooser.gd`, `PlayerInput.request_weapon()` | A chosen weapon reaches the hands by the weapon presses a player makes. |
@@ -60,9 +60,11 @@ In the inspector: `Inventory` Slots (`slot_count` 16, `start_items`), Pickups (`
 - **Items:** press a slot to pick its stack up (the `HeldFrame`), press another to put it there, the same one or Esc
   (B) to put it down; a mouse or a finger can drag one slot onto another (`InventoryCell._drop_data`). Drop drops the
   picked stack, or else the last slot the pointer or the focus showed; it is off for an item that may not be dropped.
-- **Hotbar row.** Under the weapons, one cell a place of the player's `Hotbar` ([below](#hotbar)): a bag cell dragged
-  onto a place, a picked-up stack pressed onto one, or a hotbar key (3 to 6) pressed on a shown bag cell puts that item
-  there (`assign_to_hotbar`); pressing a filled place takes it off. An empty place shows its key.
+- **Hotbar row.** Under the weapons, at the top of the bag's scroll (so on a phone held sideways, where the scroll keeps
+  about one row, the card still fits the screen and the bag scrolls under it), one cell a place of the player's `Hotbar`
+  ([below](#hotbar)): a bag cell dragged onto a place, a picked-up stack pressed onto one, or a hotbar key (3 to 6)
+  pressed on a shown bag cell puts that item there (`assign_to_hotbar`); pressing a filled place takes it off. An empty
+  place shows its key.
 - **Focus by hand.** Every cell's four neighbours are set in `_link_focus()`: Down from a weapon goes to the hotbar
   place under it, Down from the hotbar to the bag's column under it, Down from the last row to Drop, Left of the first
   column to Close, a side with nothing beyond keeps the focus. The weapons row is shorter than the grid, so the engine's
@@ -72,19 +74,23 @@ In the inspector: `Inventory` Slots (`slot_count` 16, `start_items`), Pickups (`
   game. While the screen is up the player's `input_enabled` is off (`stop_player_input`), so a click on a slot fires
   nothing and the arrows walk the focus, not the character; a weapon request goes out all the same.
 - **Phone:** the screen's `MenuFit` draws it 1.75 times bigger (a slot is about 65 points high on an 844 x 390 phone)
-  and the grid is a `UIFitScroll` that keeps the card on the screen (one and a half rows show, the focus scrolls it).
+  and the grid is a `UIFitScroll` that keeps the card on the screen (about one row shows beside the four lines of
+  details, the focus scrolls it).
 
-In the inspector: `InventoryScreen` Nodes (`player`, empty: the group `player`; `cell_scene`), Pausing
-(`pause_setting`, `pauses_by_default` on, `stop_player_input` on); `ModelPreview` Nodes (`model_slot`, set from the
-player), View (`preview_layer` 20, `distance` 3.2 m, `camera_height` 1.15 m, `look_height` 0.95 m, `field_of_view` 34,
-`start_angle` -25), Turning (`drag_turn` 0.45 deg/px, `stick_turn` 160 deg/s), Quality (`max_height` 1440 px, `msaa`
-4x); `PauseButton.screen` (the Bag button's is the inventory). The look of a slot is `inventory_cell.tscn`, of the
-screen `inventory_screen.tscn`, of the preview's light and background `model_preview.tscn`.
+In the inspector: `InventoryScreen` Nodes (`player`, empty: the group `player`; `cell_scene`), Pausing (`pause_setting`,
+`pauses_by_default` on, `stop_player_input` on); `DetailText` (a `LinesLabel`) `lines` 4, the longest shipped text (a
+coin's or a bandage's description); `ModelPreview` Nodes (`model_slot`, set from the player), View (`preview_layer` 20,
+`distance` 3.2 m, `camera_height` 1.15 m, `look_height` 0.95 m, `field_of_view` 34, `start_angle` -25), Turning
+(`drag_turn` 0.45 deg/px, `stick_turn` 160 deg/s), Quality (`max_height` 1440 px, `msaa` 4x); `PauseButton.screen` (the
+Bag button's is the inventory). The look of a slot is `inventory_cell.tscn`, of the screen `inventory_screen.tscn`, of
+the preview's light and background `model_preview.tscn`.
 
-Tests: `tests/ui/test_inventory_screen.gd` (16 cases: keys, pad, mouse and the Bag button through the real input path,
-the hotbar row's drag, key and press),
-`tests/gameplay/test_weapon_request.gd` (5), and the host's `test_screen_host_alone.gd` for `pauses_game()`. Captures:
-`tools/capture/inventory_tour.tscn` (`--shots=<folder>` for a phone-sized window).
+Tests: `tests/ui/test_inventory_screen.gd` (keys, pad, mouse and the Bag button through the real input path; pointer
+motion over every slot at desktop and phone sizes moves no part by a pixel; every shipped text fits the details),
+`tests/ui/test_inventory_hotbar.gd` (3: the hotbar row's drag, key and press), `tests/gameplay/test_weapon_request.gd`
+(5), and the host's `test_screen_host_alone.gd` for `pauses_game()`. Captures: `tools/capture/inventory_tour.tscn`
+(`--shots=<folder>` for a phone-sized window) and `tools/capture/inventory_hover_tour.tscn` (a drawn pointer over each
+kind of slot; `--phone` for the phone layout).
 
 Cost: nothing while closed (the screen is made when it opens). Open, the preview draws the model's meshes once more
 into a viewport the size of its control at the window's pixels, and the map is not drawn there: 380 x 613 px on a
@@ -126,7 +132,7 @@ beside it; `user`, empty: the parent), Network (`authoritative` on); `ItemDef` U
 `HealEffect` (`amount` 25, `only_when_hurt` on). The HUD's rows are on
 [The camera, the map and the screen](third-person/camera-and-ui.md#hud). Tests: `godot/tests/gds_game/test_hotbar_alone.gd`
 (10 cases, alone), the template's `tests/ui/test_hud_slots.gd` (12: keys, touch, switching, the lit slot, an online
-client) and `tests/ui/test_inventory_screen.gd` (assigning).
+client) and `tests/ui/test_inventory_hotbar.gd` (assigning).
 
 ## A live model in a menu {#live-model}
 
