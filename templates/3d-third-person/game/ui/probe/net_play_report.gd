@@ -26,6 +26,8 @@ static func of(
 		"size_snaps_m": millimetres(reconciler.size_snaps),
 		"lost": reconciler.lost,
 		"worst_error_m": snappedf(reconciler.worst_error, 0.001),
+		"worst_stall_error_m": snappedf(reconciler.worst_stall_error, 0.001),
+		"most_stacked": reconciler.most_stacked,
 		"corrected_m": snappedf(reconciler.corrected, 0.001),
 		"gap_m": snappedf(gap(client), 0.0001),
 		"stalls": client.stall_guard.resyncs,

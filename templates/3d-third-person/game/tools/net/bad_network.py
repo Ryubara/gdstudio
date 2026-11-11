@@ -13,12 +13,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # A freeze of the client's own thread (0.5, 2 and 5 s) leaves the body at most this far from the server's
-# (issue #908; Deadnight's live server read 5.4 to 5.6 m at 5 s): the 5 s freeze reads 2.8 m here.
+# (issue #908; Deadnight's live server read 5.4 to 5.6 m at 5 s): the server walks its body on through the silence
+# (`NetServer.command_ticks`, 30 steps of the last command: 3.25 m at a sprint), and the native 0.5 s freeze during a
+# sprint reads 2.8 to 3.0 m. Judged per stall (`worst_stall_error_m`): a page that hitches again before the answer
+# after a hitch comes back adds the server's walk-ons into one answer (four stalls in its first second read 7.1 m,
+# 1.8 m a stall; kit issue #1070), and a body is lost only past 6 m a stall (`Reconciler.resync`).
 WORST_ERROR_M = 6.0
-# The browser page's freezes read 4.2 to 5.9 m (its own hitches past 0.25 s stack on the planned ones; why it reads
-# twice the native error is kit issue #1070), so a page may have one answer past 6 m, and none past 8 m.
-WORST_ERROR_M_PAGE = 8.0
-LOST_PAGE = 1
 # The join is one snap (the first answer after the WELCOME's teleport is taken whole) and so is each stall of the
 # client's own thread the stall guard saw (a resync: the planned freezes, and in a software-drawn browser page its
 # own hitches over 0.25 s): a snap more is an error past 2.5 m, a loop that does not settle.
@@ -78,7 +78,6 @@ class Network:
     stalls_up: int = 0
     stalls_down: int = 0
     real: bool = False
-    page: bool = False
 
     def starved_allowed(self, steps: int, puppets: int, client_stalls: int = 0) -> int:
         """Puppet-steps that may starve (`RemotePlayers.starved` counts each puppet of a step)."""
@@ -124,8 +123,11 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
         verdict.check("the client was seated", False, report)
         return verdict
     verdict.check("the client was seated", True, {"slot": report["slot"], "rtt_ms": report.get("rtt_ms")})
-    lost = LOST_PAGE if network.page else LOST
-    verdict.check(f"at most {lost} answer(s) more than 6 m off", report["lost"] <= lost, report["lost"])
+    verdict.check(
+        f"at most {LOST} answer(s) more than 6 m a stall off",
+        report["lost"] <= LOST,
+        {"lost": report["lost"], "most_stacked": report.get("most_stacked", 0)},
+    )
     verdict.check(
         f"the client saw its {network.freezes} freezes",
         report["stalls"] >= network.freezes,
@@ -143,8 +145,17 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
             "bursts_m": bursts,
         },
     )
-    worst = (WORST_ERROR_M_PAGE if network.page else WORST_ERROR_M) if network.freezes else STALL_WORST_ERROR_M
-    verdict.check(f"worst error under {worst} m", report["worst_error_m"] < worst, report["worst_error_m"])
+    worst = WORST_ERROR_M if network.freezes else STALL_WORST_ERROR_M
+    stall_error = report.get("worst_stall_error_m", report["worst_error_m"])
+    verdict.check(
+        f"worst error under {worst} m a stall",
+        stall_error < worst,
+        {
+            "worst_stall_error_m": stall_error,
+            "worst_error_m": report["worst_error_m"],
+            "most_stacked": report.get("most_stacked", 0),
+        },
+    )
     gap = report.get("end_gap_m", report.get("gap_m", -1.0))
     verdict.check(f"settled under {END_GAP_M} m", 0.0 <= gap < END_GAP_M, gap)
     allowed = network.corrected_allowed(report["stalls"])

@@ -1,0 +1,171 @@
+"""The online probe: the web build's online game joins a game server in headless Chromium, two pages at once.
+
+Starts the game server (`tools/net/gate_server.gd`, a free port; `--other-version`: a server of the next protocol
+version, `tools/net/other_version_server.gd`), a TCP relay with `--delay-ms` each way (`tools/net/relay.py`; the
+browser's own throttling does not touch WebSockets), optional bots for more puppets (`tools/net/server_bot.gd`),
+serves the exported game (`build/web`) and opens `--pages` pages with `?url=ws://<relay>&bot=...&onlineprobe`: the
+menu goes straight to the online game (`OnlineMain`), whose `PlayerBot` plays through the player's own input (the
+first page walks the route to the door, the others watch and shoot), and whose `OnlineProbe` writes what the client
+measured to `window.gdonline`. After `--seconds` of play it reads every page's report and checks: every page seated,
+every page sees every player, a round trip read, no body lost, the body within a metre of the server's point, no
+`Buffer payload full` or other console error, and no ERROR or kick in the server's log. The frame time and the
+puppets' cost are recorded for the docs (`--bots` 0, 3 and 6 with one page give 1, 4 and 7 puppets... with two pages,
+one more).
+
+    uv run --project <kit>/python gds quiet -- \\
+        uv run --with playwright==1.64.1 python tools/web_smoke/online.py build/web build/online \\
+        --godot <pinned godot> --project game [--pages 2] [--bots 0] [--delay-ms 100] [--seconds 20]
+        [--url wss://<deployment> --delay-ms 0] [--gpu] [--other-version [--expect-refused]]
+
+`--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
+page shows the overlay's "another version" message. `result.json`, the logs and a screenshot of each page go to the
+second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+
+from playwright.sync_api import Page, sync_playwright
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
+from bad_network import Verdict, judge_server, server_log
+from bad_network_gate import godot_cmd, start, stop, wait_for_port
+from net_play_smoke import GPU_ARGS, SOFTWARE_ARGS, serve, wait_for
+from relay import Relay
+
+READY_TIMEOUT_S = 120.0
+# The body may trail the server's point by what a round trip of walking covers (6 m/s sprinting, 0.25 s), plus the
+# corrections under way.
+GAP_M = 1.5
+OLD_VERSION_TEXT = "another version"
+
+
+def report_of(page: Page) -> dict:
+    text = page.evaluate("() => (window.gdonline && window.gdonline.report) || '{}'")
+    report = json.loads(text or "{}")
+    report["state"] = page.evaluate("() => window.gdonline ? window.gdonline.state : 'no probe'")
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("build", type=Path, help="the web export folder (index.html)")
+    parser.add_argument("out", type=Path, help="folder for result.json, the logs and the screenshots")
+    parser.add_argument("--godot", required=True, help="the pinned Godot (console build on Windows)")
+    parser.add_argument("--project", type=Path, required=True, help="the game folder (project.godot)")
+    parser.add_argument("--url", default="", help="a running server (ws:// or wss://) instead of a local one")
+    parser.add_argument("--pages", type=int, default=2, help="browser pages that join")
+    parser.add_argument("--bots", type=int, default=0, help="headless bots that give the pages more puppets")
+    parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
+    parser.add_argument("--seconds", type=float, default=20.0, help="seconds of play after the last page is seated")
+    parser.add_argument("--gpu", action="store_true", help="draw with the machine's GPU instead of SwiftShader")
+    parser.add_argument("--viewport", default="320x180", help="each page's size, WxH (a small page draws faster)")
+    parser.add_argument("--other-version", action="store_true", help="a server of the next protocol version")
+    parser.add_argument("--expect-refused", action="store_true", help="pass only when every page was refused")
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    project = args.project.resolve()
+    verdict = Verdict()
+    result: dict = {"args": {k: str(v) for k, v in vars(args).items()}}
+    errors: list[str] = []
+    server = bots = None
+    relay: Relay | None = None
+    http_server, http_port = serve(args.build)
+    try:
+        url = args.url
+        if not url:
+            script = "res://tools/net/other_version_server.gd" if args.other_version else "res://tools/net/gate_server.gd"
+            server = start(godot_cmd(args.godot, project, script, "--port", "0"), args.out / "server.log")
+            url = f"ws://127.0.0.1:{wait_for_port(args.out / 'server.log', server)}"
+        page_url = url
+        if args.delay_ms > 0:
+            scheme, rest = url.split("://", 1)
+            host, _, port = rest.partition(":")
+            if scheme != "ws":
+                raise SystemExit("the relay passes ws:// only: add --delay-ms 0 for a wss:// server")
+            relay = Relay(host, int(port), args.delay_ms / 1000.0)
+            page_url = f"ws://127.0.0.1:{relay.start_in_thread()}"
+        if args.bots > 0:
+            seconds = int(READY_TIMEOUT_S * args.pages + args.seconds + 60)
+            bot_args = ["--connect", url, "--bots", str(args.bots), "--seconds", str(seconds)]
+            bots = start(
+                godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log"
+            )
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(args=GPU_ARGS if args.gpu else SOFTWARE_ARGS)
+            width, height = (int(n) for n in args.viewport.split("x"))
+            pages: list[Page] = []
+            for index in range(args.pages):
+                page = browser.new_context(viewport={"width": width, "height": height}).new_page()
+                page.on("console", lambda m, i=index: errors.append(f"page {i}: {m.text}") if m.type == "error" else None)
+                page.on("pageerror", lambda e, i=index: errors.append(f"page {i}: {e}"))
+                plan = "route" if index == 0 else "watch"
+                page.goto(
+                    f"http://127.0.0.1:{http_port}/index.html?url={page_url}&bot={plan}&name=Web{index}&onlineprobe"
+                )
+                settled = "window.gdonline && window.gdonline.state !== 'connecting'"
+                wait_for(page, settled, READY_TIMEOUT_S)
+                pages.append(page)
+            seated = all(report_of(page)["state"] == "seated" for page in pages)
+            if seated:
+                time.sleep(args.seconds)
+            else:
+                time.sleep(2.0)
+            reports = [report_of(page) for page in pages]
+            for index, page in enumerate(pages):
+                page.screenshot(path=str(args.out / f"page{index + 1}.png"))
+            browser.close()
+        result["pages"] = reports
+    finally:
+        stop(bots)
+        stop(server)
+        if relay is not None:
+            relay.stop()
+            result["relay"] = relay.counts()
+        http_server.shutdown()
+    players = args.pages + args.bots
+    if args.expect_refused:
+        for index, report in enumerate(reports):
+            verdict.check(f"page {index + 1} was refused for its version", report["state"] == "refused version", report["state"])
+            verdict.check(
+                f"page {index + 1} says the server runs another version",
+                OLD_VERSION_TEXT in report.get("message", ""),
+                report.get("message", ""),
+            )
+    else:
+        for index, report in enumerate(reports):
+            name = f"page {index + 1}"
+            verdict.check(f"{name} was seated", report["state"] == "seated", report["state"])
+            verdict.check(f"{name} sees all {players} players", report.get("players", 0) == players, report.get("players"))
+            verdict.check(f"{name} read a round trip", report.get("rtt_ms", -1) > 0, report.get("rtt_ms"))
+            verdict.check(f"{name} lost no answer", report.get("lost", -1) == 0, report.get("lost"))
+            gap = report.get("gap_m", -1.0)
+            verdict.check(f"{name} is within {GAP_M} m of the server's point", 0.0 <= gap <= GAP_M, gap)
+        if server is not None:
+            log = server_log(args.out / "server.log")
+            result["server"] = log
+            judge_server(log, verdict)
+    payload_full = [e for e in errors if "Buffer payload full" in e]
+    verdict.check("no Buffer payload full in the console", not payload_full, len(payload_full))
+    verdict.check("no other console or page error", not errors, errors[:10])
+    result["checks"] = verdict.checks
+    result["passed"] = verdict.passed
+    (args.out / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    verdict.print("[online] ")
+    for index, report in enumerate(reports):
+        keys = ("state", "players", "rtt_ms", "gap_m", "corrections", "corrected_m", "fps", "frame_us_p50")
+        line = ", ".join(f"{k} {report.get(k)}" for k in keys)
+        line += f", frame_us_p95 {report.get('frame_us_p95')}, puppets_us_p50 {report.get('puppets_us_p50')}"
+        print(f"PAGE {index + 1}: {line}", flush=True)
+    print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
+    return 0 if verdict.passed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
