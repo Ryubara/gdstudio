@@ -55,9 +55,9 @@ Measured in Godot on the skinned meshes, on every frame, on both mannequins (`te
 | Left hand on its support grip (the ends) | 1.2 mm in, 2.3 mm off | 1.2 mm in, 3.7 mm off |
 | Left hand on the way (deepest in the gun or the right hand) | 1.2 mm | 1.4 mm |
 | Left hand's bone from its place on the slide | 0.0 mm | 0.0 mm |
-| Limbs through each other (`../limb_overlap.py`, the build) | 4.8 mm | 2.2 mm |
+| Limbs through each other (`../limb_overlap.py`, the build) | 4.7 mm | 2.2 mm |
 
-The limb check's 4.8 mm and 2.2 mm are the support grip itself at the clip's ends (the left fingers lying over the
+The limb check's 4.7 mm and 2.2 mm are the support grip itself at the clip's ends (the left fingers lying over the
 right ones, which the hold's own measure reads as 1.2 mm); between the ends it reads 0. The left wrist bends 23 to 26
 degrees from the forearm's line while it grips and at most 51 on the way.
 

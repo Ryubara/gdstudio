@@ -262,7 +262,7 @@ Library's six pistol clips on the `hand_r` bone.
   every frame it is near the slide, the slide's travel and the beats. What plays the clip reaches the left hand
   there with a `HoldArm` and moves the `Slide` node. Measured on every frame on both mannequins: the right hand
   1.2 mm in and 4.4 mm off at most, the left hand on the slide 1.0 mm in and 4.1 mm off, 1.4 mm in on its way,
-  0.0 mm from its place, and no limb more than 4.8 mm in another (the support grip's own contact, as
+  0.0 mm from its place, and no limb more than 4.7 mm in another (the support grip's own contact, as
   `limb_overlap.py` reads it).
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
@@ -376,7 +376,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   the left hand's points in the right hand). **Watch out for:** lifted straight from the support grip to the top of
   the slide, the left index finger went through the trigger guard and the right middle finger: 7.5 mm by the limb
   check while the hand measure read 0. The limb check also reads touching hands 3 to 4 mm deeper than the hand
-  measure (4.8 mm for the support grip the hold's test reads as 1.2 mm), so its 5 mm limit is not the hold's 2 mm.
+  measure (4.7 mm for the support grip the hold's test reads as 1.2 mm), so its 5 mm limit is not the hold's 2 mm.
   **Seen:** gdstudio #1081, 2026-11-11 (fix: the way out goes 9 cm to the gun's left first, then over the top).
 - **Approach:** In a capture that moves one camera through several views of a pose, take the first view after a new
   pose twice and keep the second. **Watch out for:** the first picture after each pose still showed the camera of
