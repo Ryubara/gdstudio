@@ -67,7 +67,7 @@ game/
   From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
   88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
   gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, 2026-11-11 (two gate files rewrapped).
+  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

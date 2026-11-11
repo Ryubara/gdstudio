@@ -165,8 +165,9 @@ every exit, kept with `--keep`, two calls at once).
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
   <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
-  hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; kit #1129, 2026-11-11
-  (the command).
+  hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
+  #1092), 2026-11-11; kit #1129, 2026-11-11 (the
+  command).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.

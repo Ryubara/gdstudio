@@ -3,7 +3,8 @@
 <!-- new section: split out of the third-person template page when it reached the size limit (#983) -->
 
 The subpages of [the 3D Third Person template](../third-person-template.md), split by subject (#983). Put a new section
-on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
+on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB, before the 50 KB the check refuses
+([Page size](../../../studio/rules.md#size)).
 
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
