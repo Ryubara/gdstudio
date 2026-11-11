@@ -35,8 +35,9 @@ TICK.
 
 The `Reconciler` never replays (a step has side effects: [the character's snapshot](character.md#controller)): it
 measures the error of the answered command, moves the body a quarter of what is left each frame, shifts the
-remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m, and leaves
-an error under 1 cm alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
+remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m (6 m a
+stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
+alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
 `Player.teleport()` and reset it.
 
 `RemotePlayers` (`gameplay/net/remote_players.gd`) makes one puppet `Player` a slot from `player.tscn`
@@ -133,10 +134,10 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 
 | Check | Threshold | What it guards |
 | --- | --- | --- |
-| Lost | no answer past 6 m (the page: one) | a loop that does not settle |
+| Lost | no answer past 6 m a stall (`Reconciler.resync`: the answer after k stalls with none between may be k walk-ons long) | a loop that does not settle |
 | Snaps | one at the join and one per stall of the client's thread the stall guard saw | an error past 2.5 m outside a resync |
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
-| Worst error | under 6 m with freezes (the page: 8 m, #1070), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
+| Worst error | under 6 m a stall with freezes (`worst_stall_error_m`), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
 | Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client | the server's hold |
 | Starved puppets | 1 % of puppet-steps and 8 a puppet per stall of the client's thread (its catch-up frame), or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
@@ -152,6 +153,7 @@ before the relay jittered):
 | Native, relay and jitter, 1 % stalls (17 to 19 up, 17 to 19 down) | about 240 to 270 ms | 207 to 271 (19.3 to 27.3 m) | 0 to 1 / 0 | 1.5 to 2.7 m | 2.2 to 5 mm | 669 to 714 of 5760 |
 | Native, relay, 1 % stalls (22 to 26 up, 10 to 16 down) | 234 to 248 ms | 188 to 221 (11.2 to 16.4 m) | 0 / 0 | 1.42 to 1.52 m | 2.1 to 6.1 mm | 387 to 531 of 5760 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
+| Browser, relay, freezes, judged a stall (36 to 38 fps, three runs, #1070) | 234 to 264 ms | 41 to 57 (0.97 to 2.31 m) | 7 to 8 / 10 to 12 | 4.41 to 7.60 m, 2.20 to 2.53 m a stall (3 stacked) | 3.5 to 6.2 mm | 21 to 27 of about 4000 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
 | Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
@@ -178,6 +180,13 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   so snaps and corrections are allowed per stall the stall guard saw. The CI runner (ubuntu, four cores) drew the
   same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
   (`net_play_smoke.py` `MIN_FPS`; the first CI run of #1077 failed on it).
+- **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
+  (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
+  `worst_stall_error`). **Watch out for:** every page answer past 3 m came in its first three seconds, after two to
+  four hitches of 0.3 to 0.9 s with no answer between: the server walks its body on 30 steps after each silence and
+  the walk-ons add up (four at 4 m/s, 7.1 m). Per stall the page reads 2.2 to 2.5 m, the native client 2.6 to 3.0 m.
+  A PONG read after a freeze measured the freeze (5.2 s) and put the numbering 5 s ahead; it is now ignored
+  (`NetClient.resync`). **Seen:** gdstudio #1070, 2026-11-11 (hitches: #1106).
 - **Approach:** Give a teeth check a condition the broken part cannot pass on any machine: the relay jitters each
   chunk up to 30 ms (in order), which the server's hold of four steps absorbs and a server without it turns into
   repeated commands. **Watch out for:** without jitter, the hold-0 run read 16 to 18 m of corrections on Windows but
