@@ -18,6 +18,10 @@ const COUNT_PAST_END := &"count_past_end"
 const TOO_MANY := &"too_many"
 const BAD_VALUE := &"bad_value"
 const OVER_RATE := &"over_rate"
+## A command whose number is not past the last one (`NetServer`: each is applied once, in order).
+const OUT_OF_ORDER := &"out_of_order"
+## A command before the HELLO was answered.
+const NO_HELLO := &"no_hello"
 
 static var _unowned: NetDrops
 
