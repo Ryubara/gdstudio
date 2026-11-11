@@ -138,7 +138,8 @@ The numbers below are written by the build (`build_mannequins.py --report`); a b
 | `thigh_l` | 0.089, 0.932, 0.001 | 0.092, 0.932, 0.001 | 0.070, 0.508, 0.000 |
 | `calf_l` | 0.089, 0.532, -0.001 | 0.092, 0.532, -0.001 | 0.070, 0.290, -0.001 |
 | `foot_l` | 0.089, 0.104, -0.036 | 0.092, 0.104, -0.036 | 0.070, 0.057, -0.020 |
-| `socket_hand_r` | -0.806, 1.406, -0.050 | -0.735, 1.373, -0.050 | -0.492, 0.755, -0.024 |
+| `socket_hand_r` | -0.794, 1.409, -0.049 | -0.725, 1.375, -0.049 | -0.492, 0.755, -0.024 |
+| Hand length (wrist to middle fingertip) | 0.195 | 0.181 | 0.172 |
 | `socket_camera` | 0, 1.680, 0.120 | 0, 1.632, 0.115 | 0, 1.048, 0.192 |
 
 The male's and the female's legs are the library's own, so clips plant their feet as they do the library's mannequins;

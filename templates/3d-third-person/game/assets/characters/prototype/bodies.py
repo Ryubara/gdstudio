@@ -48,6 +48,11 @@ def _body(name, leg, hip_x, trunk, shoulder, upper_arm, forearm, hand_scale, sha
     return {"name": name, "joints": joints, "hand_scale": hand_scale, "leg": leg, "shape": shape}
 
 
+## Hands. The reference rig's hand is 0.232 m from the wrist to the middle fingertip, 12.9 % of a 1.80 m body: a
+## mannequin's hand, not a person's. A person's is 10 to 11 % of the height and about three quarters of the forearm,
+## so the male's hand is the reference's at 0.84 (0.195 m, 10.8 %, 0.74 of the forearm, palm 84 mm wide) and the
+## female's at 0.78 (0.181 m, 10.4 %, 0.73 of the forearm, palm 74 mm wide). `finger` keeps the fingers' thickness.
+##
 ## Girths. Trunk rows are (height, half width, half depth to the front, to the back, the middle's z). Limb rows are
 ## radii at the joints and at the muscle between them. All in metres, for the look called `form`; the other looks
 ## scale them (`styles.py`).
@@ -59,7 +64,7 @@ MALE = _body(
     shoulder=(0.190, -0.045),
     upper_arm=0.280,
     forearm=0.265,
-    hand_scale=1.0,
+    hand_scale=0.84,
     shape={
         "trunk": [
             (0.845, 0.085, 0.080, 0.085, -0.005),
@@ -75,8 +80,8 @@ MALE = _body(
         "head": {"chin": 1.560, "top": 1.800, "half_width": 0.086, "front": 0.108, "back": 0.102, "z": 0.012},
         "upper_arm": (0.058, 0.052, 0.043),
         "forearm": (0.046, 0.031, 0.024),
-        "palm": (0.044, 0.015),
-        "finger": 1.0,
+        "palm": (0.042, 0.015),
+        "finger": 1.12,
         "thigh": (0.090, 0.079, 0.056),
         "calf": (0.060, 0.038),
         "foot": {"half_width": 0.047, "heel": -0.052},
@@ -91,7 +96,7 @@ FEMALE = _body(
     shoulder=(0.160, -0.045),
     upper_arm=0.262,
     forearm=0.248,
-    hand_scale=0.92,
+    hand_scale=0.78,
     shape={
         "trunk": [
             (0.845, 0.085, 0.078, 0.085, -0.005),
@@ -107,8 +112,8 @@ FEMALE = _body(
         "head": {"chin": 1.518, "top": 1.745, "half_width": 0.082, "front": 0.103, "back": 0.098, "z": 0.012},
         "upper_arm": (0.048, 0.042, 0.036),
         "forearm": (0.038, 0.027, 0.021),
-        "palm": (0.040, 0.013),
-        "finger": 0.9,
+        "palm": (0.037, 0.013),
+        "finger": 1.08,
         "thigh": (0.092, 0.076, 0.051),
         "calf": (0.054, 0.034),
         "foot": {"half_width": 0.042, "heel": -0.049},

@@ -1,7 +1,7 @@
 {
  "form_male": {
   "bones": 82,
-  "bytes": 322280,
+  "bytes": 322364,
   "levels": [
    {
     "triangles": 4120,
@@ -11,7 +11,7 @@
    },
    {
     "triangles": 1936,
-    "vertices": 1378,
+    "vertices": 1374,
     "skin_bones": 58,
     "influences": 3
    },
@@ -25,7 +25,7 @@
  },
  "form_female": {
   "bones": 82,
-  "bytes": 322268,
+  "bytes": 322220,
   "levels": [
    {
     "triangles": 4120,
@@ -73,7 +73,7 @@
  },
  "joint_male": {
   "bones": 82,
-  "bytes": 517236,
+  "bytes": 517116,
   "levels": [
    {
     "triangles": 7760,
@@ -83,7 +83,7 @@
    },
    {
     "triangles": 3800,
-    "vertices": 2226,
+    "vertices": 2218,
     "skin_bones": 49,
     "influences": 1
    },
@@ -97,7 +97,7 @@
  },
  "joint_female": {
   "bones": 82,
-  "bytes": 517436,
+  "bytes": 516972,
   "levels": [
    {
     "triangles": 7760,
@@ -107,7 +107,7 @@
    },
    {
     "triangles": 3800,
-    "vertices": 2230,
+    "vertices": 2222,
     "skin_bones": 49,
     "influences": 1
    },
@@ -145,7 +145,7 @@
  },
  "facet_male": {
   "bones": 82,
-  "bytes": 483384,
+  "bytes": 483888,
   "levels": [
    {
     "triangles": 1928,
@@ -155,7 +155,7 @@
    },
    {
     "triangles": 1392,
-    "vertices": 2957,
+    "vertices": 2961,
     "skin_bones": 58,
     "influences": 3
    },
@@ -169,7 +169,7 @@
  },
  "facet_female": {
   "bones": 82,
-  "bytes": 483792,
+  "bytes": 483744,
   "levels": [
    {
     "triangles": 1928,

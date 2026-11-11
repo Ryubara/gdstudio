@@ -46,15 +46,27 @@ sculpted or painted, so a game makes its own body by copying a body's numbers an
 
 | Body | Height | Hips (`motion_scale`) | What differs |
 | --- | --- | --- | --- |
-| `male` | 1.80 m | 0.917 m (1.0) | the reference legs and trunk; shoulders 0.19 m out, arm 0.28 + 0.265 m |
-| `female` | 1.745 m | 0.917 m (1.0) | the same legs, a trunk 4 cm shorter, shoulders 0.16 m out, arm 0.262 + 0.248 m, hands at 0.92, a narrower waist and wider hips |
-| `chibi` | 1.25 m | 0.500 m (0.545) | the reference leg at 0.545, a head a third of the height, arm 0.155 + 0.15 m, hands at 0.74 with thick fingers |
+| `male` | 1.80 m | 0.917 m (1.0) | the reference legs and trunk; shoulders 0.19 m out, arm 0.28 + 0.265 m, hand 0.195 m |
+| `female` | 1.745 m | 0.917 m (1.0) | the same legs, a trunk 4 cm shorter, shoulders 0.16 m out, arm 0.262 + 0.248 m, hand 0.181 m, a narrower waist and wider hips |
+| `chibi` | 1.25 m | 0.500 m (0.545) | the reference leg at 0.545, a head a third of the height, arm 0.155 + 0.15 m, hand 0.172 m with thick fingers (stylised: 13.7 % of its height) |
 
 | Look | What it is | Triangles at levels 0, 1, 2 | Skin bones | File, gzipped |
 | --- | --- | --- | --- | --- |
 | `form` | one bending skin a limb, dark bands at the joints, a twist stripe down each limb; uses the twist bones | 4,120 / 1,936 / 1,008 | 58 / 58 / 28 | 322 KB, 84 KB |
 | `joint` | rigid shells on dark ball joints (a lay figure): one bone a vertex, nothing stretches | 7,760 / 3,800 / 2,168 | 49 / 49 / 19 | 517 KB, 124 KB |
 | `facet` | six-sided limbs, flat shaded, heavy forearms and calves: sits beside low-poly art | 1,928 / 1,392 / 616 | 58 / 58 / 28 | 483 KB, 71 KB |
+
+**Hands are a person's size, not the library rig's.** The reference rig's hand is 0.232 m from the wrist to the
+middle fingertip, 12.9 % of a 1.80 m body; a person's is 10 to 11 % of the height and about three quarters of the
+forearm (the usual anthropometric figures: a woman's hand about 0.17 to 0.18 m long and 74 to 79 mm across the palm,
+a man's about 0.19 m and 84 to 90 mm; not re-sourced for this page). The finger bones keep the reference hand's layout
+at one scale a body:
+
+| Body | Hand length | Share of height | Hand over forearm | Palm width |
+| --- | --- | --- | --- | --- |
+| `male` | 0.195 m (scale 0.84) | 10.8 % | 0.74 | 84 mm |
+| `female` | 0.181 m (scale 0.78) | 10.4 % | 0.73 | 74 mm |
+| `chibi` | 0.172 m (scale 0.74) | 13.7 % | 1.15 | 100 mm (stylised on purpose) |
 
 For comparison the Quaternius male is 13,744 triangles in 618 KB (191 KB gzipped) and the female 14,612 in 1,443 KB
 (300 KB). A file holds all three levels. Flat shading costs vertices: `facet` has half the triangles of `form` and
@@ -76,6 +88,11 @@ far it has rolled), lighter palms and dark soles (the hand's and the foot's turn
   keys; and the game must move a scaled body at the clip's speed times `motion_scale`, or the feet slide.
   **Seen:** gdstudio #1149, 2026-11-11 (the chibi's leg is the reference's at 0.545; its feet read the reference's
   heights times 0.545 to 7 mm).
+- **Approach:** Measure a body's hands before review: length over height (10 to 11 %), length over the forearm
+  (about 0.75) and the palm's width, for each sex. **Watch out for:** the female's hand was the library rig's at
+  0.92, 0.214 m, 12.2 % of her height and 0.86 of her forearm, and the male's 12.9 %: a kit mannequin's hand is
+  larger than a person's. **Seen:** gdstudio #1149, 2026-11-11, after the maintainer's review of #1151 found a
+  woman's hands far too large (fix: scales 0.78 and 0.84, the table above).
 
 ## Proof in Godot {#proof}
 
