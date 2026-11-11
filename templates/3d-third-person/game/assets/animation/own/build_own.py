@@ -32,7 +32,7 @@ QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
 from clips import idle  # noqa: E402
-from gdsanim import build, export, selftest, style  # noqa: E402
+from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
 from gdsanim.solve import Solver  # noqa: E402
 
@@ -126,7 +126,9 @@ def main() -> int:
     styles = {one.letter: one for one in style.load_all(HERE / "styles")}
     if args.what == "review":
         name, describe = TYPES[args.name]
-        builts = [build.build_clip(rig, solver, describe(rig, one, f"{name}_{letter}")) for letter, one in styles.items()]
+        builts = [
+            build.build_clip(rig, solver, describe(rig, one, f"{name}_{letter}")) for letter, one in styles.items()
+        ]
         frozen = [f"{name}_{letter}" for letter in styles]
         return make(args, builts, frozen, rig, bodies, HERE / "review" / f"{args.name}.glb")
     picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]

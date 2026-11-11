@@ -43,7 +43,7 @@ def floor() -> bpy.types.Object:
     mesh.from_pydata([(-half, -half, 0), (half, -half, 0), (half, half, 0), (-half, half, 0)], [], [(0, 1, 2, 3)])
     layer = mesh.uv_layers.new()
     repeat = half / SQUARE
-    for loop, uv in zip(layer.data, ((0, 0), (repeat, 0), (repeat, repeat), (0, repeat))):
+    for loop, uv in zip(layer.data, ((0, 0), (repeat, 0), (repeat, repeat), (0, repeat)), strict=False):
         loop.uv = uv
     mesh.materials.append(material)
     obj = bpy.data.objects.new("floor", mesh)

@@ -221,6 +221,8 @@ def build_file(rig: Rig, builts: list, bodies: list, frozen: list) -> dict:
         "rig": rig.path.name,
         "reference_hips": round(rig.hips, 4),
         "frozen": list(frozen),
-        "clips": {built.clip.name: {k: v for k, v in built.record.items() if not k.startswith("_")} for built in builts},
+        "clips": {
+            built.clip.name: {k: v for k, v in built.record.items() if not k.startswith("_")} for built in builts
+        },
     }
     return {"glb": glb, "clips": clips, "report": report, "failures": failures}

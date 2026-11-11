@@ -27,7 +27,9 @@ class Style:
         """The numbers of a clip type: the description's `defaults` with the style's own over them."""
         own = self.data.get(section, {})
         unknown = sorted(set(own) - set(defaults))
-        assert not unknown, f"{self.path.name}: `{section}` sets {', '.join(unknown)}, which the description does not declare"
+        assert not unknown, (
+            f"{self.path.name}: `{section}` sets {', '.join(unknown)}, which the description does not declare"
+        )
         return {**defaults, **own}
 
     def overlap(self, section: str) -> dict:

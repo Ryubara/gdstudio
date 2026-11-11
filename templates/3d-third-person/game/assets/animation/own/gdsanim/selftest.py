@@ -12,8 +12,8 @@ import math
 import numpy as np
 
 from . import build, checks, maths, overlap, weight
-from .maths import FPS
 from .build import Clip
+from .maths import FPS
 from .plan import ContactPlan, Footfall, Travel, standing
 from .rig import SIDES
 from .solve import stand_spec
@@ -44,7 +44,7 @@ def walk_clip(rig, arms: float = 1.0, lags: dict | None = None) -> Clip:
     stance = WALK_DUTY * n
     reach = 0.5 * speed * stance / FPS
     falls = []
-    for s, sign in SIDES:
+    for s, _sign in SIDES:
         land = 0.0 if s == "l" else n / 2.0
         ball = rig.sole[s]["ball"]
         place = (ball[0], ball[2] + speed * land / FPS + reach - 0.05)
@@ -96,7 +96,11 @@ def hop_built(rig, solver, arc: bool):
     pelvis = rig.index["pelvis"]
     air = 16
     rise = 0.5 * weight.G * (air / FPS)
-    heights = weight.free_fall(0.0, rise, air + 1) if arc else np.concatenate([np.linspace(0, 0.3, 8), np.linspace(0.3, 0, 9)])
+    heights = (
+        weight.free_fall(0.0, rise, air + 1)
+        if arc
+        else np.concatenate([np.linspace(0, 0.3, 8), np.linspace(0.3, 0, 9)])
+    )
     # The pelvis's translation is in the root's axes, where up is the root's -Z.
     up = rig.rest_rot[rig.parent["pelvis"]].T @ maths.Y
     for k, height in enumerate(heights):
@@ -151,7 +155,9 @@ def run(rig, solver, bodies) -> int:
     case("the feet are under the floor", "floor", stand, sunk)
     # planted: a planted foot slid; the speed in clips.json wrong.
     slid = dense(walk)
-    slid.translation[:, pelvis] += np.outer(np.sin(np.arange(WALK_FRAMES + 1) * 2 * math.pi / WALK_FRAMES), [0.02, 0, 0])
+    slid.translation[:, pelvis] += np.outer(
+        np.sin(np.arange(WALK_FRAMES + 1) * 2 * math.pi / WALK_FRAMES), [0.02, 0, 0]
+    )
     case("a planted foot slides", "planted", walk, slid)
     fast = dense(walk)
     fast.record["speed"] = WALK_SPEED * 1.06
@@ -163,7 +169,12 @@ def run(rig, solver, bodies) -> int:
     swung.clip.declared["plants"] = [{"bone": "hand_l", "from": 2, "to": 28}]
     case("a planted hand drifts", "plants", held, swung)
     # gait: arms in step with their own side's legs; a cadence outside the declared range.
-    case("the arms swing with their own side's legs", "gait", walk, build.build_clip(rig, solver, walk_clip(rig, arms=-1.0)))
+    case(
+        "the arms swing with their own side's legs",
+        "gait",
+        walk,
+        build.build_clip(rig, solver, walk_clip(rig, arms=-1.0)),
+    )
     slow = dense(walk)
     slow.clip.declared["ranges"] = {"cadence": (125.0, 140.0)}
     case("the cadence is outside its range", "gait", walk, slow)

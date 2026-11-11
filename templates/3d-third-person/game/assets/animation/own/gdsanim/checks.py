@@ -69,9 +69,9 @@ class Played:
         self.world = rig.world(self.rotation, self.translation)
         reference = built.record["_rig"]
         legs = ("thigh_l", "calf_l")
-        self.same_legs = all(abs(rig.length[b] - reference.length[b]) < 1e-3 for b in legs) and abs(
-            rig.hips - reference.hips
-        ) < 1e-3
+        self.same_legs = (
+            all(abs(rig.length[b] - reference.length[b]) < 1e-3 for b in legs) and abs(rig.hips - reference.hips) < 1e-3
+        )
         self._feet = {}
 
     def foot(self, side: str) -> np.ndarray:
@@ -181,7 +181,9 @@ def check_planted(built, played: dict) -> tuple:
                     patch = verts[f, :, 1] <= verts[f, :, 1].min() + 0.01
                     step = (verts[f + 1, patch] - verts[f, patch])[:, [0, 2]].mean(axis=0)
                     drift.append(drift[-1] + step)
-                    speeds.append(float(np.linalg.norm((local[f + 1, patch] - local[f, patch])[:, [0, 2]].mean(axis=0))) * FPS)
+                    speeds.append(
+                        float(np.linalg.norm((local[f + 1, patch] - local[f, patch])[:, [0, 2]].mean(axis=0))) * FPS
+                    )
                 worst = max(worst, float(np.linalg.norm(np.ptp(np.array(drift), axis=0))))
         measured = float(np.mean(speeds)) if speeds else 0.0
         numbers[name] = {"wander_mm": round(worst * 1000, 2), "planted_speed": round(measured, 3)}
@@ -193,7 +195,9 @@ def check_planted(built, played: dict) -> tuple:
         declared = built.record["speed"]
         steady = built.clip.kind == "gait"
         if steady and abs(measured - declared) > SPEED_SHARE * max(declared, 1e-9):
-            failures.append(f"planted: the sole's speed is {measured:.3f} m/s on {name}, clips.json says {declared:.3f}")
+            failures.append(
+                f"planted: the sole's speed is {measured:.3f} m/s on {name}, clips.json says {declared:.3f}"
+            )
     return {"planted": numbers}, failures
 
 
@@ -238,8 +242,17 @@ def gait_numbers(body: Played, loop: bool) -> dict:
         strides = max(1, int(spectrum[1:].argmax()) + 1)
         half = count / strides / 2.0
         out["cadence"] = round(60.0 * FPS / half, 1)
-        best = max(range(count), key=lambda shift: float(np.dot(thigh_l - thigh_l.mean(), np.roll(thigh_r - thigh_r.mean(), -shift))))
-        out["half_cycle_off"] = round(min(abs(((best - half) + count / 2) % count - count / 2), abs(((best + half) + count / 2) % count - count / 2)), 2)
+        best = max(
+            range(count),
+            key=lambda shift: float(np.dot(thigh_l - thigh_l.mean(), np.roll(thigh_r - thigh_r.mean(), -shift))),
+        )
+        out["half_cycle_off"] = round(
+            min(
+                abs(((best - half) + count / 2) % count - count / 2),
+                abs(((best + half) + count / 2) % count - count / 2),
+            ),
+            2,
+        )
     return out
 
 
@@ -417,7 +430,9 @@ def check_joins(built, played: dict) -> tuple:
             apart, turn = pose_gap(rig, body.world[frame_no], want)
             numbers[end] = {"mm": round(apart * 1000, 2), "deg": round(turn, 2)}
             if apart > JOIN_PLACE or turn > JOIN_TURN:
-                failures.append(f"joins: the {end} pose is {apart * 1000:.2f} mm and {turn:.2f} degrees from the pose it joins")
+                failures.append(
+                    f"joins: the {end} pose is {apart * 1000:.2f} mm and {turn:.2f} degrees from the pose it joins"
+                )
         key = end + "_speed"
         if key in joins:
             f = 0.5 if end == "first" else built.clip.frames - 0.5
@@ -448,7 +463,10 @@ def hinge_angles(body: Played) -> dict:
     rig, world = body.rig, body.world
     out = {}
     for s, _ in SIDES:
-        for name, top, mid, end, sense in (("elbow", "upperarm", "lowerarm", "hand", 1.0), ("knee", "thigh", "calf", "foot", -1.0)):
+        for name, top, mid, end, sense in (
+            ("elbow", "upperarm", "lowerarm", "hand", 1.0),
+            ("knee", "thigh", "calf", "foot", -1.0),
+        ):
             a, b, c = (rig.joint(world, f"{bone}_{s}") for bone in (top, mid, end))
             first = (b - a) / np.linalg.norm(b - a, axis=1, keepdims=True)
             second = (c - b) / np.linalg.norm(c - b, axis=1, keepdims=True)
@@ -456,7 +474,12 @@ def hinge_angles(body: Played) -> dict:
             ahead = sense * (turn @ maths.Z)
             bend = np.degrees(np.arctan2(np.sum(second * ahead, axis=1), np.sum(second * first, axis=1)))
             rest_a, rest_b, rest_c = (rig.rest_pos[f"{bone}_{s}"] for bone in (top, mid, end))
-            rest_bend = math.degrees(math.atan2(np.dot(maths.unit(rest_c - rest_b), sense * maths.Z), np.dot(maths.unit(rest_c - rest_b), maths.unit(rest_b - rest_a))))
+            rest_bend = math.degrees(
+                math.atan2(
+                    np.dot(maths.unit(rest_c - rest_b), sense * maths.Z),
+                    np.dot(maths.unit(rest_c - rest_b), maths.unit(rest_b - rest_a)),
+                )
+            )
             out[f"{name}_{s}"] = bend - rest_bend
     return out
 
@@ -470,7 +493,9 @@ def check_limits(built, played: dict) -> tuple:
         low, high = HINGES[name[:-2]]
         numbers[name] = [round(float(bend.min()), 1), round(float(bend.max()), 1)]
         if bend.min() < low or bend.max() > high:
-            failures.append(f"limits: {name} bends {bend.min():.1f} to {bend.max():.1f} degrees, outside {low} to {high}")
+            failures.append(
+                f"limits: {name} bends {bend.min():.1f} to {bend.max():.1f} degrees, outside {low} to {high}"
+            )
     local = maths.matrix_of(body.rotation)
     limit = built.clip.declared.get("speed_limit", SPEED_CHANGE)
     worst_change, worst_bone = 0.0, ""
@@ -491,7 +516,9 @@ def check_limits(built, played: dict) -> tuple:
             worst_change, worst_bone = float(change.max()), bone
     numbers["speed_change_deg"] = round(worst_change, 2)
     if worst_change > limit:
-        failures.append(f"limits: {worst_bone}'s speed changes {worst_change:.1f} degrees a frame in one frame, over {limit}")
+        failures.append(
+            f"limits: {worst_bone}'s speed changes {worst_change:.1f} degrees a frame in one frame, over {limit}"
+        )
     for key, value in built.miss.items():
         if value > 1e-6:
             failures.append(f"limits: {key} was {value * 1000:.1f} mm out of reach")
@@ -510,7 +537,9 @@ def cost_numbers(built) -> dict:
             total += len(track)
     times = {tuple(k) for kind in ("rotation", "place") for k in built.kept[kind].values()}
     size = sum(4 * len(t) for t in times)
-    size += sum(16 * len(k) for k in built.kept["rotation"].values()) + sum(12 * len(k) for k in built.kept["place"].values())
+    size += sum(16 * len(k) for k in built.kept["rotation"].values()) + sum(
+        12 * len(k) for k in built.kept["place"].values()
+    )
     written = sum(len(k) for k in built.kept["rotation"].values())
     return {
         "moving_bones": len(moving),
@@ -527,7 +556,9 @@ def check_cost(built, played: dict) -> tuple:
     failures = []
     limit = built.clip.declared.get("keys_kept", KEYS_KEPT)
     if numbers["keys_kept"] > limit:
-        failures.append(f"cost: a half-degree reducer keeps {numbers['keys_kept']:.0%} of the moving bones' keys, over {limit:.0%}")
+        failures.append(
+            f"cost: a half-degree reducer keeps {numbers['keys_kept']:.0%} of the moving bones' keys, over {limit:.0%}"
+        )
     most = built.clip.declared.get("kb_a_second", KB_A_SECOND)
     if numbers["kb_a_second"] > most:
         failures.append(f"cost: the clip's keys are {numbers['kb_a_second']} KB a second, over {most}")
@@ -553,7 +584,9 @@ def check_reduction(built, played: dict) -> tuple:
     numbers = {"reduce_error_mm": round(error * 1000, 3), "reduce_planted_mm": round(planted * 1000, 3)}
     failures = []
     if error > reduce.LIMIT * 1.001 or planted > reduce.PLANTED_LIMIT * 1.001:
-        failures.append(f"reduction: the written keys stray {error * 1000:.2f} mm from the full curve ({planted * 1000:.2f} mm at a planted foot)")
+        failures.append(
+            f"reduction: the written keys stray {error * 1000:.2f} mm from the full curve ({planted * 1000:.2f} mm at a planted foot)"
+        )
     return numbers, failures
 
 

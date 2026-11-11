@@ -60,7 +60,9 @@ class Rig:
         body = self.body
         self.names = list(body.names)
         self.index = dict(body.index)
-        self.parent = {n: (body.names[body.parent[i]] if body.parent[i] >= 0 else None) for i, n in enumerate(self.names)}
+        self.parent = {
+            n: (body.names[body.parent[i]] if body.parent[i] >= 0 else None) for i, n in enumerate(self.names)
+        }
         joints = {body.names[j] for j in body.joints}
         ## The bones, parents before children.
         self.bones = [body.names[i] for i in body.order if body.names[i] in joints]

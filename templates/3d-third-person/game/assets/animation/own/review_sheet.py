@@ -179,12 +179,22 @@ def main() -> int:
                         frame = int(round(last * k / args.frames))
                         for view in VIEWS:
                             out = folder / f"{clip['name']}_{view}_{k}.png"
-                            shots.append({"clip": clip["name"], "frame": frame, "view": view, "out": out.as_posix(), "shift": speed * frame / 30.0})
+                            shots.append(
+                                {
+                                    "clip": clip["name"],
+                                    "frame": frame,
+                                    "view": view,
+                                    "out": out.as_posix(),
+                                    "shift": speed * frame / 30.0,
+                                }
+                            )
                             shots_of[(clip["name"], view, k)] = (out, frame)
                 if clip["name"] != "Library":
                     frame = int(round(last * 0.45))
                     out = folder / f"{clip['name']}_body_{b}.png"
-                    shots.append({"clip": clip["name"], "frame": frame, "view": "front", "out": out.as_posix(), "shift": 0.0})
+                    shots.append(
+                        {"clip": clip["name"], "frame": frame, "view": "front", "out": out.as_posix(), "shift": 0.0}
+                    )
                     shots_of[(clip["name"], "body", b)] = (out, frame)
             jobs["bodies"].append({"glb": preview.as_posix(), "shots": shots})
             if b == 0:
@@ -194,7 +204,15 @@ def main() -> int:
                     numbers[row["clip"]] = row
         job_file = folder / "jobs.json"
         job_file.write_text(json.dumps(jobs), encoding="utf-8")
-        command = [args.blender, "-b", "--factory-startup", "-P", str(HERE / "review_render.py"), "--", job_file.as_posix()]
+        command = [
+            args.blender,
+            "-b",
+            "--factory-startup",
+            "-P",
+            str(HERE / "review_render.py"),
+            "--",
+            job_file.as_posix(),
+        ]
         done = subprocess.run(command, capture_output=True, text=True, timeout=3600, env=QUIET)
         if "RENDERED" not in done.stdout:
             print(done.stdout[-3000:], done.stderr[-3000:])
@@ -218,7 +236,9 @@ def main() -> int:
             if any(v != "-" for v in values):
                 table.append([label] + values + [limit])
         for rig in bodies:
-            values = [fmt((report.get(k, {}).get("limbs", {}).get(rig.path.stem) or {}).get("deepest_mm")) for k in keys]
+            values = [
+                fmt((report.get(k, {}).get("limbs", {}).get(rig.path.stem) or {}).get("deepest_mm")) for k in keys
+            ]
             if any(v != "-" for v in values):
                 table.append([f"limbs inside limbs, {rig.path.stem} (mm)"] + values + ["at most 5"])
         lines = ["| " + " | ".join(table[0]) + " |", "|" + " --- |" * len(table[0])]
@@ -260,7 +280,13 @@ def main() -> int:
             for b, rig in enumerate(bodies):
                 path, frame = shots_of[(name, "body", b)]
                 sheet.paste(Image.open(path).convert("RGB"), (x, y + 40))
-                text(draw, (x + 6, y + 44), f"{name} on {rig.path.stem.replace('mannequin_', '')}, frame {frame}", 14, FAINT)
+                text(
+                    draw,
+                    (x + 6, y + 44),
+                    f"{name} on {rig.path.stem.replace('mannequin_', '')}, frame {frame}",
+                    14,
+                    FAINT,
+                )
                 x += CELL[0] + 4
             x += pad
         y += body_h
@@ -268,7 +294,7 @@ def main() -> int:
         widths = [330] + [(width - 330 - 330 - 2 * pad) // len(columns)] * len(columns) + [330]
         for r, row in enumerate(table):
             x = pad
-            for value, w in zip(row, widths):
+            for value, w in zip(row, widths, strict=False):
                 text(draw, (x, y + 40 + r * row_h), value, 16, FAINT if r == 0 else INK)
                 x += w
         y += table_h
