@@ -47,12 +47,13 @@ wrong value. Read `baseColorFactor` from the glTF JSON instead, and strip colour
 
 ## Baking {#baking}
 
-GDStudio has baked no textures: no normal, ambient-occlusion or colour bakes. A flat-palette asset has nothing to bake,
+GDStudio's games bake no textures: no normal, ambient-occlusion or colour bakes. A flat-palette asset has nothing to bake,
 since every face is one colour and the shading comes from Godot's lights (lightmaps are baked in Godot, on
 [Compatibility lighting](../../engines/godot/compat-lighting.md)). "Bake" in the Blender pages means two other things:
 baking a pose into clips ([Animation](animation.md#keyframes)) and baking a walker's clip into one action for a preview
 ([Key art](key-art.md)).
 
-When an asset first needs a texture bake (a high-poly detail on a low-poly prop, a painted texture), it is a new step to
-measure: its texel density, the cage and the Cycles settings go here, with the eval numbers that prove it, before a
-second asset copies it.
+The first texture bakes were made by the realistic character experiment (gdstudio #1151): normals from a Multires
+sculpt, painted detail, colour, roughness and ambient occlusion with Cycles, at about 84 pixels per centimetre on a
+head, with the settings and the traps on [Realistic characters](realistic-characters.md#baking). A game asset that
+needs a bake starts from that section and adds its own numbers here before a second asset copies it.
