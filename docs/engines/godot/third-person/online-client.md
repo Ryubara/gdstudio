@@ -96,7 +96,8 @@ It joins no group (`player` is what the HUD, the minimap and a camera zone look 
 `PlayerPuppet.place` writes exactly what the drawing parts read from a stepped body: `state`, `velocity` (from the two
 snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crouching`, `aiming` and an eased
 `aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
-and refits the capsule. `CharacterAnimation` needed nothing new.
+and refits the capsule. `CharacterAnimation` needed nothing new. A puppet's `view_yaw` is its facing: the aim's yaw off
+the body is not in the snapshot, so its arms point along the body ([Aim layer](shooting.md#aim-layer), gdstudio #1277).
 
 Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost). How a puppet shows a
 vault it never stepped: [a puppet's vault](traversal.md#online).
