@@ -146,6 +146,22 @@ func found_threat() -> bool:
 	return true
 
 
+## Asks the director for an attack slot on `foe` (kit #1203): true when the character may fight
+## it now. With no director (a bare test, a character that steps itself) there is no cap.
+func take_slot(foe: Node3D) -> bool:
+	var at := body()
+	if at == null or at.director == null:
+		return true
+	return at.director.claim_attack_slot(at, foe)
+
+
+## Gives the character's attack slot back (nothing when it holds none).
+func free_slot() -> void:
+	var at := body()
+	if at != null and at.director != null:
+		at.director.slots.release(at)
+
+
 ## True while the character plays Safe.
 func plays_safe() -> bool:
 	var mind := brain()

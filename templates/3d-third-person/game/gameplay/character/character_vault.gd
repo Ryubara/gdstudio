@@ -6,9 +6,17 @@ extends RefCounted
 ## plan's numbers alone (the engine's sliding is off for the crossing; the probe found room for the
 ## whole path first). Only an obstacle with a `Vaultable` is ever crossed.
 ##
+## The capsule goes up over the top, so it is never inside the obstacle. A vault timed by a
+## `VaultClip` (`VaultSettings.low_clip`, `high_clip`) shows something else: the clip carries the
+## body's rise and fall itself, so the model and the camera's target are held where the clip's
+## root belongs (`VaultPlan.root_at()`: level, forward through the clip's contact places, lifted
+## by the difference to the clip's reference height), `model_offset()` away from the capsule:
+## the camera's target here, in the step, and the model by `VaultAnimation` on each drawn frame.
+## The two meet at the start and at the landing.
+##
 ## Everything the next tick reads is in `save_step_state()`, so a body put back with
 ## `Character.restore()` crosses on the same path. The clip is the animation's business: it reads
-## `plan`, `duration()` and the obstacle's clip overrides from here.
+## `plan`, `clip()` and the obstacle's clip overrides from here.
 
 ## A vault or a mantle began: the body follows `plan` until it ends, in the state `VAULT` or
 ## `MANTLE` (the animation plays its clip from this).
@@ -22,6 +30,9 @@ var elapsed := 0.0
 var cooldown := 0.0
 ## The last refusal of a probe, for a test or a debug overlay (not step state).
 var last_refusal: StringName = &""
+
+# How far the camera's target is held from its own place now.
+var _camera_offset := Vector3.ZERO
 
 
 ## True while a crossing moves the body.
@@ -39,6 +50,23 @@ func duration() -> float:
 	return plan.duration
 
 
+## What the running vault's clip was keyed on (of `settings`), or null: a mantle, a vault timed
+## by the settings' shares, or none.
+func clip(settings: VaultSettings) -> VaultClip:
+	if settings == null or not plan.has_clip_timing():
+		return null
+	return settings.clip_for(plan.high)
+
+
+## Where the model's root is from the capsule's feet `share` (0 to 1) of the way through the
+## crossing (world axes): zero outside a vault timed by a clip, and at its start and landing.
+func model_offset(settings: VaultSettings, share: float) -> Vector3:
+	var timing := clip(settings)
+	if timing == null or not is_active():
+		return Vector3.ZERO
+	return plan.root_at(timing, share) - plan.position_at(share)
+
+
 ## One tick of `body`'s vault, called at the top of its living step: starts a crossing when its
 ## command asks and the probe finds one, and moves the body along the running one. True while a
 ## crossing moves the body (the rest of the body's tick is skipped). Reads and writes the body's
@@ -50,7 +78,7 @@ func drive(body: Character, delta: float) -> bool:
 	tick_cooldown(delta)
 	# Something else took the body (it died and got up, a hit threw it): the crossing is over.
 	if is_active() and body.state != Character.State.VAULT and body.state != Character.State.MANTLE:
-		cancel()
+		cancel(body)
 	if not is_active():
 		if not body._grounded or body._action_lock > 0.0:
 			return false
@@ -67,6 +95,7 @@ func drive(body: Character, delta: float) -> bool:
 			return false
 		_begin(body, settings)
 	tick(body, settings, delta)
+	_lift_camera(body, model_offset(settings, progress()))
 	body.aim_amount = move_toward(
 		body.aim_amount, 0.0, delta / maxf(body.tuning.aim_pose_time, 0.001)
 	)
@@ -116,10 +145,14 @@ func tick_cooldown(delta: float) -> void:
 	cooldown = maxf(cooldown - delta, 0.0)
 
 
-## Ends a crossing at once (the body died, was put somewhere else).
-func cancel() -> void:
+## Ends a crossing at once (the body was put somewhere else, got up again); with `body`, its
+## model and camera target go back onto the capsule.
+func cancel(body: Character = null) -> void:
 	plan = VaultPlan.new()
 	elapsed = 0.0
+	if body != null:
+		_lift_camera(body, Vector3.ZERO)
+		VaultAnimation.release(body.model)
 
 
 ## What the next tick reads, as plain values (`CharacterState.vault`).
@@ -158,6 +191,18 @@ func _begin(body: Character, settings: VaultSettings) -> void:
 	var vaulting := plan.kind == VaultPlan.Kind.VAULT
 	body.state = Character.State.VAULT if vaulting else Character.State.MANTLE
 	started.emit(plan)
+
+
+# Holds the camera's target `offset` from its own place over the capsule, so the view follows the
+# body that is drawn (level, where the clip's root is) and not the capsule's way over the top.
+# The model itself is held there by the animation, on every drawn frame (`VaultAnimation`).
+func _lift_camera(body: Character, offset: Vector3) -> void:
+	if offset == _camera_offset:
+		return
+	_camera_offset = offset
+	CharacterCapsule.fit(body)
+	var target := body._camera_target
+	target.position = Vector3(offset.x, target.position.y + offset.y, offset.z)
 
 
 func _asked(
