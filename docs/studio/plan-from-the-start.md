@@ -106,7 +106,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   [deadnight #483](https://github.com/Ryubara/deadnight/issues/483)).
 - Plan: that test is a gate with thresholds in CI from the first predicting client (native and the web build through a
   relay, frozen, with a teeth run that breaks the reconciler and the server's hold), not a measurement in a pull
-  request ([the bad-network gate](../engines/godot/third-person/online-client.md#bad-network-gate)).
+  request ([the bad-network gate](../engines/godot/third-person/online-gate.md#bad-network-gate)).
 - Plan: protocol and snapshot version bumps that collide across branches: bump past main right before the last push
   ([netcode](../gamedev/netcode.md#parallel-branches)).
 - Plan: deploy skew between the web build and the game server: wait for the same commit

@@ -84,6 +84,8 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	if Vector2(puppet._crouch_amount, puppet._prone.amount) != shape_before:
 		puppet._fit_body()
 	puppet.state = entry.state as Character.State
+	# A vault or a mantle: its plan and clip are worked out here (nothing about it is sent).
+	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
 
 
 ## Puts `puppet` at `spot` at once (a join, a warp): nothing eased is left over.

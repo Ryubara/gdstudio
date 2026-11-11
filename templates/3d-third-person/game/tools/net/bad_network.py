@@ -3,7 +3,7 @@
 A predicting client's report (`NetPlayReport`: the native `PREDICT_BOT` line of `tools/net/predict_bot.gd`, or
 `window.gdnet.report` of the browser's `NetPlayProbe`) and the game server's log are judged here, so
 `tools/net/bad_network_gate.py` and `tools/web_smoke/net_play_smoke.py` fail on the same numbers. Each threshold
-names what it guards (kit docs: engines/godot/third-person/online-client.md#bad-network-gate).
+names what it guards (kit docs: engines/godot/third-person/online-gate.md#bad-network-gate).
 """
 
 from __future__ import annotations

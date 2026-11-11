@@ -84,7 +84,7 @@ the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
 3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
-([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+([the bad-network gate](third-person/online-gate.md#bad-network-gate)).
 
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 

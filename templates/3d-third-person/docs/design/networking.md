@@ -64,20 +64,25 @@ stepped its own meanwhile (it walks on a moment, then stands), so both come out 
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
-Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
+A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
+the AI's puppets), so its clip plays as on the body that steps it with nothing more sent. Nothing that only looks
+(a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
 character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
 (`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
 dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
 animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
-event, its shot a muzzle flash this screen plays. Characters farther away are sent less often (`ai_tier_rates.tres`
+event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
+is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
+farther away are sent less often (`ai_tier_rates.tres`
 on the server), and none past the interest radius. A browser among the players caps how many characters run for
 everyone.
 
 Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `join_on_ready`, `player_name`,
 `spawn_group`, `spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
-`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`.
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`, `puppets_per_frame`,
+`puppet_budget_usec`, `puppets_shown_per_frame`, `viewer`.
 
 ## Playing online
 

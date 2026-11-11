@@ -12,7 +12,9 @@ freeze, worst error under 6 m a stall (hitches closer than a round trip add up),
 starved puppets within what the network allows, no `Buffer payload full` or other console error, nobody kicked and no
 ERROR in the server's log. The page also records every frame's length and the GL programs linked in it: the report's
 `hitches` lists each frame past 0.25 s after the seat (the planned freezes marked), and the gate fails on more than
-one in the first 3 s after the seat (the probe joins after the level's warm-up and its last slow frames, kit #1106).
+one in the first 3 s after the seat (the probe joins after the level's warm-up and its last slow frames, kit #1106)
+and on any GL program linked after the seat: the warm-up must have drawn everything the page draws, puppets and AI
+included (`hitches.late_programs` names each one's `#define`s, the variant it was built for; gdstudio #1218).
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/web_smoke/net_play_smoke.py build/web build/net_play \\
@@ -68,8 +70,12 @@ JOIN_HITCHES = 1
 # A frame longer than the server's hold (four steps at 60 a second) sends its commands too late for it: the server
 # repeats the last one, and the answers correct the body. Counted, not judged.
 HOLD_MS = 4000 / 60
+# A frame longer than two at 60 a second: the join's window lists each one (gdstudio #1208).
+SLOW_MS = 2000 / 60
 # The seconds after the seat whose hitches the report lists apart (kit issue #1106: the join's).
 JOIN_WINDOW_S = 3.0
+# The `#define` names kept of each program linked after the seat (its fragment shader's, the variant it was built for).
+LATE_DEFINES = 40
 # Before the game loads: every frame's length (`performance.now()` read inside the requestAnimationFrame callback,
 # web-probes.md#boot-check), the GL programs linked in it and their milliseconds (first-use-hitches.md#how-to-find-it),
 # the moment the probe said `seated` (`window.gdnet`, or the online game's `window.gdonline`: `online.py`) and the
@@ -78,10 +84,33 @@ FRAME_WATCH = """
 (() => {
   const w = window;
   w.__frames = []; w.__freezes = []; w.__seat = -1;
+  w.__late = [];
   let links = 0, linkMs = 0, last = -1;
   const proto = WebGL2RenderingContext.prototype;
   const link = proto.linkProgram, param = proto.getProgramParameter;
-  proto.linkProgram = function (p) { p.__t = performance.now(); return link.call(this, p); };
+  const make = proto.createShader, source = proto.shaderSource, attach = proto.attachShader;
+  // Each fragment shader's source, so a program linked after the seat is named by its `#define`s (the variant:
+  // DISABLE_FOG, SECOND_REFLECTION_PROBE, USE_INSTANCING...), gdstudio #1218.
+  proto.createShader = function (type) {
+    const s = make.call(this, type);
+    if (s && type === this.FRAGMENT_SHADER) { s.__frag = true; }
+    return s;
+  };
+  proto.shaderSource = function (s, text) { if (s && s.__frag) { s.__src = text; } return source.call(this, s, text); };
+  proto.attachShader = function (p, s) { if (s && s.__frag) { p.__frag = s; } return attach.call(this, p, s); };
+  proto.linkProgram = function (p) {
+    p.__t = performance.now();
+    if (w.__seat >= 0) {
+      const text = (p.__frag && p.__frag.__src) || '';
+      const names = [];
+      for (const line of text.split(String.fromCharCode(10))) {
+        const m = /^#define ([A-Z0-9_]+)/.exec(line);
+        if (m && !names.includes(m[1])) { names.push(m[1]); }
+      }
+      w.__late.push([p.__t - w.__seat, names.slice(0, %LATE%).join(' ')]);
+    }
+    return link.call(this, p);
+  };
   proto.getProgramParameter = function (p, n) {
     const r = param.call(this, p, n);
     if (n === this.LINK_STATUS && p.__t) { links += 1; linkMs += performance.now() - p.__t; p.__t = 0; }
@@ -130,7 +159,9 @@ def report_of(page: Page) -> dict:
 
 def hitches(page: Page) -> dict:
     """The page's frames past `HITCH_S` after the seat, the planned freezes told apart, with the programs each linked."""
-    seat, frames, freezes = page.evaluate("() => [window.__seat, window.__frames, window.__freezes]")
+    seat, frames, freezes, late = page.evaluate(
+        "() => [window.__seat, window.__frames, window.__freezes, window.__late]"
+    )
     if seat < 0:
         return {"error": "no seat seen"}
     out = []
@@ -144,6 +175,9 @@ def hitches(page: Page) -> dict:
     joined = [h for h in unplanned if h["at_s"] < JOIN_WINDOW_S]
     after = [f for f in frames if f[0] >= seat]
     lengths = sorted(f[1] for f in after if not any(f[0] <= at + 50 and at <= f[0] + f[1] for at, _ in freezes))
+    # The longest frame of the join's window, whatever its length (the first AI snapshot's puppets, gdstudio #1208).
+    joining = [f for f in after if f[0] - seat < JOIN_WINDOW_S * 1000]
+    join_frames = [f[1] for f in joining]
     return {
         "frames": len(after),
         "frame_ms_p50": round(lengths[len(lengths) // 2]) if lengths else -1,
@@ -152,7 +186,13 @@ def hitches(page: Page) -> dict:
         "unplanned": len(unplanned),
         "in_join_window": len(joined),
         "join_window_ms": sum(h["ms"] for h in joined),
+        "join_worst_ms": round(max(join_frames, default=0)),
+        # Each frame of the join's window longer than two at 60 a second: seconds after the seat, its length, programs
+        # linked and their milliseconds.
+        "join_slow": [[round((f[0] - seat) / 1000, 2), round(f[1]), f[2], f[3]] for f in joining if f[1] > SLOW_MS],
         "links_after_seat": sum(f[2] for f in after),
+        # Each program linked after the seat: seconds after it, its fragment shader's `#define` names.
+        "late_programs": [[round(at / 1000, 2), names] for at, names in late],
         "worst_unplanned_ms": max((h["ms"] for h in unplanned), default=0),
         "list": out,
     }
@@ -260,7 +300,7 @@ def main() -> int:
             page = browser.new_page(viewport={"width": width, "height": height})
             page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
             page.on("pageerror", lambda error: errors.append(str(error)))
-            page.add_init_script(FRAME_WATCH)
+            page.add_init_script(FRAME_WATCH.replace("%LATE%", str(LATE_DEFINES)))
             page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netplay&url={page_url}")
             seated = wait_for(page, "window.gdnet && window.gdnet.state === 'seated'", READY_TIMEOUT_S)
             state = page.evaluate("() => window.gdnet ? window.gdnet.state : 'no probe'")
@@ -302,6 +342,12 @@ def main() -> int:
             f"at most {JOIN_HITCHES} hitch past {HITCH_S} s in the {JOIN_WINDOW_S:.0f} s after the seat (the warm-up's)",
             0 <= joined <= JOIN_HITCHES,
             {k: v for k, v in result["client"]["hitches"].items() if k != "list"},
+        )
+        hitches_seen = result["client"]["hitches"]
+        verdict.check(
+            "no GL program linked after the seat (the warm-up drew everything the page draws)",
+            hitches_seen.get("links_after_seat", -1) == 0,
+            hitches_seen.get("late_programs", hitches_seen.get("error")),
         )
     payload_full = [e for e in errors if "Buffer payload full" in e]
     verdict.check("no Buffer payload full in the console", not payload_full, len(payload_full))
