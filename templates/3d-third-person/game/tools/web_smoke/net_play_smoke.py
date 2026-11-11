@@ -19,6 +19,11 @@ one in the first 3 s after the seat (the probe joins after the level's warm-up a
         --godot <pinned godot> --project game [--url wss://<deployment> --delay-ms 0] [--stall-chance 0.01]
         [--break hold --expect-fail]
 
+With `--unread 60` the page does not freeze: the relay stops reading what the server sends for 60 s from 8 s after
+the seat (the page still plays and sends; a page that also stops sending is hung up on after the server's 15 s of
+silence), with `--bots 7` for eight players' TICKs; then the burst of what waited must reach the page without a
+`Buffer payload full`, the body must settle on the server's place and nobody is kicked.
+
 `result.json` and the logs go to the second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
 """
 
@@ -36,7 +41,7 @@ from pathlib import Path
 from playwright.sync_api import Page, sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
-from bad_network import Network, Verdict, judge_client, judge_server, judge_server_clock, server_log
+from bad_network import END_GAP_M, Network, Verdict, judge_client, judge_server, judge_server_clock, server_log
 from bad_network_gate import godot_cmd, start, stop, wait_for_port
 from relay import Relay
 
@@ -45,6 +50,8 @@ READY_TIMEOUT_S = 120.0
 FREEZES = [(8.0, 500), (16.0, 2000), (24.0, 5000)]
 WALK_S = 30.0
 SETTLE_S = 2.0
+# Seconds the page walks on after a stalled downlink before it stands (`--unread`).
+UNREAD_CATCH_UP_S = 10.0
 # A page drawn slower than this runs fewer physics steps than the server (the engine's catch-up is 8 a frame) and
 # hitches past the stall guard's 0.25 s: SwiftShader drew the 1280x720 page at 6 frames a second, 320x180 at 40.
 MIN_FPS = 20
@@ -148,10 +155,16 @@ def hitches(page: Page) -> dict:
     }
 
 
-def play(page: Page) -> dict:
-    """Walks, freezes the page's thread at the planned moments, stands, and returns the report."""
+def play(page: Page, relay: Relay | None = None, unread_s: float = 0.0) -> dict:
+    """Walks, freezes the page's thread at the planned moments (or stalls its downlink `unread_s` from the first
+    freeze's moment), stands, and returns the report."""
     seated_at = time.monotonic()
-    for at, ms in FREEZES:
+    walk_s = WALK_S
+    if unread_s > 0.0 and relay is not None:
+        time.sleep(FREEZES[0][0])
+        relay.hold_down(unread_s)
+        walk_s = FREEZES[0][0] + unread_s + UNREAD_CATCH_UP_S
+    for at, ms in FREEZES if unread_s <= 0.0 else []:
         wait = at - (time.monotonic() - seated_at)
         if wait > 0:
             time.sleep(wait)
@@ -159,7 +172,7 @@ def play(page: Page) -> dict:
             f"() => {{ const t = performance.now(), end = t + {ms}; window.__freezes.push([t, {ms}]);"
             " while (performance.now() < end) {} }"
         )
-    time.sleep(max(0.0, WALK_S - (time.monotonic() - seated_at)))
+    time.sleep(max(0.0, walk_s - (time.monotonic() - seated_at)))
     page.evaluate("() => { window.gdnet.stop = true; }")
     wait_for(page, "JSON.parse(window.gdnet.report).standing", 10)
     time.sleep(SETTLE_S)
@@ -168,6 +181,18 @@ def play(page: Page) -> dict:
     report["hitches"] = hitches(page)
     report["settle_ms"] = page.evaluate("() => window.gdnet.settle_ms === undefined ? -1 : window.gdnet.settle_ms")
     return report
+
+
+def judge_unread(report: dict, verdict: Verdict) -> None:
+    """A stalled downlink: the puppets starve and the answers stop for its length by design, so only what must hold
+    after it is judged: seated throughout, no body lost, settled on the server's place."""
+    seated = "error" not in report and report.get("slot", -1) >= 0
+    verdict.check("the client was seated", seated, {"slot": report.get("slot"), "error": report.get("error")})
+    if not seated:
+        return
+    verdict.check("no answer more than 6 m off", report["lost"] == 0, report["lost"])
+    gap = report.get("end_gap_m", report.get("gap_m", -1.0))
+    verdict.check(f"settled under {END_GAP_M} m", 0.0 <= gap < END_GAP_M, gap)
 
 
 def main() -> int:
@@ -182,6 +207,7 @@ def main() -> int:
     parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
     parser.add_argument("--bots", type=int, default=3, help="bots that give the page puppets")
     parser.add_argument("--break", dest="broken", choices=["hold"], default="", help="teeth check: no server hold")
+    parser.add_argument("--unread", type=float, default=0.0, help="seconds the downlink stalls instead of freezes")
     parser.add_argument("--expect-fail", action="store_true", help="exit 0 only when the gate failed")
     parser.add_argument("--gpu", action="store_true", help="draw with the machine's GPU instead of SwiftShader")
     parser.add_argument("--viewport", default="320x180", help="the page's size, WxH (a small page draws faster)")
@@ -204,7 +230,7 @@ def main() -> int:
             )
             url = f"ws://127.0.0.1:{wait_for_port(args.out / 'server.log', server)}"
         page_url = url
-        if args.delay_ms > 0:
+        if args.delay_ms > 0 or args.unread > 0:
             scheme, rest = url.split("://", 1)
             host, _, port = rest.partition(":")
             if scheme != "ws":
@@ -218,7 +244,7 @@ def main() -> int:
                 "--bots",
                 str(args.bots),
                 "--seconds",
-                str(int(READY_TIMEOUT_S + WALK_S + 60)),
+                str(int(READY_TIMEOUT_S + WALK_S + args.unread + 60)),
             ]
             bots = start(
                 godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log"
@@ -234,7 +260,7 @@ def main() -> int:
             seated = wait_for(page, "window.gdnet && window.gdnet.state === 'seated'", READY_TIMEOUT_S)
             state = page.evaluate("() => window.gdnet ? window.gdnet.state : 'no probe'")
             if seated:
-                report = play(page)
+                report = play(page, relay, args.unread)
             else:
                 report = {"error": f"not seated: {state}"}
             report["end_gap_m"] = report.get("gap_m", -1.0)
@@ -261,7 +287,10 @@ def main() -> int:
     verdict.check(
         f"the page drew at least {MIN_FPS} frames a second (else the run measures the machine)", fps >= MIN_FPS, fps
     )
-    judge_client(result["client"], network, verdict)
+    if args.unread > 0:
+        judge_unread(result["client"], verdict)
+    else:
+        judge_client(result["client"], network, verdict)
     if "hitches" in result["client"]:
         joined = result["client"]["hitches"].get("in_join_window", -1)
         verdict.check(
