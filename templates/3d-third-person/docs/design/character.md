@@ -199,7 +199,14 @@ needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
 sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
-right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes). Tune
+right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes, 0.3; 0
+swaps at once). A swap keeps what the crosshair is on under it (Shoulder swap subgroup): `keep_aim_on_swap` (on) finds
+the point under the crosshair when the swap starts (what the weapon would hit, or the ray's end at `aim_point_range`,
+100 m, when nothing is there; never nearer than `aim_point_min_distance`, 2 m, past the arm, on `aim_point_mask`) and
+turns the view inward as it slides so the point stays put, so a shot fired mid-swap goes there; `aim_shoulder_time`
+(0.15 s) is the swap's time while aiming; `swap_anchor_strength` (1) is how much of that turn is made; `swap_look` says
+what the player's own look does during the swap: `ADD` (the default) turns the view by it on top of the anchor, `RELEASE`
+does too until it adds up to `swap_release_angle` (4 degrees) and then lets the point go. Tune
 the shoulder there, in the editor or in the remote inspector while the game runs; nothing else writes those two values
 (the Phantom Camera host copies its lens resource onto `Camera` whenever it changes, so `PlayerCamera` keeps the
 resource equal to them). With `aim_shifts_shoulder` on, aiming also moves the view to `aim_shoulder`. The settings are

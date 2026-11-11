@@ -105,6 +105,78 @@ blend takes it to zero.
   origin is inside the capsule, where a ray ignores the body it starts in. The addon excludes `follow_target`, a
   `Node3D` and no collision object, so it excludes nothing. **Seen:** gdstudio #856, 2026-11-08.
 
+## Keeping the aim through a shoulder swap {#shoulder-swap-aim}
+
+<!-- new section: the page held the shoulder view (Phantom Camera) and walls; nothing said what a swap does to the aim
+     or how look input and the swap go together -->
+
+An over-the-shoulder view draws the crosshair in the middle of the screen while the lens sits beside the character, so
+the crosshair's ray is the view's axis moved sideways by the shoulder offset. Swapping shoulders moves that ray by twice
+the offset (1 m in 3D Third Person): with the view's turn unchanged, a point 4 m out slides about 10 degrees off the
+crosshair, one at 30 m about 2 degrees, and a shot fired mid-swap goes where the player did not aim.
+
+**What games and engines do (researched 2026-11-11).** No shipped game documents its swap code, so this rests on
+guides, developer threads and engine docs, and the claims about games are second-hand:
+
+- *Swap at once.* Guides describe the swaps of ARC Raiders and Ghost Recon Breakpoint as instant
+  ([allthings.how on ARC Raiders](https://allthings.how/arc-raiders-shoulder-swap-keyboard-and-controller-controls),
+  [on Breakpoint](https://allthings.how/?p=102873)); the ARC Raiders guide says the crosshair and the point of impact do
+  not change, another says the gun changes side
+  ([Gamer Guides](https://gamer-guides.com/arc-raiders/arc-raiders-settings/)), so that part is unsettled. An instant
+  swap leaves no frame mid-way to aim from, which is why it is offered here as a time of 0.
+- *Swap tied to aiming.* The Last of Us Part II swaps while aiming and has a setting to keep the last shoulder
+  ([GameAccess](https://gameaccess.info/the-last-of-us-part-ii-motor-accessibility-options/3/)); PUBG players asked for
+  a swap that does not need aiming
+  ([Steam discussion](https://steamcommunity.com/app/578080/discussions/1/135512305404046752)). A swap made mostly while
+  aiming is a reason for a shorter time while aiming (`aim_shoulder_time`).
+- *Keep the point.* Developers who animate the swap find the aimed point by tracing from the camera before the swap,
+  keep that point (no new trace during it) and turn the control rotation toward it as the offset moves, with a minimum
+  range so a wall at the muzzle does not swing the view round; *adding* the turn to the control rotation instead of
+  setting it is what lets the player keep looking during the swap
+  ([Unreal forum thread](https://forums.unrealengine.com/t/1207784)).
+  When the crosshair's ray hits nothing, the aimed point is the ray's end at a fixed distance, as Cinemachine's
+  third-person aim does with its aim distance
+  ([Cinemachine 3rd Person Aim](https://docs.unity3d.com/Packages/com.unity.cinemachine@2.6/manual/Cinemachine3rdPersonAim.html)).
+- *Camera feel.* Several automatic camera motions fighting over one angle is a classic mistake, the player's input
+  comes first, and modifiers should be relative, not absolute (John Nesky, "50 Camera Mistakes", GDC 2014, mistakes 8
+  and 16: [GDC Vault](https://gdcvault.com/play/1020460/50-Camera), [translation](https://habr.com/en/post/272401)). An
+  automatic offset added to the player's own input, not replacing it, keeps the camera from fighting the hand
+  ([Little Polygon](https://blog.littlepolygon.com/posts/cameras/)). A stick's dead zone is the place that filters a
+  resting stick, radial and scaled
+  ([Josh Sutphin](https://www.gamedeveloper.com/disciplines/doing-thumbstick-dead-zones-right)), so the camera need not
+  guess whether an input is deliberate.
+
+**What 3D Third Person does.** `PlayerCamera.swap_shoulder()` finds the point the way the weapon does (the crosshair's
+ray from the character's depth, the character left out, the first hit on `aim_point_mask` or the ray's end at
+`aim_point_range`, never nearer than `aim_point_min_distance` past the arm) and keeps it. Each frame it works out the
+turn that puts that point on the crosshair from the side offset now and the turn from the offset the swap started at,
+both about where the arm starts now, and applies the *difference*: the player's look, the character's moves and a
+crouch add to it, nothing builds up, and the turn stays when the swap ends (the shoulder slide is eased, so the turn
+slows to nothing and no fade is needed; a fade back would turn the view off the point again). The player's look adds
+by default (`swap_look` `ADD`, no threshold to tune); `RELEASE` lets the point go once the look adds up to
+`swap_release_angle`. A stick resting inside its 0.2 dead zone sends no look at all. `swap_anchor_strength` scales the
+turn, `keep_aim_on_swap` off is the old slide, and a time of 0 swaps at once and turns by the whole correction in one
+frame. The client's camera is local and never sent: what it sends is the shot under its crosshair, so the server's body
+fires at the kept point (0.04 degrees off in `test_net_swap_aim.gd`).
+
+- **Approach:** Keep an aimed point through a change of view offset by applying the difference of two exact solutions
+  (the yaw and pitch through the point from the new offset, minus those from the starting offset, about the arm's
+  pivot now) on top of the current turn, and test it on the real `Camera3D`'s crosshair on a near board, a far board
+  and the empty sky, with a look mid-swap and with the anchor off (`test_camera_swap_aim.gd`, within 0.2 degrees).
+  **Watch out for:** setting the turn to the solution fights the player's look, and adding up a per-frame correction
+  drifts with any noise. **Seen:** gdstudio #1087, 2026-11-11.
+- **Approach:** When the view's turn and its H Offset change together, write the offset in the same step that moves
+  the Camera node: the Phantom Camera host copies the turn in its *physics* step (priority 300) when the camera
+  follows a physics body, so `PlayerCamera` writes a swap's offset from its `_physics_process` at priority 301; a
+  test reads the crosshair at each physics tick, where a shot samples it. **Watch out for:** an offset written at once
+  from `_process` met the old turn at the next tick: about 1 degree off mid-swap, a real shot 17 cm off at 8 m, while
+  the crosshair read after each frame looked right. **Seen:** gdstudio #1087, 2026-11-11 (fix: the offset waits for
+  the host's tick while a swap turns; `test_camera_swap_aim.gd` reads each physics tick).
+- **Approach:** Expect the character's head to cross the crosshair for a frame or two of a sideways slide (the lens
+  passes behind the head); the aim is unaffected, and a game that minds can raise `vertical_offset` or swap at once.
+  **Watch out for:** reading that frame of a capture as the anchor failing. **Seen:** gdstudio #1087, 2026-11-11 (the
+  capture's contact sheets).
+
 ## Reading a rotation {#rotations}
 
 <!-- new section: the page held smoothing, walls and projection but nothing on reading a turn back from a transform -->
