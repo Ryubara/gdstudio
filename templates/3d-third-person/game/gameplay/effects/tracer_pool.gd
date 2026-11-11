@@ -15,6 +15,10 @@ extends MultiMeshInstance3D
 ## A streak was drawn from `from` to `to` (world space).
 signal tracer_drawn(from: Vector3, to: Vector3)
 
+## Floats an instance takes in the multimesh's buffer: a 3x4 transform (row by row), the colour
+## and the custom data.
+const STRIDE := 20
+
 ## The group the level's pool is in (`find`).
 const GROUP := &"tracer_pool"
 ## Half the size of the box the pool says it fills: the streaks are placed in the shader, so the
@@ -48,10 +52,13 @@ var compact := OS.has_feature("web") or OS.has_feature("mobile")
 
 var _lines: Array[Line] = []
 var _warm_left := 0
-# What the multimesh was last given, instance by instance (a headless run's multimesh keeps none).
-var _shown_transforms: Array[Transform3D] = []
-var _shown_colors := PackedColorArray()
-var _shown_energy := PackedFloat32Array()
+# Every instance's floats, handed to the multimesh in one call (setting instances one by one was
+# three server calls each: 96 for a full pool, about 100 µs a frame). A headless run's multimesh
+# keeps nothing, so `shown` reads this.
+var _buffer := PackedFloat32Array()
+var _shown := 0
+# A streak was drawn or ended since the buffer was last written.
+var _dirty := false
 
 
 ## One streak: where it runs, how far, how long it has shown and how it looks.
@@ -157,7 +164,8 @@ func draw(look: TracerDef, from: Vector3, to: Vector3) -> bool:
 	line.look = look
 	_lines.append(line)
 	_warm_left = 0
-	_write()
+	# Written once, by this frame's step (`_process`), however many shots the frame holds.
+	_dirty = true
 	set_process(true)
 	tracer_drawn.emit(from, to)
 	return true
@@ -178,7 +186,7 @@ func end_near(point: Vector3, radius: float) -> int:
 		line.heading = to_point / line.distance
 		ended += 1
 	if ended > 0:
-		_write()
+		_dirty = true
 	return ended
 
 
@@ -193,7 +201,7 @@ func end_newest_at(point: Vector3) -> bool:
 		return false
 	line.distance = to_point.length()
 	line.heading = to_point / line.distance
-	_write()
+	_dirty = true
 	return true
 
 
@@ -246,18 +254,27 @@ func line_at(index: int) -> Array[Vector3]:
 
 ## How many instances the multimesh draws now (each streak that shows, or the warm-up's one).
 func shown_count() -> int:
-	return _shown_transforms.size()
+	if _dirty:
+		_write()
+	return _shown
 
 
 ## What instance `index` of the multimesh was given: `transform` (Y from the tail to the head, X as
 ## wide as the streak), `color` (alpha the fade) and `energy`; empty past `shown_count()`.
 func shown(index: int) -> Dictionary:
-	if index < 0 or index >= _shown_transforms.size():
+	if index < 0 or index >= shown_count():
 		return {}
+	var at := index * STRIDE
+	var f := _buffer
+	var turn := Basis(
+		Vector3(f[at], f[at + 4], f[at + 8]),
+		Vector3(f[at + 1], f[at + 5], f[at + 9]),
+		Vector3(f[at + 2], f[at + 6], f[at + 10])
+	)
 	return {
-		"transform": _shown_transforms[index],
-		"color": _shown_colors[index],
-		"energy": _shown_energy[index],
+		"transform": Transform3D(turn, Vector3(f[at + 3], f[at + 7], f[at + 11])),
+		"color": Color(f[at + 12], f[at + 13], f[at + 14], f[at + 15]),
+		"energy": f[at + 16],
 	}
 
 
@@ -276,6 +293,8 @@ func _build() -> void:
 	multimesh.custom_aabb = AABB(Vector3.ONE * -BOUNDS, Vector3.ONE * BOUNDS * 2.0)
 	multimesh.instance_count = pool_cap()
 	multimesh.visible_instance_count = 0
+	_buffer.resize(pool_cap() * STRIDE)
+	_buffer.fill(0.0)
 
 
 # A new cap while the game runs: the room for it, and the oldest streaks past it cut.
@@ -286,17 +305,18 @@ func _resize() -> void:
 		_lines.pop_front()
 	_warm_left = 0
 	multimesh.instance_count = pool_cap()
+	_buffer.resize(pool_cap() * STRIDE)
+	_buffer.fill(0.0)
 	_write()
 	set_process(not _lines.is_empty())
 
 
 # Every streak that shows on the multimesh, the oldest first; hidden when there is none.
 func _write() -> void:
+	_dirty = false
 	if multimesh == null:
 		return
-	_shown_transforms.clear()
-	_shown_colors.clear()
-	_shown_energy.clear()
+	_shown = 0
 	for line in _lines:
 		var shape := line.shape()
 		if shape.x - shape.y < 0.0005 or shape.z <= 0.0:
@@ -304,18 +324,42 @@ func _write() -> void:
 		var tint := line.look.color
 		tint.a = shape.z
 		_put(_segment(line.at(shape.y), line.at(shape.x), line.look.width), tint, line.look.energy)
-	multimesh.visible_instance_count = _shown_transforms.size()
-	visible = not _shown_transforms.is_empty()
+	_send()
 
 
+# Instance `_shown` of the buffer, then one more shown.
 func _put(placed: Transform3D, tint: Color, energy: float) -> void:
-	var index := _shown_transforms.size()
-	multimesh.set_instance_transform(index, placed)
-	multimesh.set_instance_color(index, tint)
-	multimesh.set_instance_custom_data(index, Color(energy, 0.0, 0.0, 0.0))
-	_shown_transforms.append(placed)
-	_shown_colors.append(tint)
-	_shown_energy.append(energy)
+	var at := _shown * STRIDE
+	var x := placed.basis.x
+	var y := placed.basis.y
+	var z := placed.basis.z
+	var o := placed.origin
+	_buffer[at] = x.x
+	_buffer[at + 1] = y.x
+	_buffer[at + 2] = z.x
+	_buffer[at + 3] = o.x
+	_buffer[at + 4] = x.y
+	_buffer[at + 5] = y.y
+	_buffer[at + 6] = z.y
+	_buffer[at + 7] = o.y
+	_buffer[at + 8] = x.z
+	_buffer[at + 9] = y.z
+	_buffer[at + 10] = z.z
+	_buffer[at + 11] = o.z
+	_buffer[at + 12] = tint.r
+	_buffer[at + 13] = tint.g
+	_buffer[at + 14] = tint.b
+	_buffer[at + 15] = tint.a
+	_buffer[at + 16] = energy
+	_shown += 1
+
+
+# The buffer to the multimesh in one call, and the instances it draws.
+func _send() -> void:
+	if _shown > 0:
+		RenderingServer.multimesh_set_buffer(multimesh.get_rid(), _buffer)
+	multimesh.visible_instance_count = _shown
+	visible = _shown > 0
 
 
 # The instance transform of a streak from `tail` to `head`: Y along it, X as wide as it is.
@@ -336,9 +380,6 @@ func _draw_warm() -> void:
 	if camera != null:
 		at = camera.global_position
 		forward = -camera.global_basis.z
-	_shown_transforms.clear()
-	_shown_colors.clear()
-	_shown_energy.clear()
+	_shown = 0
 	_put(_segment(at + forward * 2.0, at + forward * 3.0, 0.01), Color(0.0, 0.0, 0.0, 0.0), 0.0)
-	multimesh.visible_instance_count = 1
-	visible = true
+	_send()
