@@ -230,7 +230,7 @@ server and a predicting client agree; nothing new is sent.
 
 **Online.** The layer is a pose on each machine. A puppet is placed with `facing` and `view_pitch` from the snapshot and
 its `view_yaw` is its facing, so on another screen a sliding player's pistol follows the aim's pitch but points along
-the body's facing, not to its side: the aim's yaw off the body is not in the snapshot (a follow-up issue).
+the body's facing, not to its side: the aim's yaw off the body is not in the snapshot (gdstudio #1277).
 
 **How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
 change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
