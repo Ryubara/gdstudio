@@ -68,8 +68,13 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
 - **Snapshots and events.** TICKs are full (no deltas). A TICK a full socket refuses is not sent and the events wait
   for the next (`peers_stalled` in the stats); at most 32 ride on one TICK and a client keeps at most 128 waiting. An
   event is something that happened once (`joined`, `left`); cosmetics never travel.
-- **The world hash** is `NetServer.world_hash_of(root)`: the paths and `net_kind` metadata of the nodes in the group
-  `net_part` (#907 adds them; the map has none yet). A client sends the same function of its own map.
+- **The world hash** is `NetServer.world_hash_of(map)`: the paths from the map node and the `net_kind` metadata of the
+  nodes under it in the group `net_part` (#907 adds them; the map has none yet). Both sides hash from the map node, the
+  `World` instance: `NetServer.world_root` (`World` in `net_server.tscn`) and `NetClient.world_root` (`World` in the
+  online arena), so what holds the map (a `SubViewport`, the tree's root, a menu scene) does not change the hash. The
+  map need not be in the tree: `server_bot.gd` hashes a `world.tscn` it never adds. A new client scene sets
+  `world_root` to its `World` (empty is the node's parent); `test_net_world_hash.gd` joins a client with one part and
+  refuses one whose part moved (#1058).
 - **The log** is one JSON object a line, said through `logged` too: `listening` (port, players_max, tick_hz,
   version, and the host's cpu and cores), `joined` (slot, name, players), `left` (slot, reason `goodbye`, `dropped`,
   `silent` or `kicked`, players, drops), `refused` (reason, peer), `kicked` (peer, drops by reason), and every 10 s

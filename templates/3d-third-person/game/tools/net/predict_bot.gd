@@ -76,7 +76,8 @@ func _initialize() -> void:
 	var holder := Node3D.new()
 	holder.name = "Online"
 	root.add_child(holder)
-	holder.add_child((load(WORLD) as PackedScene).instantiate())
+	var world := (load(WORLD) as PackedScene).instantiate()
+	holder.add_child(world)
 	var player := (load(PLAYER) as PackedScene).instantiate() as Player
 	player.start_at_spawn = false
 	var input := player.get_node("PlayerInput")
@@ -94,6 +95,7 @@ func _initialize() -> void:
 	_client.join_on_ready = false
 	_client.player = player
 	_client.remote_players = _remote
+	_client.world_root = world
 	_client.player_name = args.get_string("name", "Predictor")
 	_client.keep_frame_times = true
 	holder.add_child(_client)

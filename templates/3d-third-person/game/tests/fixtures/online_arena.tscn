@@ -14,8 +14,9 @@
 [node name="RemotePlayers" type="Node3D" parent="."]
 script = ExtResource("3_remote")
 
-[node name="NetClient" type="Node" parent="." node_paths=PackedStringArray("player", "remote_players")]
+[node name="NetClient" type="Node" parent="." node_paths=PackedStringArray("player", "remote_players", "world_root")]
 script = ExtResource("4_client")
 player = NodePath("../PlayerRig/Player")
 remote_players = NodePath("../RemotePlayers")
+world_root = NodePath("../World")
 join_on_ready = false

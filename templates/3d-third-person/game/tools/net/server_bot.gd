@@ -69,6 +69,8 @@ const SHOT_TICKS := 16
 ## aims on the other body.
 const EYE_HEIGHT := 1.55
 const CHEST := 1.15
+## The map the server runs (`net_server.tscn`'s `World`): its world hash goes in every hello.
+const WORLD := "res://world/world.tscn"
 
 var _links: Array[WebSocketLink] = []
 var _bots: Array[Dictionary] = []
@@ -79,6 +81,8 @@ var _moves := false
 var _shoot := false
 ## The version a hello carries (`--version`), -1 for this build's.
 var _version := -1
+## The world hash of the map (`NetServer.world_hash_of`, from the map node as the server hashes).
+var _world_hash := 0
 
 
 func _initialize() -> void:
@@ -90,6 +94,9 @@ func _initialize() -> void:
 	var url := args.get_string("connect", "ws://127.0.0.1:%d" % WebSocketLink.DEFAULT_PORT)
 	var count := clampi(args.get_int("bots", 1), 1, NetLimits.MAX_PLAYERS)
 	_end_tick = args.get_int("seconds", 10) * NetLimits.TICK_RATE
+	var world := (load(WORLD) as PackedScene).instantiate()
+	_world_hash = NetServer.world_hash_of(world)
+	world.free()
 	for index in count:
 		var link := WebSocketLink.new()
 		link.connect_to_url(url)
@@ -193,7 +200,7 @@ func _passed() -> bool:
 
 
 func _on_connected(index: int) -> void:
-	var hello := NetWire.hello("Bot%d" % index, NetServer.world_hash_of(root))
+	var hello := NetWire.hello("Bot%d" % index, _world_hash)
 	if _version >= 0:
 		hello[NetWire.VERSION_AT] = _version
 	_links[index].send(hello)

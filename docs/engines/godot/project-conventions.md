@@ -110,7 +110,7 @@ project's hooks hold.
   was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
   clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
-  matched and read `git diff` of every file it touched before the commit).
+  matched and read `git diff` of every file it touched before the commit); gdstudio #1059.
 
 ## Where the rules came from {#where-the-rules-came-from}
 
