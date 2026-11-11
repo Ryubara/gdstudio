@@ -450,3 +450,55 @@ def test_a_removed_worktree_folder_is_not_reused(world, monkeypatch):
     old = old_worktree(world)
     shutil.rmtree(old, ignore_errors=True)  # git still lists it, as prunable
     assert worktrees.checked_out(world["checkout"], world["worktrees"] / "deadnight") == {}
+
+
+# --- the new worktree gets the pinned Godot addons, as `gds workspace init` installs them (kit issue #1128) ---------
+
+GODOT_PROJECT = 'config_version=5\n\n[editor_plugins]\n\nenabled=PackedStringArray("res://addons/gds_ui/plugin.cfg")\n'
+
+
+def fetched_addons(root: Path) -> None:
+    """The pinned addons of the kit's tools.toml as `gds workspace init` unpacks them under `<workspace>/tools/`."""
+    from gds_tools.manifest import load_tools
+
+    for tool in load_tools(Path(__file__).resolve().parents[2] / "tools.toml").values():
+        if tool.kind == "godot-addon":
+            folder = root / "tools" / tool.folder
+            (folder / tool.extra["source"]).mkdir(parents=True)
+            (folder / tool.extra["source"] / "plugin.cfg").write_text("[plugin]\n", encoding="utf-8")
+            (folder / ".gds-installed").write_text("sha256:abc\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("project", ["game", "godot"])  # a game's project, the kit's own
+def test_a_new_worktree_gets_the_pinned_godot_addons_untracked(world, monkeypatch, project):
+    (world["seed"] / project).mkdir()
+    push_to_main(world, f"{project}/project.godot", GODOT_PROJECT)
+    fetched_addons(world["root"])
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = prepare_for(world)(issue_526())
+    tree = Path(done.path)
+    for addon in ("gdUnit4", "godot_mcp"):
+        assert (tree / project / "addons" / addon / "plugin.cfg").is_file()
+        assert f'"res://addons/{addon}/plugin.cfg"' in (tree / project / "project.godot").read_text(encoding="utf-8")
+    assert any("gdUnit4" in line for line in done.lines)
+    assert git(tree, "status", "--porcelain") == ""  # excluded, and the plugins filtered out of project.godot
+
+
+def test_a_reused_worktree_gets_the_addons_it_lacks(world, monkeypatch):
+    (world["seed"] / "game").mkdir()
+    push_to_main(world, "game/project.godot", GODOT_PROJECT)
+    git(world["checkout"], "fetch", "-q", "origin")
+    path = old_worktree(world)
+    fetched_addons(world["root"])
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    prepare_for(world)(issue_526())
+    assert (path / "game" / "addons" / "gdUnit4" / "plugin.cfg").is_file()
+
+
+def test_addons_not_fetched_leave_the_start_alone_and_say_so(world, monkeypatch):
+    (world["seed"] / "game").mkdir()
+    push_to_main(world, "game/project.godot", GODOT_PROJECT)
+    monkeypatch.setattr(worktrees, "install_hooks", lambda tree, git=worktrees.run: fake_install(tree))
+    done = prepare_for(world)(issue_526())
+    assert not (Path(done.path) / "game" / "addons").exists()
+    assert any("not fetched" in line and "gds workspace init" in line for line in done.lines)

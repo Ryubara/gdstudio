@@ -592,6 +592,11 @@ LENGTH_B = 0.9
 PER_PAGE = 2
 #: A section whose own text (without its subsections) is shorter than this is a heading over subsections: skipped.
 MIN_BODY_CHARS = 80
+#: A section found only because it mentions a path the issue names is named when its word score is at least this share
+#: of the best section's: a path named in passing (an `Area` line's `game/core/`, a file a section cites as an example)
+#: otherwise briefs a section about something else (gdstudio #1133: voice lines for online play, at 0.19). Tuned on
+#: 120 kit issues of 2026-11-11: the mentions far from the task scored 0.17 to 0.31, those that fit 0.35 and up.
+MENTION_FLOOR = 1 / 3
 
 
 @dataclass(frozen=True)
@@ -683,7 +688,8 @@ def propose(
 
     1. every `page.md#anchor` the issue names that exists;
     2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
-       closest to the issue's words, any other path the closest section that mentions it;
+       closest to the issue's words, any other path the closest section that mentions it, when its words are not far
+       from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such closeness);
     3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
        from one page.
 
@@ -718,6 +724,8 @@ def propose(
         if not mentions and "." in name and len(name) >= 8:
             alone = re.compile(rf"(?<![\w.-]){re.escape(name)}(?![\w-])")
             mentions = [s for s in sections if alone.search(s.body)]
+        floor = MENTION_FLOOR * ranked[0][0] if ranked and path not in (paths or []) else 0.0
+        mentions = [s for s in mentions if score.get(s.ref, 0.0) >= floor]
         if mentions:
             add(max(mentions, key=lambda s: (score.get(s.ref, 0.0), -len(s.body))), f"mentions {path}")
     from_page: dict[str, int] = {}

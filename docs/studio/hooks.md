@@ -509,9 +509,10 @@ open) and the learning loop (each event's text, the queue gate and its loop guar
 and the background sweep (started once, throttled, switched off, log moved aside; started by session start, a merge and
 Stop).
 `python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
-`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a pull
-request read through recorded `gh` answers, the order of the proposed sections, and that the kit's own brief names
-sections that exist; `hooks/test_hook_issues.py` and `hooks/test_hook_docs.py` cover the `Read:` guard and the
-report's `Read:` and `Docs gaps:` lines.
+`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a
+pull request read through recorded `gh` answers, the order of the proposed sections, a path mention far from the issue's
+words left out (#909's body in `python/tests/fixtures/issue_bodies/`), and that the kit's own brief names sections that
+exist; `hooks/test_hook_issues.py` and `hooks/test_hook_docs.py` cover the `Read:` guard and the report's `Read:` and
+`Docs gaps:` lines.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

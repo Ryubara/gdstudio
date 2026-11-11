@@ -53,6 +53,15 @@ the `#define` list of each program (`DISABLE_LIGHT_OMNI`, `USE_INSTANCING`, `MOD
 second program for the same material was needed. Frame times alone (requestAnimationFrame deltas) show the hitches but
 not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough, a software renderer is not.
 
+- **Approach:** On a software renderer (SwiftShader, Playwright's default page) time every WebGL call per frame, not
+  only `linkProgram`: there the link costs about 1 ms a program, the compile waits in `getShaderParameter`
+  (`COMPILE_STATUS`, 100 to 480 ms a frame) and the drawing itself in the first call that waits on the GPU process
+  (Godot's `getParameter(0x0C11)`, 100 to 1400 ms a frame), so a frame with no program linked can still be the
+  longest. **Watch out for:** the browser gate's page hitched 0.3 to 0.9 s after joining with 0 to 16 programs linked
+  in those frames; timing every `WebGL2RenderingContext` method, with the engine's markers logged to the console,
+  showed the level's warm-up (`EffectEmitter`'s tour of the probes, 6 s past the seat), not the puppets. **Seen:**
+  gdstudio #1106, 2026-11-11 (fix: the probe joins after `warmed`; `FRAME_WATCH` in `net_play_smoke.py`).
+
 ## The first draw of a shader builds four programs, two of them huge {#first-shader-draw}
 
 Reading the engine (`ShaderGLES3::_version_bind_shader` and `_initialize_version`, 4.7) and measuring in Chrome
