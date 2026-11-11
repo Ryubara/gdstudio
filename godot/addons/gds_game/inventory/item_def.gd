@@ -30,6 +30,17 @@ extends Resource
 ## dropped item can be taken again). Empty: a dropped item is gone.
 @export var drop_scene: PackedScene
 
+@export_group("Use")
+## What using it does (the bandage heals). Empty: it is carried, never used.
+@export var use_effect: ItemEffect
+## On: using it takes one out of the bag. Off: it stays (a torch switched on and off).
+@export var consumed_on_use := true
+
+
+## Whether the item does something when used (it has a `use_effect`).
+func is_usable() -> bool:
+	return use_effect != null
+
 
 ## The count shown on a slot: nothing for a single item, the number otherwise.
 func count_text(count: int) -> String:
