@@ -63,7 +63,9 @@ travel and the reach; the spawn point's blue arrow is its `-Z`.
 
 The HUD's `MinimapSlot` holds the small `Minimap` (follows the character, turns with the camera); the rig's `MapLayer`
 holds the `MapScreen` (`M`, the whole map). The player, pickups, targets and doors carry a `MinimapMarker`; the
-workshop is a `MinimapSection`. How it works and what it costs: [Minimap](../minimap.md).
+workshop is a `MinimapSection`. `character_dressed.tscn` carries a `MinimapHeading` pointed at its `Model`, so the
+player's arrow (and any dressed character's) shows where the model faces, not the body, which never turns. How it
+works and what it costs: [Minimap](../minimap.md).
 
 - **The inspector, on `Minimap`.** Nodes: `target`, `target_group`. Shape: `shape`, `map_size`, `max_screen_fraction`,
   `corner_ratio`. View: `range_m`, `range_min`, `range_max`, `zoom_step`, `zoom_smoothing`, `rotation_mode`, `turn_smoothing`,
@@ -74,6 +76,8 @@ workshop is a `MinimapSection`. How it works and what it costs: [Minimap](../min
   `max_markers`. Update: `map_update_rate`, `marker_update_rate`, `still_refresh_seconds`.
 - **On `MinimapMarker`.** Look: `icon`, `color`, `size`, `rotates_with_node`, `kind`, `draw_order`. Edge:
   `clamp_to_edge`, `edge_inset`, `edge_icon`. Show: `active`, `rule`, `near_distance`, `revealed`, `height_fade`.
+- **On `MinimapHeading`:** `turns` (the node that turns; empty: the parent), `front` (`MINUS_Z`, or `PLUS_Z`
+  for the mannequin).
 - **On `MinimapSection`:** `title`, `size`, `level`, `map_texture`. **On `MapScreen`:** `toggle_action`, `fit_bounds`,
   `fit_to_sections`, `fit_margin`, `fade_time`.
 

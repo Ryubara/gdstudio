@@ -3,9 +3,10 @@
 [ext_resource type="Script" path="res://gameplay/net/net_server.gd" id="1_server"]
 [ext_resource type="PackedScene" path="res://world/world.tscn" id="2_world"]
 
-[node name="NetServer" type="Node" node_paths=PackedStringArray("players_root")]
+[node name="NetServer" type="Node" node_paths=PackedStringArray("world_root", "players_root")]
 script = ExtResource("1_server")
 cap_frame_rate = true
+world_root = NodePath("World")
 players_root = NodePath("Players")
 
 [node name="World" parent="." instance=ExtResource("2_world")]
