@@ -22,9 +22,10 @@ const F_AIR := 1 << 3
 const F_RISING := 1 << 4
 const F_DEAD := 1 << 5
 
-## The shortest event (a kind and one byte) and the longest (a JOINED with the longest name).
+## The shortest event (a kind and one byte) and the longest: an ENTITY with the longest state (20
+## bytes), one longer than a JOINED with the longest name (19).
 const MIN_EVENT_SIZE := 2
-const MAX_EVENT_SIZE := 3 + NetLimits.NAME_BYTES
+const MAX_EVENT_SIZE := 8 + NetLimits.MAX_ENTITY_STATE
 const MAX_TICK := (
 	NetWire.TICK_HEADER
 	+ NetLimits.MAX_EVENTS * MAX_EVENT_SIZE

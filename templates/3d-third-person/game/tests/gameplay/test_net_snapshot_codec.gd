@@ -145,9 +145,11 @@ func test_each_event_size_matches_its_layout() -> void:
 		assert_int(size).is_between(SnapshotCodec.MIN_EVENT_SIZE, SnapshotCodec.MAX_EVENT_SIZE)
 		lines.append("%s=%d" % [NetEvent.Kind.find_key(event.kind), size])
 	var longest := NetEvent.joined(0, "x".repeat(16))
-	assert_int(SnapshotCodec.event_size(longest)).is_equal(SnapshotCodec.MAX_EVENT_SIZE)
-	var longest_entity := NetEvent.entity(1, 1, PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0]))
-	assert_int(SnapshotCodec.event_size(longest_entity)).is_less_equal(SnapshotCodec.MAX_EVENT_SIZE)
+	assert_int(SnapshotCodec.event_size(longest)).is_less_equal(SnapshotCodec.MAX_EVENT_SIZE)
+	var longest_state := PackedByteArray()
+	longest_state.resize(NetLimits.MAX_ENTITY_STATE)
+	var longest_entity := NetEvent.entity(1, 1, longest_state)
+	assert_int(SnapshotCodec.event_size(longest_entity)).is_equal(SnapshotCodec.MAX_EVENT_SIZE)
 	print("net sizes: events ", " ".join(lines))
 
 
