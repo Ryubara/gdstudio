@@ -7,7 +7,7 @@ read in one look, and encode a clip. A sound needs a clip you can listen to ([So
 ```text
 gds capture frames --project <game>/game --scene res://x.tscn --seconds 6 --fps 10 --name hud
 gds capture sheet  <folder> --every 5 --columns 5
-gds capture clip   <folder> [--gif]
+gds capture clip   <folder> [--gif] [--max-seconds N]
 ```
 
 Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ...`.
@@ -93,8 +93,12 @@ works). Frames recorded another way are renamed to that pattern first: a folder 
 ## clip {#clip}
 
 Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif` with a
-128-colour palette at up to 12 fps. The clip is cut at 30 s and has to stay under 9 MB (GitHub takes 10 MB for most
-attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720 and 480 px, then the command fails.
+128-colour palette at up to 12 fps. The clip is cut at 30 s (`--max-seconds N` for another cut) and has to stay under
+9 MB (GitHub takes 10 MB for most attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720
+and 480 px, then the command fails. When frames run past the cut, it prints a line with how many frames and seconds
+were left out (`clip cut at 30 s: 120 frames (12 s) of 420 left out`): read it before you attach the clip, since the
+part you meant to show may sit in what was cut (#1090 sent such a clip before the line existed, #1132). Raise
+`--max-seconds`, or capture a shorter run that starts nearer the moment.
 
 ## Attaching {#attaching}
 

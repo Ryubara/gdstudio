@@ -244,8 +244,37 @@ def test_clip_length_is_capped(tmp_path: Path) -> None:
     make_frames(folder, 40, size=(8, 8))
     (folder / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")  # 40 s of frames
     fake = FakeFfmpeg([1])
-    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append)
     assert fake.calls[0][fake.calls[0].index("-t") + 1] == "30.000"
+    # the cut is said, with what was left out (#1132)
+    assert "clip cut at 30 s: 10 frames (10 s) of 40 left out; --max-seconds for a longer clip" in lines
+
+
+def test_clip_max_seconds_changes_the_cut(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 40, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")
+    fake = FakeFfmpeg([1])
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append, max_seconds=45)
+    assert fake.calls[0][fake.calls[0].index("-t") + 1] == "40.000"
+    assert not any("cut" in line for line in lines)
+    fake = FakeFfmpeg([1])
+    lines.clear()
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append, max_seconds=12.5)
+    assert fake.calls[0][fake.calls[0].index("-t") + 1] == "12.500"
+    assert "clip cut at 12.5 s: 27 frames (27.5 s) of 40 left out; --max-seconds for a longer clip" in lines
+    with pytest.raises(CaptureError, match="--max-seconds"):
+        capture.encode_clip(Path("ffmpeg"), folder, run=FakeFfmpeg([]), max_seconds=0)
+
+
+def test_clip_short_enough_says_nothing_about_a_cut(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=FakeFfmpeg([1]), log=lines.append)
+    assert not any("cut" in line for line in lines)
 
 
 def test_gif_command_line_and_ffmpeg_failure(tmp_path: Path) -> None:
@@ -287,3 +316,11 @@ def test_a_movie_runs_end_is_told_to_the_game_and_other_runs_are_left_alone() ->
         "--quit-after",
         "3",
     ]
+
+
+def test_clip_cli_takes_max_seconds() -> None:
+    from gds_tools import cli
+
+    args = cli.build_parser().parse_args(["capture", "clip", "frames", "--max-seconds", "50"])
+    assert args.max_seconds == 50.0
+    assert cli.build_parser().parse_args(["capture", "clip", "frames"]).max_seconds == capture.CLIP_MAX_SECONDS
