@@ -17,7 +17,6 @@ from gds_tools import (
     capture,
     disk,
     evals,
-    hold_switch,
     integrations,
     issues,
     layout,
@@ -718,7 +717,6 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             bad += 1
     for check in workspace.check_services(root):  # warnings: signing in is the person's step, not the bootstrap's
         print(f"  {'ok  ' if check.ok else 'WARN'}    {check.name}: {check.detail}")
-    print(f"  info    hold switch: {hold_switch.read(root).describe()}")  # the maintainer's (hooks.md#hold)
     print("\n".join(sweep.disk_lines(root)))  # a warning only: low space is not a missing prerequisite
     return 1 if bad else 0
 

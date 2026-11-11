@@ -70,7 +70,10 @@ slowly (1.2 rad/s). It ends when it drops below 3 m/s, after 1.5 s on the flat, 
 hold mode; off, a press slides to the end) or when the body leaves the ground; it then crouches while crouch is held
 or a ceiling is too low to stand under, and stands otherwise. Under a gap too low even to crouch in, it keeps sliding
 until it is out. Jump during a slide jumps 85 percent as high and keeps the slide's speed through the air (at most
-9 m/s, fading by 1 m/s each second). Aim and fire work while sliding. Another slide waits 0.3 s.
+9 m/s, fading by 1 m/s each second). Aim and fire work while sliding: the body slides on along its line and the upper
+body turns so the pistol points at the crosshair, up to 75 degrees to either side; aimed further round, the body turns
+with the aim (or, for a weapon whose `past_aim_limit` is `REFUSE_SHOT`, the trigger does nothing until the aim is back
+in reach). Another slide waits 0.3 s.
 
 It is part of the body's step (`CharacterSlide`, `gameplay/character/character_slide.gd`): a bot or a server slides a
 body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in its
@@ -149,11 +152,20 @@ shipped games, with the sources in the kit's `docs/engines/godot/third-person/mo
 | Slopes | no limit downhill (on), slope gravity (9.8 m/s²), the share of friction downhill (0.2), the flattest slope that counts (4 degrees) |
 | Steering | the turn rate (1.2 rad/s) |
 | Body and camera | the capsule's height (0.9 m), the time to drop and rise (0.12 s), the camera target's height (0.75 m) |
-| Shooting | shooting allowed (on) |
+| Shooting | shooting allowed (on), the aim layer's reach (`aim_limits`: 75 degrees left and right of the slide, 50 up, 70 down) |
 | Slide jump | slide jump (on), its height share (0.85), boost (0), most speed (9 m/s) and air drag (1 m/s²) |
 
 The character lies down only on the ground and gets up through crouch, only when a crouched body fits above it: under
 a gap only a lying body fits under (0.8 m, say), letting go of prone keeps it down until it crawls out.
+
+The aim layer (`AimLayer`, a node of the character, `gameplay/character/aim/`) points the held weapon at the aim in
+every move: it turns the spine after the clips by the yaw and pitch that put the muzzle on a point 15 m along the aim
+(`converge_distance`), within the move's `AimLimits`: `CharacterTuning.aim_limits` standing and `crouch_aim_limits`
+crouched (70 degrees each side, 45 up and down), `SlideTuning.aim_limits` and `ProneTuning.aim_limits`. Each holds on
+or off, the most to the left and right of the way the body faces, and the most up and down. The weapon's
+`past_aim_limit` (Aim group of its `WeaponDef`) says what happens past the side limits: the body turns (the default)
+or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
+`release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
@@ -171,7 +183,10 @@ magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo
 the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
 so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
 pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
-2.5 a second, with no ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
+2.5 a second, with no ammunition, and a punch does not zoom the view (`fire_zooms` off). Each definition's Aim and zoom
+group says what aim and fire do with it: `can_aim`, `fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with
+`override_zoom` its own aim and fire field of view, distance and `zoom_offset` in place of the camera's; all apply
+while the game runs. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
 weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
 `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
 turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
@@ -189,7 +204,8 @@ field of view and distance added at a full sprint, the zoom speed, and a shake w
 frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Slide (the field of view
 added while sliding, 5 degrees, and its speed, 4 a second; the sprint view stays through a slide), Aim (the distance, the
 field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
-aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+aiming, with `zoom_when_firing` to turn it off, which a weapon's `fire_zooms` can also do for itself, and a Shot
+kick: `shot_kick_amplitude` in degrees, off at 0, and
 `shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
 from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
 follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:
@@ -257,13 +273,17 @@ override for a shape the probe misreads, and a clip of its own for the vault or 
 | --- | --- |
 | Trigger | press jump, sprint into it, or both (press jump); the speed the automatic one needs (5.5 m/s); the least speed a vault needs, slower mantles (0); the wait after a crossing before the automatic trigger starts another (0.25 s) |
 | Detection | how far past the body's front a wall is looked for (0.7 m) plus how far the body goes in 0.15 s; the widest angle off square to the face (35 degrees); the radius of the sphere cast onto the top (0.08 m); the steepest top (30 degrees) |
-| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (0.3 m); the deepest drop beyond (1.2 m); the least crossing speed (4 m/s), shortest and longest vault (0.45 and 0.9 s); the share of the speed kept on landing (0.85); the hand plant and the clear of the far edge as shares of the clip (0.3 and 0.7) |
+| Vault | lowest and highest vault (0.45 and 1.3 m); the high clip from 1.0 m; thickest vault (0.9 m); the feet's clearance over the top (0.12 m); the landing past the far face (1.13 m, the clips' own) and the nearest one settled for when that is blocked (0.3 m); the deepest drop beyond (1.2 m); the shortest and longest vault (0.45 and 1.3 s); the share of the speed kept on landing (0.85); what the two vault clips were keyed on (`low_clip`, `high_clip`: `vault_low.tres`, `vault_high.tres`) and how much faster than its own pace a clip may play (1 to 1.15) |
 | Mantle | lowest and highest mantle (0.45 and 2.0 m); the high clip from 1.25 m; the time (0.45 s and 0.5 s a metre); when the feet reach the top (0.7 of the time); how far onto the top (0.1 m) |
 | Body | aim and fire stop for the crossing (on) |
 
-The clips are on `Animation` (Traversal group): the vault (a placeholder, `NinjaJump_Start`, until the template's own
-vault clips land), the high vault, the mantle (`ClimbUp_1m`) and the high mantle, and the range of speeds a clip may be
-played at (0.5 to 2). `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
+The clips are on `Animation` (Traversal group): the vault (`Vault_Low`, one hand, under 1.0 m), the high vault
+(`Vault_High`, two hands; the pistol is put away for it), the step out of the landing (`Vault_Land`), the mantle
+(`ClimbUp_1m`) and the high mantle, and the range of speeds a mantle's clip may be played at (0.5 to 2). A vault is
+fitted to the wall measured: it starts at the frame that fits the distance, the hands land on the top at any height
+from 0.45 to 1.3 m, and the model stays level while the capsule goes over (the kit's
+`docs/engines/godot/third-person/traversal.md`). `tests/gameplay/test_vault_contacts.gd` measures the hands and the
+legs on both mannequins. `vault_motion.started(plan)` (the body's `CharacterVault`) says a crossing began.
 
 ## Events other nodes connect to
 
@@ -302,8 +322,9 @@ arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
 `aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`, `Pistol_Aim_Neutral`,
 `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the locomotion), and `Pistol_Shoot`
-plays for each shot. On top of everything is a one-shot layer for actions: interact and hit play there, and so does
-anything else:
+is added to it for each shot (`WeaponDef.shoot_additive`: the clip less its own first frame, so the gun kicks about 16
+degrees up from wherever it aims). On top of everything is a one-shot layer for actions: interact and hit play there,
+and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -324,6 +345,7 @@ the node or on the `WeaponDef`, builds the tree again):
 | `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
 | `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. |
+| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays (a punch). |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_brace` | on | Holds the upper body's turn on the stance the aim poses were made on while the character aims standing, walking or running (`AimBrace`, a skeleton modifier): the pistol points along the view whatever the legs' clip does to the pelvis. Off, the aim pose turns with that pelvis. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
