@@ -350,8 +350,8 @@ worst step's making and placing, `step_us_worst`, and the worst block, `apply_us
 | Chrome, GPU, `--delay-ms 150` | 120 (40 drawn: `web_cap`) | 47.5 ms / 86 ms | 5.2 ms, 0.4 ms / 33 ms |
 
 One puppet costs 1.0 to 2.6 ms to make in Chrome (1.5 on the desktop); 40 arrive over about ten steps and 120 over
-thirty, half a second. The 38 ms frame left in Chrome is the first draw of the puppet's material: 2 programs linked
-(3 ms) in it, a first-use hitch the level's warm-up does not cover yet.
+thirty, half a second. The 38 ms frame left in Chrome then linked 2 programs (3 ms): the minimap's variants of the
+body's material, gone once the bodies left its layer (#1194; the numbers below).
 
 - **Approach:** Spread a crowd's arrival on a client over frames at both ends: making each puppet
   (`AiReplica._make_waiting`) and its first draw (`puppets_shown_per_frame`), and judge it by the page's longest frame
@@ -375,8 +375,9 @@ thirty, half a second. The 38 ms frame left in Chrome is the first draw of the p
   crowd. **Seen:** gdstudio #970, 2026-11-11.
 
 The first draw of a puppet links no GL program after the seat (#1218; `net_play_smoke.py` now fails on one): 0 in
-eight GPU runs with 40 or 120 AI. The page's longest frame in the join's window (`join_worst_ms`) is 42 to 69 ms with
-every puppet made at once and 25 to 35 ms with #1208's spread. The 2 programs #1208 saw were the minimap's
+twelve GPU runs with 40 or 120 AI. The page's longest frame in the join's window (`join_worst_ms`) was 42 to 69 ms
+with every puppet made at once; on main with #1208 (`--gpu --ai 40`, three runs) it is 23, 24 and 34 ms, and 31 ms
+with 120 (`--delay-ms 150`, 40 drawn). The 2 programs #1208 saw were the minimap's
 ([puppet cost](puppet-cost.md#puppet-cost)).
 
 ## Proof {#proof}
