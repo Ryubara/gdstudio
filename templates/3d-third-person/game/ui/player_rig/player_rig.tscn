@@ -13,6 +13,8 @@
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/arrow.png" id="11_arrow"]
 [ext_resource type="PackedScene" path="res://ui/minimap/map_layer.tscn" id="12_map"]
 [ext_resource type="PackedScene" path="res://ui/inventory/inventory_screen.tscn" id="13_inventory"]
+[ext_resource type="Script" path="res://gameplay/player/near_hit_shake.gd" id="14_near_hit"]
+[ext_resource type="Resource" path="res://core/camera_shake/presets/near_hit.tres" id="15_near_hit_preset"]
 
 [node name="PlayerRig" type="Node" node_paths=PackedStringArray("player", "camera_rig", "touch")]
 script = ExtResource("1_rig")
@@ -42,6 +44,11 @@ player = NodePath("../Player")
 [node name="CameraShake" type="Node" parent="PlayerCamera"]
 script = ExtResource("9_shake")
 auto_advance = false
+
+[node name="NearHitShake" type="Node" parent="PlayerCamera" node_paths=PackedStringArray("shaker")]
+script = ExtResource("14_near_hit")
+preset = ExtResource("15_near_hit_preset")
+shaker = NodePath("../CameraShake")
 
 [node name="FollowCamera" type="Node3D" parent="PlayerCamera" node_paths=PackedStringArray("follow_target")]
 script = ExtResource("4_pcam")

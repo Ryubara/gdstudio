@@ -142,11 +142,12 @@ A page holds at most 50 KB. A topic that grows past it becomes a folder of subpa
 one time a learning makes a new page. The check names the page and its size.
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
-  keep the old page as the index with a short section per moved `{#anchor}` linking to its new place, so briefs and
-  issues that cite the old anchors still resolve. **Watch out for:** a template page that every feature adds a section
-  to reached 51.1 KB of 51.2 KB with six agents still adding to it, and the next one failed the check. **Seen:**
-  `engines/godot/third-person-template.md`, split in gdstudio #983; `engines/godot/third-person/character.md`, 53 KB
-  once three branches that each passed alone were merged, split in gdstudio #1029.
+  named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
+  page with a short section per moved `{#anchor}` linking to its new place. Then run `test_docs_site.py` and the strict
+  docs build. **Watch out for:** a page at 51.1 KB with six agents adding to it failed the next one; a folder without
+  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that
+  reads the page by its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request.
+  **Seen:** gdstudio #983, #1029 (template pages); #1067 (`audio-mixing/`); #1115 (`corrections-log/`).
 
 ## Where the entry is named {#named}
 

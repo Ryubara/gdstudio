@@ -223,13 +223,31 @@ Library's six pistol clips on the `hand_r` bone.
   (0.30 to 0.40) one magazine's length down the grip, pushed up it (0.40 to 0.54) to the `MagazineHand` marker, where
   the heel of the palm is on the magazine's base as a real reload seats one, then down, round the grip's foot and
   onto the gun (0.71 to 0.88). Where the hand holds, it is within the 2 mm and 5 mm (the palm 1.6 to 3.1 mm off the
-  base, nothing more than 1.2 mm in); while it moves, a fingertip passes 4 to 5 mm through the other hand for a
-  hundredth of the clip in three places (0.03, 0.05, 0.79), which the test caps at 6 mm. The trigger finger is off
-  the trigger for the whole reload. Where the hand should be at each moment was decided from the clip and from how a
-  reload is taught: the magazine is fetched at the belt, guided in and seated firmly with the support palm, and the
+  base, nothing more than 1.2 mm in). The trigger finger is off the trigger for the whole reload. Where the hand
+  should be at each moment was decided from the clip and from how a reload is taught: the magazine is fetched at the
+  belt, guided in and seated firmly with the support palm, and the
   grip is taken again ([Shooting Illustrated](https://www.shootingillustrated.com/articles/2012/10/25/semi-automatic-handgun-reloading),
   [AmmoLand](https://www.ammoland.com/2023/03/4-pistol-reload-methods-9-magazine-tips)). The clip has no rack of the
   slide and no magazine in the hand, and the pistol's `Magazine` node does not move yet.
+- **The left hand has one way on and off the gun** (kit #1051). #1031 let the hand go by fading its arm to the
+  clip's, so it left along whatever line lay between its place and the clip's hand, its little finger still on the
+  grip: 5.1 to 5.2 mm through the gun at shares 0.05 to 0.055 on the female mannequin, and 9.1 mm (female) and 5.7 mm
+  (male) at 0.7875 on the swing back from the magazine, between two hundredths. Now the fingers open where the hand
+  holds (`pistol_open_pose.tres`: each finger the nearest pose that lifts it 5 mm off every surface with nothing
+  deeper than 1 mm in the sixteen poses between, blended as the game blends them; the little finger, which lies on
+  the grip's left panel, curls its middle joint in), then the opened hand leaves along a straight 6 cm line
+  (`WeaponHold.support_way`: of the directions 10 degrees apart in which the whole hand stays clear, and its
+  neighbours too, the one nearest the way to the belt; 26 degrees off it, down, back and to the left), and only at
+  the line's far end does the clip's arm take it. Coming on is the same way backwards, for the aim and from the
+  magazine alike: from under the magazine the hand drops, crosses to the line's far end bowed 4 cm down and out
+  (`return_clearance`) while its fingers open, and comes in. `SupportHandPlan` holds this as one number (how far on
+  the gun the hand is) and the reload's phases (`HELD`, `LET_GO`, `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`), for
+  whatever moves with the hand next. Measured at every hundredth of the reload and at every quarter of a hundredth
+  of the moving spans, the left hand is at most 1.2 mm in on both mannequins; on the live player reloading while it
+  aims, on every update, the same (before: 5.9 to 8.5 mm over five frames of the let-go and 7.4 mm on the way back).
+  Two faults the live measure found are not the left hand's way and have their own issues: while the aim comes up
+  the arm is 6 to 16 cm short of the gun and the fingers pass 13 to 16 mm (kit #1078), and the right trigger finger
+  crosses the left thumb's tip by 4 to 8 mm on its way off the trigger (kit #1079).
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
@@ -318,7 +336,23 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   with (after the reseat it was beside the gun, not under the magazine); a straight blend from under the magazine to
   the support place went 21 mm through the grip's foot; fingers opened toward their rest went 4 to 5 mm into the
   trigger guard and the other hand; a test at every 4 hundredths passed while three shares between were 4 to 5 mm in.
-  **Seen:** gdstudio #1031, 2026-11-10 (three passing moments of 4 to 5 mm are left, capped at 6 mm).
+  **Seen:** gdstudio #1031, 2026-11-10 (three passing moments were left; fixed in #1051).
+- **Approach:** Give a hand one way on and off the weapon: the fingers open where it holds, the opened hand leaves
+  along a line solved clear for both skins, and only at the line's far end does the clip's arm take over. Hold it as
+  one number (how far on the weapon) that the aim and the reload blend. **Watch out for:** fading the arm's weight
+  from the hand's place let the clip pick the line out (the little finger went 5 mm through the grip); a plan that
+  blended the arm and the way apart gave a half-open hand to the clip from its place when the reload was shorter
+  than its fade-in; a finger that lies flat on a panel cannot open in place (its tip turns into the panel), so it
+  tucks or waits for the line. **Seen:** gdstudio #1051, 2026-11-10 (1.2 mm at most on both mannequins).
+- **Approach:** Scan a moving hand finer than the test will measure it (a quarter of a hundredth of the clip) and on
+  the live character on every update, not only on a posed stage. **Watch out for:** the scan at every hundredth
+  read 3.9 mm where a quarter-hundredth beside it read 9.1 mm; the posed stage showed nothing of an arm 6 to 16 cm
+  short of the gun while the aim comes up, nor of the trigger finger crossing the left thumb as the reload fades.
+  **Seen:** gdstudio #1051, 2026-11-10 (the two live faults are #1078 and #1079).
+- **Approach:** Measure a batch of poses a few hundred at a time when every pose is measured at every step on
+  every vertex, and thin the grid before adding steps. **Watch out for:** the little finger's 12,000 candidate
+  poses at 16 blend steps on 500 vertices asked for gigabytes at once and the solve ran ten minutes; in batches of
+  400 on a grid a third the size it gave the same pose in under five. **Seen:** gdstudio #1051, 2026-11-10.
 - **Approach:** Seat a hand on a surface by its palm with the fingers already closed, and close the fingers again
   after each seating, a fixed number of times; hold a part that the game's test reads deeper than the solver (the
   male thumb's root, 1.4 mm) off the surface in the solver. **Watch out for:** the palm's skin near the knuckles

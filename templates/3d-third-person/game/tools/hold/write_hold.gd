@@ -1,7 +1,8 @@
 ## Writes a solved hold into the project: the `HandPose` files of `gameplay/weapon/hold/` and the
 ## places of the weapon's scene, from the JSON file its solver wrote. The pistol's (kit #1001,
-## `solve_pistol_hold.py`): five poses and `assets/weapons/pistol/pistol_held.tscn` (the pistol's
-## seat on `hand_r`, the `SupportHand` and `MagazineHand` markers). The rifle's (kit #889,
+## `solve_pistol_hold.py`): five poses, `assets/weapons/pistol/pistol_held.tscn` (the pistol's
+## seat on `hand_r`, the `SupportHand` and `MagazineHand` markers) and the left hand's way off the
+## pistol in `gameplay/weapon/hold/weapon_hold.tscn` (`support_way`). The rifle's (kit #889,
 ## `solve_rifle_hold.py`, asked for with `rifle` after the file): five poses and
 ## `gameplay/weapon/rifle_held.tscn` (where each hand's bone sits on the rifle:
 ## `RightHandTarget`, `LeftHandTarget`, `MagazineHand`). No number of a hold is typed by hand:
@@ -47,6 +48,10 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 		},
 	},
 }
+## The pistol's hold scene, which takes the left hand's way off the pistol.
+const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
+## The line of the hold scene the way is written after when the scene has none yet.
+const _WAY_AFTER := "open_pose = "
 
 
 func _initialize() -> void:
@@ -95,7 +100,38 @@ func _initialize() -> void:
 	file.store_string("\n".join(lines))
 	file.close()
 	print("wrote ", held)
+	if solved.has("way"):
+		_write_way(solved.way)
 	quit()
+
+
+# Puts the left hand's way off the pistol on the hold scene's root: its `support_way` line is
+# replaced, or added after the open pose's when the scene still has the script's default.
+func _write_way(way: Array) -> void:
+	var numbers := PackedStringArray()
+	for value: float in way:
+		numbers.append(_number(value, 1e-5))
+	var line := "support_way = Vector3(%s)" % ", ".join(numbers)
+	var lines := FileAccess.get_file_as_string(HOLD).split("\n")
+	var at := -1
+	for index in lines.size():
+		if lines[index].begins_with("support_way = "):
+			at = index
+	if at >= 0:
+		lines[at] = line
+	else:
+		for index in lines.size():
+			if lines[index].begins_with(_WAY_AFTER):
+				lines.insert(index + 1, line)
+				at = index + 1
+				break
+	if at < 0:
+		printerr("write_hold: no place for support_way in ", HOLD)
+		return
+	var file := FileAccess.open(HOLD, FileAccess.WRITE)
+	file.store_string("\n".join(lines))
+	file.close()
+	print("wrote ", HOLD)
 
 
 func _quaternion(q: Array) -> Quaternion:

@@ -60,14 +60,16 @@ game/
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
   2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
   (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
-  script imported in the kit's `godot/`); gdstudio #910, 2026-11-11 (a test's, caught by `gds template
-  test`).
+  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
+  template test`).
 
-- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
-  the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
-  ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
-  (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
-  looked like a problem of the change. **Seen:** gdstudio #884, 2026-11-10.
+- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
+  a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
+  run `gds check layout templates/<name>/game` before the push. **Watch out for:** a left `.ruff_cache/` or
+  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, and looked like a problem of the change.
+  From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120`. **Seen:**
+  gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
+  test loading `bad_network.py` failed CI's `test_layout.py`).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

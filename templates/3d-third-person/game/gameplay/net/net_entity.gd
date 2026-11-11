@@ -1,8 +1,11 @@
 class_name NetEntity
 extends Node
-## Puts the map component it sits under (its parent: a `Door`, a `MovingPlatform`, a `Pickup`) in
-## an online game. `net_entity.tscn` is in each component's scene, so every door, platform and
-## pickup of a map is networked; offline it does nothing.
+## Puts the map component it sits under (its parent: a `Door`, a `MovingPlatform`, a `Pickup`, a
+## `PhysicsProp`, a `Target`) in an online game. `net_entity.tscn` is in each component's scene, so
+## every door, platform, pickup, prop and target of a map is networked; offline it does nothing. A
+## pressure pad's `TriggerZone` is put online by `TriggerZoneNet` (`trigger_zone_net.tscn`, a
+## `NetEntity` of kind `pad`) placed under it in the map, since a camera zone's `TriggerZone` stays
+## one screen's own.
 ##
 ## The node is in the group `net_part` with its `net_kind` metadata, so the map's parts make the
 ## world hash (`NetServer.world_hash_of`). A `NetWorld` gives it an `id` (its rank among the
@@ -13,7 +16,8 @@ extends Node
 ## The component hands over its functions in its `_ready` (`serve`): how it writes its state as at a
 ## server tick (at most `NetLimits.MAX_ENTITY_STATE` bytes) and reads it back, what it does when it
 ## is given a role; a part that moves by the tick (`Door`, `MovingPlatform`) how it is put at a
-## tick, and a pickup how it is taken.
+## tick, and a pickup how it is taken. A part the server simulates (a `PhysicsProp`) also says
+## whether its state goes in this TICK (`streams`): its records ride every TICK while it moves.
 
 ## The server's copy of the part changed state; the server sends the new state to every client.
 signal changed(entity: NetEntity)
@@ -28,7 +32,7 @@ enum Role {
 }
 
 ## The kind byte of each part on the wire, by its `net_kind` metadata.
-const KINDS := {&"door": 1, &"platform": 2, &"pickup": 3}
+const KINDS := {&"door": 1, &"platform": 2, &"pickup": 3, &"pad": 4, &"prop": 5, &"target": 6}
 
 ## `func(at_tick: int) -> PackedByteArray`: the part's state as at a server tick.
 var write_state := Callable()
@@ -40,6 +44,12 @@ var take_role := Callable()
 var place := Callable()
 ## `func(by: Node3D)`: the server says a pickup was taken (empty: not a pickup).
 var take := Callable()
+## `func() -> bool`, on the server: whether the part's state rides this TICK (empty: it never
+## does; its changes are `entity` events).
+var stream := Callable()
+## On: a client plays the part's `entity` events when the puppets are drawn at their tick, with the
+## shots and hits (a target that falls as the hit lands), not at once.
+var with_puppets := false
 ## The part's id in its map (`NetWorld` numbers the parts by path), or -1 outside one.
 var id := -1
 var role := Role.OFFLINE
@@ -73,6 +83,11 @@ static func of(component: Node) -> NetEntity:
 ## The kind byte of this part (0 for a `net_kind` this build does not know).
 func kind() -> int:
 	return KINDS.get(StringName(get_meta(&"net_kind", "")), 0)
+
+
+## Hands over `streamer` (see `stream`): the part's state rides each TICK it answers true.
+func streams(streamer: Callable) -> void:
+	stream = streamer
 
 
 ## The component this node networks.

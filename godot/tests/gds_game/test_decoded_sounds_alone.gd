@@ -1,6 +1,7 @@
 # `DecodedSounds` of `gds_game` on its own: a short Ogg Vorbis comes back as a WAV holding the
 # samples its decoder plays, made once and shared; mono stays mono; a loop, a long sound and a WAV
-# come back as they were; and a decoded sound starts far faster than the Ogg. The two tones in
+# come back as they were; a randomizer comes back as a copy of decoded takes with its spread; and
+# a decoded sound starts far faster than the Ogg. The two tones in
 # `fixtures/` are generated sines (ffmpeg's `sine` source), 0.15 s mono and 0.2 s stereo.
 extends GdUnitTestSuite
 
@@ -103,3 +104,62 @@ func test_a_decoded_sound_starts_far_faster_than_the_ogg() -> void:
 		spent[stream] = Time.get_ticks_usec() - start
 		player.stop()
 	assert_int(spent[ogg]).is_greater(spent[wav] * 10)
+
+
+func _randomizer() -> AudioStreamRandomizer:
+	var randomizer := AudioStreamRandomizer.new()
+	randomizer.add_stream(-1, load(MONO), 1.0)
+	randomizer.add_stream(-1, load(STEREO), 2.0)
+	randomizer.random_pitch = 1.05
+	randomizer.random_volume_offset_db = 1.5
+	return randomizer
+
+
+func test_a_randomizer_comes_back_as_a_copy_of_decoded_takes_with_its_spread() -> void:
+	var randomizer := _randomizer()
+	var copy := DecodedSounds.decoded(randomizer) as AudioStreamRandomizer
+	assert_object(copy).is_not_same(randomizer)
+	assert_int(copy.streams_count).is_equal(2)
+	assert_object(copy.get_stream(0)).is_same(DecodedSounds.decoded(load(MONO)))
+	assert_object(copy.get_stream(1)).is_same(DecodedSounds.decoded(load(STEREO)))
+	assert_float(copy.get_stream_probability_weight(1)).is_equal(2.0)
+	assert_float(copy.random_pitch).is_equal_approx(1.05, 0.0001)
+	assert_float(copy.random_volume_offset_db).is_equal_approx(1.5, 0.0001)
+	# Made once: the same copy on every ask, and the original keeps its Ogg takes.
+	assert_object(DecodedSounds.decoded(randomizer)).is_same(copy)
+	assert_object(randomizer.get_stream(0)).is_instanceof(AudioStreamOggVorbis)
+
+
+func test_a_change_to_the_randomizer_shows_in_the_next_copy() -> void:
+	var randomizer := _randomizer()
+	var first := DecodedSounds.decoded(randomizer) as AudioStreamRandomizer
+	randomizer.random_pitch = 1.2
+	var second := DecodedSounds.decoded(randomizer) as AudioStreamRandomizer
+	assert_object(second).is_not_same(first)
+	assert_float(second.random_pitch).is_equal_approx(1.2, 0.0001)
+	randomizer.set_stream(0, load(STEREO))
+	var third := DecodedSounds.decoded(randomizer) as AudioStreamRandomizer
+	assert_object(third.get_stream(0)).is_same(DecodedSounds.decoded(load(STEREO)))
+
+
+func test_a_randomizer_with_nothing_to_decode_comes_back_as_it_was() -> void:
+	var randomizer := AudioStreamRandomizer.new()
+	randomizer.add_stream(-1, AudioStreamWAV.new(), 1.0)
+	assert_object(DecodedSounds.decoded(randomizer)).is_same(randomizer)
+
+
+func test_a_decoded_randomizer_starts_far_faster_than_its_ogg_takes() -> void:
+	var randomizer := _randomizer()
+	var copy := DecodedSounds.decoded(randomizer)
+	var player: AudioStreamPlayer3D = auto_free(AudioStreamPlayer3D.new())
+	add_child(player)
+	player.max_polyphony = 4
+	var spent := {}
+	for stream: AudioStream in [randomizer, copy]:
+		player.stream = stream
+		var start := Time.get_ticks_usec()
+		for _i in 20:
+			player.play()
+		spent[stream] = Time.get_ticks_usec() - start
+		player.stop()
+	assert_int(spent[randomizer]).is_greater(spent[copy] * 10)

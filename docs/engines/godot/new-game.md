@@ -148,7 +148,8 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   declared`): the template synced the addon but never registered the autoload, and #778 met the same errors in the
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
-  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
+  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template); gdstudio #909, 2026-11-11
+  (a probe's Variant `:=` broke the player rig; no suite loaded the probe).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
@@ -157,6 +158,11 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
+- **Approach:** Give a new script its `.gd.uid` before `gds template test`: make the kept game
+  (`gds template game <template>`, the argument is the template's name), copy the script in, run the pinned Godot
+  headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
+  for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
+  own folder cannot be opened to make one. **Seen:** gdstudio #1009, 2026-11-10.
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
@@ -380,8 +386,8 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   functions and gdlint (`max-public-methods`) failed them, and a float export compared with `is_equal` failed on a
   property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; #846, 2026-11-09 (the
   ragdoll's 19 tests, two suites); #875, #879 and #881, 2026-11-10 (impacts, shake and menus split into suites per
-  part; `duplicated-load`: a `preload` constant); #981, 2026-11-10 (two addon exports
-  unpinned until the full run: run the class's pin suite too); #965, 2026-11-10 (a class split too).
+  part; `duplicated-load`: a `preload` constant); #981, 2026-11-10, and #1094, 2026-11-11 (new exports unpinned until
+  the full run: run the class's pin suite); #965, 2026-11-10 (a class split too).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed
@@ -416,7 +422,11 @@ replaced whole.
 - **Approach:** A setting every game needs goes in 3D Blank's `project.godot` only; an extending template's file holds
   just its additions and is merged by `gds new game`. **Watch out for:** a hand-kept full copy drifted whenever the base
   gained a line (kit #846 failed CI that way), and a key an extending template sets must be one the base does not need to
-  change (the later one wins). **Seen:** gdstudio #928, 2026-11-10.
+  change (the later one wins). A key added to an extending template's file is also added to the list
+  `python/tests/test_new_game.py` pins for it (`test_the_third_person_project_file_holds_only_what_it_adds`); run
+  `uv run --project python pytest python/tests/test_new_game.py` before the push. **Seen:** gdstudio #928,
+  2026-11-10; gdstudio #1075, 2026-11-11 (two navigation keys: the template suites passed and the kit's `test` jobs
+  failed on the pinned list).
 - **Approach:** When a script copies the branch's template files into a game made by `gds template game` (to test
   without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
   changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the

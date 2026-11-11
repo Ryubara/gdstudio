@@ -19,7 +19,8 @@ The template has a character and the map's components:
   whom: the `AiRelations` table (`ai_relations.tres`, its `AiFaction` rows and `AiRelationEvent` events), the level's
   `AiFactions` (a node of `world/world.tscn`) and an `AiFactionMember` on each character and the player.
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
-  `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
+  `PlayerCamera`, and `NearHitShake`, which shakes the camera for a hit near it). The numbers a developer tunes are in
+  `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: its numbers,
   magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
   hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the slots
@@ -52,6 +53,8 @@ The template has a character and the map's components:
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,
   `Shape` and `Sensor`), so open the scene to restyle one; the `@tool` scripts size them from the inspector in the
-  editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`).
+  editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`). A door,
+  a platform and a pickup are online by their `NetEntity` child; a trigger zone whose state is a rule (the pressure
+  pad) gets `trigger_zone/trigger_zone_net.tscn` as a child in the map, one a single screen uses (a camera zone's) none.
 - `pickup/weapon_pickup.tscn`: a `Pickup` that gives a weapon (or its rounds) through the character's loadout, floating
   over a glowing ring; `rifle_pickup.tscn` inherits it with the rifle under `Visual`.

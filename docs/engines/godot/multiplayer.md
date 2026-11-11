@@ -83,6 +83,9 @@ The probe starts the game server as a process of its own. On Windows the console
 the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally`; a probe killed by a time limit leaves
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
+3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
+([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
 - **Client** (desktop and web, same code): `WebSocketPeer.new()`, `connect_to_url("ws://host:port")`, then call
@@ -191,11 +194,12 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | --- | ---: | ---: |
 | HELLO with an 8-character name | 15 (7 + name; the world hash travels in it) | 3 + name |
 | WELCOME, 1 player, no world parts | 30 | about 40 |
-| WELCOME, longest (8 players with 16-byte names, 128 parts of 8 bytes) | 1783 | |
+| WELCOME, longest (8 players with 16-byte names, 128 parts of 12 bytes) | 2295 | |
 | REFUSED | 3 | 3 |
 | COMMAND / with a shot block | 15 / 27 | 15 / 27 |
-| TICK, 8 players, no events | 107 | 107 |
-| TICK, longest (32 events of 19 bytes, 8 players) | 715 | |
+| TICK, 8 players, no events, no moving prop | 108 | 107 |
+| TICK, longest (32 events of 20 bytes, 8 players, 8 moving props) | 868 | |
+| A moving prop in a TICK (streamed row, `PropState`) | 14 | |
 | PING / PONG | 7 / 11 | 7 / 11 |
 | Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 15, 15, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
 
@@ -208,7 +212,9 @@ shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 w
 every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
 the empty hands; gdstudio #887) and bit 15 is prone (#1012); no flag bit is free. `NetWire.VERSION` 4 (#906): a shot
 carries the weapon and the low 16 bits of its `seq`, a hit the health it left
-([shots online](third-person/online-shots.md#template-shots)).
+([shots online](third-person/online-shots.md#template-shots)). `NetWire.VERSION` 5 (#1073): a TICK ends with a count
+and the rows of the moving props, and a world part's state may be 12 bytes
+([pushed props online](third-person/net-world.md#props)).
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -511,6 +517,10 @@ backend deployed -->
 - The page address is the web build's command line: read it with `JavaScriptBridge.eval("window.location.search")` and
   parse it like arguments (`?url=wss://host&bot-seed=3`). Behind an `https` page the socket must be `wss://`.
 - The release `.wasm` is about 39 MB uncompressed; serve it compressed.
+- The character's step under Jolt gives the same floats in the web build (wasm), on Windows and on Linux: 1800 steps
+  of a scripted walk through 3D Third Person's map matched to nine decimals at every point (gdstudio #909,
+  [Playing online](third-person/online-client.md#play-online)), so a browser client may predict with the server's own
+  step; what it corrects is its page's hitches.
 
 ## Headless server image {#headless-server-image}
 

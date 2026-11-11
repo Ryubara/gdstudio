@@ -24,8 +24,12 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   that is the fixture for "waits for the first iteration".
 - **Approach:** Wait for a test's own region by its RID, never by a point the mesh would answer. **Watch out for:**
   the navigator suites' first `settle()` waited for a point within half a metre of the mesh; every test after the
-  first saw the freed region of the one before, and its goals came back "no open ground near the goal".
-  **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`).
+  first saw the freed region of the one before, and its goals came back "no open ground near the goal". A map with
+  no polygons answers every `map_get_closest_point` with the origin, so a wait for "a closest point above -1" passes
+  at once on an empty map. **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`); gdstudio #1062,
+  2026-11-11 (`tools/bench/nav_cost_bench.gd` waited that way: every goal of #967's cost table failed with "no open
+  ground near the goal" and no character walked; it now waits for its region's RID and reports how long the crowd
+  walked).
 - **Approach:** Turn off both threads before waiting on a region: `region_set_use_async_iterations(region_rid, false)`
   after the region enters the tree and `map_set_use_async_iterations(map, false)`; the map then holds the region at
   the next physics tick on every machine. **Watch out for:** the map's switch alone is not enough: a region builds its
@@ -115,6 +119,16 @@ still (Deadnight #733, #736). Turn it off for a server's map with
 `NavigationServer3D.map_set_use_async_iterations(map, false)`: the physics step takes the mesh in, the same on every
 machine. A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
+
+- **Approach:** Turn off both threaded builds for a game whose server must answer the same everywhere, in
+  `project.godot`: `navigation/world/map_use_async_iterations=false` and
+  `navigation/world/region_use_async_iterations=false`. Godot reads them when it makes a map or a region, so every
+  region a level adds, a section's or a door's, builds on the physics step with no call of its own. **Watch out for:**
+  the map's switch alone (what `AiNavigator` set) left each region's build on a worker thread, so a section added to
+  the 3D Third Person level reached the map after 3 ticks on an idle machine and 12 to 48 in a bench, more under load.
+  A web build has no threads (`THREADS_ENABLED` off), so both are off there whatever the project says. **Seen:**
+  gdstudio #1075, 2026-11-11 (`test_navigation_sync.gd` fails with the region's switch back on;
+  `tools/bench/nav_sync_bench.tscn` for the frame cost).
 
 ## A night stepped by hand has a stale map {#a-night-stepped-by-hand-has-a-stale-map}
 

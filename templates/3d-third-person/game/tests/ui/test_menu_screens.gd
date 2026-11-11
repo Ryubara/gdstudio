@@ -28,12 +28,13 @@ func _show(scene: PackedScene) -> Control:
 	return UIRouter.top()
 
 
-func test_the_main_menu_shows_the_games_name_and_three_buttons() -> void:
+func test_the_main_menu_shows_the_games_name_and_its_buttons() -> void:
 	var menu := await _show(MAIN_MENU) as MainMenu
 	assert_str((menu.get_node("%Title") as Label).text).is_equal(
 		str(ProjectSettings.get_setting("application/config/name"))
 	)
 	assert_str((menu.get_node("%PlayButton") as Button).text).is_equal("Play")
+	assert_str((menu.get_node("%OnlineButton") as Button).text).is_equal("Play online")
 	assert_str((menu.get_node("%SettingsButton") as Button).text).is_equal("Settings")
 	assert_str((menu.get_node("%QuitButton") as Button).text).is_equal("Quit")
 
@@ -86,6 +87,38 @@ func test_play_shows_the_loading_screen_with_the_game_scene() -> void:
 	assert_object(loading).is_not_null()
 	assert_str(loading.params["scene"]).is_equal("res://no_such_game.tscn")
 	assert_int(UIRouter.depth()).is_equal(1)
+
+
+func test_play_online_loads_the_online_game_for_the_address_in_the_field() -> void:
+	var menu := MAIN_MENU.instantiate() as MainMenu
+	menu.online_scene = "res://no_such_online_game.tscn"
+	UIRouter.reset(menu, UITransition.Kind.CUT)
+	await MenuFixture.settle(get_tree())
+	var field := menu.get_node("%AddressField") as LineEdit
+	# The suites run a debug build: the developer's field shows, with the game's server in it.
+	assert_bool(field.visible).is_true()
+	assert_str(field.text).is_equal(menu.server_address)
+	field.text = " ws://10.0.0.7:8910 "
+	(menu.get_node("%OnlineButton") as Button).pressed.emit()
+	await MenuFixture.settle(get_tree())
+	assert_str(NetClient.next_url).is_equal("ws://10.0.0.7:8910")
+	NetClient.next_url = ""
+	var loading := UIRouter.top() as LoadingScreen
+	assert_object(loading).is_not_null()
+	assert_str(loading.params["scene"]).is_equal("res://no_such_online_game.tscn")
+
+
+func test_a_release_build_shows_no_address_and_joins_the_games_server() -> void:
+	var menu := MAIN_MENU.instantiate() as MainMenu
+	menu.online_scene = "res://no_such_online_game.tscn"
+	menu.address_field = MainMenu.AddressField.NEVER
+	menu.server_address = "wss://play.example.org"
+	UIRouter.reset(menu, UITransition.Kind.CUT)
+	await MenuFixture.settle(get_tree())
+	assert_bool((menu.get_node("%AddressField") as Control).visible).is_false()
+	menu.play_online()
+	assert_str(NetClient.next_url).is_equal("wss://play.example.org")
+	NetClient.next_url = ""
 
 
 func test_a_game_that_cannot_be_read_says_so_and_offers_the_way_back() -> void:

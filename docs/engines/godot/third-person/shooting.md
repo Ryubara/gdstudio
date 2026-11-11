@@ -221,7 +221,8 @@ empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side
 `tools/capture/reload_closeups.tscn` (the player's own scene with the clip seeked: the grip, the aim and five moments
 of the reload, from the side, above and behind the shoulder; it plays no reload, so the left hand there is the clip's
 own) and `tools/capture/pistol_hold_study.tscn` with `HOLD_ONLY=reload` (the hold told of the reload: fourteen shares
-of the clip measured and filmed from the gun's two sides, above, under the grip's foot and the player's camera).
+of the clip measured and filmed from the gun's two sides, above, under the grip's foot and the player's camera;
+`HOLD_RELOAD_STEP=0.01` measures every hundredth instead and `HOLD_SHARES=0.0525,0.7875` the shares given).
 
 Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
@@ -235,8 +236,11 @@ Hands on the pistol through the reload: the `WeaponHold` follows the reload clip
 `CharacterAnimation.reload_progress()` (how much of the upper body the one-shot holds, and the share of the clip
 played, whatever `reload_time` is), so the left hand is on the gun, away for the new magazine, under the magazine while
 it goes in and on the gun again, and the trigger finger is off the trigger
-([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). It is cosmetic: the
-rounds go in at the end of `reload_time` whatever the hands do.
+([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). The hand goes on
+and off the gun one way (its fingers open where it holds, then the opened hand leaves along a solved clear line,
+`WeaponHold.support_way`), and `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) names the reload's
+phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
+`INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the
