@@ -19,7 +19,7 @@ The characters a level is populated with, and the node that keeps them alive (ki
 | `AiSpawner` | `gameplay/ai/spawner/ai_spawner.gd` | Keeps `count` of one scene alive at its markers, wakes when a player comes near, respawns after a death, lets bodies lie and takes them back. |
 | `AiPool` | `gameplay/ai/spawner/ai_pool.gd` | The spawner's characters, made once; a parked one is out of the tree. |
 | `CharacterModel.variant` | `gameplay/character/character_model.gd` | Another model of the same rig in place of the one the base holds ([Replacing the model](character.md#replacing-the-model)). |
-| AI section | `world/prototype/ai_section/ai_section.tscn`: `AiMarkers/` (the guard lane `guard_lane`, two shooter posts, 8 cover spots, 3 civilian homes) and `Population/` (Grunts 3, Shooters 2 on route `hold`, Allies 2 with leader `player`, Civilians 3; each `wake_range` 25 m, `max_corpses` 2) | The population, placed and tuned in the scene (the template's `docs/design/map-sections.md`). |
+| AI section | `world/prototype/ai_section/ai_section.tscn`: `AiMarkers/` (the guard lane `guard_lane`, two shooter posts, 8 cover spots, 3 civilian homes) and `Population/` (Grunts 3, Shooters 2 on route `hold`, Allies 2 with leader `player`, Civilians 3; each `wake_range` 25 m, `max_corpses` 2, `on_server` on) | The population, placed and tuned in the scene (the template's `docs/design/map-sections.md`). |
 
 Enemies wear the male mannequin and friendlies the female, so a side reads without the band rings. The older scenes
 `gameplay/ai/ai_guard.tscn`, `ai_ally.tscn` and `ai_civilian.tscn` stay for the tests and benches that use them.
@@ -46,28 +46,57 @@ The pool makes every character the spawner will need (`count` + `max_corpses`) o
 `wake_range` 0, or one a tick once a player is within `wake_range` + 10 m, so a far part of the map costs nothing and
 nobody waits for a scene to be made when they arrive. A death is answered by a spawn of a parked one `respawn_delay`
 later; a body lies in its ragdoll until it settles (plus `settled_linger`), at most `corpse_seconds`, at most
-`max_corpses` at once (the oldest goes first), then goes back to the pool. It spawns only where the AI runs: offline,
-on a game server only with `on_server`, never on a client (a client of a remote server, or a map that handed its AI to
-the server: `AiAuthority.hand_over` stops it and frees its pool).
+`max_corpses` at once (the oldest goes first), then goes back to the pool. It spawns only where the AI runs: offline, on
+a game server only with `on_server`, never on a client (a client of a remote server, or a map that handed its AI to the
+server: `AiAuthority.hand_over` stops it and frees its pool). When one process holds a server's map and clients' maps
+(an `OnlineRig` test, a capture), the spawner decides by its own map (`spawns_here(..., from)`): under a `NetServer` it
+spawns only with `on_server`, beside a `NetClient` never. The players that wake it and lead its friendlies are the
+bodies of `player_group` in its own world (`get_world_3d()`), so on a game server they are the players' bodies
+(`NetServer.ai_sees_players`), never a client's player in another viewport. Online, the section's population reaches the
+clients as puppets ([the AI online](ai-online.md#section-online)).
 
 - **Approach:** Park a pooled character out of the tree (`remove_child`), not hidden in it, and reset it on reuse:
   `AiCharacter._enter_tree` re-registers and restarts the mind, `AiSenses.forget_everywhere(node)` drops it from the
   others' memories. **Watch out for:** a hidden character in the tree stays in the director, the senses' lists, its
   groups and the minimap; and one re-added was not re-registered, because `_ready` runs once, so it stood still with
   no think. **Seen:** kit #969, 2026-11-11.
+- **Approach:** Let a corpse lie outside the director's population cap: `AiDirector.register` and the match cap count
+  the living only (`living_count()`), so a population that sits at `web_cap` respawns while its dead lie, and what
+  lies on top is at most the spawners' `max_corpses` (20 for the AI section at scale 4), each stepped only at the rest
+  cadence. **Watch out for:** a population at the cap with the dead counted was refused every respawn until a corpse
+  went back to the pool (up to `corpse_seconds`), with an `AiDirector: ... refused` warning, and a refused character
+  stands frozen in the level; a match cap lowered with corpses down parked living characters in their place. **Seen:**
+  kit #1247, 2026-11-11 (the AI soak at `scale=4` in Chrome, kit #971;
+  `test_a_corpse_does_not_count_against_the_population_cap`,
+  `test_a_population_at_the_director_cap_respawns_while_its_dead_lie`).
+- **Approach:** Ready a pool's spare with `AiCharacter.warming` on (`AiPool.prewarm` sets it around its `add_child` and
+  `remove_child`), so its `_ready` joins no director; count refusals with `AiDirector.refused` and probe the web
+  build for the `refused` warning before and after a fix. **Watch out for:** without it each spare made while the
+  living sit at the cap was refused with a warning, and these were all 8 refusals of the soak at `scale=4` (the
+  `max_corpses` spares, two of each kind): the counting fix alone left the same 8 in Chrome, because the issue's guess
+  (the corpses) was not the whole cause. **Seen:** kit #1247, 2026-11-11
+  (`test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap`).
 - **Approach:** Make a pool lazily (on the approach, one a tick); a suite that runs the map but is not about the AI
   sets `enabled = false` on each spawner of `World/AISection/Population` in `before_test` (`test_section_walks.gd`).
   **Watch out for:** parked characters are out of the tree, so GdUnit counts them as orphans and the run exits 101,
   which CI fails with every case green; GdUnit counts a case's orphans before `after_test`, so clearing the pool
   there is too late (still 1188). **Seen:** kit #969, 2026-11-11 (`test_camera_zone.gd`, `test_player_in_the_map.gd`
   walk within `wake_range` + 10 m; `Node.print_orphan_nodes()` named the parked grunts).
+- **Approach:** Decide where a node runs by the map it is in (walk its ancestors for a `NetServer` or a sibling
+  `NetClient`), and pick the players it measures from in its own world, before trusting an `OnlineRig` test of it.
+  **Watch out for:** `spawns_here` read only the command line and `current_scene`, which in a rig is the test runner,
+  so the server's spawners spawned with `on_server` off and a test of the switch passed either way; and
+  `get_nodes_in_group(&"player")` held the clients' players of the other viewports too, so a client's player could
+  wake the server's spawner and lead its allies. **Seen:** gdstudio #1234, 2026-11-11 (fix: `spawns_here`'s `from`,
+  `_bodies_of`; `test_a_map_under_a_server_spawns_only_when_asked_and_beside_a_client_never`,
+  `test_a_player_in_another_world_neither_wakes_it_nor_leads_its_friendlies`).
 
 ## The inspector {#inspector}
 
 - **`AiSpawner`**: Spawn `scene`, `count` 3, `markers`, `respawn_delay` 10 s (below 0: no respawn), `cap` 0 (no
   limit), `enabled`; Waking `wake_range` 0 m (at once), `player_group` `player`; Wiring `patrol_route`,
   `leader_group`, `debug`; Bodies `max_corpses` 4, `corpse_seconds` 20 s, `settled_linger` 2 s; Network `on_server`
-  off. Signals `spawned`, `released`. Pinned by `test_ai_spawner.gd`.
+  off (on for the AI section's four). Signals `spawned`, `released`. Pinned by `test_ai_spawner.gd`.
 - **`CharacterModel`**: `variant` (empty: the scene's own model), `body_layers`.
 - **`AiSenses`**: `startled_by` ([AI senses: the inspector](ai-senses.md#inspector)).
 - **`AiReactionRow`**: `noises` ([AI behaviour: the inspector](ai-behaviour.md#inspector)).
@@ -101,9 +130,10 @@ soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a m
 ## Proof {#proof}
 
 `tests/gameplay/test_ai_characters.gd` (the four scenes, their looks and kinds), `test_ai_spawner.gd` (count,
-markers, pool, respawn, corpses, waking, reuse, network), `tests/world/test_ai_section.gd` (in `main.tscn` with the
+markers, pool, respawn, corpses, waking, reuse, network, a player of another world), `test_net_ai_section.gd` (the
+section online: a server and a client), `tests/world/test_ai_section.gd` (in `main.tscn` with the
 real player: the cone, walking heard and crouching not, one shot heard by the shooter and the ally while only the
 civilians run, killing an ally turns the allies Hostile). The soak `tools/soak/ai_section_soak.tscn` fights round
 the section for 180 s and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or any engine
 error. `tools/capture/section_tour.tscn` (`SECTION_TOUR=fight|cover|chase|civilians`) films each from the game
-camera.
+camera; `tools/capture/ai_section_online_tour.tscn` films the section's fight online from a client's camera.

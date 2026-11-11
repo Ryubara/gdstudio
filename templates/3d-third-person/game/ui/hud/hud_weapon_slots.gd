@@ -72,7 +72,7 @@ func _fill_place(cell: HudSlot, place: int) -> void:
 		cell.show_place(key_text(place), null, "", HudSlot.State.EMPTY)
 		return
 	var definition: WeaponDef = (
-		_loadout.unarmed if slot == WeaponLoadout.UNARMED else _loadout.slots[slot]
+		_loadout.unarmed if slot == WeaponLoadout.UNARMED else _loadout.slots[slot] as WeaponDef
 	)
 	var state := HudSlot.State.LIT if slot == _chosen() else HudSlot.State.IDLE
 	cell.show_place(key_text(place), definition.icon, "", state)

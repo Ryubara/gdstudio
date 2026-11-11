@@ -84,6 +84,7 @@ const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
 const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
 const _PRONE_STATE := "parameters/%s/" % _MACHINE + "%s/" % PRONE
+const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
 const _P_RELOAD_ACTIVE := StringName("parameters/%s/active" % _RELOAD)
 const _P_RELOAD_REQUEST := StringName("parameters/%s/request" % _RELOAD)
 const _P_RELOAD_SCALE := StringName("parameters/%s/scale" % _RELOAD_SCALE)
@@ -473,6 +474,11 @@ func prone_hold_share() -> float:
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
 func aim_pitch() -> float:
 	return tree.get(_P_AIM_POSE) if tree != null else 0.0
+
+
+## True while a shot's clip (the recoil, a blow) plays over the upper body, fading in and out.
+func is_shooting() -> bool:
+	return tree != null and tree.tree_root != null and tree.get(_P_SHOOT_ACTIVE)
 
 
 ## True while the reload clip plays over the upper body.

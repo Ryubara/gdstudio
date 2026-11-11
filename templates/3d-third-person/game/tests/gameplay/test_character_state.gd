@@ -29,6 +29,8 @@ const NOT_STATE := {
 	&"_copied": "which command `last_command` was copied from, so a repeat is not copied again",
 	&"slide_tuning": "an export",
 	&"sliding": "read only, from _slide",
+	&"aim_limits": "read only, the current move's tuning",
+	&"aim_yaw": "read only, from view_yaw and facing",
 	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
