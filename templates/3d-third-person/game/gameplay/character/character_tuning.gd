@@ -121,6 +121,11 @@ extends Resource
 @export_range(0.0, 1.0, 0.01, "suffix:s") var fire_buffer_time := 0.3
 ## How far the arm must be up (0 down, 1 aiming) before a shot leaves.
 @export_range(0.0, 1.0, 0.01) var shot_aim_amount := 0.5
+## How far the aim layer turns the upper body to put the weapon on the aim while standing
+## (`AimLayer`); the body itself turns to the view while aiming, so this covers the turn's lag.
+@export var aim_limits := AimLimits.new()
+## The same while crouched.
+@export var crouch_aim_limits := AimLimits.new()
 
 @export_group("Pushing")
 ## The share of its own speed the character gives a light prop it walks into: 1 moves the prop

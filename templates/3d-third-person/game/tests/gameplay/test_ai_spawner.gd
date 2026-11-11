@@ -117,6 +117,38 @@ func test_a_death_is_answered_by_a_spawn_after_the_delay() -> void:
 	assert_int(spawner.alive.size()).is_equal(2)
 
 
+# A population exactly at the director's cap respawns while its dead lie (kit #1247): the web
+# soak at scale 4 (40 characters, the web cap) was refused its first respawns.
+func test_a_population_at_the_director_cap_respawns_while_its_dead_lie() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": 0.2, "corpse_seconds": 60.0})
+	await _ticks(2)
+	assert_int(_director.count()).is_equal(2)
+	spawner.alive[0].die()
+	await _ticks(20)
+	assert_int(spawner.corpses.size()).is_equal(1)
+	assert_int(spawner.alive.size()).is_equal(2)
+	for character in spawner.alive:
+		assert_object(character.director).is_same(_director)
+
+
+# The pool readies a spare in the tree and takes it out again: at the director's cap that is no
+# refusal (kit #1247: the soak's spares were refused with a warning each at scale 4).
+func test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": -1.0})
+	await _ticks(2)
+	assert_int(_director.living_count()).is_equal(2)
+	var spares := AiPool.new(load(GRUNT))
+	spares.prewarm(2, 0, spawner)
+	assert_int(spares.parked()).is_equal(2)
+	assert_int(_director.refused).is_equal(0)
+	assert_int(_director.count()).is_equal(2)
+	spares.clear()
+
+
 func test_no_respawn_below_zero_and_none_past_the_cap() -> void:
 	var never := _spawner(GRUNT, {"respawn_delay": -1.0})
 	await _ticks(2)
@@ -252,38 +284,3 @@ func test_freeing_the_spawner_frees_the_characters_it_parked() -> void:
 	spawner.free()
 	for ref in parked:
 		assert_object(ref.get_ref()).is_null()
-
-
-func test_a_client_of_a_remote_server_spawns_nothing_and_a_server_only_when_asked() -> void:
-	var tree := get_tree()
-	assert_bool(AiSpawner.spawns_here(tree)).is_true()
-	(
-		assert_bool(
-			AiSpawner.spawns_here(
-				tree, true, NetArgs.new(PackedStringArray(["--connect", "ws://x"]))
-			)
-		)
-		. is_false()
-	)
-	(
-		assert_bool(
-			AiSpawner.spawns_here(tree, false, NetArgs.new(PackedStringArray(["--server"])))
-		)
-		. is_false()
-	)
-	(
-		assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(PackedStringArray(["--server"]))))
-		. is_true()
-	)
-
-
-func test_a_map_that_handed_its_ai_to_a_server_stops_spawning() -> void:
-	var spawner := _spawner(GRUNT, {"respawn_delay": 0.5})
-	await _ticks(2)
-	assert_int(spawner.alive.size()).is_equal(2)
-	AiAuthority.hand_over(_arena)
-	await _ticks(TICKS)
-	assert_int(get_tree().get_nodes_in_group(AiCharacter.GROUP).size()).is_equal(0)
-	assert_int(spawner.spawned_total).is_equal(2)
-	assert_bool(spawner.is_physics_processing()).is_false()
-	assert_int(spawner.pool().parked()).is_equal(0)

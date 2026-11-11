@@ -58,7 +58,7 @@ func test_the_weapon_slots_show_the_pistol_lit_on_1_and_the_fists_on_2() -> void
 	assert_bool(_slots.visible).is_true()
 	assert_array(_keys(_slots)).is_equal(["1", "2"] as Array[String])
 	var cells := _slots.cells()
-	assert_object(cells[0].picture()).is_same(_player.loadout.slots[0].icon)
+	assert_object(cells[0].picture()).is_same((_player.loadout.slots[0] as WeaponDef).icon)
 	assert_object(cells[1].picture()).is_same(_player.loadout.unarmed.icon)
 	assert_int(cells[0].state).is_equal(HudSlot.State.LIT)
 	assert_int(cells[1].state).is_equal(HudSlot.State.IDLE)
@@ -111,7 +111,7 @@ func test_the_lit_slot_follows_a_switch_made_any_other_way() -> void:
 func test_a_weapon_added_to_the_loadout_takes_slot_2_and_the_fists_leave_the_row() -> void:
 	var rifle := WeaponDef.new()
 	rifle.display_name = "Test rifle"
-	var slots: Array[WeaponDef] = [_player.loadout.slots[0], rifle]
+	var slots: Array[Resource] = [_player.loadout.slots[0], rifle]
 	_player.loadout.slots = slots
 	_player.loadout._kept.append([0, 0])
 	_slots.update()

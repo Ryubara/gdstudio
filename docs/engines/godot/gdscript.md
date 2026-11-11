@@ -112,9 +112,9 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   a captured packed array. **Watch out for:** a lambda captures a local `int`, `bool`, `float` or packed array by
   value when it is made, so `kills += 1` or `vertices.append(...)` works on a copy: a test read 0 events and a
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
-  outer variable inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (fix: Array holders and members
-  in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`);
-  gdstudio #836, 2026-11-08 (`hits += 1` read 0; the fix is `var hits: Array[Node]` and `hits.append(c)`).
+  outer variable inside the lambda is the same trap. **Seen:** Deadnight and Deadnight #226, 2026-11-02 (bot counts,
+  a mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` in a handler left
+  the test's `met` empty; set its keys instead).
 
 ## Project and scene files {#project-and-scene-files}
 
