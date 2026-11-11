@@ -99,7 +99,9 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   ticks (the 95th), print the 99th and the worst without judging them, and compare medians to tell the code from the
   machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
   a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
-  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
+  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header); gdstudio #1111,
+  2026-11-11 (`test_net_server_cost.gd` read 10.3 ms against its 6 ms budget in a full template run while the same
+  agent ran eight Movie Maker captures beside it, and passed alone: start captures after the full run ends).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 

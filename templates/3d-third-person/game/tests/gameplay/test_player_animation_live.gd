@@ -71,6 +71,8 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"to_prone_clip": CharacterClips.TO_PRONE,
 		&"to_crouch_clip": CharacterClips.TO_CROUCH,
 		&"prone_libraries": {},
+		&"prone_shot_kick": 7.0,
+		&"prone_shot_kick_time": 0.22,
 		&"carry": CharacterAnimation.Carry.HAND_ONLY,
 		&"upper_body_bone": &"spine_01",
 		&"aim_pitch_range": 45.0,
