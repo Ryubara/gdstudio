@@ -12,7 +12,7 @@
 extends Node
 
 const DRESSED := "res://gameplay/character/character_dressed.tscn"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 ## Where the player stands, and where the targets stand and walk (an open stretch of the map).
 const STAND := Vector3(-3.0, 0.0, 9.0)
 const HEAD_TARGET := Vector3(-4.6, 0.0, 15.5)

@@ -12,16 +12,17 @@ The characters a level is populated with, and the node that keeps them alive (ki
 
 | Part | Where (in `templates/3d-third-person/game/`) | What it is |
 | --- | --- | --- |
-| Grunt | `gameplay/ai/characters/enemy_grunt.tscn` | `grunt.tres`, `hostile_guard.tres`, the male mannequin: patrols, engages, chases, searches. |
-| Shooter | `gameplay/ai/characters/enemy_shooter.tscn`, `gameplay/ai/profiles/shooter.tres` | Engages at 24 m and prefers 16, aim 0.55, `careful_margin` 1.0: always in the Careful play state, so it fights from cover and peeks. Male mannequin. |
-| Ally | `gameplay/ai/characters/ally.tscn` | `ally.tres`, `friendly_ally.tres`, the female mannequin: follows its leader (the player) and fights with it; startled by shots of anybody. |
+| Grunt | `gameplay/ai/characters/enemy_grunt.tscn` | `grunt.tres`, `hostile_guard.tres`, the male body (`form_male.glb`): patrols, engages, chases, searches. |
+| Shooter | `gameplay/ai/characters/enemy_shooter.tscn`, `gameplay/ai/profiles/shooter.tres` | Engages at 24 m and prefers 16, aim 0.55, `careful_margin` 1.0: always in the Careful play state, so it fights from cover and peeks. Male body. |
+| Ally | `gameplay/ai/characters/ally.tscn` | `ally.tres`, `friendly_ally.tres`, the female body (`form_female.glb`): follows its leader (the player) and fights with it; startled by shots of anybody. |
 | Civilian | `gameplay/ai/characters/civilian.tscn` | `civilian.tres` and set, unarmed (`Loadout.start_slot` -1), wanders 3 m round its home (`home_radius`), keeps away from a stranger with a gun (`remind_up_to` Unfriendly), and flees or cowers at a shot it hears from anybody (`startled_by` `shot`, the set's two heard-shot rows). |
 | `AiSpawner` | `gameplay/ai/spawner/ai_spawner.gd` | Keeps `count` of one scene alive at its markers, wakes when a player comes near, respawns after a death, lets bodies lie and takes them back. |
 | `AiPool` | `gameplay/ai/spawner/ai_pool.gd` | The spawner's characters, made once; a parked one is out of the tree. |
 | `CharacterModel.variant` | `gameplay/character/character_model.gd` | Another model of the same rig in place of the one the base holds ([Replacing the model](character.md#replacing-the-model)). |
 | AI section | `world/prototype/ai_section/ai_section.tscn`: `AiMarkers/` (the guard lane `guard_lane`, two shooter posts, 8 cover spots, 3 civilian homes) and `Population/` (Grunts 3, Shooters 2 on route `hold`, Allies 2 with leader `player`, Civilians 3; each `wake_range` 25 m, `max_corpses` 2) | The population, placed and tuned in the scene (the template's `docs/design/map-sections.md`). |
 
-Enemies wear the male mannequin and friendlies the female, so a side reads without the band rings. The older scenes
+Enemies wear the male prototype body and friendlies the female (the `form` look,
+[the bodies](character.md#mannequins)), so a side reads without the band rings. The older scenes
 `gameplay/ai/ai_guard.tscn`, `ai_ally.tscn` and `ai_civilian.tscn` stay for the tests and benches that use them.
 
 ## Adding an enemy or a friendly {#recipe}
