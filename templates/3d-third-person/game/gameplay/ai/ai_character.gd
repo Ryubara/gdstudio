@@ -71,6 +71,10 @@ func _ready() -> void:
 	super()
 	if Engine.is_editor_hint():
 		return
+	# On a client of a server the AI is the server's: this body is drawn from its snapshots.
+	if not AiAuthority.runs_here(self):
+		AiAuthority.retire(self, false)
+		return
 	if profile == null:
 		profile = AiProfile.new()
 	add_to_group(GROUP)

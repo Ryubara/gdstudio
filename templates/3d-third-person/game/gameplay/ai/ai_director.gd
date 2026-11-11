@@ -65,6 +65,13 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 ## character it manages is handed to it. Empty: every character animates every frame.
 @export var animation_throttle: AiAnimationThrottle
 
+## The cap of the match, set by a game server from its weakest client (a browser in the match caps
+## it for everyone at `web_cap`); -1 for none. Lowered under the count, the newest characters are
+## parked (frozen, not stepped, not sent) until it rises again.
+var match_cap := -1:
+	set(value):
+		match_cap = value
+		_apply_cap()
 ## The work the characters share this tick.
 var budget := AiBudget.new()
 ## Physics ticks since the director started.
@@ -80,6 +87,7 @@ var _viewers: Array[Node3D] = []
 var _full_count := 0
 var _next_slot := 0
 var _still := PlayerCommand.new()
+var _parked: Array[AiCharacter] = []
 
 
 ## A managed character and its place in the schedule.
@@ -118,15 +126,26 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	# On a client of a server the AI is the server's (`AiAuthority`).
+	if not AiAuthority.runs_here(self):
+		AiAuthority.retire(self, false)
+		return
 	add_to_group(GROUP)
 	_refresh_viewers()
 	for node in get_tree().get_nodes_in_group(AiCharacter.GROUP):
 		register(node as AiCharacter)
 
 
-## The most characters it manages here (`web_cap` in a browser, else `desktop_cap`).
+## The most characters it manages here (`web_cap` in a browser, else `desktop_cap`, and at most
+## `match_cap`).
 func population_cap() -> int:
-	return web_cap if OS.has_feature("web") else desktop_cap
+	var own := web_cap if OS.has_feature("web") else desktop_cap
+	return own if match_cap < 0 else mini(own, match_cap)
+
+
+## How many characters the match cap parked.
+func parked_count() -> int:
+	return _parked.size()
 
 
 ## The most characters at the Full tier at once here.
@@ -258,6 +277,24 @@ func _step(entry: Entry, delta: float) -> void:
 		character.controller.sample() if character.controller != null else _still_command()
 	)
 	character.step(command, delta * missed)
+
+
+# Parks the newest characters past the cap (they stand frozen, as a refused one does), and takes
+# parked ones back while there is room.
+func _apply_cap() -> void:
+	if not is_inside_tree():
+		return
+	while _entries.size() > population_cap():
+		var character := _entries[-1].character
+		unregister(character)
+		character.set_physics_process(false)
+		character.process_mode = Node.PROCESS_MODE_DISABLED
+		_parked.append(character)
+	while not _parked.is_empty() and _entries.size() < population_cap():
+		var character: AiCharacter = _parked.pop_back()
+		if is_instance_valid(character):
+			character.process_mode = Node.PROCESS_MODE_INHERIT
+			register(character)
 
 
 # True when stepping the body less often changes nothing: it is dead, or it stands on a floor that
