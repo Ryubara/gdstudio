@@ -5,7 +5,7 @@ the preset's exclude filter), waits for `window.__ai_cost_bench`, and prints, fo
 walking, the `AiDirector`'s step a physics tick (mean, 95th percentile, per character), the median frame work and the
 count at each tier, each without and with the director's animation throttle (`T`, with the trees moved a frame) and
 with the calibration loop's time before it (a busy machine reads slower there too). The optional second argument is a
-CPU throttle (4 is the weak-machine stand-in), the third the page's query (`counts=40&throttle=on`).
+CPU throttle (4 is the weak-machine stand-in), the third the page's query (`counts=40&throttle=on`, `lean=off` for the full tick).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/ai_cost_bench.py build/web 4 counts=40
@@ -66,8 +66,9 @@ def main() -> int:
         for row in result["rows"]:
             mode = "walking" if row["walking"] else "standing"
             animation = "T" if row.get("throttle") else "-"
+            lean = {"on": " lean", "off": " full"}.get(row.get("lean", ""), "")
             print(
-                f"{row['characters']:>3} {mode:<8} {animation} step {row['step_mean_us']:>8.1f} us"
+                f"{row['characters']:>3} {mode:<8} {animation}{lean} step {row['step_mean_us']:>8.1f} us"
                 f" (p95 {row['step_p95_us']:>8.1f}), {row['us_each']:>6.1f} us each,"
                 f" work {row['work_ms']:>7.3f} ms, tiers {row['full']}/{row['reduced']}/{row['dormant']},"
                 f" trees {row.get('advances', 0.0):>5.1f} a frame, calibration {row.get('calibration_ms', 0.0):>6.2f} ms,"

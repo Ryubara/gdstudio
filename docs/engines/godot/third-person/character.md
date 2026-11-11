@@ -223,6 +223,7 @@ Scene dock and checks the result.
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
+  | An AI's lean tick (#1059) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
   | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
   | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
 
@@ -230,7 +231,10 @@ Scene dock and checks the result.
   once in `_move` (a static one when it keeps nothing between ticks), its numbers in a tuning resource of its own, and
   any step state it keeps in an array of `CharacterState` written in `take()` and read in `put_back()`. A new
   variable on the body itself goes in `CharacterState.FIELDS` or on `test_character_state.gd`'s `NOT_STATE` list; a
-  static module adds none. Keep `character.gd` well under gdlint's 1000 lines
+  static module adds none. A module that can have work on a tick an AI only walks (a timer, a probe, a held bit) also
+  goes in `CharacterLean.can_take()`, which sends that tick to the full `_move`; `test_character_lean.gd` steps a lean
+  and a full body side by side and fails on the first tick their snapshots differ.
+  Keep `character.gd` well under gdlint's 1000 lines
   ([project conventions](../project-conventions.md#rules)): #1041 moved the push, the death, the capsule and the
   snapshot out when it reached 1000.
 

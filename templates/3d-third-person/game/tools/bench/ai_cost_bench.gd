@@ -17,10 +17,11 @@ extends Node
 ## fixed loop of GDScript is timed before each row (`calibration_ms`): a busy machine reads slower
 ## there too, so two runs compare by it. Desktop:
 ## `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_cost_bench.tscn
-## [-- --counts=40 --throttle=on|off|both]`; browser: a web export with this scene as
+## [-- --counts=40 --throttle=on|off|both --lean=on|off]`; browser: a web export with this scene as
 ## `run/main_scene` and `tools/*` out of the exclude filter, read by
 ## `tools/bench/ai_cost_bench.py` (`window.__ai_cost_bench`; the same options as the page's query,
-## `?counts=40&throttle=on`).
+## `?counts=40&throttle=on`). Since #1059 `lean=off` steps every body's full tick (the AI's
+## controller asks for the lean one, `CharacterLean`), to compare the two in one build.
 
 const COUNTS: Array[int] = [1, 20, 40, 120]
 const WARM_FRAMES := 60
@@ -46,6 +47,7 @@ var _advances := 0
 var _ticks := 0
 var _counts: Array[int] = COUNTS.duplicate()
 var _modes: Array[bool] = [false, true]
+var _lean := ""
 
 
 ## Processed after every other node: says when a frame's processing is over.
@@ -101,7 +103,8 @@ func _run() -> void:
 		get_tree().quit()
 
 
-# `counts=20,40` and `throttle=on|off|both`, from the command line after `--` or the page's query.
+# `counts=20,40`, `throttle=on|off|both` and `lean=on|off`, from the command line after `--`
+# or the page's query.
 func _read_options() -> void:
 	var words := PackedStringArray()
 	if OS.has_feature("web"):
@@ -118,6 +121,8 @@ func _read_options() -> void:
 			_counts.clear()
 			for part in parts[1].split(",", false):
 				_counts.append(int(part))
+		elif parts[0] == "lean":
+			_lean = parts[1]
 		elif parts[0] == "throttle":
 			match parts[1]:
 				"on":
@@ -148,6 +153,8 @@ func _new_crowd(count: int, throttled: bool) -> void:
 		)
 		character.position = Vector3(cell.x * SPACING, 0.0, cell.y * SPACING + 2.0)
 		_arena.add_child(character)
+		if _lean != "":
+			character.controller.lean_step = _lean == "on"
 		_characters.append(character)
 
 
@@ -188,6 +195,7 @@ func _measure(count: int, walking: bool) -> Dictionary:
 		"characters": count,
 		"walking": walking,
 		"throttle": _throttle != null,
+		"lean": _lean,
 		"advances": float(_advances) / FRAMES,
 		"calibration_ms": calibration,
 		"ticks_per_frame": float(_ticks) / FRAMES,
