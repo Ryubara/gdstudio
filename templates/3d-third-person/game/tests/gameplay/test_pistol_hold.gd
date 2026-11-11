@@ -4,8 +4,9 @@
 # and over the right hand within the same limits, its arm reaching the support marker. Through
 # the reload (kit #1031) the right hand holds as ever and the left hand is on the gun, away with
 # the clip's arm for the new magazine, under the magazine while it goes in and on the gun again,
-# never more than 2 mm inside the gun or the other hand on the way. Measured on the skinned mesh
-# after the hold's modifiers ran (`HoldStage`, `HandContact`).
+# never more than 2 mm inside the gun or the other hand on the way, at every hundredth of the clip
+# while it moves (kit #1051). Measured on the skinned mesh after the hold's modifiers ran
+# (`HoldStage`, `HandContact`).
 extends GdUnitTestSuite
 
 const MODELS: Array[String] = ["female", "male"]
@@ -13,16 +14,14 @@ const MODELS: Array[String] = ["female", "male"]
 const ONE_HANDED: Dictionary[StringName, Array] = {
 	CharacterClips.PISTOL_IDLE: [0.0, 0.5, 1.0],
 }
-## The shares of the reload clip that are measured: every 2 hundredths, its end, and the three
-## where a scan of every hundredth found the left hand deepest on its way.
+## The shares of the reload clip that are measured: every 2 hundredths and its end for the right
+## hand, which holds throughout; for the left hand every hundredth of the spans in which the hold
+## moves it near the gun (letting go, coming under the magazine and pushing it in, going back),
+## since a fingertip that passes through the other hand does it for a hundredth of the clip (kit
+## #1031 measured every 4 hundredths and missed three such moments of 4 to 5 mm).
 const RELOAD_STEP := 0.02
-const RELOAD_DEEPEST: Array[float] = [0.03, 0.05, 0.79]
-## How deep the left hand may pass through the gun or the right hand while it moves between its
-## places, in metres: where it holds (on the gun, under the magazine) `HandContact`'s 2 mm stand.
-## A fingertip passes 4 to 5 mm through the other hand for a hundredth of the clip as the hand
-## lets go and as it swings back (kit #1031; the clip's own hand was 16 to 22 mm in for a third
-## of the reload).
-const PASSING_DEPTH := 0.006
+const RELOAD_MOVING_STEP := 0.01
+const RELOAD_MOVING: Array[Vector2] = [Vector2(0.0, 0.12), Vector2(0.3, 0.56), Vector2(0.69, 0.92)]
 ## The shares of the reload in which the left hand is on the gun (to the first, from the second)
 ## and under the magazine (between the third and the fourth), as `Pistol_Reload` has them.
 const RELOAD_ON_GUN_UNTIL := 0.02
@@ -45,6 +44,11 @@ const CARRIED: Dictionary[StringName, Array] = {
 	CharacterClips.CROUCH_WALK: [0.0, 0.7],
 	CharacterClips.AIR: [0.0, 0.3],
 }
+## The live left hand is measured while its bone is this near one of its two markers, in metres:
+## farther off, no finger reaches the gun.
+const LIVE_NEAR := 0.2
+## The part of the live left hand left out while the reload fades in or out (kit #1079).
+const LIVE_FADING_SKIPS := "thumb_tip"
 ## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).
 const REACH := 0.005
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
@@ -60,6 +64,12 @@ var _live_magazine: Node3D
 # One entry an update of a live reload: the reload's share, the hold's two weights, and how far
 # the left hand is from the support marker and from the magazine marker.
 var _live_reload: Array[Dictionary] = []
+var _live_contact: HandContact
+# The deepest the live left hand was in the gun or the right hand, in metres, what was playing
+# then, and how many updates were measured.
+var _live_deepest := 0.0
+var _live_deepest_at := ""
+var _live_measured := 0
 
 
 func before_test() -> void:
@@ -125,12 +135,12 @@ func test_the_right_hand_holds_the_pistol_through_the_reload() -> void:
 
 
 # The left hand through the reload, whether the character aims or carries the pistol: on the gun
-# at its ends, under the magazine while it goes in, and no deeper than `PASSING_DEPTH` in the gun
-# or the other hand on the way.
+# at its ends, under the magazine while it goes in, and no deeper in the gun or the other hand on
+# the way than where it holds (`HandContact.MAX_DEPTH`).
 func test_the_left_hand_follows_the_reload() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
-		for share in _reload_shares():
+		for share in _left_reload_shares():
 			_pose_reload(stage, share, 0.0)
 			await stage.settle()
 			var tag := "%s reload at %.2f" % [model, share]
@@ -151,7 +161,7 @@ func test_the_left_hand_follows_the_reload() -> void:
 						. override_failure_message(
 							"%s l: %s %.1f mm inside on the way" % [tag, part, depth * 1e3]
 						)
-						. is_less(PASSING_DEPTH)
+						. is_less_equal(HandContact.MAX_DEPTH)
 					)
 				continue
 			var fails := HandContact.failures(tag + " l:", parts, contacts)
@@ -328,6 +338,60 @@ func test_the_players_left_hand_goes_to_the_magazine_and_back_when_it_reloads() 
 	AudioDrain.stop_all(arena)
 
 
+# The reload in the player's own scene while it aims, measured on every update the left hand is
+# near the gun: it lets go while the clip still fades in over the aim pose, comes back from the
+# magazine, and never passes deeper through the gun or the right hand than where it holds (kit
+# #1051: the posed stage knows no fade). Two faults of their own are left out: the aim's blend,
+# in which the left arm is too short for the gun (kit #1078), and the left thumb's tip while the
+# reload fades, which the right trigger finger crosses on its way off the trigger (kit #1079).
+func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aiming() -> void:
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	var view := Camera3D.new()
+	view.position = Vector3(0.0, 1.3, 3.0)
+	arena.add_child(view)
+	view.make_current()
+	await InputSim.ticks(get_tree(), 20)
+	_live_hold = player.get_node_or_null("WeaponHold")
+	assert_object(_live_hold).is_not_null()
+	if _live_hold == null:
+		AudioDrain.stop_all(arena)
+		return
+	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
+	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
+	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
+	_live_contact = HandContact.new(_live_skeleton)
+	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_live_deepest = 0.0
+	_live_deepest_at = ""
+	_live_measured = 0
+	player.weapon.set_ammo(3, 24)
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+	await InputSim.ticks(get_tree(), 40)
+	assert_float(_live_hold.get(&"aim_weight")).is_equal(1.0)
+	_live_skeleton.skeleton_updated.connect(_read_depth)
+	InputSim.key(KEY_R, true)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.key(KEY_R, false)
+	await InputSim.ticks(get_tree(), roundi(player.weapon.definition.reload_time * 60.0) + 30)
+	_live_skeleton.skeleton_updated.disconnect(_read_depth)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.release_all()
+	assert_int(player.weapon.ammo).is_equal(12)
+	assert_int(_live_measured).override_failure_message("the hand was never measured").is_greater(
+		60
+	)
+	(
+		assert_float(_live_deepest)
+		. override_failure_message(
+			"the left hand passed %.1f mm deep (%s)" % [_live_deepest * 1e3, _live_deepest_at]
+		)
+		. is_less_equal(HandContact.MAX_DEPTH)
+	)
+	AudioDrain.stop_all(arena)
+
+
 # The measure itself works: with the hold left out the clips' own fist is found deep in the grip.
 func test_the_clips_own_fist_fails_the_measure() -> void:
 	var stage := HoldStage.make(_holder, "female", false)
@@ -353,6 +417,39 @@ func _read_reload() -> void:
 		"hand": _live_skeleton.global_transform * bone.origin,
 	}
 	_compare_with_markers.call_deferred(entry)
+
+
+# The live left hand's depth: the pose is copied in the skeleton's update and measured once the
+# gun's attachment moved too, and only while the hand is within a hand's length of the gun.
+func _read_depth() -> void:
+	_live_contact.snapshot()
+	var weight: float = _live_hold.get(&"reload_weight")
+	var tag := (
+		"aim %.2f, reload %.2f at share %.3f"
+		% [_live_hold.get(&"aim_weight"), weight, _live_hold.get(&"reload_share")]
+	)
+	_measure_depth.call_deferred(tag, weight < 1.0)
+
+
+func _measure_depth(tag: String, fading: bool) -> void:
+	if not is_instance_valid(_live_marker) or not is_instance_valid(_live_magazine):
+		return
+	var hand := _live_skeleton.global_transform * _live_contact.bone_pose(&"hand_l").origin
+	var gap := minf(
+		hand.distance_to(_live_marker.global_position),
+		hand.distance_to(_live_magazine.global_position)
+	)
+	if gap > LIVE_NEAR:
+		return
+	_live_measured += 1
+	var parts := _live_contact.measure("l", true)
+	for part: String in parts:
+		if fading and part == LIVE_FADING_SKIPS:
+			continue
+		var depth: float = -parts[part].distance
+		if depth > _live_deepest:
+			_live_deepest = depth
+			_live_deepest_at = "%s, %s" % [part, tag]
 
 
 func _compare_with_markers(entry: Dictionary) -> void:
@@ -388,7 +485,23 @@ func _reload_shares() -> Array[float]:
 	for step in ceili(1.0 / RELOAD_STEP):
 		shares.append(step * RELOAD_STEP)
 	shares.append(1.0)
-	shares.append_array(RELOAD_DEEPEST)
+	return shares
+
+
+# The shares the left hand is measured at: `_reload_shares()` and every hundredth of the spans in
+# which it moves (`RELOAD_MOVING`), in order.
+func _left_reload_shares() -> Array[float]:
+	var hundredths := {}
+	for share in _reload_shares():
+		hundredths[roundi(share * 100.0)] = true
+	for span in RELOAD_MOVING:
+		for step in range(roundi(span.x * 100.0), roundi(span.y * 100.0) + 1):
+			hundredths[step] = true
+	var steps := hundredths.keys()
+	steps.sort()
+	var shares: Array[float] = []
+	for step: int in steps:
+		shares.append(step * RELOAD_MOVING_STEP)
 	return shares
 
 
