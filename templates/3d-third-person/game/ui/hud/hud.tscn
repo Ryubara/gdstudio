@@ -125,8 +125,8 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 2
 
-[node name="HudWeaponSlots" parent="Root/SafeArea/BottomRight" instance=ExtResource("8_weapon_slots")]
+[node name="HudAmmo" parent="Root/SafeArea/BottomRight" instance=ExtResource("6_ammo")]
 layout_mode = 2
 
-[node name="HudAmmo" parent="Root/SafeArea/BottomRight" instance=ExtResource("6_ammo")]
+[node name="HudWeaponSlots" parent="Root/SafeArea/BottomRight" instance=ExtResource("8_weapon_slots")]
 layout_mode = 2

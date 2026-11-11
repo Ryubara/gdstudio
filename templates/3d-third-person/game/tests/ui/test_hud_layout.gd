@@ -171,7 +171,8 @@ func test_the_places_are_a_fingertip_on_a_phone_and_leave_the_thumbs_corner() ->
 	assert_object(hotbar.get_parent()).is_same(_region(&"BottomCenter"))
 
 
-func test_the_weapon_slots_stand_over_the_ammo_card_on_a_desktop() -> void:
+# Under the ammo card, so the card coming and going (the fists have none) never moves the slots.
+func test_the_weapon_slots_stand_under_the_ammo_card_on_a_desktop() -> void:
 	_feed_the_parts()
 	var slots: HudWeaponSlots = _region(&"BottomRight").get_node("HudWeaponSlots")
 	var ammo: HudStat = _region(&"BottomRight").get_node("HudAmmo")
@@ -181,7 +182,7 @@ func test_the_weapon_slots_stand_over_the_ammo_card_on_a_desktop() -> void:
 		await get_tree().process_frame
 		var slot_rect := _canvas_rect(slots.cells()[1])
 		var ammo_rect := _canvas_rect(ammo)
-		assert_float(slot_rect.end.y).is_less_equal(ammo_rect.position.y)
+		assert_float(slot_rect.position.y).is_greater_equal(ammo_rect.end.y)
 		assert_float(slot_rect.end.x).is_equal_approx(ammo_rect.end.x, 1.0)
 
 
