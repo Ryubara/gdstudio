@@ -18,6 +18,8 @@ const CATCH_UP_SECONDS := 0.5
 
 ## Stalls seen.
 var resyncs := 0
+## Seconds between the last stall's tick and the one before it.
+var last_gap := 0.0
 ## Ticks skipped after a stall.
 var skipped := 0
 ## Seconds for the clock; empty is the machine's.
@@ -37,6 +39,7 @@ func check(frame: int) -> Verdict:
 	_last_frame = frame
 	if gap > STALL_SECONDS:
 		resyncs += 1
+		last_gap = gap
 		_skip_until = now + CATCH_UP_SECONDS
 		return Verdict.RESYNC
 	if same_frame and now < _skip_until:

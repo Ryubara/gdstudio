@@ -10,4 +10,4 @@ aggression = 0.0
 curiosity = 0.6
 faction = &"civilian"
 engage_range = 0.0
-flee_below_health = 1.0
+flee_below_health = 0.4

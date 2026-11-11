@@ -204,7 +204,8 @@ weapon is a new `.tres`; nothing else changes.
 - **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
   `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
   the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
-  `toggle_unarmed` (H, d-pad up); a screen that picks a weapon (the inventory) calls
+  `toggle_unarmed` (H, d-pad up); the HUD's weapon slots' keys `weapon_1` and `weapon_2` (1, 2, a finger on the slot)
+  and a screen that picks a weapon (the inventory) call
   `PlayerInput.request_weapon(slot)`, which sends the same presses one a tick (`WeaponChooser`,
   [Inventory](../inventory.md#template-screen)). The character steps the loadout and then the weapon at the end of
   each `step`, and both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload;
@@ -227,7 +228,8 @@ of the clip measured and filmed from the gun's two sides, above, under the grip'
 Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
 resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons add 4 nodes to a living character (the
-`Loadout` and three idle sound players: 46, `test_parts_budget.gd`). The shot's sound is most of a shot: with the
+`Loadout` and three idle sound players); `NODES_ALIVE` in `test_parts_budget.gd` holds the living character's budget
+(56 on 2026-11-11) and lists what each change added. The shot's sound is most of a shot: with the
 `ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
 all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
 number as a budget.

@@ -34,9 +34,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
-  and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875, #903, #1011 and tether #31, 2026-11-10 (CRLF again).
+  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
+  and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
+  to 11-10; gdstudio #1130, #1123 and #1127, 2026-11-11 (a tool's `write_text`; 16 pages).
 
 ## Scripted edits {#scripted-edits}
 
@@ -78,13 +78,13 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
   ran on the main checkout, which was clean).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
-  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
-  shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named
-  `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
-  in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
-  before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
+  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
+  (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
+  `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
+  `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
+  gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
+  trusting a result); gdstudio #879, #903, #966, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
+  branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
 
 ## Background commands and processes {#background}
 
@@ -149,3 +149,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   working-tree changes); tether #28, 2026-11-10 (`git stash push -- src hooks` to run the new tests on the old code
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
+- **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
+  **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
+  decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
+  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).

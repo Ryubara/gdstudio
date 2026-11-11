@@ -17,6 +17,15 @@ const WAYPOINTS: Array[Vector3] = [
 	Vector3(-6.0, 0.0, 6.0),
 ]
 const JUMPS: Array[int] = [140, 300, 470]
+## The client's thread stalls this many ticks each (0.5 s, inside the server's repeats, and 2 s,
+## past them), after walking `STALL_LEAD_TICKS`; the corrections of `STALL_AFTER_TICKS` after each
+## are counted.
+const STALLS: Array[int] = [30, 120]
+const STALL_LEAD_TICKS := 150
+const STALL_AFTER_TICKS := 90
+## The circles of the stall test: radius (m) and ticks a lap.
+const CIRCLE_RADIUS := 3.0
+const CIRCLE_TICKS := 360
 
 var _rig: OnlineRig
 var _client: NetClient
@@ -105,6 +114,51 @@ func test_commands_that_arrive_unevenly_are_waited_for_not_repeated() -> void:
 	assert_int(corrections[0]).is_greater(50)
 
 
+func test_a_stall_walks_the_client_body_as_the_server_walked_its_own() -> void:
+	# Through a stall of the client's thread the server repeats the last command, then stands its
+	# body (`PeerSlot.take`). The answer after the stall puts the client's body on the server's
+	# point; a body that kept its speed through the stall then drifts off the server's for a second
+	# and every answer corrects it (gdstudio #1127). Stepped as the server stepped (`SilenceWalk`),
+	# the second after each stall corrects centimetres; with the walk taken out, decimetres.
+	var corrected := {}
+	for walked in [true, false]:
+		_rig = auto_free(OnlineRig.new(false))
+		add_child(_rig)
+		assert_bool(_rig.start()).is_true()
+		_waypoint = 0
+		_client = await _rig.join("Ada")
+		assert_object(_client).is_not_null()
+		if not walked:
+			_client.silence_walk.command_ticks = 0
+			_client.silence_walk.most_standing = 0
+		_rig.controllers[0].plan = _circle
+		await _rig.wait(STALL_LEAD_TICKS)
+		corrected[walked] = 0.0
+		for stall in STALLS:
+			var corrected_before := _client.reconciler.corrected
+			_client.process_mode = Node.PROCESS_MODE_DISABLED
+			await _rig.wait(stall)
+			_client.process_mode = Node.PROCESS_MODE_INHERIT
+			await _rig.wait(STALL_AFTER_TICKS)
+			corrected[walked] += _client.reconciler.corrected - corrected_before
+		prints(
+			"stalls, walked %s:" % walked,
+			"corrected %.3f m," % corrected[walked],
+			"snaps",
+			_client.reconciler.snaps,
+			"stalls",
+			_client.stall_guard.resyncs,
+			"walked steps",
+			_client.silence_walk.steps
+		)
+		assert_int(_client.stall_guard.resyncs).is_equal(STALLS.size())
+		assert_int(_client.reconciler.lost).is_equal(0)
+	# Measured: 0.000 m walked (no snap: the answer after each stall is already exact), 0.170 m
+	# and a snap with the walk taken out.
+	assert_float(corrected[true]).is_less(0.02)
+	assert_float(corrected[false]).is_greater(0.1)
+
+
 func test_the_client_body_is_tuned_as_the_server_body() -> void:
 	_client = await _rig.join("Ada")
 	var body := _client.player
@@ -122,6 +176,20 @@ func test_the_client_body_is_tuned_as_the_server_body() -> void:
 	assert_float(body.floor_max_angle).is_equal(server_body.floor_max_angle)
 	assert_float(body.floor_snap_length).is_equal(server_body.floor_snap_length)
 	assert_int(body.collision_mask).is_equal(server_body.collision_mask)
+
+
+# Circles round the point (0, 0, 8), sprinting: the server's repeats go straight on through a
+# stall, so its body comes out of it with another speed than one that stood still.
+func _circle(tick: int) -> PlayerCommand:
+	var command := PlayerCommand.new()
+	var angle := TAU * tick / CIRCLE_TICKS
+	var target := Vector3(cos(angle), 0.0, sin(angle) + 8.0 / CIRCLE_RADIUS) * CIRCLE_RADIUS
+	var at := _client.player.global_position
+	var way := Vector3(target.x - at.x, 0.0, target.z - at.z)
+	var ahead := Vector3(-sin(angle), 0.0, cos(angle))
+	command.set_from_world(way + ahead, ahead)
+	command.sprint = true
+	return command
 
 
 # The route: toward each waypoint in turn, looking where it goes; sprinting on the flat, a jump at
