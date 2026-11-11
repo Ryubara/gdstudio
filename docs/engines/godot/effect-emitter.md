@@ -33,7 +33,8 @@ if emitter != null:
 - **`EffectEmitter`, in the inspector.** `enabled`, `particles_enabled`, `sounds_enabled` and `lights_enabled` switch
   the whole level's effects; `max_effects` (24) and `web_max_effects` (12, used in the web build and on phones) cap the
   pool; `max_lights` (2) caps the flashes of light at once (past it an effect plays without its light: the
-  Compatibility renderer counts every light against its per-object cap); `warm_up_on_start` (on), `warm_up`,
+  Compatibility renderer counts every light against its per-object cap); `warm_up_on_start` (on),
+  `warm_up` (`EffectDef`s, typed `Array[Resource]` with an `EffectDef` hint: [why](test-exit-leaks.md#typed-array-export-and-self-cast)),
   `warm_up_materials` (materials a shot shows that are not an effect), `warm_up_every_probe` (on) and
   `warm_up_groups` (groups whose meshes are drawn inside every probe) are [the warm-up](#warm-up).
   `play_at(effect, point, direction, with_particles, with_sound, size_scale)` and
