@@ -19,6 +19,9 @@ page, with the numbers and the method, is `docs/research/first-use-hitches.md` i
   Forward+ and Mobile only and is **not supported on the web**. For Compatibility the docs' own advice is the old one:
   show every material, shader and particle for at least one frame while the level loads
   ([Pipeline compilations](https://docs.godotengine.org/en/latest/tutorials/performance/pipeline_compilations.html)).
+  The engine has no batch link either: it links one program and reads `LINK_STATUS` at once, so a cold browser waits
+  for every program in turn. Linking a recorded list of them all at once from the page is what shortens that wait
+  ([Linking every program at once](#prelink)).
 - **A shader goes with the last material that uses it.** `BaseMaterial3D` shares one shader among all materials with
   the same settings and frees it when the last of them is freed. An effect that makes a new `StandardMaterial3D` for
   every flash and frees it a moment later frees the shader with it, and **every single use builds its programs again**.
@@ -242,6 +245,62 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   left an effect drawn without a probe now and then (1 program, about 35 ms) until it also drew outside them all.
   **Seen:** gdstudio #981, 2026-11-10 (fix: `EffectEmitter` visits every probe from a `SubViewport` of its own and
   draws `warm_up_groups` materials there; 0 programs in four runs after).
+
+## Linking every program at once {#prelink}
+
+<!-- new section: the page said no precompilation exists for Compatibility and only drew things in pieces behind a
+     loading screen; nothing said the browser can link many programs in parallel, nor how to hand it the engine's -->
+
+The engine links each program at its first draw and reads its `LINK_STATUS` straight away, so the GPU process links
+them one after another while the page waits: 3D Third Person's 160 programs took 20 s of links on a fresh browser
+profile (ANGLE on Direct3D 11, an RTX 5080), the level up 24 to 25 s after the page opened, in frames of up to 13.8 s
+(kit #1164). The browser can do better on its own terms:
+
+- **`KHR_parallel_shader_compile` links in parallel.** With every program's `linkProgram` sent first and the results
+  read later (`COMPLETION_STATUS_KHR`, polled from a timer), the GPU process linked the same 165 programs in 2.6 s
+  instead of 21 s, and the page's thread never waited. Chrome offers the extension on ANGLE's Direct3D 11, not on
+  SwiftShader (which links in about 1 ms a program anyway), so there the list is skipped.
+- **The GPU process keeps what it linked.** A later link of the same sources, attribute bindings and feedback varyings
+  finds the program (165 links in 0.7 s), across contexts of one page, and the browser's disk cache keeps them for the
+  next visit (a returning player). Losing the context or deleting the programs does not drop them.
+- **Only in a context with the same extensions on.** A second context with only the extension it needed found
+  nothing (the game's links took as long as before): Emscripten turns on every WebGL extension it knows in the engine's
+  context, and extensions such as `OES_sample_variables` change how a shader is translated. Linking in the engine's
+  own context (`canvas.getContext('webgl2')` gives it back) needs no list of extensions, and binding nothing leaves
+  its state alone.
+- **The sources are the engine's.** A page that wraps `shaderSource`, `attachShader`, `bindAttribLocation`,
+  `transformFeedbackVaryings` and `linkProgram` records them; SwiftShader records the same programs as a GPU (150 of
+  154 alike in two runs, the rest the warm-up's timing), so a list can be recorded on any machine. 154 programs are
+  15 MB of source; written once each with runs of earlier lines they are 220 KB of JSON (50 KB compressed).
+
+`ShaderPrelink` (`addons/gds_game/shader_prelink/`) does it: the template's menu scene reads the list
+(`MenuScene.shader_programs`, `assets/shaders/web/shader_programs.json`), the page decodes it and links it in the
+engine's context, and the game waits for it before it draws the level (a straight route) or behind the loading bar
+(the menu's Play). The list is recorded by `tools/web_smoke/shader_programs.py --write` from the web build, which also
+measures a cold page with and without it. A list of another Godot is skipped whole (the template's suite fails on
+it); a program it lacks is linked at its first draw as before. Measured with that script (Chrome, a fresh profile
+each run, `?play`):
+
+| Page | Links, ms | Programs the list lacked | Last link, s after the page opened | Slowest frames, ms |
+| --- | ---: | ---: | ---: | --- |
+| GPU, cold, before (`--off`, three runs) | 19 954 to 20 459 | 7 to 9 | 23.8 to 25.4 | 13 079 to 13 763, 4 557 to 4 735 |
+| GPU, cold, after (three runs) | 2 339 to 2 604 | 5 | 8.1 to 8.8 | 3 206 to 3 571, 767 to 1 630 |
+| GPU, cold, after, the list recorded again on a later main (157 programs, two runs) | 1 760 to 1 904 | 2 | 7.1 to 7.5 | 2 513 to 2 790, 1 696 to 1 749 |
+| GPU, warm profile, before / after | 337 / 166 to 182 | 7 / 5 | 3.3 / 3.2 to 3.8 | 869 / 803 to 1 090 |
+
+The list itself linked in 2.0 to 2.4 s on the GPU. The online game's cold join (`online.py --gpu --warm-up 0 --pages 1
+--bots 1`) seated 6.5 to 7.3 s after the page opened in four runs, against 21 to 22 s with a new socket after the
+server's hang-up before. SwiftShader skips the list (last link 8.6 to 8.7 s with it, 8.6 to 8.9 without; the online
+join 5.5 to 5.6 s with it, 4.1 to 5.6 without). What is left of the cold page is two programs the engine links at
+boot, before any script runs (the copy shader and the default material, about 1 s each), and the level's own load;
+a straight route shows the clear colour while it waits for the list (about 2 s).
+
+- **Approach:** Shorten a cold browser's shader wait by linking a recorded list of the engine's programs at once in
+  the engine's own WebGL context (`ShaderPrelink`), and check a cache hit by timing the game's links after it, not the
+  list's. **Watch out for:** the first try linked the list in a second context of its own: it finished in 2.4 s and
+  the game's links still took 20 s, because a context with other extensions on shares no linked program with the
+  engine's; a page of two contexts with all extensions on both showed it in one run. **Seen:** gdstudio #1164,
+  2026-11-11 (21 to 8.5 s to the last link on a cold GPU profile).
 
 ## Testing it {#testing-it}
 
