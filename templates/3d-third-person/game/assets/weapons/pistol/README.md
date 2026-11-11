@@ -7,7 +7,7 @@ real length with the Toon Shooter kit's chunky cross-sections. Licence: [LICENSE
 | --- | --- |
 | `pistol.glb` | The model: 692 triangles, one material (`Weapons`) on the palette, 0.250 x 0.196 x 0.049 m |
 | `pistol_weapons_palette.png` | The 32 x 32 palette Godot extracts from the glb (lossless, no mipmaps, Detect 3D off) |
-| `pistol_held.tscn` | A `BoneAttachment3D` on `hand_r` with the pistol seated in the right palm, and the `SupportHand` marker the left hand reaches |
+| `pistol_held.tscn` | A `BoneAttachment3D` on `hand_r` with the pistol seated in the right palm, and the `SupportHand` and `MagazineHand` markers the left hand reaches (aiming, and pushing the magazine in) |
 | `build_pistol.py` | Rebuilds `pistol.glb` with the pinned Blender (`blender -b --factory-startup -P build_pistol.py`) |
 
 ## Nodes
@@ -38,6 +38,9 @@ closes the hands on it:
 - while it aims or fires, the left hand on the pistol: its bone is brought to the `SupportHand` marker of
   `pistol_held.tscn` (move the marker and the hand follows, in the running game too), its fingers over the right
   hand's and its thumb forward along the frame;
+- through a reload, the left hand where `Pistol_Reload` means it: on the pistol, let go for the clip's reach to the
+  belt, up the grip's line to the `MagazineHand` marker with the heel of the palm on the magazine's base, and round the
+  grip's foot back to `SupportHand`; the index finger is off the trigger meanwhile;
 - while the pistol is carried, the arm 8 degrees out from the body (`carry_arm_out`), so the grip's foot clears the
   thigh.
 
@@ -47,7 +50,7 @@ part more than 2.7 mm off it on the female mannequin and 4.4 mm on the male (the
 
 No number of the hold is typed by hand. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,
 `tools/hold/solve_pistol_hold.py` solves the seat, the fingers and the left hand's place on both mannequins at once,
-and `tools/hold/write_hold.gd` writes `pistol_held.tscn` and the three `HandPose` files of `gameplay/weapon/hold/`.
+and `tools/hold/write_hold.gd` writes `pistol_held.tscn` and the five `HandPose` files of `gameplay/weapon/hold/`.
 After a change to the model or to a mannequin's hands, run the three (each file's header has its command), then
 `tools/capture/pistol_hold_study.tscn` for the numbers and close-ups, and the test.
 

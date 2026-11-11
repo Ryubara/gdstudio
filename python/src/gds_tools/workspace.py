@@ -41,6 +41,30 @@ def kit_checkout() -> Path | None:
     return root if (root / "tools.toml").exists() and (root / "workspace.toml").exists() else None
 
 
+def describe_kit(kit: Path) -> str:
+    """`<branch> at <short commit>, <n> changed file(s)` for a kit checkout, so a log names the worktree it came from
+    by its branch as well as its path; `not a git checkout` when git cannot read it (new-game.md#proof)."""
+
+    def git(*args: str) -> str | None:
+        try:
+            done = subprocess.run(
+                ["git", "-C", str(kit), *args], capture_output=True, text=True, check=False, timeout=30
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        return done.stdout if done.returncode == 0 else None
+
+    branch, commit, status = (
+        git("rev-parse", "--abbrev-ref", "HEAD"),
+        git("rev-parse", "--short", "HEAD"),
+        git("status", "--porcelain"),
+    )
+    if branch is None or commit is None or status is None:
+        return "not a git checkout"
+    changed = len(status.splitlines())
+    return f"{branch.strip()} at {commit.strip()}, {changed} changed file(s)"
+
+
 def find_workspace(start: Path) -> Path | None:
     """The workspace holding `start`: the nearest folder upwards with the marker file."""
     for folder in (start.resolve(), *start.resolve().parents):

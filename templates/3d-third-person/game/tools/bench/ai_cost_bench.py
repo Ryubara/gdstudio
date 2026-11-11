@@ -3,10 +3,12 @@
 Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
 the preset's exclude filter), waits for `window.__ai_cost_bench`, and prints, for 1 to 120 characters standing and
 walking, the `AiDirector`'s step a physics tick (mean, 95th percentile, per character), the median frame work and the
-count at each tier. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
+count at each tier, each without and with the director's animation throttle (`T`, with the trees moved a frame) and
+with the calibration loop's time before it (a busy machine reads slower there too). The optional second argument is a
+CPU throttle (4 is the weak-machine stand-in), the third the page's query (`counts=40&throttle=on`).
 
     uv run --project <kit>/python gds quiet -- \
-        uv run --with playwright==1.64.1 python tools/bench/ai_cost_bench.py build/web 4
+        uv run --with playwright==1.64.1 python tools/bench/ai_cost_bench.py build/web 4 counts=40
 
 Exits 1 when the bench did not finish or the page logged an error.
 """
@@ -35,6 +37,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 def main() -> int:
     folder = Path(sys.argv[1])
     throttle = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
+    query = f"?{sys.argv[3]}" if len(sys.argv) > 3 else ""
     handler = functools.partial(QuietHandler, directory=str(folder))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -47,7 +50,7 @@ def main() -> int:
         if throttle > 1.0:
             session = page.context.new_cdp_session(page)
             session.send("Emulation.setCPUThrottlingRate", {"rate": throttle})
-        page.goto(f"http://127.0.0.1:{server.server_address[1]}/index.html")
+        page.goto(f"http://127.0.0.1:{server.server_address[1]}/index.html{query}")
         end = time.time() + BENCH_TIMEOUT_S
         result = None
         while result is None and time.time() < end:
@@ -62,10 +65,13 @@ def main() -> int:
         print(f"throttle {throttle:g}x, {result['frames']} frames")
         for row in result["rows"]:
             mode = "walking" if row["walking"] else "standing"
+            animation = "T" if row.get("throttle") else "-"
             print(
-                f"{row['characters']:>3} {mode:<8} step {row['step_mean_us']:>8.1f} us"
+                f"{row['characters']:>3} {mode:<8} {animation} step {row['step_mean_us']:>8.1f} us"
                 f" (p95 {row['step_p95_us']:>8.1f}), {row['us_each']:>6.1f} us each,"
-                f" work {row['work_ms']:>7.3f} ms, tiers {row['full']}/{row['reduced']}/{row['dormant']}"
+                f" work {row['work_ms']:>7.3f} ms, tiers {row['full']}/{row['reduced']}/{row['dormant']},"
+                f" trees {row.get('advances', 0.0):>5.1f} a frame, calibration {row.get('calibration_ms', 0.0):>6.2f} ms,"
+                f" ticks a frame {row.get('ticks_per_frame', 0.0):.2f}"
             )
     for line in failed:
         print("FAIL", line)

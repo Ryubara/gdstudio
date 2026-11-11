@@ -40,10 +40,13 @@ the service and keeps the project.
   that failed on a backslash left no fake, so a probe ran the real CLI logged in as the maintainer and made a project
   `stage` in the account. **Seen:** Deadnight #1269, 2026-11-05 (fix: the three deploy scripts refuse; a case in
   `deploy/test_railway_up.sh`).
-- **Approach:** Prefix a CLI call whose value starts with a slash with `MSYS_NO_PATHCONV=1`, or run it from PowerShell,
-  and read the value back after setting it. **Watch out for:** Git Bash rewrites an argument that looks like a POSIX
-  path when it calls a Windows program: a variable set to `/server` arrived as `C:/Program Files/Git/server`, and the
-  game server's first heartbeat failed with a 400. **Seen:** Deadnight, 2026-11-02 (fix: the prefix and a read back).
+- **Approach:** Prefix the one call whose value starts with a slash with `MSYS_NO_PATHCONV=1` (never `export` it), or
+  run it from PowerShell, and read the value back after setting it. **Watch out for:** Git Bash rewrites an argument
+  that looks like a POSIX path when it calls a Windows program: a variable set to `/server` arrived as `C:/Program
+  Files/Git/server`, and the game server's first heartbeat failed with a 400; exported, it also stops the paths a
+  Windows program needs from being rewritten. **Seen:** Deadnight, 2026-11-02 (fix: the prefix and a read back);
+  gdstudio #910, 2026-11-11 (`docker run ... --path /app` reached Godot as `C:/Program Files/Git/app`; exported, the
+  bots' `--path /c/Users/...` did not load: `server/check.sh` now passes `cygpath -m`).
 
 ## Settings belong to the service, not the deployment {#service-settings}
 

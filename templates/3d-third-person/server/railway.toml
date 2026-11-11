@@ -1,0 +1,10 @@
+# Railway config for the game server, read from the uploaded folder (server/stage.sh puts it beside the Dockerfile).
+# No HTTP health check: the server speaks WebSocket only; Railway restarts it when the process exits with an error.
+# The start command is the Dockerfile's: a startCommand here was not applied on Railway (kit docs/studio/railway.md).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
