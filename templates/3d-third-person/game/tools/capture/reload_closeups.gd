@@ -53,7 +53,7 @@ func _ready() -> void:
 		var old := slot.rig()
 		slot.remove_child(old)
 		old.free()
-		var male := load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene
+		var male := load(CharacterBodies.MALE) as PackedScene
 		slot.add_child(male.instantiate())
 	_camera = Camera3D.new()
 	_camera.fov = 35.0

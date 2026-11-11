@@ -20,8 +20,10 @@ model). Both Universal Animation Library files play on every body. Attach to a s
 `socket_camera`. Recolour a body by giving its material another 32 px palette (nine cells: main, panel, joint, left,
 right, visor, palm, sole, chest mark).
 
-The template's default character is still the Quaternius mannequin: the pistol's hold, the ragdoll and the hit zones
-are measured on its skin.
+The template's characters wear `form_female.glb` (the player, friendlies, online puppets) and `form_male.glb` (the
+enemies), named in `gameplay/character/character_bodies.gd`. The pistol's hold is solved for each of the two
+(`tools/hold/`), and the hit zones and the ragdoll are measured on them (`tools/mannequin/measure_segments.gd`). Another
+body needs its own hold (a `HoldFit`): the kit page `docs/engines/godot/third-person/character.md` says how.
 
 ## Making your own body
 

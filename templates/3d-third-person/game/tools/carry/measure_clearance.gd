@@ -11,8 +11,8 @@
 extends SceneTree
 
 const MODELS := [
-	"res://assets/characters/mannequin/mannequin_female.glb",
-	"res://assets/characters/mannequin/mannequin_male.glb",
+	CharacterBodies.FEMALE,
+	CharacterBodies.MALE,
 ]
 const CLIPS: Array[StringName] = [
 	CharacterClips.IDLE,
