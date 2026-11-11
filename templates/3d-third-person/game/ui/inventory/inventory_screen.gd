@@ -54,7 +54,7 @@ var _input_held := false
 @onready var _grid: GridContainer = %Grid
 @onready var _items_caption: Control = %ItemsCaption
 @onready var _detail_name: Label = %DetailName
-@onready var _detail_text: Label = %DetailText
+@onready var _detail_text: LinesLabel = %DetailText
 @onready var _drop: Button = %DropButton
 @onready var _close: Button = %CloseButton
 
