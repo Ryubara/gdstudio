@@ -147,3 +147,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   working-tree changes); tether #28, 2026-11-10 (`git stash push -- src hooks` to run the new tests on the old code
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
+- **Approach:** Take an old copy of a Git LFS file (a sound, a model) through LFS, `git show <rev>:<path> | git lfs
+  smudge > <file>` (or `git checkout <rev> -- <path>` in a scratch checkout), and check it with ffmpeg or its size before
+  a game reads it; when a game must play the old file, put it in a throwaway game, delete the file's
+  `.godot/imported/<name>-*.md5` and `-*` cache and copy the template's `.import` back before `--import`. **Watch out
+  for:** `git show` printed the 129-byte pointer, Godot imported it as `valid=false`, and later `--import` runs kept
+  that verdict after the real file was back, so even the After recording failed to load the sound until the cache was
+  cleared. **Seen:** gdstudio #889, 2026-11-10 (the pickup's Before and After listening clip).

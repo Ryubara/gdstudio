@@ -314,6 +314,12 @@ hold](../../../tools/blender/weapons.md#the-third-person-template-pistol) has th
   the whole walk in and out, then wait for it. **Watch out for:** with a 0.5 s respawn the rifle pickup came back
   while the character was still walking out over it and gave its rounds twice (180 in reserve, not 120). **Seen:**
   gdstudio #889, 2026-11-10.
+- **Approach:** When a part moves from the scene to being made on demand (the held rifle under `Model`, made by the
+  loadout when it is first carried), grep `tools/` for every `get_node` of it too and run each capture scene once: the
+  export leaves `tools/` out and no suite loads it. Look such a node up when it is needed (`get_node_or_null`), never in
+  `_ready`. **Watch out for:** `rifle_tour.gd` took `RifleHeld` in `_ready`, so after the change every frame of the tour
+  printed a `SCRIPT ERROR` and nothing measured the hold, found only when the tour was run for the next round.
+  **Seen:** gdstudio #889, 2026-11-10 (fix: `_rifle_out()` looks it up when the rifle is out).
 
 ## Bullet impacts {#impacts}
 
