@@ -27,7 +27,7 @@ from pathlib import Path
 
 import bpy
 import numpy as np
-from mathutils import Matrix, Quaternion
+from mathutils import Matrix, Quaternion, Vector
 
 FPS = 30
 CLIPS = (
@@ -42,8 +42,11 @@ SIDES = (("l", 1.0), ("r", -1.0))
 # Prone: where the body lies in the character's space. The origin is under the middle of the lying body, so a capsule
 # laid along the facing covers it evenly.
 PELVIS_FWD = 0.01  # the pelvis joint behind the origin
-ELBOW_H = 0.048  # the elbow joint over the floor when the elbow rests on it
+ELBOW_H = (
+    0.041  # the elbow joint over the floor when the forearm rests on its outer edge
+)
 WRIST_H = 0.045  # the wrist joint over the floor when the hand lies flat
+FIST_H = 0.0655  # the wrist joint over the floor when the fist rests on its outer edge, rolled with the forearm
 ANKLE_H = 0.040  # the ankle joint over the floor when the foot lies on it
 KNEE_H = 0.058  # the knee joint over the floor when the knee rests on it
 TOE_H = 0.012  # the tip of the toe bone over the floor when the toes rest on it
@@ -54,17 +57,42 @@ SQUASH = (
 # The forearms: how a person lies and crawls on them (the README's research). The elbows rest outside the shoulders
 # and the forearms point inward, so the hands lie near the body's centre line in front of the head; the wrist turns
 # the hand part of the way back toward straight ahead.
-IDLE_FOREARM_IN = 31.0  # degrees a lying forearm points inward of straight ahead
+IDLE_FOREARM_IN = 29.5  # degrees a lying forearm points inward of straight ahead
 IDLE_ELBOW_OUT = 0.095  # metres a lying elbow rests outside its shoulder
 IDLE_STAGGER = (
     0.025  # metres the right elbow lies ahead of the middle and the left behind it
 )
 FOREARM_IN = 40.0  # degrees a planted forearm points inward in the crawl
 FOREARM_SWING = 14.0  # degrees it points inward at the top of its swing, so the hand passes outside the other
-HAND_BACK = 18.0  # degrees the wrist turns the hand back toward straight ahead
+FOREARM_ROLL = 45.0  # degrees a resting forearm is rolled onto its outer edge: the palm faces down and inward
+# The fist a resting hand is closed into: degrees each finger joint bends from the knuckle to the tip, and the way
+# each thumb bone points on the left hand in the rest pose's axes (mirrored for the right), which lays the thumb
+# across the outside of the index and middle fingers.
+# The numbers are the middle between the two mannequins (`fist_numbers`): the male's fingers are longer, so a
+# fist closed on the female's palm puts his fingertips 6.7 mm into his and leaves his thumb 7 mm off his fingers.
+FIST_CURL = {
+    "index": (75.0, 88.0, 25.0),
+    "middle": (75.0, 88.0, 20.0),
+    "ring": (75.0, 88.0, 25.0),
+    "pinky": (75.0, 98.0, 25.0),
+}
+FIST_THUMB = (
+    (0.660, -0.472, -0.585),
+    (0.0436, 0.0085, -0.0228),
+    (0.0120, 0.0400, 0.0065),
+)
+FINGERS = ("index", "middle", "ring", "pinky")
+AXES = [
+    Vector(v)
+    for v in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
+]
 
 # Crawl: one cycle is two pulls, the right elbow with the left foot and then the others.
 CRAWL_FRAMES = 28
+CRAWL_CLAV_PUSH = 11.0  # degrees the collarbones push the shoulders toward the floor, which holds the chest off it
+CRAWL_ELBOW_UP = (
+    0.0  # metres a crawling elbow rides higher than a lying one (the chest leans on it)
+)
 CRAWL_DUTY = 0.52  # the part of the cycle an elbow is planted
 CRAWL_STRIDE = 0.30  # metres a planted elbow travels under the body
 LEG_DUTY = 0.30  # the part of the cycle a foot is planted and pushes; then the leg drags straight
@@ -74,6 +102,9 @@ LEG_DRAW = 0.70  # the phase the knee starts to draw up again
 IDLE_FRAMES = 90
 TO_PRONE_FRAMES = 27
 TO_CROUCH_FRAMES = 30
+HAND_FLOOR_LIMIT = 5.0  # millimetres a hand may be under the floor on either mannequin (skin pressed on it)
+FIST_LIMIT_IN = 3.0  # millimetres a finger piece may be inside the palm or another finger in the fist
+FIST_LIMIT_OFF = 5.0  # millimetres the thumb may be off the fingers it lies across
 OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`, both mannequins)
 # Coming up, where each hand and elbow wait beside the place they have in the crouch (forward, out to their own side
 # and up, in metres) while the knee comes forward under them.
@@ -85,6 +116,15 @@ HAND_WAIT_FRAMES = {
     "l": (13, 19, 26),
     "r": (14, 19, 25),
 }  # the hand leaves the floor, waits, takes its place
+HAND_LIFT = 0.038  # metres a hand lifts off the floor while it closes
+ROLL_FRAMES = (
+    12,
+    19,
+)  # going down, the frames between which the forearms roll and the hands close
+OPEN_FRAMES = (
+    3,
+    7,
+)  # coming up, the frames between which the fists open and the palms turn down
 KNEE_OPEN = 0.45  # how far the front knee opens to the side going down (added to its unit direction)
 
 
@@ -255,6 +295,8 @@ class Rig:
                     self.weights[v.index, group[g.group]] = g.weight
         self.weights /= self.weights.sum(axis=1, keepdims=True)
         self.owner = np.array(self.names)[self.weights.argmax(axis=1)]
+        mesh.data.calc_loop_triangles()
+        self.tris = np.array([t.vertices[:] for t in mesh.data.loop_triangles])
         self.rest_inv = np.stack([np.linalg.inv(self.rest[n]) for n in self.names])
 
     def world(self, local_rot, pelvis_pos):
@@ -314,6 +356,19 @@ class Solver:
         self.rig = rig
         self.warm = np.zeros(2)
         self.miss = {}
+        # the fist's thumb, as each thumb bone's turn from its parent
+        self.fist_thumb = {}
+        for s, sign in SIDES:
+            parent = rig.rest_rot["hand_" + s]
+            for joint, aim in zip(("01", "02", "03"), FIST_THUMB):
+                name = f"thumb_{joint}_{s}"
+                rest = rig.rest_rot[name]
+                want = unit(np.array([sign * aim[0], aim[1], aim[2]]))
+                turn = np.array(
+                    Vector(rest[:, 1]).rotation_difference(Vector(want)).to_matrix()
+                )
+                self.fist_thumb[name] = parent.T @ turn @ rest
+                parent = turn @ rest
 
     def _place(self, world, name, rot):
         rig = self.rig
@@ -527,6 +582,7 @@ class Solver:
             self._arm(world, spec, s, sign)
             self._leg(world, spec, s, sign)
         curl = spec.get("curl", {})
+        fist = spec.get("fist", {})
         local = {}
         for n in rig.names:
             p = rig.parent[n]
@@ -537,20 +593,32 @@ class Solver:
                 continue
             rot = rig.local_rot[n]
             side = n[-1]
-            if n[:-4] in ("index", "middle", "ring", "pinky") and n[-4:-2] in (
-                "01",
-                "02",
-                "03",
-            ):
-                rot = rot @ rot_x(math.radians(curl.get(side, 0.0)))
-            elif n.startswith("thumb_0") and n[-4:-2] in ("02", "03"):
-                rot = rot @ rot_x(math.radians(curl.get(side, 0.0) * 0.5))
-            elif n.startswith("thumb_01"):
+            closed = fist.get(side, 0.0)
+            finger, _, joint = n[:-2].partition("_")
+            if finger in FINGERS and joint in ("01", "02", "03"):
+                # a finger joint bends toward the palm about its own hinge, which the right hand's bones mirror
+                bend = curl.get(side, 0.0)
+                bend += closed * (FIST_CURL[finger][int(joint) - 1] - bend)
+                way = math.copysign(1.0, rig.rest_rot[n][1, 0]) * (
+                    1.0 if side == "l" else -1.0
+                )
+                rot = rot @ rot_x(math.radians(way * bend))
+            elif finger == "thumb" and joint in ("02", "03"):
+                rot = slerp(
+                    rot @ rot_x(math.radians(curl.get(side, 0.0) * 0.5)),
+                    self.fist_thumb[n],
+                    closed,
+                )
+            elif finger == "thumb" and joint == "01":
                 # the rest thumb points 47 degrees under the palm: lay it out beside the palm for a hand on the floor
                 lay = rot_x(
                     math.radians(-37.0 * spec.get("thumb_flat", {}).get(side, 0.0))
                 )
-                rot = rig.rest_rot["hand_" + side].T @ lay @ rig.rest_rot[n]
+                rot = slerp(
+                    rig.rest_rot["hand_" + side].T @ lay @ rig.rest_rot[n],
+                    self.fist_thumb[n],
+                    closed,
+                )
             local[n] = rot
             self._place(world, n, world[p][:3, :3] @ rot)
         return {
@@ -595,6 +663,7 @@ def prone_base(pelvis_up):
         "leg": {},
         "curl": {"l": 2.0, "r": 2.0},
         "thumb_flat": {"l": 1.0, "r": 1.0},
+        "fist": {"l": 1.0, "r": 1.0},
     }
     return spec
 
@@ -619,24 +688,26 @@ def idle_spec(rig, phase, pelvis_up, anchor):
             ELBOW_H,
         )
         reach = math.radians(IDLE_FOREARM_IN)
-        flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - (ELBOW_H - WRIST_H) ** 2)
+        flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - (ELBOW_H - FIST_H) ** 2)
         wrist = elbow + vec(
-            flat * math.cos(reach), -sign * flat * math.sin(reach), WRIST_H - ELBOW_H
+            flat * math.cos(reach), -sign * flat * math.sin(reach), FIST_H - ELBOW_H
         )
         spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, IDLE_FOREARM_IN)
         spec["leg"][s] = lying_leg(rig, sign, anchor)
     return spec
 
 
-def forearm_on_floor(elbow, wrist, sign, inward):
-    """An arm resting on its forearm: the palm down and the fingers `HAND_BACK` degrees nearer straight ahead than
-    the forearm, which points `inward` degrees toward the body's centre line."""
-    hand = math.radians(inward - HAND_BACK)
+def forearm_on_floor(elbow, wrist, sign, inward, roll=FOREARM_ROLL):
+    """An arm resting on its forearm, which points `inward` degrees toward the body's centre line and is rolled
+    `roll` degrees onto its outer edge (the little finger's side down, the thumb's side up), so the palm faces
+    down and in toward the other arm. The hand lies in line with the forearm: a straight wrist carries weight
+    longest."""
+    reach, turn = math.radians(inward), math.radians(roll)
+    medial = vec(-math.sin(reach), -sign * math.cos(reach), 0.0)
     return {
         "elbow": elbow,
         "wrist": wrist,
-        "palm": vec(0.0, 0.0, -1.0),
-        "fingers": vec(math.cos(hand), -sign * math.sin(hand), 0.0),
+        "palm": math.cos(turn) * vec(0.0, 0.0, -1.0) + math.sin(turn) * medial,
     }
 
 
@@ -682,18 +753,20 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
         elbow = vec(
             anchor["shoulder_fwd"] + 0.17 - travel + fwd,
             sign * (anchor["shoulder_left"] + 0.085 + 0.03 * swing),
-            ELBOW_H + 0.012 + 0.05 * lift,
+            ELBOW_H + CRAWL_ELBOW_UP + 0.05 * lift,
         )
         inward = FOREARM_IN - (FOREARM_IN - FOREARM_SWING) * swing
         reach = math.radians(inward)
-        rise = WRIST_H - ELBOW_H - 0.012 + 0.035 * lift
+        rise = FIST_H - ELBOW_H - CRAWL_ELBOW_UP + 0.035 * lift
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - rise**2)
         wrist = elbow + vec(
             flat * math.cos(reach), -sign * flat * math.sin(reach), rise
         )
         spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, inward)
-        spec["clav"][s] = (10.0 + 8.0 * (fwd / travel - 0.5), 5.0)
-        spec["curl"][s] = 2.0 + 12.0 * lift
+        spec["clav"][s] = (10.0 + 8.0 * (fwd / travel - 0.5), CRAWL_CLAV_PUSH)
+        spec["fist"][s] = (
+            1.0 - 0.12 * lift
+        )  # the fist loosens a little while it is carried
 
         fwd, lift, push = leg_stroke(leg_phase)
         straight = lying_leg(rig, sign, anchor, spread=0.19)
@@ -862,6 +935,7 @@ def transition(rig, solver, count, keys, limbs_from, anchor_pose):
             "leg": {},
             "curl": {s: keyed(keys["curl"], f) for s, _ in SIDES},
             "thumb_flat": {s: keyed(keys["thumb_flat"], f) for s, _ in SIDES},
+            "fist": {s: keyed(keys["fist"], f) for s, _ in SIDES},
         }
         for s, _ in SIDES:
             spec["arm"][s] = {
@@ -975,6 +1049,13 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
         "curl": [(0, 12.0), (9, 2.0), (n, 2.0)],
         "thumb_flat": [(0, 0.0), (9, 1.0), (n, 1.0)],
+        # the open hands catch the body; as the elbows come down the forearms roll and the hands close
+        "fist": [
+            (0, 0.0),
+            (ROLL_FRAMES[0] + 1, 0.0),
+            (ROLL_FRAMES[1] - 1, 1.0),
+            (n, 1.0),
+        ],
         "wrist": {},
         "elbow": {},
         "palm": {},
@@ -989,6 +1070,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     }
     for s, sign in SIDES:
         above = p["wrist_" + s] + vec(-0.24, sign * 0.20, 0.22)
+        flat_hand = p["wrist_" + s] * np.array([1.0, 1.0, 0.0]) + vec(0.0, 0.0, WRIST_H)
         keys["wrist"][s] = [
             (0, c["wrist_" + s]),
             (
@@ -996,23 +1078,39 @@ def build_transitions(rig, solver, anchor, crouch, clips):
                 c["wrist_" + s] + vec(0.16, sign * 0.03, 0.14),
             ),  # up and ahead, over the knee
             (5, above),
-            (9, p["wrist_" + s]),
+            (9, flat_hand),
+            (ROLL_FRAMES[0], flat_hand),
+            # the hand lifts off the floor to close: a fist is taller than a flat hand
+            (ROLL_FRAMES[0] + 3, p["wrist_" + s] + vec(0.0, 0.0, HAND_LIFT)),
+            (ROLL_FRAMES[1], p["wrist_" + s]),
             (n, p["wrist_" + s]),
         ]
         keys["elbow"][s] = [
             (0, c["elbow_" + s]),
             (
                 4,
-                c["elbow_" + s] + vec(-0.04, sign * 0.18, 0.14),
+                c["elbow_" + s] + vec(-0.04, sign * 0.22, 0.14),
             ),  # out, clear of the knee
             (9, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
             (19, p["elbow_" + s]),
             (n, p["elbow_" + s]),
         ]
-        keys["palm"][s] = [(0, c["palm_" + s]), (8, down), (n, down)]
+        keys["palm"][s] = [
+            (0, c["palm_" + s]),
+            (8, down),
+            (ROLL_FRAMES[0], down),
+            (ROLL_FRAMES[1] - 2, p["palm_" + s]),
+            (n, p["palm_" + s]),
+        ]
+        # the flat hands land pointing nearly straight ahead, clear of each other, and turn in as they close
+        landing = vec(
+            math.cos(math.radians(13.0)), -sign * math.sin(math.radians(13.0)), 0.0
+        )
         keys["fingers"][s] = [
             (0, c["fingers_" + s]),
-            (8, p["fingers_" + s]),
+            (8, landing),
+            (ROLL_FRAMES[0] + 2, landing),
+            (ROLL_FRAMES[1], p["fingers_" + s]),
             (n, p["fingers_" + s]),
         ]
     # the right foot slides back on its toes; the left steps back after the hands have landed
@@ -1103,6 +1201,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
         "curl": [(0, 2.0), (14, 2.0), (22, 12.0), (n, 12.0)],
         "thumb_flat": [(0, 1.0), (14, 1.0), (22, 0.0), (n, 0.0)],
+        # the fists open as the hands come back beside the chest: the push is on flat palms
+        "fist": [(0, 1.0), (OPEN_FRAMES[0], 1.0), (OPEN_FRAMES[1], 0.0), (n, 0.0)],
         "wrist": {},
         "elbow": {},
         "palm": {},
@@ -1120,8 +1220,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         leave, wait, arrive = HAND_WAIT_FRAMES[s]
         keys["wrist"][s] = [
             (0, p["wrist_" + s]),
-            (2, p["wrist_" + s]),
-            (5, (p["wrist_" + s] + under) / 2 + vec(0, 0, 0.04)),
+            (1, p["wrist_" + s]),
+            (4, (p["wrist_" + s] + under) / 2 + vec(0, 0, 0.06)),
             (8, under),
             (leave, under),
             (
@@ -1143,7 +1243,9 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (n, c["elbow_" + s]),
         ]
         keys["palm"][s] = [
-            (0, down),
+            (0, p["palm_" + s]),
+            (OPEN_FRAMES[0], p["palm_" + s]),
+            (OPEN_FRAMES[1], down),
             (15, down),
             (22, c["palm_" + s]),
             (n, c["palm_" + s]),
@@ -1420,6 +1522,133 @@ def planted_slide(rig, frames, travel):
     return out, speed
 
 
+def fist_numbers(rig, pose):
+    """How the closed hands of a pose fit together, in millimetres, on the mesh's own pieces (the mannequin's hand
+    is a palm and a capsule a finger bone): the deepest any finger piece is inside the palm or a piece of another
+    finger, the gap between the thumb's last piece and the index and middle fingers it lies across, and each
+    fingertip's gap to the palm. A point is inside a piece when the nearest skin of that piece faces away from
+    it and rays from it meet the back of the piece's faces."""
+    from mathutils.bvhtree import BVHTree
+
+    skinned = rig.skin(rig.world(pose["local"], pose["pelvis"]))
+    piece = np.array([rig.owner[t[0]] for t in rig.tris])
+    out = {}
+    for s, _ in SIDES:
+        names = ["hand_" + s] + [
+            f"{finger}_{joint}_{s}"
+            for finger in FINGERS + ("thumb",)
+            for joint in ("01", "02", "03")
+        ]
+        trees, points = {}, {}
+        for name in names:
+            tris = rig.tris[piece == name]
+            used = np.unique(tris)
+            trees[name] = BVHTree.FromPolygons(
+                skinned[used].tolist(), np.searchsorted(used, tris).tolist()
+            )
+            points[name] = skinned[np.flatnonzero(rig.owner == name)]
+
+        def reach(inner, outer, trees=trees, points=points):
+            """(depth inside, gap outside) of `inner`'s vertices against `outer`'s skin, in metres."""
+            deep, gap = 0.0, 9.0
+            for point in points[inner].tolist():
+                place, normal, _, distance = trees[outer].find_nearest(point)
+                inside = (Vector(point) - place).dot(normal) < 0.0
+                if inside:
+                    # from inside, a ray any way first meets the back of a face (five of six: the palm is open
+                    # at the wrist)
+                    backs = 0
+                    for way in AXES:
+                        _, facing, _, far = trees[outer].ray_cast(point, way)
+                        backs += far is not None and way.dot(facing) > 0.0
+                    inside = backs >= 5
+                if inside:
+                    deep = max(deep, distance)
+                    gap = 0.0
+                else:
+                    gap = min(gap, distance)
+            return deep, gap
+
+        deepest, pair, pairs = 0.0, None, {}
+        for a in names[1:]:
+            for b in names:
+                same = a.split("_")[0] == b.split("_")[0]
+                # not measured: a finger against itself, a knuckle against the palm it grows from, and two
+                # knuckles side by side (the model's own are 3.7 mm into each other with the hand open)
+                if (
+                    a == b
+                    or same
+                    or ("_01_" in a and (b.startswith("hand") or "_01_" in b))
+                ):
+                    continue
+                deep = reach(a, b)[0]
+                if deep > 0.0:
+                    pairs[f"{a} in {b}"] = round(deep * 1000.0, 1)
+                if deep > deepest:
+                    deepest, pair = deep, f"{a} in {b}"
+        out[s] = {
+            "deepest": round(deepest * 1000.0, 1),
+            "pair": pair,
+            "pairs": pairs,
+            "thumb_gap": round(
+                min(
+                    reach(f"thumb_03_{s}", f"{f}_02_{s}")[1]
+                    for f in ("index", "middle")
+                )
+                * 1000.0,
+                1,
+            ),
+            "tip_to_palm": {
+                f: round(reach(f"{f}_03_{s}", "hand_" + s)[1] * 1000.0, 1)
+                for f in FINGERS
+            },
+        }
+    return out
+
+
+def floor_numbers(arm, actions, clips, bodies, failures):
+    """How low each mannequin's hands (with their fingers) and forearms get in each clip, in millimetres over the
+    floor, with the frame. A hand deeper than `HAND_FLOOR_LIMIT` on the first body, the one the clips are solved on,
+    fails the build; the other's numbers are reported (his longer upper arms put his elbows lower)."""
+    scene = bpy.context.scene
+    out = {}
+    for name, frames in clips.items():
+        arm.animation_data.action = actions[name]
+        arm.animation_data.action_slot = actions[name].slots[0]
+        out[name] = {body.name: {} for body in bodies}
+        for f in range(len(frames)):
+            scene.frame_set(f)
+            for body in bodies:
+                body.pose_from(arm)
+                coords = body.skinned()
+                for part in ("hand", "lowerarm"):
+                    for s, _ in SIDES:
+                        low = round(
+                            float(coords[body.parts[f"{part}_{s}"]["verts"], 2].min())
+                            * 1000.0,
+                            1,
+                        )
+                        entry = out[name][body.name].setdefault(
+                            f"{part}_{s}", {"lowest": low, "frame": f, "frames": []}
+                        )
+                        entry["frames"].append(low)
+                        if low < entry["lowest"]:
+                            entry.update(lowest=low, frame=f)
+        for body in bodies:
+            for part, entry in out[name][body.name].items():
+                if (
+                    body is bodies[0]
+                    and part.startswith("hand")
+                    and entry["lowest"] < -HAND_FLOOR_LIMIT
+                ):
+                    failures.append(
+                        f"{name} on the {body.name}: {part} goes {-entry['lowest']} mm under the floor at"
+                        f" frame {entry['frame']} (the limit is {HAND_FLOOR_LIMIT} mm)"
+                    )
+    arm.animation_data.action = None
+    return out
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
@@ -1511,11 +1740,17 @@ def main():
                 failures.append(f"{what}: off by {turn:.3f} degrees and {apart:.4f} m")
         down, up = clips["Crouch_To_Prone"], clips["Prone_To_Crouch"]
         planted = {
-            "Crouch_To_Prone hand_l 10-27": stray(
-                rig, down, "hand_l", 10, TO_PRONE_FRAMES
+            "Crouch_To_Prone hand_l 10-12": stray(
+                rig, down, "hand_l", 10, ROLL_FRAMES[0]
             ),
-            "Crouch_To_Prone hand_r 10-27": stray(
-                rig, down, "hand_r", 10, TO_PRONE_FRAMES
+            "Crouch_To_Prone hand_r 10-12": stray(
+                rig, down, "hand_r", 10, ROLL_FRAMES[0]
+            ),
+            "Crouch_To_Prone hand_l 19-27": stray(
+                rig, down, "hand_l", ROLL_FRAMES[1], TO_PRONE_FRAMES
+            ),
+            "Crouch_To_Prone hand_r 19-27": stray(
+                rig, down, "hand_r", ROLL_FRAMES[1], TO_PRONE_FRAMES
             ),
             "Crouch_To_Prone foot_l 0-7": stray(rig, down, "foot_l", 0, 7),
             "Prone_To_Crouch hand_l 8-13": stray(
@@ -1563,6 +1798,29 @@ def main():
                 per[group] = round(min(per.get(group, 9.0), low), 4)
         groups[name] = per
     report["lowest_by_part"] = groups
+    # The fist on both mannequins: the clip's rotations on each one's own hand, as Godot plays them.
+    other_arm, other_objects = import_glb(args.male)
+    other_mesh = max(
+        (o for o in other_objects if o.type == "MESH" and o.parent == other_arm),
+        key=lambda o: len(o.data.vertices),
+    )
+    fist_rigs = {"female": rig, "male": Rig(other_arm, other_mesh)}
+    for obj in other_objects:
+        bpy.data.objects.remove(obj)
+    report["fist_mm"] = {}
+    for body, body_rig in fist_rigs.items():
+        report["fist_mm"][body] = fist_numbers(body_rig, clips["Prone_Idle_Loop"][0])
+        for side, entry in report["fist_mm"][body].items():
+            if entry["deepest"] > FIST_LIMIT_IN:
+                failures.append(
+                    f"the {body}'s {side} fist: {entry['pair']} by {entry['deepest']} mm (the limit is"
+                    f" {FIST_LIMIT_IN} mm)"
+                )
+            if entry["thumb_gap"] > FIST_LIMIT_OFF:
+                failures.append(
+                    f"the {body}'s {side} fist: the thumb is {entry['thumb_gap']} mm off the fingers (the"
+                    f" limit is {FIST_LIMIT_OFF} mm)"
+                )
     actions = {name: key_clip(arm, rig, name, frames) for name, frames in clips.items()}
     for name, frames in clips.items():
         off = check_against_blender(
@@ -1580,6 +1838,7 @@ def main():
     male = limb_overlap.load_body(args.male, "male")
     bodies = [limb_overlap.Body(arm, mesh, "female"), male]
     report["overlap_mm"] = {}
+    report["floor_mm"] = floor_numbers(arm, actions, clips, bodies, failures)
     for name, frames in clips.items():
         measured = limb_overlap.measure(arm, actions[name], range(len(frames)), bodies)
         report["overlap_mm"][name] = {}

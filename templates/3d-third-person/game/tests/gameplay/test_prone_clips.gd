@@ -248,6 +248,67 @@ func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> voi
 			)
 
 
+# A resting forearm is rolled about 45 degrees onto its outer edge, so the palm faces down and in
+# toward the other arm, and the hand is a fist: every finger's last joint is about as near the
+# wrist as its knuckle and the thumb lies on the index finger. Lying flat on the palms tires the
+# wrists;
+# this is how a crawl is kept up (the README). Both mannequins, lying still and in the crawl,
+# planted and carried (an open finger's last joint is 1.6 times as far from the wrist as its
+# knuckle, a closed one's 0.9, a carried fist's a little more).
+func test_the_forearms_rest_on_their_outer_edge_and_the_hands_are_fists() -> void:
+	for model_path in MODELS:
+		_stage(model_path)
+		var model := model_path.get_file()
+		var moments := [
+			["idle", &"prone/Prone_Idle", 0.0, ["l", "r"]],
+			["crawl, right planted", &"prone/Crawl_Fwd", 0.25 * CRAWL_SECONDS, ["r"]],
+			["crawl, left planted", &"prone/Crawl_Fwd", 0.75 * CRAWL_SECONDS, ["l"]],
+			["crawl, right carried", &"prone/Crawl_Fwd", 0.75 * CRAWL_SECONDS, ["r"]],
+		]
+		for moment: Array in moments:
+			var pose := _pose(moment[1], moment[2])
+			for side: String in moment[3]:
+				var where := "%s, %s hand on %s" % [moment[0], side, model]
+				var hand := _skeleton.find_bone("hand_" + side)
+				var turned := (
+					(pose["hand_" + side] as Transform3D).basis.orthonormalized()
+					* _skeleton.get_bone_global_rest(hand).basis.orthonormalized().inverse()
+				)
+				# the palm faces down in the rest pose
+				var palm := turned * Vector3.DOWN
+				var roll := rad_to_deg(palm.angle_to(Vector3.DOWN))
+				(
+					assert_float(roll)
+					. override_failure_message("%s: rolled %.1f degrees" % [where, roll])
+					. is_between(35.0, 55.0)
+				)
+				var inward := -palm.x if side == "l" else palm.x
+				(
+					assert_float(inward)
+					. override_failure_message("%s: the palm faces %.2f inward" % [where, inward])
+					. is_greater(0.3)
+				)
+				var wrist: Vector3 = (pose["hand_" + side] as Transform3D).origin
+				for finger: String in ["index", "middle", "ring", "pinky"]:
+					var knuckle: Vector3 = (pose["%s_01_%s" % [finger, side]] as Transform3D).origin
+					var last: Vector3 = (pose["%s_03_%s" % [finger, side]] as Transform3D).origin
+					(
+						assert_float(last.distance_to(wrist))
+						. override_failure_message("%s: the %s finger is open" % [where, finger])
+						. is_less(1.1 * knuckle.distance_to(wrist))
+					)
+				var thumb: Vector3 = (pose["thumb_03_" + side] as Transform3D).origin
+				var index: Vector3 = (pose["index_02_" + side] as Transform3D).origin
+				var palm_length := (pose["index_01_" + side] as Transform3D).origin.distance_to(
+					wrist
+				)
+				(
+					assert_float(thumb.distance_to(index))
+					. override_failure_message("%s: the thumb is off the fingers" % where)
+					. is_less(0.5 * palm_length)
+				)
+
+
 # Degrees a forearm points toward the body's centre line, seen from above (the model faces +Z and
 # its left is +X; `side` is 1 for the left arm).
 func _inward(elbow: Vector3, wrist: Vector3, side: float) -> float:
