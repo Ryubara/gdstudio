@@ -218,7 +218,7 @@ func test_the_weapons_are_the_loadouts_with_the_one_in_the_hands_marked() -> voi
 
 func test_a_weapon_given_while_it_is_open_shows_and_its_rounds_count() -> void:
 	# The rifle pickup's path (kit #889): `give()` while the screen is up redraws it at once.
-	var slots: Array[WeaponDef] = [_player.loadout.slots[0]]
+	var slots: Array[Resource] = [_player.loadout.slots[0]]
 	_player.loadout.slots = slots
 	var screen := await _open()
 	assert_int(screen.weapon_cells().size()).is_equal(2)
