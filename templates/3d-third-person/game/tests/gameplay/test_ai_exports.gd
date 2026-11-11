@@ -49,6 +49,12 @@ func test_the_profile_defaults_are_pinned() -> void:
 		&"tier_margin": 4.0,
 		&"max_rays_per_think": 2,
 		&"repath_seconds": 0.25,
+		&"under_attack": AiTask.UnderAttack.FINISH_THEN_REACT,
+		&"task_hard_timeout": 30.0,
+		&"failure_budget": 3,
+		&"failure_window": 10.0,
+		&"fallback_seconds": 5.0,
+		&"commit_seconds": 0.5,
 	}
 	assert_array(ExportPins.differences(profile, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(profile, pins)).is_empty()
@@ -112,3 +118,60 @@ func test_the_character_adds_only_its_ai_exports() -> void:
 	)
 	assert_bool(character.debug).is_false()
 	assert_str((character.profile as AiProfile).display_name).is_equal("Grunt")
+
+
+func test_the_task_defaults_are_pinned() -> void:
+	var pins := {
+		&"id": &"",
+		&"layer": AiTask.Layer.ROUTINE,
+		&"channels": AiTask.Channel.MOVE,
+		&"interruptible": AiTask.Interruptible.YES,
+		&"when_interrupted": AiTask.WhenInterrupted.SUSPEND_RESUME,
+		&"resume_valid_for": 0.0,
+		&"under_attack": AiTask.UnderAttack.PROFILE,
+		&"abort_damage": 20.0,
+		&"abort_window": 1.0,
+		&"persistent": false,
+		&"reactive": true,
+		&"replace_policy": AiTask.ReplacePolicy.MERGE,
+		&"timeout": 0.0,
+		&"hard_timeout": -1.0,
+		&"ends_on_condition": false,
+		&"expires_after": 0.0,
+		&"on_fail": AiTask.OnFail.SKIP,
+		&"retry_count": 1,
+		&"retry_delay": 0.5,
+		&"fallback": null,
+		&"authority": 0,
+		&"need": &"",
+	}
+	var task := AiTask.new()
+	assert_array(ExportPins.differences(task, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(task, pins)).is_empty()
+	var composite_pins := pins.duplicate()
+	composite_pins[&"children"] = []
+	assert_array(ExportPins.differences(AiTaskSequence.new(), composite_pins)).is_empty()
+	assert_array(ExportPins.differences(AiTaskSelector.new(), composite_pins)).is_empty()
+	var parallel_pins := composite_pins.duplicate()
+	parallel_pins[&"finish_on_first"] = false
+	assert_array(ExportPins.differences(AiTaskParallel.new(), parallel_pins)).is_empty()
+	var repeat_pins := composite_pins.duplicate()
+	repeat_pins[&"count"] = 0
+	assert_array(ExportPins.differences(AiTaskRepeat.new(), repeat_pins)).is_empty()
+
+
+func test_the_tasks_node_and_the_needs_defaults_are_pinned() -> void:
+	var tasks: AiTasks = auto_free(AiTasks.new())
+	var pins := {
+		&"default_task": null,
+		&"routine": null,
+		&"attack_task": null,
+		&"needs": null,
+		&"label": null,
+	}
+	assert_array(ExportPins.differences(tasks, pins)).is_empty()
+	assert_array(ExportPins.wrong_values(tasks, pins)).is_empty()
+	var row_pins := {&"need": &"", &"order": &"*", &"gives_way_at": 0.5}
+	assert_array(ExportPins.differences(AiNeedRow.new(), row_pins)).is_empty()
+	assert_array(ExportPins.wrong_values(AiNeedRow.new(), row_pins)).is_empty()
+	assert_array(ExportPins.differences(AiNeeds.new(), {&"rows": []})).is_empty()

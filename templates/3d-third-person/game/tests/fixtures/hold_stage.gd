@@ -42,6 +42,8 @@ const LEFT_CONTACTS: Array[String] = [
 	"thumb_tip",
 	"palm",
 ]
+## The parts of the left hand that push the magazine in during the reload.
+const MAGAZINE_CONTACTS: Array[String] = ["palm", "ring_tip", "pinky_tip"]
 
 var slot: CharacterModel
 var skeleton: Skeleton3D
@@ -92,13 +94,15 @@ func clip(clip_name: StringName) -> Animation:
 
 ## Puts `clip_name` at `time` on the skeleton, then `grip` at its start on each of `grip_bones` and
 ## every bone under it (the hand-only carry over a locomotion clip); `aim` is how far the hold is
-## in its aim (0 carried, 1 aiming).
+## in its aim (0 carried, 1 aiming) and `reload` how far through a reload the clip is (its share,
+## 0 to 1; below 0 when the clip is no reload).
 func pose(
 	clip_name: StringName,
 	time: float,
 	aim := 0.0,
 	grip: StringName = &"",
-	grip_bones: Array[StringName] = []
+	grip_bones: Array[StringName] = [],
+	reload := -1.0
 ) -> void:
 	skeleton.reset_bone_poses()
 	_apply(clip(clip_name), time, {})
@@ -115,6 +119,8 @@ func pose(
 		_apply(clip(grip), 0.0, covered)
 	if hold != null:
 		hold.set(&"aim_weight", aim)
+		hold.set(&"reload_weight", 1.0 if reload >= 0.0 else 0.0)
+		hold.set(&"reload_share", maxf(reload, 0.0))
 		hold.call(&"refresh")
 	_updates = 0
 
