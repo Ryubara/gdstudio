@@ -9,9 +9,9 @@ extends Node
 ## number is a ceiling); `us_each` is one runner's step, and `think_tick_us_40` what 40
 ## characters thinking at 10 Hz add to a physics tick (40 / 6 thinks a tick).
 ##
-## One line of JSON, `AI_TASK_BENCH {...}`. Desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_task_bench.tscn`; browser: a
-## web export with this scene as `run/main_scene` and `tools/*` out of the exclude filter, read by
+## One line of JSON, `AI_TASK_BENCH {...}`. Desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/ai_task_bench.tscn`; browser: the web export `gds template bench-web
+## 3d-third-person ai_task_bench` makes (kit docs/engines/godot/web-probes.md#bench-web), read by
 ## `tools/bench/ai_task_bench.py` (`window.__ai_task_bench`).
 
 const COUNTS: Array[int] = [40, 200]

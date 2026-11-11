@@ -190,7 +190,11 @@ changes:
    `.pre-commit-config.yaml` has none to check. On Windows, Git LFS's own `pre-push` (`#!/bin/sh`) is moved aside by
    `pre-commit install` and then fails every push with `Executable /bin/sh not found`; the start rewrites its
    shebang to `#!/usr/bin/env sh`;
-3. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
+3. installs the pinned Godot addons (GdUnit4, the MCP addon) into the worktree's Godot project (`game/` in a game,
+   `godot/` in the kit), untracked as `gds workspace init` installs them
+   ([Integrations](workspace.md#integrations)); a reused worktree gets the ones it lacks. An addon not fetched yet is
+   named in the output (`gds workspace init` fetches it) and the start goes on;
+4. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
 
 If the worktree cannot be made, or a hook stays missing, the issue is left as it was and the worktree and branch it
 made are removed; if GitHub fails after the worktree exists, it is removed too. `--no-worktree` skips the step for an
@@ -273,7 +277,8 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 1. every section the issue names as `page.md#anchor`;
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
    issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
-   pages);
+   pages), when that section's words score at least a third of the best section's (a pull request's changed files
+   need no such closeness);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
 
@@ -308,6 +313,12 @@ they exist.
   the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
   captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
   #880 and #886, 2026-11-10.
+- **Approach:** Let a path the issue names pick a section only when that section's words are also close to the
+  issue's (`MENTION_FLOOR` in `lessons.py`: a third of the best section's score). **Watch out for:** an issue's `Area`
+  line repeats its label's folders (`game/core/`) and many sections cite a file as an example, so the one section that
+  mentions such a path was named however far its subject; #909 (online play) was briefed with the voice-lines section.
+  **Seen:** gdstudio #1133, 2026-11-11 (fix: the floor, tuned on 120 kit issues; the far mentions scored 0.17 to 0.31
+  of the best, the fitting ones 0.35 and up).
 
 ## The report {#the-report}
 

@@ -13,8 +13,9 @@ extends Node
 ## each module (`modules`, in the step's order), the empty loop over the crowd (`loop_us`, what one
 ## module's timing costs on its own), and a fixed loop of GDScript timed first (`calibration_ms`),
 ## as `ai_cost_bench.gd` reads it. Desktop: `godot --headless --fixed-fps 60 --path game
-## res://tools/bench/ai_step_profile.tscn [-- --count=40 --lean=on|off]`; browser: a web export
-## with this scene as `run/main_scene`, read by `tools/bench/ai_step_profile.py`
+## res://tools/bench/ai_step_profile.tscn [-- --count=40 --lean=on|off]`; browser: the web export
+## `gds template bench-web 3d-third-person ai_step_profile` makes (kit
+## docs/engines/godot/web-probes.md#bench-web), read by `tools/bench/ai_step_profile.py`
 ## (`window.__ai_step_profile`, the same options in the page's query).
 
 const CHARACTER := "res://gameplay/ai/ai_character.tscn"

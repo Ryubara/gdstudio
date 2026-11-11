@@ -7,7 +7,7 @@ read in one look, and encode a clip. A sound needs a clip you can listen to ([So
 ```text
 gds capture frames --project <game>/game --scene res://x.tscn --seconds 6 --fps 10 --name hud
 gds capture sheet  <folder> --every 5 --columns 5
-gds capture clip   <folder> [--gif]
+gds capture clip   <folder> [--gif] [--max-seconds N]
 ```
 
 Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ...`.
@@ -77,6 +77,10 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   between two images: 150 `physics_frame` waits for a 2.5 s action ended after 25 frames, and a tracer or flash that
   lives 0.1 s fell between two frames and was in none. **Seen:** Deadnight, 2026-11-01 (fix: waits in ticks, effects
   that live 2 to 3 frames).
+- **Approach:** After a capture script moves its camera to the next view, let one frame draw before it saves (await
+  `RenderingServer.frame_post_draw` twice, or take the shot twice and keep the second). **Watch out for:** the first
+  image saved after the move still showed the view before it, so a close-up sheet had one stale tile per view.
+  **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
 
 ## sheet {#sheet}
 
@@ -86,15 +90,20 @@ read it with the Read tool and fix what looks wrong.
 
 `sheet` and `clip` read any folder of frames, not only one `frames` wrote: a frame is a PNG named
 `<prefix><number>.png`, with one prefix and one number width for the whole folder, numbered in order from the first
-(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also
-works). Frames recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise
-(`walk-front.png`) has no frames, and the error lists the files it skipped.
+(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also works).
+The number is at most 8 digits, so a prefix may end in a digit (`run200000000.png` is `run2` and frame 0; it was read as
+one 9-digit number and ffmpeg found no frames, #1132). Frames recorded another way are renamed to that pattern first: a
+folder whose PNG files are named otherwise (`walk-front.png`) has no frames, and the error lists the files it skipped.
 
 ## clip {#clip}
 
 Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif` with a
-128-colour palette at up to 12 fps. The clip is cut at 30 s and has to stay under 9 MB (GitHub takes 10 MB for most
-attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720 and 480 px, then the command fails.
+128-colour palette at up to 12 fps. The clip is cut at 30 s (`--max-seconds N` for another cut) and has to stay under
+9 MB (GitHub takes 10 MB for most attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720
+and 480 px, then the command fails. When frames run past the cut, it prints a line with how many frames and seconds
+were left out (`clip cut at 30 s: 120 frames (12 s) of 420 left out`): read it before you attach the clip, since the
+part you meant to show may sit in what was cut (#1090 sent such a clip before the line existed, #1132). Raise
+`--max-seconds`, or capture a shorter run that starts nearer the moment.
 
 ## Attaching {#attaching}
 
@@ -144,6 +153,13 @@ report only after reading the body back.
   editing it and before the send. **Watch out for:** a scripted edit that was to add the image references matched
   nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
   2026-11-10.
+- **Approach:** Write the body file in an earlier command and name it by its absolute path when the `gh` command
+  starts with `cd <folder>`; run `gds pr check-body` by hand with `--repo <worktree>` when you stand in the scratch
+  folder, and expect it to pass only on the body read back after the upload, never on the file with `./` references.
+  **Watch out for:** a relative `--body-file` is read from the folder after the `cd`, so a path written from the
+  worktree was "does not exist yet"; and the hand check, which has no `--attach`, refused the `Before:` and `After:`
+  lines that the `gh pr create` guard accepted. **Seen:** gdstudio #1001 (PR #1038) and #1031 (PR #1054), 2026-11-11
+  (the body file); gdstudio #1011, #1020, #1016, #1040 and #1090, 2026-11-10 and 11 (the hand check).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
@@ -197,7 +213,9 @@ A `Before:` capture needs the code from before the change, and the task's worktr
 edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
 --detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
-phone's 844 by 390 and the web export), then `git worktree remove` it.
+phone's 844 by 390 and the web export), then `git worktree remove` it. An old sound or model alone is a Git LFS file:
+take it with `git checkout <rev> -- <file>` into a scratch checkout, never `git show`, which prints the pointer
+([Reverting and checking out](shell.md#checkout)).
 
 - **Approach:** Capture a feature's payoff (a machine's reveal, a prompt) from the player's camera at the spot the
   player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated

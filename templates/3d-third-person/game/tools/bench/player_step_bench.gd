@@ -10,11 +10,12 @@ extends Node
 ## most of the time and getting up every five seconds (gdstudio #1012); a build without prone
 ## leaves it out.
 ##
-## Run it headless on the desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/player_step_bench.tscn`
-## and in a browser from a web export with this scene as `run/main_scene` and `tools/*` taken out
-## of the preset's exclude filter (`tools/bench/player_step_bench.py`). It prints one line of JSON
-## that starts with `PLAYER_STEP_BENCH` and, on the web, puts it in `window.__player_step_bench`.
+## Run it headless on the desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/player_step_bench.tscn` and in a browser from the web export `gds template
+## bench-web 3d-third-person player_step_bench` makes (kit
+## docs/engines/godot/web-probes.md#bench-web) (`tools/bench/player_step_bench.py`). It prints one
+## line of JSON that starts with `PLAYER_STEP_BENCH` and, on the web, puts it in
+## `window.__player_step_bench`.
 
 const COUNTS: Array[int] = [1, 8, 40]
 const WARM_TICKS := 60
