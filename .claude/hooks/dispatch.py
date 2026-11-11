@@ -51,6 +51,7 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
     event = payload.get("hook_event_name")
     if event == "PreToolUse":
         reasons = guards.pre_tool_use(payload, config)
+        warnings = guards.take_warnings()  # a guard that failed open says so: the user sees it, and so does the model
         if reasons:
             text = "Refused by GDStudio's hooks:\n" + "\n".join(f"- {r}" for r in reasons)
             return {
@@ -59,6 +60,12 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
                     "permissionDecision": "deny",
                     "permissionDecisionReason": text,
                 }
+            }
+        if warnings:
+            text = "GDStudio's hooks let this through unchecked:\n" + "\n".join(f"- {w}" for w in warnings)
+            return {
+                "systemMessage": text,
+                "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": text},
             }
     elif event in ("Stop", "SubagentStop"):
         reason = (guards.stop if event == "Stop" else guards.subagent_stop)(payload, config)
