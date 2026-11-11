@@ -88,7 +88,9 @@ instead of the original) had no home -->
 - **Approach:** Append to the property itself (`data.names.append(x)`), or assign the copy back, when the array is a
   `Packed*Array`. **Watch out for:** packed arrays are value types, so `var list := data.names; list.append(x)` changes
   a copy and the property stays empty, with no error: a credits list stayed empty although every line was appended.
-  **Seen:** Deadnight, 2026-11-01 (fix: append to the property; a test caught it).
+  Taken out of a `Dictionary` with `as PackedInt32Array` it is a copy as well: every part of a hand measured
+  `inf` because the appends went to copies (a plain `Array` in the dictionary is shared). **Seen:** Deadnight,
+  2026-11-01 (fix: append to the property; a test caught it); gdstudio #1001, 2026-11-10.
 
 ## Handlers of one signal run in the order they connected {#signal-order}
 
