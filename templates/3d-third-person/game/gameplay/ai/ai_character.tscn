@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/character/character_dressed.tscn" id="1_dressed"]
+[ext_resource type="Script" path="res://gameplay/ai/ai_character.gd" id="2_ai"]
+[ext_resource type="Script" path="res://gameplay/ai/ai_controller.gd" id="3_controller"]
+[ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="4_grunt"]
+
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label") instance=ExtResource("1_dressed")]
+script = ExtResource("2_ai")
+profile = ExtResource("4_grunt")
+debug_label = NodePath("DebugLabel")
+controller = NodePath("AiController")
+
+[node name="AiController" type="Node" parent="."]
+script = ExtResource("3_controller")
+
+[node name="DebugLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
+visible = false
+cast_shadow = 0
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+fixed_size = false
+text = "AI"
+font_size = 40
+outline_size = 10
