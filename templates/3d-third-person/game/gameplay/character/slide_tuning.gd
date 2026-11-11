@@ -89,6 +89,11 @@ extends Resource
 @export_group("Shooting")
 ## On: aim and fire work while sliding (the body turns to the view). Off: the slide holds them.
 @export var can_shoot := true
+## How far the aim layer turns the upper body off the slide's direction to put the weapon on the
+## aim (`AimLayer`). The body keeps along the slide while the aim is within `yaw_left` and
+## `yaw_right`; past them it turns or the shot is refused, as the weapon's
+## `WeaponDef.past_aim_limit` says. The slide leans the hips back, so the pitch has room downward.
+@export var aim_limits := _slide_aim_limits()
 
 @export_group("Slide jump")
 ## On: jump works out of a slide and keeps its speed in the air.
@@ -101,3 +106,12 @@ extends Resource
 @export_range(1.0, 30.0, 0.05, "suffix:m/s") var jump_max_speed := 9.0
 ## How fast the carried speed of a slide jump fades in the air.
 @export_range(0.0, 30.0, 0.05, "suffix:m/s²") var jump_air_drag := 1.0
+
+
+static func _slide_aim_limits() -> AimLimits:
+	var limits := AimLimits.new()
+	limits.yaw_left = 75.0
+	limits.yaw_right = 75.0
+	limits.pitch_up = 50.0
+	limits.pitch_down = 70.0
+	return limits
