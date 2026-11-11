@@ -8,8 +8,8 @@
 ##    from the game camera's side of them and its height, pulled back to hold them all: five
 ##    seconds seen from behind, as the player sees a character, then five from the front.
 ## 2. **In the game.** The real player with each variant in turn as its clip, from the game's own
-##    camera, driven by the same input each time: it stands, walks forward, stops and stands, and
-##    the camera then comes round to its front.
+##    camera, from the spawn point and driven by the same input each time: it stands, walks
+##    forward, stops and stands, and the camera then comes round to its front.
 ##
 ## Record it with Movie Maker through the kit:
 ## `gds capture frames --project game --seconds 48 --fps 30
@@ -111,6 +111,8 @@ func _film_player() -> void:
 		return
 	if turn != _turn:
 		_turn = turn
+		if turn > 0:
+			_rig.player.respawn()
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
 	var at := fmod(_clock, length)

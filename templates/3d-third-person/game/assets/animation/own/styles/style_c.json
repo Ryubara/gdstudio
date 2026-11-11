@@ -46,6 +46,9 @@
   "sway": 0.002
  },
  "notes": {
-  "idle": []
+  "idle": [
+   "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",
+   "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
+  ]
  }
 }

@@ -65,6 +65,8 @@ ROWS = [
     ("keys_kept", "keys a reducer keeps", f"at most {checks.KEYS_KEPT:.0%}"),
     ("kb", "clip's bytes in its file (KB)", ""),
 ]
+## The rows that say nothing of a clip that stands.
+GAIT_ROWS = ("speed", "cadence", "duty")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
     (("cost", "kb_a_second"), "key bytes a second (KB)", f"at most {checks.KB_A_SECOND:.0f}"),
@@ -201,8 +203,9 @@ def main() -> int:
         # ---- the numbers ----
         keys = names + (["Library"] if replaces else [])
         table = [["measure"] + columns + ["limit"]]
+        standing = records[names[0]]["kind"] == "stand"
         for key, label, limit in ROWS:
-            if all(numbers[k].get(key) is None for k in keys):
+            if all(numbers[k].get(key) is None for k in keys) or (standing and key in GAIT_ROWS):
                 continue
             table.append([label] + [fmt(numbers[k].get(key)) for k in keys] + [limit])
         for path, label, limit in REPORT_ROWS:

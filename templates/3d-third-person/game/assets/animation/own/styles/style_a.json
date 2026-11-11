@@ -37,6 +37,9 @@
   "finger_live": 4.0
  },
  "notes": {
-  "idle": []
+  "idle": [
+   "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
+   "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
+  ]
  }
 }

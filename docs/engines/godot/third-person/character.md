@@ -20,6 +20,20 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
 - **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and
   travel a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No
   name provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Import a clip file whose keys a build already reduced and checked (GDStudio's own clips,
+  `assets/animation/own/`, the library `gds`) with the importer's optimizer off and track compression on (in the
+  `.import`: `_subresources` > `nodes` > `PATH:AnimationPlayer` > `optimizer/enabled` false, `compression/enabled`
+  true, `compression/page_size` 8), and test a planted foot on the imported library, not on the file.
+  **Watch out for:** the glTF import samples every track at `animation/fps` whatever keys the file holds, so sparse
+  keys do not arrive sparse: the default optimizer then moved a planted foot 4 mm in a slow idle (the build held it
+  to 0.3 mm), its error settings changed nothing, and with it off the 10 s clip was 256 KB; compressed it is 39 KB
+  with the foot within 1 mm. **Seen:** gdstudio #1154, 2026-11-11 (`tests/gameplay/test_own_clips.gd`).
+- **Approach:** When a clip of our own replaces a library clip, move its constant (`CharacterClips.IDLE` is
+  `gds/Idle`), keep the library clip in `CharacterClips.STAND_INS`, and read a clip file the game does not import
+  (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
+  `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
+  asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
+  (`tools/capture/own_clips_review.gd`).
 - The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
   all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
