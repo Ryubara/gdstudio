@@ -109,9 +109,16 @@ far character stepped every 4th tick walks the same path.
 
 - **Queries.** One path query per character at most every `repath_seconds` (0: the profile's 0.25 s), on a phase of
   its own, and only when the director's `AiBudget` gives one (`take_path()`; a refusal tries at the next step). None
-  before the map's first iteration (`map_get_iteration_id`), none while it crosses a link. The navigator turns the
-  server map's async iterations off
-  ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)).
+  before the map's first iteration (`map_get_iteration_id`), none while it crosses a link.
+- **The map's builds are on the physics step.** The template's `project.godot` turns off both of Godot's threaded
+  builds, `navigation/world/region_use_async_iterations` and `navigation/world/map_use_async_iterations` (#1075), and
+  the navigator turns the map's off again for a game that sets it back. A region added to the level (a section) or a
+  mesh swapped into one (a door) is then in the map at the next tick on every machine; with a region's build on a
+  worker thread it took 12 to 48 ticks for a section and 24 to over 300 for the test arena, as the machine's load
+  moved ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)). A
+  web build has no threads, so it built on the step already: the switches change the desktop and the server only.
+  The test arena (`NavArena.build()`) also turns its region's switch off by its RID, for a game that sets the
+  project's back ([a small mesh of your own](../navigation-in-tests.md#a-small-mesh-of-your-own)).
 - **Goals and routes.** An unreachable goal (the path ends more than 1 m short) is asked once more with no polygon
   limit, at the next slot, then `failed(UNREACHABLE)` and refused for 5 s without a query. Following, a path ending
   3 m or more short of a target 12 m or more away is `stranded`, said once a goal; moving the character is the
@@ -142,12 +149,24 @@ node, answers the same on every machine and is what a test can hash; AGENT is th
   objects: 18 `SCRIPT ERROR` lines in the Movie Maker run, none in the suites, which never free a walker mid-walk.
   **Seen:** gdstudio #967, 2026-11-11 (`tools/capture/nav_tour.tscn`).
 
+**What a region costs the frame.** `tools/bench/nav_sync_bench.tscn` (`nav_sync_bench.py` for Chrome) adds a region
+with a mesh, waits until the map answers on it and frees it, 20 times, and reads the time after the frame's physics
+callbacks (the navigation step, on the main thread). Desktop (headless, `--fixed-fps 60`), step against thread: the AI
+section's 135 polygons 42 to 70 us once against 13 to 17 us (1 tick against 15 to 21), the pathing section's 106
+polygons 31 to 52 us against 11 to 13 us (1 tick against 12 to 48), a 128 m grid of 4096 quads 1.9 ms against 0.2 ms
+(1 tick against about 390). Chrome, which builds on the step either way: 0.2 ms for a section and 1.9 ms for the
+grid, 1 ms and 9.5 ms under a 4x CPU throttle. A section's swap costs the desktop frame some 40 us once; a level of
+thousands of polygons swapped in at once is a frame's budget on a weak phone either way, so a game that grows one
+splits it into regions.
+
 **What it costs.** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) reads the navigators' own work
 a tick for 50, 100 and 200 characters walking to seeded goals on a baked 96 m map with 16 boxes, under the director's
 shipped defaults: [Crowds: AI characters](../crowds.md#ai-characters).
 
 **Proof.** `tests/gameplay/test_ai_nav_rules.gd` (the path, the stuck watch fed traces, the ladder, the kept route,
-remembered goals), `test_ai_navigator.gd` (walking, the first iteration, async iterations off, the repath count, the
+remembered goals), `tests/world/test_navigation_sync.gd` (both switches off, a section added to the level and a mesh
+swapped out of it at the next tick: fails with the region's switch back on), `test_ai_navigator.gd` (walking, the
+first iteration, async iterations off, the repath count, the
 budget, the goal in a wall, the off-mesh target, the much longer route, the unreachable goal, the overlay, a far
 character, the AGENT backend with RVO, two walkers meeting), `test_ai_nav_recovery.gd` (the sidestep, the report with
 no teleport, the wall the mesh runs through, the door that shuts mid-walk, the locked door, the link crossed and left

@@ -110,7 +110,7 @@ func test_every_sound_player_has_a_stream_or_is_given_one_when_it_plays() -> voi
 func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voices() -> void:
 	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
 	var sound := weapon.get_node("%ShotSound") as AudioStreamPlayer3D
-	var randomizer := sound.stream as AudioStreamRandomizer
+	var randomizer := weapon.definition.shot_sound as AudioStreamRandomizer
 	assert_object(randomizer).is_not_null()
 	assert_int(randomizer.streams_count).is_equal(5)
 	for n in 5:
@@ -121,6 +121,23 @@ func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voic
 	assert_float(randomizer.random_volume_offset_db).is_between(0.5, 2.0)
 	assert_int(sound.max_polyphony).is_equal(3)
 	assert_str(String(sound.bus)).is_equal("SFX")
+
+
+# The players hold the takes decoded once (`DecodedSounds`): starting an Ogg Vorbis take set its
+# decoder up, about 250 µs a shot on the desktop and 300 to 400 in a browser; a decoded one about 1.
+func test_the_weapon_plays_its_sounds_decoded_with_the_definitions_spread() -> void:
+	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
+	var shot := weapon.get_node("%ShotSound").stream as AudioStreamRandomizer
+	var written := weapon.definition.shot_sound as AudioStreamRandomizer
+	assert_object(shot).is_same(DecodedSounds.decoded(written))
+	assert_int(shot.streams_count).is_equal(written.streams_count)
+	assert_float(shot.random_pitch).is_equal_approx(written.random_pitch, 0.0001)
+	for n in shot.streams_count:
+		assert_object(shot.get_stream(n)).is_instanceof(AudioStreamWAV)
+	var empty := weapon.get_node("%EmptySound").stream as AudioStreamRandomizer
+	for n in empty.streams_count:
+		assert_object(empty.get_stream(n)).is_instanceof(AudioStreamWAV)
+	assert_object(weapon.get_node("%DrawSound").stream).is_instanceof(AudioStreamWAV)
 
 
 func test_a_shot_plays_at_the_muzzle() -> void:
