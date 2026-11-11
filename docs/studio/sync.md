@@ -66,8 +66,7 @@ so a game needs no `project.godot` line for it, and `gds sync` alone brings it t
 suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s. The kit's project sets no
 physics engine, so those suites run on Godot Physics while 3D Third Person runs Jolt: a part whose suite moves bodies or
 reads contacts passes on both, and a branch runs its `gds_game` suites in `godot/` as well as the template's
-(gdstudio #1013). A kit worktree made by `gds issue start` has no GdUnit4 in `godot/addons/` yet
-([a fresh checkout](../engines/godot/running-gdunit.md#fresh-checkout)).
+(gdstudio #1013).
 
 A part goes in `gds_game` when all three hold, and stays in the template otherwise:
 

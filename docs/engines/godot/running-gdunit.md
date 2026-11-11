@@ -11,14 +11,14 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
 
 ## A fresh checkout {#fresh-checkout}
 
-- **Approach:** Before the first GdUnit run in a checkout made by hand (a worktree, a baseline of `main`), copy
-  `game/addons/gdUnit4` (and `godot_mcp`) from a started worktree, then run `godot --headless --path game --import` to
-  the end, logged to a file with its exit code read. **Watch out for:** the addons are git-excluded and `gds issue
-  start` installs them, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not found", a windowed run exits
-  1 with no test result and reads as a failing suite, and an import cut short by `| tail` looked done. **Seen:**
-  Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 (fix: copy and import once; "exit 1 and no `Overall Summary`"
-  is a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`: unzip it
-  from the cache's `gdunit4-<version>/src.zip`); #1074, 2026-11-11.
+- **Approach:** Before the first GdUnit run in a checkout made by hand (a worktree, a baseline of `main`), run `gds
+  workspace init` (it installs the pinned addons in every checkout and worktree), then `godot --headless --path game
+  --import` to the end, logged to a file with its exit code read; a worktree from `gds issue start` has them already.
+  **Watch out for:** the addons are git-excluded, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not
+  found", a windowed run exits 1 with no test result and reads as a failing suite, and an import cut short by `| tail`
+  looked done. **Seen:** Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 ("exit 1 and no `Overall Summary`" is
+  a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`; #1128 made
+  `gds issue start` install it).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -135,9 +135,7 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
 - **Approach:** For orphan nodes, run `gds template test <t> --keep` and read the `N orphans` count under each
   `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
   failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
-  it left; the same holds for a test's `prints`. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in
-  `template_test.py` for gdstudio #1003); gdstudio #1093 (PR #1097), 2026-11-11 (a passing run's output was gone; run
-  Godot in the kept game).
+  it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
 
 ## Before the push {#before-the-push}
 
