@@ -39,6 +39,25 @@ func test_server_goes_to_the_server_scene_before_any_menu() -> void:
 	scene.free()
 
 
+func test_an_address_goes_to_the_online_game() -> void:
+	for args: Array in [["--connect", "ws://127.0.0.1:8910"], ["--url=wss://play.example.org"]]:
+		var scene := MenuScene.new()
+		scene.net_args = NetArgs.new(PackedStringArray(args))
+		var went: Array[String] = []
+		scene.scene_changer = func(path: String) -> void: went.append(path)
+		add_child(scene)
+		assert_array(went).is_equal(["res://online_main.tscn"])
+		scene.free()
+
+
+func test_the_bad_network_probe_page_keeps_its_own_client() -> void:
+	var scene := MenuScene.new()
+	scene.net_args = NetArgs.new(PackedStringArray(["--netplay", "--url", "ws://127.0.0.1:1"]))
+	assert_bool(scene.wants_online(scene.net_args)).is_false()
+	assert_bool(scene.wants_online(NetArgs.new(PackedStringArray(["--name", "Ada"])))).is_false()
+	scene.free()
+
+
 func test_the_server_scene_holds_the_map_and_caps_the_frame_rate() -> void:
 	var packed := load("res://gameplay/net/net_server.tscn") as PackedScene
 	var server := packed.instantiate() as NetServer
