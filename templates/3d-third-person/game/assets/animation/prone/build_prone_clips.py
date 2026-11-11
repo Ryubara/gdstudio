@@ -64,7 +64,9 @@ SQUASH = (
 IDLE_FOREARM_IN = 29.5  # degrees a lying forearm points inward of straight ahead
 IDLE_ELBOW_OUT = 0.095  # metres a lying elbow rests outside its shoulder
 IDLE_ELBOW_FWD = 0.035  # metres a lying elbow rests ahead of its shoulder (the staggered pair's middle)
-IDLE_CLAV_PUSH = 4.0  # degrees the collarbones push the shoulders toward the floor lying still
+IDLE_CLAV_PUSH = (
+    4.0  # degrees the collarbones push the shoulders toward the floor lying still
+)
 IDLE_STAGGER = (
     0.025  # metres the right elbow lies ahead of the middle and the left behind it
 )
@@ -132,13 +134,20 @@ OPEN_FRAMES = (
     3,
     7,
 )  # coming up, the frames between which the fists open and the palms turn down
-ELBOW_CLEAR = 0.22  # metres the elbows go out to the side going down, clear of the front knee
+ELBOW_CLEAR = (
+    0.22  # metres the elbows go out to the side going down, clear of the front knee
+)
 KNEE_OPEN = 0.45  # how far the front knee opens to the side going down (added to its unit direction)
 DIVE_LIFT = 0.0  # metres higher the pelvis is at the dive's key, where the back knee passes just over the floor
 FOOT_LIFT = 0.0  # metres more a lying foot lifts as it comes onto its toes to get up (thicker toes)
 FLOOR_LIMIT = 5.0  # millimetres a part named in `FLOOR_PARTS` may be under the floor on the body solved on
-FLOOR_PARTS = ("hand",)  # the parts of the body solved on that the build holds to `FLOOR_LIMIT`
-PLAYED_BY = ("female", "male")  # the bodies that play the file: their fists and limbs are held to the limits
+FLOOR_PARTS = (
+    "hand",
+)  # the parts of the body solved on that the build holds to `FLOOR_LIMIT`
+PLAYED_BY = (
+    "female",
+    "male",
+)  # the bodies that play the file: their fists and limbs are held to the limits
 
 # One file a body (kit #1090). The numbers above are the female mannequin's, the template's default, and build
 # `prone.glb`. A clip holds the pelvis's height and every joint angle that sets an elbow's or a knee's height, so
@@ -1073,7 +1082,9 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         s: unit(vec(0.3, sign * 1.0, -0.25)) for s, sign in SIDES
     }  # a bent knee goes out to the side
     r0, l0 = c["ankle_r"], c["ankle_l"]
-    lying_push = IDLE_CLAV_PUSH - 4.0  # what the lying pose's collarbones add to the transitions' own push
+    lying_push = (
+        IDLE_CLAV_PUSH - 4.0
+    )  # what the lying pose's collarbones add to the transitions' own push
 
     # ---- crouch to prone: the left foot is the front one in the crouch, the right is back on its toes
     n = TO_PRONE_FRAMES
