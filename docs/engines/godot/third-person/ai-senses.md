@@ -102,8 +102,10 @@ clock reads in steps of 100 µs, so a think there is read from the tick's total.
 | Chrome (12 at Full) | 1.09 ms | 1.35 ms | 0.27 ms | 2.8 / 2.9 ms |
 | Chrome 4x | 5.37 ms | 6.81 ms | 1.07 ms | 31 / 65 ms |
 
-- A think is 20 to 50 µs, most of it GDScript's cost per step (sight 11 µs natively with 4 targets in view, hearing
-  4, the rest 5); rays are about 2 µs each and capped at 8 a tick for all, so rays a second stay flat as the crowd grows.
+- A think is 20 to 50 µs in this calm crowd, most of it GDScript's cost per step (sight 11 µs natively with 4
+  targets in view, hearing 4, the rest 5); in a fight a think is 75 to 150 µs natively, with every sense busy and the
+  tasks reacting ([the behaviour's cost](ai-behaviour.md#cost), gdstudio #1104). Rays are about 2 µs each and capped
+  at 8 a tick for all, so rays a second stay flat as the crowd grows.
 - The senses add about a quarter of a millisecond a tick to 40 walkers in Chrome and a millisecond at 4x: the crowd was
   already at the AI budget (1 ms, 5 ms at 4x) without them, and at 4x the frame was past the tick (31 ms) before the
   senses, so the 4x frame rows are the catch-up spiral, not the senses' cost. Cutting the think further (a native

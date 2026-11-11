@@ -162,3 +162,10 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   check failed on both sides (main's client 441 to 597 puppet-steps, the fix 498 to 867, bounds 530 to 620); its two
   worst runs each came with an unplanned stall of the client's thread, which the numbering does not touch.
   **Seen:** gdstudio #1116, 2026-11-11 (eight runs of main's client, nine of the fix; the browser half passed).
+- **Approach:** Run the native half by hand from a made game (`gds template game 3d-third-person`), in its
+  `game/tools/net/`, under `gds quiet -- python bad_network_gate.py ...`; to match the runner's two cores, pin the
+  gate's Python process to cores 0 and 1 (its Godot children inherit the mask; in PowerShell `(Get-Process -Id
+  <pid>).ProcessorAffinity = 3` right after it starts), and read the machine's load beside the result. **Watch out
+  for:** a plain Python start that names the Godot path is refused by a hook; a loaded machine fails the starvation and
+  settled checks whatever the code does, so a red run beside other agents' work proves nothing until it is repeated on a
+  quiet machine. **Seen:** gdstudio #1116 (PR #1179) and #1119 (PR #1176), 2026-11-11.
