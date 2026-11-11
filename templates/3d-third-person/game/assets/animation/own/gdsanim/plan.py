@@ -106,6 +106,21 @@ class ContactPlan:
                 out.append([round(start, 3), round(end, 3)])
         return out
 
+    def flat(self, side: str, heel_up: bool = False) -> list:
+        """The frames of each contact in which the whole sole lies flat, `[[from, to], ...]`: after the heel has
+        rolled in and before it rises over the toes. With `heel_up` (a description that holds or raises the heel
+        itself, `raised`) no frame is, and each entry is the contact's first frame twice. The ball of the foot
+        stays on its place from an entry's first frame to the end of its contact."""
+        out = []
+        for fall, _ in self._falls(side):
+            start, end = max(fall.land, 0.0), min(fall.lift, float(self.frames))
+            if end <= start:
+                continue
+            first = min(max(fall.land + fall.roll_in, start), end)
+            last = first if heel_up else max(min(fall.lift - fall.roll_out, end), first)
+            out.append([round(first, 3), round(last, 3)])
+        return out
+
     def planted(self, side: str, f: float) -> bool:
         return any(fall.land <= f <= fall.lift for fall, _ in self._falls(side))
 

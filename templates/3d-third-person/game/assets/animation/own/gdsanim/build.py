@@ -39,7 +39,10 @@ class Clip:
     - `chains`: the overlap pass's bones, `{bone: (lag, overshoot)}`;
     - `kind`: `stand`, `gait`, `transition` or `action`, which picks the checks that apply;
     - `declared`: the numbers the checks hold the clip to (`lags`, `ranges`, `joins`, `plants`, `distance`,
-      `turn`, `speed_limit`), each read by the check of that name;
+      `turn`, `speed_limit`, `ceiling`), each read by the check of that name, and what `clips.json` says beside
+      the plan: `heel_up` (the sides whose heel the description raises itself, so no frame of theirs is flat)
+      and `join_names` (`{"first": "Idle", "last": "Crouch_Idle"}`, the shipped clips whose first poses the
+      ends are);
     - `bones`: the bones it keys; None is every bone a clip may key;
     - `replaces`: the library clip it replaces (`ual1/Idle`), for `clips.json` and the review sheet;
     - `events`: events beside the plan's footsteps, `[{"frame", "name"}]`.
@@ -203,6 +206,8 @@ def _record(rig: Rig, clip: Clip, kept: dict) -> dict:
         "travel": [[int(f), round(forward[f], 4), round(left[f], 4)] for f in curve],
         "turn": [[int(f), round(turn[f], 3)] for f in curve],
         "contacts": {s: plan.contacts(s) for s, _ in SIDES},
+        "flat": {s: plan.flat(s, s in clip.declared.get("heel_up", ())) for s, _ in SIDES},
+        "joins": dict(clip.declared.get("join_names", {})),
         "start_foot": plan.first_foot(0.0),
         "end_foot": plan.first_foot(float(clip.frames)),
         "events": plan.events() + list(clip.events),

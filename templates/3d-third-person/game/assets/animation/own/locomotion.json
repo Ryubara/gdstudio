@@ -71,7 +71,22 @@
    },
    "end_foot": "both",
    "events": [],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      240.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 240,
+   "joins": {},
    "kind": "stand",
    "loop": true,
    "reduced_to_deg": 0.0125,
@@ -179,7 +194,25 @@
      "name": "rising"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      16.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 16,
+   "joins": {
+    "first": "Crouch_Idle",
+    "last": "Idle"
+   },
    "kind": "transition",
    "loop": false,
    "reduced_to_deg": 0.05,
@@ -297,7 +330,26 @@
      "name": "footstep"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      0.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      11.0,
+      11.0
+     ]
+    ]
+   },
    "frames": 22,
+   "joins": {},
    "kind": "gait",
    "loop": true,
    "reduced_to_deg": 0.025,
@@ -400,7 +452,22 @@
    },
    "end_foot": "both",
    "events": [],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      300.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      300.0
+     ]
+    ]
+   },
    "frames": 300,
+   "joins": {},
    "kind": "stand",
    "loop": true,
    "reduced_to_deg": 0.0125,
@@ -508,7 +575,25 @@
      "name": "crouched"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      16.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 16,
+   "joins": {
+    "first": "Idle",
+    "last": "Crouch_Idle"
+   },
    "kind": "transition",
    "loop": false,
    "reduced_to_deg": 0.025,

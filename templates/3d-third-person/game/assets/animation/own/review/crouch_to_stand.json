@@ -76,7 +76,25 @@
      "name": "rising"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      16.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 16,
+   "joins": {
+    "first": "Crouch_Idle",
+    "last": "Idle"
+   },
    "kind": "transition",
    "loop": false,
    "reduced_to_deg": 0.05,
@@ -184,7 +202,25 @@
      "name": "rising"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      20.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 20,
+   "joins": {
+    "first": "Crouch_Idle",
+    "last": "Idle"
+   },
    "kind": "transition",
    "loop": false,
    "reduced_to_deg": 0.05,
@@ -292,7 +328,25 @@
      "name": "rising"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      14.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 14,
+   "joins": {
+    "first": "Crouch_Idle",
+    "last": "Idle"
+   },
    "kind": "transition",
    "loop": false,
    "reduced_to_deg": 0.025,

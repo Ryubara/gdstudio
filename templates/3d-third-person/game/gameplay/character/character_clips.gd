@@ -36,8 +36,12 @@ const HIT := &"ual1/Hit_Chest"
 # Other clips a game reaches for first (the rest are in `ALL`).
 const DEATH := &"ual1/Death01"
 const ROLL := &"ual1/Roll"
-const CROUCH_IDLE := &"ual1/Crouch_Idle"
-const CROUCH_WALK := &"ual1/Crouch_Fwd"
+const CROUCH_IDLE := &"gds/Crouch_Idle"
+const CROUCH_WALK := &"gds/Crouch_Walk"
+## The stance changes (gdstudio #1160): from the idle's first pose to the crouch idle's and back,
+## both feet on their places. The tree that plays them is gdstudio #1158.
+const STAND_TO_CROUCH := &"gds/Stand_To_Crouch"
+const CROUCH_TO_STAND := &"gds/Crouch_To_Stand"
 const PISTOL_IDLE := &"ual1/Pistol_Idle"
 const PISTOL_AIM := &"ual1/Pistol_Aim_Neutral"
 const PISTOL_AIM_UP := &"ual1/Pistol_Aim_Up"
@@ -69,6 +73,8 @@ const TO_CROUCH := &"prone/Prone_To_Crouch"
 ## The library clip each clip of our own replaced, kept as a stand-in.
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
+	&"gds/Crouch_Idle": &"ual1/Crouch_Idle",
+	&"gds/Crouch_Walk": &"ual1/Crouch_Fwd",
 }
 
 ## Every clip of the four libraries, with its library.
@@ -163,7 +169,11 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"gds/Crouch_Idle",
+	&"gds/Crouch_To_Stand",
+	&"gds/Crouch_Walk",
 	&"gds/Idle",
+	&"gds/Stand_To_Crouch",
 ]
 
 

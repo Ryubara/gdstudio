@@ -71,7 +71,22 @@
    },
    "end_foot": "both",
    "events": [],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      240.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 240,
+   "joins": {},
    "kind": "stand",
    "loop": true,
    "reduced_to_deg": 0.0125,
@@ -174,7 +189,22 @@
    },
    "end_foot": "both",
    "events": [],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      320.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 320,
+   "joins": {},
    "kind": "stand",
    "loop": true,
    "reduced_to_deg": 0.0125,
@@ -277,7 +307,22 @@
    },
    "end_foot": "both",
    "events": [],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      240.0
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      0.0
+     ]
+    ]
+   },
    "frames": 240,
+   "joins": {},
    "kind": "stand",
    "loop": true,
    "reduced_to_deg": 0.0125,

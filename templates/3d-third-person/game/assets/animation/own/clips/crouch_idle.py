@@ -157,7 +157,7 @@ def describe(rig, style, name: str = "Crouch_Idle", joined=None) -> Clip:
         stretch=n["fold"],
         chains=overlap.chains_from(style.overlap("crouch_idle"), PARTS),
         kind="stand",
-        declared={"ceiling": CEILING},
+        declared={"ceiling": CEILING, "heel_up": ("r",)},
         replaces="ual1/Crouch_Idle",
         style=style.letter,
     )

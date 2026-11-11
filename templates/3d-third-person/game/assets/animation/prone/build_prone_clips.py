@@ -110,12 +110,13 @@ OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`..
 # and up, in metres) while the knee comes forward under them.
 HAND_WAIT = {
     "l": ((0.0, 0.22, 0.10), (-0.05, 0.24, 0.10)),
-    "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+    "r": ((0.0, 0.18, 0.08), (-0.04, 0.20, 0.08)),
 }
 HAND_WAIT_FRAMES = {
     "l": (13, 19, 26),
     "r": (14, 19, 25),
 }  # the hand leaves the floor, waits, takes its place
+STEP_LIFT = 0.13  # metres the right ankle is lifted half way between the crouch and the lying place
 HAND_LIFT = 0.038  # metres a hand lifts off the floor while it closes
 ROLL_FRAMES = (
     12,
@@ -1117,6 +1118,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     keys["ankle"]["r"] = [
         (0, r0),
         (3, r0),
+        # the crouch stands with its feet side by side (kit #1160): the foot is carried back, not slid
+        (8, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)),
         (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)),
         (24, p["ankle_r"]),
@@ -1263,6 +1266,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (0, p["ankle_r"]),
         (4, p["ankle_r"] + vec(0.0, 0.0, 0.07)),
         (8, p["ankle_r"] + vec(0.0, 0.0, 0.10)),
+        (13, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (17, r0),
         (n, r0),
     ]

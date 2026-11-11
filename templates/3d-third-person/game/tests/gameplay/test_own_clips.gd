@@ -1,5 +1,6 @@
-# GDStudio's own clips (`assets/animation/own/`, kit #1154) import as the library `gds` beside the
-# Universal Animation Library and play on both mannequins: the file holds exactly the clips its
+# GDStudio's own clips (`assets/animation/own/`, kit #1154 and #1160) import as the library `gds`
+# beside the Universal Animation Library and play on both mannequins: the file holds exactly
+# the clips its
 # `clips.json` freezes, every track finds its bone, a clip keys rotations and the pelvis's place
 # and nothing else, the loops close bone by bone, a planted foot stays on its place on the floor,
 # the player plays our clip where the library's played, the library clip still plays as a
@@ -158,15 +159,24 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 					assert_float(worst).override_failure_message(where).is_less(PLANTED)
 
 
-# The furthest a foot's joints get from where they were when the contact began, on the floor the
-# body travels over (the clip is in place: the travel curve of `clips.json` puts it back).
+# The furthest a foot's joints get from where they were when they came to rest, on the floor the
+# body travels over (the clip is in place: the travel curve of `clips.json` puts it back). The
+# ball of the foot is held from the frame the sole is flat to the end of the contact; the ankle
+# only while the sole is flat (`flat` of `clips.json`): a heel that rises turns about the ball.
 func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> float:
+	var flat: Array = contact
+	for window: Array in record.get("flat", {}).get(side, []):
+		if window[0] >= contact[0] and window[0] <= contact[1]:
+			flat = window
 	var start := {}
 	var worst := 0.0
-	for frame in range(ceili(contact[0]), floori(contact[1]) + 1):
+	for frame in range(ceili(flat[0]), floori(contact[1]) + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
 		var travel := _travel_at(record, frame)
-		for bone: String in ["foot_" + side, "ball_" + side]:
+		var bones: Array[String] = ["ball_" + side]
+		if frame <= floori(flat[1]):
+			bones.append("foot_" + side)
+		for bone in bones:
 			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
 			if not start.has(bone):
 				start[bone] = place
@@ -184,6 +194,83 @@ func _travel_at(record: Dictionary, frame: int) -> Vector3:
 			var share: float = (frame - a[0]) / maxf(b[0] - a[0], 1.0)
 			return Vector3(lerpf(a[2], b[2], share), 0.0, lerpf(a[1], b[1], share))
 	return Vector3.ZERO
+
+
+func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
+	# `Stand_To_Crouch` begins on the idle's first pose and ends on the crouch idle's, and
+	# `Crouch_To_Stand` the other way: every bone within a millimetre and half a degree.
+	var records := _records()
+	var joined := 0
+	for model_path in MODELS:
+		_stage(model_path)
+		for clip: String in records.clips:
+			var record: Dictionary = records.clips[clip]
+			var joins: Dictionary = record.get("joins", {})
+			for end: String in joins:
+				var at: float = 0.0 if end == "first" else record.seconds
+				var own := _pose(StringName("gds/" + clip), at)
+				var other := _pose(StringName("gds/" + joins[end]), 0.0)
+				joined += 1
+				for bone: String in own:
+					var one: Transform3D = own[bone]
+					var two: Transform3D = other[bone]
+					var where := "%s %s on %s, %s" % [clip, end, joins[end], bone]
+					(
+						assert_float(one.origin.distance_to(two.origin))
+						. override_failure_message(where)
+						. is_less(0.001)
+					)
+					var turn := one.basis.get_rotation_quaternion().angle_to(
+						two.basis.get_rotation_quaternion()
+					)
+					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
+	assert_int(joined).is_equal(8)
+
+
+func test_the_crouch_clips_fit_the_game() -> void:
+	# The crouch walk's feet cover the ground at the tuning's crouch speed, the head stays under
+	# the crouched capsule on both bodies, and a stance change both keeps its feet down and
+	# lowers the head by the difference between the two stances.
+	var records := _records()
+	var tuning := CharacterTuning.new()
+	var walk: Dictionary = records.clips["Crouch_Walk"]
+	assert_float(walk.speed).is_equal_approx(tuning.crouch_speed, 0.02 * tuning.crouch_speed)
+	assert_float(walk.contacts["l"][0][0]).is_equal(0.0)
+	for model_path in MODELS:
+		_stage(model_path)
+		for clip: StringName in [&"gds/Crouch_Idle", &"gds/Crouch_Walk"]:
+			var length := _player.get_animation(clip).length
+			for step in 23:
+				var head: Transform3D = _pose(clip, length * step / 22.0)["Head"]
+				(
+					assert_float(head.origin.y)
+					. override_failure_message("%s on %s" % [clip, model_path.get_file()])
+					. is_less(tuning.crouch_height - 0.2)
+				)
+		var down: Dictionary = records.clips["Stand_To_Crouch"]
+		var high: Transform3D = _pose(&"gds/Stand_To_Crouch", 0.0)["Head"]
+		var low: Transform3D = _pose(&"gds/Stand_To_Crouch", down.seconds)["Head"]
+		assert_float(high.origin.y - low.origin.y).is_greater(0.6)
+	for clip: String in ["Stand_To_Crouch", "Crouch_To_Stand"]:
+		var record: Dictionary = records.clips[clip]
+		assert_bool(record.loop).is_false()
+		for side: String in ["l", "r"]:
+			assert_array(record.contacts[side]).is_equal([[0.0, float(record.frames)]])
+
+
+func test_the_player_plays_our_crouch_where_the_library_s_played() -> void:
+	var player := _spawn_player()
+	var animation: CharacterAnimation = player.get_node("Animation")
+	var clips: AnimationPlayer = player.get_node("AnimationPlayer")
+	assert_str(String(animation.crouch_idle_clip)).is_equal("gds/Crouch_Idle")
+	assert_str(String(animation.crouch_walk_clip)).is_equal("gds/Crouch_Walk")
+	for clip: StringName in [
+		CharacterClips.CROUCH_IDLE,
+		CharacterClips.CROUCH_WALK,
+		CharacterClips.STAND_TO_CROUCH,
+		CharacterClips.CROUCH_TO_STAND,
+	]:
+		assert_bool(clips.has_animation(clip)).override_failure_message(clip).is_true()
 
 
 func test_the_idle_is_alive() -> void:

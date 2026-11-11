@@ -69,6 +69,10 @@ ROWS = [
 GAIT_ROWS = ("speed", "cadence", "duty")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
+    (("weight", "fall_g"), "fastest drop of the centre of mass (of gravity)", f"at most {checks.FALL}"),
+    (("floor", "mannequin_male", "highest_mm"), "highest vertex, the taller body (mm)", "a crouch: at most 1100"),
+    (("gait", "arm_leg"), "arm with the other side's leg (correlation)", f"over {checks.ARM_LEG}"),
+    (("overlap", "lags", "forearm"), "forearm trails the upper arm (frames)", ""),
     (("cost", "kb_a_second"), "key bytes a second (KB)", f"at most {checks.KB_A_SECOND:.0f}"),
     (("reduce_error_mm",), "reduced keys off the full curve (mm)", "at most 1"),
 ]
