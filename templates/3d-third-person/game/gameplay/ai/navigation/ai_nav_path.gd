@@ -73,11 +73,16 @@ func advance(at: Vector3, desired: float, last_reach := INF) -> int:
 		if absf(point.y - at.y) > HEIGHT_REACH:
 			break
 		var reach := desired if index < points.size() - 1 else minf(desired, last_reach)
-		var near := flat(point - at).length() < reach
+		# Distances on the ground written out: a call to `flat()` costs more than the sum, and
+		# this runs at every steer of every walker (kit #1062).
+		var near := Vector2(point.x - at.x, point.z - at.z).length_squared() < reach * reach
 		var beyond := false
-		if index + 1 < points.size() and link_at(index) == 0:
+		if index + 1 < points.size() and link_ids[index] == 0:
 			var after := points[index + 1]
-			beyond = flat(after - at).length() < flat(after - point).length()
+			beyond = (
+				Vector2(after.x - at.x, after.z - at.z).length_squared()
+				< Vector2(after.x - point.x, after.z - point.z).length_squared()
+			)
 		if not near and not beyond:
 			break
 		index += 1
@@ -108,9 +113,13 @@ func steer_point(at: Vector3, look_ahead: float) -> Vector3:
 	if index >= points.size():
 		return end(at)
 	var chosen := index
-	while chosen < points.size() - 1:
+	var last := points.size() - 1
+	while chosen < last:
 		var point := points[chosen]
-		if link_at(chosen) != 0 or flat(point - at).length() > look_ahead:
+		if (
+			link_ids[chosen] != 0
+			or Vector2(point.x - at.x, point.z - at.z).length_squared() > look_ahead * look_ahead
+		):
 			break
 		if absf(points[chosen + 1].y - at.y) > HEIGHT_REACH:
 			break
