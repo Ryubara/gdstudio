@@ -50,6 +50,9 @@ THUMB_OVER_Y = 0.10  # how high in the gun the right thumb may lie there, beside
 # The left thumb lies ahead of the right one along the frame, above the trigger guard and under the slide.
 LEFT_THUMB_AT = np.array([-0.095, 0.074, 0.029])
 UNDER_GUARD_Y = 0.006  # the middle of a finger that lies under the trigger guard is no higher
+# The shooting hand's middle finger lies under the trigger guard, tight up against it (kit #1213): what a
+# millimetre of its first bone above `UNDER_GUARD_Y` costs, in millimetres of contact.
+UNDER = 1.0
 OVER = 0.5  # what a support finger's millimetre off the shooting hand costs, in millimetres of contact
 CANT = (30.0, 45.0)  # the support hand's cant the search stays in, degrees (`left_cant`)
 REACH_SPARE = 0.010  # how much shorter than the arm the way from the left shoulder to the hand stays, metres
@@ -62,7 +65,7 @@ FRAME_Y = 0.079
 REFERENCE_SEAT = [0.0234, -0.9867, 0.1609, -0.0805, 0.1585, 0.9841, -0.9965, -0.036, -0.0757, -0.0264, 0.1234, 0.0091]
 # The seat the template ships, as a move from the reference, and the left hand's place as a move from the right
 # hand's mirrored across the pistol.
-SEAT = [0.022, -0.035, 0.0306, -4.0, -23.5, -15.5]
+SEAT = [0.012, -0.013, 0.0258, -6.0, -25.0, -15.5]
 LEFT = [-0.0097, -0.0322, 0.0131, -11.85, -0.84, 26.56]
 # The left hand's place while it pushes the magazine in, as a move from `MAGAZINE_FROM` (about the middle of
 # the magazine's base): rolled about the barrel's line until the heel of the palm is under the base.
@@ -229,8 +232,12 @@ def finger_cost(scene, hand, finger, angles, mode):
     tip_at = scene.to_gun(pts[:, tip].mean(axis=1))
     mid_at = scene.to_gun(pts[:, mid].mean(axis=1))
     touch = [np.abs(low - TARGET) for low in lows]
-    if mode == "wrap":
+    if mode in ("wrap", "under"):
         cost += touch[2] + touch[1] + 0.5 * touch[0] + natural(a)
+        if mode == "under":
+            # The middle finger round the front of the grip under the trigger guard, not beside the guard.
+            base_at = scene.to_gun(pts[:, base].mean(axis=1))
+            cost += UNDER * relu(base_at[:, 1] - UNDER_GUARD_Y)
     elif mode == "over":
         # The support hand's fingers lie over the shooting hand's fingers, never beside them on the gun:
         # the middle and last bones are on the other hand's skin, whatever else they touch.
@@ -363,7 +370,7 @@ def close_right(scene, quick=False, trigger=True):
     hand = scene.right
     total = 0.0
     table = {}
-    modes = {"index": "trigger" if trigger else "frame", "thumb": "thumb"}
+    modes = {"index": "trigger" if trigger else "frame", "middle": "under", "thumb": "thumb"}
     for _ in range(1 if quick else 2):
         total = 0.0
         for finger in FINGERS:

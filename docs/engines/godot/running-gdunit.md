@@ -80,8 +80,11 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
-  of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass. **Seen:** Deadnight,
-  2026-11-04 (fix: run the suite and read the count).
+  of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass; with one colon
+  (`x.gd:test_y`) it says the file does not exist and exits 0 as well. To run one case of a long suite, copy the suite
+  in the game under a new name with every other `func test_` renamed to a plain function, and run that file.
+  **Seen:** Deadnight, 2026-11-04 (fix: run the suite and read the count); gdstudio #1213, 2026-11-11 (the one-colon
+  form, before the 9-minute pistol hold suite).
 
 - **Approach:** After a full run, find each new suite by name in its list (`gds template test` prints one line a
   suite), and write a new test file with LF line ends. **Watch out for:** two new suites written with CRLF ends ran and
