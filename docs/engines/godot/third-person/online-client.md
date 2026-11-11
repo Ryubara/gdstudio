@@ -243,7 +243,7 @@ Each puppet costs the software-drawn page about 1.5 ms a frame (its skinned mode
 track is a few hundredths of that), so eight players draw at 19 frames a second there, against the research's
 estimate of about 1 ms for eight on a desktop GPU. Two pages at once share the CPU and draw at 15. The GPU build could
 not be measured: a page with `--enable-gpu` under `gds quiet` draws a frame in 5 to 17 ms but hitches 0.6 to 3 s every
-few frames and never sends its HELLO (#908 saw the same; follow-up issue in the pull request).
+few frames and never sends its HELLO (#908 saw the same; #1117).
 
 **Jolt in wasm against Jolt on Linux.** `StepTraceProbe` (`ui/probe/`, `?steptrace` or `-- --steptrace` with
 `--play`) steps a server's body (`character.tscn`) 1800 times through the template's map with commands of the step's
