@@ -167,9 +167,12 @@ force push, which is the maintainer's decision: open the same change from a new 
   land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
   20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
   2026-11-02 (fix: the rule above).
-- **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
-  **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
+- **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
+  `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
+  test, so the branch failed for a reason the change never had; `main` retyping a shared property (the loadout's
+  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse.
+  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge); gdstudio #1258, 2026-11-11 (an
+  inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed).
 
 - **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
   nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
