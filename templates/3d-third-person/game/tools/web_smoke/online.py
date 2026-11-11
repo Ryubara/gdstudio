@@ -263,6 +263,7 @@ def main() -> int:
         line += f", hitches {seen.get('unplanned')} (join window {seen.get('in_join_window')}, worst"
         line += f" {seen.get('worst_unplanned_ms')} ms), links_after_seat {seen.get('links_after_seat')}"
         line += f", join_s {report.get('join_s')}, rejoined {report.get('rejoined')}"
+        line += f", puppets_animated {report.get('puppets_animated')}"
         print(f"PAGE {index + 1}: {line}", flush=True)
     print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
     return 0 if verdict.passed else 1
