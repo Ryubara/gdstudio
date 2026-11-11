@@ -267,10 +267,11 @@ func is_cooling_down() -> bool:
 
 
 ## Plays a shot the server fired for another player (a puppet's, online): a cosmetic projectile
-## (no hit, no push) from the muzzle along `heading`, the flash and the shot sound. Counts no
-## ammunition and starts no cooldown: the server keeps those. `origin` is where the server's
-## shot left, used when the weapon has no muzzle. Returns the projectile (null for a ray or a
-## blow, or with no definition).
+## (no hit, no push) from the muzzle along `heading`, or a hitscan shot's tracer to what its ray
+## meets on this screen (`ClientCombat` ends it at the server's HIT), the flash and the shot
+## sound. Counts no ammunition and starts no cooldown: the server keeps those. `origin` is where
+## the server's shot left, used when the weapon has no muzzle. Returns the projectile (null for a
+## ray or a blow, or with no definition).
 func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
 	_last_projectile = null
 	if definition == null or not heading.is_finite() or heading.length_squared() < 0.000001:
@@ -283,6 +284,8 @@ func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
 		authoritative = false
 		_launch(start, last_heading)
 		authoritative = was
+	elif definition.shot_kind() == WeaponDef.Kind.HITSCAN and definition.tracer != null:
+		_trace(start, _ray_end(start, last_heading))
 	_play(_player(&"ShotSound"), start)
 	if definition.shot_kind() != WeaponDef.Kind.MELEE:
 		_flash()
@@ -406,7 +409,9 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	if shot_kind == WeaponDef.Kind.PROJECTILE:
 		_launch(start, heading, _rewind_flight(start, heading))
 	else:
-		_scan(start, heading, definition.ray_reach(), _rewind_ray(start, heading))
+		var end := _scan(start, heading, definition.ray_reach(), _rewind_ray(start, heading))
+		if shot_kind == WeaponDef.Kind.HITSCAN:
+			_trace(start, end)
 	_play(_player(&"ShotSound"), start)
 	if shot_kind != WeaponDef.Kind.MELEE:
 		_flash()
@@ -511,8 +516,11 @@ func _on_projectile_finished(shot: Projectile) -> void:
 # delivers to `take_hit`), anything else its `Health`; a ray that passes between the parts goes on
 # past the capsule, as a projectile does.
 # With `shot_rewind`, the AI characters near the ray are met where the shooter's screen drew them
-# (`ShotRewind.nearer`) and left out of the physics query.
-func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewind = null) -> void:
+# (`ShotRewind.nearer`) and left out of the physics query. Answers where the ray ended: the point
+# it hit, or its reach.
+func _scan(
+	start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewind = null
+) -> Vector3:
 	var skip: Array[RID] = []
 	if shot_rewind != null:
 		skip = shot_rewind.excluded()
@@ -523,7 +531,7 @@ func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewi
 		if shot_rewind != null:
 			found = shot_rewind.nearer(start, start + heading * reach, found)
 		if found.is_empty():
-			return
+			return start + heading * reach
 		var zones := HitZones.of(found["collider"])
 		if zones == null:
 			break
@@ -546,7 +554,7 @@ func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewi
 			shot_rewind.skip(found["collider"])
 		found = {}
 	if found.is_empty():
-		return
+		return start + heading * reach
 	var collider: Object = found["collider"]
 	var point: Vector3 = found["position"]
 	var normal: Vector3 = found["normal"]
@@ -564,7 +572,7 @@ func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewi
 				}
 			)
 		)
-		return
+		return point
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D
 		body.apply_impulse(heading * definition.impulse, point - body.global_position)
@@ -594,6 +602,7 @@ func _scan(start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewi
 			}
 		)
 	)
+	return point
 
 
 func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> Dictionary:
@@ -719,6 +728,23 @@ func _flash() -> void:
 	var emitter := EffectEmitter.find(self)
 	if emitter != null:
 		emitter.play_on(definition.muzzle_flash, muzzle, definition.muzzle_flash_size)
+
+
+# The definition's tracer from `start` to `end`, drawn by the level's pool on this screen only.
+func _trace(start: Vector3, end: Vector3) -> void:
+	if not effects or definition.tracer == null:
+		return
+	var pool := TracerPool.find(self)
+	if pool != null:
+		pool.draw(definition.tracer, start, end)
+
+
+# Where a cosmetic hitscan ray from `start` along `heading` ends on this screen (a puppet's shot:
+# what it meets first, or its reach); the server's HIT may end its tracer sooner.
+func _ray_end(start: Vector3, heading: Vector3) -> Vector3:
+	var reach := definition.ray_reach()
+	var found := _cast(start, start + heading * reach, [], definition.ray_mask(aim_mask))
+	return found["position"] if not found.is_empty() else start + heading * reach
 
 
 func _player(node_name: StringName) -> AudioStreamPlayer3D:

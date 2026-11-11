@@ -71,6 +71,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"hitscan": false,
 		&"hitscan_range": 100.0,
 		&"hitscan_mask": PhysicsLayers.SHOT_MASK,
+		&"tracer": null,
 		&"magazine_size": 12,
 		&"start_reserve": 36,
 		&"max_reserve": 96,
