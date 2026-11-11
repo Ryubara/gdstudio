@@ -109,6 +109,10 @@ rest). The Quaternius mannequins are measured in the same run, and a body is rea
 - **Limbs:** the adult bodies overlap at most 15 mm more than the reference in any clip (`facet_female`, forearm on
   thigh in `Sitting_Idle`); `form_male` and both `joint` adults never more. The chibi goes 40 to 53 mm deeper in
   `Sitting_Idle` and 13 to 18 mm in the crouch (chest on thigh): the known limit above.
+- **Hands:** the measure's capsules end at the wrist and its feet are the foot's vertices, so it does not see a
+  hand: resizing the hands left every number of the table as it was, to 0.1 mm (rerun on the resized bodies). A
+  hand's contact is judged by eye, in the close view of `tools/capture/mannequin_parade.tscn` (a hand roll, the
+  pistol clips and a reach).
 - **Cost:** forty characters playing `Walk`, clips and bones and modifiers advanced by hand, headless: 17 to 21
   microseconds a character a frame for every body and for the Quaternius male alike; the 17 added bones and the twist
   modifier are inside the 2 microseconds the same run varies by (`tools/mannequin/body_cost.gd`). Not measured: the

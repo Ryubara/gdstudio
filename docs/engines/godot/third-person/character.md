@@ -52,7 +52,9 @@ on them with no conversion ([Prototype mannequins](../../../tools/blender/protot
 three levels of detail by distance. The Quaternius female stays the default until the maintainer has chosen a look:
 the pistol's solved hold, the ragdoll's joints and the hit zones are measured on the Quaternius skins and are solved
 again for the body that replaces them. `tests/assets/test_prototype_mannequins.gd` proves the bodies and
-`tools/capture/mannequin_parade.tscn` films them beside the Quaternius male.
+`tools/capture/mannequin_parade.tscn` films them on a 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the
+front, quarter, side or close view (the close one follows the hands through a hand roll, the pistol clips and a
+reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` adds the Quaternius male.
 
 - **Approach:** Take a model that a pack ships only inside its clip files by dropping the clips from the glb itself
   (parse the glTF chunks, remove `animations`, keep only the accessors and buffer views the meshes and skins use,
