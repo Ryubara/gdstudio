@@ -325,6 +325,12 @@ are the body under that.
 - **Approach:** Compare a clip's own pose with what a modifier makes of it on the clip's keys. **Watch out for:**
   between two keys a fast hand is a chord off its arc: the reload's hand read 4.9 mm off at a share between keys and
   1.2 mm on them. **Seen:** gdstudio #1082, 2026-11-11 (`test_rifle_clips.gd` rounds the share to a frame).
+- **Approach:** After adding a clip library or an export to a resource script, run the whole template suite before
+  opening the pull request, not only the new suite. **Watch out for:** two older tests pin what the change widens:
+  `test_character_clips.gd` counts every clip of every library (90 became 96) and `test_weapon.gd` wants a pinned
+  default for every `WeaponDef` export (`shoot_additive`). And a pull request stacked on another carries that one's
+  commits: its `Model:` line names every model in their trailers. **Seen:** gdstudio #1267, 2026-11-11 (the
+  `template (3d-third-person)` and `commits` checks failed on the first push).
 
 ## The clip eval {#eval}
 

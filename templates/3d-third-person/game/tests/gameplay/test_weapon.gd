@@ -94,6 +94,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"aim_up_clip": CharacterClips.PISTOL_AIM_UP,
 		&"aim_down_clip": CharacterClips.PISTOL_AIM_DOWN,
 		&"shoot_clips": [CharacterClips.PISTOL_SHOOT] as Array[StringName],
+		&"shoot_additive": false,
 		&"reload_clip": CharacterClips.PISTOL_RELOAD,
 		&"shot_sound": pistol.shot_sound,
 		&"shot_volume_db": -22.0,
