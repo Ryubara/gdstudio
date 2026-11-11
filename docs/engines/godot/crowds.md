@@ -348,6 +348,14 @@ an old end within 3.5 m of the target, more than 1 m left to walk). To find it, 
 and its path's first points: a position that moves at full speed and goes nowhere, and a path that changes its second
 point from one second to the next.
 
+- **Approach:** Test the kept route with a target off the mesh within the goal snap's reach of the far edge
+  (`AiRouteRules.OPEN_GROUND`, 0.35 m), a walker with more than 1 m of route left, and an assertion on each route's end
+  (`path_changed`); see it fail with `keeps_route` made false. **Watch out for:** a target deep in a hole flips nothing
+  in the 3D Third Person navigator (`snap_goal` walks back toward the walker, so the near side), and the body keeps its
+  push between steers, so a turn count on `walk_direction` stayed 0 both ways: that test passed without the rule.
+  **Seen:** gdstudio #1093, 2026-11-11 (a 2 m hole, the target within 0.15 m of each edge: 3 far routes in 4 s without
+  the rule, none with it).
+
 ## AI characters: a brain, path queries and a body, apart from drawing (kit #882) {#ai-characters}
 
 <!-- new section: the zombie spike above measured whole animated zombies with Godot Physics; nothing held what the
