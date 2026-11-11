@@ -65,6 +65,14 @@ PULL_STEP = 0.02
 OVERLAP_LIMIT = 5.0
 
 
+## An arm that has let go, or is free while the other carries the body, follows the body: its wrist stays under
+## this height over its own shoulder (m), moves no faster than this in the world and against its shoulder (m/s),
+## and its speed changes by no more than this from one frame to the next (m/s): no fling, no snap.
+FREE_OVER_SHOULDER = 0.05
+FREE_SPEED = 7.0
+FREE_SPEED_AGAINST_SHOULDER = 4.5
+FREE_SPEED_CHANGE = 4.0
+
 ## Gravity (m/s^2): a body in the air, touching nothing, falls on this arc and no other.
 GRAVITY = 9.81
 ## How far the body's centre may be off the arc of a free fall on any frame in the air (m).
@@ -327,6 +335,7 @@ class Clip:
         self.centre = {}  # frame: the height the centre of mass was asked to be at
         self.mats = {}
         self.absorb = None  # (limb, first frame, last frame): the leg that gives under the landing
+        self.released = []  # (limb, first frame, last frame): an arm nothing holds, from its last planted frame
         self.motion = {}
         self.name = name
         self.frames = frames
@@ -398,6 +407,16 @@ class Clip:
             self.trace[frame] = measure_pose(self.rig, mats)
             offsets[frame] = self.trace[frame]["com"].z - self.channels["pelvis_pos"].at(frame).z
         return offsets
+
+    def shoulder(self, frame, side, left=0.0, forward=0.0, up=0.0):
+        """A point given from a shoulder joint in the world's axes, from the keys of the pelvis, the spine and
+        the collarbone at that frame (key those first): `up` is how far over the shoulder a hand is, whatever
+        the body's lean, so a free arm's height is written down and not a result of the hips' roll."""
+        at = Matrix.LocRotScale(self.channels["pelvis_pos"].at(frame), self.channels["pelvis_rot"].at(frame), None)
+        chain = ["spine_01", "spine_02", "spine_03", f"clavicle_{side}"]
+        for name in chain:
+            at = at @ self.rig.rest_rel[name] @ self.channels[name].at(frame).to_matrix().to_4x4()
+        return (at @ self.rig.rest_rel[f"upperarm_{side}"]).translation + P(left, forward, up)
 
     def spine(self, name, yaw=0.0, pitch=0.0, roll=0.0):
         """A bend of a spine bone, given in the rig's axes, as the bone's own rotation."""
@@ -593,6 +612,7 @@ def vault_low(rig, offsets=None):
     c.flights = [(takeoff, plant), (release, last)]
     c.push = ("hand_l", plant, release)
     c.reach = ("foot_r", last)
+    c.released = [("hand_r", takeoff, last)]
     c.arc = {"off_foot": off_foot, "on_hand": on_hand, "off_hand": off_hand, "land": STRIKE}
 
     # The body lies over to the left as it passes the hand and comes upright again on the way down.
@@ -687,17 +707,18 @@ def vault_low(rig, offsets=None):
     c.keys(
         "hand_r_pos",
         {
-            4: c.body(4, -0.42, 0.10, 1.10),
-            6: c.hips(6, -0.42, -0.06, 0.46),
-            8: c.hips(8, -0.42, -0.12, 0.46),
-            10: c.hips(10, -0.46, -0.08, 0.40),
-            13: c.hips(13, -0.50, -0.10, 0.36),
-            16: c.body(16, -0.44, -0.20, 1.12),
+            4: c.body(4, -0.40, 0.06, 1.20),
+            6: c.shoulder(6, "r", -0.33, -0.30, -0.06),
+            8: c.shoulder(8, "r", -0.34, -0.30, 0.0),
+            10: c.shoulder(10, "r", -0.36, -0.26, -0.04),
+            12: c.shoulder(12, "r", -0.40, -0.20, -0.10),
+            14: c.shoulder(14, "r", -0.40, -0.16, -0.18),
+            16: c.shoulder(16, "r", -0.24, -0.22, -0.36),
         },
     )
     c.keys(
         "hand_r_pole",
-        {6: c.hips_way(6, -0.4, -1.0, 0.1), 10: c.hips_way(10, -0.4, -1.0, 0.1), 15: P(-0.6, -1.0, -0.2)},
+        {6: P(-0.4, -1.0, 0.4), 10: P(-0.4, -1.0, 0.4), 15: P(-0.6, -1.0, -0.2)},
     )
 
     # The legs go over stacked, as in a real speed vault: the body is rolled to the left, so the right leg is the
@@ -917,6 +938,7 @@ def vault_high(rig, offsets=None):
     c.flights = [(release, last)]
     c.push = ("hand_l", takeoff, release)
     c.reach = ("foot_r", last)
+    c.released = [("hand_r", 12, last)]
     c.arc = {"off_foot": off_foot, "off_hand": off_hand, "land": STRIKE}
 
     c.keys(
@@ -993,15 +1015,20 @@ def vault_high(rig, offsets=None):
             8: c.body(8, -0.30, 0.32, 1.25),
             10: plant_r + P(0.0, -0.12, 0.10),
             11: plant_r,
-            13: plant_r,
-            15: c.hips(15, -0.44, 0.0, 0.55),
-            17: c.hips(17, -0.46, -0.16, 0.54),
-            20: c.hips(20, -0.46, -0.14, 0.48),
-            24: c.hips(24, -0.48, -0.12, 0.38),
-            28: c.body(28, -0.44, -0.20, 1.12),
+            12: plant_r,
+            13: P(-0.25, 0.17, 1.32),
+            14: P(-0.27, 0.31, 1.45),
+            15: P(-0.29, 0.45, 1.62),
+            16: P(-0.28, 0.54, 1.81),
+            17: c.shoulder(17, "r", -0.43, 0.16, -0.02),
+            18: c.shoulder(18, "r", -0.42, 0.14, -0.05),
+            20: c.shoulder(20, "r", -0.40, 0.12, -0.09),
+            23: c.shoulder(23, "r", -0.38, 0.08, -0.16),
+            26: c.shoulder(26, "r", -0.34, -0.04, -0.28),
+            28: c.shoulder(28, "r", -0.24, -0.18, -0.37),
         },
     )
-    c.planted += [("hand_l", 11, 16), ("hand_r", 11, 13)]
+    c.planted += [("hand_l", 11, 16), ("hand_r", 11, 12)]
     c.keys(
         "hand_l_pole",
         {
@@ -1018,9 +1045,11 @@ def vault_high(rig, offsets=None):
         {
             8: P(-0.4, -1.0, -0.8),
             11: P(-0.6, -1.0, 0.1),
-            13: P(-0.8, -0.8, 0.4),
-            17: c.hips_way(17, -0.4, -1.0, 0.1),
-            23: c.hips_way(23, -0.4, -1.0, 0.1),
+            12: P(-0.8, -0.8, 0.4),
+            15: P(-0.8, -0.6, 0.5),
+            16: P(-0.8, -0.5, 0.6),
+            18: P(-0.5, -1.0, 0.2),
+            23: P(-0.3, -1.0, -0.3),
             27: P(-0.6, -1.0, -0.2),
         },
     )
@@ -1039,13 +1068,13 @@ def vault_high(rig, offsets=None):
     )
     c.keys(
         "hand_r_rot",
-        {0: flat_r, 11: flat_r, 13: flat_r, 14: c.palm("r", (-0.3, 1.0, 0.3), (0.0, 0.2, -1.0)), last: flat_r},
+        {0: flat_r, 11: flat_r, 12: flat_r, 13: c.palm("r", (-0.3, 1.0, 0.3), (0.0, 0.2, -1.0)), last: flat_r},
     )
     c.keys("hand_l_world", {8: 0.0, 11: 1.0, 18: 1.0, 20: 0.0})
-    c.keys("hand_r_world", {8: 0.0, 11: 1.0, 13: 1.0, 15: 0.0})
+    c.keys("hand_r_world", {8: 0.0, 11: 1.0, 13: 1.0, 16: 0.0})
 
     c.keys("curl_l", {8: 1.0, 10: 0.0, 18: 0.0, 22: 1.0})
-    c.keys("curl_r", {8: 1.0, 10: 0.0, 13: 0.0, 17: 1.0})
+    c.keys("curl_r", {8: 1.0, 10: 0.0, 12: 0.0, 18: 1.0})
 
     # The left foot finishes its sprint step, swings through and tucks; the right foot takes off close to the wall.
     stance = c.channels["foot_l_pos"].at(0)
@@ -1163,7 +1192,7 @@ def vault_high(rig, offsets=None):
     c.events = {
         "takeoff": takeoff,
         "hand_plant": 11,
-        "right_hand_release": 13,
+        "right_hand_release": 12,
         "over": 16,
         "hand_release": release - 1,
         "push_off": release,
@@ -1188,6 +1217,7 @@ CLIPS = {"Vault_Low": vault_low, "Vault_High": vault_high, "Vault_Land": vault_l
 def measure_pose(rig, mats):
     """What the checks of the load, the push and the fall read from one solved pose (metres, degrees; in place)."""
     out = {"com": centre_of_mass(mats), "pelvis": mats["pelvis"].translation.copy()}
+    out["head"] = mats["Head"].translation.copy()
     for side in "lr":
         shoulder, wrist = mats[f"upperarm_{side}"].translation, mats[f"hand_{side}"].translation
         length = rig.rest_rel[f"lowerarm_{side}"].translation.length + rig.rest_rel[f"hand_{side}"].translation.length
@@ -1341,6 +1371,36 @@ def check(rig, clip, action, worst):
     return problems + moving, report
 
 
+def release_of(clip, limb, first, final):
+    """What an arm that nothing holds does from `first` (the last frame its hand is planted, or the takeoff) to
+    `final`: how high the wrist gets over its own shoulder and over the head bone, how fast it moves in the world
+    (the body's own travel included) and against the shoulder, and the most its speed changes in one frame."""
+    side = limb[-1]
+    trace = clip.trace
+    frames = list(range(first, final + 1))
+    over = [trace[f][f"wrist_{side}"].z - trace[f][f"shoulder_{side}"].z for f in frames]
+    world = [clip.to_world(f, trace[f][f"wrist_{side}"]) for f in frames]
+    local = [trace[f][f"wrist_{side}"] - trace[f][f"shoulder_{side}"] for f in frames]
+    steps = [(b - a) * FPS for a, b in zip(world, world[1:])]
+    against = [(b - a).length * FPS for a, b in zip(local, local[1:])]
+    changes = [(b - a).length for a, b in zip(steps, steps[1:])]
+    head = [trace[f][f"wrist_{side}"].z - trace[f]["head"].z for f in frames]
+    return {
+        "frames": [first, final],
+        "wrist_over_shoulder": [round(v, 3) for v in over],
+        "peak_over_shoulder": round(max(over), 3),
+        "peak_over_head_bone": round(max(head), 3),
+        "speed": [round(v.length, 2) for v in steps],
+        "peak_speed": round(max(v.length for v in steps), 2),
+        "speed_up": [round(v.z, 2) for v in steps],
+        "peak_speed_up": round(max(v.z for v in steps), 2),
+        "speed_against_shoulder": [round(v, 2) for v in against],
+        "peak_speed_against_shoulder": round(max(against), 2),
+        "speed_change_a_frame": [round(v, 2) for v in changes],
+        "peak_speed_change_a_frame": round(max(changes), 2),
+    }
+
+
 def check_motion(clip):
     """Fail on what the body cannot do: leave the arc of a free fall while nothing touches it, cross on an arm
     that never takes its weight or never pushes, land on a leg that does not reach, or land without giving."""
@@ -1417,6 +1477,18 @@ def check_motion(clip):
             problems.append(f"the planted arm does not push off straight (elbow {elbows})")
         if carried_share < 0.25:
             problems.append(f"the planted arm carries only {carried_share:.2f} of the body's weight")
+    for limb, first, final in clip.released:
+        entry = release_of(clip, limb, first, final)
+        report[f"release_{limb[-1]}"] = entry
+        print(f"RELEASE {clip.name} {limb}: {entry}")
+        for key, limit, what in (
+            ("peak_over_shoulder", FREE_OVER_SHOULDER, "m over its shoulder"),
+            ("peak_speed", FREE_SPEED, "m/s in the world"),
+            ("peak_speed_against_shoulder", FREE_SPEED_AGAINST_SHOULDER, "m/s against its shoulder"),
+            ("peak_speed_change_a_frame", FREE_SPEED_CHANGE, "m/s of speed change in one frame"),
+        ):
+            if entry[key] > limit:
+                problems.append(f"the free {limb} is flung: {entry[key]} {what} (the limit is {limit})")
     if clip.reach:
         limb, land = clip.reach
         side = limb[-1]

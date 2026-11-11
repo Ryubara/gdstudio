@@ -4,7 +4,8 @@
 # while the body is moved at the clip's speed, the feet over the floor, and first and last poses
 # that join the sprint and each other. And what a body can do: the planted arm gives under the
 # weight and pushes off straight, the body falls on the arc of a free fall while nothing touches
-# it, the landing leg reaches for the ground and gives under the landing.
+# it, the landing leg reaches for the ground and gives under the landing, and an arm that has
+# let go follows the body instead of being flung over the head.
 extends GdUnitTestSuite
 
 const VAULT := "res://assets/animation/vault/vault.glb"
@@ -39,6 +40,18 @@ const MASS: Array[Array] = [
 	["foot_l", "ball_l", 0.5, 0.0145],
 	["foot_r", "ball_r", 0.5, 0.0145],
 ]
+
+## An arm nothing holds (`FREE_*` in the build, a little wider for the male's longer arms): its
+## wrist stays under this height over its own shoulder (m), moves no faster than this in the
+## world and against its shoulder (m/s), and its speed changes by no more than this from one
+## frame to the next (m/s).
+const FREE_OVER_SHOULDER := 0.08
+const FREE_SPEED := 7.5
+const FREE_SPEED_AGAINST_SHOULDER := 5.0
+const FREE_SPEED_CHANGE := 4.5
+## The arm that is free in each vault and the event it is free from, to the landing: the right
+## hand of `Vault_High` from when it lets go, the right arm of `Vault_Low` from the takeoff.
+const FREE_ARMS := {"Vault_High": "right_hand_release", "Vault_Low": "takeoff"}
 
 var _file := {}
 
@@ -363,3 +376,83 @@ func test_the_landing_leg_reaches_and_gives() -> void:
 		assert_float(hips[index]).is_less(hips[index - 1])
 		assert_float(bent[index]).is_less_equal(bent[index - 1] + 0.5)
 	assert_float(hips[0] - hips[-1]).is_greater_equal(0.08)
+
+
+# What the right arm does from `FREE_ARMS`' event to the landing, on the poses Godot plays, with
+# the body moved at the clip's speed: the wrist's highest place over its own shoulder (m), its
+# highest speed in the world and against the shoulder (m/s), and the most its speed changes from
+# one frame to the next (m/s).
+func _free_arm(rig: Dictionary, clip: String) -> Dictionary:
+	var spec: Dictionary = _file.clips[clip]
+	var first := int(round(spec.events[FREE_ARMS[clip]] * _file.fps))
+	var bones: Array[String] = ["upperarm_r", "hand_r"]
+	var world: Array[Vector3] = []
+	var local: Array[Vector3] = []
+	var out := {"over": -9.0, "speed": 0.0, "against": 0.0, "change": 0.0, "first": first}
+	for frame in range(first, int(spec.frames) + 1):
+		var time := _time(clip, frame)
+		var pose := _pose(rig, StringName("vault/" + clip), time, bones)
+		var wrist: Vector3 = pose.hand_r
+		var shoulder: Vector3 = pose.upperarm_r
+		out.over = maxf(out.over, wrist.y - shoulder.y)
+		world.append(wrist + Vector3(0, 0, spec.speed * time))
+		local.append(wrist - shoulder)
+	var last_step := Vector3.ZERO
+	for index in range(1, world.size()):
+		var step: Vector3 = (world[index] - world[index - 1]) * float(_file.fps)
+		out.speed = maxf(out.speed, step.length())
+		var against: float = (local[index] - local[index - 1]).length() * float(_file.fps)
+		out.against = maxf(out.against, against)
+		if index > 1:
+			out.change = maxf(out.change, (step - last_step).length())
+		last_step = step
+	return out
+
+
+# A hand that lets go is carried on by the body (the maintainer's review of 2026-11-11, the
+# third): in `Vault_High` the right arm lifts off ahead of the leg that swings over and rides
+# out to the side at shoulder height; in `Vault_Low` the free right arm does the same. Before,
+# the wrist went 0.30 m (0.37 m) over the shoulder at 11 m/s within two frames of the release.
+func test_a_free_arm_follows_the_body() -> void:
+	for path: String in [FEMALE, MALE]:
+		var rig := _rig(path)
+		for clip: String in FREE_ARMS:
+			assert_bool(_file.clips[clip].events.has(FREE_ARMS[clip])).is_true()
+			var arm := _free_arm(rig, clip)
+			var said := (
+				"%s on %s, the right arm from frame %d: %.3f m over the shoulder, %.2f m/s, "
+				% [clip, path.get_file(), arm.first, arm.over, arm.speed]
+			)
+			said += "%.2f m/s against the shoulder, %.2f m/s a frame" % [arm.against, arm.change]
+			print(said)
+			(
+				assert_float(arm.over)
+				. override_failure_message("the wrist goes over the shoulder. " + said)
+				. is_less_equal(FREE_OVER_SHOULDER)
+			)
+			(
+				assert_float(arm.speed)
+				. override_failure_message("the arm is flung. " + said)
+				. is_less_equal(FREE_SPEED)
+			)
+			(
+				assert_float(arm.against)
+				. override_failure_message("the arm is flung past the shoulder. " + said)
+				. is_less_equal(FREE_SPEED_AGAINST_SHOULDER)
+			)
+			(
+				assert_float(arm.change)
+				. override_failure_message("the arm snaps. " + said)
+				. is_less_equal(FREE_SPEED_CHANGE)
+			)
+		# The right hand of `Vault_High` lets go while its elbow is still bent: an arm at
+		# full stretch is torn off the top by the shoulder.
+		var release := int(round(_file.clips.Vault_High.events.right_hand_release * _file.fps))
+		var elbow := _joint(rig, "Vault_High", release, ["upperarm_r", "lowerarm_r", "hand_r"])
+		(
+			assert_float(elbow)
+			. override_failure_message(
+				"%s: the right elbow is at %.0f degrees when the hand lets go" % [path, elbow]
+			)
+			. is_less_equal(140.0)
+		)

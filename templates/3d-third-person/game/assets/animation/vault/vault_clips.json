@@ -3,7 +3,7 @@
   "units": "metres and seconds; forward 0 is the obstacle's front face",
   "measured": {
     "file": "vault.glb",
-    "sha256": "7a498b9f564e319e72eccb8f15bb7131ca0269d850f04f32161badd54b092a4b",
+    "sha256": "6a1a0656210441d12f862aa47c5419e3b44441f0974a429f3eceffa1611e7ad4",
     "overlap_limit_mm": 5.0
   },
   "clips": {
@@ -45,11 +45,11 @@
       },
       "contacts": {
         "lowest": -0.0036,
-        "deepest_in_box": 0.0042,
+        "deepest_in_box": 0.0039,
         "foot_l_drift_mm": 0.4,
-        "hand_l_drift_mm": 0.0,
+        "hand_l_drift_mm": 0.4,
         "palm_gap_mm": [
-          -4.2,
+          -3.9,
           2.1
         ],
         "overlap_mm": {
@@ -74,12 +74,12 @@
             6
           ],
           "seconds": 0.0833,
-          "speed_up_at_start": 1.64,
+          "speed_up_at_start": 1.6,
           "rise_to_top": null,
           "seconds_to_top": null,
           "fall_from_top": null,
-          "speed_down_at_end": -0.82,
-          "off_the_arc_mm": 0.6
+          "speed_down_at_end": -0.78,
+          "off_the_arc_mm": 1.7
         },
         "air_2": {
           "frames": [
@@ -100,29 +100,126 @@
             10
           ],
           "elbow_deg": [
-            148,
-            121,
-            125,
-            163,
+            152,
+            124,
+            128,
+            176,
             176
           ],
           "arm_length_share": [
-            0.96,
-            0.87,
-            0.89,
-            0.99,
+            0.97,
+            0.88,
+            0.9,
+            1.0,
             1.0
           ],
           "shoulder_over_wrist": [
-            0.4,
-            0.396,
-            0.428,
-            0.47,
-            0.446
+            0.405,
+            0.402,
+            0.435,
+            0.475,
+            0.447
           ],
-          "weight_carried": 1.04,
-          "speed_up_on": 0.82,
+          "weight_carried": 1.07,
+          "speed_up_on": 0.78,
           "speed_up_off": 0.89
+        },
+        "release_r": {
+          "frames": [
+            4,
+            19
+          ],
+          "wrist_over_shoulder": [
+            -0.245,
+            -0.169,
+            -0.053,
+            -0.003,
+            0.013,
+            0.006,
+            -0.029,
+            -0.067,
+            -0.1,
+            -0.132,
+            -0.18,
+            -0.275,
+            -0.36,
+            -0.356,
+            -0.299,
+            -0.231
+          ],
+          "peak_over_shoulder": 0.013,
+          "peak_over_head_bone": 0.132,
+          "speed": [
+            5.54,
+            6.34,
+            4.0,
+            3.67,
+            3.46,
+            3.84,
+            5.18,
+            5.36,
+            4.76,
+            4.09,
+            4.04,
+            4.22,
+            4.27,
+            4.97,
+            5.62
+          ],
+          "peak_speed": 6.34,
+          "speed_up": [
+            2.88,
+            2.56,
+            0.76,
+            0.33,
+            0.97,
+            0.98,
+            0.76,
+            0.37,
+            -0.36,
+            -1.36,
+            -3.07,
+            -3.21,
+            -1.39,
+            -0.54,
+            -1.11
+          ],
+          "peak_speed_up": 2.88,
+          "speed_against_shoulder": [
+            2.96,
+            3.16,
+            1.21,
+            0.53,
+            0.49,
+            1.06,
+            1.32,
+            1.12,
+            1.08,
+            1.26,
+            3.19,
+            2.77,
+            0.62,
+            1.48,
+            1.76
+          ],
+          "peak_speed_against_shoulder": 3.19,
+          "speed_change_a_frame": [
+            1.21,
+            3.54,
+            1.18,
+            0.9,
+            0.83,
+            1.58,
+            0.48,
+            0.95,
+            1.53,
+            2.87,
+            0.18,
+            2.46,
+            1.24,
+            0.81
+          ],
+          "peak_speed_change_a_frame": 3.54
         },
         "reach": {
           "frames": [
@@ -139,12 +236,12 @@
             162
           ],
           "foot_up": [
-            0.863,
-            0.745,
+            0.865,
+            0.746,
             0.626,
-            0.5,
-            0.359,
-            0.236,
+            0.499,
+            0.357,
+            0.234,
             0.135
           ]
         }
@@ -159,7 +256,7 @@
       "events": {
         "takeoff": 0.4583,
         "hand_plant": 0.4583,
-        "right_hand_release": 0.5417,
+        "right_hand_release": 0.5,
         "over": 0.6667,
         "hand_release": 0.6667,
         "push_off": 0.7083,
@@ -182,7 +279,7 @@
       "root_at": {
         "takeoff": -0.485,
         "hand_plant": -0.485,
-        "right_hand_release": -0.235,
+        "right_hand_release": -0.36,
         "over": 0.14,
         "hand_release": 0.14,
         "push_off": 0.265,
@@ -190,13 +287,13 @@
       },
       "contacts": {
         "lowest": -0.0036,
-        "deepest_in_box": 0.0047,
+        "deepest_in_box": 0.0045,
         "foot_l_drift_mm": 0.4,
         "foot_r_drift_mm": 0.0,
         "hand_l_drift_mm": 0.0,
         "hand_r_drift_mm": 0.0,
         "palm_gap_mm": [
-          -4.7,
+          -4.5,
           4.0
         ],
         "overlap_mm": {
@@ -207,10 +304,12 @@
             "by_class": {}
           },
           "male": {
-            "deepest": 0.0,
-            "frame": null,
-            "pair": null,
-            "by_class": {}
+            "deepest": 0.6,
+            "frame": 17,
+            "pair": "calf_l in pelvis",
+            "by_class": {
+              "leg/torso": 0.6
+            }
           }
         }
       },
@@ -226,7 +325,7 @@
           "seconds_to_top": 0.139,
           "fall_from_top": 0.796,
           "speed_down_at_end": 3.95,
-          "off_the_arc_mm": 0.2
+          "off_the_arc_mm": 0.3
         },
         "push": {
           "frames": [
@@ -236,33 +335,145 @@
           "elbow_deg": [
             78,
             76,
-            88,
-            99,
-            124,
-            163,
+            87,
+            100,
+            126,
+            174,
             176
           ],
           "arm_length_share": [
             0.64,
             0.62,
-            0.7,
-            0.76,
+            0.69,
+            0.77,
             0.89,
-            0.99,
+            1.0,
             1.0
           ],
           "shoulder_over_wrist": [
             0.198,
             0.291,
-            0.343,
-            0.359,
-            0.401,
-            0.407,
-            0.395
+            0.339,
+            0.363,
+            0.405,
+            0.413,
+            0.397
           ],
           "weight_carried": 0.4,
           "speed_up_on": 2.83,
           "speed_up_off": 1.36
+        },
+        "release_r": {
+          "frames": [
+            12,
+            30
+          ],
+          "wrist_over_shoulder": [
+            -0.309,
+            -0.327,
+            -0.277,
+            -0.172,
+            -0.071,
+            -0.01,
+            -0.048,
+            -0.073,
+            -0.09,
+            -0.11,
+            -0.132,
+            -0.16,
+            -0.197,
+            -0.238,
+            -0.28,
+            -0.335,
+            -0.37,
+            -0.325,
+            -0.231
+          ],
+          "peak_over_shoulder": -0.01,
+          "peak_over_head_bone": 0.022,
+          "speed": [
+            2.64,
+            4.61,
+            5.31,
+            5.05,
+            4.08,
+            2.13,
+            2.14,
+            2.23,
+            2.49,
+            2.75,
+            2.75,
+            2.83,
+            3.12,
+            3.36,
+            3.92,
+            3.95,
+            3.98,
+            4.72
+          ],
+          "peak_speed": 5.31,
+          "speed_up": [
+            2.02,
+            3.12,
+            4.08,
+            4.56,
+            2.51,
+            0.86,
+            0.78,
+            0.39,
+            -0.23,
+            -0.73,
+            -1.31,
+            -1.98,
+            -2.56,
+            -2.95,
+            -3.56,
+            -3.38,
+            -2.07,
+            -1.81
+          ],
+          "peak_speed_up": 4.56,
+          "speed_against_shoulder": [
+            2.6,
+            2.82,
+            3.14,
+            4.08,
+            1.96,
+            1.08,
+            0.67,
+            0.64,
+            0.56,
+            0.59,
+            0.88,
+            1.27,
+            1.44,
+            1.49,
+            2.55,
+            2.14,
+            1.23,
+            2.36
+          ],
+          "peak_speed_against_shoulder": 4.08,
+          "speed_change_a_frame": [
+            2.02,
+            0.96,
+            1.48,
+            2.31,
+            2.77,
+            0.81,
+            0.53,
+            0.71,
+            0.53,
+            0.63,
+            0.78,
+            0.63,
+            0.46,
+            1.51,
+            0.58,
+            2.48,
+            0.99
+          ],
+          "peak_speed_change_a_frame": 2.77
         },
         "reach": {
           "frames": [
@@ -279,12 +490,12 @@
             162
           ],
           "foot_up": [
-            1.057,
-            0.926,
-            0.781,
-            0.627,
-            0.464,
-            0.292,
+            1.062,
+            0.928,
+            0.78,
+            0.626,
+            0.463,
+            0.29,
             0.135
           ]
         }
