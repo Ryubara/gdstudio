@@ -30,8 +30,9 @@ signal disconnected
 @export var player: Player
 ## Where the other players are drawn; empty draws none.
 @export var remote_players: RemotePlayers
-## The node whose networked parts make the world hash (`NetServer.world_hash_of`); empty is
-## this node's parent.
+## The map node (the `World` instance) whose networked parts make the world hash
+## (`NetServer.world_hash_of`, paths from this node), the same node the server's
+## `NetServer.world_root` names; empty is this node's parent.
 @export var world_root: Node
 
 @export_group("Join")
