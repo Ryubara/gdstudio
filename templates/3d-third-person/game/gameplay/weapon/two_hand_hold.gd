@@ -111,6 +111,10 @@ const _WAY_ON := 0.88
 ## The left hand's fingers round the magazine.
 @export var magazine_pose: HandPose
 
+## Past this distance from the viewport's camera the fingers keep the clip's fist (the hands are
+## a few pixels there; the rifle's far level shows from 10 m). 0: always posed.
+@export_range(0.0, 100.0, 0.5, "suffix:m") var fingers_far_distance := 10.0
+
 @export_group("Reload")
 ## Where the left hand takes the magazine to during a reload: the belt at the left hip, from the
 ## chest bone in the model's space like the pockets (a place the left arm reaches in every clip).
@@ -171,17 +175,31 @@ var _left_rest := Transform3D.IDENTITY
 var _magazine_rest := Transform3D.IDENTITY
 var _weapon: Weapon
 var _loadout: WeaponLoadout
-# The scene's parts, found once by name.
-var _found := {}
+# The scene's parts and the bones, found once (`_find_parts()`, `_find_bones()`) rather than
+# looked up every frame (kit #1178).
+var _pivot: Node3D
+var _gun: Node3D
+var _targets: Array[Node3D] = [null, null]
+var _poles: Array[Node3D] = [null, null]
+var _on_magazine: Node3D
+var _mag: Node3D
+var _mag_far: Node3D
+var _chest_index := -1
+var _spine_indices := PackedInt32Array()
+var _left_indices := PackedInt32Array()
+# Whether the left hand and the magazine are at rest already (nothing to write outside a reload).
+var _hand_at_rest := false
+# The weapon definition this hold is the view of, looked for again when the slots change.
+var _mine: WeaponDef
+var _mine_slots := -1
 
 
 func _ready() -> void:
-	var left := _node(&"LeftHandTarget")
-	if left != null:
-		_left_rest = left.transform
-	var mag := get_node_or_null(magazine) as Node3D
-	if mag != null:
-		_magazine_rest = mag.transform
+	_find_parts()
+	if _targets[1] != null:
+		_left_rest = _targets[1].transform
+	if _mag != null:
+		_magazine_rest = _mag.transform
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
@@ -196,6 +214,7 @@ func _ready() -> void:
 		if _weapon != null:
 			_weapon.fired.connect(_on_fired.unbind(1))
 		if _loadout != null:
+			_loadout.slots_changed.connect(_forget_definition)
 			_loadout.weapon_changed.connect(_on_weapon_changed)
 			_loadout.switch_finished.connect(_on_switch_finished.unbind(1))
 	_on_rig_changed.call_deferred()
@@ -240,13 +259,13 @@ func refresh() -> void:
 	_down = _down_now()
 	var alive := character == null or not character.is_dead()
 	var shown := alive and is_visible_in_tree()
-	var pivot := _node(&"Pivot")
-	if pivot != null:
-		pivot.visible = alive
+	if is_instance_valid(_pivot):
+		_pivot.visible = alive
+	var fingers := 1.0 if shown and not _fingers_far() else 0.0
 	for modifier in _modifiers:
 		if not is_instance_valid(modifier):
 			continue
-		var share := (1.0 if shown else 0.0) if modifier is HandPoseModifier else _reach
+		var share := fingers if modifier is HandPoseModifier else _reach
 		if not alive:
 			share = 0.0
 		if not is_equal_approx(modifier.influence, share):
@@ -269,16 +288,17 @@ func refresh() -> void:
 
 ## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
 ## The stance modifier calls it while the skeleton updates, when the chest bone has the clip's
-## pose of this frame.
+## pose of this frame. Every pose comes from the local ones up the parents and every node's place
+## from the transforms up to this node: nothing asks the engine to work out a global one.
 func place(skeleton: Skeleton3D) -> void:
-	var pivot := _node(&"Pivot")
-	if pivot == null:
-		return
-	var bone := skeleton.find_bone(chest_bone)
+	if not is_instance_valid(_pivot) or not is_instance_valid(_gun):
+		_find_parts()
+		if _pivot == null:
+			return
 	var chest := Vector3.ZERO
 	var to_here := global_transform.affine_inverse() * skeleton.global_transform
-	if bone >= 0:
-		chest = to_here * skeleton.get_bone_global_pose(bone).origin
+	if _chest_index >= 0:
+		chest = to_here * HandPoseModifier.global_pose(skeleton, _chest_index).origin
 	_chest = chest
 	var pitch := posed_pitch
 	if character != null:
@@ -293,43 +313,47 @@ func place(skeleton: Skeleton3D) -> void:
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
 	var basis_now := Basis(turn)
-	pivot.transform = Transform3D(basis_now, chest + pocket - basis_now.z * kick_distance * _kick)
-	pivot.position -= basis_now.z * _pull(skeleton, pivot, to_here)
-	_place_reload()
+	var pivot_xf := Transform3D(basis_now, chest + pocket - basis_now.z * kick_distance * _kick)
+	var gun_in_pivot := _between(_gun, _pivot) if _gun != null else Transform3D.IDENTITY
+	pivot_xf.origin -= basis_now.z * _pull(skeleton, pivot_xf, gun_in_pivot, to_here)
+	_pivot.transform = pivot_xf
+	var gun_here := pivot_xf * gun_in_pivot
+	_place_reload(gun_here)
 	var to_skeleton := to_here.affine_inverse()
-	var sides: Array[String] = ["Right", "Left"]
 	for index in mini(_arms.size(), 2):
-		var target := _node(StringName(sides[index] + "HandTarget"))
-		var pole := _node(StringName(sides[index] + "Pole"))
+		var target := _targets[index]
 		if target == null:
 			continue
-		_arms[index].offset = to_skeleton * _in_here(target)
-		if pole != null:
-			_arms[index].elbow = to_skeleton * _in_here(pole).origin
+		var target_here := gun_here * target.transform
+		if target.get_parent() != _gun:
+			target_here = _in_here(target)
+		_arms[index].offset = to_skeleton * target_here
+		if _poles[index] != null:
+			_arms[index].elbow = to_skeleton * _in_here(_poles[index]).origin
+
+
+## The skeleton's indexes of `spine_bones`, for the stance modifier.
+func spine_indices() -> PackedInt32Array:
+	return _spine_indices
 
 
 # How far the gun must come back along its barrel for the left arm to reach its place under the
 # hand guard: the place is on the gun, the shoulder where the clip and the chest turn have it.
-func _pull(skeleton: Skeleton3D, pivot: Node3D, to_here: Transform3D) -> float:
-	var left := _node(&"LeftHandTarget")
-	if left == null or left_arm.size() < 3:
+func _pull(
+	skeleton: Skeleton3D, pivot_xf: Transform3D, gun_in_pivot: Transform3D, to_here: Transform3D
+) -> float:
+	if _targets[1] == null or _left_indices.size() < 3 or _left_indices.has(-1):
 		return 0.0
-	var bones: Array[int] = []
-	for bone_name in left_arm:
-		bones.append(skeleton.find_bone(bone_name))
-	if bones.has(-1):
-		return 0.0
-	var length := skeleton.get_bone_pose_position(bones[1]).length()
-	length += skeleton.get_bone_pose_position(bones[2]).length()
+	var length := skeleton.get_bone_pose_position(_left_indices[1]).length()
+	length += skeleton.get_bone_pose_position(_left_indices[2]).length()
 	length *= to_here.basis.get_scale().x * arm_stretch
-	var shoulder := to_here * skeleton.get_bone_global_pose(bones[0]).origin
-	var gun := left.get_parent() as Node3D
-	var held_at := pivot.transform * (gun.transform * _left_rest.origin)
+	var shoulder := to_here * HandPoseModifier.global_pose(skeleton, _left_indices[0]).origin
+	var held_at := pivot_xf * (gun_in_pivot * _left_rest.origin)
 	var off := held_at - shoulder
 	if off.length() <= length:
 		return 0.0
 	# The place moves back along the barrel: the nearest point of that line the arm reaches.
-	var back := -pivot.transform.basis.z
+	var back := -pivot_xf.basis.z
 	var along := off.dot(back)
 	var beside := off.length_squared() - along * along
 	var reach := sqrt(maxf(length * length - beside, 0.0))
@@ -368,14 +392,35 @@ func _down_now() -> float:
 	return 1.0
 
 
-# The weapon definition this hold is the view of, or null.
+# The weapon definition this hold is the view of, or null: looked for again after the slots
+# changed (or their count, for slots set by hand) and while it is not found.
 func _definition() -> WeaponDef:
 	if _loadout == null or _loadout.model == null:
 		return null
+	if _mine != null and _mine_slots == _loadout.slots.size():
+		return _mine
+	_mine = null
+	_mine_slots = _loadout.slots.size()
 	for definition in _loadout.slots:
 		if definition != null and _loadout.model.get_node_or_null(definition.view) == self:
-			return definition
-	return null
+			_mine = definition
+			break
+	return _mine
+
+
+func _forget_definition() -> void:
+	_mine = null
+
+
+# Whether the viewport's camera is past `fingers_far_distance`.
+func _fingers_far() -> bool:
+	if fingers_far_distance <= 0.0 or not is_inside_tree():
+		return false
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return false
+	var far := fingers_far_distance * fingers_far_distance
+	return global_position.distance_squared_to(camera.global_position) > far
 
 
 func _on_weapon_changed(definition: WeaponDef) -> void:
@@ -408,9 +453,14 @@ func _turned(pitch: float, yaw: float) -> Quaternion:
 # A node's transform in this node's space, from the transforms up its parents (no global
 # transform is asked for while the skeleton updates).
 func _in_here(node: Node3D) -> Transform3D:
+	return _between(node, self)
+
+
+# A node's transform in the space of `top`, one of its parents, from the transforms between.
+func _between(node: Node3D, top: Node) -> Transform3D:
 	var xf := node.transform
 	var above := node.get_parent() as Node3D
-	while above != null and above != self:
+	while above != null and above != top:
 		xf = above.transform * xf
 		above = above.get_parent() as Node3D
 	return xf
@@ -437,18 +487,22 @@ func _to_magazine(progress: float) -> float:
 # reload progress: down off the hand guard with its fingers open, across to beside the magazine,
 # onto it and closed on it, straight down out of the well and to the belt (where the magazine is
 # changed, out of sight), back up under the well, straight in, and back the way it came.
-func _place_reload() -> void:
-	var left := _node(&"LeftHandTarget")
+func _place_reload(gun_here: Transform3D) -> void:
+	var left := _targets[1]
 	if left == null:
 		return
 	var progress := _reload_progress()
-	var mag := get_node_or_null(magazine) as Node3D
-	var mag_far := get_node_or_null(magazine_far) as Node3D
-	var on_magazine := _node(&"MagazineHand")
+	var mag := _mag
+	var mag_far := _mag_far
+	var on_magazine := _on_magazine
 	if progress < 0.0 or on_magazine == null:
-		left.transform = _left_rest
-		_set_magazine(mag, mag_far, _magazine_rest, true)
+		# At rest nothing but this moves the hand's place and the magazine: put them back once.
+		if not _hand_at_rest:
+			left.transform = _left_rest
+			_set_magazine(mag, mag_far, _magazine_rest, true)
+			_hand_at_rest = true
 		return
+	_hand_at_rest = false
 	var to_magazine := _to_magazine(progress)
 	var away := smoothstep(reload_out.x, reload_out.y, progress)
 	away *= 1.0 - smoothstep(reload_in.x, reload_in.y, progress)
@@ -468,8 +522,6 @@ func _place_reload() -> void:
 	)
 	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
 	# body (the hand's place is on the gun).
-	var gun := left.get_parent() as Node3D
-	var gun_here := _in_here(gun) if gun != null else Transform3D.IDENTITY
 	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
 	var to_belt := smoothstep(0.0, 1.0, (away - _WELL_SHARE) / (1.0 - _WELL_SHARE))
 	var belt := gun_here.affine_inverse() * (_chest + reload_belt)
@@ -502,6 +554,7 @@ func _on_rig_changed() -> void:
 	_skeleton = slot.skeleton() if slot != null else null
 	if _skeleton == null:
 		return
+	_find_bones()
 	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
 	_stance.set(&"hold", self)
 	_add_modifier(_stance, "Stance")
@@ -552,19 +605,24 @@ func _drop_modifiers() -> void:
 	_stance = null
 
 
-func _node(node_name: StringName) -> Node3D:
-	var known: Variant = _found.get(node_name)
-	if is_instance_valid(known) and is_ancestor_of(known):
-		return known as Node3D
-	var found := _find(node_name)
-	_found[node_name] = found
-	return found
+func _find_parts() -> void:
+	_pivot = get_node_or_null(^"Pivot") as Node3D
+	_targets[0] = find_child("RightHandTarget", true, false) as Node3D
+	_targets[1] = find_child("LeftHandTarget", true, false) as Node3D
+	_poles[0] = get_node_or_null(^"RightPole") as Node3D
+	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
+	_on_magazine = find_child("MagazineHand", true, false) as Node3D
+	_gun = _targets[1].get_parent() as Node3D if _targets[1] != null else null
+	_mag = get_node_or_null(magazine) as Node3D
+	_mag_far = get_node_or_null(magazine_far) as Node3D
+	_hand_at_rest = false
 
 
-func _find(node_name: StringName) -> Node3D:
-	match node_name:
-		&"Pivot":
-			return get_node_or_null(^"Pivot") as Node3D
-		&"RightPole", &"LeftPole":
-			return get_node_or_null(NodePath(String(node_name))) as Node3D
-	return find_child(String(node_name), true, false) as Node3D
+func _find_bones() -> void:
+	_chest_index = _skeleton.find_bone(chest_bone)
+	_spine_indices.clear()
+	for bone_name in spine_bones:
+		_spine_indices.append(_skeleton.find_bone(bone_name))
+	_left_indices.clear()
+	for bone_name in left_arm:
+		_left_indices.append(_skeleton.find_bone(bone_name))

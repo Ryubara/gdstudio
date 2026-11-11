@@ -22,29 +22,36 @@ func _process_modification_with_delta(_delta: float) -> void:
 
 
 func _turn_chest(skeleton: Skeleton3D) -> void:
-	var bones := hold.spine_bones
+	var bones := hold.spine_indices()
 	if bones.is_empty():
 		return
 	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.weight()
 	var turn := Basis(Vector3.UP, deg_to_rad(degrees / bones.size()))
-	for bone_name in bones:
-		var bone := skeleton.find_bone(bone_name)
+	# The poses come from the local ones up the parents (`HandPoseModifier.global_pose`): asking
+	# the skeleton for a global pose after a bone was set makes it work out every bone under
+	# that one again, three times a frame for the spine.
+	var parent_bone := -2
+	var parent := Transform3D.IDENTITY
+	for bone in bones:
 		if bone < 0:
 			continue
-		var pose := skeleton.get_bone_global_pose(bone)
-		var parent := skeleton.get_bone_global_pose(skeleton.get_bone_parent(bone))
-		skeleton.set_bone_pose(
-			bone, parent.affine_inverse() * Transform3D(turn * pose.basis, pose.origin)
-		)
+		var above := skeleton.get_bone_parent(bone)
+		if above != parent_bone:
+			parent_bone = above
+			parent = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
+		var pose := parent * skeleton.get_bone_pose(bone)
+		var turned := Transform3D(turn * pose.basis, pose.origin)
+		skeleton.set_bone_pose(bone, parent.affine_inverse() * turned)
+		parent_bone = bone
+		parent = turned
 
 
 # How far the clip has the chest turned from the model's front now, in degrees about the up axis
 # (the way `chest_turn` counts): where the turn from the bone's rest sends the model's front.
-func _chest_yaw(skeleton: Skeleton3D, bone_name: StringName) -> float:
-	var bone := skeleton.find_bone(bone_name)
+func _chest_yaw(skeleton: Skeleton3D, bone: int) -> float:
 	if bone < 0:
 		return 0.0
-	var posed := skeleton.get_bone_global_pose(bone).basis.orthonormalized()
+	var posed := HandPoseModifier.global_pose(skeleton, bone).basis.orthonormalized()
 	var rest := skeleton.get_bone_global_rest(bone).basis.orthonormalized()
 	var ahead := (posed * rest.inverse()) * Vector3.BACK
 	return rad_to_deg(atan2(ahead.x, ahead.z))
