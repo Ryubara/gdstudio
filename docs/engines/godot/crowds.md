@@ -392,8 +392,46 @@ frame in brackets, ms):
   and **5 ms at 4x**; **40 characters** on the web (a browser in a match sets it for everyone), 20 of them at the full
   tier with a body moved every tick, the rest moved every 3rd; 120 on the desktop and a server. Count gates first:
   one path query per character per `repath_seconds`, `think_rate` thinks, at most 2 rays a think
-  ([counts tight, time loose](performance-budgets.md#budgets-counts-tight-time-loose)).
+  ([counts tight, time loose](performance-budgets.md#budgets-counts-tight-time-loose)). Since #963 the template's
+  defaults are **12** at the Full tier on the web and the rest moved every **4th** tick (below: the real character's
+  body costs about twice the spike's capsule).
 
+**The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
+`AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
+`ai_character.tscn` on a 3 m grid around the player, all inside the Full range, so the Full cap sets the tiers;
+"walking" turns each one a little every half second. No brain yet (#966 to #968 add it). Microseconds of the director's
+step a tick (mean, in brackets the median whole frame's work in ms: animation, footsteps and the physics step too):
+
+| | 20 standing | 20 walking | 40 standing | 40 walking | 120 standing | 120 walking |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, native (Full cap 60) | 205 (1.0) | 700 (1.8) | 380 (1.9) | 1750 (4.0) | 1450 (6.8) | 3560 (10.4) |
+| Chrome, Full cap 20, Reduced every 3rd | 404 (1.2) | 1008 (1.8) | 653 (2.3) | **1298** (3.0) | 1792 (11.3) | 2949 (17.9) |
+| Chrome, Full cap 12, Reduced every 4th | 358 (1.1) | 763 (1.5) | 525 (1.9) | **995** (2.6) | 1459 (9.6) | 2219 (12.2) |
+| Chrome 4x, Full cap 20, every 3rd | 1546 (5.0) | 4883 (9.1) | 2696 (10.6) | **6475** (28.3) | 8028 (111) | 14837 (192) |
+| Chrome 4x, Full cap 12, every 4th | 1753 (6.3) | 4115 (8.7) | 2429 (10.7) | **4754** (19.5) | 7119 (103) | 11529 (158) |
+
+- A walking body at the Full tier is **35 µs native and about 50 µs in Chrome** (240 µs at 4x), against the spike's 22
+  to 26 µs capsule: `Character.step` does more than `move_and_slide` (in µs native, with a timer's overhead in each:
+  the move 8, the slide's tick 4, gravity and the jump 3, the step climber's `test_move` 3, the rest 1 or 2 each). The
+  director's own work (tiers, the think schedule, the command) is about 3 µs a character.
+- A standing character costs 10 µs native and 13 to 18 in Chrome: one at rest is stepped every 3rd tick
+  (`rest_step_ticks`), which halved it.
+- With the spike's 20 at Full, 40 walkers missed both budgets by about 30 % (1.3 ms, 6.5 ms at 4x), so the template ships
+  12 at Full and the rest every 4th tick: 0.99 ms and 4.75 ms. The machine was shared with other agents (the parts
+  bench's walking step read 31.7 µs against 23 to 26 µs on an idle one), so these are on the high side.
+- At 4x the whole frame of 40 walkers is 19.5 ms, past the 16.7 ms tick: the animation tree and the footsteps, outside
+  the AI budget, now decide the weak machine; the animation throttle of [the recommendation](#recommendation) is what
+  comes next. At 120 in Chrome the frame is past the tick even unthrottled, so 120 stays a desktop and server count.
+
+- **Approach:** Put off work that a per-tick budget refuses fairly: start the loop over the characters one further
+  along each tick, and test the refusal with more characters wanting the work every tick than the budget allows.
+  **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the
+  next tick, so with one think a tick and four characters at 60 Hz the first thought on every tick and the other three
+  never did. **Seen:** gdstudio #963, 2026-11-10 (`test_thinks_over_the_count_a_tick_wait_for_the_next_tick`).
+- **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
+  from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
+  character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about
+  30 %. **Seen:** gdstudio #963, 2026-11-10 (the defaults became 12 at Full, Reduced every 4th tick).
 - **Approach:** Keep a test's crowd and its per-tick work under half the tick interval on the weak-machine stand-in
   (4x throttle), and read `ticks_per_frame` beside the frame time. **Watch out for:** past the tick interval (16.7 ms at
   60 Hz) Godot runs up to `physics/common/max_physics_steps_per_frame` (8) ticks a frame to catch up, each as slow, so

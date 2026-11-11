@@ -64,6 +64,20 @@ finds it through the group; a character with no director steps itself and never 
   its controller asking for nothing) or dead is stepped at most every `rest_step_ticks`. A far body moves in steps of
   four or six ticks, which shows only to a camera near it.
 
+## What it costs {#cost}
+
+<!-- new section: the cost of the real character, which sets the director's web defaults, is read here first -->
+
+40 walking characters in Chrome on the fast desktop: the director's step is 0.99 ms a tick (4.75 ms at a 4x CPU
+throttle) with the shipped defaults, 12 at the Full tier and the rest stepped every 4th tick; standing, 0.53 ms (2.4 ms).
+A walking body at Full is about 50 µs in Chrome and 35 µs native, the director's own work about 3 µs a character. The
+table and why the Full cap is 12 and not the research's 20: [Crowds: AI characters](../crowds.md#ai-characters).
+
+- **Approach:** Raise `web_full_cap` or lower `reduced_step_ticks` only with the bench run again in Chrome at 1x and 4x
+  (`tools/bench/ai_cost_bench.py`), and read the frame's work beside the director's step. **Watch out for:** at 4x the
+  whole frame of 40 walkers is 19.5 ms, past the 16.7 ms tick, from the animation and the footsteps, which the AI budget
+  does not count. **Seen:** gdstudio #963, 2026-11-10.
+
 ## Proof {#proof}
 
 `tests/gameplay/test_ai_director.gd` (thinks at the rate and on ticks of their own, the ray budget shared and reset, the
