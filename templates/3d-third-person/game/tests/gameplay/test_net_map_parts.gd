@@ -1,3 +1,4 @@
+# On the clock: one case times putting the moving parts at a tick, in microseconds.
 # The map's doors and pickups in an online game, with clients joined to a real server over a real
 # socket on 127.0.0.1 (`OnlineRig`): the server owns every part, a client hears of each change as
 # an `entity` or `pickup` event (or the WELCOME's table when it joins late) and shows it.
