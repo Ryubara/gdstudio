@@ -16,6 +16,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from gds_tools import uids
+
 #: The folders of a project root. A new top-level folder is a change to the conventions, not to a game.
 TOP_FOLDERS = frozenset({"addons", "assets", "core", "gameplay", "net", "tests", "tools", "ui", "world"})
 
@@ -209,12 +211,30 @@ def _scene_scripts(project: Path, entries: list[Path]) -> list[Problem]:
 
 def _uids(project: Path, entries: list[Path]) -> list[Problem]:
     """Godot writes `<script>.uid` beside every script and shader; one that is not committed shows up untracked in
-    every checkout."""
-    return [
-        Problem(_rel(project, path), "uid", f"{path.name}.uid is missing: open the project once and commit it")
-        for path in entries
-        if path.suffix in {".gd", ".gdshader"} and not path.with_name(path.name + ".uid").exists()
-    ]
+    every checkout, and one whose text Godot would not write (a `z`, a `9`, a word) was made by hand."""
+    problems = []
+    for path in entries:
+        if path.suffix not in uids.SUFFIXES:
+            continue
+        uid = uids.uid_file(path)
+        if not uid.exists():
+            problems.append(
+                Problem(
+                    _rel(project, path),
+                    "uid",
+                    f"{uid.name} is missing: `gds template uids <template or project>` writes it as Godot does",
+                )
+            )
+        elif not uids.is_valid(uids.read(uid)):
+            problems.append(
+                Problem(
+                    _rel(project, uid),
+                    "uid",
+                    f"{uids.read(uid)!r} is not a uid Godot writes: `gds template uids <template or project> "
+                    "--replace-invalid` writes a new one",
+                )
+            )
+    return problems
 
 
 def _rank_of(project: Path, path: Path) -> int | None:

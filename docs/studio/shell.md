@@ -26,6 +26,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   stops nothing (`bash <file>` honours it), so a refused description was published and the pull request marked ready; a
   fixer's exit 1 made `&&` skip the edit that followed it. **Seen:** Deadnight #1280, 2026-11-05; gdstudio #621,
   2026-11-05; Deadnight, 2026-11-03 (fix: `;` only for steps that may fail, every gate read before the next step).
+- **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
+  out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
+  locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
+  2026-11-11.
 
 ## Line endings and encodings {#line-endings}
 
@@ -33,10 +37,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `read_text(encoding="utf-8")` and `write_bytes(text.encode("utf-8"))`), keep an `assert old in text`, or use the Edit
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
-  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
-  and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
-  to 11-10; gdstudio #1130, #1123 and #1127, 2026-11-11 (a tool's `write_text`; 16 pages); #1154.
+  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
+  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
+  #1127 (a tool's `write_text`, 16 pages) and #1190 (`git diff --stat` warned of CRLF), 11-11; #1154.
 
 ## Scripted edits {#scripted-edits}
 
@@ -121,8 +125,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   **Watch out for:** pre-commit lints whole files, so a one-word comment edit pulled in a `gdlint` fault that `main` had
   fixed since the branch began. **Seen:** Deadnight, 2026-11-04 (fix: main merged first, then the commit passed).
 - **Approach:** Before adding a function to a large script, count its lines (`gdlint` refuses a file over 1000) and put
-  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` by importing a
-  game made from the branch (`gds template game`) and copying the file back. **Watch out for:** a 980-line
+  the new part in a script of its own from the start; give a new template script or test its `.gd.uid` with `gds template
+  uids <template>`. **Watch out for:** a 980-line
   `player_ragdoll.gd` passed 1000 with one helper and had to be split after the code was written, and `gds template
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027

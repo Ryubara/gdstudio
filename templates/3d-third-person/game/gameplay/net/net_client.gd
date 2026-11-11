@@ -20,6 +20,12 @@ extends Node
 ## map and a teleport go through `Player.teleport()` and reset the reconciler, so a move the
 ## server did not make is never read as an error. The address is `--connect <url>` or the page's
 ## `?url=` (`WebSocketLink.server_url`) unless a test hands a link to `join_with`.
+##
+## A server that hangs up before the WELCOME for a hello that came too late
+## (`NetServer.CLOSE_POLICY` after `NetServer.hello_seconds`) gets a new socket, up to `rejoins`
+## times, before the client says it is gone: a browser that has never drawn the game links every
+## shader program in its first frames, which held a page's thread 14 s on a GPU while its socket's
+## `open` waited (gdstudio #1137), and a busy machine's second page does the same.
 
 ## Said when the server seated this client.
 signal welcomed(slot: int)
@@ -27,10 +33,18 @@ signal welcomed(slot: int)
 signal refused(reason: int)
 ## Said when the link closed (the server went, or a goodbye).
 signal disconnected
+## Said when the server hung up before the WELCOME for a late hello and a new socket opens to the
+## same address (`rejoins`); `attempt` counts from 1.
+signal rejoining(attempt: int)
 
 ## Ticks a command's number may trail the server tick it is expected to be stepped at before the
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
+## Round trips the numbering reads the smallest of (`numbering_rtt_ms`): 8 PONGs, 4 s at
+## `NetLimits.PING_RATE`. One held behind a stall of the network reads 450 to 590 ms instead of
+## about 250, and numbering from it put the commands ahead for good (gdstudio #1116); the network's
+## own round trip is the fastest a packet came back lately.
+const RTT_WINDOW := 8
 
 ## An address chosen for the next client that joins on ready (the main menu's "Play online"):
 ## wins over `--connect` and `?url=`, and is used once.
@@ -49,15 +63,26 @@ static var next_url := ""
 @export_group("Join")
 ## Joins `--connect` or `?url=` when the scene starts (off: call `join` or `join_with`).
 @export var join_on_ready := true
+## On: a join on ready waits for the level's warm-up and its frames to settle first (`JoinWait`),
+## as a game joins behind its loading screen; a seat taken during the warm-up meets its slow
+## frames as stalls (kit #1106, #1142). Off: it joins at once.
+@export var join_after_warm_up := true
 ## The name the HELLO carries; `--name` wins.
 @export var player_name := "Player"
 ## The spawn group and seed of the server (`NetServer.spawn_group`, `spawn_seed`): the client
 ## computes the same spawn so its body starts exactly where the server's does.
 @export var spawn_group := &"player"
 @export var spawn_seed := 1
+## New sockets the client opens to the same address when the server hangs up on a hello that came
+## too late (close `NetServer.CLOSE_POLICY` before the WELCOME), before it says `disconnected`. A
+## page whose first frames compile the game's shaders sends its hello late once; a refusal, a
+## server that is not there or a seated link that closes is never retried.
+@export_range(0, 10) var rejoins := 2
 
 ## The link to the server (null before `join`).
 var link: NetLink
+## The wait before a join on ready (null when it joined at once or was never asked to).
+var join_wait: JoinWait
 ## The slot the server gave, or -1 before the WELCOME.
 var slot := -1
 var welcome: SnapshotCodec.Welcome
@@ -80,8 +105,12 @@ var combat := ClientCombat.new(self)
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
 var rtt_ms := -1
+## The last `RTT_WINDOW` round trips, oldest first (milliseconds).
+var rtt_samples := PackedInt32Array()
 ## Times the numbering of the commands moved on to the server's tick (after a stall).
 var renumbered := 0
+## New sockets opened after a late hello (`rejoins`).
+var rejoined := 0
 ## TICKs read, and packets the decoders refused.
 var ticks_read := 0
 var drops := NetDrops.new()
@@ -98,6 +127,10 @@ var _hello_at := 0.0
 # The last stall's end (this node's clock, milliseconds as a ping carries them): a PONG for an
 # older ping is not a round trip (-1: no stall yet).
 var _pings_valid_from := -1
+# The address `join` opened (empty for a link handed to `join_with`, which is never reopened).
+var _url := ""
+# Whether a REFUSED came on this link: the server answered, so its close is not retried.
+var _refused := false
 
 
 func _ready() -> void:
@@ -114,13 +147,32 @@ func _ready() -> void:
 		var url := next_url if next_url != "" else WebSocketLink.server_url()
 		next_url = ""
 		if url != "":
-			join(url)
+			join_when_ready(url)
 
 
 func _exit_tree() -> void:
 	if link != null:
 		link.close()
 		link.poll()
+
+
+## Joins `url` once the level is ready (`join_wait`), or at once with `join_after_warm_up` off.
+func join_when_ready(url: String) -> void:
+	if not join_after_warm_up:
+		join(url)
+		return
+	join_wait = JoinWait.new()
+	# A frame counts as settled under the stall guard's stall, not the server's hold (the probe's):
+	# a device that draws every frame in 70 ms would otherwise wait out the whole `limit` on Loading,
+	# and only a frame past the stall resyncs the client.
+	join_wait.settle.longest = StallGuard.STALL_SECONDS
+	join_wait.finished.connect(func() -> void: join(url), CONNECT_ONE_SHOT)
+	join_wait.run(self)
+
+
+## True while a join waits for the level to be ready.
+func is_waiting_to_join() -> bool:
+	return join_wait != null and join_wait.is_waiting()
 
 
 ## Connects to `url` over a WebSocket and says hello once it opens.
@@ -131,12 +183,15 @@ func join(url: String) -> Error:
 	if failed != OK:
 		return failed
 	join_with(socket)
+	_url = url
 	return OK
 
 
 ## Says hello over `with_link` once it opens (a test's `LoopbackLink` or `LinkConditioner`).
 func join_with(with_link: NetLink) -> void:
 	link = with_link
+	_url = ""
+	_refused = false
 	link.connected.connect(_on_connected)
 	link.packet_received.connect(_on_packet)
 	link.closed.connect(_on_closed)
@@ -174,6 +229,9 @@ func _predict(delta: float) -> void:
 	var correction := reconciler.take()
 	if correction != Vector3.ZERO:
 		player.global_position += correction
+		# A part that put the body inside a ledge would be pushed back by the step: the rest whole.
+		if reconciler.pending() != Vector3.ZERO and BodyOverlap.pushed_back(player):
+			player.global_position += reconciler.take_rest()
 	var wanted := player.controller.sample() if player.controller != null else PlayerCommand.new()
 	seq += 1
 	wanted.seq = seq
@@ -238,13 +296,14 @@ func _on_packet(data: PackedByteArray) -> void:
 		NetWire.Type.WELCOME:
 			_on_welcome(SnapshotCodec.read_welcome(data, drops))
 		NetWire.Type.REFUSED:
+			_refused = true
 			refused.emit(NetWire.read_refused(data, drops))
 		NetWire.Type.TICK:
 			_on_tick(SnapshotCodec.read_tick(data, drops))
 		NetWire.Type.PONG:
 			var pong := NetWire.read_pong(data, drops)
 			if pong != null and not _sent_before_stall(pong.client_ms):
-				rtt_ms = (_now_ms() - pong.client_ms) & 0xFFFFFFFF
+				_note_rtt((_now_ms() - pong.client_ms) & 0xFFFFFFFF)
 		_:
 			drops.count(NetDrops.UNKNOWN_TYPE)
 
@@ -301,11 +360,40 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 
 
 func _on_closed() -> void:
+	if should_rejoin():
+		_rejoin()
+		return
 	slot = -1
 	combat.clear()
 	if remote_players != null:
 		remote_players.clear()
 	disconnected.emit()
+
+
+## Whether the link that just closed is one to open again: the server hung up before the WELCOME
+## (`NetServer.CLOSE_POLICY`: a hello later than `hello_seconds`), no REFUSED came, the address is
+## known and `rejoins` are left.
+func should_rejoin() -> bool:
+	return (
+		not is_seated()
+		and not _refused
+		and _url != ""
+		and rejoined < rejoins
+		and link != null
+		and link.close_code() == NetServer.CLOSE_POLICY
+	)
+
+
+# Opens a new socket to the same address; the closed link says nothing more.
+func _rejoin() -> void:
+	link.connected.disconnect(_on_connected)
+	link.packet_received.disconnect(_on_packet)
+	link.closed.disconnect(_on_closed)
+	rejoined += 1
+	rejoining.emit(rejoined)
+	if join(_url) != OK:
+		_url = ""
+		_on_closed()
 
 
 # The body starts where the server put it: the same spawn, computed in this map, when it agrees
@@ -343,14 +431,35 @@ static func first_seq(welcome_tick: int, round_trip: float) -> int:
 	return welcome_tick + ceili(maxf(round_trip, 0.0) * NetLimits.TICK_RATE)
 
 
+## The round trip the numbering reads: the smallest of the last `RTT_WINDOW` (-1 before the
+## first). A PONG held behind a stall of the network measures the stall too; the smallest is the
+## network's own.
+func numbering_rtt_ms() -> int:
+	if rtt_samples.is_empty():
+		return -1
+	var smallest := rtt_samples[0]
+	for sample in rtt_samples:
+		smallest = mini(smallest, sample)
+	return smallest
+
+
+func _note_rtt(sample: int) -> void:
+	rtt_ms = sample
+	rtt_samples.append(sample)
+	if rtt_samples.size() > RTT_WINDOW:
+		rtt_samples.remove_at(0)
+
+
 # Commands are numbered by the server tick each is expected to be stepped at (`first_seq`): one
-# sent now reaches the server a round trip after this TICK left it. A client whose numbers trail
-# that (its stall guard skipped steps, its clock runs slow) moves them on; a number may jump, never
-# go back.
+# sent now reaches the server a round trip after this TICK left it (the smallest lately,
+# `numbering_rtt_ms`). A client whose numbers trail that (its stall guard skipped steps, its clock
+# runs slow) moves them on; a number may jump, never go back, so a jump from a round trip that
+# waited out a stall would stay for good (gdstudio #1116).
 func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
-	if rtt_ms < 0:
+	var round_trip := numbering_rtt_ms()
+	if round_trip < 0:
 		return
-	var expected := tick.server_tick + ceili(rtt_ms * NetLimits.TICK_RATE / 1000.0)
+	var expected := tick.server_tick + ceili(round_trip * NetLimits.TICK_RATE / 1000.0)
 	if seq + 1 < expected - SEQ_SLACK:
 		seq = expected - 1
 		renumbered += 1

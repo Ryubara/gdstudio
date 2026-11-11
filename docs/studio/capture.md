@@ -92,8 +92,11 @@ read it with the Read tool and fix what looks wrong.
 `<prefix><number>.png`, with one prefix and one number width for the whole folder, numbered in order from the first
 (`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also works).
 The number is at most 8 digits, so a prefix may end in a digit (`run200000000.png` is `run2` and frame 0; it was read as
-one 9-digit number and ffmpeg found no frames, #1132). Frames recorded another way are renamed to that pattern first: a
-folder whose PNG files are named otherwise (`walk-front.png`) has no frames, and the error lists the files it skipped.
+one 9-digit number and ffmpeg found no frames, #1132). The first frame may have any number: `clip` tells ffmpeg where to
+start, which by itself looks for a first frame numbered 0 to 4 only (Blender's `legs20001.png` in a folder `legs2` is
+read as `legs` and frame 20001, and a folder starting at `16.png` is fine too; both failed before #1190). Frames
+recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise (`walk-front.png`)
+has no frames, and the error lists the files it skipped.
 
 ## clip {#clip}
 
@@ -105,12 +108,20 @@ frames and seconds were left out (`clip cut at 30 s: 120 frames (12 s) of 420 le
 the clip, since the part you meant to show may sit in what was cut (#1090 sent such a clip before the line
 existed, #1132). Raise `--max-seconds`, or capture a shorter run that starts nearer the moment.
 
+The frames play at the rate `gds capture frames` recorded in `capture.json`, or 10 fps for a folder without one;
+`--fps N` names the rate they were recorded at (frames from Blender or another tool at 24, 30 or 60 fps). `--slow N`
+plays them N times slower with every frame kept, to show a jitter or a fast pose change: `gds capture clip <folder>
+--slow 4` turns 2 s of 30 fps frames into an 8 s clip at 7.5 fps (N may be a fraction, `--slow 2.5`). The cut and a
+GIF's length and budget count the slowed clip, so a slowed GIF passes 10 s soon; a slowed clip is usually an
+[MP4](#gif-or-mp4). Before #1190 a slowed clip was made with ffmpeg by hand.
+
 A GIF has a budget of its own, measured for [GIF or MP4](#gif-or-mp4): 512 KB for each second of it, counted for at
 least 2 s and at most 10 s (1 to 5 MB). It is encoded with a 128-colour palette at 800 px wide (GitHub's description
 column is 814 px) and, while over the budget, again at 640 and 480 px. Its frame rate is 10 fps, or 20 fps from frames
-recorded at 20, 40 or 60 fps, because a GIF's delays are whole hundredths of a second. Every encoding prints its size.
-A GIF longer than 10 s, or still over its budget at 480 px, is kept with a `warning:` line that names the MP4; one
-over 9 MB fails.
+recorded at 20, 40 or 60 fps, because a GIF's delays are whole hundredths of a second; a slowed rate whose delay is
+already whole keeps every frame (10 fps with `--slow 3` plays at 10/3 fps, 30 hundredths a frame). Every encoding
+prints its size. A GIF longer than 10 s, or still over its budget at 480 px, is kept with a `warning:` line that names
+the MP4; one over 9 MB fails.
 
 ## GIF or MP4 {#gif-or-mp4}
 
@@ -261,6 +272,14 @@ line.** Read the body back, replace the link with the address alone, with a blan
 --body-file` again. Check it with `gh api
 repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
 `<video` tag.
+
+- **Approach:** To let a listener hear a whole loop, or several versions of one bed, record them through the game's
+  own player: a probe scene loads each version in turn into that player (its bus and volume, the default settings)
+  for longer than one loop, Movie Maker writes the run's audio track, and a script cuts one section per version from
+  it at the times the probe logged. **Watch out for:** an asset file played alone skips the bus, the volume and the
+  loop point the player applies, so the clip compares files, not what the player hears; a run shorter than the loop
+  never reaches its seam. **Seen:** gdstudio #1101, 2026-11-11 (the wind beds: a probe swapped the stream on the Wind
+  player, Ambient bus, -20 dB, and the old bed and three candidates were cut from one Movie Maker track).
 
 ## What proves a feature {#feature-proof}
 
