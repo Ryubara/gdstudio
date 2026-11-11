@@ -24,11 +24,12 @@ player's own `_physics_process` off. Each physics step:
    skipped (the engine's catch-up ticks: no command, no step).
 3. The body moves by the correction under way (`Reconciler.take`).
 4. The controller is sampled, the command numbered (by the server tick it is expected to be stepped at:
-   `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail it, `renumbered`; the map's doors and
+   `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail the TICK's tick and the smallest of the
+   last eight round trips, `numbering_rtt_ms`, `renumbered`; the map's doors and
    platforms are put at that tick first, [networked map parts](net-world.md#net-world)) and encoded; the body steps
    once with the decoded packet (`Character.step`, the server's own step), and the point it reached is recorded for
    that number.
-5. A ping goes out twice a second.
+5. A ping goes out twice a second (`rtt_ms` is the last PONG's round trip, `rtt_samples` the last eight).
 
 Before the prediction the step plays the server's shots, hits and deaths that are due (`ClientCombat`, [shots
 online](online-shots.md#template-shots)): the local player's at once, the others' when the puppets are drawn at their
@@ -271,6 +272,20 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   fixed the client (`BodyOverlap`): the old walk (`--walk spawn`), three two-core stall runs, 25.0 to 32.4 m against
   28.8 to 62.2 m. A branch cut before the fix fails the stall run the same way: merge main, never rerun.
   **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1); #1119.
+
+- **Approach:** Number the commands from the smallest round trip of the last eight PONGs (`NetClient.RTT_WINDOW`),
+  never the last; read the 5 s floor of `seq - server_tick` in the gate's `by_second` (a stale TICK spikes a second).
+  **Watch out for:** a number may jump, never go back (the server drops a `seq` at or under its last), so one PONG
+  held behind a stall of the network (450 to 590 ms, not 250) put the numbering 15 to 18 ticks ahead for good, and
+  the map's moving parts stood up to 0.5 s apart on the two sides. #1108's check misses that PONG, and a freeze's
+  too: it is read in the first poll after the freeze, before the stall guard's resync (main's client stood 43, 129,
+  then 310 ticks ahead after the 0.5, 2 and 5 s freezes). **Seen:** gdstudio #1116, 2026-11-11 (stall runs ended 17
+  to 27 ahead, main's 33 to 82; freeze runs 11 to 20 throughout; the held-PONG test).
+- **Approach:** Judge a change's stall runs against main's client in the same made game, interleaved run by run
+  (copy the one script in), and read the CPU load beside each. **Watch out for:** at 97 to 100 % CPU the starvation
+  check failed on both sides (main's client 441 to 597 puppet-steps, the fix 498 to 867, bounds 530 to 620); its two
+  worst runs each came with an unplanned stall of the client's thread, which the numbering does not touch.
+  **Seen:** gdstudio #1116, 2026-11-11 (eight runs of main's client, nine of the fix; the browser half passed).
 
 ## Playing online {#play-online}
 
