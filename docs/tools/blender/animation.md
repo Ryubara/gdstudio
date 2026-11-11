@@ -205,6 +205,13 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
 - **The build's checks** are the clip's own: loops close, planted joints stay within a millimetre at the clip's speed,
   the lowest vertex by body part, a transition's first and last pose against the poses it joins, and the frozen clip
   list. A rebuild writes the same bytes, so `cmp` proves a script change did not move a clip.
+- **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
+  no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
+  25, 30, 48, 50, 60 and 120 at which every key is a whole frame; `--fps` for a file that fits none), sets the scene
+  to it before the import and measures each whole frame from the first key to the last: the frames a build measures
+  when it calls `measure()` on its baked actions. Its lines name the frame, the clip's range, the rate and the
+  seconds (`at frame 26 of 0 to 44 at 30 fps, 0.867 s`), and `test_limb_overlap.py` beside it runs a clip both ways
+  at 30 and at 24 and fails on any difference.
 
 - **Approach:** After the first build, read the lowest vertex of each body part (hand, forearm, foot, toes, knee,
   shoulder) on every frame, and render the pose large from the side, the top and a quarter view before tuning any
@@ -218,6 +225,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   script that renders it. **Watch out for:** Blender imports keys at seconds times the scene's rate, so a 30 frames a
   second library read into a new scene (24) had its 46-frame clip on frames 0 to 37 and every sampled frame fell
   between two keys. **Seen:** gdstudio #1009, 2026-11-10 (fix: `scene.render.fps = 30` before the import).
+- **Approach:** A script that reads any clip file takes the frame rate from the file's key times, never a constant,
+  and prints the rate and the seconds beside every frame number. **Watch out for:** `limb_overlap.py` set 24 for
+  every file, so on the library's 30 frames a second `Roll` it measured 36 of 45 frames, read 62.4 mm for 64.7,
+  named frame 21 for frame 26, missed the chest 18.3 mm in a thigh and read the male's hand 4.5 mm in his upper arm
+  (under the 5 mm limit) for 10.2. **Seen:** gdstudio #1035, 2026-11-11 (fix: `clip_rate()` and the both-ways test
+  `test_limb_overlap.py`).
 - **Approach:** Test a clip file of your own in Godot on both mannequins: every track finds its bone, a loop's last
   pose is its first, a transition's first and last pose equal the poses it joins (bone by bone, in the model's space),
   and a planted joint stays put while the model moves at the clip's speed. **Watch out for:** the importer keeps 57 of

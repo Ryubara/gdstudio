@@ -86,7 +86,11 @@ planted arm from the plant to the push, `_side` every frame of the whole move).
 
 `../limb_overlap.py` also runs on its own, on any clips of the universal rig:
 `blender -b --factory-startup -P limb_overlap.py -- --clips <clips.glb> --model <mannequin.glb> [--model ...]`
-prints the deepest overlap of each clip with its frame and pair, and exits 1 over `--limit` (5 mm by default).
+prints the deepest overlap of each clip with its frame and pair, and exits 1 over `--limit` (5 mm by default). It
+measures every key at the file's own frame rate, read from the key times (24 for these clips, 30 for the library's
+and the prone clips; `--fps` names it for a file whose keys fit no usual rate), so its frames are the build's.
+`blender -b --factory-startup -P test_limb_overlap.py` checks that: it keys a clip, measures it in the scene and from
+the exported file, at 30 and at 24 frames a second, and exits 1 when the two differ.
 
 The `.import` turns the importer's animation optimizer off: it removes keys, and a key removed from an arm that holds
 a contact moves the hand.
