@@ -81,10 +81,9 @@ func test_both_hands_hold_the_pistol_in_the_aim_and_shoot_clips() -> void:
 
 
 func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
-	var grip := CharacterAnimation.new()
-	var bones := grip.grip_bones
-	var grip_clip := grip.grip_clip
-	grip.free()
+	var pistol := load("res://gameplay/weapon/pistol.tres") as WeaponDef
+	var bones := pistol.grip_bones
+	var grip_clip := pistol.grip_clip
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
 		for clip_name: StringName in CARRIED:
