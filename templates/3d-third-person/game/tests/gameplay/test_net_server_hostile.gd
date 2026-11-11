@@ -1,8 +1,8 @@
 # Hostile clients against the game server over real sockets: a flood of commands, packets of the
-# wrong size, unknown types, flags no build sets, a command before its hello, commands out of
-# order, a name that is not UTF-8 and a packet too big for the listener. Each is struck and hung up
-# on (a kick is logged with why), while an honest player beside them is never kicked, its TICKs
-# never stop for more than a few frames, and its body walks as its commands say.
+# wrong size, unknown types, a shot flag without its block, a command before its hello, commands
+# out of order, a name that is not UTF-8 and a packet too big for the listener. Each is struck and
+# hung up on (a kick is logged with why), while an honest player beside them is never kicked, its
+# TICKs never stop for more than a few frames, and its body walks as its commands say.
 extends GdUnitTestSuite
 
 ## The most frames between two TICKs the honest client may see (a TICK is due every second one).
@@ -91,18 +91,19 @@ func test_packets_of_the_wrong_size_and_unknown_types_are_hung_up_on() -> void:
 	await _assert_the_honest_one_was_served()
 
 
-func test_flags_no_build_sets_and_commands_out_of_order_are_hung_up_on() -> void:
+func test_a_shot_flag_without_its_block_and_commands_out_of_order_are_hung_up_on() -> void:
 	var hostile := await _greeted_hostile()
-	var unknown_flags := CommandCodec.encode(_walk)
-	# Bits 11 to 14: no build of this version sets them (bit 15 is `prone`).
-	unknown_flags.encode_u16(11, 0x7800)
+	# Every flag bit means something since version 3 (#887: bits 11 to 14 are the weapon presses,
+	# bit 15 prone), so the lie left is a 15-byte command whose shot flag claims a 27-byte one.
+	var no_block := CommandCodec.encode(_walk)
+	no_block.encode_u16(11, CommandCodec.F_SHOT)
 	var again := CommandCodec.encode(_walk)
 	again.encode_u32(1, 1)
 	var lies := func() -> void:
-		hostile.link.send(unknown_flags)
+		hostile.link.send(no_block)
 		hostile.link.send(again)
 	assert_bool(await _until_hung_up(hostile, lies)).is_true()
-	_assert_kicked_for(NetDrops.BAD_VALUE)
+	_assert_kicked_for(NetDrops.WRONG_SIZE)
 	_assert_kicked_for(NetDrops.OUT_OF_ORDER)
 	await _assert_the_honest_one_was_served()
 
