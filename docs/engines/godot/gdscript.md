@@ -65,6 +65,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
   type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
   matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+- **Approach:** Pass an exported node to a typed parameter of a helper only through `is_instance_valid(node)`
+  (`model if is_instance_valid(model) else null`), and test the body with its model freed. **Watch out for:** a node
+  freed while the export still names it is not `null`, so `model != null` passed and the call failed on the type
+  (`argument 1 (previously freed) is not a subclass`) every frame: 120 errors in one suite of the full template run,
+  while every prone suite passed. **Seen:** gdstudio #1026, 2026-11-11 (`ProneAnimation.stow_view`; the suite
+  `test_player_step.gd` frees the model).
 
 ## Script errors at run time {#runtime-errors}
 

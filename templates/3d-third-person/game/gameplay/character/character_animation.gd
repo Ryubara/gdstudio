@@ -542,7 +542,7 @@ func _on_rig_changed(_rig: Node3D) -> void:
 
 
 func _rig_or_null() -> Node3D:
-	return model.rig() if model != null else null
+	return model.rig() if is_instance_valid(model) else null
 
 
 func _fits(rig: Node3D) -> bool:
@@ -631,7 +631,7 @@ func _drive_pistol(delta: float) -> void:
 	if character.loadout != null:
 		up_share = 1.0 - character.loadout.lowered_amount()
 	var stow := ProneAnimation.stow_share(character)
-	_prone_look.stow_view(model, hold, stow > 0.5)
+	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, stow > 0.5)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
