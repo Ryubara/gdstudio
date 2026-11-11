@@ -65,6 +65,9 @@ var director: AiDirector
 var situation := AiSituation.new()
 ## How many thinks it has run.
 var think_count := 0
+## True while a pool readies it in the tree to park it (`AiPool.prewarm`): it joins no director
+## then, so a spare made at the population cap is not refused (kit #1247).
+var warming := false
 
 
 func _ready() -> void:
@@ -83,7 +86,7 @@ func _ready() -> void:
 	died.connect(situation.die)
 	revived.connect(situation.revive)
 	var found := AiDirector.find_for(self)
-	if found != null:
+	if found != null and not warming:
 		found.register(self)
 	_show_debug()
 
