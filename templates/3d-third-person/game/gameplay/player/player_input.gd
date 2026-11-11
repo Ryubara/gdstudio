@@ -9,7 +9,9 @@ extends CharacterController
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
 ## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time,
 ## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
-## those same weapon presses, one a tick, so a screen adds nothing to the command.
+## those same weapon presses, one a tick, so a screen adds nothing to the command. The number keys
+## of the HUD's places (`QuickKeys`: `weapon_1`, `weapon_2`, `hotbar_1`...) request the place's
+## weapon the same way and use a hotbar place on the player's `Hotbar`.
 ## `Player.input_enabled` off gives a command that asks for nothing; the view, a crouch or prone
 ## that was toggled on and a held jump stay. How prone is asked for (a toggle, a hold, a long hold
 ## of crouch) is the player's `ProneTuning.input_mode`.
@@ -56,6 +58,7 @@ var _bound_key: Key = KEY_NONE
 # The slot a screen asked for, and how many ticks the request has pressed.
 var _wanted_slot := NO_REQUEST
 var _request_ticks := 0
+var _quick_keys := QuickKeys.new()
 
 
 func _ready() -> void:
@@ -75,6 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var action := WEAPON_ACTIONS[index]
 		if InputMap.has_action(action) and event.is_action_pressed(action):
 			_weapon_latches[index] = true
+	_quick_keys.latch(event)
 
 
 ## Switches to the loadout's `slot` (`WeaponLoadout.UNARMED` for the empty hands) by the weapon
@@ -147,6 +151,8 @@ func sample() -> PlayerCommand:
 	if not enabled:
 		# Read and dropped: a button held while the input was off is no press when it comes back.
 		_weapon_presses()
+		_quick_keys.pressed(QuickKeys.WEAPON_ACTION)
+		_quick_keys.pressed(QuickKeys.HOTBAR_ACTION)
 		_press_requested(command)
 		return command
 	command.sprint = Input.is_action_pressed(&"sprint")
@@ -163,6 +169,7 @@ func sample() -> PlayerCommand:
 	command.next_weapon_pressed = presses[1]
 	command.previous_weapon_pressed = presses[2]
 	command.unarmed_pressed = presses[3]
+	_press_places()
 	_press_requested(command)
 	if camera != null and player != null and player.shot_wanted(command):
 		_write_shot(command, camera)
@@ -189,6 +196,19 @@ func _weapon_presses() -> Array[bool]:
 		_weapon_down[index] = down
 	_weapon_latches.fill(false)
 	return presses
+
+
+# The HUD's places pressed since the last command: a weapon place requests its weapon, a hotbar
+# place is used.
+func _press_places() -> void:
+	for place in _quick_keys.pressed(QuickKeys.WEAPON_ACTION):
+		var slot := QuickKeys.weapon_slot_at(player.loadout if player != null else null, place)
+		if slot != QuickKeys.NO_SLOT:
+			request_weapon(slot)
+	var hotbar := Hotbar.of(player)
+	for place in _quick_keys.pressed(QuickKeys.HOTBAR_ACTION):
+		if hotbar != null:
+			hotbar.use(place)
 
 
 # Adds the press a weapon request needs this tick, and ends the request once the loadout is heading

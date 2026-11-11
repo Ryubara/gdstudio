@@ -28,11 +28,25 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   heredocs for a few lines with no apostrophe, and open text files with `newline=""` when a Python one-liner rewrites
   them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
   Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
-  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10.
+  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
+  written through a heredoc).
+- **Approach:** Keep the probes and one-off scripts you write in your own scratch folder
+  (`<workspace>/scratch/<repo>/<branch>/probes/`) and run them from there. **Watch out for:** Python puts the
+  script's folder first on its import path, so a probe written to the machine's shared temp folder imported
+  another agent's `inspect.py` in place of the standard library's, and numpy failed to load with
+  `No module named 'bpy'`; a probe that imported a template's script left a `__pycache__` folder beside it, which
+  the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
+  moved to the scratch folder; the cache folder was deleted before the push).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
   **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+- **Approach:** Lint and format a template's Python (its build scripts and benches under `templates/<t>/game/`)
+  by hand before the push, with the settings a game made from it uses: `uvx ruff check --no-cache --config
+  templates/repo/ruff.toml <files>` and the same with `ruff format` (120 columns). **Watch out for:** the kit's ruff
+  pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
+  ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
+  2026-11-11.
 
 ## Rebuilding a committed file {#rebuilding}
 
@@ -48,13 +62,24 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   played. **Seen:** Deadnight #678, 2026-11-02; Deadnight #939, 2026-11-04; Deadnight #1282, 2026-11-05 (fix:
   `FILE_CLIPS` and `--clips main`, and both files rebuilt from one source).
 - **Approach:** Import only a model its script wrote whole: after a conflict on a Git LFS model, fix the script and
-  build until it exits clean, take an old copy with `git checkout <rev> -- <file>` (`git show` prints the pointer),
+  build until it exits clean, take an old copy with `git checkout <rev> -- <file>` or `git show <rev>:<file> | git
+  lfs smudge > <out>` (`git show` alone prints the pointer),
   and read `git diff` of `*.import` before committing. **Watch out for:** pointer text (`version ...`) imported as a
   model fails and writes `valid=false` with no `dest_files` into the `.import`, which Godot keeps trusting after the
   model is good: restore the `.import`, delete `.godot/imported/<file>.glb-*` and import again. **Seen:** Deadnight,
-  2026-11-04; Deadnight #1282, 2026-11-05 (fix: the import files restored and the models imported again).
+  2026-11-04; Deadnight #1282, 2026-11-05 (fix: the import files restored and the models imported again); gdstudio
+  #1016, 2026-11-11 (an old glb read back with `git show`).
 
 ## Checks in the build {#checks}
+
+A clip build also checks that limbs do not pass through each other: `limb_overlap.py`
+(`templates/3d-third-person/game/assets/animation/`, from kit #1016 and #1020) measures, on every frame and on each
+mannequin's skinned mesh, how deep any body part is inside another, and a build calls its `measure()` on the baked
+actions before it exports (its header has the command line and the limit). The command line measures a clip file
+on the same frames as the build, at the rate it reads from the file's key times
+([how it samples](animation.md#solved-clips)); after a change to the script, run `test_limb_overlap.py` beside it
+with the pinned Blender (it keys a clip, measures it both ways at 30 and 24 frames a second and exits 1 on a
+difference).
 
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar
@@ -75,3 +100,13 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   where they were made and printed a size 1 cm short (0.186 m against the file's 0.196 m), and a budget or lowest-vertex
   check would read the same stale place. **Seen:** gdstudio #834, 2026-11-08 (fix: the update in `build_pistol.py`'s
   check).
+- **Approach:** Run a new measuring script first on a clip whose answer is known (a loop the file closes exactly
+  reads a 0 mm seam; a standing clip reads no ground speed) and print one joint on the first, second and last
+  frame beside the script's number. **Watch out for:** numpy puts the axes of two index lists first when a slice
+  sits between them (`world[:, joints, :3, 3]` is joint by frame, not frame by joint), so the first audit read a
+  906 mm seam on every closed loop, the pelvis's height. **Seen:** gdstudio #1150, 2026-11-11 (fix:
+  `world[:, joints][:, :, :3, 3]` in `audit_clips.py`).
+- **Approach:** Compare two poses in a check by matrix distance (the largest difference of the two matrices' entries,
+  or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
+  `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
+  poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.

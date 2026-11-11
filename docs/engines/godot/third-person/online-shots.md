@@ -33,12 +33,20 @@ template](../third-person-template.md); the bytes are [the template's packets](.
   client finds the surface with a 10 cm ray along the normal. The world table of #907 takes the low ids.
 - **The spread is seeded by the slot and the command's number** (`Weapon.seed_base`, `shot_seq`), so a predicting
   client draws the same pellet as the server whatever either fired before; the puppets copy the server's heading.
-- **AI characters are not networked yet.** The map's AI runs on the server and on every client apart (#970 moves it to
-  the server), so a server body hurt by the server's AI dies on every screen while each screen's own AI does nothing.
-- **No rewind.** The server checks a shot against its world as it is: a projectile flies for many ticks, so the
-  frame the shooter saw (`view_tick`, in the command) cannot decide what it meets. At 200 ms each way a shot at a
-  running player drawn 1.3 m behind missed, the same shot at one who stood hit, on every screen
+- **The AI is the server's** (#970). A client's own AI stands down when it joins; the server's characters are drawn
+  from the TICK's AI block, a player's shot on one is a HIT with the code `AI` and the id `NetHits.AI_BASE` + its
+  wire id (the puppet flinches and shows the health left), an AI's shot is an `AI` event (the puppet fires a cosmetic
+  shot) and what it meets a HIT, and an AI's death an `AI` event its puppet falls from
+  ([the AI online](ai-online.md#replication)).
+- **No rewind for players.** The server checks a shot against the players as they are: a projectile flies for many
+  ticks, so the frame the shooter saw cannot decide where another player is. At 200 ms each way a shot at a running
+  player drawn 1.3 m behind missed, the same shot at one who stood hit, on every screen
   (`test_at_200_ms_each_way_the_server_decides_what_a_shot_hit`).
+- **The AI is met where the shooter drew it** (#1198): the command's `view_tick` is the tick the shooter's screen
+  draws the AI at, and the server meets the shot with each AI character's capsule there (a hitscan shot at once, a
+  projectile for its first `ai_rewind_flight_seconds`, the drawn tick moving on with its flight), then hits it where
+  it is now. Only the volume is rewound, never the AI's brain, senses or navigation
+  ([the AI online: a shot meets the AI where its shooter drew it](ai-online.md#rewind)).
 
 What each screen makes itself (`ClientCombat`), never sent: the shooter's own flash, sound, recoil and round at once
 (its weapon is cosmetic: `authoritative` off, the round stops at its first contact and changes nothing); a puppet's

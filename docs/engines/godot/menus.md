@@ -20,9 +20,9 @@ one after it.
 
 | Part | Where (`templates/3d-third-person/game/`) | What it does |
 | --- | --- | --- |
-| Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. |
+| Menu scene | `ui/menus/menu_scene.tscn`, `.gd` | The scene the project runs. `skip_menu` (or `--play` after the engine's `--`, or `?play` in a browser) goes straight to the game, for working on the level. In a browser it first has the page link the GL programs of `shader_programs` all at once (`ShaderPrelink`; the export's page has started them before the engine booted, and then it follows those), and a straight route waits for them: [Linking every program at once](first-use-hitches.md#prelink). |
 | Main menu | `ui/menus/main_menu.tscn` | Play, Play online, Settings and Quit (Quit is left out in a browser). `game_scene` is the scene Play loads; `title` is the project's name when empty. Play online loads `online_scene` (3D Third Person: `online_main.tscn`) and joins `server_address`, or the address typed in the field under it, which shows only in a debug build (`address_field`: a developer setting, never a player's): [Playing online](third-person/online-client.md#play-online). |
-| Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. |
+| Loading screen | `ui/menus/loading_screen.tscn` | Takes the scene's path as the `scene` param, shows progress, switches scenes, and on a scene that cannot be read says so and offers the menu. In a browser it also waits for the programs the menu scene had linked (at most `ShaderPrelink.TIMEOUT`), half the bar. |
 | Pause menu | `ui/menus/pause_menu.tscn` | Resume, Settings, Main menu; Esc and B close it; drawn a little transparent over the game. |
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
 | Screen host | `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`), its script the synced `addons/gds_game/screen_host/screen_host.gd` | Opens screens over the game ([Menus over a game](#screen-host)). |
@@ -39,7 +39,7 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 `option_values`, `options_from_presets`, `hide_on_web`. `ControlsPage`: `actions`, the list a player may rebind.
 `PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `screen` (empty: the pause menu), `always_shown`.
 `LookSettings`: `camera`. `MenuScene`:
-`main_menu`, `game_scene`, `skip_menu`. `LoadingScreen`: `least_time`.
+`main_menu`, `game_scene`, `online_scene`, `server_scene`, `skip_menu`, `shader_programs`. `LoadingScreen`: `least_time`.
 
 - **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
   before the script's own exports. **Watch out for:** a `.tscn` written by a script that put `style = 1` and
@@ -60,6 +60,14 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
   its own CI and fails after `gds merge-main`, so rerun every web probe of the branch after the merge. **Seen:**
   gdstudio #881, 2026-11-10; #903, 2026-11-10 (`net_link_smoke.py` waited on `window.gdnet` that never came; fix:
   `?play&netprobe`).
+- **Approach:** Give a `gds_ui` card that is not under the router's stage (an overlay in a `CanvasLayer` of a game
+  scene, a HUD button) its theme from the tokens, `UIThemeBuilder.build(UITokens.active())` on its root `Control`,
+  rebuilt on `UITokens.active_changed()`, as `PauseButton` and `OnlineStatus` do; test that its parts sit inside the
+  panel's padding and that a title is the token's size. **Watch out for:** the type variations (`UIPanelMarquee`'s
+  padding, `UILabelTitle`'s size) live only in that theme, so without it the online overlay's panel had no padding and
+  its 16 px title sat on the marquee's row of bulbs, at every window size; it looked so from the day it was made, and
+  only a capture showed it. **Seen:** gdstudio #1166, 2026-11-11 (fix: `OnlineStatus._apply_theme`,
+  `tests/ui/test_online_status.gd`, which fails without it).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 

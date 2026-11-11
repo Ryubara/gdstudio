@@ -44,7 +44,7 @@ cycle: a seek is a cut.
   `AnimationNodeBlendSpace1D.add_blend_point` wants a name in 4.7 (a warning per point otherwise), and a one-shot clip
   node is set to the new clip by writing its `animation` before the request, with an `AnimationNodeTimeScale` in front
   to fit the clip to the time the game holds the body (the 2 s Interact clip into 0.7 s). **Seen:** gdstudio #821,
-  2026-11-08 ([The 3D Third Person template](third-person-template.md#animation-libraries)).
+  2026-11-08 ([The 3D Third Person template](third-person/clips.md#animation-libraries)).
 - **Approach:** Keep a tree in code when agents develop the project, and make the editor show it too: `@tool` on the
   builder, `tree_root` and `anim_player` built in `_ready` for editor and game, `Engine.is_editor_hint()` guards on all
   driving, and setters on the clip exports that rebuild it in the editor. Take both off the node on
@@ -53,6 +53,12 @@ cycle: a seek is a cut.
   left the editor's AnimationTree empty, with a warning and no graph. A tree dragged together by hand is saved in the
   scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `CharacterAnimation` is `@tool`;
   [screenshots](editor-screenshots.md#how)).
+
+- **Approach:** Play each gait of a ground blend space at the body's ground speed over the clip's own speed, with
+  the blend points at the clips' speeds, and measure a planted foot's slide in a test. **Watch out for:** the
+  template's blend space puts each gait at a tuned speed and plays it at its own pace, so no gait's feet hold the
+  floor ([the gaits, measured](../../tools/blender/own-animation.md#audit-gaits)). **Seen:** gdstudio #1150 (PR
+  #1165), 2026-11-11 (not fixed yet: gdstudio #1158 adds the speed matching).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
@@ -67,6 +73,11 @@ cycle: a seek is a cut.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
 
+- **Approach:** To read a clip's pose from a script, put the model and an `AnimationPlayer` in the tree, set the
+  manual callback mode, then `play(clip)`, `seek(time, true)` and `advance(0.0)` before `get_bone_global_pose`.
+  **Watch out for:** in a `SceneTree` script's `_init` (`--script`) the same calls left every bone where it was: a
+  probe printed one hand place for seven frames. **Seen:** gdstudio #1010, 2026-11-10 (`tools/capture/vault_study.gd`
+  and `tests/assets/test_vault_clips.gd` in the 3D Third Person template).
 - **Approach:** Hold the clip (`pause()`, or `speed_scale` 0) after sampling a pose, and repeat a measure that awaits
   a few times in one process before choosing a limit for it. **Watch out for:** `ClipFit.pose` left the clip playing,
   so readings made after two awaited physics frames came from a later pose (a knee moved up to 6 cm) and one pose gave
@@ -96,6 +107,13 @@ moved by its owner every few frames by the time it missed, and handed back later
   frozen, up to the whole catch-up) out of step with one that never was, and the capture near the camera differed from
   the unthrottled one on every frame. **Seen:** gdstudio #1046, 2026-11-11 (the AI tour compared frame by frame with
   the throttle on and off: identical to run-to-run noise once new characters waited 8 frames).
+
+- **Approach:** Let a throttle that gives every tree back on its way out (`_exit_tree`) ask nothing of a character or a
+  camera that is leaving the tree with it (`CharacterAnimationThrottle._hears`). **Watch out for:** a scene freed whole
+  takes its characters out before a throttle that is a later sibling, and the footsteps' range check read their
+  `global_position`: the puppet bench printed one `get_global_transform` error a character at exit (`!is_inside_tree()`),
+  an `ERROR` that a headless run must not print. **Seen:** gdstudio #1138, 2026-11-11 (`tools/bench/puppet_bench.tscn`
+  run headless).
 
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 

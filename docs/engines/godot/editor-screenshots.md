@@ -45,9 +45,9 @@ gdstudio #1003). A search for a `Button` by its text finds nothing there.
   rewrites it on every open; the checkout keeps the workspace's local plugins in it,
   [Integrations](../../studio/workspace.md#integrations)), and delete the plugin folder from the worktree.
 - The same probe checks a template's scenes as a person meets them (kit docs: [the template
-  checklist](new-game.md#template-checklist)): open each scene, call `_get_configuration_warnings()` on every node that
-  has it (`Node.get_configuration_warnings()` is not in the script API in 4.7; the engine's own warnings, such as a
-  collision body with no shape, are checked by hand), look for a mesh, shape, tree root or animation player left
+  checklist](template-checklist.md#template-checklist)): open each scene, call `_get_configuration_warnings()` on every
+  node that has it (`Node.get_configuration_warnings()` is not in the script API in 4.7; the engine's own warnings, such
+  as a collision body with no shape, are checked by hand), look for a mesh, shape, tree root or animation player left
   empty, call `EditorInterface.save_scene()` and compare the file with what it was (uids and `unique_id`s are added the
   first time; anything else is generated state). Set the editor's 3D camera for a shot with
   `EditorInterface.get_editor_viewport_3d(0).get_camera_3d().look_at_from_position(...)` after selecting the node, and

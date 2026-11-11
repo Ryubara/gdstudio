@@ -2,7 +2,8 @@
 # not; past the board's occlusion share a wall muffles it; a friend's noise is not heard; the
 # character's own `AiNoiseMaker` makes footsteps by how fast it moves (quieter crouched) and a shot
 # when its weapon fires; an ally's telling arrives once however many allies pass it on, and is
-# believed but never a fire target; the ray budget caps the rays of 200 characters a tick.
+# believed but never a fire target; the ray budget caps the rays of 200 characters a tick; the
+# board's faction index hears in order among friends, and a grudge reads past it.
 extends GdUnitTestSuite
 
 var _arena: SensesArena
@@ -185,3 +186,63 @@ func test_the_ray_budget_caps_the_rays_of_200_characters_a_tick() -> void:
 		total += _senses(character).rays_cast
 	assert_int(total).is_less_equal(90 * director.rays_per_tick)
 	assert_int(total).is_greater(60 * director.rays_per_tick)
+
+
+# A character that made a noise and was freed before a listener's think (a despawn, a test that
+# frees a body): the record's faction member went with it, and the listener skips the noise without
+# a script error (it was "previously freed" in `_noise_band`, kit #968's tables found it).
+func test_a_noise_whose_maker_was_freed_is_skipped() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var maker := _arena.add_target("Maker", Vector3(0.0, 0.0, -4.0))
+	await _ticks(2)
+	AiNoise.emit(_arena, AiNoise.SHOT, maker.position, 1.0, maker)
+	maker.free()
+	await _ticks(20)
+	assert_int(_senses(character).beliefs.size()).is_equal(0)
+
+
+# The listener walks only the factions it cares about from the board's index (kit #1204): after a
+# board's worth of friends' shots it hears nothing, then a noise with no source and an enemy's step
+# among more friends' shots, in the order they were made; the friends' list stays bounded.
+func test_the_faction_index_hears_in_order_among_friends() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var friend := _arena.add_target("Friend", Vector3(0.0, 0.0, -3.0), &"enemy")
+	var foe := _arena.add_target("Foe", Vector3(2.0, 0.0, -5.0))
+	var senses := _senses(character)
+	var heard: Array = []
+	senses.heard.connect(
+		func(kind: StringName, _at: Vector3, source: Node3D) -> void: heard.append([kind, source])
+	)
+	await _ticks(10)
+	var board := _arena.board
+	for _i in board.capacity * 3:
+		AiNoise.emit(_arena, AiNoise.SHOT, friend.position, 1.0, friend)
+	await _ticks(12)
+	assert_array(heard).is_empty()
+	assert_int(board.by_faction[&"enemy"].size()).is_less(board.capacity * 2)
+	AiNoise.emit(_arena, AiNoise.IMPACT, Vector3(1.0, 0.0, 1.0))
+	AiNoise.emit(_arena, AiNoise.SHOT, friend.position, 1.0, friend)
+	AiNoise.emit(_arena, AiNoise.FOOTSTEP, foe.position, 1.0, foe)
+	AiNoise.emit(_arena, AiNoise.SHOT, friend.position, 1.0, friend)
+	await _ticks(12)
+	assert_array(heard).is_equal([[AiNoise.IMPACT, null], [AiNoise.FOOTSTEP, foe]])
+	assert_int(senses.beliefs.of(foe).source).is_equal(AiBelief.Source.HEARD)
+
+
+# A character with a grudge reads every noise (a grudge is toward one maker, not a faction): it
+# hears the friend it holds the grudge against, and still not another friend.
+func test_a_grudge_hears_that_friend_past_the_faction_index() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var rival := _arena.add_target("Rival", Vector3(0.0, 0.0, -3.0), &"enemy")
+	var other := _arena.add_target("Other", Vector3(2.0, 0.0, -3.0), &"enemy")
+	await _ticks(10)
+	AiFactionMember.of(character).grudge(rival, -100.0)
+	AiNoise.emit(_arena, AiNoise.SHOT, other.position, 1.0, other)
+	AiNoise.emit(_arena, AiNoise.SHOT, rival.position, 1.0, rival)
+	await _ticks(12)
+	var senses := _senses(character)
+	assert_bool(senses.beliefs.knows(rival)).is_true()
+	assert_bool(senses.beliefs.knows(other)).is_false()

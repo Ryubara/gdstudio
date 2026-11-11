@@ -12,9 +12,10 @@ extends Node
 ## or a REFUSED, a command is queued in its `PeerSlot`, a PING is answered with a PONG); a peer
 ## silent for `silent_seconds`, or that has not said hello in `hello_seconds`, is hung up on; every
 ## body steps once for each command its player's slot hands out (`PeerSlot.take`), in slot order;
-## then every second step each client gets a TICK with its `ack`, all players and the events since
-## its last TICK. Snapshots are full, so a TICK a full socket refused leaves nothing to repair: the
-## next is whole, and the events wait for it.
+## then every second step each client gets a TICK with its `ack`, all players, the events since
+## its last TICK and its AI block (`AiBroadcast`, `AiSnapshot`: the AI runs here and nowhere
+## else). The players are full in every TICK, so a TICK a full socket refused leaves nothing to
+## repair: the next is whole, the events wait for it, and the next AI block is full.
 ##
 ## Logs one JSON object a line (`listening`, `joined`, `left`, `refused`, `kicked`, and `stats`
 ## every `STATS_SECONDS`) and says the same through `logged`. The connection rules (rates,
@@ -45,6 +46,10 @@ const STEP_BUDGET_MS := 6.0
 ## ahead (`command_tick`).
 const COMMAND_TICKS_BEHIND := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
+## The defaults of `command_ticks` and `hold_ticks`: a predicting client steps its own body the
+## same way through a stall of its thread (`SilenceWalk`).
+const COMMAND_TICKS := 30
+const HOLD_TICKS := 4
 
 @export_group("Server")
 ## The port to listen on; -1 reads `--port`, then `$PORT`, then `WebSocketLink.DEFAULT_PORT`. 0
@@ -79,11 +84,11 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 @export_group("Rules")
 ## Steps the last command is stepped again (without its presses) when none came, before the body
 ## stands still.
-@export_range(0, 600, 1, "suffix:steps") var command_ticks := 30
+@export_range(0, 600, 1, "suffix:steps") var command_ticks := COMMAND_TICKS
 ## Steps a body waits for a late command, without stepping, before it repeats the last: two
 ## machines' frames drift, so a client's command lands a step late now and then, and a repeat made
 ## for it leaves the body a step off where the client predicted it. 0 repeats at once.
-@export_range(0, 30, 1, "suffix:steps") var hold_ticks := 4
+@export_range(0, 30, 1, "suffix:steps") var hold_ticks := HOLD_TICKS
 ## Seconds without a command before a seated player is hung up on (a hidden tab stops its loop).
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.
@@ -97,6 +102,23 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 		if map_parts != null:
 			map_parts.lead_ticks = value
 
+@export_group("AI")
+## How often each client hears of each AI character, by distance, and the interest radius.
+@export var ai_rates: AiTierRates = preload("res://gameplay/net/ai_tier_rates.tres")
+## The section's origin: AI positions on the wire are centimetres from it, up to
+## `NetLimits.POSITION_RANGE` each way (the client's `AiReplica.section_origin`).
+@export var ai_section_origin := Vector3.ZERO
+## An AI character's look on the wire: the index of its profile here (the client's
+## `AiReplica.variant_scenes` at the same index).
+@export var ai_variants: Array[AiProfile] = [
+	preload("res://gameplay/ai/profiles/grunt.tres"),
+	preload("res://gameplay/ai/profiles/ally.tres"),
+	preload("res://gameplay/ai/profiles/civilian.tres"),
+]
+## The players' bodies join the group `player` with the faction `player`, so the AI sees them,
+## measures its tiers from them and fights them.
+@export var ai_sees_players := true
+
 @export_group("Shots")
 ## Metres a command's shot may start from the body's eye before it is refused (`ServerCombat`).
 @export_range(0.5, 20.0, 0.1, "suffix:m") var origin_slack := 4.0
@@ -104,6 +126,16 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 @export_range(0.0, 60.0, 0.1, "suffix:s") var revive_seconds := 3.0
 ## On: a body gets up at its spawn point; off: where it died.
 @export var revive_at_spawn := false
+## Seconds of the AI's past a player's shot may be met in (lag compensation, `ShotRewind`): the
+## shot meets each AI character where the shooter's screen drew it, up to this far back. 0 meets
+## the AI as it is now.
+@export_range(0.0, 1.0, 0.05, "suffix:s") var ai_rewind_seconds := 0.6:
+	set(value):
+		ai_rewind_seconds = value
+		ai_history = AiHitHistory.new(maxi(roundi(value * NetLimits.TICK_RATE), 1), SEND_EVERY)
+## Seconds of a projectile's flight met with the AI as the shooter drew it; past that it meets
+## the AI where it is.
+@export_range(0.0, 3.0, 0.05, "suffix:s") var ai_rewind_flight_seconds := 0.5
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
@@ -124,6 +156,11 @@ var keep_history := false
 var kicked := 0
 ## Shots, hits and deaths: the server's judge and their events (gdstudio #906).
 var combat := ServerCombat.new()
+## The AI characters on the wire (gdstudio #970).
+var ai := AiBroadcast.new()
+## The volume of each AI character over the last `ai_rewind_seconds`, recorded with each TICK's
+## rows (gdstudio #1198).
+var ai_history := AiHitHistory.new(roundi(0.6 * NetLimits.TICK_RATE), SEND_EVERY)
 
 var _peers: Dictionary[int, PeerSlot] = {}
 var _by_slot: Dictionary[int, PeerSlot] = {}
@@ -143,6 +180,7 @@ func _ready() -> void:
 	world_hash = world_hash_of(_map_root())
 	_take_world(_map_root())
 	_wire_combat()
+	_wire_ai()
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
 	listener.peer_disconnected.connect(_on_disconnected)
@@ -353,6 +391,7 @@ func _on_hello(peer: PeerSlot, data: PackedByteArray) -> void:
 		_refuse(peer, NetWire.Refusal.FULL, {})
 		return
 	peer.player_name = hello.player_name
+	peer.web = hello.flags & NetWire.F_WEB != 0
 	var body := _make_body(slot)
 	peer.seat(slot, body, _now())
 	_by_slot[slot] = peer
@@ -367,6 +406,7 @@ func _on_hello(peer: PeerSlot, data: PackedByteArray) -> void:
 	)
 	_tell_others(peer, NetEvent.joined(slot, peer.player_name))
 	_log("joined", {"slot": slot, "name": peer.player_name, "players": _by_slot.size()})
+	_cap_ai()
 	player_joined.emit(slot)
 
 
@@ -386,6 +426,13 @@ func _make_body(slot: int) -> Character:
 	var body := body_scene.instantiate() as Character
 	body.name = "Player%d" % slot
 	body.ragdoll_by_command = false
+	if ai_sees_players:
+		# The AI sees, fights and measures its tiers from the players' bodies.
+		body.add_to_group(Player.GROUP)
+		var member := AiFactionMember.new()
+		member.name = "AiFactionMember"
+		member.faction = &"player"
+		body.add_child(member)
 	players_root.add_child(body)
 	# After `_ready`: the engine turns physics processing on again for a node that becomes ready.
 	body.set_physics_process(false)
@@ -453,6 +500,7 @@ func _unseat(peer: PeerSlot, reason: String) -> void:
 	if peer.limits.drops.total() > 0:
 		fields["drops"] = peer.limits.drops.summary()
 	_log("left", fields)
+	_cap_ai()
 	player_left.emit(slot)
 
 
@@ -473,10 +521,35 @@ func _step_bodies(delta: float) -> void:
 		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
 			map_parts.place(command_tick(command.seq, map_parts.tick))
 			combat.judge(slot, peer.body, command)
+			var weapon := peer.body.weapon
+			if weapon != null:
+				weapon.rewind = rewind_for(peer.body, command)
 			peer.body.step(command, delta)
+			if weapon != null:
+				weapon.rewind = null
 			combat.stepped(slot, peer.body)
 	map_parts.place(map_parts.tick)
 	combat.step(delta)
+
+
+## The AI as the screen of `body`'s player drew it for `command`'s shot (its `view_tick`, less
+## each character's glide at the rate this server sends it to that player), or null: no shot
+## block, no AI recorded or `ai_rewind_seconds` 0.
+func rewind_for(body: Character, command: PlayerCommand) -> ShotRewind:
+	if not command.has_shot or ai_rewind_seconds <= 0.0 or ai_history.newest() < 0:
+		return null
+	var rewind := ShotRewind.new()
+	rewind.history = ai_history
+	rewind.view_tick = ShotRewind.whole_tick(command.view_tick, server_tick)
+	rewind.flight_seconds = ai_rewind_flight_seconds
+	var rates := ai.rates
+	var viewer := body.global_position
+	# The client walks each row over the ticks since the one before: one send at its rate, less
+	# the tick of the row it is on.
+	rewind.behind = func(character: AiCharacter) -> int:
+		var away := viewer.distance_to(character.global_position)
+		return rates.interval_ticks(rates.tier_for(away)) - 1
+	return rewind
 
 
 ## The tick the map's moving parts are at for the command numbered `seq`, stepped at server tick
@@ -535,9 +608,46 @@ func _wire_combat() -> void:
 			peer.add_event(event)
 
 
+# The AI's wire: its weapons' hits are HITs, its events go to the clients that hold it.
+func _wire_ai() -> void:
+	ai = AiBroadcast.new(_map_root(), ai_rates)
+	ai.origin = ai_section_origin
+	ai.variants = ai_variants
+	ai.hit_made = combat.send_hit
+	ai.tell_holders = func(id: int, event: NetEvent) -> void:
+		for peer: PeerSlot in _by_slot.values():
+			if peer.ai_view.holds(id):
+				peer.add_event(event)
+
+
+# The match's AI population: a browser among the players caps it for everyone (`web_cap`).
+func _cap_ai() -> void:
+	var director := ai_director()
+	if director == null:
+		return
+	var browser := false
+	for peer: PeerSlot in _by_slot.values():
+		browser = browser or peer.web
+	director.match_cap = director.web_cap if browser else -1
+
+
+## The map's `AiDirector`, or null.
+func ai_director() -> AiDirector:
+	var root := _map_root()
+	if root is AiDirector:
+		return root
+	for node in root.find_children("*", "", true, false):
+		if node is AiDirector:
+			return node
+	return null
+
+
 func _send_ticks() -> void:
 	if _by_slot.is_empty():
 		return
+	ai.build()
+	if ai_rewind_seconds > 0.0:
+		ai_history.record(server_tick, ai.characters())
 	var players: Array[PlayerEntry] = []
 	for slot: int in _sorted_slots():
 		players.append(entry_of(slot, _by_slot[slot].body))
@@ -553,8 +663,10 @@ func _send_ticks() -> void:
 			if every_part.is_empty():
 				every_part = map_parts.stream_rows(server_tick, true)
 			rows = every_part
+		peer.ai_view.viewer = peer.body.global_position - ai.origin
+		var ai_block := ai.block_for(peer.ai_view, server_tick)
 		var packet := SnapshotCodec.tick(
-			server_tick, peer.ack, events, players, peer.limits.drops, rows
+			server_tick, peer.ack, events, players, peer.limits.drops, rows, ai_block
 		)
 		if listener.send(peer.peer_id, packet):
 			peer.sent_events(events.size())
@@ -562,6 +674,8 @@ func _send_ticks() -> void:
 		else:
 			peer.stalled = true
 			peer.stream_all = map_parts.all_ticks()
+			# What it holds is no longer known: the next AI block is full.
+			peer.ai_view.reset()
 
 
 func _sorted_slots() -> Array[int]:
@@ -608,6 +722,10 @@ func _log_stats() -> void:
 		"hits": combat.hits,
 		"shots_rejected": combat.rejected,
 		"deaths": combat.deaths,
+		"ai": ai.rows().size(),
+		"ai_build_us": ai.last_build_us,
+		"ai_history_us": ai_history.last_record_us,
+		"ai_encode_us_per_tick": roundi(ai.take_encode_us() / (seconds * NetLimits.SNAPSHOT_RATE)),
 	}
 	# The process's resident memory and processor share (Linux only: the image, Railway).
 	fields.merge(_process.sample())

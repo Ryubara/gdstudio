@@ -165,7 +165,9 @@ they are rerun, replayed or read from another branch -->
   `find ... | wc -l` instead of `! grep` and `ls | wc -l`. **Watch out for:** the runner's `actionlint` runs
   `shellcheck` on every `run:` script and local installs often have none, so SC2251, SC2015 and SC2012 passed locally
   and failed CI three times; the same `! grep` step sat in the workflow written for every new game. **Seen:**
-  Deadnight #968, 2026-11-03; Deadnight #1112, 2026-11-04; gdstudio #778, 2026-11-07.
+  Deadnight #968, 2026-11-03; Deadnight #1112, 2026-11-04; gdstudio #778, 2026-11-07; gdstudio #1071, 2026-11-11 (a
+  new workflow's steps copied from ci.yml, where `! grep` is the last line and passes; mid-script it is SC2251);
+  gdstudio #1238, 2026-11-11 (an unquoted `$pw` command variable was SC2086; fix: a bash array, `"${pw[@]}"`).
 - **Approach:** Before pushing a trial of a job that writes somewhere shared (issues, deploys, releases), list what it
   writes and give the trial its own target; a run of named suites or of a branch never opens or closes the issue the
   schedule owns, and the trial trigger is removed before the pull request. **Watch out for:** a throwaway `push` trigger

@@ -273,6 +273,10 @@ canvas break what passed on a desktop window -->
 <!-- new section: the sections above are each one browser behaviour; nothing held the faults that show only in the
 exported page, not in the editor, a headless import or a desktop run -->
 
+What the exported page itself does before the engine boots, the WebGL context it makes with the attributes Godot asks
+for and the extensions Emscripten enables, and the shader list it links while the engine downloads, is on
+[First-use hitches: the page starts it](first-use-hitches.md#prelink-page) (gdstudio #1214).
+
 - **Approach:** Grep for `class_name <Name>` before choosing one, and export the web build before calling a new script
   class done. **Watch out for:** two scripts that say `class_name NeonSign` print `Parse Error: Class "NeonSign" hides
   a global script class` and the script fails to load only in the web export; the editor, a headless import and the

@@ -48,6 +48,13 @@ ground](ui-controls.md#a-card-that-looks-for-free-ground)); sending input is in
   from `get_viewport_rect()`, before the phone factor was on the window, so it covered 29 units of the last tab on the
   narrowest page; a height or a text size does not show a cover, and every test set the factor first. **Seen:**
   Deadnight #1271, 2026-11-05 (fix: `MenuPlate.fit` on the factor and on `resized`; `header_overlap` in the probe).
+- **Approach:** Give a text that changes with the pointer or focus (an item's details) a fixed height: the lines of
+  the longest shipped text, read from the label's theme, with `max_lines_visible` and an ellipsis; prove it by pointer
+  motion over every slot comparing every part's rectangle at desktop and phone sizes. **Watch out for:** a centred
+  card grows both ways, so details of 1 to 4 wrapped lines moved the whole inventory card 19 units at every hover; a
+  `UIFitScroll` refitted only on a viewport or content change, so a menu put to the phone factor at run time stayed
+  too tall once the details held still. **Seen:** gdstudio #1136, 2026-11-11 (fix: `LinesLabel`, `lines` 4; the
+  scroll refits on its limit's `resized`; `test_no_part_moves_*`).
 
 ## Placing a HUD part {#placement}
 
@@ -128,9 +135,11 @@ the parts' code.
   restyles everything.
 - **Phone and touch.** `min_text_size` (14 CSS pixels) makes the HUD grow until its smallest text is that high on the page
   (`Hud.css_height()`: the canvas element's box on the web, the window over `pixel_ratio` elsewhere), and while the touch
-  controls show, a part with a `touch_region` (health to `TopLeft`, ammo to `TopRight`) leaves the bottom corners, which
-  are the thumbs', and returns when they go. A test lists every visible part against the touch buttons and the stick's
-  resting ring at 844 x 390, 667 x 375 and a desktop window.
+  controls show, a part with a `touch_region` (health to `TopLeft`, ammo to `TopRight`, the hotbar under the health
+  card, the weapon slots under the stick's resting ring) leaves the bottom corners, which are the thumbs', and returns
+  when they go. The bottom middle is not clear on a 16:9 phone: between the stick's ring and the Swap and Reload
+  buttons there are 518 of the canvas's 1920 units, less than four fingertip places. A test lists every visible part
+  against the touch buttons and the stick's resting ring at 844 x 390, 667 x 375 and a desktop window.
 
 - **Approach:** Give a HUD part a base that binds to the player and hides itself without data, put the parts in regions
   by dropping scenes, and test it with a stand-in that has the data (`HudSubject`) so the feature that makes the data can
@@ -146,3 +155,9 @@ the parts' code.
   part and the minimap at phone and desktop sizes. **Watch out for:** two pull requests that each pass their own tests
   can still overlap once both are in main (the pause button and the minimap both took the top-right corner); only a
   phone capture of the merged game showed it. **Seen:** gdstudio #884, 2026-11-10.
+- **Approach:** A part that the HUD moves (`reparent`, the touch layout's `touch_region`) binds again when it enters the
+  tree (`HudWidget._enter_tree` calls `rebind()` once ready), and a test changes the data after the move and reads the
+  part. **Watch out for:** `_exit_tree` let go of the player and nothing bound it again, so every part moved for the
+  touch layout froze at its last value (health, ammo); the layout tests only read rectangles. **Seen:** gdstudio #1148,
+  2026-11-11 (fix: the rebind, and `test_hud_layout.gd` reads the health after the move; the hotbar's finger test
+  failed first the same way).

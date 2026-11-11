@@ -13,6 +13,9 @@ extends UIScreen
 ##   to put it there (it fills a stack of the same kind or swaps); press it again or go back to put
 ##   it down where it was. A mouse or a finger can drag one slot onto another. Drop leaves the
 ##   picked or last shown stack in the world in front of the player.
+## - **Hotbar** places are the player's `Hotbar`: drag a bag slot onto one, press one with a stack
+##   picked up, or press a hotbar key (3, 4...) on a bag slot to put that item there; press a filled
+##   place to take it off.
 ##
 ## Whether the game stops behind it is the player's option `pause_setting` (Settings > Controls);
 ## the host asks `pauses_game()`. With the game running the player's own input is off while the
@@ -39,6 +42,8 @@ signal item_picked(slot: int)
 @export var stop_player_input := true
 
 var _inventory: Inventory
+var _hotbar: Hotbar
+var _hotbar_cells: Array[InventoryCell] = []
 var _loadout: WeaponLoadout
 var _input: PlayerInput
 var _weapon_cells: Array[InventoryCell] = []
@@ -52,9 +57,11 @@ var _input_held := false
 @onready var _preview: ModelPreview = %Preview
 @onready var _weapons: Container = %Weapons
 @onready var _grid: GridContainer = %Grid
+@onready var _hotbar_row: Container = %Hotbar
+@onready var _hotbar_caption: Control = %HotbarCaption
 @onready var _items_caption: Control = %ItemsCaption
 @onready var _detail_name: Label = %DetailName
-@onready var _detail_text: Label = %DetailText
+@onready var _detail_text: LinesLabel = %DetailText
 @onready var _drop: Button = %DropButton
 @onready var _close: Button = %CloseButton
 
@@ -75,6 +82,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _picked >= 0 and event.is_action_pressed(&"ui_cancel"):
 		pick(-1)
 		get_viewport().set_input_as_handled()
+		return
+	# A hotbar key puts the picked or shown bag slot's item in that place.
+	if _hotbar != null and (event is InputEventKey or event is InputEventJoypadButton):
+		for place in _hotbar.place_count:
+			var action := QuickKeys.hotbar_action(place)
+			if InputMap.has_action(action) and event.is_action_pressed(action):
+				assign_to_hotbar(place, _drop_slot())
+				get_viewport().set_input_as_handled()
+				return
 
 
 ## Whether the game stops while the screen is open: the player's option, else the default.
@@ -92,6 +108,7 @@ func bind(who: Player) -> void:
 	_unlink()
 	player = who
 	_inventory = who.inventory if who != null else null
+	_hotbar = Hotbar.of(who) if who != null else null
 	_loadout = who.loadout if who != null else null
 	_input = who.controller as PlayerInput if who != null else null
 	_preview.model_slot = who.model if who != null else null
@@ -114,8 +131,13 @@ func refresh() -> void:
 	if not is_node_ready():
 		return
 	_build_weapons()
+	_build_hotbar()
 	for cell in _weapon_cells:
 		_fill_weapon(cell)
+	for cell in _hotbar_cells:
+		_fill_hotbar(cell)
+	_hotbar_caption.visible = _hotbar != null
+	_hotbar_row.visible = _hotbar != null
 	for cell in _item_cells:
 		_fill_item(cell)
 	_items_caption.visible = _inventory != null
@@ -127,6 +149,20 @@ func refresh() -> void:
 ## The weapon cells, in the loadout's round.
 func weapon_cells() -> Array[InventoryCell]:
 	return _weapon_cells.duplicate()
+
+
+## The hotbar's cells, one a place.
+func hotbar_cells() -> Array[InventoryCell]:
+	return _hotbar_cells.duplicate()
+
+
+## Puts the item in bag slot `slot` in hotbar place `place`. True when it was put there.
+func assign_to_hotbar(place: int, slot: int) -> bool:
+	if _hotbar == null or _inventory == null or _inventory.item_at(slot) == null:
+		return false
+	var done := _hotbar.assign(place, _inventory.item_at(slot))
+	pick(-1)
+	return done or _hotbar.item_at(place) == _inventory.item_at(slot)
 
 
 ## The bag's cells, one a slot.
@@ -178,6 +214,17 @@ func press_item(slot: int) -> void:
 	_show_detail(_shown_cell)
 
 
+## Presses hotbar place `place`: puts the picked stack's item there, or takes its item off.
+func press_hotbar(place: int) -> void:
+	if _hotbar == null:
+		return
+	if _picked >= 0:
+		assign_to_hotbar(place, _picked)
+	else:
+		_hotbar.clear(place)
+	_show_detail(_shown_cell)
+
+
 ## Drops the picked stack, or the stack of the last shown slot. Returns what was placed.
 func drop_selected() -> Node:
 	var slot := _drop_slot()
@@ -213,6 +260,18 @@ func _build_weapons() -> void:
 		_weapon_cells.append(cell)
 
 
+func _build_hotbar() -> void:
+	var count := _hotbar.place_count if _hotbar != null else 0
+	if count == _hotbar_cells.size():
+		return
+	for cell in _hotbar_cells:
+		_hotbar_row.remove_child(cell)
+		cell.queue_free()
+	_hotbar_cells.clear()
+	for place in count:
+		_hotbar_cells.append(_make_cell(_hotbar_row, InventoryCell.Kind.HOTBAR, place))
+
+
 func _build_items() -> void:
 	for cell in _item_cells:
 		_grid.remove_child(cell)
@@ -229,11 +288,13 @@ func _make_cell(parent: Node, kind: InventoryCell.Kind, slot: int) -> InventoryC
 	var cell := cell_scene.instantiate() as InventoryCell
 	cell.kind = kind
 	cell.slot = slot
-	cell.name = (
-		("Weapon%d" % slot if slot >= 0 else "Unarmed")
-		if kind == InventoryCell.Kind.WEAPON
-		else "Slot%d" % slot
-	)
+	match kind:
+		InventoryCell.Kind.WEAPON:
+			cell.name = "Weapon%d" % slot if slot >= 0 else "Unarmed"
+		InventoryCell.Kind.HOTBAR:
+			cell.name = "Hotbar%d" % slot
+		_:
+			cell.name = "Slot%d" % slot
 	parent.add_child(cell)
 	cell.pressed.connect(_on_cell_pressed.bind(cell))
 	cell.shown.connect(_on_cell_shown.bind(cell))
@@ -251,6 +312,24 @@ func _fill_weapon(cell: InventoryCell) -> void:
 		ammo = "%d/%d" % [counts[0], counts[1]]
 	cell.show_thing(definition.icon, definition.display_name, ammo, Color(0.7, 0.72, 0.8))
 	cell.set_equipped(cell.slot == _chosen_weapon())
+
+
+func _fill_hotbar(cell: InventoryCell) -> void:
+	var item := _hotbar.item_at(cell.slot)
+	if item == null:
+		cell.show_caption(_hotbar_key(cell.slot))
+		return
+	cell.show_thing(item.icon, item.display_name, str(_hotbar.count_at(cell.slot)), item.tint)
+
+
+# The key that uses hotbar place `place`, as text ("" when it has none).
+func _hotbar_key(place: int) -> String:
+	var action := QuickKeys.hotbar_action(place)
+	if InputMap.has_action(action):
+		for event in InputMap.action_get_events(action):
+			if event is InputEventKey:
+				return (event as InputEventKey).as_text_physical_keycode()
+	return ""
 
 
 func _fill_item(cell: InventoryCell) -> void:
@@ -271,28 +350,41 @@ func _chosen_weapon() -> int:
 
 
 # Every cell's neighbours by hand: Godot's guess by geometry jumps between the weapons' row, the
-# grid and the buttons when the rows are of different lengths. Left of the first column is Close
-# (under the preview); below the grid is Drop.
+# hotbar's, the grid and the buttons when the rows are of different lengths. Left of the first
+# column is Close (under the preview); below the grid is Drop.
 func _link_focus() -> void:
 	var columns := maxi(_grid.columns, 1)
 	var rows := ceili(float(_item_cells.size()) / columns)
-	var first_weapon: Control = _weapon_cells[0] if not _weapon_cells.is_empty() else null
 	var first_item: Control = _item_cells[0] if not _item_cells.is_empty() else null
-	for index in _weapon_cells.size():
-		var below: Control = _drop
-		if first_item != null:
-			below = _item_cells[mini(index, mini(columns, _item_cells.size()) - 1)]
-		var left: Control = _weapon_cells[index - 1] if index > 0 else _close
-		var right: Control = _weapon_cells[index + 1] if index + 1 < _weapon_cells.size() else null
-		_set_neighbours(_weapon_cells[index], null, below, left, right)
+	# The rows above the grid, top first: the weapons, then the hotbar (each when it has cells).
+	var top_rows: Array[Array] = []
+	for cells: Array in [_weapon_cells, _hotbar_cells]:
+		if not cells.is_empty():
+			top_rows.append(cells)
+	for row_index in top_rows.size():
+		var cells: Array = top_rows[row_index]
+		var above: Array = top_rows[row_index - 1] if row_index > 0 else []
+		var under: Array = top_rows[row_index + 1] if row_index + 1 < top_rows.size() else []
+		for index in cells.size():
+			var up: Control = above[mini(index, above.size() - 1)] if not above.is_empty() else null
+			var below: Control = _drop
+			if not under.is_empty():
+				below = under[mini(index, under.size() - 1)]
+			elif first_item != null:
+				below = _item_cells[mini(index, mini(columns, _item_cells.size()) - 1)]
+			var left: Control = cells[index - 1] if index > 0 else _close
+			var right: Control = cells[index + 1] if index + 1 < cells.size() else null
+			_set_neighbours(cells[index], up, below, left, right)
+	var last_top: Array = top_rows.back() if not top_rows.is_empty() else []
+	var first_top: Control = top_rows[0][0] if not top_rows.is_empty() else null
 	for index in _item_cells.size():
 		var row := index / columns
 		var column := index % columns
-		var above: Control = first_weapon
+		var above: Control = first_top
 		if row > 0:
 			above = _item_cells[index - columns]
-		elif first_weapon != null:
-			above = _weapon_cells[mini(column, _weapon_cells.size() - 1)]
+		elif not last_top.is_empty():
+			above = last_top[mini(column, last_top.size() - 1)]
 		var below: Control = _drop
 		if row + 1 < rows and index + columns < _item_cells.size():
 			below = _item_cells[index + columns]
@@ -301,10 +393,10 @@ func _link_focus() -> void:
 		if column + 1 < columns and index + 1 < _item_cells.size():
 			right = _item_cells[index + 1]
 		_set_neighbours(_item_cells[index], above, below, left, right)
-	var last_row_first: Control = first_item if first_item != null else first_weapon
+	var last_row_first: Control = first_item if first_item != null else first_top
 	if first_item != null:
 		last_row_first = _item_cells[(rows - 1) * columns]
-	var start: Control = first_weapon if first_weapon != null else first_item
+	var start: Control = first_top if first_top != null else first_item
 	_set_neighbours(_drop, last_row_first, null, _close, null)
 	_set_neighbours(_close, null, null, null, start if start != null else _drop)
 	initial_focus = get_path_to(start if start != null else _close)
@@ -333,6 +425,15 @@ func _show_detail(cell: InventoryCell) -> void:
 		if definition.uses_ammo():
 			var counts := _loadout.ammo_of(cell.slot)
 			text = "%d in the magazine, %d more. %s" % [counts[0], counts[1], text]
+	elif cell != null and cell.kind == InventoryCell.Kind.HOTBAR and _hotbar != null:
+		var placed := _hotbar.item_at(cell.slot)
+		var key := _hotbar_key(cell.slot)
+		title = placed.display_name if placed != null else "Hotbar %s" % key
+		text = "Press %s in the game to use it. Press here to take it off." % key
+		if placed == null:
+			text = "Drag an item here, or press %s on an item in the bag." % key
+		if _picked >= 0:
+			text = "Press to put the picked item here."
 	elif cell != null and cell.kind == InventoryCell.Kind.ITEM and _inventory != null:
 		var item := _inventory.item_at(cell.slot)
 		if item != null:
@@ -362,6 +463,8 @@ func _update_drop() -> void:
 func _link() -> void:
 	if _inventory != null:
 		_inventory.changed.connect(refresh)
+	if _hotbar != null:
+		_hotbar.changed.connect(refresh)
 	if _loadout != null:
 		_loadout.weapon_changed.connect(_on_loadout_changed)
 		_loadout.switch_started.connect(_on_loadout_changed)
@@ -374,6 +477,8 @@ func _link() -> void:
 func _unlink() -> void:
 	if _inventory != null and _inventory.changed.is_connected(refresh):
 		_inventory.changed.disconnect(refresh)
+	if _hotbar != null and _hotbar.changed.is_connected(refresh):
+		_hotbar.changed.disconnect(refresh)
 	if _loadout != null:
 		for pair: Array in [
 			[_loadout.weapon_changed, _on_loadout_changed],
@@ -405,10 +510,13 @@ func _on_ammo_changed(_ammo: int, _reserve: Variant = null) -> void:
 
 
 func _on_cell_pressed(cell: InventoryCell) -> void:
-	if cell.kind == InventoryCell.Kind.WEAPON:
-		choose_weapon(cell.slot)
-	else:
-		press_item(cell.slot)
+	match cell.kind:
+		InventoryCell.Kind.WEAPON:
+			choose_weapon(cell.slot)
+		InventoryCell.Kind.HOTBAR:
+			press_hotbar(cell.slot)
+		_:
+			press_item(cell.slot)
 
 
 func _on_cell_shown(on: bool, cell: InventoryCell) -> void:
@@ -421,7 +529,9 @@ func _on_cell_shown(on: bool, cell: InventoryCell) -> void:
 
 
 func _on_dragged_onto(from: InventoryCell, onto: InventoryCell) -> void:
-	if _inventory != null:
+	if onto.kind == InventoryCell.Kind.HOTBAR:
+		assign_to_hotbar(onto.slot, from.slot)
+	elif _inventory != null:
 		_inventory.move(from.slot, onto.slot)
 	pick(-1)
 

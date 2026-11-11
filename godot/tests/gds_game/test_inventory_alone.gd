@@ -73,6 +73,8 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"max_stack": 1,
 		&"droppable": true,
 		&"drop_scene": null,
+		&"use_effect": null,
+		&"consumed_on_use": true,
 	}
 	assert_array(ExportPins.differences(item, item_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(item, item_pins)).is_empty()

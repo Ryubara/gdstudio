@@ -24,6 +24,12 @@ const ACTIONS: Array[StringName] = [
 	&"previous_weapon",
 	&"toggle_unarmed",
 	&"inventory",
+	&"weapon_1",
+	&"weapon_2",
+	&"hotbar_1",
+	&"hotbar_2",
+	&"hotbar_3",
+	&"hotbar_4",
 ]
 
 
@@ -58,6 +64,19 @@ func test_the_move_jump_and_interact_actions_work_from_a_pad_and_a_keyboard() ->
 			has_key = has_key or event is InputEventKey or event is InputEventMouseButton
 		assert_bool(has_pad).override_failure_message("%s has no pad" % action).is_true()
 		assert_bool(has_key).override_failure_message("%s has no key" % action).is_true()
+
+
+func test_the_places_keys_are_1_to_6_and_no_other_action_has_them() -> void:
+	var keys := {}
+	for action in ACTIONS:
+		for event in InputMap.action_get_events(action):
+			if event is InputEventKey:
+				keys[(event as InputEventKey).physical_keycode] = action
+	var expected: Array[StringName] = [
+		&"weapon_1", &"weapon_2", &"hotbar_1", &"hotbar_2", &"hotbar_3", &"hotbar_4"
+	]
+	for index in expected.size():
+		assert_str(String(keys.get(KEY_1 + index, &""))).is_equal(String(expected[index]))
 
 
 func test_no_two_actions_share_a_pad_button_or_a_stick_direction() -> void:
