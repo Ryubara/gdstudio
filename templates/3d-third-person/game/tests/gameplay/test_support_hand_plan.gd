@@ -105,6 +105,8 @@ func test_nothing_jumps_between_two_shares_of_a_reload() -> void:
 			"closed on the magazine": plan.magazine_fingers * (1.0 - plan.opened) * plan.arm,
 			# The place: the marker switches while the clip's arm has the hand.
 			"at the magazine": plan.at_magazine * plan.arm,
+			# The fingers on the new magazine (kit #1052).
+			"carrying": plan.carry,
 		}
 		for key: String in last:
 			var change := absf(now[key] - last[key])
@@ -116,6 +118,52 @@ func test_nothing_jumps_between_two_shares_of_a_reload() -> void:
 				. is_less(SMOOTH)
 			)
 		last = now
+
+
+# The magazines (kit #1052): the pistol's own is in the grip until the old one drops and again
+# once the new one is in; the new one is in the hand from the belt to the end of the way in, with
+# the fingers closed on it from the belt until the grip comes down over them; never both, and a
+# reload cut short (no weight) leaves the pistol whole.
+func test_the_magazines_follow_the_reload() -> void:
+	var plan := SupportHandPlan.new()
+	for step in roundi(1.0 / STEP) + 1:
+		var share := step * STEP
+		plan.update(0.0, 1.0, share)
+		var tag := "share %.3f" % share
+		(
+			assert_bool(plan.magazine_in_gun and plan.magazine_in_hand)
+			. override_failure_message("%s: a magazine in the grip and one in the hand" % tag)
+			. is_false()
+		)
+		assert_bool(plan.magazine_in_gun).override_failure_message(tag).is_equal(
+			share < plan.drop or share >= plan.insert.y
+		)
+		assert_bool(plan.magazine_in_hand).override_failure_message(tag).is_equal(
+			share >= plan.take and share < plan.insert.y
+		)
+		if share >= plan.take + 0.5 * SupportHandPlan.TAKE_CLOSE and share <= plan.insert.x:
+			(
+				assert_float(plan.carry)
+				. override_failure_message(
+					"%s: the fingers let the magazine go before the way in" % tag
+				)
+				. is_equal(1.0)
+			)
+		if not plan.magazine_in_hand:
+			(
+				assert_float(plan.carry)
+				. override_failure_message("%s: the fingers hold no magazine" % tag)
+				. is_less(0.5)
+			)
+		plan.update(0.0, 0.0, share)
+		(
+			assert_bool(plan.magazine_in_gun and not plan.magazine_in_hand)
+			. override_failure_message(
+				"%s: a reload cut short leaves the pistol without its magazine" % tag
+			)
+			. is_true()
+		)
+		assert_float(plan.carry).is_equal(0.0)
 
 
 # The one way: the hand is off its place only with the fingers opened, and the hold's arm gives

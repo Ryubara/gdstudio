@@ -1,7 +1,9 @@
-## Writes the solved pistol hold into the project (kit #1001): the seven `HandPose` files of
+## Writes the solved pistol hold into the project (kit #1001): the eight `HandPose` files of
 ## `gameplay/weapon/hold/`, `assets/weapons/pistol/pistol_held.tscn` (the pistol's seat on
-## `hand_r`, the `SupportHand` and `MagazineHand` markers) and the left hand's way off the pistol
-## in `gameplay/weapon/hold/weapon_hold.tscn` (`support_way`), from the JSON file
+## `hand_r`, the `SupportHand` and `MagazineHand` markers) and, in
+## `gameplay/weapon/hold/weapon_hold.tscn`, the left hand's way off the pistol (`support_way`),
+## the new magazine's way in (`magazine_approach`) and the shares of it over which the fingers let
+## go of the magazine (`carry_release`, kit #1052), from the JSON file
 ## `solve_pistol_hold.py` wrote. No number of the hold is typed by hand: change the model or the
 ## solver, run both again, then the test `tests/gameplay/test_pistol_hold.gd`.
 ##
@@ -16,10 +18,11 @@ const POSES: Dictionary[String, String] = {
 	"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
 	"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
 	"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
+	"carry": "res://gameplay/weapon/hold/pistol_carry_pose.tres",
 }
 const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
-## The line of the hold scene the way is written after when the scene has none yet.
+## The line of the hold scene a solved number is written after when the scene has none yet.
 const _WAY_AFTER := "open_pose = "
 
 
@@ -79,21 +82,25 @@ func _initialize() -> void:
 	file.close()
 	print("wrote ", HELD)
 	if solved.has("way"):
-		_write_way(solved.way)
+		_write_line("support_way", "Vector3", solved.way)
+	if solved.has("magazine_approach"):
+		_write_line("magazine_approach", "Vector3", solved.magazine_approach)
+	if solved.has("carry_release"):
+		_write_line("carry_release", "Vector2", solved.carry_release)
 	quit()
 
 
-# Puts the left hand's way off the pistol on the hold scene's root: its `support_way` line is
-# replaced, or added after the open pose's when the scene still has the script's default.
-func _write_way(way: Array) -> void:
+# Puts a solved number on the hold scene's root: its line is replaced, or added after the open
+# pose's when the scene still has the script's default.
+func _write_line(property: String, type: String, values: Array) -> void:
 	var numbers := PackedStringArray()
-	for value: float in way:
+	for value: float in values:
 		numbers.append(_number(value, 1e-5))
-	var line := "support_way = Vector3(%s)" % ", ".join(numbers)
+	var line := "%s = %s(%s)" % [property, type, ", ".join(numbers)]
 	var lines := FileAccess.get_file_as_string(HOLD).split("\n")
 	var at := -1
 	for index in lines.size():
-		if lines[index].begins_with("support_way = "):
+		if lines[index].begins_with(property + " = "):
 			at = index
 	if at >= 0:
 		lines[at] = line
@@ -104,7 +111,7 @@ func _write_way(way: Array) -> void:
 				at = index + 1
 				break
 	if at < 0:
-		printerr("write_hold: no place for support_way in ", HOLD)
+		printerr("write_hold: no place for ", property, " in ", HOLD)
 		return
 	var file := FileAccess.open(HOLD, FileAccess.WRITE)
 	file.store_string("\n".join(lines))

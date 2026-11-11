@@ -13,6 +13,12 @@ extends Node
 ##   the belt, up the grip's line to the magazine's foot and under it while it goes in (the
 ##   `MagazineHand` marker, `magazine_pose`), and round the grip's foot onto the weapon again.
 ##   The clip gives the times (the Reload group's shares of `Pistol_Reload`);
+## - the magazines through a reload (kit #1052): the pistol's own leaves the grip and falls when
+##   the reload's first sound plays (`DroppedMagazine`, a body of the world for `dropped_life`
+##   seconds), a new one is in the left hand from the belt (`carry_pose`) up the grip's line and is
+##   the pistol's own again once it is in, and the slide, locked back on an empty pistol, runs
+##   forward when the reload's last sound plays (`slide_travel`); a reload cut short leaves the
+##   pistol whole;
 ## - the left hand's one way on and off the weapon (kit #1051): its fingers open where it holds
 ##   (`open_pose`), then the opened hand leaves along `support_way`, and it comes on the same way
 ##   backwards, for the aim and from the magazine alike. `SupportHandPlan` says where on all of
@@ -28,6 +34,8 @@ extends Node
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
+const _HELD_MAGAZINE := &"HoldMagazine"
+const _DROPPED_MAGAZINE := &"DroppedMagazine"
 
 @export_group("Nodes")
 ## The slot that holds the character's model.
@@ -107,12 +115,57 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 @export_range(0.0, 1.0, 0.01) var reload_weight := 0.0
 @export_range(0.0, 1.0, 0.01) var reload_share := 0.0
 
+@export_group("Magazine")
+## The weapon's child that is its magazine (a mesh): it leaves the grip in a reload, and its mesh
+## is the one in the left hand and the one that falls.
+@export var magazine_part := ^"Pistol/Magazine"
+## The left hand's fingers closed on the new magazine, from the belt until the grip's foot comes
+## down over them. Solved with the poses, never typed.
+@export var carry_pose: HandPose
+## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers go
+## from `carry_pose` to `magazine_pose`: the latest that keep them out of the grip. Solved.
+@export var carry_release := Vector2(0.4, 0.6)
+## The share of the reload clip at which the left hand, down at the belt, takes the new magazine.
+@export_range(0.0, 1.0, 0.01) var reload_take := 0.25
+## The share of the reload clip at which the old magazine leaves the grip, when the hold has no
+## weapon definition to read it from (the definition's first reload sound, the magazine out).
+@export_range(0.0, 1.0, 0.01) var reload_drop := 0.2
+## How fast the old magazine leaves the grip, down its line, in metres a second (the weapon's own
+## motion is added).
+@export_range(0.0, 5.0, 0.05) var drop_speed := 0.5
+## How long the old magazine lies in the world before it goes, in seconds (one a character: the
+## next reload takes it back).
+@export_range(0.0, 60.0, 0.5) var dropped_life := 8.0
+## What the old magazine falls onto (it is on no layer: nothing meets it, no shot, no camera).
+@export_flags_3d_physics var dropped_mask := PhysicsLayers.WORLD | PhysicsLayers.PROPS
+
+@export_group("Slide")
+## The weapon's child that is its slide: locked back while the weapon is empty, it runs forward
+## when the reload's last sound plays (the slide released).
+@export var slide_part := ^"Pistol/Slide"
+## How far the slide stands back while it is locked, along the weapon's +X, in metres.
+@export_range(0.0, 0.1, 0.001) var slide_travel := 0.04
+## The share of the reload clip at which the slide runs forward, when the hold has no weapon
+## definition to read it from (the definition's last reload sound).
+@export_range(0.0, 1.0, 0.01) var reload_slide := 0.85
+
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
 var _fingers: HandPoseModifier
 var _marker: Node3D
 var _magazine: Node3D
+# The pistol's own magazine and slide, the new magazine on the left hand's bone and the old one
+# once it fell; where the pistol's magazine was on the last frame, for the speed it falls with.
+var _gun_magazine: Node3D
+var _held_magazine: BoneAttachment3D
+var _dropped: RigidBody3D
+var _dropped_left := 0.0
+var _magazine_was := Vector3.ZERO
+var _magazine_speed := Vector3.ZERO
+var _slide: Node3D
+var _slide_rest := Transform3D.IDENTITY
+var _slide_released := false
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
 
@@ -123,7 +176,15 @@ func _ready() -> void:
 	_build.call_deferred()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _gun_magazine != null and is_instance_valid(_gun_magazine) and delta > 0.0:
+		var at := _gun_magazine.global_position
+		_magazine_speed = (at - _magazine_was) / delta
+		_magazine_was = at
+	if _dropped != null and _dropped_left > 0.0:
+		_dropped_left -= delta
+		if _dropped_left <= 0.0:
+			_park_dropped()
 	refresh()
 
 
@@ -149,11 +210,16 @@ func refresh() -> void:
 	if _arm == null:
 		return
 	_plan_left()
+	_place_magazines()
+	_place_slide()
 	# The right thumb makes room while the left hand waits at the far end of its way, before it
 	# comes in, and lies on the weapon again once that hand is back out there.
 	_grip.open_weight = _left.room
 	_weigh(_arm, held_weight * _left.arm)
-	_weigh(_fingers, held_weight * _left.arm)
+	# The fingers hold the new magazine at the belt too, where the clip's arm has the hand.
+	var fingers := maxf(_left.arm, _left.carry)
+	_weigh(_fingers, held_weight * fingers)
+	_fingers.third_weight = _left.carry / fingers if fingers > 0.0 else 0.0
 	if _arm.active:
 		# The hand's place in the weapon: where it holds, moved out along its way; from the reach
 		# of a reload on, blended with its place under the magazine, down the approach line.
@@ -197,6 +263,9 @@ func _plan_left() -> void:
 	_left.reach = reload_reach
 	_left.insert = reload_insert
 	_left.back = reload_return
+	_left.drop = _sound_share(0, reload_drop)
+	_left.take = reload_take
+	_left.carry_release = carry_release
 	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
 
 
@@ -210,6 +279,16 @@ func modifiers() -> Array[SkeletonModifier3D]:
 	return found
 
 
+## The new magazine on the left hand's bone (its child is the mesh), or null.
+func held_magazine() -> BoneAttachment3D:
+	return _held_magazine
+
+
+## The old magazine that fell in the last reload, or null before the first.
+func dropped_magazine() -> RigidBody3D:
+	return _dropped
+
+
 ## How far the left hand stopped from its place on the last update, in metres.
 func support_shortfall() -> float:
 	return _arm.shortfall if _arm != null and is_instance_valid(_arm) else 0.0
@@ -219,6 +298,104 @@ func support_shortfall() -> float:
 ## too short for the hand's place, in metres (0 when it reached).
 func support_backed() -> float:
 	return _arm.backed if _arm != null and is_instance_valid(_arm) else 0.0
+
+
+# The share of the reload clip at which the held weapon's reload sound `index` plays (from its end
+# when negative), or `fallback` for a hold with no definition to read.
+func _sound_share(index: int, fallback: float) -> float:
+	var definition := animation.held_definition() if animation != null else null
+	if definition == null or definition.reload_sound_at.is_empty():
+		return fallback
+	var shares := definition.reload_sound_at
+	return shares[index if index >= 0 else shares.size() + index]
+
+
+# Shows the pistol's magazine or the new one in the hand as the plan has them, and drops the old
+# one as it leaves the grip.
+func _place_magazines() -> void:
+	if _gun_magazine == null or not is_instance_valid(_gun_magazine):
+		return
+	var in_gun := _left.magazine_in_gun
+	if _gun_magazine.visible and not in_gun:
+		_drop()
+	if _gun_magazine.visible != in_gun:
+		_gun_magazine.visible = in_gun
+	if _held_magazine != null and _held_magazine.visible != _left.magazine_in_hand:
+		_held_magazine.visible = _left.magazine_in_hand
+
+
+# The old magazine leaves the grip: a body of the world where the pistol's was, falling down the
+# grip's line with the weapon's own motion. One a character, made the first time.
+func _drop() -> void:
+	if _dropped == null:
+		_dropped = _make_dropped()
+		add_child(_dropped)
+	_dropped.process_mode = Node.PROCESS_MODE_INHERIT
+	_dropped.visible = true
+	_dropped.global_transform = _gun_magazine.global_transform
+	_dropped.linear_velocity = (
+		_magazine_speed - _gun_magazine.global_basis.y.normalized() * drop_speed
+	)
+	_dropped.angular_velocity = Vector3.ZERO
+	_dropped_left = dropped_life
+
+
+# Takes the old magazine out of the world (out of the physics too) until the next reload.
+func _park_dropped() -> void:
+	_dropped.visible = false
+	_dropped.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+# A body for the old magazine: the pistol's magazine mesh in a box of its size, on no layer.
+func _make_dropped() -> RigidBody3D:
+	var body := RigidBody3D.new()
+	body.name = _DROPPED_MAGAZINE
+	body.collision_layer = 0
+	body.collision_mask = dropped_mask
+	body.continuous_cd = true
+	body.mass = 0.1
+	var shown := (_gun_magazine as MeshInstance3D).mesh
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = shown
+	body.add_child(mesh)
+	var bounds := shown.get_aabb()
+	var box := BoxShape3D.new()
+	box.size = bounds.size
+	var shape := CollisionShape3D.new()
+	shape.shape = box
+	shape.position = bounds.get_center()
+	body.add_child(shape)
+	return body
+
+
+# The slide: back while the weapon is empty, until the reload's last sound releases it.
+func _place_slide() -> void:
+	if _slide == null or not is_instance_valid(_slide):
+		return
+	var empty := false
+	var character := animation.character if animation != null else null
+	if character != null and character.weapon != null:
+		var ammo: Variant = character.weapon.ammo
+		empty = ammo is int and ammo == 0
+	if not empty:
+		_slide_released = false
+	elif reload_weight > 0.0 and reload_share >= _sound_share(-1, reload_slide):
+		_slide_released = true
+	var place := _slide_rest
+	if empty and not _slide_released:
+		place.origin += _slide_rest.basis.x.normalized() * slide_travel
+	if not _slide.transform.is_equal_approx(place):
+		_slide.transform = place
+
+
+# A node's place in `root`'s space, from the transforms between them.
+static func _in(node: Node3D, root: Node3D) -> Transform3D:
+	var place := Transform3D.IDENTITY
+	var cursor := node
+	while cursor != null and cursor != root:
+		place = cursor.transform * place
+		cursor = cursor.get_parent() as Node3D
+	return place
 
 
 # A modifier's weight; written only when it changes, since the setters make the skeleton work.
@@ -238,6 +415,12 @@ func _build() -> void:
 	_grip = null
 	_arm = null
 	_fingers = null
+	if _held_magazine != null and is_instance_valid(_held_magazine):
+		_held_magazine.get_parent().remove_child(_held_magazine)
+		_held_magazine.queue_free()
+	_held_magazine = null
+	_gun_magazine = null
+	_slide = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:
 		return
@@ -260,7 +443,35 @@ func _build() -> void:
 		_fingers.pose = support_pose
 		_fingers.second = magazine_pose
 		_fingers.open = open_pose
+		_fingers.third = carry_pose
 		_arm.opener = _fingers
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
+		_build_magazines(seat.get_child(0) as Node3D)
 	refresh()
+
+
+# The new magazine on the left hand's bone, placed as the pistol's own is seen from the magazine
+# marker (where the hand's bone sits under it), so it is where the pistol's will be once it is in;
+# and the slide's place at rest.
+func _build_magazines(weapon: Node3D) -> void:
+	_gun_magazine = weapon.get_node_or_null(magazine_part) as Node3D
+	_slide = weapon.get_node_or_null(slide_part) as Node3D
+	if _slide != null:
+		_slide_rest = _slide.transform
+		_slide_released = false
+	if _gun_magazine == null or not _gun_magazine is MeshInstance3D or _magazine == null:
+		_gun_magazine = null
+		return
+	_gun_magazine.visible = true
+	if _gun_magazine.is_inside_tree():
+		_magazine_was = _gun_magazine.global_position
+	_held_magazine = BoneAttachment3D.new()
+	_held_magazine.name = _HELD_MAGAZINE
+	_held_magazine.bone_name = support_arm[2]
+	_held_magazine.visible = false
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = (_gun_magazine as MeshInstance3D).mesh
+	mesh.transform = _magazine.transform.affine_inverse() * _in(_gun_magazine, weapon)
+	_held_magazine.add_child(mesh)
+	_skeleton.add_child(_held_magazine)

@@ -1,7 +1,8 @@
 ## Writes what the pistol hold solver needs as one JSON file (kit #1001): for each mannequin the
 ## skeleton (names, parents, rests), the skin of both arms from the elbow down (rest vertices,
 ## bones, weights, bind poses, triangles) and every bone's pose in the clips the pistol is held
-## in, as Godot plays them; and the pistol's triangles, sockets and seat. The solver
+## in, as Godot plays them; and the pistol's triangles (all of them, and each moving part's on its
+## own: the magazine the left hand carries, kit #1052), sockets and seat. The solver
 ## (`solve_pistol_hold.py`) works on this dump, never on a clip opened in Blender, whose hand
 ## sits 2 to 3 cm from Godot's (kit docs, tools/blender/weapons.md).
 ##
@@ -135,17 +136,23 @@ func _pistol(stage: HoldStage) -> Dictionary:
 	var pistol := stage.pistol
 	var inverse := pistol.global_transform.affine_inverse()
 	var triangles := []
+	var parts := {}
 	for node in pistol.find_children("*", "MeshInstance3D", true, false):
 		var instance := node as MeshInstance3D
 		var to_root := inverse * instance.global_transform
+		var own := []
 		for vertex in instance.mesh.get_faces():
 			var at := to_root * vertex
-			triangles.append([at.x, at.y, at.z])
+			own.append([at.x, at.y, at.z])
+		triangles.append_array(own)
+		parts[instance.name] = own
 	var sockets := {}
 	for node in pistol.find_children("*", "Node3D", true, false):
 		if not node is MeshInstance3D:
 			sockets[node.name] = _xf(inverse * (node as Node3D).global_transform)
-	return {"triangles": triangles, "sockets": sockets, "seat": _xf(pistol.transform)}
+	return {
+		"triangles": triangles, "parts": parts, "sockets": sockets, "seat": _xf(pistol.transform)
+	}
 
 
 # A transform as twelve numbers: the basis' columns x, y, z, then the origin.
