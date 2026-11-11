@@ -254,7 +254,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
 - **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
   each arm with a `HoldArm` and closes the fingers with poses solved on the rifle's own `Grip`, `Trigger` and
   `Support`, as the pistol's are. How it is built, its numbers and what went wrong on the way:
-  [The rifle in both hands](../../engines/godot/third-person/shooting.md#rifle-hands).
+  [The rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands).
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold

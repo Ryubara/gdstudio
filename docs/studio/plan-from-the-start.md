@@ -20,6 +20,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: a bot sends a person's command (it looks where it acts and moves under that view), so a rule on the view holds
   it as it holds a person ([Bots](../gamedev/bots.md)).
 - Plan: one camera input per behaviour the maintainer names; aim zoom only from the aim button.
+- Plan: what each press does per weapon (aim allowed, fire zooms, fire needs aim, crosshair, its zoom) as fields of the
+  weapon's data before a second weapon exists; the camera's fire zoom came first and the fists zoomed on every punch
+  ([Ammo, reloading and switching](../engines/godot/third-person/shooting.md#weapons), gdstudio #1255).
 - Plan: a reference camera, tuned (framing, damping, interpolation, FOV as a number) before content.
 - Plan: for a game camera, which node owns each framing value and who may write it (distance on the rig, the shoulder on
   the Camera node's own H and V Offset, nothing else writing them, the addon's host copy included), and one test that

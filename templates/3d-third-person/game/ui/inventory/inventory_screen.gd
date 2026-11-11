@@ -305,6 +305,7 @@ func _make_cell(parent: Node, kind: InventoryCell.Kind, slot: int) -> InventoryC
 func _fill_weapon(cell: InventoryCell) -> void:
 	var definition: WeaponDef = (
 		_loadout.unarmed if cell.slot == WeaponLoadout.UNARMED else _loadout.slots[cell.slot]
+		as WeaponDef
 	)
 	var ammo := ""
 	if definition.uses_ammo():
@@ -419,6 +420,7 @@ func _show_detail(cell: InventoryCell) -> void:
 	if cell != null and cell.kind == InventoryCell.Kind.WEAPON and _loadout != null:
 		var definition: WeaponDef = (
 			_loadout.unarmed if cell.slot == WeaponLoadout.UNARMED else _loadout.slots[cell.slot]
+			as WeaponDef
 		)
 		title = definition.display_name
 		text = "In your hands." if cell.slot == _chosen_weapon() else "Press to take it in hand."

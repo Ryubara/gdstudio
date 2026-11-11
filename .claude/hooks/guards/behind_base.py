@@ -9,9 +9,8 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote
 
-from .merges import _API_MERGE, api_method, merge_target
+from .merges import merge_asks
 from .workspace import WARNINGS, git, workspace_of
 
 _PR_URL = re.compile(r"github\.com/([\w.-]+/[\w.-]+)/pull/\d+")
@@ -100,18 +99,8 @@ def check_behind(words: list[str], cwd: Path) -> list[str]:
     """A merge command (`gh pr merge`, with or without `--auto`, or a write to `gh api .../pulls/<n>/merge`) on a pull
     request whose head does not contain the tip of its base branch. GitHub's own answer decides; when it cannot be
     asked the call goes through with a warning, never silently."""
-    if len(words) < 3 or words[1] not in ("pr", "api"):
-        return []
-    asks: list[tuple[str, str | None]] = []
-    if words[1] == "pr" and words[2] == "merge" and "--disable-auto" not in words:
-        asks.append(merge_target(words))
-    elif words[1] == "api" and words[2] != "graphql" and api_method(words) != "GET":
-        for word in words[2:]:
-            merge = _API_MERGE.search(unquote(word))
-            if merge:
-                asks.append((merge.group(2), merge.group(1)))
     reasons = []
-    for target, repo in asks:
+    for target, repo in merge_asks(words):
         found, why = behind(target, repo, cwd)
         if found is None:
             WARNINGS.append(

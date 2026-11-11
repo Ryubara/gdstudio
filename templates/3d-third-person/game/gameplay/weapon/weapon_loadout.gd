@@ -48,8 +48,11 @@ const UNARMED := -1
 @export var character: Character
 
 @export_group("Weapons")
-## The weapons carried, in order: next and previous go through them, then the empty hands.
-@export var slots: Array[WeaponDef] = []
+## The weapons carried, in order: next and previous go through them, then the empty hands. Each
+## item is a `WeaponDef` (the inspector offers only those); the array is typed `Resource` because an
+## exported `Array[WeaponDef]` leaves scripts in use at exit under GdUnit4 (Godot 4.7.2, kit #1249).
+## A list given to it is an `Array[Resource]`.
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:WeaponDef") var slots: Array[Resource] = []
 ## The empty hands: a weapon of its own (the fists' blows). Empty: there are no empty hands.
 @export var unarmed: WeaponDef
 ## The slot in the hands at the start (0 is the first; -1 the empty hands).
@@ -75,9 +78,9 @@ func _ready() -> void:
 	if character != null:
 		character.item_collected.connect(_on_item_collected)
 	_kept.clear()
-	for definition in slots:
+	for definition: WeaponDef in slots:
 		_make_view(definition)
-	for definition in slots:
+	for definition: WeaponDef in slots:
 		_kept.append([definition.magazine_size, definition.start_reserve] if definition else [0, 0])
 	var first := clampi(start_slot, UNARMED, slots.size() - 1)
 	if first == UNARMED and unarmed == null:
@@ -194,7 +197,7 @@ func toggle_unarmed() -> void:
 func take_ammo(item_id: StringName, amount: int) -> bool:
 	var taken := false
 	for slot in slots.size():
-		var definition := slots[slot]
+		var definition := slots[slot] as WeaponDef
 		if definition == null or definition.ammo_item == &"" or definition.ammo_item != item_id:
 			continue
 		taken = true
@@ -338,7 +341,8 @@ func _show_views() -> void:
 	if model == null:
 		return
 	var shown := _node_under_model(_definition(_held).view) if _definition(_held) else null
-	var all: Array[WeaponDef] = slots.duplicate()
+	var all: Array[WeaponDef] = []
+	all.assign(slots)
 	all.append(unarmed)
 	for definition in all:
 		if definition == null:
@@ -381,7 +385,7 @@ func _node_under_model(path: NodePath) -> Node3D:
 func _definition(slot: int) -> WeaponDef:
 	if slot == UNARMED:
 		return unarmed
-	return slots[slot] if slot >= 0 and slot < slots.size() else null
+	return slots[slot] as WeaponDef if slot >= 0 and slot < slots.size() else null
 
 
 func _time_of(slot: int, holster: bool) -> float:

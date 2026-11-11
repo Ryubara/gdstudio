@@ -70,6 +70,13 @@ the spread's place for `restore()`.
   `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
   2026-11-08; since gdstudio #901 the ray is an argument (`Weapon.fire(origin, direction)`) and the weapon reads no
   camera.
+- **Approach:** On a character, aim at the body part the crosshair's ray meets, not at the capsule it meets first
+  (`HitZones.aimed_point`; a ray between the parts goes on past the body), and prove it with the player's rig and
+  pistol at 2 to 4 m, the crosshair on the edge of the head and beside it (`tests/gameplay/test_close_shot.gd`).
+  **Watch out for:** the muzzle sits about 0.4 m left of and below the shoulder camera's line, so a shot sent at the
+  capsule's front (0.25 m before the head) crossed the crosshair's line there and went on up and to the right, past
+  the head's edge to the wall, while the gun pointed at the target; a test at 12 m or on the head's middle passes
+  either way. **Seen:** gdstudio #1251, 2026-11-11 (found by the maintainer).
 - **Approach:** Hand a weapon the ray it aims along and let the body make it from its command; prove it with a second
   character whose target is behind the local camera's back, with a world that has no camera, and with the old
   camera formula kept as a test fixture (`tests/fixtures/camera_aim.gd`) over a sweep of poses. **Watch out for:**
@@ -175,6 +182,90 @@ the spread's place for `restore()`.
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](../camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
 
+## Aim layer {#aim-layer}
+
+<!-- new section: the crouch-aim-shoot section covers the aim clips and the weapon layer; nothing said how a weapon is
+     pointed at the aim in a move whose pose the clips were not made for (a slide pointed the pistol at the sky) -->
+
+The weapon layer's aim clips are posed for a body standing upright: the upper body takes the aim pose relative to the
+hips. A move that leans the hips (the slide lies back nearly flat, a crouch or a lying body bends them) carries the
+whole aim with it, so sliding pointed the pistol at the sky (the layer has to bend the chest about 88 degrees to level
+it), and a slide that keeps the body along its line cannot aim to its side at all. The aim layer is an aim offset over
+the move's pose: the `AimLayer` node of the character makes an `AimOffsetModifier` (a `SkeletonModifier3D`) on the
+model's skeleton that, after the clips, turns `spine_01` to `spine_03` by the pitch and yaw that put the muzzle on the
+aim. The arms, hands and weapon ride the spine, so they follow.
+
+What engines offer for the same job: Unreal's Aim Offset is a blend space of additive aim poses by yaw and pitch
+([Aim Offset](https://dev.epicgames.com/documentation/en-us/unreal-engine/aim-offset-in-unreal-engine)), which needs a
+pose set per move; Unity's Multi-Aim Constraint turns a chain of bones toward a target, each by a weight
+([Animation Rigging](https://docs.unity3d.com/Packages/com.unity.animation.rigging@1.3/manual/constraints/MultiAimConstraint.html)).
+The layer is the second kind: it needs no clips (no custom aim poses were made) and works for any weapon with a muzzle
+and any move, measured on the pose of that very frame. Godot's own modifiers aim one bone at a node
+([SkeletonModifier3D](https://docs.godotengine.org/en/stable/classes/class_skeletonmodifier3d.html)), not a point on
+something a chain carries, so it is a modifier of its own, in the shape of `HoldArm`.
+
+**The solve.** The muzzle's pose is worked out from the bones' local poses (the chain's parent, the chain, then the
+bones from the last spine bone down to the hand the `BoneAttachment3D` rides, times the muzzle's fixed place on it, read
+once). The aimed direction runs from the muzzle to a point `converge_distance` (15 m) along the character's aim ray
+(`Character.aim_ray()`, the last two steps blended by the physics interpolation fraction, as the aim clips' pitch is),
+with its heading off the model's +Z and its elevation held within the move's limits. The pitch is solved first, about
+the model's side axis (the chest bending forward or back), so the muzzle reaches the aim's elevation; then the yaw about
+up, to its heading. Both are exact for the direction. The whole turn is one rotation, and each bone turns by its share
+of it (`slerp` from identity) about the same axis, so the shares add up to it exactly; a second pass takes in the
+muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to 0.5 with two, in `test_aim_layer.gd`).
+
+**Order and weight.** Modifiers run in the order of the skeleton's children, so the layer sits right after the
+`WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
+the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
+`WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
+turns nothing.
+
+**Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
+and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
+`release_time` (0.12 s). In the close-ups the pistol's recoil tips the gun about 30 degrees up for a few frames.
+
+**Moves and limits.** Each move's tuning holds an `AimLimits` (on or off, the most left and right of the way the body
+faces, the most up and down): `CharacterTuning.aim_limits` standing and `crouch_aim_limits` crouched (70, 70, 45, 45),
+`SlideTuning.aim_limits` (75 each side, 50 up, 70 down), `ProneTuning.aim_limits`; `Character.aim_limits` is the one of
+the move it is in. Standing, crouched and lying the body still turns to the view while aiming, so the layer covers the
+turn's lag and the clips' own error. Sliding, the body keeps along the slide (`CharacterSlide.aim_facing`) while the aim
+is within the side limits; past them it turns just enough to bring the aim back in reach, or, for a weapon whose
+`WeaponDef.past_aim_limit` is `REFUSE_SHOT`, keeps its line and the trigger does nothing until the aim is in reach
+(`AimLimits.REACH_MARGIN`, 2 degrees, keeps the edge from flickering). The facing and the refusal are in the step, so a
+server and a predicting client agree; nothing new is sent.
+
+**Online.** The layer is a pose on each machine. A puppet is placed with `facing` and `view_pitch` from the snapshot and
+its `view_yaw` is its facing, so on another screen a sliding player's pistol follows the aim's pitch but points along
+the body's facing, not to its side: the aim's yaw off the body is not in the snapshot (gdstudio #1277).
+
+**How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
+change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
+need nothing from it and it needs nothing from them: a steadier clip only makes its turn smaller. A one-handed hold
+whose support arm is off leaves the layer as it is.
+
+**What it costs** (`tools/bench/aim_layer_cost.tscn`, 40 dressed players aiming 30 degrees off their facing, the
+modifier timed alone on a shared machine under load): about 31 to 37 microseconds a character a frame with two passes,
+25 with one (`passes`), against 9 for the hold's support arm in the same run. Only an aiming character pays it (the
+modifier is off at weight 0). The web export was not measured.
+
+The tests are `tests/gameplay/test_aim_layer.gd` (sliding ahead, 50 degrees left and right, 20 up and 25 down within 3
+degrees with the body along the slide; without the layer the slide misses by more than 10; past the reach the body turns
+by the overshoot; a refusing weapon keeps the body and fires nothing until the aim is back; standing and crouched; the
+limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
+(`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
+
+- **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
+  *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
+  turn clamped, is ill-conditioned when the clip points the muzzle near vertical (the slide: the heading of a direction
+  almost straight up is noise): the first draft hit its limits and missed by 15 to 90 degrees while standing passed.
+  **Seen:** gdstudio #1253, 2026-11-11 (`test_aim_layer.gd`).
+- **Approach:** Turn a chain of bones toward a goal by one rotation shared out by `slerp` from identity, each part about
+  the same axis, walk the chain's global poses forward from its parent, and read the muzzle's place on its attachment
+  once. **Watch out for:** two rotations (pitch and yaw) each shared over the chain double the bone writes, and
+  `HandPoseModifier.global_pose` called for every bone and every muzzle read walks to the root each time. **Seen:**
+  gdstudio #1253, 2026-11-11 (`aim_layer_cost.tscn`).
+
 ## Ammo, reloading and switching {#weapons}
 
 <!-- new section: the template had one weapon with its numbers on the node; nothing said how a weapon is data, how
@@ -199,7 +290,8 @@ weapon is a new `.tres`; nothing else changes.
   hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
   character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
   from the chest.
-- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` and
+- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` (`WeaponDef`s,
+  typed `Array[Resource]` with a `WeaponDef` hint: [why](../test-exit-leaks.md#typed-array-export-and-self-cast)) and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
   away, shows the model of the one in the hands, and fills a reserve from a pickup of its `ammo_item`. A switch takes
   the old weapon's `holster_time` (it cannot fire or reload; a reload under way is cut short and gives nothing), then
@@ -219,6 +311,16 @@ weapon is a new `.tres`; nothing else changes.
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
   reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
   `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+- **What aim and fire do** is the weapon's too (`WeaponDef`'s Aim and zoom group, gdstudio #1255): `can_aim` (off:
+  the aim button does nothing), `fire_needs_aim` (on: fire shoots only with the aim button held, and never with
+  `can_aim` off; `WeaponDef.fire_allowed()`), `fire_zooms` (off: holding fire leaves the camera's framing alone; the
+  camera's own `zoom_when_firing` must be on too) and `show_crosshair` (off: the `Crosshair` stays hidden). With
+  `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`, `fire_distance` and `zoom_offset` (further to
+  the chosen shoulder and up, blended in with the zoom) replace the camera's. The defaults keep the pistol as it was; the
+  fists have `fire_zooms` off, so a punch does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
+  from the definition its server body holds too (gameplay); `PlayerCamera.held_definition()` and the `Crosshair` read
+  the rest every frame (local, never sent), so every toggle applies while the game runs. Tests:
+  `test_weapon_aim_toggles.gd`; capture: `tools/capture/fire_zoom_tour.tscn` (pistol fire zooms, fist fire does not).
 
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
 the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
@@ -264,190 +366,6 @@ phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD
   the same commit. **Watch out for:** `ExportPins.differences` fails on any export it has no pin for, so the new
   `view_scene` passed every suite run during the work and failed only in the full run. **Seen:** gdstudio #889,
   2026-11-10.
-
-## Weapon pickups and a two-handed hold {#weapon-pickups}
-
-<!-- new section: the weapons section covers a loadout fixed in the scene; nothing said how a game hands a character a
-     new weapon, or how a long gun is held when the animation library has no clip for it (gdstudio #889) -->
-
-A weapon lying in the level is a `WeaponPickup` (`gameplay/pickup/weapon_pickup.gd` + `weapon_pickup.tscn`, a
-`Pickup` that gives a weapon): its `weapon` (a `WeaponDef`) and `rounds`, the spin, bob, sound and `respawn_time` of
-`Pickup`, and the nodes `Visual` (the model goes under it), `Shape` (a 1.2 m wide cylinder), `Glow` (an unshaded
-additive ring on the ground in `tint`), `Light` (a 2.2 m omni light in `tint`, no shadow) and `Sound`. A weapon's own
-pickup is a scene that inherits it and puts the model under `Visual`: the template's `rifle_pickup.tscn` (the rifle,
-60 rounds, 20 s) stands in the prototype map between the spawn and the range.
-
-- **What it gives** goes through the character's loadout, `WeaponLoadout.give(definition, rounds)`: a weapon not
-  carried goes in a new slot with a full magazine and `rounds` in the reserve and is brought out
-  (`switch_to_new`, on), one already carried takes only the rounds up to `max_reserve` (`Given.AMMO`), and one with
-  a full reserve takes nothing (`Given.NOTHING`), so the pickup stays. A body with no `WeaponLoadout` leaves it. The
-  pickup says `weapon_taken(collector, definition, given)` and `collected`. Any `Pickup` can give something else by
-  overriding `_give(body) -> bool` and `_set_shown(shown)`; `Visual` can be any `Node3D` and bobs about its height in
-  the scene.
-- **Gameplay and cosmetics.** The carried list is in the loadout's step state (`CharacterState.loadout[6]`), so a
-  server and a predicting client agree on what a pickup gave, and a restore takes a given weapon back. The spin, the
-  glow, the light and the sound are cosmetic. Adding to `slots` at run time is additive: a screen that lists the
-  weapons (an inventory) reads `slots` and redraws on `slots_changed` (a weapon given, or taken back by a restore).
-- **The two-handed hold** is `TwoHandHold` (`gameplay/weapon/two_hand_hold.gd` + `two_hand_hold.tscn`; the rifle's
-  `rifle_held.tscn` inherits it and adds the gun, the hands' places and the finger poses), the definition's `view`. It
-  is not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time
-  the character carries the weapon, so a character without a rifle carries none of its nodes. Its parts are below:
-  [the rifle in both hands](#rifle-hands).
-- **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
-  60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 sounds
-  (`assets/audio/rifle/`, MIT), the shot at -27 dB.
-
-Tests: `test_weapon_pickup.gd` (walking into it gives the rifle and its rounds, it comes back after its time, with the
-rifle carried it gives only rounds, with a full reserve it stays, the rifle fires while the button is held, a body with
-no loadout leaves it, both hands reach their places and let go when it is put away, the step state takes a given
-weapon back) and `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)). Captures:
-`tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
-burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
-`tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
-
-Cost, measured on the desktop: a pickup's spin and bob 0.8 to 0.9 microseconds a frame; ten rifle pickups drew 35 draw
-calls on the Compatibility renderer and 14 on Forward+, the same with their lights as without (each rifle is its near
-level's three meshes and the ring). The hold's cost is with [its section](#rifle-hands).
-
-- **Approach:** In a test that walks a character through a pickup with a respawn time, make the respawn longer than
-  the whole walk in and out, then wait for it. **Watch out for:** with a 0.5 s respawn the rifle pickup came back
-  while the character was still walking out over it and gave its rounds twice (180 in reserve, not 120). **Seen:**
-  gdstudio #889, 2026-11-10.
-- **Approach:** When a part moves from the scene to being made on demand (the held rifle under `Model`, made by the
-  loadout when it is first carried), grep `tools/` for every `get_node` of it too and run each capture scene once: the
-  export leaves `tools/` out and no suite loads it. Look such a node up when it is needed (`get_node_or_null`), never in
-  `_ready`. **Watch out for:** `rifle_tour.gd` took `RifleHeld` in `_ready`, so after the change every frame of the tour
-  printed a `SCRIPT ERROR` and nothing measured the hold, found only when the tour was run for the next round.
-  **Seen:** gdstudio #889, 2026-11-10 (fix: `_rifle_out()` looks it up when the rifle is out).
-
-### The rifle in both hands {#rifle-hands}
-
-<!-- new section: the weapons page's hand rules are written for a weapon that rides a hand bone in a clip; a long gun
-     with no clip is placed in the model's space with both arms reaching it, and its switch and reload are built in
-     code (gdstudio #889, after the maintainer's review of 2026-11-11) -->
-
-How a carbine is held, which the hold copies. The firing hand is high on the pistol grip, with no space left under
-the receiver, and the support hand is forward on the hand guard with its thumb along the rail's side, pulling the
-rifle back into the shoulder ([Guns & Ammo](https://www.gunsandammo.com/editorial/tactical-shooting-get-ahold-of-that-carbine/248479)).
-The trigger finger is taught straight along the lower receiver until the shot
-([Soldier Systems](https://soldiersystems.net/2023/07/15/blast-from-the-past-follow-through-consulting-weapon-grip-for-rapid-movement/)).
-At the low ready the butt stays in the shoulder's pocket and only the muzzle goes down, about 45 degrees
-([The Armory Life](https://www.thearmorylife.com/ready-up-three-ar-rifle-presentation-techniques/),
-[Safariland](https://inside.safariland.com/?p=31063)). In a reload the support hand fetches the new magazine from its
-pouch and seats it ([Pew Pew Tactical](https://www.pewpewtactical.com/how-to-reload-ar-15/)). Ours beyond those
-pages: three fingers round the grip's front with the thumb round its far side, the support palm under the hand
-guard with four fingers up its right side and the thumb up its left, the firing hand on the grip through the reload
-and the old magazine taken out by hand (the model's magazine is one node, so it leaves and comes back).
-
-- **The stance.** The butt sits in the right shoulder's pocket, a place from `spine_03` in the clip (`low_pocket`,
-  `low_pitch` 35, `low_yaw` 20 at rest; `aim_pocket` along `view_pitch` when the character aims or for
-  `shot_hold_time` after a shot; `raise_time` 0.15 s, `pitch_limit` 60), so a crouch carries the gun. The chest stands
-  turned `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest
-  off first, so a walk or a run that swings the shoulders keeps the left shoulder forward. When the hand guard is
-  still farther from the left shoulder than `arm_stretch` (0.97) of the arm, the gun comes back along its barrel until
-  the hand reaches (`pull_limit`).
-- **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
-  stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
-  `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
-  mannequins; the engine's `TwoBoneIK3D` aimed at a node is a frame late,
-  [the pistol's hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
-- **The fingers** are a `HandPoseModifier` per hand: `rifle_grip_pose` (three fingers round the grip, the thumb round
-  its left side, the index finger straight along the right side over the trigger guard), `rifle_trigger_pose` blended
-  over it as the gun comes up (`raised_amount()`: the finger is on the trigger only while aiming or firing, and off it
-  through a reload), `rifle_support_pose` (the palm under the hand guard, four fingers up its right side, the thumb up
-  its left), `rifle_open_pose` and `rifle_magazine_pose` for the reload. The places and the poses are written by
-  `tools/hold/solve_rifle_hold.py` from the rifle's own triangles and both mannequins' skins (`dump_hold_rig.gd`, then
-  `write_hold.gd -- <file> rifle`), so no number of them is typed.
-- **A switch** is one sequence on the loadout's own times. Going away, the gun goes down to its stow place
-  (`stow_pocket`, `stow_pitch`, `stow_yaw`) with both hands on it through the `holster_time`, is hidden in the tick
-  the next weapon appears in the right hand, and the arms go from the gun's places to that weapon's pose while it
-  comes up (`reach_amount()` falls with `WeaponLoadout.lowered_amount()`). Coming out, the arms go to the stow place
-  while the weapon before it goes down, the gun appears in the hands there and comes up through its `draw_time`.
-- **The reload** takes only the left hand, by `Weapon.reload_progress()`: its knuckles open first and the rest of
-  each finger after them while the hand drops 6 mm (`HandPoseModifier.open_first`), then it goes down and out to the
-  thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
-  (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
-  at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
-  The `magazine` node rides the hand.
-
-Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
-and the arms reach their places):
-
-| Hand | Deepest in | Holding part farthest off |
-| --- | --- | --- |
-| Female, right | 1.3 mm (1.2 on the trigger) | the palm 4.4 mm, the fingers 2.4 |
-| Male, right | 1.4 mm (the palm) | a finger 4.6 mm, the thumb's tip 4.4 |
-| Female, left | 1.0 mm | 2.2 mm |
-| Male, left | 0.9 mm | 3.4 mm |
-
-Before the rework the clip's fist stood 22 mm inside the grip with its fingers 8 to 17 mm in and the index finger off
-the trigger, the left hand 14 to 45 mm inside the hand guard, and the left arm 5 to 98 mm short of its place in the
-walk, jog and sprint clips. On the way between its places in the reload the left hand passes at most 4.4 mm
-through the hand guard (measured every half hundredth; the test caps it at 6 mm, as the pistol's).
-
-Tests, `tests/gameplay/test_rifle_hold.gd` with `tests/fixtures/rifle_stage.gd` (a mannequin and the hold posed by
-hand): both hands within the 2 mm and 5 mm in six locomotion clips at the low ready and aimed, and with the view 30
-degrees up and down, on both mannequins, the right palm and thumb among the holding parts; the index finger within
-12 mm of `Trigger` only while the rifle is up; the reload every 2 hundredths; and on
-the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
-reload by its key, and a switch to the pistol and back (never two weapons, never none, the rifle never shown without
-both hands on it, the arms on its places before it shows and leaving after it hides).
-
-Cost, headless on the desktop (`tools/bench/hold_cost.tscn -- rifle`, 40 mannequins, the least of five runs each on
-a machine other agents were loading): the rifle's hold 77 microseconds a character a frame against 35 for the
-pistol's aimed hold in the same session, so about 2.2 times it (the pistol's figure on a quiet machine is 12.6). It
-is five modifiers and the hold's own `_process`; it is worked out on each machine from `aim_amount`, `view_pitch`,
-the shots, the reload and the loadout's switch, never sent. Not measured in a browser yet.
-
-Open: the mannequin's arm is short for this rifle's stock. For the left hand to reach the hand guard the butt sits
-5 to 9 cm inside the front of the shoulder (the stock's deepest point against the torso's skin, both mannequins, low,
-aimed and stowed; `pull_limit` takes it further in a sprint). From the game camera it is hidden; from the side the
-stock's end is in the chest. A shorter stock on the model or a support place further back would cure it.
-
-- **Approach:** Judge a hold from both sides of each hand, from above and from the game camera, in every state the
-  weapon has, and test each thing a person would call wrong: a palm off the grip, a finger beside the trigger, a
-  support hand under the gun and not round it, a hand that leaves the gun where the state does not ask for it, a frame
-  of a switch with two weapons or with a weapon and no hands. **Watch out for:** the rifle's first hold put each
-  hand's bone on its target and was reported as held, on captures from the right side only: the right hand was a fist
-  beside the grip, the left lay palm-up under the hand guard and let go at idle, the fingers were put off to another
-  issue, and in a switch the rifle hid after the arms had left it. **Seen:** gdstudio #1040, 2026-11-11 (the
-  maintainer's review; fix: the solved places and poses, `reach_amount()` and the tests above).
-- **Approach:** Count a fingertip's leaf bone with the finger's last bone wherever skin is sorted by bone, in the
-  solver and the test alike, and check a solver's candidate points against the pose it then sets. **Watch out for:**
-  the female mannequin's fingertips are weighted up to half to `index_04_leaf_r` and its like, the male's are not:
-  `hold_hand.py` moved only the chain's three bones in a candidate, so half of each female fingertip stayed where the
-  last pose had it (up to 28 mm off), and the solver and `HandContact` both left out the vertices a leaf carries most
-  of (15 on an index finger). The trigger finger then measured 3.8 mm inside the trigger or 15.6 mm from it, read as
-  a trigger guard too short for a finger; with the leaf counted it sits 9 mm from `Trigger`, 1.2 mm in. **Seen:**
-  gdstudio #889, 2026-11-11 (fix: `Hand.tips`, `hold_rig.py`'s owner rule, `HandContact._owners()`).
-- **Approach:** Open fingers that are hooked over a part at the knuckles first, with the hand backing off a little,
-  then straighten them, and measure the way between two places at a finer step than the test's. **Watch out for:**
-  every finger bone blended to the open pose at one rate swung the left hand's fingertips 22 mm through the hand
-  guard for a hundredth of the reload, each joint opened alone was worse (30 mm), a hand moving aside under closed
-  fingers pushed the far side's 12 mm in, and one dropping straight down dragged the thumb 11 mm through it.
-  **Seen:** gdstudio #889, 2026-11-11 (fix: `open_first`, a 6 mm drop while the knuckles open, then down and aside
-  together; 4.4 mm at most).
-- **Approach:** Turn the chest to an absolute angle (take the clip's own chest turn off first) and pull the gun back
-  along its barrel when the support arm would be over 0.97 of its length. **Watch out for:** a chest turn added on top
-  of the clip left the left arm 5 to 98 mm short of the hand guard in the walk, jog and sprint clips, whose shoulders
-  swing; idle and aim, which the first captures showed, were fine. **Seen:** gdstudio #889, 2026-11-11 (fix:
-  `two_hand_stance.gd`, `arm_stretch`, `pull_limit`; 0.0 mm in 110 poses).
-- **Approach:** Seat a palm by the skin the hand bone carries at least half of and the forearm less than 3 % of, and
-  solve on both mannequins at once. **Watch out for:** the game's IK bends the wrist 40 to 50 degrees on the rifle's
-  grip and the skin at the heel of the palm follows the forearm, so a palm seated by all of its skin stood 5 to 7 mm
-  off the grip in the game; the two mannequins' palms differ by 5.8 mm on this grip (the female's is the hollower),
-  which leaves one place of the bone 1.2 mm of play between 2 mm in and 5 mm off. **Seen:** gdstudio #889,
-  2026-11-11 (the male's palm is pressed 1.4 mm in, the female's is 4.4 mm off).
-- **Approach:** Build a solver's distance grid exact only in a band round the surface (`BandField`, 3 cm) with a
-  coarse grid beyond it, when the weapon is long. **Watch out for:** the pistol's grid at 1.5 mm over the rifle's
-  0.64 m asks a million samples for the nearest triangle at about 90 microseconds each: over 35 minutes against 24 s.
-  **Seen:** gdstudio #889, 2026-11-11.
-- **Approach:** Give `HandContact.set_weapon()` the weapon after it is shown, and run a new modifier script through
-  `--check-only` before a probe or a stage awaits it. **Watch out for:** `set_weapon()` skips meshes that are not
-  visible in the tree, so a rifle still hidden by the loadout measured as no weapon at all (every part 30 mm off); a
-  parse error in a modifier's script leaves the skeleton with nothing that dirties it, `skeleton_updated` never comes
-  and `HoldStage.settle()` waits for ever with no error after the first line. **Seen:** gdstudio #889, 2026-11-11.
 
 ## Bullet impacts {#impacts}
 

@@ -81,7 +81,7 @@ it from running while Safe.
 | `AiChase` | `chase`, Response, Move and Look | Runs to where a lost subject is believed; ends when a hostile is in view again. |
 | `AiAttack` | `engage`, Response, Move, Action and Look | Ranged with the aim model, only at a subject seen now and never through a friend; melee from the weapon's own reach; reloads a dry magazine; `NO_AMMO` with nothing to load. Fights only with an [attack slot](#attack-slots); without one it holds, gun down, watching (`held`). |
 | `AiTakeCover` | `cover`, Response, Move, Action and Look | Runs to a cover marker facing the threat (scored, kept) and hides and peeks to shoot; only hides when Safe. A peek takes an [attack slot](#attack-slots) and gives it back when it goes down; without one it stays down. |
-| `AiFlee` | `flee`, Response, Move | Runs to the reachable point farthest from the threat until `safe_distance`. |
+| `AiFlee` | `flee`, Response, Move | Runs to the reachable point farthest from the threat until `safe_distance`; with nowhere to run it fails `NO_PATH` and the civilian rows' fallback, a cower, runs in its place (during a failure storm too). |
 | `AiCower` | `cower`, Response, Move and Look | Crouches facing the threat until it has not been believed for `panic_recovery_seconds`. |
 | `AiGuard` | `guard`, Default, Move and Look | Holds a place, looks around while there; the guard's default and `order_hold`. |
 | `AiUseObject` | `use`, Order, Move and Action | Walks up to an `Interactable` and presses use, as a player does. |
@@ -342,6 +342,9 @@ turn, the reload, the overlay, a remote client routes nothing, the patrol and th
 `test_ai_attack_slots.gd`: 20 guards on an arc against one target never have more than 4 (the test's count)
 aiming or firing at one tick, the rest hold with their guns down, and a slot freed by a death, a loss of
 sight and the end of the engage task is taken by a waiting guard; it failed on `main` (20 aimed at once).
+`test_ai_cornered_civilian.gd`: a civilian penned by walls, its failure budget spent by a walk out of the pen, a
+hostile beside it firing every second, cowers within 2 s and never stands up for half a second in 16 s; it failed on
+`main` (never cowered: each flee failed `NO_PATH` and its cower was skipped, kit #1246).
 
 Each rule was broken in a made game to see its test fail: the friend-in-line check, firing at a memory (in both the
 attack and the aim), the play dwell, the melee approach and the freed noise maker
