@@ -200,15 +200,15 @@ the AI where the shooter drew it at once ([shots online](online-shots.md#templat
 with `HIT_HITSCAN=1` films the pistol hitscan from the player's camera.
 
 What one pistol shot costs in all (`tools/bench/shot_cost.tscn`: a shot a tick at a wall 20 m out, so a tick holds one
-launch and one whole flight; a tick's time less an idle tick's, the median of 7 blocks of 300 ticks; Windows, Godot
-4.7.2, headless, 2026-11-11, other agents on the machine; the headless run draws nothing, so a client's round costs
-its drawing on top):
+launch and one whole flight; a tick's time less an idle tick's, the median of 7 blocks of 300 ticks, two runs; Windows,
+Godot 4.7.2, headless, 2026-11-11, other agents on the machine; the headless run draws nothing, so a client's round
+costs its drawing on top):
 
 | | Projectile | Hitscan |
 | --- | ---: | ---: |
-| Server: the shot in all (the call, then 26 to 27 ticks of flight) | 432 µs | 20 µs |
-| Server: the call that fires | 84 µs | 20 µs |
-| Client: a puppet's shot in all, with its sound / without | 404 / 392 µs | 11 / 6 µs |
+| Server: the shot in all (the call, then 26 to 27 ticks of flight) | 432 to 711 µs | 20 to 35 µs |
+| Server: the call that fires | 84 to 114 µs | 20 to 31 µs |
+| Client: a puppet's shot in all, with its sound / without | 404 to 637 / 392 to 649 µs | 11 / 6 to 10 µs |
 | Rounds in the air at a shot a tick | 26 | 0 |
 | Bytes down each other player (`SHOT` + `HIT`) | 30 | 30 |
 | Bytes of state while it flies | 0 | 0 |
@@ -227,8 +227,10 @@ a few per cent either way between runs):
 | 8 players: server step p50 | 1.70 ms | 1.29 ms |
 | 4 players: shots, hits; down a client; step p50 | 144, 143; 2208 B/s; 1.15 ms | 144, 137; 2294 B/s; 1.00 ms |
 
-The bytes are the same within a run's noise (each shot is its two events either way); the server's step is lighter
-with hitscan. A `--shoot` bot puts a shot block on every command, so its up rate (about 1.9 KB/s) is not a client's
+The bytes are the same within a run's noise (each shot is its two events either way). The step p50 followed the
+machine's load more than the weapon (a second hitscan run at 8 players read 2.52 ms, its down rate 3208 B/s), so the
+bench above, where the modes take turns, is the server's cost of a shot: a hitscan shot about a twentieth of a
+projectile's. A `--shoot` bot puts a shot block on every command, so its up rate (about 1.9 KB/s) is not a client's
 and the run does not judge it.
 
 - **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
