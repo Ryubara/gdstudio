@@ -66,3 +66,20 @@ def test_the_template_list_decodes() -> None:
     assert len(programs) >= 100
     assert all(len(p["stages"]) == 2 for p in programs)
     assert all(text.startswith("#version 300 es") or "void main" in text for p in programs for _, text in p["stages"])
+
+
+def _run(missed: int, mismatch: str = "") -> dict:
+    return {"missed": missed, "prelink": {"from": "page", "mismatch": mismatch}}
+
+
+def test_a_run_that_lacks_more_than_the_limit_says_the_list_is_stale(capsys) -> None:
+    assert tool.stale(_run(9), 8)
+    assert "record it again" in capsys.readouterr().out
+    assert not tool.stale(_run(8), 8)
+    assert not tool.stale(_run(40), -1)
+
+
+def test_a_page_that_made_the_context_with_other_attributes_fails(capsys) -> None:
+    assert tool.stale(_run(0, "alpha"), 8)
+    assert "alpha" in capsys.readouterr().out
+    assert not tool.stale({"missed": 0, "prelink": None}, 8)
