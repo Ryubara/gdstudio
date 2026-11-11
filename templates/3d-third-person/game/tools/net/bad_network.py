@@ -50,7 +50,7 @@ CORRECTED_M_A_HITCH = 0.75
 # A browser page (24 to 35 frames a second on SwiftShader, two or three steps a frame) corrects more after each stall
 # of its thread than the native client does: 1 to 5 m in the second after a freeze, where the native client reads
 # 0.7 to 0.9 m for all three. Its hitches used to hide that (0.75 m each, 8 to 9 of them); once the page joins after
-# the level's warm-up it has none, and 11 runs with three freezes read 1.2 to 5.2 m (kit #1106). So a page is allowed
+# the level's warm-up it has none, and 11 runs with three freezes read 1.6 to 5.2 m (kit #1106). So a page is allowed
 # this much for every stall of its thread, the planned freezes included (why: #1127); without the hold it read 45 m.
 CORRECTED_M_A_PAGE_STALL = 1.5
 # The puppets are drawn 100 ms behind: at a steady 100 ms each way they never starve (under 1 % of the steps,
@@ -64,9 +64,9 @@ STARVED_SLACK_STEPS = 12
 # page read 0.7 to 1.3 % of its puppet-steps starved with 11 stalls of its thread.
 STARVED_A_CLIENT_STALL = 8
 # A server that lost more steps than this between two of its `stats` lines (ten seconds apart) was itself starved of
-# the machine: its TICKs came late and every client's puppets starved with them. On the shared workstation 3 of 16
-# browser runs lost 19 to 101 steps in a window, and each of them failed its starvation bound (279 to 426 puppet-steps)
-# whatever the page did; the other 13 lost 0 to 8 (kit #1106). A quarter of a second, the stall guard's own stall.
+# the machine: its TICKs came late and every client's puppets starved with them. On the shared workstation 4 of 19
+# browser runs lost 19 to 101 steps in a window, and each of them failed its starvation bound (279 to 657 puppet-steps)
+# whatever the page did; the other 15 lost 0 to 10 (kit #1106). A quarter of a second, the stall guard's own stall.
 SERVER_LOST_STEPS = 15
 # A body more than 6 m off is lost: never.
 LOST = 0

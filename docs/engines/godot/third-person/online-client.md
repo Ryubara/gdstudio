@@ -207,8 +207,8 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   tighten it: a page's corrections are judged per stall of its thread (1.5 m), freezes included. **Watch out for:**
   the hitches' allowance (0.75 m each) had hidden that a page at 24 to 35 frames a second corrects 1 to 5 m in the
   second after each freeze (the native client 0.7 to 0.9 m for all three); without the hitches the page failed the
-  old 2 m in six of eleven runs. Two other runs failed their starvation bound because the game server itself lost
-  0.7 to 0.9 s of steps to the shared machine, so the page's run now checks the server's clock first. **Seen:**
+  old 2 m in eight of eleven runs. Four of 19 runs failed their starvation bound because the game server itself lost
+  0.3 to 1.7 s of steps to the shared machine, so the page's run now checks the server's clock first. **Seen:**
   gdstudio #1106, 2026-11-11 (`CORRECTED_M_A_PAGE_STALL`, `SERVER_LOST_STEPS`; why a page's freeze costs more:
   #1127).
 - **Approach:** Give a teeth check a condition the broken part cannot pass on any machine: the relay jitters each
