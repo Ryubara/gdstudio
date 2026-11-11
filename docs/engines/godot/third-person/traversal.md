@@ -160,8 +160,8 @@ special crossing (a window: a clip of its own).
      one, and online-client.md is at its size limit -->
 
 A body drawn from the network (another player's puppet, [online-client.md#puppets](online-client.md#puppets); an AI's
-puppet, [ai.md#replication](ai.md#replication)) never steps, so its `CharacterVault` never planned and the clip never
-started: it showed the capsule's path over the wall in its gait. `PuppetVault` (`gameplay/character/puppet_vault.gd`,
+puppet, [ai-online.md#replication](ai-online.md#replication)) never steps, so its `CharacterVault` never planned and
+the clip never started: it showed the capsule's path over the wall in its gait. `PuppetVault` (`gameplay/character/puppet_vault.gd`,
 kit #1222) plans it on the screen that draws it. When the drawn state turns to `VAULT` or `MANTLE`, the puppet runs
 the same `VaultProbe` from where it was drawn the frame before, set down on the floor under it, along the heading the
 server sent (the stepping body turns square to the face as it starts), at the speed it was drawn moving; the plan goes

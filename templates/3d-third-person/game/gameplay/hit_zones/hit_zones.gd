@@ -187,6 +187,10 @@ func follow_bones() -> void:
 		_bones_found = true
 	if top_level:
 		global_transform = skeleton.global_transform
+		# The physics server hears of a node's new transform when the frame's transforms are sent,
+		# after this shot's query: send it now (a body that moved since the last shot was met where
+		# that shot left its zones, gdstudio #1198).
+		force_update_transform()
 	var to_here := global_transform.affine_inverse() * skeleton.global_transform
 	for part in zones():
 		if part.bone_index < 0:
