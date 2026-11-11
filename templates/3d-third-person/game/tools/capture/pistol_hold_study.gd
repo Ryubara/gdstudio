@@ -5,7 +5,8 @@
 ## Run headless, it prints one `HOLD` line a pose: for each hand the deepest part in the weapon
 ## and the farthest holding part off it, in millimetres (`HOLD_PARTS=1` adds every part). Run with
 ## a window and `HOLD_OUT=<folder>`, it also saves five views of each pose (the gun's left, its
-## right, from above, a close-up from the player's aim camera and that camera's own view):
+## right, from above, a close-up from the player's aim camera and that camera's own view; two
+## more of a two-handed pose, from ahead of the muzzle and from straight below):
 ## `HOLD_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
 ## res://tools/capture/pistol_hold_study.tscn`. `MODEL=male` studies the male mannequin,
 ## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=reload` studies one
@@ -114,7 +115,9 @@ func _reload_shares() -> Array:
 
 
 func _measure(two_handed: bool) -> String:
-	var right := _stage.contact.measure("r")
+	# With both hands on the gun each is measured against the other too: a fingertip of one that
+	# enters a flat face of the other shows only from its own side.
+	var right := _stage.contact.measure("r", two_handed)
 	var line := "| r: " + HandContact.summary(right, HoldStage.RIGHT_CONTACTS)
 	if OS.get_environment("HOLD_PARTS") == "1":
 		line += " " + _parts(right)
@@ -152,9 +155,10 @@ func _light() -> void:
 	add_child(sun)
 
 
-# Five views of the pose (six with `under`, from below the grip's foot): the gun's left, its
-# right, from above (the muzzle up the picture), a close-up from the player's aim camera (1.1 m
-# behind the 1.55 m target, 0.5 m to the right) and that camera's own 50 degree view.
+# Five views of the pose: the gun's left, its right, from above (the muzzle up the picture), a
+# close-up from the player's aim camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and
+# that camera's own 50 degree view; with both hands on the gun also from ahead of the muzzle and
+# from straight below, and with `under` from below the grip's foot.
 func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) -> void:
 	var gun := _stage.pistol.global_transform.orthonormalized()
 	var middle := gun * Vector3(-0.04, 0.03, 0.0)
@@ -165,6 +169,11 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		"top": [middle + gun.basis * Vector3(0.0, 0.5, 0.02), -gun.basis.x, 34.0],
 		"player": [eye, Vector3.UP, 13.0],
 	}
+	if two_handed:
+		# From ahead of the muzzle (the two hands' fingers one over the other under the trigger
+		# guard) and from straight below (the support fingers across the shooting hand's).
+		views["front"] = [middle + gun.basis * Vector3(-0.5, -0.02, 0.0), gun.basis.y, 34.0]
+		views["below"] = [middle + gun.basis * Vector3(0.0, -0.5, 0.02), -gun.basis.x, 34.0]
 	if under:
 		# From below and ahead of the grip's foot, where a hand at the magazine shows.
 		views["under"] = [middle + gun.basis * Vector3(-0.3, -0.33, 0.12), gun.basis.y, 34.0]
@@ -172,6 +181,9 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		# From the sides and above, nothing nearer than the hands is drawn (a leg, the chest); with
 		# one hand on the gun its left is cut closer still, since the thigh is a hand away from it.
 		camera.near = 0.02 if view == "player" or view == "under" else 0.3
+		if view == "below":
+			# The forearms hang below the gun: cut them away 10 cm under its middle.
+			camera.near = 0.4
 		if view == "left" and not two_handed:
 			camera.near = _ONE_HAND_NEAR
 		camera.fov = views[view][2]

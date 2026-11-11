@@ -47,8 +47,9 @@ const CARRIED: Dictionary[StringName, Array] = {
 ## The live left hand is measured while its bone is this near one of its two markers, in metres:
 ## farther off, no finger reaches the gun.
 const LIVE_NEAR := 0.2
-## The part of the live left hand left out while the reload fades in or out (kit #1079).
-const LIVE_FADING_SKIPS := "thumb_tip"
+## The equal parts of the trigger finger's way between the frame and the trigger that are
+## measured (kit #1079).
+const TRIGGER_WAY_STEPS := 20
 ## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).
 const REACH := 0.005
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
@@ -341,9 +342,8 @@ func test_the_players_left_hand_goes_to_the_magazine_and_back_when_it_reloads() 
 # The reload in the player's own scene while it aims, measured on every update the left hand is
 # near the gun: it lets go while the clip still fades in over the aim pose, comes back from the
 # magazine, and never passes deeper through the gun or the right hand than where it holds (kit
-# #1051: the posed stage knows no fade). Two faults of their own are left out: the aim's blend,
-# in which the left arm is too short for the gun (kit #1078), and the left thumb's tip while the
-# reload fades, which the right trigger finger crosses on its way off the trigger (kit #1079).
+# #1051: the posed stage knows no fade), its thumb's tip included while the reload fades and the
+# right trigger finger leaves the trigger beside it (kit #1079).
 func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aiming() -> void:
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
@@ -392,6 +392,47 @@ func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aimin
 	AudioDrain.stop_all(arena)
 
 
+# The aim coming up and going down in the player's own scene (kit #1078), measured on every
+# update the left hand is near the gun, on both mannequins: the body is between the carry pose
+# and the aim pose then and the gun still out to the side, so the left arm is too short for the
+# hand's place; it backs the hand off along its way, opened, and the hand passes no deeper
+# through the gun or the right hand than where it holds.
+func test_the_left_hand_passes_through_nothing_as_the_female_players_aim_comes_up() -> void:
+	await _aim_up_and_down("female")
+
+
+func test_the_left_hand_passes_through_nothing_as_the_male_players_aim_comes_up() -> void:
+	await _aim_up_and_down("male")
+
+
+# The trigger finger between the frame and the trigger (kit #1079), at every twentieth of its
+# way while both hands hold the aimed pistol: neither it nor the left thumb, which lies along the
+# frame on the guard's other side, is more than `HandContact.MAX_DEPTH` inside the gun or the
+# other hand. The reload's weight takes the finger off the trigger, as in the game.
+func test_the_trigger_finger_passes_through_nothing_on_its_way_to_the_trigger() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for step in TRIGGER_WAY_STEPS + 1:
+			var on_trigger := float(step) / TRIGGER_WAY_STEPS
+			stage.pose(CharacterClips.PISTOL_AIM, 0.16, 1.0)
+			stage.hold.set(&"reload_weight", 1.0 - on_trigger)
+			stage.hold.call(&"refresh")
+			await stage.settle()
+			var tag := "%s, the finger %.2f on the trigger" % [model, on_trigger]
+			for side: String in ["r", "l"]:
+				var parts := stage.contact.measure(side, true)
+				for part: String in parts:
+					var depth: float = -parts[part].distance
+					(
+						assert_float(depth)
+						. override_failure_message(
+							"%s: %s %s %.1f mm inside" % [tag, side, part, depth * 1e3]
+						)
+						. is_less_equal(HandContact.MAX_DEPTH)
+					)
+		stage.free()
+
+
 # The measure itself works: with the hold left out the clips' own fist is found deep in the grip.
 func test_the_clips_own_fist_fails_the_measure() -> void:
 	var stage := HoldStage.make(_holder, "female", false)
@@ -400,6 +441,65 @@ func test_the_clips_own_fist_fails_the_measure() -> void:
 	var right := stage.contact.measure("r")
 	assert_array(HandContact.failures("r", right, HoldStage.RIGHT_CONTACTS)).is_not_empty()
 	stage.free()
+
+
+# Aims and lowers the pistol twice in the player's own scene with the mannequin `model`, the left
+# hand's depth read on every update.
+func _aim_up_and_down(model: String) -> void:
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	if model != "female":
+		var old := player.model.rig()
+		player.model.remove_child(old)
+		old.free()
+		player.model.add_child((load(HoldStage.MODELS[model]) as PackedScene).instantiate())
+	var view := Camera3D.new()
+	view.position = Vector3(0.0, 1.3, 3.0)
+	arena.add_child(view)
+	view.make_current()
+	await InputSim.ticks(get_tree(), 20)
+	_live_hold = player.get_node_or_null("WeaponHold")
+	assert_object(_live_hold).is_not_null()
+	if _live_hold == null:
+		AudioDrain.stop_all(arena)
+		return
+	_live_skeleton = (player.get_node("Model") as CharacterModel).skeleton()
+	_live_marker = player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
+	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
+	_live_contact = HandContact.new(_live_skeleton)
+	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_live_deepest = 0.0
+	_live_deepest_at = ""
+	_live_measured = 0
+	_live_skeleton.skeleton_updated.connect(_read_depth)
+	for _round in 2:
+		InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+		await InputSim.ticks(get_tree(), 30)
+		assert_float(_live_hold.get(&"aim_weight")).is_equal(1.0)
+		# Once the aim is up the arm reaches (read by name: a hold from before kit #1078 has none).
+		if _live_hold.has_method(&"support_backed"):
+			assert_float(_live_hold.call(&"support_backed")).is_equal(0.0)
+		InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
+		await InputSim.ticks(get_tree(), 30)
+		assert_float(_live_hold.get(&"aim_weight")).is_equal(0.0)
+	_live_skeleton.skeleton_updated.disconnect(_read_depth)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.release_all()
+	assert_int(_live_measured).override_failure_message("the hand was never measured").is_greater(
+		20
+	)
+	(
+		assert_float(_live_deepest)
+		. override_failure_message(
+			(
+				"%s: the left hand passed %.1f mm deep (%s)"
+				% [model, _live_deepest * 1e3, _live_deepest_at]
+			)
+		)
+		. is_less_equal(HandContact.MAX_DEPTH)
+	)
+	AudioDrain.stop_all(arena)
 
 
 # The hand's bone is read in the skeleton's update; the marker rides the attachment, which moves
@@ -428,10 +528,10 @@ func _read_depth() -> void:
 		"aim %.2f, reload %.2f at share %.3f"
 		% [_live_hold.get(&"aim_weight"), weight, _live_hold.get(&"reload_share")]
 	)
-	_measure_depth.call_deferred(tag, weight < 1.0)
+	_measure_depth.call_deferred(tag)
 
 
-func _measure_depth(tag: String, fading: bool) -> void:
+func _measure_depth(tag: String) -> void:
 	if not is_instance_valid(_live_marker) or not is_instance_valid(_live_magazine):
 		return
 	var hand := _live_skeleton.global_transform * _live_contact.bone_pose(&"hand_l").origin
@@ -444,8 +544,6 @@ func _measure_depth(tag: String, fading: bool) -> void:
 	_live_measured += 1
 	var parts := _live_contact.measure("l", true)
 	for part: String in parts:
-		if fading and part == LIVE_FADING_SKIPS:
-			continue
 		var depth: float = -parts[part].distance
 		if depth > _live_deepest:
 			_live_deepest = depth

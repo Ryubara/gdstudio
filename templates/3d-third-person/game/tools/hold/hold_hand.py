@@ -1,5 +1,6 @@
 """One hand of the mannequin as the solver bends it: batched finger poses and their skin."""
 
+import hold_field
 import hold_rig as R
 import numpy as np
 
@@ -54,6 +55,37 @@ class Hand:
         self.part["palm"] = np.where(rig.main[self.ids] == self.hand)[0]
         self.finger_verts = {f: np.where(np.isin(rig.main[self.ids], self.chains[f]))[0] for f in FINGERS}
         self._apply_all()
+        self._sample_palm()
+
+    def _sample_palm(self, spacing=0.003):
+        """Points all over the palm's faces, `spacing` apart, as weights of its vertices. The palm is one
+        piece of a few large faces (edges up to 5 cm), so its vertices alone miss a fingertip or a corner of
+        the gun that enters a face between them; the fingers are meshed finely and need none."""
+        points = self.points()
+        piece = hold_field.pieces(points[self.tris])
+        palm = np.zeros(len(self.tris), bool)
+        for index in range(piece.max() + 1):
+            mine = piece == index
+            if (self.rig.main[self.ids][self.tris[mine]] == self.hand).any():
+                palm |= mine
+        corners, weights = [], []
+        for a, b, c in self.tris[palm]:
+            across = max(1, int(np.ceil(np.linalg.norm(points[b] - points[a]) / spacing)))
+            down = max(1, int(np.ceil(np.linalg.norm(points[c] - points[a]) / spacing)))
+            u, v = np.meshgrid(np.arange(across + 1) / across, np.arange(down + 1) / down)
+            keep = u + v <= 1.0 + 1e-9
+            u, v = u[keep], v[keep]
+            corners.append(np.broadcast_to([a, b, c], (len(u), 3)))
+            weights.append(np.stack([1.0 - u - v, u, v], axis=1))
+        self.palm_corners = np.concatenate(corners)
+        self.palm_weights = np.concatenate(weights)
+        # The mannequin each sample belongs to, as `Rig.model` says for a vertex.
+        self.palm_model = self.rig.model[self.ids][self.palm_corners[:, 0]]
+
+    def palm_points(self):
+        """The palm's sample points as posed: (S, 3), on the faces as they are drawn."""
+        points = self.points()
+        return np.einsum("sk,skj->sj", self.palm_weights, points[self.palm_corners])
 
     def _apply_all(self):
         rig = self.rig
