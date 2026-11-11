@@ -314,8 +314,9 @@ arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
 `aim_pose_time` to the aim pose by how far up or down the character looks (`Pistol_Aim_Down`, `Pistol_Aim_Neutral`,
 `Pistol_Aim_Up`) on the upper body (the spine, arms, head and fingers; the legs keep the locomotion), and `Pistol_Shoot`
-plays for each shot. On top of everything is a one-shot layer for actions: interact and hit play there, and so does
-anything else:
+is added to it for each shot (`WeaponDef.shoot_additive`: the clip less its own first frame, so the gun kicks about 16
+degrees up from wherever it aims). On top of everything is a one-shot layer for actions: interact and hit play there,
+and so does anything else:
 
 ```gdscript
 $Player/Animation.play_clip(CharacterClips.SWORD_ATTACK)
@@ -336,6 +337,7 @@ the node or on the `WeaponDef`, builds the tree again):
 | `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
 | `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. |
+| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays (a punch). |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
