@@ -276,7 +276,7 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 
 1. every section the issue names as `page.md#anchor`;
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
+   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
    pages), when that section's words score at least a third of the best section's (a pull request's changed files
    need no such closeness);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
@@ -464,7 +464,8 @@ Open pull requests come before new work: each one left open goes stale against `
   rerun <id> --failed`) and file it. **Watch out for:** parallel pull requests touched the same files, a flaky check
   stalled `main`, and a pull request in work looks abandoned from GitHub, so Deadnight #402 sat four hours on a flake.
   **Seen:** Deadnight, 2026-11-01; Deadnight #402, 2026-11-02 (fix: `S-conflict` and `S-ci-failing` kept in sync
-  (kit #76)).
+  (kit #76)); gdstudio #1145, 2026-11-11 (pushed while main's stalls flake #1125 was open: the same flake failed its
+  template job; push after the fix lands and `gds merge-main`).
 - **Approach:** Rerun the balance gate on `main` after each merge that touches tuning, and let one balance owner rebase
   on the others. **Watch out for:** two pull requests each passed the gate alone (#260 changed speeds, #271 the crane
   price) and broke it once both were on `main`. **Seen:** Deadnight #260 and #271, 2026-11-01 (fix: the gate on the next
