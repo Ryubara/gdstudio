@@ -91,6 +91,11 @@ instead of the original) had no home -->
   Taken out of a `Dictionary` with `as PackedInt32Array` it is a copy as well: every part of a hand measured
   `inf` because the appends went to copies (a plain `Array` in the dictionary is shared). **Seen:** Deadnight,
   2026-11-01 (fix: append to the property; a test caught it); gdstudio #1001, 2026-11-10.
+- **Approach:** `duplicate()` a packed array another object keeps appending to before a coroutine reads it across
+  frames (a replay of a server's history, a list of samples). **Watch out for:** the other way round from the entry
+  above: passed to a function, `peer.history_steps` was the same array, so a replay loop that awaited a frame for each
+  entry grew with the server that went on stepping, ran 1025 frames instead of 126 and let the server drop the client
+  as silent. **Seen:** gdstudio #904, 2026-11-10 (fix: the test replays a copy taken when it read the body).
 
 ## Handlers of one signal run in the order they connected {#signal-order}
 
