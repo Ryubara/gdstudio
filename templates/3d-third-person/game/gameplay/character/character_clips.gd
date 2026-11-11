@@ -3,7 +3,8 @@ extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
+## #1009, `assets/animation/prone/`), the library `prone`, and its own melee blows (gdstudio
+## #1254, `assets/animation/melee/`), the library `melee`. The looping clips lose their `_Loop`
 ## suffix on import (`Idle_Loop` is `Idle`) and loop.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
@@ -14,6 +15,7 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_MELEE := &"melee"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"ual1/Idle"
@@ -59,8 +61,15 @@ const PRONE_IDLE := &"prone/Prone_Idle"
 const CRAWL := &"prone/Crawl_Fwd"
 const TO_PRONE := &"prone/Crouch_To_Prone"
 const TO_CROUCH := &"prone/Prone_To_Crouch"
+# Melee blows: the template's own clips, three per weapon category (`WeaponCategory.melee_clips`).
+const MELEE_UNARMED_JAB := &"melee/Melee_Unarmed_Jab"
+const MELEE_UNARMED_CROSS := &"melee/Melee_Unarmed_Cross"
+const MELEE_UNARMED_HOOK := &"melee/Melee_Unarmed_Hook"
+const MELEE_PISTOL_WHIP := &"melee/Melee_Pistol_Whip"
+const MELEE_PISTOL_BACKHAND := &"melee/Melee_Pistol_Backhand"
+const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
 
-## Every clip of the three libraries, with its library.
+## Every clip of the four libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -152,4 +161,10 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"melee/Melee_Pistol_Backhand",
+	&"melee/Melee_Pistol_Jab",
+	&"melee/Melee_Pistol_Whip",
+	&"melee/Melee_Unarmed_Cross",
+	&"melee/Melee_Unarmed_Hook",
+	&"melee/Melee_Unarmed_Jab",
 ]
