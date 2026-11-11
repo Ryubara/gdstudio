@@ -35,6 +35,7 @@ const NOT_STATE := {
 	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
 	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
+	&"is_puppet": "set once by make_puppet() before the body enters the tree; a puppet never steps",
 	&"_interactor": "a node",
 	&"_body": "a node",
 	&"_camera_target": "a node",

@@ -38,7 +38,8 @@ func test_it_is_the_template_character_with_its_parts() -> void:
 	assert_bool(character.is_in_group(AiCharacter.GROUP)).is_true()
 	assert_bool(character.is_in_group(Player.GROUP)).is_false()
 	assert_object(character.task_runner).is_instanceof(AiTasks)
-	for slot in [character.senses, character.navigator]:
+	assert_object(character.navigator).is_instanceof(AiNavigator)
+	for slot in [character.senses]:
 		assert_object(slot).is_null()
 
 

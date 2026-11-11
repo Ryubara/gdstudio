@@ -117,6 +117,9 @@ func test_the_log_says_listening_and_stats_every_ten_seconds() -> void:
 	assert_int(listening.size()).is_equal(1)
 	assert_int(listening[0]["port"]).is_equal(_rig.server.listener.port())
 	assert_int(listening[0]["tick_hz"]).is_equal(NetLimits.TICK_RATE)
+	# The host: step times are read against it.
+	assert_int(listening[0]["cores"]).is_greater(0)
+	assert_str(listening[0]["cpu"]).is_not_empty()
 	var ada := await _rig.join("Ada")
 	var walk := CommandDriver.walking(Vector3.FORWARD)
 	var stats := func() -> bool: return not _rig.lines_of("stats").is_empty()
@@ -136,6 +139,8 @@ func test_the_log_says_listening_and_stats_every_ten_seconds() -> void:
 		"step_ms_p95",
 		"steps_over_budget",
 		"peers_stalled",
+		"steps_held",
+		"steps_repeated",
 	]:
 		assert_bool(line.has(key)).override_failure_message("no %s" % key).is_true()
 	assert_int(line["players"]).is_equal(1)

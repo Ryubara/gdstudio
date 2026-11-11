@@ -9,6 +9,11 @@ extends RefCounted
 ## exactly once). With none waiting, the last command is stepped again with its presses taken out
 ## (`PlayerCommand.clear_edges`) for `command_ticks` steps, then a command that asks for nothing
 ## (the view kept) until the next arrives: a client that stalls keeps walking a moment, then stands.
+## Before the repeats the body waits `hold_ticks` steps for a late command without stepping
+## (`HELD`): commands from another machine arrive a frame early or late as the two clocks drift,
+## and a repeat made for a command that was merely late puts the body a step ahead of where the
+## client predicted it (`NetClient`); a body held one step and stepped twice the next ends where
+## one stepped once a step ends.
 ## `ack` is the `seq` of the last command applied, which every TICK to this client carries.
 
 ## The most commands one step applies for one peer: a client back from a stall catches up in a few
@@ -21,6 +26,7 @@ const MAX_QUEUED := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 const REPEATED := -1
 const STOOD := -2
 const IDLE := 0
+const HELD := -3
 
 ## The listener's id of the connection.
 var peer_id := 0
@@ -39,14 +45,18 @@ var ack := 0
 var last_seq := 0
 ## Steps since the last command applied (repeats, then standing).
 var silent_steps := 0
+## Steps the body was held waiting for a late command, and steps it repeated the last one
+## (since the server last read and cleared them: `NetServer`'s stats).
+var held := 0
+var repeated := 0
 ## The connection is being hung up on (a refusal, a kick, a silence): nothing it sends counts.
 var leaving := false
 ## Events that wait for the next TICK to this client (kept when a TICK could not be sent).
 var events: Array[NetEvent] = []
 ## A TICK to this client was refused since the last stats line (its socket was full).
 var stalled := false
-## When on, every step appends the `seq` it applied, or `REPEATED`, `STOOD` or `IDLE` (a test
-## replays the same steps offline).
+## When on, every step appends the `seq` it applied, or `HELD`, `REPEATED`, `STOOD` or `IDLE` (a
+## test replays the same steps offline).
 var keep_history := false
 var history := PackedInt64Array()
 ## With `keep_history`: how many of `history`'s entries each step stepped.
@@ -95,10 +105,11 @@ func push(command: PlayerCommand, now: float) -> bool:
 	return true
 
 
-## The commands one server step applies to the body, in order (at least one): up to `max_count`
-## of the queue, or the last one again without its presses for `command_ticks` steps, then one
-## that asks for nothing. Each returned command is stepped once.
-func take(max_count: int, command_ticks: int) -> Array[PlayerCommand]:
+## The commands one server step applies to the body, in order: up to `max_count` of the queue, or
+## none for `hold_ticks` steps (the body waits for a late command), then the last one again
+## without its presses for `command_ticks` steps, then one that asks for nothing. Each returned
+## command is stepped once.
+func take(max_count: int, command_ticks: int, hold_ticks := 0) -> Array[PlayerCommand]:
 	var out: Array[PlayerCommand] = []
 	while not _queue.is_empty() and out.size() < max_count:
 		var command: PlayerCommand = _queue.pop_front()
@@ -114,7 +125,13 @@ func take(max_count: int, command_ticks: int) -> Array[PlayerCommand]:
 	silent_steps += 1
 	if not _has_command:
 		_note(IDLE)
-	elif silent_steps <= command_ticks:
+	elif silent_steps <= hold_ticks:
+		held += 1
+		_note(HELD)
+		_note_step(1)
+		return out
+	elif silent_steps <= hold_ticks + command_ticks:
+		repeated += 1
 		_stepped.clear_edges()
 		_note(REPEATED)
 	else:
