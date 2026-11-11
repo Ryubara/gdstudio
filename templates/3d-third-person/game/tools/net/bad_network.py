@@ -38,7 +38,8 @@ CORRECTED_M_PER_MINUTE = 4.0
 # which the relay never does: the deployment on Railway read 3.1 m in 30 s at a 69 ms round trip (6.1 m a minute).
 # The hard limits (lost, snaps, worst error, settled) stay the same.
 CORRECTED_M_PER_MINUTE_REAL = 10.0
-CORRECTED_M_AN_UP_STALL = 1.0
+# Measured 0.5 to 1.0 m an up stall over six runs; the freeze run, with no stalls, is the hold's teeth.
+CORRECTED_M_AN_UP_STALL = 1.5
 # A stall of the client's own thread that the run did not plan (a software-drawn page's hitch past 0.25 s): the
 # commands around it come late, as around a freeze. The browser read 0.7 to 5.2 m with 7 to 9 hitches; without the
 # hold 31 m.

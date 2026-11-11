@@ -2,7 +2,7 @@
 
 Starts the game server (`tools/net/gate_server.gd`, a free port), bots that give the client puppets to draw
 (`tools/net/server_bot.gd`), a TCP relay with a delay each way (`tools/net/relay.py`), and the predicting client
-(`tools/net/predict_bot.gd`) through the relay, in two runs: `freeze` (100 ms each way, the client's own thread frozen
+(`tools/net/predict_bot.gd`) through the relay (each chunk jittered up to 30 ms more), in two runs: `freeze` (100 ms each way, the client's own thread frozen
 for 0.5, 2 and 5 s) and `stalls` (100 ms each way, 1 % of the relayed chunks held 300 ms more, and everything behind
 them: what a lost packet costs on TCP). Then it judges each client's report and the server's log against
 `tools/net/bad_network.py` and exits 1 on any failed check.
@@ -31,6 +31,10 @@ from bad_network import Network, Verdict, errors_in, judge_client, judge_server,
 from relay import Relay
 
 FREEZES = "8:500,16:2000,24:5000"
+# Each relayed chunk waits up to this much more, in order: a real network's jitter, which the server's hold of four
+# steps (67 ms) absorbs and a server without it turns into repeated commands (the hold's teeth on any machine: without
+# jitter a Linux runner's two processes drifted so little that the run without the hold read 2.4 m, against 0.7 m).
+JITTER_MS = 30.0
 SETTLE_S = 2.0
 START_TIMEOUT_S = 60.0
 # name: (the client's freezes, the relay's stall chance; None takes --stall-chance)
@@ -109,7 +113,16 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
             host, _, port = rest.partition(":")
             if scheme != "ws":
                 raise SystemExit("the relay passes ws:// only (a wss:// certificate names its own host)")
-            relay = Relay(host, int(port), args.delay_ms / 1000.0, 0, stall_chance, args.stall_ms / 1000.0, args.seed)
+            relay = Relay(
+                host,
+                int(port),
+                args.delay_ms / 1000.0,
+                0,
+                stall_chance,
+                args.stall_ms / 1000.0,
+                args.seed,
+                args.jitter_ms / 1000.0,
+            )
             client_url = f"ws://127.0.0.1:{relay.start_in_thread()}"
         if args.bots > 0:
             bot_seconds = str(args.seconds + int(SETTLE_S) + 30)
@@ -166,7 +179,8 @@ def main() -> int:
     parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
     parser.add_argument("--stall-chance", type=float, default=0.01, help="chance a relayed chunk stalls (stalls run)")
     parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
-    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls")
+    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls and the jitter")
+    parser.add_argument("--jitter-ms", type=float, default=JITTER_MS, help="up to this much more delay a chunk")
     parser.add_argument("--seconds", type=int, default=30, help="seconds the client walks")
     parser.add_argument("--bots", type=int, default=3, help="bots that give the client puppets")
     parser.add_argument("--break", dest="broken", choices=["hold", "reconciler"], default="", help="teeth check")
