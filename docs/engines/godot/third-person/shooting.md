@@ -43,12 +43,12 @@ its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown 
   moves with the pelvis (34 mm each way with our idle's weight shift). **Seen:** gdstudio #1154, 2026-11-11
   (`tests/gameplay/test_aim_brace.gd`).
 - **Approach:** Stand a standing aim on a still pose: the ground blend space's idle point is a blend tree of the idle
-  playing and the same clip held on one frame (`AnimationNodeAnimation`, `use_custom_timeline` on, `timeline_length`
-  0, `stretch_time_scale` off, no loop, `start_offset` the frame), blended by the aim weight (`AimStance`). Find the
-  frame in the clip (its pelvis nearest its mean place) each time the tree is built, and measure the muzzle through
-  the idle's whole loop (`test_aim_stance.gd`). **Watch out for:** a fixed time suits one idle only; the settle to the
-  middle takes the aim's rise (40 mm of pelvis in 0.15 s) and moves the feet 2.2 mm. **Seen:** gdstudio #1206,
-  2026-11-11 (the muzzle 34.6 mm each way without it, 0.0 with it over 10 s).
+  playing and the same clip held on one frame (`AnimationNodeAnimation`, `use_custom_timeline` on, `timeline_length` 0,
+  `stretch_time_scale` off, no loop, `start_offset` the frame), blended by the aim weight (`AimStance`). Find the frame
+  in the clip (its pelvis nearest its mean place) each time the tree is built, and measure the muzzle through the idle's
+  whole loop (`test_aim_stance.gd`). **Watch out for:** a test that read point 0 as a clip (`.animation`) broke; a fixed
+  time suits one idle only; the settle to the middle takes the aim's rise (40 mm of pelvis in 0.15 s) and moves the feet
+  2.2 mm. **Seen:** gdstudio #1206, 2026-11-11 (the muzzle 34.6 mm each way without it, 0.0 with it over 10 s).
 - **Approach:** When a clip is replaced, measure every layer that plays over it, in every state it plays in, and
   take a test's reference point from a bone of the pose. **Watch out for:** the aim's only measure was taken
   standing on the library idle, so the walk's fault went unseen and the swap of the idle was the first to fail it;
