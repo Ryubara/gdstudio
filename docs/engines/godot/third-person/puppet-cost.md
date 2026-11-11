@@ -48,6 +48,14 @@ puppets are: within 15 m of the camera a puppet animates every frame, so seven p
 bench's `near/full` does (0.2 ms each on the GPU, 1.3 on SwiftShader); out of view or past 25 m they cost almost
 nothing. `OnlineProbe` reports `puppets_animated`, the puppets whose tree moved on in a frame.
 
+The layer also took a first-use hitch away (gdstudio #1218). The minimap's camera draws with no fog and no sun, so a
+body it saw first was drawn with programs of its own (`DISABLE_FOG`, `DISABLE_LIGHT_DIRECTIONAL`, with and without
+`SECOND_REFLECTION_PROBE`), which the level's warm-up never builds: a browser joining a game with 40 AI linked 2 to 4
+of them in the frame that first drew a puppet (`net_play_smoke.py --gpu --ai 40`; the same build with the bodies put
+back on layer 1: 4 and 2 in two runs). On layer 2 nothing is linked after the seat (0 in nine runs: 40 AI on the GPU
+with and without #1208's spread, 120 AI, no AI on SwiftShader), and the browser gate fails on any program linked
+then, naming each by its `#define`s (`hitches.late_programs`).
+
 - **Approach:** Split a per-character frame cost two ways before changing anything: take one part out at a time in
   the real scene, and bench the character alone; a gap between the two is something else in the scene. **Watch out
   for:** the issue and the first write-up put a puppet's millisecond on its animation and skinned model, but a bench

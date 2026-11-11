@@ -469,6 +469,11 @@ the puppets' own drawing cost is #1138's.
   Deadnight's 561 B a tick; a move (id, centimetres moved, yaw, speed: 7 bytes) halved the codec's bytes for the same
   crowd. **Seen:** gdstudio #970, 2026-11-11.
 
+The first draw of a puppet links no GL program after the seat (#1218; `net_play_smoke.py` now fails on one): 0 in
+eight GPU runs with 40 or 120 AI. The page's longest frame in the join's window (`join_worst_ms`) is 42 to 69 ms with
+every puppet made at once and 25 to 35 ms with #1208's spread. The 2 programs #1208 saw were the minimap's
+([puppet cost](puppet-cost.md#puppet-cost)).
+
 ## Proof {#proof}
 
 `tests/gameplay/test_ai_director.gd` (thinks at the rate and on ticks of their own, the ray budget shared and reset, the
