@@ -139,8 +139,10 @@ at: Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#t
 with `=`, since a bare `--flag` looks like an option to the command), `--timeout`. `gds template game <name>` makes the
 same game, imports it and keeps it, printing its path, for captures and probes (`gds capture frames --project
 <path>/game` runs from your worktree: frames land in its scratch folder, or in `--out`); `gds template clean <path>`
-removes it, and only a folder `gds template` made. Its tests are `python/tests/test_template_test.py` (a fake Godot:
-unique folder, outside the real workspace, removed on every exit, kept with `--keep`, two calls at once).
+removes it, and only a folder `gds template` made. `gds template bench-web <name> <bench>` makes the same game with a
+bench of `tools/bench/` as its main scene and exports it to the web ([A bench's web export](web-probes.md#bench-web)).
+Its tests are `python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on
+every exit, kept with `--keep`, two calls at once).
 
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out

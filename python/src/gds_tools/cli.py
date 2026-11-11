@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from gds_tools import (
+    bench_web,
     brief,
     capture,
     disk,
@@ -290,6 +291,19 @@ def _cmd_template_game(args: argparse.Namespace) -> int:
     print(game)
     print(f"remove it with `gds template clean {game}`", file=sys.stderr)
     return 0
+
+
+def _cmd_template_bench_web(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    return bench_web.run_bench_web(
+        kit,
+        root,
+        args.name,
+        args.scene,
+        run=args.run,
+        probe_args=template_test.split_args(args.probe_args),
+        keep=args.keep,
+    ).code
 
 
 def _cmd_template_clean(args: argparse.Namespace) -> int:
@@ -853,6 +867,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="also replace a uid file whose text Godot would not write (a `z`, a `9`, a hand-made word)",
     )
     tpl_uids.set_defaults(func=_cmd_template_uids)
+    tpl_bench = tpl.add_parser(
+        "bench-web",
+        help="export a bench scene of the template to the web in a throwaway game (the bench as the main scene, "
+        "tools/* in the Web pack) and print the build's folder; --run reads it with the bench's probe under gds quiet "
+        "(docs/engines/godot/web-probes.md#bench-web)",
+    )
+    tpl_bench.add_argument("name", help="a template of the kit's templates/")
+    tpl_bench.add_argument(
+        "scene", help="the bench: its name (`nav_cost_bench`), `tools/bench/<name>.tscn` or its res:// path"
+    )
+    tpl_bench.add_argument(
+        "--run", action="store_true", help="run the bench's probe (<name>.py beside it) on the build, then remove it"
+    )
+    tpl_bench.add_argument(
+        "--probe-args", help="more arguments for the probe after the build folder, in one string (`--probe-args=4`)"
+    )
+    tpl_bench.add_argument("--keep", action="store_true", help="with --run: keep the game and its build")
+    tpl_bench.set_defaults(func=_cmd_template_bench_web)
     tpl_clean = tpl.add_parser("clean", help="remove a workspace made by `template test --keep` or `template game`")
     tpl_clean.add_argument("path", help="the game's path or its workspace folder")
     tpl_clean.set_defaults(func=_cmd_template_clean)
