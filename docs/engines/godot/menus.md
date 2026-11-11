@@ -120,8 +120,10 @@ lets a player rebind keys (gdstudio #881) -->
 The template's `Settings` autoload (`core/settings/settings_service.gd`, from the scene `settings_service.tscn`) holds
 the options by `section/name` key, each with a default and a range: it loads `user://settings.cfg` at start, applies
 every value at once when it changes (volume through `AudioSettings.set_player_gain`, resolution scale on the root
-viewport, window mode, vsync, a quality preset) and writes the file half a second after the last change. Mouse
-sensitivity and invert Y are read by `LookSettings`, a node that carries them to the camera rig. A row of the settings
+viewport, window mode, vsync, a quality preset, and Controls > Camera shake, `controls/camera_shake` 0 to 100 %, as the
+global `CameraShake.strength`, which scales every shake: [Camera](camera.md#shake-component)) and writes the file half a
+second after the last change. Mouse sensitivity and invert Y are read by `LookSettings`, a node that carries them to the
+camera rig. A row of the settings
 screen is a `SettingRow` (a `UISlider`, `UIToggle` or `UIOptionSelector` under it and a `key`): a new setting is a key
 in the service, a row in the scene and, if it does something, a line in `_apply`.
 
@@ -153,3 +155,8 @@ in the service, a row in the scene and, if it does something, a line in `_apply`
   named on the command line, `GDS_QUIET`), never by naming the folders of tests and tools in shipped code. **Watch out
   for:** the layout check's `ships-tools` rule fails a shipped script that spells `res://tests/` or `res://tools/`,
   and the first version of `is_harness_run` did. **Seen:** gdstudio #881, 2026-11-10.
+- **Approach:** When an option sets a static (`CameraShake.strength`), put it back in `after_test` of every suite that
+  makes a `SettingsService` or moves its row, and test the static and its effect (a shake at 0 turns nothing), not only
+  the saved value. **Watch out for:** a service made in a test applies every value at `_ready`, so a suite that leaves
+  the option at 0 turns the shake off for every suite after it in the run, and a camera test then passes or fails by
+  the order of the suites. **Seen:** gdstudio #1091, 2026-11-11 (`tests/core/test_settings_camera_shake.gd`).
