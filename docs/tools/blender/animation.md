@@ -315,7 +315,10 @@ toolkit, in this order: the footfalls (the left foot lands at frame 0, the right
 whole number of frames), the speed (the game's), the centre of mass as a point in space on every frame
 (`weight.settle` takes the point; a free fall between a run's contacts), its own swing path (`ContactPlan.state()`
 gives the planted foot, the description places the swinging one), then the trunk, the arms and the overlap numbers.
-The pelvis and the knees are what those leave, never keyed. `Gait._set_down` then corrects each frame's ankle on every
+Each side has its own numbers (`left` and `right` in a style's section, for the foot's width and turn, the arm, the
+hand; the `_rest` numbers for a turn or a tilt the pelvis, the chest and the head keep): a gait whose sides share
+every number reads as a machine ([no mirror poses](own-animation.md#feel)). The pelvis and the knees are what those
+leave, never keyed. `Gait._set_down` then corrects each frame's ankle on every
 body's skin. The ranges a gait's measured cadence, planted share and bob are held to are in `GAITS`, from
 [the feel](own-animation.md#feel). `review <type>` writes nothing unless every variant passes, so try one variant's
 numbers with a script of your own in scratch that calls `describe` and `build.build_clip` and prints the checks.
@@ -417,7 +420,9 @@ tested on made-up motion only. A body whose legs differ from the reference body'
   (`arm_out_back`, `arm_clear` 0.19), and run limbs inside limbs on both bodies after every change to the trunk's
   turn. **Watch out for:** an arm swung straight fore and aft put the hand up to 110 mm into the hip and the
   chest once the hips and the shoulders wound against each other; the male's wider chest and the female's wider
-  hip need opposite room. **Seen:** gdstudio #1155, 2026-11-11 (0 mm on the female, at most 3.8 mm on the male).
+  hip need opposite room. A side's own `arm_out` moved the measured forearm lag from 1.2 to 1.1 frames, under what the
+  variant declares: rebuild every variant after a per-side number. **Seen:** gdstudio #1155, 2026-11-11 (0 mm on
+  both bodies).
 
 ## The clip eval {#eval}
 
