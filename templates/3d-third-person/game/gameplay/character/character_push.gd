@@ -46,7 +46,8 @@ static func push_props(body: Character, before: Vector3, delta: float) -> bool:
 				cap = contact if cap == 0.0 else minf(cap, contact)
 				slow_push = true
 			var gain := want - prop.linear_velocity.dot(along)
-			if gain > 0.0:
+			# A frozen prop is an online client's copy: only the server's body moves the prop.
+			if gain > 0.0 and not prop.freeze:
 				prop.apply_central_impulse(along * gain * prop.mass)
 			pushing = true
 	if slow_push:
