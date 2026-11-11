@@ -212,6 +212,15 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   never emits it, so a probe that awaits the signal there waits forever.
 - The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
   proposal and its numbers are in the rifle folder's README.
+- **The hold in the game (kit #889)** is the proposal's C and E as a component, `TwoHandHold`
+  (`gameplay/weapon/two_hand_hold.gd`; how to use it: [Weapon pickups and a two-handed
+  hold](../../engines/godot/third-person/shooting.md#weapon-pickups)): the pocket follows `spine_03`'s place in the
+  clip, so a crouch carries the gun. `tools/carry/measure_hand_contact.gd -- rifle` measures it in the game's own
+  pose: both hands sit on their targets (0 to 0.3 cm once settled), but the clip's fist does not fit the rifle. The
+  right hand goes 22 mm into the grip on both mannequins, its middle, ring and little fingers 8 to 17 mm, its index
+  finger stands 3.3 to 7 mm off and not on the trigger; the left hand goes 14 to 15 mm into the hand guard (45 mm on
+  the male at the low ready) with its fingers 9 to 12 mm in. That fails this page's 2 mm and 5 mm: the rifle needs
+  solved fingers on its `Grip`, `Trigger` and `Support`, which is #1001's `WeaponHold` work for the pistol.
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold
@@ -220,6 +229,13 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   the pistol clip's arms keep the target 0.72 m from the shoulder even with the support moved (22.5 cm short). **Seen:**
   gdstudio #886, 2026-11-10 (fix: the support moved 4 cm back, 0.25 m ahead of the grip; both hands then reached in
   every hold of the study).
+
+- **Approach:** Measure a hold made by modifiers inside the skeleton's `skeleton_updated` (after the modifiers, before
+  the next frame), and free the character only after an `await process_frame` that leaves the signal. **Watch out
+  for:** `get_bone_global_pose()` read in `_process` gave the clip's arm hanging at the hip, so a close-up camera
+  placed from the hand framed the thigh (place it from the hand's IK target instead); and freeing the player right
+  after `await skeleton.skeleton_updated` freed the skeleton during its own signal and crashed Godot (signal 11).
+  **Seen:** gdstudio #889, 2026-11-10 (`rifle_tour.gd`, `measure_hand_contact.gd -- rifle`).
 
 - **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
   times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender

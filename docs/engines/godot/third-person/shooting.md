@@ -247,6 +247,66 @@ through `Pistol_Reload` too.
   of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
   and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
 
+## Weapon pickups and a two-handed hold {#weapon-pickups}
+
+<!-- new section: the weapons section covers a loadout fixed in the scene; nothing said how a game hands a character a
+     new weapon, or how a long gun is held when the animation library has no clip for it (gdstudio #889) -->
+
+A weapon lying in the level is a `WeaponPickup` (`gameplay/pickup/weapon_pickup.gd` + `weapon_pickup.tscn`, a
+`Pickup` that gives a weapon): its `weapon` (a `WeaponDef`) and `rounds`, the spin, bob, sound and `respawn_time` of
+`Pickup`, and the nodes `Visual` (the model goes under it), `Shape` (a 1.2 m wide cylinder), `Glow` (an unshaded
+additive ring on the ground in `tint`), `Light` (a 2.2 m omni light in `tint`, no shadow) and `Sound`. A weapon's own
+pickup is a scene that inherits it and puts the model under `Visual`: the template's `rifle_pickup.tscn` (the rifle,
+60 rounds, 20 s) stands in the prototype map between the spawn and the range.
+
+- **What it gives** goes through the character's loadout, `WeaponLoadout.give(definition, rounds)`: a weapon not
+  carried goes in a new slot with a full magazine and `rounds` in the reserve and is brought out
+  (`switch_to_new`, on), one already carried takes only the rounds up to `max_reserve` (`Given.AMMO`), and one with
+  a full reserve takes nothing (`Given.NOTHING`), so the pickup stays. A body with no `WeaponLoadout` leaves it. The
+  pickup says `weapon_taken(collector, definition, given)` and `collected`. Any `Pickup` can give something else by
+  overriding `_give(body) -> bool` and `_set_shown(shown)`; `Visual` can be any `Node3D` and bobs about its height in
+  the scene.
+- **Gameplay and cosmetics.** The carried list is in the loadout's step state (`CharacterState.loadout[6]`), so a
+  server and a predicting client agree on what a pickup gave, and a restore takes a given weapon back. The spin, the
+  glow, the light and the sound are cosmetic. Adding to `slots` at run time is additive: a screen that lists the
+  weapons (an inventory) reads `slots` and `weapon_added`.
+- **The two-handed hold** is `TwoHandHold` (`gameplay/weapon/two_hand_hold.gd` + `two_hand_hold.tscn`; the rifle's
+  `rifle_held.tscn` inherits it and adds the gun and the hands' targets under `Pivot`), the definition's `view`. It is
+  not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time
+  the character carries the weapon, so a character without a rifle carries none of its nodes. The butt sits in the right
+  shoulder's pocket, offset from `spine_03` in the clip: low and across the body at rest (`low_pocket`, `low_pitch` 35,
+  `low_yaw` 20), at the shoulder along `view_pitch` when the character aims or for `shot_hold_time` (0.6 s) after a shot
+  (`aim_pocket`, `raise_time` 0.15 s, `pitch_limit` 60). At run time it adds five modifiers to the model's skeleton:
+  `two_hand_stance.gd` (places the pocket from the clip's pose of this frame, then turns the chest `chest_turn`, -30
+  degrees), then per arm a `TwoBoneIK3D` toward the `RightHandTarget` or `LeftHandTarget` marker with the `RightPole` or
+  `LeftPole` and a `CopyTransformModifier3D` that turns the hand. Their weight follows `WeaponLoadout.lowered_amount()`
+  and they are off while the gun is hidden or the character is dead. A shot kicks the gun back (`kick_distance` 2 cm,
+  `kick_degrees` 2); the reload takes the left hand to the magazine, down to the belt (`reload_reach`) and back, by
+  `Weapon.reload_progress()`, with the `magazine` node riding it. The rifle definition (`rifle.tres`) leaves every clip
+  empty, so the weapon layer has no weight and the legs and head stay on the locomotion.
+- **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
+  60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 sounds
+  (`assets/audio/rifle/`, MIT), the shot at -27 dB.
+
+Tests: `test_weapon_pickup.gd` (walking into it gives the rifle and its rounds, it comes back after its time, with the
+rifle carried it gives only rounds, with a full reserve it stays, the rifle fires while the button is held, a body with
+no loadout leaves it, both hands reach their targets and let go when it is put away, the step state takes a given
+weapon back). Captures: `tools/capture/rifle_tour.tscn` (the floating rifle, taking it, the low ready, aim, a burst,
+aim up and down, the reload, hip fire, a switch to the pistol and back; `-- side|top|front` for close-ups of the hands
+through a viewport of their own).
+
+Cost, measured on the desktop: a pickup's spin and bob 0.8 to 0.9 microseconds a frame; ten rifle pickups drew 35 draw
+calls on the Compatibility renderer and 14 on Forward+, the same with their lights as without (each rifle is its near
+level's three meshes and the ring). The hold's five modifiers cost about 8 microseconds a character (the rifle study's
+40 figures); they are worked out on each machine from `aim_amount`, `view_pitch`, the shots and the reload, never
+sent. The hands do not meet this page's limits yet: [the rifle's
+hold](../../../tools/blender/weapons.md#the-third-person-template-pistol) has the numbers.
+
+- **Approach:** In a test that walks a character through a pickup with a respawn time, make the respawn longer than
+  the whole walk in and out, then wait for it. **Watch out for:** with a 0.5 s respawn the rifle pickup came back
+  while the character was still walking out over it and gave its rounds twice (180 in reserve, not 120). **Seen:**
+  gdstudio #889, 2026-11-10.
+
 ## Bullet impacts {#impacts}
 
 A shot that lands tells the level's `Impacts` node (`world/world.tscn`, the group `impacts`): a mark on the body it hit

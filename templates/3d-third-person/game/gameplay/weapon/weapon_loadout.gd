@@ -72,6 +72,8 @@ func _ready() -> void:
 		character.item_collected.connect(_on_item_collected)
 	_kept.clear()
 	for definition in slots:
+		_make_view(definition)
+	for definition in slots:
 		_kept.append([definition.magazine_size, definition.start_reserve] if definition else [0, 0])
 	var first := clampi(start_slot, UNARMED, slots.size() - 1)
 	if first == UNARMED and unarmed == null:
@@ -220,6 +222,7 @@ func give(definition: WeaponDef, rounds: int) -> Given:
 		else:
 			_kept[slot][1] += taken
 		return Given.AMMO
+	_make_view(definition)
 	slots.append(definition)
 	var reserve := clampi(rounds, 0, definition.max_reserve) if definition.uses_ammo() else 0
 	_kept.append([definition.magazine_size, reserve])
@@ -324,6 +327,23 @@ func _show_views() -> void:
 		var view := _node_under_model(definition.view) as Node3D
 		if view != null:
 			view.visible = view == shown
+
+
+# Makes the definition's `view_scene` under `model` when the model slot has no `view` node yet
+# (a weapon given by a pickup brings its model in the hand with it). It starts hidden.
+func _make_view(definition: WeaponDef) -> void:
+	if model == null or definition == null or definition.view_scene == null:
+		return
+	if definition.view.is_empty() or definition.view.get_name_count() != 1:
+		return
+	if model.has_node(definition.view):
+		return
+	var view := definition.view_scene.instantiate() as Node3D
+	if view == null:
+		return
+	view.name = String(definition.view.get_name(0))
+	view.visible = false
+	model.add_child(view)
 
 
 func _set_views_visible(shown: bool) -> void:

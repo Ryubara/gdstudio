@@ -30,10 +30,11 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_first_set_is_960_credits_and_inside_the_budget(data, tmp_path):
+def test_the_plan_of_the_set_is_1040_credits_and_inside_the_budget(data, tmp_path):
+    # The first set's 960 and the weapon pickup's two takes of 1 s (#889).
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 960
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 960)
+    assert sum(r["credits"] for r in rows) == 1040
+    assert sfx.check_budget(data, tmp_path, rows) == (0, 1040)
     assert data["budget"] <= 1200
 
 

@@ -14,6 +14,7 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Sound | Where | Request | Result |
 | --- | --- | --- | --- |
 | Coin pickup | `3d-third-person` `assets/audio/coin/` | 4 takes of 0.5 s | 4 files of 0.35 to 0.36 s, a shake of coins into a soft pop |
+| Weapon pickup | `3d-third-person` `assets/audio/weapon_pickup/` | 2 takes of 1.0 s | 2 files of 0.38 and 0.20 s, a metal clack and a bolt; billed 10 credits each (#889) |
 | Footsteps | `3d-third-person` `assets/audio/footsteps/` | 2 takes of 5 s | 4 single steps of 0.08 to 0.13 s, soft low thuds, kept from 4 cut (#857; #835's 10 boot steps are gone) |
 | Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, no ElevenLabs licence (#857) |
 | Wind | `3d-blank` `assets/audio/wind/` | 1 take of 12 s, `loop` | one seamless loop of 10.5 s |
@@ -132,6 +133,7 @@ Generated takes vary wildly in level and lead-in, so every file is levelled and 
 | Set | Reading | Target | Measured |
 | --- | --- | --- | --- |
 | Coin pickup (4) | loudest momentary (400 ms, zero-padded) | -20 LUFS-M | -20.3 to -20.0, peak -3.8 to -2.1 dBFS |
+| Weapon pickup (2, #889) | loudest momentary | -22 LUFS-M | -22.6 to -22.4, peak -4.9 to -2.5 dBFS (the second take is peak limited, so the set sits 2 LU under the coin) |
 | Footsteps (4, #857) | loudest momentary | -33 LUFS-M | -33.0 to -32.9, peak -13.3 to -9.2 dBFS |
 | Wind (1) | integrated | -33 LUFS | -33.0, peak -16.1 dBFS |
 
@@ -141,8 +143,10 @@ player's distance filter leaves alone, while the filter took the 2 to 5 kHz out 
 maintainer's player volumes (steps -20, crouch steps -29, landing -15 and wind -20 dB) and the coin at -16 and the shot
 at -22 dB, the loudest 400 ms at the mix, through the camera and the buses, is, played with the real input: step -40,
 crouch step -46, landing -37, coin -37, shot -31 LUFS-M and the wind -50 LUFS integrated ([Audio](../../engines/godot/audio.md#template-buses)
-has how it was measured). Within a set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within
-5 ms of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
+has how it was measured). The weapon pickup at -20 dB reads -35 LUFS-M in the rifle tour's mix (between the coin
+and the shot, its draw sound right after it at -29) and the rifle's automatic burst at -27 dB -25 (#889). Within a
+set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within 5 ms
+of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
 full-scale files (peak about 0 dBFS), made to be played at a trim, and play here at -22 dB.
 
 - **Approach:** Read short sounds as the loudest momentary loudness (the file zero-padded to one second) and level to

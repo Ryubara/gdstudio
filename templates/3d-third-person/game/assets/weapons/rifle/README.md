@@ -37,7 +37,15 @@ grip. In Godot the muzzle points along -X, up is +Y and the gun's left is +Z (th
 and with the support where Deadnight put it the left hand stopped 4 cm short of it even with the chest turned 30
 degrees (the hold study below).
 
-## Holding it (a proposal for the weapon work)
+## Holding it
+
+The game holds it with C and E below (kit #889): `gameplay/weapon/rifle_held.tscn`, a `TwoHandHold` under the
+character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. The fingers still keep the clip's fist
+(`tools/carry/measure_hand_contact.gd -- rifle`: the right hand 22 mm into the grip, the left 15 mm into the hand
+guard), so the next step is solved fingers on `Grip`, `Trigger` and `Support`, as #1001 does for the pistol. The
+study below is how the hold was chosen.
+
+### The proposal
 
 The Universal Animation Library has pistol clips and no rifle clips, so the rifle needs a hold made from what the
 template has. `tools/capture/rifle_hold_study.tscn` builds five on the female mannequin and measures each hand

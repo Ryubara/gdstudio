@@ -6,7 +6,9 @@ extends Node3D
 ## shoulder's pocket, low and across the body at rest and at the shoulder along the view when the
 ## character aims or shoots, the chest turns the left shoulder forward so the left arm reaches, and
 ## a two-bone IK puts each hand on its marker on the gun. The legs and the head stay on the
-## locomotion clips. The rifle's `RifleHeld` (`assets/weapons/rifle/rifle_held.tscn`) is one.
+## locomotion clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
+## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' targets under
+## `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
 ## and turns), the gun under it, the hands' targets on the gun (`RightHandTarget`,
@@ -62,9 +64,9 @@ const _MODIFIER_PREFIX := "TwoHandHold_"
 ## the model's space (down and back, to the belt).
 @export var reload_reach := Vector3(0.05, -0.28, -0.12)
 ## The magazine node under the gun that leaves with the left hand. Empty: none moves.
-@export var magazine: NodePath = ^"Pivot/Rifle/Near/Rifle/Magazine"
-## The far level's magazine, moved and hidden with it.
-@export var magazine_far: NodePath = ^"Pivot/Rifle/Far/Rifle/Magazine"
+@export var magazine: NodePath
+## The far level's magazine, moved and hidden with it. Empty: none.
+@export var magazine_far: NodePath
 
 @export_group("Bones")
 ## The bone whose place the pocket follows.

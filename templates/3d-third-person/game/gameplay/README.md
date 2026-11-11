@@ -18,7 +18,9 @@ The template has a character and the map's components:
   magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
   hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the
   slots and the empty hands, and a `Target` falls over when hit. They work with any model: a definition names the
-  model node it shows and its muzzle marker under the character's `Model` slot.
+  model node it shows and its muzzle marker under the character's `Model` slot. `rifle.tres` is the automatic
+  hitscan rifle; `TwoHandHold` (`two_hand_hold.tscn`, the rifle's `rifle_held.tscn`) holds a long gun with both hands
+  by IK where the clips have no pose for it. `WeaponLoadout.give()` adds a weapon at run time.
 - `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow
   the skeleton when a shot needs them) and `HitRecord` (one hit: damage, zone, bone, point, direction, strength; what a
   network sends). A `Projectile` that meets a character's capsule asks its `HitZones` which part is on its line; the
@@ -41,3 +43,5 @@ The template has a character and the map's components:
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,
   `Shape` and `Sensor`), so open the scene to restyle one; the `@tool` scripts size them from the inspector in the
   editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`).
+- `pickup/weapon_pickup.tscn`: a `Pickup` that gives a weapon (or its rounds) through the character's loadout, floating
+  over a glowing ring; `rifle_pickup.tscn` inherits it with the rifle under `Visual`.
