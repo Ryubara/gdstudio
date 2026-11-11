@@ -133,7 +133,8 @@ const REASON_NAMES: Array[String] = [
 @export_range(0, 100) var retry_count := 1
 ## Seconds before a retry.
 @export_range(0.0, 60.0, 0.05, "suffix:s") var retry_delay := 0.5
-## The task that runs in its place under `FALLBACK`.
+## The task that runs in its place under `FALLBACK`, once, during a failure storm too (when
+## retries do not).
 @export var fallback: AiTask
 
 @export_group("Order")

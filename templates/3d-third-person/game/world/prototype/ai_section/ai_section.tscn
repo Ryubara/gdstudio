@@ -699,6 +699,7 @@ respawn_delay = 15.0
 wake_range = 25.0
 patrol_route = &"guard_lane"
 max_corpses = 2
+on_server = true
 
 [node name="Shooters" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
 script = ExtResource("ai_spawner")
@@ -709,6 +710,7 @@ respawn_delay = 20.0
 wake_range = 25.0
 patrol_route = &"hold"
 max_corpses = 2
+on_server = true
 
 [node name="Allies" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
 script = ExtResource("ai_spawner")
@@ -719,6 +721,7 @@ respawn_delay = 15.0
 wake_range = 25.0
 leader_group = &"player"
 max_corpses = 2
+on_server = true
 
 [node name="Civilians" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
 script = ExtResource("ai_spawner")
@@ -728,6 +731,7 @@ markers = [NodePath("../../AiMarkers/CivilianHomes/Home1"), NodePath("../../AiMa
 respawn_delay = 20.0
 wake_range = 25.0
 max_corpses = 2
+on_server = true
 
 [node name="LightmapGI" type="LightmapGI" parent="." unique_id=85991155]
 max_texture_size = 4096

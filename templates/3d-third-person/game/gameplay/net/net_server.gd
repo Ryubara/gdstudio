@@ -114,6 +114,7 @@ const HOLD_TICKS := 4
 	preload("res://gameplay/ai/profiles/grunt.tres"),
 	preload("res://gameplay/ai/profiles/ally.tres"),
 	preload("res://gameplay/ai/profiles/civilian.tres"),
+	preload("res://gameplay/ai/profiles/shooter.tres"),
 ]
 ## The players' bodies join the group `player` with the faction `player`, so the AI sees them,
 ## measures its tiers from them and fights them.
