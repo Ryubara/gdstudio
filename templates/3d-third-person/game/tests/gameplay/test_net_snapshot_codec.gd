@@ -38,6 +38,12 @@ func _all_events() -> Array[NetEvent]:
 		NetEvent.entity(40, 123_456, PackedByteArray([1, 2, 3])),
 		NetEvent.pickup(41, 6),
 		NetEvent.rejected(77, 3),
+		NetEvent.ai(
+			300,
+			NetEvent.AiCode.FIRED,
+			Vector3(2.0, 1.4, -6.0),
+			Vector3(0.0, -0.1, 1.0).normalized()
+		),
 	]
 	return events
 
@@ -87,9 +93,10 @@ func test_a_player_entry_is_12_bytes() -> void:
 	assert_int(SnapshotCodec.PLAYER_SIZE).is_less_equal(12)
 
 
-func test_a_tick_with_8_players_is_at_most_108_bytes() -> void:
+func test_a_tick_with_8_players_is_at_most_109_bytes() -> void:
 	var packet := SnapshotCodec.tick(10, 9, [] as Array[NetEvent], _players(8))
-	assert_int(packet.size()).is_less_equal(108)
+	# 108 and the AI block's mode byte (gdstudio #970).
+	assert_int(packet.size()).is_less_equal(109)
 	assert_int(packet.size()).is_equal(
 		NetWire.TICK_HEADER + 8 * SnapshotCodec.PLAYER_SIZE + NetWire.TICK_TAIL
 	)
@@ -137,6 +144,7 @@ func test_each_event_size_matches_its_layout() -> void:
 		NetEvent.Kind.ENTITY: 8 + 3,
 		NetEvent.Kind.PICKUP: 4,
 		NetEvent.Kind.REJECTED: 6,
+		NetEvent.Kind.AI: 14,
 	}
 	var lines := PackedStringArray()
 	for event in _all_events():
@@ -178,7 +186,7 @@ func test_the_message_sizes_against_the_research_estimates() -> void:
 	print("net sizes: ", " ".join(lines))
 	assert_int(sizes["command"]).is_equal(15)
 	assert_int(sizes["command_with_shot"]).is_equal(27)
-	assert_int(sizes["tick_8_players"]).is_equal(108)
+	assert_int(sizes["tick_8_players"]).is_equal(109)
 	assert_int(sizes["refused"]).is_equal(3)
 	assert_int(sizes["ping"]).is_equal(7)
 	assert_int(sizes["pong"]).is_equal(11)

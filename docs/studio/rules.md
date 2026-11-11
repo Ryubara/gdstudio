@@ -75,6 +75,11 @@ on the [corrections log](maintainer-corrections.md). The old form (`**Rule:** ..
   learning hook were designed around quoting the maintainer, so every row copied a prompt into a public repository.
   **Seen:** gdstudio #780, 2026-11-07 (fix: the quotes were removed, and the checks fail a corrections-log row with a
   cell that starts with a quotation mark).
+- **Approach:** Before adding a source to a long entry's `Seen:`, or keeping both sides of a merge conflict in one,
+  run `python .github/scripts/mistakes.py check`; when it is over 900 characters, fold the sources (one date for
+  several numbers) or start a new entry. **Watch out for:** both sides of a conflict kept whole made a 973-character
+  entry, and one more source on a long entry 1026, so the merge commit and a docs commit were refused by pre-commit.
+  **Seen:** gdstudio #970, 2026-11-11 (`running-gdunit.md`, `online-client.md`; both folded or split, the check passed).
 
 ## A section {#section}
 

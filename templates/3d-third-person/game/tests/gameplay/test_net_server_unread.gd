@@ -187,7 +187,7 @@ func test_a_client_unread_for_60_s_stays_seated_and_whole() -> void:
 	_start(false)
 	var run := await _run_the_stall()
 	prints(
-		"unread 60 s, the real 256 KB buffer:",
+		"unread 60 s, the real buffer (NetLimits.BUFFER_SIZE):",
 		"relay down %d B," % _relay.bytes_down,
 		"refused sends %d," % run["refused"],
 		"stats lines with a stalled peer %d," % run["stalled_lines"].size(),
