@@ -17,7 +17,7 @@ Open pull requests come before new work: each one left open goes stale against `
   open with 33 jobs queued.
 - **Land what you would recommend.** A pull request the coordinator would recommend is refreshed and landed, and its
   trade-off reported afterwards, so the maintainer can reverse it. It is not parked behind "merge? recommended". Only
-  `S-hold` ([Hooks: the hold](hooks.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
+  `S-hold` ([Hooks: the hold](hooks-hold.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
   for the maintainer.
 - **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
@@ -80,7 +80,7 @@ Open pull requests come before new work: each one left open goes stale against `
   once, so the step is a merge, not a setting: a pull request the maintainer meant to see first merged past its hold, a
   nightly fix merged before its dispatch finished a job that failed on a limit it had called harmless, and a pull
   request with stale numbers landed before the three fixes asked for. **Seen:** Deadnight #1115, 2026-11-04 (fix: the
-  hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
+  hold is a label and a required check, [Hooks](hooks-hold.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
   2026-11-04.
 
 - **Approach:** Before any merge call (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`), have

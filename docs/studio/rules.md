@@ -164,6 +164,11 @@ one time a learning makes a new page. The check names the page and its size.
   its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a subpage titled like the
   one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
   #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
+- **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
+  on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
+  a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
+  saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
+  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed).
 
 ## Where the entry is named {#named}
 
