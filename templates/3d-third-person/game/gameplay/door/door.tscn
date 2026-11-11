@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://addons/gds_game/interact/interactable.gd" id="2_interactable"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/square.png" id="9_square"]
+[ext_resource type="PackedScene" path="res://gameplay/net/net_entity.tscn" id="n_entity"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_panel"]
 resource_local_to_scene = true
@@ -61,5 +62,8 @@ icon = ExtResource("9_square")
 color = Color(0.45, 0.7, 1, 1)
 size = 10.0
 kind = &"door"
+
+[node name="NetEntity" parent="." instance=ExtResource("n_entity")]
+metadata/net_kind = &"door"
 
 [connection signal="interacted" from="Interactable" to="." method="interact"]

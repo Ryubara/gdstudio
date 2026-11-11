@@ -20,5 +20,7 @@ on the page of its subject, with an `{#anchor}`; keep each page under 40 KB.
   other players, and what it costs.
 - [Shots, hits and deaths online](online-shots.md): who decides a hit, the events of a shot, a hit and a death, and
   what each screen makes itself.
+- [Networked map parts](net-world.md): doors, platforms and pickups the server owns, met at the command's tick on both
+  sides, and the checklist of a network-ready component.
 
 What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).
