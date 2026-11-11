@@ -16,14 +16,15 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1;
 ## the reload's `MagazineHand` marker (#1031) 1, a `Marker3D` that is never processed; the
 ## `MinimapHeading` (#1047) 1, a plain `Node` read only when a minimap draws its arrow; the
-## `NoiseMaker` (#966) 1, which looks at the body's movement every 6th tick. The count takes in the
+## `NoiseMaker` (#966) 1, which looks at the body's movement every 6th tick; the `AimLayer` (#1253)
+## 2, the node and its skeleton modifier (inactive until the character aims). The count takes in the
 ## empty, inactive `PhysicalBoneSimulator3D` every `Skeleton3D` makes as an internal child when it
 ## enters the tree (the engine's compatibility one, which `find_children` lists), not the walker
 ## the test adds. A character whose skeleton made the pool's sets (the first of a game) kept its
 ## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210).
 ## The prototype body (kit #1187) has 3 more than the Quaternius female it replaced: three meshes
 ## (its levels of detail) where she had one, and the `MannequinTwist` modifier.
-const NODES_ALIVE := 58
+const NODES_ALIVE := 60
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

@@ -30,6 +30,10 @@ extends Node
 ## weapon's seat and markers are the default body's (`CharacterBodies.FEMALE`); `fits` holds the
 ## others, and the one whose body is the model's file is put on when the model is (re)built.
 
+## The modifiers were made again on the model's skeleton (the `AimLayer` places its own after the
+## grip).
+signal built
+
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
@@ -232,6 +236,7 @@ func _build() -> void:
 	_fingers = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:
+		built.emit()
 		return
 	_fit_body()
 	_grip = HandPoseModifier.new()
@@ -254,6 +259,7 @@ func _build() -> void:
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 	refresh()
+	built.emit()
 
 
 ## The fit in use now: the one whose `body` is the model's file, or the scene's own.
