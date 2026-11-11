@@ -181,8 +181,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   --3way mine.patch`; a pull request stacked on a hand-merged sync one takes its own side of the synced files, runs `gds
   sync <game>` and `gds sync --check`, and says what it is stacked on. **Watch out for:** a squash merge writes a commit
   no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
-  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on #643, 2026-11-03; Deadnight #575 on #571,
-  2026-11-02.
+  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on
+  #643, 2026-11-03; Deadnight #575 on #571, 2026-11-02; gdstudio #1291 on #1040, 2026-11-11.
 - **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
   merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
   a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub
