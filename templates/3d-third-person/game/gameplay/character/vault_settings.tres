@@ -1,6 +1,12 @@
 [gd_resource type="Resource" script_class="VaultSettings" format=3]
 
 [ext_resource type="Script" path="res://addons/gds_game/traversal/vault_settings.gd" id="1_vault"]
+[ext_resource type="Resource" path="res://gameplay/character/vault_low.tres" id="2_low"]
+[ext_resource type="Resource" path="res://gameplay/character/vault_high.tres" id="3_high"]
 
 [resource]
 script = ExtResource("1_vault")
+landing_margin = 1.13
+max_vault_time = 1.3
+low_clip = ExtResource("2_low")
+high_clip = ExtResource("3_high")
