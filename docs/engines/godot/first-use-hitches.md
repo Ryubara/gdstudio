@@ -287,8 +287,12 @@ each run, `?play`):
 | GPU, cold, after (three runs) | 2 339 to 2 604 | 5 | 8.1 to 8.8 | 3 206 to 3 571, 767 to 1 630 |
 | GPU, warm profile, before / after | 337 / 166 to 182 | 7 / 5 | 3.3 / 3.2 to 3.8 | 869 / 803 to 1 090 |
 
-The list itself linked in 2.0 to 2.4 s on the GPU. What is left of the cold page is two programs the engine links at
-boot, before any script runs (the copy shader and the default material, about 1 s each), and the level's own load.
+The list itself linked in 2.0 to 2.4 s on the GPU. The online game's cold join (`online.py --gpu --warm-up 0 --pages 1
+--bots 1`) seated 6.5 to 7.3 s after the page opened in four runs, against 21 to 22 s with a new socket after the
+server's hang-up before. SwiftShader skips the list (last link 8.6 to 8.7 s with it, 8.6 to 8.9 without; the online
+join 5.5 to 5.6 s with it, 4.1 to 5.6 without). What is left of the cold page is two programs the engine links at
+boot, before any script runs (the copy shader and the default material, about 1 s each), and the level's own load;
+a straight route shows the clear colour while it waits for the list (about 2 s).
 
 - **Approach:** Shorten a cold browser's shader wait by linking a recorded list of the engine's programs at once in
   the engine's own WebGL context (`ShaderPrelink`), and check a cache hit by timing the game's links after it, not the
