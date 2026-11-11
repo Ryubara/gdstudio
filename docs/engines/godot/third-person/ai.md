@@ -109,7 +109,9 @@ far character stepped every 4th tick walks the same path.
   its own, and only when the director's `AiBudget` gives one (`take_path()`; a refusal tries at the next step). None
   before the map's first iteration (`map_get_iteration_id`), none while it crosses a link. The navigator turns the
   server map's async iterations off
-  ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)).
+  ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)); the regions
+  still build on a thread (#1075), so the test arena (`NavArena.build()`) turns its region's off too
+  ([a small mesh of your own](../navigation-in-tests.md#a-small-mesh-of-your-own)).
 - **Goals and routes.** An unreachable goal (the path ends more than 1 m short) is asked once more with no polygon
   limit, at the next slot, then `failed(UNREACHABLE)` and refused for 5 s without a query. Following, a path ending
   3 m or more short of a target 12 m or more away is `stranded`, said once a goal; moving the character is the
