@@ -6,8 +6,8 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 
 | Recorded | Source | What went wrong first | Rule |
 | --- | --- | --- | --- |
-| 2026-11-01 | Deadnight #260, #271 | Two pull requests each passed the balance gate alone and broke it together on main | [studio/starting-work.md#landing](../starting-work.md#landing) |
-| 2026-11-01 | Deadnight | A merge of main doubled a step in a test, so the branch failed | [studio/starting-work.md#merging-main-into-a-pull-request](../starting-work.md#merging-main-into-a-pull-request) |
+| 2026-11-01 | Deadnight #260, #271 | Two pull requests each passed the balance gate alone and broke it together on main | [studio/landing.md#landing](../landing.md#landing) |
+| 2026-11-01 | Deadnight | A merge of main doubled a step in a test, so the branch failed | [studio/landing.md#merging-main-into-a-pull-request](../landing.md#merging-main-into-a-pull-request) |
 | 2026-11-01 | Deadnight | World triplanar materials slowed the web frame from 79 to 90 ms | [engines/godot/surface-materials.md#measured](../../engines/godot/surface-materials.md#measured) |
 | 2026-11-01 | Deadnight | A headless import left new 3D textures without mipmaps | [engines/godot/surface-materials.md#pitfalls](../../engines/godot/surface-materials.md#pitfalls) |
 | 2026-11-01 | Deadnight | Walk and run blend points were guessed (1.0 and 3.0 m/s) while the clips move at 0.97 and 4.4 | [engines/godot/crowds.md#gait-follows-speed](../../engines/godot/crowds.md#gait-follows-speed) |
@@ -36,7 +36,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-02 | Deadnight #617 | The zombie outline had a glow and showed on visible parts, not only on the part hidden behind cover | [engines/godot/outline-through-walls.md#only-where-it-is-hidden](../../engines/godot/outline-through-walls.md#only-where-it-is-hidden) |
 | 2026-11-02 | Deadnight #618 | Shots on zombies showed nothing on the body: hit feedback was never planned with the combat loop | [engines/godot/shot-feedback.md#blood](../../engines/godot/shot-feedback.md#blood) |
 | 2026-11-03 | gdstudio #241 | Finished worktrees were never removed, and 64 of them with import caches filled the disk to 8 GB free | [studio/workspace.md#sweep](../workspace.md#sweep) |
-| 2026-11-03 | Deadnight #655, #656, #660, #661 | Five parallel art pull requests edited the same docs rows and test and conflicted, whatever the merge order | [studio/starting-work.md#landing](../starting-work.md#landing) |
+| 2026-11-03 | Deadnight #655, #656, #660, #661 | Five parallel art pull requests edited the same docs rows and test and conflicted, whatever the merge order | [studio/landing.md#landing](../landing.md#landing) |
 | 2026-11-03 | Deadnight #681 | Zombies kept their spawn height and never climbed ramps or stairs: the sim assumed a flat lot | [engines/godot/crowds.md#height-a-crowd-off-the-physics-engine-must-be-given-its-floor](../../engines/godot/crowds.md#height-a-crowd-off-the-physics-engine-must-be-given-its-floor) |
 | 2026-11-03 | Deadnight #702 | With bots seated, the view followed a bot: every body's camera was current and the first fix went into callers | [engines/godot/camera.md#one-current-camera-per-viewport](../../engines/godot/camera.md#one-current-camera-per-viewport) |
 | 2026-11-03 | Deadnight #686 | Opening the road showed an unfinished placeholder area that had stayed visible for a hundred pull requests | [gamedev/level-design.md#p19-the-place-makes-sense-to-a-player](../../gamedev/level-design.md#p19-the-place-makes-sense-to-a-player) |
@@ -56,7 +56,7 @@ Mistakes the maintainer did not have to point out, because a test, a measurement
 | 2026-11-04 | Deadnight #1077 | The player boxes at the bottom left were left out of the identity feature: the places a name shows were never listed | [gamedev/ui.md#many-places](../../gamedev/ui.md#many-places) |
 | 2026-11-04 | Deadnight #1161 | The level digits and the icon beside a name were not aligned: each was placed from its own box, not its ink | [engines/godot/ui-controls.md#a-part-placed-from-another-parts-rectangle](../../engines/godot/ui-controls.md#a-part-placed-from-another-parts-rectangle) |
 | 2026-11-06 | Deadnight #1322 | Bots paid for the prize crane again and again but never took the weapon | [gamedev/design.md#bot-teammates](../../gamedev/design.md#bot-teammates) |
-| 2026-11-06 | Deadnight #1199, #1244, #1252 | Green pull requests the coordinator recommended were parked waiting for a yes | [studio/starting-work.md#landing](../starting-work.md#landing) |
+| 2026-11-06 | Deadnight #1199, #1244, #1252 | Green pull requests the coordinator recommended were parked waiting for a yes | [studio/landing.md#landing](../landing.md#landing) |
 | 2026-11-06 | gdstudio | gds posted 595 status comments under the maintainer's account; the guard read only what agents typed | [studio/hooks.md#comments](../hooks.md#comments) |
 | 2026-11-06 | Deadnight #1366 | A lobby start stuck for one account whose ticket pushed the hello past its byte limit; every probe was a fresh guest | [engines/godot/multiplayer.md#small-things-that-cost-time](../../engines/godot/multiplayer.md#small-things-that-cost-time) |
 | 2026-11-07 | gdstudio #771 | A mod and a new repository were proposed for work the orchestrator, a guard and the kit already did | [studio/asks.md#new-tools](../asks.md#new-tools) |

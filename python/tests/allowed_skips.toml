@@ -85,3 +85,8 @@ reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windo
 test = "test_uids.py::test_godot_imports_the_written_files_without_rewriting_them"
 platforms = ["linux", "darwin"]
 reason = "it runs the pinned Godot, which only the Windows runner of the test job fetches (the import is the same on every platform)"
+
+[[skip]]
+test = "test_capture.py::test_real_ffmpeg_encodes_a_digit_ending_folder_slowed"
+platforms = ["linux", "darwin"]
+reason = "it runs the pinned ffmpeg, which has a build for Windows only (tools.toml); the Windows runner of the test job fetches it"
