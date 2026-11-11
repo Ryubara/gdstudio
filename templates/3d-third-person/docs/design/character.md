@@ -183,7 +183,10 @@ magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo
 the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
 so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
 pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
-2.5 a second, with no ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
+2.5 a second, with no ammunition, and a punch does not zoom the view (`fire_zooms` off). Each definition's Aim and zoom
+group says what aim and fire do with it: `can_aim`, `fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with
+`override_zoom` its own aim and fire field of view, distance and `zoom_offset` in place of the camera's; all apply
+while the game runs. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
 weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
 `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
 turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
@@ -201,7 +204,8 @@ field of view and distance added at a full sprint, the zoom speed, and a shake w
 frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Slide (the field of view
 added while sliding, 5 degrees, and its speed, 4 a second; the sprint view stays through a slide), Aim (the distance, the
 field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
-aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+aiming, with `zoom_when_firing` to turn it off, which a weapon's `fire_zooms` can also do for itself, and a Shot
+kick: `shot_kick_amplitude` in degrees, off at 0, and
 `shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
 from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
 follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:

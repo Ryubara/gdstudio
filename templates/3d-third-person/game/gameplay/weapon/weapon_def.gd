@@ -66,6 +66,38 @@ enum Kind {
 ## refused until it is.
 @export var past_aim_limit := PastAimLimit.TURN_BODY
 
+@export_group("Aim and zoom")
+## What a press of aim or fire does with this weapon in the hands. The character and the camera
+## read these every step, so a change while the game runs shows at once. `can_aim` and
+## `fire_needs_aim` are gameplay (a server reads them from the same definition); the zoom and the
+## crosshair are the local screen's and never sent.
+##
+## On: the aim button raises the weapon and zooms the view in. Off: the aim button does nothing.
+@export var can_aim := true
+## On: the fire button shoots only while the aim button is held (with `can_aim` off it never
+## does). Off: the fire button aims by itself and shoots once the arm is up.
+@export var fire_needs_aim := false
+## On: holding fire without aiming zooms the view in (the camera's Fire framing, and the camera's
+## `zoom_when_firing` must be on too). Off: firing leaves the framing alone, as for the fists.
+@export var fire_zooms := true
+## On: the crosshair shows while the player aims or fires with this weapon. Off: never.
+@export var show_crosshair := true
+@export_subgroup("Zoom")
+## On: the zoom below replaces the camera's own aim and fire framing while this weapon is in the
+## hands. Off: the camera's `aim_fov`, `aim_distance`, `fire_fov` and `fire_distance` are used.
+@export var override_zoom := false
+## The field of view while aiming, when `override_zoom` is on.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var aim_fov := 50.0
+## How far behind the target the lens sits while aiming, when `override_zoom` is on.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 1.1
+## The field of view while firing without aiming, when `override_zoom` is on.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var fire_fov := 56.0
+## How far behind the target the lens sits while firing without aiming, when `override_zoom` is on.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var fire_distance := 1.4
+## Moves the view while zoomed in, when `override_zoom` is on: x further to the side of the chosen
+## shoulder (mirrored on the left one), y up. It blends in with the zoom.
+@export_custom(PROPERTY_HINT_RANGE, "-1,1,0.01,suffix:m") var zoom_offset := Vector2.ZERO
+
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
 ## ammo on the HUD.
@@ -194,6 +226,11 @@ enum Kind {
 ## True when the weapon uses ammunition (a magazine of at least one round).
 func uses_ammo() -> bool:
 	return magazine_size > 0
+
+
+## True when the fire button may shoot (and aim) now, with the aim button held (`aim_held`) or not.
+func fire_allowed(aim_held: bool) -> bool:
+	return not fire_needs_aim or (can_aim and aim_held)
 
 
 ## Seconds between two shots.
