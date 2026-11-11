@@ -569,8 +569,7 @@ def cmd_encode(args) -> None:
             )
     for folder, text in licence_text(data, sounds, root, cache, ffmpeg).items():
         (root / folder / "LICENSE.md").write_text(
-            text, encoding="utf-8", newline="
-"
+            text, encoding="utf-8", newline="\n"
         )
         print(f"wrote {folder}/LICENSE.md")
 
