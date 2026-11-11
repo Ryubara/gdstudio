@@ -111,6 +111,22 @@
   "idle": [
    "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",
    "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
+  ],
+  "crouch_idle": [
+   "The look-round variant: the head looks 16 degrees one way, holds, and looks back the other (29 degrees in all) over a body that hardly shifts (5 %).",
+   "Not tried: a look past 16 degrees, where the folded neck nears its 45 degree limit. Between looks only the breath and the fingers move, which is the point of it."
+  ],
+  "crouch_walk": [
+   "A scurry that reads from far: 180 steps a minute, the pelvis level to 8 mm, small turns (hips 10, shoulders 7 degrees).",
+   "Could not be done: a lower swing (35 mm of clearance): the male's longer toes went 6 mm under the floor; it keeps 45 mm."
+  ],
+  "stand_to_crouch": [
+   "The quickest drop gravity allows: 13 frames, falling for 72 % of it at 0.92 of gravity and caught at the bottom.",
+   "Could not be done: 12 frames (1.33 of gravity) or 11 (1.43): a body whose feet stay on the floor cannot fall faster than it would with nothing under it."
+  ],
+  "crouch_to_stand": [
+   "A snap up: 14 frames, the legs driving for the first third and the body coasting to its height at 0.91 of gravity.",
+   "Could not be done: 12 or 13 frames: the rise had to stop at 1.6 and 1.07 of gravity, which would lift the feet off the floor."
   ]
  }
 }

@@ -18,6 +18,11 @@
 ## `CharacterAnimation` export the variants are played through (default `idle_clip`).
 ## `OWN_ONLY=<clip>` (`Idle_A`, or `Library`) films part 2 for that one clip and nothing else:
 ## nine seconds, short enough for a GIF.
+## `OWN_CROUCH=1` holds the crouch button through part 2, for the crouch clips (gdstudio #1160).
+## `OWN_SLOT=none` is for a clip type the tree has no export for yet (the stance changes, until
+## gdstudio #1158): only part 1 is filmed, with no library body, and a clip that plays once is
+## played again every two seconds. `OWN_FROM=<clip>` (`gds/Idle`) holds each body on that clip's
+## first pose between two plays, so a stance change is seen leaving the pose it joins.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -43,6 +48,10 @@ var _label: Label
 var _clock := 0.0
 var _part := 0
 var _turn := -1
+var _crouch := false
+var _row_players: Array[AnimationPlayer] = []
+var _from := &""
+var _replayed := 0.0
 
 @onready var _rig: PlayerRig = $Main/PlayerRig
 
@@ -55,8 +64,11 @@ func _ready() -> void:
 	for clip in _library.get_animation_list():
 		_clips.append(StringName("review/" + clip))
 	_clips.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
-	var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
-	_clips.append(CharacterClips.stand_in(replaced))
+	_crouch = OS.get_environment("OWN_CROUCH") != ""
+	_from = StringName(OS.get_environment("OWN_FROM"))
+	if _slot != &"none":
+		var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
+		_clips.append(CharacterClips.stand_in(replaced))
 	_rig.player.get_node("AnimationPlayer").add_animation_library(&"review", _library)
 	var layer := CanvasLayer.new()
 	add_child(layer)
@@ -93,13 +105,44 @@ func _film_row() -> void:
 	_label.text = (
 		"side by side, from %s" % ["the front" if front else "behind, as the game sees them"]
 	)
+	_replay_row()
 	if _clock >= 2.0 * ROW_SECONDS:
+		if _slot == &"none":
+			_finish()
+			return
+		_row_players.clear()
 		_row.queue_free()
 		_row = null
 		_rig.player.visible = true
 		_rig.camera_rig.camera.make_current()
 		_part = 1
 		_clock = 0.0
+
+
+# A clip that plays once is played again every two seconds, after a rest on the pose it leaves.
+func _replay_row() -> void:
+	if _clock - _replayed < 2.0:
+		return
+	_replayed = _clock
+	for i in _row_players.size():
+		var clip := _clips[i]
+		var player := _row_players[i]
+		if player.get_animation(clip).loop_mode != Animation.LOOP_NONE:
+			continue
+		if _from != &"":
+			player.play(_from)
+			player.seek(0.0, true)
+			player.pause()
+			_play_later(player, clip)
+		else:
+			player.play(clip)
+			player.seek(0.0, true)
+
+
+func _play_later(player: AnimationPlayer, clip: StringName) -> void:
+	await get_tree().create_timer(0.5, false, true).timeout
+	if is_instance_valid(player):
+		player.play(clip)
 
 
 # Part 2: the real player, one variant at a time, the same input for each.
@@ -115,6 +158,8 @@ func _film_player() -> void:
 			_rig.player.respawn()
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
+	if _crouch:
+		Input.action_press(&"crouch")
 	var at := fmod(_clock, length)
 	if at >= STAND and at < STAND + WALK:
 		Input.action_press(&"move_forward")
@@ -139,10 +184,11 @@ func _build_row() -> void:
 		for library in source.get_animation_library_list():
 			player.add_animation_library(library, source.get_animation_library(library))
 		player.play(_clips[i])
+		_row_players.append(player)
 		var name_plate := Label3D.new()
 		name_plate.text = _name_of(_clips[i])
 		name_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		name_plate.font_size = 48
+		name_plate.font_size = 48 if name_plate.text.length() <= 12 else 26
 		name_plate.pixel_size = 0.004
 		name_plate.no_depth_test = true
 		name_plate.position = body.position + Vector3(0, 2.0, 0)
@@ -191,6 +237,7 @@ func _face(yaw: float) -> void:
 func _finish() -> void:
 	set_physics_process(false)
 	Input.action_release(&"move_forward")
+	Input.action_release(&"crouch")
 	AudioSettings.stop_players(get_tree().root)
 	for _frame in 8:
 		await get_tree().process_frame

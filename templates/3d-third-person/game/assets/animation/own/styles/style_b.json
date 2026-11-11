@@ -127,6 +127,22 @@
   "idle": [
    "For a loose, lived-in character: the weight goes 80 % onto a leg and the hips tip 13 degrees.",
    "Could not be done: the deepest shift still reads 1.3 mm of hand in thigh on the female (the limit is 5); the free foot stays flat, a heel that lifts was not tried."
+  ],
+  "crouch_idle": [
+   "For a loose, lived-in character: the weight goes 42 to 70 % onto the flat foot and swings 12 % past, the hips turn 7 degrees, the head 14, over a 10.7 s loop.",
+   "Could not be done: a higher heel with this shift. At 30 degrees the right thigh turned 126 degrees from its rest (the limit is 125), so the heel stays at 26 and the hip tips 3 degrees, not 4."
+  ],
+  "crouch_walk": [
+   "A prowl: 150 steps a minute on longer steps, the pelvis dipping 24 mm, the hips turning 21 degrees against shoulders turning 18, the weight going 45 % of the way over each foot.",
+   "Could not be done: the idle's long overlap on the arms. With the forearm 4 frames behind in a 12-frame step the arms swung with their own side's legs (-0.31); the walk has its own overlap (1.5 to 2 frames) and reads 0.84. Its sole wanders 4.98 mm, at the limit."
+  ],
+  "stand_to_crouch": [
+   "A sink, not a drop: 20 frames at 0.38 of gravity, the trunk, head and arms each starting later and trailing through the spring.",
+   "Could not be done: the idle's overlap on the arms (4 to 5 frames): the hands trailed into the rising thighs by 38 to 49 mm; the arms take 2 to 3 frames here and open 16 degrees."
+  ],
+  "crouch_to_stand": [
+   "An unhurried rise over 20 frames, the trunk starting to unfold at 30 % and the rise stopping at 0.66 of gravity.",
+   "Not tried: a settle past the standing pose. The last frame is the idle's first to the bit, so an overshoot would have to come back inside the clip."
   ]
  },
  "overlap_stand_to_crouch": {

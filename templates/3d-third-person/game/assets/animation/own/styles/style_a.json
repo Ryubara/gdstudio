@@ -66,6 +66,22 @@
   "idle": [
    "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
    "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
+  ],
+  "crouch_idle": [
+   "Shipped as gds/Crouch_Idle (the recommendation): a quiet crouch, the weight 49 to 63 % on the flat foot, the head drifting 7 degrees; it is the pose the stance changes and the prone transitions join.",
+   "Tried: the hands hanging beside the knees (elbows 42 degrees): the male's forearm was 30 mm inside his raised thigh; the arms hang 30 degrees forward instead and read 0 mm on both bodies."
+  ],
+  "crouch_walk": [
+   "Shipped as gds/Crouch_Walk (the recommendation): 164 steps a minute, the pelvis dipping 16 mm, the head 0.3 mm under the 1.1 m capsule on the taller body.",
+   "Could not be done: a slower cadence at this depth. At 138 steps a minute the ankle had to bend 80 degrees (the limit is 55); the heel rises from the landing on, so the sole wanders 4.6 mm, not 6.8."
+  ],
+  "stand_to_crouch": [
+   "Shipped as gds/Stand_To_Crouch (the recommendation): 16 frames, the centre of mass dropping at 0.80 of gravity at most.",
+   "Could not be done: the controller's crouch_time of 0.2 s (6 frames). The centre of mass goes down 0.45 m, which a free fall takes 9 frames over; the clip is played whole, or sped up by the tree (#1158)."
+  ],
+  "crouch_to_stand": [
+   "Shipped as gds/Crouch_To_Stand (the recommendation): 16 frames, the legs driving first and the trunk unfolding after; the rise stops at 0.91 of gravity.",
+   "Tried: the arms returning with the trunk: the hands crossed the thighs by 10 to 27 mm; they hang back in the second half and open 10 degrees round the thighs."
   ]
  }
 }
