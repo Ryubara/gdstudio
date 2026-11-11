@@ -202,3 +202,48 @@ def test_heredoc_and_herestring_bodies_are_data(tmp_path):
 def test_quoted_pipes_do_not_split_commands(tmp_path):
     assert denied(shell('git log | grep -E "gdunit|godot |done"', tmp_path)) == ""
     assert "pinned" in denied(shell('echo "a|b" && godot -e', tmp_path))
+
+
+def test_godot_as_an_argument_is_not_a_start(tmp_path):
+    # gdstudio #1192: a search or listing that names a `godot` folder runs find, ls, grep or git, never Godot; a line
+    # continued with `\` (bash) or a backtick (PowerShell), or an escaped `\;` ending find's -exec, is one command.
+    passes = [
+        "find godot -name '*.gd'",
+        "ls godot/",
+        "grep -r x godot",
+        "git -C repos/game diff godot/tests/x.gd",
+        "find \\\n  godot -name '*.gd'",
+        "find . -name '*.gd' -exec grep -l x {} \\; godot",
+        "ls -d \\\n  godot/",
+        "ls \\\r\n  godot/",
+    ]
+    for command in passes:
+        assert denied(shell(command, tmp_path)) == "", command
+    ps = {**shell("Get-ChildItem `\n  godot -Recurse", tmp_path), "tool_name": "PowerShell"}
+    assert denied(ps) == ""
+
+
+def test_a_path_godot_behind_a_launcher_is_refused(tmp_path):
+    # gdstudio #1192: the program is judged after the launcher words that start it (env, cmd /c, start, nohup, timeout).
+    refused = [
+        "env godot -e",
+        "env -u DISPLAY FOO=1 godot --headless",
+        "cmd /c godot -e",
+        'cmd.exe /d /c "godot --headless --path game"',
+        'cmd /c "ls && godot -e"',
+        'start "" godot.exe -e',
+        "start /b godot --headless",
+        "nohup godot --headless &",
+        "timeout 600 godot --headless --path game",
+        "echo x | godot -e",
+        "ls && godot -e",
+    ]
+    for command in refused:
+        assert "pinned" in denied(shell(command, tmp_path)), command
+    for command in ("Start-Process godot -ArgumentList '-e'", "Start-Process -Wait -FilePath godot.exe"):
+        assert "pinned" in denied({**shell(command, tmp_path), "tool_name": "PowerShell"}), command
+    assert "takes the keyboard focus" in denied(shell("env $GODOT --path game", tmp_path))
+    pinned = '"C:/ws/tools/godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe"'
+    assert denied(shell(f"cmd /c {pinned} --headless --path game", tmp_path)) == ""
+    assert "environment" in denied(shell("env", tmp_path))  # a bare env still prints the environment
+    assert denied(shell("start https://example.com", tmp_path)) == ""

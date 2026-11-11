@@ -39,8 +39,13 @@ The guards that read a shell line split it into simple commands (`&&`, `||`, `;`
 Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
 included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
 assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
-`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
-folder.
+`.claude/hooks/guards/shell.py`; gdstudio #1004). A launcher (`env`, `nohup`, `timeout`, `cmd /c`, `start`,
+`Start-Process`) is judged by the program it starts, and a continued line (`\` or a backtick) stays one command. A
+plain `cd <dir>` is followed: the commands after it are judged in that folder.
+
+- **Approach:** Judge each simple command by its program word, after any launcher, never by a word after it.
+  **Watch out for:** a newline after `find \` made `godot -name '*.gd'` a Godot start, while `env godot` passed; a
+  bare `env` is a command itself. **Seen:** gdstudio #1192, 2026-11-11.
 
 ## Pull request bodies before they are sent {#pr-body}
 
