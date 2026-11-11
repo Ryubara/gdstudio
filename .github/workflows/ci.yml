@@ -232,6 +232,32 @@ jobs:
           uv run --project repos/gdstudio/python --frozen gds quiet -- \
             uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/smoke --ratio 1 --no-shots
           echo "Touch smoke (${{ matrix.template }}): every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: The template's bad-network gate (native, and its teeth)
+        # 3D Third Person's predicting client against its own server through a relay of 100 ms each way: freezes of
+        # the client's thread, then 1 % of the chunks stalled 300 ms; thresholds in game/tools/net/bad_network.py
+        # (kit docs/engines/godot/third-person/online-client.md#bad-network-gate). Then the same freeze run with the
+        # reconciler's fix and with the server's hold taken out, each of which must fail.
+        run: |
+          gate=repos/template-check/game/tools/net/bad_network_gate.py
+          if [ ! -f "$gate" ]; then echo "no $gate: nothing to add"; exit 0; fi
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          out=repos/template-check/build/net_gate
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/gate"
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/teeth_reconciler" \
+            --runs freeze --break reconciler --expect-fail
+          python3 "$gate" --godot "$godot" --project repos/template-check/game --out "$out/teeth_hold" \
+            --runs freeze --break hold --expect-fail
+          echo "Bad-network gate (${{ matrix.template }}): passed, and failed with either fix taken out" >> "$GITHUB_STEP_SUMMARY"
+      - name: The template's bad-network gate (browser)
+        # The web build's predicting client (`?netplay`) through the same relay, its page frozen 0.5, 2 and 5 s.
+        run: |
+          smoke=repos/template-check/game/tools/web_smoke/net_play_smoke.py
+          if [ ! -f "$smoke" ]; then echo "no $smoke: nothing to add"; exit 0; fi
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          uv run --project repos/gdstudio/python --frozen gds quiet -- \
+            uv run --with playwright==1.64.1 python "$smoke" repos/template-check/build/web repos/template-check/build/net_play \
+            --godot "$godot" --project repos/template-check/game
+          echo "Bad-network gate, browser (${{ matrix.template }}): every check passed" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload the browser captures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -240,6 +266,8 @@ jobs:
           path: |
             repos/template-check/build/boot
             repos/template-check/build/smoke
+            repos/template-check/build/net_gate
+            repos/template-check/build/net_play
           if-no-files-found: ignore
           retention-days: 7
       - name: Nothing the build made is left for git to see

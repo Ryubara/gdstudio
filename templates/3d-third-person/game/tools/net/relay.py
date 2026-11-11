@@ -42,6 +42,8 @@ class Relay:
         self.stall_chance = stall_chance
         self.stall_s = stall_s
         self.stalls = 0
+        self.stalls_up = 0
+        self.stalls_down = 0
         self._rng = random.Random(seed)
         self.bytes_up = 0
         self.bytes_down = 0
@@ -79,6 +81,10 @@ class Relay:
                 if chunk and self.stall_chance > 0.0 and self._rng.random() < self.stall_chance:
                     due += self.stall_s
                     self.stalls += 1
+                    if up:
+                        self.stalls_up += 1
+                    else:
+                        self.stalls_down += 1
                 # In order: a stalled chunk holds every chunk behind it.
                 last_due = max(due, last_due)
                 await queue.put((last_due, chunk))
@@ -128,7 +134,10 @@ class Relay:
             self._loop.call_soon_threadsafe(self._server.close)
 
     def counts(self) -> str:
-        return f"connections={self.connections} up={self.bytes_up} B down={self.bytes_down} B stalls={self.stalls}"
+        return (
+            f"connections={self.connections} up={self.bytes_up} B down={self.bytes_down} B stalls={self.stalls}"
+            f" (up {self.stalls_up}, down {self.stalls_down})"
+        )
 
 
 async def _main(args: argparse.Namespace) -> None:

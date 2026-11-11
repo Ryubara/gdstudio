@@ -1,0 +1,203 @@
+"""The bad-network gate, browser half: the web build's predicting client stays with the server through a bad socket
+and a frozen tab.
+
+Starts the game server (`tools/net/gate_server.gd`, a free port), bots that give the page puppets to draw
+(`tools/net/server_bot.gd`) and a TCP relay with 100 ms each way (`tools/net/relay.py`; the browser's own throttling
+does not touch WebSockets), serves the exported game (`build/web`) and opens it in headless Chromium with
+`?play&netplay&url=ws://<relay>`: the game's `NetPlayProbe` plays online with a predicting client whose body walks
+circles, and writes what it measured to `window.gdnet`. The page's main thread is frozen (a busy loop, the freeze a
+player gets) for 0.5, 2 and 5 s at 8, 16 and 24 s; at 30 s the body stands, and two seconds later the report is
+judged with the native gate's thresholds (`tools/net/bad_network.py`): no body lost, a snap for the join and for each
+freeze, worst error under 6 m, settled under 5 cm, corrections and starved puppets within what the network allows, no
+`Buffer payload full` or other console error, nobody kicked and no ERROR in the server's log.
+
+    uv run --project <kit>/python gds quiet -- \\
+        uv run --with playwright==1.64.1 python tools/web_smoke/net_play_smoke.py build/web build/net_play \\
+        --godot <pinned godot> --project game [--url wss://<deployment> --delay-ms 0] [--stall-chance 0.01]
+        [--break hold --expect-fail]
+
+`result.json` and the logs go to the second argument. Exits 1 on any check that fails. Run it under `gds quiet`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import functools
+import http.server
+import json
+import sys
+import threading
+import time
+from pathlib import Path
+
+from playwright.sync_api import Page, sync_playwright
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "net"))
+from bad_network import Network, Verdict, judge_client, judge_server, server_log  # noqa: E402
+from bad_network_gate import godot_cmd, start, stop, wait_for_port  # noqa: E402
+from relay import Relay  # noqa: E402
+
+READY_TIMEOUT_S = 120.0
+# Seconds after the seat, milliseconds of the page's thread frozen.
+FREEZES = [(8.0, 500), (16.0, 2000), (24.0, 5000)]
+WALK_S = 30.0
+SETTLE_S = 2.0
+# A page drawn slower than this runs fewer physics steps than the server (the engine's catch-up is 8 a frame) and
+# hitches past the stall guard's 0.25 s: SwiftShader drew the 1280x720 page at 6 frames a second, 320x180 at 40.
+MIN_FPS = 20
+SOFTWARE_ARGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+GPU_ARGS = ["--enable-gpu", "--ignore-gpu-blocklist"]
+
+
+class QuietHandler(http.server.SimpleHTTPRequestHandler):
+    """Serves the export without a log line a request."""
+
+    def log_message(self, *_args: object) -> None:
+        return
+
+
+def serve(folder: Path) -> tuple[http.server.ThreadingHTTPServer, int]:
+    handler = functools.partial(QuietHandler, directory=str(folder))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, server.server_address[1]
+
+
+def wait_for(page: Page, expression: str, timeout_s: float) -> bool:
+    began = time.monotonic()
+    while time.monotonic() - began < timeout_s:
+        if page.evaluate(f"() => {{ try {{ return !!({expression}); }} catch (e) {{ return false; }} }}"):
+            return True
+        time.sleep(0.2)
+    return False
+
+
+def report_of(page: Page) -> dict:
+    text = page.evaluate("() => (window.gdnet && window.gdnet.report) || '{}'")
+    return json.loads(text or "{}")
+
+
+def play(page: Page) -> dict:
+    """Walks, freezes the page's thread at the planned moments, stands, and returns the report."""
+    seated_at = time.monotonic()
+    for at, ms in FREEZES:
+        wait = at - (time.monotonic() - seated_at)
+        if wait > 0:
+            time.sleep(wait)
+        page.evaluate(f"() => {{ const end = performance.now() + {ms}; while (performance.now() < end) {{}} }}")
+    time.sleep(max(0.0, WALK_S - (time.monotonic() - seated_at)))
+    page.evaluate("() => { window.gdnet.stop = true; }")
+    wait_for(page, "JSON.parse(window.gdnet.report).standing", 10)
+    time.sleep(SETTLE_S)
+    report = report_of(page)
+    report["walk_s"] = round(time.monotonic() - seated_at, 1)
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("build", type=Path, help="the web export folder (index.html)")
+    parser.add_argument("out", type=Path, help="folder for result.json and the logs")
+    parser.add_argument("--godot", required=True, help="the pinned Godot (console build on Windows)")
+    parser.add_argument("--project", type=Path, required=True, help="the game folder (project.godot)")
+    parser.add_argument("--url", default="", help="a running server (ws:// or wss://) instead of a local one")
+    parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
+    parser.add_argument("--stall-chance", type=float, default=0.0, help="chance a relayed chunk stalls")
+    parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
+    parser.add_argument("--bots", type=int, default=3, help="bots that give the page puppets")
+    parser.add_argument("--break", dest="broken", choices=["hold"], default="", help="teeth check: no server hold")
+    parser.add_argument("--expect-fail", action="store_true", help="exit 0 only when the gate failed")
+    parser.add_argument("--gpu", action="store_true", help="draw with the machine's GPU instead of SwiftShader")
+    parser.add_argument("--viewport", default="320x180", help="the page's size, WxH (a small page draws faster)")
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    project = args.project.resolve()
+    verdict = Verdict()
+    result: dict = {"args": {k: str(v) for k, v in vars(args).items()}}
+    errors: list[str] = []
+    server = bots = None
+    relay: Relay | None = None
+    http_server, http_port = serve(args.build)
+    try:
+        url = args.url
+        if not url:
+            server_args = ["--port", "0"] + (["--hold-ticks", "0"] if args.broken else [])
+            server = start(
+                godot_cmd(args.godot, project, "res://tools/net/gate_server.gd", *server_args),
+                args.out / "server.log",
+            )
+            url = f"ws://127.0.0.1:{wait_for_port(args.out / 'server.log', server)}"
+        page_url = url
+        if args.delay_ms > 0:
+            scheme, rest = url.split("://", 1)
+            host, _, port = rest.partition(":")
+            if scheme != "ws":
+                raise SystemExit("the relay passes ws:// only: add --delay-ms 0 for a wss:// server")
+            relay = Relay(host, int(port), args.delay_ms / 1000.0, 0, args.stall_chance, args.stall_ms / 1000.0)
+            page_url = f"ws://127.0.0.1:{relay.start_in_thread()}"
+        if args.bots > 0:
+            bot_args = ["--connect", url, "--bots", str(args.bots), "--seconds", str(int(READY_TIMEOUT_S + WALK_S + 60))]
+            bots = start(godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), args.out / "bots.log")
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(args=GPU_ARGS if args.gpu else SOFTWARE_ARGS)
+            width, height = (int(n) for n in args.viewport.split("x"))
+            page = browser.new_page(viewport={"width": width, "height": height})
+            page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            page.goto(f"http://127.0.0.1:{http_port}/index.html?play&netplay&url={page_url}")
+            seated = wait_for(page, "window.gdnet && window.gdnet.state === 'seated'", READY_TIMEOUT_S)
+            state = page.evaluate("() => window.gdnet ? window.gdnet.state : 'no probe'")
+            if seated:
+                report = play(page)
+            else:
+                report = {"error": f"not seated: {state}"}
+            report["end_gap_m"] = report.get("gap_m", -1.0)
+            result["client"] = report
+            page.screenshot(path=str(args.out / "page.png"))
+            browser.close()
+    finally:
+        stop(bots)
+        stop(server)
+        if relay is not None:
+            relay.stop()
+            result["relay"] = relay.counts()
+        http_server.shutdown()
+    network = Network(
+        seconds=WALK_S,
+        freezes=len(FREEZES),
+        stall_s=args.stall_ms / 1000.0,
+        stalls_up=relay.stalls_up if relay else 0,
+        stalls_down=relay.stalls_down if relay else 0,
+    )
+    fps = result["client"].get("fps", 0)
+    verdict.check(
+        f"the page drew at least {MIN_FPS} frames a second (else the run measures the machine)", fps >= MIN_FPS, fps
+    )
+    judge_client(result["client"], network, verdict)
+    payload_full = [e for e in errors if "Buffer payload full" in e]
+    verdict.check("no Buffer payload full in the console", not payload_full, len(payload_full))
+    verdict.check("no other console or page error", not errors, errors[:10])
+    if server is not None:
+        log = server_log(args.out / "server.log")
+        result["server"] = log
+        judge_server(log, verdict)
+    result["checks"] = verdict.checks
+    result["passed"] = verdict.passed
+    (args.out / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    verdict.print("[browser] ")
+    if "relay" in result:
+        print("RELAY " + result["relay"], flush=True)
+    if args.expect_fail:
+        print(
+            "TEETH: the gate failed as it must: " + ", ".join(verdict.failures())
+            if not verdict.passed
+            else "TEETH FAILED: the gate passed with the fix taken out",
+            flush=True,
+        )
+        return 0 if not verdict.passed else 1
+    print("ALL PASSED" if verdict.passed else "FAILED: " + ", ".join(verdict.failures()), flush=True)
+    return 0 if verdict.passed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
