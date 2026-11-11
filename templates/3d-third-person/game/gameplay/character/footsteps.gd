@@ -53,6 +53,7 @@ var _low: Array[float] = []
 var _since := 10.0
 var _rng := RandomNumberGenerator.new()
 var _last_pick := -1
+var _settle := false
 
 
 func _ready() -> void:
@@ -81,6 +82,11 @@ func _process(delta: float) -> void:
 			continue
 		var pose := skeleton.global_transform * skeleton.get_bone_global_pose(_bones[index])
 		var forward: float = (inverse * pose.origin).z
+		if _settle:
+			_last[index] = forward
+			_low[index] = forward
+			_swinging[index] = false
+			continue
 		var speed := (forward - _last[index]) / delta
 		_last[index] = forward
 		if speed > swing_speed:
@@ -91,6 +97,17 @@ func _process(delta: float) -> void:
 			_swinging[index] = false
 		if not _swinging[index]:
 			_low[index] = forward
+	_settle = false
+
+
+## Follows the feet (`on`) or stops (no step sounds and no work a frame): the
+## `AiAnimationThrottle` stops it for a character far from the listener. Back on, the feet are
+## read afresh first, so the time in between sounds no step.
+func set_listening(on: bool) -> void:
+	if Engine.is_editor_hint() or on == is_processing():
+		return
+	set_process(on)
+	_settle = on
 
 
 ## Plays a step now, as if the foot `foot` landed (for a game's own animation event).
@@ -118,6 +135,8 @@ func _land(foot: StringName) -> void:
 
 
 func _on_landed(_impact: float) -> void:
+	if not is_processing():
+		return
 	var sound := get_node_or_null("%LandStep") as AudioStreamPlayer3D
 	if sound == null or steps.is_empty():
 		return

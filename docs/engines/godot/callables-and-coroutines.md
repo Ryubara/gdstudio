@@ -20,6 +20,13 @@ error, and a test that checks only "no error" passes. **Keep the object in a fie
 the Callable is used** (Deadnight: `Night.profile_uplink`), and test the hand-over with the real wiring, asserting that
 the call happened.
 
+- **Approach:** Bind a node (or nothing) to a callable a `RefCounted` keeps, never the `RefCounted` itself: store
+  `_on_hit.bind(character)` in the record and find the record by the node in the handler. **Watch out for:** the other
+  side of the rule above: a bound argument is a real reference, so a record holding `_on_hit.bind(record)` keeps itself
+  alive, and the throttle's records were never freed: `12 ObjectDB instances were leaked at exit` in every suite that
+  made one, which `gds template test` and CI refuse. **Seen:** gdstudio #1046, 2026-11-11 (fix: the callables bind the
+  character; found by running the suite one test at a time).
+
 ## A coroutine of a RefCounted object does not keep it alive either {#refcounted-coroutine}
 
 A method that awaits a timer or a request, called on an object nothing else references, is dropped: the code after the
