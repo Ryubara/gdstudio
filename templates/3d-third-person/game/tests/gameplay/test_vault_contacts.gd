@@ -44,6 +44,8 @@ func before_test() -> void:
 	_player.tuning = (
 		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
 	)
+	# Its own copy of the settings: the file is shared by every suite of the run.
+	_player.vault_settings = _player.vault_settings.duplicate(true)
 	_animation = _player.get_node("Animation") as CharacterAnimation
 	await InputSim.ticks(get_tree(), 4)
 
@@ -98,6 +100,12 @@ func _sample(into: Array[Dictionary]) -> void:
 	}
 	for bone in LEG_BONES:
 		sample[bone] = _bone(bone)
+	# The skeleton may say it updated more than once in a frame (another modifier's own update):
+	# the last one is the pose that is drawn.
+	sample["frame"] = Engine.get_process_frames()
+	if not into.is_empty() and into[-1].frame == sample.frame:
+		into[-1] = sample
+		return
 	into.append(sample)
 
 

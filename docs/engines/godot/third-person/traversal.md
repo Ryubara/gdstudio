@@ -33,7 +33,7 @@ numbers, and the plan fits the clip to the obstacle measured:
 
 - **Where the clip starts.** At the frame whose root is as far before the face as the body is
   (`VaultClip.start_time()`), so a press 1.3 m away plays the low vault's run-in and a press at the wall skips it;
-  never later than `lead` (0.125 s) before the hand plant.
+  never later than `lead` (0.15 s) before the hand plant, so the clip has blended in when the hand lands.
 - **Where the root is** (`VaultPlan.root_at()`, `VaultClip.forward_at()`): from the body's place to the clip's own
   place at the hand plant, then at the clip's own speed until the fingers leave (so the planted hand lands where the
   clip put it and does not slide), then to the landing. The root is level and lifted only by the difference to the
@@ -177,7 +177,12 @@ about 12 µs a body a tick on the desktop and in Chrome and about 90 µs at a 4x
 tick on a weak machine), so the template keeps the press. Nothing of a crossing is networked beyond the command (the
 jump press): the server and a predicting client step the same plan from the same state.
 
-COSTLINE
+With the vault timed by its clip (gdstudio #1037; desktop only, two headless runs each on the same machine, the web
+build not measured again): a probe that plans a crossing takes 57 µs where it took 44 (the landing's second cast
+and the clip's timing), and 40 bodies that press jump cost 21 µs a body a tick where they cost 17 (a crossing lasts
+0.7 to 1.25 s instead of 0.45 to 0.9 s, and each of its ticks works out the model's place for the camera's target).
+That is still half of a body blocked by the same walls (42). The join of a vault clip with its landing step is made
+once for each character and clip, on its first vault.
 
 ## Mistakes made building it {#mistakes}
 
@@ -247,3 +252,11 @@ COSTLINE
   over the staged scripts) and convert them (`sed -i 's/\r$//'`). **Watch out for:** gdformat wrote CRLF into the
   five files it reformatted, a new suite among them, and the folder scan skips a suite with CRLF ends
   ([Running GdUnit](../running-gdunit.md#command-line)). **Seen:** gdstudio #1037, 2026-11-11.
+- **Approach:** End a clip's blend-in two frames before its first contact at the fastest rate it plays at
+  (`VaultClip.lead` against `action_blend_time`), and prove a new suite inside the whole run (`gds template test`),
+  not only alone. **Watch out for:** `Engine.get_physics_interpolation_fraction()` is 0 in a short `--fixed-fps` run
+  and 0.9999999 after some minutes of suites, so the same press started the vault a frame apart; with a lead of
+  0.125 s and a 0.1 s blend at a rate of 1.15 the high vault's hands were 36 mm short of their place on the first
+  planted frame in the full run and on it in every run of the suite alone. **Seen:** gdstudio #1037, 2026-11-11
+  (`test_vault_contacts.gd` failed 42 times in two full runs and passed alone, in its folder and after the folders
+  before it; fix: a lead of 0.15 s).

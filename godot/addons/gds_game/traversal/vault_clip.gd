@@ -39,8 +39,10 @@ extends Resource
 ## When the landing foot is down: the vault ends here.
 @export_range(0.0, 5.0, 0.0001, "suffix:s") var land := 0.7917
 ## The least time before the hand plant a vault starts at, however close the body is: the time
-## the body has to get from where it stands to where the clip plants the hand from.
-@export_range(0.0, 1.0, 0.001, "suffix:s") var lead := 0.125
+## the body has to get from where it stands to where the clip plants the hand from. Keep it two
+## frames longer than the clip's blend-in at the fastest rate it plays at, or the hand lands
+## while the pose is still part the gait's (0.1 s at 1.15 with the defaults).
+@export_range(0.0, 1.0, 0.001, "suffix:s") var lead := 0.15
 
 ## For an obstacle lower than the clip's own: when the root may start to come down to it, and
 ## when it is down. The feet must be off the ground and rising by then, or the lowered body puts
