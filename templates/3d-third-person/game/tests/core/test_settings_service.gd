@@ -5,15 +5,17 @@
 extends GdUnitTestSuite
 
 const SCENE := "res://core/settings/settings_service.tscn"
-const TEMP_PATH := "user://settings_test.cfg"
 
 var _service: SettingsService
+## This run's own file, so a run beside it never reads or deletes it (TempUserFile).
+var _path := TempUserFile.path("settings_test")
 var _modes: Array[int] = []
 var _msaa: Viewport.MSAA
 var _scale: float
 
 
 func before_test() -> void:
+	TempUserFile.remove(_path)
 	_msaa = get_tree().root.msaa_3d
 	_scale = get_tree().root.scaling_3d_scale
 	_modes.clear()
@@ -26,8 +28,7 @@ func after_test() -> void:
 	get_tree().root.scaling_3d_scale = _scale
 	for bus in [&"Master", &"SFX", &"Ambient", &"UI"]:
 		AudioServer.set_bus_mute(AudioServer.get_bus_index(bus), false)
-	if FileAccess.file_exists(TEMP_PATH):
-		DirAccess.remove_absolute(TEMP_PATH)
+	TempUserFile.remove(_path)
 
 
 ## A service from the scene, on a file of its own, with a stand-in for the real window.
@@ -119,14 +120,14 @@ func test_a_volume_reaches_its_bus_at_once() -> void:
 
 
 func test_values_saved_and_read_back_are_the_same() -> void:
-	var first := _make(TEMP_PATH)
+	var first := _make(_path)
 	first.set_value(SettingsService.VOLUME_UI, 35)
 	first.set_value(SettingsService.RESOLUTION_SCALE, 60)
 	first.set_value(SettingsService.INVERT_Y, true)
 	first.set_value(SettingsService.MOUSE_SENSITIVITY, 1.75)
 	first.set_value(SettingsService.QUALITY, 0)
 	assert_int(first.save()).is_equal(OK)
-	var second := _make(TEMP_PATH)
+	var second := _make(_path)
 	assert_int(second.get_value(SettingsService.VOLUME_UI)).is_equal(35)
 	assert_int(second.get_value(SettingsService.RESOLUTION_SCALE)).is_equal(60)
 	assert_bool(second.get_value(SettingsService.INVERT_Y)).is_true()
@@ -135,24 +136,24 @@ func test_values_saved_and_read_back_are_the_same() -> void:
 
 
 func test_what_was_read_is_applied_at_start() -> void:
-	var first := _make(TEMP_PATH)
+	var first := _make(_path)
 	first.set_value(SettingsService.VOLUME_AMBIENT, 20)
 	first.set_value(SettingsService.RESOLUTION_SCALE, 70)
 	first.save()
 	AudioSettings.reset_player_gain()
 	get_tree().root.scaling_3d_scale = 1.0
-	_make(TEMP_PATH)
+	_make(_path)
 	assert_float(AudioSettings.player_gain(&"Ambient")).is_equal_approx(0.2, 0.0001)
 	assert_float(get_tree().root.scaling_3d_scale).is_equal_approx(0.7, 0.0001)
 
 
 func test_an_idle_service_does_not_process_or_write_anything() -> void:
-	var service := _make(TEMP_PATH)
+	var service := _make(_path)
 	assert_bool(service.is_processing()).is_false()
 	service.save_delay = 0.05
 	await InputSim.ticks(get_tree(), 18)
 	assert_int(service.write_count).is_zero()
-	assert_bool(FileAccess.file_exists(TEMP_PATH)).is_false()
+	assert_bool(FileAccess.file_exists(_path)).is_false()
 	service.set_value(SettingsService.VSYNC, false)
 	assert_bool(service.is_processing()).is_true()
 	await InputSim.ticks(get_tree(), 18)
@@ -160,7 +161,7 @@ func test_an_idle_service_does_not_process_or_write_anything() -> void:
 
 
 func test_a_change_is_written_after_the_delay_and_a_drag_is_one_write() -> void:
-	var service := _make(TEMP_PATH)
+	var service := _make(_path)
 	service.save_delay = 0.1
 	service.set_value(SettingsService.VOLUME_SFX, 90)
 	service.set_value(SettingsService.VOLUME_SFX, 80)
@@ -168,7 +169,7 @@ func test_a_change_is_written_after_the_delay_and_a_drag_is_one_write() -> void:
 	assert_int(service.write_count).is_zero()
 	await InputSim.ticks(get_tree(), 30)
 	assert_int(service.write_count).is_equal(1)
-	assert_bool(FileAccess.file_exists(TEMP_PATH)).is_true()
+	assert_bool(FileAccess.file_exists(_path)).is_true()
 
 
 func test_a_damaged_file_falls_back_to_the_defaults_value_by_value() -> void:
@@ -180,8 +181,8 @@ func test_a_damaged_file_falls_back_to_the_defaults_value_by_value() -> void:
 	file.set_value("audio", "ui", 40)
 	file.set_value("controls", "mouse_sensitivity", -5.0)
 	file.set_value("controls", "invert_y", 1)
-	file.save(TEMP_PATH)
-	var service := _make(TEMP_PATH)
+	file.save(_path)
+	var service := _make(_path)
 	assert_int(service.get_value(SettingsService.RESOLUTION_SCALE)).is_equal(100)
 	assert_bool(service.get_value(SettingsService.VSYNC)).is_true()
 	assert_int(service.get_value(SettingsService.VOLUME_MASTER)).is_equal(100)
@@ -192,10 +193,10 @@ func test_a_damaged_file_falls_back_to_the_defaults_value_by_value() -> void:
 
 
 func test_a_file_that_is_not_a_config_file_leaves_the_defaults() -> void:
-	var file := FileAccess.open(TEMP_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(_path, FileAccess.WRITE)
 	file.store_string("this = is not [ a config")
 	file.close()
-	var service := _make(TEMP_PATH)
+	var service := _make(_path)
 	assert_int(service.get_value(SettingsService.VOLUME_MASTER)).is_equal(100)
 
 
