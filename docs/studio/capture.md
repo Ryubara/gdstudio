@@ -135,8 +135,11 @@ an animated image draws its first frame).
   1280 px kept its 100 ms frames (p95 under 135 ms) after loading. So the budget is a rate, not a size.
 - **Frame delays are whole hundredths of a second.** ffmpeg wrote 12 fps as delays of 8, 8 and 9 and 15 fps as 6, 7
   and 7, an uneven step; 10 and 20 fps are even.
-- **GitHub's description column is 814 px** (signed out, windows from 1280 to 2560 px wide); a wider GIF only costs
-  bytes.
+- **GitHub's description column is 814 px** (signed out, windows from 1280 to 2560 px wide), and an image in a list
+  item (`- **After:**`) is drawn 758 px wide; a wider GIF only costs bytes.
+- **GitHub serves the upload as it is**: the address redirects to the stored file (`image/gif`, the same 4,055,821
+  bytes as the local one), so a GIF plays on a pull request as it played here. On gdstudio #1167 the `After:` GIF
+  showed 27 different frames in 3 s of the page.
 
 Stalls on the first play (a frame held over 150 ms while the file arrived) and the time until all of it had arrived,
 GIFs at 10 fps cut from one capture:
