@@ -56,7 +56,7 @@ MAGAZINE = [0.0, 0.0, -0.07, 80.0, 0.0, 0.0]
 # the male thumb's root 1.4 mm deeper than this solver there.
 CUP_THUMB_OFF = 0.0005
 # The left hand opened, as it lets go of the gun and comes back to it: each finger bone this share of the way
-# from its rest (straight) to its place on the gun, the thumb and the index finger where they lie on the gun.
+# from its rest (straight) to its place on the gun; the thumb, the index and the little finger stay.
 OPEN_SHARE = 0.6
 MAGAZINE_BASE = np.array([0.003, -0.052, 0.0])
 # The grid of the gun's distance: the whole gun (muzzle at -0.207) and a hand's thickness round it.
@@ -555,12 +555,13 @@ def main():
 
 def opened(rig, support):
     """The left hand's pose on the gun with its fingers opened: each finger bone `OPEN_SHARE` of the way from
-    its rest to `support` (bone name to quaternion); the thumb and the index finger stay as they are there
-    (the index finger lies under the trigger guard, and straightening it lifts it into the guard)."""
+    its rest to `support` (bone name to quaternion); the thumb, the index and the little finger stay as they
+    are there (the index finger lies under the trigger guard and straightening it lifts it into the guard;
+    the little finger's tip went 5 mm into the right hand half-way open)."""
     out = {}
     for name, quaternion in support.items():
         end = np.array(quaternion, float)
-        if not name.startswith(("thumb", "index")):
+        if not name.startswith(("thumb", "index", "pinky")):
             start = np.array(R.mat_to_quat(rig.rest[rig.index[name]][:3, :3]), float)
             if start @ end < 0.0:
                 end = -end

@@ -9,7 +9,8 @@
 ## `HOLD_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
 ## res://tools/capture/pistol_hold_study.tscn`. `MODEL=male` studies the male mannequin,
 ## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=reload` studies one
-## tag (the reload is filmed at every share of `RELOAD_SHARES`, both hands measured),
+## tag (the reload is filmed at every share of `RELOAD_SHARES`, both hands measured;
+## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it),
 ## `HOLD_OBJ=<folder>` writes each pose's hands and weapon as an OBJ file. It lives in tools/,
 ## which the export leaves out.
 extends Node3D
@@ -40,6 +41,7 @@ const RELOAD_SHARES: Array = [
 const _ONE_HAND_NEAR := 0.425
 
 var _stage: HoldStage
+var _follows_reload := OS.get_environment("HOLD_RELOAD_OFF") != "1"
 
 
 func _ready() -> void:
@@ -68,7 +70,8 @@ func _run(model: String) -> void:
 				_stage.pose(spec.clip, times[index], aim, &"ual1/Pistol_Idle", [&"hand_r"])
 			elif reload:
 				var length := _stage.clip(spec.clip).length
-				_stage.pose(spec.clip, times[index] * length, aim, &"", [], times[index])
+				var share: float = times[index] if _follows_reload else -1.0
+				_stage.pose(spec.clip, times[index] * length, aim, &"", [], share)
 			else:
 				_stage.pose(spec.clip, times[index], aim)
 			await _stage.settle()

@@ -323,8 +323,10 @@ both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the sk
 **The hands on the pistol** are closed by `WeaponHold` (`gameplay/weapon/hold/weapon_hold.tscn`, a node of
 `character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
 It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
-pistol layer's weights (`CharacterAnimation.pistol_weights()`), so it follows the carry, the aim and a death with no
-wiring of its own. Everything is tuned in its inspector while the game runs:
+pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so
+it follows the carry, the aim, a reload and a death with no wiring of its own. Through a reload the left hand is on
+the pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol
+again; the pistol's `Magazine` does not move yet. Everything is tuned in its inspector while the game runs:
 
 | Property | Default | What it does |
 | --- | --- | --- |
@@ -333,11 +335,16 @@ wiring of its own. Everything is tuned in its inspector while the game runs:
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
 | `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims. |
-| `held_weight`, `aim_weight` | from the animation | How far the hold and its aim are on, for a character posed by hand (no `animation` set). |
+| `magazine_pose`, `open_pose` | `pistol_magazine_pose.tres`, `pistol_open_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in, and opened as it lets go of the pistol and comes back to it. |
+| `magazine_marker` | `MagazineHand` | The weapon's child the left hand's bone is brought to while the magazine goes in. |
+| `magazine_approach`, `return_clearance` | (0, -0.1, 0), (0, 0, 0.04) | In the weapon's space: where the hand starts from under the magazine (a magazine's length down the grip), and how far it swings out on its way back to the support marker. |
+| `reload_leave`, `reload_reach`, `reload_insert`, `reload_return` | (0.04, 0.1), (0.3, 0.4), (0.4, 0.54), (0.71, 0.88) | The shares of the reload clip between which the left hand lets go, comes under the magazine, pushes it in and goes back to the pistol: the times of `Pistol_Reload`, to change with the clip. |
+| `held_weight`, `aim_weight`, `reload_weight`, `reload_share` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
 
-The three poses and the pistol's seat are solved, never typed: the pistol folder's `README.md` says how to run the
-solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip to 2 mm in and 5 mm off on both
-mannequins, and `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
+The five poses, the two markers and the pistol's seat are solved, never typed: the pistol folder's `README.md` says
+how to run the solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip to 2 mm in and
+5 mm off on both mannequins (through the reload: where the left hand holds; on its way between its places it may pass
+6 mm), and `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
 ## Licences

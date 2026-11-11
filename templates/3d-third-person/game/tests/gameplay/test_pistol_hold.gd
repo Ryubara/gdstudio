@@ -13,8 +13,16 @@ const MODELS: Array[String] = ["female", "male"]
 const ONE_HANDED: Dictionary[StringName, Array] = {
 	CharacterClips.PISTOL_IDLE: [0.0, 0.5, 1.0],
 }
-## The shares of the reload clip that are measured: every 4 hundredths and its two ends.
-const RELOAD_STEP := 0.04
+## The shares of the reload clip that are measured: every 2 hundredths, its end, and the three
+## where a scan of every hundredth found the left hand deepest on its way.
+const RELOAD_STEP := 0.02
+const RELOAD_DEEPEST: Array[float] = [0.03, 0.05, 0.79]
+## How deep the left hand may pass through the gun or the right hand while it moves between its
+## places, in metres: where it holds (on the gun, under the magazine) `HandContact`'s 2 mm stand.
+## A fingertip passes 4 to 5 mm through the other hand for a hundredth of the clip as the hand
+## lets go and as it swings back (kit #1031; the clip's own hand was 16 to 22 mm in for a third
+## of the reload).
+const PASSING_DEPTH := 0.006
 ## The shares of the reload in which the left hand is on the gun (to the first, from the second)
 ## and under the magazine (between the third and the fourth), as `Pistol_Reload` has them.
 const RELOAD_ON_GUN_UNTIL := 0.02
@@ -117,7 +125,8 @@ func test_the_right_hand_holds_the_pistol_through_the_reload() -> void:
 
 
 # The left hand through the reload, whether the character aims or carries the pistol: on the gun
-# at its ends, under the magazine while it goes in, and through nothing on the way.
+# at its ends, under the magazine while it goes in, and no deeper than `PASSING_DEPTH` in the gun
+# or the other hand on the way.
 func test_the_left_hand_follows_the_reload() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
@@ -134,10 +143,19 @@ func test_the_left_hand_follows_the_reload() -> void:
 				contacts = HoldStage.MAGAZINE_CONTACTS
 				marker = ^"MagazineHand"
 			var parts := stage.contact.measure("l", true)
+			if marker.is_empty():
+				for part: String in parts:
+					var depth: float = -parts[part].distance
+					(
+						assert_float(depth)
+						. override_failure_message(
+							"%s l: %s %.1f mm inside on the way" % [tag, part, depth * 1e3]
+						)
+						. is_less(PASSING_DEPTH)
+					)
+				continue
 			var fails := HandContact.failures(tag + " l:", parts, contacts)
 			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
-			if marker.is_empty():
-				continue
 			var gap := _reach(stage, marker)
 			(
 				assert_float(gap)
@@ -370,6 +388,7 @@ func _reload_shares() -> Array[float]:
 	for step in ceili(1.0 / RELOAD_STEP):
 		shares.append(step * RELOAD_STEP)
 	shares.append(1.0)
+	shares.append_array(RELOAD_DEEPEST)
 	return shares
 
 
