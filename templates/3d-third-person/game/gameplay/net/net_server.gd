@@ -45,6 +45,10 @@ const STEP_BUDGET_MS := 6.0
 ## ahead (`command_tick`).
 const COMMAND_TICKS_BEHIND := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
+## The defaults of `command_ticks` and `hold_ticks`: a predicting client steps its own body the
+## same way through a stall of its thread (`SilenceWalk`).
+const COMMAND_TICKS := 30
+const HOLD_TICKS := 4
 
 @export_group("Server")
 ## The port to listen on; -1 reads `--port`, then `$PORT`, then `WebSocketLink.DEFAULT_PORT`. 0
@@ -79,11 +83,11 @@ const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 @export_group("Rules")
 ## Steps the last command is stepped again (without its presses) when none came, before the body
 ## stands still.
-@export_range(0, 600, 1, "suffix:steps") var command_ticks := 30
+@export_range(0, 600, 1, "suffix:steps") var command_ticks := COMMAND_TICKS
 ## Steps a body waits for a late command, without stepping, before it repeats the last: two
 ## machines' frames drift, so a client's command lands a step late now and then, and a repeat made
 ## for it leaves the body a step off where the client predicted it. 0 repeats at once.
-@export_range(0, 30, 1, "suffix:steps") var hold_ticks := 4
+@export_range(0, 30, 1, "suffix:steps") var hold_ticks := HOLD_TICKS
 ## Seconds without a command before a seated player is hung up on (a hidden tab stops its loop).
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.

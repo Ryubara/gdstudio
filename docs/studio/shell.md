@@ -36,8 +36,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
   and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
-  to 11-10; gdstudio #1130 and #1123, 2026-11-11 (a tool's own `write_text`; 16
-  pages).
+  to 11-10; gdstudio #1130, #1123 and #1127, 2026-11-11 (a tool's `write_text`; 16 pages).
 
 ## Scripted edits {#scripted-edits}
 
