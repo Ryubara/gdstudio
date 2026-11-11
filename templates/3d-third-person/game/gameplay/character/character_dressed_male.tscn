@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/character/character_dressed.tscn" id="1_dressed"]
+[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_male.glb" id="2_male"]
+
+[node name="CharacterDressedMale" instance=ExtResource("1_dressed")]
+
+[node name="Model" parent="."]
+variant = ExtResource("2_male")
