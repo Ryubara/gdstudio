@@ -280,6 +280,52 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
 
+### Clips under a hold that carries the weapon {#clips-under-a-hold}
+
+<!-- new section: the solved clips above carry nothing; nothing said how to key a body for a weapon that the game's
+own modifiers place after the clip (the 3D Third Person rifle, kit #1082) -->
+
+The 3D Third Person rifle is not on a bone: `TwoHandHold` places it from the chest bone after the clip, turns the
+chest, reaches the arms and closes the fingers. Its six clips
+(`templates/3d-third-person/game/assets/animation/rifle/build_rifle_clips.py`: idle, three aims, a shot, a reload)
+are the body under that.
+
+- **Work the game's hold out in the build, from the game's own files.** The build reads the hold's exported numbers
+  from its script, the hands' places from its scenes and the finger poses from their resources, and runs the same
+  steps on its own skeleton (the chest turn, the pocket, the pull along the barrel, the two-bone reach, the fingers,
+  the reload's way). The body is then shaped round the rifle where the game will draw it, the arms it keys are the
+  hold's, and the same code poses the other mannequin for the checks. A Godot test proves it is the same hold: the
+  clip's own hand against the hold's, on a key (1.2 mm).
+- **Stand the trunk, the neck and the head from the rest pose, not from a library pose.** The library's `Idle` has
+  the chest 16 degrees forward and 13 turned, and the head 14 down; turns added on top of it bowed the head 40
+  degrees. The legs and the pelvis are the library's; everything above is stood upright and turned from there, the
+  neck and the head in the character's space, so a breath or a recoil under them does not move the look.
+- **A shot is added, not played over.** A recoil clip made on the level aim replaces an aim up or down while it
+  plays. In Godot the one-shot adds (`MIX_MODE_ADD`) an `AnimationNodeSub2` of the clip less the same clip held on
+  its first frame (a time scale of 0), which is the aim pose it was made on.
+- **Measure the weapon against the body too.** The limb check knows limbs; the build also casts the head's and the
+  chest's skin against the rifle's mesh where the hold has it, and measures what the hold does with no clip of
+  yours under it, as the floor to hold a clip to.
+
+- **Approach:** Give a pose search limits a body has (so many degrees of lean, of neck) as steep costs, weigh the
+  target against them, and read the solved angles before the picture. **Watch out for:** a free least-squares put
+  the eye on the sight line with the neck 88 degrees down and the head 70 back, and with the limits off the trunk
+  leant 44 degrees; the eye could not get there at all: the pocket is 12 cm under an upright eye and the comb 7 cm
+  under the line. **Seen:** gdstudio #1082, 2026-11-11 (fix: `AIM_LIMITS`; the eye ends 5 to 7 cm over the line
+  with the head on the comb, written in the clips' README).
+- **Approach:** Keep skin off a weapon in a search with points of every bone that can touch it, from every model
+  that plays the clip. **Watch out for:** head points alone left the neck 7.5 mm in the stock, and a search on the
+  female head left the male's wider one 10 mm in. **Seen:** gdstudio #1082, 2026-11-11 (fix: `SKIN_POINTS`, the
+  head and the neck of both).
+- **Approach:** Before tuning a clip against a limb check, measure what the game does without the clip, and try the
+  shoulders. **Watch out for:** the hold alone has the right forearm 24 to 28 mm in the ribs at the low ready (the
+  grip is close to the chest, kit #1177); an upright chest made it 28 and 44 mm, and no elbow pole cured the
+  female; rounded shoulders and a raised right collarbone brought it to 17 and 20 mm. **Seen:** gdstudio #1082,
+  2026-11-11 (the build's `hold_alone` floor).
+- **Approach:** Compare a clip's own pose with what a modifier makes of it on the clip's keys. **Watch out for:**
+  between two keys a fast hand is a chord off its arc: the reload's hand read 4.9 mm off at a share between keys and
+  1.2 mm on them. **Seen:** gdstudio #1082, 2026-11-11 (`test_rifle_clips.gd` rounds the share to a frame).
+
 ## The clip eval {#eval}
 
 The `clip-walk` eval ([Agent evals](../../studio/agent-evals.md)) animates a walk on a given rig and measures the loop

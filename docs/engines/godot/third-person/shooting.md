@@ -394,6 +394,13 @@ the live player with simulated input, every update of idle, walk, sprint, aim, f
 reload by its key, and a switch to the pistol and back (never two weapons, never none, the rifle never shown without
 both hands on it, the arms on its places before it shows and leaving after it hides).
 
+The body under the hold is the rifle's own clips (kit #1082, the library `rifle`): `rifle.tres` names
+`Rifle_Idle` as the grip clip on `spine_01` and all under it, the three aims, `Rifle_Shoot` added on top of the aim
+(`WeaponDef.shoot_additive`) and `Rifle_Reload`. The hold runs after them and still puts the rifle and the hands;
+the clips were built round it ([clips under a hold](../../../tools/blender/animation.md#clips-under-a-hold)), so
+when the hold's numbers or the solved hands change, their build is run again. The left hand does not go to the
+charging handle yet.
+
 Cost, headless on the desktop (`tools/bench/hold_cost.tscn -- rifle`, 40 mannequins, the least of five runs each on
 a machine other agents were loading): the rifle's hold 77 microseconds a character a frame against 35 for the
 pistol's aimed hold in the same session, so about 2.2 times it (the pistol's figure on a quiet machine is 12.6). It
