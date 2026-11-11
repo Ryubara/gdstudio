@@ -118,9 +118,25 @@ func steer(body: Character, wish: Vector3, delta: float) -> void:
 		speed = tuning.exit_speed + 0.01
 	body.velocity.x = heading.x * speed
 	body.velocity.z = heading.z * speed
-	var look := body.view_yaw + PI if body.aiming else atan2(heading.x, heading.z)
+	var along := atan2(heading.x, heading.z)
+	var look := aim_facing(body, along) if body.aiming else along
 	var rate := body.tuning.aim_turn_speed if body.aiming else body.tuning.turn_speed
 	body.facing = lerp_angle(body.facing, look, clampf(rate * delta, 0.0, 1.0))
+
+
+## The way an aiming body faces on a slide along `along` (radians): along the slide while the aim
+## is within the slide's `AimLimits` (the aim layer turns the upper body), turned just enough to
+## bring it within them when the weapon turns the body past them, and along the slide when it
+## refuses the shot instead.
+static func aim_facing(body: Character, along: float) -> float:
+	var limits := body.slide_tuning.aim_limits if body.slide_tuning != null else null
+	if limits == null or not limits.enabled:
+		return body.view_yaw + PI
+	var definition := body.weapon.definition if body.weapon != null else null
+	if definition != null and definition.past_aim_limit == WeaponDef.PastAimLimit.REFUSE_SHOT:
+		return along
+	var off := wrapf(body.view_yaw + PI - along, -PI, PI)
+	return along + off - limits.clamp_yaw(off)
 
 
 ## After the body moved: a slide that hit something and slowed under the exit speed ends.

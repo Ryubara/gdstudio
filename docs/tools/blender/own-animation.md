@@ -335,6 +335,20 @@ What makes it loose is in the joins, more than in the loops:
 - **Blends carry momentum.** A new clip starts from the pose and the speed of the old one, not from a mix of two
   poses ([in the tree](#replacing)).
 
+**No mirror poses.** A held pose is never the same on both sides: one foot ahead of the other and turned out
+more, one knee lower, the weight more on one leg, the hips and shoulders tilted and turned a little against each
+other, the hands at different heights and doing different things. Start a held pose from how a person rests in it
+(the library's crouch idle has one heel up, the knees apart at different heights, one forearm on a knee), then
+write each side's numbers on their own. A mirrored clip for the other foot is the build's job, not a reason to make
+one clip symmetric about its own middle.
+
+- **Approach:** Give every pose and loop its own numbers per side (stance, knee height, weight, hand place and
+  task), check a capture from the front and from above for anything lined up, and compare it with the library clip
+  it replaces before it goes to review. **Watch out for:** our crouch idle stood with the feet side by side and level
+  and the hands placed evenly on both sides, which read as squatting on a toilet beside the library's staggered,
+  relaxed crouch; the clip toolkit's style files and solved poses drift toward symmetry unless each side is asked
+  for on its own. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11, from the maintainer's review.
+
 ## The set we will own {#set}
 
 <!-- new section: the issue asks for the grouped list, replacements told from new clips, and what depends on the body -->
