@@ -78,6 +78,9 @@ enum State {
 	MANTLE,  ## Climbing up onto an obstacle.
 }
 
+## How high up the body a melee blow leaves from, as a share of its height (the chest).
+const CHEST_SHARE := 0.72
+
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
 ## Changing a number while the game runs works at once.
@@ -549,6 +552,12 @@ func _aim_origin() -> Vector3:
 	return last_command.origin if last_command.has_shot else _camera_target.global_position
 
 
+# A blow leaves the chest along the aim, not the crosshair's ray: an over-the-shoulder camera's
+# ray passes half a metre beside the body, so a blow along it missed whoever stood in front.
+func _blow_origin() -> Vector3:
+	return global_position + Vector3.UP * body_height() * CHEST_SHARE
+
+
 func _aim_direction() -> Vector3:
 	if last_command.has_shot:
 		return CommandCodec.direction_from_angles(
@@ -845,7 +854,7 @@ func _use_weapon(delta: float) -> void:
 		blow = blow or pulled
 		pulled = false
 	if blow and can_melee():
-		weapon.melee(_aim_origin(), _aim_direction())
+		weapon.melee(_blow_origin(), _aim_direction())
 	if not _prone_lets_fire():
 		pulled = false
 	weapon.spread_share = prone_tuning.spread_share if _prone.is_prone() else 1.0

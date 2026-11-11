@@ -210,7 +210,9 @@ func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -
 	# A first shot, then ten ticks into its quarter second of cooldown.
 	assert_array(await _press_fire(10)).has_size(2)
 	var kept := _player.state_snapshot()
-	assert_array(kept.weapon).has_size(5)
+	# The cooldown, the spread's place, the magazine, the reserve and the reload, then the melee
+	# blow's eight (gdstudio #1254).
+	assert_array(kept.weapon).has_size(13)
 	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
 	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
 	var first := await _press_fire(40)

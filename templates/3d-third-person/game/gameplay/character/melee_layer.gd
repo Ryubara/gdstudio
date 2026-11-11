@@ -25,6 +25,10 @@ const _P_INSIDE := StringName("parameters/%s/internal_active" % NODE)
 var clip: StringName = &""
 
 var _clip_node: AnimationNodeAnimation
+# A blow was asked for and the tree has not said it ended: only then is the tree read (a read of
+# a tree parameter is a lookup every frame, for every character).
+var _playing := false
+var _seen := false
 
 
 ## Adds the one-shot to `root`: `below` (the weapon layer's last node) under it, the clip node
@@ -52,8 +56,9 @@ func add_to(
 
 ## The clip a tree is built with for `hold`: its first blow's, or `&""` (the idle, no weight).
 static func first_clip(hold: WeaponDef) -> StringName:
-	var clips: Array[StringName] = hold.blow_clips() if hold != null else [] as Array[StringName]
-	return clips[0] if not clips.is_empty() else &""
+	if hold == null or hold.blow_clips().is_empty():
+		return &""
+	return hold.blow_clips()[0]
 
 
 ## Plays blow `blow` of the held weapon's clips (its category's, `WeaponDef.blow_clips()`) on
@@ -73,11 +78,19 @@ func play(blow: int, animation: CharacterAnimation) -> void:
 	_clip_node.animation = next
 	tree.set(_P_SCALE, hold.blow_clip_speed())
 	tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	_playing = true
+	_seen = false
 
 
 ## True while a melee clip plays over the upper body of `tree`.
 func is_active(tree: AnimationTree) -> bool:
-	return tree != null and tree.tree_root != null and tree.get(_P_ACTIVE)
+	if not _playing or tree == null or tree.tree_root == null:
+		return false
+	var active: bool = tree.get(_P_ACTIVE)
+	# Ended only once it was seen playing: the request is taken on the tree's next process.
+	_seen = _seen or active
+	_playing = active or not _seen
+	return active
 
 
 ## How much of the upper body the clip holds now (0 none, 1 all of it: it fades in and out).
