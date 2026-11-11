@@ -124,8 +124,9 @@ the measured ratio, and a failure prints the row. Native debug build, Windows, 2
 
 `tools/web_smoke/ai.py` loads the soak's web export (`gds template bench-web 3d-third-person tools/soak/ai_soak.tscn`)
 with `?scale=N&pathing=0` (the AI section's 10 times N, the player fighting round it) for 15 s and reads the last 10 s
-(Chrome on the fast desktop, the page clean of console errors; frame work and the AI step in ms, median / 95th
-percentile):
+(Chrome on the fast desktop, before the attack slots of #1203 landed; a run after them read a calibration loop of 34 to
+150 ms against 8 to 42 on a machine other agents had loaded, so it is not in the table; the page clean of console
+errors; frame work and the AI step in ms, median / 95th percentile):
 
 | Characters (fighting) | CPU | Frame work | AI step a tick | Ticks a frame |
 | ---: | ---: | ---: | ---: | ---: |
