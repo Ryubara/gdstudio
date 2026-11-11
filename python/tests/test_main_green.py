@@ -35,7 +35,8 @@ FAILURE = yaml.safe_load((WORKFLOWS / "ci-failure.yml").read_text(encoding="utf-
 STEP = CHECK["jobs"]["main-green"]["steps"][0]
 SWEEP_STEP = SWEEP["jobs"]["sweep"]["steps"][0]
 BASH = shutil.which("bash")
-needs_bash = pytest.mark.skipif(sys.platform == "win32" or not BASH, reason="the steps run under Linux bash")
+# Linux only: the steps run on ubuntu runners, and macOS's bash 3.2 has no `${var,,}`.
+needs_bash = pytest.mark.skipif(sys.platform != "linux" or not BASH, reason="the steps run under Linux bash")
 
 
 # --- the conventions and the ruleset ---
