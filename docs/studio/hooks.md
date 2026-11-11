@@ -475,10 +475,8 @@ Standard library only: the hooks start under `uv run --no-project`.
 
 A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
 of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
-when a call needs it: the PreToolUse hook runs on every tool call (matcher `*`), and a Read loads `disk.py` and
-`workspace.py` only, a shell command the `git` or `gh` guards only when it runs `git` or `gh`. Twenty modules loaded
-on every call cost 10 to 15 ms more than the single file did (#929, measured against it); loaded this way, a call
-costs what it did. The three kit modules the hooks load
+when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
+when it runs `git` or `gh`. The three kit modules the hooks load
 by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`) go through `load_kit_module(name)`, so they must use the
 standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
 
@@ -489,6 +487,13 @@ standard library only; `python/tests/hooks/test_hook_modules.py` loads them unde
   functions hides it, because importing `guards.behind` set the package's `behind` to the module (hence
   `behind_base.py`). **Seen:** gdstudio #929, 2026-11-11 (the split; `guards.behind(...)` raised "'module' object is
   not callable" until the module was renamed).
+
+- **Approach:** Import a guard module inside the entry point that calls it, and time a hook change against the code
+  before it, interleaved (A, B, A, B) on the same payloads, Read among them. **Watch out for:** the PreToolUse hook
+  runs on every tool call (matcher `*`), so each module imported with the package costs every Read and Grep a file
+  open; the twenty modules imported at once cost 10 to 15 ms more than the single file, a run of one after the other
+  hides it in noise. **Seen:** gdstudio #929, 2026-11-11 (fixed by imports in `pre_tool_use`; a Read went from 120 to
+  115 ms, a shell command stayed within noise).
 
 ## Tests {#tests}
 
