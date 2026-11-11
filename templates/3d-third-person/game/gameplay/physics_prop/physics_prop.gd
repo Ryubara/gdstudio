@@ -8,6 +8,13 @@ extends RigidBody3D
 ## `physics_prop.tscn` holds all three shapes as nodes (`CrateMesh` and `CrateShape`, `BarrelMesh`
 ## and `BarrelShape`, `BallMesh` and `BallShape`) and `shape` shows one of them, so each can be
 ## restyled in the scene. Everything below follows the inspector live.
+##
+## Online (its `NetEntity` child, kind `prop`) the server simulates it and pushes it; its records
+## ride each TICK while it is awake (`PropState`: where it is, how it is turned, whether it fell
+## asleep). A client's copy is a frozen static body put where the records say at the tick of the
+## command it predicts (`PropTrack`: blended between records, moved on at their speed past the
+## newest), so the predicted body meets it about where the server's body does; it is pushed by no
+## one and falls nowhere (third-person/net-world.md#props).
 
 ## The prop went back to its start after falling out of the map.
 signal returned
@@ -17,6 +24,9 @@ enum Shape {
 	BARREL,  ## A cylinder standing up.
 	BALL,  ## A sphere.
 }
+
+## Ticks after a return to the start during which the server's records say it jumped (two TICKs).
+const JUMP_TICKS := 2 * NetLimits.TICK_RATE / NetLimits.SNAPSHOT_RATE
 
 @export_group("Shape")
 ## What the prop is.
@@ -65,6 +75,17 @@ enum Shape {
 @export_range(-1000.0, 0.0, 1.0, "or_greater", "suffix:m") var fall_limit := -20.0
 
 var _start := Transform3D.IDENTITY
+# The prop's place in an online game (its `NetEntity` child), or null.
+var _net: NetEntity
+# On a client: the server's records, and the tick the copy was last put at.
+var _track: PropTrack
+var _placed_tick := -1
+# On a client: the copy stands where the newest record, an asleep one, put it (nothing to place
+# until the next record: a prop at rest costs nothing a step).
+var _resting := false
+# On the server: the last record said the prop was asleep; the tick it went back to its start.
+var _said_asleep := false
+var _jumped_at := -1
 
 
 func _ready() -> void:
@@ -72,6 +93,12 @@ func _ready() -> void:
 	_update_surface()
 	_rebuild()
 	_start = transform
+	if Engine.is_editor_hint():
+		return
+	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, net_place)
+		_net.streams(net_streams)
 
 
 ## Mass and surface come from `weight`, `grip` and `bounciness`, so the inspector shows those
@@ -82,13 +109,93 @@ func _validate_property(property: Dictionary) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if Engine.is_editor_hint():
+	if Engine.is_editor_hint() or _is_remote():
 		return
 	if global_position.y < fall_limit:
 		linear_velocity = Vector3.ZERO
 		angular_velocity = Vector3.ZERO
 		transform = _start
+		_jumped_at = _net.now() if _net != null else -1
 		returned.emit()
+
+
+# --- Online (NetEntity) ---
+
+
+## Who runs the prop (`NetWorld` sets it). On the server it stays a rigid body and is never put at
+## a tick; on a client it is frozen as a static body, which a body stepped in the same frame meets
+## at once where `net_place` put it (third-person/net-world.md#net-world).
+func net_set_role(role: NetEntity.Role) -> void:
+	match role:
+		NetEntity.Role.SERVER:
+			_net.place = Callable()
+		NetEntity.Role.CLIENT:
+			_track = PropTrack.new()
+			freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
+			freeze = true
+			linear_velocity = Vector3.ZERO
+			angular_velocity = Vector3.ZERO
+			_net.stream = Callable()
+
+
+## On a client: puts the copy where the server's records have the prop at `tick`.
+func net_place(tick: int) -> void:
+	if tick == _placed_tick or _resting or _track == null or _track.is_empty():
+		return
+	_placed_tick = tick
+	var goal := _track.sample(tick, global_transform)
+	_resting = _track.newest().asleep and tick >= _track.newest_tick()
+	if goal.is_equal_approx(global_transform):
+		return
+	global_transform = goal
+	force_update_transform()
+
+
+## On the server: whether this TICK carries the prop: while it is awake, and once more as it falls
+## asleep (that record says so, and none follows until it wakes).
+func net_streams() -> bool:
+	if not sleeping:
+		_said_asleep = false
+		return true
+	if _said_asleep:
+		return false
+	_said_asleep = true
+	return true
+
+
+## The prop's state as the server has it now (`PropState`, 11 bytes; a prop is not a function of
+## the tick, so `at_tick` is where a client files it, and a record within `JUMP_TICKS` of a return
+## to the start says it jumped).
+func net_write(at_tick: int) -> PackedByteArray:
+	var jumped := _jumped_at >= 0 and absi(at_tick - _jumped_at) <= JUMP_TICKS
+	var state := PropState.make(
+		global_position, global_basis.get_rotation_quaternion(), sleeping, jumped
+	)
+	return state.write()
+
+
+## On a client: files a record written as at server tick `at_tick` (false for one that is not a
+## prop's).
+func net_read(state: PackedByteArray, at_tick: int) -> bool:
+	var read := PropState.read(state)
+	if read == null or _track == null:
+		return false
+	_track.push(at_tick, read)
+	_placed_tick = -1
+	_resting = false
+	if read.jumped:
+		returned.emit()
+	return true
+
+
+## The server's records this client holds (null off a client; a test reads them).
+func net_track() -> PropTrack:
+	return _track
+
+
+# A client of an online game: the server's records move this prop.
+func _is_remote() -> bool:
+	return _net != null and _net.role == NetEntity.Role.CLIENT
 
 
 func _get_configuration_warnings() -> PackedStringArray:

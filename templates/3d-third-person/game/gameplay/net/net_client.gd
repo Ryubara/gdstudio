@@ -30,6 +30,10 @@ signal disconnected
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
 
+## An address chosen for the next client that joins on ready (the main menu's "Play online"):
+## wins over `--connect` and `?url=`, and is used once.
+static var next_url := ""
+
 @export_group("Nodes")
 ## The local body the client predicts.
 @export var player: Player
@@ -58,8 +62,8 @@ var welcome: SnapshotCodec.Welcome
 var last_tick: SnapshotCodec.Tick
 var reconciler := Reconciler.new()
 var stall_guard := StallGuard.new()
-## The map's networked parts (doors, platforms, pickups) as the server's records show them; made
-## at the WELCOME.
+## The map's networked parts (doors, platforms, pickups, props, targets) as the server's records
+## show them; made at the WELCOME. A moving prop's records ride each TICK (`read_stream`).
 var map_parts := NetWorld.new()
 ## Seconds for pings and the stall guard: empty is the machine's clock.
 var clock := Callable():
@@ -103,7 +107,8 @@ func _ready() -> void:
 	if join_on_ready and not Engine.is_editor_hint():
 		var args := NetArgs.new()
 		player_name = args.get_string("name", player_name)
-		var url := WebSocketLink.server_url()
+		var url := next_url if next_url != "" else WebSocketLink.server_url()
+		next_url = ""
 		if url != "":
 			join(url)
 
@@ -263,9 +268,12 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 				if remote_players != null:
 					remote_players.on_left(event.slot)
 			NetEvent.Kind.ENTITY:
-				map_parts.read_event(event)
+				# A target's fall waits for the hit it goes with (`ClientCombat`).
+				if remote_players == null or not map_parts.plays_with_puppets(event):
+					map_parts.read_event(event)
 			NetEvent.Kind.PICKUP:
 				map_parts.read_pickup(event, player if event.slot == slot else null)
+	map_parts.read_stream(tick.parts, tick.server_tick)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:

@@ -29,7 +29,9 @@ func test_each_number_fits_the_bytes_that_carry_it() -> void:
 
 func test_the_sizes_follow_the_limits() -> void:
 	assert_int(NetWire.MAX_HELLO).is_equal(NetWire.HELLO_HEADER + NetLimits.NAME_BYTES)
-	assert_int(SnapshotCodec.MAX_EVENT_SIZE).is_equal(3 + NetLimits.NAME_BYTES)
+	assert_int(SnapshotCodec.MAX_EVENT_SIZE).is_equal(
+		maxi(3 + NetLimits.NAME_BYTES, 8 + NetLimits.MAX_ENTITY_STATE)
+	)
 	assert_int(PeerLimits.MAX_PACKET).is_equal(maxi(NetWire.MAX_HELLO, NetWire.COMMAND_SHOT_SIZE))
 	assert_int(NetWire.MAX_CLIENT_PACKET).is_equal(PeerLimits.MAX_PACKET)
 

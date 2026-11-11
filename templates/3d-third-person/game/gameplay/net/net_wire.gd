@@ -1,6 +1,6 @@
 class_name NetWire
 extends RefCounted
-## The bytes of an online game of this template (protocol version 4): one message to a WebSocket
+## The bytes of an online game of this template (protocol version 5): one message to a WebSocket
 ## frame, a type byte first, then fixed fields, little-endian. Plain code with no node, socket or
 ## clock, so a server, a client, a test and a tool share one definition. The transport (a
 ## `WebSocketPeer`, a loopback) carries the arrays as they are.
@@ -18,7 +18,8 @@ extends RefCounted
 ##                u16 shot yaw, s16 shot pitch, u16 view tick (27 bytes in all; `CommandCodec`)
 ## TICK     S->C  u8 type=5, u32 server tick, u32 ack (the last command seq applied for this
 ##                client), u8 event count, the events, u8 player count, the 12-byte player
-##                entries (`SnapshotCodec.tick`, events in `NetEvent`)
+##                entries, u8 streamed part count, then per moving prop: u16 id, u8 state length,
+##                the state (`SnapshotCodec.tick`, events in `NetEvent`, a prop's in `PropState`)
 ## PING     C->S  u8 type=6, u32 client milliseconds, u16 the last round trip in ms (`NO_RTT`
 ##                before the first). 7 bytes
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
@@ -38,11 +39,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## The protocol version of this build.
 ## 2: the command's flags carry `prone` (bit 15); 3: and the weapon presses (bits 11 to 14:
 ## reload, next, previous, the empty hands); 4: a SHOT carries the weapon and a HIT the health
-## it left (gdstudio #906).
-const VERSION := 4
+## it left (gdstudio #906); 5: a TICK ends with the streamed parts (moving props), a world part's
+## state may be 12 bytes (gdstudio #1073).
+const VERSION := 5
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 4
+const MIN_VERSION := 5
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
@@ -55,6 +57,10 @@ const SHOT_BLOCK_SIZE := 12
 const COMMAND_SHOT_SIZE := COMMAND_SIZE + SHOT_BLOCK_SIZE
 ## Type, tick, ack, event count, player count.
 const TICK_HEADER := 11
+## After a TICK's players: the streamed part count.
+const TICK_TAIL := 1
+## A streamed row: u16 id, u8 state length (then the state).
+const STREAM_ROW_HEADER := 3
 ## Type, version, slot, tick rate, tick, world hash.
 const WELCOME_HEADER := 12
 const PING_SIZE := 7
