@@ -70,6 +70,13 @@ the spread's place for `restore()`.
   `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
   2026-11-08; since gdstudio #901 the ray is an argument (`Weapon.fire(origin, direction)`) and the weapon reads no
   camera.
+- **Approach:** On a character, aim at the body part the crosshair's ray meets, not at the capsule it meets first
+  (`HitZones.aimed_point`; a ray between the parts goes on past the body), and prove it with the player's rig and
+  pistol at 2 to 4 m, the crosshair on the edge of the head and beside it (`tests/gameplay/test_close_shot.gd`).
+  **Watch out for:** the muzzle sits about 0.4 m left of and below the shoulder camera's line, so a shot sent at the
+  capsule's front (0.25 m before the head) crossed the crosshair's line there and went on up and to the right, past
+  the head's edge to the wall, while the gun pointed at the target; a test at 12 m or on the head's middle passes
+  either way. **Seen:** gdstudio #1251, 2026-11-11 (found by the maintainer).
 - **Approach:** Hand a weapon the ray it aims along and let the body make it from its command; prove it with a second
   character whose target is behind the local camera's back, with a world that has no camera, and with the old
   camera formula kept as a test fixture (`tests/fixtures/camera_aim.gd`) over a sweep of poses. **Watch out for:**
