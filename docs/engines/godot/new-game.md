@@ -157,6 +157,11 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
+- **Approach:** Give a new script its `.gd.uid` before `gds template test`: make the kept game
+  (`gds template game <template>`, the argument is the template's name), copy the script in, run the pinned Godot
+  headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
+  for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
+  own folder cannot be opened to make one. **Seen:** gdstudio #1009, 2026-11-10.
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.

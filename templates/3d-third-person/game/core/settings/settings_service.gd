@@ -6,8 +6,8 @@ extends Node
 ##
 ## Values are plain data keyed `section/name`. Every key has a default and a range, so a missing,
 ## hand-edited or wrong-typed entry falls back instead of breaking anything. What a value does:
-## video, volume and the controls bindings are applied here; mouse sensitivity and invert are read
-## by `LookSettings`, which listens to `changed`.
+## video, volume, camera shake and the controls bindings are applied here; mouse sensitivity and
+## invert are read by `LookSettings`, which listens to `changed`.
 ##
 ## A test run, a capture and an agent's run keep the options in memory (`is_harness_run`), so
 ## none of them reads or writes the person's own file.
@@ -40,6 +40,9 @@ const MOUSE_SENSITIVITY := &"controls/mouse_sensitivity"
 const INVERT_Y := &"controls/invert_y"
 ## Whether the game stops while the inventory is open (read by the inventory screen).
 const PAUSE_IN_INVENTORY := &"controls/pause_in_inventory"
+## How much camera shake the player wants, 0 to 100 %: the global `CameraShake.strength`, which
+## scales every shake in the game (sprint, shot kick, hits, blasts); 0 turns them all off.
+const CAMERA_SHAKE := &"controls/camera_shake"
 
 ## Allowed range of each numeric value.
 const RANGES := {
@@ -51,6 +54,7 @@ const RANGES := {
 	VOLUME_AMBIENT: Vector2(0, 100),
 	VOLUME_UI: Vector2(0, 100),
 	MOUSE_SENSITIVITY: Vector2(0.2, 3.0),
+	CAMERA_SHAKE: Vector2(0, 100),
 }
 
 ## The audio bus each volume drives (the layout is `res://default_bus_layout.tres`).
@@ -126,6 +130,7 @@ func _init() -> void:
 		MOUSE_SENSITIVITY: 1.0,
 		INVERT_Y: false,
 		PAUSE_IN_INVENTORY: true,
+		CAMERA_SHAKE: 100,
 	}
 	_values = _defaults.duplicate()
 	# A settings screen is opened from the pause menu: the delayed write has to run while the tree is
@@ -353,6 +358,8 @@ func _apply(key: StringName) -> void:
 			)
 		QUALITY:
 			_apply_preset(current_preset())
+		CAMERA_SHAKE:
+			CameraShake.strength = float(value) / 100.0
 		_:
 			if BUSES.has(key):
 				AudioSettings.set_player_gain(BUSES[key], float(value) / 100.0)

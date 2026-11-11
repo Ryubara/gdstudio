@@ -24,6 +24,16 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   two edits and died on a name used before its import was written. **Seen:** Deadnight #438, 2026-11-01; Deadnight
   #939, 2026-11-04 (fix: the batch was run again and the failed file rebuilt).
 
+- **Approach:** Write a script, or a patch to one, to a file with the write tool and run the file; keep shell
+  heredocs for a few lines with no apostrophe, and open text files with `newline=""` when a Python one-liner rewrites
+  them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
+  Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
+  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10.
+- **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
+  old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
+  last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
+  **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+
 ## Rebuilding a committed file {#rebuilding}
 
 A rebuild changes only what the task changes. Blender's glTF export does not keep the triangle order from run to run,

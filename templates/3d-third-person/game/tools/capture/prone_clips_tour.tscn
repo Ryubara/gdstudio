@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/prone_clips_tour.gd" id="1_tour"]
+
+[node name="ProneClipsTour" type="Node3D"]
+script = ExtResource("1_tour")
