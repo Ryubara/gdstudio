@@ -133,6 +133,22 @@ func test_a_population_at_the_director_cap_respawns_while_its_dead_lie() -> void
 		assert_object(character.director).is_same(_director)
 
 
+# The pool readies a spare in the tree and takes it out again: at the director's cap that is no
+# refusal (kit #1247: the soak's spares were refused with a warning each at scale 4).
+func test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap() -> void:
+	_director.desktop_cap = 2
+	_director.web_cap = 2
+	var spawner := _spawner(GRUNT, {"respawn_delay": -1.0})
+	await _ticks(2)
+	assert_int(_director.living_count()).is_equal(2)
+	var spares := AiPool.new(load(GRUNT))
+	spares.prewarm(2, 0, spawner)
+	assert_int(spares.parked()).is_equal(2)
+	assert_int(_director.refused).is_equal(0)
+	assert_int(_director.count()).is_equal(2)
+	spares.clear()
+
+
 func test_no_respawn_below_zero_and_none_past_the_cap() -> void:
 	var never := _spawner(GRUNT, {"respawn_delay": -1.0})
 	await _ticks(2)

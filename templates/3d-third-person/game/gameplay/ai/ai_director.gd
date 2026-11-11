@@ -100,6 +100,9 @@ var tick := 0
 var body_steps := 0
 ## Microseconds the last tick's step (tiers, thinks and bodies) took.
 var last_step_usec := 0
+## Characters refused at the population cap since the director started (a count for tests and
+## probes).
+var refused := 0
 
 var _entries: Array[Entry] = []
 var _think_load := PackedInt32Array()
@@ -244,6 +247,7 @@ func register(character: AiCharacter) -> bool:
 			"AiDirector: %s refused, the cap of %d is reached." % [character.name, population_cap()]
 		)
 		character.set_physics_process(false)
+		refused += 1
 		return false
 	var entry := Entry.new()
 	entry.character = character
