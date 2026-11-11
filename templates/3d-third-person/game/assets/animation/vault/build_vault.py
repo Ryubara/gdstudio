@@ -626,7 +626,8 @@ def vault_low(rig, offsets=None):
         {5: c.spine("neck_01", -2, -10, -10), 8: c.spine("neck_01", -4, -16, -22), 14: c.spine("neck_01", 0, -6, -4)},
     )
     c.keys("Head", {5: c.spine("Head", -3, -12, -10), 8: c.spine("Head", -6, -18, -24), 14: c.spine("Head", 0, -6, -4)})
-    # The shoulder is pressed up toward the ear while the arm carries the body, and comes down with the push.
+    # The shoulder sinks toward the hand while the arm carries the body (the collarbone drops 20 degrees), and comes
+    # back with the push.
     c.keys(
         "clavicle_l",
         {
