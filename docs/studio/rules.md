@@ -61,7 +61,10 @@ One list item, in three labelled parts, in this order:
 - `Watch out for:` what goes wrong when the approach is not kept, and why.
 - `Seen:` where it happened, the issue or pull request (`Deadnight #1234`, `gdstudio #769`) and the date, with how it
   was fixed and the test or check that now catches it in parentheses. An entry seen again gets another source here
-  (`; Deadnight #1301, 2026-11-06`), not a second entry.
+  (`; Deadnight #1301, 2026-11-06`), not a second entry. When a source pushes a long entry past 900 characters,
+  shorten its `Seen:` (one date for a group of sources, `11-05` for a date in the same year) and run
+  `python .github/scripts/mistakes.py check` before the commit (gdstudio #1190 added a source to a 880-character
+  entry and the kit tests caught it).
 
 The whole item is at most 900 characters, wrapped lines indented two spaces. It says what the maintainer pointed out
 in our words, never as a quote of the prompt (gdstudio #780). An entry from a maintainer correction also gets a line
@@ -72,6 +75,11 @@ on the [corrections log](maintainer-corrections.md). The old form (`**Rule:** ..
   learning hook were designed around quoting the maintainer, so every row copied a prompt into a public repository.
   **Seen:** gdstudio #780, 2026-11-07 (fix: the quotes were removed, and the checks fail a corrections-log row with a
   cell that starts with a quotation mark).
+- **Approach:** Before adding a source to a long entry's `Seen:`, or keeping both sides of a merge conflict in one,
+  run `python .github/scripts/mistakes.py check`; when it is over 900 characters, fold the sources (one date for
+  several numbers) or start a new entry. **Watch out for:** both sides of a conflict kept whole made a 973-character
+  entry, and one more source on a long entry 1026, so the merge commit and a docs commit were refused by pre-commit.
+  **Seen:** gdstudio #970, 2026-11-11 (`running-gdunit.md`, `online-client.md`; both folded or split, the check passed).
 
 ## A section {#section}
 

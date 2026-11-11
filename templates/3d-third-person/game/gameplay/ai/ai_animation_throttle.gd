@@ -252,7 +252,9 @@ func _set_period(entry: Entry, period: int) -> void:
 				_advance(entry)
 		entry.period = period
 	if entry.footsteps != null and is_instance_valid(entry.footsteps):
-		entry.footsteps.set_listening(period == 1 and _hears(entry.character.global_position))
+		# A character that left the tree first (its map is being freed) has no place to hear.
+		var hears := entry.character.is_inside_tree() and _hears(entry.character.global_position)
+		entry.footsteps.set_listening(period == 1 and hears)
 
 
 # Moves a throttled tree on by the time since its last advance, and the hand's weights with it.

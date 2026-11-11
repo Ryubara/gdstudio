@@ -50,6 +50,12 @@ part from the geometry, which a script can repeat exactly.
   for:** weights assigned per piece differ at the seam, so the bend opens a crack there and the two sides' weights stop
   mirroring (96.9% on the first build). **Seen:** gdstudio #774, 2026-11-07 (fix: the `rig-humanoid` baseline run
   copied each position's most blended weights to all its copies; the eval checks mirrored weights).
+- **Approach:** After parenting with automatic weights, read Blender's output for `Bone Heat Weighting: failed to
+  find solution` and count the vertices with no weight; when bone heat fails, weight by distance to each bone's
+  segment, limited to the bones of the vertex's own body part, and smooth over the surface. **Watch out for:** bone
+  heat cannot solve a mesh with closed pockets (a mouth bag, eye sockets) and leaves it unweighted with exit code 0,
+  so a build that does not count goes on with a bare body. **Seen:** gdstudio #1151 (PR #1175), 2026-11-11 (fix:
+  distance weights for the body in the build, and a check that every vertex is weighted).
 
 ## Sockets and hitboxes {#sockets}
 
