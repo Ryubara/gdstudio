@@ -204,6 +204,8 @@ func test_the_join_waits_for_the_levels_warm_up_and_settled_frames_saying_loadin
 	assert_bool(emitter.is_warming()).is_true()
 	assert_bool(online.client.is_waiting_to_join()).is_true()
 	assert_object(online.client.link).is_null()
+	# A device that draws every frame in 70 ms is settled: only a stall resyncs the client.
+	assert_float(online.client.join_wait.settle.longest).is_equal(StallGuard.STALL_SECONDS)
 	assert_str((online.status.get_node("%Title") as Label).text).is_equal("Loading")
 	assert_bool((online.status.get_node("%BackButton") as Control).visible).is_true()
 	assert_bool(online.client.player.input_enabled).is_false()

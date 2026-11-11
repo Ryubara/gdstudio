@@ -2,10 +2,11 @@ class_name JoinWait
 extends RefCounted
 ## Waits until a level is ready to join a server, as a game joins behind its loading screen: the
 ## level's warm-up over (`EffectEmitter.warmed`: its tour of the reflection probes and first draws
-## of every effect) and then its frames settled (`FrameSettle`: 20 in a row under the server's
-## hold). A page that joined during the warm-up met its slow frames as stalls of the client, four
-## to six in its first three seconds (kit #1106). `NetClient` joins after one (`join_after_warm_up`)
-## and the bad-network probe (`NetPlayProbe`) does the same.
+## of every effect) and then its frames settled (`FrameSettle`: 20 in a row each short; the probe
+## counts a frame short under the server's hold, `NetClient` under the stall guard's stall). A page
+## that joined during the warm-up met its slow frames as stalls of the client, four to six in its
+## first three seconds (kit #1106). `NetClient` joins after one (`join_after_warm_up`) and the
+## bad-network probe (`NetPlayProbe`) does the same.
 
 ## Said when the wait moves on to another stage.
 signal stage_changed(stage: Stage)

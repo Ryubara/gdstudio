@@ -131,6 +131,10 @@ func join_when_ready(url: String) -> void:
 		join(url)
 		return
 	join_wait = JoinWait.new()
+	# A frame counts as settled under the stall guard's stall, not the server's hold (the probe's):
+	# a device that draws every frame in 70 ms would otherwise wait out the whole `limit` on Loading,
+	# and only a frame past the stall resyncs the client.
+	join_wait.settle.longest = StallGuard.STALL_SECONDS
 	join_wait.finished.connect(func() -> void: join(url), CONNECT_ONE_SHOT)
 	join_wait.run(self)
 
