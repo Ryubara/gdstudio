@@ -28,6 +28,10 @@ template](../third-person-template.md); the bytes are [the template's packets](.
   `HIT` (the point, the normal, the kind, the id, the health it left) to everyone. A body whose health reaches zero is a
   `DIED` (slot, the velocity of its last step, the cause); after `revive_seconds` (3 s) the server gets it up where it
   died (or at its spawn point with `revive_at_spawn`), in whole centimetres, and sends `REVIVED` with that point.
+- **Melee** (#1254). A blow's press carries the shot block, so it is judged as a shot (a refused one takes the melee
+  press off too) and meets the AI where the attacker's screen drew it, moved on by the ticks to its window. It is a
+  4-byte `MELEE` (slot, the low 16 bits of `seq`) to every other player, its puppet plays its own clip, and what it
+  meets is a `HIT`; an AI's blow is an `AI` event with the code `MELEE` ([melee](shooting.md#melee)).
 - **Ids.** A player is `0xFF00 + slot` (the body carries the meta `net_slot` on every peer), a `Target` `0xFE00 +` its
   place among the map's targets (the group `target`) by node path in its viewport; anything else has no id and the
   client finds the surface with a 10 cm ray along the normal. The world table of #907 takes the low ids.
