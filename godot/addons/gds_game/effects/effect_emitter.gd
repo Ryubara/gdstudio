@@ -84,7 +84,11 @@ const TOUR_FACINGS: Array[Vector3] = [
 ## program there.
 @export var warm_up_groups: Array[StringName] = []
 ## Effects to warm up besides those the level's weapons and impact surfaces register themselves.
-@export var warm_up: Array[EffectDef] = []
+## Held as `Resource` with the `EffectDef` hint (the inspector offers only `EffectDef`s): an
+## exported `Array[EffectDef]` in a script that also casts to its own class (`find`) left GdUnit4's
+## and the autoloads' scripts in use at exit under Godot 4.7.2
+## (docs/engines/godot/test-exit-leaks.md).
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:EffectDef") var warm_up: Array[Resource] = []
 ## Materials the warm-up draws once on a speck of a quad, besides those registered with
 ## `warm_material()` (the impacts' marks): anything a shot makes that is not an effect.
 @export var warm_up_materials: Array[Material] = []
@@ -134,8 +138,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	for def in warm_up:
-		if def != null:
-			warm(def)
+		if def is EffectDef:
+			warm(def as EffectDef)
 	for material in warm_up_materials:
 		warm_material(material)
 	_warm_routine()

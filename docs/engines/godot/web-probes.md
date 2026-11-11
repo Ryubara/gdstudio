@@ -262,3 +262,15 @@ template changes. Its tests are `python/tests/test_bench_web.py` (the edits on t
 
 Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
 headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).
+
+- **Approach:** Count a web bench in physics ticks (`Engine.get_physics_frames()`), not in rendered frames, and run it
+  for 900 ticks or more when it reads a part's mean; to time a bench by part, add `Time.get_ticks_usec()` spans in the
+  kept game (`bench-web` without `--run`), export it again and read the means. **Watch out for:** a headless Chrome
+  page draws about three frames per physics tick at 1x, so a row of 300 frames held about 100 ticks; and the browser's
+  clock steps at 100 µs, so a span of 20 to 150 µs averages to a usable mean only over many hundreds of samples.
+  **Seen:** gdstudio #1104 (PR #1209), 2026-11-11.
+- **Approach:** For a before and after in Chrome, make two builds of the same bench: `bench-web` from your worktree
+  and from a checkout of `main` (`--project <main checkout>/python`; a bench new to the branch is copied into main's
+  kept game and exported again), then run the two probes in turns, A B A B, on a quiet machine. **Watch out for:** one
+  build measured at two times compares two machine loads, which moved rows 15 to 20 % between runs, more than most
+  changes save. **Seen:** gdstudio #1208 (PR #1219), 2026-11-11.
