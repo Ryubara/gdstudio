@@ -90,6 +90,11 @@ finds it through the group; a character with no director steps itself and never 
   (`test_a_far_character_stepped_less_often_walks_as_far`). A character at rest (on a floor that does not move, still,
   its controller asking for nothing) or dead is stepped at most every `rest_step_ticks`. A far body moves in steps of
   four or six ticks, which shows only to a camera near it.
+- **Population.** `web_cap` (in a browser) or `desktop_cap`, at most `match_cap`, counts the living characters
+  (`living_count()`); one more living is refused and stands frozen, with a warning. A corpse stays registered, stepped
+  at the rest cadence, and is not counted, so a population at the cap respawns while its dead lie (kit #1247). What
+  lies on top is bounded by the spawners' `max_corpses` ([The spawner and its pool](ai-characters.md#spawner)). A pool's
+  spare readied in the tree (`warming`) never asks; `refused` counts the refusals.
 
 ## The navigator {#navigator}
 

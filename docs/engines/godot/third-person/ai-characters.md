@@ -55,6 +55,22 @@ the server: `AiAuthority.hand_over` stops it and frees its pool).
   others' memories. **Watch out for:** a hidden character in the tree stays in the director, the senses' lists, its
   groups and the minimap; and one re-added was not re-registered, because `_ready` runs once, so it stood still with
   no think. **Seen:** kit #969, 2026-11-11.
+- **Approach:** Let a corpse lie outside the director's population cap: `AiDirector.register` and the match cap count
+  the living only (`living_count()`), so a population that sits at `web_cap` respawns while its dead lie, and what
+  lies on top is at most the spawners' `max_corpses` (20 for the AI section at scale 4), each stepped only at the rest
+  cadence. **Watch out for:** a population at the cap with the dead counted was refused every respawn until a corpse
+  went back to the pool (up to `corpse_seconds`), with an `AiDirector: ... refused` warning, and a refused character
+  stands frozen in the level; a match cap lowered with corpses down parked living characters in their place. **Seen:**
+  kit #1247, 2026-11-11 (the AI soak at `scale=4` in Chrome, kit #971;
+  `test_a_corpse_does_not_count_against_the_population_cap`,
+  `test_a_population_at_the_director_cap_respawns_while_its_dead_lie`).
+- **Approach:** Ready a pool's spare with `AiCharacter.warming` on (`AiPool.prewarm` sets it around its `add_child` and
+  `remove_child`), so its `_ready` joins no director; count refusals with `AiDirector.refused` and probe the web
+  build for the `refused` warning before and after a fix. **Watch out for:** without it each spare made while the
+  living sit at the cap was refused with a warning, and these were all 8 refusals of the soak at `scale=4` (the
+  `max_corpses` spares, two of each kind): the counting fix alone left the same 8 in Chrome, because the issue's guess
+  (the corpses) was not the whole cause. **Seen:** kit #1247, 2026-11-11
+  (`test_the_pool_readies_its_spares_without_asking_the_director_at_its_cap`).
 - **Approach:** Make a pool lazily (on the approach, one a tick); a suite that runs the map but is not about the AI
   sets `enabled = false` on each spawner of `World/AISection/Population` in `before_test` (`test_section_walks.gd`).
   **Watch out for:** parked characters are out of the tree, so GdUnit counts them as orphans and the run exits 101,
