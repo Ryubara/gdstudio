@@ -187,6 +187,24 @@ def merge_target(words: list[str]) -> tuple[str, str | None]:
     return (positional[0] if positional else ""), (named[0] if named else None)
 
 
+def merge_asks(words: list[str]) -> list[tuple[str, str | None]]:
+    """The pull requests a merge command would land, as (target, repository or None): `gh pr merge` with or without
+    `--auto` (not `--disable-auto`), or a write to `gh api .../pulls/<n>/merge`. Any other command gives none, so the
+    guards that ask GitHub about a merge (behind_base.py, red_default.py) never ask for it."""
+    if len(words) < 3 or words[1] not in ("pr", "api"):
+        return []
+    if words[1] == "pr":
+        return [merge_target(words)] if words[2] == "merge" and "--disable-auto" not in words else []
+    if words[2] == "graphql" or api_method(words) == "GET":
+        return []
+    asks: list[tuple[str, str | None]] = []
+    for word in words[2:]:
+        merge = _API_MERGE.search(unquote(word))
+        if merge:
+            asks.append((merge.group(2), merge.group(1)))
+    return asks
+
+
 # --- the maintainer's approval in the coordinator's session (docs/studio/hooks-hold.md#hold) ---
 
 Lift = Callable[[str, str | None, Path], str]

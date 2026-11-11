@@ -20,6 +20,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing a session transcript or spelling an entry as the maintainer's ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator once the maintainer approves that lift in its session |
 | Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Landing](landing.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
+| Red main | a merge command (as in Hold) while a `CI failing on the default branch` issue is open in that repository, unless the body says `Fixes #<that issue>`; an API failure only warns ([Red main](hooks-red-main.md#red-main)) | wait for the fix, `gds merge-main`, push, merge |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
@@ -466,6 +467,7 @@ Standard library only: the hooks start under `uv run --no-project`.
 | `commits.py` | commits and pushes |
 | `merges.py` | `gh pr merge`, manual paths, the hold and the coordinator's approved lift ([above](#hold)) |
 | `behind_base.py` | a merge only of a head that holds its base's tip |
+| `red_default.py` | no merge but the fix forward while main is red ([Red main](hooks-red-main.md#red-main)) |
 | `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
 | `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
 | `protected.py` | secrets printed, protected and generated files edited, session transcripts written |
