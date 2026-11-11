@@ -18,6 +18,9 @@ var link_ids := PackedInt64Array()
 ## The next point to reach.
 var index := 0
 
+# For each point, the length of the path from it to the end.
+var _rest := PackedFloat32Array()
+
 
 ## Takes a new list of points (and the link owners, one per point, 0 for none).
 func assign(new_points: PackedVector3Array, new_links: PackedInt64Array) -> void:
@@ -25,12 +28,19 @@ func assign(new_points: PackedVector3Array, new_links: PackedInt64Array) -> void
 	link_ids = new_links
 	link_ids.resize(points.size())
 	index = mini(1, points.size())
+	_rest.resize(points.size())
+	var total := 0.0
+	for at_index in range(points.size() - 1, -1, -1):
+		_rest[at_index] = total
+		if at_index > 0:
+			total += points[at_index - 1].distance_to(points[at_index])
 
 
 ## Forgets the path.
 func clear() -> void:
 	points = PackedVector3Array()
 	link_ids = PackedInt64Array()
+	_rest = PackedFloat32Array()
 	index = 0
 
 
@@ -79,18 +89,17 @@ func advance(at: Vector3, desired: float, last_reach := INF) -> int:
 func left(at: Vector3) -> float:
 	if index >= points.size():
 		return 0.0
-	var total := at.distance_to(points[index])
-	for at_index in range(index + 1, points.size()):
-		total += points[at_index - 1].distance_to(points[at_index])
-	return total
+	return at.distance_to(points[index]) + _rest[index]
+
+
+## What is left of the path from the next point on (metres).
+func left_from_next() -> float:
+	return _rest[index] if index < points.size() else 0.0
 
 
 ## The length of the whole path.
 func length() -> float:
-	var total := 0.0
-	for at_index in range(1, points.size()):
-		total += points[at_index - 1].distance_to(points[at_index])
-	return total
+	return _rest[0] if not _rest.is_empty() else 0.0
 
 
 ## The point to steer to from `at`: the first point from `index` on more than `look_ahead` away

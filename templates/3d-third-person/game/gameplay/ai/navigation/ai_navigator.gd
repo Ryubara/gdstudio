@@ -76,9 +76,14 @@ const CROUCH_HOLD := 1.0
 const VAULT_REACH := 1.2
 ## The share of the way on that a sidestep keeps.
 const SIDESTEP_ON := 0.3
+## Within this many metres of the path's end it steers at every step.
+const STEER_EVERY_STEP_WITHIN := 2.0
 ## Following: metres past the band before it walks again.
 const FOLLOW_SLACK := 0.5
 
+## A bench turns this on to add the microseconds every navigator's step takes to `spent_usec`.
+static var measuring := false
+static var spent_usec := 0
 static var _spawned := 0
 static var _class_maps: Dictionary[int, RID] = {}
 
@@ -96,6 +101,9 @@ static var _class_maps: Dictionary[int, RID] = {}
 @export_range(0.05, 5.0, 0.05, "suffix:m") var arrive_distance := 0.5
 ## How near (metres) a point of the path counts as passed.
 @export_range(0.05, 5.0, 0.05, "suffix:m") var path_desired_distance := 0.6
+## Seconds between two steers while it walks a stretch (the body keeps its push between); it
+## steers at every step near the end, on a link and while stuck. 0: every step.
+@export_range(0.0, 0.25, 0.01, "suffix:s") var steer_seconds := 0.05
 ## Points nearer than this (metres) are skipped when choosing where to steer.
 @export_range(0.0, 5.0, 0.05, "suffix:m") var look_ahead := 0.5
 ## Which map it walks: a size class registered with `register_class_map()`; NORMAL (and a class
@@ -185,6 +193,7 @@ var _others: Array[Node] = []
 var _steer_at := Vector3.INF
 var _draw: AiNavDebug
 var _map_ready := false
+var _unsteered := 0.0
 
 
 ## Gives size class `nav_class_wanted` its own map (a big creature's mesh, baked for its radius);
@@ -301,9 +310,23 @@ func navigate(seconds: float) -> void:
 	if mode == Mode.FOLLOW and not _follow_wants_walk():
 		_release()
 		return
+	var start := Time.get_ticks_usec() if measuring else 0
 	_maybe_query(map)
 	if mode != Mode.IDLE:
 		_check_and_walk(seconds)
+	if measuring:
+		spent_usec += Time.get_ticks_usec() - start
+
+
+# True when nothing calls for a steer at this step: the walk goes on as it was.
+func _cruising() -> bool:
+	return (
+		_on_link < 0
+		and not ladder.is_climbing()
+		and _jump_for <= 0.0
+		and path.has_points()
+		and path.left(character.global_position) > STEER_EVERY_STEP_WITHIN
+	)
 
 
 # The body-ray check of the path (as far as the budget allows this step), then the walk.
@@ -314,7 +337,13 @@ func _check_and_walk(seconds: float) -> void:
 			_judge_check()
 			if mode == Mode.IDLE:
 				return
-	_walk(seconds)
+	# Between two steers the body keeps the push it was given; near the end, on a link, while
+	# stuck or jumping, it steers at every step.
+	_unsteered += seconds
+	if _unsteered < steer_seconds and _cruising():
+		return
+	_walk(_unsteered)
+	_unsteered = 0.0
 	if debug and _draw != null:
 		_draw.draw(path, character.global_position, _steer_at, goal)
 
@@ -386,7 +415,8 @@ func _query_now(map: RID, interval: float) -> void:
 	_since_query = -_phase * interval if _first_since_goal else 0.0
 	_first_since_goal = false
 	_want_query = false
-	_others = get_tree().get_nodes_in_group(AiCharacter.GROUP)
+	if avoidance == AiNavAvoidance.Mode.SEPARATION:
+		_others = get_tree().get_nodes_in_group(AiCharacter.GROUP)
 	var from := character.global_position
 	if _from_mesh_next:
 		from = NavigationServer3D.map_get_closest_point(map, from)
@@ -447,11 +477,13 @@ func _query_now(map: RID, interval: float) -> void:
 	path_changed.emit()
 
 
-# True when two paths differ by more than half a metre at a point (or in their count).
+# True when two paths differ by more than half a metre at a point (or in their count), the first
+# point (where the body stood when it asked) left out: the same route asked again as the body
+# walks it is not checked again.
 func _differs(one: AiNavPath, other: AiNavPath) -> bool:
 	if one.points.size() != other.points.size():
 		return true
-	for index in one.points.size():
+	for index in range(1, one.points.size()):
 		if one.points[index].distance_squared_to(other.points[index]) > 0.25:
 			return true
 	return false
@@ -515,7 +547,10 @@ func _walk(seconds: float) -> void:
 	controller.walk_strength = 1.0 if sprint else strength
 	controller.sprint = sprint
 	controller.jump = _jump_for > 0.0
-	controller.crouch = _crouch_for > 0.0 or not character.has_room_to_stand()
+	# The room test is a shape query: asked only of a crouched body (a slide ends crouched).
+	controller.crouch = (
+		_crouch_for > 0.0 or (character.crouching and not character.has_room_to_stand())
+	)
 	_judge_stuck(seconds, speed if wish != Vector3.ZERO else 0.0, at)
 
 
