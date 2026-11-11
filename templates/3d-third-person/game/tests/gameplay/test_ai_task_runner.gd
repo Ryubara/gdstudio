@@ -356,3 +356,38 @@ func test_a_failing_task_cannot_storm() -> void:
 	assert_int(unreachable.state).is_equal(AiTask.State.FAILED)
 	assert_bool(runner.in_fallback()).is_true()
 	assert_object(runner.active).is_same(idle)
+
+
+# Kit #1246: a storm stops retries, not a task's own fallback (a cornered flight's cower), which
+# runs once per task and cannot loop; a response that fails during the storm still answers.
+func test_a_failure_storm_still_runs_a_tasks_own_fallback() -> void:
+	var runner := _runner()
+	runner.profile.failure_budget = 1
+	runner.profile.fallback_seconds = 5.0
+	runner.assign(ScriptedTask.make(&"idle", AiTask.Layer.DEFAULT, 0.0))
+	var walk := ScriptedTask.make(&"walk", AiTask.Layer.ROUTINE, 0.1)
+	walk.fail_with = AiTask.Reason.NO_PATH
+	runner.assign(walk)
+	_run(runner, 0.3)
+	assert_bool(runner.in_fallback()).is_true()
+	var flee := ScriptedTask.make(&"flee", AiTask.Layer.RESPONSE, 0.1)
+	flee.fail_with = AiTask.Reason.NO_PATH
+	flee.on_fail = AiTask.OnFail.FALLBACK
+	flee.fallback = ScriptedTask.make(&"cower", AiTask.Layer.RESPONSE, 1.0)
+	var again := ScriptedTask.make(&"flee_again", AiTask.Layer.RESPONSE, 0.1)
+	again.fail_with = AiTask.Reason.NO_PATH
+	again.on_fail = AiTask.OnFail.RETRY
+	again.retry_count = 5
+	again.retry_delay = 0.0
+	again.replace_policy = AiTask.ReplacePolicy.QUEUE
+	runner.assign(flee)
+	runner.assign(again)
+	_run(runner, 0.5)
+	assert_bool(runner.in_fallback()).is_true()
+	assert_object(runner.active).is_same(flee)
+	assert_int(flee.state).is_equal(AiTask.State.RUNNING)
+	_run(runner, 1.0)
+	assert_int(flee.state).is_equal(AiTask.State.SUCCEEDED)
+	_run(runner, 0.5)
+	assert_int(again.starts).is_equal(1)
+	assert_int(again.state).is_equal(AiTask.State.FAILED)

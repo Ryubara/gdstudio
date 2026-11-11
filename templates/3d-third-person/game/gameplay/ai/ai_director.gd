@@ -33,10 +33,11 @@ const REST_SPEED := 0.01
 const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 
 @export_group("Population")
-## The most characters it manages in a browser (a browser in a match sets it for everyone); one
-## more is refused and stands frozen, with a warning.
+## The most living characters it manages in a browser (a browser in a match sets it for
+## everyone); one more is refused and stands frozen, with a warning. A corpse is not counted: it
+## stays managed (stepped at the rest cadence) until its spawner takes it back.
 @export_range(0, 1000) var web_cap := 40
-## The most characters it manages on the desktop and on a server.
+## The most living characters it manages on the desktop and on a server.
 @export_range(0, 4000) var desktop_cap := 120
 ## The most characters at the Full tier at once in a browser; the next nearest wait at Reduced.
 @export_range(0, 1000) var web_full_cap := 12
@@ -83,8 +84,8 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 @export_range(0.5, 30.0, 0.5, "suffix:s") var slot_lease_seconds := 3.0
 
 ## The cap of the match, set by a game server from its weakest client (a browser in the match caps
-## it for everyone at `web_cap`); -1 for none. Lowered under the count, the newest characters are
-## parked (frozen, not stepped, not sent) until it rises again.
+## it for everyone at `web_cap`); -1 for none. Lowered under the living count, the newest living
+## characters are parked (frozen, not stepped, not sent) until it rises again; corpses stay.
 var match_cap := -1:
 	set(value):
 		match_cap = value
@@ -99,6 +100,9 @@ var tick := 0
 var body_steps := 0
 ## Microseconds the last tick's step (tiers, thinks and bodies) took.
 var last_step_usec := 0
+## Characters refused at the population cap since the director started (a count for tests and
+## probes).
+var refused := 0
 
 var _entries: Array[Entry] = []
 var _think_load := PackedInt32Array()
@@ -177,8 +181,8 @@ func _exit_tree() -> void:
 			unregister(entry.character)
 
 
-## The most characters it manages here (`web_cap` in a browser, else `desktop_cap`, and at most
-## `match_cap`).
+## The most living characters it manages here (`web_cap` in a browser, else `desktop_cap`, and at
+## most `match_cap`); corpses come on top.
 func population_cap() -> int:
 	var own := web_cap if OS.has_feature("web") else desktop_cap
 	return own if match_cap < 0 else mini(own, match_cap)
@@ -214,6 +218,15 @@ func count() -> int:
 	return _entries.size()
 
 
+## How many of the characters it manages are alive: what the population cap counts (kit #1247).
+func living_count() -> int:
+	var found := 0
+	for entry in _entries:
+		if not entry.character.is_dead():
+			found += 1
+	return found
+
+
 ## How many characters are at `tier`.
 func count_at(tier_wanted: int) -> int:
 	var found := 0
@@ -224,15 +237,17 @@ func count_at(tier_wanted: int) -> int:
 
 
 ## Takes `character` over: its own physics processing stops and the director steps it. Returns
-## false (and the character stands frozen) when the population cap is reached.
+## false (and the character stands frozen) when the living reach the population cap; a corpse
+## does not count, so a population at the cap respawns while its dead lie.
 func register(character: AiCharacter) -> bool:
 	if character == null or _index_of(character) >= 0:
 		return character != null
-	if _entries.size() >= population_cap():
+	if not character.is_dead() and living_count() >= population_cap():
 		push_warning(
 			"AiDirector: %s refused, the cap of %d is reached." % [character.name, population_cap()]
 		)
 		character.set_physics_process(false)
+		refused += 1
 		return false
 	var entry := Entry.new()
 	entry.character = character
@@ -344,22 +359,32 @@ func _step(entry: Entry, delta: float) -> void:
 	character.step(command, delta * missed)
 
 
-# Parks the newest characters past the cap (they stand frozen, as a refused one does), and takes
-# parked ones back while there is room.
+# Parks the newest living characters past the cap (they stand frozen, as a refused one does), and
+# takes parked ones back while there is room; a corpse is not counted and stays.
 func _apply_cap() -> void:
 	if not is_inside_tree():
 		return
-	while _entries.size() > population_cap():
-		var character := _entries[-1].character
+	var living := living_count()
+	while living > population_cap():
+		var character := _newest_living()
+		living -= 1
 		unregister(character)
 		character.set_physics_process(false)
 		character.process_mode = Node.PROCESS_MODE_DISABLED
 		_parked.append(character)
-	while not _parked.is_empty() and _entries.size() < population_cap():
+	while not _parked.is_empty() and living_count() < population_cap():
 		var character: AiCharacter = _parked.pop_back()
 		if is_instance_valid(character):
 			character.process_mode = Node.PROCESS_MODE_INHERIT
 			register(character)
+
+
+# The living character registered last.
+func _newest_living() -> AiCharacter:
+	for index in range(_entries.size() - 1, -1, -1):
+		if not _entries[index].character.is_dead():
+			return _entries[index].character
+	return null
 
 
 # True when stepping the body less often changes nothing: it is dead, or it stands on a floor that
