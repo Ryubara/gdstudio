@@ -9,7 +9,9 @@ extends CharacterBody3D
 ## (`revive()`). It lies down and crawls (`CharacterProne`, tuned by its `ProneTuning`), slides
 ## when crouch is pressed at a sprint (`CharacterSlide`, tuned by its `SlideTuning`), and vaults
 ## over or mantles onto a `Vaultable` (`CharacterVault`, tuned by its `vault_settings`). Everything
-## else is tuned in the `CharacterTuning`. Other nodes connect to the signals.
+## else is tuned in the `CharacterTuning`. Other nodes connect to the signals. The push, the death,
+## the capsule and the snapshot are modules beside it too (`CharacterPush`, `CharacterDeath`,
+## `CharacterCapsule`, `CharacterState`); a new move goes in a module of its own the same way.
 ##
 ## It is a `@tool` script so the editor shows the capsule and the camera target follow the tuning
 ## (radius, height, eye height); only the setup runs there, never the movement.
@@ -294,7 +296,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 	if ragdoll_by_command and last_command.ragdoll_pressed:
 		ragdoll = not ragdoll
 	if state == State.DEAD:
-		_dead_tick()
+		CharacterDeath.dead_tick(self)
 	elif global_position.y < tuning.fall_limit:
 		_fall_out()
 	else:
@@ -329,7 +331,7 @@ func _move(delta: float) -> void:
 	var before := velocity
 	move_and_slide()
 	_grounded = is_on_floor()
-	_pushing = _push_props(before, delta)
+	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
 	_use_input(delta)
 
@@ -355,39 +357,14 @@ func aim_ray() -> PackedVector3Array:
 ## Everything the next step reads from this one, in `into` (or a new `CharacterState`).
 func state_snapshot(into: CharacterState = null) -> CharacterState:
 	var kept := into if into != null else CharacterState.new()
-	kept.position = global_position
-	kept.velocity = velocity
-	kept.values.resize(CharacterState.FIELDS.size())
-	for index in CharacterState.FIELDS.size():
-		kept.values[index] = get(CharacterState.FIELDS[index])
-	if weapon != null:
-		weapon.save_step_state(kept.weapon)
-	else:
-		kept.weapon.clear()
-	vault_motion.save_step_state(kept.vault)
-	if loadout != null:
-		loadout.save_step_state(kept.loadout)
-	else:
-		kept.loadout.clear()
-	_prone.save_step_state(kept.prone)
-	_slide.save_step_state(kept.slide)
+	kept.take(self)
 	return kept
 
 
 ## Puts the body back as `kept` holds it (a `state_snapshot()` of this character while it was
 ## alive). The engine's own floor contact is found again by the next step.
 func restore(kept: CharacterState) -> void:
-	global_position = kept.position
-	velocity = kept.velocity
-	for index in CharacterState.FIELDS.size():
-		set(CharacterState.FIELDS[index], kept.values[index])
-	if loadout != null:
-		loadout.load_step_state(kept.loadout)
-	if weapon != null:
-		weapon.load_step_state(kept.weapon)
-	vault_motion.load_step_state(kept.vault)
-	_prone.load_step_state(kept.prone)
-	_slide.load_step_state(kept.slide)
+	kept.put_back(self)
 	_fit_body()
 	_present_facing()
 
@@ -399,7 +376,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	if state == State.DEAD:
 		if ragdoll_body != null:
 			ragdoll_body.stop(false)
-		_come_alive()
+		CharacterDeath.come_alive(self)
 	vault_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
@@ -420,57 +397,13 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 ## the clip's last pose (`died_by_clip`). With `shot` (the hit that killed) the hit is said in
 ## `hit_received` once the body is limp, so the `HitReaction` throws the hit bone along it.
 func die(shot: HitRecord = null) -> void:
-	if state == State.DEAD:
-		return
-	var momentum := velocity
-	var viewer := controller.viewer_position() if controller != null else Vector3.INF
-	died_by_clip = ragdoll_body != null and not ragdoll_body.can_start(viewer)
-	_wants_crouch = false
-	if _prone.is_prone():
-		_prone.reset()
-		prone_changed.emit(false)
-	_fire_buffer = 0.0
-	if weapon != null:
-		weapon.cancel_reload()
-	_action_lock = 0.0
-	_land_timer = 0.0
-	_jump_buffer = 0.0
-	_jump_held = false
-	_sprinting = false
-	_slide.reset()
-	aim_held = false
-	fire_held = false
-	aim_amount = 0.0
-	if aiming:
-		aiming = false
-		aim_changed.emit(false)
-	velocity = Vector3.ZERO
-	_body.disabled = true
-	state = State.DEAD
-	if Health.of(self) != null:
-		Health.of(self).kill()
-	ragdoll = true
-	if ragdoll_body != null and not died_by_clip:
-		ragdoll_body.start(momentum, viewer)
-	died.emit()
-	if shot != null:
-		shot.killed = true
-		hit_received.emit(shot)
+	CharacterDeath.die(self, shot)
 
 
 ## Gets the character up where its body lies, facing the way its chest faces; the pose blends
 ## from lying to standing over the ragdoll's `get_up_time`.
 func revive() -> void:
-	if state != State.DEAD:
-		return
-	if ragdoll_body != null and ragdoll_body.is_limp():
-		var heading := ragdoll_body.facing()
-		global_position = _ground_below(ragdoll_body.hips())
-		facing = atan2(heading.x, heading.z)
-		_present_facing()
-		reset_physics_interpolation()
-		ragdoll_body.stop()
-	_come_alive()
+	CharacterDeath.revive(self)
 
 
 ## True while the character is dead.
@@ -563,26 +496,12 @@ func is_sprinting() -> bool:
 ## The height of the capsule now, in metres: the standing height, or less while it crouches or
 ## lies down or slides.
 func body_height() -> float:
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var crouched := minf(lerpf(tuning.height, _crouch_height(), shrink), _slide.body_height(self))
-	if prone_tuning == null or not _prone.is_prone():
-		return crouched
-	return lerpf(crouched, _prone_height(), _prone.share())
+	return CharacterCapsule.height(self)
 
 
 ## True when nothing is above the character that would stop it from standing up.
 func has_room_to_stand() -> bool:
-	# Geometry, not feel: a probe a little thinner and shorter than the standing capsule, lifted
-	# off the floor, so touching a wall or the ground is not a ceiling.
-	_stand_probe.radius = maxf(tuning.radius - 0.02, 0.05)
-	_stand_probe.height = tuning.height - 0.12
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _stand_probe
-	var middle := global_position + Vector3.UP * (tuning.height / 2.0 + 0.06)
-	query.transform = Transform3D(Basis.IDENTITY, middle)
-	query.collision_mask = collision_mask
-	query.exclude = [get_rid()]
-	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+	return CharacterCapsule.has_room_to_stand(self, _stand_probe)
 
 
 # The command of a body nobody controls: it asks for nothing and looks where it looked.
@@ -623,43 +542,6 @@ func _fall_out() -> void:
 	fell.emit()
 
 
-# Dead: the body stays where it died with its capsule off, the camera's target follows the hips,
-# and a ragdoll that falls out of the map says `fell`.
-func _dead_tick() -> void:
-	if ragdoll_body == null or not ragdoll_body.is_limp():
-		return
-	var hips := ragdoll_body.hips()
-	if hips.y < tuning.fall_limit:
-		_fall_out()
-		return
-	_camera_target.global_position = hips + Vector3.UP * tuning.dead_camera_rise
-
-
-func _come_alive() -> void:
-	died_by_clip = false
-	if Health.of(self) != null:
-		Health.of(self).reset()
-	_body.disabled = false
-	velocity = Vector3.ZERO
-	_fall_speed = 0.0
-	_was_airborne = false
-	_camera_target.position = Vector3.ZERO
-	_fit_body()
-	state = State.IDLE
-	ragdoll = false
-	revived.emit()
-
-
-# The floor under `spot` (a ray down from a little above it), or `spot` itself over nothing.
-func _ground_below(spot: Vector3) -> Vector3:
-	# Geometry: from just above the hips to well under the lowest a body can lie.
-	var query := PhysicsRayQueryParameters3D.create(
-		spot + Vector3.UP * 0.5, spot + Vector3.DOWN * 3.0, collision_mask, [get_rid()]
-	)
-	var found := get_world_3d().direct_space_state.intersect_ray(query)
-	return found["position"] if not found.is_empty() else spot
-
-
 # Fits the capsule, the camera's target, the steepest floor and the floor snap to the tuning (they
 # are copied into the body, so a change to them is applied here, from the tuning's `changed`).
 func _apply_tuning() -> void:
@@ -672,36 +554,9 @@ func _apply_tuning() -> void:
 	floor_snap_length = tuning.snap_length
 
 
-# Sizes the capsule and the camera's target for the crouch: the capsule keeps its feet on the
-# ground and loses height from the top.
+# Sizes the capsule and the camera's target for the crouch, the slide and the stance.
 func _fit_body() -> void:
-	var capsule := _body.shape as CapsuleShape3D
-	var height := body_height()
-	var lying := _prone.share() if prone_tuning != null else 0.0
-	capsule.radius = lerpf(tuning.radius, _prone_radius(), lying) if lying > 0.0 else tuning.radius
-	capsule.height = height
-	_body.position.y = height / 2.0
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var eye := minf(
-		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink), _slide.camera_height(self)
-	)
-	if lying > 0.0:
-		eye = lerpf(eye, prone_tuning.camera_height, lying)
-	_camera_target.position.y = eye
-
-
-# The shortest the capsule can be: a capsule is at least two radii tall.
-func _crouch_height() -> float:
-	return clampf(tuning.crouch_height, tuning.radius * 2.0 + 0.01, tuning.height)
-
-
-# The lying capsule's radius and height (at least two radii tall, never above the crouch).
-func _prone_radius() -> float:
-	return minf(prone_tuning.radius, tuning.radius)
-
-
-func _prone_height() -> float:
-	return clampf(prone_tuning.height, _prone_radius() * 2.0 + 0.01, _crouch_height())
+	CharacterCapsule.fit(self)
 
 
 # Lies down or gets up as the command asks (`CharacterProne`), and fits the capsule as it goes.
@@ -870,56 +725,6 @@ func _climb(delta: float) -> void:
 	StepClimber.climb(
 		self, motion, tuning.step_height, tuning.max_slope, tuning.radius + tuning.step_probe_margin
 	)
-
-
-## Pushes the props the body slid into this tick. True when it is pushing one it walks at. A prop
-## with a `push_speed` is pushed at that speed and the character walks a little faster than it
-## (the tuning's `push_contact`), and it keeps counting as pushed for `push_hold` after the last
-## touch.
-func _push_props(before: Vector3, delta: float) -> bool:
-	var pushing := false
-	var slow_push := false
-	var flat := Vector3(before.x, 0.0, before.z)
-	var cap := 0.0
-	if flat.length() >= tuning.stand_speed:
-		for index in get_slide_collision_count():
-			var collision := get_slide_collision(index)
-			var prop := collision.get_collider() as RigidBody3D
-			if prop == null:
-				continue
-			var along := -collision.get_normal()
-			along.y = 0.0
-			if along.length_squared() < 0.0001:
-				continue
-			along = along.normalized()
-			# A prop more than 60 degrees off the way the body walks is brushed past, not pushed.
-			if along.dot(flat.normalized()) < 0.5:
-				continue
-			var share := (
-				tuning.push_strength
-				* clampf(tuning.push_mass / prop.mass, tuning.push_least_share, 1.0)
-				* tuning.push_boost
-			)
-			var want := flat.length() * clampf(share, 0.0, 1.0)
-			var physics_prop := prop as PhysicsProp
-			var slow := physics_prop.push_speed if physics_prop != null else 0.0
-			if slow > 0.0:
-				want = slow
-				var contact := slow * tuning.push_contact
-				cap = contact if cap == 0.0 else minf(cap, contact)
-				slow_push = true
-			var gain := want - prop.linear_velocity.dot(along)
-			if gain > 0.0:
-				prop.apply_central_impulse(along * gain * prop.mass)
-			pushing = true
-	if slow_push:
-		_push_hold = tuning.push_hold
-		_push_cap = cap
-	else:
-		_push_hold = maxf(_push_hold - delta, 0.0)
-		if _push_hold <= 0.0:
-			_push_cap = 0.0
-	return pushing or _push_hold > 0.0
 
 
 func _after_move(wish: Vector3, _delta: float) -> void:

@@ -50,7 +50,8 @@ game/
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
-  own).
+  own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
+  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
 - **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless
   --import`) and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and

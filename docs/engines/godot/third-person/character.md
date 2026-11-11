@@ -210,6 +210,29 @@ Scene dock and checks the result.
   characters and props by default (its mask, and `counts` behind it) and a `Pickup` only characters (its mask, and
   `characters_only`); a camera zone still says `player` in `required_group` so that a pushed crate does not take the
   view. Every body is on a named layer ([Physics layers](../physics-layers.md#template-layers)).
+- **The body's modules.** `Character` (`gameplay/character/character.gd`) keeps the public API (the signals, the
+  exports, `step`, `die`, `revive`, `take_hit`, `teleport`, the reads), the step's order in `_move` and the moves every
+  stance shares (steer, jump and gravity, crouch, aim, the state); each other part is a file of its own beside it,
+  which the body calls once from that order:
+
+  | Part | Module | Its step state |
+  | --- | --- | --- |
+  | Lying down and the crawl ([its page](moves.md#prone)) | `CharacterProne` (`character_prone.gd`), an instance `_prone` | `CharacterState.prone` |
+  | Sliding ([its page](moves.md#slide)) | `CharacterSlide` (`character_slide.gd`), an instance `_slide` | `CharacterState.slide` |
+  | Vaulting and mantling ([its page](traversal.md#how)) | `CharacterVault` (`character_vault.gd`), the instance `vault_motion` | `CharacterState.vault` |
+  | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
+  | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
+  | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
+  | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
+  | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
+
+  A new move goes in a module of its own the same way: a `RefCounted` with a `drive`/`step` function the body calls
+  once in `_move` (a static one when it keeps nothing between ticks), its numbers in a tuning resource of its own, and
+  any step state it keeps in an array of `CharacterState` written in `take()` and read in `put_back()`. A new
+  variable on the body itself goes in `CharacterState.FIELDS` or on `test_character_state.gd`'s `NOT_STATE` list; a
+  static module adds none. Keep `character.gd` well under gdlint's 1000 lines
+  ([project conventions](../project-conventions.md#rules)): #1041 moved the push, the death, the capsule and the
+  snapshot out when it reached 1000.
 
 ## A second kind of controller {#second-controller}
 
