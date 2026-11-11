@@ -29,7 +29,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
   out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
   locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
-  2026-11-11.
+  2026-11-11; #1203 (PR #1215), 2026-11-11 (a CI watch loop; `gh pr checks --json` or awk instead).
+- **Approach:** Before handing a computed file list to `grep` (or any tool that falls back to standard input), check
+  that the list is not empty, or use `xargs -r grep ...`. **Watch out for:** `grep pattern $(git diff --name-only ...)`
+  with no files reads standard input, which the Bash tool never closes, so a commit command waited minutes on nothing.
+  **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
 
 ## Line endings and encodings {#line-endings}
 
@@ -40,7 +44,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages) and #1190 (`git diff --stat` warned of CRLF), 11-11.
+  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 and #1218 (four files), 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -51,7 +55,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #1005, 2026-11-10 (a heredoc broke `"\n"` in a test: the Edit tool); gdstudio #1183.
+  gdstudio #1005, #1120, #1183, #1188, 2026-11-10 and 11 (the Edit tool).
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -89,6 +93,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
   trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
+- **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
+  commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
+  session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
+  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11.
 
 ## Background commands and processes {#background}
 

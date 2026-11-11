@@ -89,6 +89,8 @@ func test_the_server_exports_are_pinned() -> void:
 		&"origin_slack": 4.0,
 		&"revive_seconds": 3.0,
 		&"revive_at_spawn": false,
+		&"ai_rewind_seconds": 0.6,
+		&"ai_rewind_flight_seconds": 0.5,
 		&"entity_lead_ticks": 12,
 		&"ai_rates": load("res://gameplay/net/ai_tier_rates.tres"),
 		&"ai_section_origin": Vector3.ZERO,

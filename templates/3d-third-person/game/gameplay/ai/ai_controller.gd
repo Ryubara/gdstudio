@@ -13,8 +13,8 @@ extends CharacterController
 ## `sample()` turns them into the command with `PlayerCommand.set_from_world()`: a zero look keeps
 ## the view level and lets a body that does not aim face where it walks. A fire that starts is a
 ## press (`fire_pressed`) in exactly one command, as the contract of `CharacterController` asks.
-## It reads no input and no camera, and nobody watches through it (`viewer_position()` is
-## `Vector3.INF`, so its character always gets its ragdoll).
+## It reads no input. Nobody watches through it, but `viewer_position()` names the viewport's
+## camera, so a character whose ragdoll has a `ragdoll_range` plays its death clip far from it.
 
 ## Where to walk, in the world (only its flat part counts); zero stands still.
 var walk_direction := Vector3.ZERO
@@ -135,3 +135,10 @@ func release() -> void:
 	reload = false
 	interact = false
 	unarmed = false
+
+
+## Where the person watching is (the viewport's camera), so a death far from it plays the death
+## clip instead of a ragdoll (`CharacterRagdoll.ragdoll_range`); INF with no camera (a server).
+func viewer_position() -> Vector3:
+	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
+	return camera.global_position if camera != null else Vector3.INF

@@ -10,18 +10,43 @@ extends Node3D
 ## skeleton, and `rig_changed` tells the `CharacterAnimation` to point the clips at it, so nothing
 ## is set again by hand. The `Character` turns this node to face its heading, so the model's
 ## +Z is forward.
+##
+## Every mesh under it (the model and what its seats hold) is drawn on `body_layers`, set when the
+## game runs and again whenever a child comes or goes: a body is a marker on the minimap, whose live
+## camera draws layer 1 only (`Minimap.live_layers`), so it is never skinned and drawn a second
+## time each frame (gdstudio #1138).
 
 ## The model child changed (a new one was added, or the old one left). `rig` is the new one, or
 ## null while there is none.
 signal rig_changed(rig: Node3D)
 
+## Another model of the same rig, shown in place of the one the scene holds: an inherited
+## character scene (which cannot delete its base's model) sets the male mannequin here to look
+## different from the female its base holds. In the game the slot puts it in when it enters and
+## frees the scene's own model; in the editor it is drawn in front and the scene's own is not
+## drawn (nothing is saved). Set while running, it replaces the model at once. Empty: the scene's
+## own.
+@export var variant: PackedScene:
+	set(value):
+		variant = value
+		if is_node_ready():
+			_apply_variant()
+
+## The render layers of every mesh of the body (2 by default, which the minimap's live camera
+## leaves out). The game's cameras and lights see every layer, so only a camera with a cull mask
+## (the minimap's, the inventory's preview) tells them apart. Applied when the game runs; the
+## editor keeps the model's own layers.
+@export_flags_3d_render var body_layers := 1 << 1
+
 var _rig: Node3D
 var _skeleton: Skeleton3D
 var _announced: Node3D
 var _queued := false
+var _preview: Node3D
 
 
 func _ready() -> void:
+	_apply_variant()
 	_refresh()
 	child_entered_tree.connect(_on_children_changed.unbind(1))
 	child_exiting_tree.connect(_on_child_exiting)
@@ -40,14 +65,67 @@ func skeleton() -> Skeleton3D:
 	return _skeleton
 
 
+# Puts `variant` in place of the model (the game), or shows it over the hidden model (the editor).
+func _apply_variant() -> void:
+	if Engine.is_editor_hint():
+		_preview_variant()
+		return
+	if variant == null:
+		return
+	var current := rig()
+	if current != null and current.scene_file_path == variant.resource_path:
+		return
+	var added := variant.instantiate() as Node3D
+	if added == null:
+		return
+	added.name = current.name if current != null else &"Mannequin"
+	if current != null:
+		# Let go of the old skeleton first, as a swap in the editor does (`_on_child_exiting`).
+		_unseat()
+		remove_child(current)
+		current.free()
+	add_child(added)
+	move_child(added, 0)
+	if is_inside_tree() and is_node_ready():
+		_refresh()
+
+
+# The editor's view of `variant`: an internal child (never saved) in front of the scene's model,
+# which is hidden while it shows.
+func _preview_variant() -> void:
+	if _preview != null and is_instance_valid(_preview):
+		_preview.free()
+	_preview = null
+	var own := rig()
+	if own != null:
+		_draw_meshes(own, variant == null)
+	if variant == null:
+		return
+	_preview = variant.instantiate() as Node3D
+	if _preview != null:
+		add_child(_preview, false, Node.INTERNAL_MODE_FRONT)
+
+
+# Shows or hides the meshes under `model` in the renderer only, so the scene saves nothing.
+func _draw_meshes(model: Node, shown: bool) -> void:
+	for mesh: VisualInstance3D in model.find_children("*", "VisualInstance3D", true, false):
+		RenderingServer.instance_set_visible(
+			mesh.get_instance(), shown and mesh.is_visible_in_tree()
+		)
+
+
 func _on_child_exiting(child: Node) -> void:
 	# Let go of the skeleton while it still exists: the attachment unbinds from it, and from a
 	# skeleton that is already freed the engine logs an error.
 	if child == _rig:
-		for seat in get_children():
-			if seat is BoneAttachment3D:
-				seat.set_external_skeleton(NodePath())
+		_unseat()
 	_on_children_changed()
+
+
+func _unseat() -> void:
+	for seat in get_children():
+		if seat is BoneAttachment3D:
+			seat.set_external_skeleton(NodePath())
 
 
 func _on_children_changed() -> void:
@@ -62,6 +140,7 @@ func _refresh() -> void:
 	_queued = false
 	_find()
 	_seat_attachments()
+	_put_on_layers()
 	update_configuration_warnings()
 	# Compared with the last one announced, not with the last one found: `rig()` finds it too, and
 	# the editor asks for it whenever it lists the scene's warnings.
@@ -102,12 +181,33 @@ func _seat_attachments() -> void:
 		var seat := child as BoneAttachment3D
 		if seat == null or _is_seated(seat):
 			continue
+		# A connection the engine kept while the path was emptied (the character left the tree
+		# with its model, for a pool, and came back) would make the bind below fail.
+		_drop_connection(seat)
 		seat.set_external_skeleton(NodePath())
 		seat.use_external_skeleton = true
 		seat.set_external_skeleton(seat.get_path_to(_skeleton))
 		# Looks the bone up again by its name on this skeleton (a model may order its bones
 		# differently, and one without the bone gets no connection) and connects.
 		seat.bone_name = seat.bone_name
+
+
+func _drop_connection(seat: BoneAttachment3D) -> void:
+	for connection in _skeleton.get_signal_connection_list(&"skeleton_updated"):
+		var callable: Callable = connection["callable"]
+		if callable.get_object() == seat:
+			_skeleton.disconnect(&"skeleton_updated", callable)
+
+
+# Every mesh under this node takes `body_layers` for layer 1; a layer something else added (the
+# inventory preview's) stays. At run time only: in the editor a layer set on a mesh of an imported
+# model would be saved into the scene.
+func _put_on_layers() -> void:
+	if Engine.is_editor_hint():
+		return
+	for mesh in find_children("*", "VisualInstance3D", true, false):
+		var visual := mesh as VisualInstance3D
+		visual.layers = (visual.layers & ~1) | body_layers
 
 
 # The attachment looks for this model's skeleton and is connected to its `skeleton_updated`.

@@ -279,11 +279,13 @@ def check_body(
     source = flag_values(words, ("--body-file", "-F"))
     named_file = source[0] if source and source[0] != "-" else "<body file>"
     title = " --title <title file>" if titles else ""
-    run = f"uv run --project {KIT.as_posix()}/python gds pr check-body {named_file}{title}"
+    attach = "".join(f" --attach {spec}" for spec in attached_paths(words))  # the same uploads (kit #1188)
+    where = f" (run it in {cwd.as_posix()}, where `gh` reads the `--attach` paths)" if attach and not lost else ""
+    run = f"uv run --project {KIT.as_posix()}/python gds pr check-body {named_file}{title}{attach}`{where}"
     return [
         f"`gh pr {words[2]}` sends a description that `pr-rules` refuses ({repo.name}): "
         + "; ".join(result.reasons)
-        + f". Fix the body file (write it with the Write tool) and check it with `{run}` until it passes, then run "
+        + f". Fix the body file (write it with the Write tool) and check it with `{run} until it passes, then run "
         f"the same command"
     ]
 

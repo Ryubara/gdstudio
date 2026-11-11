@@ -64,6 +64,13 @@ not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough,
   in those frames; timing every `WebGL2RenderingContext` method, with the engine's markers logged to the console,
   showed the level's warm-up (`EffectEmitter`'s tour of the probes, 6 s past the seat), not the puppets. **Seen:**
   gdstudio #1106, 2026-11-11 (fix: the probe joins after `warmed`; `FRAME_WATCH` in `net_play_smoke.py`).
+- **Approach:** Name each program linked after the loading screen by its fragment shader's `#define`s before warming
+  anything up, and look for a second camera whose world draws without what the game camera has (fog, the sun): its
+  view builds variants of its own. **Watch out for:** a browser's join linked 2 programs in the frame that first drew
+  an AI puppet, read as the warm-up missing the dressed character; the defines (`DISABLE_FOG`,
+  `DISABLE_LIGHT_DIRECTIONAL`) were the minimap's live camera drawing the body, and the bodies had just left its layer:
+  a warm-up draw would have built nothing that counted. **Seen:** gdstudio #1218, 2026-11-11 (`late_programs` in
+  `net_play_smoke.py`, which fails on any link after the seat).
 
 ## The first draw of a shader builds four programs, two of them huge {#first-shader-draw}
 

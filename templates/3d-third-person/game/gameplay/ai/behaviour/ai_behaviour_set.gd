@@ -59,7 +59,7 @@ const PLAY_STATES := 3
 
 
 ## The row that answers `event` in this cell, or null. `roll` is called (with no argument, giving
-## 0 to 1) for each row whose chance is under 1.
+## 0 to 1) for each row whose chance is under 1. `noise` is the kind of a heard noise.
 func pick(
 	event: StringName,
 	band: int,
@@ -67,11 +67,12 @@ func pick(
 	play: int,
 	awareness: float,
 	profile: AiProfile,
-	roll: Callable
+	roll: Callable,
+	noise := &""
 ) -> AiReactionRow:
 	var courage := profile.courage if profile != null else 0.5
 	for row in rows:
-		if row == null or not row.matches(event, band, situation, play, awareness, courage):
+		if row == null or not row.matches(event, band, situation, play, awareness, courage, noise):
 			continue
 		var chance := row.chance_for(profile)
 		if chance >= 1.0 or (chance > 0.0 and float(roll.call()) < chance):

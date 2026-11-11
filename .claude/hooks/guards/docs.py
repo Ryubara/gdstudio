@@ -284,8 +284,8 @@ def sections_named(workspace: Path, report: str) -> list[str]:
     roots += [p for p in sorted(folder.iterdir()) if p.is_dir()] if folder.is_dir() else []
     found = []
     for page, anchor in module.refs_in(report):
-        if page.startswith("lessons/") or page.endswith("maintainer-corrections.md"):
-            continue  # the old folder and the log are not where a rule lives
+        if page.startswith("lessons/") or module.is_corrections_page(page):
+            continue  # the old folder and the log (its page and corrections-log/) are not where a rule lives
         for root in roots:
             if anchor in module.anchors(root / "docs" / page) and page_changed(root, f"docs/{page}"):
                 found.append(f"{page}#{anchor}")
