@@ -145,3 +145,7 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   for:** the second run was built while the test was resumed from `physics_frame`, so the director ticked once before
   the target first moved and the beliefs differed by one tick's walk (4.22 against 4.19 m): the harness, not the
   senses. **Seen:** gdstudio #966, 2026-11-10.
+- **Approach:** Before adding a node to `character.tscn` (every body: the player, an AI, a server's), grep the suites
+  for a count of the body's nodes (`NODES_ALIVE` in `test_parts_budget.gd`) and raise it with a line that says what the
+  node costs. **Watch out for:** the `NoiseMaker` passed every AI suite and failed only the full run's parts budget
+  (55 nodes against 54). **Seen:** gdstudio #966, 2026-11-10.
