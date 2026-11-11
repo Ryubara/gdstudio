@@ -20,7 +20,10 @@ python/tests/allowed_skips.toml` added (`.github/workflows/ci.yml`). `pytest-xdi
 `python/pyproject.toml`, so `uv run` has it; one file stays on one worker (`--dist loadfile`), since the fixtures a
 file makes once are shared by its tests. Four workers at most, here as in CI: the machine is shared
 ([Sharing the machine](workspace.md#shared-machine)). A run of one file while you work needs no workers:
-`uv run --project python pytest python/tests/test_brief.py -q`.
+`uv run --project python pytest python/tests/test_brief.py -q`. A bare `pytest` from the root collects the same set:
+the root `pytest.ini` names `python/tests` (`testpaths`) and repeats `python/pyproject.toml`'s warning filters
+(`python/tests/test_root_pytest_config.py` keeps the two in step), so the eval acceptance suites under `evals/` run
+only through `gds eval check` ([Agent evals](agent-evals.md#running)).
 
 Run it from the checkout whose code you changed (your worktree), with `--project` naming that checkout's `python`
 folder: `uv run --project <another checkout>/python pytest` tests the other checkout's code.
