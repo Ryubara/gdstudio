@@ -6,8 +6,12 @@ extends AiStockTask
 ## It succeeds when the body says it used something (`Character.interacted`), and fails `NO_PATH`
 ## when there is nothing to use or no way there, or `BLOCKED` after `tries` presses in vain.
 
-## How near the thing's reach point it walks before it presses.
-@export_range(0.2, 3.0, 0.05, "suffix:m") var reach := 0.9
+## How far inside the body's `interact_reach` it presses from, with `reach` 0.
+const REACH_MARGIN := 0.2
+
+## How near the thing's reach point it walks before it presses; 0 takes the body's own
+## `interact_reach` less `REACH_MARGIN` (a door's panel stops the body short of its middle).
+@export_range(0.0, 3.0, 0.05, "suffix:m") var reach := 0.0
 ## Seconds after a press before it presses again.
 @export_range(0.05, 5.0, 0.05, "suffix:s") var press_gap := 0.5
 ## Presses before it gives up.
@@ -26,6 +30,8 @@ func _init() -> void:
 	id = &"use"
 	layer = Layer.ORDER
 	channels = Channel.MOVE | Channel.ACTION
+	# An order a script gives: authority 0 would be refused by any character that obeys little.
+	authority = AUTHORITY_SCRIPT
 
 
 func start() -> void:
@@ -50,7 +56,7 @@ func update(_delta: float) -> Status:
 	var point := _usable.reach_point()
 	last_known = point
 	var away := flat_distance(point)
-	if away > reach:
+	if away > _reach():
 		_approach(point, away)
 		return Status.RUNNING
 	controller.walk_direction = Vector3.ZERO
@@ -68,7 +74,7 @@ func update(_delta: float) -> Status:
 # The navigator takes it most of the way; the last steps go straight at the thing, so the body
 # faces it when it presses.
 func _approach(point: Vector3, away: float) -> void:
-	if _walking and walk_state() == Walk.GOING and away > reach * 2.0:
+	if _walking and walk_state() == Walk.GOING and away > _reach() * 2.0:
 		return
 	stop_walk()
 	_walking = false
@@ -85,6 +91,13 @@ func cancel() -> void:
 
 func has_end_condition() -> bool:
 	return true
+
+
+func _reach() -> float:
+	if reach > 0.0:
+		return reach
+	var at := body()
+	return at.tuning.interact_reach - REACH_MARGIN if at != null else 1.0
 
 
 func _find() -> Interactable:

@@ -17,6 +17,8 @@ enum Walk { GOING, ARRIVED, FAILED }
 
 ## The height above the feet of a body's chest, where an aim and a look point.
 const CHEST := 1.2
+## How far over the body's `walk_below_push` a walk's push goes.
+const PUSH_MARGIN := 0.02
 
 @export_group("Stock")
 ## It answers a threat (a fight, cover, a flight): the brain's reminder leaves it alone while a
@@ -84,7 +86,12 @@ func speed_share(speed: Speed) -> float:
 	if profile == null or at == null or at.tuning == null or at.tuning.run_speed <= 0.0:
 		return 1.0 if speed == Speed.RUN else 0.4
 	var wanted := profile.run_speed if speed == Speed.RUN else profile.walk_speed
-	return clampf(wanted / at.tuning.run_speed, 0.05, 1.0)
+	# The body walks at `least_walk_share` of its walk speed for any push under `walk_below_push`
+	# and runs at `run_speed` times the push above it: a walk asks for a little over that line (the
+	# command packs the push into a byte, which may round it under the line).
+	var tuning := at.tuning
+	var least := tuning.walk_below_push + PUSH_MARGIN
+	return clampf(maxf(wanted / tuning.run_speed, least), 0.05, 1.0)
 
 
 ## Starts a walk to `point` at `speed`; false when the navigator refused it at once.
