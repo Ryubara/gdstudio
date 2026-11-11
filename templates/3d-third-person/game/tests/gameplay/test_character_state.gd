@@ -38,6 +38,7 @@ const NOT_STATE := {
 	&"_interactor": "a node",
 	&"_body": "a node",
 	&"_camera_target": "a node",
+	&"_rider": "the online platform under it after its last move, found again by the next",
 }
 
 var _arena: PlayArena

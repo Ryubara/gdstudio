@@ -36,10 +36,9 @@ func _init(root: Node = null, as_role := NetEntity.Role.OFFLINE, lead := 0) -> v
 		entity.id = index
 		entity.world = self
 		entity.role = as_role
-		var part := entity.part()
-		if part.has_method(&"net_set_role"):
-			part.call(&"net_set_role", as_role)
-		if part.has_method(&"net_place"):
+		if entity.take_role.is_valid():
+			entity.take_role.call(as_role)
+		if entity.place.is_valid():
 			_movers.append(entity)
 
 
@@ -70,14 +69,14 @@ func by_id(id: int) -> NetEntity:
 ## Puts every part that moves by the tick where it is at `at_tick`.
 func place(at_tick: int) -> void:
 	for entity in _movers:
-		entity.part().call(&"net_place", at_tick)
+		entity.place.call(at_tick)
 
 
 ## Every part's state as at `at_tick` (a WELCOME's table).
 func table(at_tick: int) -> Array[EntityEntry]:
 	var out: Array[EntityEntry] = []
 	for entity in entities:
-		var state: PackedByteArray = entity.part().call(&"net_write", at_tick)
+		var state: PackedByteArray = entity.write_state.call(at_tick)
 		out.append(EntityEntry.make(entity.id, entity.kind(), state))
 	return out
 
@@ -100,16 +99,16 @@ func read_event(event: NetEvent) -> bool:
 ## Reads one part's state, written as at `at_tick`.
 func read_state(id: int, kind: int, state: PackedByteArray, at_tick: int) -> bool:
 	var entity := by_id(id)
-	if entity == null or entity.kind() != kind:
+	if entity == null or entity.kind() != kind or not entity.read_state.is_valid():
 		return false
-	return entity.part().call(&"net_read", state, at_tick)
+	return entity.read_state.call(state, at_tick)
 
 
 ## A `pickup` event: the part is taken, and `by` (this client's own body when the slot is its own,
 ## else null) is given what it holds.
 func read_pickup(event: NetEvent, by: Node3D) -> NetEntity:
 	var entity := by_id(event.id)
-	if entity == null or not entity.part().has_method(&"net_take"):
+	if entity == null or not entity.take.is_valid():
 		return null
-	entity.part().call(&"net_take", by)
+	entity.take.call(by)
 	return entity

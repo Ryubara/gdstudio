@@ -82,6 +82,8 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, Callable(), net_take)
 	body_entered.connect(_on_body_entered)
 
 

@@ -117,6 +117,8 @@ func _ready() -> void:
 	sync_to_physics = true
 	_home = transform
 	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, net_place)
 	_ride.running = autostart and mode != Mode.ON_CALL
 	_was = _ride.copy()
 

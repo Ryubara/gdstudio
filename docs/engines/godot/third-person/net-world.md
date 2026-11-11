@@ -100,4 +100,5 @@ A map component plays online when it answers each line; the three of #907 do, pr
 5. **Once only:** who did it (a pickup's taker) comes from the server's word (`report_taken`, a `pickup` event), never
    from a client's touch.
 6. **Cosmetic:** spin, bob, sound and signals that only draw stay local.
-7. **In the scene:** `net_entity.tscn` as a child with its `net_kind`, so the world hash and the ids see it.
+7. **In the scene:** `net_entity.tscn` as a child with its `net_kind`, so the world hash and the ids see it, and the
+   component hands it its functions in `_ready` (`NetEntity.serve`: no part finds another by a method name).

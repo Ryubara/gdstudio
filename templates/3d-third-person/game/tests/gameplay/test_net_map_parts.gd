@@ -124,7 +124,7 @@ func test_the_map_table_and_the_events_fit_the_wire() -> void:
 		by_kind[entry.kind] = entry.state.size()
 	var no_events := SnapshotCodec.tick(1, 1, [] as Array[NetEvent], players).size()
 	var door := _part(_rig.server_view, "MainDoor").get_node("NetEntity") as NetEntity
-	var door_event := NetEvent.entity(door.id, 1, (door.part() as Door).net_write(1))
+	var door_event := NetEvent.entity(door.id, 1, door.write_state.call(1))
 	var door_bytes := SnapshotCodec.tick(1, 1, [door_event] as Array[NetEvent], players).size()
 	var pickup_bytes := (
 		SnapshotCodec.tick(1, 1, [NetEvent.pickup(3, 0)] as Array[NetEvent], players).size()

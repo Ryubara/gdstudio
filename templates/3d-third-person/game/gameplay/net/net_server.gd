@@ -481,7 +481,7 @@ func _take_world(root: Node) -> void:
 
 func _on_entity_changed(entity: NetEntity) -> void:
 	var at := map_parts.tick
-	var state: PackedByteArray = entity.part().call(&"net_write", at)
+	var state: PackedByteArray = entity.write_state.call(at)
 	_tell_all(NetEvent.entity(entity.id, at, state))
 
 

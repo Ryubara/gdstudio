@@ -10,10 +10,10 @@ extends Node
 ## component runs its own rules and says each change (`changed`, `taken`), on a client it runs none
 ## and shows what the server's records say.
 ##
-## The component implements, by name: `net_set_role(role)`, `net_write(at_tick) ->
-## PackedByteArray` (its state as at that server tick, at most `NetLimits.MAX_ENTITY_STATE`
-## bytes), `net_read(state, at_tick)`; a part that moves by the tick (`Door`, `MovingPlatform`)
-## also `net_place(tick)`, and a pickup `net_take(by)`.
+## The component hands over its functions in its `_ready` (`serve`): how it writes its state as at a
+## server tick (at most `NetLimits.MAX_ENTITY_STATE` bytes) and reads it back, what it does when it
+## is given a role; a part that moves by the tick (`Door`, `MovingPlatform`) how it is put at a
+## tick, and a pickup how it is taken.
 
 ## The server's copy of the part changed state; the server sends the new state to every client.
 signal changed(entity: NetEntity)
@@ -30,11 +30,36 @@ enum Role {
 ## The kind byte of each part on the wire, by its `net_kind` metadata.
 const KINDS := {&"door": 1, &"platform": 2, &"pickup": 3}
 
+## `func(at_tick: int) -> PackedByteArray`: the part's state as at a server tick.
+var write_state := Callable()
+## `func(state: PackedByteArray, at_tick: int) -> bool`: reads a state written as at a tick.
+var read_state := Callable()
+## `func(role: Role)`: the part is given a role.
+var take_role := Callable()
+## `func(tick: int)`: puts a part that moves by the tick where it is at `tick` (empty: it does not).
+var place := Callable()
+## `func(by: Node3D)`: the server says a pickup was taken (empty: not a pickup).
+var take := Callable()
 ## The part's id in its map (`NetWorld` numbers the parts by path), or -1 outside one.
 var id := -1
 var role := Role.OFFLINE
 ## The world that numbered it (null offline).
 var world: NetWorld
+
+
+## Hands over the component's functions (see the fields of the same names).
+func serve(
+	writer: Callable,
+	reader: Callable,
+	role_taker: Callable,
+	placer := Callable(),
+	taker := Callable()
+) -> void:
+	write_state = writer
+	read_state = reader
+	take_role = role_taker
+	place = placer
+	take = taker
 
 
 ## The networked part under `component`, or null.

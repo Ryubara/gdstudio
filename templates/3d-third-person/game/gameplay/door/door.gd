@@ -119,6 +119,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_net = NetEntity.of(self)
+	if _net != null:
+		_net.serve(net_write, net_read, net_set_role, net_place)
 	var sensor := _sensor()
 	if sensor != null:
 		sensor.body_entered.connect(_on_sensor_entered)
