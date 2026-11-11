@@ -19,7 +19,8 @@ The template has a character and the map's components:
   whom: the `AiRelations` table (`ai_relations.tres`, its `AiFaction` rows and `AiRelationEvent` events), the level's
   `AiFactions` (a node of `world/world.tscn`) and an `AiFactionMember` on each character and the player.
 - `player/`: the human's character on top of it (`Player`, `player.tscn`, its `PlayerInput`, `PlayerCommand`,
-  `PlayerCamera`). The numbers a developer tunes are in `player_tuning.tres`.
+  `PlayerCamera`, and `NearHitShake`, which shakes the camera for a hit near it). The numbers a developer tunes are in
+  `player_tuning.tres`.
 - `weapon/`, `projectile/`, `target/`: a weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: its numbers,
   magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
   hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the slots

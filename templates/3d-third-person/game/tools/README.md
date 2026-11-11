@@ -29,6 +29,8 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/shake_tour.tscn` sprints, aims and fires, and sets off two blasts through `CameraShake.shake()`, with the
   sprint shake and the shot kick turned up, for a clip of the shake (it prints the turn of the view each physics frame,
   lines starting `SHAKE`).
+- `tools/capture/near_hit_tour.tscn` lands rounds from an unseen shooter beside the standing character, then one 20 m
+  away, for a clip of the near-hit shake (lines starting `SHAKE`, and `HIT` with each hit's distance from the camera).
 - `tools/capture/hud_tour.tscn` films the HUD with its health and ammo parts fed by a stand-in, on a desktop or (user
   argument `phone`) with the touch controls up on a phone-sized window.
 - `tools/capture/ragdoll_tour.tscn` runs the character, kills it mid-run with the `ragdoll` key, orbits the body,
@@ -50,6 +52,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/bench/effects_cost.tscn` fires the pistol in six runs (no flash, flash, flash with impacts, at 4 and 30 shots a
   second) and prints frame time, script time, draw calls and nodes for each (`BENCH` lines; the header says how to read
   it in the browser).
+- `tools/bench/sound_start_bench.tscn` prints what starting a sound costs (`SOUND_START` lines): the pistol's shot
+  as an Ogg randomizer, one take as Ogg, PCM and QOA, 3D and flat, the weapon's `ShotSound` and an impact through the
+  emitter, and the decode the level's load pays; `tools/bench/sound_start_bench.py` reads it from a web export in
+  headless Chrome under `gds quiet` and counts the browser samples and the output's peak per case.
 - `tools/bench/effects_first_use.py` runs a web export of that bench in headless Chrome and fails when a run after the
   level's warm-up links a GL program (the first flash, its light or the first impact stopping the frame); run it under
   `gds quiet`, the command and the export are in its header.

@@ -268,7 +268,10 @@ func test_the_reload_plays_its_steps_at_their_shares() -> void:
 		_weapon.tick(TICK)
 		if sound.playing and (heard.is_empty() or heard.back() != sound.stream):
 			heard.append(sound.stream)
-	assert_array(heard).is_equal(_weapon.definition.reload_sounds)
+	# Each step decoded once (`DecodedSounds`), so its start does not set an Ogg decoder up.
+	assert_array(heard).is_equal(DecodedSounds.decoded_all(_weapon.definition.reload_sounds))
+	for stream in heard:
+		assert_object(stream).is_instanceof(AudioStreamWAV)
 
 
 func test_a_hitscan_shot_on_a_character_hits_its_body_part_and_takes_the_damage() -> void:
