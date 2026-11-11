@@ -235,7 +235,8 @@ def scalp_mask(c, soft=0.0):
     s = (np.stack([y, z], 1) - f) @ nrm
     s -= 0.013 * np.exp(-(((ax - 0.060) / 0.016) ** 2)) * (y < -0.045)
     s += 0.012 * np.exp(-(((y + 0.030) / 0.010) ** 2 + ((z - 1.535) / 0.02) ** 2)) * (ax > 0.06)
-    low = 1.558 - (1.558 - 1.476) * smoothstep(0.010, 0.050, y)   # over the ear, then down to the nape
+    # Below the line: nothing in front of the ear (the sideburn ends there), over the ear, then down to the nape.
+    low = 1.44 + (1.556 - 1.44) * smoothstep(-0.040, -0.022, y) - (1.556 - 1.476) * smoothstep(0.010, 0.050, y)
     s = np.minimum(s, z - low)
     s += 0.006 * (fbm3(c * 60, 3, 1) - 0.5)
     ear = np.maximum(gauss(c, (0.086, 0.012, 1.515), 0.022), gauss(c, (-0.086, 0.012, 1.515), 0.022))
@@ -305,8 +306,8 @@ def pose_relaxed(arm):
 
 
 # Female hand proportions the build fits and checks (shares of standing height unless said otherwise). Sources:
-# the US Army's ANSUR II survey of women (hand length 181 mm and hand breadth 79 mm at a stature of 1,629 mm:
-# 11.1 % and 4.9 %) and Drillis and Contini's segment lengths (hand 10.8 %, forearm 14.6 %: a hand is 0.74 of a
+# the US Army's ANSUR II survey of women (medians: hand length 180 mm, hand breadth 78 mm, at a stature near 1,630 mm:
+# 11.0 % and 4.8 %) and Drillis and Contini's segment lengths (hand 10.8 %, forearm 14.6 %: a hand is 0.74 of a
 # forearm). The first build's hands were 11.7 % long and 5.4 % wide on a forearm of 13.3 %.
 HAND_LENGTH = 0.107
 HAND_BREADTH = 0.048

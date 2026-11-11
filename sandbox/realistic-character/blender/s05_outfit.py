@@ -47,7 +47,9 @@ def top_field(c, grow=0.0):
     wf = L.smoothstep(0.03, -0.03, y)
     rx, rz, zc = 0.070 - grow, 0.052 + 0.058 * wf - grow, 1.415
     f_neck = (np.sqrt((x / rx) ** 2 + ((z - zc) / rz) ** 2) - 1) * 0.06
-    f_arm = (np.sqrt(((ax - 0.235) / (0.115 - grow)) ** 2 + ((z - 1.35) / (0.10 - grow)) ** 2) - 1) * 0.1
+    # A deep armhole: its edge stays on the trunk. A shallower one (0.115 by 0.10) ran its lower edge through the
+    # fold in front of the armpit, where it ended in a point.
+    f_arm = (np.sqrt(((ax - 0.235) / (0.127 - grow)) ** 2 + ((z - 1.345) / (0.127 - grow)) ** 2) - 1) * 0.1
     return np.minimum(np.minimum(f_neck, f_arm), z - 0.93)
 
 

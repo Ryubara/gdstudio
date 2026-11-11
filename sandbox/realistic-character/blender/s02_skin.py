@@ -81,9 +81,10 @@ def paint_masks(obj):
         inner = near * (1 - back) * np.exp(-(((t + 0.03) / 0.035) ** 2) / 2)
         outer = near * back * L.smoothstep(0.0, 0.03, t) * L.smoothstep(0.50 * ln, 0.36 * ln, t)
         vein = np.maximum(vein, np.maximum(0.9 * inner, 0.8 * outer))
-    arm = (ax > 0.14) & (z < 1.30) & (hand < 0.5)
+    # The arm as a zone with soft edges: a hard one draws a line across the upper arm.
+    arm = L.smoothstep(0.13, 0.19, ax) * L.smoothstep(1.36, 1.24, z) * (1 - hand)
     elbow = np.zeros(len(c))
-    if arm.any():
+    if True:
         # The elbow's point: the back of the arm about 59 % of the way from the shoulder to the wrist.
         for sx in (1, -1):
             sh, wr = np.array([sx * 0.158, 0.012, 1.352]), L.hand_frame(full, arm_v, hand_v, sx)["wrist"] / L.SCALE
@@ -94,7 +95,7 @@ def paint_masks(obj):
     red += 0.7 * gxz(0.0165, 1.497, 0.007, 0.006) + 0.4 * gxz(0.0, 1.437, 0.014, 0.008) + 1.0 * ear
     red += 0.30 * knuckle + 0.12 * hand * n1 + 0.45 * elbow + 0.25 * g3((0.0, -0.07, 1.36), 0.06, False) * (z < 1.40)
     yellow = gxz(0.0, 1.588, 0.045, 0.020)
-    blue = 0.9 * gxz(0.033, 1.5215, 0.013, 0.005) + 0.55 * gxz(0.033, 1.5435, 0.012, 0.004)
+    blue = 0.6 * gxz(0.033, 1.5215, 0.013, 0.005) + 0.4 * gxz(0.033, 1.5435, 0.012, 0.004)
     blue += 0.3 * gxz(0.066, 1.545, 0.010, 0.012)
     oily = np.clip(gxz(0.0, 1.585, 0.035, 0.016) + gxz(0.0, 1.51, 0.011, 0.020) + 0.5 * gxz(0.0, 1.44, 0.012, 0.008)
                    + 0.35 * gxz(0.050, 1.515, 0.012, 0.007), 0, 1)
@@ -126,13 +127,13 @@ def paint_masks(obj):
     philtrum = np.exp(-((x / 0.0035) ** 2 + ((z - 1.4835) / 0.006) ** 2) / 2) * front
 
     freckle = np.clip(gxz(0.0, 1.512, 0.055, 0.017) + 0.22 * ((z > 1.24) & (z < 1.44)) + 0.10 * arm, 0, 1)
-    grime = 0.45 * g3((0.058, -0.085, 1.482), 0.018, False) + 0.4 * g3((-0.035, -0.10, 1.588), 0.020, False)
-    grime += 0.5 * g3((-0.06, -0.02, 1.40), 0.035, False) + 0.4 * g3((0.10, -0.06, 1.33), 0.05, False)
+    grime = 0.22 * g3((0.058, -0.085, 1.482), 0.018, False) + 0.2 * g3((-0.035, -0.10, 1.588), 0.020, False)
+    grime += 0.4 * g3((-0.06, -0.02, 1.40), 0.035, False) + 0.4 * g3((0.10, -0.06, 1.33), 0.05, False)
     grime += 0.45 * hand + 0.35 * arm * L.smoothstep(1.25, 0.95, z) + 0.10 * arm
     grime = np.clip(grime * (0.6 + 0.8 * n2), 0, 1)
     # Peach fuzz: the sides of the face, the jaw, the upper lip, the forearms. Not the lips, lids or nose tip.
     fuzz = np.clip(0.9 * gxz(0.062, 1.485, 0.022, 0.03) + 0.6 * gxz(0.0, 1.482, 0.02, 0.006) + 0.5 * gxz(0.045, 1.44, 0.03, 0.012)
-                   + 0.5 * arm * (z < 1.20) + 0.3 * neck, 0, 1) * (1 - lip) * (1 - scalp)
+                   + 0.5 * arm * L.smoothstep(1.26, 1.14, z) + 0.3 * neck, 0, 1) * (1 - lip) * (1 - scalp)
     thin = np.clip(ear + gxz(0.0, 1.500, 0.014, 0.010) + 0.6 * lip, 0, 1)
     mole = np.zeros(len(c))
     for p in ((0.047, -0.107, 1.483), (-0.022, -0.085, 1.413), (-0.062, -0.07, 1.468), (0.15, -0.03, 1.375),
@@ -220,7 +221,7 @@ def paint(g):
     coarse = g.voronoi(620, "DISTANCE_TO_EDGE", 1.0, 0)
     l_joint = g.mul(lines((2400, 2400, 2400), 0.80, 0.97), g.sat(g.add(a["knuckle"], g.mul(a["elbow"], 0.8))))
     soft = g.sat(g.add(g.add(a["fold"], a["neckline"]), g.mul(a["philtrum"], 0.5)))
-    grooves = g.sat(g.add(g.add(g.mul(l_forehead, 0.55), g.mul(l_under, 0.7)), g.add(g.mul(l_crow, 0.8), g.mul(l_joint, 0.9))))
+    grooves = g.sat(g.add(g.add(g.mul(l_forehead, 0.38), g.mul(l_under, 0.7)), g.add(g.mul(l_crow, 0.8), g.mul(l_joint, 0.9))))
     col = g.mixc(col, (0.20, 0.085, 0.07), g.sat(g.add(g.mul(grooves, 0.22), g.mul(soft, 0.13))))
 
     # Brow and scalp: the painted layer under the hair cards, in the hair's own colour and fading in strokes.
@@ -229,8 +230,8 @@ def paint(g):
     col = g.mixc(col, (0.022, 0.015, 0.011), g.sat(g.mul(browhair, 1.1)))
     hairs = g.noise(1.0, 2, 0.6, stretch=(1700, 420, 420))
     scalp = g.ramp(g.add(a["scalp"], g.mul(g.sub(hairs, 0.5), 0.55)), 0.30, 0.72)
-    root = tuple(float(v) for v in L.HAIR_RGB * 0.55)
-    lit = tuple(float(v) for v in L.HAIR_RGB * 1.05)
+    root = tuple(float(v) for v in L.HAIR_RGB * 0.40)
+    lit = tuple(float(v) for v in L.HAIR_RGB * 0.75)
     col = g.mixc(col, g.mixc(root, lit, g.ramp(hairs, 0.35, 0.75)), scalp)
     # Grime: dirt that sits in patches and thins to a film at the edges.
     dirt_n = g.noise(38, 5, 0.6)
@@ -250,10 +251,11 @@ def paint(g):
     rough = g.add(rough, g.mul(g.sat(g.add(a["knuckle"], a["elbow"])), 0.08))
     rough = g.mixf(rough, g.ramp(lipfine, 0.3, 0.7, 0.36, 0.50), a["lip"])
     rough = g.mixf(rough, 0.82, g.mul(dirt, 0.8))
-    rough = g.mixf(rough, 0.60, scalp)
+    rough = g.mixf(rough, 0.80, scalp)
     # The oil film (Godot's clearcoat, Cycles' coat): only the forehead, the nose, the chin and the lips, faint.
-    film = g.mul(a["oily"], g.ramp(g.noise(45, 4, 0.6), 0.25, 0.75, 0.25, 0.7))
+    film = g.mul(a["oily"], g.ramp(g.noise(45, 2, 0.5), 0.2, 0.8, 0.35, 0.6))
     film = g.sat(g.add(film, g.mul(a["lip"], 0.55)))
+    film = g.mul(film, g.sub(1.0, scalp))
     film = g.mul(film, g.sub(1.0, g.mul(dirt, 0.8)))
 
     # Bump. Pores: small everywhere, large and open on the nose and inner cheeks. Then the crease net, then lines.

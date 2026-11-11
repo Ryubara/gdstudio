@@ -7,6 +7,7 @@ extends Node3D
 ##
 ##   gds godot -- --path <project> [--rendering-method gl_compatibility] -- --out=<folder> [--hair=ponytail|long]
 ##
+## `--rest` leaves her in the rest pose (no clip); `--only=day_face` takes one capture; `--skin-normal=0` draws the skin without its normal maps.
 ## `--shine` adds, per lighting, a bust capture with every highlight switched off next to the normal one, for
 ## `shine.py`. The roughness and specular each material ends up with are the constants below.
 
@@ -41,6 +42,7 @@ var _env := Environment.new()
 var _rig: Node3D
 var _compat := false
 var _shaded: Array[Material] = []
+var _skin_normal := 1.0
 
 
 func _ready() -> void:
@@ -48,6 +50,7 @@ func _ready() -> void:
 	var out := "user://"
 	var hair := "ponytail"
 	var shine := false
+	var only := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
@@ -55,6 +58,10 @@ func _ready() -> void:
 			hair = a.trim_prefix("--hair=")
 		if a == "--shine":
 			shine = true
+		if a.begins_with("--skin-normal="):
+			_skin_normal = float(a.trim_prefix("--skin-normal="))
+		if a.begins_with("--only="):
+			only = a.trim_prefix("--only=")
 	var world := WorldEnvironment.new()
 	world.environment = _env
 	add_child(world)
@@ -83,14 +90,38 @@ func _ready() -> void:
 	var rig: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ASSET + "rig.json"))
 	skeleton.motion_scale = rig["motion_scale"]
 	_materials()
-	var clip := _idle(skeleton)
+	var clip := "" if "--rest" in OS.get_cmdline_user_args() else _idle(skeleton)
 	var tag := ("compat" if _compat else "forward") + "_" + hair
 	for pair: Array in CAPTURES:
+		if only != "" and only != "%s_%s" % [pair[0], pair[1]]:
+			continue
 		_light(pair[0])
 		_shot(pair[1])
 		await _settle()
+		if pair[1] == "face":
+			# The idle moves her head: the close-up follows the head bone, or it frames her forehead.
+			var head := skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone("Head")).origin
+			_camera.position = head + Vector3(0.10, 0.085, 0.84)
+			_camera.look_at(head + Vector3(0.0, 0.07, 0.06))
+		if pair[1] == "hands":
+			var hand := skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone("hand_l")).origin
+			_camera.position = hand + Vector3(0.22, 0.05, 0.62)
+			_camera.look_at(hand + Vector3(0.0, -0.07, 0.0))
+		_look(skeleton)
+		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/godot_%s_%s_%s.png" % [out, tag, pair[0], pair[1]])
 	if shine:
+		# No clip for these: the two captures of a pair are compared pixel by pixel, and the numbers are compared
+		# with the first build's, which `diag.gd` took in this pose (the rest, both arms turned down to her sides).
+		var players := _character.find_children("*", "AnimationPlayer", true, false)
+		if not players.is_empty():
+			(players[0] as AnimationPlayer).stop()
+		skeleton.reset_bone_poses()
+		for side: String in ["l", "r"]:
+			var b := skeleton.find_bone("upperarm_" + side)
+			var turn := Basis(Vector3(0, 0, 1), deg_to_rad(-72.0 if side == "l" else 72.0))
+			var parent := skeleton.get_bone_global_pose(skeleton.get_bone_parent(b))
+			skeleton.set_bone_pose_rotation(b, (parent.basis.inverse() * turn * skeleton.get_bone_global_rest(b).basis).get_rotation_quaternion())
 		for kind in LIGHTS:
 			_light(kind)
 			_shot("bust")
@@ -99,6 +130,9 @@ func _ready() -> void:
 				await _settle()
 				var name := "all_off" if matt > 0.5 else "reworked"
 				get_viewport().get_texture().get_image().save_png("%s/shine_%s_%s_%s.png" % [out, tag, kind, name])
+		_matt(0.0)
+		if not players.is_empty():
+			(players[0] as AnimationPlayer).play()
 	_light("day")
 	_shot("bust")
 	var with := await _measure()
@@ -188,6 +222,7 @@ func _skin(set_name: String, detail_tiles: float) -> ShaderMaterial:
 	m.set_shader_parameter("detail_tex", _tex("skin_detail_normal"))
 	m.set_shader_parameter("detail_tiles", detail_tiles)
 	m.set_shader_parameter("specular", SPECULAR_SKIN)
+	m.set_shader_parameter("normal_strength", _skin_normal)
 	_shaded.append(m)
 	return m
 
@@ -285,6 +320,24 @@ func _idle(skeleton: Skeleton3D) -> String:
 	player.add_animation_library("", library)
 	player.play("idle")
 	return pick
+
+
+## Turns both eyes to the camera, by 25 degrees at most: the idle tips her head back, and eyes left at rest then
+## stare over the lens. The eye bones are the rig's own; no clip keys them.
+func _look(skeleton: Skeleton3D) -> void:
+	for side: String in ["l", "r"]:
+		var b := skeleton.find_bone("eye_" + side)
+		var parent := skeleton.get_bone_global_pose(skeleton.get_bone_parent(b))
+		var rest := parent * skeleton.get_bone_rest(b)
+		var forward := (skeleton.global_transform.basis * parent.basis * skeleton.get_bone_global_rest(skeleton.get_bone_parent(b)).basis.inverse() * Vector3(0, 0, 1)).normalized()
+		var to := (_camera.global_position - skeleton.global_transform * rest.origin).normalized()
+		var angle := minf(forward.angle_to(to), deg_to_rad(25.0))
+		var axis := forward.cross(to)
+		if axis.length() < 1e-5:
+			continue
+		var turn := Basis(axis.normalized(), angle)
+		var aimed := skeleton.global_transform.basis.inverse() * turn * skeleton.global_transform.basis * rest.basis
+		skeleton.set_bone_pose_rotation(b, (parent.basis.inverse() * aimed).get_rotation_quaternion())
 
 
 func _shot(shot: String) -> void:

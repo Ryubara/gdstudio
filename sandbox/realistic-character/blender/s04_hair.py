@@ -97,7 +97,7 @@ def hair_atlas(size):
             # One strand in seven is lightened by the sun: the colour's own highlights, apart from the shader's.
             light = rng.random() < 0.14
             tone = (L.HAIR_LIGHT * rng.uniform(0.7, 1.15) if light else HAIR_RGB * min(rng.lognormal(0, 0.3), 1.9))
-            grad = (0.70 + 0.55 * t[live])[:, None, None]
+            grad = (0.80 + 0.22 * t[live])[:, None, None]
             rgb[rr, cc] = rgb[rr, cc] * (1 - cov[..., None]) + tone * grad * cov[..., None]
             occ[rr, cc] = occ[rr, cc] * (1 - cov) + shade * cov
             nx[rr, cc] = nx[rr, cc] * (1 - cov) + np.clip((cc - x[live][:, None]) / np.maximum(half[live][:, None], 0.6), -1, 1) * cov
@@ -258,10 +258,15 @@ def ponytail(skin, tree, body):
 
     # The body of the hair, in layers: lower cards first, each layer a little higher off the scalp.
     pts, nrms = sample_scalp(skin, 560)
+    rim = hairline(np.array([q[:] for q in pts]) / S)
     for k, (p, n) in enumerate(zip(pts, nrms)):
         layer = k / len(pts)
         strip = int(RNG.integers(0, 3)) if RNG.random() < 0.7 else int(RNG.integers(3, 5))
-        drawn_back(p, n, strip, RNG.uniform(0.016, 0.026), 0.0010 + 0.0035 * layer, RNG.uniform(0.001, 0.006) * (0.4 + layer))
+        width = RNG.uniform(0.016, 0.026)
+        if rim[k] > 0.2:
+            # Rooted on the rim: a thinner card of fewer strands, so the hairline is not a wall.
+            strip, width = int(RNG.integers(3, 6)), width * 0.65
+        drawn_back(p, n, strip, width, 0.0010 + 0.0035 * layer, RNG.uniform(0.001, 0.006) * (0.4 + layer))
     # The rim: more, narrower cards rooted on the hairline itself, so its edge is many strands and not one line.
     pts, nrms = sample_scalp(skin, 260, hairline)
     for p, n in zip(pts, nrms):
@@ -301,17 +306,17 @@ def ponytail(skin, tree, body):
 
     # Two loose strands at each temple, falling in front of the ear.
     for sx in (1, -1):
-        for k in range(3):
+        for k in range(2):
             root = Vector((sx * RNG.uniform(0.060, 0.070), RNG.uniform(-0.088, -0.070), RNG.uniform(1.578, 1.590))) * S
             p, n, _, _ = tree.find_nearest(root)
 
             def strand(q, i, sx=sx):
                 return Vector((sx * 0.10 * math.sin(i * 0.7), -0.10 + 0.05 * math.cos(i * 0.6), -1.0))
 
-            line, ln = fall(body, p + n * 0.002, Vector((sx * 0.5, -0.2, -0.6)).normalized(), int(RNG.uniform(7, 11)),
-                            0.016, 0.005 + 0.002 * k, strand)
+            line, ln = fall(body, p + n * 0.002, Vector((sx * 0.5, -0.2, -0.6)).normalized(), int(RNG.uniform(5, 8)),
+                            0.013, 0.005 + 0.002 * k, strand)
             ln = [(q if q is not None else Vector((sx, -0.3, 0))).normalized() for q in ln]
-            cards.add(line, ln, 0.010, 0.006, 3 if k else 2, tilt=RNG.normal(0, 0.3))
+            cards.add(line, ln, 0.008, 0.004, 4 if k else 3, tilt=RNG.normal(0, 0.3))
     return cards
 
 
@@ -353,6 +358,8 @@ def long_hair(skin, tree, body):
         ln = [(m if m is not None else (q - a)).normalized() for m, q, a in zip(ln, line, axis_pts)]
         strip = int(RNG.integers(0, 3)) if layer < 0.75 else int(RNG.integers(3, 6))
         width = RNG.uniform(0.022, 0.034)
+        if hairline(np.array([b[:]]))[0] > 0.2:
+            strip, width = int(RNG.integers(3, 6)), width * 0.65
         cards.add(line, ln, width * 0.8, width * RNG.uniform(0.6, 0.9), strip, tilt=RNG.normal(0, 0.25))
     # The hairline's short hairs.
     pts, nrms = sample_scalp(skin, 90, lambda c: hairline(c) * (c[:, 1] < 0.02))

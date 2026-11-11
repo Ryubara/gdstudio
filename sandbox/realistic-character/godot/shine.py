@@ -3,9 +3,11 @@
     uv run --no-project --with pillow --with numpy python shine.py <folder>
 
 Each capture is compared, pixel by pixel, with the `all_off` capture of the same renderer and light (no coat, no
-specular, no reflected sky, skin roughness 0.7): what is left is what the highlights add. Two numbers come out:
-"added" is the mean luminance the highlights add over the character, in percent of what the matt surface shows;
-"outshone" is the share of her pixels where the highlight is brighter than half the surface under it.
+specular, no reflected background): what is left is what the highlights add. Two numbers come out: "added" is
+the mean luminance the highlights add over the character, in percent of what the matt surface shows, and "hot" is
+the share of her pixels where a highlight adds more than a tenth of full scale, which is what reads as wet. The
+first number barely tells a dry surface from a wet one (a broad, faint sheen adds as much light as a few hard
+spots); the second does.
 """
 
 import sys
@@ -30,4 +32,4 @@ for base_png in sorted(Path(sys.argv[1]).glob("shine_*_all_off.png")):
     for png in sorted(Path(sys.argv[1]).glob(stem + "*.png")):
         lum = (load(png) @ LUM)[body]
         extra = np.clip(lum - matt, 0, None)
-        print(f"{png.stem:46s} added {100 * float(extra.mean() / matt.mean()):5.1f} %   outshone {100 * float((extra > 0.5 * matt).mean()):5.2f} %")
+        print(f"{png.stem:46s} added {100 * float(extra.mean() / matt.mean()):5.1f} %   hot {100 * float((extra > 0.10).mean()):5.2f} %")

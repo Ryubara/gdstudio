@@ -12,12 +12,13 @@ uniform sampler2D mask_tex : hint_default_black, filter_linear_mipmap;          
 uniform sampler2D detail_tex : hint_normal, repeat_enable, filter_linear_mipmap_anisotropic;
 uniform float detail_tiles = 24.0;       // repeats of the pore tile across the set's UV square (a tile is about 2 cm)
 uniform float detail_strength = 0.55;
+uniform float normal_strength = 1.0;     // 0 draws the game mesh's own normals, to tell a map's fault from a mesh's
 uniform float specular = 0.35;           // skin reflects 2.8 % head on; Godot's 0.5 is 4 %
 uniform float roughness_scale = 1.0;
 uniform float subsurface = 0.18;
-uniform float film = 0.18;               // clearcoat where the mask's green says the skin is oily
-uniform float film_roughness = 0.35;
-uniform float fuzz = 0.22;               // rim where the mask's blue says fine hair grows
+uniform float film = 0.06;               // clearcoat where the mask's green says the skin is oily
+uniform float film_roughness = 0.45;
+uniform float fuzz = 0.08;               // rim where the mask's blue says fine hair grows
 uniform float matt = 0.0;                // 1 switches every highlight off, for the shine measurement
 
 void fragment() {
@@ -29,7 +30,10 @@ void fragment() {
 	SPECULAR = specular * (1.0 - matt);
 	vec2 n = texture(normal_tex, UV).xy * 2.0 - 1.0;
 	vec2 d = texture(detail_tex, UV * detail_tiles).xy * 2.0 - 1.0;
-	NORMAL_MAP = vec3((n + d * detail_strength) * 0.5 + 0.5, 0.0);
+	n = (n + d * detail_strength) * normal_strength;
+	// All three channels: this Godot reads the blue of NORMAL_MAP as given, it does not rebuild it from the other
+	// two. With 0 there the normal lies in the surface and half the face goes dark along the UV seam.
+	NORMAL_MAP = vec3(n, sqrt(max(1.0 - dot(n, n), 0.0))) * 0.5 + 0.5;
 	SSS_STRENGTH = mask.r * subsurface;
 	SSS_TRANSMITTANCE_COLOR = vec4(0.9, 0.22, 0.12, 1.0);
 	SSS_TRANSMITTANCE_DEPTH = 0.04;

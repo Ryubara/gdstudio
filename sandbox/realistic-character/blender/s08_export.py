@@ -37,6 +37,9 @@ def resized(src, dst, size):
 def resized16(src, dst, size):
     """A normal map keeps its 16 bits a channel: Blender reads the file as float, a 2 by 2 mean halves it."""
     img = bpy.data.images.load(src, check_existing=False)
+    # Before the pixels are read: Blender takes a 16-bit PNG for sRGB colour and hands back linearised floats,
+    # which turns a flat normal (0.5) into 0.21 and tilts the whole map 34 degrees.
+    img.colorspace_settings.name = "Non-Color"
     n = img.size[0]
     px = np.empty(n * n * 4, dtype=np.float32)
     img.pixels.foreach_get(px)
@@ -44,6 +47,8 @@ def resized16(src, dst, size):
     while n > size:
         px = px.reshape(n // 2, 2, n // 2, 2, 3).mean((1, 3))
         n //= 2
+    flat = np.abs(px[..., :2].mean((0, 1)) - 0.5).max()
+    assert flat < 0.02, f"{src}: the normal map's mean is {flat:.3f} off flat (read in the wrong colour space?)"
     L.write_png16(dst, px)
     bpy.data.images.remove(img)
 
