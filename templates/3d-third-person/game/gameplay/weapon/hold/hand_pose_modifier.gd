@@ -8,15 +8,24 @@ extends SkeletonModifier3D
 ## The pose every named bone takes.
 @export var pose: HandPose:
 	set(value):
+		_watch(pose, value)
 		pose = value
-		_bones.clear()
+		_dirty = true
 ## A pose blended over `pose` on the bones it names, by `second_weight`.
-@export var second: HandPose
+@export var second: HandPose:
+	set(value):
+		_watch(second, value)
+		second = value
+		_dirty = true
 ## How far the bones `second` names are on it (0 `pose`, 1 `second`).
 @export_range(0.0, 1.0, 0.01) var second_weight := 0.0
 ## A pose blended over both on the bones it names, by `open_weight`: the hand opened, as it lets
 ## go of the weapon or comes back to it.
-@export var open: HandPose
+@export var open: HandPose:
+	set(value):
+		_watch(open, value)
+		open = value
+		_dirty = true
 @export_range(0.0, 1.0, 0.01) var open_weight := 0.0
 ## The bones of `open` that open first, over the first `open_first_share` of `open_weight`, with
 ## the others opening over the rest (and closing before them): fingers hooked over a part let go
@@ -24,65 +33,111 @@ extends SkeletonModifier3D
 @export var open_first: Array[StringName] = []:
 	set(value):
 		open_first = value
-		_bones.clear()
+		_dirty = true
 @export_range(0.05, 0.95, 0.01) var open_first_share := 0.5
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
 @export_range(0.0, 45.0, 0.1) var swing_degrees := 0.0
 
-# The skeleton's bone index for each name of `pose`, its rotations and then its turns.
-var _bones: Dictionary[StringName, int] = {}
-var _turned: Dictionary[StringName, int] = {}
-# The bones that open first, as a set.
-var _first: Dictionary[StringName, bool] = {}
+# The poses laid out once per bone (kit #1178: read from the poses' dictionaries a bone at a time,
+# the two hands of a rifle were about half its hold's cost in the web build): the skeleton's
+# index of each bone `pose` names, its rotation in each pose (its own where a pose leaves it out)
+# and how it opens (0 with `open_weight`, 1 first, 2 after); then the turned bones and turns.
+var _dirty := true
+var _indexes := PackedInt32Array()
+var _rotations: Array[Quaternion] = []
+var _seconds: Array[Quaternion] = []
+var _has_second := PackedByteArray()
+var _opens: Array[Quaternion] = []
+var _opening := PackedByteArray()
+var _turned := PackedInt32Array()
+var _turns: Array[Quaternion] = []
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
-	_bones.clear()
+	_dirty = true
 
 
 func _process_modification_with_delta(_delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null or pose == null:
 		return
-	if _bones.is_empty():
-		_turned.clear()
-		_first.clear()
-		for bone_name in open_first:
-			_first[bone_name] = true
-		for bone_name in pose.rotations:
-			_bones[bone_name] = skeleton.find_bone(bone_name)
-		for bone_name in pose.turns:
-			_turned[bone_name] = skeleton.find_bone(bone_name)
+	if _dirty:
+		_lay_out(skeleton)
 	if swing_bone != &"" and not is_zero_approx(swing_degrees):
 		swing_out(skeleton, swing_bone, swing_degrees)
-	for bone_name in _turned:
-		var bone := _turned[bone_name]
-		if bone >= 0:
-			skeleton.set_bone_pose_rotation(
-				bone, skeleton.get_bone_pose_rotation(bone) * pose.turns[bone_name]
-			)
-	for bone_name in _bones:
-		var bone := _bones[bone_name]
+	for index in _turned.size():
+		var bone := _turned[index]
+		skeleton.set_bone_pose_rotation(bone, skeleton.get_bone_pose_rotation(bone) * _turns[index])
+	var blend := second != null and second_weight > 0.0
+	var opened := open != null and open_weight > 0.0
+	if not blend and not opened:
+		for index in _indexes.size():
+			skeleton.set_bone_pose_rotation(_indexes[index], _rotations[index])
+		return
+	var shares := [
+		open_weight,
+		minf(open_weight / open_first_share, 1.0),
+		maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0),
+	]
+	if open_first.is_empty():
+		shares = [open_weight, open_weight, open_weight]
+	for index in _indexes.size():
+		var turned := _rotations[index]
+		if blend and _has_second[index] == 1:
+			turned = turned.slerp(_seconds[index], second_weight)
+		if opened and _opening[index] < 3:
+			turned = turned.slerp(_opens[index], shares[_opening[index]])
+		skeleton.set_bone_pose_rotation(_indexes[index], turned)
+
+
+func _lay_out(skeleton: Skeleton3D) -> void:
+	_dirty = false
+	_indexes.clear()
+	_rotations.clear()
+	_seconds.clear()
+	_has_second.clear()
+	_opens.clear()
+	_opening.clear()
+	_turned.clear()
+	_turns.clear()
+	var first := {}
+	for bone_name in open_first:
+		first[bone_name] = true
+	for bone_name in pose.rotations:
+		var bone := skeleton.find_bone(bone_name)
 		if bone < 0:
 			continue
-		var turned := pose.rotations[bone_name]
-		if second != null and second_weight > 0.0 and second.rotations.has(bone_name):
-			turned = turned.slerp(second.rotations[bone_name], second_weight)
-		if open != null and open_weight > 0.0 and open.rotations.has(bone_name):
-			turned = turned.slerp(open.rotations[bone_name], _opened(bone_name))
-		skeleton.set_bone_pose_rotation(bone, turned)
+		var own := pose.rotations[bone_name]
+		_indexes.append(bone)
+		_rotations.append(own)
+		var in_second := second != null and second.rotations.has(bone_name)
+		_has_second.append(1 if in_second else 0)
+		_seconds.append(second.rotations[bone_name] if in_second else own)
+		var in_open := open != null and open.rotations.has(bone_name)
+		_opens.append(open.rotations[bone_name] if in_open else own)
+		var opening := 3
+		if in_open:
+			opening = 0 if open_first.is_empty() else (1 if first.has(bone_name) else 2)
+		_opening.append(opening)
+	for bone_name in pose.turns:
+		var bone := skeleton.find_bone(bone_name)
+		if bone >= 0:
+			_turned.append(bone)
+			_turns.append(pose.turns[bone_name])
 
 
-# How far `bone_name` is on the open pose: `open_weight`, or its part of it when some bones open
-# first.
-func _opened(bone_name: StringName) -> float:
-	if _first.is_empty():
-		return open_weight
-	if _first.has(bone_name):
-		return minf(open_weight / open_first_share, 1.0)
-	return maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0)
+# Lays the poses out again when one of them changes.
+func _watch(old: HandPose, new: HandPose) -> void:
+	if old != null and old.changed.is_connected(_on_pose_changed):
+		old.changed.disconnect(_on_pose_changed)
+	if new != null and not new.changed.is_connected(_on_pose_changed):
+		new.changed.connect(_on_pose_changed)
+
+
+func _on_pose_changed() -> void:
+	_dirty = true
 
 
 ## Lifts `bone` (an upper arm) `degrees` away from the body, where the skeleton poses it now: it
