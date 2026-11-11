@@ -6,14 +6,36 @@
 [ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="4_input"]
 [ext_resource type="Resource" path="res://gameplay/player/prone_tuning.tres" id="5_prone"]
 [ext_resource type="Resource" path="res://gameplay/player/slide_tuning.tres" id="6_slide"]
+[ext_resource type="Script" path="res://addons/gds_game/inventory/inventory.gd" id="7_inventory"]
+[ext_resource type="Script" path="res://addons/gds_game/inventory/item_stack.gd" id="8_stack"]
+[ext_resource type="Resource" path="res://gameplay/inventory/coin.tres" id="9_coin"]
+[ext_resource type="Resource" path="res://gameplay/inventory/bandage.tres" id="10_bandage"]
+[ext_resource type="Script" path="res://addons/gds_game/inventory/item_def.gd" id="11_def"]
+[ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="ai_faction_member"]
 
-[node name="Player" node_paths=PackedStringArray("controller") instance=ExtResource("1_dressed")]
+[sub_resource type="Resource" id="ItemStack_bandages"]
+script = ExtResource("8_stack")
+item = ExtResource("10_bandage")
+count = 3
+
+[node name="Player" node_paths=PackedStringArray("controller", "inventory") instance=ExtResource("1_dressed")]
 script = ExtResource("2_player")
 tuning = ExtResource("3_tuning")
 prone_tuning = ExtResource("5_prone")
 slide_tuning = ExtResource("6_slide")
 controller = NodePath("PlayerInput")
+inventory = NodePath("Inventory")
 
 [node name="PlayerInput" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("4_input")
 player = NodePath("..")
+
+[node name="Inventory" type="Node" parent="." node_paths=PackedStringArray("drop_origin")]
+script = ExtResource("7_inventory")
+start_items = Array[ExtResource("8_stack")]([SubResource("ItemStack_bandages")])
+catalog = Array[ExtResource("11_def")]([ExtResource("9_coin"), ExtResource("10_bandage")])
+drop_origin = NodePath("../Model")
+
+[node name="AiFactionMember" type="Node" parent="."]
+script = ExtResource("ai_faction_member")
+faction = &"player"

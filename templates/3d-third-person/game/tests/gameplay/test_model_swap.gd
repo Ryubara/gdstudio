@@ -18,9 +18,12 @@ var _player: Player
 var _slot: CharacterModel
 var _animation_player: AnimationPlayer
 var _tree: AnimationTree
+## The right hand's pose as each watched skeleton last updated it, by the skeleton's instance id.
+var _hands := {}
 
 
 func before_test() -> void:
+	_hands.clear()
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 25.0))
@@ -149,10 +152,28 @@ func test_the_pose_moves_on_the_new_model() -> void:
 func _seat_error(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var seat := slot.get_node("PistolHeld") as BoneAttachment3D
-	var hand := (
-		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	var hand := skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r"))
+	# The hold's modifiers move the arm after the clip, and the seat follows their result, which
+	# the skeleton only gives in its update: `_watch()` copied it there.
+	if _hands.has(skeleton.get_instance_id()):
+		hand = _hands[skeleton.get_instance_id()]
+	return seat.global_position.distance_to((skeleton.global_transform * hand).origin)
+
+
+# Copies the right hand's pose in every update of the skeleton of `slot` from now on.
+func _watch(slot: CharacterModel) -> void:
+	var skeleton := slot.skeleton()
+	if not _hands.has(skeleton.get_instance_id()):
+		_hands[skeleton.get_instance_id()] = skeleton.get_bone_global_pose(
+			skeleton.find_bone(&"hand_r")
+		)
+		skeleton.skeleton_updated.connect(_copy_hand.bind(skeleton))
+
+
+func _copy_hand(skeleton: Skeleton3D) -> void:
+	_hands[skeleton.get_instance_id()] = skeleton.get_bone_global_pose(
+		skeleton.find_bone(&"hand_r")
 	)
-	return seat.global_position.distance_to(hand.origin)
 
 
 func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
@@ -161,6 +182,7 @@ func test_the_pistol_is_still_seated_on_the_hand_of_the_new_model() -> void:
 	var seat := _slot.get_node("PistolHeld") as BoneAttachment3D
 	assert_bool(seat.use_external_skeleton).is_true()
 	assert_object(seat.get_node(seat.get_external_skeleton())).is_same(skeleton)
+	_watch(_slot)
 	await InputSim.ticks(get_tree(), 4)
 	assert_float(_seat_error(_slot)).is_less(SEAT_TOLERANCE)
 	var pistol := seat.get_node("Pistol") as Node3D
@@ -203,6 +225,7 @@ func test_the_pistol_follows_the_hand_through_a_walk_after_a_swap_in_the_main_sc
 func _walk_and_measure(slot: CharacterModel) -> float:
 	var skeleton := slot.skeleton()
 	var hand := skeleton.find_bone(&"hand_r")
+	_watch(slot)
 	InputSim.key(KEY_X, true)
 	InputSim.key(KEY_W, true)
 	await InputSim.ticks(get_tree(), 3)

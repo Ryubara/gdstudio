@@ -95,6 +95,27 @@ func test_a_host_that_does_not_pause_leaves_the_tree_running() -> void:
 	assert_bool(get_tree().paused).is_false()
 
 
+func test_a_screen_that_says_it_does_not_pause_keeps_the_game_running_while_on_top() -> void:
+	var screen := Control.new()
+	screen.set_script(preload("res://tests/gds_game/fixtures/running_screen.gd"))
+	_host.open(screen)
+	await _settle()
+	assert_bool(_host.is_open()).is_true()
+	assert_bool(_host.top_pauses_game()).is_false()
+	assert_bool(get_tree().paused).is_false()
+	# A screen that pauses, pushed over it, stops the game; going back runs it again.
+	_host.open(_screen())
+	await _settle()
+	assert_bool(get_tree().paused).is_true()
+	UIRouter.pop(UITransition.Kind.CUT)
+	await _settle()
+	assert_bool(get_tree().paused).is_false()
+	_host.close(UITransition.Kind.CUT)
+	await _settle()
+	assert_bool(_host.is_open()).is_false()
+	assert_bool(get_tree().paused).is_false()
+
+
 func test_the_pause_action_opens_its_screen_and_closes_it_again() -> void:
 	_host.pause_screen = _screen()
 	await _press_pause()

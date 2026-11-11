@@ -205,8 +205,8 @@ positive up; `crouch` is already the toggle's result; a press is true in one com
 only on a tick where a shot can leave (a press buffered or just made, or an automatic weapon held, and the weapon
 ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1346 B/s for an automatic one at four
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
-every held tick, against a budget of 2000). Flag bits 11 to 15 are free: #887's reload, next, previous and unarmed
-presses take four and raise `NetWire.VERSION`.
+every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
+the empty hands; gdstudio #887) and bit 15 is prone (#1012), `NetWire.VERSION` 3; no flag bit is free.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -346,7 +346,7 @@ client -->
   and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
   remote bodies are the same scene as local ones (a puppet `Player`), the frame gains `aim` and `pitch`, captures come
   from the second client (Deadnight #548); code that works through a node type (`as Player`) turns "no such body" into
-  a silent skip, so say it loudly).
+  a silent skip, so say it loudly); gdstudio #905 (online-client.md#puppets).
 
 ## Events reach a client only through its command loop {#events-reach-a-client-only-through-its-command-loop}
 
@@ -515,13 +515,22 @@ backend deployed -->
 `tools.toml`), copy the project, run `godot --headless --path /app --import` once **at build time**, then
 `godot --headless --path /app -- --server`. The app folder must be owned by the non-root user or the import cannot
 write `.godot/`. Read `$PORT` (Railway) and bind plain `ws://`: TLS ends at the platform's edge.
-Deploying and testing it on Railway: [Railway](../../studio/railway.md).
+Process 1 is `tini`, which passes the platform's SIGTERM on (Godot as process 1 ignores it and is killed after the
+grace period). Deploying and testing it on Railway: [Railway](../../studio/railway.md). The 3D Third Person server
+starts with `godot --headless --path game -- --server` ([The game server](third-person/game-server.md#template-server))
+and its image, deploy and numbers are the template's `server/` ([The server image](third-person/game-server.md#server-image)).
 
 - **Approach:** Read a procfs file with `get_line()` (it is one line), treat an empty result as no data, and test
   Linux-only paths in the Docker image. **Watch out for:** procfs files report a length of 0 and
   `FileAccess.get_as_text()` reads `get_length()` bytes, so `/proc/self/stat` came back empty and a headless server
   logged `Out of bounds get index '11'` every 5 s; on Windows the path does not exist, so it showed only in the
   container. **Seen:** Deadnight, 2026-11-01 (fix: `get_line()` and an empty check).
+- **Approach:** Cap Godot's worker pool in a server image (`threading/worker_pool/max_threads=2` in an `override.cfg`
+  the Dockerfile writes) and read the process's processor share beside the step time. **Watch out for:** the pool has
+  a thread a core and Jolt hands every physics step to all of them: an idle 3D Third Person server took 24% of a core
+  on a 16-core machine (16 workers at 1.1% each) and 30% with 8 bots while its step read 0.6 ms; two threads gave 1.9%
+  and 6.7% with the same step times, and Railway's hosts have 48 cores. **Seen:** gdstudio #910, 2026-11-11 (the
+  template's `server/Dockerfile`).
 
 ## Small things that cost time {#small-things-that-cost-time}
 

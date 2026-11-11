@@ -135,7 +135,7 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 				. override_failure_message(property["name"])
 				. is_equal(command.get(property["name"]))
 			)
-	assert_int(fields).is_equal(20)
+	assert_int(fields).is_equal(24)
 	copy.clear()
 	assert_float(copy.yaw).is_equal(command.yaw)
 	assert_float(copy.pitch).is_equal(command.pitch)
@@ -231,7 +231,9 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	var rates: Dictionary[String, float] = {}
 	for automatic: bool in [false, true]:
 		var human := _arena.add_player(Vector3(0.0, 0.0, 6.0 if automatic else 3.0))
-		human.weapon.automatic = automatic
+		# Its own copy: the pistol's definition is shared by every weapon that holds it.
+		human.weapon.definition = human.weapon.definition.duplicate()
+		human.weapon.definition.automatic = automatic
 		var camera := Camera3D.new()
 		camera.position = Vector3(0.0, 1.3, 9.0)
 		_arena.add_child(camera)
@@ -259,12 +261,15 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 
 func test_the_step_takes_the_physics_step_as_its_delta() -> void:
 	# The engine moves the body by its own step whatever number is passed, so `step` asserts
-	# (in a debug build) that the two are one; this is the check it makes.
+	# (in a debug build) that `delta` is a whole number of them (a far AI character is stepped
+	# every few ticks with their time, and its move is scaled to match); this is the check it makes.
 	await get_tree().physics_frame
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds())).is_true()
-	assert_bool(_player._is_physics_step(CommandDriver.tick_seconds() / 2.0)).is_false()
+	var tick := CommandDriver.tick_seconds()
+	assert_bool(_player._is_physics_step(tick)).is_true()
+	assert_bool(_player._is_physics_step(tick * 4.0)).is_true()
+	assert_bool(_player._is_physics_step(tick / 2.0)).is_false()
+	assert_bool(_player._is_physics_step(tick * 1.5)).is_false()
 	assert_bool(_player._is_physics_step(0.0)).is_false()
-	assert_bool(_player._is_physics_step(1.0 / 30.0)).is_false()
 
 
 # Every script of the character (`gameplay/character/`: the body, its model, animation, ragdoll,

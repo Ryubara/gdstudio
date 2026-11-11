@@ -28,13 +28,20 @@ const RAGDOLL_ACTION := &"ragdoll"
 		var input := controller as PlayerInput
 		if input != null:
 			input.bind_ragdoll_key()
+## The player's bag (an `Inventory` node of `player.tscn`), which the inventory screen draws.
+## Empty: the player carries no items, and the screen shows the weapons alone.
+@export var inventory: Inventory
+
+## True for another player's body drawn from the network (`make_puppet`): no input, no camera,
+## no simulation; `puppet_to` places it.
+var is_puppet := false
 
 var _spawn_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	super()
-	if Engine.is_editor_hint():
+	if Engine.is_editor_hint() or is_puppet:
 		return
 	add_to_group(GROUP)
 	# Fixed for a character, so a test repeats, but not shared, so two characters pick apart.
@@ -42,6 +49,24 @@ func _ready() -> void:
 	fell.connect(respawn)
 	if start_at_spawn:
 		respawn()
+
+
+func _physics_process(delta: float) -> void:
+	if is_puppet:
+		return
+	super(delta)
+
+
+## Makes this body another player's, drawn from the network (`PlayerPuppet`): call before it
+## enters the tree.
+func make_puppet() -> void:
+	PlayerPuppet.make(self)
+
+
+## Places a puppet as a TICK's `entry` says, moving at `moving` (m/s), easing what a stepped body
+## eases by `delta` seconds.
+func puppet_to(entry: PlayerEntry, moving: Vector3, delta: float) -> void:
+	PlayerPuppet.place(self, entry, moving, delta)
 
 
 ## Puts the character at a spawn point of the group `player` (the first free one), or leaves it.

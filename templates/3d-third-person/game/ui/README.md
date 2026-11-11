@@ -14,6 +14,10 @@ the screen host). `ui/menus/` holds the main menu, the loading screen, the pause
 `ScreenHost` that opens screens over the game (the project starts at `ui/menus/menu_scene.tscn`); the options they show
 are kept by the `Settings` autoload in `core/settings/`.
 
+`ui/inventory/` is the inventory screen (`inventory_screen.tscn`: the player's live model, its weapons and its bag),
+its slot (`inventory_cell.tscn`) and the model preview (`model_preview.tscn`); the screen host opens it on the
+`inventory` action. The bag itself is the `Inventory` node of the player (the synced `addons/gds_game/inventory/`).
+
 `ui/minimap/` is the minimap: `minimap.tscn` (the widget: a round or square map that follows a target, turns, zooms and
 draws every `MinimapMarker`), `map_screen.tscn` (the full-screen map, `M`), `map_layer.tscn` (the full-screen map in a
 `CanvasLayer`; the small map sits in the HUD's minimap slot) and the pool, projector and baker behind them. Icons

@@ -90,7 +90,8 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   suite of 3D Third Person leaked 196 objects run alone, the same with every test turned off, and main's
   `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
   nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
-  a leak CI never sees).
+  a leak CI never sees); gdstudio #887, 2026-11-10 (`test_prone_aim.gd` alone: 195 GDScript objects with every test
+  but one turned off, none in the whole run; the RID lines beside them were real, next entry).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the
@@ -136,7 +137,11 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   that holds the connection and a lambda that holds the object is a cycle nothing frees: every test passes and CI
   fails on `resources still in use at exit`, which the summary line does not carry (576 tests green, 6 instances and 3
   resources leaked). **Seen:** Deadnight #207, #225, #432, 2026-11-01..02; Deadnight #1074, 2026-11-05 (fix: ids
-  captured, disconnect in `after_test`; the leak count reproduces exactly alone with `--verbose`).
+  captured, disconnect in `after_test`); gdstudio #964, 2026-11-10 (a lambda on the emitter's own signal).
+- **Approach:** Give a `RefCounted` test helper that listens to an object it owns (a client and its link) a
+  `release()` that disconnects its handlers, and call it from the fixture's `_exit_tree`. **Watch out for:** nothing
+  frees two `RefCounted` that hold each other: a test client's lambda on its own link's `closed` left 4 instances and
+  7 scripts in use at exit while both cases passed. **Seen:** gdstudio #904, 2026-11-10 (`HandClient.release()`).
 
 - **Approach:** Free what a test makes or removes: `remove_child(node)` then `node.free()`,
   `auto_free(SomeNode.new())` (even for a node made only to read `get_property_list()`), or leave the node in the
@@ -164,6 +169,12 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
   the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`); gdstudio #926,
   2026-11-10 (the parts bench's frame-end node, the same way).
+- **Approach:** A cache of resources shared by every instance of a class (`static var _meshes: Dictionary[float,
+  SphereMesh]`) is emptied when the last instance goes: count instances in `_init` and `NOTIFICATION_PREDELETE`, and
+  clear the dictionaries at zero. **Watch out for:** a static holds its resources until the script unloads, after the
+  servers have shut down, so a run that fired one pooled projectile ended with `RID allocations of type JoltShape3D,
+  DummyMesh, DummyMaterial, DummyShader were leaked at exit`, one of each cached look. **Seen:** gdstudio #887,
+  2026-11-10 (`Projectile`'s shared mesh, shape and paints).
 
 ## The export leak is intermittent on CI {#the-export-leak-is-intermittent-on-ci}
 

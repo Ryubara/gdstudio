@@ -52,8 +52,8 @@ func test_the_dressed_character_has_eleven_zones_on_their_own_layer() -> void:
 
 
 func test_a_shot_on_each_zone_hits_that_zone_and_scales_the_damage() -> void:
-	_target.max_health = 100000.0
-	_target.health = _target.max_health
+	Health.of(_target).max_value = 100000.0
+	Health.of(_target).value = 100000.0
 	var projectile := load(ImpactShots.PROJECTILE).instantiate() as Projectile
 	var damage := projectile.damage
 	projectile.free()
@@ -106,7 +106,7 @@ func test_getting_up_gives_the_health_back() -> void:
 
 
 func test_with_health_off_a_hit_takes_nothing() -> void:
-	_target.health_enabled = false
+	Health.of(_target).enabled = false
 	_target.take_hit(HitRecord.shot(500.0, &"head", &"Head", Vector3.INF, Vector3.ZERO, 0.0))
 	assert_float(_target.health).is_equal(_target.max_health)
 	assert_bool(_target.is_dead()).is_false()

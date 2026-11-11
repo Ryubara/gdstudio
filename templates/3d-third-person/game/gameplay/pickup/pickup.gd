@@ -5,8 +5,8 @@ extends Area3D
 ## `CharacterBody3D` on the Collision > Mask layers: Characters, so the area never even hears of a
 ## wall, the floor or a crate beside it) touches it, `collected` says who took what. The area sits
 ## on the Sensors layer. `characters_only` checks the class as well, for a mask that lists more.
-## It does nothing else: the game decides what an item means (a body with a
-## `collect(item_id, amount)` method, like `Player`, is also told). It works on its own and can
+## It does nothing else: the game decides what an item means (a `Character`, the player among
+## them, is also given it with `Character.collect()`). It works on its own and can
 ## come back after a while.
 ##
 ## Its look is two nodes of `pickup.tscn`, `Visual` (the mesh) and `Shape` (what a body touches),
@@ -116,9 +116,10 @@ func _on_body_entered(body: Node3D) -> void:
 	if not is_available() or (characters_only and not body is CharacterBody3D):
 		return
 	collected.emit(body, item_id, amount)
-	# A body that keeps count (a `Character`) is told too, so no wiring is needed to carry a coin.
-	if body.has_method(&"collect"):
-		body.call(&"collect", item_id, amount)
+	# A character keeps count, so no wiring is needed to carry a coin.
+	var character := body as Character
+	if character != null:
+		character.collect(item_id, amount)
 	_hide_now()
 	var length := _play_sound()
 	if respawn_time <= 0.0:

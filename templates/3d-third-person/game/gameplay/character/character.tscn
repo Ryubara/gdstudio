@@ -3,13 +3,18 @@
 [ext_resource type="Script" path="res://gameplay/character/character.gd" id="1_character"]
 [ext_resource type="Script" path="res://gameplay/character/interactor.gd" id="2_interactor"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/weapon.tscn" id="3_weapon"]
+[ext_resource type="Script" path="res://addons/gds_game/hits/health.gd" id="4_health"]
+[ext_resource type="Script" path="res://gameplay/weapon/weapon_loadout.gd" id="4_loadout"]
+[ext_resource type="Resource" path="res://gameplay/weapon/pistol.tres" id="5_pistol"]
+[ext_resource type="Resource" path="res://gameplay/weapon/fists.tres" id="6_fists"]
+[ext_resource type="Resource" path="res://gameplay/character/vault_settings.tres" id="7_vault"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
 radius = 0.34
 height = 1.8
 
-[node name="Character" type="CharacterBody3D" node_paths=PackedStringArray("weapon")]
+[node name="Character" type="CharacterBody3D" node_paths=PackedStringArray("weapon", "loadout")]
 collision_layer = 2
 collision_mask = 9
 floor_stop_on_slope = true
@@ -17,6 +22,8 @@ floor_max_angle = 0.837758
 platform_floor_layers = 9
 script = ExtResource("1_character")
 weapon = NodePath("Weapon")
+loadout = NodePath("Loadout")
+vault_settings = ExtResource("7_vault")
 
 [node name="Body" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true
@@ -34,3 +41,12 @@ script = ExtResource("2_interactor")
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("shooter") instance=ExtResource("3_weapon")]
 shooter = NodePath("..")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("4_health")
+
+[node name="Loadout" type="Node" parent="." node_paths=PackedStringArray("weapon")]
+script = ExtResource("4_loadout")
+weapon = NodePath("../Weapon")
+slots = Array[Resource]([ExtResource("5_pistol")])
+unarmed = ExtResource("6_fists")

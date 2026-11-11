@@ -10,8 +10,13 @@ extends GdUnitTestSuite
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## A living dressed character: 62 nodes and 17 physics bodies before #926 (16 bones, their shapes
 ## and their simulator were made at the spawn), 29 and 1 after; the hit zones (#876) add 13 nodes
-## and their body.
-const NODES_ALIVE := 42
+## and their body; the weapon system (#887) adds 4: the `Loadout` and the weapon's empty click,
+## reload and draw sounds (idle players, no processing until one plays); the pistol's hold (#1001)
+## adds 6: `WeaponHold`, its three skeleton modifiers (5.6 microseconds a character a frame
+## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1;
+## the reload's `MagazineHand` marker (#1031) 1, a `Marker3D` that is never processed; the
+## `MinimapHeading` (#1047) 1, a plain `Node` read only when a minimap draws its arrow.
+const NODES_ALIVE := 55
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
@@ -70,12 +75,12 @@ func test_a_living_character_carries_no_ragdoll_until_it_dies() -> void:
 	assert_int(_bodies(body)).is_equal(BODIES_ALIVE + CharacterRagdoll.BODIES.size())
 
 
-func test_a_standing_target_is_not_processed_until_it_is_shot() -> void:
+func test_a_standing_target_is_not_processed_until_it_is_hit() -> void:
 	var target := (load("res://gameplay/target/target.tscn") as PackedScene).instantiate() as Target
 	_arena.add_child(target)
 	await InputSim.ticks(get_tree(), 2)
 	assert_bool(target.is_processing()).is_false()
-	target.take_shot(null, Vector3.ZERO)
+	Health.of(target).apply(HitRecord.blow(1.0))
 	assert_bool(target.is_processing()).is_true()
 	await InputSim.ticks(get_tree(), 30)
 	assert_float(target.tilt()).is_equal(target.drop_angle)
