@@ -180,11 +180,14 @@ kept with `--keep`, two calls at once).
   `.uid` files, and before the push run `git status --porcelain` in the template after a headless `--import` there.
   **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
   the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
-  icons). **Seen:** gdstudio #884, 2026-11-10.
+  icons). **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
+another game with no `.import`: the full local run was green and CI's step failed).
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
-  fault of the change. **Seen:** gdstudio #856, 2026-11-09.
+  fault of the change. A merge resolved by hand can also keep both sides' bindings: run it before the push. **Seen:**
+  gdstudio #856, 2026-11-09; gdstudio #887, 2026-11-10 (prone and the empty hands both took d-pad down, and
+  `test_input_map.gd` failed only on the next run).
 - **Approach:** A game is made from the template folder as it is on disk, and the copy leaves out what git ignores
   (`git ls-files --others --ignored`, with `__pycache__`, `.ruff_cache`, `.pytest_cache`, `.mypy_cache`, `.godot` as the
   fixed fallback when the template is not in a checkout); `gds new game`, `gds template test` and the eval games share
@@ -222,7 +225,7 @@ using the command above, since the script asks questions.
 | Template | What it is | Status |
 | --- | --- | --- |
 | `3d-blank` | The shared base: a bounded floor and walls on the grid surface (cell size and editor snap from one project value), sky, sun, baked light, a Forward+ graphics profile (Compatibility on the web and phones), `ProtoBlock` for the floor and walls (resize them in the inspector), Phantom Camera with a static view camera, the touch controls component (real `Control` nodes you arrange in the 2D editor), a `WebProbe` that CI's [boot check](web-probes.md#boot-check) waits for, the folder layout and the web export ([Prototype surfaces and daylight](prototype-surfaces.md#web-first-rework)); every template follows [the checklist](#template-checklist). | made; trimmed to this in #821, the checklist applied in #831 |
-| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), a minimap and a full-screen map ([Minimap](minimap.md)), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
+| `3d-third-person` | `3d-blank` plus a character controller (walk, run, sprint, crouch, prone and crawl, jump), a Phantom Camera third-person view with sprint and aim views, touch controls bound to it, the Quaternius female and male mannequins (the female is the default) with the Universal Animation Library 1 and 2, a pistol with a crosshair, projectiles and targets, bullet impacts (marks, effects and sounds by surface), a minimap and a full-screen map ([Minimap](minimap.md)), an assault rifle model, a muzzle flash and the pooled effect emitter both use, the first sounds, a main menu, pause menu and settings with rebinding, and the #788 prototype map with its components, a crouch course, a range and two map sections for AI and pathing work ([The 3D Third Person template](third-person-template.md), [Map sections](map-sections.md)). | made in #821, crouch, pistol and sounds in #836 |
 | `3d-first-person`, `3d-universal`, `3d-top-down`, `3d-vehicle` | Controllers and sample content on the same base, filed one at a time after the one before it is tested. | planned |
 
 What each template plays, and on which bus (the buses and the volume node are in [Audio](audio.md#template-buses)):

@@ -135,12 +135,13 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 				. override_failure_message(property["name"])
 				. is_equal(command.get(property["name"]))
 			)
-	assert_int(fields).is_equal(19)
+	assert_int(fields).is_equal(24)
 	copy.clear()
 	assert_float(copy.yaw).is_equal(command.yaw)
 	assert_float(copy.pitch).is_equal(command.pitch)
 	assert_vector(copy.move).is_equal(Vector2.ZERO)
 	assert_bool(copy.sprint or copy.aim or copy.fire or copy.jump or copy.crouch).is_false()
+	assert_bool(copy.prone).is_false()
 	assert_bool(copy.walk or copy.has_shot or copy.jump_pressed).is_false()
 
 
@@ -230,7 +231,9 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	var rates: Dictionary[String, float] = {}
 	for automatic: bool in [false, true]:
 		var human := _arena.add_player(Vector3(0.0, 0.0, 6.0 if automatic else 3.0))
-		human.weapon.automatic = automatic
+		# Its own copy: the pistol's definition is shared by every weapon that holds it.
+		human.weapon.definition = human.weapon.definition.duplicate()
+		human.weapon.definition.automatic = automatic
 		var camera := Camera3D.new()
 		camera.position = Vector3(0.0, 1.3, 9.0)
 		_arena.add_child(camera)

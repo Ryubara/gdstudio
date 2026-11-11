@@ -30,16 +30,15 @@ const SAMPLES := 12
 
 
 func _initialize() -> void:
-	var animation := CharacterAnimation.new()
-	var bones: Array[StringName] = animation.grip_bones
-	var grip_clip := animation.grip_clip
+	var pistol := load("res://gameplay/weapon/pistol.tres") as WeaponDef
+	var bones: Array[StringName] = pistol.grip_bones
+	var grip_clip := pistol.grip_clip
 	if OS.get_environment("CARRY_BONES") != "":
 		bones = []
 		for bone in OS.get_environment("CARRY_BONES").split(","):
 			bones.append(StringName(bone))
 	if OS.get_environment("CARRY_GRIP") != "":
 		grip_clip = StringName(OS.get_environment("CARRY_GRIP"))
-	animation.free()
 	print("grip bones ", bones, " clip ", grip_clip)
 	for path: String in MODELS:
 		var holder := Node3D.new()

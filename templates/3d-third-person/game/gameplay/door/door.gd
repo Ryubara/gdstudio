@@ -91,6 +91,8 @@ var _open_for := 0.0
 var _home := Transform3D.IDENTITY
 # Set when the door is closed with a character in range: auto-open waits for the range to empty.
 var _held_shut := false
+# The characters inside the auto-open range, kept by the sensor's signals (no query a tick).
+var _near: Array[CharacterBody3D] = []
 
 
 func _ready() -> void:
@@ -98,6 +100,10 @@ func _ready() -> void:
 	_update_sensor()
 	if Engine.is_editor_hint():
 		return
+	var sensor := _sensor()
+	if sensor != null:
+		sensor.body_entered.connect(_on_sensor_entered)
+		sensor.body_exited.connect(_on_sensor_exited)
 	sync_to_physics = true
 	_home = transform
 	_update_usable()
@@ -191,13 +197,16 @@ func unlock() -> void:
 # True while a character is inside the auto-open range. The mask keeps the level out; only a
 # `CharacterBody3D` counts as well, for a game whose mask also lists the level or props.
 func _character_near() -> bool:
-	var sensor := _sensor()
-	if auto_open_range <= 0.0 or sensor == null:
-		return false
-	for body in sensor.get_overlapping_bodies():
-		if body is CharacterBody3D:
-			return true
-	return false
+	return auto_open_range > 0.0 and not _near.is_empty()
+
+
+func _on_sensor_entered(body: Node3D) -> void:
+	if body is CharacterBody3D and not _near.has(body):
+		_near.append(body)
+
+
+func _on_sensor_exited(body: Node3D) -> void:
+	_near.erase(body)
 
 
 # Moves the panel to where the new motion settings put it, while the game runs.
@@ -275,6 +284,8 @@ func _update_sensor() -> void:
 		return
 	sensor.collision_mask = auto_open_mask
 	sensor.monitoring = auto_open_range > 0.0 and not Engine.is_editor_hint()
+	if not sensor.monitoring:
+		_near.clear()
 	var ball := sensor.get_node_or_null("%SensorShape") as CollisionShape3D
 	if ball != null:
 		(ball.shape as SphereShape3D).radius = maxf(auto_open_range, 0.01)

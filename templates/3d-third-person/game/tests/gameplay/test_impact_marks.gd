@@ -111,10 +111,9 @@ func test_a_character_body_takes_no_mark() -> void:
 	assert_int(_impacts.mark_count()).is_equal(0)
 
 
-func test_a_shot_meets_a_body_on_the_ragdoll_layer_and_marks_neither_it_nor_the_wall() -> void:
+func test_a_shot_meets_a_body_on_the_ragdoll_layer_and_marks_it_not_the_wall() -> void:
 	# Shots list the Ragdoll layer (a dead body takes shots, #924): the shot stops at the bone, so
-	# the wall behind it takes no mark, and a bone takes none of its own (#876 adds marks that stay
-	# on a body as it gets up).
+	# the wall behind it takes no mark, and the bone takes the mark and carries it (#876).
 	var bone := PhysicalBone3D.new()
 	bone.collision_layer = PhysicsLayers.RAGDOLL
 	bone.collision_mask = 0
@@ -127,4 +126,7 @@ func test_a_shot_meets_a_body_on_the_ragdoll_layer_and_marks_neither_it_nor_the_
 	_impacts.impact_made.connect(_on_impact)
 	await _shoot_wall(0.0)
 	assert_array(_hit).is_equal([bone])
+	assert_int(_impacts.mark_count()).is_equal(1)
+	assert_object(_impacts.marks()[0].get_parent()).is_same(bone)
+	_impacts.clear_marks_on(bone)
 	assert_int(_impacts.mark_count()).is_equal(0)

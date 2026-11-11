@@ -2,7 +2,8 @@
 
 <!-- new section: split out of the third-person template page when it reached the size limit (#983) -->
 
-The 3D Third Person weapon: crouch, aim and shoot, the bullet impacts and the effects. Part of [the 3D Third Person template](../third-person-template.md).
+The 3D Third Person weapon: crouch, aim and shoot, ammunition, reloading and switching, the bullet impacts and the
+effects. Part of [the 3D Third Person template](../third-person-template.md).
 
 ## Crouch, aim and shoot {#crouch-aim-shoot}
 
@@ -169,19 +170,97 @@ the spread's place for `restore()`.
   head read 0.5 m for a lens 1.1 m from the arm's start. Cause and fix: [Walls](../camera.md#walls). **Seen:** gdstudio
   #856, 2026-11-08.
 
+## Ammo, reloading and switching {#weapons}
+
+<!-- new section: the template had one weapon with its numbers on the node; nothing said how a weapon is data, how
+     ammunition and a reload count, or how a character switches (gdstudio #887) -->
+
+A weapon is data: a `WeaponDef` resource (`gameplay/weapon/weapon_def.gd`; the template's are `pistol.tres` and
+`fists.tres` beside it) holds its name and icon, its kind (`PROJECTILE`, `HITSCAN` or `MELEE`), rate, spread, recoil
+(its share of the camera's `shot_kick_amplitude`, cosmetic; 0 for the fists), damage, range and push, the magazine, the
+reserve and its largest, the ammunition's `Pickup.item_id`, the reload's time, the switch's times, the projectile's
+numbers, the model in the hand (`view`, `muzzle`: paths under the `Model` slot), the clips (grip, aim level, up and
+down, the shots, the reload) and the sounds (shot, empty click, the reload's steps at their shares, the draw). A new
+weapon is a new `.tres`; nothing else changes.
+
+- **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
+  an empty magazine (`dry_fired`) or does nothing (cooling down, reloading, put away), and `fire()` is the same with
+  the projectile back. `reload()` puts the reserve's rounds in at the end of `reload_time`, never at its start, and an
+  empty magazine with a reserve reloads by itself (`auto_reload`, for a phone that holds fire). The HUD reads `ammo`,
+  `magazine_size` and `reserve` (null for a weapon with no magazine, so the ammo part hides for the fists) and the
+  signals `ammo_changed`, `reloaded`, `definition_changed`. A projectile comes from the weapon's pool
+  (`projectile_cap`, 24): a finished one parks hidden out of the physics and is fired again, and every projectile of
+  a size shares one mesh and shape and every one of a colour one material, so a hundred shots make no resource. A
+  hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
+  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
+  from the chest.
+- **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` and
+  `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
+  away, shows the model of the one in the hands, and fills a reserve from a pickup of its `ammo_item`. A switch takes
+  the old weapon's `holster_time` (it cannot fire or reload; a reload under way is cut short and gives nothing), then
+  the new one's `draw_time`; asking again during a switch goes there instead. `next()`, `previous()` (the slots, then
+  the empty hands) and `toggle_unarmed()`.
+- **The command** carries the presses (`reload_pressed`, `next_weapon_pressed`, `previous_weapon_pressed`,
+  `unarmed_pressed`: flag bits 11 to 14, `NetWire.VERSION` 3; bit 15 is prone's), from the actions `reload` (R, pad Y,
+  the touch Reload), `next_weapon` (wheel down, d-pad right, the touch Swap), `previous_weapon` (wheel up, d-pad left) and
+  `toggle_unarmed` (H, d-pad up). The character steps the loadout and then the weapon at the end of each `step`, and
+  both are in its step state (`CharacterState.weapon`: cooldown, spread, magazine, reserve, reload; `.loadout`), so a
+  server and a predicting client reload and switch on the same tick. What is in the hands is gameplay; the clips, the
+  sounds and the flash are cosmetic and never sent.
+- **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
+  left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
+  reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
+  `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+
+Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
+the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
+empty, the click, the reload, the fists and back; `WEAPONS_SIDE=1` from the side) and
+`tools/capture/reload_closeups.tscn` (the hands on the pistol in the grip, the aim and five moments of the reload, from
+the side, above and behind the shoulder).
+
+Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
+µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
+resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons add 4 nodes to a living character (the
+`Loadout` and three idle sound players: 46, `test_parts_budget.gd`). The shot's sound is most of a shot: with the
+`ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
+all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
+number as a budget.
+
+Hands on the pistol in the clips it plays (`tools/carry/measure_hand_contact.gd`, the skinned mesh against the gun, 8
+samples a clip, the seat of kit #834 that #1001 replaces): the right hand goes 9.4 mm into the grip on the female
+mannequin and 11.1 mm on the male in every pistol clip, the index finger and the thumb touch, the middle, ring and
+little fingers stand 5.1, 7.4 and 11.3 mm off (2.4, 5.3 and 8.4 on the male); the clips' left hand goes 5 to 12 mm
+into the gun in the grip, aim and shot (to 47 mm aiming up on the female and 76 to 88 mm in the male's grip and shot)
+and in the reload leaves it and comes back (7.6 mm in on the female, 49 mm on the male). The reload holds to the
+weapons page's limits only once #1001's hold (fingers on `Grip` and `Trigger`, the support hand by IK) carries it
+through `Pistol_Reload` too.
+
+- **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
+  the action going down between two commands, or an event seen while the action is up again, never both: keep the
+  action's state from the last command and a latch set in `_unhandled_input`. **Watch out for:** a latch from the event
+  ORed with `is_action_just_pressed` counted one tap of H twice, so the toggle went to the fists and straight back and
+  the switch never ended (four switching cases failed). **Seen:** gdstudio #887, 2026-11-10 (`PlayerInput`'s weapon
+  presses).
+- **Approach:** Give a weapon in a test its own copy of the definition (`weapon.definition =
+  weapon.definition.duplicate()`) before changing a number. **Watch out for:** a `.tres` is loaded once and shared by
+  every weapon that holds it, so a suite that sets the fire rate on the shared pistol changes it for every later suite
+  of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
+  and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
+
 ## Bullet impacts {#impacts}
 
 A shot that lands tells the level's `Impacts` node (`world/world.tscn`, the group `impacts`): a mark on the body it hit
 (a flat quad, no `Decal`: the web build's Compatibility renderer draws none), an effect and a sound by the kind of
 surface. `Impacts.impact(collider, point, normal)` is the one call. Its inspector list, the surfaces, the metadata a
-body names its surface with and the tests are on [Bullet impacts in 3D Third Person](../third-person-impacts.md).
+body names its surface with and the tests are on [Bullet impacts in 3D Third Person](../third-person-impacts.md). A
+shot on a character finds the body part in its path and the body answers it: [Hit zones](../third-person-hits.md).
 
 ## Effects and the muzzle flash {#effects}
 
 <!-- new section: the pistol had no flash; impacts kept their own pools (gdstudio #888) -->
 
 One `EffectEmitter` (`Effects` in `world/world.tscn`) plays the flash, each impact and other one-shot effects from one
-pool ([every inspector value](../effect-emitter.md#using-it)); the `Weapon`'s are `muzzle_flash_enabled`, `muzzle_flash`
-and `muzzle_flash_size`. Its warm-up visits every reflection probe of the map (`warm_up_every_probe`) and draws the
-materials of the groups `warm_up_groups` names there (`player`), so the room's first visit and first shot build nothing
-([the warm-up](../effect-emitter.md#warm-up)).
+pool ([every inspector value](../effect-emitter.md#using-it)); the `Weapon`'s switch is `muzzle_flash_enabled`, and the
+flash and its size are the definition's (`WeaponDef.muzzle_flash`, `muzzle_flash_size`). Its warm-up visits every
+reflection probe of the map (`warm_up_every_probe`) and draws the materials of the groups `warm_up_groups` names there
+(`player`), so the room's first visit and first shot build nothing ([the warm-up](../effect-emitter.md#warm-up)).

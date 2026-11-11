@@ -143,7 +143,8 @@ def run_godot_command(argv: list[str]) -> int:
     timeout, with_audio, rest = parse_godot_args(argv)
     root = workspace.require_workspace()
     godot = workspace.tool_path("godot", root)
-    return _stream_quiet([str(godot), *mute_godot(rest, with_audio)], timeout, "godot")
+    args = capture.tell_movie_end(mute_godot(rest, with_audio))
+    return _stream_quiet([str(godot), *args], timeout, "godot")
 
 
 def run_quiet_command(argv: list[str]) -> int:

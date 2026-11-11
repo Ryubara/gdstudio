@@ -71,7 +71,9 @@ capture ([Godot rig sharing](../../engines/godot/rig-sharing.md)).
 
 A clip with no clip to start from is solved, frame by frame, from a few targets, by a script that keys the result
 (`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
-transitions to the Universal Animation Library's crouch, on the Quaternius universal rig).
+transitions to the Universal Animation Library's crouch, on the Quaternius universal rig). Godot imports the file with
+`importer="animation_library"` beside the libraries
+([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
 
 - **Give each bone a world turn from its rest, not angles on its own axes.** A glTF rig's bone axes are arbitrary, so
   a limb is aimed by mapping two rest directions (along the bone, and the joint's hinge) to where they should point;
@@ -112,6 +114,13 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   script that renders it. **Watch out for:** Blender imports keys at seconds times the scene's rate, so a 30 frames a
   second library read into a new scene (24) had its 46-frame clip on frames 0 to 37 and every sampled frame fell
   between two keys. **Seen:** gdstudio #1009, 2026-11-10 (fix: `scene.render.fps = 30` before the import).
+- **Approach:** Test a clip file of your own in Godot on both mannequins: every track finds its bone, a loop's last
+  pose is its first, a transition's first and last pose equal the poses it joins (bone by bone, in the model's space),
+  and a planted joint stays put while the model moves at the clip's speed. **Watch out for:** the importer keeps 57 of
+  the file's 195 channels (it drops the scale tracks and the positions that never move), an `Array[StringName]` sorts
+  by something other than the alphabet (compare `String`s), and a clip solved on the female mannequin rolls a planted
+  elbow up to 3 cm on the male, whose upper arms are 5 cm longer, so the limits are per model. **Seen:** gdstudio
+  #1009, 2026-11-10 (`tests/gameplay/test_prone_clips.gd`).
 - **Approach:** Before keying a gait or a move the library has no clip of, research how real limbs do it, not only
   its speed: a manual or coaching text, a motion study and a dozen photographs. Write down, with sources, each
   limb's angle to the body, where hands and feet land, which limbs move together and each joint's path; build to
