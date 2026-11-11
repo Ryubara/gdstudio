@@ -7,53 +7,15 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
 
 ## The animation libraries {#animation-libraries}
 
-<!-- new section: no page said how the Universal Animation Library reaches a Godot character -->
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
 
-- **Approach:** Import each Universal Animation Library glb as an `AnimationLibrary` (`importer="animation_library"` in
-  its `.import`, the "Import As" choice of the Import dock), add it to the player's `AnimationPlayer` under a library
-  name (`ual1`, `ual2`), and keep the mannequin as a plain scene whose root is the `AnimationPlayer`'s `root_node`.
-  **Watch out for:** the importer drops the glb's mesh (the library is 0.75 MB where the file is 7.6 MB), removes the
-  `_Loop` suffix and makes the clip loop (`Idle_Loop` is `ual1/Idle`, `Jump_Loop` is `ual1/Jump`), and the track paths
-  are `Armature/Skeleton3D:<bone>`, which match the mannequin's scene (`mannequin/Armature/Skeleton3D`) with no
-  retargeting, since the libraries and the mannequin share the Quaternius universal rig. A test walks every track of all
-  86 clips and finds its bone. **Seen:** gdstudio #821, 2026-11-08.
-- **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and
-  travel a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No
-  name provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
-- **Approach:** Import a clip file whose keys a build already reduced and checked (GDStudio's own clips,
-  `assets/animation/own/`, the library `gds`) with the importer's optimizer off and track compression on (in the
-  `.import`: `_subresources` > `nodes` > `PATH:AnimationPlayer` > `optimizer/enabled` false, `compression/enabled`
-  true, `compression/page_size` 8), and test a planted foot on the imported library, not on the file.
-  **Watch out for:** the glTF import samples every track at `animation/fps` whatever keys the file holds, so sparse
-  keys do not arrive sparse: the default optimizer then moved a planted foot 4 mm in a slow idle (the build held it
-  to 0.3 mm), its error settings changed nothing, and with it off the 10 s clip was 256 KB; compressed it is 39 KB
-  with the foot within 1 mm. **Seen:** gdstudio #1154, 2026-11-11 (`tests/gameplay/test_own_clips.gd`).
-- **Approach:** When a clip of our own replaces a library clip, move its constant (`CharacterClips.IDLE` is
-  `gds/Idle`), keep the library clip in `CharacterClips.STAND_INS`, and read a clip file the game does not import
-  (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
-  `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
-  asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
-  (`tools/capture/own_clips_review.gd`).
-- **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
-  by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
-  `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
-  `test_pistol_hold.gd`, `test_pistol_clearance.gd`, `test_aim_brace.gd`) before the full run. **Watch out for:** a
-  fixture that builds its own `AnimationPlayer` knows only the libraries its table names, so the moved clip is
-  missing there and nowhere else; and every upper-body layer rides the pelvis of the clip under it, so a new idle
-  turned the aim 13 degrees and moved the muzzle 0.22 m ([the aim](shooting.md#crouch-aim-shoot)). **Seen:** gdstudio #1154,
-  2026-11-11 (16 cases red in the full run after only the two touched suites were run).
-- The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
-  all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
-  A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
-  `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
-  sha256 in the licence entry.
-- **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
-  read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
-  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
-  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
-  drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
-  to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
-  2026-11-11 (the position tracks).
+Moved to [The character's clips](clips.md#animation-libraries).
+
+## The vault clips {#vault-clips}
+
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
+
+Moved to [The character's clips](clips.md#vault-clips).
 
 ## The two mannequins {#mannequins}
 
