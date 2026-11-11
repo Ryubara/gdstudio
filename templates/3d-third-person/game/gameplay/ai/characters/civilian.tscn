@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/ai/ai_character.tscn" id="1_character"]
+[ext_resource type="Resource" path="res://gameplay/ai/profiles/civilian.tres" id="2_profile"]
+[ext_resource type="Resource" path="res://gameplay/ai/behaviour/sets/civilian.tres" id="3_behaviour"]
+
+[node name="Civilian" instance=ExtResource("1_character")]
+profile = ExtResource("2_profile")
+
+[node name="Loadout" parent="."]
+start_slot = -1
+
+[node name="Ragdoll" parent="."]
+ragdoll_range = 40.0
+
+[node name="Senses" parent="."]
+startled_by = Array[StringName]([&"shot"])
+
+[node name="Brain" parent="."]
+behaviour = ExtResource("3_behaviour")
+home_radius = 3.0
+remind_up_to = 1

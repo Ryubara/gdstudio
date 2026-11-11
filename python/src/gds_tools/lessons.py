@@ -575,7 +575,7 @@ def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> st
 # `gds brief`: the sections a task agent reads before it starts, proposed from its issue
 # --------------------------------------------------------------------------------------------------------------------
 
-# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/guards.py`) or a folder of two
+# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/dispatch.py`) or a folder of two
 # parts or more that ends in a slash (`docs/lessons/`; a bare `design/` matches too much prose). Words that merely
 # contain a dot (`e.g.`, `v1.2`) are not paths.
 _PATH = re.compile(
@@ -693,10 +693,13 @@ def propose(
     3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
        from one page.
 
-    The corrections log and the format page (rules.md) are left out, as in `learn`."""
+    The corrections log and the format page (rules.md) are left out, as in `learn`, and so is every heading without an
+    explicit `{#anchor}` (a page's `#` title, a heading outside the anchored folders): a `Read:` line names an anchor
+    the reader finds written in the page (gdstudio #1193: `ai.md#ai-characters-in-3d-third-person` and
+    `index.md#blender`, the slugs of two titles, read as missing to the agents given them)."""
     query = _query(title, labels or {}, body)
     skip = {RULES_DOC.relative_to(DOCS).as_posix()}
-    sections = [s for s in sections_in(root) if s.page not in skip and not is_corrections_page(s.page)]
+    sections = [s for s in sections_in(root) if s.explicit and s.page not in skip and not is_corrections_page(s.page)]
     by_ref = {s.ref: s for s in sections}
     docs = [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections]
     ranked = _weighted_rank(query, docs)

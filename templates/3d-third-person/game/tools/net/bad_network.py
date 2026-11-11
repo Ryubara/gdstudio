@@ -3,7 +3,7 @@
 A predicting client's report (`NetPlayReport`: the native `PREDICT_BOT` line of `tools/net/predict_bot.gd`, or
 `window.gdnet.report` of the browser's `NetPlayProbe`) and the game server's log are judged here, so
 `tools/net/bad_network_gate.py` and `tools/web_smoke/net_play_smoke.py` fail on the same numbers. Each threshold
-names what it guards (kit docs: engines/godot/third-person/online-client.md#bad-network-gate).
+names what it guards (kit docs: engines/godot/third-person/online-gate.md#bad-network-gate).
 """
 
 from __future__ import annotations
@@ -175,7 +175,12 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
     verdict.check(
         f"corrected under {allowed:.2f} m",
         report["corrected_m"] < allowed,
-        {"corrected_m": report["corrected_m"], "corrections": report["corrections"], "up_stalls": network.stalls_up},
+        {
+            "corrected_m": report["corrected_m"],
+            "corrections": report["corrections"],
+            "stuck_snaps": report.get("stuck_snaps", 0),
+            "up_stalls": network.stalls_up,
+        },
     )
     if report.get("puppets", 0) > 0:
         starved = network.starved_allowed(report["steps"], report["puppets"], report["stalls"])

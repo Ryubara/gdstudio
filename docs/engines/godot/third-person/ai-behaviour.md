@@ -102,8 +102,9 @@ target, a turn no faster than `aim_speed`, tracking noise that shrinks while on 
   `play_hysteresis` 0.08, `play_dwell` 2 s.
 - **`AiBehaviourSet`**: `display_name`, `rows`, `waivers`, `situation_rules`, `default_task`. **`AiReactionRow`**:
   `event`, `bands`, `situations`, `play_states`, `min_awareness`, `min_courage`, `max_courage`, `chance`,
-  `chance_scale`, `task`, `place`, `enter`, `note`. **`AiReactionWaiver`**: `event`, `bands`, `situations`, `reason`.
-  **`AiSituationRule`**: `situation`, `blocks`, `open_layers`.
+  `chance_scale`, `noises` (the noise kinds a `heard` row answers; empty: any), `task`, `place`, `enter`, `note`.
+  **`AiReactionWaiver`**: `event`, `bands`, `situations`, `reason`. **`AiSituationRule`**: `situation`, `blocks`,
+  `open_layers`.
 - **`AiMarker`**: `kind`, `route`, `wait_seconds` 2 s, `enabled`.
 - Each stock task's numbers are its exports (group Stock: `answers_threat`, `roams`; then its own, documented on
   the script). The brain's and the profile's are pinned by `test_ai_exports.gd`, each task's channels and contract by
@@ -161,22 +162,126 @@ At the web cap, 40 guards in Chrome: off 828 µs (1.8 ms), calm 837 (1.6), threa
   0.34 calm (46 body steps a tick against 17: a guard that aims and fires is never at rest, `rest_step_ticks` no longer
   spreads it, and it takes the full tick, not the lean one), senses 0.53 ms against 0.13 (rays at targets in view),
   the attack task 0.36 ms against 0.05, the brain 0.13 ms against 0.09, the navigator 0.04 ms.
-- **The budget.** 40 fighting guards in Chrome are twice the 1 ms AI budget, 50 are 2.5 times the budget of [Crowds: AI
-  characters](../crowds.md#ai-characters), and at 4x past the tick (3.2 and 5.9 ticks a frame: the catch-up
-  spiral), so a web fight holds fewer guards than the 40 the web cap allows: [the follow-up](#cost-follow-up).
-  Natively (the desktop and a server) 50 fighting at Full are about 3 ms a tick and 100 about 4 ms.
+- **The budget.** Before kit #1104, 40 fighting guards in Chrome were twice the 1 ms AI budget of [Crowds: AI
+  characters](../crowds.md#ai-characters), 50 were 2.5 times it, and at 4x both were past the tick (3.2 and 5.9 ticks
+  a frame: the catch-up spiral). Natively (the desktop and a server) 50 fighting at Full are about 3 ms a tick and 100
+  about 4 ms. What #1104 changed and the web count it sets: [the follow-up](#cost-follow-up).
 
 ### The follow-up {#cost-follow-up}
 
-Kit #1104 takes the fight's cost down (a lean tick for aiming and firing, fighters at the Reduced tier stepped less
-often, fewer sight rays at a target seen on the last think) or sets a web cap for fighting characters from this table.
-Until then no web count of fighting guards is measured to fit the budget: keep web fights small and bench them.
+Kit #1104 measured the fight by part, cut the body's share and set the web count of fighting guards from the table.
+
+**Where a fight goes.** The same bench with each part timed in a throwaway copy of the made game, 40 guards against
+the two targets, 12 at Full and the rest stepped every 4th tick (the browser's defaults), microseconds a tick:
+
+| Part, 40 fighting | Native, before | Native, after | Chrome, before | Chrome, after |
+| --- | ---: | ---: | ---: | ---: |
+| bodies (17 to 19 steps a tick) | 935 to 1210 (full tick) | 555 (lean) | 1089 (full) | 797 (lean) |
+| senses (look, listen, settle) | 310 to 370 | 220 | 369 | 330 |
+| tasks (the attack: aim 75, of which the friend-in-line check 33) | 200 to 220 | 147 | 206 | 189 |
+| brain | 70 to 155 | 52 | 97 | 93 |
+| the controller's command, the navigator | 105 to 120 | 65 | 125 | 110 |
+| **the director's step** | **1850 to 2370** | **1180** | **2160** | **1720** |
+
+- A guard that aims and fires took the full tick on every step (61 to 69 µs natively, 63 in Chrome): the prone stance,
+  the vault's probe, the slide, the crouch and the aim's own update ran for nothing, the step climber's `test_move`
+  every tick. Since #1104 the lean tick takes the aim and the trigger too
+  ([the body's modules](character.md#controller)): only the tick the aim goes up or comes down is full. A fighting body
+  is 30 µs natively and 43 µs in Chrome on the lean tick, against 23 µs for a walker: the shot (a pull is about
+  200 µs in Chrome, 0.27 a tick for 40) and the turn to the aim every tick.
+- Standing aimers stepped less often would not have helped here: in this fight every engaged guard keeps its range
+  and is never still. The noise board's friendly shots, skipped from a faction index kept on the record, saved under
+  10 % of the listen (64 against 70 µs a tick natively) and were left out.
+- What is left is the think: a think of a fighting guard is 75 to 150 µs natively (2 to 3 times a calm one: the look
+  with targets in view, the listen over every shot and step since the last think, the attack's aim), and 12 at Full
+  think 10 times a second ([the think](#cost-think), kit #1204).
+
+**Before and after**, the director's step in Chrome (ms a tick, three interleaved runs of a build of `main` and of the
+change at 1x, two at 4x, with the frame's work and ticks a frame at 4x; rows of at least 600 ticks):
+
+| Fighting guards | 1x before | 1x after | 4x before | 4x after |
+| --- | ---: | ---: | ---: | ---: |
+| 6 | | 0.50, 0.66 | | 4.8, 5.0 (work 5.4 to 6.2 / 0.5) |
+| 12 | | 0.81, 0.96 | | 6.8, 11.6 (work 8.1 to 9.6 / 0.6 to 1.6) |
+| 20 | 1.24 to 1.97 (mean 1.59) | 1.16 to 1.22 (1.19) | 11.1 (14 to 30 / 2.4 to 3.2) | 7.1 to 10.4 (7.8 to 10.8 / 0.6 to 1.2) |
+| 30 | 1.37 to 2.19 (1.74) | 1.30 to 1.64 (1.49) | 10.6 to 13.4 (35 to 93 / 3.1 to 6.2) | 7.5 to 11.6 (10 to 34 / 0.9 to 3.3) |
+| 40 | 1.57 to 2.41 (2.04) | 1.60 to 1.88 (1.75) | 7.9 to 11.6 (12 to 48 / 1.4 to 4.0) | 10.5 to 11.7 (22 to 55 / 2.1 to 4.3) |
+
+- The step is 14 to 25 % shorter at 1x; at 4x the change takes 20 fighting guards out of the catch-up spiral (0.6 to
+  1.2 ticks a frame against 2.4 to 3.2) but not 30 or 40, and a run at 4x moves by a third between sessions.
+- **The web count of fighting guards: 12** (all at the Full tier) fit the 1 ms budget at 1x (0.81 to 0.96 ms), and
+  **6** fit the 4x budget (4.8 to 5.0 ms, half a tick a frame). 20 or more fighting at once are over the budget in a
+  browser at any speed: a level made for the web keeps a fight to 12 hostile guards engaged at once (6 for a weak
+  machine), and may hold more around it calm (40 calm guards are 0.8 ms). The director's population caps are not
+  changed: nothing enforces the count yet (attack slots that only N guards hold at once: kit #1203).
 
 - **Approach:** Bench reactions in three modes (brains off, on with nothing to answer, on against a threat) and time
   the step by part (senses, brain, tasks, navigator, bodies) in a throwaway copy of the made game before naming a
   cause. **Watch out for:** the first calm run read 3.8 ms against 0.6 off and looked like a slow brain; the
   calibration loop read 23 ms against 11 (a busy machine), and the timed parts showed the brain at 10 µs a think and
-  a fight's cost in the bodies that stop resting. **Seen:** gdstudio #968, 2026-11-11.
+  a fight's cost in the bodies that stop resting. **Seen:** gdstudio #968, 2026-11-11; gdstudio #1104, 2026-11-11
+  (the parts named the full tick of aiming bodies; a timed copy exported to the web read the same parts in Chrome).
+- **Approach:** Measure a browser bench row by its ticks, not its frames, and compare two builds only on rows of
+  several hundred ticks, interleaved in one session. **Watch out for:** a headless Chrome page draws about three frames
+  a tick at 1x, so the bench's 300 frames held 90 ticks (15 thinks a guard): the lean fight tick that halved the step
+  natively read 1.91 to 1.94 ms against 1.70 to 1.85 before in Chrome, and only rows of 600 ticks or more showed the
+  20 % it saves there. **Seen:** gdstudio #1104, 2026-11-11 (the bench now measures at least 600 ticks a row).
+
+### The think {#cost-think}
+
+<!-- new section: the follow-up left the think as the larger half of a fight; nothing held what its parts cost
+after #1104 or which ideas measured -->
+
+Kit #1204 timed the think of the 40 fighting guards by part (the same bench, 12 at Full, a timed copy of a made game,
+rows of 1200 ticks; natively three interleaved runs of each build, in Chrome four at 1x and two at 4x), and kept only
+what measured. Microseconds a tick, mean of the runs (range):
+
+**The timed copy**, so the rows can be measured again: make a game to keep (`gds template game 3d-third-person`, or
+`gds template bench-web 3d-third-person ai_behaviour_bench` without `--run` for Chrome) and patch its AI scripts, never
+the template's, with spans that add into one static table: `static var prof := {}` and
+`static func add(key, usec)` on `AiDirector`, then `var t0 := Time.get_ticks_usec()` ... `AiDirector.add("think",
+Time.get_ticks_usec() - t0)` around `_think` and `_step` in the director's step, around `sense`, the brain's `think` and
+`thought.emit` in `AiCharacter`, and around the look, listen and settle in `AiSenses` and the aim, trigger and friend
+check in the stock tasks; count what they walk the same way (`n_noises`, `n_friend_calls`). The bench clears the table
+before a row and prints each key divided by the row's ticks. Run each build natively as `--headless --fixed-fps 60
+--path <game> res://tools/bench/ai_behaviour_bench.tscn -- --counts=40 --full=12 --modes=threat`, builds in turns, and
+export the same copy to the web for Chrome. Kit #1204 did it with a patch script, `prof_apply.py`, kept with its probes
+in that task's scratch folder; the made game it ran on is gone, so this paragraph is the recipe.
+
+| Part, 40 fighting | Native before | Native after | Chrome before | Chrome after | Chrome 4x before | 4x after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| the look (its rays) | 79 (16) | 72 (16) | 99 (21) | 93 (22) | 559 (124) | 521 (126) |
+| the listen | 52 | 42 | 61 | 49 | 315 | 261 |
+| the settle | 23 | 24 | 30 | 32 | 146 | 148 |
+| **senses** | **170** | **154** | **216** | **201** | **1140** | **1054** |
+| the aim (the trigger; the friend-in-line check) | 64 (50; 29) | 61 (47; 26) | 82 (62; 38) | 74 (55; 31) | 445 (334; 204) | 425 (311; 173) |
+| tasks | 108 | 105 | 133 | 125 | 722 | 697 |
+| brain | 46 | 47 | 57 | 56 | 275 | 275 |
+| **the thinks** | **338 (327 to 347)** | **322 (319 to 324)** | **427 (416 to 446)** | **401 (391 to 413)** | **2260** | **2147** |
+| bodies | 485 | 488 | 608 | 620 | 3499 | 3539 |
+| the director's step | 885 (860 to 904) | 872 (867 to 876) | 1123 (1102 to 1169) | 1111 (1081 to 1153) | 6295 | 6234 |
+
+- **Kept:** the noise board files each noise under its maker's faction (`AiNoise.by_faction`), so a listen walks only
+  the factions it cares about: 20 % of the listen (the friends' shots and steps; what is left is hearing the impacts,
+  "something", which the brain routes); the look's `Rates` made once per senses, not once a think: 6 % of the look;
+  `get_global_position()` for `global_position` in the look's and the friend check's loops: 19 % of the friend check
+  in Chrome (a microbench of the check over 40 friends: 10.7 against 9.6 µs a call).
+- **Dropped:** a flat box around the line of fire before the friend check's arithmetic (no gain: in a crowd around the
+  target most friends stand inside the box, and the cost is the loop over each body, not the arithmetic); a settle and
+  `AiBeliefs.expire` that make no array (no gain natively or in Chrome); the trigger reading the magazine once (no
+  gain). A cheaper aim between shots was not tried apart: between shots the aim only turns, adds the noise and holds
+  (5 µs a call natively), and its random numbers must stay in step.
+- The thinks are 6 % shorter in Chrome (5 % at 4x, 5 % natively); the director's step is lower in 3 of 4 interleaved
+  pairs at 1x and both at 4x, by 1 % on the mean: the bodies (more than half the step) moved more between runs than
+  the thinks saved. The behaviour is the same: a digest of every guard's position to the centimetre, its beliefs and
+  its shots after 1320 ticks is equal for both builds.
+
+- **Approach:** Time a part's pieces and count what it walks (noises read, friends checked, calls a tick) before
+  choosing a fix, try each idea in interleaved runs of the timed copy, and keep only what moves its part; prove the
+  behaviour unchanged with a digest of the crowd's state (positions, beliefs, shots) equal for both builds.
+  **Watch out for:** a box around the line of fire looked like it would skip most of the friend check and saved
+  nothing (most friends stood inside it), and a counter placed one block deeper in the old listen than the new read
+  as a guard hearing twice as much. **Seen:** gdstudio #1204, 2026-11-11.
 
 ## Proof {#proof}
 

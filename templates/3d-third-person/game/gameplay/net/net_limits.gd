@@ -31,8 +31,15 @@ const MAX_ENTITY_STATE := 12
 ## 8 keeps ten seconds of the longest TICKs inside `BUFFER_SIZE`.
 const MAX_STREAMED_PARTS := 8
 ## Bytes a socket buffers each way, the one size the transport reads (`WebSocketLink` inbound,
-## `WsListener` outbound): 256 KB holds a 5 s frozen tab of a 35 KB/s stream (175 KB) and ten
-## seconds of the longest TICKs at the snapshot rate; the engine's 64 KB lost packets there.
-const BUFFER_SIZE := 1 << 18
+## `WsListener` outbound): 1 MB holds ten seconds of the longest TICKs without AI and five of a
+## full AI snapshot of the desktop population every TICK (gdstudio #970); 256 KB held a 5 s frozen
+## tab of a 35 KB/s stream before the AI rode the TICK, and the engine's 64 KB lost packets there.
+const BUFFER_SIZE := 1 << 20
 ## Seconds of a stall the per-connection command budget takes in one burst (`PeerLimits`).
 const STALL_SECONDS := 4
+## AI characters one TICK carries (`AiSnapshot`): a full snapshot of the whole population within
+## a peer's interest radius fits, past the desktop cap (`AiDirector.desktop_cap`, 120).
+const MAX_AI_ROWS := 256
+## The highest id an AI character may have on the wire (u16 below `NetHits.AI_BASE`'s range end):
+## a HIT names an AI as `NetHits.AI_BASE + id`.
+const MAX_AI_ID := 0x7DFF

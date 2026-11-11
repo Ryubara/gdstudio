@@ -52,7 +52,8 @@ var origin := Vector3.ZERO
 ## an over-the-shoulder view shifts the lens, and the ray goes through the middle of the screen.
 var shot_yaw := 0.0
 var shot_pitch := 0.0
-## The server tick of the snapshot the shooter was looking at (the low 16 bits travel).
+## The server tick the shooter's screen drew the AI and the other players at (the low 16 bits
+## travel): the server meets the shot with the AI there (`ShotRewind`).
 var view_tick := 0
 
 

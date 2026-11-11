@@ -50,7 +50,7 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
    main (a job's time limit) reaches a pull request only when main is merged into its branch
    ([CI and deploys](ci.md#pr-checks)).
    A pull request the maintainer must see first carries `S-hold` (`gds pr hold <owner/repo>#N`), which stops every
-   merge route until the maintainer takes it off ([Hooks: the hold](hooks.md#hold)).
+   merge route until the maintainer takes it off ([Hooks: the hold](hooks-hold.md#hold)).
 5. The `reviewer` posts a verdict; findings become fixes on the branch or new issues.
 6. While the pull request is open, the `pr-status` workflow labels it `S-conflict` when it conflicts with its base and
    `S-ci-failing` when a required check failed on its latest commit. An agent that sees one fixes it forward on the
@@ -108,3 +108,7 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   before starting that agent; the conversation is kept. **Watch out for:** Claude Code loads project agents when a
   session starts, so an agent written mid-session failed with "agent type not found". **Seen:** gdstudio, 2026-11-01
   (fix: the resume).
+- **Approach:** After a message arrives while a wait runs (a SendMessage, a notice), read the state again (`gh pr
+  checks <n>`, `gh pr view <n> --json state`) instead of waiting for the wait's own answer. **Watch out for:** a
+  foreground wait for CI was moved to the background when a SendMessage arrived, and its result never reached the
+  agent, so the wait-for-CI step ended with no answer. **Seen:** gdstudio #1149 (PR #1172), 2026-11-11.
