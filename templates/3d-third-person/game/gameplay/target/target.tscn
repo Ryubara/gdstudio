@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://addons/gds_game/hits/health.gd" id="2_health"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
 [ext_resource type="Texture2D" path="res://assets/ui/minimap/diamond.png" id="9_diamond"]
+[ext_resource type="PackedScene" path="res://gameplay/net/net_entity.tscn" id="n_entity"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_post"]
 resource_local_to_scene = true
@@ -64,3 +65,6 @@ icon = ExtResource("9_diamond")
 color = Color(0.95, 0.3, 0.25, 1)
 size = 12.0
 kind = &"target"
+
+[node name="NetEntity" parent="." instance=ExtResource("n_entity")]
+metadata/net_kind = &"target"

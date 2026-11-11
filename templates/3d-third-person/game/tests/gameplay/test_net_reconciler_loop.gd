@@ -102,6 +102,18 @@ func test_a_rounding_error_is_not_corrected() -> void:
 	assert_int(reconciler.corrections).is_equal(0)
 
 
+func test_a_snap_for_its_size_is_told_from_a_resync() -> void:
+	var reconciler := Reconciler.new()
+	reconciler.snap_next = true
+	reconciler.record(1, Vector3.ZERO)
+	reconciler.answer(1, Vector3(0.5, 0.0, 0.0))
+	reconciler.record(2, Vector3.ZERO)
+	reconciler.answer(2, Vector3(3.0, 0.0, 0.0))
+	assert_int(reconciler.snaps).is_equal(2)
+	# The resync's snap (the join, a stall) is not one; the 3 m answer's is (gdstudio #1110).
+	assert_array(Array(reconciler.size_snaps)).is_equal([3.0])
+
+
 func test_a_far_error_snaps_and_a_very_far_one_is_lost() -> void:
 	var reconciler := Reconciler.new()
 	reconciler.record(1, Vector3.ZERO)

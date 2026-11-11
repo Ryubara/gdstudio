@@ -11,6 +11,10 @@ extends RefCounted
 ##
 ## A change the server decides starts `lead_ticks` later than the tick it was decided at, so a
 ## client hears of it before its predicted commands reach that tick.
+##
+## A part the server simulates (a pushed prop) is streamed instead: its state rides each TICK while
+## it moves (`stream_rows`, read back with `read_stream`), at most `NetLimits.MAX_STREAMED_PARTS`
+## a TICK, the rest in the next ones (third-person/net-world.md#props).
 
 ## The parts, by id.
 var entities: Array[NetEntity] = []
@@ -22,6 +26,11 @@ var lead_ticks := 0
 
 # The parts that move by the tick (`net_place`).
 var _movers: Array[NetEntity] = []
+# The parts whose state rides the TICKs (`NetEntity.stream`), and where the next TICK starts
+# among them when more want to ride than one carries.
+var _streamers: Array[NetEntity] = []
+var _stream_from := 0
+var _all_from := 0
 
 
 ## Numbers the parts under `root` (the map node) and gives each `as_role`.
@@ -40,6 +49,8 @@ func _init(root: Node = null, as_role := NetEntity.Role.OFFLINE, lead := 0) -> v
 			entity.take_role.call(as_role)
 		if entity.place.is_valid():
 			_movers.append(entity)
+		if entity.stream.is_valid():
+			_streamers.append(entity)
 
 
 ## The networked parts under `root`, sorted by their path from it (their ids).
@@ -59,6 +70,56 @@ static func parts_under(root: Node) -> Array[NetEntity]:
 ## The parts that move by the tick (doors, platforms).
 func movers() -> Array[NetEntity]:
 	return _movers
+
+
+## The parts whose state rides the TICKs (props).
+func streamers() -> Array[NetEntity]:
+	return _streamers
+
+
+## The rows of this TICK, written as at `at_tick`: every streamed part that says it rides, at most
+## `limit`; the next call starts after the last one taken, so none waits for long. `all`: the next
+## `limit` streamed parts whether they ride or not, in turn (`all_ticks` calls give every one), for
+## a client whose TICK was refused.
+func stream_rows(
+	at_tick: int, all := false, limit := NetLimits.MAX_STREAMED_PARTS
+) -> Array[EntityEntry]:
+	var out: Array[EntityEntry] = []
+	var count := _streamers.size()
+	var from := _all_from if all else _stream_from
+	var index := 0
+	while index < count and out.size() < limit:
+		var entity := _streamers[(from + index) % count]
+		index += 1
+		if all or entity.stream.call():
+			var state: PackedByteArray = entity.write_state.call(at_tick)
+			out.append(EntityEntry.make(entity.id, entity.kind(), state))
+	if count > 0 and all:
+		_all_from = (from + index) % count
+	elif count > 0:
+		_stream_from = (from + index) % count
+	return out
+
+
+## The TICKs a client takes to be sent every streamed part (`stream_rows` with `all`).
+func all_ticks(limit := NetLimits.MAX_STREAMED_PARTS) -> int:
+	return ceili(float(_streamers.size()) / float(limit))
+
+
+## Reads a TICK's streamed rows (an id and a state each), written as at `at_tick`; false when one is
+## not this map's.
+func read_stream(rows: Array[EntityEntry], at_tick: int) -> bool:
+	var whole := true
+	for row in rows:
+		var entity := by_id(row.id)
+		whole = entity != null and read_state(row.id, entity.kind(), row.state, at_tick) and whole
+	return whole
+
+
+## Whether a client plays the `entity` event with the puppets (`NetEntity.with_puppets`).
+func plays_with_puppets(event: NetEvent) -> bool:
+	var entity := by_id(event.id)
+	return entity != null and entity.with_puppets
 
 
 ## The part of `id`, or null.

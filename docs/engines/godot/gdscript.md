@@ -16,7 +16,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   **Watch out for:** a script class is itself a `GDScript` object, so `GDScript.reload()` (it returns an `Error`) wins
   over `static func reload`, and a helper named `_set` overrides the virtual with the wrong signature and breaks
   compilation. **Seen:** Deadnight, 2026-11-01 (fix: `reload_weapon`); Deadnight #462, 2026-11-01 (a helper named
-  `_set`).
+  `_set`); gdstudio #1073, 2026-11-11 (a capture tour's `_set(move)` helper: the tour did not load and the first
+  capture was 180 black frames; renamed `_walk`).
 
 - **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
   `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
