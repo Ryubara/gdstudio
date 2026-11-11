@@ -229,7 +229,24 @@ Library's six pistol clips on the `hand_r` bone.
   reload is taught: the magazine is fetched at the belt, guided in and seated firmly with the support palm, and the
   grip is taken again ([Shooting Illustrated](https://www.shootingillustrated.com/articles/2012/10/25/semi-automatic-handgun-reloading),
   [AmmoLand](https://www.ammoland.com/2023/03/4-pistol-reload-methods-9-magazine-tips)). The clip has no rack of the
-  slide and no magazine in the hand, and the pistol's `Magazine` node does not move yet.
+  slide (the next point is the clip that adds it) and no magazine in the hand, and the pistol's `Magazine` node does
+  not move yet.
+- **The slide is racked by a clip of our own** (kit #1081, `assets/animation/pistol/`). `Pistol_Rack` (0.93 s, 28
+  frames) is an overhand rack: the left hand over the top of the slide just in front of the rear sight, the palm on
+  the top, four fingers down the right side over the serrations and the thumb down the left; it pulls the slide
+  back 4.5 cm while the right hand pushes the frame 3 cm forward, lets go at the rear and follows through. Overhand,
+  not the slingshot pinch, because the third-person camera sits behind and above the right shoulder: a pinch at the
+  slide's rear is hidden between the pistol and the chest, a hand over the slide and an elbow that swings back are
+  a silhouette. The pistol stays in front of the right shoulder (at the body's middle line the shoulder hides it
+  from the camera), 12 cm in from the aim pose and canted 28 degrees. The clip starts and ends on the last frame of
+  `Pistol_Reload` (the same as its first). The hand's place on the slide and its fingers are solved on both skins
+  at once by `solve_rack_hand.py` with the hold's own rig and distance grid; `build_pistol_rack.py` keys the body
+  and both arms in Blender and writes a `SlideRack` resource: the left hand bone's place in the pistol's space on
+  every frame it is near the slide, the slide's travel and the beats. What plays the clip reaches the left hand
+  there with a `HoldArm` and moves the `Slide` node. Measured on every frame on both mannequins: the right hand
+  1.2 mm in and 4.4 mm off at most, the left hand on the slide 1.0 mm in and 4.1 mm off, 1.4 mm in on its way,
+  0.0 mm from its place, and no limb more than 4.8 mm in another (the support grip's own contact, as
+  `limb_overlap.py` reads it).
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
@@ -308,6 +325,30 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   the support place went 21 mm through the grip's foot; fingers opened toward their rest went 4 to 5 mm into the
   trigger guard and the other hand; a test at every 4 hundredths passed while three shares between were 4 to 5 mm in.
   **Seen:** gdstudio #1031, 2026-11-10 (three passing moments of 4 to 5 mm are left, capped at 6 mm).
+- **Approach:** Give a clip that puts a hand on a weapon the other hand carries the hand's whole way near the weapon
+  as data in the weapon's space (a place a frame, from before it touches to after it has let go), reach the hand
+  there in the game, and pose every measured body that way in the build. **Watch out for:** rotations keyed on one
+  mannequin left the other's hand 7 to 9 cm from the slide, and the hold moves the pistol after the clip on both
+  (the carried arm's swing: 6.7 cm); a reach weighted in only while the hand gripped took the male's hand 17.8 mm
+  through the gun as it closed and let go; beats on half frames put the place 2 mm off between two samples.
+  **Seen:** gdstudio #1081, 2026-11-11 (fix: `SlideRack.places`, the reach on from over the slide to the end of
+  the follow-through, the beats on whole frames).
+- **Approach:** Before keying a two-handed move, put a number on the wrist: the angle between the forearm and the
+  hand's own line with the arm solved, on every frame; bring the weapon toward the body and cant it until the
+  forearm can lie along the hand. **Watch out for:** with the pistol at the aim pose's distance the left arm is
+  nearly straight, so the forearm points forward while a hand over the slide points across it: the wrist bent 80
+  degrees. 12 cm closer and canted 28 degrees it bends 26. **Seen:** gdstudio #1081, 2026-11-11.
+- **Approach:** Take a hand off a grip sideways, round the weapon, with its fingers as they let go, and measure the
+  two hands against each other both ways (`limb_overlap.py` does; `HandContact.measure("l", true)` measures only
+  the left hand's points in the right hand). **Watch out for:** lifted straight from the support grip to the top of
+  the slide, the left index finger went through the trigger guard and the right middle finger: 7.5 mm by the limb
+  check while the hand measure read 0. The limb check also reads touching hands 3 to 4 mm deeper than the hand
+  measure (4.8 mm for the support grip the hold's test reads as 1.2 mm), so its 5 mm limit is not the hold's 2 mm.
+  **Seen:** gdstudio #1081, 2026-11-11 (fix: the way out goes 9 cm to the gun's left first, then over the top).
+- **Approach:** In a capture that moves one camera through several views of a pose, take the first view after a new
+  pose twice and keep the second. **Watch out for:** the first picture after each pose still showed the camera of
+  the picture before it (three awaited `frame_post_draw` did not help), which read as a view blocked by the body.
+  **Seen:** gdstudio #1081, 2026-11-11 (`tools/capture/rack_closeups.gd`).
 - **Approach:** Seat a hand on a surface by its palm with the fingers already closed, and close the fingers again
   after each seating, a fixed number of times; hold a part that the game's test reads deeper than the solver (the
   male thumb's root, 1.4 mm) off the surface in the solver. **Watch out for:** the palm's skin near the knuckles

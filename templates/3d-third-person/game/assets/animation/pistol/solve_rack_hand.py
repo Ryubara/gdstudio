@@ -15,7 +15,8 @@ changes it: the rig, the skinning and the distance grid are the hold tools' (`to
 It then walks the gripping hand back along the slide's travel (+X) and measures it against what stays (the
 frame, the hammer, the right hand), and writes the hand opened (for the reach and the release) beside the grip.
 `build_pistol_rack.py` keys the clip from the file this writes. With no option it solves the fingers at `PLACE`
-(a minute); `--search` searches the place again from there (ten minutes).
+(four minutes the first time, most of it the two distance grids it keeps beside the dump); `--search` searches
+the place again from there (ten minutes).
 """
 
 import itertools
@@ -48,7 +49,7 @@ REAR_SIGHT_FRONT = -0.012
 TRAVEL = 0.045
 # The hand bone's place on the closed slide, as a move from `start_place()`: metres along the pistol's axes,
 # then degrees about them (about the middle of the slide's top under the palm).
-PLACE = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+PLACE = [-0.013, 0.008, 0.008, 16.0, -2.0, 0.0]
 PIVOT = np.array([-0.05, SLIDE_TOP, 0.0])
 GRID_LOW = [-0.24, -0.09, -0.075]
 GRID_HIGH = [0.08, 0.17, 0.075]

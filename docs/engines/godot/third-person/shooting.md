@@ -238,6 +238,13 @@ it goes in and on the gun again, and the trigger finger is off the trigger
 ([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). It is cosmetic: the
 rounds go in at the end of `reload_time` whatever the hands do.
 
+The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
+starts and ends on the pose the reload ends on, and its `SlideRack` resource
+(`gameplay/weapon/hold/pistol_slide_rack.tres`) gives the left hand's place on the slide, the slide's travel and the
+shares at which it is gripped, pulled and let go. The reload does not play it yet (kit #1052); the test
+`test_pistol_rack.gd` and the capture `tools/capture/rack_closeups.tscn` play it on a stage
+([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the
   action's state from the last command and a latch set in `_unhandled_input`. **Watch out for:** a latch from the event

@@ -347,12 +347,27 @@ how to run the solver again for another model. `tests/gameplay/test_pistol_hold.
 6 mm), and `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
+### The slide rack clip {#slide-rack-clip}
+
+`assets/animation/pistol/pistol_rack.glb` holds one clip of GDStudio's own, `Pistol_Rack` (0.93 s): an overhand rack
+of the pistol's slide, which the library's reload lacks. The left hand leaves its support grip, comes over the top of
+the slide just in front of the rear sight, pulls it back 4.5 cm while the right hand pushes the pistol forward, lets go
+at the rear and returns; it starts and ends on the pose `Pistol_Reload` ends on. The player does not play it yet (the
+reload's moving parts are kit #1052): add the library to an `AnimationPlayer` as `pistol` to use it.
+`gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRack`) says where the left hand's bone is in the pistol's space
+at every share of the clip, how far the slide travels and when; whatever plays the clip reaches the left hand there
+with a `HoldArm` and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both mannequins the
+hands are within the hold's 2 mm and 5 mm on every frame (`tests/gameplay/test_pistol_rack.gd`). The folder's
+`README.md` has the beats, the numbers, why it is an overhand rack and how to build it;
+`tools/capture/rack_closeups.tscn` films it.
+
 ## Licences
 
 The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
-(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`.
+(MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The slide rack clip is
+GDStudio's own too, on the Quaternius rig (`assets/animation/pistol/LICENSE.md`).
 
 ## Testing it in a browser
 
