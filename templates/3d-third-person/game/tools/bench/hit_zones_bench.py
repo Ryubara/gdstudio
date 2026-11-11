@@ -1,9 +1,9 @@
 """What the hit zones and the flinch cost in the web build: runs `tools/bench/hit_zones_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__hit_zones_bench`, and prints, for 1, 4 and 10 characters, a shot's second
-test and a `follow_bones()` in microseconds and the mean physics frame standing and flinching. The optional second
-argument is a CPU throttle (4 is the weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person hit_zones_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__hit_zones_bench`, and prints, for 1, 4 and 10
+characters, a shot's second test and a `follow_bones()` in microseconds and the mean physics frame standing and
+flinching. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/hit_zones_bench.py build/web 4

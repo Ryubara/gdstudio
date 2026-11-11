@@ -13,6 +13,8 @@ extends CharacterController
 @export var jump_every := 3.0
 ## Seconds of walking before it stands.
 @export var seconds := 30.0
+## Whether every other lap sprints (off: every lap runs, and overshoots the circle less).
+@export var sprints := true
 
 ## The body steered (its position and view are read).
 var body: Character
@@ -52,7 +54,7 @@ func sample() -> PlayerCommand:
 	way.y = 0.0
 	var ahead := Vector3(-sin(angle), 0.0, cos(angle))
 	command.set_from_world(way + ahead, ahead)
-	command.sprint = int(at / lap_seconds) % 2 == 1
+	command.sprint = sprints and int(at / lap_seconds) % 2 == 1
 	var jump := tick % roundi(jump_every * NetLimits.TICK_RATE) == 0
 	command.jump = jump
 	command.jump_pressed = jump

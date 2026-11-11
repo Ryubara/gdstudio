@@ -99,10 +99,14 @@ def test_the_kits_docs_pass_every_check_and_hold_no_areas_file():
 
 
 def test_the_corrections_log_links_a_section_on_every_row_and_quotes_no_prompt():
-    text = (KIT / lessons.CORRECTIONS).read_text(encoding="utf-8")
-    assert lessons.quoted_rows(text) == [] and lessons.unlinked_rows(text) == []
+    pages = lessons.corrections_pages(KIT)
+    assert KIT / lessons.CORRECTIONS_LOG / "found-by-playing.md" in pages  # split by gdstudio #1115
+    rows = []
+    for path in pages:
+        text = path.read_text(encoding="utf-8")
+        assert lessons.quoted_rows(text) == [] and lessons.unlinked_rows(text) == []
+        rows += [lessons.cells(line)[-1] for _, line in lessons._table_rows(text)]
     sections = {s.ref for s in lessons.sections_in(KIT)}
-    rows = [lessons.cells(line)[-1] for _, line in lessons._table_rows(text)]
     assert len(rows) > 150  # every correction of the old page has its line
     for cell in rows:
         page, anchor = lessons.refs_in(cell)[0]
@@ -254,6 +258,29 @@ def test_a_log_row_that_links_no_section_is_a_problem(kit):
     ]
 
 
+def test_a_row_on_a_page_of_the_log_folder_is_checked_and_named_by_its_page(kit):
+    """The log's rows moved to a folder of pages when the page reached the size limit (gdstudio #1115): each page's
+    rows get the same checks, and a problem names the page it is on."""
+    folder = kit / lessons.CORRECTIONS_LOG
+    folder.mkdir()
+    (folder / "index.md").write_text("# The corrections log\n\n- [Found by playing](found-by-playing.md)\n", "utf-8")
+    page = "# Found by playing\n\n| Recorded | Source | What | Rule |\n| --- | --- | --- | --- |\n"
+    (folder / "found-by-playing.md").write_text(page + "| 2026-11-11 | x #1 | “Do it” | see above |\n", "utf-8")
+    found = lessons.problems(kit)
+    assert [f.split(": the row")[0] for f in found] == ["docs/studio/corrections-log/found-by-playing.md:5"] * 2
+    assert "quotes the maintainer" in found[0] and "links no section" in found[1]
+
+
+def test_the_log_and_its_pages_are_not_where_a_rule_lives():
+    for page in (
+        "studio/maintainer-corrections.md",
+        "docs/studio/corrections-log/found-by-playing.md",
+        "studio/corrections-log/index.md",
+    ):
+        assert lessons.is_corrections_page(page), page
+    assert not lessons.is_corrections_page("studio/rules.md")
+
+
 # --- the checks against a base commit ---------------------------------------------------------------------------------
 
 
@@ -330,6 +357,9 @@ def test_learn_prints_the_closest_section_with_its_rules(kit):
 
 def test_learn_skips_the_corrections_log_and_the_format_page(kit):
     (kit / lessons.RULES_DOC).write_text("# Rules\n\n## Compression rules {#x}\n\ncompression compression\n", "utf-8")
+    folder = kit / lessons.CORRECTIONS_LOG
+    folder.mkdir()
+    (folder / "rows.md").write_text("# Rows\n\n## Compression rows {#y}\n\ncompression compression\n", "utf-8")
     refs = [m.section.ref for m in lessons.learn(kit, "compression")]
     assert refs and not any(r.startswith("studio/") for r in refs)
 
@@ -447,6 +477,23 @@ def test_propose_takes_a_pull_requests_changed_files_and_its_labels(brief_kit):
     assert lessons.propose(brief_kit, "zzz qqq") == []
 
 
+def test_propose_skips_a_path_mention_in_a_section_far_from_the_issues_words(brief_kit):
+    """A section that only mentions a path the issue names in passing (gdstudio #1133: the `Area` line's `game/core/`
+    named the voice-lines section for an online-play task) is not named when its words are far from the issue's."""
+    (brief_kit / "docs" / "studio" / "voices.md").write_text(
+        "# Voices\n\n## Voice lines {#voice-lines}\n\nRecorded barks and announcer lines, cut per speaker and kept "
+        "under `game/core/` beside the bus they play on.\n",
+        encoding="utf-8",
+    )
+    found = lessons.propose(
+        brief_kit, "hooks: Fix the agent guard prompt", "The guard misreads a prompt. Area: `game/core/`.", limit=6
+    )
+    assert refs_of(found)[0] == "studio/hooks.md#agent-guard"
+    assert not any(p.why == "mentions game/core/" for p in found)  # a tiny kit may still list it by words, last
+    close = lessons.propose(brief_kit, "audio: Add voice lines", "Barks for each speaker under `game/core/`.", limit=6)
+    assert [p.why for p in close if p.section.ref == "studio/voices.md#voice-lines"] == ["mentions game/core/"]
+
+
 def test_brief_text_and_missing_refs(brief_kit):
     found = lessons.propose(brief_kit, "the disk guard", limit=1)
     assert lessons.brief_text(found) == "Read: studio/hooks.md#disk"
@@ -461,3 +508,17 @@ def test_the_kit_proposes_real_sections_for_this_issue():
     )
     assert "studio/starting-work.md#starting-an-agent" in refs_of(found)
     assert lessons.missing_refs(KIT, "\n".join(p.line for p in found)) == []
+
+
+def test_the_kit_does_not_name_voice_lines_for_online_play():
+    """gdstudio #909 (online play with a web probe) was briefed with `gamedev/audio/voice-lines.md#voice-lines`,
+    because its `Area` line names `game/core/` and only that section mentions it (gdstudio #1133)."""
+    body = (Path(__file__).parent / "fixtures" / "issue_bodies" / "gdstudio-909.txt").read_text(encoding="utf-8")
+    found = refs_of(
+        lessons.propose(
+            KIT, "godot: Add online play and a web probe to 3D Third Person", body, {"A-godot": "", "task": ""}
+        )
+    )
+    assert not any(r.startswith("gamedev/audio/voice-lines.md") for r in found)
+    assert "engines/godot/multiplayer.md#web-export" in found
+    assert "engines/godot/third-person/online-client.md#play-online" in found

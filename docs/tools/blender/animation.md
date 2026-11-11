@@ -169,6 +169,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
   since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss
   check caught it; the dive was moved forward).
+- **Approach:** Judge two hands that touch with both measures and know how they differ: `limb_overlap.py` (Blender,
+  every pair of parts both ways, depth to the other part's nearest skin) and the game's `HandContact.measure(side,
+  true)` (the hand of `side` against the weapon and the other hand, one way only); measure each side when the hands
+  meet. **Watch out for:** on the same pose the limb check read touching hands 3 to 4 mm deeper than `HandContact`,
+  and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
+  #1081 (PR #1103), 2026-11-11.
 
 ## The clip eval {#eval}
 

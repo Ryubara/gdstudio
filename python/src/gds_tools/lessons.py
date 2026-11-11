@@ -26,6 +26,8 @@ from pathlib import Path
 
 DOCS = Path("docs")
 CORRECTIONS = DOCS / "studio" / "maintainer-corrections.md"
+#: The log's rows, one page per kind, since the page reached the size limit (gdstudio #1115).
+CORRECTIONS_LOG = DOCS / "studio" / "corrections-log"
 LESSONS = DOCS / "lessons"
 RULES_DOC = DOCS / "studio" / "rules.md"
 
@@ -241,11 +243,26 @@ def problems(root: Path) -> list[str]:
     found = []
     for path in topic_pages(root):
         found += page_problems(path.relative_to(root / DOCS).as_posix(), path.read_text(encoding="utf-8"))
-    corrections = root / CORRECTIONS
-    if corrections.exists():
-        text = corrections.read_text(encoding="utf-8")
-        found += quoted_rows(text) + unlinked_rows(text)
+    for path in corrections_pages(root):
+        text = path.read_text(encoding="utf-8")
+        page = path.relative_to(root).as_posix()
+        found += quoted_rows(text, page) + unlinked_rows(text, page)
     return found
+
+
+def corrections_pages(root: Path) -> list[Path]:
+    """The corrections log: the old page and every page of its folder, sorted."""
+    pages = [root / CORRECTIONS] if (root / CORRECTIONS).exists() else []
+    folder = root / CORRECTIONS_LOG
+    return pages + (sorted(folder.rglob("*.md")) if folder.is_dir() else [])
+
+
+def is_corrections_page(page: str) -> bool:
+    """True for a page under docs/ (`studio/maintainer-corrections.md`) that is the corrections log or one of its
+    pages: a log, not where a rule lives."""
+    page = page.split("docs/", 1)[1] if "docs/" in page else page
+    log = CORRECTIONS_LOG.relative_to(DOCS).as_posix() + "/"
+    return page == CORRECTIONS.relative_to(DOCS).as_posix() or page.startswith(log)
 
 
 def _new_lesson_message(name: str) -> str:
@@ -277,7 +294,7 @@ def _table_rows(text: str) -> list[tuple[int, str]]:
 _QUOTES = "\"'“”‘’«»"  # straight, curly and guillemet quotation marks
 
 
-def quoted_rows(text: str) -> list[str]:
+def quoted_rows(text: str, page: str = CORRECTIONS.as_posix()) -> list[str]:
     """Rows of the corrections log with a cell that starts with a quotation mark. A row says what the maintainer
     pointed out in our words, with its source; the maintainer's prompts are never quoted in a public repository
     (gdstudio #780)."""
@@ -286,16 +303,16 @@ def quoted_rows(text: str) -> list[str]:
         quoted = next((c for c in cells(line) if c[:1] in _QUOTES), None)
         if quoted is not None:
             found.append(
-                f"{CORRECTIONS.as_posix()}:{number}: the row quotes the maintainer ({quoted[:40]}...); "
+                f"{page}:{number}: the row quotes the maintainer ({quoted[:40]}...); "
                 "say what was pointed out in our words, with its source, never the prompt"
             )
     return found
 
 
-def unlinked_rows(text: str) -> list[str]:
+def unlinked_rows(text: str, page: str = CORRECTIONS.as_posix()) -> list[str]:
     """Rows of the corrections log whose last cell links no section (`page.md#anchor`): the rule lives there."""
     return [
-        f"{CORRECTIONS.as_posix()}:{number}: the row links no section; its last cell names where the rule lives "
+        f"{page}:{number}: the row links no section; its last cell names where the rule lives "
         "as a link to page.md#anchor"
         for number, line in _table_rows(text)
         if not refs_in(cells(line)[-1])
@@ -516,8 +533,8 @@ def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[
 def learn(root: Path, words: str, limit: int = 5) -> list[Match]:
     """The `limit` sections of the topic pages closest to `words`, best first."""
     query = terms(words)
-    skip = {CORRECTIONS.relative_to(DOCS).as_posix(), RULES_DOC.relative_to(DOCS).as_posix()}  # a log, the format
-    sections = [s for s in sections_in(root) if s.page not in skip]
+    skip = {RULES_DOC.relative_to(DOCS).as_posix()}  # the format; the log is left out too
+    sections = [s for s in sections_in(root) if s.page not in skip and not is_corrections_page(s.page)]
     ranked = _rank(query, [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections])
     return [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
 
@@ -575,6 +592,11 @@ LENGTH_B = 0.9
 PER_PAGE = 2
 #: A section whose own text (without its subsections) is shorter than this is a heading over subsections: skipped.
 MIN_BODY_CHARS = 80
+#: A section found only because it mentions a path the issue names is named when its word score is at least this share
+#: of the best section's: a path named in passing (an `Area` line's `game/core/`, a file a section cites as an example)
+#: otherwise briefs a section about something else (gdstudio #1133: voice lines for online play, at 0.19). Tuned on
+#: 120 kit issues of 2026-11-11: the mentions far from the task scored 0.17 to 0.31, those that fit 0.35 and up.
+MENTION_FLOOR = 1 / 3
 
 
 @dataclass(frozen=True)
@@ -666,14 +688,15 @@ def propose(
 
     1. every `page.md#anchor` the issue names that exists;
     2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
-       closest to the issue's words, any other path the closest section that mentions it;
+       closest to the issue's words, any other path the closest section that mentions it, when its words are not far
+       from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such closeness);
     3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
        from one page.
 
     The corrections log and the format page (rules.md) are left out, as in `learn`."""
     query = _query(title, labels or {}, body)
-    skip = {CORRECTIONS.relative_to(DOCS).as_posix(), RULES_DOC.relative_to(DOCS).as_posix()}
-    sections = [s for s in sections_in(root) if s.page not in skip]
+    skip = {RULES_DOC.relative_to(DOCS).as_posix()}
+    sections = [s for s in sections_in(root) if s.page not in skip and not is_corrections_page(s.page)]
     by_ref = {s.ref: s for s in sections}
     docs = [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections]
     ranked = _weighted_rank(query, docs)
@@ -701,6 +724,8 @@ def propose(
         if not mentions and "." in name and len(name) >= 8:
             alone = re.compile(rf"(?<![\w.-]){re.escape(name)}(?![\w-])")
             mentions = [s for s in sections if alone.search(s.body)]
+        floor = MENTION_FLOOR * ranked[0][0] if ranked and path not in (paths or []) else 0.0
+        mentions = [s for s in mentions if score.get(s.ref, 0.0) >= floor]
         if mentions:
             add(max(mentions, key=lambda s: (score.get(s.ref, 0.0), -len(s.body))), f"mentions {path}")
     from_page: dict[str, int] = {}

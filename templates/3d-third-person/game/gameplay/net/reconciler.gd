@@ -11,7 +11,9 @@ extends RefCounted
 ## shifted by the same amount, so the next answer does not count a correction already made (the
 ## Deadnight #483 divergence). An error past `SNAP_DISTANCE` is taken in one frame; one past
 ## `LOST_DISTANCE` is counted as `lost` (the body is snapped as well: the client and the server
-## disagree about the world, `multiplayer.md#the-two-worlds-must-hold-the-same-solid-things`). An
+## disagree about the world, `multiplayer.md#the-two-worlds-must-hold-the-same-solid-things`);
+## after several stalls of the client's thread with no answer between them (`resync`) the answer
+## may be that many walk-ons of the server's body long, so it is lost past that many times. An
 ## error inside `DEAD_ZONE` is the wire's rounding (a TICK carries centimetres) and is left alone.
 
 ## The share of the error left that one frame takes.
@@ -30,6 +32,9 @@ const KEEP := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 var corrections := 0
 var snaps := 0
 var lost := 0
+## The error of each snap taken for its size (past `SNAP_DISTANCE`, not a resync's), metres, in
+## order: a report tells them from the join's and a stall's (`tools/net/bad_network.py`).
+var size_snaps := PackedFloat32Array()
 ## The largest error an answer measured, metres.
 var worst_error := 0.0
 ## The error of the last answer, metres.
@@ -38,6 +43,16 @@ var last_error := 0.0
 var corrected := 0.0
 ## The next answer is taken whole, whatever its size (after a stall: `StallGuard`).
 var snap_next := false
+## Stalls of the client's own thread since an answer was last taken (`resync`). The server walks
+## its body on through each silence (`NetServer.command_ticks` steps of the last command, 0.5 s),
+## so stalls closer together than a round trip, with no answer between them, add their runs into
+## the one answer taken whole after them (gdstudio #1070).
+var stacked_stalls := 0
+## The most stalls one answer came after.
+var most_stacked := 0
+## The largest error an answer measured for each stall it came after, metres: `worst_error` for
+## an answer after one stall or none, a share of it after several. What one stall can cost.
+var worst_stall_error := 0.0
 
 var _seqs := PackedInt64Array()
 var _points := PackedVector3Array()
@@ -67,14 +82,21 @@ func answer(ack: int, server_point: Vector3) -> bool:
 	_points = _points.slice(index + 1)
 	last_error = error.length()
 	worst_error = maxf(worst_error, last_error)
+	# An answer taken whole after stalls may hold one run of the server's body for each.
+	var runs := maxi(stacked_stalls, 1) if snap_next else 1
+	most_stacked = maxi(most_stacked, stacked_stalls)
+	stacked_stalls = 0
+	worst_stall_error = maxf(worst_stall_error, last_error / runs)
 	if last_error <= DEAD_ZONE:
 		snap_next = false
 		_pending = Vector3.ZERO
 		return true
 	if snap_next or last_error > SNAP_DISTANCE:
-		if last_error > LOST_DISTANCE:
+		if last_error > LOST_DISTANCE * runs:
 			lost += 1
 		snaps += 1
+		if not snap_next:
+			size_snaps.append(last_error)
 		snap_next = false
 		_pending = Vector3.ZERO
 		_snapped += error
@@ -120,6 +142,14 @@ func reset() -> void:
 	_points.clear()
 	_pending = Vector3.ZERO
 	_snapped = Vector3.ZERO
+
+
+## The client's own thread stalled (`StallGuard`): forgets every point, takes the next answer
+## whole and counts the stall in `stacked_stalls`.
+func resync() -> void:
+	reset()
+	snap_next = true
+	stacked_stalls += 1
 
 
 func _shift(by: Vector3) -> void:

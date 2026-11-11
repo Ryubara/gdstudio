@@ -19,6 +19,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
+| Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Starting work](starting-work.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
@@ -33,6 +34,13 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
+
+The guards that read a shell line split it into simple commands (`&&`, `||`, `;`, `|`) and judge each by its program.
+Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
+included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
+assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
+`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
+folder.
 
 ## Pull request bodies before they are sent {#pr-body}
 
@@ -288,7 +296,8 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   pull request's changed files (`check-body --changed`; `gds pr check-body` and the guard pass the branch's files).
   `Lessons: none (reason)` is refused for it; elsewhere the line is optional. A pull request that closes an issue
   needs `Read first: <page.md#anchor>, ...` naming the sections its author read (the `Read:` lines of its brief); a
-  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist. A game's
+  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist in the
+  base branch's docs (on a machine, `origin/main`'s: [the body guard](pull-requests.md#pr-body)). A game's
   conventions have no `docs` key (the kit's docs are not in its checkout), so only the form is checked there. A game's
   conventions add `Kit docs: <kit pull request>` (or `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue
   (`pull_requests.kit_docs`, same script): a game's rules live in the kit's sections. If GitHub cannot be asked, the
@@ -461,8 +470,9 @@ a task agent never judged, the refusal limit and its reset, the `gh` cache, fail
 event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
 once, throttled, switched off, log moved aside; started by session start, a merge and Stop).
 `python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
-`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a pull
-request read through recorded `gh` answers, the order of the proposed sections, and that the kit's own brief names
-sections that exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
+`python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a
+pull request read through recorded `gh` answers, the order of the proposed sections, a path mention far from the issue's
+words left out (#909's body in `python/tests/fixtures/issue_bodies/`), and that the kit's own brief names sections that
+exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

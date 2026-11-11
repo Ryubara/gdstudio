@@ -139,8 +139,10 @@ at: Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#t
 with `=`, since a bare `--flag` looks like an option to the command), `--timeout`. `gds template game <name>` makes the
 same game, imports it and keeps it, printing its path, for captures and probes (`gds capture frames --project
 <path>/game` runs from your worktree: frames land in its scratch folder, or in `--out`); `gds template clean <path>`
-removes it, and only a folder `gds template` made. Its tests are `python/tests/test_template_test.py` (a fake Godot:
-unique folder, outside the real workspace, removed on every exit, kept with `--keep`, two calls at once).
+removes it, and only a folder `gds template` made. `gds template bench-web <name> <bench>` makes the same game with a
+bench of `tools/bench/` as its main scene and exports it to the web ([A bench's web export](web-probes.md#bench-web)).
+Its tests are `python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on
+every exit, kept with `--keep`, two calls at once).
 
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
@@ -148,7 +150,8 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   declared`): the template synced the addon but never registered the autoload, and #778 met the same errors in the
   export, excluded the demo and proved only an import and a 60-frame run. Start a `-s` check script in `_initialize`:
   the autoloads join the tree after `_init`. **Seen:** gdstudio #814, 2026-11-08 (fix: the template registers the
-  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template).
+  plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template); gdstudio #909, 2026-11-11
+  (a probe's Variant `:=` broke the player rig; no suite loaded the probe).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
   game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
   cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
@@ -161,7 +164,8 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   (`gds template game <template>`, the argument is the template's name), copy the script in, run the pinned Godot
   headless with `--import` on it and copy the `.uid` (and a new asset's `.import`) back to the template. **Watch out
   for:** the layout check refuses a test without its `.uid` (`open the project once and commit it`) and the template's
-  own folder cannot be opened to make one. **Seen:** gdstudio #1009, 2026-11-10.
+  own folder cannot be opened to make one; `gds template test` stops at that check, before it makes a game, so there
+  is no project to open either. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR #1092), 2026-11-11.
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
   run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
@@ -169,7 +173,7 @@ unique folder, outside the real workspace, removed on every exit, kept with `--k
   two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
   file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
   `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
-  checkout built main; use `--project ./python`).
+  checkout built main; use `--project ./python`); gdstudio #1026, 2026-11-11 (the same).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
