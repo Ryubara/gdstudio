@@ -45,6 +45,68 @@
   "finger_live": 3.0,
   "sway": 0.002
  },
+ "crouch_idle": {
+  "head_sharp": 0.5,
+  "head_yaw": 16.0,
+  "shift": 0.05,
+  "finger_live": 3.0,
+  "sway": 0.002
+ },
+ "crouch_walk": {
+  "frames": 20,
+  "dip": 0.008,
+  "hip_turn": 5.0,
+  "chest_turn": 4.0,
+  "arm_swing": 11.0
+ },
+ "stand_to_crouch": {
+  "frames": 13,
+  "fall": 0.72,
+  "chest": [
+   0.0,
+   1.0
+  ],
+  "drop": [
+   0.0,
+   1.0
+  ],
+  "meet": 3
+ },
+ "crouch_to_stand": {
+  "frames": 14,
+  "fall": 0.32,
+  "drop": [
+   0.0,
+   1.0
+  ],
+  "chest": [
+   0.05,
+   1.0
+  ],
+  "meet": 3
+ },
+ "overlap_crouch_walk": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.1
+  ],
+  "upperarm": [
+   0.75,
+   0.2
+  ],
+  "forearm": [
+   1.0,
+   0.2
+  ],
+  "hand": [
+   1.0,
+   0.25
+  ]
+ },
  "notes": {
   "idle": [
    "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",

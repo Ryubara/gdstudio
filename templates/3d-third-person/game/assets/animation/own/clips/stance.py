@@ -18,6 +18,8 @@ feet stand in different places. These two clips are the move itself (the researc
   the other's.
 """
 
+import math
+
 import numpy as np
 
 from gdsanim import maths, overlap
@@ -35,9 +37,10 @@ DOWN = {
     "pelvis": [0.0, 0.62],  # the pelvis's tip and turn: early, as a squat's is
     "chest": [0.1, 1.0],  # the trunk's fold
     "head": [0.2, 1.0],  # the head
-    "arms": [0.1, 1.0],  # the arms' carriage
+    "arms": [0.0, 0.55],  # the arms' carriage: forward of the thighs before the thighs come up under them
     "heel": [0.4, 0.95],  # the right heel coming up
     "weight": [0.0, 0.8],  # the weight's place between the feet
+    "arm_wide": 10.0,  # degrees the arms open from the body in the middle of their move, round the thighs
     "meet": 4,  # frames over which the joined clips' overlap is let go at each end
 }
 ## The same for `crouch_to_stand`.
@@ -48,9 +51,10 @@ UP = {
     "pelvis": [0.2, 0.9],
     "chest": [0.18, 1.0],
     "head": [0.0, 0.7],
-    "arms": [0.15, 1.0],
+    "arms": [0.45, 1.0],  # late: the arms hang back beside the thighs once the thighs are down
     "heel": [0.05, 0.55],
     "weight": [0.1, 0.9],
+    "arm_wide": 10.0,
     "meet": 4,
 }
 PARTS = crouch_idle.PARTS
@@ -130,6 +134,8 @@ def _between(rig, style, name: str, joined, section: str, defaults: dict, first:
             "fingers": mix(one["fingers"], other["fingers"], t["arms"]),
             "leg": legs,
         }
+        for s, _ in SIDES:
+            out["arm"][s]["out"] += n["arm_wide"] * math.sin(math.pi * t["arms"])
         return out
 
     def balance(f: int, at: dict) -> tuple:

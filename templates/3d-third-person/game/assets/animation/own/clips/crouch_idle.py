@@ -38,7 +38,7 @@ DEFAULTS = {
     "ahead": 0.5,  # where the weight is between the heel (0) and the toe (1) of the flat foot
     "sway": 0.003,  # metres the weight drifts toward the toes and back, twice a loop
     "pelvis_pitch": 12.0,  # degrees the pelvis tips forward
-    "chest_pitch": 78.0,  # degrees the top of the spine leans forward
+    "chest_pitch": 80.0,  # degrees the top of the spine leans forward
     "head_pitch": 12.0,  # degrees the head looks down from level
     "hip_tip": 2.0,  # degrees the lighter leg's hip drops as the weight shifts
     "hip_turn": 2.0,  # degrees the pelvis turns toward the lighter leg
@@ -49,10 +49,10 @@ DEFAULTS = {
     "breath_arms": 0.6,  # degrees the arms ride out
     "head_yaw": 4.0,  # degrees the head drifts to each side
     "head_sharp": 0.0,  # 0 lets the head drift; toward 1 it looks, holds and looks back
-    "arm_swing": 8.0,  # degrees the upper arms hang forward of straight down
-    "arm_out": 4.0,  # degrees they hang out from the body
+    "arm_swing": 30.0,  # degrees the upper arms hang forward of straight down
+    "arm_out": 12.0,  # degrees they hang out from the body
     "arm_clear": 0.10,  # metres the wrist, the knuckles and the fingertips keep from the thigh's line
-    "elbow": 42.0,  # degrees the elbows bend: the hands hang ahead of the knees
+    "elbow": 30.0,  # degrees the elbows bend: the hands hang ahead of the knees
     "pronate": 30.0,  # degrees the forearm turns the thumb inward
     "wrist": 8.0,  # degrees the wrist bends toward the palm
     "carry": 0.15,  # the share of the chest's tilt the arms take

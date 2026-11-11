@@ -1,0 +1,366 @@
+{
+ "clips": {
+  "Crouch_Walk_A": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      13.64
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      2.64
+     ],
+     [
+      11.0,
+      22.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 11.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 22,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.025,
+   "replaces": "ual1/Crouch_Fwd",
+   "seconds": 0.7333,
+   "speed": 1.5,
+   "start_foot": "l",
+   "style": "A",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     22,
+     1.1,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     22,
+     0.0
+    ]
+   ]
+  },
+  "Crouch_Walk_B": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      14.88
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      2.88
+     ],
+     [
+      12.0,
+      24.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 12.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 24,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.025,
+   "replaces": "ual1/Crouch_Fwd",
+   "seconds": 0.8,
+   "speed": 1.5,
+   "start_foot": "l",
+   "style": "B",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     24,
+     1.2,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     24,
+     0.0
+    ]
+   ]
+  },
+  "Crouch_Walk_C": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "contacts": {
+    "l": [
+     [
+      0.0,
+      12.4
+     ]
+    ],
+    "r": [
+     [
+      0.0,
+      2.4
+     ],
+     [
+      10.0,
+      20.0
+     ]
+    ]
+   },
+   "end_foot": "l",
+   "events": [
+    {
+     "foot": "l",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 10.0,
+     "name": "footstep"
+    }
+   ],
+   "frames": 20,
+   "kind": "gait",
+   "loop": true,
+   "reduced_to_deg": 0.05,
+   "replaces": "ual1/Crouch_Fwd",
+   "seconds": 0.6667,
+   "speed": 1.5,
+   "start_foot": "l",
+   "style": "C",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     20,
+     1.0,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     20,
+     0.0
+    ]
+   ]
+  }
+ },
+ "fps": 30,
+ "frozen": [
+  "Crouch_Walk_A",
+  "Crouch_Walk_B",
+  "Crouch_Walk_C"
+ ],
+ "reference_hips": 0.9167,
+ "rig": "mannequin_female.glb"
+}

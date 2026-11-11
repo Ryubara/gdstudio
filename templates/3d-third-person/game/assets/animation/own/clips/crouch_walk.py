@@ -42,7 +42,7 @@ DEFAULTS = {
     "heel_rise": 1.0,  # the share of the contact the heel takes to get there (1: it starts to rise as the foot lands)
     "clearance": 0.045,  # metres the ball of the foot clears the floor by in its swing
     "toe_reach": 0.026,  # metres the male mannequin's toes are longer than the reference body's (24 mm, measured)
-    "lift": 0.05,  # metres the pelvis is carried higher than in the crouch idle
+    "lift": 0.065,  # metres the pelvis is carried higher than in the crouch idle
     "dip": 0.016,  # metres the pelvis goes down and up, twice a stride
     "dip_at": 0.22,  # where in a step (0 landing, 1 the next landing) the pelvis is lowest
     "shift": 0.3,  # how far the weight goes toward the planted foot (1 is over it)
@@ -53,7 +53,9 @@ DEFAULTS = {
     "chest_more": 8.0,  # degrees the trunk folds further than in the crouch idle
     "arm_swing": 16.0,  # degrees each upper arm swings to each side of its hang
     "arm_bend": 0.5,  # degrees the elbow closes for each degree the arm swings forward
-    "elbow": 55.0,  # degrees the elbows bend
+    "elbow": 70.0,  # degrees the elbows bend
+    "arm_out": 14.0,  # degrees the arms are carried wider than in the crouch idle, outside the thighs that rise to them
+    "arm_fore": 0.0,  # degrees the arms hang further forward than in the crouch idle
     "finger_live": 3.0,  # degrees the fingers open and close with the swing
     "head_turn": 0.35,  # the share of the chest's turn the head takes (0 keeps it facing the way it goes)
 }
@@ -110,8 +112,8 @@ def describe(rig, style, name: str = "Crouch_Walk", joined=None) -> Clip:
         for s, sign in SIDES:
             swing = -sign * n["arm_swing"] * math.cos(phase)
             arms[s] = {
-                "swing": c["arm_swing"] + swing,
-                "out": c["arm_out"] + 3.0,
+                "swing": c["arm_swing"] + n["arm_fore"] + swing,
+                "out": c["arm_out"] + n["arm_out"],
                 "clear": c["arm_clear"],
                 "bend": n["elbow"] + n["arm_bend"] * swing,
                 "pronate": c["pronate"],

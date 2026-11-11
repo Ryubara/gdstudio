@@ -36,6 +36,32 @@
   "head_yaw": 3.0,
   "finger_live": 4.0
  },
+ "crouch_idle": {},
+ "crouch_walk": {},
+ "stand_to_crouch": {},
+ "crouch_to_stand": {},
+ "overlap_crouch_walk": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
  "notes": {
   "idle": [
    "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
