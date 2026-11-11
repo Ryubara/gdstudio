@@ -378,7 +378,9 @@ SwiftShader, which records the same programs as a GPU, and fails when it links m
 `shader_programs.py build/web out --list assets/shaders/web/shader_programs.json --max-missed 10` (it also fails on an
 attribute `mismatch`, and the step first checks that the export served the list and wrote the page's start). A current
 list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out the check counted 23 and exited 1. When
-it fails, record the list again with `--write <list> --merge` and commit it.
+it fails, record the list again with `--write <list> --merge` and commit it. A change to the warm-up counts too:
+touring the minimap's view (kit #1297) left the list 12 programs short, and recording it again (`--merge`, the page
+plain and with `?play`) took it from 157 to 169, after which the check missed 0 and 1.
 
 ## Testing it {#testing-it}
 
