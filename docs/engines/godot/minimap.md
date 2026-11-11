@@ -41,7 +41,8 @@ marker and the section, which gameplay scenes may carry), `ui/minimap/` (the wid
    and an N sits where north is). Rotating suits compact levels and following a route, north up suits big maps that
    people learn; offer the choice in a game's settings by setting `rotation_mode`.
 4. **Add sections** where the map has floors or wings (`MinimapSection` boxes), and leave roofs and props off the
-   camera with render layers (`live_layers`).
+   camera with render layers (`live_layers`). In 3D Third Person every character's meshes are on layer 2
+   (`CharacterModel.body_layers`), which the default `live_layers` (1) leaves out: a body is its marker on the map.
 5. **Bake it when the level is done** (`gds godot -- --path game res://tools/minimap/bake_level.tscn`) and switch
    `source` to `IMAGE`: the second render pass is gone.
 
@@ -121,6 +122,14 @@ fallback draws.
 `live_resolution_scale` 1 is fine) and sets `map_update_rate` to 15 to 30; a finished level bakes its picture and uses
 the image source, which costs nothing per frame; a crowd of markers sets `marker_update_rate` and rules before it
 counts icons.
+
+- **Approach:** Keep skinned bodies off the live camera's layers (a body has its marker), and count a character's
+  frame cost in the whole game, minimap included, before blaming its animation. **Watch out for:** the live camera saw
+  every layer-1 mesh, characters included, so each frame it drew every body again from 40 m up, off-screen ones too,
+  and the Compatibility renderer skinned each of them for it: seven online puppets cost the browser page about 1 ms
+  each on a GPU, while a bench of the same seven puppets without a minimap cost 0.25 ms each. With the bodies on
+  layer 2 the page with seven puppets went from 8.6 to 9.9 ms a frame to 5.0 to 6.6 ms. **Seen:** gdstudio #1138,
+  2026-11-11 ([what a puppet costs](third-person/online-client.md#play-online)).
 
 ## Drawing it right {#drawing}
 

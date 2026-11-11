@@ -78,6 +78,12 @@ snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crou
 `aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
 and refits the capsule. `CharacterAnimation` needed nothing new.
 
+The online scene hands every puppet to its `PuppetAnimationThrottle` (`RemotePlayers.animation_throttle`, a
+`CharacterAnimationThrottle`, the AI's [animation throttle](ai.md#animation-throttle) without the tiers): within 15 m
+of the camera a puppet animates every frame and plays its footsteps, out of view past that it holds its pose, and past
+25 m it moves every sixth frame. Like every character, its meshes are on `CharacterModel.body_layers` (layer 2), which
+the minimap's live camera does not draw. What the two save: [playing online](#play-online).
+
 - **Approach:** Give a body placed by hand the engine's floor contact with a short move through its point (3 cm above
   it, moved down; up while the entry says it is in the air), then put it back on the point. **Watch out for:**
   `is_on_floor()` is set only by `move_and_slide`, so a puppet placed by `global_position` never had a floor and
