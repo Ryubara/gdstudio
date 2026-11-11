@@ -44,6 +44,10 @@ POP = 0.5
 ARC = 0.015
 LEAN = 5.0
 SUPPORT = 0.0
+## Weight: the hardest the centre of mass may accelerate downward while a foot is on the floor, as a share of
+## gravity (a body that stands on the floor cannot fall faster than it would with nothing under it; the share over
+## 1 is what a second difference of 32-bit keys at 30 a second cannot tell from it).
+FALL = 1.05
 ## Joins: a transition's first and last pose against the poses it joins (m, degrees), and its speed there (share).
 JOIN_PLACE = 0.001
 JOIN_TURN = 0.5
@@ -140,13 +144,15 @@ def check_seam(built, played: dict) -> tuple:
 
 def check_floor(built, played: dict) -> tuple:
     """A planted sole's lowest vertex is within `SOLE_BAND` of the floor, and no vertex goes more than `UNDER`
-    under it on any frame, on every body."""
+    under it on any frame, on every body; with `declared["ceiling"]` (m; a crouched capsule's height) no vertex
+    is above that either."""
     numbers, failures = {}, []
     for name, body in played.items():
         rig = body.rig
-        lowest, off = math.inf, 0.0
+        lowest, highest, off = math.inf, -math.inf, 0.0
         for start in range(0, body.world.shape[0], 16):
-            lowest = min(lowest, float(rig.skin(body.world[start : start + 16])[:, :, 1].min()))
+            heights = rig.skin(body.world[start : start + 16])[:, :, 1]
+            lowest, highest = min(lowest, float(heights.min())), max(highest, float(heights.max()))
         for s, _ in SIDES:
             floor = rig.sole[s]["floor"]
             height = body.foot(s)[:, :, 1].min(axis=1)
@@ -154,6 +160,14 @@ def check_floor(built, played: dict) -> tuple:
                 gap = height[first : last + 1] - floor
                 off = max(off, float(np.abs(gap).max()))
         numbers[name] = {"lowest_mm": round(lowest * 1000, 1), "sole_off_mm": round(off * 1000, 1)}
+        ceiling = built.clip.declared.get("ceiling")
+        if ceiling is not None:
+            numbers[name]["highest_mm"] = round(highest * 1000, 1)
+            if highest > ceiling:
+                failures.append(
+                    f"floor: a vertex is {highest * 1000:.0f} mm up on {name}, over the declared ceiling of "
+                    f"{ceiling * 1000:.0f}"
+                )
         if not body.same_legs:
             numbers[name]["needs_ik"] = True
             continue
@@ -349,7 +363,8 @@ def _kick(body: Played, bone: str, f: int) -> float:
 
 def check_weight(built, played: dict) -> tuple:
     """Standing, the centre of mass is over the feet; in the air it is on a free fall's arc; where the root
-    changes speed the body leans by the acceleration."""
+    changes speed the body leans by the acceleration; a body that goes down with a foot on the floor drops no
+    faster than gravity."""
     body = next(iter(played.values()))
     rig, world = body.rig, body.world
     count = world.shape[0]
@@ -390,6 +405,16 @@ def check_weight(built, played: dict) -> tuple:
         numbers["arc_off_mm"] = round(off * 1000, 1)
         if off > ARC:
             failures.append(f"weight: in the air the centre of mass is {off * 1000:.1f} mm off a free fall's arc")
+    if count > 2 and built.clip.kind in ("transition", "action"):
+        drop = -np.diff(com[:, 1], 2) * FPS * FPS
+        held = [f for f in range(1, count - 1) if down[f - 1] and down[f] and down[f + 1]]
+        if held:
+            fall = float(drop[np.array(held) - 1].max()) / weight.G
+            numbers["fall_g"] = round(fall, 2)
+            if fall > FALL:
+                failures.append(
+                    f"weight: the centre of mass drops at {fall:.2f} of gravity with a foot on the floor, over {FALL}"
+                )
     accel = np.gradient(speed) * FPS
     if np.abs(accel).max() > 0.5 and built.clip.kind == "transition":
         worst = 0.0

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import checks, export, mirror, overlap, reduce, weight
+from . import checks, export, maths, mirror, overlap, reduce, weight
 from .maths import FPS
 from .plan import ContactPlan, unroot
 from .rig import SIDES, Rig
@@ -30,7 +30,12 @@ class Clip:
     - `balance`: a function of the frame and its spec that returns the floor point (x, z) the centre of mass is
       over, or None: the pelvis is then moved level until it is (`weight.settle`);
     - `stretch`: with `balance`, the share of its full length the straighter leg is stretched to: the pelvis's
-      height is solved from it, so the leg that carries the weight stays as straight as this says;
+      height is solved from it, so the leg that carries the weight stays as straight as this says. A number, or
+      a function of the frame for a body that goes down or comes up;
+    - `meet`: for a clip that joins others, the exact poses its ends must be: `{"first": (pose, frames), "last":
+      (pose, frames)}`, each pose a solved clip's own (`Built.frames[k]`, in place) and `frames` how many frames
+      the difference is let go over. The description already solves to that pose but for what the overlap pass
+      left in the joined clip's bones; this takes the rest out, so the ends are the joined poses to the bit;
     - `chains`: the overlap pass's bones, `{bone: (lag, overshoot)}`;
     - `kind`: `stand`, `gait`, `transition` or `action`, which picks the checks that apply;
     - `declared`: the numbers the checks hold the clip to (`lags`, `ranges`, `joins`, `plants`, `distance`,
@@ -47,6 +52,7 @@ class Clip:
     loop: bool = True
     balance: callable = None
     stretch: float = None
+    meet: dict = None
     chains: dict = field(default_factory=dict)
     kind: str = "stand"
     declared: dict = field(default_factory=dict)
@@ -105,7 +111,8 @@ def solve_frames(rig: Rig, solver: Solver, clip: Clip) -> tuple:
             if s not in legs:
                 legs[s] = clip.plan.foot(rig, s, f)
         if clip.balance is not None:
-            pose = weight.settle(solver, spec, clip.balance(f, spec), clip.stretch)
+            stretch = clip.stretch(f) if callable(clip.stretch) else clip.stretch
+            pose = weight.settle(solver, spec, clip.balance(f, spec), stretch)
         else:
             pose = solver.solve(spec)
         for key, value in pose["miss"].items():
@@ -124,7 +131,37 @@ def build_clip(rig: Rig, solver: Solver, clip: Clip) -> Built:
         unroot(rig, pose, place, yaw)
     if clip.loop:
         frames[-1] = frames[0]
+    if clip.meet:
+        meet_ends(frames, clip.meet)
     return finish(rig, clip, frames, miss)
+
+
+def meet_ends(frames: list, meet: dict) -> None:
+    """Make a clip's first and last pose the poses it joins (`Clip.meet`), in place. The difference between the
+    solved end and the joined pose, bone by bone in the parent's space, is added whole at the end and let go
+    over the frames beside it, so the motion between keeps its shape."""
+    last = len(frames) - 1
+    for end, at, step in (("first", 0, 1), ("last", last, -1)):
+        if end not in meet:
+            continue
+        target, over = meet[end]
+        solved = {name: m.copy() for name, m in frames[at]["local"].items()}
+        off = np.asarray(target["pelvis"], dtype=float) - frames[at]["pelvis"]
+        turns = {
+            name: maths.rotation_vector(solved[name].T @ target["local"][name])
+            for name in solved
+            if name in target["local"]
+        }
+        for k in range(min(int(over), last) + 1):
+            pose = frames[at + step * k]
+            share = 1.0 - maths.smoother(k / max(float(over), 1.0)) if k < over else 0.0
+            if k == 0:
+                share = 1.0
+            if share <= 0.0:
+                continue
+            pose["pelvis"] = pose["pelvis"] + share * off
+            for name, turn in turns.items():
+                pose["local"][name] = pose["local"][name] @ maths.from_rotation_vector(turn * share)
 
 
 def finish(rig: Rig, clip: Clip, frames: list, miss: dict) -> Built:
@@ -187,7 +224,7 @@ def mirrored(rig: Rig, built: Built, name: str, half_cycle: bool = False) -> Bui
     for fall in plan.footfalls:
         moved = dict(fall.__dict__, side=swap[fall.side], place=(-fall.place[0], fall.place[1]), yaw=-fall.yaw)
         falls.append(type(fall)(**moved))
-    twin_plan = type(plan)(plan.frames, falls, plan.travel, plan.loop, plan.clearance)
+    twin_plan = type(plan)(plan.frames, falls, plan.travel, plan.loop, plan.clearance, plan.toe_reach)
     twin = Clip(**{**clip.__dict__, "name": name, "plan": twin_plan})
     return finish(rig, twin, frames, dict(built.miss))
 

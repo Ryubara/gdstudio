@@ -74,6 +74,9 @@ class ContactPlan:
     loop: bool = True
     ## Metres the ball of the foot clears the floor by at the top of its swing.
     clearance: float = 0.06
+    ## Metres the longest toes of the bodies that play the clip reach past the reference body's: the swinging foot
+    ## is lifted until toes that long clear the floor too.
+    toe_reach: float = 0.0
 
     def stride(self) -> np.ndarray:
         """The root's travel over one cycle."""
@@ -162,6 +165,14 @@ class ContactPlan:
             return self._planted(rig, side, before[-1][0], before[-1][1], before[-1][0].lift)
         return self._swing(rig, side, before[-1], after[0], f)
 
+    def raised(self, rig: Rig, side: str, f: float, heel: float) -> dict:
+        """A planted foot's leg spec at a frame with its heel held `heel` degrees up over its toes, which stay
+        where they stand (a crouch on the ball of a foot, a heel that comes up as the knee goes down)."""
+        for fall, shift in self._falls(side):
+            if fall.land <= f <= fall.lift:
+                return self._state(rig, side, "ball", self._ball(rig, side, fall, shift), heel, fall.yaw)
+        raise AssertionError(f"the {side} foot is not planted at frame {f}")
+
     def _state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
         """The leg spec of a foot turned by `pitch` and `yaw` about a point of its sole. `pivot` is `ball` (the
         point `at` is where the ball of the foot stands; a heel that rises turns about the toes' hinge over it,
@@ -218,7 +229,9 @@ class ContactPlan:
         out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3))
         # The toes hang under a foot whose heel is still up: lift the foot until their tip clears the floor.
         hinge = ball + (sole["hinge"] - sole["ball"])
-        tip = hinge + body_turn(pitch - out["toe"], yaw, 0.0) @ (sole["toe"] - sole["hinge"])
+        toes = sole["toe"] - sole["hinge"]
+        toes = toes * (1.0 + self.toe_reach / max(float(np.linalg.norm(toes)), 1e-9))
+        tip = hinge + body_turn(pitch - out["toe"], yaw, 0.0) @ toes
         out["ankle"][1] += max(sole["floor"] + 0.004 - tip[1], 0.0) * math.sin(math.pi * min(u / 0.5, 1.0) ** 0.5)
         return out
 

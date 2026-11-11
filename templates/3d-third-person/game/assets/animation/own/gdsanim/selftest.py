@@ -108,6 +108,23 @@ def hop_built(rig, solver, arc: bool):
     return built
 
 
+def drop_built(rig, solver, taken: int):
+    """A stand that plays once and whose pelvis goes down 0.2 m over `taken` frames on an even ease, the knees
+    folding over feet that stay on the floor: over 12 frames it stays under gravity, over 7 it does not."""
+    clip = stand_clip(rig)
+    clip.name, clip.loop, clip.kind = "Drop_Test", False, "action"
+    clip.plan.loop = False
+    stand = clip.spec
+
+    def spec(f: int) -> dict:
+        out = stand(0)
+        out["pelvis"]["place"] = out["pelvis"]["place"] - maths.Y * 0.2 * maths.smoother((f - 4) / taken)
+        return out
+
+    clip.spec = spec
+    return build.build_clip(rig, solver, clip)
+
+
 def dense(built):
     """A copy that keeps every key, so a change to any frame is what the checks play."""
     twin = copy.copy(built)
@@ -189,6 +206,14 @@ def run(rig, solver, bodies) -> int:
     aside.clip.plan = ContactPlan(30, [fall for fall in stand.clip.plan.footfalls if fall.side == "r"])
     case("the centre of mass is outside the feet", "weight", stand, aside)
     case("a jump is not on a free fall's arc", "weight", hop_built(rig, solver, True), hop_built(rig, solver, False))
+    # weight: a body that drops faster than gravity with its feet on the floor.
+    case("a drop is faster than a fall", "weight", drop_built(rig, solver, 12), drop_built(rig, solver, 7))
+    # floor: a head above the declared ceiling.
+    low = dense(stand)
+    low.clip.declared["ceiling"] = 1.9
+    tall = dense(stand)
+    tall.clip.declared["ceiling"] = 1.5
+    case("the head is over the declared ceiling", "floor", low, tall)
     # joins: a first pose that is not the pose it joins.
     joined = dense(stand)
     joined.clip.declared["joins"] = {"first": (stand.rotation[0], stand.translation[0]), "first_speed": 0.0}

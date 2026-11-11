@@ -31,7 +31,8 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import idle  # noqa: E402
+from clips import crouch_idle, crouch_walk, idle, stance  # noqa: E402
+from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
 from gdsanim.solve import Solver  # noqa: E402
@@ -41,9 +42,15 @@ ASSETS = HERE.parents[1]
 REFERENCE = ASSETS / "characters/mannequin/mannequin_female.glb"
 BODIES = [REFERENCE, ASSETS / "characters/mannequin/mannequin_male.glb"]
 ## A clip type's description, by its name in lower case.
-TYPES = {"idle": ("Idle", idle.describe)}
+TYPES = {
+    "idle": ("Idle", idle.describe),
+    "crouch_idle": ("Crouch_Idle", crouch_idle.describe),
+    "crouch_walk": ("Crouch_Walk", crouch_walk.describe),
+    "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
+    "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
+}
 ## The shipped files: the frozen list of clips each carries.
-GROUPS = {"locomotion": ["Idle"]}
+GROUPS = {"locomotion": ["Idle", "Crouch_Idle", "Crouch_Walk", "Stand_To_Crouch", "Crouch_To_Stand"]}
 ## The deepest a limb may be inside another part of the body, on every body (mm).
 OVERLAP_MM = 5.0
 
@@ -126,18 +133,21 @@ def main() -> int:
     if args.what == "self-test":
         return selftest.run(rig, solver, bodies)
     styles = {one.letter: one for one in style.load_all(HERE / "styles")}
+    picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]
+    # The clips a description joins are the picked ones: a variant of a stance change ends on the shipped crouch.
+    joined = Joined(rig, solver, styles, picks, TYPES)
     if args.what == "review":
         name, describe = TYPES[args.name]
         builts = [
-            build.build_clip(rig, solver, describe(rig, one, f"{name}_{letter}")) for letter, one in styles.items()
+            build.build_clip(rig, solver, described(describe, rig, one, f"{name}_{letter}", joined))
+            for letter, one in styles.items()
         ]
         frozen = [f"{name}_{letter}" for letter in styles]
         return make(args, builts, frozen, rig, bodies, HERE / "review" / f"{args.name}.glb")
-    picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]
     builts = []
     for name in GROUPS[args.name]:
         _, describe = TYPES[name.lower()]
-        builts.append(build.build_clip(rig, solver, describe(rig, styles[picks[name]], name)))
+        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[name]], name, joined)))
     return make(args, builts, GROUPS[args.name], rig, bodies, HERE / f"{args.name}.glb")
 
 
