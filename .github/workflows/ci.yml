@@ -213,7 +213,13 @@ jobs:
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
       - name: The browser for the boot check
         # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md).
-        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+        # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu
+        # mirror, which was unreachable for an hour on 2026-11-11 (#1224). An apt failure takes
+        # about eight minutes of retries, so it is tried once, then the browser alone.
+        run: |
+          uvx playwright@1.64.1 install --with-deps chromium-headless-shell && exit 0
+          echo "::warning::apt mirror unreachable; installing Chromium without its system packages"
+          uvx playwright@1.64.1 install chromium-headless-shell
       - name: Boot the web export in a browser
         # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
         # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
