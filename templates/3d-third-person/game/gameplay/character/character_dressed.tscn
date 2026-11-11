@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zone.gd" id="11_hit_zone"]
 [ext_resource type="Script" path="res://gameplay/character/hit_reaction.gd" id="12_hit_reaction"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="13_hold"]
+[ext_resource type="Script" path="res://core/minimap/minimap_heading.gd" id="14_heading"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_head"]
 radius = 0.12
@@ -203,3 +204,8 @@ ragdoll = NodePath("../Ragdoll")
 model = NodePath("../Model")
 seat = NodePath("../Model/PistolHeld")
 animation = NodePath("../Animation")
+
+[node name="MinimapHeading" type="Node" parent="." node_paths=PackedStringArray("turns")]
+script = ExtResource("14_heading")
+turns = NodePath("../Model")
+front = 1
