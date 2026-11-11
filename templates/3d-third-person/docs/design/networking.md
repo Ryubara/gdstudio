@@ -52,7 +52,8 @@ physics step it samples the player's controller, sends the command and steps the
 server will read, so the body moves the moment the key goes down. When a TICK says where the server's body stands after
 a command, a `Reconciler` slides the local body toward it a quarter of the way a frame (and puts it there at once when
 it is more than 2.5 m off, or when a quarter would put the body inside a ledge, `BodyOverlap`); a `StallGuard` notices
-the game froze (a hidden tab) and skips the burst of catch-up steps.
+the game froze (a hidden tab) and skips the burst of catch-up steps, and a `SilenceWalk` steps the body as the server
+stepped its own meanwhile (it walks on a moment, then stands), so both come out of the freeze at the same speed.
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
