@@ -4,6 +4,8 @@ extends UIScreen
 ## `scene` param: `UIRouter.replace(LOADING, UITransition.Kind.FADE, {"scene": "res://main.tscn"})`.
 ## A progress bar shows how far the read is; when it ends the scene becomes the current one and the
 ## router's screens leave with the fade. A scene that cannot be read shows a message and a way back.
+## In a browser it also waits for the GL programs the menu scene had the page link
+## (`ShaderPrelink`), at most `ShaderPrelink.TIMEOUT` seconds, and the bar counts them too.
 
 ## Seconds the screen stays up at least, so a fast read does not flash it.
 @export_range(0.0, 3.0, 0.1, "suffix:s") var least_time := 0.4
@@ -43,8 +45,10 @@ func _process(delta: float) -> void:
 	):
 		_fail()
 		return
-	_bar.value = float(progress[0]) * 100.0 if not progress.is_empty() else 0.0
-	if status == ResourceLoader.THREAD_LOAD_LOADED and _elapsed >= least_time:
+	var read := float(progress[0]) if not progress.is_empty() else 0.0
+	var linked := ShaderPrelink.is_done() or _elapsed >= ShaderPrelink.TIMEOUT
+	_bar.value = (read + (1.0 if linked else ShaderPrelink.progress())) * 50.0
+	if status == ResourceLoader.THREAD_LOAD_LOADED and _elapsed >= least_time and linked:
 		_enter()
 
 

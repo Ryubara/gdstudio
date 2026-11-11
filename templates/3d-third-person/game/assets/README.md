@@ -33,3 +33,7 @@
   drawn for the template); the items are `gameplay/inventory/*.tres` and the weapons' `WeaponDef`s name theirs.
 - `assets/shaders/effects/flash_star.gdshader` and `assets/materials/effects/flash_star.tres` draw the muzzle flash's
   star (original).
+- `assets/shaders/web/shader_programs.json` is the GL programs the web build links (written by
+  `tools/web_smoke/shader_programs.py` from a browser run of the build, generated, GDStudio's own): the menu scene has
+  the page link them all at once before the game draws (`ShaderPrelink`). Record it again when a material, a shader,
+  the lights or the pinned Godot change.
