@@ -35,7 +35,7 @@ screen's gaps. Between them, open ground with cover.
 | Perception markers | `Perception/` | `Marker3D`s for sight tests (below). |
 | Navigation | `Navigation` | A `NavigationRegion3D`; its children are the mesh's source. |
 | AI markers | `AiMarkers/` | `AiMarker`s: the guard lane `GuardLane/Stop1` to `Stop4` (route `guard_lane`), the shooters' posts `ShooterPosts/Post1` and `Post2`, eight cover spots `Cover/` by the low walls, the tall cover and the shed, the civilians' homes `CivilianHomes/Home1` to `Home3`. |
-| Population | `Population/` | One `AiSpawner` per kind: `Grunts` (3 at Enemy1 to 3, patrolling `guard_lane`), `Shooters` (2 at the posts, route `hold`), `Allies` (2 at the friendly spawns, following the player), `Civilians` (3 at their homes). Each wakes when a player is within 25 m, respawns 15 to 20 s after a death and leaves at most 2 bodies lying. Set `enabled` off on one to empty that kind. |
+| Population | `Population/` | One `AiSpawner` per kind: `Grunts` (3 at Enemy1 to 3, patrolling `guard_lane`), `Shooters` (2 at the posts, route `hold`), `Allies` (2 at the friendly spawns, following the player), `Civilians` (3 at their homes). Each wakes when a player is within 25 m, respawns 15 to 20 s after a death and leaves at most 2 bodies lying. Set `enabled` off on one to empty that kind. Each has `on_server` on: in an online game the game server spawns the population (woken by the players' bodies on the server) and the clients draw it. |
 
 `SpawnPoint.pick(get_tree(), &"enemy", rng)` picks an enemy spawn; `spawn_transform(rng)` gives the place and the
 facing. The perception markers stand on the floor; a test looks from 1.55 m over a watch post (the character's eye):

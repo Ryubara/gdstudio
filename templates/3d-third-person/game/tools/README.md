@@ -106,6 +106,8 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   header says how to run it. `tools/soak/section_pilot.gd` is its autopilot.
 - `tools/capture/section_tour.tscn` films the AI section's population from the game camera (`SECTION_TOUR=fight`,
   `cover`, `chase` or `civilians`).
+- `tools/capture/ai_section_online_tour.tscn` films the AI section's fight online from a client's screen: the game
+  server spawns the population for her body and her client draws every character as a puppet.
 - `tools/bench/ai_section_bench.tscn` times the AI director's step with the AI section's population, the player
   watching and fighting (`AI_SECTION_BENCH {...}`); `ai_section_bench.py` runs it in Chrome
   (`gds template bench-web 3d-third-person ai_section_bench --run`).
