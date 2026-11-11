@@ -11,6 +11,14 @@ extends Node3D
 ## drawn `interp_delay` behind it. A character's death (`NetEvent.AiCode.DIED`) starts its own
 ## ragdoll here from the pose it is in with the event's velocity; a shot (`FIRED`) is a cosmetic
 ## one from the puppet's muzzle; a HIT on it flinches it (`ClientCombat`). Nothing here is sent.
+##
+## Puppets are made a few a physics step (`puppets_per_frame`, `puppet_budget_usec`; gdstudio
+## #1208), the nearest to `viewer` first, and shown for the first time a few a step
+## (`puppets_shown_per_frame`): a full snapshot of a crowd (a join, a crowd walking into the
+## interest radius) made all 120 in one frame, 185 ms, and its first draw cost Chrome another
+## 50 ms. A character whose puppet is not made yet has its glide all the same, so its puppet
+## appears where the character is when its turn comes; `count` and `ids` are the puppets made,
+## `waiting` the characters still to make.
 
 ## Said when a puppet was made (its first row) and freed (it left this client's interest).
 signal puppet_added(id: int, puppet: Character)
@@ -40,14 +48,36 @@ const CLOCK_PULL := 0.1
 	preload("res://gameplay/character/character_dressed.tscn")
 ]
 
+@export_group("Making puppets")
+## The most puppets made in one physics step: one costs about 1.5 ms on a desktop and in Chrome,
+## so 120 characters arriving at once are made over 30 steps (half a second) instead of one.
+@export_range(1, 120, 1) var puppets_per_frame := 4
+## Microseconds of making puppets after which a step makes no more (at least one is made a step);
+## 0 for no time limit, only `puppets_per_frame`.
+@export_range(0, 16000, 100, "suffix:us") var puppet_budget_usec := 4000
+## The most puppets shown for the first time in one physics step: a puppet's first draw costs
+## about 4 ms in Chrome (its skinned mesh's buffers), so a crowd made a few a step and shown all at
+## once still made a 100 ms frame there.
+@export_range(1, 120, 1) var puppets_shown_per_frame := 2
+## Who the puppets are made nearest first for (the `NetClient` sets its player): the characters
+## a player can see appear first. None: the order the rows came in.
+@export var viewer: Node3D
+
 ## What this client holds (the rows, the sequence).
 var snapshot := AiSnapshot.new()
 var drops := NetDrops.new()
-## Microseconds the last TICK's block took to apply (puppets made included), and the last physics
-## step took to place every puppet; the most either took.
+## Microseconds the last TICK's block took to apply, and the last physics step took to make its
+## share of the puppets and place every one; the most either took.
 var last_apply_us := 0
 var last_frame_us := 0
 var worst_apply_us := 0
+var worst_frame_us := 0
+## Puppets made, and puppets shown for the first time, in the last physics step; the most of each
+## in one.
+var last_made := 0
+var most_made := 0
+var last_shown := 0
+var most_shown := 0
 ## While on, every TICK's apply time and every physics step's placing time are kept (a probe's).
 var keep_times := false
 var apply_times := PackedInt32Array()
@@ -61,6 +91,8 @@ var slot_body := Callable()
 var _puppets: Dictionary[int, Character] = {}
 var _glides: Dictionary[int, AiGlide] = {}
 var _looks: Dictionary[int, int] = {}
+## The characters whose puppet is still to make: id -> its newest row (world metres).
+var _waiting: Dictionary[int, AiRow] = {}
 var _clock := -1.0
 
 
@@ -75,13 +107,19 @@ func _physics_process(delta: float) -> void:
 		return
 	var began := Time.get_ticks_usec()
 	_clock += delta
+	_make_waiting(began)
+	last_shown = 0
 	var drawn := roundi((_clock - interp_delay) * NetLimits.TICK_RATE)
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	for id: int in _glides:
 		var glide := _glides[id]
 		glide.step(drawn, space, extrapolate_mask)
-		_place(_puppets[id], glide, delta)
+		var puppet: Character = _puppets.get(id)
+		if puppet != null:
+			_place(puppet, glide, delta)
 	last_frame_us = Time.get_ticks_usec() - began
+	worst_frame_us = maxi(worst_frame_us, last_frame_us)
+	most_shown = maxi(most_shown, last_shown)
 	if keep_times:
 		frame_times.append(last_frame_us)
 
@@ -107,6 +145,11 @@ func count() -> int:
 	return _puppets.size()
 
 
+## The characters held whose puppet is not made yet.
+func waiting() -> int:
+	return _waiting.size()
+
+
 ## Seconds of server time the rows are drawn at, or -1 before the first TICK.
 func drawn_time() -> float:
 	return _clock - interp_delay if _clock >= 0.0 else -1.0
@@ -130,11 +173,10 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 		for id in snapshot.changed:
 			var row: AiRow = snapshot.rows[id].copy()
 			row.position += section_origin
-			_puppet_for(id, row.variant)
+			_glide_for(id, row)
 			_glides[id].push(tick.server_tick, row)
 	last_apply_us = Time.get_ticks_usec() - began
 	worst_apply_us = maxi(worst_apply_us, last_apply_us)
-	most_puppets = maxi(most_puppets, _puppets.size())
 	if keep_times:
 		apply_times.append(last_apply_us)
 
@@ -157,18 +199,66 @@ func play_event(event: NetEvent) -> void:
 
 ## Frees every puppet (the client left the game).
 func clear() -> void:
-	for id: int in _puppets.keys():
+	for id: int in _glides.keys():
 		_remove(id)
+	_waiting.clear()
 	snapshot.clear()
 	_clock = -1.0
 
 
-func _puppet_for(id: int, look: int) -> void:
-	if _puppets.has(id) and _looks.get(id, -1) == look:
+# The glide of character `id` (made with its first row), and its puppet queued to be made when it
+# has none or its row asks for another look (the glide is kept: the new puppet stands where the
+# old one did).
+func _glide_for(id: int, row: AiRow) -> void:
+	if not _glides.has(id):
+		var glide := AiGlide.new()
+		glide.max_jump = glide_max_jump
+		glide.extrapolate_ticks = roundi(extrapolate_seconds * NetLimits.TICK_RATE)
+		_glides[id] = glide
+	if _puppets.has(id) and _looks.get(id, -1) == row.variant:
 		return
-	var kept: AiGlide = _glides.get(id)
 	if _puppets.has(id):
-		_remove(id)
+		_free_puppet(id)
+	_waiting[id] = row
+
+
+# This step's share of the waiting puppets, nearest to the viewer first: at most
+# `puppets_per_frame`, and no more once `puppet_budget_usec` have passed since `began`.
+func _make_waiting(began: int) -> void:
+	last_made = 0
+	if _waiting.is_empty():
+		return
+	var order: Array[int] = _waiting.keys()
+	var at := _viewer_position()
+	if at.is_finite():
+		order.sort_custom(
+			func(a: int, b: int) -> bool:
+				var near_a := _waiting[a].position.distance_squared_to(at)
+				var near_b := _waiting[b].position.distance_squared_to(at)
+				return near_a < near_b or (near_a == near_b and a < b)
+		)
+	for id in order:
+		if last_made >= puppets_per_frame:
+			break
+		var spent := Time.get_ticks_usec() - began
+		if last_made > 0 and puppet_budget_usec > 0 and spent >= puppet_budget_usec:
+			break
+		var row: AiRow = _waiting[id]
+		_waiting.erase(id)
+		_make(id, row.variant)
+		last_made += 1
+	most_made = maxi(most_made, last_made)
+	most_puppets = maxi(most_puppets, _puppets.size())
+
+
+# Where the viewer is, or a vector of infinities for none (the rows' order).
+func _viewer_position() -> Vector3:
+	if viewer != null and is_instance_valid(viewer) and viewer.is_inside_tree():
+		return viewer.global_position
+	return Vector3.INF
+
+
+func _make(id: int, look: int) -> void:
 	var scene := variant_scenes[look] if look < variant_scenes.size() else variant_scenes[0]
 	var puppet := scene.instantiate() as Character
 	puppet.name = "Ai%d" % id
@@ -182,19 +272,20 @@ func _puppet_for(id: int, look: int) -> void:
 	puppet.set_physics_process(false)
 	if puppet.weapon != null:
 		puppet.weapon.authoritative = false
-	var glide := kept if kept != null else AiGlide.new()
-	glide.max_jump = glide_max_jump
-	glide.extrapolate_ticks = roundi(extrapolate_seconds * NetLimits.TICK_RATE)
 	_puppets[id] = puppet
-	_glides[id] = glide
 	_looks[id] = look
 	puppet_added.emit(id, puppet)
 
 
 func _remove(id: int) -> void:
+	_glides.erase(id)
+	_waiting.erase(id)
+	_free_puppet(id)
+
+
+func _free_puppet(id: int) -> void:
 	var puppet: Character = _puppets.get(id)
 	_puppets.erase(id)
-	_glides.erase(id)
 	_looks.erase(id)
 	if puppet != null:
 		puppet.queue_free()
@@ -207,6 +298,10 @@ func _place(puppet: Character, glide: AiGlide, delta: float) -> void:
 	if row == null:
 		return
 	if not puppet.visible:
+		# Its first draw costs more than its making in a browser: shown a few a step.
+		if last_shown >= puppets_shown_per_frame:
+			return
+		last_shown += 1
 		puppet.visible = true
 		puppet.global_position = glide.position
 		puppet.reset_physics_interpolation()
