@@ -168,6 +168,8 @@ before the relay jittered):
 | Native, relay and jitter, freezes, the walk on the dais (Windows two cores, three runs; the runner 0.28 m) | | 0.25 to 0.37 m | 3 / 3 | 2.06 to 2.11 m | 4.6 to 4.7 mm | 0 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Browser, relay, freezes, judged a stall (36 to 38 fps, three runs, #1070) | 234 to 264 ms | 41 to 57 (0.97 to 2.31 m) | 7 to 8 / 10 to 12 | 4.41 to 7.60 m, 2.20 to 2.53 m a stall (3 stacked) | 3.5 to 6.2 mm | 21 to 27 of about 4000 |
+| Native, relay and jitter, freezes, silence walk (six runs, #1127) | 248 to 282 ms | 8 to 120 (0.10 to 1.02 m; 3.98 m in a run whose server went over budget 50 steps) | 0 to 3 / 3 | 0.04 to 0.46 m | 0.1 to 7.8 mm | 3 to 150 of 5760 |
+| Browser, relay, freezes, silence walk (35 to 38 fps, three runs, #1127) | 252 to 280 ms | 28 to 70 (0.91 to 2.44 m) | 6 to 9 / 11 to 14 | 0.69 to 1.40 m | 1.4 to 8.1 mm | 45 to 168 of about 4000 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
 | Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
@@ -175,6 +177,11 @@ before the relay jittered):
 | Teeth on the dais walk: hold 0 (Windows two cores; the runner) | | 58.1 m; 33.4 m | | | | |
 | Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
+
+With the silence walk (#1127) the answer after a stall is centimetres off, so a stall of the page's thread costs about
+what a stall of the native client's does: a page that joins after the warm-up (#1106) corrected at most 0.65 m a freeze
+in the two seconds after it, so an allowance per stall of the page needs no more than the hitch's 0.75 m
+(`CORRECTED_M_A_HITCH`) rather than 1.5 m.
 
 The client costs 190 to 290 µs a step at the median (`NetClient`, the body's step included). The relay carried 41 KB up
 and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for a client with three other players.
