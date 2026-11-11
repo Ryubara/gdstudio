@@ -50,3 +50,25 @@ func test_the_report_counts_starving_per_puppet_step_and_has_no_gap_before_a_tic
 	assert_float(report["starved_share"]).is_equal(0.0)
 	assert_int(NetPlayReport.percentile(PackedInt32Array([5, 1, 3, 2, 4]), 0.5)).is_equal(3)
 	assert_int(NetPlayReport.percentile(PackedInt32Array(), 0.5)).is_equal(-1)
+
+
+func test_the_join_waits_for_short_frames_in_a_row_and_a_slow_one_starts_again() -> void:
+	var settle := FrameSettle.new()
+	settle.frames = 3
+	assert_bool(settle.push(0.04)).is_false()
+	assert_bool(settle.push(0.04)).is_false()
+	# A warm-up's last frame drawn on the CPU.
+	assert_bool(settle.push(0.3)).is_false()
+	assert_bool(settle.push(0.04)).is_false()
+	assert_bool(settle.push(0.04)).is_false()
+	assert_bool(settle.push(0.04)).is_true()
+	assert_float(settle.waited()).is_equal_approx(0.5, 0.0001)
+
+
+func test_a_frame_as_long_as_the_server_hold_is_not_short_and_the_limit_ends_the_wait() -> void:
+	var settle := FrameSettle.new()
+	settle.frames = 2
+	settle.limit = 1.0
+	assert_bool(settle.push(4.0 / 60.0)).is_false()
+	assert_bool(settle.push(4.0 / 60.0)).is_false()
+	assert_bool(settle.push(0.9)).is_true()
