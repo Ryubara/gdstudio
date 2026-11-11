@@ -85,6 +85,7 @@ func test_a_lost_server_shows_connection_lost_and_turns_the_input_off() -> void:
 		. is_true()
 	)
 	assert_str(online.status.message()).is_equal("Connection lost.")
+	assert_int(online.client.rejoined).is_equal(0)
 	assert_bool((online.status.get_node("%Root") as Control).visible).is_true()
 	assert_bool((online.status.get_node("%BackButton") as Control).visible).is_true()
 	assert_bool(online.client.player.input_enabled).is_false()
@@ -149,6 +150,55 @@ func test_nobody_answering_is_unreachable_not_connecting_for_ever() -> void:
 	assert_str(online.status.message()).is_equal("The server did not answer.")
 
 
+func test_a_hello_the_server_hung_up_on_gets_a_new_socket_and_plays() -> void:
+	# A server whose hello window has passed before any hello can come (a page that compiled its
+	# shaders for 14 s, gdstudio #1137); it waits as usual once the client opens a new socket.
+	var rig := _start_rig(func(server: NetServer) -> void: server.hello_seconds = -1.0)
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	var shown: Array[OnlineStatus.State] = []
+	online.status.state_changed.connect(
+		func(state: OnlineStatus.State) -> void: shown.append(state)
+	)
+	online.client.rejoining.connect(
+		func(_attempt: int) -> void: rig.server.hello_seconds = 10.0, CONNECT_ONE_SHOT
+	)
+	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_int(online.client.rejoined).is_equal(1)
+	assert_int(online.status.state).is_equal(OnlineStatus.State.PLAYING)
+	assert_array(shown).not_contains([OnlineStatus.State.UNREACHABLE])
+	assert_int(rig.server.player_count()).is_equal(1)
+
+
+func test_a_server_that_always_hangs_up_is_unreachable_after_the_rejoins() -> void:
+	var rig := _start_rig(func(server: NetServer) -> void: server.hello_seconds = -1.0)
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	(
+		assert_bool(
+			await _until(
+				func() -> bool: return online.status.state == OnlineStatus.State.UNREACHABLE
+			)
+		)
+		. is_true()
+	)
+	assert_int(online.client.rejoined).is_equal(online.client.rejoins)
+	assert_bool(online.client.is_seated()).is_false()
+
+
+func test_a_refusal_is_never_rejoined() -> void:
+	var rig := _start_rig(func(server: NetServer) -> void: server.max_players = 1)
+	assert_object(await rig.join("First")).is_not_null()
+	var full := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	(
+		assert_bool(
+			await _until(func() -> bool: return full.status.state == OnlineStatus.State.FULL)
+		)
+		. is_true()
+	)
+	await rig.wait(30)
+	assert_int(full.client.rejoined).is_equal(0)
+	assert_int(full.status.state).is_equal(OnlineStatus.State.FULL)
+
+
 func test_bot_plays_through_the_players_own_input() -> void:
 	var rig := _start_rig()
 	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
@@ -184,3 +234,5 @@ func test_the_probe_reports_what_the_client_measured() -> void:
 	assert_int(report["rtt_ms"]).is_greater_equal(0)
 	assert_float(report["gap_m"]).is_between(0.0, 0.05)
 	assert_int(report["frame_us_p50"]).is_greater(0)
+	assert_int(report["seated_ms"]).is_greater(0)
+	assert_int(report["rejoined"]).is_equal(0)
