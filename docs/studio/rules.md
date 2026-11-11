@@ -146,7 +146,9 @@ one time a learning makes a new page. The check names the page and its size.
   issues that cite the old anchors still resolve. **Watch out for:** a template page that every feature adds a section
   to reached 51.1 KB of 51.2 KB with six agents still adding to it, and the next one failed the check. **Seen:**
   `engines/godot/third-person-template.md`, split in gdstudio #983; `engines/godot/third-person/character.md`, 53 KB
-  once three branches that each passed alone were merged, split in gdstudio #1029.
+  once three branches that each passed alone were merged, split in gdstudio #1029; `engines/godot/audio.md`, split in
+  gdstudio #1067, whose new folder failed `test_docs_site.py` until it had its own `index.md` (every docs folder needs
+  one; run `uv run --project python pytest python/tests/test_docs_site.py` after a split).
 
 ## Where the entry is named {#named}
 
