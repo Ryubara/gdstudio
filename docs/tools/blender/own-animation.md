@@ -108,6 +108,33 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver
 starts from, not what the player sees.
 
+### Limbs inside limbs on the template's bodies {#audit-bodies}
+
+<!-- new section: the audit measured the Quaternius bodies; since kit #1187 the template wears the prototype form
+bodies, and a replacement has to beat the library on those -->
+
+`limb_overlap.py` over all 86 clips of both files on the prototype `form` bodies the template wears since kit #1187
+and on the Quaternius pair (kit #1286, the deepest crossing a clip, mm; a pair named over 5 mm). Over all 86 clips the
+`form` bodies cross on fewer (32 against 40); of the played clips these go over 5 mm on some body:
+
+| Clip | form_female | form_male | Quaternius female | Quaternius male |
+| --- | --- | --- | --- | --- |
+| `Death01` | 30.5 (left hand in left thigh) | 0.0 | 29.4 (right hand in right thigh) | 40.9 (left hand in left thigh) |
+| `Idle` | 5.5 (right hand in right thigh) | 0.0 | 16.9 (right hand in right thigh) | 0.0 |
+| `Interact` | 2.7 | 0.0 | 18.9 (left hand in left thigh) | 0.0 |
+| `Jump_Land` | 6.5 (left shin in left forearm) | 0.0 | 3.3 | 0.0 |
+| `Slide_Exit` | 11.1 (right shin in right forearm) | 1.0 | 0.0 | 0.0 |
+| `Walk` | 0.0 | 1.9 | 11.6 (left hand in left thigh) | 0.0 |
+| `Punch_Jab`, `Punch_Cross` | 0.0 | 0.0 | 29.1, 19.0 (left hand in the head) | 0.0 |
+| `Pistol_*` (six clips) | 12.4 to 14.3 (hand in hand) | 6.9 to 13.4 | 24.3 to 28.5 | 14.1 to 31.1 |
+| `ClimbUp_1m` | 35.0 (chest in right thigh) | 44.6 | 32.4 | 26.4 |
+
+The `form` bodies' slimmer hips and hands clear the thighs and the head where the Quaternius female's do not; their
+thicker shins and forearms meet where a leg folds under an arm (`Jump_Land`, `Slide_Exit`, and `NinjaJump_Land` 12.3,
+not played): kit #1295. The prototype male's thighs meet by 1.9 mm at rest, so his walk, jog and sprint read 1.9.
+Reproduce with `limb_overlap.py -- --clips universal/ual1.glb --model characters/prototype/form_female.glb --model
+characters/prototype/form_male.glb --json <file>` (about 10 minutes a file for two bodies).
+
 ### What the clips cost {#audit-cost}
 
 <!-- new section: the web build's cost of the libraries had one number (the pck); the plan needs it per clip -->
