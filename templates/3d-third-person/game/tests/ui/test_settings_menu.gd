@@ -22,6 +22,7 @@ func after_test() -> void:
 	UIMotion.reduced = false
 	await MenuFixture.clear(get_tree())
 	Settings.reset_defaults()
+	CameraShake.strength = 1.0
 	AudioSettings.reset_player_gain()
 	get_tree().root.scaling_3d_scale = 1.0
 	InputMap.load_from_project_settings()
@@ -84,6 +85,34 @@ func test_a_toggle_sets_its_value() -> void:
 	assert_bool(Settings.get_value(SettingsService.INVERT_Y)).is_true()
 	toggle.button_pressed = false
 	assert_bool(Settings.get_value(SettingsService.INVERT_Y)).is_false()
+
+
+func test_the_camera_shake_slider_sets_the_global_strength() -> void:
+	_screen.select_tab(2, false)
+	var row := _row("CameraShake")
+	assert_str(row.key).is_equal(String(SettingsService.CAMERA_SHAKE))
+	var slider := row.control as UISlider
+	assert_float(slider.value).is_equal(100.0)
+	slider.value = 30.0
+	assert_int(Settings.get_value(SettingsService.CAMERA_SHAKE)).is_equal(30)
+	assert_float(CameraShake.strength).is_equal_approx(0.3, 0.0001)
+	slider.value = 0.0
+	assert_float(CameraShake.strength).is_equal(0.0)
+
+
+func test_the_camera_shake_slider_turns_down_with_a_key_and_sits_under_the_look_rows() -> void:
+	_screen.select_tab(2, false)
+	var slider := _row("CameraShake").control as UISlider
+	slider.grab_focus()
+	await get_tree().process_frame
+	_tap(KEY_LEFT)
+	await get_tree().process_frame
+	assert_int(Settings.get_value(SettingsService.CAMERA_SHAKE)).is_equal(95)
+	assert_float(CameraShake.strength).is_equal_approx(0.95, 0.0001)
+	var order := _screen.get_node("%ControlsPage").get_children().map(
+		func(row: Node) -> String: return String(row.name)
+	)
+	assert_int(order.find("CameraShake")).is_equal(order.find("InvertY") + 1)
 
 
 func test_the_quality_selector_lists_the_presets_and_sets_the_step() -> void:
