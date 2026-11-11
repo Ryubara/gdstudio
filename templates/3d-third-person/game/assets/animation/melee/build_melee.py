@@ -697,23 +697,28 @@ class Clip:
 # A blow's keys, in order: the wind-up (short: a blow that is seen coming is slow to play), the snap to contact,
 # a short follow-through and the way back. The research behind each is in README.md.
 DOWN = (0.0, 0.0, -1.0)
-## A fist on guard, from its own shoulder in the chest's axes (toward the body's middle, forward, up; m): in front
-## of the shoulder and under the jaw, the elbow hanging under it. It turns with the chest, so it cannot end up in it.
-GUARD = (0.0, 0.26, 0.03)
-GUARD_LOW = (-0.02, 0.24, -0.20)
+## A fist on guard, from its own shoulder in the chest's axes (toward the body's middle, forward, up; m), and the
+## way its elbow points. It turns with the chest, so it cannot end up in it. Each side has its own numbers, as a
+## person's guard does (kit docs/tools/blender/own-animation.md#feel, no mirror poses): the rear (right) fist sits
+## close under the jaw with the elbow near the ribs; the lead (left) fist is held further out and lower, the
+## elbow a little away from the body.
+GUARD = {
+    "r": {"up": (0.0, 0.26, 0.04), "low": (-0.01, 0.23, -0.18), "elbow": (-0.5, -0.55, -1.0), "palm": (1.0, 0.3, -0.1)},
+    "l": {
+        "up": (-0.03, 0.30, -0.02),
+        "low": (-0.05, 0.27, -0.24),
+        "elbow": (0.75, -0.35, -1.0),
+        "palm": (-1.0, 0.0, -0.3),
+    },
+}
 
 
-def guard(c, side, frames, low):
-    """Key a hand's guard: up on each of `frames`, lower (`GUARD_LOW`) at `low`."""
-    sign = 1.0 if side == "l" else -1.0
-    for frame, place in [(frame, GUARD) for frame in frames] + [(low, GUARD_LOW)]:
-        c.hand(
-            frame,
-            side,
-            at=c.from_shoulder(frame, side, *place),
-            elbow=(sign * 0.6, -0.5, -1.0),
-            palm=(-sign, 0.2, -0.1),
-        )
+def guard(c, side, frames, low, up=None):
+    """Key a hand's guard: up on each of `frames` (at `up`, or the side's own place), lower at `low`. The frames
+    are never the striking hand's: the two fists do not rise, hold or drop together."""
+    mine = GUARD[side]
+    for frame, place in [(frame, up or mine["up"]) for frame in frames] + [(low, mine["low"])]:
+        c.hand(frame, side, at=c.from_shoulder(frame, side, *place), elbow=mine["elbow"], palm=mine["palm"])
 
 
 def unarmed_jab(rig):
@@ -721,19 +726,21 @@ def unarmed_jab(rig):
     out, the left shoulder follows it, the right fist comes up to guard the jaw."""
     c = Clip(rig, "Melee_Unarmed_Jab", 16, IDLE, 5, "l", "fists", "knuckles")
     c.what = "the lead (left) fist straight out and straight back, the right fist up at the jaw"
-    c.chest(2, yaw=3, pitch=1)
-    c.chest(5, yaw=-10, pitch=5)
-    c.chest(7, yaw=-7, pitch=4)
+    c.chest(2, yaw=3, pitch=1, roll=1)
+    c.chest(5, yaw=-10, pitch=5, roll=-3)
+    c.chest(7, yaw=-7, pitch=4, roll=-2)
     c.chest(11, yaw=-2, pitch=1)
     c.shoulder(2, "l", forward=0, up=5)
     c.shoulder(5, "l", forward=9, up=8)
     c.shoulder(10, "l", forward=3, up=3)
-    c.head(5, pitch=5)
+    c.shoulder(5, "r", forward=-5, up=-2)
+    c.shoulder(10, "r", forward=-1, up=1)
+    c.head(5, yaw=-3, pitch=5, roll=3)
     c.hand(2, "l", at=(0.27, 0.12, 1.12), elbow=(0.5, -0.7, -1.0), palm=(-1.0, 0.0, -0.3))
     c.hand(5, "l", at=(0.07, 0.535, 1.47), elbow=(0.7, 0.0, -1.0), palm=DOWN)
     c.hand(6, "l", at=(0.08, 0.50, 1.47), elbow=(0.7, 0.0, -1.0), palm=DOWN)
     c.hand(10, "l", at=(0.22, 0.27, 1.30), elbow=(0.5, -0.4, -1.0), palm=(-1.0, 0.0, -0.3))
-    guard(c, "r", (4, 7), 11)
+    guard(c, "r", (5, 9), 13)
     return c
 
 
@@ -749,13 +756,17 @@ def unarmed_cross(rig):
     c.shoulder(3, "r", forward=-4, up=6)
     c.shoulder(6, "r", forward=16, up=8)
     c.shoulder(12, "r", forward=3, up=3)
-    c.head(6, pitch=6)
-    c.head(8, pitch=6)
+    c.shoulder(6, "l", forward=-8, up=5)
+    c.shoulder(8, "l", forward=-9, up=5)
+    c.shoulder(13, "l", forward=-2, up=1)
+    c.head(6, yaw=4, pitch=6, roll=-4)
+    c.head(8, yaw=5, pitch=6, roll=-4)
     c.hand(3, "r", at=(-0.28, -0.01, 1.16), elbow=(-0.5, -0.8, -1.0), palm=(1.0, 0.0, -0.3))
     c.hand(6, "r", at=(-0.03, 0.535, 1.46), elbow=(-0.7, 0.0, -1.0), palm=DOWN)
     c.hand(8, "r", at=(0.0, 0.50, 1.44), elbow=(-0.7, 0.0, -1.0), palm=DOWN)
-    c.hand(13, "r", at=(-0.22, 0.20, 1.26), elbow=(-0.5, -0.5, -1.0), palm=(1.0, 0.0, -0.3))
-    guard(c, "l", (4, 8), 13)
+    c.hand(12, "r", at=(-0.25, 0.15, 1.15), elbow=(-0.5, -0.6, -1.0), palm=(1.0, 0.0, -0.3))
+    # the lead fist comes back high to the chin as the rear one goes: above the rising fist, never level with it
+    guard(c, "l", (4, 9, 12), 16, up=(0.0, 0.27, 0.09))
     return c
 
 
@@ -771,13 +782,17 @@ def unarmed_hook(rig):
     c.shoulder(3, "l", forward=-4, up=8)
     c.shoulder(6, "l", forward=14, up=10)
     c.shoulder(12, "l", forward=3, up=3)
-    c.head(6, pitch=5)
+    c.shoulder(6, "r", forward=-6, up=-3)
+    c.shoulder(8, "r", forward=-7, up=-3)
+    c.shoulder(13, "r", forward=-1, up=0)
+    c.head(6, yaw=-4, pitch=5, roll=4)
+    c.head(8, yaw=-6, pitch=5, roll=4)
     c.hand(3, "l", at=(0.36, 0.16, 1.30), elbow=(1.0, -0.6, -0.3), palm=DOWN)
     c.hand(6, "l", at=(0.02, 0.53, 1.48), elbow=(1.0, 0.2, -0.1), palm=DOWN)
     c.hand(8, "l", at=(-0.17, 0.42, 1.46), elbow=(1.0, 0.6, -0.15), palm=DOWN)
-    c.hand(13, "l", at=(0.22, 0.24, 1.26), elbow=(0.6, -0.4, -1.0), palm=(-1.0, 0.0, -0.3))
+    c.hand(13, "l", at=(0.27, 0.17, 1.14), elbow=(0.6, -0.5, -1.0), palm=(-1.0, 0.0, -0.3))
     c.hand(2, "r", at=c.from_shoulder(2, "r", -0.08, 0.20, -0.30), elbow=(-0.6, -0.5, -1.0), palm=(1.0, 0.2, -0.1))
-    guard(c, "r", (4, 5, 6, 7, 8), 13)
+    guard(c, "r", (4, 5, 6, 7, 8, 10, 12), 16)
     return c
 
 
@@ -794,14 +809,18 @@ def pistol_whip(rig):
     forward with the butt leading; the left hand stays up in front as a guard and is drawn in as the blow lands."""
     c = Clip(rig, "Melee_Pistol_Whip", 22, PISTOL_IDLE, 8, "r", "pistol", "butt")
     c.what = "the pistol up beside the head and down and forward, the butt leading; the left hand guards"
-    c.chest(4, yaw=-16, pitch=-3)
+    c.chest(4, yaw=-16, pitch=-3, roll=-4)
     c.chest(8, yaw=22, pitch=10, roll=3)
     c.chest(10, yaw=26, pitch=12, roll=3)
     c.chest(16, yaw=5, pitch=2)
     c.shoulder(4, "r", forward=-6, up=14)
     c.shoulder(8, "r", forward=14, up=6)
     c.shoulder(15, "r", forward=2, up=2)
-    c.head(8, pitch=5)
+    c.shoulder(4, "l", forward=7, up=3)
+    c.shoulder(8, "l", forward=-7, up=-2)
+    c.shoulder(15, "l", forward=-1, up=0)
+    c.head(4, yaw=3, pitch=-2, roll=3)
+    c.head(8, yaw=3, pitch=5, roll=-3)
     c.hand(
         4,
         "r",
@@ -838,7 +857,7 @@ def pistol_whip(rig):
     c.hand(5, "l", at=(0.16, 0.32, 1.30), elbow=(0.6, -0.3, -1.0), palm=(-0.3, 1.0, 0.0))
     c.hand(8, "l", at=(0.22, 0.16, 1.24), elbow=(0.6, -0.8, -0.8), palm=(-1.0, 0.0, -0.2))
     c.hand(10, "l", at=(0.23, 0.14, 1.22), elbow=(0.6, -0.8, -0.8), palm=(-1.0, 0.0, -0.2))
-    c.hand(16, "l", at=(0.20, 0.22, 1.20), elbow=(0.5, -0.7, -1.0), palm=(-1.0, 0.0, -0.2))
+    c.hand(16, "l", at=(0.17, 0.21, 1.31), elbow=(0.7, -0.6, -0.8), palm=(-1.0, 0.0, -0.2))
     for frame, closed in ((5, 0.5), (8, 0.8), (10, 0.8), (16, 0.4)):
         c.fingers(frame, "l", closed)
     return c
@@ -849,14 +868,18 @@ def pistol_backhand(rig):
     swings out level to the right, the back of the hand and the pistol's flat leading."""
     c = Clip(rig, "Melee_Pistol_Backhand", 21, PISTOL_IDLE, 8, "r", "pistol", "slide")
     c.what = "the pistol across to the left shoulder and out level to the right, the slide's flat leading"
-    c.chest(5, yaw=26, pitch=3)
-    c.chest(8, yaw=8, pitch=5)
-    c.chest(11, yaw=-6, pitch=5)
+    c.chest(5, yaw=26, pitch=3, roll=4)
+    c.chest(8, yaw=8, pitch=5, roll=-2)
+    c.chest(11, yaw=-6, pitch=5, roll=-4)
     c.chest(16, yaw=-2, pitch=1)
     c.shoulder(5, "r", forward=14, up=6)
     c.shoulder(8, "r", forward=12, up=6)
     c.shoulder(15, "r", forward=2, up=2)
-    c.head(8, pitch=4)
+    c.shoulder(5, "l", forward=-9, up=-3)
+    c.shoulder(8, "l", forward=-5, up=-2)
+    c.shoulder(15, "l", forward=-1, up=0)
+    c.head(5, yaw=5, pitch=2, roll=3)
+    c.head(8, yaw=-3, pitch=4, roll=-3)
     c.hand(
         5,
         "r",
@@ -893,7 +916,7 @@ def pistol_backhand(rig):
     c.hand(5, "l", at=(0.30, 0.04, 1.06), elbow=(0.6, -1.0, -0.4), palm=(-1.0, 0.0, 0.0))
     c.hand(8, "l", at=(0.27, 0.14, 1.14), elbow=(0.6, -0.8, -0.8), palm=(-1.0, 0.0, 0.0))
     c.hand(10, "l", at=(0.26, 0.16, 1.16), elbow=(0.6, -0.8, -0.8), palm=(-1.0, 0.0, 0.0))
-    c.hand(16, "l", at=(0.20, 0.22, 1.20), elbow=(0.5, -0.7, -1.0), palm=(-1.0, 0.0, -0.2))
+    c.hand(16, "l", at=(0.27, 0.12, 1.08), elbow=(0.5, -0.9, -0.7), palm=(-1.0, 0.0, -0.2))
     for frame, closed in ((5, 0.5), (8, 0.8), (10, 0.8), (16, 0.4)):
         c.fingers(frame, "l", closed)
     return c
@@ -904,14 +927,17 @@ def pistol_jab(rig):
     and up from the elbow with the butt leading; the left hand guards."""
     c = Clip(rig, "Melee_Pistol_Jab", 19, PISTOL_IDLE, 7, "r", "pistol", "butt")
     c.what = "the pistol back to the ribs and driven forward and up, the butt leading; the left hand guards"
-    c.chest(3, yaw=-14, pitch=0)
-    c.chest(7, yaw=28, pitch=8, roll=2)
-    c.chest(9, yaw=30, pitch=8, roll=2)
+    c.chest(3, yaw=-14, pitch=0, roll=-3)
+    c.chest(7, yaw=28, pitch=8, roll=4)
+    c.chest(9, yaw=30, pitch=8, roll=4)
     c.chest(14, yaw=5, pitch=2)
     c.shoulder(3, "r", forward=-6, up=4)
     c.shoulder(7, "r", forward=14, up=6)
     c.shoulder(13, "r", forward=2, up=2)
-    c.head(7, pitch=5)
+    c.shoulder(3, "l", forward=5, up=4)
+    c.shoulder(7, "l", forward=-6, up=5)
+    c.shoulder(13, "l", forward=-1, up=1)
+    c.head(7, yaw=4, pitch=5, roll=-3)
     c.hand(
         3,
         "r",
@@ -948,7 +974,7 @@ def pistol_jab(rig):
     c.hand(4, "l", at=(0.18, 0.30, 1.28), elbow=(0.6, -0.3, -1.0), palm=(-0.3, 1.0, 0.0))
     c.hand(7, "l", at=(0.21, 0.18, 1.30), elbow=(0.6, -0.7, -0.8), palm=(-1.0, 0.2, 0.0))
     c.hand(9, "l", at=(0.21, 0.17, 1.30), elbow=(0.6, -0.7, -0.8), palm=(-1.0, 0.2, 0.0))
-    c.hand(14, "l", at=(0.20, 0.22, 1.20), elbow=(0.5, -0.7, -1.0), palm=(-1.0, 0.0, -0.2))
+    c.hand(14, "l", at=(0.16, 0.25, 1.33), elbow=(0.7, -0.5, -0.9), palm=(-1.0, 0.0, -0.2))
     for frame, closed in ((4, 0.5), (7, 0.8), (9, 0.8), (14, 0.4)):
         c.fingers(frame, "l", closed)
     return c

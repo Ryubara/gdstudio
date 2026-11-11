@@ -20,10 +20,10 @@ Times are seconds from the clip's start. Reach is how far the striking point is 
 | Clip | Length | Contact | Hit window | Reach (f / m) | Height | What happens |
 | --- | --- | --- | --- | --- | --- | --- |
 | `Melee_Unarmed_Jab` | 0.533 | 0.167 | 0.139 to 0.231 | 0.69 / 0.74 | 1.51 | The left fist straight out and back, the right fist at the jaw |
-| `Melee_Unarmed_Cross` | 0.600 | 0.200 | 0.179 to 0.301 | 0.69 / 0.74 | 1.50 | The right fist through behind a 38 degree turn of the chest |
+| `Melee_Unarmed_Cross` | 0.600 | 0.200 | 0.179 to 0.285 | 0.69 / 0.74 | 1.50 | The right fist through behind a 38 degree turn of the chest |
 | `Melee_Unarmed_Hook` | 0.600 | 0.200 | 0.179 to 0.220 | 0.67 / 0.72 | 1.50 | The left fist round in a level arc, the bent arm carried by the chest |
 | `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.237 to 0.300 | 0.57 / 0.61 | 1.54 | The pistol up beside the head and down and forward, the butt leading |
-| `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.248 to 0.295 | 0.60 / 0.64 | 1.65 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
+| `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.248 to 0.296 | 0.60 / 0.64 | 1.65 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
 | `Melee_Pistol_Jab` | 0.633 | 0.233 | 0.195 to 0.340 | 0.61 / 0.65 | 1.40 | The pistol back to the ribs and driven forward and up, the butt leading |
 
 The striking point is the middle finger's knuckle for the fists (`hand_l` for the jab and the hook, `hand_r` for the
@@ -53,7 +53,7 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
   whip and the jab) or swings back beside the hip (the backhand), and returns sideways over the last four. Take the
   support hand's own solver off while a blow plays, and fade it back with the clip's end.
 - **The carried arm's swing.** `WeaponHold` holds the carrying arm 8 degrees out from the body (`carry_arm_out`). The
-  clips were measured without it; the pistol is never nearer the head or the trunk than 47 mm (the whip, frame 2), so
+  clips were measured without it; the pistol is never nearer the head or the trunk than 39 mm (the whip, frame 2), so
   a swing away from the body has room.
 
 ## What the build checks
@@ -66,11 +66,11 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
 | A body part inside another, both mannequins, every frame (`limb_overlap.py`) | 5 mm | 0.0 mm |
 | The pistol in the body or the body in the pistol, both mannequins, every frame (the holding hand aside) | 5 mm | 0.0 mm |
 | First and last pose against the pose it joins (16 main joints) | 10 mm | 0.00 mm |
-| A joint's velocity changing in one frame: wrists 6.5, elbows 6.0, shoulders 2.0, head 1.0, chest 1.0 m/s | by joint | 5.72 m/s (the hook's guard elbow), wrists 5.52 |
+| A joint's velocity changing in one frame: wrists 6.5, elbows 6.0, shoulders 2.0, head 1.0, chest 1.0 m/s | by joint | 5.77 m/s (the hook's guard elbow), wrists 5.52 |
 | A fist open: a fingertip's distance from its wrist | 105 mm | 87.9 mm (an open hand: 200) |
-| An arm's length in the blow, as a share of straight (a locked elbow pops) | 0.975 | 0.967 (the backhand), the jab 0.941 |
+| An arm's length in the blow, as a share of straight (a locked elbow pops) | 0.975 | 0.972 (the backhand), the jab 0.936 |
 | The wrist's bend from the forearm's line, as the game shows it | 40 degrees | 29.2 degrees |
-| The striking point's reach at contact, both mannequins | 0.55 to 0.75 m | 0.573 to 0.740 m |
+| The striking point's reach at contact, both mannequins | 0.55 to 0.75 m | 0.573 to 0.741 m |
 | The striking point's height at contact | 1.25 to 1.75 m | 1.40 to 1.65 m |
 | The striking point faster into contact than after it | | 5.3 to 9.1 m/s into contact |
 | The exported file played back against the solved poses | 0.5 mm | 0.001 mm |
@@ -83,7 +83,7 @@ the pistol's surface.
 the meshes the left hand is 26 mm inside the right hand (24 mm on the male) and, on the male, 12 mm in the grip. Two
 hands that start inside each other cannot part without crossing. So for the clip's first two frames and last four
 (the spans the game fades), the left arm against the right hand, forearm and pistol is held to the joined pose's own
-depth and 5 mm more, not to 5 mm. The deepest there is 28.2 mm (the male, the backhand's frame 20), against 24.4 mm in
+depth and 5 mm more, not to 5 mm. The deepest there is 28.8 mm (the male, the backhand's frame 20), against 24.4 mm in
 the joined pose itself. Every other pair, and these on every other frame, read 0.0 mm. In the game the left hand is
 held on the pistol by `WeaponHold` until the blow starts, not by this pose.
 
@@ -100,6 +100,30 @@ The shape of a blow is the same in all six: a short wind-up (the chest turns a l
 goes to where the blow starts), the snap to contact over three or four frames, a follow-through of one or two frames,
 and the way back.
 
+## No mirror poses
+
+Nothing in these clips is the same on both sides (kit `docs/tools/blender/own-animation.md#feel`). The legs and the
+hips are the library's own staggered stance. Above them every side has its own numbers:
+
+- **The guard is two guards.** The rear (right) fist sits close under the jaw, 0.26 m ahead of its shoulder and
+  0.04 m over it, the elbow near the ribs. The lead (left) fist is held further out and lower (0.30 m ahead, 0.02 m
+  under, 0.03 m out), the elbow away from the body. In the cross the lead fist comes back higher still (0.09 m over
+  the shoulder), above the fist that goes.
+- **The two fists never move together.** The guard rises a frame or two after the striking fist starts, stays up
+  while the striking fist drops, and comes down three frames after it.
+- **Both shoulders are keyed, each its own way.** The striking shoulder goes forward and up (9 to 16 degrees forward);
+  the other is pulled back 5 to 9 degrees, and dropped 2 to 3 degrees or, in the cross and the pistol jab, shrugged
+  5 degrees to cover the chin.
+- **The chest tilts as well as turns** (2 to 4 degrees of roll, to a different side in the wind-up and the blow), and
+  the head tips 3 to 4 degrees and turns 3 to 6 off the line instead of sitting square over it.
+- **The pistol clips' left hand has its own place in each clip** on the way back: in at the ribs (the whip), low
+  beside the hip (the backhand), up in front of the chest (the jab), never level with the pistol.
+
+The front and top sheets of every clip were read for anything lined up before the file was built. Three things were:
+the cross's two fists level at frame 4, both fists level on the way back in the cross and the hook (frames 12 to 14),
+and the pistol and the left fist level at the waist near the end of all three pistol clips. Each has its own numbers
+now.
+
 ## Research
 
 Studied for the mechanics and the timing only; nothing was traced or copied.
@@ -108,7 +132,7 @@ Studied for the mechanics and the timing only; nothing was traced or copied.
   8.1 m/s in a cross and 8.9 to 11.2 m/s in a hook, and a blow runs from the pelvis through the trunk and the shoulder
   to the elbow and the wrist ([Biomechanical Analysis of the Cross, Hook, and Uppercut in Junior vs. Elite
   Boxers](https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2020.598861/full),
-  Frontiers in Sports and Active Living, 2020). Ours: the knuckle comes into contact at 8.3 m/s (jab), 9.1 m/s (cross)
+  Frontiers in Sports and Active Living, 2020). Ours: the knuckle comes into contact at 8.2 m/s (jab), 9.1 m/s (cross)
   and 7.0 m/s (hook) on the female, 9.3, 10.6 and 8.0 on the male. The chest's turn leads the arm in every clip.
 - **Straight or round.** The same paper describes the cross as a blow that goes forward with the body and the hook as
   a turn of the whole body that carries the arm. So the cross is keyed as a straight line of the wrist behind a turn
