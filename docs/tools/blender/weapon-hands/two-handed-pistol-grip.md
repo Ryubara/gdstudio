@@ -160,15 +160,16 @@ sent; the rounds still go in at the end of `reload_time`.
   degrees back from the gun's down), 12 cm: the magazine's length and its top 1.6 cm clear of the well, since the
   arm arriving at the line's start is a few millimetres off it (at 11 cm the top went 2.1 mm into the grip's foot).
   The hand and the magazine go up it together, the magazine within 1.5 mm of the line and 1 degree of the grip.
-- **The fingers take it, carry it and let it go, three solved poses** (`tools/hold/solve_pistol_hold.py
-  --carry-only`). At the belt the hold takes the fingers from the clip and opens them (`pistol_carry_open_pose.tres`,
-  each finger the nearest pose 5 mm off the magazine with nothing in it on the way back), then closes them on it
-  (`pistol_carry_pose.tres`): the index, middle and ring fingers' tips and the thumb on the magazine (within
-  1.2 mm in and 0.9 mm off), the base in the fist, its top out of the thumb side, as a magazine is held to be guided
-  in. The little finger cannot reach it from the hand's place under the base (13 to 14 mm off) and the palm is 4.5
-  (female) and 6.3 mm (male) under the base. As the grip's foot comes down over the fingers they open again and go
-  to the pose under the magazine over 0.3 to 0.5 of the way in (`carry_release`, the latest span searched that
-  passes no deeper than the pose under the magazine itself: 1.0 and 0.9 mm).
+- **The fingers take it, carry it and let it go, three solved poses** (`tools/hold/solve_pistol_hold.py --carry-only`).
+  At the belt the hold takes the fingers from the clip and opens them (`pistol_carry_open_pose.tres`, each finger the
+  nearest pose 5 mm off the magazine with nothing in it on the way back), then closes them on it
+  (`pistol_carry_pose.tres`): the index, middle and ring fingers' tips and the thumb on the magazine (within 1.2 mm in
+  and 0.9 mm off), the base in the fist, its top out of the thumb side, as a magazine is held to be guided in; each
+  finger is solved with the palm's vertices it moves measured too (a thumb measured alone pressed the palm by its root
+  3.5 mm into the magazine). The little finger cannot reach it from the hand's place under the base (13 to 14 mm off)
+  and the palm is 4.5 (female) and 6.3 mm (male) under the base. As the grip's foot comes down over the fingers they
+  open again and go to the pose under the magazine over 0.3 to 0.5 of the way in (`carry_release`, the latest span
+  searched that passes no deeper than the pose under the magazine itself: 1.0 and 0.9 mm).
 - **A reload cut short leaves the pistol whole**: with no reload weight the plan has the pistol's magazine in its grip
   and none in the hand, whatever share the clip was at (`SupportHandPlan.magazine_in_gun`, `magazine_in_hand`).
 - **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload, and a
