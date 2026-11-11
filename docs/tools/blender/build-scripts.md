@@ -42,7 +42,8 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   another agent's `inspect.py` in place of the standard library's, and numpy failed to load with
   `No module named 'bpy'`; a probe that imported a template's script left a `__pycache__` folder beside it, which
   the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
-  moved to the scratch folder; the cache folder was deleted before the push).
+  moved to the scratch folder; the cache folder was deleted before the push); gdstudio #1151, 2026-11-11 (the same
+  numpy failure from a script in the shared temp folder).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.

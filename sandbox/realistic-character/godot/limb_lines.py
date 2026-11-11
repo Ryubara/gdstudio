@@ -5,7 +5,7 @@ line along a limb is (kit docs: tools/blender/realistic-characters.md#limb-lines
 
 The number is the mean absolute difference between the picture's luminance and its own 9-pixel box blur, in
 thousandths of full scale, over the pixels of the arm that lie at least 12 pixels inside its outline (so the
-silhouette does not count). A smooth lit cylinder scores near 1; the first build's arm scored 4.
+silhouette does not count). The mesh alone scores 0.5; the first build's arm scored 6.8, the rework's 4.7.
 """
 
 import sys

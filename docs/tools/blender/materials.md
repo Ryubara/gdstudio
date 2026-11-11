@@ -53,7 +53,8 @@ since every face is one colour and the shading comes from Godot's lights (lightm
 baking a pose into clips ([Animation](animation.md#keyframes)) and baking a walker's clip into one action for a preview
 ([Key art](key-art.md)).
 
-The first texture bakes were made by the realistic character experiment (gdstudio #1151): normals from a Multires
-sculpt, painted detail, colour, roughness and ambient occlusion with Cycles, at about 84 pixels per centimetre on a
-head, with the settings and the traps on [Realistic characters](realistic-characters.md#baking). A game asset that
-needs a bake starts from that section and adds its own numbers here before a second asset copies it.
+The first texture bakes were made by the realistic character experiment (gdstudio #1151): normals baked with Cycles
+from a sculpt onto the game mesh (not with the Multires baker, which draws a ridge on every edge loop: [Lines along a
+limb](realistic-characters.md#limb-lines)), colour, roughness and ambient occlusion, at about 84 pixels per centimetre
+on a head, with the settings and the traps on [Realistic characters](realistic-characters.md#baking). A game asset
+that needs a bake starts from that section and adds its own numbers here before a second asset copies it.

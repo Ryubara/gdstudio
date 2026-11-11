@@ -10,10 +10,10 @@ render_mode cull_disabled, depth_prepass_alpha;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic;   // colour, alpha = coverage
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap;
 uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap;            // R depth in the lock, G roughness
-uniform float primary = 0.03;
+uniform float primary = 0.02;
 uniform float primary_shift = 0.10;
 uniform float primary_power = 110.0;
-uniform float secondary = 0.07;
+uniform float secondary = 0.04;
 uniform float secondary_shift = -0.12;
 uniform float secondary_power = 22.0;
 uniform float matt = 0.0;                // 1 switches the highlights off, for the shine measurement
