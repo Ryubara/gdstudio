@@ -16,6 +16,8 @@ seconds=${3:-60}
 shift $(($# < 3 ? $# : 3))
 here=$(cd "$(dirname "$0")" && pwd)
 game="$here/../game"
+# Git Bash: a Windows Godot needs a Windows path, which MSYS_NO_PATHCONV=1 would keep it from getting.
+if command -v cygpath >/dev/null 2>&1; then game=$(cygpath -m "$game"); fi
 godot=${GODOT:-godot}
 bot=(--headless --path "$game" -s res://tools/net/server_bot.gd --)
 

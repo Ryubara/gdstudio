@@ -68,9 +68,10 @@ each other ([Physics layers](../physics-layers.md#template-layers)).
 - **The world hash** is `NetServer.world_hash_of(root)`: the paths and `net_kind` metadata of the nodes in the group
   `net_part` (#907 adds them; the map has none yet). A client sends the same function of its own map.
 - **The log** is one JSON object a line, said through `logged` too: `listening` (port, players_max, tick_hz,
-  version), `joined` (slot, name, players), `left` (slot, reason `goodbye`, `dropped`, `silent` or `kicked`, players,
-  drops), `refused` (reason, peer), `kicked` (peer, drops by reason), and every 10 s `stats` (players, tick,
-  out_bytes_per_s, step_ms_p50, step_ms_p95, steps_over_budget over 6 ms, peers_stalled, kicked).
+  version, and the host's cpu and cores), `joined` (slot, name, players), `left` (slot, reason `goodbye`, `dropped`,
+  `silent` or `kicked`, players, drops), `refused` (reason, peer), `kicked` (peer, drops by reason), and every 10 s
+  `stats` (players, tick, out_bytes_per_s, step_ms_p50, step_ms_p95, steps_over_budget over 6 ms, peers_stalled,
+  kicked; on Linux also rss_mb, anon_mb and cpu_pct from `ProcessStats`, [the server image](#server-image)).
 - **Clocks.** The connection rules read `NetServer.clock` (the machine's when empty, the frame clock in tests), as
   [a room over a real socket](../multiplayer.md#room-over-socket) says.
 
@@ -92,8 +93,8 @@ holds 180 MB working set and 140 MB private; the bench's static memory is 93 MB 
 `test_net_server_cost.gd` fails above 6 ms p95 with 8 bots in the map.
 
 The bytes are payloads (the WebSocket frame adds 2 a packet down and 6 up): down is 30 TICKs of 107 bytes, up 60
-commands of 15 and two pings (8 players). The image of #910 measures the Linux resident size against the research's
-80 MB estimate. The bot's round trip on localhost read 13 to 22 ms (rounded to its frames) and every bot's `ack`
+commands of 15 and two pings (8 players). On Linux, in its image and on Railway: [the server
+image](#server-image). The bot's round trip on localhost read 13 to 22 ms (rounded to its frames) and every bot's `ack`
 trailed what it had sent by 1 or 2 commands, the ones in flight.
 
 With `--moves` every bot of `server_bot.gd` steers by its own position in the TICKs: the weapon presses, a slide on its
@@ -112,3 +113,32 @@ server sent for it. In the 8-player run above every bot saw `SLIDE`, `VAULT` and
   **Watch out for:** a press at a fixed tick, or on one TICK-to-TICK speed, missed the slide for two of eight bots and
   then for three: the prototype map drops off a ledge just west of the spawn points, so the crouch came in the air
   (`FALL`) and only crouched. **Seen:** gdstudio #904, 2026-11-10 (`tools/net/server_bot.gd --moves`).
+
+## The server image {#server-image}
+
+<!-- new section: #template-server says how the server runs in a process; nothing held its container, its deploy and
+     what it costs on Linux and on Railway (gdstudio #910) -->
+
+The template's `server/`, beside `game/`, puts the server in a container and on Railway:
+
+| File | What it does |
+| --- | --- |
+| `Dockerfile` | debian:bookworm-slim; downloads the Linux Godot of the kit's `tools.toml` and checks its SHA-512 (the kit test `test_server_image.py` fails when the two differ); copies `game/` to `/app`, owned by the user `game`; writes `override.cfg` with two worker threads ([why](../multiplayer.md#headless-server-image)); imports at build time; runs `godot --headless --path /app -- --server` as `game` under `tini`, on `$PORT` (8910 when unset) |
+| `railway.toml` | The Dockerfile builder and a restart on failure; no health check (the server speaks WebSocket only) |
+| `stage.sh <folder>` | The build context: the two files above and `game/` without `.godot/`, the tests, the tools, GdUnit4 and the MCP addon (22 MB) |
+| `deploy.sh <service> [stage]` | Stages, `railway up --ci` to the service, waits for `SUCCESS`; refuses with neither `RAILWAY_TOKEN` nor a linked folder ([which project](../../../studio/railway.md#link)) |
+| `check.sh <url> [bots] [seconds]` | `tools/net/server_bot.gd` against a server: every bot welcomed and still connected at the end, then a hello of `NetWire.MIN_VERSION - 1` (`--version old`) refused for its version |
+
+```text
+server/stage.sh /tmp/stage && docker build -t game-server /tmp/stage
+docker run --rm -e PORT=8910 -p 8910:8910 game-server
+GODOT=<pinned godot> server/check.sh ws://127.0.0.1:8910 8 60
+server/deploy.sh <service>            # from a scratch folder linked with railway link
+GODOT=<pinned godot> server/check.sh wss://<service>.up.railway.app 8 600
+```
+
+TLS ends at Railway's edge, so the server speaks plain `ws://` and a client uses `wss://`. The bot's line carries
+`connect_ms` (connect to WELCOME, TLS and WebSocket handshakes included) and its round trip's `rtt_ms_p50` and
+`rtt_ms_p95`. `ProcessStats` (`gameplay/net/process_stats.gd`) adds to each `stats` line the resident memory
+(`rss_mb`), the process's own part of it (`anon_mb`; the rest is the mapped Godot program, shared and reloadable, and
+a container's memory counts close to `anon_mb`) and the share of one core (`cpu_pct`), read from procfs on Linux.

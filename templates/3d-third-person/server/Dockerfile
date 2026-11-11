@@ -20,7 +20,8 @@ RUN curl -fsSL -o /tmp/godot.zip \
     && rm /tmp/godot.zip
 
 FROM debian:bookworm-slim
-# tini is process 1: it hands the platform's SIGTERM to Godot and reaps, so a stop is a clean quit, not a kill.
+# tini is process 1 and hands the platform's SIGTERM on: Godot as process 1 ignored it, so each stop waited out the
+# grace period (10 s) and ended in a kill; under tini the server ends at once.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libfontconfig1 tini \
     && rm -rf /var/lib/apt/lists/* \
