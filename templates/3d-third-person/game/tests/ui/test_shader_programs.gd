@@ -4,7 +4,7 @@
 # until the list is recorded again (`tools/web_smoke/shader_programs.py --write`).
 extends GdUnitTestSuite
 
-# The template's recorded list held 154 programs (kit issue #1164); far fewer means a run that
+# The template's recorded list holds 157 programs (kit issue #1164); far fewer means a run that
 # stopped early wrote it.
 const LEAST_PROGRAMS := 100
 

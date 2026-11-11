@@ -285,6 +285,7 @@ each run, `?play`):
 | --- | ---: | ---: | ---: | --- |
 | GPU, cold, before (`--off`, three runs) | 19 954 to 20 459 | 7 to 9 | 23.8 to 25.4 | 13 079 to 13 763, 4 557 to 4 735 |
 | GPU, cold, after (three runs) | 2 339 to 2 604 | 5 | 8.1 to 8.8 | 3 206 to 3 571, 767 to 1 630 |
+| GPU, cold, after, the list recorded again on a later main (157 programs, two runs) | 1 760 to 1 904 | 2 | 7.1 to 7.5 | 2 513 to 2 790, 1 696 to 1 749 |
 | GPU, warm profile, before / after | 337 / 166 to 182 | 7 / 5 | 3.3 / 3.2 to 3.8 | 869 / 803 to 1 090 |
 
 The list itself linked in 2.0 to 2.4 s on the GPU. The online game's cold join (`online.py --gpu --warm-up 0 --pages 1
