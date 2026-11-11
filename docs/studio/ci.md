@@ -20,6 +20,12 @@ default branch -->
   for `main` too: 4 of the last 30 runs on `main` were cancelled; fix: the group is the commit for a push, and
   `test_workflow_concurrency.py` fails any workflow that runs on `main` and can cancel there, unless a
   `# cancels-on-main:` comment gives the reason, as `docs.yml` does: a cancelled site build is replaced by the next).
+- **Approach:** Read a green head as checked against the main it was built on: before landing one whose base is older
+  than main, merge main in when main has changed a file the pull request also changes, even where the merge is clean,
+  and push once. **Watch out for:** #1250 added two cases to `test_ai_spawner.gd` and landed; #1243's green head,
+  built before that, added one more and auto-merged 24 minutes later, so the suite reached 21 public methods and
+  main's gdlint failed though neither pull request had. **Seen:** gdstudio #1279, 2026-11-11 (fix: the suite split in
+  two).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
