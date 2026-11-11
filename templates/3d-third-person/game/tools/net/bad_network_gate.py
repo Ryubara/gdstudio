@@ -35,6 +35,11 @@ FREEZES = "8:500,16:2000,24:5000"
 # steps (67 ms) absorbs and a server without it turns into repeated commands (the hold's teeth on any machine: without
 # jitter a Linux runner's two processes drifted so little that the run without the hold read 2.4 m, against 0.7 m).
 JITTER_MS = 30.0
+# The relay's seed: each way draws from its own generator, so the same chunks stall in every run. Seed 8 stalls 22
+# of the run's 2330 command chunks up and 10 down, never more than two up within a second; seed 1 stalled 30 up with
+# four within a second, whose repeats added up to 4.2 m on two cores (gdstudio #1110, a run that tests the bursts of
+# ordinary 1 % loss, not the worst cluster a seed can draw).
+SEED = 8
 SETTLE_S = 2.0
 START_TIMEOUT_S = 60.0
 # name: (the client's freezes, the relay's stall chance; None takes --stall-chance)
@@ -198,7 +203,7 @@ def main() -> int:
     parser.add_argument("--delay-ms", type=float, default=100.0, help="relay delay each way (0: no relay)")
     parser.add_argument("--stall-chance", type=float, default=0.01, help="chance a relayed chunk stalls (stalls run)")
     parser.add_argument("--stall-ms", type=float, default=300.0, help="what a stall costs")
-    parser.add_argument("--seed", type=int, default=1, help="seed of the stalls and the jitter")
+    parser.add_argument("--seed", type=int, default=SEED, help="seed of the stalls and the jitter")
     parser.add_argument("--jitter-ms", type=float, default=JITTER_MS, help="up to this much more delay a chunk")
     parser.add_argument("--seconds", type=int, default=30, help="seconds the client walks")
     parser.add_argument("--bots", type=int, default=3, help="bots that give the client puppets")

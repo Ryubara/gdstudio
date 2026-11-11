@@ -8,8 +8,10 @@
 ## error, the gap to its own entry in the last TICK, the stalls and skipped ticks, the puppets
 ## drawn and how often they starved, the round trip, what the client costs a physics step, and the
 ## shots, hits and deaths it played from the server's events (`combat`), and `by_second`: for
-## each second after the WELCOME the metres corrected, the snaps and the gap to the last TICK at
-## its end, so a failed gate shows when it went wrong (`tools/net/bad_network_gate.py`).
+## each second after the WELCOME the metres corrected, the snaps, and at its end the gap to the
+## last TICK, the commands not yet answered, the round trip, the last command's number and the
+## last TICK's `ack` and tick, so a failed gate shows when it went wrong
+## (`tools/net/bad_network_gate.py`).
 ##
 ## `<godot> --headless --path game -s res://tools/net/predict_bot.gd -- --connect
 ## ws://127.0.0.1:8910 --seconds 30 [--delay-ms 100] [--freeze 8:500,16:2000,24:5000]`; a
@@ -131,6 +133,11 @@ func _note_second() -> void:
 		"corrected_m": snappedf(reconciler.corrected - _second_from["corrected"], 0.001),
 		"snaps": reconciler.snaps - _second_from["snaps"],
 		"gap_m": snappedf(NetPlayReport.gap(_client), 0.001),
+		"unanswered": reconciler.unanswered(),
+		"rtt_ms": _client.rtt_ms,
+		"seq": _client.seq,
+		"ack": _client.last_tick.ack if _client.last_tick != null else -1,
+		"server_tick": _client.last_tick.server_tick if _client.last_tick != null else -1,
 	}
 	_by_second.append(second)
 	_second_from = {"corrected": reconciler.corrected, "snaps": reconciler.snaps}

@@ -9,10 +9,15 @@ NET = Path(__file__).resolve().parents[2] / "templates" / "3d-third-person" / "g
 
 
 def _load(name: str):
-    spec = importlib.util.spec_from_file_location(name, NET / f"{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
+    # No `__pycache__` in the template: a made game's layout check refuses the folder (test_layout.py).
+    was, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    try:
+        spec = importlib.util.spec_from_file_location(name, NET / f"{name}.py")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = was
     return module
 
 
