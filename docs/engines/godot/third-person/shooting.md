@@ -70,6 +70,13 @@ the spread's place for `restore()`.
   `NodePath` export leaves the weapon with no muzzle and one configuration warning. **Seen:** gdstudio #836,
   2026-11-08; since gdstudio #901 the ray is an argument (`Weapon.fire(origin, direction)`) and the weapon reads no
   camera.
+- **Approach:** On a character, aim at the body part the crosshair's ray meets, not at the capsule it meets first
+  (`HitZones.aimed_point`; a ray between the parts goes on past the body), and prove it with the player's rig and
+  pistol at 2 to 4 m, the crosshair on the edge of the head and beside it (`tests/gameplay/test_close_shot.gd`).
+  **Watch out for:** the muzzle sits about 0.4 m left of and below the shoulder camera's line, so a shot sent at the
+  capsule's front (0.25 m before the head) crossed the crosshair's line there and went on up and to the right, past
+  the head's edge to the wall, while the gun pointed at the target; a test at 12 m or on the head's middle passes
+  either way. **Seen:** gdstudio #1251, 2026-11-11 (found by the maintainer).
 - **Approach:** Hand a weapon the ray it aims along and let the body make it from its command; prove it with a second
   character whose target is behind the local camera's back, with a world that has no camera, and with the old
   camera formula kept as a test fixture (`tests/fixtures/camera_aim.gd`) over a sweep of poses. **Watch out for:**
@@ -304,6 +311,16 @@ weapon is a new `.tres`; nothing else changes.
   left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
   reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
   `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+- **What aim and fire do** is the weapon's too (`WeaponDef`'s Aim and zoom group, gdstudio #1255): `can_aim` (off:
+  the aim button does nothing), `fire_needs_aim` (on: fire shoots only with the aim button held, and never with
+  `can_aim` off; `WeaponDef.fire_allowed()`), `fire_zooms` (off: holding fire leaves the camera's framing alone; the
+  camera's own `zoom_when_firing` must be on too) and `show_crosshair` (off: the `Crosshair` stays hidden). With
+  `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`, `fire_distance` and `zoom_offset` (further to
+  the chosen shoulder and up, blended in with the zoom) replace the camera's. The defaults keep the pistol as it was; the
+  fists have `fire_zooms` off, so a punch does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
+  from the definition its server body holds too (gameplay); `PlayerCamera.held_definition()` and the `Crosshair` read
+  the rest every frame (local, never sent), so every toggle applies while the game runs. Tests:
+  `test_weapon_aim_toggles.gd`; capture: `tools/capture/fire_zoom_tour.tscn` (pistol fire zooms, fist fire does not).
 
 Tests: `test_weapon_ammo.gd` (the weapon alone, ticked by hand), `test_weapon_switching.gd` (keys, wheel and mouse in
 the physics world), `test_net_command_codec.gd` (the four bits). Captures: `tools/capture/weapons_tour.tscn` (fire to
