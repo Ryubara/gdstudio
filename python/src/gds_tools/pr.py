@@ -5,7 +5,7 @@ there. `check_body` runs the same function, from the checkout of the repository 
 repository has its own `.github/conventions.yml` (a game's differs from the kit's), so the checker is run with that
 folder as its working directory and that file as its conventions, and the repository's own copy of `groundwork.py` is
 preferred over the kit's. Used by `gds pr check-body` and, loaded by file, by the Git/GitHub guard in
-`.claude/hooks/guards.py`, so this module uses the standard library only.
+`.claude/hooks/guards/bodies.py`, so this module uses the standard library only.
 """
 
 from __future__ import annotations

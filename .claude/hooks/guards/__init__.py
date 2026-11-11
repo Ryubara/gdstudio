@@ -1,99 +1,57 @@
-"""The guards behind dispatch.py (docs/studio/hooks.md), one module per job. Each check returns the reasons it refuses
-a call, with what to do instead; an empty list lets it through. Standard library only.
+"""The guards behind dispatch.py (docs/studio/hooks.md#modules), one module per job. Each check returns the reasons it
+refuses a call, with what to do instead; an empty list lets it through. Standard library only.
 
-This module holds the entry points the dispatcher calls: `pre_tool_use`, `stop` and `subagent_stop`, which run the
-guards of every module, the context writers (`session_start`, `user_prompt_submit`, `subagent_start`,
-`post_tool_use`) and `take_warnings`. `guards.<name>` still names every guard and helper, as the single file did."""
+This module holds the entry points the dispatcher calls: `pre_tool_use`, `post_tool_use`, `stop` and `subagent_stop`,
+which run the guards of every module, and `take_warnings`; the other context writers (`session_start`,
+`user_prompt_submit`, `subagent_start`) are found in their modules. Each entry point imports the modules it needs when
+it runs, so a call loads only what it judges: a Read or a Grep, which runs the PreToolUse hook too, loads two modules.
+`guards.<name>` still names every guard and helper, as the single file did."""
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from . import (
-    agents,
-    behind_base,
-    bodies,
-    comments,
-    commits,
-    disk,
-    docs,
-    idle,
-    issues,
-    launches,
-    learning,
-    mains,
-    merges,
-    proof,
-    protected,
-    session,
-    shell,
-    stall,
-    sweep,
-    workspace,
-)
-from .agents import check_agents, check_read, without_read_lines
-from .behind_base import check_behind, take_warnings
-from .bodies import check_opened_body, check_pr_body
-from .comments import check_comments
-from .commits import check_git
-from .disk import check_disk_agent, start_disk_guard
-from .docs import mistakes_text, read_report_reason, report_of, sections_named, stop_kit_docs
-from .idle import stop_idle
-from .issues import check_issue, check_labels
-from .launches import check_browser_probe, check_godot_audio, check_godot_window, check_kill, check_tools
-from .learning import stop_queue, subagent_start, user_prompt_submit
-from .mains import is_merge, pull_mains
-from .merges import check_hold, check_merge
-from .proof import stop_proof
-from .protected import check_edit, check_secrets
-from .session import session_start
-from .shell import change_dir, program, segments
-from .stall import stop_stall
-from .sweep import start_sweep
-from .workspace import AGENT_TOOLS, EDIT_TOOLS, SHELL_TOOLS, workspace_of
+from .disk import start_disk_guard
+from .workspace import AGENT_TOOLS, EDIT_TOOLS, SHELL_TOOLS, take_warnings, workspace_of
 
-# What the dispatcher calls (dispatch.py).
-__all__ = [
-    "post_tool_use",
-    "pre_tool_use",
-    "session_start",
-    "stop",
-    "subagent_start",
-    "subagent_stop",
-    "take_warnings",
-    "user_prompt_submit",
-]
-
+# What the dispatcher calls (dispatch.py); `__getattr__` finds the other context writers in their modules.
+__all__ = ["post_tool_use", "pre_tool_use", "stop", "subagent_stop", "take_warnings"]
 # Every module of the package, in the order `guards.<name>` searches them.
-MODULES: tuple[ModuleType, ...] = (
-    agents,
-    behind_base,
-    bodies,
-    comments,
-    commits,
-    disk,
-    docs,
-    idle,
-    issues,
-    launches,
-    learning,
-    mains,
-    merges,
-    proof,
-    protected,
-    session,
-    shell,
-    stall,
-    sweep,
-    workspace,
+MODULES = (
+    "agents",
+    "behind_base",
+    "bodies",
+    "comments",
+    "commits",
+    "disk",
+    "docs",
+    "idle",
+    "issues",
+    "launches",
+    "learning",
+    "mains",
+    "merges",
+    "proof",
+    "protected",
+    "session",
+    "shell",
+    "stall",
+    "sweep",
+    "workspace",
 )
+
+
+def modules() -> tuple[ModuleType, ...]:
+    """Every module of the package, imported now if it was not."""
+    return tuple(importlib.import_module(f"{__name__}.{name}") for name in MODULES)
 
 
 def __getattr__(name: str) -> Any:
     """`guards.<name>` names any guard or helper of the package, as it did when the guards were one file."""
-    for module in MODULES:
+    for module in modules():
         if name in vars(module):
             return vars(module)[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
@@ -106,6 +64,10 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     if workspace:
         start_disk_guard(workspace, config)  # throttled: one stat of a stamp file when it is not yet time
     if tool in AGENT_TOOLS:
+        from .agents import check_agents, check_read
+        from .disk import check_disk_agent
+        from .issues import check_issue
+
         return (
             check_agents(payload, config)
             + check_issue(payload, config)
@@ -113,9 +75,16 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             + check_disk_agent(payload, config)
         )
     if tool in EDIT_TOOLS:
+        from .protected import check_edit
+
         return check_edit(payload, config)
     if tool not in SHELL_TOOLS:
         return []
+    from .comments import check_comments
+    from .launches import check_browser_probe, check_godot_audio, check_godot_window, check_kill, check_tools
+    from .protected import check_secrets
+    from .shell import change_dir, program, segments
+
     command = (payload.get("tool_input") or {}).get("command", "")
     cwd = Path(payload.get("cwd") or ".")
     reasons = check_comments(command)
@@ -130,8 +99,15 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             continue
         name = program(words)
         if name == "git":
+            from .commits import check_git
+
             reasons += check_git(words, cwd, config)
         elif name == "gh":
+            from .behind_base import check_behind
+            from .bodies import check_pr_body
+            from .issues import check_labels
+            from .merges import check_hold, check_merge
+
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd)
             reasons += check_behind(words, cwd)
@@ -149,6 +125,13 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
 def stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None:
     """Every reason to hold the session back once (the proof gate, the lessons queue), or None. A session already
     held by a Stop hook (`stop_hook_active`) is let go, so the gates never loop."""
+    from .docs import stop_kit_docs
+    from .idle import stop_idle
+    from .learning import stop_queue
+    from .mains import pull_mains
+    from .proof import stop_proof
+    from .sweep import start_sweep
+
     idle = stop_idle(payload, config)  # counts its own refusals, so it ignores stop_hook_active
     if payload.get("stop_hook_active"):
         return idle
@@ -168,6 +151,11 @@ def post_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> str:
     a pull request description it opened or edited."""
     if payload.get("tool_name") not in SHELL_TOOLS:
         return ""
+    from .bodies import check_opened_body
+    from .mains import is_merge, pull_mains
+    from .shell import segments
+    from .sweep import start_sweep
+
     notes = [check_opened_body(payload, config)]
     command = (payload.get("tool_input") or {}).get("command", "")
     if any(is_merge(words) for words in segments(command)):
@@ -185,6 +173,10 @@ def subagent_stop(payload: dict[str, Any], config: dict[str, Any]) -> str | None
     section its kit branch edits, or while a task agent's report leaves out the sections it read and the gaps it found
     (held back once: `stop_hook_active` lets the next finish through), or while it ends on a step instead of a report
     (`stop_stall`, which counts its own refusals). Helpers and the reviewer are exempt."""
+    from .agents import without_read_lines
+    from .docs import mistakes_text, read_report_reason, report_of, sections_named, stop_kit_docs
+    from .stall import stop_stall
+
     stalled = stop_stall(payload, config)
     if payload.get("stop_hook_active"):
         return stalled

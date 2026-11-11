@@ -272,7 +272,7 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 
 1. every section the issue names as `page.md#anchor`;
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
+   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
    pages);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.

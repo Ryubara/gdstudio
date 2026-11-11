@@ -17,6 +17,13 @@ SHELL_TOOLS = ("Bash", "PowerShell")
 EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
 AGENT_TOOLS = ("Agent", "Task")
 MARKER = ".gdstudio-workspace"
+WARNINGS: list[str] = []  # what a guard could not check in this hook run; the dispatcher says them (take_warnings)
+
+
+def take_warnings() -> list[str]:
+    """The warnings the guards gave since the last call, once: a guard that fails open says so here."""
+    taken, WARNINGS[:] = list(WARNINGS), []
+    return taken
 
 
 def glob_regex(pattern: str) -> re.Pattern[str]:

@@ -12,17 +12,10 @@ from typing import Any
 from urllib.parse import unquote
 
 from .merges import _API_MERGE, api_method, merge_target
-from .workspace import git, workspace_of
+from .workspace import WARNINGS, git, workspace_of
 
 _PR_URL = re.compile(r"github\.com/([\w.-]+/[\w.-]+)/pull/\d+")
-WARNINGS: list[str] = []  # what a guard could not check in this hook run; the dispatcher says them (take_warnings)
 SHOWN_COMMITS = 5
-
-
-def take_warnings() -> list[str]:
-    """The warnings the guards gave since the last call, once: a guard that fails open says so here."""
-    taken, WARNINGS[:] = list(WARNINGS), []
-    return taken
 
 
 def gh_text(command: list[str], cwd: Path, what: str) -> str:
