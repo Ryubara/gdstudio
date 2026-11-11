@@ -25,6 +25,11 @@ WORST_ERROR_M = 6.0
 # own hitches over 0.25 s): a snap more is an error past 2.5 m, a loop that does not settle.
 SNAPS_A_FREEZE = 1
 SNAPS_AT_JOIN = 1
+# A stall of the commands' way makes the server repeat the last command, and two such stalls close together put the
+# server's body 2.5 to 3.3 m ahead (the Linux runner, gdstudio #1110): an answer past `Reconciler.SNAP_DISTANCE`, which
+# the reconciler takes whole. Such a snap (`size_snaps_m`: a snap that was not a resync) is a burst, not a loop that
+# does not settle, when the run stalled the commands' way and it stays under `STALL_WORST_ERROR_M`; at most one an up
+# stall. The settled gap and the corrections still judge the loop.
 # Without freezes a stall of the network is a burst, never a wrong position: under 4 m. A stall of the commands' way
 # outlasts the hold, so the server repeats the last command (30 steps at most) and the answer after it is off by that
 # run: 1.4 to 1.6 m for one stall, 2.7 m when two came close together (with the jitter on top).
@@ -89,36 +94,19 @@ class Network:
 
     def starved_allowed(self, steps: int, puppets: int, client_stalls: int = 0) -> int:
         """Puppet-steps that may starve (`RemotePlayers.starved` counts each puppet of a step)."""
-        steady = (
-            int(steps * puppets * STARVED_SHARE)
-            + STARVED_A_CLIENT_STALL * client_stalls * puppets
-        )
+        steady = int(steps * puppets * STARVED_SHARE) + STARVED_A_CLIENT_STALL * client_stalls * puppets
         if not self.stalls_down:
             return steady
-        each = (
-            max(0.0, self.stall_s - PUPPET_DELAY_S) * TICK_RATE
-            + TICK_RATE / SNAPSHOT_RATE
-            + 1
-        )
-        return max(
-            steady, int((self.stalls_down * each + STARVED_SLACK_STEPS) * puppets)
-        )
+        each = max(0.0, self.stall_s - PUPPET_DELAY_S) * TICK_RATE + TICK_RATE / SNAPSHOT_RATE + 1
+        return max(steady, int((self.stalls_down * each + STARVED_SLACK_STEPS) * puppets))
 
     def corrected_allowed(self, client_stalls: int = 0) -> float:
         hitches = max(0, client_stalls - self.freezes)
-        per_minute = (
-            CORRECTED_M_PER_MINUTE_REAL if self.real else CORRECTED_M_PER_MINUTE
-        )
+        per_minute = CORRECTED_M_PER_MINUTE_REAL if self.real else CORRECTED_M_PER_MINUTE
         stalls = (
-            CORRECTED_M_A_PAGE_STALL * max(client_stalls, self.freezes)
-            if self.page
-            else CORRECTED_M_A_HITCH * hitches
+            CORRECTED_M_A_PAGE_STALL * max(client_stalls, self.freezes) if self.page else CORRECTED_M_A_HITCH * hitches
         )
-        return (
-            per_minute * self.seconds / 60.0
-            + CORRECTED_M_AN_UP_STALL * self.stalls_up
-            + stalls
-        )
+        return per_minute * self.seconds / 60.0 + CORRECTED_M_AN_UP_STALL * self.stalls_up + stalls
 
 
 @dataclass
@@ -139,28 +127,16 @@ class Verdict:
 
     def print(self, prefix: str = "") -> None:
         for c in self.checks:
-            print(
-                ("PASS " if c["ok"] else "FAIL ")
-                + prefix
-                + c["name"]
-                + f": {c['detail']}",
-                flush=True,
-            )
+            print(("PASS " if c["ok"] else "FAIL ") + prefix + c["name"] + f": {c['detail']}", flush=True)
 
 
-def judge_client(
-    report: dict, network: Network, verdict: Verdict | None = None
-) -> Verdict:
+def judge_client(report: dict, network: Network, verdict: Verdict | None = None) -> Verdict:
     """Judges a client's report against what the `network` it played through allows."""
     verdict = verdict or Verdict()
     if "error" in report or report.get("slot", -1) < 0:
         verdict.check("the client was seated", False, report)
         return verdict
-    verdict.check(
-        "the client was seated",
-        True,
-        {"slot": report["slot"], "rtt_ms": report.get("rtt_ms")},
-    )
+    verdict.check("the client was seated", True, {"slot": report["slot"], "rtt_ms": report.get("rtt_ms")})
     verdict.check(
         f"at most {LOST} answer(s) more than 6 m a stall off",
         report["lost"] <= LOST,
@@ -171,14 +147,16 @@ def judge_client(
         report["stalls"] >= network.freezes,
         {"stalls": report["stalls"], "skipped_ticks": report["skipped_ticks"]},
     )
-    snaps = SNAPS_AT_JOIN + SNAPS_A_FREEZE * max(network.freezes, report["stalls"])
+    bursts = up_stall_bursts(report, network)
+    snaps = SNAPS_AT_JOIN + SNAPS_A_FREEZE * max(network.freezes, report["stalls"]) + len(bursts)
     verdict.check(
-        f"at most {snaps} snaps (the join and each stall of the client)",
+        f"at most {snaps} snaps (the join, each stall of the client, each burst after an up stall)",
         report["snaps"] <= snaps,
         {
             "snaps": report["snaps"],
             "stalls": report["stalls"],
             "skipped_ticks": report["skipped_ticks"],
+            "bursts_m": bursts,
         },
     )
     worst = WORST_ERROR_M if network.freezes else STALL_WORST_ERROR_M
@@ -198,16 +176,10 @@ def judge_client(
     verdict.check(
         f"corrected under {allowed:.2f} m",
         report["corrected_m"] < allowed,
-        {
-            "corrected_m": report["corrected_m"],
-            "corrections": report["corrections"],
-            "up_stalls": network.stalls_up,
-        },
+        {"corrected_m": report["corrected_m"], "corrections": report["corrections"], "up_stalls": network.stalls_up},
     )
     if report.get("puppets", 0) > 0:
-        starved = network.starved_allowed(
-            report["steps"], report["puppets"], report["stalls"]
-        )
+        starved = network.starved_allowed(report["steps"], report["puppets"], report["stalls"])
         verdict.check(
             f"puppets starved in at most {starved} puppet-steps",
             report["starved_steps"] <= starved,
@@ -219,6 +191,15 @@ def judge_client(
             },
         )
     return verdict
+
+
+def up_stall_bursts(report: dict, network: Network) -> list[float]:
+    """The snaps taken for their size (`size_snaps_m`) that a stall of the commands' way explains: none without up
+    stalls, only those under `STALL_WORST_ERROR_M`, and at most one an up stall."""
+    if network.stalls_up <= 0:
+        return []
+    bursts = [e for e in report.get("size_snaps_m", []) if e < STALL_WORST_ERROR_M]
+    return bursts[: network.stalls_up]
 
 
 def server_log(path: Path) -> dict:
@@ -243,22 +224,12 @@ def server_log(path: Path) -> dict:
             left.append(entry)
         elif event == "stats":
             stats.append(entry)
-    return {
-        "kicked": kicked,
-        "left": left,
-        "stats": stats[-3:],
-        "errors": errors[:10],
-        "lost_steps": lost_steps(stats),
-    }
+    return {"kicked": kicked, "left": left, "stats": stats[-3:], "errors": errors[:10], "lost_steps": lost_steps(stats)}
 
 
 def lost_steps(stats: list[dict]) -> int:
     """The most steps the server fell further behind its clock between two `stats` lines (0 with fewer than two)."""
-    behind = [
-        round(entry["t"] * TICK_RATE) - entry["tick"]
-        for entry in stats
-        if "t" in entry and "tick" in entry
-    ]
+    behind = [round(entry["t"] * TICK_RATE) - entry["tick"] for entry in stats if "t" in entry and "tick" in entry]
     return max((b - a for a, b in itertools.pairwise(behind)), default=0)
 
 
