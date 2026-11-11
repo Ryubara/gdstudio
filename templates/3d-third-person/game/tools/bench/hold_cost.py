@@ -4,7 +4,7 @@ Serves a web export of the bench (`gds template bench-web 3d-third-person hold_c
 docs/engines/godot/web-probes.md#bench-web) cross-origin isolated (so the page's clock steps 5 us, not 100), loads it
 once a run (`?run=no_hold`, `aimed`, `rifle`, ...; one page a run, as the bench measures one set of figures a process),
 waits for `window.__hold_cost` and prints each run's mean and median frame work and, for each hold, its cost a
-character a frame: the run's mean less `no_hold`'s, over the figures. The optional second argument is a CPU throttle
+character a frame: the run's mean less that of the `no_hold` run with the same camera, over the figures. The optional second argument is a CPU throttle
 (4 is the weak-machine stand-in), the third a comma-separated list of runs.
 
     uv run --project <kit>/python gds quiet -- \
@@ -26,7 +26,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 RUN_TIMEOUT_S = 300.0
-RUNS = ["no_hold", "carried", "aimed", "rifle", "rifle_low", "rifle_reload", "rifle_far"]
+RUNS = ["no_hold", "carried", "aimed", "rifle", "rifle_low", "rifle_reload", "no_hold_far", "rifle_far"]
 
 
 class IsolatedHandler(http.server.SimpleHTTPRequestHandler):
@@ -74,14 +74,15 @@ def main() -> int:
         browser.close()
     server.shutdown()
     failed = [m for m in messages if m.startswith(("error", "pageerror"))][:5]
-    base = results.get("no_hold")
+    bases = {r["camera"]: r for r in results.values() if r["run"].startswith("no_hold")}
     print(f"throttle {throttle:g}x")
     for run, result in results.items():
+        base = bases.get(result["camera"])
         line = (
             f"{run:<13} work mean {result['mean_ms']:7.3f} ms, median {result['median_ms']:7.3f} ms"
             f" ({result['frames']} frames, isolated {result['isolated']})"
         )
-        if base is not None and run != "no_hold":
+        if base is not None and not run.startswith("no_hold"):
             each = (result["mean_ms"] - base["mean_ms"]) * 1000.0 / result["characters"]
             line += f"  hold {each:6.1f} us a character a frame"
         print(line)

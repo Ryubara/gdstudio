@@ -4,14 +4,16 @@
 ## pose, the wrist's turn and the arm's swing) or `aimed` (those and the left arm's reach and the
 ## left fingers); or with `rifle_held.tscn` in the model's space: `rifle` (aimed: the stance, both
 ## arms' reach and both hands' fingers), `rifle_low` (the same at the low ready) or `rifle_reload`
-## (aimed, 0.3 of a reload: the left hand taking the magazine out) or `rifle_far`
-## (aimed, seen by a camera 30 m away: past the hold's `fingers_far_distance`).
+## (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera looks on from
+## `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the player's
+## own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past it).
+## A game always has a camera, and what the hold moves costs more with one looking.
 ##
 ## A frame's work is the span from the `_process` of the first node to process to the end of the
 ## deferred calls that follow the last one (the skeletons run their modifiers there), the same
 ## code headless and in a browser. It prints the mean and the median on a line starting `BENCH`
 ## and, in a browser, puts them in `window.__hold_cost`; the hold's cost for one character is a
-## run's mean less `no_hold`'s, over 40.
+## run's mean less the mean of the `no_hold` run with the same camera, over 40.
 ##
 ## `<godot> --headless --path game res://tools/bench/hold_cost.tscn -- rifle` (the modifiers are
 ## skeleton work on the CPU, so a headless run measures them); in Chrome,
@@ -30,14 +32,18 @@ const MODEL := "res://assets/characters/mannequin/mannequin_female.glb"
 const PISTOL_HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const PISTOL_HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const RIFLE_HELD := "res://gameplay/weapon/rifle_held.tscn"
+## How far in front of the figures' middle the camera stands, in metres.
+const NEAR_CAMERA := 6.0
+const FAR_CAMERA := 30.0
 const RUNS: Dictionary[String, Dictionary] = {
-	"no_hold": {"hold": false, "aim": 0.0},
-	"carried": {"hold": true, "aim": 0.0},
-	"aimed": {"hold": true, "aim": 1.0},
-	"rifle": {"rifle": true, "aim": 1.0},
-	"rifle_low": {"rifle": true, "aim": 0.0},
-	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3},
-	"rifle_far": {"rifle": true, "aim": 1.0, "camera": 30.0},
+	"no_hold": {"hold": false, "aim": 0.0, "camera": NEAR_CAMERA},
+	"carried": {"hold": true, "aim": 0.0, "camera": NEAR_CAMERA},
+	"aimed": {"hold": true, "aim": 1.0, "camera": NEAR_CAMERA},
+	"rifle": {"rifle": true, "aim": 1.0, "camera": NEAR_CAMERA},
+	"rifle_low": {"rifle": true, "aim": 0.0, "camera": NEAR_CAMERA},
+	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3, "camera": NEAR_CAMERA},
+	"no_hold_far": {"hold": false, "aim": 0.0, "camera": FAR_CAMERA},
+	"rifle_far": {"rifle": true, "aim": 1.0, "camera": FAR_CAMERA},
 }
 
 var _frame_start := 0
@@ -62,11 +68,10 @@ func _bench() -> void:
 		get_tree().quit(1)
 		return
 	var run := RUNS[run_name]
-	if run.has("camera"):
-		var camera := Camera3D.new()
-		add_child(camera)
-		camera.position = Vector3(0.0, 2.0, run.camera)
-		camera.make_current()
+	var camera := Camera3D.new()
+	add_child(camera)
+	camera.position = Vector3(0.0, 2.0, run.camera)
+	camera.make_current()
 	var library := load(LIBRARY) as AnimationLibrary
 	library.get_animation(CLIP.get_slice("/", 1)).loop_mode = Animation.LOOP_LINEAR
 	for index in FIGURES:
@@ -96,6 +101,7 @@ func _bench() -> void:
 	var result := {
 		"run": run_name,
 		"characters": FIGURES,
+		"camera": run.camera,
 		"frames": _works.size(),
 		"mean_ms": total / _works.size(),
 		"median_ms": sorted[sorted.size() / 2],
