@@ -273,6 +273,14 @@ line.** Read the body back, replace the link with the address alone, with a blan
 repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
 `<video` tag.
 
+- **Approach:** To let a listener hear a whole loop, or several versions of one bed, record them through the game's
+  own player: a probe scene loads each version in turn into that player (its bus and volume, the default settings)
+  for longer than one loop, Movie Maker writes the run's audio track, and a script cuts one section per version from
+  it at the times the probe logged. **Watch out for:** an asset file played alone skips the bus, the volume and the
+  loop point the player applies, so the clip compares files, not what the player hears; a run shorter than the loop
+  never reaches its seam. **Seen:** gdstudio #1101, 2026-11-11 (the wind beds: a probe swapped the stream on the Wind
+  player, Ambient bus, -20 dB, and the old bed and three candidates were cut from one Movie Maker track).
+
 ## What proves a feature {#feature-proof}
 
 <!-- new section: the sections above say how to take a capture; none says that every feature names its own proof and

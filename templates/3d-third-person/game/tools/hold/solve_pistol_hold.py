@@ -799,7 +799,7 @@ def solve_left(scene, out, rounds, started):
     scene.right.set("thumb", carried)
     rows = reach(scene, in_gun)
     worst = max(rows, key=lambda row: row[2])
-    print("left arm: the least to spare is %.1f mm (%s, %s)" % (-worst[2] * 1000, worst[0], worst[1]))
+    print(f"left arm: the least to spare is {-worst[2] * 1000:.1f} mm ({worst[0]}, {worst[1]})")
     print(
         "left",
         np.round(left, 4).tolist(),
@@ -1018,9 +1018,10 @@ def solve_trigger_way(scene, out, started):
         np.round(best, 1),
         "to",
         np.round(trigger, 1),
-        "passes (female, male) the left hand %.1f, %.1f mm, the gun %.1f, %.1f mm"
-        % (*[d * 1000 for d in passes_hand], *[d * 1000 for d in passes_gun]),
-        "(straight: the left hand %.1f mm, the gun %.1f mm)" % (straight[1], straight[0]),
+        "passes (female, male) the left hand {:.1f}, {:.1f} mm, the gun {:.1f}, {:.1f} mm".format(
+            *[d * 1000 for d in passes_hand], *[d * 1000 for d in passes_gun]
+        ),
+        f"(straight: the left hand {straight[1]:.1f} mm, the gun {straight[0]:.1f} mm)",
         "in %.0f s" % (time.time() - started),
         flush=True,
     )
@@ -1123,7 +1124,7 @@ def solve_way(scene, out, started):
             np.round(held[finger], 1),
             "to",
             np.round(opened[finger], 1),
-            "passes %.1f mm, ends %.1f mm off" % (-deepest * 1000, clear * 1000),
+            f"passes {-deepest * 1000:.1f} mm, ends {clear * 1000:.1f} mm off",
             flush=True,
         )
     for finger in FINGERS:
@@ -1152,13 +1153,13 @@ def solve_way(scene, out, started):
         np.round(way, 4).tolist(),
         "toward the belt",
         np.round(toward, 3).tolist(),
-        "%.0f degrees off it, of %d clear directions; passes %.1f mm" % (off_line, count, -deepest * 1000),
+        f"{off_line:.0f} degrees off it, of {count} clear directions; passes {-deepest * 1000:.1f} mm",
     )
     quaternions = hand.quaternions()
     passes = way_depths(scene, held, opened, way)
     print(
         "way passes",
-        ", ".join("%s %.1f mm" % (name, depth * 1000) for name, depth in zip(("female", "male"), passes, strict=False)),
+        ", ".join(f"{name} {depth * 1000:.1f} mm" for name, depth in zip(("female", "male"), passes, strict=False)),
         "in %.0f s" % (time.time() - started),
         flush=True,
     )

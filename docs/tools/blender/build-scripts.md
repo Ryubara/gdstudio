@@ -42,9 +42,14 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
   A patch chained before a solve in one background command fails the same way: its assert stopped the patch, the
   solve ran the old code for 13 minutes and gave the old pose to the last digit. Patch in the foreground, read its
-  result, then start the run; and format a file only with the repository's settings (a bare `ruff format` rewrapped
-  the template's solver at 88 columns). **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale
-  file was committed); gdstudio #1084, 2026-11-11 (fix: the patch run alone, the solver reformatted at 120).
+  result, then start the run. **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was
+  committed); gdstudio #1084, 2026-11-11 (fix: the patch run alone).
+- **Approach:** Lint and format a template's Python (its build scripts and benches under `templates/<t>/game/`)
+  by hand before the push, with the settings a game made from it uses: `uvx ruff check --no-cache --config
+  templates/repo/ruff.toml <files>` and the same with `ruff format` (120 columns). **Watch out for:** the kit's ruff
+  pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
+  ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
+  2026-11-11; gdstudio #1084, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver; formatted again at 120).
 
 ## Rebuilding a committed file {#rebuilding}
 
@@ -60,11 +65,13 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   played. **Seen:** Deadnight #678, 2026-11-02; Deadnight #939, 2026-11-04; Deadnight #1282, 2026-11-05 (fix:
   `FILE_CLIPS` and `--clips main`, and both files rebuilt from one source).
 - **Approach:** Import only a model its script wrote whole: after a conflict on a Git LFS model, fix the script and
-  build until it exits clean, take an old copy with `git checkout <rev> -- <file>` (`git show` prints the pointer),
+  build until it exits clean, take an old copy with `git checkout <rev> -- <file>` or `git show <rev>:<file> | git
+  lfs smudge > <out>` (`git show` alone prints the pointer),
   and read `git diff` of `*.import` before committing. **Watch out for:** pointer text (`version ...`) imported as a
   model fails and writes `valid=false` with no `dest_files` into the `.import`, which Godot keeps trusting after the
   model is good: restore the `.import`, delete `.godot/imported/<file>.glb-*` and import again. **Seen:** Deadnight,
-  2026-11-04; Deadnight #1282, 2026-11-05 (fix: the import files restored and the models imported again).
+  2026-11-04; Deadnight #1282, 2026-11-05 (fix: the import files restored and the models imported again); gdstudio
+  #1016, 2026-11-11 (an old glb read back with `git show`).
 
 ## Checks in the build {#checks}
 
