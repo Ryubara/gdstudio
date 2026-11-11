@@ -182,9 +182,11 @@ shooting page once that work lands).
   every clip. Over 40 characters the carried hold costs 5.6 microseconds a character a frame and the aimed one 12.6
   (headless, desktop; `tools/bench/hold_cost.tscn`). It is cosmetic and never sent over a network.
 - **The seat needs a wrist turn.** With the barrel on the clips' line a real-sized palm lies flat beside the grip, the
-  knuckles 2 cm off the panel. The seat is turned about the grip (24 degrees) and tipped (15), and the hand bone is
+  knuckles 2 cm off the panel. The seat is turned about the grip (13 degrees) and tipped (23), and the hand bone is
   turned back by the same turn (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and
-  only the wrist bends (28 degrees). That moves the pistol about 10 cm (`Weapon.no_muzzle_offset` follows the muzzle).
+  only the wrist bends (26 degrees). The seat puts the right middle finger's first bone under the trigger guard
+  (kit #1213; the solver's `UNDER_GUARD_Y`, checked by `test_pistol_hold.gd`). That moves the pistol about 10 cm
+  (`Weapon.no_muzzle_offset` follows the muzzle).
 - **A closed hand is wider than the clips' open one: hold the arm out while it is carried.** With the grip in the
   palm and the arm hanging as the locomotion clips have it, the grip's foot was 51 to 60 mm inside the female's thigh
   in `Idle` and `Walk`. `WeaponHold.carry_arm_out` lifts the upper arm 8 degrees toward its own side while the pistol
@@ -302,6 +304,10 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   nothing was deeper than 0.3 mm took it 8 mm off for a thumb that touched sideways; a bisection of the push over
   the whole way failed, since past the gun the palm is clear again (step to the first touch, then bisect).
   **Seen:** gdstudio #1031, 2026-11-10.
+- **Approach:** Measure the palm in the solver as the game's test does, at points all over its faces
+  (`HoldHand.palm_points`). **Watch out for:** the palm is a few faces up to 5 cm across, so its vertices miss a corner
+  of the grip between them: a seat searched on the vertices read the male palm 1.0 mm in where the test read 4.9 mm.
+  **Seen:** gdstudio #1213, 2026-11-11 (the seat searched again on the faces).
 - **Approach:** After closing a hand on a grip, measure the weapon against the body in the locomotion clips again, and
   bench a change of modifiers one configuration a process. **Watch out for:** the seat that put the grip in the palm
   moved the pistol 6 cm toward the body, into the thigh in `Idle` and `Walk`, which only the clearance test showed
