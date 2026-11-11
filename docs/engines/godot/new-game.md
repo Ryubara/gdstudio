@@ -419,7 +419,11 @@ replaced whole.
 - **Approach:** A setting every game needs goes in 3D Blank's `project.godot` only; an extending template's file holds
   just its additions and is merged by `gds new game`. **Watch out for:** a hand-kept full copy drifted whenever the base
   gained a line (kit #846 failed CI that way), and a key an extending template sets must be one the base does not need to
-  change (the later one wins). **Seen:** gdstudio #928, 2026-11-10.
+  change (the later one wins). A key added to an extending template's file is also added to the list
+  `python/tests/test_new_game.py` pins for it (`test_the_third_person_project_file_holds_only_what_it_adds`); run
+  `uv run --project python pytest python/tests/test_new_game.py` before the push. **Seen:** gdstudio #928,
+  2026-11-10; gdstudio #1075, 2026-11-11 (two navigation keys: the template suites passed and the kit's `test` jobs
+  failed on the pinned list).
 - **Approach:** When a script copies the branch's template files into a game made by `gds template game` (to test
   without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
   changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
