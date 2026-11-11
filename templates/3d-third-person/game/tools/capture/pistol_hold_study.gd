@@ -10,7 +10,9 @@
 ## res://tools/capture/pistol_hold_study.tscn`. `MODEL=male` studies the male mannequin,
 ## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=reload` studies one
 ## tag (the reload is filmed at every share of `RELOAD_SHARES`, both hands measured;
-## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it),
+## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it;
+## `HOLD_RELOAD_STEP=0.01` measures every hundredth of it instead, the scan that finds a hand
+## passing through the gun between two studied shares, and `HOLD_SHARES=0.03,0.05` those shares),
 ## `HOLD_OBJ=<folder>` writes each pose's hands and weapon as an OBJ file. It lives in tools/,
 ## which the export leaves out.
 extends Node3D
@@ -63,7 +65,7 @@ func _run(model: String) -> void:
 		if only != "" and spec.tag != only:
 			continue
 		var reload: bool = spec.has("shares")
-		var times: Array = spec.shares if reload else spec.times
+		var times: Array = _reload_shares() if reload else spec.times
 		for index in times.size():
 			var aim: float = spec.get("aim", 0.0)
 			if spec.get("carry", false):
@@ -77,7 +79,7 @@ func _run(model: String) -> void:
 			await _stage.settle()
 			var tag := "%s_%d" % [spec.tag, index]
 			if reload:
-				tag = "%s_%03d" % [spec.tag, roundi(times[index] * 100.0)]
+				tag = _reload_tag(spec.tag, times[index])
 			print("HOLD %s %s %s" % [model, tag, _measure(aim > 0.0 or reload)])
 			if OS.get_environment("HOLD_OBJ") != "":
 				_stage.contact.dump_obj(OS.get_environment("HOLD_OBJ").path_join(tag + ".obj"))
@@ -86,6 +88,29 @@ func _run(model: String) -> void:
 			elif film and index == times.size() - 1:
 				await _shoot(camera, out.path_join(spec.tag), aim > 0.0)
 	get_tree().quit()
+
+
+# A reload pose's name: the tag and the share in hundredths (`reload_079`), or in ten-thousandths
+# for a share between two hundredths (`reload_07875`).
+func _reload_tag(tag: String, share: float) -> String:
+	if is_equal_approx(share * 100.0, roundf(share * 100.0)):
+		return "%s_%03d" % [tag, roundi(share * 100.0)]
+	return "%s_%05d" % [tag, roundi(share * 10000.0)]
+
+
+# The shares of the reload to study: `RELOAD_SHARES`, or every `HOLD_RELOAD_STEP` of the clip, or
+# the ones `HOLD_SHARES` lists.
+func _reload_shares() -> Array:
+	var listed := OS.get_environment("HOLD_SHARES")
+	if listed != "":
+		return Array(listed.split_floats(","))
+	var step := OS.get_environment("HOLD_RELOAD_STEP").to_float()
+	if step <= 0.0:
+		return RELOAD_SHARES
+	var shares := []
+	for index in roundi(1.0 / step) + 1:
+		shares.append(minf(index * step, 1.0))
+	return shares
 
 
 func _measure(two_handed: bool) -> String:

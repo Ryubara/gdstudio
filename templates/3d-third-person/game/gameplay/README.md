@@ -49,4 +49,6 @@ The template has a character and the map's components:
 - `door`, `pickup`, `trigger_zone`, `moving_platform`, `spawn_point` and `physics_prop`: map components, each a scene
   with a script and inspector groups, working on its own. Their parts are nodes of the scene (a door's `Panel`,
   `Shape` and `Sensor`), so open the scene to restyle one; the `@tool` scripts size them from the inspector in the
-  editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`).
+  editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`). A door,
+  a platform and a pickup are online by their `NetEntity` child; a trigger zone whose state is a rule (the pressure
+  pad) gets `trigger_zone/trigger_zone_net.tscn` as a child in the map, one a single screen uses (a camera zone's) none.

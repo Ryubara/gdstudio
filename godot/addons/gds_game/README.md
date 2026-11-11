@@ -11,7 +11,7 @@ its copy.
 | Folder | What |
 | --- | --- |
 | `effects/` | `EffectDef` (what an effect is), `EffectEmitter` (one capped pool of one-shot effects, found by `EffectEmitter.find(self)`), `EffectSlot` (one playing effect) |
-| `trigger_zone/` | `TriggerZone`: an area that says when the first body comes in and the last one leaves |
+| `trigger_zone/` | `TriggerZone`: an area that says when the first body comes in and the last one leaves; with `sensing` off it notices nothing and shows what `show_active` says (a copy whose state is owned elsewhere: an online client's) |
 | `impacts/` | `Impacts` (where a shot lands: a mark on the body it hit, an effect and a sound by the kind of surface; `impact(collider, point, normal)`), `ImpactSurface` (one kind of surface), `ImpactMark` (one mark) |
 | `spawn_point/` | `SpawnPoint`: where something starts, in a named group; `SpawnPoint.pick()` passes over a point taken in the same frame |
 | `camera_shake/` | `CameraShake` (the trauma shake a camera rig applies; `CameraShake.shake(preset, at)` from anywhere) and `ShakePreset` (one kind of shake as a resource) |
