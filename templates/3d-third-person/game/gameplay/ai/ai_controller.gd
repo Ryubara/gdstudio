@@ -26,16 +26,43 @@ var aim := false
 var fire := false
 
 var _fire_was := false
+var _built := false
+var _walk_was := Vector3.ZERO
+var _look_was := Vector3.ZERO
+var _strength_was := 1.0
+
+
+func _init() -> void:
+	# An AI walks far more ticks than it does anything else: its body takes the lean tick then.
+	lean_step = true
 
 
 func sample() -> PlayerCommand:
 	var command := _command
+	var pressed := fire and not _fire_was
+	_fire_was = fire
+	# The channels as they were at the last call, with no press then or now: the same command,
+	# not built again (an AI's channels change at its thinks, a few times a second).
+	if (
+		_built
+		and not pressed
+		and not command.fire_pressed
+		and walk_direction == _walk_was
+		and look_direction == _look_was
+		and walk_strength == _strength_was
+		and aim == command.aim
+		and fire == command.fire
+	):
+		return command
 	command.clear()
 	command.set_from_world(walk_direction, look_direction, walk_strength)
 	command.aim = aim
 	command.fire = fire
-	command.fire_pressed = fire and not _fire_was
-	_fire_was = fire
+	command.fire_pressed = pressed
+	_built = true
+	_walk_was = walk_direction
+	_look_was = look_direction
+	_strength_was = walk_strength
 	return command
 
 

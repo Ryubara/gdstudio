@@ -309,8 +309,13 @@ func step(command: PlayerCommand, delta: float) -> void:
 		weapon.tick(delta)
 
 
-# One tick of a living body inside the map.
+# One tick of a living body inside the map. A controller that asks for it (an AI's) gets the lean
+# tick when nothing but the walk has anything to do: the same result, fewer modules
+# (`CharacterLean`).
 func _move(delta: float) -> void:
+	if controller != null and controller.lean_step and CharacterLean.can_take(self):
+		CharacterLean.move(self, delta)
+		return
 	_tick_timers(delta)
 	_update_prone(delta)
 	if vault_motion.drive(self, delta):

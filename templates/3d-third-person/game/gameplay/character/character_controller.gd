@@ -13,6 +13,11 @@ extends Node
 ## The returned command is this node's own and is written again on the next call: copy it
 ## (`PlayerCommand.clone()`) to keep it.
 
+## On: the body takes its lean tick (`CharacterLean`) on the ticks it only walks or stands, the
+## same result with fewer modules run. An AI's controller turns it on; a human's, a network's and a
+## test's leave it off, so the body they drive steps exactly the full tick.
+var lean_step := false
+
 var _command := PlayerCommand.new()
 
 
