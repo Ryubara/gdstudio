@@ -21,8 +21,8 @@ puppets; with two pages, one more).
 the measured ones (20 with `--gpu`): Chrome compiles each shader program the first time it draws it, on the page's
 thread, 12 to 14 s at once on a cold start (the server hangs up on its late hello and the client opens a new socket,
 `NetClient.rejoins`); the browser keeps what it compiled, so the measured pages read a returning player's frames.
-`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped` turns vsync and
-the frame cap off, so the frame time is the page's work and not 16.7 ms.
+`--warm-up 0` measures a first visit: each page's `join_s` is the seconds from its load to its seat. `--uncapped`
+turns vsync and the frame cap off, so the frame time is the page's work and not 16.7 ms.
 
 `--other-version` alone must fail (no page is seated: the teeth); with `--expect-refused` it passes only when every
 page shows the overlay's "another version" message. `result.json`, the logs and a screenshot of each page go to the

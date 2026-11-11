@@ -119,7 +119,8 @@ func test_the_shipped_profiles_load_with_their_numbers() -> void:
 		assert_float(profile.think_rate).is_equal(10.0)
 		assert_float(profile.reaction_time).is_greater_equal(AiProfile.REACTION_FLOOR)
 	assert_dict(names).is_equal({"grunt": "Grunt", "ally": "Ally", "civilian": "Civilian"})
-	assert_float((load(PROFILES.civilian) as AiProfile).flee_below_health).is_equal(1.0)
+	# The civilian plays Safe (cowers) under 56 % health: its flight is the behaviour set's answer.
+	assert_float((load(PROFILES.civilian) as AiProfile).flee_below_health).is_equal(0.4)
 
 
 func test_every_profile_number_has_a_range_and_a_default() -> void:
