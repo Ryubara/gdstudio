@@ -53,6 +53,19 @@ static func place(current: Variant, of: CharacterRagdoll) -> RagdollDrawing:
 	return drawing
 
 
+## Takes `current` off its skeleton and frees it; returns null. `CharacterRagdoll` calls it as it
+## hands its bones to the pool: a skeleton that only made the pool's sets (the first character of a
+## game, while the pool fills) kept its drawing, a node a living character does not carry (gdstudio
+## #1210). The next set it holds places a new one.
+static func drop(current: Variant) -> RagdollDrawing:
+	if is_instance_valid(current):
+		var drawing := current as RagdollDrawing
+		if drawing.get_parent() != null:
+			drawing.get_parent().remove_child(drawing)
+		drawing.queue_free()
+	return null
+
+
 # Once a tick: on while the ragdoll's bones on this skeleton are simulated and awake. A flinch
 # simulates a few limbs and not the pelvis, so a sleeper that is not simulated never turns it off.
 func _physics_process(_delta: float) -> void:

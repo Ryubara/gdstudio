@@ -91,7 +91,8 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
   nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
   a leak CI never sees); gdstudio #887, 2026-11-10 (`test_prone_aim.gd` alone: 195 GDScript objects with every test
-  but one turned off, none in the whole run; the RID lines beside them were real, next entry).
+  but one turned off, none in the whole run; the RID lines beside them were real, next entry); gdstudio #1026,
+  2026-11-11 (the player scene loaded alone).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the

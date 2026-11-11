@@ -72,6 +72,11 @@ pieces, and it makes no levels for skinned meshes ([Crowds](../../engines/godot/
   the receiver at 30 m, and the lowest level kept only the barrel, the magazine and the stock; the far level (420
   triangles) kept the outline at every distance; the pistol's levels (692 triangles) changed nothing visible there.
   **Seen:** gdstudio #886, 2026-11-10 (fix: `generate_lods=false` and `rifle.tscn`, near to 10 m and far after it).
+- **Approach:** Give the levels' visibility ranges no margins (each level's end is the next one's begin), and look
+  at the model in a real render at the distance the game's camera stands. **Watch out for:** with a begin and end
+  margin, a body that starts inside the band between two levels is drawn at neither: bodies at 8.7 m, with the
+  levels meeting at 9 m and margins of 0.75 m, were invisible while every headless test passed. **Seen:** gdstudio
+  #1149 (PR #1172), 2026-11-11 (fix: no margins, and a test asserts it).
 
 ## Fewer meshes {#merging}
 
