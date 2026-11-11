@@ -33,6 +33,9 @@ var dwell := 1.0
 var suspicious_at := 0.3
 ## How far awareness falls under a line before the situation calms down past it.
 var hysteresis := 0.1
+## Seconds Alert holds before falling awareness may calm it (the profile's `alert_hold_seconds`,
+## set by an `AiBrain`); 0 calms it as soon as awareness falls.
+var alert_hold := 0.0
 
 var _pending := -1
 
@@ -95,6 +98,8 @@ func feed_awareness(awareness: float) -> void:
 			elif awareness < suspicious_at - hysteresis:
 				wanted = Situation.UNAWARE
 		Situation.ALERT:
+			if held < alert_hold:
+				return
 			if awareness < suspicious_at - hysteresis:
 				wanted = Situation.UNAWARE
 			elif awareness < 1.0 - hysteresis:
