@@ -86,9 +86,10 @@ read it with the Read tool and fix what looks wrong.
 
 `sheet` and `clip` read any folder of frames, not only one `frames` wrote: a frame is a PNG named
 `<prefix><number>.png`, with one prefix and one number width for the whole folder, numbered in order from the first
-(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also
-works). Frames recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise
-(`walk-front.png`) has no frames, and the error lists the files it skipped.
+(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also works).
+The number is at most 8 digits, so a prefix may end in a digit (`run200000000.png` is `run2` and frame 0; it was read as
+one 9-digit number and ffmpeg found no frames, #1132). Frames recorded another way are renamed to that pattern first: a
+folder whose PNG files are named otherwise (`walk-front.png`) has no frames, and the error lists the files it skipped.
 
 ## clip {#clip}
 

@@ -324,3 +324,14 @@ def test_clip_cli_takes_max_seconds() -> None:
     args = cli.build_parser().parse_args(["capture", "clip", "frames", "--max-seconds", "50"])
     assert args.max_seconds == 50.0
     assert cli.build_parser().parse_args(["capture", "clip", "frames"]).max_seconds == capture.CLIP_MAX_SECONDS
+
+
+def test_clip_of_a_folder_whose_name_ends_in_a_digit(tmp_path: Path) -> None:
+    # Movie Maker names frames <name><8 digits>: `run2` gives run200000000.png, whose number is still 8 digits
+    folder = tmp_path / "run2"
+    make_frames(folder, 12, prefix="run2", size=(8, 8))
+    assert [p.name for p in capture.frame_files(folder)][:2] == ["run200000000.png", "run200000001.png"]
+    fake = FakeFfmpeg([1])
+    clip = capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
+    assert clip == folder / "run2.mp4"
+    assert fake.calls[0][fake.calls[0].index("-i") + 1] == str(folder / "run2%08d.png")

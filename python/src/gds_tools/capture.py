@@ -24,7 +24,9 @@ from gds_tools.quiet_run import run_quiet
 
 META_FILE = "capture.json"
 SHEET_FILE = "sheet.png"
-FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<number>\d+)\.png$")
+# Movie Maker writes <name><8 digits>.png; the number takes at most 8 digits so a name ending in a digit stays the
+# prefix (`run2` gives run200000000.png, not run + 200000000)
+FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<number>\d{1,8})\.png$")
 
 DEFAULT_FPS = 10
 MAX_FRAMES = 6000  # a safety net: 10 minutes at 10 fps
