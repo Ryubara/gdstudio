@@ -74,8 +74,11 @@ def main() -> int:
             f"{parts['characters']} walking, us a character a frame: "
             + ", ".join(f"{k[:-3]} {parts[k]:.1f}" for k in names)
         )
-        death = result["death"]
-        print(f"death: first {death['first_ms']:.2f} ms (makes the bones), later {death['later_ms']:.2f} ms")
+        for key in ("death", "death_male"):
+            death = result[key]
+            print(
+                f"{key}: first {death['first_ms']:.2f} ms, later {death['later_ms']:.2f} ms"
+            )
         for row in result["world"]:
             print(
                 f"{row['count']} {row['kind']:<7} {row['work_us_each']:>6.2f} us each (work),"
