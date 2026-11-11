@@ -311,6 +311,9 @@ func describe_text() -> String:
 		var head: AiTask = queue[0]
 		var mark := "> " if head == active else "  "
 		var line := "%s%s: %s" % [mark, AiTask.LAYER_NAMES[index], head.display_label()]
+		var inner := head.detail()
+		if not inner.is_empty():
+			line += " / " + inner
 		if head != active:
 			line += " (%s)" % AiTask.STATE_NAMES[head.state].to_lower()
 		if queue.size() > 1:

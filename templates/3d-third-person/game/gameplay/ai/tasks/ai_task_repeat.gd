@@ -64,5 +64,13 @@ func has_end_condition() -> bool:
 	return count > 0 or ends_on_condition
 
 
+func detail() -> String:
+	var child := _child()
+	if child == null:
+		return ""
+	var inner := child.detail()
+	return inner if not inner.is_empty() else child.display_label()
+
+
 func _child() -> AiTask:
 	return children[0] if not children.is_empty() else null

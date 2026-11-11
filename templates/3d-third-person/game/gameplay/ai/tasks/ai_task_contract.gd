@@ -237,6 +237,12 @@ func display_label() -> String:
 	return source.resource_path.get_file().get_basename() if source != null else "AiTask"
 
 
+## What it is doing inside, for the overlay: a composite names its running step (and that
+## step's own detail), a leaf nothing.
+func detail() -> String:
+	return ""
+
+
 ## True once it ended (succeeded, failed, cancelled or timed out).
 func is_done() -> bool:
 	return state >= State.SUCCEEDED

@@ -70,5 +70,13 @@ func cancel() -> void:
 	_cancel_children(Reason.CANCELLED)
 
 
+func detail() -> String:
+	var child := _current()
+	if child == null:
+		return ""
+	var inner := child.detail()
+	return child.display_label() + (" / " + inner if not inner.is_empty() else "")
+
+
 func _current() -> AiTask:
 	return children[step] if step < children.size() else null
