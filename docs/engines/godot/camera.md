@@ -187,7 +187,9 @@ captures see the same shake.
   are in the Fire group. The weapon's `fired` signal calls `kick()`, which adds a preset whose largest single turn is
   the amplitude (a trauma of 0.5 on a straight curve, so a burst stacks to at most twice that).
 - **Strength.** `CameraShake.strength` (0 to 1, static) scales every shake in the game: a settings menu sets it from the
-  player's "camera shake" option (and 0 for reduced motion), and 0 keeps no trauma at all. Each shaker also has
+  player's "camera shake" option (and 0 for reduced motion), and 0 keeps no trauma at all. In 3D Third Person it is
+  Settings > Controls > Camera shake (`controls/camera_shake`, 0 to 100 % in steps of 5, saved with the other options
+  and applied at start: [Menus](menus.md#settings-and-rebinding)). Each shaker also has
   `camera_strength` and `enabled` for one camera (a cutscene's). Both apply to what is already shaking.
 - **Presets.** `core/camera_shake/presets/` has `shot`, `landing`, `impact`, `explosion` and `sprint` as `.tres`: trauma,
   duration, wave, frequency, `max_rotation`, `max_offset`, exponent, blend speed and radius, tuned in the inspector.

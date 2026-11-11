@@ -59,13 +59,15 @@ game/
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
   #868, #872 (never copied back), #925 (a template has no project: import a throwaway in the kit's `godot/`), #910,
-  #1074, 2026-11-08 to 11; gdstudio #968, 2026-11-11 (36 at once in a handed-over draft).
+  #1074, #1091, 2026-11-08 to 11 (caught by `gds template test`); gdstudio #968, 2026-11-11 (36 at once).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
   ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
   (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
-  looked like a problem of the change. **Seen:** gdstudio #884, 2026-11-10.
+  looked like a problem of the change; importing a tool's module to try it (`python -c "import bad_network"`) leaves
+  `__pycache__/` the same way (`PYTHONDONTWRITEBYTECODE=1`, or delete it). **Seen:** gdstudio #884, 2026-11-10; gdstudio
+  #908, 2026-11-11 (`tools/net/__pycache__`, caught by `gds check layout` before the push).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

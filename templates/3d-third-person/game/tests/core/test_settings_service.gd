@@ -71,6 +71,7 @@ func test_the_defaults_are_what_the_screen_shows_on_a_first_start() -> void:
 		SettingsService.MOUSE_SENSITIVITY: 1.0,
 		SettingsService.INVERT_Y: false,
 		SettingsService.PAUSE_IN_INVENTORY: true,
+		SettingsService.CAMERA_SHAKE: 100,
 	}
 	for key: StringName in want:
 		assert_that(_service.get_value(key)).override_failure_message(str(key)).is_equal(want[key])
