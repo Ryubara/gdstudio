@@ -17,6 +17,10 @@ func before_test() -> void:
 	_host = _scene.get_node("PlayerRig/Camera/PhantomCameraHost")
 	_follow = _scene.get_node("PlayerRig/PlayerCamera").phantom_camera()
 	_overlook = _scene.get_node("World/Level/CameraViews/OverlookCamera")
+	# The AI section's population stays asleep: its pool, made as the player comes near, is out of
+	# the tree, and GdUnit counts a parked character as an orphan node before `after_test` runs.
+	for spawner: AiSpawner in _scene.get_node("World/AISection/Population").get_children():
+		spawner.enabled = false
 	await InputSim.ticks(get_tree(), 12)
 
 

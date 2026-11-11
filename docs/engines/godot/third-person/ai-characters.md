@@ -55,10 +55,12 @@ the server: `AiAuthority.hand_over` stops it and frees its pool).
   others' memories. **Watch out for:** a hidden character in the tree stays in the director, the senses' lists, its
   groups and the minimap; and one re-added was not re-registered, because `_ready` runs once, so it stood still with
   no think. **Seen:** kit #969, 2026-11-11.
-- **Approach:** Make a pool lazily (on the approach, one a tick) and clear it in a suite's `after_test`. **Watch out
-  for:** parked characters are out of the tree, so GdUnit counts them as orphans and the run exits 101, which CI's
-  pipe (`pipefail`) fails even with every case green ([Before the push](../running-gdunit.md#before-the-push)).
-  **Seen:** kit #969, 2026-11-11.
+- **Approach:** Make a pool lazily (on the approach, one a tick); a suite that runs the map but is not about the AI
+  sets `enabled = false` on each spawner of `World/AISection/Population` in `before_test` (`test_section_walks.gd`).
+  **Watch out for:** parked characters are out of the tree, so GdUnit counts them as orphans and the run exits 101,
+  which CI fails with every case green; GdUnit counts a case's orphans before `after_test`, so clearing the pool
+  there is too late (still 1188). **Seen:** kit #969, 2026-11-11 (`test_camera_zone.gd`, `test_player_in_the_map.gd`
+  walk within `wake_range` + 10 m; `Node.print_orphan_nodes()` named the parked grunts).
 
 ## The inspector {#inspector}
 
