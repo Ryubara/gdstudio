@@ -1,9 +1,9 @@
 class_name FrameSettle
 extends RefCounted
-## Tells when a page's frames have settled: `frames` in a row each shorter than `longest` seconds,
-## or `limit` seconds in all. `NetPlayProbe` joins only then, after the level's warm-up: a
+## Tells when a game's frames have settled: `frames` in a row each shorter than `longest` seconds,
+## or `limit` seconds in all. `JoinWait` joins a server only then, after the level's warm-up: a
 ## software renderer still draws the warm-up's last frames a few hundred milliseconds each, and a
-## seat taken during them met them as stalls (kit #1106).
+## seat taken during them met them as stalls (kit #1106, #1142).
 
 ## Frames in a row that must each be short.
 var frames := 20

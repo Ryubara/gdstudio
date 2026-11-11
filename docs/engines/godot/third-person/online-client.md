@@ -38,8 +38,10 @@ The `Reconciler` never replays (a step has side effects: [the character's snapsh
 measures the error of the answered command, moves the body a quarter of what is left each frame, shifts the
 remembered points of the unanswered commands by every correction, snaps past 2.5 m, counts `lost` past 6 m (6 m a
 stall for the answer after stalls of the client's thread: [the gate](#bad-network-gate)), and leaves an error under 1 cm
-alone (a TICK carries centimetres: up to 0.87 cm of rounding). `fell` and `teleported` go through
-`Player.teleport()` and reset it.
+alone (a TICK carries centimetres: up to 0.87 cm of rounding). A part that puts the body more than 5 cm inside the
+world (`BodyOverlap`, the body's shapes laid against the world with its mask) is followed by the rest of the correction
+at once (`Reconciler.take_rest`, counted in `stuck_snaps`): a body on a ledge whose server body stands below it would
+be pushed back out after each part. `fell` and `teleported` go through `Player.teleport()` and reset it.
 
 `SilenceWalk` (`gameplay/net/silence_walk.gd`) is the client's half of the server's silence rule: a server whose
 client sends nothing holds the body `NetServer.HOLD_TICKS` (4) steps, steps the last command again without its presses
@@ -72,6 +74,14 @@ steps without stepping before it repeats the last command (`PeerSlot.HELD` in th
   catch-up ticks come in the next frame, so a guard that skipped the rest of the stalled frame skipped nothing (0
   skipped over three freezes); skipping every second tick of a frame at all times would halve the commands of a game
   drawn at 30 frames a second. **Seen:** gdstudio #905, 2026-11-11 (7 ticks skipped a freeze after the fix).
+- **Approach:** Take a correction whole once a part of it puts the body inside the world: lay the body's shapes
+  against the world after the part (`collide_shape`, the deepest contact pair) and hand out the rest past 5 cm.
+  **Watch out for:** a body on the dais's top whose server body stood against the wall below never met it while the
+  controller walked it back on top (the gate's walk round the spawn): each quarter landed inside the dais, the step put
+  it back, and the shifted points hid that for a round trip (240 ms: 1.4 m apart after 3 s, 12.5 m corrected). Under
+  Jolt the motion test's `recovery_as_collision` depth is what is left after one recovery pass (0.033 m for 0.25 m
+  inside): read the contact pairs. **Seen:** gdstudio #1119, 2026-11-11 (`test_net_ledge_correction.gd`; about 5 µs a
+  frame that takes a part).
 
 ## Puppets {#puppets}
 
@@ -142,7 +152,8 @@ TCP's loss). The browser half is `tools/web_smoke/net_play_smoke.py`: the web ex
 and 24 s. The probe joins only after the level's warm-up (`EffectEmitter.warmed`) and 20 frames in a row under the
 server's hold (`FrameSettle`), as a game joins behind its loading screen; the page records each frame's length and
 the GL programs linked in it, and the report's `hitches` lists every frame past 0.25 s after the seat. Both judge with
-`tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
+`tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay); `--walk spawn` walks round
+the spawn across the dais's edge instead (gdstudio #1119);
 `--break reconciler` (native only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
 server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs after the gate.
 
@@ -259,9 +270,10 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   `by_second` and the relay's stalls near it (`WORST` lines). Count a snap by its cause: with up stalls, one under 4 m
   per up stall (`size_snaps_m`). **Watch out for:** the walk round the spawn crossed the dais's edge; a command
   repeated in an up stall took the server's body down while the client's stayed up, and each quarter of the correction
-  landed inside the dais (#1119): 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m, worst 1.31 m. A
-  branch cut before the fix fails the stall run the same way with nothing networked changed: merge main, never rerun.
-  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1).
+  landed inside the dais: 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m. #1119
+  fixed the client (`BodyOverlap`): the old walk (`--walk spawn`), three two-core stall runs, 25.0 to 32.4 m against
+  28.8 to 62.2 m. A branch cut before the fix fails the stall run the same way: merge main, never rerun.
+  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1); #1119.
 
 ## Playing online {#play-online}
 
@@ -277,7 +289,12 @@ with a `NetClient`, the `RemotePlayers` and an `OnlineStatus` overlay (`ui/onlin
 | The command line | `-- --connect ws://host:8910 [--name Ada] [--bot route\|watch] [--onlineprobe]` | `MenuScene` goes straight to `online_scene`, once a run: back to the menu shows the menu |
 | A page | `index.html?url=wss://host[&name=Ada][&bot=watch][&onlineprobe]` | an `https` page may open `wss://` only; a page with `?netplay` stays the bad-network probe's |
 
-The overlay shows Connecting until the WELCOME, then hides; on `REFUSED` it names the reason (another version, with a
+The client joins once the level is ready, as a game joins behind its loading screen (`NetClient.join_after_warm_up`,
+on): `JoinWait` (`gameplay/net/join_wait.gd`) waits for the level's warm-up (`EffectEmitter.warmed`) and then for
+`FrameSettle` (20 frames in a row each under the stall guard's 0.25 s, at most 10 s), the bad-network probe's wait
+with a looser frame (the probe's is the server's hold, 67 ms).
+The overlay shows Loading meanwhile (the link is not open yet, so none of it counts towards `connect_seconds`), then
+Connecting until the WELCOME, then hides; on `REFUSED` it names the reason (another version, with a
 Reload button on the web and "update the game" on the desktop; the game is full; another map), on a link that closes
 before the WELCOME (after the new sockets of a late hello, below) or `connect_seconds` of frames (each under the stall
 guard's 0.25 s) without one it says the server did not answer, and on a seated link that closes, Connection lost.
@@ -301,13 +318,16 @@ gds godot -- --path game --write-movie <scratch>/client2.avi --fixed-fps 30 --qu
 gds godot -- --path game -- --connect ws://127.0.0.1:8931 --bot route --name One      # 8 s later
 ```
 
-`tools/web_smoke/online.py` (under `gds quiet`) is the browser's proof: the server of `gate_server.gd`, a relay of
-100 ms each way, two pages of the web export with `?url=<relay>&bot=route|watch&onlineprobe`; every page seated, every
+`tools/web_smoke/online.py` (under `gds quiet`) is the browser's proof: the server of `gate_server.gd`, a relay of 100
+ms each way, two pages of the web export with `?url=<relay>&bot=route|watch&onlineprobe`; every page seated, every
 player seen, a round trip read, nothing lost, the body within 1.5 m of the server's point, no console error and no
 `Buffer payload full`, nobody kicked. `--other-version` points it at `tools/net/other_version_server.gd`, which answers
 every hello as a server of the next protocol version: the probe then fails (its teeth), and with `--expect-refused` it
-passes only when every page shows the overlay's "another version" message. `OnlineProbe` (`ui/probe/`) is the page's
-side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
+passes only when every page shows the overlay's "another version" message. The pages open together (a page opened after
+another was seated would load its level inside the first one's join window), each records every frame (`FRAME_WATCH` of
+`net_play_smoke.py`), and a page fails with more than one frame past 0.25 s in the 3 s after its seat, the gate's bound;
+the report lists every such frame, `settle_ms` and `wait_ms` (the join's wait). `OnlineProbe` (`ui/probe/`) is the
+page's side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
 
 **What it measured** (Windows, Godot 4.7.2, 2026-11-11, Ryzen 7 9800X3D and RTX 5080; headless Chromium 156 at
 320x180 under `gds quiet`, one page, `server_bot.gd` bots for the puppets (`--bots` 1, 4 and 7), relay 100 ms each way,
@@ -385,6 +405,21 @@ The browser's corrections are its own hitches (each over 0.25 s is a resync and 
 126 catch-up ticks skipped), the same with either server; the native client reads the same 0.03 m against Windows and
 Linux. The page's hitches after the join are #1106.
 
+**The join after the warm-up** (#1142; Windows, Godot 4.7.2, 2026-11-11, the same SwiftShader page, `online.py`
+with the route bot, relay 100 ms each way; a hitch is a frame past 0.25 s after the seat, the join window its first
+3 s):
+
+| Join | Runs | Hitches in the join window | Worst hitch | Programs linked after the seat | Join's wait (settle) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| At once (`join_after_warm_up` off, as before) | 3 | 2 to 3 (fails) | 1.10 to 1.66 s | 53 to 54 | |
+| After the warm-up, settled under the server's hold | 3 | 1 each (283 to 419 ms, nothing linked) | 0.42 s | 1 to 5 | 9.3 to 10.2 s (1.35 to 1.41 s) |
+| After the warm-up, settled under the stall (shipped) | 4 | 0 | 0.38 s, 8.7 s after the seat | 0 to 4 | 9.2 to 10.0 s (1.05 to 1.45 s) |
+| Two pages at once (13 to 14 fps), settled under the server's hold | 1 | 0 | 0.43 s | 0 to 7 | 25 to 28 s (10 s: the limit) |
+| Two pages at once, settled under the stall (shipped) | 2 | 0 | 0.25 s | 0 to 1 | 18 to 19 s (1.2 to 1.6 s) |
+
+The page shows Loading for the warm-up's 8 to 9 s on SwiftShader (about 80 frames: in a Movie Maker capture at 10
+frames a second it is 8 s of Loading, two frames of Connecting, then play).
+
 - **Approach:** Aim a bot (or any program that shoots for a player) from the crosshair ray's origin,
   `camera.project_ray_origin(centre)`, not from the body or the camera's position. **Watch out for:** the
   over-the-shoulder lens is shifted half a metre to the side, so a watcher whose camera yaw pointed at the other
@@ -396,6 +431,12 @@ Linux. The page's hitches after the join are #1106.
   for:** the browser corrected 30 to 100 times more than a native client against the same Linux server, which looked
   like Jolt in wasm parting from Jolt on Linux; the three traces were the same to nine decimals and the corrections
   were the page's hitches. **Seen:** gdstudio #909, 2026-11-11 (`StepTraceProbe`, `step_trace.py`).
+- **Approach:** Join a player's game only after the level's warm-up and settled frames (`JoinWait`), say Loading
+  meanwhile, and count a frame settled under the stall guard's stall, not the server's hold. **Watch out for:** the
+  online game joined on ready, so a page met the warm-up's 1.1 to 1.7 s frames as stalls in its first 3 s (2 to 3
+  hitches, 53 programs linked after the seat); and with the probe's hold of 67 ms, a page drawn at 13 frames a
+  second (two pages on one CPU, or a Movie Maker capture) never had 20 short frames in a row and waited out the
+  whole 10 s limit on Loading. **Seen:** gdstudio #1142, 2026-11-11 (`online.py` judges the join window).
 - **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
   arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
   7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's

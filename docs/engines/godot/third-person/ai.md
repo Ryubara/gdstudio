@@ -140,7 +140,10 @@ Since #1059 an AI's body takes the lean tick (`CharacterLean`, chosen by `AiCont
 walks or stands: the same result as the full tick with the modules that have nothing to do left out, the step climber
 run only after the move met a wall, and the controller's command built again only when a channel changes. The
 director's step for 40 walkers is 22 to 30 % shorter (0.9 ms at 1x, 4.4 to 5.5 ms at 4x on a quiet machine) and the
-4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). A part that gives an AI's body
+4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). Since #1104 it takes the aim
+and the trigger too, so a fighting body is lean on every tick but the one its aim goes up or comes down, and a fight
+has a web count of its own: 12 fighting guards at 1x, 6 at 4x
+([AI behaviour: the follow-up](ai-behaviour.md#cost-follow-up)). A part that gives an AI's body
 something to do on a walking tick (a held bit, a timer) goes in `CharacterLean.can_take()`
 ([the body's modules](character.md#controller)).
 

@@ -72,7 +72,8 @@ HOLD_MS = 4000 / 60
 JOIN_WINDOW_S = 3.0
 # Before the game loads: every frame's length (`performance.now()` read inside the requestAnimationFrame callback,
 # web-probes.md#boot-check), the GL programs linked in it and their milliseconds (first-use-hitches.md#how-to-find-it),
-# the moment the probe said `seated` and the planned freezes, so a hitch is told from a freeze and its cause named.
+# the moment the probe said `seated` (`window.gdnet`, or the online game's `window.gdonline`: `online.py`) and the
+# planned freezes, so a hitch is told from a freeze and its cause named.
 FRAME_WATCH = """
 (() => {
   const w = window;
@@ -88,7 +89,8 @@ FRAME_WATCH = """
   };
   const tick = () => {
     const now = performance.now();
-    if (w.__seat < 0 && w.gdnet && w.gdnet.state === 'seated') { w.__seat = now; }
+    const probe = w.gdnet || w.gdonline;
+    if (w.__seat < 0 && probe && probe.state === 'seated') { w.__seat = now; }
     if (last >= 0) { w.__frames.push([last, now - last, links, Math.round(linkMs)]); }
     links = 0; linkMs = 0; last = now;
     requestAnimationFrame(tick);
