@@ -51,6 +51,12 @@ vertex buffers and triangle set, never by bytes, since the exporter does not kee
 ([Build scripts](build-scripts.md#rebuilding)). Models are Git LFS files: `git show` of one prints its pointer, and a
 pointer imported as a model leaves a broken `.import` behind ([Build scripts](build-scripts.md#rebuilding)).
 
+- **Approach:** Give a new glb that holds only clips `importer="animation_library"` in its `.import` (the Import dock's
+  "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
+  Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
+  player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
+  ([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
+
 ## Reading a glb back in Blender {#reimport}
 
 A script that measures or rebuilds from an exported file reads it back with Blender's glTF importer, which does not

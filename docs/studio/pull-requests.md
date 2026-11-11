@@ -67,6 +67,16 @@ a branch fresh are in [Starting work](starting-work.md#landing).
 
 [Which paths the image guard covers](#attach-paths) has the measured table of what `gh --attach` rewrites.
 
+A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), and the two are written differently:
+
+- **A GIF is an image.** Write `![after](./<name>.gif)` on the `After:` line (or `Before:`) and attach `./<name>.gif`:
+  `--attach` swaps in the upload address and GitHub draws it as an image that plays inline and loops. It counts as the
+  capture on its line.
+- **An MP4 is its bare upload address on its own line**, with a blank line on each side: only then does GitHub draw a
+  player. `![x](./<name>.mp4)` becomes a plain link after the upload, so attach with that reference, then replace the
+  link with the address alone and `gh pr edit --body-file` again
+  ([Sound](capture.md#sound-a-clip-you-can-listen-to)); put a still or a sheet on the `After:` line beside it.
+
 - **Approach:** Make the reference and the `--attach` path one file: `cd` into the images' folder and write `--attach
   ./x.png` with `![alt](./x.png)` under `## Screenshots` (or the same absolute path in both), write paths literally
   (never `$S/x.png`), and edit the body file in a command of its own. **Watch out for:** `gh` rewrites a reference only
@@ -118,8 +128,12 @@ opened by the guard, only placed and compared with the references ([below](#atta
 guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
 branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
 `docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([Writing checks](writing-checks.md#same-input)). The guard is a hand-merge path
-(`.claude/hooks/`): a maintainer merges changes to it.
+([Writing checks](writing-checks.md#same-input)). The `Read first:` rule reads what CI reads: without the API's list of
+closed issues, the body's own `Fixes #N` lines say which issues it closes (so the rule runs on the machine at all), and
+when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/` (`check-body --docs-ref
+origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout of the base branch. A
+section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which still reads the branch
+(kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
@@ -128,6 +142,11 @@ branch to read (no commit, a detached head, the checkout on `main`, no `origin/m
 - **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
+- **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
+  before the branch (`Read first:`), the branch for what it writes (`Lessons:`). **Watch out for:** `gds pr check-body`
+  passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
+  have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
+  gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
