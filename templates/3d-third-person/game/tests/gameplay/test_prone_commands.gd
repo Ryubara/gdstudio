@@ -158,5 +158,7 @@ func test_every_prone_setting_is_pinned() -> void:
 	for tuning: ProneTuning in [
 		ProneTuning.new(), load("res://gameplay/player/prone_tuning.tres") as ProneTuning
 	]:
+		# Its values are pinned in `test_aim_layer.gd`.
+		pins[&"aim_limits"] = tuning.aim_limits
 		assert_array(ExportPins.differences(tuning, pins)).is_empty()
 		assert_array(ExportPins.wrong_values(tuning, pins)).is_empty()
