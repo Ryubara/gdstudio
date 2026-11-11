@@ -15,6 +15,11 @@ extends AiStockTask
 ## It succeeds when the subject dies, fails `TARGET_LOST` when the subject has been out of sight
 ## `lose_after` seconds (the brain's `lost_sight`: a chase) and `NO_AMMO` when the gun is dry with
 ## nothing to load (`no_ammo`). With `draw_fists` it puts the gun away for the fists first.
+##
+## **Attack slots** (kit #1203): it fights only while it holds one of the director's slots on its
+## subject. Without one it holds: it stands, its gun down, watching the subject, and asks again
+## each think. It gives the slot back when it ends, is suspended or dropped, and as soon as it
+## loses sight of the subject.
 
 ## Seconds `draw_fists` waits for the fists before it gives up (`NO_AMMO`).
 const FISTS_SECONDS := 2.0
@@ -48,6 +53,8 @@ const RAISE_FISTS := 0.6
 var gun := AiAim.new()
 ## Swings started.
 var swings := 0
+## It is holding for want of an attack slot.
+var held := false
 
 var _unseen := 0.0
 var _windup := 0.0
@@ -73,6 +80,23 @@ func start() -> void:
 
 
 func update(delta: float) -> Status:
+	var status := _engage(delta)
+	if status != Status.RUNNING:
+		free_slot()
+	return status
+
+
+func suspend() -> void:
+	super()
+	free_slot()
+
+
+func cancel() -> void:
+	super()
+	free_slot()
+
+
+func _engage(delta: float) -> Status:
 	# The empty-hands button is held for one think (the body reads a press between thinks).
 	if controller != null:
 		controller.unarmed = _press_fists
@@ -86,6 +110,8 @@ func update(delta: float) -> Status:
 		_stand()
 		return Status.SUCCEEDED
 	if not belief.can_fire_at():
+		free_slot()
+		held = false
 		_unseen += delta
 		controller.aim = false
 		controller.fire = false
@@ -97,6 +123,9 @@ func update(delta: float) -> Status:
 
 
 func _fight(delta: float, belief: AiBelief) -> Status:
+	if not take_slot(subject()):
+		return _hold(belief)
+	held = false
 	if _is_melee():
 		return _melee(delta, belief)
 	var shot := AiAim.Shot.HELD
@@ -130,6 +159,8 @@ func resume() -> Resume:
 
 
 func detail() -> String:
+	if held:
+		return "held"
 	return "melee" if _is_melee() else ("%d shots" % gun.shots)
 
 
@@ -199,6 +230,18 @@ func _close_in(point: Vector3, away: float) -> void:
 	):
 		_approach_at = point
 		go(point, Speed.RUN)
+
+
+# No slot: it stands with its gun down, watching the subject, and waits (the aim starts at the
+# reaction floor again once it has a slot).
+func _hold(belief: AiBelief) -> Status:
+	held = true
+	_stand()
+	controller.aim = false
+	controller.fire = false
+	look_toward(belief.last_position)
+	gun.reset()
+	return Status.RUNNING
 
 
 func _stand() -> void:
