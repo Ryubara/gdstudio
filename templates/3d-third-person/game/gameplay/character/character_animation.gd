@@ -83,6 +83,7 @@ const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
 const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
+const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
 const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
 const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
 const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePace/scale" % PRONE)
@@ -288,8 +289,6 @@ var _action_clip: StringName = &""
 var _action_was_active := false
 var _dead := false
 var _clip_death := false
-var _shot_hold := 0.0
-var _shot_arm := 0.0
 var _pitch_before := 0.0
 var _pitch_now := 0.0
 var _throttled := false
@@ -472,6 +471,11 @@ func aim_pitch() -> float:
 	return tree.get(_P_AIM_POSE) if tree != null else 0.0
 
 
+## True while a shot's clip (the recoil, a blow) plays over the upper body, fading in and out.
+func is_shooting() -> bool:
+	return tree != null and tree.tree_root != null and tree.get(_P_SHOOT_ACTIVE)
+
+
 ## True while the reload clip plays over the upper body.
 func is_reloading() -> bool:
 	return tree != null and tree.get(_P_RELOAD_ACTIVE)
@@ -639,12 +643,7 @@ func _drive_pistol(delta: float) -> void:
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, stow > 0.5)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
-	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
-	_shot_hold = maxf(_shot_hold - delta, 0.0)
-	_shot_arm = move_toward(
-		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
-	)
-	var arm := maxf(character.aim_amount, _shot_arm)
+	var arm := _brace.arm(self, delta)
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	_brace.drive(self, arm * aims, delta)
@@ -757,8 +756,7 @@ func traversal_clip(plan: VaultPlan) -> StringName:
 
 
 func _on_shot(_projectile: Projectile) -> void:
-	_shot_hold = shot_hold_time
-	_shot_arm = maxf(_shot_arm, character.aim_amount)
+	_brace.shot(self)
 	var hold := held_definition()
 	if hold != null and hold.shoot_clips.size() > 1 and _shoot_clip_node != null:
 		# One clip after another shot by shot (a jab, then a cross).

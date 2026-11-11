@@ -48,6 +48,7 @@ def looked(monkeypatch):
 
     patch(monkeypatch, "held", fake)
     patch(monkeypatch, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))  # the other guard's job
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))  # and the red-main one
     return asked
 
 

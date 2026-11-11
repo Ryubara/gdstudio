@@ -44,6 +44,9 @@ enum Pull {
 	BUSY,  ## Nothing: cooling down, reloading, put away, or nowhere to shoot from.
 }
 
+## How many bodies the aim ray may pass between the parts of before it is taken as it is.
+const AIM_PASSES := 4
+
 @export_group("Weapon")
 ## What the weapon is: its numbers, its projectile, its sounds and how it is held. Changing it
 ## fills the magazine and the reserve of the new one (a `WeaponLoadout` puts back what it kept).
@@ -333,8 +336,10 @@ func play_draw_sound() -> void:
 
 ## The point a ray aims at: the first thing it hits (past the shooter), or the end of the ray
 ## (`aim_range`) when it hits nothing. The ray is looked along from the shooter's depth, so a
-## wall between a camera and its character is not what the character aims at. With no ray it is
-## the point straight out of the muzzle.
+## wall between a camera and its character is not what the character aims at. On a character
+## with hit zones it is the part the ray meets (`HitZones.aimed_point`), and a ray that passes
+## between the parts goes on to what is behind the body. With no ray it is the point straight out
+## of the muzzle. The one aim point every kind of shot leaves toward.
 func aim_point(origin := Vector3.INF, direction := Vector3.ZERO) -> Vector3:
 	var reach := _range()
 	if not _is_ray(origin, direction) or not is_inside_tree():
@@ -343,8 +348,21 @@ func aim_point(origin := Vector3.INF, direction := Vector3.ZERO) -> Vector3:
 	var along := direction.normalized()
 	var start := _at_shooter_depth(origin, along)
 	var end := start + along * reach
-	var found := _cast(start, end)
-	return found["position"] if not found.is_empty() else end
+	var skipped: Array[RID] = []
+	for _pass in AIM_PASSES:
+		var found := _cast(start, end, skipped)
+		if found.is_empty():
+			return end
+		var zones := (
+			HitZones.of(found["collider"]) if found["collider"] is CharacterBody3D else null
+		)
+		if zones == null:
+			return found["position"]
+		var on_part := zones.aimed_point(found["position"], along)
+		if on_part.is_finite():
+			return on_part
+		skipped.append(found["rid"])
+	return end
 
 
 ## The projectiles of this weapon in flight now.
