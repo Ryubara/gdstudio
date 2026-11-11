@@ -1,0 +1,42 @@
+{
+ "letter": "A",
+ "name": "grounded",
+ "vision": "A person's numbers: a small shift of weight, quiet breath, parts that settle at once.",
+ "overlap": {
+  "chest": [
+   2.0,
+   0.0
+  ],
+  "head": [
+   3.0,
+   0.05
+  ],
+  "upperarm": [
+   2.0,
+   0.1
+  ],
+  "forearm": [
+   2.0,
+   0.1
+  ],
+  "hand": [
+   2.0,
+   0.15
+  ]
+ },
+ "idle": {
+  "frames": 300,
+  "share": 0.66,
+  "hip_tip": 3.0,
+  "hip_turn": 2.0,
+  "shift_frames": 60,
+  "breath_frames": 100,
+  "breath_ribs": 1.0,
+  "breath_clavicle": 1.2,
+  "head_yaw": 3.0,
+  "finger_live": 4.0
+ },
+ "notes": {
+  "idle": []
+ }
+}

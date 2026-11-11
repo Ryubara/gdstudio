@@ -1,0 +1,51 @@
+{
+ "letter": "C",
+ "name": "sharp",
+ "vision": "Strong poses held still and changed quickly: reads at a distance and on a small low-polygon body.",
+ "overlap": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.1
+  ],
+  "upperarm": [
+   1.5,
+   0.2
+  ],
+  "forearm": [
+   1.5,
+   0.2
+  ],
+  "hand": [
+   1.5,
+   0.25
+  ]
+ },
+ "idle": {
+  "frames": 240,
+  "share": 0.74,
+  "hip_tip": 5.0,
+  "hip_turn": 3.5,
+  "shift_frames": 26,
+  "shift_sharp": 0.35,
+  "shift_settle": [
+   2.0,
+   0.08
+  ],
+  "hold_left": 0.36,
+  "hold_right": 0.36,
+  "breath_frames": 120,
+  "breath_ribs": 1.3,
+  "breath_clavicle": 1.6,
+  "head_yaw": 9.0,
+  "head_sharp": 0.5,
+  "finger_live": 3.0,
+  "sway": 0.002
+ },
+ "notes": {
+  "idle": []
+ }
+}
