@@ -232,11 +232,11 @@ of the clip measured and filmed from the gun's two sides, above, under the grip'
 Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 shots each): a pooled projectile shot 39
 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
 resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons add 4 nodes to a living character (the
-`Loadout` and three idle sound players); `NODES_ALIVE` in `test_parts_budget.gd` holds the living character's budget
-(56 on 2026-11-11) and lists what each change added. The shot's sound is most of a shot: with the
-`ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
-all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
-number as a budget.
+`Loadout` and three idle sound players); `NODES_ALIVE` in `test_parts_budget.gd` holds the living character's budget (57
+on 2026-11-11, the new magazine's attachment and mesh among them) and lists what each change added. The shot's sound is
+most of a shot: with the `ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow
+290 to 350 µs, nearly all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the
+web before taking the number as a budget.
 
 Hands on the pistol through the reload: the `WeaponHold` follows the reload clip by
 `CharacterAnimation.reload_progress()` (how much of the upper body the one-shot holds, and the share of the clip
@@ -246,7 +246,11 @@ it goes in and on the gun again, and the trigger finger is off the trigger
 and off the gun one way (its fingers open where it holds, then the opened hand leaves along a solved clear line,
 `WeaponHold.support_way`), and `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) names the reload's
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
-`INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
+`INSERT`, `SEATED` or `RETURN`. The magazines follow it: the pistol's own drops and falls to the floor when the reload's
+first sound plays, a new one is in the left hand from the belt up the grip's line and is the pistol's own again once
+it is in, a reload cut short leaves the pistol whole, and the slide locked open on an empty pistol runs forward at the
+last sound ([the magazine and the slide](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
+It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
 How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
 arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 

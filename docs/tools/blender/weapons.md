@@ -199,6 +199,9 @@ shooting page once that work lands).
 - **The two hands hold it together, and the left hand follows the reload** (kit #1084, #1031, #1051, #1078, #1079).
   The left hand is laid over the right one as a two-handed grip is taught, goes on and off the gun one way, and the
   trigger finger has a solved way to the trigger: [The two-handed pistol grip](weapon-hands/two-handed-pistol-grip.md).
+  Through the reload the old magazine drops, the new one rides the left hand up the grip's line in solved fingers, and
+  the slide locked open on an empty pistol is released (kit #1052,
+  [the magazine and the slide](weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and
@@ -301,7 +304,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   seating on the skin the hand bone alone moves pushed the hand 17 mm into the gun; backing the whole hand off until
   nothing was deeper than 0.3 mm took it 8 mm off for a thumb that touched sideways; a bisection of the push over
   the whole way failed, since past the gun the palm is clear again (step to the first touch, then bisect).
-  **Seen:** gdstudio #1031, 2026-11-10.
+  **Seen:** gdstudio #1031, 2026-11-10; gdstudio #1052, 2026-11-11 (the palm by a closing thumb, 3.5 mm).
 - **Approach:** After closing a hand on a grip, measure the weapon against the body in the locomotion clips again, and
   bench a change of modifiers one configuration a process. **Watch out for:** the seat that put the grip in the palm
   moved the pistol 6 cm toward the body, into the thigh in `Idle` and `Walk`, which only the clearance test showed
