@@ -25,6 +25,9 @@ enum Place { EVENT, HOME, LEADER }
 @export_flags("Unaware", "Suspicious", "Alert", "Engaged", "Fleeing") var situations := 31
 ## The play states it answers in.
 @export_flags("Aggressive", "Careful", "Safe") var play_states := 7
+## For a `heard` row, the kinds of noise it answers (`AiNoise.SHOT`, `FOOTSTEP`...); empty: any
+## noise (and any other event).
+@export var noises: Array[StringName] = []
 ## The least awareness of the subject (0 to 1) it needs.
 @export_range(0.0, 1.0, 0.01) var min_awareness := 0.0
 ## The profile's courage it needs, from and to.
@@ -45,12 +48,20 @@ enum Place { EVENT, HOME, LEADER }
 @export_multiline var note := ""
 
 
-## True when it is about `event` in this cell (band, situation, play state, awareness, courage).
+## True when it is about `event` in this cell (band, situation, play state, awareness, courage),
+## and for a heard noise, about its kind (`noise`).
 func matches(
-	what: StringName, band: int, situation: int, play: int, awareness: float, courage: float
+	what: StringName,
+	band: int,
+	situation: int,
+	play: int,
+	awareness: float,
+	courage: float,
+	noise := &""
 ) -> bool:
 	return (
 		what == event
+		and (noises.is_empty() or noises.has(noise))
 		and bands & (1 << band)
 		and situations & (1 << situation)
 		and play_states & (1 << play)
@@ -85,6 +96,7 @@ func asks_for_something() -> bool:
 func is_sure() -> bool:
 	return (
 		chance >= 1.0
+		and noises.is_empty()
 		and chance_scale == Scale.NONE
 		and min_courage <= 0.0
 		and max_courage >= 1.0

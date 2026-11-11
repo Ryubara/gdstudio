@@ -46,7 +46,11 @@ Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `m
 `command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene; its AI group says
 how often each client hears of each AI character by distance (`ai_rates`), where positions are measured from
 (`ai_section_origin`), which profiles map to which look (`ai_variants`), and whether the AI sees the players
-(`ai_sees_players`). The AI runs here and nowhere else.
+(`ai_sees_players`). The AI runs here and nowhere else. A player's shot on an AI character is met where that
+player's screen drew the character, a few tenths of a second ago (the server keeps each character's body for
+`ai_rewind_seconds`, and a round meets the drawn characters for its first `ai_rewind_flight_seconds`): aim at the
+guard you see. Only the body a shot meets is wound back, never what the AI thinks or where it goes; another player is
+met where the server has them.
 
 ## The client
 
@@ -60,7 +64,9 @@ stepped its own meanwhile (it walks on a moment, then stands), so both come out 
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
-Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
+A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
+the AI's puppets), so its clip plays as on the body that steps it with nothing more sent. Nothing that only looks
+(a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
 character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`

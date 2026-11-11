@@ -17,7 +17,7 @@ Open pull requests come before new work: each one left open goes stale against `
   open with 33 jobs queued.
 - **Land what you would recommend.** A pull request the coordinator would recommend is refreshed and landed, and its
   trade-off reported afterwards, so the maintainer can reverse it. It is not parked behind "merge? recommended". Only
-  `S-hold` ([Hooks: the hold](hooks.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
+  `S-hold` ([Hooks: the hold](hooks-hold.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
   for the maintainer.
 - **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
@@ -80,7 +80,7 @@ Open pull requests come before new work: each one left open goes stale against `
   once, so the step is a merge, not a setting: a pull request the maintainer meant to see first merged past its hold, a
   nightly fix merged before its dispatch finished a job that failed on a limit it had called harmless, and a pull
   request with stale numbers landed before the three fixes asked for. **Seen:** Deadnight #1115, 2026-11-04 (fix: the
-  hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
+  hold is a label and a required check, [Hooks](hooks-hold.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
   2026-11-04.
 
 - **Approach:** Before any merge call (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`), have
@@ -107,7 +107,33 @@ Open pull requests come before new work: each one left open goes stale against `
 - **Approach:** Push in one command and call `gh pr merge` (or the merge API) in a later one, once the push is done.
   **Watch out for:** the merge guard runs before the whole command and asks GitHub for the head it has, so in
   `git push && gh pr merge ...` it judged the head before the push and refused it as behind `main`. **Seen:** gdstudio
-  #1150 and #1131, 2026-11-11.
+  #1150 and #1131, 2026-11-11; gdstudio #1221 (PR #1225), 2026-11-11 (`gds merge-main && git push && gh pr merge`
+  in one command: run the refresh, the push and the merge as three commands).
+- **Approach:** When a required check fails on the runner's network (a package mirror, DNS, a download), not on the
+  code, rerun the failed jobs once (`gh run rerun <id> --failed`); when the same step fails again, check for or file
+  the red-`main` issue (`CI failing on the default branch`, as #1224 was), land its fix, then `gds merge-main` and
+  rerun. **Watch out for:** a third and fourth rerun on a mirror outage only queue more jobs, and the pull requests
+  whose template job failed on the browser install stay red until each merges the fix: #1215, #1195 and #1218 after
+  #1226. **Seen:** gdstudio #1224 (apt mirror DNS outage, fix PR #1226), 2026-11-11.
+- **Approach:** A pull request that must take in another one's merge first (its numbers or its test assume that work
+  on `main`) keeps auto-merge off until `gds merge-main` has brought that merge in and its checks ran on it; say so in
+  the body. **Watch out for:** with auto-merge on, #1220 went green and landed before #1208 was on `main`, so the
+  numbers it documented were measured without the work they described and a docs pull request (#1229) followed.
+  **Seen:** gdstudio #1218 (PR #1220), 2026-11-11.
+- **Approach:** While a pull request waits under `S-hold`, leave `main` alone: merge it only when the pull request is
+  DIRTY when you report; the coordinator refreshes it right before it lands. **Watch out for:** an agent merged `main`
+  into a held pull request four times while waiting on CI, each push restarting a full run that `main` outran again,
+  and the briefs had not said that a held pull request need not chase `main`. **Seen:** gdstudio #1154 (PR #1195) and
+  #1084 (PR #1171), 2026-11-11 (fix: the batch brief says it; coordinator's mistake).
+
+**Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
+merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
+catches up (#1202 went through three refreshes). The coordinator's landing script now lands a green head that is
+behind when every commit `main` gained since the head's base touches no file the pull request changes and `git
+merge-tree` merges the two cleanly; otherwise it refreshes. Branch protection does not require an up-to-date head, so
+GitHub takes the merge; the [merge guard](hooks.md#what-it-refuses) refuses a behind head from a shell command, so
+this is the script's route only. It relaxes "Refresh a parked pull request" above, which exists because unrelated
+commits broke `main` before; whether it stays is for the maintainer to decide, and agents keep refreshing as above.
 
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
@@ -163,3 +189,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   `has_voice` and a `near_only` grip option stayed beside the real female voices and the same far-hand fix that `main`
   had landed. **Seen:** Deadnight #678, 2026-11-03 (fix: the branch wired to `main`'s mechanism, the workaround and its
   test dropped).
+- **Approach:** A commit you add to another agent's pull request (a resolved merge, a fix) carries your own model in
+  its trailer, so add your model to that body's `Model:` line in the same step. **Watch out for:** the `commits` check
+  matches each trailer against the body's `Model:` line; the coordinator resolved conflicts on two pull requests with
+  its own trailer and left `Model:` naming only the agent's model, so #1016 failed the check and cost a run.
+  **Seen:** gdstudio #1016 and #1113, 2026-11-11 (coordinator's mistake).

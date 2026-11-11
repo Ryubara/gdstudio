@@ -29,8 +29,13 @@ def strip_heredocs(command: str) -> str:
     return "\n".join(out)
 
 
+_CONTINUED = re.compile(r"[\\`]\r?\n")  # a line continued with `\` (bash) or a backtick (PowerShell)
+
+
 def split_commands(command: str) -> list[str]:
-    """A shell line cut at `&&`, `||`, `;`, `|` and newlines that sit outside quotes."""
+    """A shell line cut at `&&`, `||`, `;`, `|` and newlines that sit outside quotes; a continued line and an escaped
+    separator (find's `-exec ... \\;`) do not cut it."""
+    command = _CONTINUED.sub(" ", command)
     parts, current, quote, i = [], [], None, 0
     while i < len(command):
         ch = command[i]
@@ -38,6 +43,10 @@ def split_commands(command: str) -> list[str]:
             if ch == quote:
                 quote = None
             current.append(ch)
+        elif ch == "\\" and command[i + 1 : i + 2] in (";", "|", "&"):
+            current.append(command[i : i + 2])
+            i += 2
+            continue
         elif ch in "'\"":
             quote = ch
             current.append(ch)
@@ -70,11 +79,50 @@ def segments(command: str) -> list[list[str]]:
             words = shlex.split(part.replace("\\", "/"), posix=True)
         except ValueError:
             words = part.split()
-        while words and (words[0] in ("&", ".", "call", "exec", "time", "sudo") or _ASSIGNMENT.match(words[0])):
-            words = words[1:]
+        while words:
+            if words[0] in ("&", ".", "call", "exec", "time", "sudo") or _ASSIGNMENT.match(words[0]):
+                words = words[1:]
+            elif inner := _launched(words):  # a bare `env` is no launch: it prints the environment
+                if program(words) == "cmd" and len(inner) == 1:  # `cmd /c "godot -e && x"`: the quoted line
+                    out += segments(inner[0])
+                    inner = []
+                words = inner
+            else:
+                break
         if words:
             out.append(words)
     return out
+
+
+# A launcher starts the program named after its own options: the guards judge that program (gdstudio #1192).
+_VALUED = {"env": ("-u", "-C", "--unset", "--chdir"), "nice": ("-n",), "timeout": ("-s", "-k", "--signal")}
+_PS_SWITCHES = ("-wait", "-nonewwindow", "-passthru", "-usenewenvironment")
+
+
+def _launched(words: list[str]) -> list[str] | None:
+    """The words of the command a launcher runs (`env`, `nohup`, `nice`, `timeout`, `cmd /c`, `start`,
+    `Start-Process`), or None when the first word is no launcher (or a `cmd` without `/c` or `/k`)."""
+    name = program(words)
+    rest = words[1:]
+    if name in ("env", "nohup", "nice", "timeout"):
+        while rest and rest[0].startswith("-"):
+            rest = rest[2:] if rest[0] in _VALUED.get(name, ()) else rest[1:]
+        return rest[1:] if name == "timeout" else rest  # timeout's first word is the duration
+    if name == "cmd":
+        flags = [w.lower() for w in rest]
+        cut = next((i for i, w in enumerate(flags) if w in ("/c", "/k")), None)
+        return None if cut is None else rest[cut + 1 :]
+    if name == "start":
+        while rest and (rest[0] == "" or rest[0].startswith("/") and "/" not in rest[0][1:]):  # /b, /wait, "" title
+            rest = rest[1:]
+        return rest
+    if name in ("start-process", "saps"):
+        rest = [part for w in rest if w.lower() not in _PS_SWITCHES for part in w.split()]  # -ArgumentList '-a -b'
+        named = flag_values([w.lower() if w.startswith("-") else w for w in rest], ("-filepath", "-file", "-f"))
+        if named:
+            return [named[0], *rest]
+        return rest if rest and not rest[0].startswith("-") else []
+    return None
 
 
 def program(words: list[str]) -> str:

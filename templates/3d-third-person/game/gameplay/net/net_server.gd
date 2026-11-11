@@ -126,6 +126,16 @@ const HOLD_TICKS := 4
 @export_range(0.0, 60.0, 0.1, "suffix:s") var revive_seconds := 3.0
 ## On: a body gets up at its spawn point; off: where it died.
 @export var revive_at_spawn := false
+## Seconds of the AI's past a player's shot may be met in (lag compensation, `ShotRewind`): the
+## shot meets each AI character where the shooter's screen drew it, up to this far back. 0 meets
+## the AI as it is now.
+@export_range(0.0, 1.0, 0.05, "suffix:s") var ai_rewind_seconds := 0.6:
+	set(value):
+		ai_rewind_seconds = value
+		ai_history = AiHitHistory.new(maxi(roundi(value * NetLimits.TICK_RATE), 1), SEND_EVERY)
+## Seconds of a projectile's flight met with the AI as the shooter drew it; past that it meets
+## the AI where it is.
+@export_range(0.0, 3.0, 0.05, "suffix:s") var ai_rewind_flight_seconds := 0.5
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
@@ -148,6 +158,9 @@ var kicked := 0
 var combat := ServerCombat.new()
 ## The AI characters on the wire (gdstudio #970).
 var ai := AiBroadcast.new()
+## The volume of each AI character over the last `ai_rewind_seconds`, recorded with each TICK's
+## rows (gdstudio #1198).
+var ai_history := AiHitHistory.new(roundi(0.6 * NetLimits.TICK_RATE), SEND_EVERY)
 
 var _peers: Dictionary[int, PeerSlot] = {}
 var _by_slot: Dictionary[int, PeerSlot] = {}
@@ -508,10 +521,35 @@ func _step_bodies(delta: float) -> void:
 		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
 			map_parts.place(command_tick(command.seq, map_parts.tick))
 			combat.judge(slot, peer.body, command)
+			var weapon := peer.body.weapon
+			if weapon != null:
+				weapon.rewind = rewind_for(peer.body, command)
 			peer.body.step(command, delta)
+			if weapon != null:
+				weapon.rewind = null
 			combat.stepped(slot, peer.body)
 	map_parts.place(map_parts.tick)
 	combat.step(delta)
+
+
+## The AI as the screen of `body`'s player drew it for `command`'s shot (its `view_tick`, less
+## each character's glide at the rate this server sends it to that player), or null: no shot
+## block, no AI recorded or `ai_rewind_seconds` 0.
+func rewind_for(body: Character, command: PlayerCommand) -> ShotRewind:
+	if not command.has_shot or ai_rewind_seconds <= 0.0 or ai_history.newest() < 0:
+		return null
+	var rewind := ShotRewind.new()
+	rewind.history = ai_history
+	rewind.view_tick = ShotRewind.whole_tick(command.view_tick, server_tick)
+	rewind.flight_seconds = ai_rewind_flight_seconds
+	var rates := ai.rates
+	var viewer := body.global_position
+	# The client walks each row over the ticks since the one before: one send at its rate, less
+	# the tick of the row it is on.
+	rewind.behind = func(character: AiCharacter) -> int:
+		var away := viewer.distance_to(character.global_position)
+		return rates.interval_ticks(rates.tier_for(away)) - 1
+	return rewind
 
 
 ## The tick the map's moving parts are at for the command numbered `seq`, stepped at server tick
@@ -608,6 +646,8 @@ func _send_ticks() -> void:
 	if _by_slot.is_empty():
 		return
 	ai.build()
+	if ai_rewind_seconds > 0.0:
+		ai_history.record(server_tick, ai.characters())
 	var players: Array[PlayerEntry] = []
 	for slot: int in _sorted_slots():
 		players.append(entry_of(slot, _by_slot[slot].body))
@@ -684,6 +724,7 @@ func _log_stats() -> void:
 		"deaths": combat.deaths,
 		"ai": ai.rows().size(),
 		"ai_build_us": ai.last_build_us,
+		"ai_history_us": ai_history.last_record_us,
 		"ai_encode_us_per_tick": roundi(ai.take_encode_us() / (seconds * NetLimits.SNAPSHOT_RATE)),
 	}
 	# The process's resident memory and processor share (Linux only: the image, Railway).
