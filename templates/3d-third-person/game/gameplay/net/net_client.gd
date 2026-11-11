@@ -29,6 +29,11 @@ signal disconnected
 ## Ticks a command's number may trail the server tick it is expected to be stepped at before the
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
+## Round trips the numbering reads the smallest of (`numbering_rtt_ms`): 8 PONGs, 4 s at
+## `NetLimits.PING_RATE`. One held behind a stall of the network reads 450 to 590 ms instead of
+## about 250, and numbering from it put the commands ahead for good (gdstudio #1116); the network's
+## own round trip is the fastest a packet came back lately.
+const RTT_WINDOW := 8
 
 ## An address chosen for the next client that joins on ready (the main menu's "Play online"):
 ## wins over `--connect` and `?url=`, and is used once.
@@ -76,6 +81,8 @@ var combat := ClientCombat.new(self)
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
 var rtt_ms := -1
+## The last `RTT_WINDOW` round trips, oldest first (milliseconds).
+var rtt_samples := PackedInt32Array()
 ## Times the numbering of the commands moved on to the server's tick (after a stall).
 var renumbered := 0
 ## TICKs read, and packets the decoders refused.
@@ -227,7 +234,7 @@ func _on_packet(data: PackedByteArray) -> void:
 		NetWire.Type.PONG:
 			var pong := NetWire.read_pong(data, drops)
 			if pong != null and not _sent_before_stall(pong.client_ms):
-				rtt_ms = (_now_ms() - pong.client_ms) & 0xFFFFFFFF
+				_note_rtt((_now_ms() - pong.client_ms) & 0xFFFFFFFF)
 		_:
 			drops.count(NetDrops.UNKNOWN_TYPE)
 
@@ -325,14 +332,35 @@ static func first_seq(welcome_tick: int, round_trip: float) -> int:
 	return welcome_tick + ceili(maxf(round_trip, 0.0) * NetLimits.TICK_RATE)
 
 
+## The round trip the numbering reads: the smallest of the last `RTT_WINDOW` (-1 before the
+## first). A PONG held behind a stall of the network measures the stall too; the smallest is the
+## network's own.
+func numbering_rtt_ms() -> int:
+	if rtt_samples.is_empty():
+		return -1
+	var smallest := rtt_samples[0]
+	for sample in rtt_samples:
+		smallest = mini(smallest, sample)
+	return smallest
+
+
+func _note_rtt(sample: int) -> void:
+	rtt_ms = sample
+	rtt_samples.append(sample)
+	if rtt_samples.size() > RTT_WINDOW:
+		rtt_samples.remove_at(0)
+
+
 # Commands are numbered by the server tick each is expected to be stepped at (`first_seq`): one
-# sent now reaches the server a round trip after this TICK left it. A client whose numbers trail
-# that (its stall guard skipped steps, its clock runs slow) moves them on; a number may jump, never
-# go back.
+# sent now reaches the server a round trip after this TICK left it (the smallest lately,
+# `numbering_rtt_ms`). A client whose numbers trail that (its stall guard skipped steps, its clock
+# runs slow) moves them on; a number may jump, never go back, so a jump from a round trip that
+# waited out a stall would stay for good (gdstudio #1116).
 func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
-	if rtt_ms < 0:
+	var round_trip := numbering_rtt_ms()
+	if round_trip < 0:
 		return
-	var expected := tick.server_tick + ceili(rtt_ms * NetLimits.TICK_RATE / 1000.0)
+	var expected := tick.server_tick + ceili(round_trip * NetLimits.TICK_RATE / 1000.0)
 	if seq + 1 < expected - SEQ_SLACK:
 		seq = expected - 1
 		renumbered += 1

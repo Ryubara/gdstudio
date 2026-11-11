@@ -1,8 +1,9 @@
 # The client's side of the wire: puppets drawn 100 ms behind over a link that holds every packet
 # 100 ms each way never run out of snapshots; the server's TICK for eight players is still the
 # 107 bytes of the #902 budget; a stall of the client's own thread resyncs and skips the catch-up
-# ticks, stalls with no answer between them are judged a stall each, and a PONG that waited out a
-# stall is no round trip; the interpolation track blends, holds and warps.
+# ticks, stalls with no answer between them are judged a stall each, a PONG that waited out a
+# stall is no round trip, and one held behind a stall of the network does not move the numbering
+# on; the interpolation track blends, holds and warps.
 extends GdUnitTestSuite
 
 var _rig: OnlineRig
@@ -170,6 +171,61 @@ func test_a_pong_that_waited_out_a_stall_is_not_a_round_trip() -> void:
 	now[0] = 15.45
 	pong.call(15.2)
 	assert_int(client.rtt_ms).is_equal(250)
+
+
+func test_a_pong_held_behind_a_network_stall_does_not_move_the_numbering_on() -> void:
+	# The bad-network gate's stall run (gdstudio #1116): 1 % of chunks held 300 ms put one PONG at
+	# 550 ms instead of 250, the numbering jumped 18 ticks ahead to match and never came back.
+	var now := [10.0]
+	var client: NetClient = auto_free(NetClient.new())
+	client.join_on_ready = false
+	client.world_root = auto_free(Node.new())
+	client.clock = func() -> float: return now[0]
+	var ends := LoopbackLink.pair()
+	client.join_with(ends[0])
+	client._physics_process(1.0 / 60.0)
+	var no_players: Array[PlayerEntry] = []
+	var no_events: Array[NetEvent] = []
+	var no_parts: Array[EntityEntry] = []
+	# The WELCOME left at server tick 100 and came 250 ms after the HELLO: the server is at 108.
+	now[0] = 10.25
+	ends[1].send(SnapshotCodec.welcome(0, 100, 0, no_parts, no_players))
+	ends[1].poll()
+	client._physics_process(1.0 / 60.0)
+	assert_bool(client.is_seated()).is_true()
+	var server := [108]
+	var ahead: int = client.seq - server[0]
+	# One step: the client numbers a command (as `_predict` does), the server steps, and the TICK
+	# that left it half a round trip ago (8 ticks) arrives.
+	var step := func(pong_ms: int) -> void:
+		now[0] += 1.0 / 60.0
+		client.seq += 1
+		server[0] += 1
+		ends[1].send(SnapshotCodec.tick(server[0] - 8, 0, no_events, no_players))
+		if pong_ms >= 0:
+			var sent := int(now[0] * 1000.0) - pong_ms
+			ends[1].send(NetWire.pong(NetWire.read_ping(NetWire.ping(sent)), 1))
+		ends[1].poll()
+		client._physics_process(1.0 / 60.0)
+	for index in 120:
+		step.call(250 if index % 30 == 0 else -1)
+	assert_int(client.seq - server[0]).is_equal(ahead)
+	step.call(550)
+	assert_int(client.rtt_ms).is_equal(550)
+	for index in 120:
+		step.call(250 if index % 30 == 29 else -1)
+	assert_int(client.renumbered).is_equal(0)
+	assert_int(client.seq - server[0]).is_equal(ahead)
+	# A client whose numbers trail (its stall guard skipped 30 steps) still moves them on, by the
+	# network's round trip.
+	client.seq -= 30
+	step.call(-1)
+	assert_int(client.renumbered).is_equal(1)
+	assert_int(client.seq - server[0]).is_equal(ahead - 1)
+	# A round trip that stays longer for the whole window is the network's: the numbering follows.
+	for index in NetClient.RTT_WINDOW:
+		step.call(550)
+	assert_int(client.numbering_rtt_ms()).is_equal(550)
 
 
 func test_the_track_blends_holds_and_warps() -> void:
