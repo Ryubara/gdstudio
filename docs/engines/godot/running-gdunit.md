@@ -52,8 +52,9 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
   first. **Seen:** gdstudio #881 (four menu suites; `was`), #924 (a camera distance), #887 (a health read before a
   shot), #1013 (a helper's parameter, written after reading this entry), #904 (`ticks_before`, `later`), #965
-  (`next_up`), all 2026-11-10; #906, 2026-11-11 (byte counters named `before` and `after` in a helper): grep a new
-  suite for `before` and `after` as names before its first run; `gds template test` names them at parse.
+  (`next_up`), #1047 (both, after reading this), all 2026-11-10; #906, 2026-11-11 (byte counters named `before` and
+  `after` in a helper): grep a new suite for `before` and `after` as names, and for a local named like one of the
+  script's own exports, before its first run; `gds template test` names them at parse.
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
