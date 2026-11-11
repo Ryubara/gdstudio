@@ -15,7 +15,7 @@ place on the gun rolled under the magazine's base; `--magazine=` gives another m
 The left hand's way off the gun and back onto it (kit #1051) is solved last: its fingers opened where it holds,
 each as far as it lifts off without passing through anything on the way, and the straight line along which the
 opened hand leaves, the clear one nearest the way to the belt; `--way-only` solves only that, on the output
-file of an earlier run (three minutes).
+file of an earlier run (five minutes).
 
 The seat is given as a move from `REFERENCE_SEAT` (metres along the pistol's own axes, then degrees about them),
 and the hand bone is turned back at the wrist by the same turn, so the barrel keeps the reference's line in the
