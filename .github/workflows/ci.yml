@@ -48,9 +48,9 @@ jobs:
         with:
           path: cache/downloads
           key: tools-test-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
-      - name: Make the workspace and fetch the pinned Godot and GdUnit4 (Windows)
+      - name: Make the workspace and fetch the pinned Godot, GdUnit4 and ffmpeg (Windows)
         if: runner.os == 'Windows'
-        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot,gdunit4
+        run: uv run --project python --frozen gds workspace init --workspace ../.. --no-clone --no-mcp --fetch godot,gdunit4,ffmpeg
       - run: uv run --project python --frozen ruff check python
       - run: uv run --project python --frozen ruff format --check python
       # A skip that python/tests/allowed_skips.toml does not allow for this platform fails the run, and so does an

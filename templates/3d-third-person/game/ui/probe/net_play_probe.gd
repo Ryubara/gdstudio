@@ -5,8 +5,8 @@ extends Node
 ## `CirclingController`, draws the other players (`RemotePlayers`) and writes what the client
 ## measured (`NetPlayReport`) to `window.gdnet` four times a second. A script that drives the page
 ## (`tools/web_smoke/net_play_smoke.py`) freezes the page's thread, sets `window.gdnet.stop` to
-## stand the body still, and judges the numbers. It joins after the level's warm-up
-## (`EffectEmitter.warmed`), as a game joins behind its loading screen. It does nothing off the
+## stand the body still, and judges the numbers. It joins after the level's warm-up and its
+## frames settle (`JoinWait`), as the online game does. It does nothing off the
 ## web or without `?netplay`, so a player's page pays for nothing; the player rig adds it at run
 ## time (`attach`), so no scene ships it. Online play itself is a later feature: this is a probe.
 
@@ -84,15 +84,16 @@ func _ready() -> void:
 	_join.call_deferred()
 
 
-# Joins once the level's warm-up is over: its first draws (the reflection probes, every
-# material inside each) stall a software-drawn page for up to a second a frame, and a seat taken
-# meanwhile met two to four of them in its first three seconds (kit #1106).
+# Joins once the level is ready (`JoinWait`): its warm-up's first draws (the reflection probes,
+# every material inside each) stall a software-drawn page for up to a second a frame, and a seat
+# taken meanwhile met two to four of them in its first three seconds (kit #1106).
 func _join() -> void:
-	var emitter := EffectEmitter.find(self)
-	if emitter != null and emitter.is_warming():
-		_object.state = "warming"
-		await emitter.warmed
-	await _settle()
+	var wait := JoinWait.new()
+	wait.stage_changed.connect(
+		func(_stage: JoinWait.Stage) -> void: _object.state = wait.stage_name()
+	)
+	await wait.run(self)
+	_object.settle_ms = wait.settle_ms
 	var address := WebSocketLink.server_url()
 	_object.url = address
 	if client.join(address) != OK:
@@ -100,19 +101,6 @@ func _join() -> void:
 		return
 	_object.state = "connecting"
 	set_physics_process(true)
-
-
-# Waits for the page's frames to settle (`FrameSettle`) and writes how long that took.
-func _settle() -> void:
-	_object.state = "settling"
-	var settle := FrameSettle.new()
-	var last := Time.get_ticks_usec()
-	while not settle.is_settled():
-		await get_tree().process_frame
-		var now := Time.get_ticks_usec()
-		settle.push((now - last) / 1000000.0)
-		last = now
-	_object.settle_ms = roundi(settle.waited() * 1000.0)
 
 
 func _physics_process(delta: float) -> void:
