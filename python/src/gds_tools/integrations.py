@@ -16,8 +16,10 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
+
+from gds_tools.manifest import Tool
 
 EXCLUDE_NOTE = "# gds workspace init: local-only Godot addons"
 #: The local git filter that keeps the local-only plugins out of project.godot's commits, and its script's file name
@@ -49,6 +51,23 @@ def game_projects(repos: Path) -> list[Path]:
     for folder in PROJECT_FOLDERS:
         found += [*repos.glob(f"*/{folder}/project.godot"), *worktrees.glob(f"*/*/{folder}/project.godot")]
     return sorted(p.parent for p in found)
+
+
+def checkout_projects(checkout: Path) -> list[Path]:
+    """The Godot projects of one checkout or worktree: its `game/` or `godot/` folder, where a project.godot is."""
+    return [checkout / folder for folder in PROJECT_FOLDERS if (checkout / folder / "project.godot").exists()]
+
+
+def install_pinned_addons(tools: Iterable[Tool], tools_root: Path, projects: list[Path], log: Log) -> list[str]:
+    """Install every pinned Godot addon of tools.toml that is fetched under `tools_root` into each of `projects`
+    (install_godot_addon); returns the names of the addons not fetched, which `gds workspace init` fetches."""
+    addons = [t for t in tools if t.kind == "godot-addon"]
+    missing = [t.extra["addon"] for t in addons if not (tools_root / t.folder).exists()]
+    for project in projects:
+        for tool in addons:
+            if (tools_root / tool.folder).exists():
+                install_godot_addon(tools_root / tool.folder, tool.extra["addon"], tool.extra["source"], project, log)
+    return missing
 
 
 def install_godot_addon(tool_dir: Path, addon: str, source: str, project: Path, log: Log) -> bool:

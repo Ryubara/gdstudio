@@ -11,11 +11,11 @@ extends Node
 ## 300 ticks with every character standing, and `flinch_ms` the same with every character
 ## flinching again each time its flinch ends (a chest hit, health off).
 ##
-## Run it headless on the desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/hit_zones_bench.tscn`
-## and in a browser from a web export with this scene as `run/main_scene` and `tools/*` taken out
-## of the preset's exclude filter (`tools/bench/hit_zones_bench.py`). It prints one line of JSON
-## that starts with `HIT_ZONES_BENCH` and, on the web, puts it in `window.__hit_zones_bench`.
+## Run it headless on the desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/hit_zones_bench.tscn` and in a browser from the web export `gds template
+## bench-web 3d-third-person hit_zones_bench` makes (kit docs/engines/godot/web-probes.md#bench-web)
+## (`tools/bench/hit_zones_bench.py`). It prints one line of JSON that starts with `HIT_ZONES_BENCH`
+## and, on the web, puts it in `window.__hit_zones_bench`.
 
 const COUNTS: Array[int] = [1, 4, 10]
 const DRESSED := "res://gameplay/character/character_dressed.tscn"

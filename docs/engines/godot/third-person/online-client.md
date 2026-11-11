@@ -139,7 +139,10 @@ TCP's loss). The browser half is `tools/web_smoke/net_play_smoke.py`: the web ex
 `?play&netplay&url=ws://<relay>` gets a
 `NetPlayProbe` (`ui/probe/`, made by the player rig only on such a page) that plays online with a `NetClient`, walks a
 `CirclingController` and writes `NetPlayReport` to `window.gdnet`; the page's thread is frozen by a busy loop at 8, 16
-and 24 s. Both judge with `tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
+and 24 s. The probe joins only after the level's warm-up (`EffectEmitter.warmed`) and 20 frames in a row under the
+server's hold (`FrameSettle`), as a game joins behind its loading screen; the page records each frame's length and
+the GL programs linked in it, and the report's `hitches` lists every frame past 0.25 s after the seat. Both judge with
+`tools/net/bad_network.py`. `--url wss://...` runs either against a deployment (no relay);
 `--break reconciler` (native only: the client's reconciler without the Deadnight #483 shift) or `--break hold` (the
 server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs after the gate.
 
@@ -150,9 +153,11 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
 | Worst error | under 6 m a stall with freezes (`worst_stall_error_m`), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
-| Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client | the server's hold |
+| Corrected | 4 m a minute (10 over a real network), 3 m more per stall of the commands' way, 0.75 m per unplanned stall of the client; a page 1.5 m per stall of its thread, the freezes included | the server's hold |
 | Starved puppets | 1 % of puppet-steps and 8 a puppet per stall of the client's thread (its catch-up frame), or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
 | Logs | nobody kicked, no `ERROR` in the server's or client's log; the page: no console error, no `Buffer payload full`, at least 20 frames a second | the transport |
+| Page hitches | the page: at most one frame past 0.25 s in the 3 s after the seat (a stray one of the machine) | a join that meets the level's first draws |
+| Server clock | the page's run: the server lost at most 15 steps between two `stats` lines | a run that measures the machine |
 
 Windows, Godot 4.7.2, 2026-11-11 (Railway: the template's image, 48-core EPYC host; rows without jitter were run
 before the relay jittered):
@@ -168,6 +173,8 @@ before the relay jittered):
 | Native, relay and jitter, freezes, the walk on the dais (Windows two cores, three runs; the runner 0.28 m) | | 0.25 to 0.37 m | 3 / 3 | 2.06 to 2.11 m | 4.6 to 4.7 mm | 0 |
 | Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Browser, relay, freezes, judged a stall (36 to 38 fps, three runs, #1070) | 234 to 264 ms | 41 to 57 (0.97 to 2.31 m) | 7 to 8 / 10 to 12 | 4.41 to 7.60 m, 2.20 to 2.53 m a stall (3 stacked) | 3.5 to 6.2 mm | 21 to 27 of about 4000 |
+| Browser, relay, freezes, joined during the warm-up (main, 27 to 37 fps, eight runs, #1106) | 214 to 276 ms | 0.93 to 5.79 m (one run 28.3 m) | 4 to 9 / 11 to 14 | 4.51 to 7.50 m, 1.44 to 3.26 m a stall (4 stacked) | 0.6 to 8.7 mm | 18 to 81 of about 4000 (one 426) |
+| Browser, relay, freezes, joined after the warm-up (28 to 31 fps, seven runs, #1106) | 238 to 304 ms | 1.66 to 4.59 m | 3 to 4 / 3 to 4 | 1.63 to 3.52 m (no stall stacked) | 1.1 to 8.7 mm | 24 to 78 of about 4500 (two runs whose server lost 40 and 55 steps: 366, 657) |
 | Native, relay and jitter, freezes, silence walk (six runs, #1127) | 248 to 282 ms | 8 to 120 (0.10 to 1.02 m; 3.98 m in a run whose server went over budget 50 steps) | 0 to 3 / 3 | 0.04 to 0.46 m | 0.1 to 7.8 mm | 3 to 150 of 5760 |
 | Browser, relay, freezes, silence walk (35 to 38 fps, three runs, #1127) | 252 to 280 ms | 28 to 70 (0.91 to 2.44 m) | 6 to 9 / 11 to 14 | 0.69 to 1.40 m | 1.4 to 8.1 mm | 45 to 168 of about 4000 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
@@ -177,6 +184,7 @@ before the relay jittered):
 | Teeth on the dais walk: hold 0 (Windows two cores; the runner) | | 58.1 m; 33.4 m | | | | |
 | Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
+| Teeth: browser, server hold 0, joined after the warm-up (two runs, #1106) | 254 to 262 ms | 44.8 to 45.6 m against 6.5 m allowed | | | | |
 
 With the silence walk (#1127) the answer after a stall is centimetres off, so a stall of the page's thread costs about
 what a stall of the native client's does: a page that joins after the warm-up (#1106) corrected at most 0.65 m a freeze
@@ -198,9 +206,9 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   frames a second: it measures the machine, not the client. **Watch out for:** SwiftShader drew the 1280x720 page at
   6 frames a second, the client stepped 30 times a second instead of 60, the server repeated its commands, and the
   gate read 13.8 m of corrections and two lost answers that were the renderer's; a page with `--enable-gpu` never
-  seated under `gds quiet`. Even at 34 to 40 frames a second the page hitches past 0.25 s about eight times in 30 s,
-  so snaps and corrections are allowed per stall the stall guard saw. The CI runner (ubuntu, four cores) drew the
-  same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
+  seated under `gds quiet`. Even at 34 to 40 frames a second the page hitched past 0.25 s about eight times in 30 s
+  (the warm-up it joined during: below), so snaps are allowed per stall the stall guard saw. The CI runner (ubuntu,
+  four cores) drew the same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
   (`net_play_smoke.py` `MIN_FPS`; the first CI run of #1077 failed on it).
 - **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
   (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
@@ -208,7 +216,23 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   four hitches of 0.3 to 0.9 s with no answer between: the server walks its body on 30 steps after each silence and
   the walk-ons add up (four at 4 m/s, 7.1 m). Per stall the page reads 2.2 to 2.5 m, the native client 2.6 to 3.0 m.
   A PONG read after a freeze measured the freeze (5.2 s) and put the numbering 5 s ahead; it is now ignored
-  (`NetClient.resync`). **Seen:** gdstudio #1070, 2026-11-11 (hitches: #1106).
+  (`NetClient.resync`). **Seen:** gdstudio #1070, 2026-11-11 (the hitches: next entry).
+- **Approach:** Join a page only once the level has drawn everything: after the level's warm-up
+  (`EffectEmitter.warmed`) and then 20 frames in a row under the server's hold (`FrameSettle`), as a game joins
+  behind its loading screen; count the page's frames past 0.25 s after the seat and the GL programs linked in them.
+  **Watch out for:** the probe joined at once, about 0.3 s after the level started, and the warm-up went on for 6 s
+  after the seat: its tour of the reflection probes drew on SwiftShader at 0.3 to 1.4 s a frame, which the stall
+  guard saw as stalls (8 to 10 of them, 4 to 6 in the first 3 s, 2.5 to 2.8 s of the page's time). After the change:
+  no program linked after the seat, 0 hitches in six of seven runs, 3 stalls (the freezes), worst error 1.6 to 3.5 m
+  instead of 4.5 to 7.5 m. The page joins 1.4 to 2.3 s later (`settle_ms`). **Seen:** gdstudio #1106, 2026-11-11.
+- **Approach:** When a run's allowance grows with something you take away, measure what it covered before you
+  tighten it: a page's corrections are judged per stall of its thread (1.5 m), freezes included. **Watch out for:**
+  the hitches' allowance (0.75 m each) had hidden that a page at 24 to 35 frames a second corrects 1 to 5 m in the
+  second after each freeze (the native client 0.7 to 0.9 m for all three); without the hitches the page failed the
+  old 2 m in eight of eleven runs. Four of 19 runs failed their starvation bound because the game server itself lost
+  0.3 to 1.7 s of steps to the shared machine, so the page's run now checks the server's clock first. **Seen:**
+  gdstudio #1106, 2026-11-11 (`CORRECTED_M_A_PAGE_STALL`, `SERVER_LOST_STEPS`; why a page's freeze costs more:
+  #1127).
 - **Approach:** After a stall of the client's thread, step its body as the server stepped its own through the silence
   (`SilenceWalk`), and judge it by the speed gap of the first commands after the stall (each command's velocity on both
   sides), not by corrections. **Watch out for:** the snap put the point right but kept the body's speed from before

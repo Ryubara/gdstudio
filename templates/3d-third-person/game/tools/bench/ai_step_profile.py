@@ -1,9 +1,9 @@
 """Where an AI character's body step goes in the web build: runs `tools/bench/ai_step_profile.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter) cross-origin isolated, so the page's clock reads 5 µs steps instead of 100 µs, waits for
-`window.__ai_step_profile`, and prints microseconds a body a tick for the real step and for each module of it. The
-optional second argument is a CPU throttle (4 is the weak-machine stand-in), the third the page's query
+Serves a web export of the bench (`gds template bench-web 3d-third-person ai_step_profile` makes it: kit
+docs/engines/godot/web-probes.md#bench-web) cross-origin isolated, so the page's clock reads 5 µs steps instead of 100
+µs, waits for `window.__ai_step_profile`, and prints microseconds a body a tick for the real step and for each module of
+it. The optional second argument is a CPU throttle (4 is the weak-machine stand-in), the third the page's query
 (`count=40&lean=off`).
 
     uv run --project <kit>/python gds quiet -- \\

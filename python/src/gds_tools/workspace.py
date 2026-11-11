@@ -258,12 +258,9 @@ def init(
 
     if not dry_run:
         log(f"write   {write_local_config(root, tools, key).name}")
-        addons = [t for t in tools.values() if t.kind == "godot-addon" and (root / "tools" / t.folder).exists()]
-        for project in integrations.game_projects(root / "repos"):
-            for tool in addons:
-                integrations.install_godot_addon(
-                    root / "tools" / tool.folder, tool.extra["addon"], tool.extra["source"], project, log
-                )
+        integrations.install_pinned_addons(
+            tools.values(), root / "tools", integrations.game_projects(root / "repos"), log
+        )
         if mcp:
             folders = {t.name: t.folder for t in tools.values()}
             servers = {
