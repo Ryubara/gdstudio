@@ -267,6 +267,11 @@ Reload button on the web and "update the game" on the desktop; the game is full;
 before the WELCOME or `connect_seconds` of frames (each under the stall guard's 0.25 s) without one it says the server
 did not answer, and on a seated link that closes, Connection lost. Every message has Back to menu, the player's input
 is off while one shows, and the texts are exports of `online_status.tscn`.
+The overlay is not under the router's stage, so it builds its `gds_ui` theme from the tokens itself (the marquee
+panel's padding, the title's size; [Menus](../menus.md#menus)); `tests/ui/test_online_status.gd` holds every part
+inside the panel's bulbs at the desktop and the phone layout, and `tools/capture/online_status_tour.tscn` shows
+Connecting, a message and the other-version message in the real online game (Movie Maker at 1920 x 1080, or
+`-- --shots=<folder>` in an 844 x 390 window).
 
 `PlayerBot` (`gameplay/player/player_bot.gd`, `--bot` or `?bot`) plays through the player's own `PlayerInput`: it
 presses the input actions (`Input.action_press`) and turns the camera with `PlayerCamera.orbit`, so the server hears a
@@ -288,20 +293,44 @@ every hello as a server of the next protocol version: the probe then fails (its 
 passes only when every page shows the overlay's "another version" message. `OnlineProbe` (`ui/probe/`) is the page's
 side: `window.gdonline`, or an `ONLINE_PROBE` line a second on the desktop with `--onlineprobe`.
 
-**What it measured** (Windows, Godot 4.7.2, 2026-11-11; headless Chromium on SwiftShader at 320x180 under `gds quiet`,
-one page, `server_bot.gd` bots for the puppets, relay 100 ms each way, 20 s):
+**What it measured** (Windows, Godot 4.7.2, 2026-11-11, Ryzen 7 9800X3D and RTX 5080; headless Chromium 156 at
+320x180 under `gds quiet`, one page, `server_bot.gd` bots for the puppets (`--bots` 1, 4 and 7), relay 100 ms each way,
+20 s). On the GPU (`--gpu`, ANGLE on Direct3D 11) a warm-up page played 20 s first (below); vsync holds a GPU page at
+16.7 ms whatever it draws, so `--uncapped` (vsync and the frame cap off) reads the page's work, two runs each:
 
-| Puppets | Frames a second | Frame p50 / p95 | Placing the puppets, p50 | Corrections (metres) |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | 23 | 42.8 / 48.7 ms | 0.1 ms | 40 (1.6 m) |
-| 4 | 21 | 46.1 / 50.6 ms | 0.2 ms | 18 (1.8 m) |
-| 7 (8 players) | 19 | 51.8 / 63.7 ms | 0.3 ms | 14 (1.1 m) |
+| Puppets | Renderer | Frames a second | Frame p50 / p95 | Placing the puppets, p50 | Corrections (metres) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | SwiftShader | 23 | 42.8 / 48.7 ms | 0.1 ms | 40 (1.6 m) |
+| 4 | SwiftShader | 21 | 46.1 / 50.6 ms | 0.2 ms | 18 (1.8 m) |
+| 7 (8 players) | SwiftShader | 19 | 51.8 / 63.7 ms | 0.3 ms | 14 (1.1 m) |
+| 1 | GPU, vsync | 60 | 16.6 / 18.3 ms | 0.1 ms | 11 (0.3 m) |
+| 4 | GPU, vsync | 60 | 16.7 / 17.8 ms | 0.2 ms | 12 (0.5 m) |
+| 7 (8 players) | GPU, vsync | 60 | 16.6 / 18.0 ms | 0.3 ms | 41 (2.5 m) |
+| 1 | GPU, uncapped | 166 to 230 | 4.1 to 6.6 / 5.5 to 10.0 ms | 0.1 ms | 41 to 53 (1.6 to 2.5 m) |
+| 4 | GPU, uncapped | 135 to 140 | 7.6 to 7.8 / 10.3 to 11.0 ms | 0.2 ms | 29 to 60 (0.7 to 2.7 m) |
+| 7 | GPU, uncapped | 79 to 94 | 10.5 to 14.3 / 13.6 to 18.3 ms | 0.4 ms | 17 to 19 (0.7 m) |
 
-Each puppet costs the software-drawn page about 1.5 ms a frame (its skinned model and animation; placing it from the
-track is a few hundredths of that), so eight players draw at 19 frames a second there, against the research's
-estimate of about 1 ms for eight on a desktop GPU. Two pages at once share the CPU and draw at 15. The GPU build could
-not be measured: a page with `--enable-gpu` under `gds quiet` draws a frame in 5 to 17 ms but hitches 0.6 to 3 s every
-few frames and never sends its HELLO (#908 saw the same; #1117).
+Each puppet costs the software-drawn page about 1.5 ms a frame and the GPU page 1 to 1.3 ms (with no puppet the
+uncapped page made a frame in 1.7 to 2.2 ms): nearly the same, so the cost is the page's own work for each puppet (its
+animation and skinned model), not the drawing, and placing it from the track is a few hundredths of it. Eight players
+hold 60 frames a second with vsync on a desktop GPU, but their frame is 10.5 to 14.3 ms of work (p95 up to 18.3 ms),
+against the research's estimate of about 1 ms for all eight; on SwiftShader they draw at 19. Two pages at once share
+the CPU and draw at 15 there.
+
+**A cold browser hangs up on its first join.** Godot's Compatibility renderer links each shader program the first time
+it draws with it and asks for the link's result at once (`getProgramParameter`), which waits until Chrome's GPU process
+has compiled it. On ANGLE's Direct3D 11 the first page waited 21.2 s in 342 calls to `getProgramParameter` (171
+programs, the slowest about 1.1 s each), in long tasks of 13.9, 4.8 and 3.0 s from the first frames; the socket opened
+before the first of them, its `open` event ran 14 s later, and the server had hung up on a connection with no hello at
+`NetServer.hello_seconds` (10 s; close code 1008): the overlay said the server did not answer. SwiftShader links the
+same programs in 0.3 s (its longest task 2.4 s), which is why software pages always seated. The browser keeps what it
+compiled: a second page in the same browser, or the same profile started again, drew at 60 frames a second and seated
+in a second. So `online.py --gpu` plays a warm-up page for `--warm-up` seconds (20) first, and the measured pages read
+a returning player; the warm-up page itself is hung up every time. The private desktop was not the cause: the warm
+page ran on it. A player whose browser has never drawn the game meets the same hang-up (#1137). Two GPU pages after
+the warm-up seat and hold 60 frames a second; two SwiftShader pages failed four runs of four later the same day, on a
+machine busy with other agents (main's probe too, and with a warm-up): the second page hitched 2.7 to 8 s while the
+first drew, and was hung up for its hello in the same way.
 
 **Jolt in wasm against Jolt on Linux.** `StepTraceProbe` (`ui/probe/`, `?steptrace` or `-- --steptrace` with
 `--play`) steps a server's body (`character.tscn`) 1800 times through the template's map with commands of the step's
@@ -333,6 +362,11 @@ Linux. The page's hitches after the join are #1106.
   for:** the browser corrected 30 to 100 times more than a native client against the same Linux server, which looked
   like Jolt in wasm parting from Jolt on Linux; the three traces were the same to nine decimals and the corrections
   were the page's hitches. **Seen:** gdstudio #909, 2026-11-11 (`StepTraceProbe`, `step_trace.py`).
+- **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
+  arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
+  7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's
+  `puppets` field showed it. **Seen:** gdstudio #1117, 2026-11-11 (fixed in `online.py`'s docstring; the table's rows
+  are `--bots` 1, 4 and 7).
 - **Approach:** Count a connect timeout in frames the game really ran (each under the stall guard's 0.25 s), and show
   Back to menu while connecting. **Watch out for:** a page's first seconds are spent compiling shaders and loading the
   map; a timeout on the clock would call a server that is fine unreachable on a slow device. **Seen:** gdstudio #909,
