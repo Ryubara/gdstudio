@@ -423,6 +423,13 @@ tested on made-up motion only. A body whose legs differ from the reference body'
   hip need opposite room. A side's own `arm_out` moved the measured forearm lag from 1.2 to 1.1 frames, under what the
   variant declares: rebuild every variant after a per-side number. **Seen:** gdstudio #1155, 2026-11-11 (0 mm on
   both bodies).
+- **Approach:** After any change to the arm that carries a weapon (the right), run the template's
+  `test_pistol_clearance.gd` and `tools/carry/measure_clearance.gd`: the gait's arm carries the pistol under the
+  grip pose, and the limbs check knows nothing of it. **Watch out for:** a right arm held tighter than the left
+  (a deeper elbow, less swing) put the carried pistol 7 mm into the female's flank for one frame of the jog and
+  4 mm into her chest at the sprint's seam, between the test's eight samples of the first and on one of the
+  second; three more degrees of `arm_out` moved it 1 mm, while a shallower elbow, `arm_out_back` and less
+  `arm_twist` cleared it by 50 mm. The test samples 24 times now. **Seen:** gdstudio #1155, 2026-11-11.
 
 ## The clip eval {#eval}
 

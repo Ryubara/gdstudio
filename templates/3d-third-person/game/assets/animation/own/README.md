@@ -150,7 +150,9 @@ declared choice.
   1.5 and tilted 1 against them. The runs do the same with their own figures (the right arm tighter and its
   shoulder a little raised and lower, the feet at different widths and toe-out). The loose variant has 1.4 times
   these differences and the sharp one 0.8. On top of that the right foot reaches 12 mm further and lifts a tenth
-  higher and the left arm swings 8 % wider (`uneven`).
+  higher and the left arm swings 8 % wider (`uneven`). The right arm is the one that carries a weapon: in the
+  shipped jog and sprint it goes further out on its way back and turns in less, which keeps the carried pistol
+  50 mm clear of both bodies (`tests/gameplay/test_pistol_clearance.gd`).
 
 ### The three variants of each
 

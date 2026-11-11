@@ -123,7 +123,9 @@
    "arm_fore": 25.0,
    "arm_back": 38.0,
    "elbow": 86.0,
-   "arm_twist": 11.0,
+   "arm_twist": 9.0,
+   "arm_out": 15.0,
+   "arm_out_back": 15.0,
    "shrug": 1.5
   },
   "hip_turn_rest": 1.0,
@@ -167,8 +169,9 @@
    "width": 0.056,
    "arm_fore": 41.0,
    "arm_back": 53.0,
-   "elbow": 97.0,
-   "arm_out": 14.0,
+   "elbow": 93.0,
+   "arm_out": 15.0,
+   "arm_twist": -9.0,
    "shrug": 3.5
   },
   "hip_turn_rest": 1.0,
