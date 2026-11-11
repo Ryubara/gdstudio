@@ -19,8 +19,20 @@ extends SkeletonModifier3D
 ## Where the elbow points, in the skeleton's space.
 @export var elbow := Vector3(0.6, 0.6, 0.2)
 
-## How far the hand stopped from the point on the last update, in metres (0 when it reached).
+## The way the hand backs off when the arm is too short for `offset` (kit #1078), in the weapon's
+## bone's space: the hand is put on the line from `offset` along it, at the nearest place the arm
+## reaches, and never short of its place with the place's turn (which put its fingers through the
+## weapon). Zero for a hand that only stops short.
+@export var retreat := Vector3.ZERO
+## A hand whose fingers are opened whenever the arm backs off: closed, they would be dragged
+## through what they hold. It runs after this modifier, in the same update.
+var opener: HandPoseModifier
+
+## How far the hand stopped from the point on the last update, in metres (0 when it reached; with
+## a `retreat`, from the place on that line the arm chose).
 var shortfall := 0.0
+## How far along `retreat` the hand was put on the last update, in metres (0 at `offset`).
+var backed := 0.0
 
 var _bones := PackedInt32Array()
 
@@ -49,12 +61,16 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var hand := fore * hand_local
 	var upper_length := upper.origin.distance_to(fore.origin)
 	var fore_length := fore.origin.distance_to(hand.origin)
+	var longest := upper_length + fore_length - 0.001
+	backed = 0.0
+	if not retreat.is_zero_approx():
+		var line := (HandPoseModifier.global_pose(skeleton, _bones[3]).basis * retreat).normalized()
+		backed = backed_off(goal.origin - upper.origin, line, longest)
+		goal.origin += line * backed
+		if backed > 0.0 and opener != null:
+			opener.open_weight = 1.0
 	var to_goal := goal.origin - upper.origin
-	var reach := clampf(
-		to_goal.length(),
-		absf(upper_length - fore_length) + 0.001,
-		upper_length + fore_length - 0.001
-	)
+	var reach := clampf(to_goal.length(), absf(upper_length - fore_length) + 0.001, longest)
 	shortfall = absf(to_goal.length() - reach)
 	var along := to_goal.normalized()
 	# The elbow lies on a circle about the line to the goal; the pole picks the point on it.
@@ -75,6 +91,20 @@ func _process_modification_with_delta(_delta: float) -> void:
 	skeleton.set_bone_pose_rotation(_bones[0], _local(above.basis, upper.basis))
 	skeleton.set_bone_pose_rotation(_bones[1], _local(upper.basis, fore.basis))
 	skeleton.set_bone_pose_rotation(_bones[2], _local(fore.basis, hand.basis))
+
+
+## How far along the unit `line` a point `to_goal` from the shoulder must go to be within
+## `longest` of the shoulder: 0 when it is already, the first place on the line that is, or the
+## line's nearest place to the shoulder when none is (never backwards).
+static func backed_off(to_goal: Vector3, line: Vector3, longest: float) -> float:
+	var over := to_goal.length_squared() - longest * longest
+	if over <= 0.0:
+		return 0.0
+	var toward := -to_goal.dot(line)
+	if toward <= 0.0:
+		return 0.0
+	var inside := toward * toward - over
+	return toward - sqrt(inside) if inside > 0.0 else toward
 
 
 # A bone's rotation in its parent's space, from the two bases in the skeleton's space.

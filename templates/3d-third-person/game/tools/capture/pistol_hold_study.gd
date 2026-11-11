@@ -5,10 +5,12 @@
 ## Run headless, it prints one `HOLD` line a pose: for each hand the deepest part in the weapon
 ## and the farthest holding part off it, in millimetres (`HOLD_PARTS=1` adds every part). Run with
 ## a window and `HOLD_OUT=<folder>`, it also saves five views of each pose (the gun's left, its
-## right, from above, a close-up from the player's aim camera and that camera's own view):
+## right, from above, a close-up from the player's aim camera and that camera's own view; two
+## more of a two-handed pose, from ahead of the muzzle and from straight below):
 ## `HOLD_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
 ## res://tools/capture/pistol_hold_study.tscn`. `MODEL=male` studies the male mannequin,
-## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=reload` studies one
+## `HOLD_OFF=1` leaves the hold scene out (the clips' own fist), `HOLD_ONLY=trigger` films the
+## trigger finger's way to the trigger at seven shares of it, `HOLD_ONLY=reload` studies one
 ## tag (the reload is filmed at every share of `RELOAD_SHARES`, both hands measured;
 ## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it;
 ## `HOLD_RELOAD_STEP=0.01` measures every hundredth of it instead, the scan that finds a hand
@@ -25,6 +27,7 @@ const POSES: Array[Dictionary] = [
 	{"tag": "aim_down", "clip": &"ual1/Pistol_Aim_Down", "times": [0.0, 0.16], "aim": 1.0},
 	{"tag": "shoot", "clip": &"ual1/Pistol_Shoot", "times": [0.0, 0.05, 0.1, 0.2], "aim": 1.0},
 	{"tag": "reload", "clip": &"ual1/Pistol_Reload", "shares": RELOAD_SHARES},
+	{"tag": "trigger", "clip": &"ual1/Pistol_Aim_Neutral", "trigger": TRIGGER_SHARES, "aim": 1.0},
 	{"tag": "carry_idle", "clip": &"ual1/Idle", "times": [0.0, 1.0], "carry": true},
 	{"tag": "carry_walk", "clip": &"ual1/Walk", "times": [0.0, 0.3, 0.6], "carry": true},
 	{"tag": "carry_jog", "clip": &"ual1/Jog_Fwd", "times": [0.0, 0.25, 0.5], "carry": true},
@@ -38,6 +41,10 @@ const POSES: Array[Dictionary] = [
 const RELOAD_SHARES: Array = [
 	0.0, 0.04, 0.08, 0.17, 0.25, 0.33, 0.42, 0.5, 0.54, 0.63, 0.71, 0.79, 0.88, 1.0
 ]
+
+## How far on the trigger the index finger is in the `trigger` poses (kit #1079): the aimed pistol
+## in both hands, the finger along the frame, on its way by the pose between, and on the trigger.
+const TRIGGER_SHARES: Array = [0.0, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0]
 
 ## How near the gun the left view cuts when only the right hand holds it: 7.5 cm off its middle.
 const _ONE_HAND_NEAR := 0.425
@@ -65,7 +72,8 @@ func _run(model: String) -> void:
 		if only != "" and spec.tag != only:
 			continue
 		var reload: bool = spec.has("shares")
-		var times: Array = _reload_shares() if reload else spec.times
+		var trigger: bool = spec.has("trigger")
+		var times: Array = _reload_shares() if reload else spec.get("times", spec.get("trigger"))
 		for index in times.size():
 			var aim: float = spec.get("aim", 0.0)
 			if spec.get("carry", false):
@@ -74,17 +82,25 @@ func _run(model: String) -> void:
 				var length := _stage.clip(spec.clip).length
 				var share: float = times[index] if _follows_reload else -1.0
 				_stage.pose(spec.clip, times[index] * length, aim, &"", [], share)
+			elif trigger:
+				# The reload's weight takes the finger off the trigger, as in the game.
+				_stage.pose(spec.clip, 0.16, aim)
+				if _stage.hold != null:
+					_stage.hold.set(&"reload_weight", 1.0 - float(times[index]))
+					_stage.hold.call(&"refresh")
 			else:
 				_stage.pose(spec.clip, times[index], aim)
 			await _stage.settle()
 			var tag := "%s_%d" % [spec.tag, index]
-			if reload:
+			if reload or trigger:
 				tag = _reload_tag(spec.tag, times[index])
 			print("HOLD %s %s %s" % [model, tag, _measure(aim > 0.0 or reload)])
 			if OS.get_environment("HOLD_OBJ") != "":
 				_stage.contact.dump_obj(OS.get_environment("HOLD_OBJ").path_join(tag + ".obj"))
 			if film and reload:
 				await _shoot(camera, out.path_join(tag), true, true)
+			elif film and trigger:
+				await _shoot(camera, out.path_join(tag), true)
 			elif film and index == times.size() - 1:
 				await _shoot(camera, out.path_join(spec.tag), aim > 0.0)
 	get_tree().quit()
@@ -114,7 +130,9 @@ func _reload_shares() -> Array:
 
 
 func _measure(two_handed: bool) -> String:
-	var right := _stage.contact.measure("r")
+	# With both hands on the gun each is measured against the other too: a fingertip of one that
+	# enters a flat face of the other shows only from its own side.
+	var right := _stage.contact.measure("r", two_handed)
 	var line := "| r: " + HandContact.summary(right, HoldStage.RIGHT_CONTACTS)
 	if OS.get_environment("HOLD_PARTS") == "1":
 		line += " " + _parts(right)
@@ -133,7 +151,11 @@ func _measure(two_handed: bool) -> String:
 func _parts(parts: Dictionary) -> String:
 	var text := PackedStringArray()
 	for part: String in parts:
-		text.append("%s %.1f" % [part, parts[part].distance * 1000.0])
+		var entry := "%s %.1f" % [part, parts[part].distance * 1000.0]
+		# A part near the other hand: how far it is from that hand and from the gun.
+		if parts[part].hand < HandContact.MARGIN:
+			entry += " (hand %.1f, gun %.1f)" % [parts[part].hand * 1e3, parts[part].gun * 1e3]
+		text.append(entry)
 	return "[" + ", ".join(text) + "]"
 
 
@@ -152,9 +174,10 @@ func _light() -> void:
 	add_child(sun)
 
 
-# Five views of the pose (six with `under`, from below the grip's foot): the gun's left, its
-# right, from above (the muzzle up the picture), a close-up from the player's aim camera (1.1 m
-# behind the 1.55 m target, 0.5 m to the right) and that camera's own 50 degree view.
+# Five views of the pose: the gun's left, its right, from above (the muzzle up the picture), a
+# close-up from the player's aim camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and
+# that camera's own 50 degree view; with both hands on the gun also from ahead of the muzzle and
+# from straight below, and with `under` from below the grip's foot.
 func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) -> void:
 	var gun := _stage.pistol.global_transform.orthonormalized()
 	var middle := gun * Vector3(-0.04, 0.03, 0.0)
@@ -165,6 +188,11 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		"top": [middle + gun.basis * Vector3(0.0, 0.5, 0.02), -gun.basis.x, 34.0],
 		"player": [eye, Vector3.UP, 13.0],
 	}
+	if two_handed:
+		# From ahead of the muzzle (the two hands' fingers one over the other under the trigger
+		# guard) and from straight below (the support fingers across the shooting hand's).
+		views["front"] = [middle + gun.basis * Vector3(-0.5, -0.02, 0.0), gun.basis.y, 34.0]
+		views["below"] = [middle + gun.basis * Vector3(0.0, -0.5, 0.02), -gun.basis.x, 34.0]
 	if under:
 		# From below and ahead of the grip's foot, where a hand at the magazine shows.
 		views["under"] = [middle + gun.basis * Vector3(-0.3, -0.33, 0.12), gun.basis.y, 34.0]
@@ -172,6 +200,9 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		# From the sides and above, nothing nearer than the hands is drawn (a leg, the chest); with
 		# one hand on the gun its left is cut closer still, since the thigh is a hand away from it.
 		camera.near = 0.02 if view == "player" or view == "under" else 0.3
+		if view == "below":
+			# The forearms hang below the gun: cut them away 10 cm under its middle.
+			camera.near = 0.4
 		if view == "left" and not two_handed:
 			camera.near = _ONE_HAND_NEAR
 		camera.fov = views[view][2]
