@@ -25,13 +25,8 @@ const UAL1 := "res://assets/animation/universal/ual1.glb"
 const RIFLE := "res://assets/weapons/rifle/rifle.glb"
 const PISTOL := "res://assets/weapons/pistol/pistol.glb"
 const SPINE_TURN := preload("res://tools/capture/spine_turn.gd")
-## The pistol's seat in the `hand_r` bone's space (`assets/weapons/pistol/README.md`).
-const PISTOL_SEAT := Transform3D(
-	Vector3(0.0234, -0.9867, 0.1609),
-	Vector3(-0.0805, 0.1585, 0.9841),
-	Vector3(-0.9965, -0.036, -0.0757),
-	Vector3(-0.0264, 0.1234, 0.0091)
-)
+## The pistol on `hand_r`: its seat (the first child's transform) gives the fist's place on a grip.
+const PISTOL_HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 ## The mirror across the model's YZ plane: the left bones' rests are the right ones' through it.
 const MIRROR := Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
 ## The rifle's axes in the model's space: muzzle (-X) along the facing (+Z), up up, left (+Z)
@@ -66,9 +61,12 @@ func _ready() -> void:
 	var mannequin := (
 		"res://assets/characters/mannequin/mannequin_%s.glb" % ["male" if male else "female"]
 	)
-	var hand_in_grip := (PISTOL_SEAT * _socket(PISTOL, "Grip")).affine_inverse()
+	var held := (load(PISTOL_HELD) as PackedScene).instantiate()
+	var pistol_seat := (held.get_child(0) as Node3D).transform
+	held.free()
+	var hand_in_grip := (pistol_seat * _socket(PISTOL, "Grip")).affine_inverse()
 	var targets := {
-		"seat": PISTOL_SEAT * _socket(PISTOL, "Grip") * _socket(RIFLE, "Grip").affine_inverse(),
+		"seat": pistol_seat * _socket(PISTOL, "Grip") * _socket(RIFLE, "Grip").affine_inverse(),
 		"right": _socket(RIFLE, "Grip") * hand_in_grip,
 		"left": _socket(RIFLE, "Support") * _mirrored(hand_in_grip),
 		"butt": _socket(RIFLE, "Butt").origin,

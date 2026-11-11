@@ -11,8 +11,10 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## A living dressed character: 62 nodes and 17 physics bodies before #926 (16 bones, their shapes
 ## and their simulator were made at the spawn), 29 and 1 after; the hit zones (#876) add 13 nodes
 ## and their body; the weapon system (#887) adds 4: the `Loadout` and the weapon's empty click,
-## reload and draw sounds (idle players, no processing until one plays); its `Health` node (#925) 1.
-const NODES_ALIVE := 47
+## reload and draw sounds (idle players, no processing until one plays); the pistol's hold (#1001)
+## adds 6: `WeaponHold`, its three skeleton modifiers (5.6 microseconds a character a frame
+## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1.
+const NODES_ALIVE := 53
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

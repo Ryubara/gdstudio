@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zones.gd" id="10_hit_zones"]
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zone.gd" id="11_hit_zone"]
 [ext_resource type="Script" path="res://gameplay/character/hit_reaction.gd" id="12_hit_reaction"]
+[ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="13_hold"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_head"]
 radius = 0.12
@@ -197,3 +198,8 @@ damage_multiplier = 0.7
 script = ExtResource("12_hit_reaction")
 character = NodePath("..")
 ragdoll = NodePath("../Ragdoll")
+
+[node name="WeaponHold" parent="." node_paths=PackedStringArray("model", "seat", "animation") instance=ExtResource("13_hold")]
+model = NodePath("../Model")
+seat = NodePath("../Model/PistolHeld")
+animation = NodePath("../Animation")

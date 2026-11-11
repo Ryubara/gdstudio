@@ -320,6 +320,26 @@ The pistol sits in the hand without sinking into the leg or the body in the loco
 both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the skinned body, and
 `tools/carry/measure_clearance.gd` prints the numbers for another grip. If a game changes the grip, run both.
 
+**The hands on the pistol** are closed by `WeaponHold` (`gameplay/weapon/hold/weapon_hold.tscn`, a node of
+`character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
+It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
+pistol layer's weights (`CharacterAnimation.pistol_weights()`), so it follows the carry, the aim and a death with no
+wiring of its own. Everything is tuned in its inspector while the game runs:
+
+| Property | Default | What it does |
+| --- | --- | --- |
+| `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
+| `support_pose` | `pistol_support_pose.tres` | The left hand's fingers over the right hand, used while aiming or firing. |
+| `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
+| `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
+| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims. |
+| `held_weight`, `aim_weight` | from the animation | How far the hold and its aim are on, for a character posed by hand (no `animation` set). |
+
+The three poses and the pistol's seat are solved, never typed: the pistol folder's `README.md` says how to run the
+solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip to 2 mm in and 5 mm off on both
+mannequins, and `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
+worked out on each machine from the aim the game already has; nothing of it goes over a network.
+
 ## Licences
 
 The two mannequins, both animation libraries and Phantom Camera are third-party files with a `LICENSE.md` each
